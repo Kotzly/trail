@@ -3,18 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stack History</title>
+  <title>Trail</title>
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
   <div class="container">
     <header class="header">
       <h1 class="title">
-        <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 6h16M4 12h16M4 18h16"/>
-          <path d="M12 2v4M12 18v4"/>
+        <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v9"/>
+          <path d="M12 12l-5 9"/>
+          <path d="M12 12l5 9"/>
+          <circle cx="12" cy="3" r="1.5" fill="currentColor"/>
+          <circle cx="12" cy="12" r="2" fill="currentColor"/>
+          <circle cx="7" cy="21" r="1.5" fill="currentColor"/>
+          <circle cx="17" cy="21" r="1.5" fill="currentColor"/>
         </svg>
-        Stack History
+        Trail
       </h1>
       <div class="header-actions">
         <button id="clearBtn" class="btn-icon" title="Clear stack">
