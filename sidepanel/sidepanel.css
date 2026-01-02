@@ -853,3 +853,42 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Graph Zoom Controls */
+.graph-zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+}
+
+.graph-zoom-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--md-on-surface);
+}
+
+.graph-zoom-btn:hover {
+  background: var(--md-surface-container-high);
+  border-color: var(--md-primary);
+}
+
+.graph-zoom-btn:active {
+  transform: scale(0.95);
+}
+
+.graph-zoom-btn svg {
+  width: 18px;
+  height: 18px;
+}
