@@ -2,9 +2,12 @@
  * Options page for Stack History extension.
  */
 
+import { getViewModes, DEFAULT_VIEW_MODE, isValidViewMode } from '../lib/view-modes.js';
+
 const DEFAULT_SETTINGS = {
   maxCachedLinks: 10,
-  stackCapacity: 100
+  stackCapacity: 100,
+  viewMode: DEFAULT_VIEW_MODE
 };
 
 /**
@@ -53,6 +56,9 @@ async function loadSettings() {
     
     document.getElementById('stackCapacity').value = settings.stackCapacity;
     document.getElementById('maxCachedLinks').value = settings.maxCachedLinks;
+    
+    // Update view mode selection
+    updateViewModeSelection(settings.viewMode || DEFAULT_VIEW_MODE);
   } catch (error) {
     console.error('Failed to load settings:', error);
     showToast('Failed to load settings', true);
@@ -66,9 +72,12 @@ async function loadSettings() {
 async function saveSettings(event) {
   event.preventDefault();
   
+  const selectedViewMode = document.querySelector('input[name="viewMode"]:checked')?.value || DEFAULT_VIEW_MODE;
+  
   const settings = {
     stackCapacity: parseInt(document.getElementById('stackCapacity').value, 10),
-    maxCachedLinks: parseInt(document.getElementById('maxCachedLinks').value, 10)
+    maxCachedLinks: parseInt(document.getElementById('maxCachedLinks').value, 10),
+    viewMode: selectedViewMode
   };
   
   // Validation
@@ -100,6 +109,7 @@ async function resetSettings() {
     
     document.getElementById('stackCapacity').value = DEFAULT_SETTINGS.stackCapacity;
     document.getElementById('maxCachedLinks').value = DEFAULT_SETTINGS.maxCachedLinks;
+    updateViewModeSelection(DEFAULT_SETTINGS.viewMode);
     
     showToast('Settings reset to defaults');
   } catch (error) {
@@ -108,8 +118,52 @@ async function resetSettings() {
   }
 }
 
+/**
+ * Initialize view mode options UI.
+ */
+function initViewModeOptions() {
+  const container = document.getElementById('viewModeOptions');
+  const viewModes = getViewModes();
+  
+  viewModes.forEach(mode => {
+    const option = document.createElement('label');
+    option.className = 'view-mode-option';
+    option.dataset.mode = mode.id;
+    
+    option.innerHTML = `
+      <input type="radio" name="viewMode" value="${mode.id}">
+      <div class="view-mode-radio"></div>
+      <div class="view-mode-icon">${mode.icon}</div>
+      <div class="view-mode-content">
+        <div class="view-mode-label">${mode.label}</div>
+        <div class="view-mode-description">${mode.description}</div>
+      </div>
+    `;
+    
+    option.addEventListener('click', () => {
+      updateViewModeSelection(mode.id);
+    });
+    
+    container.appendChild(option);
+  });
+}
+
+/**
+ * Update view mode selection UI.
+ * @param {string} modeId
+ */
+function updateViewModeSelection(modeId) {
+  const options = document.querySelectorAll('.view-mode-option');
+  options.forEach(opt => {
+    const isSelected = opt.dataset.mode === modeId;
+    opt.classList.toggle('selected', isSelected);
+    opt.querySelector('input[type="radio"]').checked = isSelected;
+  });
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  initViewModeOptions();
   loadSettings();
   
   document.getElementById('settingsForm').addEventListener('submit', saveSettings);
