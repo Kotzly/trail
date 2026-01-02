@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+*.zip
+dist/
+
+# Logs
+*.log
