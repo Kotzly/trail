@@ -7,11 +7,26 @@
 import '../lib/tree-renderer.js';
 import '../lib/stack-renderer.js';
 import { getRenderer } from '../lib/renderers.js';
-import { DEFAULT_VIEW_MODE } from '../lib/view-modes.js';
+import { getViewModes, DEFAULT_VIEW_MODE } from '../lib/view-modes.js';
 
 let currentTabId = null;
 let settings = null;
 let currentNodeId = null; // Track which node is currently active
+
+const DEFAULT_SETTINGS = {
+  maxCachedLinks: 10,
+  stackCapacity: 100,
+  viewMode: DEFAULT_VIEW_MODE,
+  theme: 'system'
+};
+
+/**
+ * Apply theme to document.
+ * @param {string} theme
+ */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme || 'system');
+}
 
 /**
  * Send message to service worker.
@@ -135,6 +150,9 @@ async function loadCurrentTab() {
     const settingsResponse = await sendMessage({ type: 'GET_SETTINGS' });
     settings = settingsResponse.settings;
     
+    // Apply theme
+    applyTheme(settings.theme);
+    
     // Load tree for this tab
     const { tree } = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
     renderView(tree);
@@ -158,9 +176,33 @@ function initEventListeners() {
     }
   });
   
-  // Settings button - open options page
+  // Settings button - toggle settings panel
   document.getElementById('settingsBtn').addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
+    openSettingsPanel();
+  });
+  
+  // Close settings button
+  document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+    closeSettingsPanel();
+  });
+  
+  // Save settings button
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    saveSettings();
+  });
+  
+  // Reset settings button
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    resetSettings();
+  });
+  
+  // Theme option clicks
+  document.querySelectorAll('.theme-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const theme = opt.dataset.theme;
+      updateThemeSelection(theme);
+      applyTheme(theme);
+    });
   });
   
   // Listen for tree updates from service worker
@@ -178,10 +220,14 @@ function initEventListeners() {
     }
   });
   
-  // Listen for storage changes (settings updates)
+  // Listen for storage changes (settings updates from other places)
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'sync' && changes.settings) {
       settings = changes.settings.newValue;
+      
+      // Apply theme
+      applyTheme(settings.theme);
+      
       // Re-render tree
       if (currentTabId) {
         sendMessage({ type: 'GET_TREE', tabId: currentTabId })
@@ -192,8 +238,140 @@ function initEventListeners() {
   });
 }
 
+/**
+ * Open settings panel and populate with current settings.
+ */
+function openSettingsPanel() {
+  const panel = document.getElementById('settingsPanel');
+  panel.classList.remove('hidden');
+  
+  // Populate current values
+  document.getElementById('stackCapacity').value = settings?.stackCapacity || DEFAULT_SETTINGS.stackCapacity;
+  updateThemeSelection(settings?.theme || DEFAULT_SETTINGS.theme);
+  updateViewModeSelection(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
+}
+
+/**
+ * Close settings panel.
+ */
+function closeSettingsPanel() {
+  const panel = document.getElementById('settingsPanel');
+  panel.classList.add('hidden');
+}
+
+/**
+ * Initialize view mode options UI.
+ */
+function initViewModeOptions() {
+  const container = document.getElementById('viewModeOptions');
+  const viewModes = getViewModes();
+  
+  viewModes.forEach(mode => {
+    const option = document.createElement('label');
+    option.className = 'view-mode-option';
+    option.dataset.mode = mode.id;
+    
+    option.innerHTML = `
+      <input type="radio" name="viewMode" value="${mode.id}">
+      <div class="view-mode-radio"></div>
+      <div class="view-mode-icon">${mode.icon}</div>
+      <div class="view-mode-content">
+        <div class="view-mode-label">${mode.label}</div>
+        <div class="view-mode-description">${mode.description}</div>
+      </div>
+    `;
+    
+    option.addEventListener('click', () => {
+      updateViewModeSelection(mode.id);
+    });
+    
+    container.appendChild(option);
+  });
+}
+
+/**
+ * Update view mode selection UI.
+ * @param {string} modeId
+ */
+function updateViewModeSelection(modeId) {
+  const options = document.querySelectorAll('.view-mode-option');
+  options.forEach(opt => {
+    const isSelected = opt.dataset.mode === modeId;
+    opt.classList.toggle('selected', isSelected);
+    opt.querySelector('input[type="radio"]').checked = isSelected;
+  });
+}
+
+/**
+ * Update theme selection UI.
+ * @param {string} theme
+ */
+function updateThemeSelection(theme) {
+  const options = document.querySelectorAll('.theme-option');
+  options.forEach(opt => {
+    const isSelected = opt.dataset.theme === theme;
+    opt.classList.toggle('selected', isSelected);
+    opt.querySelector('input[type="radio"]').checked = isSelected;
+  });
+}
+
+/**
+ * Save settings.
+ */
+async function saveSettings() {
+  const selectedViewMode = document.querySelector('input[name="viewMode"]:checked')?.value || DEFAULT_VIEW_MODE;
+  const selectedTheme = document.querySelector('input[name="theme"]:checked')?.value || 'system';
+  const stackCapacity = parseInt(document.getElementById('stackCapacity').value, 10);
+  
+  // Validation
+  if (stackCapacity < 10 || stackCapacity > 1000) {
+    alert('Stack capacity must be between 10 and 1000');
+    return;
+  }
+  
+  const newSettings = {
+    ...settings,
+    stackCapacity,
+    viewMode: selectedViewMode,
+    theme: selectedTheme
+  };
+  
+  try {
+    await sendMessage({ type: 'SAVE_SETTINGS', settings: newSettings });
+    settings = newSettings;
+    closeSettingsPanel();
+    
+    // Re-render with new view mode
+    if (currentTabId) {
+      const { tree } = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
+      renderView(tree);
+    }
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+    alert('Failed to save settings');
+  }
+}
+
+/**
+ * Reset settings to defaults.
+ */
+async function resetSettings() {
+  try {
+    await sendMessage({ type: 'SAVE_SETTINGS', settings: DEFAULT_SETTINGS });
+    settings = DEFAULT_SETTINGS;
+    
+    document.getElementById('stackCapacity').value = DEFAULT_SETTINGS.stackCapacity;
+    updateViewModeSelection(DEFAULT_SETTINGS.viewMode);
+    updateThemeSelection(DEFAULT_SETTINGS.theme);
+    applyTheme(DEFAULT_SETTINGS.theme);
+  } catch (error) {
+    console.error('Failed to reset settings:', error);
+  }
+}
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
+  initViewModeOptions();
   initEventListeners();
   loadCurrentTab();
 });

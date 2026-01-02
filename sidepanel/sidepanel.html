@@ -46,6 +46,62 @@
       </div>
       <div class="stack-list" id="stackList"></div>
     </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel hidden" id="settingsPanel">
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <button class="btn-icon" id="closeSettingsBtn" title="Close settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="settings-content">
+        <!-- Theme -->
+        <div class="settings-section">
+          <label class="settings-label">Theme</label>
+          <div class="theme-options" id="themeOptions">
+            <label class="theme-option" data-theme="light">
+              <input type="radio" name="theme" value="light">
+              <span class="theme-icon">☀️</span>
+              <span class="theme-label">Light</span>
+            </label>
+            <label class="theme-option" data-theme="dark">
+              <input type="radio" name="theme" value="dark">
+              <span class="theme-icon">🌙</span>
+              <span class="theme-label">Dark</span>
+            </label>
+            <label class="theme-option" data-theme="system">
+              <input type="radio" name="theme" value="system">
+              <span class="theme-icon">💻</span>
+              <span class="theme-label">System</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- View Mode -->
+        <div class="settings-section">
+          <label class="settings-label">View Mode</label>
+          <div class="view-mode-options" id="viewModeOptions"></div>
+        </div>
+
+        <!-- Stack Capacity -->
+        <div class="settings-section">
+          <label class="settings-label">Max history per tab</label>
+          <div class="input-group">
+            <input type="number" id="stackCapacity" min="10" max="1000" value="100">
+            <span class="input-suffix">pages</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button class="btn btn-secondary" id="resetBtn">Reset</button>
+        <button class="btn btn-primary" id="saveBtn">Save</button>
+      </div>
+    </div>
   </div>
 
   <script src="sidepanel.js" type="module"></script>

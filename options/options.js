@@ -7,7 +7,8 @@ import { getViewModes, DEFAULT_VIEW_MODE, isValidViewMode } from '../lib/view-mo
 const DEFAULT_SETTINGS = {
   maxCachedLinks: 10,
   stackCapacity: 100,
-  viewMode: DEFAULT_VIEW_MODE
+  viewMode: DEFAULT_VIEW_MODE,
+  theme: 'system'
 };
 
 /**
@@ -59,6 +60,10 @@ async function loadSettings() {
     
     // Update view mode selection
     updateViewModeSelection(settings.viewMode || DEFAULT_VIEW_MODE);
+    
+    // Update theme selection
+    updateThemeSelection(settings.theme || 'system');
+    applyTheme(settings.theme || 'system');
   } catch (error) {
     console.error('Failed to load settings:', error);
     showToast('Failed to load settings', true);
@@ -73,11 +78,13 @@ async function saveSettings(event) {
   event.preventDefault();
   
   const selectedViewMode = document.querySelector('input[name="viewMode"]:checked')?.value || DEFAULT_VIEW_MODE;
+  const selectedTheme = document.querySelector('input[name="theme"]:checked')?.value || 'system';
   
   const settings = {
     stackCapacity: parseInt(document.getElementById('stackCapacity').value, 10),
     maxCachedLinks: parseInt(document.getElementById('maxCachedLinks').value, 10),
-    viewMode: selectedViewMode
+    viewMode: selectedViewMode,
+    theme: selectedTheme
   };
   
   // Validation
@@ -110,6 +117,8 @@ async function resetSettings() {
     document.getElementById('stackCapacity').value = DEFAULT_SETTINGS.stackCapacity;
     document.getElementById('maxCachedLinks').value = DEFAULT_SETTINGS.maxCachedLinks;
     updateViewModeSelection(DEFAULT_SETTINGS.viewMode);
+    updateThemeSelection(DEFAULT_SETTINGS.theme);
+    applyTheme(DEFAULT_SETTINGS.theme);
     
     showToast('Settings reset to defaults');
   } catch (error) {
@@ -161,8 +170,44 @@ function updateViewModeSelection(modeId) {
   });
 }
 
+/**
+ * Update theme selection UI.
+ * @param {string} theme
+ */
+function updateThemeSelection(theme) {
+  const options = document.querySelectorAll('.theme-option');
+  options.forEach(opt => {
+    const isSelected = opt.dataset.theme === theme;
+    opt.classList.toggle('selected', isSelected);
+    opt.querySelector('input[type="radio"]').checked = isSelected;
+  });
+}
+
+/**
+ * Apply theme to document.
+ * @param {string} theme
+ */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
+/**
+ * Initialize theme options.
+ */
+function initThemeOptions() {
+  const options = document.querySelectorAll('.theme-option');
+  options.forEach(opt => {
+    opt.addEventListener('click', () => {
+      const theme = opt.dataset.theme;
+      updateThemeSelection(theme);
+      applyTheme(theme);
+    });
+  });
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  initThemeOptions();
   initViewModeOptions();
   loadSettings();
   
