@@ -200,6 +200,13 @@ body {
   overflow-x: hidden;
   padding: 8px;
   min-width: 0;
+  position: relative;
+}
+
+/* Graph mode - full canvas */
+.stack-container:has(.graph-wrapper) {
+  padding: 0;
+  overflow: hidden;
 }
 
 .stack-container::-webkit-scrollbar {
@@ -722,4 +729,127 @@ body {
 
 .btn-secondary:hover {
   background: var(--md-primary-container);
+}
+
+/* ========================================
+   GRAPH VIEW STYLES (n8n-like canvas)
+   ======================================== */
+
+.graph-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  background: var(--md-surface);
+  /* Grid background like n8n */
+  background-image: 
+    radial-gradient(circle, var(--md-outline-variant) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.graph-canvas {
+  position: absolute;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.graph-connections {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.graph-connection {
+  fill: none;
+  stroke: var(--md-outline);
+  stroke-width: 2;
+  opacity: 0.6;
+}
+
+.graph-connection.branch-1 { stroke: var(--branch-1); }
+.graph-connection.branch-2 { stroke: var(--branch-2); }
+.graph-connection.branch-3 { stroke: var(--branch-3); }
+.graph-connection.branch-4 { stroke: var(--branch-4); }
+.graph-connection.branch-5 { stroke: var(--branch-5); }
+
+.graph-nodes {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.graph-node {
+  position: absolute;
+  width: 180px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--md-surface-container);
+  border: 2px solid var(--md-outline-variant);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px var(--md-shadow);
+  user-select: none;
+}
+
+.graph-node:hover {
+  border-color: var(--md-primary);
+  box-shadow: 0 4px 16px var(--md-shadow);
+  transform: translateY(-2px);
+}
+
+.graph-node.current {
+  border-color: var(--md-primary);
+  background: var(--md-primary-container);
+  box-shadow: 0 0 0 3px var(--md-primary-container), 0 4px 16px var(--md-shadow);
+}
+
+.graph-node-favicon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-surface-container-high);
+  border-radius: 6px;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.graph-node-favicon img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.graph-node-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.graph-node-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--md-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.graph-node-url {
+  font-size: 10px;
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

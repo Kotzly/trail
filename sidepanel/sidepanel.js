@@ -6,6 +6,7 @@
 // Import renderers to register them
 import '../lib/tree-renderer.js';
 import '../lib/stack-renderer.js';
+import '../lib/graph-renderer.js';
 import { getRenderer } from '../lib/renderers.js';
 import { getViewModes, DEFAULT_VIEW_MODE } from '../lib/view-modes.js';
 

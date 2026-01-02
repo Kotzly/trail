@@ -1,6 +1,6 @@
-# stack-history
+# trail
 
-Stack-history is a browser extension for Brave.
+Trail is a browser extension for Brave.
 The extension is put in the sidebar.
 After it has been installed, it starts tracking the user's activities, most prominently,
 the user's clicks on links.
