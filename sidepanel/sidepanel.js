@@ -10,6 +10,7 @@ import '../lib/stack-renderer.js';
 import '../lib/graph-renderer.js';
 import { getRenderer } from '../lib/renderers.js';
 import { DEFAULT_VIEW_MODE } from '../lib/view-modes.js';
+import { getGraphAPI } from '../lib/graph-renderer.js';
 
 let currentTabId = null;
 let currentWindowId = null;
@@ -69,8 +70,14 @@ async function handleNodeNavigation(node) {
       url: node.url,
       nodeId: node.id
     });
-    
+
     updateCurrentSelection(node.id);
+
+    // Center on the clicked node with smooth animation (graph view only)
+    const api = getGraphAPI();
+    if (api) {
+      api.centerOnNode(node.id);
+    }
   } catch (error) {
     console.error('Navigation failed:', error);
   }
