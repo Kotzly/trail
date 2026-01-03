@@ -193,7 +193,7 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
     
     if (existingNodeId !== null) {
       // Tab already has a node - navigate from that node (creates a branch if different URL)
-      const node = tree._findById(tree.root, existingNodeId);
+      const node = tree.findNodeById(existingNodeId);
       if (node && node.url !== url) {
         // Different URL - navigate from current node
         tree.setCurrentById(existingNodeId);
@@ -206,8 +206,9 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
       }
       tabManager.touch(windowId, tabId);
     } else {
-      // New tab - create new node
-      const newNode = tree.navigate(entry);
+      // New tab - create new ROOT (forest structure)
+      // Each new tab starts its own navigation tree
+      const newNode = tree.createNewRoot(entry);
       tabManager.register(windowId, newNode.id, tabId);
       
       // Check tab limit
@@ -307,7 +308,7 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
       const nodeId = tabManager.getNodeForTab(windowId, tabId);
       if (nodeId !== null) {
         const tree = await storageManager.getWindowTree(windowId);
-        const node = tree._findById(tree.root, nodeId);
+        const node = tree.findNodeById(nodeId);
         if (node && tab.title && tab.title !== node.title) {
           node.title = tab.title;
           node.favicon = tab.favIconUrl || node.favicon;
@@ -456,7 +457,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               const nodeId = tabManager.getNodeForTab(windowId, tabId);
               if (nodeId !== null) {
                 const tree = await storageManager.getWindowTree(windowId);
-                const node = tree._findById(tree.root, nodeId);
+                const node = tree.findNodeById(nodeId);
                 if (node && node.url === url && node.title !== newTitle) {
                   node.title = newTitle;
                   await storageManager.saveWindowTree(windowId, tree);
@@ -864,7 +865,7 @@ chrome.tabs.onAttached.addListener(async (tabId, attachInfo) => {
   if (fromWindowId !== null && movedNodeId !== null) {
     // Get the node data from the old tree
     const oldTree = await storageManager.getWindowTree(fromWindowId);
-    const movedNode = oldTree._findById(oldTree.root, movedNodeId);
+    const movedNode = oldTree.findNodeById(movedNodeId);
     
     if (movedNode) {
       // Move tab mapping (from old window to new window)
