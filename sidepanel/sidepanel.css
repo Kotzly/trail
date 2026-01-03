@@ -983,3 +983,128 @@ body {
   width: 20px;
   height: 20px;
 }
+
+/* ========================================
+   CLOSED NODE STATE (Multi-Tab Mode)
+   Nodes without open tabs are dimmed
+   ======================================== */
+
+.tree-node.closed,
+.stack-entry.closed,
+.graph-node.closed {
+  opacity: 0.55;
+}
+
+.tree-node.closed:hover,
+.stack-entry.closed:hover,
+.graph-node.closed:hover {
+  opacity: 0.75;
+}
+
+/* ========================================
+   PATH HIGHLIGHTING (Graph View)
+   Path to current node is highlighted
+   ======================================== */
+
+.graph-connection {
+  fill: none;
+  stroke: var(--md-outline-variant);
+  stroke-width: 2;
+  opacity: 0.4;
+  transition: opacity 0.2s ease, stroke 0.2s ease;
+}
+
+.graph-connection.on-path {
+  stroke: var(--md-outline);
+  opacity: 0.8;
+  stroke-width: 2.5;
+}
+
+/* ========================================
+   TOGGLE SWITCH (Settings)
+   ======================================== */
+
+.popover-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.popover-toggle input {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--md-surface-variant);
+  border-radius: 12px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: var(--md-outline);
+  border-radius: 50%;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.popover-toggle input:checked + .toggle-slider {
+  background: var(--md-primary);
+}
+
+.popover-toggle input:checked + .toggle-slider::after {
+  transform: translateX(20px);
+  background: var(--md-on-primary);
+}
+
+.popover-hint {
+  font-size: 11px;
+  color: var(--md-on-surface-variant);
+  margin-top: 4px;
+}
+
+.popover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.popover-label-small {
+  font-size: 12px;
+  color: var(--md-on-surface);
+}
+
+.popover-input-small {
+  width: 60px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 6px;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  text-align: center;
+}
+
+.popover-input-small:focus {
+  outline: none;
+  border-color: var(--md-primary);
+}
+
+.multi-tab-options {
+  display: none;
+}
+
+.multi-tab-options.visible {
+  display: block;
+}

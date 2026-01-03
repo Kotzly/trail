@@ -1,6 +1,7 @@
 /**
- * Side Panel UI for Stack History.
- * Displays the navigation tree for the current tab.
+ * Side Panel UI for Trail.
+ * Displays the navigation tree for the current tab/window.
+ * Supports both single-tab and multi-tab modes.
  */
 
 // Import renderers to register them
@@ -11,14 +12,18 @@ import { getRenderer } from '../lib/renderers.js';
 import { DEFAULT_VIEW_MODE } from '../lib/view-modes.js';
 
 let currentTabId = null;
+let currentWindowId = null;
 let settings = null;
 let currentNodeId = null; // Track which node is currently active
+let openNodeIds = new Set(); // Nodes with open tabs (multi-tab mode)
 
 const DEFAULT_SETTINGS = {
   maxCachedLinks: 10,
   stackCapacity: 100,
   viewMode: DEFAULT_VIEW_MODE,
-  theme: 'system'
+  theme: 'system',
+  multiTabEnabled: false,
+  multiTabLimit: 0
 };
 
 /**
@@ -54,12 +59,23 @@ async function sendMessage(message) {
  */
 async function handleNodeNavigation(node) {
   try {
-    await sendMessage({
-      type: 'NAVIGATE_TO',
-      tabId: currentTabId,
-      url: node.url,
-      nodeId: node.id
-    });
+    if (settings?.multiTabEnabled) {
+      // Multi-tab mode: include windowId
+      await sendMessage({
+        type: 'NAVIGATE_TO',
+        windowId: currentWindowId,
+        url: node.url,
+        nodeId: node.id
+      });
+    } else {
+      // Single-tab mode
+      await sendMessage({
+        type: 'NAVIGATE_TO',
+        tabId: currentTabId,
+        url: node.url,
+        nodeId: node.id
+      });
+    }
     
     updateCurrentSelection(node.id);
   } catch (error) {
@@ -84,16 +100,27 @@ function updateCurrentSelection(nodeId) {
 /**
  * Render the navigation data using the current view mode.
  * @param {object} treeData - Serialized tree data
+ * @param {number[]} [openNodes] - IDs of nodes with open tabs (multi-tab mode)
  */
-function renderView(treeData) {
+function renderView(treeData, openNodes = null) {
   const stackList = document.getElementById('stackList');
   const emptyState = document.getElementById('emptyState');
   const stackCount = document.getElementById('stackCount');
   
+  // Update open nodes set
+  if (openNodes !== null) {
+    openNodeIds = new Set(openNodes);
+  }
+  
   const nodeCount = treeData?.nodeCount || 0;
   
   // Update count
-  stackCount.textContent = `${nodeCount} page${nodeCount !== 1 ? 's' : ''}`;
+  if (settings?.multiTabEnabled) {
+    const openCount = openNodeIds.size;
+    stackCount.textContent = `${nodeCount} page${nodeCount !== 1 ? 's' : ''} (${openCount} open)`;
+  } else {
+    stackCount.textContent = `${nodeCount} page${nodeCount !== 1 ? 's' : ''}`;
+  }
   
   // Show/hide empty state
   if (!treeData?.root) {
@@ -115,7 +142,8 @@ function renderView(treeData) {
   
   // Render using the selected view mode
   currentNodeId = renderer(treeData, stackList, {
-    onNavigate: handleNodeNavigation
+    onNavigate: handleNodeNavigation,
+    openNodeIds: settings?.multiTabEnabled ? openNodeIds : null
   });
   
   // Scroll to current node
@@ -133,7 +161,7 @@ function scrollToCurrentNode() {
 }
 
 /**
- * Load and display tree for current tab.
+ * Load and display tree for current tab/window.
  */
 async function loadCurrentTab() {
   try {
@@ -146,6 +174,7 @@ async function loadCurrentTab() {
     }
     
     currentTabId = tab.id;
+    currentWindowId = tab.windowId;
     
     // Load settings
     const settingsResponse = await sendMessage({ type: 'GET_SETTINGS' });
@@ -154,9 +183,16 @@ async function loadCurrentTab() {
     // Apply theme
     applyTheme(settings.theme);
     
-    // Load tree for this tab
-    const { tree } = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
-    renderView(tree);
+    // Load tree
+    const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
+    
+    if (response.multiTabMode) {
+      // Multi-tab mode: got window tree
+      renderView(response.tree, response.openNodeIds);
+    } else {
+      // Single-tab mode
+      renderView(response.tree);
+    }
   } catch (error) {
     console.error('Failed to load current tab:', error);
   }
@@ -213,16 +249,48 @@ function initEventListeners() {
       
       // Re-render with new view mode
       if (currentTabId) {
-        const { tree } = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
-        renderView(tree);
+        const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
+        if (response.multiTabMode) {
+          renderView(response.tree, response.openNodeIds);
+        } else {
+          renderView(response.tree);
+        }
       }
     });
+  });
+  
+  // Multi-Tab toggle
+  const multiTabToggle = document.getElementById('multiTabToggle');
+  const multiTabOptions = document.getElementById('multiTabOptions');
+  
+  multiTabToggle.addEventListener('change', async () => {
+    const enabled = multiTabToggle.checked;
+    multiTabOptions.classList.toggle('visible', enabled);
+    await saveSettingsQuick({ multiTabEnabled: enabled });
+    
+    // Reload current tab to apply mode change
+    loadCurrentTab();
+  });
+  
+  // Multi-Tab limit input
+  const multiTabLimit = document.getElementById('multiTabLimit');
+  let limitTimeout = null;
+  
+  multiTabLimit.addEventListener('input', () => {
+    // Debounce the save
+    if (limitTimeout) clearTimeout(limitTimeout);
+    limitTimeout = setTimeout(async () => {
+      const limit = Math.max(0, parseInt(multiTabLimit.value, 10) || 0);
+      await saveSettingsQuick({ multiTabLimit: limit });
+    }, 300);
   });
   
   // Listen for tree updates from service worker
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'TREE_UPDATED' && message.tabId === currentTabId) {
       renderView(message.tree);
+    } else if (message.type === 'WINDOW_TREE_UPDATED' && message.windowId === currentWindowId) {
+      renderView(message.tree, message.openNodeIds);
     }
   });
   
@@ -288,6 +356,7 @@ function toggleSettingsPopover(e) {
   // Update active states
   updateThemeIcons(settings?.theme || DEFAULT_SETTINGS.theme);
   updateViewModeIcons(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
+  updateMultiTabUI(settings?.multiTabEnabled || false, settings?.multiTabLimit || 0);
   
   popover.classList.remove('hidden');
 }
@@ -310,6 +379,21 @@ function updateViewModeIcons(mode) {
   document.querySelectorAll('#viewModeIcons .popover-icon-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === mode);
   });
+}
+
+/**
+ * Update Multi-Tab UI state.
+ * @param {boolean} enabled
+ * @param {number} limit
+ */
+function updateMultiTabUI(enabled, limit) {
+  const toggle = document.getElementById('multiTabToggle');
+  const options = document.getElementById('multiTabOptions');
+  const limitInput = document.getElementById('multiTabLimit');
+  
+  toggle.checked = enabled;
+  options.classList.toggle('visible', enabled);
+  limitInput.value = limit;
 }
 
 /**

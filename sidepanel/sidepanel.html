@@ -107,6 +107,22 @@
           </button>
         </div>
       </div>
+      <div class="popover-divider"></div>
+      <div class="popover-section">
+        <label class="popover-toggle">
+          <span class="popover-label">Multi-Tab Mode</span>
+          <input type="checkbox" id="multiTabToggle">
+          <span class="toggle-slider"></span>
+        </label>
+        <div class="popover-hint">Each page opens in a separate tab</div>
+      </div>
+      <div class="popover-section multi-tab-options" id="multiTabOptions">
+        <div class="popover-row">
+          <span class="popover-label-small">Tab Limit</span>
+          <input type="number" id="multiTabLimit" min="0" max="50" value="0" class="popover-input-small">
+        </div>
+        <div class="popover-hint">0 = unlimited</div>
+      </div>
     </div>
   </div>
 

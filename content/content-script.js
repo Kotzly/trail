@@ -1,10 +1,38 @@
 /**
- * Content script for Stack History.
- * Intercepts target="_blank" links to open in same tab.
+ * Content script for Trail.
+ * In single-tab mode: intercepts target="_blank" links to open in same tab.
+ * In multi-tab mode: lets links open naturally in new tabs.
  */
 
 (function() {
   'use strict';
+
+  // Cache for multi-tab mode setting
+  let isMultiTabMode = false;
+
+  /**
+   * Check multi-tab mode setting.
+   */
+  async function checkMultiTabMode() {
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+      if (response?.success) {
+        isMultiTabMode = response.settings?.multiTabEnabled || false;
+      }
+    } catch (e) {
+      // Extension context may be invalidated
+    }
+  }
+
+  // Check mode on load
+  checkMultiTabMode();
+
+  // Listen for settings changes
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'sync' && changes.settings) {
+      isMultiTabMode = changes.settings.newValue?.multiTabEnabled || false;
+    }
+  });
 
   /**
    * Check if URL should be intercepted (not internal browser URLs).
@@ -26,8 +54,13 @@
 
   /**
    * Handle click on links with target="_blank" or middle-click.
+   * In multi-tab mode: don't intercept, let browser handle naturally.
+   * In single-tab mode: intercept and navigate in same tab.
    */
   function handleLinkClick(event) {
+    // In multi-tab mode, don't intercept anything
+    if (isMultiTabMode) return;
+
     // Skip if modifier keys are pressed (user wants new tab)
     if (event.ctrlKey || event.metaKey || event.shiftKey) {
       return;
@@ -56,8 +89,12 @@
 
   /**
    * Handle middle-click to prevent opening in new tab.
+   * In multi-tab mode: don't intercept.
    */
   function handleAuxClick(event) {
+    // In multi-tab mode, don't intercept
+    if (isMultiTabMode) return;
+
     // Middle-click (button 1)
     if (event.button !== 1) return;
 
@@ -82,9 +119,14 @@
   document.addEventListener('click', handleLinkClick, true);
   document.addEventListener('auxclick', handleAuxClick, true);
 
-  // Also intercept window.open calls
+  // Also intercept window.open calls (only in single-tab mode)
   const originalOpen = window.open;
   window.open = function(url, target, features) {
+    // In multi-tab mode, let browser handle normally
+    if (isMultiTabMode) {
+      return originalOpen.call(this, url, target, features);
+    }
+    
     if (url && shouldIntercept(url)) {
       // Navigate in the same tab instead of opening new one
       window.location.href = url;
