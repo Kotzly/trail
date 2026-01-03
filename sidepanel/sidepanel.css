@@ -747,12 +747,15 @@ body {
   background-image: 
     radial-gradient(circle, var(--md-outline-variant) 1px, transparent 1px);
   background-size: 20px 20px;
+  /* Allow pinch-to-zoom gesture to reach JS */
+  touch-action: none;
 }
 
 .graph-canvas {
   position: absolute;
   transform-origin: 0 0;
   will-change: transform;
+  touch-action: none;
 }
 
 .graph-connections {
