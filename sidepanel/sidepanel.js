@@ -148,9 +148,21 @@ function renderView(treeData, openNodes = null) {
     onNavigate: handleNodeNavigation,
     openNodeIds: isMultiTabMode ? openNodeIds : null
   });
-  
-  // Scroll to current node
-  scrollToCurrentNode();
+
+  // Auto-center on current node (graph view handles fitToView internally)
+  if (currentNodeId) {
+    requestAnimationFrame(() => {
+      const api = getGraphAPI();
+      if (api && api.centerOnNode) {
+        api.centerOnNode(currentNodeId);
+      } else {
+        // Fallback for non-graph views
+        scrollToCurrentNode();
+      }
+    });
+  } else {
+    scrollToCurrentNode();
+  }
 }
 
 /**
