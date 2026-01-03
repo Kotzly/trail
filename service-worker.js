@@ -168,6 +168,10 @@ async function handleSingleTabNavigation(details, transitionType, windowId) {
   }
 }
 
+// Track recent tab registrations for redirect detection (tabId -> timestamp)
+const recentTabRegistrations = new Map();
+const REDIRECT_THRESHOLD_MS = 2000; // Redirects within 2 seconds are treated as same navigation
+
 /**
  * Handle navigation in multi-tab mode.
  * Each page is tracked per-window, tabs are mapped to nodes.
@@ -206,10 +210,34 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
       }
       tabManager.touch(windowId, tabId);
     } else {
-      // New tab - create new ROOT (forest structure)
-      // Each new tab starts its own navigation tree
-      const newNode = tree.createNewRoot(entry);
+      // New tab without existing node
+      let newNode;
+      
+      // Check if this is a redirect (tab was recently registered with another URL)
+      const lastRegistration = recentTabRegistrations.get(tabId);
+      const isRedirect = lastRegistration && (Date.now() - lastRegistration < REDIRECT_THRESHOLD_MS);
+      
+      // Decide: create new root (forest mode) or branch from current
+      if (settings.forestMode && !isRedirect) {
+        // Forest mode: each new tab creates its own tree
+        newNode = tree.createNewRoot(entry);
+      } else {
+        // Single-tree mode OR redirect: branch from current node
+        newNode = tree.navigate(entry);
+      }
+      
       tabManager.register(windowId, newNode.id, tabId);
+      recentTabRegistrations.set(tabId, Date.now());
+      
+      // Cleanup old entries from recentTabRegistrations (prevent memory leak)
+      if (recentTabRegistrations.size > 100) {
+        const now = Date.now();
+        for (const [tid, time] of recentTabRegistrations) {
+          if (now - time > REDIRECT_THRESHOLD_MS * 2) {
+            recentTabRegistrations.delete(tid);
+          }
+        }
+      }
       
       // Check tab limit
       await tabManager.closeOldestIfNeeded(windowId, settings.multiTabLimit);

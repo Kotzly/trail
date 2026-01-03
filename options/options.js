@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = {
   maxCachedLinks: 10,
   stackCapacity: 100,
   viewMode: DEFAULT_VIEW_MODE,
-  theme: 'system'
+  theme: 'system',
+  forestMode: true
 };
 
 /**
@@ -57,6 +58,7 @@ async function loadSettings() {
     
     document.getElementById('stackCapacity').value = settings.stackCapacity;
     document.getElementById('maxCachedLinks').value = settings.maxCachedLinks;
+    document.getElementById('forestMode').checked = settings.forestMode !== false;
     
     // Update view mode selection
     updateViewModeSelection(settings.viewMode || DEFAULT_VIEW_MODE);
@@ -84,7 +86,8 @@ async function saveSettings(event) {
     stackCapacity: parseInt(document.getElementById('stackCapacity').value, 10),
     maxCachedLinks: parseInt(document.getElementById('maxCachedLinks').value, 10),
     viewMode: selectedViewMode,
-    theme: selectedTheme
+    theme: selectedTheme,
+    forestMode: document.getElementById('forestMode').checked
   };
   
   // Validation
@@ -116,6 +119,7 @@ async function resetSettings() {
     
     document.getElementById('stackCapacity').value = DEFAULT_SETTINGS.stackCapacity;
     document.getElementById('maxCachedLinks').value = DEFAULT_SETTINGS.maxCachedLinks;
+    document.getElementById('forestMode').checked = DEFAULT_SETTINGS.forestMode;
     updateViewModeSelection(DEFAULT_SETTINGS.viewMode);
     updateThemeSelection(DEFAULT_SETTINGS.theme);
     applyTheme(DEFAULT_SETTINGS.theme);
