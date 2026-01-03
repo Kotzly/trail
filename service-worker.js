@@ -486,6 +486,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const tree = await storageManager.getWindowTree(tab.windowId);
           
           if (isMultiTab) {
+            // Try to find node for active tab
+            let activeNodeId = tabManager.getNodeForTab(tab.windowId, tab.id);
+            
+            // If tab not registered, try to find node by URL and register it
+            if (activeNodeId === null && tab.url) {
+              const nodeByUrl = tree.findByUrl(tab.url);
+              if (nodeByUrl) {
+                activeNodeId = nodeByUrl.id;
+                tabManager.register(tab.windowId, activeNodeId, tab.id);
+              }
+            }
+            
+            // Update currentNode if we found the node
+            if (activeNodeId !== null && tree.getCurrentId() !== activeNodeId) {
+              tree.setCurrentById(activeNodeId);
+              await storageManager.saveWindowTree(tab.windowId, tree);
+            }
+            
             const openNodeIds = Array.from(tabManager.getOpenNodesForWindow(tab.windowId));
             sendResponse({ 
               success: true, 
@@ -778,21 +796,39 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 /**
  * Track tab activation for LRU in multi-tab mode.
- * Also update currentNodeId when user switches tabs via browser.
+ * Also update currentNode when user switches tabs via browser.
  */
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const { tabId, windowId } = activeInfo;
   const isMultiTab = await isMultiTabForWindow(windowId);
   
   if (isMultiTab) {
-    tabManager.touch(windowId, tabId);
+    // Try to find node for this tab
+    let nodeId = tabManager.getNodeForTab(windowId, tabId);
     
-    // Find the node for this tab and update currentNodeId
-    const nodeId = tabManager.getNodeForTab(windowId, tabId);
+    // If not registered, try to find by URL
+    if (nodeId === null) {
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        if (tab.url) {
+          const tree = await storageManager.getWindowTree(windowId);
+          const nodeByUrl = tree.findByUrl(tab.url);
+          if (nodeByUrl) {
+            nodeId = nodeByUrl.id;
+            tabManager.register(windowId, nodeId, tabId);
+          }
+        }
+      } catch (e) {
+        // Tab might not exist
+      }
+    }
+    
     if (nodeId !== null) {
+      tabManager.touch(windowId, tabId);
+      
       const tree = await storageManager.getWindowTree(windowId);
-      if (tree && tree.currentNodeId !== nodeId) {
-        tree.currentNodeId = nodeId;
+      if (tree && tree.getCurrentId() !== nodeId) {
+        tree.setCurrentById(nodeId);
         await storageManager.saveWindowTree(windowId, tree);
         
         // Notify sidepanel
