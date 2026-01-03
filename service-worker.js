@@ -602,10 +602,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (isMultiTab) {
             // Multi-tab mode: activate existing tab or create new one
             const existingTabId = tabManager.getTabForNode(windowId, nodeId);
-            
+
             if (existingTabId !== null) {
-              // Tab exists - activate it
+              // Tab exists - focus window and activate tab
               try {
+                await chrome.windows.update(windowId, { focused: true });
                 await chrome.tabs.update(existingTabId, { active: true });
                 tabManager.touch(windowId, existingTabId);
               } catch (e) {

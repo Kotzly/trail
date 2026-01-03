@@ -713,7 +713,16 @@ function findNodeInTree(node, targetId) {
 let lastTreeData = null;
 
 // Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // CRITICAL: Get window ID BEFORE adding message listeners
+  // This ensures we know which window we're in before any messages arrive
+  try {
+    const window = await chrome.windows.getCurrent();
+    currentWindowId = window.id;
+  } catch (error) {
+    console.error('Failed to get current window:', error);
+  }
+
   initEventListeners();
   initContextMenu();
   loadCurrentTab();
