@@ -7,17 +7,18 @@
 (function() {
   'use strict';
 
-  // Cache for multi-tab mode setting
+  // Cache for multi-tab mode setting (per-window)
   let isMultiTabMode = false;
 
   /**
-   * Check multi-tab mode setting.
+   * Check multi-tab mode setting for this window.
    */
   async function checkMultiTabMode() {
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+      // Ask service worker - it knows the windowId from the tab
+      const response = await chrome.runtime.sendMessage({ type: 'IS_MULTI_TAB_MODE' });
       if (response?.success) {
-        isMultiTabMode = response.settings?.multiTabEnabled || false;
+        isMultiTabMode = response.enabled || false;
       }
     } catch (e) {
       // Extension context may be invalidated
@@ -27,10 +28,11 @@
   // Check mode on load
   checkMultiTabMode();
 
-  // Listen for settings changes
+  // Listen for settings changes - recheck
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'sync' && changes.settings) {
-      isMultiTabMode = changes.settings.newValue?.multiTabEnabled || false;
+      // Global settings changed - recheck for this window
+      checkMultiTabMode();
     }
   });
 

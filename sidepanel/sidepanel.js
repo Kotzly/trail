@@ -16,6 +16,7 @@ let currentWindowId = null;
 let settings = null;
 let currentNodeId = null; // Track which node is currently active
 let openNodeIds = new Set(); // Nodes with open tabs (multi-tab mode)
+let isMultiTabMode = false; // Whether multi-tab is enabled for current window
 
 const DEFAULT_SETTINGS = {
   maxCachedLinks: 10,
@@ -59,23 +60,14 @@ async function sendMessage(message) {
  */
 async function handleNodeNavigation(node) {
   try {
-    if (settings?.multiTabEnabled) {
-      // Multi-tab mode: include windowId
-      await sendMessage({
-        type: 'NAVIGATE_TO',
-        windowId: currentWindowId,
-        url: node.url,
-        nodeId: node.id
-      });
-    } else {
-      // Single-tab mode
-      await sendMessage({
-        type: 'NAVIGATE_TO',
-        tabId: currentTabId,
-        url: node.url,
-        nodeId: node.id
-      });
-    }
+    // Always send windowId and tabId - service worker decides the mode
+    await sendMessage({
+      type: 'NAVIGATE_TO',
+      windowId: currentWindowId,
+      tabId: currentTabId,
+      url: node.url,
+      nodeId: node.id
+    });
     
     updateCurrentSelection(node.id);
   } catch (error) {
@@ -118,7 +110,7 @@ function renderView(treeData, openNodes = null) {
   const nodeCount = treeData?.nodeCount || 0;
   
   // Update count
-  if (settings?.multiTabEnabled) {
+  if (isMultiTabMode) {
     const openCount = openNodeIds.size;
     stackCount.textContent = `${nodeCount} page${nodeCount !== 1 ? 's' : ''} (${openCount} open)`;
   } else {
@@ -146,7 +138,7 @@ function renderView(treeData, openNodes = null) {
   // Render using the selected view mode
   currentNodeId = renderer(treeData, stackList, {
     onNavigate: handleNodeNavigation,
-    openNodeIds: settings?.multiTabEnabled ? openNodeIds : null
+    openNodeIds: isMultiTabMode ? openNodeIds : null
   });
   
   // Scroll to current node
@@ -186,14 +178,15 @@ async function loadCurrentTab() {
     // Apply theme
     applyTheme(settings.theme);
     
-    // Load tree
+    // Load tree (always per-window now)
     const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
     
-    if (response.multiTabMode) {
-      // Multi-tab mode: got window tree
+    // Store multi-tab mode state for this window
+    isMultiTabMode = response.multiTabMode || false;
+    
+    if (isMultiTabMode) {
       renderView(response.tree, response.openNodeIds);
     } else {
-      // Single-tab mode
       renderView(response.tree);
     }
   } catch (error) {
@@ -262,7 +255,7 @@ function initEventListeners() {
     });
   });
   
-  // Multi-Tab toggle
+  // Multi-Tab global toggle
   const multiTabToggle = document.getElementById('multiTabToggle');
   const multiTabOptions = document.getElementById('multiTabOptions');
   
@@ -273,6 +266,31 @@ function initEventListeners() {
     
     // Reload current tab to apply mode change
     loadCurrentTab();
+  });
+  
+  // Multi-Tab per-window toggle
+  const windowMultiTabToggle = document.getElementById('windowMultiTabToggle');
+  
+  windowMultiTabToggle.addEventListener('change', async () => {
+    const enabled = windowMultiTabToggle.checked;
+    await sendMessage({ 
+      type: 'SET_WINDOW_MULTI_TAB', 
+      windowId: currentWindowId, 
+      enabled 
+    });
+    
+    // Reload to apply
+    loadCurrentTab();
+  });
+  
+  // Multi-Tab help button
+  const helpBtn = document.getElementById('multiTabHelpBtn');
+  const helpPanel = document.getElementById('multiTabHelp');
+  
+  helpBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    helpBtn.classList.toggle('active');
+    helpPanel.classList.toggle('hidden');
   });
   
   // Multi-Tab limit input
@@ -386,17 +404,38 @@ function updateViewModeIcons(mode) {
 
 /**
  * Update Multi-Tab UI state.
- * @param {boolean} enabled
+ * @param {boolean} globalEnabled
  * @param {number} limit
  */
-function updateMultiTabUI(enabled, limit) {
-  const toggle = document.getElementById('multiTabToggle');
+async function updateMultiTabUI(globalEnabled, limit) {
+  const globalToggle = document.getElementById('multiTabToggle');
+  const windowToggle = document.getElementById('windowMultiTabToggle');
   const options = document.getElementById('multiTabOptions');
   const limitInput = document.getElementById('multiTabLimit');
+  const helpBtn = document.getElementById('multiTabHelpBtn');
+  const helpPanel = document.getElementById('multiTabHelp');
   
-  toggle.checked = enabled;
-  options.classList.toggle('visible', enabled);
+  // Reset help panel
+  helpBtn.classList.remove('active');
+  helpPanel.classList.add('hidden');
+  
+  // Set global toggle
+  globalToggle.checked = globalEnabled;
+  options.classList.toggle('visible', globalEnabled);
   limitInput.value = limit;
+  
+  // Get per-window state
+  if (currentWindowId) {
+    try {
+      const response = await sendMessage({ 
+        type: 'GET_WINDOW_MULTI_TAB', 
+        windowId: currentWindowId 
+      });
+      windowToggle.checked = response.enabled;
+    } catch (e) {
+      windowToggle.checked = globalEnabled;
+    }
+  }
 }
 
 /**

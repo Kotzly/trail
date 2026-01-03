@@ -129,41 +129,57 @@
       <div class="popover-section">
         <div class="popover-label">View</div>
         <div class="popover-icons" id="viewModeIcons">
-          <button class="popover-icon-btn" data-mode="tree" title="Tree">
+          <button class="popover-icon-btn has-tooltip" data-mode="tree">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 3v6M12 9l-5 6M12 9l5 6M7 15v3M17 15v3"/>
               <circle cx="12" cy="3" r="2"/>
               <circle cx="7" cy="18" r="2"/>
               <circle cx="17" cy="18" r="2"/>
             </svg>
+            <span class="icon-tooltip">Tree</span>
           </button>
-          <button class="popover-icon-btn" data-mode="stack" title="Stack">
+          <button class="popover-icon-btn has-tooltip" data-mode="stack">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="4" y="4" width="16" height="4" rx="1"/>
               <rect x="4" y="10" width="16" height="4" rx="1"/>
               <rect x="4" y="16" width="16" height="4" rx="1"/>
             </svg>
+            <span class="icon-tooltip">Stack</span>
           </button>
-          <button class="popover-icon-btn" data-mode="graph" title="Graph">
+          <button class="popover-icon-btn has-tooltip" data-mode="graph">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="5" cy="6" r="3"/>
               <circle cx="19" cy="6" r="3"/>
               <circle cx="12" cy="18" r="3"/>
               <path d="M5 9v3a4 4 0 004 4h6a4 4 0 004-4V9"/>
             </svg>
+            <span class="icon-tooltip">Graph</span>
           </button>
         </div>
       </div>
       <div class="popover-divider"></div>
       <div class="popover-section">
-        <label class="popover-toggle">
-          <span class="popover-label">Multi-Tab Mode</span>
-          <input type="checkbox" id="multiTabToggle">
-          <span class="toggle-slider"></span>
-        </label>
-        <div class="popover-hint">Each page opens in a separate tab</div>
+        <div class="popover-header-row">
+          <label class="popover-toggle">
+            <span class="popover-label">Multi-Tab Mode</span>
+            <input type="checkbox" id="multiTabToggle">
+            <span class="toggle-slider"></span>
+          </label>
+          <button class="help-btn" id="multiTabHelpBtn" title="What is Multi-Tab Mode?">?</button>
+        </div>
+        <div class="popover-hint" id="multiTabHint">Each page opens in a separate tab</div>
+        <div class="multi-tab-help hidden" id="multiTabHelp">
+          <p><strong>Multi-Tab Mode</strong> opens each page you visit in a separate browser tab instead of reusing one tab.</p>
+          <p>This preserves page state (like playing videos, scroll position, form data) so you can instantly switch between pages without reloading.</p>
+          <p>You can set a tab limit — when reached, oldest tabs are automatically closed.</p>
+        </div>
       </div>
       <div class="popover-section multi-tab-options" id="multiTabOptions">
+        <label class="popover-toggle popover-toggle-small">
+          <span class="popover-label-small">Enabled for this window</span>
+          <input type="checkbox" id="windowMultiTabToggle" checked>
+          <span class="toggle-slider toggle-slider-small"></span>
+        </label>
         <div class="popover-row">
           <span class="popover-label-small">Tab Limit</span>
           <input type="number" id="multiTabLimit" min="0" max="50" value="0" class="popover-input-small">
