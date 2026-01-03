@@ -54,6 +54,53 @@
 
     </div>
 
+    <!-- Context Menu -->
+    <div class="context-menu hidden" id="contextMenu">
+      <button class="context-menu-item" data-action="open">
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+        Open
+      </button>
+      <button class="context-menu-item" data-action="openNewTab">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Open in New Tab
+      </button>
+      <button class="context-menu-item" data-action="openNewWindow">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Open in New Window
+      </button>
+      <div class="context-menu-divider"></div>
+      <button class="context-menu-item" data-action="copyUrl">
+        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copy URL
+      </button>
+      <button class="context-menu-item" data-action="copyTitle">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        Copy Title
+      </button>
+      <div class="context-menu-divider"></div>
+      <button class="context-menu-item multi-tab-only" data-action="muteTab">
+        <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/></svg>
+        <span class="mute-label">Mute Tab</span>
+      </button>
+      <button class="context-menu-item multi-tab-only" data-action="pinTab">
+        <svg viewBox="0 0 24 24"><path d="M12 2v8M8 6l8 0M9 14l-2 8 5-4 5 4-2-8"/></svg>
+        <span class="pin-label">Pin Tab</span>
+      </button>
+      <button class="context-menu-item multi-tab-only" data-action="duplicateTab">
+        <svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
+        Duplicate Tab
+      </button>
+      <button class="context-menu-item multi-tab-only" data-action="closeTab">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        Close Tab
+      </button>
+      <div class="context-menu-divider"></div>
+      <button class="context-menu-item danger" data-action="removeFromHistory">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        Remove from History
+      </button>
+    </div>
+
     <!-- Settings Popover -->
     <div class="settings-popover hidden" id="settingsPopover">
       <div class="popover-section">

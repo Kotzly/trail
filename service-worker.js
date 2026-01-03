@@ -641,6 +641,59 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'GET_TAB_FOR_NODE': {
+          // Get tab info for a node (used by context menu)
+          const { windowId, nodeId } = message;
+          const tabId = tabManager.getTabForNode(windowId, nodeId);
+          
+          if (tabId !== null) {
+            try {
+              const tab = await chrome.tabs.get(tabId);
+              sendResponse({ success: true, tabInfo: tab });
+            } catch (e) {
+              // Tab no longer exists
+              tabManager.unregister(windowId, tabId);
+              sendResponse({ success: true, tabInfo: null });
+            }
+          } else {
+            sendResponse({ success: true, tabInfo: null });
+          }
+          break;
+        }
+        
+        case 'REMOVE_NODE': {
+          // Remove a node from history
+          const { tabId, windowId, nodeId } = message;
+          const settings = await getSettings();
+          
+          if (settings.multiTabEnabled) {
+            const tree = await storageManager.getWindowTree(windowId);
+            tree.removeNode(nodeId);
+            await storageManager.saveWindowTree(windowId, tree);
+            
+            // Also close the tab if open
+            const tabIdForNode = tabManager.getTabForNode(windowId, nodeId);
+            if (tabIdForNode !== null) {
+              try {
+                await chrome.tabs.remove(tabIdForNode);
+              } catch (e) {
+                // Tab already closed
+              }
+              tabManager.unregister(windowId, tabIdForNode);
+            }
+            
+            notifyWindowTreeUpdate(windowId, tree);
+          } else {
+            const tree = await storageManager.getTree(tabId);
+            tree.removeNode(nodeId);
+            await storageManager.saveTree(tabId, tree);
+            notifyTreeUpdate(tabId);
+          }
+          
+          sendResponse({ success: true });
+          break;
+        }
+        
         default:
           sendResponse({ success: false, error: 'Unknown message type' });
       }
@@ -659,12 +712,26 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 /**
  * Track tab activation for LRU in multi-tab mode.
+ * Also update currentNodeId when user switches tabs via browser.
  */
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const settings = await getSettings();
   if (settings.multiTabEnabled) {
     const { tabId, windowId } = activeInfo;
     tabManager.touch(windowId, tabId);
+    
+    // Find the node for this tab and update currentNodeId
+    const nodeId = tabManager.getNodeForTab(windowId, tabId);
+    if (nodeId !== null) {
+      const tree = await storageManager.getWindowTree(windowId);
+      if (tree && tree.currentNodeId !== nodeId) {
+        tree.currentNodeId = nodeId;
+        await storageManager.saveWindowTree(windowId, tree);
+        
+        // Notify sidepanel
+        notifyWindowTreeUpdate(windowId, tree);
+      }
+    }
   }
 });
 

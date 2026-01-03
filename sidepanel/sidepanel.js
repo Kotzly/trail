@@ -107,6 +107,9 @@ function renderView(treeData, openNodes = null) {
   const emptyState = document.getElementById('emptyState');
   const stackCount = document.getElementById('stackCount');
   
+  // Store for context menu node lookup
+  lastTreeData = treeData;
+  
   // Update open nodes set
   if (openNodes !== null) {
     openNodeIds = new Set(openNodes);
@@ -411,8 +414,247 @@ async function saveSettingsQuick(updates) {
   }
 }
 
+// ========================================
+// CONTEXT MENU
+// ========================================
+
+let contextMenuNode = null; // Node that was right-clicked
+let contextMenuTabInfo = null; // Tab info for the node (multi-tab mode)
+
+/**
+ * Show context menu at position.
+ * @param {number} x - X coordinate
+ * @param {number} y - Y coordinate
+ * @param {object} node - The node data
+ */
+async function showContextMenu(x, y, node) {
+  const menu = document.getElementById('contextMenu');
+  contextMenuNode = node;
+  
+  // Get tab info if in multi-tab mode
+  contextMenuTabInfo = null;
+  if (settings?.multiTabEnabled) {
+    try {
+      const response = await sendMessage({ 
+        type: 'GET_TAB_FOR_NODE', 
+        windowId: currentWindowId, 
+        nodeId: node.id 
+      });
+      contextMenuTabInfo = response.tabInfo;
+    } catch (e) {
+      // Tab might not exist
+    }
+  }
+  
+  // Update menu items based on state
+  updateContextMenuItems();
+  
+  // Position menu
+  menu.classList.remove('hidden');
+  
+  const menuRect = menu.getBoundingClientRect();
+  let left = x;
+  let top = y;
+  
+  // Keep within viewport
+  if (left + menuRect.width > window.innerWidth) {
+    left = window.innerWidth - menuRect.width - 8;
+  }
+  if (top + menuRect.height > window.innerHeight) {
+    top = window.innerHeight - menuRect.height - 8;
+  }
+  
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+}
+
+/**
+ * Hide context menu.
+ */
+function hideContextMenu() {
+  const menu = document.getElementById('contextMenu');
+  menu.classList.add('hidden');
+  contextMenuNode = null;
+  contextMenuTabInfo = null;
+}
+
+/**
+ * Update context menu items based on current state.
+ */
+function updateContextMenuItems() {
+  const isMultiTab = settings?.multiTabEnabled;
+  const hasOpenTab = contextMenuTabInfo !== null;
+  
+  // Show/hide multi-tab only items
+  document.querySelectorAll('.context-menu-item.multi-tab-only').forEach(item => {
+    item.classList.toggle('hidden-item', !isMultiTab);
+  });
+  
+  // Update mute label
+  if (contextMenuTabInfo) {
+    const muteLabel = document.querySelector('.mute-label');
+    muteLabel.textContent = contextMenuTabInfo.mutedInfo?.muted ? 'Unmute Tab' : 'Mute Tab';
+    
+    const pinLabel = document.querySelector('.pin-label');
+    pinLabel.textContent = contextMenuTabInfo.pinned ? 'Unpin Tab' : 'Pin Tab';
+  }
+  
+  // Disable tab actions if tab is not open
+  document.querySelectorAll('[data-action="muteTab"], [data-action="pinTab"], [data-action="duplicateTab"], [data-action="closeTab"]').forEach(item => {
+    item.classList.toggle('disabled', !hasOpenTab);
+  });
+}
+
+/**
+ * Handle context menu action.
+ * @param {string} action - The action to perform
+ */
+async function handleContextMenuAction(action) {
+  if (!contextMenuNode) return;
+  
+  const node = contextMenuNode;
+  const tabInfo = contextMenuTabInfo;
+  
+  hideContextMenu();
+  
+  try {
+    switch (action) {
+      case 'open':
+        handleNodeNavigation(node);
+        break;
+        
+      case 'openNewTab':
+        await chrome.tabs.create({ url: node.url, active: false });
+        break;
+        
+      case 'openNewWindow':
+        await chrome.windows.create({ url: node.url });
+        break;
+        
+      case 'copyUrl':
+        await navigator.clipboard.writeText(node.url);
+        break;
+        
+      case 'copyTitle':
+        await navigator.clipboard.writeText(node.title || 'Untitled');
+        break;
+        
+      case 'muteTab':
+        if (tabInfo) {
+          await chrome.tabs.update(tabInfo.id, { muted: !tabInfo.mutedInfo?.muted });
+        }
+        break;
+        
+      case 'pinTab':
+        if (tabInfo) {
+          await chrome.tabs.update(tabInfo.id, { pinned: !tabInfo.pinned });
+        }
+        break;
+        
+      case 'duplicateTab':
+        if (tabInfo) {
+          await chrome.tabs.duplicate(tabInfo.id);
+        }
+        break;
+        
+      case 'closeTab':
+        if (tabInfo) {
+          await chrome.tabs.remove(tabInfo.id);
+        }
+        break;
+        
+      case 'removeFromHistory':
+        await sendMessage({ 
+          type: 'REMOVE_NODE', 
+          tabId: currentTabId,
+          windowId: currentWindowId,
+          nodeId: node.id 
+        });
+        break;
+    }
+  } catch (error) {
+    console.error(`Context menu action "${action}" failed:`, error);
+  }
+}
+
+/**
+ * Initialize context menu listeners.
+ */
+function initContextMenu() {
+  const menu = document.getElementById('contextMenu');
+  
+  // Handle menu item clicks
+  menu.addEventListener('click', (e) => {
+    const item = e.target.closest('.context-menu-item');
+    if (item && !item.classList.contains('disabled')) {
+      handleContextMenuAction(item.dataset.action);
+    }
+  });
+  
+  // Hide menu on click outside
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target)) {
+      hideContextMenu();
+    }
+  });
+  
+  // Hide menu on scroll
+  document.getElementById('stackContainer').addEventListener('scroll', hideContextMenu);
+  
+  // Listen for contextmenu on nodes (delegated)
+  document.getElementById('stackList').addEventListener('contextmenu', (e) => {
+    const nodeEl = e.target.closest('.tree-node, .stack-entry, .graph-node');
+    if (nodeEl) {
+      e.preventDefault();
+      
+      // Find node data from the tree
+      const nodeId = parseInt(nodeEl.dataset.nodeId, 10);
+      const nodeData = findNodeById(nodeId);
+      
+      if (nodeData) {
+        showContextMenu(e.clientX, e.clientY, nodeData);
+      }
+    }
+  });
+}
+
+/**
+ * Find node by ID in the current tree data.
+ * @param {number} nodeId
+ * @returns {object|null}
+ */
+function findNodeById(nodeId) {
+  // We need to search the rendered tree
+  // Store the tree data globally for this purpose
+  return findNodeInTree(lastTreeData?.root, nodeId);
+}
+
+/**
+ * Recursively find node in tree.
+ * @param {object} node
+ * @param {number} targetId
+ * @returns {object|null}
+ */
+function findNodeInTree(node, targetId) {
+  if (!node) return null;
+  if (node.id === targetId) return node;
+  
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findNodeInTree(child, targetId);
+      if (found) return found;
+    }
+  }
+  
+  return null;
+}
+
+// Store last tree data for node lookup
+let lastTreeData = null;
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
+  initContextMenu();
   loadCurrentTab();
 });
