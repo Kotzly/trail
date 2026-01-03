@@ -137,5 +137,54 @@
     }, 500);
   }
 
+  /**
+   * Track title changes (for pages like YouTube that update title dynamically).
+   * Uses MutationObserver to watch the <title> element.
+   */
+  let lastTitle = document.title;
+  
+  function notifyTitleChange(newTitle) {
+    chrome.runtime.sendMessage({
+      type: 'TITLE_CHANGED',
+      url: window.location.href,
+      title: newTitle
+    }).catch(() => {
+      // Extension context may be invalidated, ignore
+    });
+  }
+  
+  // Observe title element changes
+  const titleElement = document.querySelector('title');
+  if (titleElement) {
+    const titleObserver = new MutationObserver(() => {
+      const newTitle = document.title;
+      if (newTitle && newTitle !== lastTitle) {
+        lastTitle = newTitle;
+        notifyTitleChange(newTitle);
+      }
+    });
+    
+    titleObserver.observe(titleElement, {
+      childList: true,
+      characterData: true,
+      subtree: true
+    });
+  }
+  
+  // Also check periodically for pages that set title via JS
+  // without modifying the <title> element directly
+  let titleCheckInterval = setInterval(() => {
+    const newTitle = document.title;
+    if (newTitle && newTitle !== lastTitle) {
+      lastTitle = newTitle;
+      notifyTitleChange(newTitle);
+    }
+  }, 2000);
+  
+  // Stop checking after 30 seconds (most pages have stable titles by then)
+  setTimeout(() => {
+    clearInterval(titleCheckInterval);
+  }, 30000);
+
   console.debug('Stack History: Content script loaded');
 })();

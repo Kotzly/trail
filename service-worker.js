@@ -258,6 +258,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'TITLE_CHANGED': {
+          // Handle title change from content script (YouTube, SPA pages, etc.)
+          const tabId = sender.tab?.id;
+          if (!tabId) break;
+          
+          const url = message.url;
+          const newTitle = message.title;
+          if (!newTitle || !shouldTrackUrl(url)) break;
+          
+          try {
+            const tree = await storageManager.getTree(tabId);
+            const currentNode = tree.currentNode;
+            
+            // Update title if current node matches URL and title changed
+            if (currentNode && currentNode.url === url && currentNode.title !== newTitle) {
+              currentNode.title = newTitle;
+              await storageManager.saveTree(tabId, tree);
+              notifyTreeUpdate(tabId);
+            }
+          } catch (error) {
+            console.debug('Title update error:', error);
+          }
+          break;
+        }
+        
         case 'GET_TREE': {
           const tree = await storageManager.getTree(message.tabId);
           sendResponse({ success: true, tree: tree.toJSON() });

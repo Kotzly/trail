@@ -8,7 +8,7 @@ import '../lib/tree-renderer.js';
 import '../lib/stack-renderer.js';
 import '../lib/graph-renderer.js';
 import { getRenderer } from '../lib/renderers.js';
-import { getViewModes, DEFAULT_VIEW_MODE } from '../lib/view-modes.js';
+import { DEFAULT_VIEW_MODE } from '../lib/view-modes.js';
 
 let currentTabId = null;
 let settings = null;
@@ -177,32 +177,45 @@ function initEventListeners() {
     }
   });
   
-  // Settings button - toggle settings panel
-  document.getElementById('settingsBtn').addEventListener('click', () => {
-    openSettingsPanel();
+  // Settings button - toggle settings popover at click position
+  document.getElementById('settingsBtn').addEventListener('click', (e) => {
+    toggleSettingsPopover(e);
   });
   
-  // Close settings button
-  document.getElementById('closeSettingsBtn').addEventListener('click', () => {
-    closeSettingsPanel();
+  // Close popover when clicking outside
+  document.addEventListener('click', (e) => {
+    const popover = document.getElementById('settingsPopover');
+    const settingsBtn = document.getElementById('settingsBtn');
+    
+    if (!popover.classList.contains('hidden') && 
+        !popover.contains(e.target) && 
+        !settingsBtn.contains(e.target)) {
+      popover.classList.add('hidden');
+    }
   });
   
-  // Save settings button
-  document.getElementById('saveBtn').addEventListener('click', () => {
-    saveSettings();
-  });
-  
-  // Reset settings button
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    resetSettings();
-  });
-  
-  // Theme option clicks
-  document.querySelectorAll('.theme-option').forEach(opt => {
-    opt.addEventListener('click', () => {
-      const theme = opt.dataset.theme;
-      updateThemeSelection(theme);
+  // Theme icon clicks - save immediately
+  document.querySelectorAll('#themeIcons .popover-icon-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const theme = btn.dataset.theme;
+      updateThemeIcons(theme);
       applyTheme(theme);
+      await saveSettingsQuick({ theme });
+    });
+  });
+  
+  // View mode icon clicks - save immediately
+  document.querySelectorAll('#viewModeIcons .popover-icon-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const mode = btn.dataset.mode;
+      updateViewModeIcons(mode);
+      await saveSettingsQuick({ viewMode: mode });
+      
+      // Re-render with new view mode
+      if (currentTabId) {
+        const { tree } = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
+        renderView(tree);
+      }
     });
   });
   
@@ -240,139 +253,82 @@ function initEventListeners() {
 }
 
 /**
- * Open settings panel and populate with current settings.
+ * Toggle settings popover at button position.
+ * @param {MouseEvent} e
  */
-function openSettingsPanel() {
-  const panel = document.getElementById('settingsPanel');
-  panel.classList.remove('hidden');
+function toggleSettingsPopover(e) {
+  const popover = document.getElementById('settingsPopover');
+  const btn = document.getElementById('settingsBtn');
   
-  // Populate current values
-  document.getElementById('stackCapacity').value = settings?.stackCapacity || DEFAULT_SETTINGS.stackCapacity;
-  updateThemeSelection(settings?.theme || DEFAULT_SETTINGS.theme);
-  updateViewModeSelection(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
-}
-
-/**
- * Close settings panel.
- */
-function closeSettingsPanel() {
-  const panel = document.getElementById('settingsPanel');
-  panel.classList.add('hidden');
-}
-
-/**
- * Initialize view mode options UI.
- */
-function initViewModeOptions() {
-  const container = document.getElementById('viewModeOptions');
-  const viewModes = getViewModes();
-  
-  viewModes.forEach(mode => {
-    const option = document.createElement('label');
-    option.className = 'view-mode-option';
-    option.dataset.mode = mode.id;
-    
-    option.innerHTML = `
-      <input type="radio" name="viewMode" value="${mode.id}">
-      <div class="view-mode-radio"></div>
-      <div class="view-mode-icon">${mode.icon}</div>
-      <div class="view-mode-content">
-        <div class="view-mode-label">${mode.label}</div>
-        <div class="view-mode-description">${mode.description}</div>
-      </div>
-    `;
-    
-    option.addEventListener('click', () => {
-      updateViewModeSelection(mode.id);
-    });
-    
-    container.appendChild(option);
-  });
-}
-
-/**
- * Update view mode selection UI.
- * @param {string} modeId
- */
-function updateViewModeSelection(modeId) {
-  const options = document.querySelectorAll('.view-mode-option');
-  options.forEach(opt => {
-    const isSelected = opt.dataset.mode === modeId;
-    opt.classList.toggle('selected', isSelected);
-    opt.querySelector('input[type="radio"]').checked = isSelected;
-  });
-}
-
-/**
- * Update theme selection UI.
- * @param {string} theme
- */
-function updateThemeSelection(theme) {
-  const options = document.querySelectorAll('.theme-option');
-  options.forEach(opt => {
-    const isSelected = opt.dataset.theme === theme;
-    opt.classList.toggle('selected', isSelected);
-    opt.querySelector('input[type="radio"]').checked = isSelected;
-  });
-}
-
-/**
- * Save settings.
- */
-async function saveSettings() {
-  const selectedViewMode = document.querySelector('input[name="viewMode"]:checked')?.value || DEFAULT_VIEW_MODE;
-  const selectedTheme = document.querySelector('input[name="theme"]:checked')?.value || 'system';
-  const stackCapacity = parseInt(document.getElementById('stackCapacity').value, 10);
-  
-  // Validation
-  if (stackCapacity < 10 || stackCapacity > 1000) {
-    alert('Stack capacity must be between 10 and 1000');
+  if (!popover.classList.contains('hidden')) {
+    popover.classList.add('hidden');
     return;
   }
   
-  const newSettings = {
-    ...settings,
-    stackCapacity,
-    viewMode: selectedViewMode,
-    theme: selectedTheme
-  };
+  // Position popover near button
+  const btnRect = btn.getBoundingClientRect();
+  const popoverWidth = 172; // Approximate width
+  
+  // Position to the left of button, below it
+  let left = btnRect.right - popoverWidth;
+  let top = btnRect.bottom + 8;
+  
+  // Ensure it fits in viewport
+  if (left < 8) left = 8;
+  if (top + 200 > window.innerHeight) {
+    top = btnRect.top - 8;
+    popover.style.transform = 'translateY(-100%)';
+  } else {
+    popover.style.transform = '';
+  }
+  
+  popover.style.left = `${left}px`;
+  popover.style.top = `${top}px`;
+  
+  // Update active states
+  updateThemeIcons(settings?.theme || DEFAULT_SETTINGS.theme);
+  updateViewModeIcons(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
+  
+  popover.classList.remove('hidden');
+}
+
+/**
+ * Update theme icons active state.
+ * @param {string} theme
+ */
+function updateThemeIcons(theme) {
+  document.querySelectorAll('#themeIcons .popover-icon-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === theme);
+  });
+}
+
+/**
+ * Update view mode icons active state.
+ * @param {string} mode
+ */
+function updateViewModeIcons(mode) {
+  document.querySelectorAll('#viewModeIcons .popover-icon-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+}
+
+/**
+ * Save settings quickly (for popover - immediate save).
+ * @param {object} updates - Partial settings to update
+ */
+async function saveSettingsQuick(updates) {
+  const newSettings = { ...settings, ...updates };
   
   try {
     await sendMessage({ type: 'SAVE_SETTINGS', settings: newSettings });
     settings = newSettings;
-    closeSettingsPanel();
-    
-    // Re-render with new view mode
-    if (currentTabId) {
-      const { tree } = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
-      renderView(tree);
-    }
   } catch (error) {
     console.error('Failed to save settings:', error);
-    alert('Failed to save settings');
-  }
-}
-
-/**
- * Reset settings to defaults.
- */
-async function resetSettings() {
-  try {
-    await sendMessage({ type: 'SAVE_SETTINGS', settings: DEFAULT_SETTINGS });
-    settings = DEFAULT_SETTINGS;
-    
-    document.getElementById('stackCapacity').value = DEFAULT_SETTINGS.stackCapacity;
-    updateViewModeSelection(DEFAULT_SETTINGS.viewMode);
-    updateThemeSelection(DEFAULT_SETTINGS.theme);
-    applyTheme(DEFAULT_SETTINGS.theme);
-  } catch (error) {
-    console.error('Failed to reset settings:', error);
   }
 }
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
-  initViewModeOptions();
   initEventListeners();
   loadCurrentTab();
 });

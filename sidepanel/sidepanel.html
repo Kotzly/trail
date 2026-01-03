@@ -52,59 +52,60 @@
       <div class="stack-list" id="stackList"></div>
     </div>
 
-    <!-- Settings Panel -->
-    <div class="settings-panel hidden" id="settingsPanel">
-      <div class="settings-header">
-        <h2>Settings</h2>
-        <button class="btn-icon" id="closeSettingsBtn" title="Close settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6L6 18M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-      
-      <div class="settings-content">
-        <!-- Theme -->
-        <div class="settings-section">
-          <label class="settings-label">Theme</label>
-          <div class="theme-options" id="themeOptions">
-            <label class="theme-option" data-theme="light">
-              <input type="radio" name="theme" value="light">
-              <span class="theme-icon">☀️</span>
-              <span class="theme-label">Light</span>
-            </label>
-            <label class="theme-option" data-theme="dark">
-              <input type="radio" name="theme" value="dark">
-              <span class="theme-icon">🌙</span>
-              <span class="theme-label">Dark</span>
-            </label>
-            <label class="theme-option" data-theme="system">
-              <input type="radio" name="theme" value="system">
-              <span class="theme-icon">💻</span>
-              <span class="theme-label">System</span>
-            </label>
-          </div>
-        </div>
+    </div>
 
-        <!-- View Mode -->
-        <div class="settings-section">
-          <label class="settings-label">View Mode</label>
-          <div class="view-mode-options" id="viewModeOptions"></div>
-        </div>
-
-        <!-- Stack Capacity -->
-        <div class="settings-section">
-          <label class="settings-label">Max history per tab</label>
-          <div class="input-group">
-            <input type="number" id="stackCapacity" min="10" max="1000" value="100">
-            <span class="input-suffix">pages</span>
-          </div>
+    <!-- Settings Popover -->
+    <div class="settings-popover hidden" id="settingsPopover">
+      <div class="popover-section">
+        <div class="popover-label">Theme</div>
+        <div class="popover-icons" id="themeIcons">
+          <button class="popover-icon-btn" data-theme="light" title="Light">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+          </button>
+          <button class="popover-icon-btn" data-theme="dark" title="Dark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+            </svg>
+          </button>
+          <button class="popover-icon-btn" data-theme="system" title="System">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8M12 17v4"/>
+            </svg>
+          </button>
         </div>
       </div>
-
-      <div class="settings-footer">
-        <button class="btn btn-secondary" id="resetBtn">Reset</button>
-        <button class="btn btn-primary" id="saveBtn">Save</button>
+      <div class="popover-divider"></div>
+      <div class="popover-section">
+        <div class="popover-label">View</div>
+        <div class="popover-icons" id="viewModeIcons">
+          <button class="popover-icon-btn" data-mode="tree" title="Tree">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3v6M12 9l-5 6M12 9l5 6M7 15v3M17 15v3"/>
+              <circle cx="12" cy="3" r="2"/>
+              <circle cx="7" cy="18" r="2"/>
+              <circle cx="17" cy="18" r="2"/>
+            </svg>
+          </button>
+          <button class="popover-icon-btn" data-mode="stack" title="Stack">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="4" rx="1"/>
+              <rect x="4" y="10" width="16" height="4" rx="1"/>
+              <rect x="4" y="16" width="16" height="4" rx="1"/>
+            </svg>
+          </button>
+          <button class="popover-icon-btn" data-mode="graph" title="Graph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="5" cy="6" r="3"/>
+              <circle cx="19" cy="6" r="3"/>
+              <circle cx="12" cy="18" r="3"/>
+              <path d="M5 9v3a4 4 0 004 4h6a4 4 0 004-4V9"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>

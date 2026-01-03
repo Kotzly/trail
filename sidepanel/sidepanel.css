@@ -895,3 +895,91 @@ body {
   width: 18px;
   height: 18px;
 }
+
+/* ========================================
+   SETTINGS POPOVER (Floating Island)
+   ======================================== */
+
+.settings-popover {
+  position: fixed;
+  z-index: 1000;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  backdrop-filter: blur(8px);
+  animation: popover-in 0.15s ease-out;
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.settings-popover.hidden {
+  display: none;
+}
+
+.popover-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popover-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--md-on-surface-variant);
+  padding: 0 4px;
+}
+
+.popover-divider {
+  height: 1px;
+  background: var(--md-outline-variant);
+  margin: 10px 0;
+}
+
+.popover-icons {
+  display: flex;
+  gap: 6px;
+}
+
+.popover-icon-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-surface);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--md-on-surface-variant);
+}
+
+.popover-icon-btn:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+.popover-icon-btn.active {
+  background: var(--md-primary-container);
+  border-color: var(--md-primary);
+  color: var(--md-on-primary-container);
+}
+
+.popover-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
