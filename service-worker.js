@@ -168,8 +168,10 @@ async function handleSingleTabNavigation(details, transitionType, windowId) {
   }
 }
 
+
 // Track recent tab registrations for redirect detection (tabId -> timestamp)
 const recentTabRegistrations = new Map();
+const lastTabUrl = new Map(); // tabId -> last URL
 const REDIRECT_THRESHOLD_MS = 2000; // Redirects within 2 seconds are treated as same navigation
 
 /**
@@ -178,6 +180,12 @@ const REDIRECT_THRESHOLD_MS = 2000; // Redirects within 2 seconds are treated as
  */
 async function handleMultiTabNavigation(details, transitionType, windowId) {
   const { tabId, url } = details;
+
+  // Skip about:blank - just track it for redirect detection, don't create nodes
+  if (url === 'about:blank') {
+    lastTabUrl.set(tabId, url);
+    return;
+  }
 
   try {
     const tab = await chrome.tabs.get(tabId);
@@ -194,7 +202,12 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
     };
 
     const tree = await storageManager.getWindowTree(windowId);
-    
+
+    // --- about:blank redirect logic ---
+    const prevUrl = lastTabUrl.get(tabId);
+    lastTabUrl.set(tabId, url);
+    const isFromAboutBlank = prevUrl === 'about:blank';
+
     if (existingNodeId !== null) {
       // Tab already has a node - navigate from that node (creates a branch if different URL)
       const node = tree.findNodeById(existingNodeId);
@@ -215,7 +228,7 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
       
       // Check if this is a redirect (tab was recently registered with another URL)
       const lastRegistration = recentTabRegistrations.get(tabId);
-      const isRedirect = lastRegistration && (Date.now() - lastRegistration < REDIRECT_THRESHOLD_MS);
+      const isRedirect = (lastRegistration && (Date.now() - lastRegistration < REDIRECT_THRESHOLD_MS)) || isFromAboutBlank;
       
       // Decide: create new root (forest mode) or branch from current
       if (settings.forestMode && !isRedirect) {
