@@ -24,7 +24,8 @@ const DEFAULT_SETTINGS = {
   viewMode: DEFAULT_VIEW_MODE,
   theme: 'system',
   multiTabEnabled: false,
-  multiTabLimit: 0
+  multiTabLimit: 0,
+  forestMode: true
 };
 
 /**
@@ -306,6 +307,14 @@ function initEventListeners() {
     }, 300);
   });
   
+  // Forest Mode toggle
+  const forestModeToggle = document.getElementById('forestModeToggle');
+  
+  forestModeToggle.addEventListener('change', async () => {
+    const enabled = forestModeToggle.checked;
+    await saveSettingsQuick({ forestMode: enabled });
+  });
+  
   // Listen for tree updates from service worker
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'TREE_UPDATED' && message.tabId === currentTabId) {
@@ -377,7 +386,7 @@ function toggleSettingsPopover(e) {
   // Update active states
   updateThemeIcons(settings?.theme || DEFAULT_SETTINGS.theme);
   updateViewModeIcons(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
-  updateMultiTabUI(settings?.multiTabEnabled || false, settings?.multiTabLimit || 0);
+  updateMultiTabUI(settings?.multiTabEnabled || false, settings?.multiTabLimit || 0, settings?.forestMode);
   
   popover.classList.remove('hidden');
 }
@@ -406,14 +415,16 @@ function updateViewModeIcons(mode) {
  * Update Multi-Tab UI state.
  * @param {boolean} globalEnabled
  * @param {number} limit
+ * @param {boolean} forestMode
  */
-async function updateMultiTabUI(globalEnabled, limit) {
+async function updateMultiTabUI(globalEnabled, limit, forestMode) {
   const globalToggle = document.getElementById('multiTabToggle');
   const windowToggle = document.getElementById('windowMultiTabToggle');
   const options = document.getElementById('multiTabOptions');
   const limitInput = document.getElementById('multiTabLimit');
   const helpBtn = document.getElementById('multiTabHelpBtn');
   const helpPanel = document.getElementById('multiTabHelp');
+  const forestModeToggle = document.getElementById('forestModeToggle');
   
   // Reset help panel
   helpBtn.classList.remove('active');
@@ -423,6 +434,9 @@ async function updateMultiTabUI(globalEnabled, limit) {
   globalToggle.checked = globalEnabled;
   options.classList.toggle('visible', globalEnabled);
   limitInput.value = limit;
+  
+  // Set forest mode toggle
+  forestModeToggle.checked = forestMode !== false;
   
   // Get per-window state
   if (currentWindowId) {
