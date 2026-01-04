@@ -72,12 +72,6 @@ async function handleNodeNavigation(node) {
     });
 
     updateCurrentSelection(node.id);
-
-    // Center on the clicked node with smooth animation (graph view only)
-    const api = getGraphAPI();
-    if (api) {
-      api.centerOnNode(node.id);
-    }
   } catch (error) {
     console.error('Navigation failed:', error);
   }
