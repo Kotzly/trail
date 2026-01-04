@@ -1182,25 +1182,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const node = tree.findById(nodeId);
           if (node) {
             // Mark as programmatic BEFORE creating tab to prevent auto-focus
-            // We'll use a temporary ID that will be replaced with actual tab ID
-            const tempId = `pending_${Date.now()}_${Math.random()}`;
-            await chrome.storage.session.set({ 
-              [tempId]: true 
-            });
+            // Use a promise-based approach to ensure flag is set before tab creation
+            const flagKey = `programmaticTab_pending_${Date.now()}_${Math.random()}`;
+            await chrome.storage.session.set({ [flagKey]: true });
             
             const tab = await chrome.tabs.create({ url: node.url, active: false });
             
-            // Mark actual tab as programmatic
+            // Immediately mark actual tab as programmatic (before any events fire)
             programmaticTabs.add(tab.id);
-            await chrome.storage.session.set({ 
-              [`programmaticTab_${tab.id}`]: true 
-            });
-            // Clean up temp flag
-            await chrome.storage.session.remove(tempId);
+            const actualFlagKey = `programmaticTab_${tab.id}`;
+            await chrome.storage.session.set({ [actualFlagKey]: true });
+            await chrome.storage.session.remove(flagKey);
             
             const settings = await getSettings();
             if (settings.multiTabEnabled) {
               tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
+              // DO NOT update currentNode - keep focus on current tab
+              // DO NOT notify tree update - sidepanel should not refresh
             }
             sendResponse({ success: true });
           } else {
@@ -1726,12 +1724,17 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const { tabId, windowId } = activeInfo;
   
-  // Skip auto-focus if this tab was created programmatically (e.g., "open in new tab")
-  // Remove flag after first check - if user manually switches to this tab later, allow focus
-  if (programmaticTabs.has(tabId)) {
+  // CRITICAL: Check if this tab was created programmatically FIRST, before any other operations
+  // Check both in-memory set and session storage (for race condition protection)
+  const isProgrammatic = programmaticTabs.has(tabId) || 
+    (await chrome.storage.session.get(`programmaticTab_${tabId}`))[`programmaticTab_${tabId}`];
+  
+  if (isProgrammatic) {
+    // This tab was created programmatically - do NOT update currentNode, do NOT notify
+    // Remove flag so if user manually switches to it later, focus will switch normally
     programmaticTabs.delete(tabId);
-    chrome.storage.session.remove(`programmaticTab_${tabId}`);
-    return;
+    await chrome.storage.session.remove(`programmaticTab_${tabId}`);
+    return; // Exit early - do nothing
   }
   
   const isMultiTab = await isMultiTabForWindow(windowId);

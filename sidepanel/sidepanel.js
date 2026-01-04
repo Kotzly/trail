@@ -630,16 +630,18 @@ function initEventListeners() {
   
   // Listen for tab activation changes
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    // Check if this tab was created programmatically (e.g., "open in new tab")
+    // CRITICAL: Check if this tab was created programmatically FIRST
+    // Check session storage (for race condition protection)
     const result = await chrome.storage.session.get(`programmaticTab_${activeInfo.tabId}`);
     
     if (result[`programmaticTab_${activeInfo.tabId}`]) {
-      // This tab was created programmatically - don't switch focus
+      // This tab was created programmatically - do NOT switch focus
       // Remove flag so if user manually switches to it later, focus will switch
       await chrome.storage.session.remove(`programmaticTab_${activeInfo.tabId}`);
-      return;
+      return; // Exit early - do nothing
     }
     
+    // Normal tab activation - update focus
     if (activeInfo.tabId !== currentTabId || activeInfo.windowId !== currentWindowId) {
       currentTabId = activeInfo.tabId;
       currentWindowId = activeInfo.windowId;
