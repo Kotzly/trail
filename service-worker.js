@@ -237,7 +237,16 @@ async function findWindowForNode(nodeId, tree) {
         }
       }
       
-      return bestWindowId || Array.from(windowIds)[0];
+      const candidateWindowId = bestWindowId || Array.from(windowIds)[0];
+      
+      // Verify that the window still exists (not closed)
+      try {
+        await chrome.windows.get(candidateWindowId);
+        return candidateWindowId;
+      } catch (e) {
+        // Window was closed - return null to indicate new window should be created
+        return null;
+      }
     }
     
     // Fallback: return current window
@@ -988,20 +997,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               } catch (e) {
                 // Tab might have been closed externally
                 tabManager.unregisterGlobal(existing.tabId);
-                // Create new tab in the window that owns this node
-                const targetWindowId = await findWindowForNode(nodeId, tree) || windowId;
-                // Focus the target window and create tab there
-                await chrome.windows.update(targetWindowId, { focused: true });
-                const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
-                tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
+                // Create new tab in the window that owns this node, or new window if orphan
+                const targetWindowId = await findWindowForNode(nodeId, tree);
+                if (targetWindowId) {
+                  // Window exists - focus it and create tab there
+                  await chrome.windows.update(targetWindowId, { focused: true });
+                  const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
+                  tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
+                } else {
+                  // Orphan branch - create new window
+                  const newWindow = await chrome.windows.create({ focused: true, url });
+                  const tabs = await chrome.tabs.query({ windowId: newWindow.id });
+                  const newTab = tabs[0];
+                  tabManager.registerGlobal(nodeId, newWindow.id, newTab.id);
+                }
               }
             } else {
               // No tab for this node - find the window that owns this node's tree
-              const targetWindowId = await findWindowForNode(nodeId, tree) || windowId;
-              // Focus the target window and create tab there
-              await chrome.windows.update(targetWindowId, { focused: true });
-              const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
-              tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
+              const targetWindowId = await findWindowForNode(nodeId, tree);
+              if (targetWindowId) {
+                // Window exists - focus it and create tab there
+                await chrome.windows.update(targetWindowId, { focused: true });
+                const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
+                tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
+              } else {
+                // Orphan branch - create new window
+                const newWindow = await chrome.windows.create({ focused: true, url });
+                const tabs = await chrome.tabs.query({ windowId: newWindow.id });
+                const newTab = tabs[0];
+                tabManager.registerGlobal(nodeId, newWindow.id, newTab.id);
+              }
               
               // Check limit (global, skip pinned nodes)
               await tabManager.closeOldestGlobalIfNeeded(settings.multiTabLimit, tree);
