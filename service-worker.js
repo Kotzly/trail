@@ -966,6 +966,96 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'BULK_DELETE': {
+          // Delete multiple nodes and reconnect their children
+          const { nodeIds } = message;
+          const tree = await storageManager.getGlobalTree();
+          const removedIds = tree.removeNodesAndReconnect(nodeIds);
+          
+          // Close tabs for removed nodes
+          for (const id of removedIds) {
+            const tabInfo = tabManager.getTabForNodeGlobal(id);
+            if (tabInfo) {
+              try {
+                await chrome.tabs.remove(tabInfo.tabId);
+                tabManager.unregisterGlobal(tabInfo.tabId);
+              } catch (e) {
+                // Tab might already be closed
+              }
+            }
+          }
+          
+          await storageManager.saveGlobalTree(tree);
+          notifyGlobalTreeUpdate(tree);
+          sendResponse({ success: true, removedCount: removedIds.length });
+          break;
+        }
+        
+        case 'BULK_CLOSE_TABS': {
+          // Close tabs for multiple nodes (without removing from tree)
+          const { nodeIds } = message;
+          let closedCount = 0;
+          
+          for (const id of nodeIds) {
+            const tabInfo = tabManager.getTabForNodeGlobal(id);
+            if (tabInfo) {
+              try {
+                await chrome.tabs.remove(tabInfo.tabId);
+                tabManager.unregisterGlobal(tabInfo.tabId);
+                closedCount++;
+              } catch (e) {
+                // Tab might already be closed
+              }
+            }
+          }
+          
+          // Notify update
+          const tree = await storageManager.getGlobalTree();
+          notifyGlobalTreeUpdate(tree);
+          sendResponse({ success: true, closedCount });
+          break;
+        }
+        
+        case 'BULK_PIN': {
+          // Pin multiple nodes
+          const { nodeIds } = message;
+          const tree = await storageManager.getGlobalTree();
+          let pinnedCount = 0;
+          
+          for (const id of nodeIds) {
+            const node = tree.findById(id);
+            if (node && !node.pinned) {
+              node.pinned = true;
+              pinnedCount++;
+            }
+          }
+          
+          await storageManager.saveGlobalTree(tree);
+          notifyGlobalTreeUpdate(tree);
+          sendResponse({ success: true, pinnedCount });
+          break;
+        }
+        
+        case 'BULK_UNPIN': {
+          // Unpin multiple nodes
+          const { nodeIds } = message;
+          const tree = await storageManager.getGlobalTree();
+          let unpinnedCount = 0;
+          
+          for (const id of nodeIds) {
+            const node = tree.findById(id);
+            if (node && node.pinned) {
+              node.pinned = false;
+              unpinnedCount++;
+            }
+          }
+          
+          await storageManager.saveGlobalTree(tree);
+          notifyGlobalTreeUpdate(tree);
+          sendResponse({ success: true, unpinnedCount });
+          break;
+        }
+        
         case 'GET_SETTINGS': {
           const settings = await storageManager.getSettings();
           sendResponse({ success: true, settings });

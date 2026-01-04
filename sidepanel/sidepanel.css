@@ -1552,6 +1552,15 @@ body {
   background: rgba(var(--md-error-rgb, 220, 53, 69), 0.15);
 }
 
+.graph-context-menu-header {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--md-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .graph-context-menu-divider {
   height: 1px;
   background: var(--md-outline-variant);
