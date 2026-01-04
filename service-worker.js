@@ -1789,12 +1789,26 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       tabManager.touchGlobal(tabId);
       
       const tree = await storageManager.getGlobalTree();
-      if (tree && tree.getCurrentId() !== nodeId) {
-        tree.setCurrentById(nodeId);
-        await storageManager.saveGlobalTree(tree);
-        
-        // Notify ALL sidepanels (global tree update)
-        notifyGlobalTreeUpdate(tree);
+      const node = tree.findNodeById(nodeId);
+      
+      // CRITICAL: Verify that the node's URL matches the tab's URL before updating currentNode
+      // This prevents updating currentNode to wrong node due to race conditions
+      if (tree && node) {
+        try {
+          const tab = await chrome.tabs.get(tabId);
+          const tabUrl = tab.url || tab.pendingUrl;
+          
+          // Only update currentNode if node URL matches tab URL
+          if (tabUrl && node.url === tabUrl && tree.getCurrentId() !== nodeId) {
+            tree.setCurrentById(nodeId);
+            await storageManager.saveGlobalTree(tree);
+            
+            // Notify ALL sidepanels (global tree update)
+            notifyGlobalTreeUpdate(tree);
+          }
+        } catch (e) {
+          // Tab might not exist, skip update
+        }
       }
     }
   }
