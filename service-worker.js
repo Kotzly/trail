@@ -291,6 +291,33 @@ async function notifyTreeUpdate(tabId) {
 }
 
 /**
+ * Get tab states (muted, audible) for all open tabs in the global tree.
+ * @returns {Promise<Object>} Map of nodeId -> { muted, audible }
+ */
+async function getTabStates() {
+  const tabStates = {};
+  const openNodes = tabManager.getAllOpenNodes();
+  
+  for (const nodeId of openNodes) {
+    const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+    if (tabInfo) {
+      try {
+        const tab = await chrome.tabs.get(tabInfo.tabId);
+        tabStates[nodeId] = {
+          muted: tab.mutedInfo?.muted || false,
+          audible: tab.audible || false
+        };
+      } catch (e) {
+        // Tab might have been closed
+        tabStates[nodeId] = { muted: false, audible: false };
+      }
+    }
+  }
+  
+  return tabStates;
+}
+
+/**
  * Notify ALL side panels that the global tree has been updated.
  * Broadcasts to all windows so they all show the same graph.
  * @param {NavigationTree} tree
@@ -298,10 +325,12 @@ async function notifyTreeUpdate(tabId) {
 async function notifyGlobalTreeUpdate(tree) {
   try {
     const openNodeIds = Array.from(tabManager.getAllOpenNodes());
+    const tabStates = await getTabStates();
     chrome.runtime.sendMessage({
       type: 'GLOBAL_TREE_UPDATED',
       tree: tree.toJSON(),
-      openNodeIds
+      openNodeIds,
+      tabStates
     }).catch(() => {
       // Side panel might not be open, ignore
     });
@@ -420,6 +449,27 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
     // Single-tab mode: remove tree
     storageManager.removeTree(tabId);
   }
+});
+
+/**
+ * Track tab audio state changes (muted, audible).
+ */
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Only care about muted/audible changes
+  if (!('mutedInfo' in changeInfo) && !('audible' in changeInfo)) return;
+  
+  const settings = await getSettings();
+  if (!settings.multiTabEnabled) return;
+  
+  // Check if this tab is in our global tracking
+  const nodeId = tabManager.getNodeForTabGlobal(tabId);
+  if (nodeId === null) return;
+  
+  // Notify sidepanels to update tab states
+  try {
+    const tree = await storageManager.getGlobalTree();
+    notifyGlobalTreeUpdate(tree);
+  } catch (e) {}
 });
 
 /**
@@ -579,10 +629,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
             
             const openNodeIds = Array.from(tabManager.getAllOpenNodes());
+            const tabStates = await getTabStates();
             sendResponse({ 
               success: true, 
               tree: tree.toJSON(),
               openNodeIds,
+              tabStates,
               multiTabMode: true,
               windowId: tab.windowId
             });
@@ -603,10 +655,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Returns GLOBAL tree (shared across all windows)
           const tree = await storageManager.getGlobalTree();
           const openNodeIds = Array.from(tabManager.getAllOpenNodes());
+          const tabStates = await getTabStates();
           sendResponse({ 
             success: true, 
             tree: tree.toJSON(),
-            openNodeIds
+            openNodeIds,
+            tabStates
           });
           break;
         }

@@ -93,12 +93,16 @@ function updateCurrentSelection(nodeId) {
   });
 }
 
+// Tab states (muted, audible) for nodes
+let tabStates = {};
+
 /**
  * Render the navigation data using the current view mode.
  * @param {object} treeData - Serialized tree data
  * @param {number[]} [openNodes] - IDs of nodes with open tabs (multi-tab mode)
+ * @param {object} [states] - Tab states (muted, audible) by nodeId
  */
-function renderView(treeData, openNodes = null) {
+function renderView(treeData, openNodes = null, states = null) {
   const stackList = document.getElementById('stackList');
   const emptyState = document.getElementById('emptyState');
   const stackCount = document.getElementById('stackCount');
@@ -109,6 +113,11 @@ function renderView(treeData, openNodes = null) {
   // Update open nodes set
   if (openNodes !== null) {
     openNodeIds = new Set(openNodes);
+  }
+  
+  // Update tab states
+  if (states !== null) {
+    tabStates = states;
   }
   
   const nodeCount = treeData?.nodeCount || 0;
@@ -143,7 +152,8 @@ function renderView(treeData, openNodes = null) {
   currentNodeId = renderer(treeData, stackList, {
     onNavigate: handleNodeNavigation,
     openNodeIds: isMultiTabMode ? openNodeIds : null,
-    compactGraph: settings?.compactGraph || false
+    compactGraph: settings?.compactGraph || false,
+    tabStates: isMultiTabMode ? tabStates : {}
   });
 
   // Graph view handles centering internally, only scroll for other views
@@ -192,7 +202,7 @@ async function loadCurrentTab() {
     isMultiTabMode = response.multiTabMode || false;
     
     if (isMultiTabMode) {
-      renderView(response.tree, response.openNodeIds);
+      renderView(response.tree, response.openNodeIds, response.tabStates);
     } else {
       renderView(response.tree);
     }
@@ -260,7 +270,7 @@ function initEventListeners() {
       if (currentTabId) {
         const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
         if (response.multiTabMode) {
-          renderView(response.tree, response.openNodeIds);
+          renderView(response.tree, response.openNodeIds, response.tabStates);
         } else {
           renderView(response.tree);
         }
@@ -347,7 +357,7 @@ function initEventListeners() {
     if (currentTabId) {
       const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
       if (response.multiTabMode) {
-        renderView(response.tree, response.openNodeIds);
+        renderView(response.tree, response.openNodeIds, response.tabStates);
       } else {
         renderView(response.tree);
       }
@@ -360,10 +370,10 @@ function initEventListeners() {
       renderView(message.tree);
     } else if (message.type === 'GLOBAL_TREE_UPDATED') {
       // Global tree update - all sidepanels receive this
-      renderView(message.tree, message.openNodeIds);
+      renderView(message.tree, message.openNodeIds, message.tabStates);
     } else if (message.type === 'WINDOW_TREE_UPDATED' && message.windowId === currentWindowId) {
       // Legacy per-window tree update (single-tab mode)
-      renderView(message.tree, message.openNodeIds);
+      renderView(message.tree, message.openNodeIds, message.tabStates);
     }
   });
   

@@ -1101,6 +1101,12 @@ body {
   opacity: 0.75;
 }
 
+/* Muted tabs - red border */
+.graph-node.muted {
+  border: 2px solid #dc3545;
+  box-shadow: 0 0 8px rgba(220, 53, 69, 0.4);
+}
+
 /* ========================================
    PATH HIGHLIGHTING (Graph View)
    Path to current node is highlighted
