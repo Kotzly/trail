@@ -591,11 +591,32 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
  * Handle new window creation - create new root in global tree.
  */
 chrome.windows.onCreated.addListener(async (window) => {
-  const settings = await getSettings();
-  if (!settings.multiTabEnabled) return;
-
-  // Don't create newtab automatically - let real navigation handle it
-  // The tree will be created when the first navigation happens
+  try {
+    // Get the first tab in the new window
+    const tabs = await chrome.tabs.query({ windowId: window.id });
+    if (tabs.length === 0) return;
+    
+    const tab = tabs[0];
+    const tree = await storageManager.getGlobalTree();
+    const settings = await getSettings();
+    
+    // Create a new root node for this window/tab
+    const newNode = tree.createNewRoot({
+      url: tab.pendingUrl || tab.url || 'chrome://newtab',
+      title: tab.title || 'New Tab',
+      favicon: tab.favIconUrl || ''
+    });
+    
+    await storageManager.saveGlobalTree(tree);
+    
+    if (settings.multiTabEnabled) {
+      tabManager.registerGlobal(newNode.id, tab.windowId, tab.id);
+    }
+    
+    notifyGlobalTreeUpdate(tree);
+  } catch (error) {
+    console.debug('Error creating root for new window:', error);
+  }
 });
 
 /**
@@ -904,31 +925,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         
         case 'CREATE_NEW_ROOT': {
-          // Create a new window and add it as a new root in the tree (forest mode)
+          // Create a new window - the windows.onCreated listener will handle creating the root
           try {
             const window = await chrome.windows.create({ focused: true });
-            // Get the first tab in the new window
-            const tabs = await chrome.tabs.query({ windowId: window.id });
-            const tab = tabs[0];
-            
-            const tree = await storageManager.getGlobalTree();
-            const settings = await getSettings();
-            
-            // Create a new root node for this window/tab
-            const newNode = tree.createNewRoot({
-              url: tab.pendingUrl || tab.url || 'chrome://newtab',
-              title: tab.title || 'New Tab',
-              favicon: tab.favIconUrl || ''
-            });
-            
-            await storageManager.saveGlobalTree(tree);
-            
-            if (settings.multiTabEnabled) {
-              tabManager.registerGlobal(newNode.id, tab.windowId, tab.id);
-            }
-            
-            notifyGlobalTreeUpdate(tree);
-            sendResponse({ success: true, nodeId: newNode.id });
+            sendResponse({ success: true, windowId: window.id });
           } catch (e) {
             sendResponse({ success: false, error: e.message });
           }
