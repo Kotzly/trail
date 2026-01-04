@@ -1088,7 +1088,7 @@ body {
 .graph-node.current {
   border-color: var(--md-primary);
   background: var(--md-primary-container);
-  box-shadow: 0 0 0 3px var(--md-primary-container), 0 4px 16px var(--md-shadow);
+  box-shadow: 0 4px 16px var(--md-shadow);
 }
 
 .graph-node-favicon {
@@ -1229,10 +1229,10 @@ body {
   border-radius: 4px;
 }
 
-/* Selected nodes */
+/* Selected nodes - using primary border only */
 .graph-node.selected {
-  outline: 2px solid var(--md-primary);
-  outline-offset: 2px;
+  border-color: var(--md-primary);
+  border-width: 2px;
 }
 
 /* ========================================
@@ -1470,29 +1470,32 @@ body {
   box-shadow: 0 0 8px rgba(220, 53, 69, 0.4);
 }
 
-/* Pinned nodes - subtle indicator */
-.graph-node.pinned {
-  border-color: #f59e0b;
-}
+/* Pinned nodes - no border change */
 
-/* Pin indicator - minimalistic dot */
+/* Pin indicator - flat pin icon */
 .graph-node-pin {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 8px;
-  height: 8px;
-  background: #f59e0b;
-  border-radius: 50%;
+  top: 4px;
+  right: 4px;
+  width: 14px;
+  height: 14px;
   z-index: 5;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.graph-node-pin svg {
+  width: 100%;
+  height: 100%;
+  fill: var(--md-tertiary);
+  stroke: none;
 }
 
 .graph-node.compact .graph-node-pin {
-  top: -3px;
-  right: -3px;
-  width: 6px;
-  height: 6px;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
 }
 
 /* Audio indicator icon */

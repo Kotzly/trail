@@ -369,9 +369,32 @@ async function notifyWindowTreeUpdate(windowId, tree) {
 
 /**
  * Track page navigations (link clicks, form submissions, etc.)
+ * Protect pinned tabs by opening links in new tabs.
  */
-chrome.webNavigation.onCommitted.addListener((details) => {
-  const { transitionType } = details;
+chrome.webNavigation.onCommitted.addListener(async (details) => {
+  const { transitionType, tabId, url } = details;
+  
+  // Check if this is a pinned tab that needs protection
+  const settings = await getSettings();
+  if (settings.multiTabEnabled && settings.enablePinNodes) {
+    const tree = await storageManager.getGlobalTree();
+    const nodeId = tabManager.getNodeForTabGlobal(tabId);
+    if (nodeId) {
+      const node = tree.findNodeById(nodeId);
+      if (node?.pinned && transitionType === 'link') {
+        // This is a link click in a pinned tab - open in new tab instead
+        try {
+          const tab = await chrome.tabs.get(tabId);
+          await chrome.tabs.create({ url, index: tab.index + 1 });
+          // Cancel the navigation in the pinned tab by going back
+          chrome.tabs.goBack(tabId).catch(() => {});
+          return;
+        } catch (e) {
+          console.debug('Failed to protect pinned tab:', e);
+        }
+      }
+    }
+  }
   
   // Track link clicks, typed URLs, form submissions, and reloads
   const trackableTransitions = ['link', 'typed', 'form_submit', 'generated', 'auto_bookmark'];
@@ -433,6 +456,7 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
 
 /**
  * Cleanup tree when tab is closed.
+ * Warn before closing pinned tabs.
  */
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   const settings = await getSettings();
@@ -449,6 +473,32 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   } else {
     // Single-tab mode: remove tree
     storageManager.removeTree(tabId);
+  }
+});
+
+/**
+ * Warn before removing pinned tabs.
+ * Note: Chrome doesn't allow preventing tab closure, so we show a notification after.
+ */
+chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
+  const settings = await getSettings();
+  if (!settings.multiTabEnabled || !settings.enablePinNodes) return;
+  
+  // Check if this was a pinned tab
+  const tree = await storageManager.getGlobalTree();
+  const nodeId = tabManager.getNodeForTabGlobal(tabId);
+  if (nodeId) {
+    const node = tree.findNodeById(nodeId);
+    if (node?.pinned) {
+      // Show notification that a pinned tab was closed
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: 'Trail: Pinned Tab Closed',
+        message: `Pinned tab "${node.title}" was closed. The page is still saved in your history.`,
+        priority: 1
+      });
+    }
   }
 });
 
