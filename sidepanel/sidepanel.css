@@ -143,6 +143,14 @@ body {
 .header-actions {
   display: flex;
   gap: 4px;
+  align-items: center;
+}
+
+.header-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--md-outline-variant);
+  margin: 0 4px;
 }
 
 .btn-icon {

@@ -1,5 +1,6 @@
 import { storageManager } from './lib/storage-manager.js';
 import { tabManager } from './lib/tab-manager.js';
+import * as undoManager from './lib/command-manager.js';
 
 /**
  * Service Worker for Trail extension.
@@ -959,6 +960,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Delete a single node and reconnect its children to parent
           const { nodeId } = message;
           const tree = await storageManager.getGlobalTree();
+          
+          // Save snapshot for undo
+          undoManager.saveSnapshot(tree.toJSON(), 'Delete node');
+          
           const removedIds = tree.removeNodesAndReconnect([nodeId]);
           
           // Close tab for removed node
@@ -984,6 +989,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Delete all children of a node (close their tabs too)
           const { nodeId } = message;
           const tree = await storageManager.getGlobalTree();
+          
+          // Save snapshot for undo
+          undoManager.saveSnapshot(tree.toJSON(), 'Delete children');
+          
           const removedIds = tree.removeChildren(nodeId);
           
           // Close tabs for removed nodes
@@ -1009,6 +1018,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Delete a node and all its children (close their tabs too)
           const { nodeId } = message;
           const tree = await storageManager.getGlobalTree();
+          
+          // Save snapshot for undo
+          undoManager.saveSnapshot(tree.toJSON(), 'Delete with children');
+          
           const removedIds = tree.removeNodeWithChildren(nodeId);
           
           // Close tabs for removed nodes
@@ -1034,6 +1047,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Delete multiple nodes and reconnect their children
           const { nodeIds } = message;
           const tree = await storageManager.getGlobalTree();
+          
+          // Save snapshot for undo
+          undoManager.saveSnapshot(tree.toJSON(), 'Delete selected');
+          
           const removedIds = tree.removeNodesAndReconnect(nodeIds);
           
           // Close tabs for removed nodes
@@ -1117,6 +1134,45 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           await storageManager.saveGlobalTree(tree);
           notifyGlobalTreeUpdate(tree);
           sendResponse({ success: true, unpinnedCount });
+          break;
+        }
+        
+        case 'UNDO': {
+          const tree = await storageManager.getGlobalTree();
+          const previousState = undoManager.undo(tree.toJSON());
+          
+          if (previousState) {
+            // Restore tree from snapshot
+            const { NavigationTree } = await import('./lib/tree.js');
+            const restoredTree = NavigationTree.fromJSON(previousState);
+            await storageManager.saveGlobalTree(restoredTree);
+            notifyGlobalTreeUpdate(restoredTree);
+            sendResponse({ success: true, state: undoManager.getState() });
+          } else {
+            sendResponse({ success: false, error: 'Nothing to undo' });
+          }
+          break;
+        }
+        
+        case 'REDO': {
+          const tree = await storageManager.getGlobalTree();
+          const nextState = undoManager.redo(tree.toJSON());
+          
+          if (nextState) {
+            // Restore tree from snapshot
+            const { NavigationTree } = await import('./lib/tree.js');
+            const restoredTree = NavigationTree.fromJSON(nextState);
+            await storageManager.saveGlobalTree(restoredTree);
+            notifyGlobalTreeUpdate(restoredTree);
+            sendResponse({ success: true, state: undoManager.getState() });
+          } else {
+            sendResponse({ success: false, error: 'Nothing to redo' });
+          }
+          break;
+        }
+        
+        case 'GET_UNDO_STATE': {
+          sendResponse({ success: true, state: undoManager.getState() });
           break;
         }
         

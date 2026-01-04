@@ -22,6 +22,19 @@
         Trail
       </h1>
       <div class="header-actions">
+        <button id="undoBtn" class="btn-icon" title="Undo (Ctrl+Z)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7v6h6"/>
+            <path d="M3 13a9 9 0 0 1 15.36-6.36"/>
+          </svg>
+        </button>
+        <button id="redoBtn" class="btn-icon" title="Redo (Ctrl+Shift+Z)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 7v6h-6"/>
+            <path d="M21 13a9 9 0 0 0-15.36-6.36"/>
+          </svg>
+        </button>
+        <div class="header-divider"></div>
         <button id="newTabBtn" class="btn-icon" title="New tab (new tree)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 5v14M5 12h14"/>

@@ -257,6 +257,60 @@ async function loadCurrentTab() {
  * Initialize event listeners.
  */
 function initEventListeners() {
+  // Undo button
+  document.getElementById('undoBtn').addEventListener('click', async () => {
+    try {
+      const response = await sendMessage({ type: 'UNDO' });
+      if (response.success) {
+        updateUndoRedoButtons(response.state);
+      }
+    } catch (error) {
+      console.error('Failed to undo:', error);
+    }
+  });
+  
+  // Redo button
+  document.getElementById('redoBtn').addEventListener('click', async () => {
+    try {
+      const response = await sendMessage({ type: 'REDO' });
+      if (response.success) {
+        updateUndoRedoButtons(response.state);
+      }
+    } catch (error) {
+      console.error('Failed to redo:', error);
+    }
+  });
+  
+  // Keyboard shortcuts for undo/redo
+  document.addEventListener('keydown', async (e) => {
+    // Check for Cmd/Ctrl+Z (undo) or Cmd/Ctrl+Shift+Z (redo)
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      
+      if (e.shiftKey) {
+        // Redo
+        try {
+          const response = await sendMessage({ type: 'REDO' });
+          if (response.success) {
+            updateUndoRedoButtons(response.state);
+          }
+        } catch (error) {
+          console.error('Failed to redo:', error);
+        }
+      } else {
+        // Undo
+        try {
+          const response = await sendMessage({ type: 'UNDO' });
+          if (response.success) {
+            updateUndoRedoButtons(response.state);
+          }
+        } catch (error) {
+          console.error('Failed to undo:', error);
+        }
+      }
+    }
+  });
+  
   // New tab button - creates new tab with new tree root
   document.getElementById('newTabBtn').addEventListener('click', async () => {
     try {
@@ -537,12 +591,15 @@ function initEventListeners() {
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'TREE_UPDATED' && message.tabId === currentTabId) {
       renderView(message.tree);
+      fetchUndoRedoState(); // Update undo/redo buttons
     } else if (message.type === 'GLOBAL_TREE_UPDATED') {
       // Global tree update - all sidepanels receive this
       renderView(message.tree, message.openNodeIds, message.tabStates);
+      fetchUndoRedoState(); // Update undo/redo buttons
     } else if (message.type === 'WINDOW_TREE_UPDATED' && message.windowId === currentWindowId) {
       // Legacy per-window tree update (single-tab mode)
       renderView(message.tree, message.openNodeIds, message.tabStates);
+      fetchUndoRedoState(); // Update undo/redo buttons
     }
   });
   
@@ -701,6 +758,43 @@ function updateNavigationUI(backOnRevisit, compactGraph, viewMode, selectionMenu
   }
   if (selectionMenuOption) {
     selectionMenuOption.style.display = viewMode === 'graph' ? 'flex' : 'none';
+  }
+}
+
+/**
+ * Update undo/redo button states.
+ * @param {object} state - { canUndo, canRedo, undoDescription, redoDescription }
+ */
+function updateUndoRedoButtons(state) {
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  
+  if (undoBtn) {
+    undoBtn.disabled = !state.canUndo;
+    undoBtn.title = state.undoDescription 
+      ? `Undo: ${state.undoDescription} (Ctrl+Z)` 
+      : 'Undo (Ctrl+Z)';
+  }
+  
+  if (redoBtn) {
+    redoBtn.disabled = !state.canRedo;
+    redoBtn.title = state.redoDescription 
+      ? `Redo: ${state.redoDescription} (Ctrl+Shift+Z)` 
+      : 'Redo (Ctrl+Shift+Z)';
+  }
+}
+
+/**
+ * Fetch and update undo/redo state from service worker.
+ */
+async function fetchUndoRedoState() {
+  try {
+    const response = await sendMessage({ type: 'GET_UNDO_STATE' });
+    if (response.success) {
+      updateUndoRedoButtons(response.state);
+    }
+  } catch (error) {
+    // Undo state not available
   }
 }
 
@@ -1310,4 +1404,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   initEventListeners();
   initContextMenu();
   loadCurrentTab();
+  fetchUndoRedoState();
 });
