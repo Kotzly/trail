@@ -149,18 +149,8 @@ function renderView(treeData, openNodes = null) {
     openNodeIds: isMultiTabMode ? openNodeIds : null
   });
 
-  // Auto-center on current node (graph view handles fitToView internally)
-  if (currentNodeId) {
-    requestAnimationFrame(() => {
-      const api = getGraphAPI();
-      if (api && api.centerOnNode) {
-        api.centerOnNode(currentNodeId);
-      } else {
-        // Fallback for non-graph views
-        scrollToCurrentNode();
-      }
-    });
-  } else {
+  // Graph view handles centering internally, only scroll for other views
+  if (!getGraphAPI()) {
     scrollToCurrentNode();
   }
 }
