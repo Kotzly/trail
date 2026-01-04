@@ -266,7 +266,10 @@ const pendingNodeForWindow = new Map();
 
 // Track pending window creation for orphan nodes - use a temporary flag before window is created
 // We'll use this to handle race condition where windows.onCreated fires before we set pendingNodeForWindow
-let pendingOrphanWindowCreation = null; // Redirects within 2 seconds are treated as same navigation
+let pendingOrphanWindowCreation = null;
+
+// Track tabs created programmatically (e.g., "open in new tab") - don't auto-switch focus to them
+const programmaticTabs = new Set(); // tabId -> true
 
 /**
  * Handle navigation in multi-tab mode.
@@ -1165,12 +1168,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         
         case 'OPEN_IN_NEW_TAB': {
-          // Open node URL in a new tab
+          // Open node URL in a new tab (background, don't switch focus)
           const { nodeId } = message;
           const tree = await storageManager.getGlobalTree();
           const node = tree.findById(nodeId);
           if (node) {
-            const tab = await chrome.tabs.create({ url: node.url, active: true });
+            const tab = await chrome.tabs.create({ url: node.url, active: false });
+            // Mark as programmatic to prevent auto-focus in onActivated
+            programmaticTabs.add(tab.id);
+            // Remove after a delay (tab might be activated manually later)
+            setTimeout(() => programmaticTabs.delete(tab.id), 1000);
+            
             const settings = await getSettings();
             if (settings.multiTabEnabled) {
               tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
@@ -1698,6 +1706,13 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
  */
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const { tabId, windowId } = activeInfo;
+  
+  // Skip auto-focus if this tab was created programmatically (e.g., "open in new tab")
+  if (programmaticTabs.has(tabId)) {
+    programmaticTabs.delete(tabId);
+    return;
+  }
+  
   const isMultiTab = await isMultiTabForWindow(windowId);
   
   if (isMultiTab) {
