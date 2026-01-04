@@ -829,6 +829,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'SET_TAGS': {
+          // Set all tags for a node
+          const { nodeId, tags } = message;
+          const tree = await storageManager.getGlobalTree();
+          if (tree.setTags(nodeId, tags)) {
+            await storageManager.saveGlobalTree(tree);
+            notifyGlobalTreeUpdate(tree);
+            sendResponse({ success: true });
+          } else {
+            sendResponse({ success: false, error: 'Node not found' });
+          }
+          break;
+        }
+        
+        case 'ADD_TAG': {
+          // Add a single tag to a node
+          const { nodeId, tagId } = message;
+          const tree = await storageManager.getGlobalTree();
+          if (tree.addTag(nodeId, tagId)) {
+            await storageManager.saveGlobalTree(tree);
+            notifyGlobalTreeUpdate(tree);
+            sendResponse({ success: true });
+          } else {
+            sendResponse({ success: false, error: 'Node not found' });
+          }
+          break;
+        }
+        
+        case 'REMOVE_TAG': {
+          // Remove a single tag from a node
+          const { nodeId, tagId } = message;
+          const tree = await storageManager.getGlobalTree();
+          if (tree.removeTag(nodeId, tagId)) {
+            await storageManager.saveGlobalTree(tree);
+            notifyGlobalTreeUpdate(tree);
+            sendResponse({ success: true });
+          } else {
+            sendResponse({ success: false, error: 'Node not found' });
+          }
+          break;
+        }
+        
         case 'GET_SETTINGS': {
           const settings = await storageManager.getSettings();
           sendResponse({ success: true, settings });
