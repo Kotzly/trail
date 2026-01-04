@@ -288,6 +288,10 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
   try {
     const tab = await chrome.tabs.get(tabId);
     const settings = await getSettings();
+    
+    // CRITICAL: Only update currentNode if this tab is active (user navigated)
+    // If tab is not active, it was created programmatically - don't switch focus
+    const isActiveTab = tab.active;
 
     // Track URL for about:blank redirect detection
     const prevUrl = lastTabUrl.get(tabId);
@@ -322,17 +326,29 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
           node.title = entry.title;
           node.favicon = entry.favicon;
           node.timestamp = entry.timestamp;
-          tree.setCurrentById(existingNodeId);
+          // Only update currentNode if tab is active (user navigated)
+          if (tab.active) {
+            tree.setCurrentById(existingNodeId);
+          }
         } else {
           // Normal behavior: navigate from current node (creates child)
-          tree.setCurrentById(existingNodeId);
+          // Only update currentNode if tab is active (user navigated)
+          if (tab.active) {
+            tree.setCurrentById(existingNodeId);
+          }
           const newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
           // Re-register tab with new node (global)
           tabManager.registerGlobal(newNode.id, windowId, tabId);
+          // Update currentNode to new node only if tab is active
+          if (tab.active) {
+            tree.setCurrentById(newNode.id);
+          }
         }
       } else if (node) {
-        // Same URL - just update current
-        tree.setCurrentById(existingNodeId);
+        // Same URL - only update current if tab is active
+        if (tab.active) {
+          tree.setCurrentById(existingNodeId);
+        }
       }
       tabManager.touchGlobal(tabId);
     } else {
@@ -380,7 +396,10 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
       // If found existing node, use it instead of creating new
       if (existingNodeInWindow) {
         newNode = existingNodeInWindow;
-        tree.setCurrentById(newNode.id);
+        // Only update currentNode if tab is active (user navigated, not programmatic)
+        if (isActiveTab) {
+          tree.setCurrentById(newNode.id);
+        }
         // Register this tab with the existing node
         tabManager.registerGlobal(newNode.id, windowId, tabId);
         recentTabRegistrations.set(tabId, Date.now());
@@ -401,6 +420,11 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
         // Register globally (nodeId -> {windowId, tabId})
         tabManager.registerGlobal(newNode.id, windowId, tabId);
         recentTabRegistrations.set(tabId, Date.now());
+        
+        // Only update currentNode if tab is active (user navigated, not programmatic)
+        if (isActiveTab) {
+          tree.setCurrentById(newNode.id);
+        }
       }
       
       // Sync browser tab pin state to node (only in pinSyncBrowser mode)
