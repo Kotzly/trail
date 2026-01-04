@@ -814,6 +814,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'CLOSE_TAB': {
+          // Close tab for a node
+          const { nodeId } = message;
+          const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+          if (tabInfo) {
+            try {
+              await chrome.tabs.remove(tabInfo.tabId);
+              sendResponse({ success: true });
+            } catch (e) {
+              sendResponse({ success: false, error: e.message });
+            }
+          } else {
+            sendResponse({ success: false, error: 'Tab not found' });
+          }
+          break;
+        }
+        
         case 'TOGGLE_PIN': {
           // Toggle pinned state for a node
           const { nodeId } = message;
