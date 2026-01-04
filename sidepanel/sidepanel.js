@@ -143,16 +143,36 @@ function renderView(treeData, openNodes = null, states = null) {
   }
   
   // Show/hide empty state
+  // For graph view, show empty canvas; for tree/stack views, show message
+  const viewMode = settings?.viewMode || DEFAULT_VIEW_MODE;
+  
   if (!treeData?.root) {
-    emptyState.classList.remove('hidden');
-    stackList.innerHTML = '';
+    if (viewMode === 'graph') {
+      // Graph view: just hide empty state and show empty canvas
+      emptyState.classList.add('hidden');
+      stackList.innerHTML = '';
+      
+      // Render empty graph canvas
+      const renderer = getRenderer(viewMode);
+      if (renderer) {
+        renderer({ roots: [], nodeCount: 0 }, stackList, {
+          onNavigate: handleNodeNavigation,
+          openNodeIds: isMultiTabMode ? openNodeIds : null,
+          compactGraph: settings?.compactGraph || false,
+          tabStates: isMultiTabMode ? tabStates : {}
+        });
+      }
+    } else {
+      // Tree/stack views: show empty state message
+      emptyState.classList.remove('hidden');
+      stackList.innerHTML = '';
+    }
     return;
   }
   
   emptyState.classList.add('hidden');
   
   // Get the appropriate renderer
-  const viewMode = settings?.viewMode || DEFAULT_VIEW_MODE;
   const renderer = getRenderer(viewMode);
   
   if (!renderer) {
