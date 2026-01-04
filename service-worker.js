@@ -990,12 +990,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 tabManager.unregisterGlobal(existing.tabId);
                 // Create new tab in the window that owns this node
                 const targetWindowId = await findWindowForNode(nodeId, tree) || windowId;
+                // Focus the target window and create tab there
+                await chrome.windows.update(targetWindowId, { focused: true });
                 const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
                 tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
               }
             } else {
               // No tab for this node - find the window that owns this node's tree
               const targetWindowId = await findWindowForNode(nodeId, tree) || windowId;
+              // Focus the target window and create tab there
+              await chrome.windows.update(targetWindowId, { focused: true });
               const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
               tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
               
