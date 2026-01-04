@@ -1176,8 +1176,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const tab = await chrome.tabs.create({ url: node.url, active: false });
             // Mark as programmatic to prevent auto-focus in onActivated
             programmaticTabs.add(tab.id);
+            // Also store in session storage for sidepanel to check
+            await chrome.storage.session.set({ [`programmaticTab_${tab.id}`]: true });
             // Remove after a delay (tab might be activated manually later)
-            setTimeout(() => programmaticTabs.delete(tab.id), 1000);
+            setTimeout(async () => {
+              programmaticTabs.delete(tab.id);
+              await chrome.storage.session.remove(`programmaticTab_${tab.id}`);
+            }, 2000);
             
             const settings = await getSettings();
             if (settings.multiTabEnabled) {

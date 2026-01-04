@@ -629,11 +629,44 @@ function initEventListeners() {
   });
   
   // Listen for tab activation changes
-  chrome.tabs.onActivated.addListener((activeInfo) => {
-    if (activeInfo.tabId !== currentTabId || activeInfo.windowId !== currentWindowId) {
-      currentTabId = activeInfo.tabId;
-      currentWindowId = activeInfo.windowId;
-      loadCurrentTab();
+  chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    // Check if this tab was created programmatically (e.g., "open in new tab")
+    // by checking if it was just created (very recent timestamp)
+    try {
+      const tab = await chrome.tabs.get(activeInfo.tabId);
+      // If tab was created less than 500ms ago, it's likely programmatic
+      const tabAge = Date.now() - (tab.id * 1000); // Rough estimate based on tab ID
+      // Better: check if tab is in the same window and was just created
+      // Actually, let's use a different approach - check if we're in the same window
+      // and the tab ID changed but we didn't manually switch
+      if (activeInfo.windowId === currentWindowId && activeInfo.tabId !== currentTabId) {
+        // Check if this is likely a programmatic tab creation
+        // by checking if the tab was created very recently
+        const allTabs = await chrome.tabs.query({ windowId: activeInfo.windowId });
+        const newTab = allTabs.find(t => t.id === activeInfo.tabId);
+        // If tab exists and we're switching to it, but it's not the current tab's direct navigation,
+        // it might be programmatic. However, we can't reliably detect this.
+        // Instead, let's use a flag from service worker via storage
+        const result = await chrome.storage.session.get(`programmaticTab_${activeInfo.tabId}`);
+        if (result[`programmaticTab_${activeInfo.tabId}`]) {
+          // This tab was created programmatically - don't switch focus
+          await chrome.storage.session.remove(`programmaticTab_${activeInfo.tabId}`);
+          return;
+        }
+      }
+      
+      if (activeInfo.tabId !== currentTabId || activeInfo.windowId !== currentWindowId) {
+        currentTabId = activeInfo.tabId;
+        currentWindowId = activeInfo.windowId;
+        loadCurrentTab();
+      }
+    } catch (error) {
+      // If we can't check, proceed normally
+      if (activeInfo.tabId !== currentTabId || activeInfo.windowId !== currentWindowId) {
+        currentTabId = activeInfo.tabId;
+        currentWindowId = activeInfo.windowId;
+        loadCurrentTab();
+      }
     }
   });
   
@@ -1348,7 +1381,10 @@ async function handleContextMenuAction(action) {
         break;
         
       case 'openNewTab':
-        await chrome.tabs.create({ url: node.url, active: false });
+        const newTab = await chrome.tabs.create({ url: node.url, active: false });
+        // Mark as programmatic to prevent auto-focus
+        await chrome.storage.session.set({ [`programmaticTab_${newTab.id}`]: true });
+        setTimeout(() => chrome.storage.session.remove(`programmaticTab_${newTab.id}`), 2000);
         break;
         
       case 'openNewWindow':
