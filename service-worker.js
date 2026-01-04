@@ -150,43 +150,8 @@ async function handleSingleTabNavigation(details, transitionType, windowId) {
 
   try {
     const tab = await chrome.tabs.get(tabId);
-
-    // Detect rapid same-origin navigations (e.g., YouTube Shorts infinite scroll)
-    const prevUrl = lastTabUrl.get(tabId);
-    const timeSinceLastNav = Date.now() - (lastNavTime.get(tabId) || 0);
-
-    if (prevUrl && timeSinceLastNav < RAPID_NAV_THRESHOLD_MS && prevUrl !== 'about:blank') {
-      try {
-        const lastUrl = new URL(prevUrl);
-        const currentUrl = new URL(url);
-
-        if (lastUrl.origin === currentUrl.origin) {
-          const lastPathBase = lastUrl.pathname.split('/')[1];
-          const currentPathBase = currentUrl.pathname.split('/')[1];
-
-          if (lastPathBase && lastPathBase === currentPathBase) {
-            const tree = await storageManager.getWindowTree(windowId);
-            const currentNode = tree.currentNode;
-
-            if (currentNode) {
-              currentNode.url = url;
-              currentNode.title = tab.title || url;
-              currentNode.timestamp = Date.now();
-              lastTabUrl.set(tabId, url);
-              lastNavTime.set(tabId, Date.now());
-              await storageManager.saveWindowTree(windowId, tree);
-              notifyWindowTreeUpdate(windowId, tree);
-              return;
-            }
-          }
-        }
-      } catch (e) {
-        // Invalid URL, continue with normal handling
-      }
-    }
-
+    
     lastTabUrl.set(tabId, url);
-    lastNavTime.set(tabId, Date.now());
 
     const entry = {
       url,
@@ -209,9 +174,7 @@ async function handleSingleTabNavigation(details, transitionType, windowId) {
 // Track recent tab registrations for redirect detection (tabId -> timestamp)
 const recentTabRegistrations = new Map();
 const lastTabUrl = new Map(); // tabId -> last URL
-const lastNavTime = new Map(); // tabId -> timestamp of last navigation
 const REDIRECT_THRESHOLD_MS = 2000; // Redirects within 2 seconds are treated as same navigation
-const RAPID_NAV_THRESHOLD_MS = 500; // Rapid navigations within 500ms (infinite scroll detection)
 
 /**
  * Handle navigation in multi-tab mode.
@@ -231,46 +194,9 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
     const tab = await chrome.tabs.get(tabId);
     const settings = await getSettings();
 
-    // Detect rapid same-origin navigations (e.g., YouTube Shorts infinite scroll)
-    // Update current node instead of creating duplicates
+    // Track URL for about:blank redirect detection
     const prevUrl = lastTabUrl.get(tabId);
-    const timeSinceLastNav = Date.now() - (lastNavTime.get(tabId) || 0);
-
-    if (prevUrl && timeSinceLastNav < RAPID_NAV_THRESHOLD_MS && prevUrl !== 'about:blank') {
-      try {
-        const lastUrl = new URL(prevUrl);
-        const currentUrl = new URL(url);
-
-        // Same origin + same first path segment = likely infinite scroll
-        if (lastUrl.origin === currentUrl.origin) {
-          const lastPathBase = lastUrl.pathname.split('/')[1];
-          const currentPathBase = currentUrl.pathname.split('/')[1];
-
-          if (lastPathBase && lastPathBase === currentPathBase) {
-            // Update current node URL instead of creating new node
-            const tree = await storageManager.getGlobalTree();
-            const currentNode = tree.currentNode;
-
-            if (currentNode) {
-              currentNode.url = url;
-              currentNode.title = tab.title || url;
-              currentNode.timestamp = Date.now();
-              lastTabUrl.set(tabId, url);
-              lastNavTime.set(tabId, Date.now());
-              await storageManager.saveGlobalTree(tree);
-              notifyGlobalTreeUpdate(tree);
-              return;
-            }
-          }
-        }
-      } catch (e) {
-        // Invalid URL, continue with normal handling
-      }
-    }
-
-    // Update tracking
     lastTabUrl.set(tabId, url);
-    lastNavTime.set(tabId, Date.now());
 
     // Check if this tab is already registered to a node (global)
     const existingNodeId = tabManager.getNodeForTabGlobal(tabId);
