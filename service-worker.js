@@ -814,6 +814,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'TOGGLE_PIN': {
+          // Toggle pinned state for a node
+          const { nodeId } = message;
+          const tree = await storageManager.getGlobalTree();
+          const newPinned = tree.togglePinned(nodeId);
+          if (newPinned !== null) {
+            await storageManager.saveGlobalTree(tree);
+            notifyGlobalTreeUpdate(tree);
+            sendResponse({ success: true, pinned: newPinned });
+          } else {
+            sendResponse({ success: false, error: 'Node not found' });
+          }
+          break;
+        }
+        
         case 'GET_SETTINGS': {
           const settings = await storageManager.getSettings();
           sendResponse({ success: true, settings });
