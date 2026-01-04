@@ -169,138 +169,181 @@
 
     <!-- Settings Popover -->
     <div class="settings-popover hidden" id="settingsPopover">
-      <div class="popover-section">
-        <div class="popover-label">Theme</div>
-        <div class="popover-icons" id="themeIcons">
-          <button class="popover-icon-btn" data-theme="light" title="Light">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"/>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-            </svg>
-          </button>
-          <button class="popover-icon-btn" data-theme="dark" title="Dark">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
-            </svg>
-          </button>
-          <button class="popover-icon-btn" data-theme="system" title="System">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
-            </svg>
-          </button>
+      <!-- Appearance Category -->
+      <div class="settings-category" data-category="appearance">
+        <button class="category-header">
+          <svg class="category-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          <span>Appearance</span>
+        </button>
+        <div class="category-content">
+          <div class="popover-section">
+            <div class="popover-label-small">Theme</div>
+            <div class="popover-icons" id="themeIcons">
+              <button class="popover-icon-btn" data-theme="light" title="Light">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="5"/>
+                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+              </button>
+              <button class="popover-icon-btn" data-theme="dark" title="Dark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
+              </button>
+              <button class="popover-icon-btn" data-theme="system" title="System">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2"/>
+                  <path d="M8 21h8M12 17v4"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="popover-section">
+            <div class="popover-label-small">View Mode</div>
+            <div class="popover-icons" id="viewModeIcons">
+              <button class="popover-icon-btn has-tooltip" data-mode="tree">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 3v6M12 9l-5 6M12 9l5 6M7 15v3M17 15v3"/>
+                  <circle cx="12" cy="3" r="2"/>
+                  <circle cx="7" cy="18" r="2"/>
+                  <circle cx="17" cy="18" r="2"/>
+                </svg>
+                <span class="icon-tooltip">Tree</span>
+              </button>
+              <button class="popover-icon-btn has-tooltip" data-mode="stack">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="4" y="4" width="16" height="4" rx="1"/>
+                  <rect x="4" y="10" width="16" height="4" rx="1"/>
+                  <rect x="4" y="16" width="16" height="4" rx="1"/>
+                </svg>
+                <span class="icon-tooltip">Stack</span>
+              </button>
+              <button class="popover-icon-btn has-tooltip" data-mode="graph">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="5" cy="6" r="3"/>
+                  <circle cx="19" cy="6" r="3"/>
+                  <circle cx="12" cy="18" r="3"/>
+                  <path d="M5 9v3a4 4 0 004 4h6a4 4 0 004-4V9"/>
+                </svg>
+                <span class="icon-tooltip">Graph</span>
+              </button>
+            </div>
+            <label class="popover-toggle popover-toggle-small graph-only-option" id="compactGraphOption">
+              <span class="popover-label-small">Compact Graph</span>
+              <input type="checkbox" id="compactGraphToggle">
+              <span class="toggle-slider toggle-slider-small"></span>
+            </label>
+          </div>
         </div>
       </div>
-      <div class="popover-divider"></div>
-      <div class="popover-section">
-        <div class="popover-label">View</div>
-        <div class="popover-icons" id="viewModeIcons">
-          <button class="popover-icon-btn has-tooltip" data-mode="tree">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 3v6M12 9l-5 6M12 9l5 6M7 15v3M17 15v3"/>
-              <circle cx="12" cy="3" r="2"/>
-              <circle cx="7" cy="18" r="2"/>
-              <circle cx="17" cy="18" r="2"/>
-            </svg>
-            <span class="icon-tooltip">Tree</span>
-          </button>
-          <button class="popover-icon-btn has-tooltip" data-mode="stack">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="4" y="4" width="16" height="4" rx="1"/>
-              <rect x="4" y="10" width="16" height="4" rx="1"/>
-              <rect x="4" y="16" width="16" height="4" rx="1"/>
-            </svg>
-            <span class="icon-tooltip">Stack</span>
-          </button>
-          <button class="popover-icon-btn has-tooltip" data-mode="graph">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="5" cy="6" r="3"/>
-              <circle cx="19" cy="6" r="3"/>
-              <circle cx="12" cy="18" r="3"/>
-              <path d="M5 9v3a4 4 0 004 4h6a4 4 0 004-4V9"/>
-            </svg>
-            <span class="icon-tooltip">Graph</span>
-          </button>
-        </div>
-        <label class="popover-toggle popover-toggle-small graph-only-option" id="compactGraphOption">
-          <span class="popover-label-small">Compact Graph</span>
-          <input type="checkbox" id="compactGraphToggle">
-          <span class="toggle-slider toggle-slider-small"></span>
-        </label>
-        <label class="popover-toggle popover-toggle-small graph-only-option" id="selectionMenuOption">
-          <span class="popover-label-small">Instant Selection Menu</span>
-          <input type="checkbox" id="selectionMenuToggle">
-          <span class="toggle-slider toggle-slider-small"></span>
-        </label>
-      </div>
-      <div class="popover-divider"></div>
-      <div class="popover-section">
-        <div class="popover-label">Navigation</div>
-        <label class="popover-toggle popover-toggle-small">
-          <span class="popover-label-small">Back on Revisit</span>
-          <input type="checkbox" id="backOnRevisitToggle" checked>
-          <span class="toggle-slider toggle-slider-small"></span>
-        </label>
-        <div class="popover-hint">Navigate to existing ancestor instead of creating duplicates</div>
-      </div>
-      <div class="popover-divider"></div>
-      <div class="popover-section">
-        <div class="popover-header-row">
-          <label class="popover-toggle">
-            <span class="popover-label">Multi-Tab Mode</span>
-            <input type="checkbox" id="multiTabToggle">
-            <span class="toggle-slider"></span>
-          </label>
-          <button class="help-btn" id="multiTabHelpBtn" title="What is Multi-Tab Mode?">?</button>
-        </div>
-        <div class="popover-hint" id="multiTabHint">Each page opens in a separate tab</div>
-        <div class="multi-tab-help hidden" id="multiTabHelp">
-          <p><strong>Multi-Tab Mode</strong> opens each page you visit in a separate browser tab instead of reusing one tab.</p>
-          <p>This preserves page state (like playing videos, scroll position, form data) so you can instantly switch between pages without reloading.</p>
-          <p>You can set a tab limit — when reached, oldest tabs are automatically closed.</p>
+      
+      <!-- Behavior Category -->
+      <div class="settings-category" data-category="behavior">
+        <button class="category-header">
+          <svg class="category-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          <span>Behavior</span>
+        </button>
+        <div class="category-content">
+          <div class="popover-section">
+            <label class="popover-toggle popover-toggle-small">
+              <span class="popover-label-small">Back on Revisit</span>
+              <input type="checkbox" id="backOnRevisitToggle" checked>
+              <span class="toggle-slider toggle-slider-small"></span>
+            </label>
+            <div class="popover-hint">Navigate to existing ancestor instead of creating duplicates</div>
+          </div>
+          <div class="popover-section">
+            <label class="popover-toggle popover-toggle-small graph-only-option" id="selectionMenuOption">
+              <span class="popover-label-small">Instant Selection Menu</span>
+              <input type="checkbox" id="selectionMenuToggle">
+              <span class="toggle-slider toggle-slider-small"></span>
+            </label>
+            <div class="popover-hint">Show menu immediately after selection (vs right-click)</div>
+          </div>
         </div>
       </div>
-      <div class="popover-section multi-tab-options" id="multiTabOptions">
-        <label class="popover-toggle popover-toggle-small">
-          <span class="popover-label-small">Enabled for this window</span>
-          <input type="checkbox" id="windowMultiTabToggle" checked>
-          <span class="toggle-slider toggle-slider-small"></span>
-        </label>
-        <div class="popover-row">
-          <span class="popover-label-small">Tab Limit</span>
-          <input type="number" id="multiTabLimit" min="0" max="50" value="0" class="popover-input-small">
+      
+      <!-- Multi-Tab Category -->
+      <div class="settings-category" data-category="multitab">
+        <button class="category-header">
+          <svg class="category-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          <span>Multi-Tab</span>
+        </button>
+        <div class="category-content">
+          <div class="popover-section">
+            <div class="popover-header-row">
+              <label class="popover-toggle">
+                <span class="popover-label">Enable Multi-Tab</span>
+                <input type="checkbox" id="multiTabToggle">
+                <span class="toggle-slider"></span>
+              </label>
+              <button class="help-btn" id="multiTabHelpBtn" title="What is Multi-Tab Mode?">?</button>
+            </div>
+            <div class="popover-hint" id="multiTabHint">Each page opens in a separate tab</div>
+            <div class="multi-tab-help hidden" id="multiTabHelp">
+              <p><strong>Multi-Tab Mode</strong> opens each page you visit in a separate browser tab instead of reusing one tab.</p>
+              <p>This preserves page state (like playing videos, scroll position, form data) so you can instantly switch between pages without reloading.</p>
+              <p>You can set a tab limit — when reached, oldest tabs are automatically closed.</p>
+            </div>
+          </div>
+          <div class="popover-section multi-tab-options" id="multiTabOptions">
+            <label class="popover-toggle popover-toggle-small">
+              <span class="popover-label-small">Enabled for this window</span>
+              <input type="checkbox" id="windowMultiTabToggle" checked>
+              <span class="toggle-slider toggle-slider-small"></span>
+            </label>
+            <div class="popover-row">
+              <span class="popover-label-small">Tab Limit</span>
+              <input type="number" id="multiTabLimit" min="0" max="50" value="0" class="popover-input-small">
+            </div>
+            <div class="popover-hint">0 = unlimited</div>
+          </div>
+          <div class="popover-section">
+            <label class="popover-toggle">
+              <span class="popover-label">Forest Mode</span>
+              <span class="warning-icon" title="Note: Normal redirects will appear as new trees">⚠</span>
+              <input type="checkbox" id="forestModeToggle">
+              <span class="toggle-slider"></span>
+            </label>
+            <div class="popover-hint">Each new tab starts a separate tree</div>
+          </div>
         </div>
-        <div class="popover-hint">0 = unlimited</div>
       </div>
-      <div class="popover-divider"></div>
-      <div class="popover-section">
-        <label class="popover-toggle">
-          <span class="popover-label">Forest Mode</span>
-          <span class="warning-icon" title="Note: Normal redirects will appear as new trees">⚠</span>
-          <input type="checkbox" id="forestModeToggle">
-          <span class="toggle-slider"></span>
-        </label>
-        <div class="popover-hint">Each new tab starts a separate tree</div>
-      </div>
-      <div class="popover-divider"></div>
-      <div class="popover-section">
-        <div class="popover-label">Features</div>
-        <label class="popover-toggle popover-toggle-small">
-          <span class="popover-label-small">Search</span>
-          <input type="checkbox" id="enableSearchToggle" checked>
-          <span class="toggle-slider toggle-slider-small"></span>
-        </label>
-        <label class="popover-toggle popover-toggle-small">
-          <span class="popover-label-small">Pin Nodes</span>
-          <input type="checkbox" id="enablePinNodesToggle" checked>
-          <span class="toggle-slider toggle-slider-small"></span>
-        </label>
-        <label class="popover-toggle popover-toggle-small">
-          <span class="popover-label-small">Tags</span>
-          <input type="checkbox" id="enableTagsToggle" checked>
-          <span class="toggle-slider toggle-slider-small"></span>
-        </label>
-        <div class="popover-hint">Enable or disable advanced features</div>
+      
+      <!-- Features Category -->
+      <div class="settings-category" data-category="features">
+        <button class="category-header">
+          <svg class="category-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          <span>Features</span>
+        </button>
+        <div class="category-content">
+          <div class="popover-section">
+            <label class="popover-toggle popover-toggle-small">
+              <span class="popover-label-small">Search</span>
+              <input type="checkbox" id="enableSearchToggle" checked>
+              <span class="toggle-slider toggle-slider-small"></span>
+            </label>
+            <label class="popover-toggle popover-toggle-small">
+              <span class="popover-label-small">Pin Nodes</span>
+              <input type="checkbox" id="enablePinNodesToggle" checked>
+              <span class="toggle-slider toggle-slider-small"></span>
+            </label>
+            <label class="popover-toggle popover-toggle-small">
+              <span class="popover-label-small">Tags</span>
+              <input type="checkbox" id="enableTagsToggle" checked>
+              <span class="toggle-slider toggle-slider-small"></span>
+            </label>
+            <div class="popover-hint">Enable or disable advanced features</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

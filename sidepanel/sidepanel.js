@@ -368,6 +368,19 @@ function initEventListeners() {
     }
   });
   
+  // Collapsible category headers - expand first one by default
+  document.querySelectorAll('.settings-category .category-header').forEach((header, index) => {
+    // Expand first category by default
+    if (index === 0) {
+      header.closest('.settings-category').classList.add('expanded');
+    }
+    
+    header.addEventListener('click', () => {
+      const category = header.closest('.settings-category');
+      category.classList.toggle('expanded');
+    });
+  });
+  
   // Theme icon clicks - save immediately
   document.querySelectorAll('#themeIcons .popover-icon-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
