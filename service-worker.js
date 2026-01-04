@@ -563,17 +563,17 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
     const settings = await getSettings();
     
     if (settings.multiTabEnabled) {
-      // Multi-tab mode: update window tree
-      const windowId = tab.windowId;
-      const nodeId = tabManager.getNodeForTab(windowId, tabId);
+      // Multi-tab mode: use global tree
+      const nodeId = tabManager.getNodeForTabGlobal(tabId);
       if (nodeId !== null) {
-        const tree = await storageManager.getWindowTree(windowId);
+        const tree = await storageManager.getGlobalTree();
         const node = tree.findNodeById(nodeId);
-        if (node && tab.title && tab.title !== node.title) {
+        // CRITICAL: Only update if URL matches to prevent race conditions
+        if (node && node.url === url && tab.title && tab.title !== node.title) {
           node.title = tab.title;
           node.favicon = tab.favIconUrl || node.favicon;
-          await storageManager.saveWindowTree(windowId, tree);
-          notifyWindowTreeUpdate(windowId, tree);
+          await storageManager.saveGlobalTree(tree);
+          notifyGlobalTreeUpdate(tree);
         }
       }
     } else {
@@ -645,12 +645,18 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   const nodeId = tabManager.getNodeForTabGlobal(tabId);
   if (nodeId === null) return;
   
+  // Get current tab URL to verify it matches the node
+  const currentUrl = tab.url || tab.pendingUrl;
+  if (!currentUrl) return;
+  
   // Update the node's title/favicon in the tree
   try {
     const tree = await storageManager.getGlobalTree();
     const node = tree.findNodeById(nodeId);
     
-    if (node) {
+    // CRITICAL: Only update if the node's URL matches the current tab URL
+    // This prevents updating wrong nodes due to race conditions
+    if (node && node.url === currentUrl) {
       let updated = false;
       
       if (changeInfo.title && changeInfo.title !== node.title) {
