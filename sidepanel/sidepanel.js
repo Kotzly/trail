@@ -374,6 +374,27 @@ function initEventListeners() {
     }
   });
   
+  // Feature flag toggles
+  const enableSearchToggle = document.getElementById('enableSearchToggle');
+  const enablePinNodesToggle = document.getElementById('enablePinNodesToggle');
+  const enableTagsToggle = document.getElementById('enableTagsToggle');
+  
+  enableSearchToggle.addEventListener('change', async () => {
+    const enabled = enableSearchToggle.checked;
+    await saveSettingsQuick({ enableSearch: enabled });
+    updateFeatureUI(enabled, enablePinNodesToggle.checked, enableTagsToggle.checked);
+  });
+  
+  enablePinNodesToggle.addEventListener('change', async () => {
+    const enabled = enablePinNodesToggle.checked;
+    await saveSettingsQuick({ enablePinNodes: enabled });
+  });
+  
+  enableTagsToggle.addEventListener('change', async () => {
+    const enabled = enableTagsToggle.checked;
+    await saveSettingsQuick({ enableTags: enabled });
+  });
+  
   // Listen for tree updates from service worker
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'TREE_UPDATED' && message.tabId === currentTabId) {
@@ -451,6 +472,7 @@ function toggleSettingsPopover(e) {
   updateViewModeIcons(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
   updateMultiTabUI(settings?.multiTabEnabled || false, settings?.multiTabLimit || 0, settings?.forestMode);
   updateNavigationUI(settings?.backOnRevisit, settings?.compactGraph, settings?.viewMode);
+  updateFeatureUI(settings?.enableSearch, settings?.enablePinNodes, settings?.enableTags);
   
   popover.classList.remove('hidden');
 }
@@ -534,6 +556,29 @@ function updateNavigationUI(backOnRevisit, compactGraph, viewMode) {
   // Show compact graph option only when graph view is selected
   if (compactGraphOption) {
     compactGraphOption.style.display = viewMode === 'graph' ? 'flex' : 'none';
+  }
+}
+
+/**
+ * Update feature flags UI and show/hide related UI elements.
+ * @param {boolean} enableSearch
+ * @param {boolean} enablePinNodes
+ * @param {boolean} enableTags
+ */
+function updateFeatureUI(enableSearch, enablePinNodes, enableTags) {
+  const enableSearchToggle = document.getElementById('enableSearchToggle');
+  const enablePinNodesToggle = document.getElementById('enablePinNodesToggle');
+  const enableTagsToggle = document.getElementById('enableTagsToggle');
+  const searchBar = document.getElementById('searchBar');
+  
+  // Set toggle states
+  if (enableSearchToggle) enableSearchToggle.checked = enableSearch !== false;
+  if (enablePinNodesToggle) enablePinNodesToggle.checked = enablePinNodes !== false;
+  if (enableTagsToggle) enableTagsToggle.checked = enableTags !== false;
+  
+  // Show/hide search bar based on feature flag
+  if (searchBar) {
+    searchBar.classList.toggle('hidden', !enableSearch);
   }
 }
 
