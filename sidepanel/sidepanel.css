@@ -1365,8 +1365,9 @@ body {
   height: 14px;
 }
 
-.graph-node-domain {
+.graph-node-title-compact {
   font-size: 10px;
+  font-weight: 500;
   color: var(--md-on-surface);
   white-space: nowrap;
   overflow: hidden;
