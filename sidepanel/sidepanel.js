@@ -618,11 +618,11 @@ function initEventListeners() {
       renderView(message.tree);
       fetchUndoRedoState(); // Update undo/redo buttons
     } else if (message.type === 'GLOBAL_TREE_UPDATED') {
-      // Global tree update - all sidepanels receive this
+      // Legacy global tree update (deprecated, kept for compatibility)
       renderView(message.tree, message.openNodeIds, message.tabStates);
       fetchUndoRedoState(); // Update undo/redo buttons
     } else if (message.type === 'WINDOW_TREE_UPDATED' && message.windowId === currentWindowId) {
-      // Legacy per-window tree update (single-tab mode)
+      // Per-window tree update (multi-tab mode and single-tab mode)
       renderView(message.tree, message.openNodeIds, message.tabStates);
       fetchUndoRedoState(); // Update undo/redo buttons
     } else if (message.type === 'VIEW_STATE_UPDATED') {

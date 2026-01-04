@@ -54,6 +54,22 @@ function invalidateSettingsCache() {
 }
 
 /**
+ * Get windowId for a nodeId.
+ * Returns windowId from tabManager if node has open tab, or sender's windowId.
+ */
+async function getWindowIdForNode(nodeId, sender) {
+  const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+  if (tabInfo) {
+    return tabInfo.windowId;
+  }
+  // Fallback to sender's window
+  if (sender?.tab?.windowId) {
+    return sender.tab.windowId;
+  }
+  return null;
+}
+
+/**
  * Check if URL should be tracked.
  * @param {string} url
  * @returns {boolean}
@@ -210,8 +226,8 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
       timestamp: Date.now()
     };
 
-    // Use GLOBAL tree - shared across all windows
-    const tree = await storageManager.getGlobalTree();
+    // Use per-window tree - each window has its own tree
+    const tree = await storageManager.getWindowTree(windowId);
 
     // --- Redirect detection (from blank/undefined URLs) ---
     const isFromBlankUrl = !prevUrl || prevUrl === 'about:blank';
@@ -285,12 +301,12 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
         }
       }
 
-      // Check tab limit (global, skip pinned nodes)
+      // Check tab limit (per-window, skip pinned nodes)
       await tabManager.closeOldestGlobalIfNeeded(settings.multiTabLimit, tree);
     }
 
-    await storageManager.saveGlobalTree(tree);
-    notifyGlobalTreeUpdate(tree);
+    await storageManager.saveWindowTree(windowId, tree);
+    notifyWindowTreeUpdate(windowId, tree);
   } catch (error) {
     console.debug('Multi-tab navigation error:', error);
   }
@@ -462,14 +478,20 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   const settings = await getSettings();
   
   if (settings.multiTabEnabled) {
-    // Multi-tab mode with GLOBAL tree: unregister tab globally
+    // Multi-tab mode: get windowId before unregistering
+    const tabInfo = tabManager.getTabForNodeGlobal(tabManager.getNodeForTabGlobal(tabId));
+    const windowId = tabInfo?.windowId;
+    
+    // Unregister tab globally
     tabManager.unregisterGlobal(tabId);
     
-    // Notify all sidepanels to update closed state
-    try {
-      const tree = await storageManager.getGlobalTree();
-      notifyGlobalTreeUpdate(tree);
-    } catch (e) {}
+    // Notify sidepanel of the window to update closed state
+    if (windowId) {
+      try {
+        const tree = await storageManager.getWindowTree(windowId);
+        notifyWindowTreeUpdate(windowId, tree);
+      } catch (e) {}
+    }
   } else {
     // Single-tab mode: remove tree
     storageManager.removeTree(tabId);
@@ -492,8 +514,11 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   
   // Notify sidepanels to update tab states
   try {
-    const tree = await storageManager.getGlobalTree();
-    notifyGlobalTreeUpdate(tree);
+    const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+    if (tabInfo) {
+      const tree = await storageManager.getWindowTree(tabInfo.windowId);
+      notifyWindowTreeUpdate(tabInfo.windowId, tree);
+    }
   } catch (e) {}
 });
 
@@ -510,7 +535,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   
   // Update the node's title/favicon in the tree
   try {
-    const tree = await storageManager.getGlobalTree();
+    const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+    if (!tabInfo) return;
+    
+    const tree = await storageManager.getWindowTree(tabInfo.windowId);
     const node = tree.findNodeById(nodeId);
     
     if (node) {
@@ -527,8 +555,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       }
       
       if (updated) {
-        await storageManager.saveGlobalTree(tree);
-        notifyGlobalTreeUpdate(tree);
+        await storageManager.saveWindowTree(tabInfo.windowId, tree);
+        notifyWindowTreeUpdate(tabInfo.windowId, tree);
       }
     }
   } catch (e) {
@@ -556,13 +584,16 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   
   // Update the node's pinned state
   try {
-    const tree = await storageManager.getGlobalTree();
+    const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+    if (!tabInfo) return;
+    
+    const tree = await storageManager.getWindowTree(tabInfo.windowId);
     const node = tree.findNodeById(nodeId);
     if (node && node.pinned !== changeInfo.pinned) {
       node.pinned = changeInfo.pinned;
       
-      await storageManager.saveGlobalTree(tree);
-      notifyGlobalTreeUpdate(tree);
+      await storageManager.saveWindowTree(tabInfo.windowId, tree);
+      notifyWindowTreeUpdate(tabInfo.windowId, tree);
     }
   } catch (e) {
     console.error('Error syncing pin state:', e);
@@ -685,12 +716,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               // Multi-tab mode - use GLOBAL tree
               const nodeId = tabManager.getNodeForTabGlobal(tabId);
               if (nodeId !== null) {
-                const tree = await storageManager.getGlobalTree();
-                const node = tree.findNodeById(nodeId);
-                if (node && node.url === url && node.title !== newTitle) {
-                  node.title = newTitle;
-                  await storageManager.saveGlobalTree(tree);
-                  notifyGlobalTreeUpdate(tree);
+                const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+                if (tabInfo) {
+                  const tree = await storageManager.getWindowTree(tabInfo.windowId);
+                  const node = tree.findNodeById(nodeId);
+                  if (node && node.url === url && node.title !== newTitle) {
+                    node.title = newTitle;
+                    await storageManager.saveWindowTree(tabInfo.windowId, tree);
+                    notifyWindowTreeUpdate(tabInfo.windowId, tree);
+                  }
                 }
               }
             } else {
@@ -715,8 +749,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const isMultiTab = await isMultiTabForWindow(tab.windowId);
           
           if (isMultiTab) {
-            // Multi-tab mode: use global tree (shared across all windows)
-            const tree = await storageManager.getGlobalTree();
+            // Multi-tab mode: use per-window tree
+            const tree = await storageManager.getWindowTree(tab.windowId);
             
             // Try to find node for active tab (global lookup)
             let activeNodeId = tabManager.getNodeForTabGlobal(tab.id);
@@ -733,10 +767,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // Update currentNode if we found the node
             if (activeNodeId !== null && tree.getCurrentId() !== activeNodeId) {
               tree.setCurrentById(activeNodeId);
-              await storageManager.saveGlobalTree(tree);
+              await storageManager.saveWindowTree(tab.windowId, tree);
             }
             
-            const openNodeIds = Array.from(tabManager.getAllOpenNodes());
+            const openNodeIds = Array.from(tabManager.getOpenNodesForWindow(tab.windowId));
             const tabStates = await getTabStates();
             sendResponse({ 
               success: true, 
@@ -760,9 +794,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         
         case 'GET_WINDOW_TREE': {
-          // Returns GLOBAL tree (shared across all windows)
-          const tree = await storageManager.getGlobalTree();
-          const openNodeIds = Array.from(tabManager.getAllOpenNodes());
+          // Returns tree for the requesting window
+          const { windowId } = message;
+          const tree = await storageManager.getWindowTree(windowId);
+          const openNodeIds = Array.from(tabManager.getOpenNodesForWindow(windowId));
           const tabStates = await getTabStates();
           sendResponse({ 
             success: true, 
@@ -797,8 +832,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const settings = await getSettings();
           
           if (isMultiTab) {
-            // Multi-tab mode with GLOBAL tree: node may be in ANY window
-            const tree = await storageManager.getGlobalTree();
+            // Multi-tab mode with per-window tree: use tree of requesting window
+            const tree = await storageManager.getWindowTree(windowId);
             const existing = tabManager.getTabForNodeGlobal(nodeId);
 
             if (existing !== null) {
@@ -807,26 +842,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 await chrome.windows.update(existing.windowId, { focused: true });
                 await chrome.tabs.update(existing.tabId, { active: true });
                 tabManager.touchGlobal(existing.tabId);
+                
+                // Update current node in the tree of the window where tab exists
+                const existingTree = await storageManager.getWindowTree(existing.windowId);
+                existingTree.setCurrentById(nodeId);
+                await storageManager.saveWindowTree(existing.windowId, existingTree);
+                notifyWindowTreeUpdate(existing.windowId, existingTree);
               } catch (e) {
                 // Tab might have been closed externally
                 tabManager.unregisterGlobal(existing.tabId);
                 // Create new tab in the requesting window
                 const newTab = await chrome.tabs.create({ windowId, url, active: true });
                 tabManager.registerGlobal(nodeId, windowId, newTab.id);
+                
+                // Update current node in requesting window's tree
+                tree.setCurrentById(nodeId);
+                await storageManager.saveWindowTree(windowId, tree);
+                notifyWindowTreeUpdate(windowId, tree);
               }
             } else {
               // No tab for this node - create in requesting window
               const newTab = await chrome.tabs.create({ windowId, url, active: true });
               tabManager.registerGlobal(nodeId, windowId, newTab.id);
               
-              // Check limit (global, skip pinned nodes)
+              // Check limit (per-window, skip pinned nodes)
               await tabManager.closeOldestGlobalIfNeeded(settings.multiTabLimit, tree);
+              
+              // Update current node in requesting window's tree
+              tree.setCurrentById(nodeId);
+              await storageManager.saveWindowTree(windowId, tree);
+              notifyWindowTreeUpdate(windowId, tree);
             }
-            
-            // Update current node in GLOBAL tree
-            tree.setCurrentById(nodeId);
-            await storageManager.saveGlobalTree(tree);
-            notifyGlobalTreeUpdate(tree);
             
             sendResponse({ success: true });
           } else {
@@ -888,7 +934,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'OPEN_IN_NEW_TAB': {
           // Open node URL in a new tab
           const { nodeId } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = await getWindowIdForNode(nodeId, sender);
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           const node = tree.findById(nodeId);
           if (node) {
             const tab = await chrome.tabs.create({ url: node.url, active: true });
@@ -907,24 +958,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Create a new tab and add it as a new root in the tree (forest mode)
           try {
             const tab = await chrome.tabs.create({ active: true });
-            const tree = await storageManager.getGlobalTree();
             const settings = await getSettings();
             
-            // Create a new root node for this tab
-            const newNode = tree.createNewRoot({
-              url: tab.pendingUrl || tab.url || 'chrome://newtab',
-              title: tab.title || 'New Tab',
-              favicon: tab.favIconUrl || ''
-            });
-            
-            await storageManager.saveGlobalTree(tree);
-            
             if (settings.multiTabEnabled) {
+              // Multi-tab mode: use per-window tree
+              const tree = await storageManager.getWindowTree(tab.windowId);
+              
+              // Create a new root node for this tab
+              const newNode = tree.createNewRoot({
+                url: tab.pendingUrl || tab.url || 'chrome://newtab',
+                title: tab.title || 'New Tab',
+                favicon: tab.favIconUrl || ''
+              });
+              
+              await storageManager.saveWindowTree(tab.windowId, tree);
               tabManager.registerGlobal(newNode.id, tab.windowId, tab.id);
+              notifyWindowTreeUpdate(tab.windowId, tree);
+              sendResponse({ success: true, nodeId: newNode.id });
+            } else {
+              sendResponse({ success: false, error: 'Multi-tab mode not enabled' });
             }
-            
-            notifyGlobalTreeUpdate(tree);
-            sendResponse({ success: true, nodeId: newNode.id });
           } catch (e) {
             sendResponse({ success: false, error: e.message });
           }
@@ -970,7 +1023,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'TOGGLE_PIN': {
           // Toggle pinned state for a node
           const { nodeId } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = await getWindowIdForNode(nodeId, sender);
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          
+          const tree = await storageManager.getWindowTree(windowId);
           const settings = await getSettings();
           
           // Always toggle just this node (in sync mode, pinned nodes update in place anyway)
@@ -989,8 +1048,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }
             }
             
-            await storageManager.saveGlobalTree(tree);
-            notifyGlobalTreeUpdate(tree);
+            await storageManager.saveWindowTree(windowId, tree);
+            notifyWindowTreeUpdate(windowId, tree);
             sendResponse({ success: true, pinned: newPinned });
           } else {
             sendResponse({ success: false, error: 'Node not found' });
@@ -1001,10 +1060,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'SET_TAGS': {
           // Set all tags for a node
           const { nodeId, tags } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = await getWindowIdForNode(nodeId, sender);
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           if (tree.setTags(nodeId, tags)) {
-            await storageManager.saveGlobalTree(tree);
-            notifyGlobalTreeUpdate(tree);
+            await storageManager.saveWindowTree(windowId, tree);
+            notifyWindowTreeUpdate(windowId, tree);
             sendResponse({ success: true });
           } else {
             sendResponse({ success: false, error: 'Node not found' });
@@ -1015,10 +1079,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'ADD_TAG': {
           // Add a single tag to a node
           const { nodeId, tagId } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = await getWindowIdForNode(nodeId, sender);
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           if (tree.addTag(nodeId, tagId)) {
-            await storageManager.saveGlobalTree(tree);
-            notifyGlobalTreeUpdate(tree);
+            await storageManager.saveWindowTree(windowId, tree);
+            notifyWindowTreeUpdate(windowId, tree);
             sendResponse({ success: true });
           } else {
             sendResponse({ success: false, error: 'Node not found' });
@@ -1029,10 +1098,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'REMOVE_TAG': {
           // Remove a single tag from a node
           const { nodeId, tagId } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = await getWindowIdForNode(nodeId, sender);
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           if (tree.removeTag(nodeId, tagId)) {
-            await storageManager.saveGlobalTree(tree);
-            notifyGlobalTreeUpdate(tree);
+            await storageManager.saveWindowTree(windowId, tree);
+            notifyWindowTreeUpdate(windowId, tree);
             sendResponse({ success: true });
           } else {
             sendResponse({ success: false, error: 'Node not found' });
@@ -1043,7 +1117,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'DELETE_NODE': {
           // Delete a single node and reconnect its children to parent
           const { nodeId } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = await getWindowIdForNode(nodeId, sender);
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           
           // Save snapshot for undo
           undoManager.saveSnapshot(tree.toJSON(), 'Delete node');
@@ -1063,8 +1142,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
           }
           
-          await storageManager.saveGlobalTree(tree);
-          notifyGlobalTreeUpdate(tree);
+          await storageManager.saveWindowTree(windowId, tree);
+          notifyWindowTreeUpdate(windowId, tree);
           sendResponse({ success: true, removedCount: removedIds.length });
           break;
         }
@@ -1072,7 +1151,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'DELETE_CHILDREN': {
           // Delete all children of a node (close their tabs too)
           const { nodeId } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = await getWindowIdForNode(nodeId, sender);
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           
           // Save snapshot for undo
           undoManager.saveSnapshot(tree.toJSON(), 'Delete children');
@@ -1092,8 +1176,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
           }
           
-          await storageManager.saveGlobalTree(tree);
-          notifyGlobalTreeUpdate(tree);
+          await storageManager.saveWindowTree(windowId, tree);
+          notifyWindowTreeUpdate(windowId, tree);
           sendResponse({ success: true, removedCount: removedIds.length });
           break;
         }
@@ -1101,7 +1185,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'DELETE_WITH_CHILDREN': {
           // Delete a node and all its children (close their tabs too)
           const { nodeId } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = await getWindowIdForNode(nodeId, sender);
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           
           // Save snapshot for undo
           undoManager.saveSnapshot(tree.toJSON(), 'Delete with children');
@@ -1121,8 +1210,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
           }
           
-          await storageManager.saveGlobalTree(tree);
-          notifyGlobalTreeUpdate(tree);
+          await storageManager.saveWindowTree(windowId, tree);
+          notifyWindowTreeUpdate(windowId, tree);
           sendResponse({ success: true, removedCount: removedIds.length });
           break;
         }
@@ -1130,7 +1219,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'BULK_DELETE': {
           // Delete multiple nodes and reconnect their children
           const { nodeIds } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = sender?.tab?.windowId;
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           
           // Save snapshot for undo
           undoManager.saveSnapshot(tree.toJSON(), 'Delete selected');
@@ -1150,8 +1244,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
           }
           
-          await storageManager.saveGlobalTree(tree);
-          notifyGlobalTreeUpdate(tree);
+          await storageManager.saveWindowTree(windowId, tree);
+          notifyWindowTreeUpdate(windowId, tree);
           sendResponse({ success: true, removedCount: removedIds.length });
           break;
         }
@@ -1159,6 +1253,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'BULK_CLOSE_TABS': {
           // Close tabs for multiple nodes (without removing from tree)
           const { nodeIds } = message;
+          const windowId = sender?.tab?.windowId;
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
           let closedCount = 0;
           
           for (const id of nodeIds) {
@@ -1175,8 +1274,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           
           // Notify update
-          const tree = await storageManager.getGlobalTree();
-          notifyGlobalTreeUpdate(tree);
+          const tree = await storageManager.getWindowTree(windowId);
+          notifyWindowTreeUpdate(windowId, tree);
           sendResponse({ success: true, closedCount });
           break;
         }
@@ -1184,7 +1283,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'BULK_PIN': {
           // Pin multiple nodes
           const { nodeIds } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = sender?.tab?.windowId;
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           let pinnedCount = 0;
           
           for (const id of nodeIds) {
@@ -1195,8 +1299,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
           }
           
-          await storageManager.saveGlobalTree(tree);
-          notifyGlobalTreeUpdate(tree);
+          await storageManager.saveWindowTree(windowId, tree);
+          notifyWindowTreeUpdate(windowId, tree);
           sendResponse({ success: true, pinnedCount });
           break;
         }
@@ -1204,7 +1308,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'BULK_UNPIN': {
           // Unpin multiple nodes
           const { nodeIds } = message;
-          const tree = await storageManager.getGlobalTree();
+          const windowId = sender?.tab?.windowId;
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           let unpinnedCount = 0;
           
           for (const id of nodeIds) {
@@ -1215,22 +1324,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
           }
           
-          await storageManager.saveGlobalTree(tree);
-          notifyGlobalTreeUpdate(tree);
+          await storageManager.saveWindowTree(windowId, tree);
+          notifyWindowTreeUpdate(windowId, tree);
           sendResponse({ success: true, unpinnedCount });
           break;
         }
         
         case 'UNDO': {
-          const tree = await storageManager.getGlobalTree();
+          const windowId = sender?.tab?.windowId;
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           const previousState = undoManager.undo(tree.toJSON());
           
           if (previousState) {
             // Restore tree from snapshot
             const { NavigationTree } = await import('./lib/tree.js');
             const restoredTree = NavigationTree.fromJSON(previousState);
-            await storageManager.saveGlobalTree(restoredTree);
-            notifyGlobalTreeUpdate(restoredTree);
+            await storageManager.saveWindowTree(windowId, restoredTree);
+            notifyWindowTreeUpdate(windowId, restoredTree);
             sendResponse({ success: true, state: undoManager.getState() });
           } else {
             sendResponse({ success: false, error: 'Nothing to undo' });
@@ -1239,15 +1353,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         
         case 'REDO': {
-          const tree = await storageManager.getGlobalTree();
+          const windowId = sender?.tab?.windowId;
+          if (!windowId) {
+            sendResponse({ success: false, error: 'Cannot determine window' });
+            break;
+          }
+          const tree = await storageManager.getWindowTree(windowId);
           const nextState = undoManager.redo(tree.toJSON());
           
           if (nextState) {
             // Restore tree from snapshot
             const { NavigationTree } = await import('./lib/tree.js');
             const restoredTree = NavigationTree.fromJSON(nextState);
-            await storageManager.saveGlobalTree(restoredTree);
-            notifyGlobalTreeUpdate(restoredTree);
+            await storageManager.saveWindowTree(windowId, restoredTree);
+            notifyWindowTreeUpdate(windowId, restoredTree);
             sendResponse({ success: true, state: undoManager.getState() });
           } else {
             sendResponse({ success: false, error: 'Nothing to redo' });
@@ -1330,17 +1449,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const isMultiTab = await isMultiTabForWindow(windowId);
           
           if (isMultiTab) {
-            // Multi-tab mode: clear GLOBAL tree and all tab mappings
-            const tree = await storageManager.getGlobalTree();
+            // Multi-tab mode: clear per-window tree and tab mappings for this window
+            const tree = await storageManager.getWindowTree(windowId);
             tree.clear();
-            await storageManager.saveGlobalTree(tree);
+            await storageManager.saveWindowTree(windowId, tree);
             
-            // Clear all global tab mappings
-            tabManager.globalNodeToTab.clear();
-            tabManager.globalTabToNode.clear();
-            tabManager.globalLruOrder = [];
+            // Clear tab mappings for this window only
+            const tabsToRemove = [];
+            for (const [nodeId, tabInfo] of tabManager.globalNodeToTab.entries()) {
+              if (tabInfo.windowId === windowId) {
+                tabsToRemove.push(nodeId);
+              }
+            }
+            for (const nodeId of tabsToRemove) {
+              const tabInfo = tabManager.globalNodeToTab.get(nodeId);
+              if (tabInfo) {
+                tabManager.globalTabToNode.delete(tabInfo.tabId);
+                tabManager.globalNodeToTab.delete(nodeId);
+                const lruIndex = tabManager.globalLruOrder.indexOf(tabInfo.tabId);
+                if (lruIndex > -1) {
+                  tabManager.globalLruOrder.splice(lruIndex, 1);
+                }
+              }
+            }
             
-            notifyGlobalTreeUpdate(tree);
+            notifyWindowTreeUpdate(windowId, tree);
           } else {
             // Single-tab mode: per-window tree
             const tree = await storageManager.getWindowTree(windowId);
@@ -1447,7 +1580,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       try {
         const tab = await chrome.tabs.get(tabId);
         if (tab.url) {
-          const tree = await storageManager.getGlobalTree();
+          const tree = await storageManager.getWindowTree(windowId);
           const nodeByUrl = tree.findByUrl(tab.url);
           if (nodeByUrl) {
             nodeId = nodeByUrl.id;
@@ -1462,13 +1595,13 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     if (nodeId !== null) {
       tabManager.touchGlobal(tabId);
       
-      const tree = await storageManager.getGlobalTree();
+      const tree = await storageManager.getWindowTree(windowId);
       if (tree && tree.getCurrentId() !== nodeId) {
         tree.setCurrentById(nodeId);
-        await storageManager.saveGlobalTree(tree);
+        await storageManager.saveWindowTree(windowId, tree);
         
-        // Notify ALL sidepanels (global tree update)
-        notifyGlobalTreeUpdate(tree);
+        // Notify sidepanel of this window
+        notifyWindowTreeUpdate(windowId, tree);
       }
     }
   }
