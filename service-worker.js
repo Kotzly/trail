@@ -292,6 +292,9 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
     // CRITICAL: Only update currentNode if this tab is active (user navigated)
     // If tab is not active, it was created programmatically - don't switch focus
     const isActiveTab = tab.active;
+    
+    // Track whether we create a new node (vs reusing existing)
+    let wasNewNodeCreated = false;
 
     // Track URL for about:blank redirect detection
     const prevUrl = lastTabUrl.get(tabId);
@@ -337,6 +340,7 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
             tree.setCurrentById(existingNodeId);
           }
           const newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
+          wasNewNodeCreated = true; // New node was created
           // Re-register tab with new node (global)
           tabManager.registerGlobal(newNode.id, windowId, tabId);
           // Update currentNode to new node only if tab is active
@@ -416,6 +420,8 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
           // Single-tree mode OR redirect: branch from current node
           newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
         }
+        
+        wasNewNodeCreated = true; // New node was created
 
         // Register globally (nodeId -> {windowId, tabId})
         tabManager.registerGlobal(newNode.id, windowId, tabId);
@@ -454,7 +460,13 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
     }
 
     await storageManager.saveGlobalTree(tree);
-    notifyGlobalTreeUpdate(tree);
+    
+    // Only notify if tab is active OR if we created a new node (not just reused existing)
+    // This prevents unnecessary UI updates for programmatic tab creation
+    // For inactive tabs, only notify if a new node was actually created
+    if (isActiveTab || wasNewNodeCreated) {
+      notifyGlobalTreeUpdate(tree);
+    }
   } catch (error) {
     console.debug('Multi-tab navigation error:', error);
   }
@@ -1222,7 +1234,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (settings.multiTabEnabled) {
               tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
               // DO NOT update currentNode - keep focus on current tab
-              // DO NOT notify tree update - sidepanel should not refresh
+              // But DO notify tree update so sidepanel shows the new tab immediately
+              // (without switching focus, since currentNode is not updated)
+              await storageManager.saveGlobalTree(tree);
+              notifyGlobalTreeUpdate(tree);
             }
             sendResponse({ success: true });
           } else {
