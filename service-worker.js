@@ -258,7 +258,15 @@ async function findWindowForNode(nodeId, tree) {
   }
 }
 const lastTabUrl = new Map(); // tabId -> last URL
-const REDIRECT_THRESHOLD_MS = 2000; // Redirects within 2 seconds are treated as same navigation
+const REDIRECT_THRESHOLD_MS = 2000;
+
+// Track windows created for existing nodes (orphan branches) - windowId -> nodeId
+// This prevents windows.onCreated from creating a new root for these windows
+const pendingNodeForWindow = new Map();
+
+// Track pending window creation for orphan nodes - use a temporary flag before window is created
+// We'll use this to handle race condition where windows.onCreated fires before we set pendingNodeForWindow
+let pendingOrphanWindowCreation = null; // Redirects within 2 seconds are treated as same navigation
 
 /**
  * Handle navigation in multi-tab mode.
@@ -723,10 +731,21 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
 chrome.windows.onCreated.addListener(async (window) => {
   try {
     // Check if this window was created for an existing node (orphan branch)
-    const existingNodeId = pendingNodeForWindow.get(window.id);
+    // First check the Map (set after window creation)
+    let existingNodeId = pendingNodeForWindow.get(window.id);
+    
+    // Also check if there's a pending orphan window creation
+    if (existingNodeId === undefined && pendingOrphanWindowCreation !== null) {
+      // Small delay to allow NAVIGATE_TO handler to set pendingNodeForWindow
+      // This is a workaround for race condition
+      await new Promise(resolve => setTimeout(resolve, 10));
+      existingNodeId = pendingNodeForWindow.get(window.id);
+    }
+    
     if (existingNodeId !== undefined) {
       // This window was created for an existing node - don't create new root
       pendingNodeForWindow.delete(window.id);
+      pendingOrphanWindowCreation = null;
       
       // The node is already registered in NAVIGATE_TO handler
       // Just update the tree's current node
@@ -736,6 +755,9 @@ chrome.windows.onCreated.addListener(async (window) => {
       notifyGlobalTreeUpdate(tree);
       return;
     }
+    
+    // Clear pending flag if this was a regular window creation
+    pendingOrphanWindowCreation = null;
     
     // Get the first tab in the new window
     const tabs = await chrome.tabs.query({ windowId: window.id });
@@ -1017,8 +1039,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
                 } else {
                   // Orphan branch - create new window for existing node
-                  // Mark this window as created for existing node to prevent new root creation
+                  // Set flag BEFORE creating window to handle race condition
+                  pendingOrphanWindowCreation = nodeId;
                   const newWindow = await chrome.windows.create({ focused: true, url });
+                  // Set in Map after window is created (for windows.onCreated that might run later)
                   pendingNodeForWindow.set(newWindow.id, nodeId);
                   const tabs = await chrome.tabs.query({ windowId: newWindow.id });
                   const newTab = tabs[0];
@@ -1035,8 +1059,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
               } else {
                 // Orphan branch - create new window for existing node
-                // Mark this window as created for existing node to prevent new root creation
+                // Set flag BEFORE creating window to handle race condition
+                pendingOrphanWindowCreation = nodeId;
                 const newWindow = await chrome.windows.create({ focused: true, url });
+                // Set in Map after window is created (for windows.onCreated that might run later)
                 pendingNodeForWindow.set(newWindow.id, nodeId);
                 const tabs = await chrome.tabs.query({ windowId: newWindow.id });
                 const newTab = tabs[0];
