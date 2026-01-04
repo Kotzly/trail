@@ -433,28 +433,45 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
 
 /**
  * Cleanup tree when tab is closed.
- * Show notification if a pinned tab was closed.
- * Note: Chrome doesn't allow preventing tab closure, so we notify after the fact.
+ * For pinned tabs: re-open them immediately to protect them.
  */
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   const settings = await getSettings();
   
   if (settings.multiTabEnabled) {
     // Check if this was a pinned tab BEFORE unregistering
-    if (settings.enablePinNodes) {
+    const nodeId = tabManager.getNodeForTabGlobal(tabId);
+    
+    if (settings.enablePinNodes && nodeId) {
       const tree = await storageManager.getGlobalTree();
-      const nodeId = tabManager.getNodeForTabGlobal(tabId);
-      if (nodeId) {
-        const node = tree.findNodeById(nodeId);
-        if (node?.pinned) {
-          // Show notification that a pinned tab was closed
+      const node = tree.findNodeById(nodeId);
+      
+      if (node?.pinned) {
+        // Re-open the pinned tab immediately
+        try {
+          const newTab = await chrome.tabs.create({ 
+            url: node.url, 
+            active: false 
+          });
+          
+          // Update the tab mapping to the new tab
+          tabManager.unregisterGlobal(tabId);
+          tabManager.registerGlobal(nodeId, newTab.windowId, newTab.id);
+          
+          // Show notification
           chrome.notifications.create({
             type: 'basic',
             iconUrl: 'icons/icon128.png',
-            title: 'Trail: Pinned Tab Closed',
-            message: `Pinned tab "${node.title}" was closed. The page is still saved in your history.`,
+            title: 'Trail: Pinned Tab Protected',
+            message: `"${node.title}" is pinned and was re-opened.`,
             priority: 1
           });
+          
+          // Notify update (tab is still "open" with new tab ID)
+          notifyGlobalTreeUpdate(tree);
+          return; // Don't unregister - we just re-registered
+        } catch (e) {
+          console.debug('Failed to re-open pinned tab:', e);
         }
       }
     }
