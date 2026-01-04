@@ -215,6 +215,34 @@ function scrollToCurrentNode() {
 }
 
 /**
+ * Verify that tree.currentNodeId matches the active tab.
+ * If not, update tree.currentNodeId to match active tab to prevent incorrect focus.
+ * @param {object} treeData - Tree data from service worker
+ * @returns {Promise<void>}
+ */
+async function verifyAndUpdateCurrentNode(treeData) {
+  try {
+    // Get current active tab
+    const { tab } = await sendMessage({ type: 'GET_CURRENT_TAB' });
+    if (!tab?.id) return;
+    
+    // Get nodeId for active tab
+    const response = await sendMessage({ 
+      type: 'GET_TREE', 
+      tabId: tab.id 
+    });
+    
+    // The response contains the correct currentNodeId for this tab
+    // Update treeData to use the correct currentNodeId
+    if (response.tree?.currentNodeId !== null && response.tree?.currentNodeId !== treeData.currentNodeId) {
+      treeData.currentNodeId = response.tree.currentNodeId;
+    }
+  } catch (error) {
+    console.debug('Error verifying currentNode:', error);
+  }
+}
+
+/**
  * Load and display tree for current tab/window.
  */
 async function loadCurrentTab() {
@@ -619,8 +647,12 @@ function initEventListeners() {
       fetchUndoRedoState(); // Update undo/redo buttons
     } else if (message.type === 'GLOBAL_TREE_UPDATED') {
       // Global tree update - all sidepanels receive this
-      renderView(message.tree, message.openNodeIds, message.tabStates);
-      fetchUndoRedoState(); // Update undo/redo buttons
+      // Before rendering, verify currentNodeId matches active tab
+      // This prevents focus switching when programmatic tabs are created
+      verifyAndUpdateCurrentNode(message.tree).then(() => {
+        renderView(message.tree, message.openNodeIds, message.tabStates);
+        fetchUndoRedoState(); // Update undo/redo buttons
+      });
     } else if (message.type === 'WINDOW_TREE_UPDATED' && message.windowId === currentWindowId) {
       // Legacy per-window tree update (single-tab mode)
       renderView(message.tree, message.openNodeIds, message.tabStates);

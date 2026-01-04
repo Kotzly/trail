@@ -645,11 +645,32 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
     // Multi-tab mode with GLOBAL tree: unregister tab globally
     tabManager.unregisterGlobal(tabId);
     
-    // Notify all sidepanels to update closed state
+    // Update currentNode to active tab in the same window (if window still exists)
     try {
       const tree = await storageManager.getGlobalTree();
+      const windowId = removeInfo.windowId;
+      
+      // Try to find active tab in the same window
+      try {
+        const activeTabs = await chrome.tabs.query({ windowId, active: true });
+        if (activeTabs.length > 0) {
+          const activeTab = activeTabs[0];
+          const activeNodeId = tabManager.getNodeForTabGlobal(activeTab.id);
+          if (activeNodeId !== null) {
+            // Update currentNode to the active tab
+            tree.setCurrentById(activeNodeId);
+            await storageManager.saveGlobalTree(tree);
+          }
+        }
+      } catch (e) {
+        // Window might be closed, ignore
+      }
+      
+      // Notify all sidepanels to update closed state
       notifyGlobalTreeUpdate(tree);
-    } catch (e) {}
+    } catch (e) {
+      console.debug('Error updating currentNode on tab removal:', e);
+    }
   } else {
     // Single-tab mode: remove tree
     storageManager.removeTree(tabId);
@@ -1234,10 +1255,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (settings.multiTabEnabled) {
               tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
               // DO NOT update currentNode - keep focus on current tab
-              // But DO notify tree update so sidepanel shows the new tab immediately
-              // (without switching focus, since currentNode is not updated)
+              // DO NOT notify tree update immediately - wait for webNavigation.onCompleted
+              // This prevents sidepanel from switching focus to the new tab
               await storageManager.saveGlobalTree(tree);
-              notifyGlobalTreeUpdate(tree);
+              // Don't notify here - let webNavigation.onCompleted handle it when page loads
+              // But only if tab becomes active (user switches to it)
             }
             sendResponse({ success: true });
           } else {
