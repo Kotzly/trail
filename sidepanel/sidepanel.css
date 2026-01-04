@@ -797,11 +797,13 @@ body {
   opacity: 0.6;
 }
 
+/* Branch colors disabled for graph - using uniform gray
 .graph-connection.branch-1 { stroke: var(--branch-1); }
 .graph-connection.branch-2 { stroke: var(--branch-2); }
 .graph-connection.branch-3 { stroke: var(--branch-3); }
 .graph-connection.branch-4 { stroke: var(--branch-4); }
 .graph-connection.branch-5 { stroke: var(--branch-5); }
+*/
 
 .graph-nodes {
   position: absolute;
@@ -1140,21 +1142,25 @@ body {
 
 /* ========================================
    PATH HIGHLIGHTING (Graph View)
-   Path to current node is highlighted
+   All branches dark gray, path to current is white
    ======================================== */
 
 .graph-connection {
   fill: none;
-  stroke: var(--md-outline-variant);
+  stroke: #444;
   stroke-width: 2;
-  opacity: 0.4;
-  transition: opacity 0.2s ease, stroke 0.2s ease;
+  opacity: 0.6;
 }
 
 .graph-connection.on-path {
-  stroke: var(--md-outline);
-  opacity: 0.8;
+  stroke: #fff;
+  opacity: 1;
   stroke-width: 2.5;
+}
+
+/* Light theme: darker path */
+[data-theme="light"] .graph-connection.on-path {
+  stroke: #333;
 }
 
 /* Graph Context Menu */
