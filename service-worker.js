@@ -599,6 +599,10 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
  * Cleanup tree when tab is closed.
  */
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
+  // Clean up programmatic tab flag
+  programmaticTabs.delete(tabId);
+  chrome.storage.session.remove(`programmaticTab_${tabId}`);
+  
   const settings = await getSettings();
   
   if (settings.multiTabEnabled) {
@@ -1173,25 +1177,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const tree = await storageManager.getGlobalTree();
           const node = tree.findById(nodeId);
           if (node) {
-            const tab = await chrome.tabs.create({ url: node.url, active: false });
-            // Mark as programmatic to prevent auto-focus in onActivated
-            programmaticTabs.add(tab.id);
-            // Also store in session storage for sidepanel to check (with timestamp)
+            // Mark as programmatic BEFORE creating tab to prevent auto-focus
+            // We'll use a temporary ID that will be replaced with actual tab ID
+            const tempId = `pending_${Date.now()}_${Math.random()}`;
             await chrome.storage.session.set({ 
-              [`programmaticTab_${tab.id}`]: Date.now() 
+              [tempId]: true 
             });
+            
+            const tab = await chrome.tabs.create({ url: node.url, active: false });
+            
+            // Mark actual tab as programmatic
+            programmaticTabs.add(tab.id);
+            await chrome.storage.session.set({ 
+              [`programmaticTab_${tab.id}`]: true 
+            });
+            // Clean up temp flag
+            await chrome.storage.session.remove(tempId);
             
             const settings = await getSettings();
             if (settings.multiTabEnabled) {
               tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
             }
             sendResponse({ success: true });
-            
-            // Clean up after a short delay (tab might be activated manually later)
-            setTimeout(async () => {
-              programmaticTabs.delete(tab.id);
-              await chrome.storage.session.remove(`programmaticTab_${tab.id}`);
-            }, 5000);
           } else {
             sendResponse({ success: false, error: 'Node not found' });
           }
@@ -1716,8 +1723,10 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const { tabId, windowId } = activeInfo;
   
   // Skip auto-focus if this tab was created programmatically (e.g., "open in new tab")
+  // Remove flag after first check - if user manually switches to this tab later, allow focus
   if (programmaticTabs.has(tabId)) {
     programmaticTabs.delete(tabId);
+    chrome.storage.session.remove(`programmaticTab_${tabId}`);
     return;
   }
   

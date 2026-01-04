@@ -632,16 +632,12 @@ function initEventListeners() {
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
     // Check if this tab was created programmatically (e.g., "open in new tab")
     const result = await chrome.storage.session.get(`programmaticTab_${activeInfo.tabId}`);
-    const programmaticTime = result[`programmaticTab_${activeInfo.tabId}`];
     
-    if (programmaticTime) {
+    if (result[`programmaticTab_${activeInfo.tabId}`]) {
       // This tab was created programmatically - don't switch focus
-      // Only skip if it was created recently (within last 5 seconds)
-      if (Date.now() - programmaticTime < 5000) {
-        return;
-      }
-      // Clean up old flag
+      // Remove flag so if user manually switches to it later, focus will switch
       await chrome.storage.session.remove(`programmaticTab_${activeInfo.tabId}`);
+      return;
     }
     
     if (activeInfo.tabId !== currentTabId || activeInfo.windowId !== currentWindowId) {
@@ -1362,10 +1358,13 @@ async function handleContextMenuAction(action) {
         break;
         
       case 'openNewTab':
+        // Mark as programmatic BEFORE creating tab
+        const tempId = `pending_${Date.now()}_${Math.random()}`;
+        await chrome.storage.session.set({ [tempId]: true });
         const newTab = await chrome.tabs.create({ url: node.url, active: false });
-        // Mark as programmatic to prevent auto-focus
-        await chrome.storage.session.set({ [`programmaticTab_${newTab.id}`]: Date.now() });
-        setTimeout(() => chrome.storage.session.remove(`programmaticTab_${newTab.id}`), 5000);
+        // Mark actual tab as programmatic
+        await chrome.storage.session.set({ [`programmaticTab_${newTab.id}`]: true });
+        await chrome.storage.session.remove(tempId);
         break;
         
       case 'openNewWindow':
