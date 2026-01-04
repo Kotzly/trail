@@ -712,6 +712,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'OPEN_IN_CURRENT_TAB': {
+          // Open URL in the current active tab
+          const { url } = message;
+          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (activeTab) {
+            await chrome.tabs.update(activeTab.id, { url });
+          }
+          sendResponse({ success: true });
+          break;
+        }
+        
         case 'GET_SETTINGS': {
           const settings = await storageManager.getSettings();
           sendResponse({ success: true, settings });

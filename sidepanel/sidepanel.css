@@ -1120,6 +1120,30 @@ body {
   stroke-width: 2.5;
 }
 
+/* Graph Context Menu */
+.graph-context-menu {
+  position: fixed;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 8px;
+  padding: 4px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  min-width: 160px;
+}
+
+.graph-context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--md-on-surface);
+  transition: background 0.1s ease;
+}
+
+.graph-context-menu-item:hover {
+  background: var(--md-surface-variant);
+}
+
 /* ========================================
    TOGGLE SWITCH (Settings)
    ======================================== */
