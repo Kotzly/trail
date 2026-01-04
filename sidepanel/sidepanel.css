@@ -1483,6 +1483,14 @@ body {
   background: var(--md-surface-variant);
 }
 
+.graph-context-menu-item.danger {
+  color: var(--md-error);
+}
+
+.graph-context-menu-item.danger:hover {
+  background: rgba(var(--md-error-rgb, 220, 53, 69), 0.15);
+}
+
 .graph-context-menu-divider {
   height: 1px;
   background: var(--md-outline-variant);

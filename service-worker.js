@@ -916,6 +916,56 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'DELETE_CHILDREN': {
+          // Delete all children of a node (close their tabs too)
+          const { nodeId } = message;
+          const tree = await storageManager.getGlobalTree();
+          const removedIds = tree.removeChildren(nodeId);
+          
+          // Close tabs for removed nodes
+          for (const id of removedIds) {
+            const tabInfo = tabManager.getTabForNodeGlobal(id);
+            if (tabInfo) {
+              try {
+                await chrome.tabs.remove(tabInfo.tabId);
+                tabManager.unregisterGlobal(tabInfo.tabId);
+              } catch (e) {
+                // Tab might already be closed
+              }
+            }
+          }
+          
+          await storageManager.saveGlobalTree(tree);
+          notifyGlobalTreeUpdate(tree);
+          sendResponse({ success: true, removedCount: removedIds.length });
+          break;
+        }
+        
+        case 'DELETE_WITH_CHILDREN': {
+          // Delete a node and all its children (close their tabs too)
+          const { nodeId } = message;
+          const tree = await storageManager.getGlobalTree();
+          const removedIds = tree.removeNodeWithChildren(nodeId);
+          
+          // Close tabs for removed nodes
+          for (const id of removedIds) {
+            const tabInfo = tabManager.getTabForNodeGlobal(id);
+            if (tabInfo) {
+              try {
+                await chrome.tabs.remove(tabInfo.tabId);
+                tabManager.unregisterGlobal(tabInfo.tabId);
+              } catch (e) {
+                // Tab might already be closed
+              }
+            }
+          }
+          
+          await storageManager.saveGlobalTree(tree);
+          notifyGlobalTreeUpdate(tree);
+          sendResponse({ success: true, removedCount: removedIds.length });
+          break;
+        }
+        
         case 'GET_SETTINGS': {
           const settings = await storageManager.getSettings();
           sendResponse({ success: true, settings });
