@@ -730,6 +730,13 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
  */
 chrome.windows.onCreated.addListener(async (window) => {
   try {
+    // Get the first tab in the new window
+    const tabs = await chrome.tabs.query({ windowId: window.id });
+    if (tabs.length === 0) return;
+    
+    const tab = tabs[0];
+    const tabUrl = tab.pendingUrl || tab.url || '';
+    
     // Check if this window was created for an existing node (orphan branch)
     // First check the Map (set after window creation)
     let existingNodeId = pendingNodeForWindow.get(window.id);
@@ -737,9 +744,29 @@ chrome.windows.onCreated.addListener(async (window) => {
     // Also check if there's a pending orphan window creation
     if (existingNodeId === undefined && pendingOrphanWindowCreation !== null) {
       // Small delay to allow NAVIGATE_TO handler to set pendingNodeForWindow
-      // This is a workaround for race condition
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 50));
       existingNodeId = pendingNodeForWindow.get(window.id);
+    }
+    
+    // Also check by URL - if there's a node with this URL that has no open tab, it's an orphan branch
+    if (existingNodeId === undefined && tabUrl) {
+      try {
+        const tree = await storageManager.getGlobalTree();
+        const nodeByUrl = tree.findByUrl(tabUrl);
+        if (nodeByUrl) {
+          // Check if this node has no open tab (orphan branch)
+          const tabInfo = tabManager.getTabForNodeGlobal(nodeByUrl.id);
+          if (tabInfo === null) {
+            // This is an orphan branch - don't create new root
+            existingNodeId = nodeByUrl.id;
+            // Register the tab with this node
+            tabManager.registerGlobal(nodeByUrl.id, window.id, tab.id);
+            pendingNodeForWindow.set(window.id, nodeByUrl.id);
+          }
+        }
+      } catch (e) {
+        // Ignore errors
+      }
     }
     
     if (existingNodeId !== undefined) {
@@ -747,7 +774,7 @@ chrome.windows.onCreated.addListener(async (window) => {
       pendingNodeForWindow.delete(window.id);
       pendingOrphanWindowCreation = null;
       
-      // The node is already registered in NAVIGATE_TO handler
+      // The node is already registered
       // Just update the tree's current node
       const tree = await storageManager.getGlobalTree();
       tree.setCurrentById(existingNodeId);
@@ -759,17 +786,13 @@ chrome.windows.onCreated.addListener(async (window) => {
     // Clear pending flag if this was a regular window creation
     pendingOrphanWindowCreation = null;
     
-    // Get the first tab in the new window
-    const tabs = await chrome.tabs.query({ windowId: window.id });
-    if (tabs.length === 0) return;
-    
-    const tab = tabs[0];
+    // This is a new window - create new root
     const tree = await storageManager.getGlobalTree();
     const settings = await getSettings();
     
     // Create a new root node for this window/tab
     const newNode = tree.createNewRoot({
-      url: tab.pendingUrl || tab.url || '',
+      url: tabUrl,
       title: tab.title || '',
       favicon: tab.favIconUrl || ''
     });
