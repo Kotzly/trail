@@ -26,7 +26,9 @@ const DEFAULT_SETTINGS = {
   theme: 'system',
   multiTabEnabled: false,
   multiTabLimit: 0,
-  forestMode: true
+  forestMode: true,
+  backOnRevisit: true,
+  compactGraph: false
 };
 
 /**
@@ -140,7 +142,8 @@ function renderView(treeData, openNodes = null) {
   // Render using the selected view mode
   currentNodeId = renderer(treeData, stackList, {
     onNavigate: handleNodeNavigation,
-    openNodeIds: isMultiTabMode ? openNodeIds : null
+    openNodeIds: isMultiTabMode ? openNodeIds : null,
+    compactGraph: settings?.compactGraph || false
   });
 
   // Graph view handles centering internally, only scroll for other views
@@ -247,6 +250,12 @@ function initEventListeners() {
       updateViewModeIcons(mode);
       await saveSettingsQuick({ viewMode: mode });
       
+      // Show/hide compact graph option based on view mode
+      const compactGraphOption = document.getElementById('compactGraphOption');
+      if (compactGraphOption) {
+        compactGraphOption.style.display = mode === 'graph' ? 'flex' : 'none';
+      }
+      
       // Re-render with new view mode
       if (currentTabId) {
         const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
@@ -316,6 +325,33 @@ function initEventListeners() {
   forestModeToggle.addEventListener('change', async () => {
     const enabled = forestModeToggle.checked;
     await saveSettingsQuick({ forestMode: enabled });
+  });
+  
+  // Back on Revisit toggle
+  const backOnRevisitToggle = document.getElementById('backOnRevisitToggle');
+  
+  backOnRevisitToggle.addEventListener('change', async () => {
+    const enabled = backOnRevisitToggle.checked;
+    await saveSettingsQuick({ backOnRevisit: enabled });
+  });
+  
+  // Compact Graph toggle
+  const compactGraphToggle = document.getElementById('compactGraphToggle');
+  const compactGraphOption = document.getElementById('compactGraphOption');
+  
+  compactGraphToggle.addEventListener('change', async () => {
+    const enabled = compactGraphToggle.checked;
+    await saveSettingsQuick({ compactGraph: enabled });
+    
+    // Re-render to apply compact mode
+    if (currentTabId) {
+      const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
+      if (response.multiTabMode) {
+        renderView(response.tree, response.openNodeIds);
+      } else {
+        renderView(response.tree);
+      }
+    }
   });
   
   // Listen for tree updates from service worker
@@ -394,6 +430,7 @@ function toggleSettingsPopover(e) {
   updateThemeIcons(settings?.theme || DEFAULT_SETTINGS.theme);
   updateViewModeIcons(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
   updateMultiTabUI(settings?.multiTabEnabled || false, settings?.multiTabLimit || 0, settings?.forestMode);
+  updateNavigationUI(settings?.backOnRevisit, settings?.compactGraph, settings?.viewMode);
   
   popover.classList.remove('hidden');
 }
@@ -456,6 +493,27 @@ async function updateMultiTabUI(globalEnabled, limit, forestMode) {
     } catch (e) {
       windowToggle.checked = globalEnabled;
     }
+  }
+}
+
+/**
+ * Update navigation UI state.
+ * @param {boolean} backOnRevisit
+ * @param {boolean} compactGraph
+ * @param {string} viewMode
+ */
+function updateNavigationUI(backOnRevisit, compactGraph, viewMode) {
+  const backOnRevisitToggle = document.getElementById('backOnRevisitToggle');
+  const compactGraphToggle = document.getElementById('compactGraphToggle');
+  const compactGraphOption = document.getElementById('compactGraphOption');
+  
+  // Set toggle states
+  backOnRevisitToggle.checked = backOnRevisit !== false;
+  compactGraphToggle.checked = compactGraph === true;
+  
+  // Show compact graph option only when graph view is selected
+  if (compactGraphOption) {
+    compactGraphOption.style.display = viewMode === 'graph' ? 'flex' : 'none';
   }
 }
 

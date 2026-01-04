@@ -150,6 +150,7 @@ async function handleSingleTabNavigation(details, transitionType, windowId) {
 
   try {
     const tab = await chrome.tabs.get(tabId);
+    const settings = await getSettings();
     
     lastTabUrl.set(tabId, url);
 
@@ -161,7 +162,7 @@ async function handleSingleTabNavigation(details, transitionType, windowId) {
     };
 
     const tree = await storageManager.getWindowTree(windowId);
-    tree.navigate(entry);
+    tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
     await storageManager.saveWindowTree(windowId, tree);
 
     notifyWindowTreeUpdate(windowId, tree);
@@ -184,9 +185,9 @@ const REDIRECT_THRESHOLD_MS = 2000; // Redirects within 2 seconds are treated as
 async function handleMultiTabNavigation(details, transitionType, windowId) {
   const { tabId, url } = details;
 
-  // Skip about:blank - just track it for redirect detection, don't create nodes
-  if (url === 'about:blank') {
-    lastTabUrl.set(tabId, url);
+  // Skip blank/undefined URLs - just track for redirect detection, don't create nodes
+  if (!url || url === 'about:blank') {
+    lastTabUrl.set(tabId, url || 'about:blank');
     return;
   }
 
@@ -211,8 +212,8 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
     // Use GLOBAL tree - shared across all windows
     const tree = await storageManager.getGlobalTree();
 
-    // --- about:blank redirect logic ---
-    const isFromAboutBlank = prevUrl === 'about:blank';
+    // --- Redirect detection (from blank/undefined URLs) ---
+    const isFromBlankUrl = !prevUrl || prevUrl === 'about:blank';
 
     if (existingNodeId !== null) {
       // Tab already has a node - navigate from that node (creates a branch if different URL)
@@ -220,7 +221,7 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
       if (node && node.url !== url) {
         // Different URL - navigate from current node
         tree.setCurrentById(existingNodeId);
-        const newNode = tree.navigate(entry);
+        const newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
         // Re-register tab with new node (global)
         tabManager.registerGlobal(newNode.id, windowId, tabId);
       } else if (node) {
@@ -234,7 +235,7 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
 
       // Check if this is a redirect
       const lastRegistration = recentTabRegistrations.get(tabId);
-      const isRedirect = (lastRegistration && (Date.now() - lastRegistration < REDIRECT_THRESHOLD_MS)) || isFromAboutBlank;
+      const isRedirect = (lastRegistration && (Date.now() - lastRegistration < REDIRECT_THRESHOLD_MS)) || isFromBlankUrl;
 
       // Decide: create new root (forest mode) or branch from current
       if (settings.forestMode && !isRedirect) {
@@ -242,7 +243,7 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
         newNode = tree.createNewRoot(entry);
       } else {
         // Single-tree mode OR redirect: branch from current node
-        newNode = tree.navigate(entry);
+        newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
       }
 
       // Register globally (nodeId -> {windowId, tabId})
@@ -495,6 +496,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           
           // New navigation - add to tree
+          const settings = await getSettings();
           const entry = {
             url,
             title: message.title || url,
@@ -503,7 +505,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           };
 
           const tree = await storageManager.getTree(tabId);
-          tree.navigate(entry);
+          tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
           await storageManager.saveTree(tabId, tree);
           notifyTreeUpdate(tabId);
           break;

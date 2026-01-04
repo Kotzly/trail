@@ -156,6 +156,21 @@
             <span class="icon-tooltip">Graph</span>
           </button>
         </div>
+        <label class="popover-toggle popover-toggle-small graph-only-option" id="compactGraphOption">
+          <span class="popover-label-small">Compact Graph</span>
+          <input type="checkbox" id="compactGraphToggle">
+          <span class="toggle-slider toggle-slider-small"></span>
+        </label>
+      </div>
+      <div class="popover-divider"></div>
+      <div class="popover-section">
+        <div class="popover-label">Navigation</div>
+        <label class="popover-toggle popover-toggle-small">
+          <span class="popover-label-small">Back on Revisit</span>
+          <input type="checkbox" id="backOnRevisitToggle" checked>
+          <span class="toggle-slider toggle-slider-small"></span>
+        </label>
+        <div class="popover-hint">Navigate to existing ancestor instead of creating duplicates</div>
       </div>
       <div class="popover-divider"></div>
       <div class="popover-section">
@@ -190,6 +205,7 @@
       <div class="popover-section">
         <label class="popover-toggle">
           <span class="popover-label">Forest Mode</span>
+          <span class="warning-icon" title="Note: Normal redirects will appear as new trees">⚠</span>
           <input type="checkbox" id="forestModeToggle">
           <span class="toggle-slider"></span>
         </label>

@@ -1322,3 +1322,55 @@ body {
 .popover-toggle input:checked + .toggle-slider-small::after {
   transform: translateX(16px);
 }
+
+/* ========================================
+   Warning Icon & Tooltips
+   ======================================== */
+
+.warning-icon {
+  color: #f59e0b;
+  font-size: 12px;
+  margin-left: 4px;
+  cursor: help;
+  opacity: 0.8;
+}
+
+.warning-icon:hover {
+  opacity: 1;
+}
+
+/* Graph-only option (compact toggle) */
+.graph-only-option {
+  margin-top: 8px;
+  padding-left: 4px;
+}
+
+/* ========================================
+   Compact Graph Mode
+   ======================================== */
+
+.graph-node.compact {
+  padding: 6px 8px;
+  gap: 6px;
+}
+
+.graph-node.compact .graph-node-favicon {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+}
+
+.graph-node.compact .graph-node-favicon img {
+  width: 14px;
+  height: 14px;
+}
+
+.graph-node-domain {
+  font-size: 10px;
+  color: var(--md-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
