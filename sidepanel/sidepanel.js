@@ -311,12 +311,12 @@ function initEventListeners() {
     }
   });
   
-  // New tab button - creates new tab with new tree root
+  // New window button - creates new window with new tree root
   document.getElementById('newTabBtn').addEventListener('click', async () => {
     try {
       await sendMessage({ type: 'CREATE_NEW_ROOT' });
     } catch (error) {
-      console.error('Failed to create new tab:', error);
+      console.error('Failed to create new window:', error);
     }
   });
   

@@ -602,8 +602,8 @@ chrome.windows.onCreated.addListener(async (window) => {
     
     // Create a new root node for this window/tab
     const newNode = tree.createNewRoot({
-      url: tab.pendingUrl || tab.url || 'chrome://newtab',
-      title: tab.title || 'New Tab',
+      url: tab.pendingUrl || tab.url || '',
+      title: tab.title || '',
       favicon: tab.favIconUrl || ''
     });
     
