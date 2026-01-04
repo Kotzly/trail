@@ -625,6 +625,22 @@ function initEventListeners() {
       // Legacy per-window tree update (single-tab mode)
       renderView(message.tree, message.openNodeIds, message.tabStates);
       fetchUndoRedoState(); // Update undo/redo buttons
+    } else if (message.type === 'VIEW_STATE_UPDATED') {
+      // View state update from another window - sync zoom/pan
+      const graphAPI = getGraphAPI();
+      if (graphAPI && graphAPI.setViewState && message.viewState) {
+        graphAPI.setViewState(message.viewState);
+      }
+    }
+  });
+  
+  // Also listen for storage changes (alternative sync method)
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'session' && changes.graphViewState) {
+      const graphAPI = getGraphAPI();
+      if (graphAPI && graphAPI.setViewState && changes.graphViewState.newValue) {
+        graphAPI.setViewState(changes.graphViewState.newValue);
+      }
     }
   });
   
