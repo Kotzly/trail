@@ -26,6 +26,11 @@ let searchResults = []; // Array of matching node IDs
 let searchIndex = 0; // Current focused result index
 let searchQuery = ''; // Current search query
 
+// Pinned dropdown state
+let pinnedNodes = []; // Array of pinned nodes
+let pinnedFocusIndex = -1; // Current focused index in dropdown
+let pinnedDropdownOpen = false;
+
 const DEFAULT_SETTINGS = {
   maxCachedLinks: 10,
   stackCapacity: 100,
@@ -238,6 +243,26 @@ function initEventListeners() {
     } catch (error) {
       console.error('Failed to create new tab:', error);
     }
+  });
+  
+  // Pinned dropdown button
+  document.getElementById('pinnedBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePinnedDropdown();
+  });
+  
+  // Close pinned dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('pinnedDropdown');
+    const pinnedBtn = document.getElementById('pinnedBtn');
+    if (pinnedDropdownOpen && !dropdown.contains(e.target) && !pinnedBtn.contains(e.target)) {
+      closePinnedDropdown();
+    }
+  });
+  
+  // Keyboard navigation for pinned dropdown
+  document.addEventListener('keydown', (e) => {
+    handlePinnedDropdownKeydown(e);
   });
   
   // Clear button
@@ -821,6 +846,169 @@ function clearSearch() {
   
   updateSearchUI();
   applySearchHighlights();
+}
+
+// ========================================
+// PINNED DROPDOWN FUNCTIONALITY
+// ========================================
+
+/**
+ * Collect all pinned nodes from tree data.
+ * @param {object} treeData - Tree data
+ * @returns {Array} - Array of pinned nodes
+ */
+function collectPinnedNodes(treeData) {
+  if (!treeData) return [];
+  
+  const pinned = [];
+  
+  function traverse(node) {
+    if (!node) return;
+    if (node.pinned) {
+      pinned.push(node);
+    }
+    if (node.children) {
+      node.children.forEach(traverse);
+    }
+  }
+  
+  const roots = treeData.roots || (treeData.root ? [treeData.root] : []);
+  roots.forEach(traverse);
+  
+  return pinned;
+}
+
+/**
+ * Open pinned dropdown and populate with pinned nodes.
+ */
+function openPinnedDropdown() {
+  const dropdown = document.getElementById('pinnedDropdown');
+  const list = document.getElementById('pinnedList');
+  const count = document.getElementById('pinnedCount');
+  
+  pinnedNodes = collectPinnedNodes(lastTreeData);
+  pinnedFocusIndex = pinnedNodes.length > 0 ? 0 : -1;
+  pinnedDropdownOpen = true;
+  
+  // Update count
+  count.textContent = pinnedNodes.length.toString();
+  
+  // Populate list
+  if (pinnedNodes.length === 0) {
+    list.innerHTML = '<div class="pinned-dropdown-empty">No pinned pages</div>';
+  } else {
+    list.innerHTML = pinnedNodes.map((node, idx) => {
+      let domain = '';
+      try {
+        domain = new URL(node.url).hostname;
+      } catch (e) {
+        domain = node.url;
+      }
+      
+      return `
+        <div class="pinned-dropdown-item${idx === 0 ? ' focused' : ''}" data-node-id="${node.id}">
+          ${node.favicon 
+            ? `<img class="pinned-dropdown-item-favicon" src="${node.favicon}" alt="">` 
+            : `<div class="pinned-dropdown-item-favicon placeholder">📌</div>`}
+          <div class="pinned-dropdown-item-info">
+            <div class="pinned-dropdown-item-title">${node.title || 'Untitled'}</div>
+            <div class="pinned-dropdown-item-url">${domain}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Add click handlers
+    list.querySelectorAll('.pinned-dropdown-item').forEach((item, idx) => {
+      item.addEventListener('click', () => {
+        const nodeId = parseInt(item.dataset.nodeId, 10);
+        const node = pinnedNodes.find(n => n.id === nodeId);
+        if (node) {
+          handleNodeNavigation(node);
+          closePinnedDropdown();
+        }
+      });
+      item.addEventListener('mouseenter', () => {
+        updatePinnedFocus(idx);
+      });
+    });
+  }
+  
+  dropdown.classList.remove('hidden');
+}
+
+/**
+ * Close pinned dropdown.
+ */
+function closePinnedDropdown() {
+  const dropdown = document.getElementById('pinnedDropdown');
+  dropdown.classList.add('hidden');
+  pinnedDropdownOpen = false;
+  pinnedFocusIndex = -1;
+}
+
+/**
+ * Toggle pinned dropdown.
+ */
+function togglePinnedDropdown() {
+  if (pinnedDropdownOpen) {
+    closePinnedDropdown();
+  } else {
+    openPinnedDropdown();
+  }
+}
+
+/**
+ * Update focus in pinned dropdown.
+ * @param {number} newIndex - New focus index
+ */
+function updatePinnedFocus(newIndex) {
+  if (pinnedNodes.length === 0) return;
+  
+  // Wrap around
+  pinnedFocusIndex = ((newIndex % pinnedNodes.length) + pinnedNodes.length) % pinnedNodes.length;
+  
+  // Update visual focus
+  const items = document.querySelectorAll('.pinned-dropdown-item');
+  items.forEach((item, idx) => {
+    item.classList.toggle('focused', idx === pinnedFocusIndex);
+  });
+  
+  // Scroll into view
+  if (items[pinnedFocusIndex]) {
+    items[pinnedFocusIndex].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+/**
+ * Handle keyboard navigation in pinned dropdown.
+ * @param {KeyboardEvent} e
+ */
+function handlePinnedDropdownKeydown(e) {
+  if (!pinnedDropdownOpen) return;
+  
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      updatePinnedFocus(pinnedFocusIndex + 1);
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      updatePinnedFocus(pinnedFocusIndex - 1);
+      break;
+    case 'Enter':
+      e.preventDefault();
+      if (pinnedFocusIndex >= 0 && pinnedFocusIndex < pinnedNodes.length) {
+        const node = pinnedNodes[pinnedFocusIndex];
+        handleNodeNavigation(node);
+        closePinnedDropdown();
+      }
+      break;
+    case 'Escape':
+      e.preventDefault();
+      closePinnedDropdown();
+      break;
+  }
 }
 
 /**
