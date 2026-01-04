@@ -1074,6 +1074,7 @@ body {
   border: 2px solid var(--md-outline-variant);
   border-radius: 12px;
   cursor: pointer;
+  position: relative; /* Ensure absolute children are positioned relative to this */
   transition: all 0.15s ease;
   box-shadow: 0 2px 8px var(--md-shadow);
   user-select: none;
@@ -1123,11 +1124,12 @@ body {
   font-weight: 600;
   padding: 2px 4px;
   border-radius: 0 0 4px 0;
-  z-index: 10;
+  z-index: 100;
   line-height: 1.2;
   min-width: 18px;
   text-align: center;
   box-shadow: 0 1px 2px var(--md-shadow);
+  pointer-events: none; /* Don't block clicks */
 }
 
 .graph-node-content {
