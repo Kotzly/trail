@@ -273,7 +273,7 @@ async function loadCurrentTab() {
     isMultiTabMode = response.multiTabMode || false;
     
     if (isMultiTabMode) {
-      renderView(response.tree, response.openNodeIds, response.tabStates);
+      renderView(response.tree, response.openNodeIds, response.tabStates, response.nodeTabCounts);
     } else {
       renderView(response.tree);
     }

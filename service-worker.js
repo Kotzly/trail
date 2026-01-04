@@ -1084,6 +1084,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               if (nodeByUrl && nodeByUrl.url === tab.url) {
                 activeNodeId = nodeByUrl.id;
                 tabManager.registerGlobal(nodeByUrl.id, tab.windowId, tab.id);
+                
+                // Update currentNode
+                tree.setCurrentById(activeNodeId);
+                await storageManager.saveGlobalTree(tree);
               }
             }
             
@@ -1098,11 +1102,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             const openNodeIds = Array.from(tabManager.getAllOpenNodes());
             const tabStates = await getTabStates();
+            
+            // Calculate tab counts for current window
+            const nodeTabCounts = {};
+            for (const nodeId of openNodeIds) {
+              const count = tabManager.getTabCountForNodeInWindow(nodeId, tab.windowId);
+              if (count > 1) {
+                nodeTabCounts[nodeId] = count;
+              }
+            }
+            
             sendResponse({ 
               success: true, 
               tree: tree.toJSON(),
               openNodeIds,
               tabStates,
+              nodeTabCounts,
               multiTabMode: true,
               windowId: tab.windowId
             });
