@@ -31,12 +31,30 @@ Trail is a browser extension for Chrome/Brave that visualizes your browsing hist
 - Tighter spacing for dense trees
 - URL shown on hover
 
+### Search (Cmd/Ctrl+F)
+- Search by page title, URL, or domain
+- Highlights matching nodes, dims others
+- Navigate through results with arrow keys
+- Enter to go to node, Shift+Enter to open in new tab
+
+### Pin Nodes
+- Pin important pages to protect from LRU eviction
+- Pinned nodes marked with 📌 and golden border
+- Right-click → Pin node
+
+### Tags / Labels
+- Add colored tags to organize pages
+- Predefined tags: Important, Reference, To Do, Dead End, Bookmark
+- Right-click → Tags to add/remove
+- Colored dots shown on tagged nodes
+
 ### Additional Features
 - Click any node to navigate and smoothly center view
 - Pinch-to-zoom and scroll zoom on trackpad
 - Keyboard shortcuts (+/- for zoom, 0 to reset)
 - Dark/light theme support
 - Configurable limits for cached pages and open tabs
+- A/B feature flags to enable/disable Search, Pin, Tags
 
 ## Installation
 
@@ -58,6 +76,11 @@ Click the gear icon in the side panel to access settings:
 - **Compact Graph** - Use smaller, denser graph layout
 - **Stack Capacity** - Maximum pages to remember (10-1000)
 - **Cached Links** - Recent entries to keep in memory (0-100)
+
+**Feature Flags:**
+- **Search** - Enable search functionality (Cmd/Ctrl+F)
+- **Pin Nodes** - Enable pinning nodes for LRU protection
+- **Tags** - Enable tagging nodes with colored labels
 
 ## Project Structure
 
