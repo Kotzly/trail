@@ -718,9 +718,25 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
 
 /**
  * Handle new window creation - create new root in global tree.
+ * Skip if window was created for an existing node (orphan branch).
  */
 chrome.windows.onCreated.addListener(async (window) => {
   try {
+    // Check if this window was created for an existing node (orphan branch)
+    const existingNodeId = pendingNodeForWindow.get(window.id);
+    if (existingNodeId !== undefined) {
+      // This window was created for an existing node - don't create new root
+      pendingNodeForWindow.delete(window.id);
+      
+      // The node is already registered in NAVIGATE_TO handler
+      // Just update the tree's current node
+      const tree = await storageManager.getGlobalTree();
+      tree.setCurrentById(existingNodeId);
+      await storageManager.saveGlobalTree(tree);
+      notifyGlobalTreeUpdate(tree);
+      return;
+    }
+    
     // Get the first tab in the new window
     const tabs = await chrome.tabs.query({ windowId: window.id });
     if (tabs.length === 0) return;
@@ -1000,8 +1016,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
                   tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
                 } else {
-                  // Orphan branch - create new window
+                  // Orphan branch - create new window for existing node
+                  // Mark this window as created for existing node to prevent new root creation
                   const newWindow = await chrome.windows.create({ focused: true, url });
+                  pendingNodeForWindow.set(newWindow.id, nodeId);
                   const tabs = await chrome.tabs.query({ windowId: newWindow.id });
                   const newTab = tabs[0];
                   tabManager.registerGlobal(nodeId, newWindow.id, newTab.id);
@@ -1016,8 +1034,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
                 tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
               } else {
-                // Orphan branch - create new window
+                // Orphan branch - create new window for existing node
+                // Mark this window as created for existing node to prevent new root creation
                 const newWindow = await chrome.windows.create({ focused: true, url });
+                pendingNodeForWindow.set(newWindow.id, nodeId);
                 const tabs = await chrome.tabs.query({ windowId: newWindow.id });
                 const newTab = tabs[0];
                 tabManager.registerGlobal(nodeId, newWindow.id, newTab.id);
