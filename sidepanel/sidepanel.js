@@ -630,9 +630,27 @@ function initEventListeners() {
   
   // Listen for tab activation changes
   chrome.tabs.onActivated.addListener((activeInfo) => {
-    if (activeInfo.tabId !== currentTabId) {
+    if (activeInfo.tabId !== currentTabId || activeInfo.windowId !== currentWindowId) {
       currentTabId = activeInfo.tabId;
+      currentWindowId = activeInfo.windowId;
       loadCurrentTab();
+    }
+  });
+  
+  // Listen for window focus changes
+  chrome.windows.onFocusChanged.addListener(async (windowId) => {
+    if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+    
+    try {
+      // Get active tab in the focused window
+      const tabs = await chrome.tabs.query({ windowId, active: true });
+      if (tabs.length > 0 && tabs[0].id !== currentTabId) {
+        currentTabId = tabs[0].id;
+        currentWindowId = windowId;
+        loadCurrentTab();
+      }
+    } catch (error) {
+      console.debug('Window focus change error:', error);
     }
   });
   

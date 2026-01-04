@@ -246,22 +246,69 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
       // New tab without existing node
       let newNode;
 
-      // Check if this is a redirect
-      const lastRegistration = recentTabRegistrations.get(tabId);
-      const isRedirect = (lastRegistration && (Date.now() - lastRegistration < REDIRECT_THRESHOLD_MS)) || isFromBlankUrl;
-
-      // Decide: create new root (forest mode) or branch from current
-      if (settings.forestMode && !isRedirect) {
-        // Forest mode: each new tab creates its own tree root
-        newNode = tree.createNewRoot(entry);
-      } else {
-        // Single-tree mode OR redirect: branch from current node
-        newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
+      // First, try to find existing node with this URL in the current window's tree
+      let existingNodeInWindow = null;
+      try {
+        // Get all tabs in current window
+        const windowTabs = await chrome.tabs.query({ windowId });
+        // Find nodes for tabs in this window
+        const windowNodeIds = new Set();
+        for (const wt of windowTabs) {
+          const nodeId = tabManager.getNodeForTabGlobal(wt.id);
+          if (nodeId !== null) {
+            windowNodeIds.add(nodeId);
+          }
+        }
+        
+        // Find the root for this window (use first node's root, or search all roots)
+        let windowRoot = null;
+        if (windowNodeIds.size > 0) {
+          // Find root for any node in this window
+          for (const nodeId of windowNodeIds) {
+            windowRoot = tree.findRootForNode(nodeId);
+            if (windowRoot) break;
+          }
+        }
+        
+        // If we found a root for this window, search URL in that root first
+        if (windowRoot) {
+          existingNodeInWindow = tree.findByUrlInRoot(windowRoot, url);
+        }
+        
+        // If not found in window root, search in all roots (fallback)
+        if (!existingNodeInWindow) {
+          existingNodeInWindow = tree.findByUrl(url);
+        }
+      } catch (e) {
+        // Fallback to global search
+        existingNodeInWindow = tree.findByUrl(url);
       }
 
-      // Register globally (nodeId -> {windowId, tabId})
-      tabManager.registerGlobal(newNode.id, windowId, tabId);
-      recentTabRegistrations.set(tabId, Date.now());
+      // If found existing node, use it instead of creating new
+      if (existingNodeInWindow) {
+        newNode = existingNodeInWindow;
+        tree.setCurrentById(newNode.id);
+        // Register this tab with the existing node
+        tabManager.registerGlobal(newNode.id, windowId, tabId);
+        recentTabRegistrations.set(tabId, Date.now());
+      } else {
+        // Check if this is a redirect
+        const lastRegistration = recentTabRegistrations.get(tabId);
+        const isRedirect = (lastRegistration && (Date.now() - lastRegistration < REDIRECT_THRESHOLD_MS)) || isFromBlankUrl;
+
+        // Decide: create new root (forest mode) or branch from current
+        if (settings.forestMode && !isRedirect) {
+          // Forest mode: each new tab creates its own tree root
+          newNode = tree.createNewRoot(entry);
+        } else {
+          // Single-tree mode OR redirect: branch from current node
+          newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
+        }
+
+        // Register globally (nodeId -> {windowId, tabId})
+        tabManager.registerGlobal(newNode.id, windowId, tabId);
+        recentTabRegistrations.set(tabId, Date.now());
+      }
       
       // Sync browser tab pin state to node (only in pinSyncBrowser mode)
       if (settings.enablePinNodes && settings.pinSyncBrowser) {
@@ -742,9 +789,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // Try to find node for active tab (global lookup)
             let activeNodeId = tabManager.getNodeForTabGlobal(tab.id);
             
-            // If tab not registered, try to find node by URL and register it
+            // If tab not registered, try to find node by URL (first in current window's tree, then globally)
             if (activeNodeId === null && tab.url) {
-              const nodeByUrl = tree.findByUrl(tab.url);
+              let nodeByUrl = null;
+              
+              // First, try to find in current window's root
+              try {
+                const windowTabs = await chrome.tabs.query({ windowId: tab.windowId });
+                const windowNodeIds = new Set();
+                for (const wt of windowTabs) {
+                  const nid = tabManager.getNodeForTabGlobal(wt.id);
+                  if (nid !== null) {
+                    windowNodeIds.add(nid);
+                  }
+                }
+                
+                let windowRoot = null;
+                if (windowNodeIds.size > 0) {
+                  for (const nid of windowNodeIds) {
+                    windowRoot = tree.findRootForNode(nid);
+                    if (windowRoot) break;
+                  }
+                }
+                
+                if (windowRoot) {
+                  nodeByUrl = tree.findByUrlInRoot(windowRoot, tab.url);
+                }
+              } catch (e) {
+                // Fall through to global search
+              }
+              
+              // If not found in window root, search globally
+              if (!nodeByUrl) {
+                nodeByUrl = tree.findByUrl(tab.url);
+              }
+              
               if (nodeByUrl) {
                 activeNodeId = nodeByUrl.id;
                 tabManager.registerGlobal(nodeByUrl.id, tab.windowId, tab.id);
@@ -1446,13 +1525,45 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     // Try to find node for this tab (GLOBAL lookup)
     let nodeId = tabManager.getNodeForTabGlobal(tabId);
     
-    // If not registered, try to find by URL
+    // If not registered, try to find by URL (first in current window's tree, then globally)
     if (nodeId === null) {
       try {
         const tab = await chrome.tabs.get(tabId);
         if (tab.url) {
           const tree = await storageManager.getGlobalTree();
-          const nodeByUrl = tree.findByUrl(tab.url);
+          
+          // First, try to find in current window's root
+          let nodeByUrl = null;
+          try {
+            const windowTabs = await chrome.tabs.query({ windowId });
+            const windowNodeIds = new Set();
+            for (const wt of windowTabs) {
+              const nid = tabManager.getNodeForTabGlobal(wt.id);
+              if (nid !== null) {
+                windowNodeIds.add(nid);
+              }
+            }
+            
+            let windowRoot = null;
+            if (windowNodeIds.size > 0) {
+              for (const nid of windowNodeIds) {
+                windowRoot = tree.findRootForNode(nid);
+                if (windowRoot) break;
+              }
+            }
+            
+            if (windowRoot) {
+              nodeByUrl = tree.findByUrlInRoot(windowRoot, tab.url);
+            }
+          } catch (e) {
+            // Fall through to global search
+          }
+          
+          // If not found in window root, search globally
+          if (!nodeByUrl) {
+            nodeByUrl = tree.findByUrl(tab.url);
+          }
+          
           if (nodeByUrl) {
             nodeId = nodeByUrl.id;
             tabManager.registerGlobal(nodeByUrl.id, windowId, tabId);
