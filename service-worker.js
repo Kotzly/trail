@@ -1237,6 +1237,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 await chrome.windows.update(targetWindowId, { focused: true });
                 const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
                 tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
+                // Update tab counts immediately after registration
+                await storageManager.saveGlobalTree(tree);
+                notifyGlobalTreeUpdate(tree, targetWindowId);
               } else {
                 // Orphan branch - create new window for existing node
                 // Set flag BEFORE creating window to handle race condition
@@ -1338,11 +1341,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (settings.multiTabEnabled) {
               tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
               // DO NOT update currentNode - keep focus on current tab
-              // DO NOT notify tree update immediately - wait for webNavigation.onCompleted
-              // This prevents sidepanel from switching focus to the new tab
+              // But DO notify to update tab count badge immediately
               await storageManager.saveGlobalTree(tree);
-              // Don't notify here - let webNavigation.onCompleted handle it when page loads
-              // But only if tab becomes active (user switches to it)
+              notifyGlobalTreeUpdate(tree, tab.windowId);
             }
             sendResponse({ success: true });
           } else {
