@@ -260,8 +260,8 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
         }
       }
 
-      // Check tab limit (global)
-      await tabManager.closeOldestGlobalIfNeeded(settings.multiTabLimit);
+      // Check tab limit (global, skip pinned nodes)
+      await tabManager.closeOldestGlobalIfNeeded(settings.multiTabLimit, tree);
     }
 
     await storageManager.saveGlobalTree(tree);
@@ -690,6 +690,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           
           if (isMultiTab) {
             // Multi-tab mode with GLOBAL tree: node may be in ANY window
+            const tree = await storageManager.getGlobalTree();
             const existing = tabManager.getTabForNodeGlobal(nodeId);
 
             if (existing !== null) {
@@ -710,12 +711,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               const newTab = await chrome.tabs.create({ windowId, url, active: true });
               tabManager.registerGlobal(nodeId, windowId, newTab.id);
               
-              // Check limit (global)
-              await tabManager.closeOldestGlobalIfNeeded(settings.multiTabLimit);
+              // Check limit (global, skip pinned nodes)
+              await tabManager.closeOldestGlobalIfNeeded(settings.multiTabLimit, tree);
             }
             
             // Update current node in GLOBAL tree
-            const tree = await storageManager.getGlobalTree();
             tree.setCurrentById(nodeId);
             await storageManager.saveGlobalTree(tree);
             notifyGlobalTreeUpdate(tree);
