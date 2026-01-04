@@ -980,16 +980,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 nodeByUrl = tree.findByUrl(tab.url);
               }
               
-              if (nodeByUrl) {
+              // CRITICAL: Only use node if URL matches exactly
+              if (nodeByUrl && nodeByUrl.url === tab.url) {
                 activeNodeId = nodeByUrl.id;
                 tabManager.registerGlobal(nodeByUrl.id, tab.windowId, tab.id);
               }
             }
             
-            // Update currentNode if we found the node
-            if (activeNodeId !== null && tree.getCurrentId() !== activeNodeId) {
-              tree.setCurrentById(activeNodeId);
-              await storageManager.saveGlobalTree(tree);
+            // Update currentNode if we found the node and URL matches
+            if (activeNodeId !== null) {
+              const node = tree.findNodeById(activeNodeId);
+              if (node && node.url === tab.url && tree.getCurrentId() !== activeNodeId) {
+                tree.setCurrentById(activeNodeId);
+                await storageManager.saveGlobalTree(tree);
+              }
             }
             
             const openNodeIds = Array.from(tabManager.getAllOpenNodes());
@@ -1775,7 +1779,8 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
             nodeByUrl = tree.findByUrl(tab.url);
           }
           
-          if (nodeByUrl) {
+          // CRITICAL: Only register if URL matches exactly to prevent wrong node assignment
+          if (nodeByUrl && nodeByUrl.url === tab.url) {
             nodeId = nodeByUrl.id;
             tabManager.registerGlobal(nodeByUrl.id, windowId, tabId);
           }
