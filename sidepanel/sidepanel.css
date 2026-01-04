@@ -1110,6 +1110,26 @@ body {
   object-fit: contain;
 }
 
+/* Tab count badge - top left corner */
+.graph-node-tab-count,
+.tree-node-tab-count,
+.stack-entry-tab-count {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 0 0 4px 0;
+  z-index: 10;
+  line-height: 1.2;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 1px 2px var(--md-shadow);
+}
+
 .graph-node-content {
   flex: 1;
   min-width: 0;

@@ -114,7 +114,7 @@ let tabStates = {};
  * @param {number[]} [openNodes] - IDs of nodes with open tabs (multi-tab mode)
  * @param {object} [states] - Tab states (muted, audible) by nodeId
  */
-function renderView(treeData, openNodes = null, states = null) {
+function renderView(treeData, openNodes = null, states = null, nodeTabCounts = null) {
   const stackList = document.getElementById('stackList');
   const emptyState = document.getElementById('emptyState');
   const stackCount = document.getElementById('stackCount');
@@ -186,7 +186,8 @@ function renderView(treeData, openNodes = null, states = null) {
     openNodeIds: isMultiTabMode ? openNodeIds : null,
     compactGraph: settings?.compactGraph || false,
     tabStates: isMultiTabMode ? tabStates : {},
-    selectionMenuInstant: settings?.selectionMenuInstant || false
+    selectionMenuInstant: settings?.selectionMenuInstant || false,
+    nodeTabCounts: nodeTabCounts || {} // Pass tab counts for badge display
   });
   
   // Check if current node changed (navigation happened)
@@ -650,7 +651,7 @@ function initEventListeners() {
       // Before rendering, verify currentNodeId matches active tab
       // This prevents focus switching when programmatic tabs are created
       verifyAndUpdateCurrentNode(message.tree).then(() => {
-        renderView(message.tree, message.openNodeIds, message.tabStates);
+        renderView(message.tree, message.openNodeIds, message.tabStates, message.nodeTabCounts);
         fetchUndoRedoState(); // Update undo/redo buttons
       });
     } else if (message.type === 'WINDOW_TREE_UPDATED' && message.windowId === currentWindowId) {

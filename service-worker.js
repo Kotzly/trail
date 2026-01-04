@@ -523,15 +523,58 @@ async function getTabStates() {
  * Broadcasts to all windows so they all show the same graph.
  * @param {NavigationTree} tree
  */
-async function notifyGlobalTreeUpdate(tree) {
+async function notifyGlobalTreeUpdate(tree, windowId = null) {
   try {
     const openNodeIds = Array.from(tabManager.getAllOpenNodes());
     const tabStates = await getTabStates();
+    
+    // Get tab counts per node per window for badge display
+    const nodeTabCounts = {};
+    if (windowId !== null) {
+      // Only calculate for specific window if provided
+      const openNodes = tabManager.getAllOpenNodes();
+      for (const nodeId of openNodes) {
+        const count = tabManager.getTabCountForNodeInWindow(nodeId, windowId);
+        if (count > 1) {
+          nodeTabCounts[nodeId] = count;
+        }
+      }
+    } else {
+      // Calculate for all windows (get all window IDs)
+      try {
+        const windows = await chrome.windows.getAll();
+        const openNodes = tabManager.getAllOpenNodes();
+        for (const nodeId of openNodes) {
+          let maxCount = 0;
+          for (const win of windows) {
+            const count = tabManager.getTabCountForNodeInWindow(nodeId, win.id);
+            if (count > maxCount) maxCount = count;
+          }
+          if (maxCount > 1) {
+            nodeTabCounts[nodeId] = maxCount;
+          }
+        }
+      } catch (e) {
+        // Fallback: calculate for current window only
+        const openNodes = tabManager.getAllOpenNodes();
+        for (const nodeId of openNodes) {
+          const primaryTab = tabManager.getTabForNodeGlobal(nodeId);
+          if (primaryTab) {
+            const count = tabManager.getTabCountForNodeInWindow(nodeId, primaryTab.windowId);
+            if (count > 1) {
+              nodeTabCounts[nodeId] = count;
+            }
+          }
+        }
+      }
+    }
+    
     chrome.runtime.sendMessage({
       type: 'GLOBAL_TREE_UPDATED',
       tree: tree.toJSON(),
       openNodeIds,
-      tabStates
+      tabStates,
+      nodeTabCounts // Add tab counts for badge display
     }).catch(() => {
       // Side panel might not be open, ignore
     });
@@ -1116,6 +1159,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (isMultiTab) {
             // Multi-tab mode with GLOBAL tree: node may be in ANY window
             const tree = await storageManager.getGlobalTree();
+            
+            // Check if there are multiple tabs for this node in the current window
+            const tabsInWindow = tabManager.getTabsForNodeInWindow(nodeId, windowId);
+            
+            if (tabsInWindow.length > 1) {
+              // Multiple tabs exist - cycle to next tab
+              const nextTab = tabManager.getNextTabForNodeInWindow(nodeId, windowId, tabId);
+              if (nextTab) {
+                try {
+                  await chrome.windows.update(nextTab.windowId, { focused: true });
+                  await chrome.tabs.update(nextTab.tabId, { active: true });
+                  tabManager.touchGlobal(nextTab.tabId);
+                  // Update currentNode to the focused tab's node
+                  tree.setCurrentById(nodeId);
+                  await storageManager.saveGlobalTree(tree);
+                  notifyGlobalTreeUpdate(tree);
+                  sendResponse({ success: true });
+                  break;
+                } catch (e) {
+                  // Tab might have been closed - fall through to single tab logic
+                }
+              }
+            }
+            
+            // Single tab or cycling failed - use existing logic
             const existing = tabManager.getTabForNodeGlobal(nodeId);
 
             if (existing !== null) {
