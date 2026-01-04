@@ -249,17 +249,12 @@ async function findWindowForNode(nodeId, tree) {
       }
     }
     
-    // Fallback: return current window
-    const windows = await chrome.windows.getAll();
-    return windows.find(w => w.focused)?.id || windows[0]?.id;
+    // No open tabs found for this root - this is an orphan branch (window was closed)
+    // Return null to indicate new window should be created
+    return null;
   } catch (e) {
-    // Fallback: return current window
-    try {
-      const windows = await chrome.windows.getAll();
-      return windows.find(w => w.focused)?.id || windows[0]?.id;
-    } catch {
-      return null;
-    }
+    // Error occurred - return null to indicate new window should be created
+    return null;
   }
 }
 const lastTabUrl = new Map(); // tabId -> last URL
