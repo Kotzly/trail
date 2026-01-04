@@ -19,6 +19,12 @@ let currentNodeId = null; // Track which node is currently active
 let previousNodeId = null; // Track previous node for center animation
 let openNodeIds = new Set(); // Nodes with open tabs (multi-tab mode)
 let isMultiTabMode = false; // Whether multi-tab is enabled for current window
+let lastTreeData = null; // Store tree data for search
+
+// Search state
+let searchResults = []; // Array of matching node IDs
+let searchIndex = 0; // Current focused result index
+let searchQuery = ''; // Current search query
 
 const DEFAULT_SETTINGS = {
   maxCachedLinks: 10,
@@ -395,6 +401,34 @@ function initEventListeners() {
     await saveSettingsQuick({ enableTags: enabled });
   });
   
+  // Search functionality
+  const searchInput = document.getElementById('searchInput');
+  const searchClear = document.getElementById('searchClear');
+  const searchPrev = document.getElementById('searchPrev');
+  const searchNext = document.getElementById('searchNext');
+  
+  let searchDebounce = null;
+  
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      performSearch(e.target.value);
+    }, 150);
+  });
+  
+  searchClear.addEventListener('click', () => {
+    clearSearch();
+    searchInput.focus();
+  });
+  
+  searchPrev.addEventListener('click', () => {
+    focusSearchResult(searchIndex - 1);
+  });
+  
+  searchNext.addEventListener('click', () => {
+    focusSearchResult(searchIndex + 1);
+  });
+  
   // Listen for tree updates from service worker
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'TREE_UPDATED' && message.tabId === currentTabId) {
@@ -580,6 +614,163 @@ function updateFeatureUI(enableSearch, enablePinNodes, enableTags) {
   if (searchBar) {
     searchBar.classList.toggle('hidden', !enableSearch);
   }
+}
+
+// ========================================
+// SEARCH FUNCTIONALITY
+// ========================================
+
+/**
+ * Search through tree data for matching nodes.
+ * @param {string} query - Search query
+ * @param {object} treeData - Tree data to search
+ * @returns {number[]} - Array of matching node IDs
+ */
+function searchNodes(query, treeData) {
+  if (!query || !treeData) return [];
+  
+  const q = query.toLowerCase().trim();
+  if (!q) return [];
+  
+  const matches = [];
+  
+  // Recursive search through tree
+  function searchNode(node) {
+    if (!node) return;
+    
+    // Check title, url, domain
+    const title = (node.title || '').toLowerCase();
+    const url = (node.url || '').toLowerCase();
+    let domain = '';
+    try {
+      domain = new URL(node.url).hostname.toLowerCase();
+    } catch (e) {}
+    
+    if (title.includes(q) || url.includes(q) || domain.includes(q)) {
+      matches.push(node.id);
+    }
+    
+    // Search children
+    if (node.children) {
+      node.children.forEach(child => searchNode(child));
+    }
+  }
+  
+  // Search all roots (forest mode) or single root
+  const roots = treeData.roots || (treeData.root ? [treeData.root] : []);
+  roots.forEach(root => searchNode(root));
+  
+  return matches;
+}
+
+/**
+ * Perform search and update UI.
+ * @param {string} query - Search query
+ */
+function performSearch(query) {
+  searchQuery = query;
+  searchResults = searchNodes(query, lastTreeData);
+  searchIndex = 0;
+  
+  updateSearchUI();
+  applySearchHighlights();
+  
+  if (searchResults.length > 0) {
+    focusSearchResult(0);
+  }
+}
+
+/**
+ * Update search UI with results count.
+ */
+function updateSearchUI() {
+  const searchResultsEl = document.getElementById('searchResults');
+  const searchCountEl = document.getElementById('searchCount');
+  const searchClearEl = document.getElementById('searchClear');
+  
+  if (searchQuery) {
+    searchResultsEl.classList.remove('hidden');
+    searchClearEl.classList.remove('hidden');
+    
+    if (searchResults.length === 0) {
+      searchCountEl.textContent = 'No results';
+    } else {
+      searchCountEl.textContent = `${searchIndex + 1} of ${searchResults.length}`;
+    }
+  } else {
+    searchResultsEl.classList.add('hidden');
+    searchClearEl.classList.add('hidden');
+  }
+}
+
+/**
+ * Apply search highlights to matching nodes.
+ */
+function applySearchHighlights() {
+  // Remove existing highlights
+  document.querySelectorAll('.search-match, .search-dimmed, .search-focused').forEach(el => {
+    el.classList.remove('search-match', 'search-dimmed', 'search-focused');
+  });
+  
+  if (!searchQuery || searchResults.length === 0) return;
+  
+  // Apply dimmed class to all nodes
+  document.querySelectorAll('.graph-node, .tree-node, .stack-entry').forEach(el => {
+    el.classList.add('search-dimmed');
+  });
+  
+  // Apply match class to matching nodes
+  searchResults.forEach((nodeId, idx) => {
+    const el = document.querySelector(`[data-node-id="${nodeId}"]`);
+    if (el) {
+      el.classList.remove('search-dimmed');
+      el.classList.add('search-match');
+      if (idx === searchIndex) {
+        el.classList.add('search-focused');
+      }
+    }
+  });
+}
+
+/**
+ * Focus on a specific search result.
+ * @param {number} index - Index in searchResults array
+ */
+function focusSearchResult(index) {
+  if (searchResults.length === 0) return;
+  
+  searchIndex = ((index % searchResults.length) + searchResults.length) % searchResults.length;
+  const nodeId = searchResults[searchIndex];
+  
+  updateSearchUI();
+  applySearchHighlights();
+  
+  // Center on the node in graph view
+  const graphAPI = getGraphAPI();
+  if (graphAPI && graphAPI.centerOnNode) {
+    graphAPI.centerOnNode(nodeId, true);
+  } else {
+    // Scroll into view for other views
+    const el = document.querySelector(`[data-node-id="${nodeId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+}
+
+/**
+ * Clear search and reset UI.
+ */
+function clearSearch() {
+  searchQuery = '';
+  searchResults = [];
+  searchIndex = 0;
+  
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) searchInput.value = '';
+  
+  updateSearchUI();
+  applySearchHighlights();
 }
 
 /**
@@ -831,9 +1022,6 @@ function findNodeInTree(node, targetId) {
   
   return null;
 }
-
-// Store last tree data for node lookup
-let lastTreeData = null;
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', async () => {
