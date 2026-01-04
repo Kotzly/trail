@@ -588,6 +588,40 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
 });
 
 /**
+ * Handle new window creation - create new root in global tree.
+ */
+chrome.windows.onCreated.addListener(async (window) => {
+  const settings = await getSettings();
+  if (!settings.multiTabEnabled) return;
+
+  try {
+    // Get the active tab in the new window
+    const tabs = await chrome.tabs.query({ windowId: window.id, active: true });
+    const activeTab = tabs[0];
+    
+    if (!activeTab) return;
+    
+    const tree = await storageManager.getGlobalTree();
+    
+    // Create a new root node for this window's initial tab
+    const newNode = tree.createNewRoot({
+      url: activeTab.pendingUrl || activeTab.url || 'chrome://newtab',
+      title: activeTab.title || 'New Tab',
+      favicon: activeTab.favIconUrl || '',
+      timestamp: Date.now()
+    });
+    
+    // Register the tab with the new node
+    tabManager.registerGlobal(newNode.id, window.id, activeTab.id);
+    
+    await storageManager.saveGlobalTree(tree);
+    notifyGlobalTreeUpdate(tree);
+  } catch (e) {
+    console.debug('Error creating root for new window:', e);
+  }
+});
+
+/**
  * Handle tab replacement (e.g., prerendering).
  */
 chrome.webNavigation.onTabReplaced.addListener(async (details) => {
