@@ -1054,44 +1054,13 @@ function initContextMenu() {
       
       // Find node data from the tree
       const nodeId = parseInt(nodeEl.dataset.nodeId, 10);
-      const nodeData = findNodeById(nodeId);
+      const nodeData = findNodeById(lastTreeData, nodeId);
       
       if (nodeData) {
         showContextMenu(e.clientX, e.clientY, nodeData);
       }
     }
   });
-}
-
-/**
- * Find node by ID in the current tree data.
- * @param {number} nodeId
- * @returns {object|null}
- */
-function findNodeById(nodeId) {
-  // We need to search the rendered tree
-  // Store the tree data globally for this purpose
-  return findNodeInTree(lastTreeData?.root, nodeId);
-}
-
-/**
- * Recursively find node in tree.
- * @param {object} node
- * @param {number} targetId
- * @returns {object|null}
- */
-function findNodeInTree(node, targetId) {
-  if (!node) return null;
-  if (node.id === targetId) return node;
-  
-  if (node.children) {
-    for (const child of node.children) {
-      const found = findNodeInTree(child, targetId);
-      if (found) return found;
-    }
-  }
-  
-  return null;
 }
 
 // Initialize on load
