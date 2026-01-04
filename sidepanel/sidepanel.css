@@ -1530,6 +1530,23 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   min-width: 160px;
+  opacity: 0.92;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  /* Open animation */
+  animation: contextMenuOpen 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top left;
+}
+
+@keyframes contextMenuOpen {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 0.92;
+    transform: scale(1);
+  }
 }
 
 .graph-context-menu-item {
@@ -1537,11 +1554,13 @@ body {
   cursor: pointer;
   font-size: 13px;
   color: var(--md-on-surface);
-  transition: background 0.1s ease;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), background 150ms ease;
+  transform-origin: center;
 }
 
 .graph-context-menu-item:hover {
   background: var(--md-surface-variant);
+  transform: scale(1.02);
 }
 
 .graph-context-menu-item.danger {
@@ -1605,6 +1624,11 @@ body {
   padding: 4px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   min-width: 140px;
+  opacity: 0.92;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: contextMenuOpen 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top left;
 }
 
 .graph-context-menu-item.has-submenu:hover .graph-context-submenu {
