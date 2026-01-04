@@ -369,32 +369,9 @@ async function notifyWindowTreeUpdate(windowId, tree) {
 
 /**
  * Track page navigations (link clicks, form submissions, etc.)
- * Protect pinned tabs by opening links in new tabs.
  */
 chrome.webNavigation.onCommitted.addListener(async (details) => {
-  const { transitionType, tabId, url } = details;
-  
-  // Check if this is a pinned tab that needs protection
-  const settings = await getSettings();
-  if (settings.multiTabEnabled && settings.enablePinNodes) {
-    const tree = await storageManager.getGlobalTree();
-    const nodeId = tabManager.getNodeForTabGlobal(tabId);
-    if (nodeId) {
-      const node = tree.findNodeById(nodeId);
-      if (node?.pinned && transitionType === 'link') {
-        // This is a link click in a pinned tab - open in new tab instead
-        try {
-          const tab = await chrome.tabs.get(tabId);
-          await chrome.tabs.create({ url, index: tab.index + 1 });
-          // Cancel the navigation in the pinned tab by going back
-          chrome.tabs.goBack(tabId).catch(() => {});
-          return;
-        } catch (e) {
-          console.debug('Failed to protect pinned tab:', e);
-        }
-      }
-    }
-  }
+  const { transitionType } = details;
   
   // Track link clicks, typed URLs, form submissions, and reloads
   const trackableTransitions = ['link', 'typed', 'form_submit', 'generated', 'auto_bookmark'];
@@ -456,12 +433,32 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
 
 /**
  * Cleanup tree when tab is closed.
- * Warn before closing pinned tabs.
+ * Show notification if a pinned tab was closed.
+ * Note: Chrome doesn't allow preventing tab closure, so we notify after the fact.
  */
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   const settings = await getSettings();
   
   if (settings.multiTabEnabled) {
+    // Check if this was a pinned tab BEFORE unregistering
+    if (settings.enablePinNodes) {
+      const tree = await storageManager.getGlobalTree();
+      const nodeId = tabManager.getNodeForTabGlobal(tabId);
+      if (nodeId) {
+        const node = tree.findNodeById(nodeId);
+        if (node?.pinned) {
+          // Show notification that a pinned tab was closed
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon128.png',
+            title: 'Trail: Pinned Tab Closed',
+            message: `Pinned tab "${node.title}" was closed. The page is still saved in your history.`,
+            priority: 1
+          });
+        }
+      }
+    }
+    
     // Multi-tab mode with GLOBAL tree: unregister tab globally
     tabManager.unregisterGlobal(tabId);
     
@@ -473,32 +470,6 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   } else {
     // Single-tab mode: remove tree
     storageManager.removeTree(tabId);
-  }
-});
-
-/**
- * Warn before removing pinned tabs.
- * Note: Chrome doesn't allow preventing tab closure, so we show a notification after.
- */
-chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
-  const settings = await getSettings();
-  if (!settings.multiTabEnabled || !settings.enablePinNodes) return;
-  
-  // Check if this was a pinned tab
-  const tree = await storageManager.getGlobalTree();
-  const nodeId = tabManager.getNodeForTabGlobal(tabId);
-  if (nodeId) {
-    const node = tree.findNodeById(nodeId);
-    if (node?.pinned) {
-      // Show notification that a pinned tab was closed
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon128.png',
-        title: 'Trail: Pinned Tab Closed',
-        message: `Pinned tab "${node.title}" was closed. The page is still saved in your history.`,
-        priority: 1
-      });
-    }
   }
 });
 
@@ -1010,6 +981,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Delete a single node and reconnect its children to parent
           const { nodeId } = message;
           const tree = await storageManager.getGlobalTree();
+          const node = tree.findNodeById(nodeId);
+          
+          // Protect pinned nodes
+          if (node?.pinned) {
+            sendResponse({ success: false, error: 'Cannot delete pinned node' });
+            break;
+          }
           
           // Save snapshot for undo
           undoManager.saveSnapshot(tree.toJSON(), 'Delete node');
@@ -1040,6 +1018,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const { nodeId } = message;
           const tree = await storageManager.getGlobalTree();
           
+          // Check for pinned nodes among descendants
+          const checkPinned = (node) => {
+            if (node.pinned) return true;
+            return node.children?.some(checkPinned) || false;
+          };
+          const parentNode = tree.findNodeById(nodeId);
+          if (parentNode?.children?.some(checkPinned)) {
+            sendResponse({ success: false, error: 'Cannot delete: contains pinned nodes' });
+            break;
+          }
+          
           // Save snapshot for undo
           undoManager.saveSnapshot(tree.toJSON(), 'Delete children');
           
@@ -1068,6 +1057,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Delete a node and all its children (close their tabs too)
           const { nodeId } = message;
           const tree = await storageManager.getGlobalTree();
+          const node = tree.findNodeById(nodeId);
+          
+          // Check for pinned nodes (self or descendants)
+          const checkPinned = (n) => {
+            if (n.pinned) return true;
+            return n.children?.some(checkPinned) || false;
+          };
+          if (node && checkPinned(node)) {
+            sendResponse({ success: false, error: 'Cannot delete: contains pinned nodes' });
+            break;
+          }
           
           // Save snapshot for undo
           undoManager.saveSnapshot(tree.toJSON(), 'Delete with children');
@@ -1098,10 +1098,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const { nodeIds } = message;
           const tree = await storageManager.getGlobalTree();
           
+          // Filter out pinned nodes
+          const nonPinnedIds = nodeIds.filter(id => {
+            const node = tree.findNodeById(id);
+            return node && !node.pinned;
+          });
+          
+          if (nonPinnedIds.length === 0) {
+            sendResponse({ success: false, error: 'All selected nodes are pinned' });
+            break;
+          }
+          
           // Save snapshot for undo
           undoManager.saveSnapshot(tree.toJSON(), 'Delete selected');
           
-          const removedIds = tree.removeNodesAndReconnect(nodeIds);
+          const removedIds = tree.removeNodesAndReconnect(nonPinnedIds);
           
           // Close tabs for removed nodes
           for (const id of removedIds) {
@@ -1118,16 +1129,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           
           await storageManager.saveGlobalTree(tree);
           notifyGlobalTreeUpdate(tree);
-          sendResponse({ success: true, removedCount: removedIds.length });
+          sendResponse({ success: true, removedCount: removedIds.length, skippedPinned: nodeIds.length - nonPinnedIds.length });
           break;
         }
         
         case 'BULK_CLOSE_TABS': {
           // Close tabs for multiple nodes (without removing from tree)
           const { nodeIds } = message;
+          const tree = await storageManager.getGlobalTree();
           let closedCount = 0;
+          let skippedPinned = 0;
           
           for (const id of nodeIds) {
+            // Skip pinned nodes
+            const node = tree.findNodeById(id);
+            if (node?.pinned) {
+              skippedPinned++;
+              continue;
+            }
+            
             const tabInfo = tabManager.getTabForNodeGlobal(id);
             if (tabInfo) {
               try {
@@ -1141,9 +1161,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           
           // Notify update
-          const tree = await storageManager.getGlobalTree();
           notifyGlobalTreeUpdate(tree);
-          sendResponse({ success: true, closedCount });
+          sendResponse({ success: true, closedCount, skippedPinned });
           break;
         }
         
