@@ -1947,6 +1947,23 @@ body {
   transform: translateX(16px);
 }
 
+/* Pin sub-option (indented under Pin Nodes) */
+.pin-sub-option {
+  margin-left: 16px;
+  margin-top: 4px;
+}
+
+.pin-sub-hint {
+  margin-left: 16px;
+  margin-top: 2px;
+  margin-bottom: 8px;
+}
+
+.pin-sub-option.hidden,
+.pin-sub-hint.hidden {
+  display: none;
+}
+
 /* ========================================
    Warning Icon & Tooltips
    ======================================== */

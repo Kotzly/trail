@@ -251,8 +251,8 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
       tabManager.registerGlobal(newNode.id, windowId, tabId);
       recentTabRegistrations.set(tabId, Date.now());
       
-      // Sync browser tab pin state to node (if tab is already pinned in browser)
-      if (settings.enablePinNodes) {
+      // Sync browser tab pin state to node (only in pinSyncBrowser mode)
+      if (settings.enablePinNodes && settings.pinSyncBrowser) {
         try {
           const tab = await chrome.tabs.get(tabId);
           if (tab.pinned) {
@@ -526,25 +526,35 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
 /**
  * Sync browser tab pin state to extension node pin state.
- * When user pins/unpins a tab in browser, update the node.
+ * Only active when pinSyncBrowser is enabled (Mode A).
+ * When user pins/unpins a tab in browser, update the node branch.
  */
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // Only care about pinned state changes
   if (!('pinned' in changeInfo)) return;
   
   const settings = await getSettings();
-  if (!settings.multiTabEnabled || !settings.enablePinNodes) return;
+  // Only sync when pinSyncBrowser is enabled (Mode A)
+  if (!settings.multiTabEnabled || !settings.enablePinNodes || !settings.pinSyncBrowser) return;
   
   // Check if this tab is in our global tracking
   const nodeId = tabManager.getNodeForTabGlobal(tabId);
   if (nodeId === null) return;
   
-  // Update the node's pinned state
+  // Update the node's pinned state (and branch)
   try {
     const tree = await storageManager.getGlobalTree();
     const node = tree.findNodeById(nodeId);
     if (node && node.pinned !== changeInfo.pinned) {
-      node.pinned = changeInfo.pinned;
+      // Set pinned state for node and all descendants
+      const setPinnedRecursive = (n, state) => {
+        n.pinned = state;
+        if (n.children) {
+          n.children.forEach(c => setPinnedRecursive(c, state));
+        }
+      };
+      setPinnedRecursive(node, changeInfo.pinned);
+      
       await storageManager.saveGlobalTree(tree);
       notifyGlobalTreeUpdate(tree);
     }
@@ -941,21 +951,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         
         case 'TOGGLE_PIN': {
-          // Toggle pinned state for a node - syncs with browser tab pin
+          // Toggle pinned state for a node
           const { nodeId } = message;
           const tree = await storageManager.getGlobalTree();
-          const newPinned = tree.togglePinned(nodeId);
-          if (newPinned !== null) {
-            // Sync with browser tab pin
-            const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
-            if (tabInfo) {
-              try {
-                await chrome.tabs.update(tabInfo.tabId, { pinned: newPinned });
-              } catch (e) {
-                // Tab might be closed
+          const settings = await getSettings();
+          
+          let newPinned;
+          if (settings.pinSyncBrowser) {
+            // Mode A: Sync with browser, pin entire branch
+            newPinned = tree.togglePinnedBranch(nodeId);
+            if (newPinned !== null) {
+              // Sync with browser tab pin
+              const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+              if (tabInfo) {
+                try {
+                  await chrome.tabs.update(tabInfo.tabId, { pinned: newPinned });
+                } catch (e) {
+                  // Tab might be closed
+                }
               }
             }
-            
+          } else {
+            // Mode B: Extension only, pin just this node
+            newPinned = tree.togglePinned(nodeId);
+          }
+          
+          if (newPinned !== null) {
             await storageManager.saveGlobalTree(tree);
             notifyGlobalTreeUpdate(tree);
             sendResponse({ success: true, pinned: newPinned });

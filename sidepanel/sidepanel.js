@@ -518,12 +518,24 @@ function initEventListeners() {
   enableSearchToggle.addEventListener('change', async () => {
     const enabled = enableSearchToggle.checked;
     await saveSettingsQuick({ enableSearch: enabled });
-    updateFeatureUI(enabled, enablePinNodesToggle.checked, enableTagsToggle.checked);
+    updateFeatureUI(enabled, enablePinNodesToggle.checked, enableTagsToggle.checked, pinSyncBrowserToggle.checked);
   });
   
   enablePinNodesToggle.addEventListener('change', async () => {
     const enabled = enablePinNodesToggle.checked;
     await saveSettingsQuick({ enablePinNodes: enabled });
+    // Show/hide pin sync option based on Pin Nodes toggle
+    const pinSyncOption = document.getElementById('pinSyncOption');
+    const pinSyncHint = document.getElementById('pinSyncHint');
+    if (pinSyncOption) pinSyncOption.classList.toggle('hidden', !enabled);
+    if (pinSyncHint) pinSyncHint.classList.toggle('hidden', !enabled);
+  });
+  
+  // Pin sync with browser toggle
+  const pinSyncBrowserToggle = document.getElementById('pinSyncBrowserToggle');
+  pinSyncBrowserToggle.addEventListener('change', async () => {
+    const enabled = pinSyncBrowserToggle.checked;
+    await saveSettingsQuick({ pinSyncBrowser: enabled });
   });
   
   enableTagsToggle.addEventListener('change', async () => {
@@ -680,7 +692,7 @@ function toggleSettingsPopover(e) {
   updateViewModeIcons(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
   updateMultiTabUI(settings?.multiTabEnabled || false, settings?.multiTabLimit || 0, settings?.forestMode);
   updateNavigationUI(settings?.backOnRevisit, settings?.compactGraph, settings?.viewMode, settings?.selectionMenuInstant);
-  updateFeatureUI(settings?.enableSearch, settings?.enablePinNodes, settings?.enableTags);
+  updateFeatureUI(settings?.enableSearch, settings?.enablePinNodes, settings?.enableTags, settings?.pinSyncBrowser);
   
   popover.classList.remove('hidden');
 }
@@ -816,22 +828,31 @@ async function fetchUndoRedoState() {
  * @param {boolean} enableSearch
  * @param {boolean} enablePinNodes
  * @param {boolean} enableTags
+ * @param {boolean} pinSyncBrowser
  */
-function updateFeatureUI(enableSearch, enablePinNodes, enableTags) {
+function updateFeatureUI(enableSearch, enablePinNodes, enableTags, pinSyncBrowser) {
   const enableSearchToggle = document.getElementById('enableSearchToggle');
   const enablePinNodesToggle = document.getElementById('enablePinNodesToggle');
   const enableTagsToggle = document.getElementById('enableTagsToggle');
+  const pinSyncBrowserToggle = document.getElementById('pinSyncBrowserToggle');
   const searchBar = document.getElementById('searchBar');
+  const pinSyncOption = document.getElementById('pinSyncOption');
+  const pinSyncHint = document.getElementById('pinSyncHint');
   
   // Set toggle states
   if (enableSearchToggle) enableSearchToggle.checked = enableSearch !== false;
   if (enablePinNodesToggle) enablePinNodesToggle.checked = enablePinNodes !== false;
   if (enableTagsToggle) enableTagsToggle.checked = enableTags !== false;
+  if (pinSyncBrowserToggle) pinSyncBrowserToggle.checked = pinSyncBrowser === true;
   
   // Show/hide search bar based on feature flag
   if (searchBar) {
     searchBar.classList.toggle('hidden', !enableSearch);
   }
+  
+  // Show/hide pin sync option based on Pin Nodes toggle
+  if (pinSyncOption) pinSyncOption.classList.toggle('hidden', !enablePinNodes);
+  if (pinSyncHint) pinSyncHint.classList.toggle('hidden', !enablePinNodes);
 }
 
 // ========================================
