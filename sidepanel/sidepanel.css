@@ -1260,6 +1260,34 @@ body {
 }
 
 /* ========================================
+   SEARCH HIGHLIGHTING
+   ======================================== */
+
+/* Dimmed nodes during search */
+.graph-node.search-dimmed,
+.tree-node.search-dimmed,
+.stack-entry.search-dimmed {
+  opacity: 0.3;
+}
+
+/* Matching nodes */
+.graph-node.search-match,
+.tree-node.search-match,
+.stack-entry.search-match {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--md-primary), 0 0 12px var(--md-primary);
+}
+
+/* Currently focused match */
+.graph-node.search-focused,
+.tree-node.search-focused,
+.stack-entry.search-focused {
+  opacity: 1;
+  box-shadow: 0 0 0 3px var(--md-primary), 0 0 20px var(--md-primary);
+  z-index: 10;
+}
+
+/* ========================================
    PATH HIGHLIGHTING (Graph View)
    All branches dark gray, path to current is white
    ======================================== */
