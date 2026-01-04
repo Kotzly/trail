@@ -185,7 +185,8 @@ function renderView(treeData, openNodes = null, states = null) {
     onNavigate: handleNodeNavigation,
     openNodeIds: isMultiTabMode ? openNodeIds : null,
     compactGraph: settings?.compactGraph || false,
-    tabStates: isMultiTabMode ? tabStates : {}
+    tabStates: isMultiTabMode ? tabStates : {},
+    selectionMenuInstant: settings?.selectionMenuInstant || false
   });
   
   // Check if current node changed (navigation happened)
@@ -434,6 +435,14 @@ function initEventListeners() {
     }
   });
   
+  // Selection Menu Instant toggle
+  const selectionMenuToggle = document.getElementById('selectionMenuToggle');
+  
+  selectionMenuToggle.addEventListener('change', async () => {
+    const enabled = selectionMenuToggle.checked;
+    await saveSettingsQuick({ selectionMenuInstant: enabled });
+  });
+  
   // Feature flag toggles
   const enableSearchToggle = document.getElementById('enableSearchToggle');
   const enablePinNodesToggle = document.getElementById('enablePinNodesToggle');
@@ -600,7 +609,7 @@ function toggleSettingsPopover(e) {
   updateThemeIcons(settings?.theme || DEFAULT_SETTINGS.theme);
   updateViewModeIcons(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
   updateMultiTabUI(settings?.multiTabEnabled || false, settings?.multiTabLimit || 0, settings?.forestMode);
-  updateNavigationUI(settings?.backOnRevisit, settings?.compactGraph, settings?.viewMode);
+  updateNavigationUI(settings?.backOnRevisit, settings?.compactGraph, settings?.viewMode, settings?.selectionMenuInstant);
   updateFeatureUI(settings?.enableSearch, settings?.enablePinNodes, settings?.enableTags);
   
   popover.classList.remove('hidden');
@@ -672,19 +681,26 @@ async function updateMultiTabUI(globalEnabled, limit, forestMode) {
  * @param {boolean} backOnRevisit
  * @param {boolean} compactGraph
  * @param {string} viewMode
+ * @param {boolean} selectionMenuInstant
  */
-function updateNavigationUI(backOnRevisit, compactGraph, viewMode) {
+function updateNavigationUI(backOnRevisit, compactGraph, viewMode, selectionMenuInstant) {
   const backOnRevisitToggle = document.getElementById('backOnRevisitToggle');
   const compactGraphToggle = document.getElementById('compactGraphToggle');
   const compactGraphOption = document.getElementById('compactGraphOption');
+  const selectionMenuToggle = document.getElementById('selectionMenuToggle');
+  const selectionMenuOption = document.getElementById('selectionMenuOption');
   
   // Set toggle states
   backOnRevisitToggle.checked = backOnRevisit !== false;
   compactGraphToggle.checked = compactGraph === true;
+  selectionMenuToggle.checked = selectionMenuInstant === true;
   
-  // Show compact graph option only when graph view is selected
+  // Show graph-only options only when graph view is selected
   if (compactGraphOption) {
     compactGraphOption.style.display = viewMode === 'graph' ? 'flex' : 'none';
+  }
+  if (selectionMenuOption) {
+    selectionMenuOption.style.display = viewMode === 'graph' ? 'flex' : 'none';
   }
 }
 
