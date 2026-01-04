@@ -36,6 +36,37 @@
       </div>
     </header>
 
+    <!-- Search Bar -->
+    <div class="search-bar" id="searchBar">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search pages... (Ctrl+F)">
+        <button class="search-clear hidden" id="searchClear" title="Clear search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="search-results hidden" id="searchResults">
+        <span class="search-count" id="searchCount">0 results</span>
+        <div class="search-nav">
+          <button class="search-nav-btn" id="searchPrev" title="Previous (↑)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 15l-6-6-6 6"/>
+            </svg>
+          </button>
+          <button class="search-nav-btn" id="searchNext" title="Next (↓)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="tab-info" id="tabInfo">
       <span class="tab-label">Current Tab</span>
       <span class="tab-count" id="stackCount">0 pages</span>
