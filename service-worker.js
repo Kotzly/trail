@@ -175,6 +175,84 @@ async function handleSingleTabNavigation(details, transitionType, windowId) {
 
 // Track recent tab registrations for redirect detection (tabId -> timestamp)
 const recentTabRegistrations = new Map();
+
+/**
+ * Find the window that owns a node by finding its root and the window of tabs in that root.
+ * @param {number} nodeId - Node ID to find window for
+ * @param {NavigationTree} tree - Global tree
+ * @returns {Promise<number>} - Window ID, or current window if not found
+ */
+async function findWindowForNode(nodeId, tree) {
+  try {
+    // Find the root that contains this node
+    const root = tree.findRootForNode(nodeId);
+    if (!root) {
+      // Fallback: return current window
+      const windows = await chrome.windows.getAll();
+      return windows.find(w => w.focused)?.id || windows[0]?.id;
+    }
+    
+    // Find all nodes in this root tree (recursively)
+    const nodesInRoot = [];
+    function collectNodes(node) {
+      if (!node) return;
+      nodesInRoot.push(node.id);
+      if (node.children) {
+        node.children.forEach(collectNodes);
+      }
+    }
+    collectNodes(root);
+    
+    // Find tabs for nodes in this root
+    const windowIds = new Set();
+    for (const nid of nodesInRoot) {
+      const tabInfo = tabManager.getTabForNodeGlobal(nid);
+      if (tabInfo) {
+        windowIds.add(tabInfo.windowId);
+      }
+    }
+    
+    // If we found windows, return the first one (or most common one)
+    if (windowIds.size > 0) {
+      // Return the first window, or try to find the one with most tabs from this root
+      const windowTabCounts = new Map();
+      for (const wid of windowIds) {
+        let count = 0;
+        for (const nid of nodesInRoot) {
+          const tabInfo = tabManager.getTabForNodeGlobal(nid);
+          if (tabInfo && tabInfo.windowId === wid) {
+            count++;
+          }
+        }
+        windowTabCounts.set(wid, count);
+      }
+      
+      // Return window with most tabs from this root
+      let maxCount = 0;
+      let bestWindowId = null;
+      for (const [wid, count] of windowTabCounts) {
+        if (count > maxCount) {
+          maxCount = count;
+          bestWindowId = wid;
+        }
+      }
+      
+      return bestWindowId || Array.from(windowIds)[0];
+    }
+    
+    // Fallback: return current window
+    const windows = await chrome.windows.getAll();
+    return windows.find(w => w.focused)?.id || windows[0]?.id;
+  } catch (e) {
+    // Fallback: return current window
+    try {
+      const windows = await chrome.windows.getAll();
+      return windows.find(w => w.focused)?.id || windows[0]?.id;
+    } catch {
+      return null;
+    }
+  }
+}
 const lastTabUrl = new Map(); // tabId -> last URL
 const REDIRECT_THRESHOLD_MS = 2000; // Redirects within 2 seconds are treated as same navigation
 
@@ -910,14 +988,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               } catch (e) {
                 // Tab might have been closed externally
                 tabManager.unregisterGlobal(existing.tabId);
-                // Create new tab in the requesting window
-                const newTab = await chrome.tabs.create({ windowId, url, active: true });
-                tabManager.registerGlobal(nodeId, windowId, newTab.id);
+                // Create new tab in the window that owns this node
+                const targetWindowId = await findWindowForNode(nodeId, tree) || windowId;
+                const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
+                tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
               }
             } else {
-              // No tab for this node - create in requesting window
-              const newTab = await chrome.tabs.create({ windowId, url, active: true });
-              tabManager.registerGlobal(nodeId, windowId, newTab.id);
+              // No tab for this node - find the window that owns this node's tree
+              const targetWindowId = await findWindowForNode(nodeId, tree) || windowId;
+              const newTab = await chrome.tabs.create({ windowId: targetWindowId, url, active: true });
+              tabManager.registerGlobal(nodeId, targetWindowId, newTab.id);
               
               // Check limit (global, skip pinned nodes)
               await tabManager.closeOldestGlobalIfNeeded(settings.multiTabLimit, tree);
