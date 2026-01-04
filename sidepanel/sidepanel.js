@@ -338,7 +338,11 @@ function initEventListeners() {
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'TREE_UPDATED' && message.tabId === currentTabId) {
       renderView(message.tree);
+    } else if (message.type === 'GLOBAL_TREE_UPDATED') {
+      // Global tree update - all sidepanels receive this
+      renderView(message.tree, message.openNodeIds);
     } else if (message.type === 'WINDOW_TREE_UPDATED' && message.windowId === currentWindowId) {
+      // Legacy per-window tree update (single-tab mode)
       renderView(message.tree, message.openNodeIds);
     }
   });
