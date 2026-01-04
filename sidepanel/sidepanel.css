@@ -1366,6 +1366,81 @@ body {
   margin-right: 8px;
 }
 
+/* Submenu for tags */
+.graph-context-menu-item.has-submenu {
+  position: relative;
+}
+
+.graph-context-menu-item .submenu-arrow {
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+.graph-context-submenu {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: 0;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 8px;
+  padding: 4px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 140px;
+}
+
+.graph-context-menu-item.has-submenu:hover .graph-context-submenu {
+  display: block;
+}
+
+.tag-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tag-label {
+  flex: 1;
+}
+
+.tag-check {
+  color: var(--md-primary);
+  font-weight: bold;
+}
+
+/* Tag dots on nodes */
+.graph-node-tags {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  display: flex;
+  gap: 3px;
+}
+
+.graph-node-tag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.graph-node.compact .graph-node-tags {
+  bottom: 2px;
+  right: 2px;
+}
+
+.graph-node.compact .graph-node-tag-dot {
+  width: 6px;
+  height: 6px;
+}
+
 /* ========================================
    TOGGLE SWITCH (Settings)
    ======================================== */
