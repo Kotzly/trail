@@ -777,6 +777,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'TOGGLE_MUTE': {
+          // Toggle mute state for a tab by nodeId
+          const { nodeId } = message;
+          const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+          if (tabInfo) {
+            try {
+              const tab = await chrome.tabs.get(tabInfo.tabId);
+              const newMuted = !tab.mutedInfo?.muted;
+              await chrome.tabs.update(tabInfo.tabId, { muted: newMuted });
+              sendResponse({ success: true, muted: newMuted });
+            } catch (e) {
+              sendResponse({ success: false, error: e.message });
+            }
+          } else {
+            sendResponse({ success: false, error: 'Tab not found' });
+          }
+          break;
+        }
+        
         case 'GET_SETTINGS': {
           const settings = await storageManager.getSettings();
           sendResponse({ success: true, settings });
