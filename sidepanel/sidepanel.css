@@ -1165,6 +1165,67 @@ body {
   height: 18px;
 }
 
+/* Tool group (hand/select) */
+.graph-tool-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.graph-tool-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--md-on-surface-variant);
+}
+
+.graph-tool-btn:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+.graph-tool-btn.active {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+
+.graph-tool-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.graph-zoom-divider {
+  height: 1px;
+  background: var(--md-outline-variant);
+  margin: 4px 0;
+}
+
+/* Selection box */
+.graph-selection-box {
+  position: absolute;
+  border: 2px dashed var(--md-primary);
+  background: rgba(var(--md-primary-rgb, 103, 80, 164), 0.1);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Selected nodes */
+.graph-node.selected {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
 /* ========================================
    SETTINGS POPOVER (Floating Island)
    ======================================== */
