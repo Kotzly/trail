@@ -473,6 +473,45 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 /**
+ * Track tab title and favicon changes.
+ */
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Only care about title or favicon changes
+  if (!changeInfo.title && !changeInfo.favIconUrl) return;
+  
+  // Check if this tab is in our global tracking
+  const nodeId = tabManager.getNodeForTabGlobal(tabId);
+  if (nodeId === null) return;
+  
+  // Update the node's title/favicon in the tree
+  try {
+    const tree = await storageManager.getGlobalTree();
+    const node = tree.findNodeById(nodeId);
+    
+    if (node) {
+      let updated = false;
+      
+      if (changeInfo.title && changeInfo.title !== node.title) {
+        node.title = changeInfo.title;
+        updated = true;
+      }
+      
+      if (changeInfo.favIconUrl && changeInfo.favIconUrl !== node.favicon) {
+        node.favicon = changeInfo.favIconUrl;
+        updated = true;
+      }
+      
+      if (updated) {
+        await storageManager.saveGlobalTree(tree);
+        notifyGlobalTreeUpdate(tree);
+      }
+    }
+  } catch (e) {
+    console.error('Error updating node title/favicon:', e);
+  }
+});
+
+/**
  * Cleanup when window is closed.
  * For global mode: unregister tabs from that window but keep tree.
  */
