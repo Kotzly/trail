@@ -16,6 +16,7 @@ let currentTabId = null;
 let currentWindowId = null;
 let settings = null;
 let currentNodeId = null; // Track which node is currently active
+let previousNodeId = null; // Track previous node for center animation
 let openNodeIds = new Set(); // Nodes with open tabs (multi-tab mode)
 let isMultiTabMode = false; // Whether multi-tab is enabled for current window
 
@@ -149,15 +150,24 @@ function renderView(treeData, openNodes = null, states = null) {
   }
   
   // Render using the selected view mode
-  currentNodeId = renderer(treeData, stackList, {
+  const newNodeId = renderer(treeData, stackList, {
     onNavigate: handleNodeNavigation,
     openNodeIds: isMultiTabMode ? openNodeIds : null,
     compactGraph: settings?.compactGraph || false,
     tabStates: isMultiTabMode ? tabStates : {}
   });
+  
+  // Check if current node changed (navigation happened)
+  const nodeChanged = previousNodeId !== null && newNodeId !== previousNodeId;
+  previousNodeId = newNodeId;
+  currentNodeId = newNodeId;
 
-  // Graph view handles centering internally, only scroll for other views
-  if (!getGraphAPI()) {
+  // Center on new node with animation if it changed
+  const graphAPI = getGraphAPI();
+  if (graphAPI && nodeChanged && newNodeId) {
+    graphAPI.centerOnNode(newNodeId, true);
+  } else if (!graphAPI) {
+    // Non-graph views: scroll to current node
     scrollToCurrentNode();
   }
 }
