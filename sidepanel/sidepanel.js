@@ -429,6 +429,47 @@ function initEventListeners() {
     focusSearchResult(searchIndex + 1);
   });
   
+  // Keyboard shortcuts for search
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (searchResults.length > 0) {
+        const nodeId = searchResults[searchIndex];
+        if (e.shiftKey) {
+          // Shift+Enter: open in new tab
+          chrome.runtime.sendMessage({ type: 'OPEN_IN_NEW_TAB', nodeId });
+        } else {
+          // Enter: navigate to the node
+          const node = findNodeById(lastTreeData, nodeId);
+          if (node) {
+            handleNodeNavigation(node);
+          }
+        }
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusSearchResult(searchIndex + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusSearchResult(searchIndex - 1);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      clearSearch();
+    }
+  });
+  
+  // Global Cmd/Ctrl+F to focus search
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+      e.preventDefault();
+      const searchBar = document.getElementById('searchBar');
+      if (searchBar && !searchBar.classList.contains('hidden')) {
+        searchInput.focus();
+        searchInput.select();
+      }
+    }
+  });
+  
   // Listen for tree updates from service worker
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'TREE_UPDATED' && message.tabId === currentTabId) {
@@ -771,6 +812,36 @@ function clearSearch() {
   
   updateSearchUI();
   applySearchHighlights();
+}
+
+/**
+ * Find a node by ID in tree data.
+ * @param {object} treeData - Tree data
+ * @param {number} nodeId - Node ID to find
+ * @returns {object|null} - Node object or null
+ */
+function findNodeById(treeData, nodeId) {
+  if (!treeData) return null;
+  
+  function search(node) {
+    if (!node) return null;
+    if (node.id === nodeId) return node;
+    
+    if (node.children) {
+      for (const child of node.children) {
+        const found = search(child);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  
+  const roots = treeData.roots || (treeData.root ? [treeData.root] : []);
+  for (const root of roots) {
+    const found = search(root);
+    if (found) return found;
+  }
+  return null;
 }
 
 /**

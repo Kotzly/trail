@@ -777,6 +777,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
+        case 'OPEN_IN_NEW_TAB': {
+          // Open node URL in a new tab
+          const { nodeId } = message;
+          const tree = await storageManager.getGlobalTree();
+          const node = tree.findById(nodeId);
+          if (node) {
+            const tab = await chrome.tabs.create({ url: node.url, active: true });
+            const settings = await getSettings();
+            if (settings.multiTabEnabled) {
+              tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
+            }
+            sendResponse({ success: true });
+          } else {
+            sendResponse({ success: false, error: 'Node not found' });
+          }
+          break;
+        }
+        
         case 'TOGGLE_MUTE': {
           // Toggle mute state for a tab by nodeId
           const { nodeId } = message;
