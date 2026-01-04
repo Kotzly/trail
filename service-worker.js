@@ -904,13 +904,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         
         case 'CREATE_NEW_ROOT': {
-          // Create a new tab and add it as a new root in the tree (forest mode)
+          // Create a new window and add it as a new root in the tree (forest mode)
           try {
-            const tab = await chrome.tabs.create({ active: true });
+            const window = await chrome.windows.create({ focused: true });
+            // Get the first tab in the new window
+            const tabs = await chrome.tabs.query({ windowId: window.id });
+            const tab = tabs[0];
+            
             const tree = await storageManager.getGlobalTree();
             const settings = await getSettings();
             
-            // Create a new root node for this tab
+            // Create a new root node for this window/tab
             const newNode = tree.createNewRoot({
               url: tab.pendingUrl || tab.url || 'chrome://newtab',
               title: tab.title || 'New Tab',
