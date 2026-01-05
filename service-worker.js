@@ -59,33 +59,21 @@ function mergeRootInto(tree, sourceRoot, targetRoot) {
 }
 
 /**
- * Find node by URL but prefer roots that belong to a specific window.
- * Falls back to roots without owner; does NOT match other windows to avoid cross-window mixing.
+ * For single-tree mode: create a node under the single root (or create first root).
  */
-function findNodeByUrlForWindow(tree, url, windowId) {
-  if (!url || !tree?.roots?.length) return null;
-
-  // 1) Roots already owned by this window
-  for (const root of tree.roots) {
-    if (root.windowId === windowId) {
-      const found = tree.findByUrlInRoot(root, url);
-      if (found) return found;
-    }
+function createNodeInSingleTree(tree, entry) {
+  if (!tree) return null;
+  if (tree.roots.length === 0) {
+    return tree.createNewRoot(entry);
   }
-
-  // 2) Roots without owner yet: claim them for this window
-  for (const root of tree.roots) {
-    if (root.windowId === null || root.windowId === undefined) {
-      const found = tree.findByUrlInRoot(root, url);
-      if (found) {
-        root.windowId = windowId;
-        return found;
-      }
-    }
+  const root = tree.roots[0];
+  const prev = tree.getCurrentId();
+  tree.setCurrentById(root.id);
+  const newNode = tree.navigate(entry, { backOnRevisit: true });
+  if (prev && prev !== newNode.id) {
+    tree.setCurrentById(prev);
   }
-
-  // 3) Otherwise do not reuse nodes from other windows
-  return null;
+  return newNode;
 }
 
 /**
@@ -108,23 +96,19 @@ async function ensureNodeForTab(tab, { makeCurrent = false, notify = false } = {
     // Try match by URL if node already exists
     const tabUrl = tab.url || tab.pendingUrl || '';
     if (tabUrl) {
-      const nodeByUrl = findNodeByUrlForWindow(tree, tabUrl, tab.windowId);
+      const nodeByUrl = tree.findByUrl(tabUrl);
       if (nodeByUrl && nodeByUrl.url === tabUrl) {
-        const root = tree.findRootForNode(nodeByUrl.id);
-        if (root && !root.windowId) root.windowId = tab.windowId;
         tabManager.registerGlobal(nodeByUrl.id, tab.windowId, tab.id);
         if (makeCurrent) {
           tree.setCurrentById(nodeByUrl.id);
-          await storageManager.saveGlobalTree(tree);
-          if (notify) notifyGlobalTreeUpdate(tree);
-        } else {
-          await storageManager.saveGlobalTree(tree);
         }
+        await storageManager.saveGlobalTree(tree);
+        if (notify) notifyGlobalTreeUpdate(tree);
         return nodeByUrl.id;
       }
     }
 
-    // Create new root for this tab
+    // Create node in single tree (only one root allowed)
     const entryUrl = tabUrl || 'about:blank';
     const entry = {
       url: entryUrl,
@@ -133,8 +117,7 @@ async function ensureNodeForTab(tab, { makeCurrent = false, notify = false } = {
       timestamp: Date.now()
     };
 
-    const newNode = tree.createNewRoot(entry);
-    newNode.windowId = tab.windowId;
+    const newNode = createNodeInSingleTree(tree, entry);
     tabManager.registerGlobal(newNode.id, tab.windowId, tab.id);
     if (makeCurrent) {
       tree.setCurrentById(newNode.id);
@@ -457,9 +440,8 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
 
         // Always forest mode: each new tab creates its own tree root (unless redirect)
         if (!isRedirect) {
-          // Forest mode: each new tab creates its own tree root
-          newNode = tree.createNewRoot(entry);
-          newNode.windowId = windowId;
+          // Single tree: create under existing root
+          newNode = createNodeInSingleTree(tree, entry);
         } else {
           // Redirect: branch from current node (backOnRevisit always enabled)
           newNode = tree.navigate(entry, { backOnRevisit: true });
@@ -855,21 +837,16 @@ chrome.windows.onCreated.addListener(async (window) => {
       return;
     }
 
-    // Create new root for this window's first tab
+    // Register tab in single tree
     const tree = await storageManager.getGlobalTree();
-    
-    const newNode = tree.createNewRoot({
+    const entry = {
       url: tabUrl,
       title: tab.title || '',
       favicon: tab.favIconUrl || ''
-    });
-    newNode.windowId = window.id;
-    
+    };
+    const node = createNodeInSingleTree(tree, entry);
+    tabManager.registerGlobal(node.id, window.id, tab.id);
     await storageManager.saveGlobalTree(tree);
-    
-    // Always multi-tab mode
-    tabManager.registerGlobal(newNode.id, tab.windowId, tab.id);
-    
     notifyGlobalTreeUpdate(tree);
   } catch (error) {
     console.debug('Error creating root for new window:', error);
@@ -982,21 +959,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   let activeNodeId = tabManager.getNodeForTabGlobal(tab.id);
   
   // If tab not registered, try to find node by URL globally, otherwise create placeholder
-  if (activeNodeId === null) {
-    if (tab.url) {
-      const nodeByUrl = findNodeByUrlForWindow(tree, tab.url, tab.windowId);
-      
-      // CRITICAL: Only use node if URL matches exactly
-      if (nodeByUrl && nodeByUrl.url === tab.url) {
-        activeNodeId = nodeByUrl.id;
-        tabManager.registerGlobal(nodeByUrl.id, tab.windowId, tab.id);
-        
-        // Update currentNode
-        tree.setCurrentById(activeNodeId);
-        await storageManager.saveGlobalTree(tree);
-      } else {
-        activeNodeId = await ensureNodeForTab(tab, { makeCurrent: true, notify: true });
-      }
+          if (activeNodeId === null) {
+            if (tab.url) {
+              const nodeByUrl = tree.findByUrl(tab.url);
+              
+              // CRITICAL: Only use node if URL matches exactly
+              if (nodeByUrl && nodeByUrl.url === tab.url) {
+                activeNodeId = nodeByUrl.id;
+                tabManager.registerGlobal(nodeByUrl.id, tab.windowId, tab.id);
+                
+                // Update currentNode
+                tree.setCurrentById(activeNodeId);
+                await storageManager.saveGlobalTree(tree);
+              } else {
+                activeNodeId = await ensureNodeForTab(tab, { makeCurrent: true, notify: true });
+              }
             } else {
               activeNodeId = await ensureNodeForTab(tab, { makeCurrent: true, notify: true });
             }
@@ -1186,13 +1163,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         
         case 'CREATE_NEW_ROOT': {
-          // Create a new window - the windows.onCreated listener will handle creating the root
-          try {
-            const window = await chrome.windows.create({ focused: true });
-            sendResponse({ success: true, windowId: window.id });
-          } catch (e) {
-            sendResponse({ success: false, error: e.message });
-          }
+          // Disabled: single-tree mode; no additional roots/windows
+          sendResponse({ success: false, error: 'Single-tree mode: new roots disabled' });
           break;
         }
         
@@ -1668,7 +1640,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       const tab = await chrome.tabs.get(tabId);
       const tree = await storageManager.getGlobalTree();
       if (tab.url) {
-        const nodeByUrl = findNodeByUrlForWindow(tree, tab.url, windowId);
+        const nodeByUrl = tree.findByUrl(tab.url);
         
         // Only register if URL matches exactly
         if (nodeByUrl && nodeByUrl.url === tab.url) {
