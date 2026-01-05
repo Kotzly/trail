@@ -1612,39 +1612,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         }
         
-        case 'GET_WINDOW_MULTI_TAB': {
-          // Get whether multi-tab is enabled for a specific window
-          const { windowId } = message;
-          const globalSettings = await storageManager.getSettings();
-          const override = storageManager.getWindowMultiTabOverride(windowId);
-          const isEnabled = await isMultiTabForWindow(windowId);
-          
-          sendResponse({ 
-            success: true, 
-            enabled: isEnabled,
-            globalEnabled: globalSettings.multiTabEnabled,
-            hasOverride: override !== null,
-            override
-          });
-          break;
-        }
-        
-        case 'SET_WINDOW_MULTI_TAB': {
-          // Set per-window multi-tab override
-          const { windowId, enabled } = message;
-          const globalSettings = await storageManager.getSettings();
-          
-          if (enabled === globalSettings.multiTabEnabled) {
-            // Same as global - clear override
-            storageManager.clearWindowMultiTabOverride(windowId);
-          } else {
-            // Different from global - set override
-            storageManager.setWindowMultiTabOverride(windowId, enabled);
-          }
-          
-          sendResponse({ success: true });
-          break;
-        }
+        // GET_WINDOW_MULTI_TAB and SET_WINDOW_MULTI_TAB removed - always multi-tab mode
         
         case 'SAVE_SETTINGS': {
           invalidateSettingsCache();
