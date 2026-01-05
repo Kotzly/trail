@@ -749,17 +749,13 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
  * For global mode: unregister tabs from that window but keep tree.
  */
 chrome.windows.onRemoved.addListener(async (windowId) => {
-  const settings = await getSettings();
+  // Always multi-tab mode: unregister tabs from this window (legacy per-window mappings)
+  tabManager.unregisterWindow(windowId);
   
-  if (settings.multiTabEnabled) {
-    // Unregister tabs from this window (legacy per-window mappings)
-    tabManager.unregisterWindow(windowId);
-    
-    // In global mode, we don't remove the tree - it's shared.
-    // Tabs in this window will be unregistered via tabs.onRemoved.
-    // Only clean up legacy per-window tree if it exists.
-    await storageManager.removeWindowTree(windowId);
-  }
+  // In global mode, we don't remove the tree - it's shared.
+  // Tabs in this window will be unregistered via tabs.onRemoved.
+  // Only clean up legacy per-window tree if it exists.
+  await storageManager.removeWindowTree(windowId);
 });
 
 /**
