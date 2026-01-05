@@ -1650,13 +1650,26 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 chrome.tabs.onAttached.addListener(async (tabId, attachInfo) => {
   const { newWindowId } = attachInfo;
   
-  const nodeId = tabManager.getNodeForTabGlobal(tabId);
-  if (nodeId !== null) {
-    // Clear pending map if it was set during detach-to-new-window flow
+  // Try mapping first
+  let nodeId = tabManager.getNodeForTabGlobal(tabId);
+  // Fallback to pending map from detach
+  if (nodeId === null && pendingNodeForTab.has(tabId)) {
+    nodeId = pendingNodeForTab.get(tabId);
     pendingNodeForTab.delete(tabId);
-    // Update stored window id for this tab
-    tabManager.updateTabWindow(tabId, newWindowId);
-    
+  }
+
+  // If still unknown, attempt to register/ensure
+  if (nodeId === null) {
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      nodeId = await ensureNodeForTab(tab, { makeCurrent: true, notify: false });
+    } catch (e) {}
+  }
+
+  if (nodeId !== null) {
+    // Ensure mapping uses new window id
+    tabManager.registerGlobal(nodeId, newWindowId, tabId);
+
     // Update tree owner to new window
     const tree = await storageManager.getGlobalTree();
     const root = tree.findRootForNode(nodeId);
