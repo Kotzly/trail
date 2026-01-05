@@ -33,6 +33,8 @@ let cachedSettings = null;
 
 // Track windows created specifically to reopen an existing node
 const pendingNodeForWindow = new Map(); // windowId -> nodeId
+// Track tabs being detached to a new window so onCreated won't spawn a new root
+const pendingNodeForTab = new Map(); // tabId -> nodeId
 
 /**
  * Ensure a node exists for the given tab; create a root if missing.
@@ -241,6 +243,14 @@ const programmaticTabs = new Set(); // tabId -> true
 chrome.tabs.onCreated.addListener(async (tab) => {
   // Avoid double registration if already mapped
   await ensureNodeForTab(tab, { makeCurrent: tab.active, notify: true });
+});
+
+// Remember which node is being detached so a new window won't spawn a new tree
+chrome.tabs.onDetached.addListener(async (tabId, detachInfo) => {
+  const nodeId = tabManager.getNodeForTabGlobal(tabId);
+  if (nodeId !== null) {
+    pendingNodeForTab.set(tabId, nodeId);
+  }
 });
 
 /**
@@ -749,6 +759,20 @@ chrome.windows.onCreated.addListener(async (window) => {
     const tab = tabs[0];
     const tabUrl = tab.pendingUrl || tab.url || '';
   
+    // If this window is created from a detached tab, reuse its node
+    const detNodeId = pendingNodeForTab.get(tab.id);
+    if (detNodeId !== undefined) {
+      pendingNodeForTab.delete(tab.id);
+      const tree = await storageManager.getGlobalTree();
+      const root = tree.findRootForNode(detNodeId);
+      if (root) root.windowId = window.id;
+      tabManager.registerGlobal(detNodeId, window.id, tab.id);
+      tree.setCurrentById(detNodeId);
+      await storageManager.saveGlobalTree(tree);
+      notifyGlobalTreeUpdate(tree);
+      return;
+    }
+
     // If this window is intended to host an existing node, just register it
     if (pendingNodeForWindow.has(window.id)) {
       const nodeId = pendingNodeForWindow.get(window.id);
@@ -1628,6 +1652,8 @@ chrome.tabs.onAttached.addListener(async (tabId, attachInfo) => {
   
   const nodeId = tabManager.getNodeForTabGlobal(tabId);
   if (nodeId !== null) {
+    // Clear pending map if it was set during detach-to-new-window flow
+    pendingNodeForTab.delete(tabId);
     // Update stored window id for this tab
     tabManager.updateTabWindow(tabId, newWindowId);
     
