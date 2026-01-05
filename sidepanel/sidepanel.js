@@ -321,15 +321,6 @@ function initEventListeners() {
     }
   });
   
-  // New window button - creates new window with new tree root
-  document.getElementById('newTabBtn').addEventListener('click', async () => {
-    try {
-      await sendMessage({ type: 'CREATE_NEW_ROOT' });
-    } catch (error) {
-      console.error('Failed to create new window:', error);
-    }
-  });
-  
   // Pinned dropdown button
   document.getElementById('pinnedBtn').addEventListener('click', (e) => {
     e.stopPropagation();
