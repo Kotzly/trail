@@ -87,6 +87,29 @@ async function ensureNodeForTab(tab, { makeCurrent = false, notify = false } = {
 }
 
 /**
+ * On service-worker startup, register already-open tabs (e.g., first New Tab).
+ */
+async function bootstrapOpenTabs() {
+  try {
+    const tabs = await chrome.tabs.query({});
+    let anyCreated = false;
+    for (const tab of tabs) {
+      const before = tabManager.getNodeForTabGlobal(tab.id);
+      const nodeId = await ensureNodeForTab(tab, { makeCurrent: tab.active, notify: false });
+      if (nodeId !== null && before === null) {
+        anyCreated = true;
+      }
+    }
+    if (anyCreated) {
+      const tree = await storageManager.getGlobalTree();
+      notifyGlobalTreeUpdate(tree);
+    }
+  } catch (e) {
+    console.debug('bootstrapOpenTabs error:', e);
+  }
+}
+
+/**
  * Get cached settings or fetch fresh.
  * @returns {Promise<object>}
  */
@@ -801,17 +824,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           let activeNodeId = tabManager.getNodeForTabGlobal(tab.id);
           
           // If tab not registered, try to find node by URL globally, otherwise create placeholder
-          if (activeNodeId === null && tab.url) {
-            const nodeByUrl = tree.findByUrl(tab.url);
-            
-            // CRITICAL: Only use node if URL matches exactly
-            if (nodeByUrl && nodeByUrl.url === tab.url) {
-              activeNodeId = nodeByUrl.id;
-              tabManager.registerGlobal(nodeByUrl.id, tab.windowId, tab.id);
+          if (activeNodeId === null) {
+            if (tab.url) {
+              const nodeByUrl = tree.findByUrl(tab.url);
               
-              // Update currentNode
-              tree.setCurrentById(activeNodeId);
-              await storageManager.saveGlobalTree(tree);
+              // CRITICAL: Only use node if URL matches exactly
+              if (nodeByUrl && nodeByUrl.url === tab.url) {
+                activeNodeId = nodeByUrl.id;
+                tabManager.registerGlobal(nodeByUrl.id, tab.windowId, tab.id);
+                
+                // Update currentNode
+                tree.setCurrentById(activeNodeId);
+                await storageManager.saveGlobalTree(tree);
+              } else {
+                activeNodeId = await ensureNodeForTab(tab, { makeCurrent: true, notify: true });
+              }
             } else {
               activeNodeId = await ensureNodeForTab(tab, { makeCurrent: true, notify: true });
             }
@@ -1535,5 +1562,8 @@ chrome.tabs.onAttached.addListener(async (tabId, attachInfo) => {
  * Cleanup orphaned trees on service worker startup.
  */
 storageManager.cleanupOrphanedTrees();
+
+// Ensure already-open tabs (including the first New Tab) are tracked at startup.
+bootstrapOpenTabs();
 
 console.log('Trail service worker initialized');
