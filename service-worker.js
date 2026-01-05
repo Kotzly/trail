@@ -109,67 +109,6 @@ async function handleNavigation(details, transitionType) {
   await handleMultiTabNavigation(details, transitionType, windowId);
 }
 
-// Single-tab mode removed - always use multi-tab mode
-// This function is kept for reference but should never be called
-async function handleSingleTabNavigation(details, transitionType, windowId) {
-  const { tabId, url } = details;
-
-  // Skip back/forward navigation - find existing node
-  if (details.transitionQualifiers?.includes('forward_back')) {
-    try {
-      const tree = await storageManager.getWindowTree(windowId);
-      const node = tree.findByUrl(url);
-      if (node) {
-        tree.setCurrentById(node.id);
-        await storageManager.saveWindowTree(windowId, tree);
-        notifyWindowTreeUpdate(windowId, tree);
-      }
-    } catch (error) {
-      console.debug('Back/forward navigation error:', error);
-    }
-    return;
-  }
-
-  // Check if this navigation was triggered by clicking in sidebar
-  const navKey = `${windowId}:${url}`;
-  if (sidebarNavigations.has(navKey)) {
-    const nodeId = sidebarNavigations.get(navKey);
-    sidebarNavigations.delete(navKey);
-    try {
-      const tree = await storageManager.getWindowTree(windowId);
-      tree.setCurrentById(nodeId);
-      await storageManager.saveWindowTree(windowId, tree);
-      notifyWindowTreeUpdate(windowId, tree);
-    } catch (error) {
-      console.debug('Sidebar navigation update error:', error);
-    }
-    return;
-  }
-
-  try {
-    const tab = await chrome.tabs.get(tabId);
-    const settings = await getSettings();
-    
-    lastTabUrl.set(tabId, url);
-
-    const entry = {
-      url,
-      title: tab.title || url,
-      favicon: tab.favIconUrl || getFaviconUrl(url),
-      timestamp: Date.now()
-    };
-
-    const tree = await storageManager.getWindowTree(windowId);
-    tree.navigate(entry, { backOnRevisit: true });
-    await storageManager.saveWindowTree(windowId, tree);
-
-    notifyWindowTreeUpdate(windowId, tree);
-  } catch (error) {
-    console.debug('Navigation handling error:', error);
-  }
-}
-
-
 // Track recent tab registrations for redirect detection (tabId -> timestamp)
 const recentTabRegistrations = new Map();
 
