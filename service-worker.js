@@ -30,6 +30,63 @@ const REDIRECT_THRESHOLD_MS = 2000;
 let cachedSettings = null;
 
 /**
+ * Ensure a node exists for the given tab; create a root if missing.
+ * Used to register "New Tab"/internal pages that don't trigger navigation events.
+ * @param {chrome.tabs.Tab} tab
+ * @param {object} options
+ * @param {boolean} [options.makeCurrent=false] - set tree current node to this tab's node
+ * @param {boolean} [options.notify=false] - emit GLOBAL_TREE_UPDATED if a new node was created
+ * @returns {Promise<number|null>} nodeId
+ */
+async function ensureNodeForTab(tab, { makeCurrent = false, notify = false } = {}) {
+  try {
+    // Already registered
+    const existing = tabManager.getNodeForTabGlobal(tab.id);
+    if (existing !== null) return existing;
+
+    const tree = await storageManager.getGlobalTree();
+
+    // Try match by URL if node already exists
+    const tabUrl = tab.url || tab.pendingUrl || '';
+    if (tabUrl) {
+      const nodeByUrl = tree.findByUrl(tabUrl);
+      if (nodeByUrl && nodeByUrl.url === tabUrl) {
+        tabManager.registerGlobal(nodeByUrl.id, tab.windowId, tab.id);
+        if (makeCurrent) {
+          tree.setCurrentById(nodeByUrl.id);
+          await storageManager.saveGlobalTree(tree);
+          if (notify) notifyGlobalTreeUpdate(tree);
+        }
+        return nodeByUrl.id;
+      }
+    }
+
+    // Create new root for this tab
+    const entryUrl = tabUrl || 'about:blank';
+    const entry = {
+      url: entryUrl,
+      title: tab.title || entryUrl || 'New Tab',
+      favicon: tab.favIconUrl || getFaviconUrl(entryUrl),
+      timestamp: Date.now()
+    };
+
+    const newNode = tree.createNewRoot(entry);
+    tabManager.registerGlobal(newNode.id, tab.windowId, tab.id);
+    if (makeCurrent) {
+      tree.setCurrentById(newNode.id);
+    }
+    await storageManager.saveGlobalTree(tree);
+    if (notify) {
+      notifyGlobalTreeUpdate(tree);
+    }
+    return newNode.id;
+  } catch (e) {
+    console.debug('ensureNodeForTab error:', e);
+    return null;
+  }
+}
+
+/**
  * Get cached settings or fetch fresh.
  * @returns {Promise<object>}
  */
@@ -104,6 +161,14 @@ const recentTabRegistrations = new Map();
 
 // Track tabs created programmatically (e.g., "open in new tab") - don't auto-switch focus to them
 const programmaticTabs = new Set(); // tabId -> true
+
+/**
+ * Register new tabs immediately (including chrome://newtab) so counters are correct.
+ */
+chrome.tabs.onCreated.addListener(async (tab) => {
+  // Avoid double registration if already mapped
+  await ensureNodeForTab(tab, { makeCurrent: tab.active, notify: true });
+});
 
 /**
  * Handle navigation in multi-tab mode.
@@ -735,7 +800,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Try to find node for active tab (global lookup)
           let activeNodeId = tabManager.getNodeForTabGlobal(tab.id);
           
-          // If tab not registered, try to find node by URL globally
+          // If tab not registered, try to find node by URL globally, otherwise create placeholder
           if (activeNodeId === null && tab.url) {
             const nodeByUrl = tree.findByUrl(tab.url);
             
@@ -747,6 +812,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               // Update currentNode
               tree.setCurrentById(activeNodeId);
               await storageManager.saveGlobalTree(tree);
+            } else {
+              activeNodeId = await ensureNodeForTab(tab, { makeCurrent: true, notify: true });
             }
           }
           
@@ -1397,19 +1464,23 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   // Try to find node for this tab (GLOBAL lookup)
   let nodeId = tabManager.getNodeForTabGlobal(tabId);
   
-  // If not registered, try to find by URL globally
+  // If not registered, try to find by URL globally, otherwise create placeholder
   if (nodeId === null) {
     try {
       const tab = await chrome.tabs.get(tabId);
+      const tree = await storageManager.getGlobalTree();
       if (tab.url) {
-        const tree = await storageManager.getGlobalTree();
         const nodeByUrl = tree.findByUrl(tab.url);
         
         // Only register if URL matches exactly
         if (nodeByUrl && nodeByUrl.url === tab.url) {
           nodeId = nodeByUrl.id;
           tabManager.registerGlobal(nodeByUrl.id, windowId, tabId);
+        } else {
+          nodeId = await ensureNodeForTab(tab, { makeCurrent: true, notify: true });
         }
+      } else {
+        nodeId = await ensureNodeForTab(tab, { makeCurrent: true, notify: true });
       }
     } catch (e) {
       // Tab might not exist
