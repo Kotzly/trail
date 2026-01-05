@@ -656,21 +656,14 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
     if (nodeId !== null) {
       const tree = await storageManager.getGlobalTree();
       const node = tree.findNodeById(nodeId);
-        // CRITICAL: Only update if URL matches to prevent race conditions
-        if (node && node.url === url && tab.title && tab.title !== node.title) {
-          node.title = tab.title;
-          node.favicon = tab.favIconUrl || node.favicon;
-          await storageManager.saveGlobalTree(tree);
-          notifyGlobalTreeUpdate(tree);
-        }
+      // CRITICAL: Only update if URL matches to prevent race conditions
+      if (node && node.url === url && tab.title && tab.title !== node.title) {
+        node.title = tab.title;
+        node.favicon = tab.favIconUrl || node.favicon;
+        await storageManager.saveGlobalTree(tree);
+        notifyGlobalTreeUpdate(tree);
       }
-    } else {
-      // Single-tab mode: update tab tree
-      const tree = await storageManager.getTree(tabId);
-      const currentNode = tree.currentNode;
-      if (currentNode && currentNode.url === url && tab.title && tab.title !== currentNode.title) {
-        currentNode.title = tab.title;
-        currentNode.favicon = tab.favIconUrl || currentNode.favicon;
+    }
         await storageManager.saveTree(tabId, tree);
         notifyTreeUpdate(tabId);
       }
@@ -1153,25 +1146,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         
         case 'IS_MULTI_TAB_MODE': {
-          // Called by content script to check if multi-tab is enabled for its window
-          if (sender.tab) {
-            const enabled = await isMultiTabForWindow(sender.tab.windowId);
-            sendResponse({ success: true, enabled });
-          } else {
-            const settings = await getSettings();
-            sendResponse({ success: true, enabled: settings.multiTabEnabled });
-          }
+          // Always multi-tab mode
+          sendResponse({ success: true, enabled: true });
           break;
         }
         
         case 'NAVIGATE_TO': {
           const { windowId, nodeId, url, tabId } = message;
-          const isMultiTab = await isMultiTabForWindow(windowId);
           const settings = await getSettings();
           
-          if (isMultiTab) {
-            // Multi-tab mode with GLOBAL tree: node may be in ANY window
-            const tree = await storageManager.getGlobalTree();
+          // Always multi-tab mode with GLOBAL tree: node may be in ANY window
+          const tree = await storageManager.getGlobalTree();
             
             // Check if there are multiple tabs for this node in the current window
             const tabsInWindow = tabManager.getTabsForNodeInWindow(nodeId, windowId);
