@@ -1018,9 +1018,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           
           // Try to find node for active tab (global lookup)
           let activeNodeId = tabManager.getNodeForTabGlobal(tab.id);
-            
-            // If tab not registered, try to find node by URL (first in current window's tree, then globally)
-            if (activeNodeId === null && tab.url) {
+          
+          // If tab not registered, try to find node by URL (first in current window's tree, then globally)
+          if (activeNodeId === null && tab.url) {
               let nodeByUrl = null;
               
               // First, try to find in current window's root
@@ -1218,48 +1218,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             notifyGlobalTreeUpdate(tree);
             
             sendResponse({ success: true });
-          } else {
-            // Single-tab mode (per-window tree)
-            sidebarNavigations.set(`${windowId}:${url}`, nodeId);
-            setTimeout(() => {
-              sidebarNavigations.delete(`${windowId}:${url}`);
-            }, 5000);
-            
-            const tree = await storageManager.getWindowTree(windowId);
-            const currentNode = tree.currentNode;
-            
-            let navigated = false;
-            
-            if (currentNode && tabId) {
-              try {
-                const currentUrl = new URL(currentNode.url);
-                const targetUrl = new URL(url);
-                
-                if (currentUrl.origin === targetUrl.origin) {
-                  if (currentUrl.pathname === targetUrl.pathname && 
-                      currentUrl.search === targetUrl.search &&
-                      targetUrl.hash) {
-                    await chrome.scripting.executeScript({
-                      target: { tabId },
-                      func: (fullUrl) => { window.location.href = fullUrl; },
-                      args: [url]
-                    });
-                    navigated = true;
-                  }
-                }
-              } catch (e) {}
-            }
-            
-            if (!navigated && tabId) {
-              await chrome.tabs.update(tabId, { url });
-            }
-            
-            tree.setCurrentById(nodeId);
-            await storageManager.saveWindowTree(windowId, tree);
-            notifyWindowTreeUpdate(windowId, tree);
-            
-            sendResponse({ success: true });
-          }
           break;
         }
         
