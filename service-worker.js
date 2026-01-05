@@ -36,6 +36,28 @@ const pendingNodeForWindow = new Map(); // windowId -> nodeId
 // Track tabs being detached to a new window so onCreated won't spawn a new root
 const pendingNodeForTab = new Map(); // tabId -> nodeId
 
+function setWindowIdRecursive(node, windowId) {
+  if (!node) return;
+  node.windowId = windowId;
+  if (node.children) {
+    node.children.forEach(child => setWindowIdRecursive(child, windowId));
+  }
+}
+
+function mergeRootInto(tree, sourceRoot, targetRoot) {
+  if (!tree || !sourceRoot || !targetRoot || sourceRoot === targetRoot) return false;
+  // Remove from roots list
+  const idx = tree.roots.indexOf(sourceRoot);
+  if (idx !== -1) {
+    tree.roots.splice(idx, 1);
+  }
+  // Attach as child branch
+  sourceRoot.isRoot = false;
+  sourceRoot.parent = targetRoot;
+  targetRoot.children.push(sourceRoot);
+  return true;
+}
+
 /**
  * Find node by URL but prefer roots that belong to a specific window.
  * Falls back to roots without owner; does NOT match other windows to avoid cross-window mixing.
@@ -1719,8 +1741,30 @@ chrome.tabs.onAttached.addListener(async (tabId, attachInfo) => {
     // Update tree owner to new window
     const tree = await storageManager.getGlobalTree();
     const root = tree.findRootForNode(nodeId);
-    if (root && root.windowId !== newWindowId) {
-      root.windowId = newWindowId;
+    if (root) {
+      setWindowIdRecursive(root, newWindowId);
+
+      // Try to merge with existing root of target window (use active tab in that window)
+      let targetRoot = null;
+      try {
+        const [activeTab] = await chrome.tabs.query({ windowId: newWindowId, active: true });
+        if (activeTab) {
+          const activeNodeId = tabManager.getNodeForTabGlobal(activeTab.id);
+          if (activeNodeId !== null) {
+            targetRoot = tree.findRootForNode(activeNodeId);
+          }
+        }
+      } catch {}
+
+      if (!targetRoot) {
+        // fallback: any root with same windowId
+        targetRoot = tree.roots.find(r => r.windowId === newWindowId);
+      }
+
+      if (targetRoot && targetRoot !== root) {
+        mergeRootInto(tree, root, targetRoot);
+      }
+
       await storageManager.saveGlobalTree(tree);
     }
     
