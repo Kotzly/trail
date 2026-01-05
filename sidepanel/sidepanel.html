@@ -201,36 +201,7 @@
             </div>
           </div>
           <div class="popover-section">
-            <div class="popover-label-small">View Mode</div>
-            <div class="popover-icons" id="viewModeIcons">
-              <button class="popover-icon-btn has-tooltip" data-mode="tree">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 3v6M12 9l-5 6M12 9l5 6M7 15v3M17 15v3"/>
-                  <circle cx="12" cy="3" r="2"/>
-                  <circle cx="7" cy="18" r="2"/>
-                  <circle cx="17" cy="18" r="2"/>
-                </svg>
-                <span class="icon-tooltip">Tree</span>
-              </button>
-              <button class="popover-icon-btn has-tooltip" data-mode="stack">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="4" y="4" width="16" height="4" rx="1"/>
-                  <rect x="4" y="10" width="16" height="4" rx="1"/>
-                  <rect x="4" y="16" width="16" height="4" rx="1"/>
-                </svg>
-                <span class="icon-tooltip">Stack</span>
-              </button>
-              <button class="popover-icon-btn has-tooltip" data-mode="graph">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="5" cy="6" r="3"/>
-                  <circle cx="19" cy="6" r="3"/>
-                  <circle cx="12" cy="18" r="3"/>
-                  <path d="M5 9v3a4 4 0 004 4h6a4 4 0 004-4V9"/>
-                </svg>
-                <span class="icon-tooltip">Graph</span>
-              </button>
-            </div>
-            <label class="popover-toggle popover-toggle-small graph-only-option" id="compactGraphOption">
+            <label class="popover-toggle popover-toggle-small" id="compactGraphOption">
               <span class="popover-label-small">Compact Graph</span>
               <input type="checkbox" id="compactGraphToggle">
               <span class="toggle-slider toggle-slider-small"></span>
@@ -248,14 +219,6 @@
           <span>Behavior</span>
         </button>
         <div class="category-content">
-          <div class="popover-section">
-            <label class="popover-toggle popover-toggle-small">
-              <span class="popover-label-small">Back on Revisit</span>
-              <input type="checkbox" id="backOnRevisitToggle" checked>
-              <span class="toggle-slider toggle-slider-small"></span>
-            </label>
-            <div class="popover-hint">Navigate to existing ancestor instead of creating duplicates</div>
-          </div>
           <div class="popover-section">
             <label class="popover-toggle popover-toggle-small graph-only-option" id="selectionMenuOption">
               <span class="popover-label-small">Instant Selection Menu</span>
@@ -277,27 +240,6 @@
         </button>
         <div class="category-content">
           <div class="popover-section">
-            <div class="popover-header-row">
-              <label class="popover-toggle">
-                <span class="popover-label">Enable Multi-Tab</span>
-                <input type="checkbox" id="multiTabToggle">
-                <span class="toggle-slider"></span>
-              </label>
-              <button class="help-btn" id="multiTabHelpBtn" title="What is Multi-Tab Mode?">?</button>
-            </div>
-            <div class="popover-hint" id="multiTabHint">Each page opens in a separate tab</div>
-            <div class="multi-tab-help hidden" id="multiTabHelp">
-              <p><strong>Multi-Tab Mode</strong> opens each page you visit in a separate browser tab instead of reusing one tab.</p>
-              <p>This preserves page state (like playing videos, scroll position, form data) so you can instantly switch between pages without reloading.</p>
-              <p>You can set a tab limit — when reached, oldest tabs are automatically closed.</p>
-            </div>
-          </div>
-          <div class="popover-section multi-tab-options" id="multiTabOptions">
-            <label class="popover-toggle popover-toggle-small">
-              <span class="popover-label-small">Enabled for this window</span>
-              <input type="checkbox" id="windowMultiTabToggle" checked>
-              <span class="toggle-slider toggle-slider-small"></span>
-            </label>
             <div class="popover-row">
               <span class="popover-label-small">Tab Limit</span>
               <input type="number" id="multiTabLimit" min="0" max="50" value="0" class="popover-input-small">
@@ -305,13 +247,12 @@
             <div class="popover-hint">0 = unlimited</div>
           </div>
           <div class="popover-section">
-            <label class="popover-toggle">
-              <span class="popover-label">Forest Mode</span>
-              <span class="warning-icon" title="Note: Normal redirects will appear as new trees">⚠</span>
-              <input type="checkbox" id="forestModeToggle">
-              <span class="toggle-slider"></span>
+            <label class="popover-toggle popover-toggle-small">
+              <span class="popover-label-small">Show Orphan Trees</span>
+              <input type="checkbox" id="showOrphanTreesToggle" checked>
+              <span class="toggle-slider toggle-slider-small"></span>
             </label>
-            <div class="popover-hint">Each new window starts a separate tree</div>
+            <div class="popover-hint">Display trees that have no open tabs</div>
           </div>
         </div>
       </div>

@@ -5,7 +5,7 @@ import * as undoManager from './lib/command-manager.js';
 /**
  * Service Worker for Trail extension.
  * Handles navigation tracking, tab lifecycle, and messaging.
- * Supports both single-tab and multi-tab modes.
+ * Always uses multi-tab mode with forest mode enabled.
  */
 
 // URLs to ignore (internal browser pages, extension pages)
@@ -42,12 +42,12 @@ async function getSettings() {
 
 /**
  * Check if multi-tab is enabled for a specific window.
- * Uses per-window override if set, otherwise global setting.
+ * Always returns true (multi-tab is always enabled).
  * @param {number} windowId
  * @returns {Promise<boolean>}
  */
 async function isMultiTabForWindow(windowId) {
-  return storageManager.isMultiTabEnabledForWindow(windowId);
+  return true; // Always multi-tab mode
 }
 
 /**
@@ -105,19 +105,12 @@ async function handleNavigation(details, transitionType) {
     return; // Tab no longer exists
   }
   
-  const isMultiTab = await isMultiTabForWindow(windowId);
-  
-  if (isMultiTab) {
-    await handleMultiTabNavigation(details, transitionType, windowId);
-  } else {
-    await handleSingleTabNavigation(details, transitionType, windowId);
-  }
+  // Always use multi-tab mode
+  await handleMultiTabNavigation(details, transitionType, windowId);
 }
 
-/**
- * Handle navigation in single-tab mode (original behavior).
- * Now uses per-window trees instead of per-tab.
- */
+// Single-tab mode removed - always use multi-tab mode
+// This function is kept for reference but should never be called
 async function handleSingleTabNavigation(details, transitionType, windowId) {
   const { tabId, url } = details;
 
@@ -167,7 +160,7 @@ async function handleSingleTabNavigation(details, transitionType, windowId) {
     };
 
     const tree = await storageManager.getWindowTree(windowId);
-    tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
+    tree.navigate(entry, { backOnRevisit: true });
     await storageManager.saveWindowTree(windowId, tree);
 
     notifyWindowTreeUpdate(windowId, tree);
@@ -341,7 +334,7 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
           if (tab.active) {
             tree.setCurrentById(existingNodeId);
           }
-          const newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
+          const newNode = tree.navigate(entry, { backOnRevisit: true });
           wasNewNodeCreated = true; // New node was created
           // Re-register tab with new node (global) - this automatically unregisters from old node
           tabManager.registerGlobal(newNode.id, windowId, tabId);
@@ -422,13 +415,13 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
         const lastRegistration = recentTabRegistrations.get(tabId);
         const isRedirect = (lastRegistration && (Date.now() - lastRegistration < REDIRECT_THRESHOLD_MS)) || isFromBlankUrl;
 
-        // Decide: create new root (forest mode) or branch from current
-        if (settings.forestMode && !isRedirect) {
+        // Always forest mode: each new tab creates its own tree root (unless redirect)
+        if (!isRedirect) {
           // Forest mode: each new tab creates its own tree root
           newNode = tree.createNewRoot(entry);
         } else {
-          // Single-tree mode OR redirect: branch from current node
-          newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
+          // Redirect: branch from current node (backOnRevisit always enabled)
+          newNode = tree.navigate(entry, { backOnRevisit: true });
         }
         
         wasNewNodeCreated = true; // New node was created
@@ -658,12 +651,11 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
     const tab = await chrome.tabs.get(tabId);
     const settings = await getSettings();
     
-    if (settings.multiTabEnabled) {
-      // Multi-tab mode: use global tree
-      const nodeId = tabManager.getNodeForTabGlobal(tabId);
-      if (nodeId !== null) {
-        const tree = await storageManager.getGlobalTree();
-        const node = tree.findNodeById(nodeId);
+    // Always multi-tab mode: use global tree
+    const nodeId = tabManager.getNodeForTabGlobal(tabId);
+    if (nodeId !== null) {
+      const tree = await storageManager.getGlobalTree();
+      const node = tree.findNodeById(nodeId);
         // CRITICAL: Only update if URL matches to prevent race conditions
         if (node && node.url === url && tab.title && tab.title !== node.title) {
           node.title = tab.title;
@@ -696,41 +688,34 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   programmaticTabs.delete(tabId);
   chrome.storage.session.remove(`programmaticTab_${tabId}`);
   
-  const settings = await getSettings();
+  // Always multi-tab mode: unregister tab globally
+  tabManager.unregisterGlobal(tabId);
   
-  if (settings.multiTabEnabled) {
-    // Multi-tab mode with GLOBAL tree: unregister tab globally
-    tabManager.unregisterGlobal(tabId);
+  // Update currentNode to active tab in the same window (if window still exists)
+  try {
+    const tree = await storageManager.getGlobalTree();
+    const windowId = removeInfo.windowId;
     
-    // Update currentNode to active tab in the same window (if window still exists)
+    // Try to find active tab in the same window
     try {
-      const tree = await storageManager.getGlobalTree();
-      const windowId = removeInfo.windowId;
-      
-      // Try to find active tab in the same window
-      try {
-        const activeTabs = await chrome.tabs.query({ windowId, active: true });
-        if (activeTabs.length > 0) {
-          const activeTab = activeTabs[0];
-          const activeNodeId = tabManager.getNodeForTabGlobal(activeTab.id);
-          if (activeNodeId !== null) {
-            // Update currentNode to the active tab
-            tree.setCurrentById(activeNodeId);
-            await storageManager.saveGlobalTree(tree);
-          }
+      const activeTabs = await chrome.tabs.query({ windowId, active: true });
+      if (activeTabs.length > 0) {
+        const activeTab = activeTabs[0];
+        const activeNodeId = tabManager.getNodeForTabGlobal(activeTab.id);
+        if (activeNodeId !== null) {
+          // Update currentNode to the active tab
+          tree.setCurrentById(activeNodeId);
+          await storageManager.saveGlobalTree(tree);
         }
-      } catch (e) {
-        // Window might be closed, ignore
       }
-      
-      // Notify all sidepanels to update closed state
-      notifyGlobalTreeUpdate(tree);
     } catch (e) {
-      console.debug('Error updating currentNode on tab removal:', e);
+      // Window might be closed, ignore
     }
-  } else {
-    // Single-tab mode: remove tree
-    storageManager.removeTree(tabId);
+    
+    // Notify all sidepanels to update closed state
+    notifyGlobalTreeUpdate(tree);
+  } catch (e) {
+    console.debug('Error updating currentNode on tab removal:', e);
   }
 });
 
@@ -742,9 +727,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (!('mutedInfo' in changeInfo) && !('audible' in changeInfo)) return;
   
   const settings = await getSettings();
-  if (!settings.multiTabEnabled) return;
-  
-  // Check if this tab is in our global tracking
+  // Always multi-tab mode - check if this tab is in our global tracking
   const nodeId = tabManager.getNodeForTabGlobal(tabId);
   if (nodeId === null) return;
   
@@ -812,9 +795,9 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   
   const settings = await getSettings();
   // Only sync when pinSyncBrowser is enabled (Mode A)
-  if (!settings.multiTabEnabled || !settings.enablePinNodes || !settings.pinSyncBrowser) return;
+  if (!settings.enablePinNodes || !settings.pinSyncBrowser) return;
   
-  // Check if this tab is in our global tracking
+  // Always multi-tab mode - check if this tab is in our global tracking
   const nodeId = tabManager.getNodeForTabGlobal(tabId);
   if (nodeId === null) return;
   
@@ -857,6 +840,7 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
  */
 chrome.windows.onCreated.addListener(async (window) => {
   try {
+    // Always multi-tab mode - create new root for new window
     // Get the first tab in the new window
     const tabs = await chrome.tabs.query({ windowId: window.id });
     if (tabs.length === 0) return;
@@ -1001,7 +985,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           };
 
           const tree = await storageManager.getTree(tabId);
-          tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
+          tree.navigate(entry, { backOnRevisit: true });
           await storageManager.saveTree(tabId, tree);
           notifyTreeUpdate(tabId);
           break;

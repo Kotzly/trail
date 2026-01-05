@@ -4,12 +4,10 @@
  * Supports both single-tab and multi-tab modes.
  */
 
-// Import renderers to register them
-import '../lib/tree-renderer.js';
-import '../lib/stack-renderer.js';
+// Import renderer to register it
 import '../lib/graph-renderer.js';
 import { getRenderer } from '../lib/renderers.js';
-import { DEFAULT_VIEW_MODE } from '../lib/view-modes.js';
+import { VIEW_MODE } from '../lib/view-modes.js';
 import { getGraphAPI } from '../lib/graph-renderer.js';
 
 let currentTabId = null;
@@ -34,13 +32,10 @@ let pinnedDropdownOpen = false;
 const DEFAULT_SETTINGS = {
   maxCachedLinks: 10,
   stackCapacity: 100,
-  viewMode: DEFAULT_VIEW_MODE,
   theme: 'system',
-  multiTabEnabled: false,
   multiTabLimit: 0,
-  forestMode: true,
-  backOnRevisit: true,
-  compactGraph: false
+  compactGraph: false,
+  showOrphanTrees: true
 };
 
 /**
@@ -134,45 +129,35 @@ function renderView(treeData, openNodes = null, states = null, nodeTabCounts = n
   
   const nodeCount = treeData?.nodeCount || 0;
   
-  // Update count
-  if (isMultiTabMode) {
-    const openCount = openNodeIds.size;
-    stackCount.textContent = `${nodeCount} page${nodeCount !== 1 ? 's' : ''} (${openCount} open)`;
-  } else {
-    stackCount.textContent = `${nodeCount} page${nodeCount !== 1 ? 's' : ''}`;
-  }
+  // Update count (always multi-tab mode)
+  const openCount = openNodeIds.size;
+  stackCount.textContent = `${nodeCount} page${nodeCount !== 1 ? 's' : ''} (${openCount} open)`;
   
-  // Show/hide empty state
-  // For graph view, show empty canvas; for tree/stack views, show message
-  const viewMode = settings?.viewMode || DEFAULT_VIEW_MODE;
+  // Always use graph view mode
+  const viewMode = VIEW_MODE.GRAPH;
   
-  if (!treeData?.root) {
-    if (viewMode === 'graph') {
-      // Graph view: just hide empty state and show empty canvas
-      emptyState.classList.add('hidden');
-      stackList.innerHTML = '';
-      
-      // Render empty graph canvas
-      const renderer = getRenderer(viewMode);
-      if (renderer) {
-        renderer({ roots: [], nodeCount: 0 }, stackList, {
-          onNavigate: handleNodeNavigation,
-          openNodeIds: isMultiTabMode ? openNodeIds : null,
-          compactGraph: settings?.compactGraph || false,
-          tabStates: isMultiTabMode ? tabStates : {}
-        });
-      }
-    } else {
-      // Tree/stack views: show empty state message
-      emptyState.classList.remove('hidden');
-      stackList.innerHTML = '';
+  if (!treeData?.root && !treeData?.roots) {
+    // Graph view: just hide empty state and show empty canvas
+    emptyState.classList.add('hidden');
+    stackList.innerHTML = '';
+    
+    // Render empty graph canvas
+    const renderer = getRenderer(viewMode);
+    if (renderer) {
+      renderer({ roots: [], nodeCount: 0 }, stackList, {
+        onNavigate: handleNodeNavigation,
+        openNodeIds: openNodeIds,
+        compactGraph: settings?.compactGraph || false,
+        tabStates: tabStates || {},
+        showOrphanTrees: settings?.showOrphanTrees !== false
+      });
     }
     return;
   }
   
   emptyState.classList.add('hidden');
   
-  // Get the appropriate renderer
+  // Get the graph renderer
   const renderer = getRenderer(viewMode);
   
   if (!renderer) {
@@ -180,14 +165,15 @@ function renderView(treeData, openNodes = null, states = null, nodeTabCounts = n
     return;
   }
   
-  // Render using the selected view mode
+  // Render using graph view mode
   const newNodeId = renderer(treeData, stackList, {
     onNavigate: handleNodeNavigation,
-    openNodeIds: isMultiTabMode ? openNodeIds : null,
+    openNodeIds: openNodeIds,
     compactGraph: settings?.compactGraph || false,
-    tabStates: isMultiTabMode ? tabStates : {},
+    tabStates: tabStates || {},
     selectionMenuInstant: settings?.selectionMenuInstant || false,
-    nodeTabCounts: nodeTabCounts || {} // Pass tab counts for badge display
+    nodeTabCounts: nodeTabCounts || {}, // Pass tab counts for badge display
+    showOrphanTrees: settings?.showOrphanTrees !== false
   });
   
   // Check if current node changed (navigation happened)
@@ -269,14 +255,9 @@ async function loadCurrentTab() {
     // Load tree (always per-window now)
     const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
     
-    // Store multi-tab mode state for this window
-    isMultiTabMode = response.multiTabMode || false;
-    
-    if (isMultiTabMode) {
-      renderView(response.tree, response.openNodeIds, response.tabStates, response.nodeTabCounts);
-    } else {
-      renderView(response.tree);
-    }
+    // Always multi-tab mode
+    isMultiTabMode = true;
+    renderView(response.tree, response.openNodeIds, response.tabStates, response.nodeTabCounts);
   } catch (error) {
     console.error('Failed to load current tab:', error);
   }
@@ -420,69 +401,6 @@ function initEventListeners() {
     });
   });
   
-  // View mode icon clicks - save immediately
-  document.querySelectorAll('#viewModeIcons .popover-icon-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const mode = btn.dataset.mode;
-      updateViewModeIcons(mode);
-      await saveSettingsQuick({ viewMode: mode });
-      
-      // Show/hide compact graph option based on view mode
-      const compactGraphOption = document.getElementById('compactGraphOption');
-      if (compactGraphOption) {
-        compactGraphOption.style.display = mode === 'graph' ? 'flex' : 'none';
-      }
-      
-      // Re-render with new view mode
-      if (currentTabId) {
-        const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
-        if (response.multiTabMode) {
-          renderView(response.tree, response.openNodeIds, response.tabStates);
-        } else {
-          renderView(response.tree);
-        }
-      }
-    });
-  });
-  
-  // Multi-Tab global toggle
-  const multiTabToggle = document.getElementById('multiTabToggle');
-  const multiTabOptions = document.getElementById('multiTabOptions');
-  
-  multiTabToggle.addEventListener('change', async () => {
-    const enabled = multiTabToggle.checked;
-    multiTabOptions.classList.toggle('visible', enabled);
-    await saveSettingsQuick({ multiTabEnabled: enabled });
-    
-    // Reload current tab to apply mode change
-    loadCurrentTab();
-  });
-  
-  // Multi-Tab per-window toggle
-  const windowMultiTabToggle = document.getElementById('windowMultiTabToggle');
-  
-  windowMultiTabToggle.addEventListener('change', async () => {
-    const enabled = windowMultiTabToggle.checked;
-    await sendMessage({ 
-      type: 'SET_WINDOW_MULTI_TAB', 
-      windowId: currentWindowId, 
-      enabled 
-    });
-    
-    // Reload to apply
-    loadCurrentTab();
-  });
-  
-  // Multi-Tab help button
-  const helpBtn = document.getElementById('multiTabHelpBtn');
-  const helpPanel = document.getElementById('multiTabHelp');
-  
-  helpBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    helpBtn.classList.toggle('active');
-    helpPanel.classList.toggle('hidden');
-  });
-  
   // Multi-Tab limit input
   const multiTabLimit = document.getElementById('multiTabLimit');
   let limitTimeout = null;
@@ -496,20 +414,18 @@ function initEventListeners() {
     }, 300);
   });
   
-  // Forest Mode toggle
-  const forestModeToggle = document.getElementById('forestModeToggle');
+  // Show Orphan Trees toggle
+  const showOrphanTreesToggle = document.getElementById('showOrphanTreesToggle');
   
-  forestModeToggle.addEventListener('change', async () => {
-    const enabled = forestModeToggle.checked;
-    await saveSettingsQuick({ forestMode: enabled });
-  });
-  
-  // Back on Revisit toggle
-  const backOnRevisitToggle = document.getElementById('backOnRevisitToggle');
-  
-  backOnRevisitToggle.addEventListener('change', async () => {
-    const enabled = backOnRevisitToggle.checked;
-    await saveSettingsQuick({ backOnRevisit: enabled });
+  showOrphanTreesToggle.addEventListener('change', async () => {
+    const enabled = showOrphanTreesToggle.checked;
+    await saveSettingsQuick({ showOrphanTrees: enabled });
+    
+    // Re-render to apply setting
+    if (currentTabId) {
+      const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
+      renderView(response.tree, response.openNodeIds, response.tabStates, response.nodeTabCounts);
+    }
   });
   
   // Compact Graph toggle
@@ -752,9 +668,8 @@ function toggleSettingsPopover(e) {
   
   // Update active states
   updateThemeIcons(settings?.theme || DEFAULT_SETTINGS.theme);
-  updateViewModeIcons(settings?.viewMode || DEFAULT_SETTINGS.viewMode);
-  updateMultiTabUI(settings?.multiTabEnabled || false, settings?.multiTabLimit || 0, settings?.forestMode);
-  updateNavigationUI(settings?.backOnRevisit, settings?.compactGraph, settings?.viewMode, settings?.selectionMenuInstant);
+  updateMultiTabUI(settings?.multiTabLimit || 0, settings?.showOrphanTrees !== false);
+  updateNavigationUI(settings?.compactGraph, settings?.selectionMenuInstant);
   updateFeatureUI(settings?.enableSearch, settings?.enablePinNodes, settings?.enableTags, settings?.pinSyncBrowser);
   
   popover.classList.remove('hidden');
@@ -771,82 +686,30 @@ function updateThemeIcons(theme) {
 }
 
 /**
- * Update view mode icons active state.
- * @param {string} mode
- */
-function updateViewModeIcons(mode) {
-  document.querySelectorAll('#viewModeIcons .popover-icon-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.mode === mode);
-  });
-}
-
-/**
  * Update Multi-Tab UI state.
- * @param {boolean} globalEnabled
  * @param {number} limit
- * @param {boolean} forestMode
+ * @param {boolean} showOrphanTrees
  */
-async function updateMultiTabUI(globalEnabled, limit, forestMode) {
-  const globalToggle = document.getElementById('multiTabToggle');
-  const windowToggle = document.getElementById('windowMultiTabToggle');
-  const options = document.getElementById('multiTabOptions');
+function updateMultiTabUI(limit, showOrphanTrees) {
   const limitInput = document.getElementById('multiTabLimit');
-  const helpBtn = document.getElementById('multiTabHelpBtn');
-  const helpPanel = document.getElementById('multiTabHelp');
-  const forestModeToggle = document.getElementById('forestModeToggle');
+  const showOrphanTreesToggle = document.getElementById('showOrphanTreesToggle');
   
-  // Reset help panel
-  helpBtn.classList.remove('active');
-  helpPanel.classList.add('hidden');
-  
-  // Set global toggle
-  globalToggle.checked = globalEnabled;
-  options.classList.toggle('visible', globalEnabled);
-  limitInput.value = limit;
-  
-  // Set forest mode toggle
-  forestModeToggle.checked = forestMode !== false;
-  
-  // Get per-window state
-  if (currentWindowId) {
-    try {
-      const response = await sendMessage({ 
-        type: 'GET_WINDOW_MULTI_TAB', 
-        windowId: currentWindowId 
-      });
-      windowToggle.checked = response.enabled;
-    } catch (e) {
-      windowToggle.checked = globalEnabled;
-    }
-  }
+  if (limitInput) limitInput.value = limit;
+  if (showOrphanTreesToggle) showOrphanTreesToggle.checked = showOrphanTrees;
 }
 
 /**
  * Update navigation UI state.
- * @param {boolean} backOnRevisit
  * @param {boolean} compactGraph
- * @param {string} viewMode
  * @param {boolean} selectionMenuInstant
  */
-function updateNavigationUI(backOnRevisit, compactGraph, viewMode, selectionMenuInstant) {
-  const backOnRevisitToggle = document.getElementById('backOnRevisitToggle');
+function updateNavigationUI(compactGraph, selectionMenuInstant) {
   const compactGraphToggle = document.getElementById('compactGraphToggle');
-  const compactGraphOption = document.getElementById('compactGraphOption');
   const selectionMenuToggle = document.getElementById('selectionMenuToggle');
-  const selectionMenuOption = document.getElementById('selectionMenuOption');
   
   // Set toggle states
-  backOnRevisitToggle.checked = backOnRevisit !== false;
-  compactGraphToggle.checked = compactGraph === true;
-  selectionMenuToggle.checked = selectionMenuInstant === true;
-  
-  // Show graph-only options only when graph view is selected
-  if (compactGraphOption) {
-    compactGraphOption.style.display = viewMode === 'graph' ? 'flex' : 'none';
-  }
-  if (selectionMenuOption) {
-    selectionMenuOption.style.display = viewMode === 'graph' ? 'flex' : 'none';
-  }
+  if (compactGraphToggle) compactGraphToggle.checked = compactGraph === true;
+  if (selectionMenuToggle) selectionMenuToggle.checked = selectionMenuInstant === true;
 }
 
 /**
