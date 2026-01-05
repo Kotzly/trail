@@ -789,7 +789,7 @@ chrome.windows.onCreated.addListener(async (window) => {
     
     const tab = tabs[0];
     const tabUrl = tab.pendingUrl || tab.url || '';
-  
+
     // If this window is created from a detached tab, reuse its node
     const detNodeId = pendingNodeForTab.get(tab.id);
     if (detNodeId !== undefined) {
@@ -802,6 +802,21 @@ chrome.windows.onCreated.addListener(async (window) => {
       await storageManager.saveGlobalTree(tree);
       notifyGlobalTreeUpdate(tree);
       return;
+    }
+
+    // If any tab in this window is already mapped to a node, don't create another root
+    for (const t of tabs) {
+      const mapped = tabManager.getNodeForTabGlobal(t.id);
+      if (mapped !== null) {
+        // Ensure owner window is set
+        const tree = await storageManager.getGlobalTree();
+        const root = tree.findRootForNode(mapped);
+        if (root && root.windowId !== window.id) {
+          root.windowId = window.id;
+          await storageManager.saveGlobalTree(tree);
+        }
+        return;
+      }
     }
 
     // If this window is intended to host an existing node, just register it
