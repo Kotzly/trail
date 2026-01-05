@@ -341,12 +341,16 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
           }
           const newNode = tree.navigate(entry, { backOnRevisit: settings.backOnRevisit });
           wasNewNodeCreated = true; // New node was created
-          // Re-register tab with new node (global)
+          // Re-register tab with new node (global) - this automatically unregisters from old node
           tabManager.registerGlobal(newNode.id, windowId, tabId);
           // Update currentNode to new node only if tab is active
           if (tab.active) {
             tree.setCurrentById(newNode.id);
           }
+          // Update tab counts immediately after re-registration (even if tab is inactive)
+          // This ensures "New Tab" counter decreases immediately when tab navigates away
+          await storageManager.saveGlobalTree(tree);
+          notifyGlobalTreeUpdate(tree, windowId);
         }
       } else if (node) {
         // Same URL - only update current if tab is active
@@ -404,9 +408,13 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
         if (isActiveTab) {
           tree.setCurrentById(newNode.id);
         }
-        // Register this tab with the existing node
+        // Register this tab with the existing node - this automatically unregisters from old node if any
         tabManager.registerGlobal(newNode.id, windowId, tabId);
         recentTabRegistrations.set(tabId, Date.now());
+        // Update tab counts immediately after registration (even if tab is inactive)
+        // This ensures "New Tab" counter decreases immediately when tab navigates to existing node
+        await storageManager.saveGlobalTree(tree);
+        notifyGlobalTreeUpdate(tree, windowId);
       } else {
         // Check if this is a redirect
         const lastRegistration = recentTabRegistrations.get(tabId);
@@ -423,7 +431,7 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
         
         wasNewNodeCreated = true; // New node was created
 
-        // Register globally (nodeId -> {windowId, tabId})
+        // Register globally (nodeId -> {windowId, tabId}) - this automatically unregisters from old node if any
         tabManager.registerGlobal(newNode.id, windowId, tabId);
         recentTabRegistrations.set(tabId, Date.now());
         
@@ -431,6 +439,10 @@ async function handleMultiTabNavigation(details, transitionType, windowId) {
         if (isActiveTab) {
           tree.setCurrentById(newNode.id);
         }
+        // Update tab counts immediately after registration (even if tab is inactive)
+        // This ensures "New Tab" counter decreases immediately when tab navigates to new node
+        await storageManager.saveGlobalTree(tree);
+        notifyGlobalTreeUpdate(tree, windowId);
       }
       
       // Sync browser tab pin state to node (only in pinSyncBrowser mode)
