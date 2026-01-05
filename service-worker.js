@@ -926,17 +926,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const settings = await getSettings();
           
           try {
-            if (settings.multiTabEnabled) {
-              // Multi-tab mode - use GLOBAL tree
-              const nodeId = tabManager.getNodeForTabGlobal(tabId);
-              if (nodeId !== null) {
-                const tree = await storageManager.getGlobalTree();
-                const node = tree.findNodeById(nodeId);
-                if (node && node.url === url && node.title !== newTitle) {
-                  node.title = newTitle;
-                  await storageManager.saveGlobalTree(tree);
-                  notifyGlobalTreeUpdate(tree);
-                }
+            // Always multi-tab mode - use GLOBAL tree
+            const nodeId = tabManager.getNodeForTabGlobal(tabId);
+            if (nodeId !== null) {
+              const tree = await storageManager.getGlobalTree();
+              const node = tree.findNodeById(nodeId);
+              if (node && node.url === url && node.title !== newTitle) {
+                node.title = newTitle;
+                await storageManager.saveGlobalTree(tree);
+                notifyGlobalTreeUpdate(tree);
               }
             }
           } catch (error) {
@@ -1186,10 +1184,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             await chrome.storage.session.remove(flagKey);
             
             const settings = await getSettings();
-            if (settings.multiTabEnabled) {
-              tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
-              // DO NOT update currentNode - keep focus on current tab
-              // But DO notify to update tab count badge immediately
+            // Always multi-tab mode
+            tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
+            // DO NOT update currentNode - keep focus on current tab
+            // But DO notify to update tab count badge immediately
               await storageManager.saveGlobalTree(tree);
               notifyGlobalTreeUpdate(tree, tab.windowId);
             }
