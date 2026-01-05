@@ -83,7 +83,7 @@ function getFaviconUrl(url) {
 
 /**
  * Handle navigation events and add to tree.
- * Supports both single-tab and multi-tab modes.
+ * Always uses multi-tab mode with forest mode enabled.
  * @param {object} details - Navigation details from webNavigation API
  * @param {string} [transitionType] - Type of navigation transition
  */
