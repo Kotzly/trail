@@ -664,10 +664,6 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
         notifyGlobalTreeUpdate(tree);
       }
     }
-        await storageManager.saveTree(tabId, tree);
-        notifyTreeUpdate(tabId);
-      }
-    }
   } catch (error) {
     console.debug('onCompleted error:', error);
   }
