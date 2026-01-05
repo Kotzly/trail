@@ -834,9 +834,8 @@ chrome.windows.onCreated.addListener(async (window) => {
     
     await storageManager.saveGlobalTree(tree);
     
-    if (settings.multiTabEnabled) {
-      tabManager.registerGlobal(newNode.id, tab.windowId, tab.id);
-    }
+    // Always multi-tab mode
+    tabManager.registerGlobal(newNode.id, tab.windowId, tab.id);
     
     notifyGlobalTreeUpdate(tree);
   } catch (error) {
