@@ -1188,9 +1188,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             tabManager.registerGlobal(nodeId, tab.windowId, tab.id);
             // DO NOT update currentNode - keep focus on current tab
             // But DO notify to update tab count badge immediately
-              await storageManager.saveGlobalTree(tree);
-              notifyGlobalTreeUpdate(tree, tab.windowId);
-            }
+            await storageManager.saveGlobalTree(tree);
+            notifyGlobalTreeUpdate(tree, tab.windowId);
             sendResponse({ success: true });
           } else {
             sendResponse({ success: false, error: 'Node not found' });
