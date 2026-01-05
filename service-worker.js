@@ -1004,15 +1004,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   notifyGlobalTreeUpdate(tree);
                 }
               }
-            } else {
-              // Single-tab mode
-              const tree = await storageManager.getTree(tabId);
-              const currentNode = tree.currentNode;
-              if (currentNode && currentNode.url === url && currentNode.title !== newTitle) {
-                currentNode.title = newTitle;
-                await storageManager.saveTree(tabId, tree);
-                notifyTreeUpdate(tabId);
-              }
             }
           } catch (error) {
             console.debug('Title update error:', error);
@@ -1024,9 +1015,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Always multi-tab mode: use global tree (shared across all windows)
           const tab = await chrome.tabs.get(message.tabId);
           const tree = await storageManager.getGlobalTree();
-            
-            // Try to find node for active tab (global lookup)
-            let activeNodeId = tabManager.getNodeForTabGlobal(tab.id);
+          
+          // Try to find node for active tab (global lookup)
+          let activeNodeId = tabManager.getNodeForTabGlobal(tab.id);
             
             // If tab not registered, try to find node by URL (first in current window's tree, then globally)
             if (activeNodeId === null && tab.url) {
@@ -1095,15 +1086,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }
             }
             
-            sendResponse({ 
-              success: true, 
-              tree: tree.toJSON(),
-              openNodeIds,
-              tabStates,
-              nodeTabCounts,
-              multiTabMode: true,
-              windowId: tab.windowId
-            });
+          sendResponse({ 
+            success: true, 
+            tree: tree.toJSON(),
+            openNodeIds,
+            tabStates,
+            nodeTabCounts,
+            multiTabMode: true,
+            windowId: tab.windowId
+          });
           break;
         }
         
