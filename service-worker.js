@@ -31,6 +31,9 @@ const REDIRECT_THRESHOLD_MS = 2000;
 // Cache for settings to avoid repeated async calls
 let cachedSettings = null;
 
+// Track windows created specifically to reopen an existing node
+const pendingNodeForWindow = new Map(); // windowId -> nodeId
+
 /**
  * Ensure a node exists for the given tab; create a root if missing.
  * Used to register "New Tab"/internal pages that don't trigger navigation events.
@@ -149,6 +152,29 @@ function invalidateSettingsCache() {
 function getOwnerWindowId(tree, nodeId) {
   const root = tree.findRootForNode(nodeId);
   return root?.windowId ?? null;
+}
+
+/**
+ * Ensure the root that owns nodeId has a windowId; use mapping or fallback.
+ */
+function ensureRootOwner(tree, nodeId, fallbackWindowId = null) {
+  const root = tree.findRootForNode(nodeId);
+  if (!root) return null;
+  if (root.windowId) return root.windowId;
+
+  // Try to infer from open tabs of this node
+  const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+  if (tabInfo) {
+    root.windowId = tabInfo.windowId;
+    return root.windowId;
+  }
+
+  // Fallback to provided window
+  if (fallbackWindowId !== null) {
+    root.windowId = fallbackWindowId;
+    return root.windowId;
+  }
+  return null;
 }
 
 /**
@@ -723,6 +749,20 @@ chrome.windows.onCreated.addListener(async (window) => {
     const tab = tabs[0];
     const tabUrl = tab.pendingUrl || tab.url || '';
   
+    // If this window is intended to host an existing node, just register it
+    if (pendingNodeForWindow.has(window.id)) {
+      const nodeId = pendingNodeForWindow.get(window.id);
+      pendingNodeForWindow.delete(window.id);
+      const tree = await storageManager.getGlobalTree();
+      const root = tree.findRootForNode(nodeId);
+      if (root) root.windowId = window.id;
+      tabManager.registerGlobal(nodeId, window.id, tab.id);
+      tree.setCurrentById(nodeId);
+      await storageManager.saveGlobalTree(tree);
+      notifyGlobalTreeUpdate(tree);
+      return;
+    }
+
     // Create new root for this window's first tab
     const tree = await storageManager.getGlobalTree();
     
@@ -877,6 +917,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               tree.setCurrentById(activeNodeId);
               await storageManager.saveGlobalTree(tree);
             }
+            ensureRootOwner(tree, activeNodeId, tab.windowId);
           }
           
           const openNodeIds = Array.from(tabManager.getAllOpenNodes());
@@ -935,7 +976,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           
           // Always multi-tab mode with GLOBAL tree: node may be in ANY window
           const tree = await storageManager.getGlobalTree();
-          const ownerWindowId = getOwnerWindowId(tree, nodeId);
+          const ownerWindowId = ensureRootOwner(tree, nodeId, windowId);
           
           // Cycle through open tabs for this node (across all windows)
           const tabsForNode = tabManager.getTabsForNode(nodeId);
@@ -985,6 +1026,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (!targetWindowExists) {
               const newWindow = await chrome.windows.create({ focused: true, url });
               targetWindowId = newWindow.id;
+              pendingNodeForWindow.set(targetWindowId, nodeId);
               const root = tree.findRootForNode(nodeId);
               if (root) root.windowId = targetWindowId;
               const tabs = await chrome.tabs.query({ windowId: newWindow.id });
