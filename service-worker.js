@@ -22,6 +22,10 @@ const IGNORED_URL_PATTERNS = [
 // Map of navigations triggered from sidebar: `${tabId}:${url}` -> nodeId
 const sidebarNavigations = new Map();
 
+// Track last URL per tab for redirect detection
+const lastTabUrl = new Map(); // tabId -> last URL
+const REDIRECT_THRESHOLD_MS = 2000;
+
 // Cache for settings to avoid repeated async calls
 let cachedSettings = null;
 
@@ -257,8 +261,6 @@ async function findWindowForNode(nodeId, tree) {
     return null;
   }
 }
-const lastTabUrl = new Map(); // tabId -> last URL
-const REDIRECT_THRESHOLD_MS = 2000;
 
 // Track windows created for existing nodes (orphan branches) - windowId -> nodeId
 // This prevents windows.onCreated from creating a new root for these windows
@@ -1814,7 +1816,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'GET_TAB_FOR_NODE': {
           // Get tab info for a node (used by context menu)
           const { windowId, nodeId } = message;
-          const tabId = tabManager.getTabForNode(windowId, nodeId);
+          const isMultiTab = await isMultiTabForWindow(windowId);
+          
+          let tabId = null;
+          if (isMultiTab) {
+            // Global mode: use global lookup
+            const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+            if (tabInfo && tabInfo.tabId) {
+              tabId = tabInfo.tabId;
+            }
+          } else {
+            // Legacy per-window mode
+            tabId = tabManager.getTabForNode(windowId, nodeId);
+          }
           
           if (tabId !== null) {
             try {
@@ -1822,7 +1836,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               sendResponse({ success: true, tabInfo: tab });
             } catch (e) {
               // Tab no longer exists
-              tabManager.unregister(windowId, tabId);
+              if (isMultiTab) {
+                tabManager.unregisterGlobal(tabId);
+              } else {
+                tabManager.unregister(windowId, tabId);
+              }
               sendResponse({ success: true, tabInfo: null });
             }
           } else {
@@ -1989,46 +2007,63 @@ chrome.tabs.onAttached.addListener(async (tabId, attachInfo) => {
   
   if (!isMultiTab) return;
   
-  // Find which window this tab came from
-  // We need to check all windows in tabManager
-  let fromWindowId = null;
-  let movedNodeId = null;
-  
-  for (const [windowId, tabToNode] of tabManager.windowTabToNode) {
-    if (windowId !== newWindowId && tabToNode.has(tabId)) {
-      fromWindowId = windowId;
-      movedNodeId = tabToNode.get(tabId);
-      break;
+  // In global mode, just update the windowId in the global mapping
+  const nodeId = tabManager.getNodeForTabGlobal(tabId);
+  if (nodeId !== null) {
+    // Get current tab info to find old window
+    const tabInfo = tabManager.getTabForNodeGlobal(nodeId);
+    if (tabInfo && tabInfo.tabId === tabId) {
+      const oldWindowId = tabInfo.windowId;
+      if (oldWindowId !== newWindowId) {
+        // Re-register with new windowId (this will update the mapping)
+        tabManager.registerGlobal(nodeId, newWindowId, tabId);
+        
+        // Notify all sidepanels
+        const tree = await storageManager.getGlobalTree();
+        notifyGlobalTreeUpdate(tree);
+      }
     }
-  }
-  
-  if (fromWindowId !== null && movedNodeId !== null) {
-    // Get the node data from the old tree
-    const oldTree = await storageManager.getWindowTree(fromWindowId);
-    const movedNode = oldTree.findNodeById(movedNodeId);
+  } else {
+    // Legacy per-window mode: find which window this tab came from
+    let fromWindowId = null;
+    let movedNodeId = null;
     
-    if (movedNode) {
-      // Move tab mapping (from old window to new window)
-      tabManager.moveTab(fromWindowId, newWindowId, tabId);
+    for (const [windowId, tabToNode] of tabManager.windowTabToNode) {
+      if (windowId !== newWindowId && tabToNode.has(tabId)) {
+        fromWindowId = windowId;
+        movedNodeId = tabToNode.get(tabId);
+        break;
+      }
+    }
+    
+    if (fromWindowId !== null && movedNodeId !== null) {
+      // Get the node data from the old tree
+      const oldTree = await storageManager.getWindowTree(fromWindowId);
+      const movedNode = oldTree.findNodeById(movedNodeId);
       
-      // Add node to new tree
-      const newTree = await storageManager.getWindowTree(newWindowId);
-      const entry = {
-        url: movedNode.url,
-        title: movedNode.title,
-        favicon: movedNode.favicon,
-        timestamp: movedNode.timestamp
-      };
-      const newNode = newTree.navigate(entry);
-      
-      // Update tab mapping with new node ID
-      tabManager.register(newWindowId, newNode.id, tabId);
-      
-      await storageManager.saveWindowTree(newWindowId, newTree);
-      notifyWindowTreeUpdate(newWindowId, newTree);
-      
-      // Also update old window
-      notifyWindowTreeUpdate(fromWindowId, oldTree);
+      if (movedNode) {
+        // Move tab mapping (from old window to new window)
+        tabManager.moveTab(fromWindowId, newWindowId, tabId);
+        
+        // Add node to new tree
+        const newTree = await storageManager.getWindowTree(newWindowId);
+        const entry = {
+          url: movedNode.url,
+          title: movedNode.title,
+          favicon: movedNode.favicon,
+          timestamp: movedNode.timestamp
+        };
+        const newNode = newTree.navigate(entry);
+        
+        // Update tab mapping with new node ID
+        tabManager.register(newWindowId, newNode.id, tabId);
+        
+        await storageManager.saveWindowTree(newWindowId, newTree);
+        notifyWindowTreeUpdate(newWindowId, newTree);
+        
+        // Also update old window
+        notifyWindowTreeUpdate(fromWindowId, oldTree);
+      }
     }
   }
 });
