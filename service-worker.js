@@ -1025,13 +1025,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         
         case 'GET_TREE': {
-          // Get tree - uses GLOBAL tree for multi-tab mode
+          // Always multi-tab mode: use global tree (shared across all windows)
           const tab = await chrome.tabs.get(message.tabId);
-          const isMultiTab = await isMultiTabForWindow(tab.windowId);
-          
-          if (isMultiTab) {
-            // Multi-tab mode: use global tree (shared across all windows)
-            const tree = await storageManager.getGlobalTree();
+          const tree = await storageManager.getGlobalTree();
             
             // Try to find node for active tab (global lookup)
             let activeNodeId = tabManager.getNodeForTabGlobal(tab.id);
@@ -1112,16 +1108,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               multiTabMode: true,
               windowId: tab.windowId
             });
-          } else {
-            // Single-tab mode: per-window tree
-            const tree = await storageManager.getWindowTree(tab.windowId);
-            sendResponse({ 
-              success: true, 
-              tree: tree.toJSON(),
-              multiTabMode: false,
-              windowId: tab.windowId
-            });
-          }
           break;
         }
         
