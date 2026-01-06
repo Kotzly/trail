@@ -36,7 +36,7 @@ function nextNodeId(): NodeId {
 export class TreeNode {
     readonly id: NodeId;
     readonly url: Url;
-    readonly timestamp: Timestamp;
+    timestamp: Timestamp;
 
     title: Title;
     favicon?: FaviconUrl;
@@ -74,5 +74,11 @@ export class TreeNode {
         child.parent = this;
         this.children.push(child);
         return child;
+    }
+
+    updateMetadata(entry: TreeEntry) {
+        if (entry.title !== undefined) this.title = entry.title;
+        if (entry.favicon !== undefined) this.favicon = entry.favicon;
+        this.timestamp = now();
     }
 }

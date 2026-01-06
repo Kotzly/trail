@@ -9,7 +9,7 @@ export class TreeNodeMapper {
             { url: json.url, title: json.title, favicon: json.favicon } as TreeEntry,
         );
         (node as any).id = json.id;
-        (node as any).timestamp = json.timestamp;
+        node.timestamp = json.timestamp;
         node.parent = parent;
         node.collapsed = json.collapsed;
         node.pinned = json.pinned;
