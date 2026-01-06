@@ -8,3 +8,7 @@ export type Url = Brand<string, "Url">
 export type FaviconUrl = Brand<string, "FaviconUrl">
 export type Title = Brand<string, "Title">
 export type Tag = Brand<string, "Tag">
+
+export function now(): Timestamp {
+    return Date.now() as Timestamp;
+}

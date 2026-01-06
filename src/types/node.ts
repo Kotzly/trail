@@ -1,5 +1,7 @@
-import type { NodeId, Timestamp, Title, Url, FaviconUrl, Tag } from "./ids"
+import { type NodeId, type Timestamp, type Title, type Url, type FaviconUrl, type Tag, now } from "./ids"
 import { urlToTitle } from "./factories";
+
+// types
 
 export interface TreeEntry {
     url: Url;
@@ -9,10 +11,10 @@ export interface TreeEntry {
 
 export interface TreeNodeJSON {
     id: NodeId;
-    url: Url;
-    title: Title;
+    readonly url: Url;
+    readonly title: Title;
     favicon?: FaviconUrl;
-    timestamp: Timestamp;
+    readonly timestamp: Timestamp;
 
     pinned: boolean;
     tags: Tag[];
@@ -21,7 +23,15 @@ export interface TreeNodeJSON {
     children: TreeNodeJSON[];
 }
 
+// helpers
+
 let nodeIdCounter = 0 as NodeId;
+
+function nextNodeId(): NodeId {
+    return (++nodeIdCounter) as NodeId;
+}
+
+// class
 
 export class TreeNode {
     readonly id: NodeId;
@@ -31,7 +41,7 @@ export class TreeNode {
     favicon?: FaviconUrl;
     timestamp: Timestamp;
 
-    parent?: TreeNode;
+    parent: TreeNode | null;
     children: TreeNode[];
 
     pinned: boolean;
@@ -39,28 +49,26 @@ export class TreeNode {
     collapsed: boolean;
 
     constructor(
-        id: NodeId,
         entry: TreeEntry,
-        timestamp: Timestamp = Date.now() as Timestamp
     ) {
-        this.id = id;
+        this.id = nextNodeId();
         
         this.url = entry.url;
         this.title = entry.title ?? urlToTitle(entry.url);
         if (entry.favicon) {
             this.favicon = entry.favicon;
         }
-        this.timestamp = timestamp;
+        this.timestamp = now();
         this.children = [];
-        this.parent = undefined as unknown as TreeNode;
+        this.parent = null;
         this.collapsed = false;
         this.pinned = false;
         this.tags = [];
     }
 
 
-    addChild(id: NodeId, entry: TreeEntry, ts: Timestamp = Date.now() as Timestamp): TreeNode {
-        const child = new TreeNode(id, entry, ts);
+    addChild(entry: TreeEntry): TreeNode {
+        const child = new TreeNode(entry);
         child.parent = this;
         this.children.push(child);
         return child;
