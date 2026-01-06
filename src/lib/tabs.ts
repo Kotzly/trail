@@ -1,228 +1,176 @@
-import { NodeId, TabId, WindowId } from "../types/ids";
+import { NodeId, TabId } from "../types/ids";
 import { NavigationTree } from "../types/tree";
 
-/**
- * Tab Manager for multi-tab mode.
- * Tracks node ↔ tab relationships globally across all windows and keeps an
- * LRU list for enforcing tab limits.
- */
 
-type WTpair = {
-    windowId: WindowId,
-    tabId: TabId
-}
-
-class TabManagerState {
-    globalNodeToTab: Map<NodeId, WTpair>;
-    globalNodeTabs: Map<NodeId, WTpair[]>;
-    globalTabToNode: Map<TabId, NodeId>;
-    globalLruOrder: TabId[];
+class TabIndex {
+    private tabToNode: Map<TabId, NodeId>;
+    private nodeToTabs: Map<NodeId, Set<TabId>>;
 
     constructor() {
-        this.globalNodeToTab = new Map<NodeId, WTpair>();
-        this.globalNodeTabs = new Map<NodeId, WTpair[]>();
-        this.globalTabToNode = new Map<TabId, NodeId>();
-        this.globalLruOrder = [];
+        this.tabToNode = new Map<TabId, NodeId>();
+        this.nodeToTabs = new Map<NodeId, Set<TabId>>();
     }
 
-    // todo: add methods to get, set, delete, etc. ???
+    removeTabFromNode(nodeId: NodeId, tabId: TabId) {
+        const tabs = this.nodeToTabs.get(nodeId);
+      
+        if (!tabs) {
+          console.warn(`Node ${nodeId} has no tab set, but removing tab ${tabId}`);
+          this.tabToNode.delete(tabId);
+          return;
+        }
+      
+        const existed = tabs.delete(tabId);
+        if (!existed) {
+          console.warn(`Tab ${tabId} was not present in node ${nodeId}`);
+        }
+      
+        if (tabs.size === 0) this.nodeToTabs.delete(nodeId);
+        this.tabToNode.delete(tabId);
+      }
+      
+
+    nodeByTab(tabId: TabId): NodeId | undefined {
+        return this.tabToNode.get(tabId);
+    }
+
+    addTabToNode(nodeId: NodeId, tabId: TabId) {
+        this.tabToNode.set(tabId, nodeId);
+        if (!this.nodeToTabs.has(nodeId)) {
+            this.nodeToTabs.set(nodeId, new Set<TabId>());
+        }
+        this.nodeToTabs.get(nodeId)?.add(tabId);
+    }
+
+    tabsByNode(nodeId: NodeId): Set<TabId> | undefined {
+        return this.nodeToTabs.get(nodeId);
+    }
+
+    tabCountForNode(nodeId: NodeId): number {
+        return this.nodeToTabs.get(nodeId)?.size || 0;
+    }
+
+    tabCount(): number {
+        return this.tabToNode.size;
+    }
+
+    openNodes(): Set<NodeId> {
+        return new Set(this.nodeToTabs.keys());
+    }
+}
+
+class LruManager {
+    private set: Set<TabId>;
+    private seq = 0;
+    private lastUsed = new Map<TabId, number>();
+    public latest: TabId | null = null;
+    constructor() {
+        this.set = new Set<TabId>();
+    }
+    
+    touch(tabId: TabId) {
+        this.set.delete(tabId);
+        this.set.add(tabId);
+
+        this.lastUsed.set(tabId, ++this.seq);
+        this.latest = tabId;
+    }
+
+    iter(): IterableIterator<TabId> {
+        return this.set.keys();
+    }
+
+    getLastUsed(tabId: TabId): number {
+        return this.lastUsed.get(tabId) || 0;
+    }
+
+
+    remove(tabId: TabId) {
+        this.lastUsed.delete(tabId);
+        if (this.latest === tabId) this.latest = null;
+        return this.set.delete(tabId);
+    }
+
 }
 
 
 export class TabManager {
-    globalNodeToTab: Map<NodeId, WTpair>;
-    globalNodeTabs: Map<NodeId, WTpair[]>;
-    globalTabToNode: Map<TabId, NodeId>;
-    globalLruOrder: TabId[];
+    private index: TabIndex;
+    private lru: LruManager
 
     constructor() {
-        this.globalNodeToTab = new Map<NodeId, WTpair>();
-        this.globalNodeTabs = new Map<NodeId, WTpair[]>();
-        this.globalTabToNode = new Map<TabId, NodeId>();
-        this.globalLruOrder = [];
+        this.index = new TabIndex();
+        this.lru = new LruManager();
+    }
+
+    touch(tabId: TabId) {
+        if (!this.index.nodeByTab(tabId)) return;
+        this.lru.touch(tabId);
     }
 
     // Register a tab for a node (global across windows).
     // Reassigns the tab if it previously belonged to another node.
-    registerGlobal(nodeId: NodeId, windowId: WindowId, tabId: TabId) {
-      const previousNodeId = this.globalTabToNode.get(tabId);
-  
-      if (previousNodeId !== undefined) {
-        this._removeTabFromNodeGlobal(previousNodeId, tabId);
-        const previousPrimary = this.globalNodeToTab.get(previousNodeId);
-        if (previousPrimary?.tabId === tabId) {
-          const replacement = this._getFirstTabForNode(previousNodeId);
-          if (replacement) {
-            this.globalNodeToTab.set(previousNodeId, replacement);
-          } else {
-            this.globalNodeToTab.delete(previousNodeId);
-          }
-        }
+    register(nodeId: NodeId, tabId: TabId) {
+      const previousNodeId = this.index.nodeByTab(tabId);
+      
+      if (previousNodeId) { // reassigning from previous node
+        this.index.removeTabFromNode(previousNodeId, tabId);
       }
-  
-      const tabs = this.globalNodeTabs.get(nodeId) || [];
-      const existing = tabs.find(t => t.tabId === tabId);
-  
-      if (existing) {
-        existing.windowId = windowId;
-      } else {
-        tabs.push({ windowId, tabId });
-      }
-  
-      this.globalNodeTabs.set(nodeId, tabs);
-      this.globalNodeToTab.set(nodeId, { windowId, tabId });
-      this.globalTabToNode.set(tabId, nodeId);
-      this.touchGlobal(tabId);
+      this.index.addTabToNode(nodeId, tabId);
+      this.lru.touch(tabId);
     }
   
-    // Ensure the node has a tab list and return it.
-    private _ensureNodeTabs(nodeId: NodeId): WTpair[] | undefined {
-      if (!this.globalNodeTabs.has(nodeId)) {
-        this.globalNodeTabs.set(nodeId, []);
-        }
-        return this.globalNodeTabs.get(nodeId);
-    }
-  
-    // Remove a tab from a node's tab list.
-    private _removeTabFromNodeGlobal(nodeId: NodeId, tabId: TabId) {
-      const tabs = this.globalNodeTabs.get(nodeId);
-      if (!tabs) return;
-  
-      const index = tabs.findIndex(t => t.tabId === tabId);
-      if (index !== -1) {
-        tabs.splice(index, 1);
-        if (tabs.length === 0) {
-          this.globalNodeTabs.delete(nodeId);
-        } else {
-          this.globalNodeTabs.set(nodeId, tabs);
-        }
-      }
-    }
-  
-    // Get the first tab entry for a node (or null).
-    private _getFirstTabForNode(nodeId: NodeId): WTpair | null {
-      const tabs = this.globalNodeTabs.get(nodeId);
-      return tabs?.[0] || null;
-    }
-  
-    // Get all tabs for a node across all windows.
-    getTabsForNode(nodeId: NodeId): WTpair[] {
-      return this.globalNodeTabs.get(nodeId) || [];
-    }
-  
-    getTabCountForNode(nodeId: NodeId): number {
-      return this.getTabsForNode(nodeId).length;
-    }
-  
-    getNextTabForNode(nodeId: NodeId, currentTabId: TabId | null = null): WTpair | null {
-      const tabs = this.getTabsForNode(nodeId);
-      if (tabs.length <= 1) return null;
-  
+    getNextTabForNode(nodeId: NodeId, currentTabId: TabId | null = null): TabId | null {
+      const tabsSet = this.index.tabsByNode(nodeId);
+      if (!tabsSet || tabsSet.size <= 1) return null;
+
+      const tabs = [...tabsSet].sort((a, b) => this.lru.getLastUsed(b) - this.lru.getLastUsed(a));
+      // tabs[0] is the most recently used tab
+
       if (currentTabId === null) {
-        return tabs[0] || null;
+        return tabs[0] ?? null;
       }
-  
-      const index = tabs.findIndex(t => t.tabId === currentTabId);
-      if (index === -1) return tabs[0] || null;
-  
-      const nextIndex = (index + 1) % tabs.length;
-      return tabs[nextIndex] || null;
+
+      const idx = tabs.indexOf(currentTabId);
+      if (idx === -1) return tabs[0] ?? null;
+      const nextIdx = (idx + 1) % tabs.length;
+      return tabs[nextIdx] ?? null;
     }
   
-    // Mark a tab as recently used in global LRU.
-    touchGlobal(tabId: TabId) {
-      const index = this.globalLruOrder.indexOf(tabId);
-      if (index > -1) {
-        this.globalLruOrder.splice(index, 1);
-      }
-      this.globalLruOrder.push(tabId);
-    }
-  
-    // Remove a tab from global LRU.
-    private _removeFromGlobalLru(tabId: TabId) {
-      const index = this.globalLruOrder.indexOf(tabId);
-      if (index > -1) {
-        this.globalLruOrder.splice(index, 1);
-      }
-    }
-  
-    // Get the primary tab for a node.
-    getTabForNodeGlobal(nodeId: NodeId): WTpair | null {
-      const primary = this.globalNodeToTab.get(nodeId);
-      if (primary) return primary;
-      const fallback = this._getFirstTabForNode(nodeId);
-      return fallback ? { ...fallback } : null;
-    }
-  
-    // Get the node ID for a tab (global mode).
-    getNodeForTabGlobal(tabId: TabId): NodeId | null {
-      const nodeId = this.globalTabToNode.get(tabId);
-      return nodeId !== undefined ? nodeId : null;
+    // Get the node ID for a tab.
+    getNodeForTabGlobal(tabId: TabId): NodeId | undefined {
+      return this.index.nodeByTab(tabId);
     }
   
     // Get all nodes that currently have at least one open tab.
-    getAllOpenNodes(): Set<NodeId> {
-      const openNodes = new Set<NodeId>();
-      for (const nodeId of this.globalNodeToTab.keys() as Iterable<NodeId>) {
-        openNodes.add(nodeId);
-      }
-      for (const nodeId of this.globalNodeTabs.keys() as Iterable<NodeId>) {
-        openNodes.add(nodeId);
-      }
-      return openNodes;
+    openNodes(): Set<NodeId> {
+        return this.index.openNodes();
     }
   
     // Unregister a tab (when it is closed).
-    unregisterGlobal(tabId: TabId) {
-      const nodeId = this.globalTabToNode.get(tabId);
-      if (nodeId !== undefined) {
-        const primary = this.globalNodeToTab.get(nodeId);
-        this._removeTabFromNodeGlobal(nodeId, tabId);
-  
-        if (primary?.tabId === tabId) {
-          const replacement = this._getFirstTabForNode(nodeId);
-          if (replacement) {
-            this.globalNodeToTab.set(nodeId, replacement);
-          } else {
-            this.globalNodeToTab.delete(nodeId);
-          }
-        }
+    unregister(tabId: TabId) {
+      const nodeId = this.index.nodeByTab(tabId);
+      if (nodeId) {
+        this.index.removeTabFromNode(nodeId, tabId);
       }
   
-      this.globalTabToNode.delete(tabId);
-      this._removeFromGlobalLru(tabId);
-    }
-  
-    // Update stored windowId for a tab (when moved between windows).
-    updateTabWindow(tabId: TabId, newWindowId: WindowId) {
-      const nodeId = this.globalTabToNode.get(tabId);
-      if (nodeId === undefined) return;
-  
-      const tabs = this.globalNodeTabs.get(nodeId);
-      if (tabs) {
-        const tab = tabs.find(t => t.tabId === tabId);
-        if (tab) {
-          tab.windowId = newWindowId;
-        }
-      }
-  
-      const primary = this.globalNodeToTab.get(nodeId);
-      if (primary?.tabId === tabId) {
-        this.globalNodeToTab.set(nodeId, { windowId: newWindowId, tabId });
-      }
+      this.lru.remove(tabId);
     }
   
     // Close oldest tab globally if the limit is exceeded (skips pinned nodes).
-    async closeOldestGlobalIfNeeded(limit: number, tree: NavigationTree | null = null): Promise<TabId | null> {
+    async closeOldest(limit: number, tree: NavigationTree | null = null): Promise<TabId | null> {
       if (limit === 0) return null; // Unlimited
   
-      const count = this.globalTabToNode.size;
+      const count = this.index.tabCount();
       if (count <= limit) return null;
-  
       let tabIdToClose = null;
-      for (const tabId of this.globalLruOrder) {
-        const nodeId = this.globalTabToNode.get(tabId);
-        if (nodeId !== undefined && tree) {
+      for (const tabId of this.lru.iter()) {
+        const nodeId = this.index.nodeByTab(tabId);
+        if (!nodeId) {
+            this.lru.remove(tabId); // self-remova
+            continue;
+        }
+        if (tree) {
           const node = tree.findById(nodeId);
           if (node?.pinned) continue; // Skip pinned nodes
         }
@@ -234,7 +182,7 @@ export class TabManager {
   
       try {
         await chrome.tabs.remove(tabIdToClose);
-        this.unregisterGlobal(tabIdToClose);
+        this.unregister(tabIdToClose);
         return tabIdToClose;
       } catch (error) {
         console.debug('Failed to close oldest tab:', error);
@@ -242,37 +190,17 @@ export class TabManager {
       }
     }
   
-    // Serialize state for debugging.
-    toJSON(): TabManagerStateDebug {
-      const result: TabManagerStateDebug = {
-        globalNodeToTab: {},
-        globalNodeTabs: {},
-        globalTabToNode: {},
-        globalLruOrder: [...this.globalLruOrder]
-      };
-  
-      for (const [nodeId, entry] of this.globalNodeToTab.entries()) {
-        result.globalNodeToTab[nodeId] = entry;
+    dumpDebug() {
+        return {
+          tabToNode: Object.fromEntries(this.index["tabToNode"]?.entries?.() ?? []),
+          nodeToTabs: Object.fromEntries(
+            [...(this.index["nodeToTabs"]?.entries?.() ?? [])].map(([k, v]) => [k, [...v]])
+          ),
+          lruOrder: [...this.lru.iter()],
+          lastUsed: Object.fromEntries(this.lru["lastUsed"]?.entries?.() ?? []),
+          latest: this.lru.latest
+        };
       }
-  
-      for (const [nodeId, tabs] of this.globalNodeTabs.entries()) {
-        result.globalNodeTabs[nodeId] = tabs;
-      }
-  
-      for (const [tabId, nodeId] of this.globalTabToNode.entries()) {
-        result.globalTabToNode[tabId] = nodeId;
-      }
-  
-      return result;
-    }
-
   }
-
-export type TabManagerStateDebug = {
-    globalNodeToTab: Record<NodeId, WTpair>,
-    globalNodeTabs: Record<NodeId, WTpair[]>,
-    globalTabToNode: Record<TabId, NodeId>,
-    globalLruOrder: TabId[]
-}
 
 export const tabManager = new TabManager();
