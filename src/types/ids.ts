@@ -12,3 +12,6 @@ export type Tag = Brand<string, "Tag">
 export function now(): Timestamp {
     return Date.now() as Timestamp;
 }
+
+export type JSONString = Brand<string, "JSONString">;
+export type Description = Brand<string, "Description">;
