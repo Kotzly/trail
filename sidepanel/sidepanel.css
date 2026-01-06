@@ -1258,6 +1258,13 @@ body {
   border-width: 2px;
 }
 
+/* Live selection preview */
+.graph-node.selected-preview:not(.selected) {
+  border-color: var(--md-primary);
+  border-style: dashed;
+  border-width: 2px;
+}
+
 /* ========================================
    SETTINGS POPOVER (Floating Island)
    ======================================== */
