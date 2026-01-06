@@ -12,18 +12,39 @@ type WTpair = {
     tabId: TabId
 }
 
+class TabManagerState {
+    globalNodeToTab: Map<NodeId, WTpair>;
+    globalNodeTabs: Map<NodeId, WTpair[]>;
+    globalTabToNode: Map<TabId, NodeId>;
+    globalLruOrder: TabId[];
+
+    constructor() {
+        this.globalNodeToTab = new Map<NodeId, WTpair>();
+        this.globalNodeTabs = new Map<NodeId, WTpair[]>();
+        this.globalTabToNode = new Map<TabId, NodeId>();
+        this.globalLruOrder = [];
+    }
+
+    // todo: add methods to get, set, delete, etc. ???
+}
+
 
 export class TabManager {
-    static globalNodeToTab: Map<NodeId, WTpair> = new Map<NodeId, WTpair>()
-    static globalNodeTabs: Map<NodeId, WTpair[]> = new Map<NodeId, WTpair[]>()
-    static globalTabToNode: Map<TabId, NodeId> = new Map<TabId, NodeId>()
-    static globalLruOrder: TabId[] = []
+    globalNodeToTab: Map<NodeId, WTpair>;
+    globalNodeTabs: Map<NodeId, WTpair[]>;
+    globalTabToNode: Map<TabId, NodeId>;
+    globalLruOrder: TabId[];
 
-    /**
-     * Register a tab for a node (global across windows).
-     * Reassigns the tab if it previously belonged to another node.
-     */
-    static registerGlobal(nodeId: NodeId, windowId: WindowId, tabId: TabId) {
+    constructor() {
+        this.globalNodeToTab = new Map<NodeId, WTpair>();
+        this.globalNodeTabs = new Map<NodeId, WTpair[]>();
+        this.globalTabToNode = new Map<TabId, NodeId>();
+        this.globalLruOrder = [];
+    }
+
+    // Register a tab for a node (global across windows).
+    // Reassigns the tab if it previously belonged to another node.
+    registerGlobal(nodeId: NodeId, windowId: WindowId, tabId: TabId) {
       const previousNodeId = this.globalTabToNode.get(tabId);
   
       if (previousNodeId !== undefined) {
@@ -55,7 +76,7 @@ export class TabManager {
     }
   
     // Ensure the node has a tab list and return it.
-    private static _ensureNodeTabs(nodeId: NodeId): WTpair[] | undefined {
+    private _ensureNodeTabs(nodeId: NodeId): WTpair[] | undefined {
       if (!this.globalNodeTabs.has(nodeId)) {
         this.globalNodeTabs.set(nodeId, []);
         }
@@ -63,7 +84,7 @@ export class TabManager {
     }
   
     // Remove a tab from a node's tab list.
-    private static _removeTabFromNodeGlobal(nodeId: NodeId, tabId: TabId) {
+    private _removeTabFromNodeGlobal(nodeId: NodeId, tabId: TabId) {
       const tabs = this.globalNodeTabs.get(nodeId);
       if (!tabs) return;
   
@@ -79,21 +100,21 @@ export class TabManager {
     }
   
     // Get the first tab entry for a node (or null).
-    private static _getFirstTabForNode(nodeId: NodeId): WTpair | null {
+    private _getFirstTabForNode(nodeId: NodeId): WTpair | null {
       const tabs = this.globalNodeTabs.get(nodeId);
       return tabs?.[0] || null;
     }
   
     // Get all tabs for a node across all windows.
-    static getTabsForNode(nodeId: NodeId): WTpair[] {
+    getTabsForNode(nodeId: NodeId): WTpair[] {
       return this.globalNodeTabs.get(nodeId) || [];
     }
   
-    static getTabCountForNode(nodeId: NodeId): number {
+    getTabCountForNode(nodeId: NodeId): number {
       return this.getTabsForNode(nodeId).length;
     }
   
-    static getNextTabForNode(nodeId: NodeId, currentTabId: TabId | null = null): WTpair | null {
+    getNextTabForNode(nodeId: NodeId, currentTabId: TabId | null = null): WTpair | null {
       const tabs = this.getTabsForNode(nodeId);
       if (tabs.length <= 1) return null;
   
@@ -109,7 +130,7 @@ export class TabManager {
     }
   
     // Mark a tab as recently used in global LRU.
-    static touchGlobal(tabId: TabId) {
+    touchGlobal(tabId: TabId) {
       const index = this.globalLruOrder.indexOf(tabId);
       if (index > -1) {
         this.globalLruOrder.splice(index, 1);
@@ -118,7 +139,7 @@ export class TabManager {
     }
   
     // Remove a tab from global LRU.
-    private static _removeFromGlobalLru(tabId: TabId) {
+    private _removeFromGlobalLru(tabId: TabId) {
       const index = this.globalLruOrder.indexOf(tabId);
       if (index > -1) {
         this.globalLruOrder.splice(index, 1);
@@ -126,7 +147,7 @@ export class TabManager {
     }
   
     // Get the primary tab for a node.
-    static getTabForNodeGlobal(nodeId: NodeId): WTpair | null {
+    getTabForNodeGlobal(nodeId: NodeId): WTpair | null {
       const primary = this.globalNodeToTab.get(nodeId);
       if (primary) return primary;
       const fallback = this._getFirstTabForNode(nodeId);
@@ -134,13 +155,13 @@ export class TabManager {
     }
   
     // Get the node ID for a tab (global mode).
-    static getNodeForTabGlobal(tabId: TabId): NodeId | null {
+    getNodeForTabGlobal(tabId: TabId): NodeId | null {
       const nodeId = this.globalTabToNode.get(tabId);
       return nodeId !== undefined ? nodeId : null;
     }
   
     // Get all nodes that currently have at least one open tab.
-    static getAllOpenNodes(): Set<NodeId> {
+    getAllOpenNodes(): Set<NodeId> {
       const openNodes = new Set<NodeId>();
       for (const nodeId of this.globalNodeToTab.keys() as Iterable<NodeId>) {
         openNodes.add(nodeId);
@@ -152,7 +173,7 @@ export class TabManager {
     }
   
     // Unregister a tab (when it is closed).
-    static unregisterGlobal(tabId: TabId) {
+    unregisterGlobal(tabId: TabId) {
       const nodeId = this.globalTabToNode.get(tabId);
       if (nodeId !== undefined) {
         const primary = this.globalNodeToTab.get(nodeId);
@@ -173,7 +194,7 @@ export class TabManager {
     }
   
     // Update stored windowId for a tab (when moved between windows).
-    static updateTabWindow(tabId: TabId, newWindowId: WindowId) {
+    updateTabWindow(tabId: TabId, newWindowId: WindowId) {
       const nodeId = this.globalTabToNode.get(tabId);
       if (nodeId === undefined) return;
   
@@ -192,7 +213,7 @@ export class TabManager {
     }
   
     // Close oldest tab globally if the limit is exceeded (skips pinned nodes).
-    static async closeOldestGlobalIfNeeded(limit: number, tree: NavigationTree | null = null): Promise<TabId | null> {
+    async closeOldestGlobalIfNeeded(limit: number, tree: NavigationTree | null = null): Promise<TabId | null> {
       if (limit === 0) return null; // Unlimited
   
       const count = this.globalTabToNode.size;
@@ -222,8 +243,8 @@ export class TabManager {
     }
   
     // Serialize state for debugging.
-    static toJSON(): TabManagerState {
-      const result: TabManagerState = {
+    toJSON(): TabManagerStateDebug {
+      const result: TabManagerStateDebug = {
         globalNodeToTab: {},
         globalNodeTabs: {},
         globalTabToNode: {},
@@ -244,11 +265,14 @@ export class TabManager {
   
       return result;
     }
+
   }
 
-export type TabManagerState = {
+export type TabManagerStateDebug = {
     globalNodeToTab: Record<NodeId, WTpair>,
     globalNodeTabs: Record<NodeId, WTpair[]>,
     globalTabToNode: Record<TabId, NodeId>,
     globalLruOrder: TabId[]
 }
+
+export const tabManager = new TabManager();
