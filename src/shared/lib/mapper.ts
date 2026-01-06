@@ -1,4 +1,4 @@
-import { TreeEntry, TreeNode, TreeNodeJSON } from "./node";
+import { TreeEntry, TreeNode, TreeNodeJSON } from "../types/node";
 
 export class TreeNodeMapper {
     static fromJSON(

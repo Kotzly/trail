@@ -14,5 +14,9 @@ export function now(): Timestamp {
     return Date.now() as Timestamp;
 }
 
+export function urlToTitle(url: Url): Title {
+    return url as unknown as Title;
+}
+
 export type JSONString = Brand<string, "JSONString">;
 export type Description = Brand<string, "Description">;

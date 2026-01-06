@@ -1,4 +1,4 @@
-import { formatUrl, escapeHtml } from './render';
+import { formatUrl, escapeHtml } from '../sidepanel/ui/shared/format';
 
 // Predefined tags with colors
 export const TAG_PRESETS = [ // fixme: tags must be configurable

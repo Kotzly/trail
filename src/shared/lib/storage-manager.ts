@@ -1,4 +1,4 @@
-import { NavigationTree } from './tree.js';
+import { NavigationTree } from '../../background/state/tree-store';
 
 /**
  * Theme options.

@@ -1,6 +1,6 @@
-import { storageManager } from './lib/storage-manager.js';
-import { tabManager } from './lib/tab-manager.js';
-import * as undoManager from './lib/command-manager.js';
+import { storageManager } from '../shared/lib/storage-manager';
+import { tabManager } from './state/tab-manager';
+import * as undoManager from '../shared/lib/commands';
 
 /**
  * Service Worker for Trail extension.
