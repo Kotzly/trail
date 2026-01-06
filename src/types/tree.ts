@@ -138,6 +138,19 @@ export class NavigationTree {
         this.evictionPolicy.enforce(this);
         return child;
     }
+
+    findById(id: NodeId): TreeNode | null {
+        const find = (node: TreeNode | null): TreeNode | null => {
+            if (!node) return null;
+            if (node.id === id) return node;
+            for (const child of node.children) {
+                const found = find(child);
+                if (found) return found;
+            }
+            return null;
+        }
+        return find(this.root);
+      }
 }
 
 
@@ -492,12 +505,6 @@ export class NavigationTree {
 //       return null;
 //     }
   
-//     /**
-//      * Alias for findNodeById.
-//      */
-//     findById(id) {
-//       return this.findNodeById(id);
-//     }
   
 //     /**
 //      * Find node by ID recursively within a subtree.
