@@ -1,0 +1,20 @@
+{
+  "name": "trail",
+  "version": "1.0.0",
+  "description": "Trail is a browser extension for Chrome/Brave that visualizes your browsing history as an interactive navigation tree. Instead of a linear history, Trail shows how you actually browse - with branches, forks, and parallel explorations.",
+  "main": "service-worker.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/chrome": "^0.1.32",
+    "typescript": "^5.9.3"
+  }
+}
