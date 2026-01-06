@@ -1,30 +1,21 @@
 import { TreeEntry, TreeNode, TreeNodeJSON } from "./node";
-import { NodeId, Tag } from "./ids";
 
 export class TreeNodeMapper {
     static fromJSON(
         json: TreeNodeJSON,
-        parent?: TreeNode,
-        allocateId: (id: NodeId) => NodeId = id => id as NodeId
+        parent: TreeNode | null = null,
     ): TreeNode {
         const node = new TreeNode(
-            allocateId(json.id),
-            {
-                url: json.url,
-                title: json.title,
-                favicon: json.favicon
-            } as TreeEntry,
-            json.timestamp
-        )
-        if (parent) {
-            node.parent = parent;
-        }
+            { url: json.url, title: json.title, favicon: json.favicon } as TreeEntry,
+        );
+        (node as any).id = json.id;
+        (node as any).timestamp = json.timestamp;
+        node.parent = parent;
         node.collapsed = json.collapsed;
         node.pinned = json.pinned;
-        node.tags = json.tags;
+        node.tags = [...json.tags];
 
-        const children = Array.isArray(json.children) ? json.children : [];
-        node.children = children.map(child => TreeNodeMapper.fromJSON(child, node, allocateId));
+        node.children = json.children.map(child => TreeNodeMapper.fromJSON(child, node));
         return node;
     }
 
@@ -37,7 +28,7 @@ export class TreeNodeMapper {
           timestamp: node.timestamp,
           pinned: node.pinned,
           collapsed: node.collapsed,
-          tags: node.tags,
+          tags: [...node.tags],
           children: node.children.map(TreeNodeMapper.toJSON)
         } as TreeNodeJSON;
       }

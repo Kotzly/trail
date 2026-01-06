@@ -11,10 +11,10 @@ export interface TreeEntry {
 
 export interface TreeNodeJSON {
     id: NodeId;
-    readonly url: Url;
-    readonly title: Title;
+    url: Url;
+    title: Title;
     favicon?: FaviconUrl;
-    readonly timestamp: Timestamp;
+    timestamp: Timestamp;
 
     pinned: boolean;
     tags: Tag[];
@@ -35,34 +35,36 @@ function nextNodeId(): NodeId {
 
 export class TreeNode {
     readonly id: NodeId;
+    readonly url: Url;
+    readonly timestamp: Timestamp;
 
-    url: Url;
     title: Title;
     favicon?: FaviconUrl;
-    timestamp: Timestamp;
-
-    parent: TreeNode | null;
-    children: TreeNode[];
 
     pinned: boolean;
     tags: Tag[];
     collapsed: boolean;
 
+    parent: TreeNode | null;
+    children: TreeNode[];
+
     constructor(
         entry: TreeEntry,
     ) {
         this.id = nextNodeId();
-        
         this.url = entry.url;
+        this.timestamp = now();
+
         this.title = entry.title ?? urlToTitle(entry.url);
-        if (entry.favicon) {
+        if (entry.favicon !== undefined) {
             this.favicon = entry.favicon;
         }
-        this.timestamp = now();
-        this.children = [];
+
         this.parent = null;
-        this.collapsed = false;
+        this.children = [];
+        
         this.pinned = false;
+        this.collapsed = false;
         this.tags = [];
     }
 
