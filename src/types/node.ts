@@ -31,22 +31,26 @@ export class TreeNode {
     favicon?: FaviconUrl;
     timestamp: Timestamp;
 
-    private parent?: TreeNode;
-    private children: TreeNode[];
+    parent?: TreeNode;
+    children: TreeNode[];
 
     pinned: boolean;
     tags: Tag[];
     collapsed: boolean;
 
-    constructor(entry: TreeEntry) {
-        this.id = ++nodeIdCounter as NodeId;
+    constructor(
+        id: NodeId,
+        entry: TreeEntry,
+        timestamp: Timestamp = Date.now() as Timestamp
+    ) {
+        this.id = id;
         
         this.url = entry.url;
         this.title = entry.title ?? urlToTitle(entry.url);
         if (entry.favicon) {
             this.favicon = entry.favicon;
         }
-        this.timestamp = Date.now() as Timestamp;
+        this.timestamp = timestamp;
         this.children = [];
         this.parent = undefined as unknown as TreeNode;
         this.collapsed = false;
@@ -55,48 +59,10 @@ export class TreeNode {
     }
 
 
-    addChild(entry: TreeEntry): TreeNode {
-        const child = new TreeNode(entry);
+    addChild(id: NodeId, entry: TreeEntry, ts: Timestamp = Date.now() as Timestamp): TreeNode {
+        const child = new TreeNode(id, entry, ts);
         child.parent = this;
         this.children.push(child);
         return child;
-    }
-
-    marshalJSON(): TreeNodeJSON {
-        return {
-        id: this.id,
-        url: this.url,
-        title: this.title,
-        favicon: this.favicon,
-        timestamp: this.timestamp,
-        collapsed: this.collapsed,
-        pinned: this.pinned,
-        tags: this.tags,
-        children: this.children.map(c => c.marshalJSON())
-        } as TreeNodeJSON;
-    }
-
-    static unmarshalJSON(json: TreeNodeJSON, parent: TreeNode | null = null): TreeNode {
-        const node = new TreeNode({
-        url: json.url,
-        title: json.title,
-        favicon: json.favicon,
-        } as TreeEntry);
-        
-        (node as any).id = json.id;
-        node.collapsed = json.collapsed;
-        node.pinned = json.pinned;
-        node.tags = json.tags as Tag[];
-        if (parent) {
-            node.parent = parent;
-        }
-        node.children = json.children.map(child => TreeNode.unmarshalJSON(child, node));
-        
-        // Update counter to avoid ID collisions
-        if (json.id >= nodeIdCounter) {
-            nodeIdCounter = json.id + 1 as NodeId;
-        }
-        
-        return node;
     }
 }
