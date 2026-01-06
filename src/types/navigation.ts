@@ -1,4 +1,4 @@
-import type { TabId, Url, NodeId } from "./ids";
+import type { TabId, Url } from "./ids";
 
 export type SidebarNavigationKey = `${TabId}:${Url}`;
 
