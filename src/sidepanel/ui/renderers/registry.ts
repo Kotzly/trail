@@ -1,17 +1,12 @@
 import type { NodeId } from "../../../shared/types/ids";
-import type { TreeNode } from "../../../shared/types/node";
+import type { TreeNode } from "../../../background/state/treenode";
+import type { NavigationTree } from "../../../background/state/tree-store";
 
 
 const RENDERERS: Record<ModeId, RenderFunc> = {};
 
 export type ModeId = string;
 
-export type TreeData = {
-    root?: TreeNode;
-    roots?: TreeNode[];
-    currentNodeId?: NodeId | null;
-    nodeCount?: number;
-}
 
 export type RendererOptions = {
     onNavigate: (node: TreeNode) => void;
@@ -25,7 +20,7 @@ export type TabState = {
     audible?: boolean;
 }
 
-export type RenderFunc = (treeData: TreeData, container: HTMLElement, options: RendererOptions) => NodeId | null;
+export type RenderFunc = (treeData: NavigationTree, container: HTMLElement, options: RendererOptions) => NodeId | null;
 
 export type Renderer = {
     modeId: ModeId;

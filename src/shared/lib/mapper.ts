@@ -1,4 +1,5 @@
-import { TreeEntry, TreeNode, TreeNodeJSON } from "../types/node";
+import { TreeEntry, TreeNodeJSON } from "../types/node";
+import { TreeNode } from "../../background/state/treenode";
 
 export class TreeNodeMapper {
     static fromJSON(json: TreeNodeJSON, parent: TreeNode | null = null): TreeNode {

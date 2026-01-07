@@ -1,4 +1,5 @@
 import type { Description, JSONString } from "../types/ids";
+import type { CommandState } from "../types/messages";
 import { NavigationTreeJSON } from "../types/tree";
 
 // max history stack size (todo: make this configurable by the user)
@@ -10,12 +11,6 @@ export type Snapshot = {
     description: Description;
 }
 
-export type CommandState = {
-    canUndo: boolean;
-    canRedo: boolean;
-    nextUndoDesc?: Description;
-    nextRedoDesc?: Description;
-}
 
 export class CommandManager {
     private static undoStack: Snapshot[] = [];

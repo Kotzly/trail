@@ -1,7 +1,7 @@
 import { THEME_IDS } from "../../sidepanel/ui/shared/themes";
 import type { Settings } from "../types/settings";
 
-const defaultSettings: Settings = {
+export const defaultSettings: Settings = {
     maxOpenTabs: 100,
     capacity: 1000,
     theme: THEME_IDS.SYSTEM,

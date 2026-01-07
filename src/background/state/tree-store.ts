@@ -1,5 +1,6 @@
 import type { NodeId } from "../../shared/types/ids";
-import { TreeNode, TreeEntry } from "../../shared/types/node";
+import { TreeEntry } from "../../shared/types/node";
+import { TreeNode } from "./treenode";
 import type { NavigationOptions } from "../../shared/types/tree";
 
 interface EvictionPolicy {
@@ -129,7 +130,7 @@ export class NavigationTree {
         return child;
     }
 
-    findById(id: NodeId): TreeNode | null {
+    findNodeByIdDFS(id: NodeId): TreeNode | null {
         const find = (node: TreeNode | null): TreeNode | null => {
             if (!node) return null;
             if (node.id === id) return node;
@@ -141,6 +142,46 @@ export class NavigationTree {
         }
         return find(this.root);
       }
+    
+    collectPinned(root: TreeNode | null = this.root): Set<TreeNode> {
+        if (!root) return new Set<TreeNode>();
+
+        const pinned: Set<TreeNode> = new Set<TreeNode>();
+        const visit = (node: TreeNode) => {
+            if (node.pinned) {
+                pinned.add(node);
+            }
+            for (const child of node.children) visit(child);
+        }
+        visit(root);
+        return pinned;
+    }
+
+    findNodesByQuery(query: string): NodeId[] {
+        const matches: NodeId[] = [];
+
+        const visit = (node: TreeNode) => {
+            if (!node) return;
+            const q = query.toLowerCase();
+            const title = (node.title || '').toLowerCase();
+            const url = (node.url || '').toLowerCase();
+            let domain = '';
+            try {
+                domain = new URL(node.url).hostname.toLowerCase();
+            } catch (e) {
+                console.error(`Error getting domain for url ${node.url}: ${e}`);
+                domain = '';
+            }
+            if (title.includes(query) || url.includes(query) || domain.includes(query)) {
+                matches.push(node.id);
+            }
+            for (const child of node.children) visit(child);
+        }
+
+        if (this.root) visit(this.root);
+        return matches;
+    }
+    
 }
 
 
