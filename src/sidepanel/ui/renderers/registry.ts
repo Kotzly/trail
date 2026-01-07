@@ -1,4 +1,4 @@
-import type { NodeId, Timestamp, Url, FaviconUrl } from "../../../shared/types/ids";
+import type { NodeId } from "../../../shared/types/ids";
 import type { TreeNode } from "../../../shared/types/node";
 
 
@@ -7,16 +7,17 @@ const RENDERERS: Record<ModeId, RenderFunc> = {};
 export type ModeId = string;
 
 export type TreeData = {
-    root: TreeNode;
-    currentNodeId?: NodeId;
+    root?: TreeNode;
+    roots?: TreeNode[];
+    currentNodeId?: NodeId | null;
+    nodeCount?: number;
 }
 
 export type RendererOptions = {
-    onNavigate: (nodeId: NodeId) => void;
-    openNodeIds: Set<NodeId>;
-    compactGraph: boolean;
+    onNavigate: (node: TreeNode) => void;
+    openNodeIds?: Set<NodeId> | null;
     tabStates?: Record<NodeId, TabState>;
-    showOrphanTrees: boolean;
+    nodeTabCounts?: Record<NodeId, number>;
 }
 
 export type TabState = {
@@ -24,7 +25,7 @@ export type TabState = {
     audible?: boolean;
 }
 
-export type RenderFunc = (treeData: TreeData, container: HTMLElement, options: RendererOptions) => void;
+export type RenderFunc = (treeData: TreeData, container: HTMLElement, options: RendererOptions) => NodeId | null;
 
 export type Renderer = {
     modeId: ModeId;

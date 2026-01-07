@@ -1,5 +1,3 @@
-export type ThemeId = 'light' | 'dark' | 'system';
-
 export type Theme = {
     id: ThemeId;
     label: string;
@@ -30,3 +28,12 @@ export const DEFAULT_THEME: ThemeId = 'system';
 export function getThemes(): Theme[] {
     return Object.values(THEMES);
 }
+
+
+export const THEME_IDS = {
+    LIGHT: 'light',
+    DARK: 'dark',
+    SYSTEM: 'system'
+  } as const;
+  
+export type ThemeId = typeof THEME_IDS[keyof typeof THEME_IDS];
