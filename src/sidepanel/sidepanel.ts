@@ -5,58 +5,44 @@
  */
 
 // Import renderer to register it
-import '../lib/graph-renderer.js';
-import { getRenderer } from '../lib/renderers.js';
-import { VIEW_MODE } from '../lib/view-modes.js';
-import { getGraphAPI } from '../lib/graph-renderer.js';
+import '../sidepanel/ui/graph/view/renderer';
+import { getRenderer, TreeData } from '../sidepanel/ui/renderers/registry';
+import { getGraphAPI } from '../sidepanel/ui/graph/state/graph-state';
+import type { NodeId } from '../shared/types/ids';
+import type { TreeNode } from '../shared/types/node';
+import type { Settings } from '../shared/types/settings';
+import { ThemeId } from './ui/shared/themes';
+import { RequestMessage, ResponseMessage, NavigateToMessage, MSG, msg } from '../shared/types/messages';
+import { TabState } from '../shared/types/tabs';
 
-let currentTabId = null;
-let currentWindowId = null;
-let settings = null;
-let currentNodeId = null; // Track which node is currently active
-let previousNodeId = null; // Track previous node for center animation
-let openNodeIds = new Set(); // Nodes with open tabs (multi-tab mode)
-let isMultiTabMode = false; // Whether multi-tab is enabled for current window
-let lastTreeData = null; // Store tree data for search
+let settings: Settings | null = null;
+let currentNodeId: NodeId | null = null; // Track which node is currently active
+let previousNodeId: NodeId | null = null; // Track previous node for center animation
+let openNodeIds = new Set<NodeId>(); // Nodes with open tabs (multi-tab mode)
+let lastTreeData: TreeData | null = null; // Store tree data for search
 
 // Search state
-let searchResults = []; // Array of matching node IDs
+let searchResults: NodeId[] = []; // Array of matching node IDs
 let searchIndex = 0; // Current focused result index
 let searchQuery = ''; // Current search query
 
 // Pinned dropdown state
-let pinnedNodes = []; // Array of pinned nodes
+let pinnedNodes: TreeNode[] = []; // Array of pinned nodes
 let pinnedFocusIndex = -1; // Current focused index in dropdown
 let pinnedDropdownOpen = false;
 
-const DEFAULT_SETTINGS = {
-  maxCachedLinks: 10,
-  stackCapacity: 100,
-  theme: 'system',
-  multiTabLimit: 0,
-  compactGraph: false,
-  showOrphanTrees: true
-};
 
-/**
- * Apply theme to document.
- * @param {string} theme
- */
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme || 'system');
+function applyTheme(theme: ThemeId): void {
+  document.documentElement.setAttribute('data-theme', theme as string);
 }
 
-/**
- * Send message to service worker.
- * @param {object} message
- * @returns {Promise<any>}
- */
-async function sendMessage(message) {
+// Send message to service worker.
+async function sendMessage(message: RequestMessage): Promise<ResponseMessage> {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
+    chrome.runtime.sendMessage(message, (response: ResponseMessage) => {
       if (chrome.runtime.lastError) {
         reject(chrome.runtime.lastError);
-      } else if (response?.success) {
+      } else if (response.success) {
         resolve(response);
       } else {
         reject(new Error(response?.error || 'Unknown error'));
@@ -65,51 +51,41 @@ async function sendMessage(message) {
   });
 }
 
-/**
- * Handle navigation to a node (used by renderers).
- * @param {object} node - The node to navigate to
- */
-async function handleNodeNavigation(node) {
+// Handle navigation to a node (used by renderers).
+async function handleNodeNavigation(node: TreeNode): Promise<void> {
   try {
-    // Always send windowId and tabId - service worker decides the mode
-    await sendMessage({
-      type: 'NAVIGATE_TO',
-      windowId: currentWindowId,
-      tabId: currentTabId,
-      url: node.url,
-      nodeId: node.id
-    });
-
+    const response = await sendMessage(msg.navigateTo({ url: node.url, nodeId: node.id }));
+    if (!response.success) {
+      console.error('sidepanel.handleNodeNavigation: Navigation failed:', response.error || 'unknown error');
+      return;
+    }
     updateCurrentSelection(node.id);
   } catch (error) {
     console.error('Navigation failed:', error);
   }
 }
 
-/**
- * Update visual selection to show current node.
- * @param {number} nodeId - ID of the current node
- */
-function updateCurrentSelection(nodeId) {
+//  Update visual selection to show current node.
+function updateCurrentSelection(nodeId: NodeId): void {
   currentNodeId = nodeId;
-  // Update both tree-node and stack-entry elements
-  const nodes = document.querySelectorAll('.tree-node, .stack-entry');
+  const nodes = document.querySelectorAll('.tree-node');
   nodes.forEach(node => {
-    const id = parseInt(node.dataset.nodeId, 10);
+    const element = node as HTMLElement;
+    const id = parseInt(element.dataset.nodeId || '0', 10) as NodeId;
     node.classList.toggle('current', id === nodeId);
   });
 }
 
 // Tab states (muted, audible) for nodes
-let tabStates = {};
+let tabStates: Record<NodeId, TabState> = {};
 
-/**
- * Render the navigation data using the current view mode.
- * @param {object} treeData - Serialized tree data
- * @param {number[]} [openNodes] - IDs of nodes with open tabs (multi-tab mode)
- * @param {object} [states] - Tab states (muted, audible) by nodeId
- */
-function renderView(treeData, openNodes = null, states = null, nodeTabCounts = null) {
+// Render the navigation data using the current view mode.
+function renderView(
+  treeData: any,
+  openNodes: NodeId[] | null = null,
+  states: Record<NodeId, TabState> | null = null,
+  nodeTabCounts: Record<NodeId, number> | null = null
+): void {
   const stackList = document.getElementById('stackList');
   const emptyState = document.getElementById('emptyState');
   const stackCount = document.getElementById('stackCount');
@@ -131,36 +107,33 @@ function renderView(treeData, openNodes = null, states = null, nodeTabCounts = n
   
   // Update count (always multi-tab mode)
   const openCount = openNodeIds.size;
-  stackCount.textContent = `${nodeCount} page${nodeCount !== 1 ? 's' : ''} (${openCount} open)`;
-  
-  // Always use graph view mode
-  const viewMode = VIEW_MODE.GRAPH;
+  if (stackCount) {
+    stackCount.textContent = `${nodeCount} page${nodeCount !== 1 ? 's' : ''} (${openCount} open)`;
+  }
   
   if (!treeData?.root && !treeData?.roots) {
     // Graph view: just hide empty state and show empty canvas
-    emptyState.classList.add('hidden');
-    stackList.innerHTML = '';
+    if (emptyState) emptyState.classList.add('hidden');
+    if (stackList) stackList.innerHTML = '';
     
     // Render empty graph canvas
     const renderer = getRenderer(viewMode);
-    if (renderer) {
+    if (renderer && stackList) {
       renderer({ roots: [], nodeCount: 0 }, stackList, {
         onNavigate: handleNodeNavigation,
         openNodeIds: openNodeIds,
-        compactGraph: settings?.compactGraph || false,
         tabStates: tabStates || {},
-        showOrphanTrees: settings?.showOrphanTrees !== false
       });
     }
     return;
   }
   
-  emptyState.classList.add('hidden');
+  if (emptyState) emptyState.classList.add('hidden');
   
   // Get the graph renderer
   const renderer = getRenderer(viewMode);
   
-  if (!renderer) {
+  if (!renderer || !stackList) {
     console.error(`No renderer found for view mode: ${viewMode}`);
     return;
   }
@@ -168,16 +141,13 @@ function renderView(treeData, openNodes = null, states = null, nodeTabCounts = n
   // Render using graph view mode
   const newNodeId = renderer(treeData, stackList, {
     onNavigate: handleNodeNavigation,
-    openNodeIds: openNodeIds,
-    compactGraph: settings?.compactGraph || false,
-    tabStates: tabStates || {},
-    selectionMenuInstant: settings?.selectionMenuInstant || false,
-    nodeTabCounts: nodeTabCounts || {}, // Pass tab counts for badge display
-    showOrphanTrees: settings?.showOrphanTrees !== false
+        openNodeIds: openNodeIds,
+        tabStates: tabStates || {},
+        nodeTabCounts: nodeTabCounts || {}
   });
   
   // Check if current node changed (navigation happened)
-  const nodeChanged = previousNodeId !== null && newNodeId !== previousNodeId;
+  const nodeChanged = previousNodeId !== null && newNodeId !== null && newNodeId !== previousNodeId;
   previousNodeId = newNodeId;
   currentNodeId = newNodeId;
 
@@ -194,7 +164,7 @@ function renderView(treeData, openNodes = null, states = null, nodeTabCounts = n
 /**
  * Scroll the container to show the current node.
  */
-function scrollToCurrentNode() {
+function scrollToCurrentNode(): void {
   const currentNode = document.querySelector('.tree-node.current, .stack-entry.current');
   if (currentNode) {
     currentNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -204,25 +174,24 @@ function scrollToCurrentNode() {
 /**
  * Verify that tree.currentNodeId matches the active tab.
  * If not, update tree.currentNodeId to match active tab to prevent incorrect focus.
- * @param {object} treeData - Tree data from service worker
- * @returns {Promise<void>}
  */
-async function verifyAndUpdateCurrentNode(treeData) {
+async function verifyAndUpdateCurrentNode(treeData: any): Promise<void> {
   try {
     // Get current active tab
-    const { tab } = await sendMessage({ type: 'GET_CURRENT_TAB' });
-    if (!tab?.id) return;
+    const response = await sendMessage({ type: 'GET_CURRENT_TAB' }) as { tab?: chrome.tabs.Tab };
+    if (!response.tab?.id) return;
     
     // Get nodeId for active tab
-    const response = await sendMessage({ 
+    const treeResponse = await sendMessage({ 
       type: 'GET_TREE', 
-      tabId: tab.id 
-    });
+      tabId: response.tab.id 
+    }) as { tree?: { currentNodeId?: NodeId | null } };
     
     // The response contains the correct currentNodeId for this tab
     // Update treeData to use the correct currentNodeId
-    if (response.tree?.currentNodeId !== null && response.tree?.currentNodeId !== treeData.currentNodeId) {
-      treeData.currentNodeId = response.tree.currentNodeId;
+    if (treeResponse.tree?.currentNodeId !== null && treeResponse.tree?.currentNodeId !== undefined && 
+        treeResponse.tree?.currentNodeId !== treeData.currentNodeId) {
+      treeData.currentNodeId = treeResponse.tree.currentNodeId;
     }
   } catch (error) {
     console.debug('Error verifying currentNode:', error);
@@ -232,32 +201,37 @@ async function verifyAndUpdateCurrentNode(treeData) {
 /**
  * Load and display tree for current tab/window.
  */
-async function loadCurrentTab() {
+async function loadCurrentTab(): Promise<void> {
   try {
     // Get current tab
-    const { tab } = await sendMessage({ type: 'GET_CURRENT_TAB' });
+    const tabResponse = await sendMessage({ type: 'GET_CURRENT_TAB' }) as { tab?: chrome.tabs.Tab };
     
-    if (!tab?.id) {
+    if (!tabResponse.tab?.id) {
       console.error('No current tab found');
       return;
     }
     
-    currentTabId = tab.id;
-    currentWindowId = tab.windowId;
+    currentTabId = tabResponse.tab.id;
+    currentWindowId = tabResponse.tab.windowId ?? null;
     
     // Load settings
-    const settingsResponse = await sendMessage({ type: 'GET_SETTINGS' });
+    const settingsResponse = await sendMessage({ type: 'GET_SETTINGS' }) as { settings: Settings };
     settings = settingsResponse.settings;
     
     // Apply theme
     applyTheme(settings.theme);
     
     // Load tree (always per-window now)
-    const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
+    const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId }) as {
+      tree: any;
+      openNodeIds?: NodeId[];
+      tabStates?: Record<NodeId, { muted?: boolean; audible?: boolean }>;
+      nodeTabCounts?: Record<NodeId, number>;
+    };
     
     // Always multi-tab mode
     isMultiTabMode = true;
-    renderView(response.tree, response.openNodeIds, response.tabStates, response.nodeTabCounts);
+    renderView(response.tree, response.openNodeIds || null, response.tabStates || null, response.nodeTabCounts || null);
   } catch (error) {
     console.error('Failed to load current tab:', error);
   }
@@ -266,33 +240,39 @@ async function loadCurrentTab() {
 /**
  * Initialize event listeners.
  */
-function initEventListeners() {
+function initEventListeners(): void {
   // Undo button
-  document.getElementById('undoBtn').addEventListener('click', async () => {
+  const undoBtn = document.getElementById('undoBtn');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', async () => {
     try {
-      const response = await sendMessage({ type: 'UNDO' });
-      if (response.success) {
+      const response = await sendMessage({ type: 'UNDO' }) as { success: boolean; state?: any };
+      if (response.success && response.state) {
         updateUndoRedoButtons(response.state);
       }
     } catch (error) {
       console.error('Failed to undo:', error);
     }
-  });
+    });
+  }
   
   // Redo button
-  document.getElementById('redoBtn').addEventListener('click', async () => {
+  const redoBtn = document.getElementById('redoBtn');
+  if (redoBtn) {
+    redoBtn.addEventListener('click', async () => {
     try {
-      const response = await sendMessage({ type: 'REDO' });
-      if (response.success) {
+      const response = await sendMessage({ type: 'REDO' }) as { success: boolean; state?: any };
+      if (response.success && response.state) {
         updateUndoRedoButtons(response.state);
       }
     } catch (error) {
       console.error('Failed to redo:', error);
     }
-  });
+    });
+  }
   
   // Keyboard shortcuts for undo/redo
-  document.addEventListener('keydown', async (e) => {
+  document.addEventListener('keydown', async (e: KeyboardEvent) => {
     // Check for Cmd/Ctrl+Z (undo) or Cmd/Ctrl+Shift+Z (redo)
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
@@ -300,8 +280,8 @@ function initEventListeners() {
       if (e.shiftKey) {
         // Redo
         try {
-          const response = await sendMessage({ type: 'REDO' });
-          if (response.success) {
+          const response = await sendMessage({ type: 'REDO' }) as { success: boolean; state?: any };
+          if (response.success && response.state) {
             updateUndoRedoButtons(response.state);
           }
         } catch (error) {
@@ -310,8 +290,8 @@ function initEventListeners() {
       } else {
         // Undo
         try {
-          const response = await sendMessage({ type: 'UNDO' });
-          if (response.success) {
+          const response = await sendMessage({ type: 'UNDO' }) as { success: boolean; state?: any };
+          if (response.success && response.state) {
             updateUndoRedoButtons(response.state);
           }
         } catch (error) {
@@ -322,27 +302,34 @@ function initEventListeners() {
   });
   
   // Pinned dropdown button
-  document.getElementById('pinnedBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    togglePinnedDropdown();
-  });
+  const pinnedBtn = document.getElementById('pinnedBtn');
+  if (pinnedBtn) {
+    pinnedBtn.addEventListener('click', (e: MouseEvent) => {
+      e.stopPropagation();
+      togglePinnedDropdown();
+    });
+  }
   
   // Close pinned dropdown when clicking outside
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e: MouseEvent) => {
     const dropdown = document.getElementById('pinnedDropdown');
-    const pinnedBtn = document.getElementById('pinnedBtn');
-    if (pinnedDropdownOpen && !dropdown.contains(e.target) && !pinnedBtn.contains(e.target)) {
+    const pinnedBtnEl = document.getElementById('pinnedBtn');
+    const target = e.target as Node | null;
+    if (pinnedDropdownOpen && dropdown && pinnedBtnEl && target && 
+        !dropdown.contains(target) && !pinnedBtnEl.contains(target)) {
       closePinnedDropdown();
     }
   });
   
   // Keyboard navigation for pinned dropdown
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
     handlePinnedDropdownKeydown(e);
   });
   
   // Clear button
-  document.getElementById('clearBtn').addEventListener('click', async () => {
+  const clearBtn = document.getElementById('clearBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', async () => {
     if (!currentTabId) return;
     
     try {
@@ -350,21 +337,27 @@ function initEventListeners() {
     } catch (error) {
       console.error('Failed to clear tree:', error);
     }
-  });
+    });
+  }
   
   // Settings button - toggle settings popover at click position
-  document.getElementById('settingsBtn').addEventListener('click', (e) => {
-    toggleSettingsPopover(e);
-  });
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', (e: MouseEvent) => {
+      toggleSettingsPopover(e);
+    });
+  }
   
   // Close popover when clicking outside
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', (e: MouseEvent) => {
     const popover = document.getElementById('settingsPopover');
-    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsBtnEl = document.getElementById('settingsBtn');
+    const target = e.target as Node | null;
     
-    if (!popover.classList.contains('hidden') && 
-        !popover.contains(e.target) && 
-        !settingsBtn.contains(e.target)) {
+    if (popover && settingsBtnEl && target &&
+        !popover.classList.contains('hidden') && 
+        !popover.contains(target) && 
+        !settingsBtnEl.contains(target)) {
       popover.classList.add('hidden');
     }
   });
@@ -373,154 +366,134 @@ function initEventListeners() {
   document.querySelectorAll('.settings-category .category-header').forEach((header, index) => {
     // Expand first category by default
     if (index === 0) {
-      header.closest('.settings-category').classList.add('expanded');
+      const category = header.closest('.settings-category') as HTMLElement | null;
+      if (category) {
+        category.classList.add('expanded');
+      }
     }
     
     header.addEventListener('click', () => {
-      const category = header.closest('.settings-category');
-      category.classList.toggle('expanded');
+      const category = header.closest('.settings-category') as HTMLElement | null;
+      if (category) {
+        category.classList.toggle('expanded');
+      }
     });
   });
   
   // Theme icon clicks - save immediately
   document.querySelectorAll('#themeIcons .popover-icon-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const theme = btn.dataset.theme;
-      updateThemeIcons(theme);
-      applyTheme(theme);
-      await saveSettingsQuick({ theme });
+    const btnEl = btn as HTMLElement;
+    btnEl.addEventListener('click', async () => {
+      const theme = btnEl.dataset.theme;
+      if (theme) {
+        updateThemeIcons(theme);
+        applyTheme(theme);
+        await saveSettingsQuick({ theme: theme as Settings['theme'] });
+      }
     });
   });
+
   
-  // Multi-Tab limit input
-  const multiTabLimit = document.getElementById('multiTabLimit');
-  let limitTimeout = null;
-  
-  multiTabLimit.addEventListener('input', () => {
-    // Debounce the save
-    if (limitTimeout) clearTimeout(limitTimeout);
-    limitTimeout = setTimeout(async () => {
-      const limit = Math.max(0, parseInt(multiTabLimit.value, 10) || 0);
-      await saveSettingsQuick({ multiTabLimit: limit });
-    }, 300);
-  });
-  
-  // Show Orphan Trees toggle
-  const showOrphanTreesToggle = document.getElementById('showOrphanTreesToggle');
-  
-  showOrphanTreesToggle.addEventListener('change', async () => {
-    const enabled = showOrphanTreesToggle.checked;
-    await saveSettingsQuick({ showOrphanTrees: enabled });
-    
-    // Re-render to apply setting
-    if (currentTabId) {
-      const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
-      renderView(response.tree, response.openNodeIds, response.tabStates, response.nodeTabCounts);
-    }
-  });
-  
-  // Compact Graph toggle
-  const compactGraphToggle = document.getElementById('compactGraphToggle');
-  const compactGraphOption = document.getElementById('compactGraphOption');
-  
-  compactGraphToggle.addEventListener('change', async () => {
-    const enabled = compactGraphToggle.checked;
-    await saveSettingsQuick({ compactGraph: enabled });
-    
-    // Re-render to apply compact mode
-    if (currentTabId) {
-      const response = await sendMessage({ type: 'GET_TREE', tabId: currentTabId });
-      if (response.multiTabMode) {
-        renderView(response.tree, response.openNodeIds, response.tabStates);
-      } else {
-        renderView(response.tree);
-      }
-    }
-  });
-  
+
   // Selection Menu Instant toggle
-  const selectionMenuToggle = document.getElementById('selectionMenuToggle');
+  const selectionMenuToggle = document.getElementById('selectionMenuToggle') as HTMLInputElement | null;
   
-  selectionMenuToggle.addEventListener('change', async () => {
-    const enabled = selectionMenuToggle.checked;
-    await saveSettingsQuick({ selectionMenuInstant: enabled });
-  });
+  if (selectionMenuToggle) {
+    selectionMenuToggle.addEventListener('change', async () => {
+      const enabled = selectionMenuToggle.checked;
+      await saveSettingsQuick({ selectionMenuInstant: enabled as false });
+    });
+  }
   
   // Feature flag toggles
-  const enableSearchToggle = document.getElementById('enableSearchToggle');
-  const enablePinNodesToggle = document.getElementById('enablePinNodesToggle');
-  const enableTagsToggle = document.getElementById('enableTagsToggle');
+  const enableSearchToggle = document.getElementById('enableSearchToggle') as HTMLInputElement | null;
+  const enablePinNodesToggle = document.getElementById('enablePinNodesToggle') as HTMLInputElement | null;
+  const enableTagsToggle = document.getElementById('enableTagsToggle') as HTMLInputElement | null;
+  const pinSyncBrowserToggle = document.getElementById('pinSyncBrowserToggle') as HTMLInputElement | null;
   
-  enableSearchToggle.addEventListener('change', async () => {
-    const enabled = enableSearchToggle.checked;
-    await saveSettingsQuick({ enableSearch: enabled });
-    updateFeatureUI(enabled, enablePinNodesToggle.checked, enableTagsToggle.checked, pinSyncBrowserToggle.checked);
-  });
-  
-  enablePinNodesToggle.addEventListener('change', async () => {
-    const enabled = enablePinNodesToggle.checked;
-    await saveSettingsQuick({ enablePinNodes: enabled });
-    // Show/hide pin sync option based on Pin Nodes toggle
-    const pinSyncOption = document.getElementById('pinSyncOption');
-    const pinSyncHint = document.getElementById('pinSyncHint');
-    if (pinSyncOption) pinSyncOption.classList.toggle('hidden', !enabled);
-    if (pinSyncHint) pinSyncHint.classList.toggle('hidden', !enabled);
-  });
-  
-  // Pin sync with browser toggle
-  const pinSyncBrowserToggle = document.getElementById('pinSyncBrowserToggle');
-  pinSyncBrowserToggle.addEventListener('change', async () => {
-    const enabled = pinSyncBrowserToggle.checked;
-    await saveSettingsQuick({ pinSyncBrowser: enabled });
-  });
-  
-  enableTagsToggle.addEventListener('change', async () => {
-    const enabled = enableTagsToggle.checked;
-    await saveSettingsQuick({ enableTags: enabled });
-  });
+  if (enableSearchToggle && enablePinNodesToggle && enableTagsToggle && pinSyncBrowserToggle) {
+    enableSearchToggle.addEventListener('change', async () => {
+      const enabled = enableSearchToggle.checked;
+      await saveSettingsQuick({ enableSearch: enabled as true });
+      updateFeatureUI(enabled, enablePinNodesToggle.checked, enableTagsToggle.checked, pinSyncBrowserToggle.checked);
+    });
+    
+    enablePinNodesToggle.addEventListener('change', async () => {
+      const enabled = enablePinNodesToggle.checked;
+      await saveSettingsQuick({ enablePinNodes: enabled as true });
+      // Show/hide pin sync option based on Pin Nodes toggle
+      const pinSyncOption = document.getElementById('pinSyncOption');
+      const pinSyncHint = document.getElementById('pinSyncHint');
+      if (pinSyncOption) pinSyncOption.classList.toggle('hidden', !enabled);
+      if (pinSyncHint) pinSyncHint.classList.toggle('hidden', !enabled);
+    });
+    
+    // Pin sync with browser toggle
+    pinSyncBrowserToggle.addEventListener('change', async () => {
+      const enabled = pinSyncBrowserToggle.checked;
+      await saveSettingsQuick({ pinSyncBrowser: enabled as false });
+    });
+    
+    enableTagsToggle.addEventListener('change', async () => {
+      const enabled = enableTagsToggle.checked;
+      await saveSettingsQuick({ enableTags: enabled as true });
+    });
+  }
   
   // Search functionality
-  const searchInput = document.getElementById('searchInput');
+  const searchInput = document.getElementById('searchInput') as HTMLInputElement | null;
   const searchClear = document.getElementById('searchClear');
   const searchPrev = document.getElementById('searchPrev');
   const searchNext = document.getElementById('searchNext');
   
-  let searchDebounce = null;
+  let searchDebounce: ReturnType<typeof setTimeout> | null = null;
   
-  searchInput.addEventListener('input', (e) => {
-    clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(() => {
-      performSearch(e.target.value);
-    }, 150);
-  });
+  if (searchInput) {
+    searchInput.addEventListener('input', (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      if (searchDebounce) clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        performSearch(target.value);
+      }, 150);
+    });
+  }
   
-  searchClear.addEventListener('click', () => {
-    clearSearch();
-    searchInput.focus();
-  });
+  if (searchClear && searchInput) {
+    searchClear.addEventListener('click', () => {
+      clearSearch();
+      searchInput.focus();
+    });
+  }
   
-  searchPrev.addEventListener('click', () => {
-    focusSearchResult(searchIndex - 1);
-  });
+  if (searchPrev) {
+    searchPrev.addEventListener('click', () => {
+      focusSearchResult(searchIndex - 1);
+    });
+  }
   
-  searchNext.addEventListener('click', () => {
-    focusSearchResult(searchIndex + 1);
-  });
+  if (searchNext) {
+    searchNext.addEventListener('click', () => {
+      focusSearchResult(searchIndex + 1);
+    });
+  }
   
   // Keyboard shortcuts for search
-  searchInput.addEventListener('keydown', (e) => {
+  if (searchInput) {
+    searchInput.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (searchResults.length > 0) {
         const nodeId = searchResults[searchIndex];
-        if (e.shiftKey) {
-          // Shift+Enter: open in new tab
-          chrome.runtime.sendMessage({ type: 'OPEN_IN_NEW_TAB', nodeId });
-        } else {
-          // Enter: navigate to the node
-          const node = findNodeById(lastTreeData, nodeId);
-          if (node) {
-            handleNodeNavigation(node);
+        if (nodeId !== undefined) {
+          if (e.shiftKey) {
+            // Shift+Enter: open in new tab
+            chrome.runtime.sendMessage({ type: 'OPEN_IN_NEW_TAB', nodeId });
+          } else {
+            // Enter: navigate to the node
+            const node = findNodeById(lastTreeData, nodeId);
+            if (node) {
+              handleNodeNavigation(node);
+            }
           }
         }
       }
@@ -534,22 +507,25 @@ function initEventListeners() {
       e.preventDefault();
       clearSearch();
     }
-  });
+    });
+  }
   
   // Global Cmd/Ctrl+F to focus search
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
       e.preventDefault();
       const searchBar = document.getElementById('searchBar');
-      if (searchBar && !searchBar.classList.contains('hidden')) {
+      if (searchBar && !searchBar.classList.contains('hidden') && searchInput) {
         searchInput.focus();
-        searchInput.select();
+        if (searchInput instanceof HTMLInputElement) {
+          searchInput.select();
+        }
       }
     }
   });
   
   // Listen for tree updates from service worker
-  chrome.runtime.onMessage.addListener((message) => {
+  chrome.runtime.onMessage.addListener((message: any) => {
     if (message.type === 'TREE_UPDATED' && message.tabId === currentTabId) {
       renderView(message.tree);
       fetchUndoRedoState(); // Update undo/redo buttons
@@ -558,18 +534,23 @@ function initEventListeners() {
       // Before rendering, verify currentNodeId matches active tab
       // This prevents focus switching when programmatic tabs are created
       verifyAndUpdateCurrentNode(message.tree).then(() => {
-        renderView(message.tree, message.openNodeIds, message.tabStates, message.nodeTabCounts);
+        renderView(
+          message.tree,
+          message.openNodeIds || null,
+          message.tabStates || null,
+          message.nodeTabCounts || null
+        );
         fetchUndoRedoState(); // Update undo/redo buttons
       });
     } else if (message.type === 'WINDOW_TREE_UPDATED' && message.windowId === currentWindowId) {
       // Legacy per-window tree update (single-tab mode)
-      renderView(message.tree, message.openNodeIds, message.tabStates);
+      renderView(message.tree, message.openNodeIds || null, message.tabStates || null);
       fetchUndoRedoState(); // Update undo/redo buttons
     }
   });
   
   // Listen for tab activation changes
-  chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  chrome.tabs.onActivated.addListener(async (activeInfo: { tabId: number; windowId: number }) => {
     // CRITICAL: Check if this tab was created programmatically FIRST
     // Check session storage (for race condition protection)
     const result = await chrome.storage.session.get(`programmaticTab_${activeInfo.tabId}`);
@@ -590,15 +571,15 @@ function initEventListeners() {
   });
   
   // Listen for window focus changes
-  chrome.windows.onFocusChanged.addListener(async (windowId) => {
+  chrome.windows.onFocusChanged.addListener(async (windowId: number) => {
     if (windowId === chrome.windows.WINDOW_ID_NONE) return;
     
     try {
       // Get active tab in the focused window
       const tabs = await chrome.tabs.query({ windowId, active: true });
-      if (tabs.length > 0 && tabs[0].id !== currentTabId) {
+      if (tabs.length > 0 && tabs[0]?.id !== undefined && tabs[0].id !== currentTabId) {
         currentTabId = tabs[0].id;
-        currentWindowId = windowId;
+        currentWindowId = tabs[0]?.windowId ?? null;
         loadCurrentTab();
       }
     } catch (error) {
@@ -607,18 +588,20 @@ function initEventListeners() {
   });
   
   // Listen for storage changes (settings updates from other places)
-  chrome.storage.onChanged.addListener((changes, areaName) => {
+  chrome.storage.onChanged.addListener((changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => {
     if (areaName === 'sync' && changes.settings) {
-      settings = changes.settings.newValue;
+      settings = changes.settings.newValue as Settings;
       
       // Apply theme
-      applyTheme(settings.theme);
-      
-      // Re-render tree
-      if (currentTabId) {
-        sendMessage({ type: 'GET_TREE', tabId: currentTabId })
-          .then(({ tree }) => renderView(tree))
-          .catch(console.error);
+      if (settings) {
+        applyTheme(settings.theme);
+        
+        // Re-render tree
+        if (currentTabId) {
+          sendMessage({ type: 'GET_TREE', tabId: currentTabId })
+            .then((response: any) => renderView(response.tree))
+            .catch(console.error);
+        }
       }
     }
   });
@@ -626,11 +609,12 @@ function initEventListeners() {
 
 /**
  * Toggle settings popover at button position.
- * @param {MouseEvent} e
  */
-function toggleSettingsPopover(e) {
+function toggleSettingsPopover(e: MouseEvent): void {
   const popover = document.getElementById('settingsPopover');
   const btn = document.getElementById('settingsBtn');
+  
+  if (!popover || !btn) return;
   
   if (!popover.classList.contains('hidden')) {
     popover.classList.add('hidden');
@@ -659,44 +643,45 @@ function toggleSettingsPopover(e) {
   
   // Update active states
   updateThemeIcons(settings?.theme || DEFAULT_SETTINGS.theme);
-  updateMultiTabUI(settings?.multiTabLimit || 0, settings?.showOrphanTrees !== false);
-  updateNavigationUI(settings?.compactGraph, settings?.selectionMenuInstant);
-  updateFeatureUI(settings?.enableSearch, settings?.enablePinNodes, settings?.enableTags, settings?.pinSyncBrowser);
+  updateMultiTabUI(settings?.multiTabLimit ?? 0, Boolean(settings?.showOrphanTrees ?? true));
+  updateNavigationUI(Boolean(settings?.compactGraph ?? false), Boolean(settings?.selectionMenuInstant ?? false));
+  updateFeatureUI(
+    Boolean(settings?.enableSearch ?? true),
+    Boolean(settings?.enablePinNodes ?? true),
+    Boolean(settings?.enableTags ?? true),
+    Boolean(settings?.pinSyncBrowser ?? false)
+  );
   
   popover.classList.remove('hidden');
 }
 
 /**
  * Update theme icons active state.
- * @param {string} theme
  */
-function updateThemeIcons(theme) {
+function updateThemeIcons(theme: string): void {
   document.querySelectorAll('#themeIcons .popover-icon-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.theme === theme);
+    const btnEl = btn as HTMLElement;
+    btnEl.classList.toggle('active', btnEl.dataset.theme === theme);
   });
 }
 
 /**
  * Update Multi-Tab UI state.
- * @param {number} limit
- * @param {boolean} showOrphanTrees
  */
-function updateMultiTabUI(limit, showOrphanTrees) {
-  const limitInput = document.getElementById('multiTabLimit');
-  const showOrphanTreesToggle = document.getElementById('showOrphanTreesToggle');
+function updateMultiTabUI(limit: number, showOrphanTrees: boolean): void {
+  const limitInput = document.getElementById('multiTabLimit') as HTMLInputElement | null;
+  const showOrphanTreesToggle = document.getElementById('showOrphanTreesToggle') as HTMLInputElement | null;
   
-  if (limitInput) limitInput.value = limit;
+  if (limitInput) limitInput.value = String(limit);
   if (showOrphanTreesToggle) showOrphanTreesToggle.checked = showOrphanTrees;
 }
 
 /**
  * Update navigation UI state.
- * @param {boolean} compactGraph
- * @param {boolean} selectionMenuInstant
  */
-function updateNavigationUI(compactGraph, selectionMenuInstant) {
-  const compactGraphToggle = document.getElementById('compactGraphToggle');
-  const selectionMenuToggle = document.getElementById('selectionMenuToggle');
+function updateNavigationUI(compactGraph: boolean, selectionMenuInstant: boolean): void {
+  const compactGraphToggle = document.getElementById('compactGraphToggle') as HTMLInputElement | null;
+  const selectionMenuToggle = document.getElementById('selectionMenuToggle') as HTMLInputElement | null;
   
   // Set toggle states
   if (compactGraphToggle) compactGraphToggle.checked = compactGraph === true;
@@ -705,11 +690,10 @@ function updateNavigationUI(compactGraph, selectionMenuInstant) {
 
 /**
  * Update undo/redo button states.
- * @param {object} state - { canUndo, canRedo, undoDescription, redoDescription }
  */
-function updateUndoRedoButtons(state) {
-  const undoBtn = document.getElementById('undoBtn');
-  const redoBtn = document.getElementById('redoBtn');
+function updateUndoRedoButtons(state: { canUndo: boolean; canRedo: boolean; undoDescription?: string; redoDescription?: string }): void {
+  const undoBtn = document.getElementById('undoBtn') as HTMLButtonElement | null;
+  const redoBtn = document.getElementById('redoBtn') as HTMLButtonElement | null;
   
   if (undoBtn) {
     undoBtn.disabled = !state.canUndo;
@@ -729,10 +713,10 @@ function updateUndoRedoButtons(state) {
 /**
  * Fetch and update undo/redo state from service worker.
  */
-async function fetchUndoRedoState() {
+async function fetchUndoRedoState(): Promise<void> {
   try {
-    const response = await sendMessage({ type: 'GET_UNDO_STATE' });
-    if (response.success) {
+    const response = await sendMessage({ type: 'GET_UNDO_STATE' }) as { success: boolean; state?: any };
+    if (response.success && response.state) {
       updateUndoRedoButtons(response.state);
     }
   } catch (error) {
@@ -742,25 +726,21 @@ async function fetchUndoRedoState() {
 
 /**
  * Update feature flags UI and show/hide related UI elements.
- * @param {boolean} enableSearch
- * @param {boolean} enablePinNodes
- * @param {boolean} enableTags
- * @param {boolean} pinSyncBrowser
  */
-function updateFeatureUI(enableSearch, enablePinNodes, enableTags, pinSyncBrowser) {
-  const enableSearchToggle = document.getElementById('enableSearchToggle');
-  const enablePinNodesToggle = document.getElementById('enablePinNodesToggle');
-  const enableTagsToggle = document.getElementById('enableTagsToggle');
-  const pinSyncBrowserToggle = document.getElementById('pinSyncBrowserToggle');
+function updateFeatureUI(enableSearch: boolean, enablePinNodes: boolean, enableTags: boolean, pinSyncBrowser: boolean): void {
+  const enableSearchToggle = document.getElementById('enableSearchToggle') as HTMLInputElement | null;
+  const enablePinNodesToggle = document.getElementById('enablePinNodesToggle') as HTMLInputElement | null;
+  const enableTagsToggle = document.getElementById('enableTagsToggle') as HTMLInputElement | null;
+  const pinSyncBrowserToggle = document.getElementById('pinSyncBrowserToggle') as HTMLInputElement | null;
   const searchBar = document.getElementById('searchBar');
   const pinSyncOption = document.getElementById('pinSyncOption');
   const pinSyncHint = document.getElementById('pinSyncHint');
   
   // Set toggle states
-  if (enableSearchToggle) enableSearchToggle.checked = enableSearch !== false;
-  if (enablePinNodesToggle) enablePinNodesToggle.checked = enablePinNodes !== false;
-  if (enableTagsToggle) enableTagsToggle.checked = enableTags !== false;
-  if (pinSyncBrowserToggle) pinSyncBrowserToggle.checked = pinSyncBrowser === true;
+  if (enableSearchToggle) enableSearchToggle.checked = Boolean(enableSearch);
+  if (enablePinNodesToggle) enablePinNodesToggle.checked = Boolean(enablePinNodes);
+  if (enableTagsToggle) enableTagsToggle.checked = Boolean(enableTags);
+  if (pinSyncBrowserToggle) pinSyncBrowserToggle.checked = Boolean(pinSyncBrowser);
   
   // Show/hide search bar based on feature flag
   if (searchBar) {
@@ -778,20 +758,17 @@ function updateFeatureUI(enableSearch, enablePinNodes, enableTags, pinSyncBrowse
 
 /**
  * Search through tree data for matching nodes.
- * @param {string} query - Search query
- * @param {object} treeData - Tree data to search
- * @returns {number[]} - Array of matching node IDs
  */
-function searchNodes(query, treeData) {
+function searchNodes(query: string, treeData: any): NodeId[] {
   if (!query || !treeData) return [];
   
   const q = query.toLowerCase().trim();
   if (!q) return [];
   
-  const matches = [];
+  const matches: NodeId[] = [];
   
   // Recursive search through tree
-  function searchNode(node) {
+  function searchNode(node: TreeNode | null): void {
     if (!node) return;
     
     // Check title, url, domain
@@ -813,7 +790,7 @@ function searchNodes(query, treeData) {
   }
   
   // Search all roots (forest mode) or single root
-  const roots = treeData.roots || (treeData.root ? [treeData.root] : []);
+  const roots: TreeNode[] = treeData.roots || (treeData.root ? [treeData.root] : []);
   roots.forEach(root => searchNode(root));
   
   return matches;
@@ -821,9 +798,8 @@ function searchNodes(query, treeData) {
 
 /**
  * Perform search and update UI.
- * @param {string} query - Search query
  */
-function performSearch(query) {
+function performSearch(query: string): void {
   searchQuery = query;
   searchResults = searchNodes(query, lastTreeData);
   searchIndex = 0;
@@ -839,23 +815,23 @@ function performSearch(query) {
 /**
  * Update search UI with results count.
  */
-function updateSearchUI() {
+function updateSearchUI(): void {
   const searchResultsEl = document.getElementById('searchResults');
   const searchCountEl = document.getElementById('searchCount');
   const searchClearEl = document.getElementById('searchClear');
   
   if (searchQuery) {
-    searchResultsEl.classList.remove('hidden');
-    searchClearEl.classList.remove('hidden');
+    if (searchResultsEl) searchResultsEl.classList.remove('hidden');
+    if (searchClearEl) searchClearEl.classList.remove('hidden');
     
     if (searchResults.length === 0) {
-      searchCountEl.textContent = 'No results';
+      if (searchCountEl) searchCountEl.textContent = 'No results';
     } else {
-      searchCountEl.textContent = `${searchIndex + 1} of ${searchResults.length}`;
+      if (searchCountEl) searchCountEl.textContent = `${searchIndex + 1} of ${searchResults.length}`;
     }
   } else {
-    searchResultsEl.classList.add('hidden');
-    searchClearEl.classList.add('hidden');
+    if (searchResultsEl) searchResultsEl.classList.add('hidden');
+    if (searchClearEl) searchClearEl.classList.add('hidden');
   }
 }
 
@@ -890,13 +866,13 @@ function applySearchHighlights() {
 
 /**
  * Focus on a specific search result.
- * @param {number} index - Index in searchResults array
  */
-function focusSearchResult(index) {
+function focusSearchResult(index: number): void {
   if (searchResults.length === 0) return;
   
   searchIndex = ((index % searchResults.length) + searchResults.length) % searchResults.length;
   const nodeId = searchResults[searchIndex];
+  if (!nodeId) return;
   
   updateSearchUI();
   applySearchHighlights();
@@ -917,12 +893,12 @@ function focusSearchResult(index) {
 /**
  * Clear search and reset UI.
  */
-function clearSearch() {
+function clearSearch(): void {
   searchQuery = '';
   searchResults = [];
   searchIndex = 0;
   
-  const searchInput = document.getElementById('searchInput');
+  const searchInput = document.getElementById('searchInput') as HTMLInputElement | null;
   if (searchInput) searchInput.value = '';
   
   updateSearchUI();
@@ -935,15 +911,13 @@ function clearSearch() {
 
 /**
  * Collect all pinned nodes from tree data.
- * @param {object} treeData - Tree data
- * @returns {Array} - Array of pinned nodes
  */
-function collectPinnedNodes(treeData) {
+function collectPinnedNodes(treeData: any): TreeNode[] {
   if (!treeData) return [];
   
-  const pinned = [];
+  const pinned: TreeNode[] = [];
   
-  function traverse(node) {
+  function traverse(node: TreeNode | null): void {
     if (!node) return;
     if (node.pinned) {
       pinned.push(node);
@@ -953,7 +927,7 @@ function collectPinnedNodes(treeData) {
     }
   }
   
-  const roots = treeData.roots || (treeData.root ? [treeData.root] : []);
+  const roots: TreeNode[] = treeData.roots || (treeData.root ? [treeData.root] : []);
   roots.forEach(traverse);
   
   return pinned;
@@ -962,10 +936,12 @@ function collectPinnedNodes(treeData) {
 /**
  * Open pinned dropdown and populate with pinned nodes.
  */
-function openPinnedDropdown() {
+function openPinnedDropdown(): void {
   const dropdown = document.getElementById('pinnedDropdown');
   const list = document.getElementById('pinnedList');
   const count = document.getElementById('pinnedCount');
+  
+  if (!dropdown || !list || !count) return;
   
   pinnedNodes = collectPinnedNodes(lastTreeData);
   pinnedFocusIndex = pinnedNodes.length > 0 ? 0 : -1;
@@ -1001,15 +977,16 @@ function openPinnedDropdown() {
     
     // Add click handlers
     list.querySelectorAll('.pinned-dropdown-item').forEach((item, idx) => {
-      item.addEventListener('click', () => {
-        const nodeId = parseInt(item.dataset.nodeId, 10);
+      const itemEl = item as HTMLElement;
+      itemEl.addEventListener('click', () => {
+        const nodeId = parseInt(itemEl.dataset.nodeId || '0', 10) as NodeId;
         const node = pinnedNodes.find(n => n.id === nodeId);
         if (node) {
           handleNodeNavigation(node);
           closePinnedDropdown();
         }
       });
-      item.addEventListener('mouseenter', () => {
+      itemEl.addEventListener('mouseenter', () => {
         updatePinnedFocus(idx);
       });
     });
@@ -1021,9 +998,11 @@ function openPinnedDropdown() {
 /**
  * Close pinned dropdown.
  */
-function closePinnedDropdown() {
+function closePinnedDropdown(): void {
   const dropdown = document.getElementById('pinnedDropdown');
-  dropdown.classList.add('hidden');
+  if (dropdown) {
+    dropdown.classList.add('hidden');
+  }
   pinnedDropdownOpen = false;
   pinnedFocusIndex = -1;
 }
@@ -1031,7 +1010,7 @@ function closePinnedDropdown() {
 /**
  * Toggle pinned dropdown.
  */
-function togglePinnedDropdown() {
+function togglePinnedDropdown(): void {
   if (pinnedDropdownOpen) {
     closePinnedDropdown();
   } else {
@@ -1041,9 +1020,8 @@ function togglePinnedDropdown() {
 
 /**
  * Update focus in pinned dropdown.
- * @param {number} newIndex - New focus index
  */
-function updatePinnedFocus(newIndex) {
+function updatePinnedFocus(newIndex: number): void {
   if (pinnedNodes.length === 0) return;
   
   // Wrap around
@@ -1056,16 +1034,16 @@ function updatePinnedFocus(newIndex) {
   });
   
   // Scroll into view
-  if (items[pinnedFocusIndex]) {
-    items[pinnedFocusIndex].scrollIntoView({ block: 'nearest' });
+  const focusedItem = items[pinnedFocusIndex];
+  if (focusedItem) {
+    focusedItem.scrollIntoView({ block: 'nearest' });
   }
 }
 
 /**
  * Handle keyboard navigation in pinned dropdown.
- * @param {KeyboardEvent} e
  */
-function handlePinnedDropdownKeydown(e) {
+function handlePinnedDropdownKeydown(e: KeyboardEvent): void {
   if (!pinnedDropdownOpen) return;
   
   switch (e.key) {
@@ -1081,8 +1059,10 @@ function handlePinnedDropdownKeydown(e) {
       e.preventDefault();
       if (pinnedFocusIndex >= 0 && pinnedFocusIndex < pinnedNodes.length) {
         const node = pinnedNodes[pinnedFocusIndex];
-        handleNodeNavigation(node);
-        closePinnedDropdown();
+        if (node) {
+          handleNodeNavigation(node);
+          closePinnedDropdown();
+        }
       }
       break;
     case 'Escape':
@@ -1094,14 +1074,11 @@ function handlePinnedDropdownKeydown(e) {
 
 /**
  * Find a node by ID in tree data.
- * @param {object} treeData - Tree data
- * @param {number} nodeId - Node ID to find
- * @returns {object|null} - Node object or null
  */
-function findNodeById(treeData, nodeId) {
+function findNodeById(treeData: any, nodeId: NodeId): TreeNode | null {
   if (!treeData) return null;
   
-  function search(node) {
+  function search(node: TreeNode | null): TreeNode | null {
     if (!node) return null;
     if (node.id === nodeId) return node;
     
@@ -1114,7 +1091,7 @@ function findNodeById(treeData, nodeId) {
     return null;
   }
   
-  const roots = treeData.roots || (treeData.root ? [treeData.root] : []);
+  const roots: TreeNode[] = treeData.roots || (treeData.root ? [treeData.root] : []);
   for (const root of roots) {
     const found = search(root);
     if (found) return found;
@@ -1124,9 +1101,9 @@ function findNodeById(treeData, nodeId) {
 
 /**
  * Save settings quickly (for popover - immediate save).
- * @param {object} updates - Partial settings to update
  */
-async function saveSettingsQuick(updates) {
+async function saveSettingsQuick(updates: Partial<Settings>): Promise<void> {
+  if (!settings) return;
   const newSettings = { ...settings, ...updates };
   
   try {
@@ -1141,32 +1118,30 @@ async function saveSettingsQuick(updates) {
 // CONTEXT MENU
 // ========================================
 
-let contextMenuNode = null; // Node that was right-clicked
-let contextMenuTabInfo = null; // Tab info for the node (multi-tab mode)
+let contextMenuNode: TreeNode | null = null; // Node that was right-clicked
+let contextMenuTabInfo: chrome.tabs.Tab | null = null; // Tab info for the node (multi-tab mode)
 
 /**
  * Show context menu at position.
- * @param {number} x - X coordinate
- * @param {number} y - Y coordinate
- * @param {object} node - The node data
  */
-async function showContextMenu(x, y, node) {
+async function showContextMenu(x: number, y: number, node: TreeNode): Promise<void> {
   const menu = document.getElementById('contextMenu');
+  if (!menu) return;
+  
   contextMenuNode = node;
   
   // Get tab info if in multi-tab mode
   contextMenuTabInfo = null;
-  if (settings?.multiTabEnabled) {
-    try {
-      const response = await sendMessage({ 
-        type: 'GET_TAB_FOR_NODE', 
-        windowId: currentWindowId, 
-        nodeId: node.id 
-      });
-      contextMenuTabInfo = response.tabInfo;
-    } catch (e) {
-      // Tab might not exist
-    }
+  // Always multi-tab mode
+  try {
+    const response = await sendMessage({ 
+      type: 'GET_TAB_FOR_NODE', 
+      windowId: currentWindowId, 
+      nodeId: node.id 
+    }) as { tabInfo?: chrome.tabs.Tab | null };
+    contextMenuTabInfo = response.tabInfo || null;
+  } catch (e) {
+    // Tab might not exist
   }
   
   // Update menu items based on state
@@ -1194,9 +1169,11 @@ async function showContextMenu(x, y, node) {
 /**
  * Hide context menu.
  */
-function hideContextMenu() {
+function hideContextMenu(): void {
   const menu = document.getElementById('contextMenu');
-  menu.classList.add('hidden');
+  if (menu) {
+    menu.classList.add('hidden');
+  }
   contextMenuNode = null;
   contextMenuTabInfo = null;
 }
@@ -1204,8 +1181,8 @@ function hideContextMenu() {
 /**
  * Update context menu items based on current state.
  */
-function updateContextMenuItems() {
-  const isMultiTab = settings?.multiTabEnabled;
+function updateContextMenuItems(): void {
+  const isMultiTab = true; // Always multi-tab mode
   const hasOpenTab = contextMenuTabInfo !== null;
   
   // Show/hide multi-tab only items
@@ -1216,10 +1193,14 @@ function updateContextMenuItems() {
   // Update mute label
   if (contextMenuTabInfo) {
     const muteLabel = document.querySelector('.mute-label');
-    muteLabel.textContent = contextMenuTabInfo.mutedInfo?.muted ? 'Unmute Tab' : 'Mute Tab';
+    if (muteLabel) {
+      muteLabel.textContent = contextMenuTabInfo.mutedInfo?.muted ? 'Unmute Tab' : 'Mute Tab';
+    }
     
     const pinLabel = document.querySelector('.pin-label');
-    pinLabel.textContent = contextMenuTabInfo.pinned ? 'Unpin Tab' : 'Pin Tab';
+    if (pinLabel) {
+      pinLabel.textContent = contextMenuTabInfo.pinned ? 'Unpin Tab' : 'Pin Tab';
+    }
   }
   
   // Disable tab actions if tab is not open
@@ -1230,9 +1211,8 @@ function updateContextMenuItems() {
 
 /**
  * Handle context menu action.
- * @param {string} action - The action to perform
  */
-async function handleContextMenuAction(action) {
+async function handleContextMenuAction(action: string): Promise<void> {
   if (!contextMenuNode) return;
   
   const node = contextMenuNode;
@@ -1269,25 +1249,25 @@ async function handleContextMenuAction(action) {
         break;
         
       case 'muteTab':
-        if (tabInfo) {
+        if (tabInfo && tabInfo.id !== undefined) {
           await chrome.tabs.update(tabInfo.id, { muted: !tabInfo.mutedInfo?.muted });
         }
         break;
         
       case 'pinTab':
-        if (tabInfo) {
+        if (tabInfo && tabInfo.id !== undefined) {
           await chrome.tabs.update(tabInfo.id, { pinned: !tabInfo.pinned });
         }
         break;
         
       case 'duplicateTab':
-        if (tabInfo) {
+        if (tabInfo && tabInfo.id !== undefined) {
           await chrome.tabs.duplicate(tabInfo.id);
         }
         break;
         
       case 'closeTab':
-        if (tabInfo) {
+        if (tabInfo && tabInfo.id !== undefined) {
           await chrome.tabs.remove(tabInfo.id);
         }
         break;
@@ -1309,42 +1289,52 @@ async function handleContextMenuAction(action) {
 /**
  * Initialize context menu listeners.
  */
-function initContextMenu() {
+function initContextMenu(): void {
   const menu = document.getElementById('contextMenu');
+  if (!menu) return;
   
   // Handle menu item clicks
-  menu.addEventListener('click', (e) => {
-    const item = e.target.closest('.context-menu-item');
-    if (item && !item.classList.contains('disabled')) {
+  menu.addEventListener('click', (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const item = target.closest('.context-menu-item') as HTMLElement | null;
+    if (item && !item.classList.contains('disabled') && item.dataset.action) {
       handleContextMenuAction(item.dataset.action);
     }
   });
   
   // Hide menu on click outside
-  document.addEventListener('click', (e) => {
-    if (!menu.contains(e.target)) {
+  document.addEventListener('click', (e: MouseEvent) => {
+    const target = e.target as Node | null;
+    if (target && !menu.contains(target)) {
       hideContextMenu();
     }
   });
   
   // Hide menu on scroll
-  document.getElementById('stackContainer').addEventListener('scroll', hideContextMenu);
+  const stackContainer = document.getElementById('stackContainer');
+  if (stackContainer) {
+    stackContainer.addEventListener('scroll', hideContextMenu);
+  }
   
   // Listen for contextmenu on nodes (delegated)
-  document.getElementById('stackList').addEventListener('contextmenu', (e) => {
-    const nodeEl = e.target.closest('.tree-node, .stack-entry, .graph-node');
-    if (nodeEl) {
-      e.preventDefault();
-      
-      // Find node data from the tree
-      const nodeId = parseInt(nodeEl.dataset.nodeId, 10);
-      const nodeData = findNodeById(lastTreeData, nodeId);
-      
-      if (nodeData) {
-        showContextMenu(e.clientX, e.clientY, nodeData);
+  const stackList = document.getElementById('stackList');
+  if (stackList) {
+    stackList.addEventListener('contextmenu', (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const nodeEl = target.closest('.tree-node, .stack-entry, .graph-node') as HTMLElement | null;
+      if (nodeEl) {
+        e.preventDefault();
+        
+        // Find node data from the tree
+        const nodeId = parseInt(nodeEl.dataset.nodeId || '0', 10) as NodeId;
+        const nodeData = findNodeById(lastTreeData, nodeId);
+        
+        if (nodeData) {
+          showContextMenu(e.clientX, e.clientY, nodeData);
+        }
       }
-    }
-  });
+    });
+  }
 }
 
 // Initialize on load
@@ -1353,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // This ensures we know which window we're in before any messages arrive
   try {
     const window = await chrome.windows.getCurrent();
-    currentWindowId = window.id;
+    currentWindowId = window.id ?? null;
   } catch (error) {
     console.error('Failed to get current window:', error);
   }
