@@ -1,6 +1,6 @@
-import type { NodeId } from "../../../../shared/types/ids";
-import type { GraphAPI, ViewState } from "../types";
-import type { TabState } from "../../../../shared/types/tabs";
+import type { NodeId } from "../../../../shared/types/ids.js";
+import type { GraphAPI, ViewState } from "../types.js";
+import type { TabState } from "../../../../shared/types/tabs.js";
 
 type Tool = "hand" | "select";
 

@@ -1,5 +1,5 @@
-import { THEME_IDS } from "../../sidepanel/ui/shared/themes";
-import type { Settings } from "../../shared/types/settings";
+import { THEME_IDS } from "../../sidepanel/ui/shared/themes.js";
+import type { Settings } from "../../shared/types/settings.js";
 
 export const defaultSettings: Settings = {
     maxOpenTabs: 100,

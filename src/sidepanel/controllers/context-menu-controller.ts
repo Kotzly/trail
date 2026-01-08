@@ -1,8 +1,8 @@
-import type { NavigationNode } from "../../shared/types/node";
-import { PanelState } from "../state/panel-state";
-import { getTabsForNode } from "../api/tabs";
-import { navigateTo } from "../api/tree";
-import { NodeId } from "../../shared/types/ids";
+import type { NavigationNode } from "../../shared/types/node.js";
+import { PanelState } from "../state/panel-state.js";
+import { getTabsForNode } from "../api/tabs.js";
+import { navigateTo } from "../api/tree.js";
+import { NodeId } from "../../shared/types/ids.js";
 
 // Show context menu at position.
 export async function showContextMenu(x: number, y: number, node: NavigationNode): Promise<void> {

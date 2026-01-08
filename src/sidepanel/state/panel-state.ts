@@ -1,11 +1,11 @@
-import { NodeId, TabId } from "../../shared/types/ids";
-import { Settings } from "../../shared/types/settings";
-import { TabState } from "../../shared/types/tabs";
-import { isMac } from "../../shared/utils/platform"
-import { NavigationTree } from "../../background/state/nav-tree";
-import { PinnedManager } from "../../background/state/pinned";
-import { tabManager } from "../../background/state/tab-manager";
-import { NavigationNode } from "../../shared/types/node";
+import { NodeId, TabId } from "../../shared/types/ids.js";
+import { Settings } from "../../shared/types/settings.js";
+import { TabState } from "../../shared/types/tabs.js";
+import { isMac } from "../../shared/utils/platform.js"
+import { NavigationTree } from "../../background/state/nav-tree.js";
+import { PinnedManager } from "../../background/state/pinned.js";
+import { tabManager } from "../../background/state/tab-manager.js";
+import { NavigationNode } from "../../shared/types/node.js";
 
 export async function initPanelState(tree: NavigationTree, pins: PinnedManager): Promise<void> {
     PanelState.tree = tree;

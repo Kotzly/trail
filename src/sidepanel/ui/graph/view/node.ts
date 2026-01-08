@@ -1,11 +1,11 @@
-import type { NodeId } from '../../../../shared/types/ids';
-import type { NodePosition } from '../types';
-import { formatUrl, escapeHtml } from '../../shared/format';
-import { getLayoutConfig } from '../layout/config';
-import { GraphState } from '../state/graph-state';
-import { TAG_PRESETS } from '../tags';
-import { showContextMenu } from '../menus/context-menu';
-import { NavigationNode } from '../../../../shared/types/node';
+import type { NodeId } from '../../../../shared/types/ids.js';
+import type { NodePosition } from '../types.js';
+import { formatUrl, escapeHtml } from '../../shared/format.js';
+import { getLayoutConfig } from '../layout/config.js';
+import { GraphState } from '../state/graph-state.js';
+import { TAG_PRESETS } from '../tags.js';
+import { showContextMenu } from '../menus/context-menu.js';
+import { NavigationNode } from '../../../../shared/types/node.js';
 
 /**
  * Create a graph node element.

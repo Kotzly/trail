@@ -1,9 +1,9 @@
-import type { TabId } from '../../shared/types/ids';
-import { handleNavigation } from './navigation-handler';
-import { treeStorage } from '../services/tree-storage';
-import { tabManager } from '../state/tab-manager';
-import { shouldTrackUrl } from '../utils/url-utils';
-import { notifyTreeUpdate } from '../messaging/notifications';
+import type { TabId } from '../../shared/types/ids.js';
+import { handleNavigation } from './navigation-handler.js';
+import { treeStorage } from '../services/tree-storage.js';
+import { tabManager } from '../state/tab-manager.js';
+import { shouldTrackUrl } from '../utils/url-utils.js';
+import { notifyTreeUpdate } from '../messaging/notifications.js';
 
 /**
  * Initialize webNavigation event listeners.

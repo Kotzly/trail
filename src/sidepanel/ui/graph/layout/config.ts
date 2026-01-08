@@ -1,4 +1,4 @@
-import type { LayoutConfig } from '../types';
+import type { LayoutConfig } from '../types.js';
 
 // Layout constants - VERTICAL orientation (top to bottom)
 // Normal mode

@@ -1,6 +1,6 @@
-import { PanelState } from "../state/panel-state";
-import type { NodeId } from "../../shared/types/ids";
-import { navigateTo } from "../api/tree";
+import { PanelState } from "../state/panel-state.js";
+import type { NodeId } from "../../shared/types/ids.js";
+import { navigateTo } from "../api/tree.js";
 
 /**
  * Pinned dropdown controller.

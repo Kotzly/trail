@@ -1,12 +1,12 @@
-import { now, UrlWithTimestamp, type TabId, type Url } from '../../shared/types/ids';
-import type { NodeData } from '../../shared/types/node';
-import { tabManager } from '../state/tab-manager';
-import { treeStorage } from '../services/tree-storage';
-import { settingsManager } from '../services/settings';
-import { redirectDetector } from './redirect-detection';
-import { createNode } from '../utils/tree-utils';
-import { getFaviconUrl, shouldTrackUrl } from '../utils/url-utils';
-import { notifyTreeUpdate } from '../messaging/notifications';
+import { now, UrlWithTimestamp, type TabId, type Url } from '../../shared/types/ids.js';
+import type { NodeData } from '../../shared/types/node.js';
+import { tabManager } from '../state/tab-manager.js';
+import { treeStorage } from '../services/tree-storage.js';
+import { settingsManager } from '../services/settings.js';
+import { redirectDetector } from './redirect-detection.js';
+import { createNode } from '../utils/tree-utils.js';
+import { getFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
+import { notifyTreeUpdate } from '../messaging/notifications.js';
 
 /**
  * Handle navigation events and add to tree.

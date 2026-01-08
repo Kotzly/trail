@@ -1,5 +1,5 @@
-import { TreeNode } from "../../background/state/tree-node";
-import type { NodeId, Timestamp, Title, Url, FaviconUrl, Tag } from "./ids"
+import { TreeNode } from "../../background/state/tree-node.js";
+import type { NodeId, Timestamp, Title, Url, FaviconUrl, Tag } from "./ids.js"
 
 
 export type NodeData = {

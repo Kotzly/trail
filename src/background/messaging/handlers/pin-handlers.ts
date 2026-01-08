@@ -1,8 +1,8 @@
-import type { NodeId } from '../../../shared/types/ids';
-import { tabManager } from '../../state/tab-manager';
-import { treeStorage } from '../../services/tree-storage';
-import { settingsManager } from '../../services/settings';
-import { notifyTreeUpdate } from '../notifications';
+import type { NodeId } from '../../../shared/types/ids.js';
+import { tabManager } from '../../state/tab-manager.js';
+import { treeStorage } from '../../services/tree-storage.js';
+import { settingsManager } from '../../services/settings.js';
+import { notifyTreeUpdate } from '../notifications.js';
 
 export async function handlePinMessage(
   message: any,

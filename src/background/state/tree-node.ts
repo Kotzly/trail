@@ -1,5 +1,5 @@
-import type { Element } from "../../shared/lib/eviction";
-import { NodeId, now, Timestamp } from "../../shared/types/ids";
+import type { Element } from "../../shared/lib/eviction.js";
+import { NodeId, now, Timestamp } from "../../shared/types/ids.js";
 let nodeIdCounter = 0 as NodeId;
 
 function nextNodeId(): NodeId {

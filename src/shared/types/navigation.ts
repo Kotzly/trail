@@ -1,4 +1,4 @@
-import type { TabId, Url } from "./ids";
+import type { TabId, Url } from "./ids.js";
 
 export type SidebarNavigationKey = `${TabId}:${Url}`;
 

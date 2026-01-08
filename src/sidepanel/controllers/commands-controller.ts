@@ -1,6 +1,6 @@
-import { CommandState } from "../../shared/types/messages";
-import { PanelState } from "../state/panel-state";
-import { getCommandState, redo, undo } from "../api/commands";
+import { CommandState } from "../../shared/types/messages.js";
+import { PanelState } from "../state/panel-state.js";
+import { getCommandState, redo, undo } from "../api/commands.js";
 
 // Fetch and update undo / redo state from service worker.
 export async function fetchCommandState(): Promise<void> {

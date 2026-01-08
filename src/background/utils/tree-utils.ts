@@ -1,6 +1,6 @@
-import type { NavigationNode, NodeData } from '../../shared/types/node';
-import type { NavigationTree } from '../state/nav-tree';
-import type { TreeNode } from '../state/tree-node';
+import type { NavigationNode, NodeData } from '../../shared/types/node.js';
+import type { NavigationTree } from '../state/nav-tree.js';
+import type { TreeNode } from '../state/tree-node.js';
 
 /**
  * Create a node in single-tree mode.

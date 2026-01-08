@@ -1,6 +1,6 @@
-import { msg } from "../../shared/types/messages";
-import { Settings } from "../../shared/types/settings";
-import { sendMessage } from "./background";
+import { msg } from "../../shared/types/messages.js";
+import { Settings } from "../../shared/types/settings.js";
+import { sendMessage } from "./background.js";
 
 export async function saveSettings(settings: Settings): Promise<void> {
     const response = await sendMessage(msg.saveSettings({ settings }));

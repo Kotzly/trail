@@ -4,10 +4,10 @@
   "description": "transform your browsing experience. trail enables you to track your browsing sessions as trees",
   "version": "0.0.1",
   "icons": {
-    "16": "public/icons/icon16.png",
-    "32": "public/icons/icon32.png",
-    "48": "public/icons/icon48.png",
-    "128": "public/icons/icon128.png"
+    "16": "icons/trail-16.png",
+    "32": "icons/trail-32.png",
+    "48": "icons/trail-48.png",
+    "128": "icons/trail-128.png"
   },
   "permissions": [
     "sidePanel",
@@ -20,26 +20,30 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "dist/service-worker.js",
+    "service_worker": "background/service-worker.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["dist/content/content-script.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/content-script.js"
+      ],
       "run_at": "document_start",
       "all_frames": false
     }
   ],
   "side_panel": {
-    "default_path": "dist/sidepanel/sidepanel.html"
+    "default_path": "sidepanel/sidepanel.html"
   },
   "action": {
     "default_title": "open trail",
     "default_icon": {
-      "16": "public/icons/icon16.png",
-      "32": "public/icons/icon32.png",
-      "48": "public/icons/icon48.png"
+      "16": "icons/trail-16.png",
+      "32": "icons/trail-32.png",
+      "48": "icons/trail-48.png"
     }
   }
 }

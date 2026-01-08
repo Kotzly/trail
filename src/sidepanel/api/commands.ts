@@ -1,6 +1,6 @@
-import { sendMessage } from "./background";
-import { msg } from "../../shared/types/messages";
-import type { CommandState } from "../../shared/types/messages";
+import { sendMessage } from "./background.js";
+import { msg } from "../../shared/types/messages.js";
+import type { CommandState } from "../../shared/types/messages.js";
 
 export async function getCommandState(): Promise<CommandState> {
     const res = await sendMessage(msg.getCommandState());

@@ -1,6 +1,6 @@
-import { NodeId } from "../../shared/types/ids";
-import { PanelState } from "../state/panel-state";
-import { GraphState } from "../ui/graph/state/graph-state";
+import { NodeId } from "../../shared/types/ids.js";
+import { PanelState } from "../state/panel-state.js";
+import { GraphState } from "../ui/graph/state/graph-state.js";
 
 // Search through tree data for matching nodes.
 function searchNodes(query: string): NodeId[] {

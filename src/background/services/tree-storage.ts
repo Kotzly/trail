@@ -1,8 +1,8 @@
-import type { TabId, NodeId } from '../../shared/types/ids';
-import type { NavigationTreeJSON } from '../../shared/types/tree';
-import { NavigationTree } from '../state/nav-tree';
-import { NavigationTreeMapper, TreeNodeMapper } from '../../shared/lib/mapper';
-import { settingsManager } from './settings';
+import type { TabId, NodeId } from '../../shared/types/ids.js';
+import type { NavigationTreeJSON } from '../../shared/types/tree.js';
+import { NavigationTree } from '../state/nav-tree.js';
+import { NavigationTreeMapper, TreeNodeMapper } from '../../shared/lib/mapper.js';
+import { settingsManager } from './settings.js';
 
 const TREE_KEY = 'trail_tree' as const;
 const treeArea = chrome.storage.sync;

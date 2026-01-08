@@ -1,7 +1,7 @@
-import type { NodeId, TabId } from "../../shared/types/ids";
-import { NavigationTree } from "./nav-tree";
-import { TabIndex } from "./tab-index";
-import { LruManager } from "./tab-lru";
+import type { NodeId, TabId } from "../../shared/types/ids.js";
+import { NavigationTree } from "./nav-tree.js";
+import { TabIndex } from "./tab-index.js";
+import { LruManager } from "./tab-lru.js";
 
 export class TabManager {
     private index: TabIndex;

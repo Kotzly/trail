@@ -3,8 +3,8 @@
  * Tracks title changes for pages that update title dynamically.
  */
 
-import { Title, Url } from "../shared/types/ids";
-import { notifyTitleChange } from "../sidepanel/api/chrome";
+import { Title, Url } from "../shared/types/ids.js";
+import { notifyTitleChange } from "../sidepanel/api/chrome.js";
 
 (function() {
   'use strict';

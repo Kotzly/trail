@@ -1,6 +1,6 @@
-import type { NodeId, Tag } from '../../../shared/types/ids';
-import { treeStorage } from '../../services/tree-storage';
-import { notifyTreeUpdate } from '../notifications';
+import type { NodeId, Tag } from '../../../shared/types/ids.js';
+import { treeStorage } from '../../services/tree-storage.js';
+import { notifyTreeUpdate } from '../notifications.js';
 
 export async function handleTagMessage(
   message: any,

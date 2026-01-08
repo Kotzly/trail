@@ -1,7 +1,7 @@
-import type { FaviconUrl, TabId, Title } from '../../shared/types/ids';
-import { tabManager } from '../state/tab-manager';
-import { treeStorage } from '../services/tree-storage';
-import { notifyTreeUpdate } from '../messaging/notifications';
+import type { FaviconUrl, TabId, Title } from '../../shared/types/ids.js';
+import { tabManager } from '../state/tab-manager.js';
+import { treeStorage } from '../services/tree-storage.js';
+import { notifyTreeUpdate } from '../messaging/notifications.js';
 
 /**
  * Sync tab title and favicon changes to node.

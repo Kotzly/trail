@@ -1,4 +1,4 @@
-import { Timestamp } from "../types/ids";
+import { Timestamp } from "../types/ids.js";
 
 export interface Owner {
     size(): number,

@@ -1,12 +1,12 @@
-import type { NodeId } from '../../../../shared/types/ids';
-import type { TreeData, RenderGraphOptions } from '../types';
-import { createGraphCanvas } from './canvas';
-import { createGraphNode, drawConnections, getPathToNode } from './node';
-import { calculateLayout, getCanvasBounds } from '../layout/calculator';
-import { PADDING, setLayoutConfig, NODE_WIDTH, NODE_HEIGHT, VERTICAL_GAP, HORIZONTAL_GAP } from '../layout/config';
-import { setupPanZoom } from '../interaction/pan-zoom';
-import { GraphState } from '../state/graph-state';
-import { NavigationNode } from '../../../../shared/types/node';
+import type { NodeId } from '../../../../shared/types/ids.js';
+import type { TreeData, RenderGraphOptions } from '../types.js';
+import { createGraphCanvas } from './canvas.js';
+import { createGraphNode, drawConnections, getPathToNode } from './node.js';
+import { calculateLayout, getCanvasBounds } from '../layout/calculator.js';
+import { PADDING, setLayoutConfig, NODE_WIDTH, NODE_HEIGHT, VERTICAL_GAP, HORIZONTAL_GAP } from '../layout/config.js';
+import { setupPanZoom } from '../interaction/pan-zoom.js';
+import { GraphState } from '../state/graph-state.js';
+import { NavigationNode } from '../../../../shared/types/node.js';
 
 /**
  * Render graph view.

@@ -1,8 +1,8 @@
-import type { NodeId, Url } from "../../shared/types/ids";
-import { TreeNode } from "./tree-node";
-import { DefaultNavigationOptions, type NavigationOptions } from "../../shared/types/tree";
-import { EvictionPolicy, LRUEvictionPolicy, Owner } from "../../shared/lib/eviction";
-import { NodeData, NavigationNode, updateNodeData } from "../../shared/types/node";
+import type { NodeId, Url } from "../../shared/types/ids.js";
+import { TreeNode } from "./tree-node.js";
+import { DefaultNavigationOptions, type NavigationOptions } from "../../shared/types/tree.js";
+import { EvictionPolicy, LRUEvictionPolicy, Owner } from "../../shared/lib/eviction.js";
+import { NodeData, NavigationNode, updateNodeData } from "../../shared/types/node.js";
 
 
 function epForTree(tree: NavigationTree, capacity: number): EvictionPolicy {

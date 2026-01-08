@@ -1,6 +1,6 @@
-import { NavigationNode } from '../../../../shared/types/node';
-import type { NodePosition, CanvasBounds } from '../types';
-import { getLayoutConfig, PADDING } from './config';
+import { NavigationNode } from '../../../../shared/types/node.js';
+import type { NodePosition, CanvasBounds } from '../types.js';
+import { getLayoutConfig, PADDING } from './config.js';
 
 
 export function calculateLayout(

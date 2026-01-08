@@ -1,8 +1,8 @@
-import { ThemeId } from "../ui/shared/themes";
-import { PanelState } from "../state/panel-state";
-import { defaultSettings } from "../../background/services/settings";
-import { Settings } from "../../shared/types/settings";
-import { saveSettings } from "../api/settings";
+import { ThemeId } from "../ui/shared/themes.js";
+import { PanelState } from "../state/panel-state.js";
+import { defaultSettings } from "../../background/services/settings.js";
+import { Settings } from "../../shared/types/settings.js";
+import { saveSettings } from "../api/settings.js";
 
 export function applyTheme(theme: ThemeId): void {
   document.documentElement.setAttribute('data-theme', theme as string);

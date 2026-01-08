@@ -1,7 +1,7 @@
-import type { TabId, NodeId } from '../../../shared/types/ids';
-import { tabManager } from '../../state/tab-manager';
-import { notifyTreeUpdate } from '../notifications';
-import { treeStorage } from '../../services/tree-storage';
+import type { TabId, NodeId } from '../../../shared/types/ids.js';
+import { tabManager } from '../../state/tab-manager.js';
+import { notifyTreeUpdate } from '../notifications.js';
+import { treeStorage } from '../../services/tree-storage.js';
 
 export async function handleTabMessage(
   message: any,

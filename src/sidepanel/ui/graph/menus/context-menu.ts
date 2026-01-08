@@ -1,9 +1,8 @@
-import type { NodeId, Tag } from '../../../../shared/types/ids';
-import type { TreeNode } from '../../../../background/state/tree-node';
-import { TAG_PRESETS } from '../tags';
-import { GraphState } from '../state/graph-state';
-import { NavigationNode } from '../../../../shared/types/node';
-import { navigateTo } from '../../../api/tree';
+import type { NodeId, Tag } from '../../../../shared/types/ids.js';
+import { TAG_PRESETS } from '../tags.js';
+import { GraphState } from '../state/graph-state.js';
+import { NavigationNode } from '../../../../shared/types/node.js';
+import { navigateTo } from '../../../api/tree.js';
 
 /**
  * Remove active context menu if exists.

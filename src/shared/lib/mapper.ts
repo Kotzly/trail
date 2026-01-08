@@ -1,8 +1,8 @@
-import type { NavigationNode, NavigationNodeJSON } from "../types/node";
-import { TreeNode } from "../../background/state/tree-node";
-import { NavigationTreeJSON } from "../types/tree";
-import { NavigationTree } from "../../background/state/nav-tree";
-import { defaultSettings } from "../../background/services/settings";
+import type { NavigationNode, NavigationNodeJSON } from "../types/node.js";
+import { TreeNode } from "../../background/state/tree-node.js";
+import { NavigationTreeJSON } from "../types/tree.js";
+import { NavigationTree } from "../../background/state/nav-tree.js";
+import { defaultSettings } from "../../background/services/settings.js";
 
 export class TreeNodeMapper {
     static fromJSON(json: NavigationNodeJSON, parent?: NavigationNode): NavigationNode {

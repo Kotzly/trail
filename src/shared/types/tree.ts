@@ -1,5 +1,5 @@
-import { NodeId } from "./ids";
-import { NavigationNodeJSON, TreeNodeJSON } from "./node";
+import { NodeId } from "./ids.js";
+import { NavigationNodeJSON, TreeNodeJSON } from "./node.js";
 
 export type NavigationOptions = {
     backOnRevisit?: boolean;

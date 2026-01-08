@@ -1,7 +1,7 @@
 // background/service-worker.ts
-import { initMessaging } from './messaging/router';
-import { initWebNavigation } from './navigation/webnavigation';
-import { initTabsLifecycle } from './tabs/lifecycle';
+import { initMessaging } from './messaging/router.js';
+import { initWebNavigation } from './navigation/webnavigation.js';
+import { initTabsLifecycle } from './tabs/lifecycle.js';
 
 
 // Initialize all modules

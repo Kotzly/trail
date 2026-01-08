@@ -1,4 +1,4 @@
-import { ThemeId } from "../../sidepanel/ui/shared/themes";
+import { ThemeId } from "../../sidepanel/ui/shared/themes.js";
 
 export type Settings = {
     maxOpenTabs: number;

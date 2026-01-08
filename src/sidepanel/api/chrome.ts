@@ -1,7 +1,7 @@
-import { NodeId, TabId, Title, Url } from "../../shared/types/ids";
-import { msg } from "../../shared/types/messages";
-import { PanelState } from "../state/panel-state";
-import { sendMessage } from "./background";
+import { NodeId, TabId, Title, Url } from "../../shared/types/ids.js";
+import { msg } from "../../shared/types/messages.js";
+import { PanelState } from "../state/panel-state.js";
+import { sendMessage } from "./background.js";
 
 export async function getCurrentTab(): Promise<chrome.tabs.Tab | undefined> {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });

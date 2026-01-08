@@ -1,7 +1,7 @@
-import type { Description, NodeId, Title, Url } from "./ids";
-import { Settings } from "./settings";
-import { TabState } from "./tabs";
-import { NavigationTreeJSON } from "./tree";
+import type { Description, NodeId, Title, Url } from "./ids.js";
+import { Settings } from "./settings.js";
+import { TabState } from "./tabs.js";
+import { NavigationTreeJSON } from "./tree.js";
 
 export const MSG = {
     NAVIGATE_TO: 'NAVIGATE_TO',

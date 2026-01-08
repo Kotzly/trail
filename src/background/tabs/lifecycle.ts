@@ -1,10 +1,10 @@
-import type { TabId, Title, Url } from '../../shared/types/ids';
-import { tabManager } from '../state/tab-manager';
-import { treeStorage } from '../services/tree-storage';
-import { notifyTreeUpdate } from '../messaging/notifications';
+import type { TabId, Title, Url } from '../../shared/types/ids.js';
+import { tabManager } from '../state/tab-manager.js';
+import { treeStorage } from '../services/tree-storage.js';
+import { notifyTreeUpdate } from '../messaging/notifications.js';
 
-import { syncTabTitleFavicon, syncTabAudioState } from './tab-sync';
-import { NodeData } from '../../shared/types/node';
+import { syncTabTitleFavicon, syncTabAudioState } from './tab-sync.js';
+import { NodeData } from '../../shared/types/node.js';
 
 
 async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {

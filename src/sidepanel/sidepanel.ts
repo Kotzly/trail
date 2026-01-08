@@ -1,9 +1,9 @@
-import './ui/graph/view/renderer';
-import { initPanelState } from './state/panel-state';
-import { PinnedManager } from '../background/state/pinned';
-import { NavigationTree } from '../background/state/nav-tree';
-import { fetchCommandState } from './controllers/commands-controller';
-import { initContextMenu } from './controllers/context-menu-controller';
+import './ui/graph/view/renderer.js';
+import { initPanelState } from './state/panel-state.js';
+import { PinnedManager } from '../background/state/pinned.js';
+import { NavigationTree } from '../background/state/nav-tree.js';
+import { fetchCommandState } from './controllers/commands-controller.js';
+import { initContextMenu } from './controllers/context-menu-controller.js';
 
 
 export async function initSidepanel(tree: NavigationTree, pins: PinnedManager): Promise<void> {

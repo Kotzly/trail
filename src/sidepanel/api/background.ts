@@ -1,4 +1,4 @@
-import { MessageByType, RequestType, ResponseMessage } from "../../shared/types/messages";
+import { MessageByType, RequestType, ResponseMessage } from "../../shared/types/messages.js";
 
 
 export function sendMessage<T extends RequestType>(

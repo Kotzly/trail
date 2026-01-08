@@ -1,8 +1,8 @@
-import type { NodeId } from '../../../../shared/types/ids';
-import type { CanvasBounds, GraphAPI } from '../types';
-import { PADDING } from '../layout/config';
-import { GraphState } from '../state/graph-state';
-import { showBulkContextMenu } from '../menus/context-menu';
+import type { NodeId } from '../../../../shared/types/ids.js';
+import type { CanvasBounds, GraphAPI } from '../types.js';
+import { PADDING } from '../layout/config.js';
+import { GraphState } from '../state/graph-state.js';
+import { showBulkContextMenu } from '../menus/context-menu.js';
 
 export function setupPanZoom(
   wrapper: HTMLElement,

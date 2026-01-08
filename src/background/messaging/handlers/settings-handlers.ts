@@ -1,5 +1,5 @@
-import { settingsManager } from '../../services/settings';
-import { treeStorage } from '../../services/tree-storage';
+import { settingsManager } from '../../services/settings.js';
+import { treeStorage } from '../../services/tree-storage.js';
 
 export async function handleSettingsMessage(
   message: any,

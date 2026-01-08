@@ -1,4 +1,4 @@
-import type { FaviconUrl } from "../../../shared/types/ids";
+import type { FaviconUrl } from "../../../shared/types/ids.js";
 
 export function createFaviconElement(faviconUrl: FaviconUrl): HTMLElement {
     const container = document.createElement('div');

@@ -1,9 +1,9 @@
-import type { NodeId } from '../../../shared/types/ids';
-import { tabManager } from '../../state/tab-manager';
-import { treeStorage } from '../../services/tree-storage';
-import { CommandManager } from '../../../shared/lib/commands';
-import { notifyTreeUpdate } from '../notifications';
-import { TreeNodeMapper } from '../../../shared/lib/mapper';
+import type { NodeId } from '../../../shared/types/ids.js';
+import { tabManager } from '../../state/tab-manager.js';
+import { treeStorage } from '../../services/tree-storage.js';
+import { CommandManager } from '../../../shared/lib/commands.js';
+import { notifyTreeUpdate } from '../notifications.js';
+import { TreeNodeMapper } from '../../../shared/lib/mapper.js';
 
 export async function handleNodeMessage(
   message: any,

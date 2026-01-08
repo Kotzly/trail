@@ -1,16 +1,16 @@
 // messaging/handlers/content-handlers.ts
-import { shouldTrackUrl, getFaviconUrl } from "../../utils/url-utils";
-import { treeStorage } from "../../services/tree-storage";
-import { tabManager } from "../../state/tab-manager";
-import { notifyTreeUpdate } from "../notifications";
+import { shouldTrackUrl, getFaviconUrl } from "../../utils/url-utils.js";
+import { treeStorage } from "../../services/tree-storage.js";
+import { tabManager } from "../../state/tab-manager.js";
+import { notifyTreeUpdate } from "../notifications.js";
 import {
   MSG,
   defineHandlers,
   type MessageByType,
   type MessageHandler,
   type Response,
-} from "../../../shared/types/messages";
-import { TabId } from "../../../shared/types/ids";
+} from "../../../shared/types/messages.js";
+import { TabId } from "../../../shared/types/ids.js";
 
 type ContentRequestType = typeof MSG.TITLE_CHANGED;
 

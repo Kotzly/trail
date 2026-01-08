@@ -6,7 +6,7 @@ import {
   type RequestMessage,
   type Response,
   defineHandlers,
-} from "../../shared/types/messages";
+} from "../../shared/types/messages.js";
 
 type AnyResponse = Response<any>;
 type AnyHandler = (message: any, sender: chrome.runtime.MessageSender) => Promise<AnyResponse> | AnyResponse;

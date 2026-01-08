@@ -1,10 +1,10 @@
-import type { TabId, NodeId } from '../../shared/types/ids';
-import { tabManager } from '../state/tab-manager';
-import type { TabSoundState, TabState } from '../../shared/types/tabs';
-import { msg } from '../../shared/types/messages';
-import { treeStorage } from '../services/tree-storage';
-import { NavigationTreeMapper } from '../../shared/lib/mapper';
-import { NavigationTree } from '../state/nav-tree';
+import type { TabId, NodeId } from '../../shared/types/ids.js';
+import { tabManager } from '../state/tab-manager.js';
+import type { TabSoundState, TabState } from '../../shared/types/tabs.js';
+import { msg } from '../../shared/types/messages.js';
+import { treeStorage } from '../services/tree-storage.js';
+import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
+import { NavigationTree } from '../state/nav-tree.js';
 
 
 // Get tab states for all open tabs.

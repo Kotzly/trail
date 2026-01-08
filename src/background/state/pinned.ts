@@ -1,5 +1,5 @@
-import { NavigationNode } from "../../shared/types/node";
-import { NavigationTree } from "./nav-tree"
+import { NavigationNode } from "../../shared/types/node.js";
+import { NavigationTree } from "./nav-tree.js"
 
 export class PinnedManager {
     private tree: NavigationTree

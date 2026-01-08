@@ -1,6 +1,6 @@
-import type { Description, JSONString } from "../types/ids";
-import type { CommandState } from "../types/messages";
-import { NavigationTreeJSON } from "../types/tree";
+import type { Description, JSONString } from "../types/ids.js";
+import type { CommandState } from "../types/messages.js";
+import { NavigationTreeJSON } from "../types/tree.js";
 
 // max history stack size (todo: make this configurable by the user)
 const MAX_HISTORY = 30;
