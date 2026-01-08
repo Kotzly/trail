@@ -52,8 +52,5 @@ class SettingsManager {
     }
 }
 
-export const settingsManager = await (async (): Promise<SettingsManager> => {
-    const manager = new SettingsManager();
-    await manager.init();
-    return manager;
-})();
+export const settingsManager = new SettingsManager();
+settingsManager.init().catch(console.error);

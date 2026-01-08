@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trail</title>
+  <title>trail</title>
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
@@ -19,7 +19,7 @@
           <circle cx="7" cy="21" r="1.5" fill="currentColor"/>
           <circle cx="17" cy="21" r="1.5" fill="currentColor"/>
         </svg>
-        Trail
+        trail
       </h1>
       <div class="header-actions">
         <button id="undoBtn" class="btn-icon" title="Undo (Ctrl+Z)" disabled>
@@ -43,21 +43,21 @@
           </button>
           <div id="pinnedDropdown" class="pinned-dropdown hidden">
             <div class="pinned-dropdown-header">
-              <span class="pinned-dropdown-title">Pinned Pages</span>
+              <span class="pinned-dropdown-title">pinned</span>
               <span class="pinned-dropdown-count" id="pinnedCount">0</span>
             </div>
             <div class="pinned-dropdown-list" id="pinnedList">
-              <div class="pinned-dropdown-empty">No pinned pages</div>
+              <div class="pinned-dropdown-empty">no pinned pages</div>
             </div>
-            <div class="pinned-dropdown-hint">↑↓ Navigate · Enter Open · Esc Close</div>
+            <div class="pinned-dropdown-hint">↑↓ navigate · enter open · esc close</div>
           </div>
         </div>
-        <button id="clearBtn" class="btn-icon" title="Clear stack">
+        <button id="clearBtn" class="btn-icon" title="clear stack">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
           </svg>
         </button>
-        <button id="settingsBtn" class="btn-icon" title="Settings">
+        <button id="settingsBtn" class="btn-icon" title="settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
@@ -73,7 +73,7 @@
           <circle cx="11" cy="11" r="8"/>
           <path d="M21 21l-4.35-4.35"/>
         </svg>
-        <input type="text" id="searchInput" class="search-input" placeholder="Search pages... (Ctrl+F)">
+        <input type="text" id="searchInput" class="search-input" placeholder="search pages... (Ctrl+F)">
         <button class="search-clear hidden" id="searchClear" title="Clear search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
@@ -81,7 +81,7 @@
         </button>
       </div>
       <div class="search-results hidden" id="searchResults">
-        <span class="search-count" id="searchCount">0 results</span>
+        <span class="search-count" id="searchCount">0 results found</span>
         <div class="search-nav">
           <button class="search-nav-btn" id="searchPrev" title="Previous (↑)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -98,8 +98,8 @@
     </div>
 
     <div class="tab-info" id="tabInfo">
-      <span class="tab-label">Current Tab</span>
-      <span class="tab-count" id="stackCount">0 pages</span>
+      <span class="tab-label">current tab</span>
+      <span class="tab-count" id="stackCount">0 tabs</span>
     </div>
 
     <div class="stack-container" id="stackContainer">
@@ -107,8 +107,8 @@
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>
-        <p>No history yet</p>
-        <span>Start browsing to see your navigation stack</span>
+        <p>no history yet</p>
+        <span>start browsing to see your navigation graph</span>
       </div>
       <div class="stack-list" id="stackList"></div>
     </div>
@@ -119,46 +119,46 @@
     <div class="context-menu hidden" id="contextMenu">
       <button class="context-menu-item" data-action="open">
         <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
-        Open
+        open
       </button>
       <button class="context-menu-item" data-action="openNewTab">
         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-        Open in New Tab
+        open in new tab
       </button>
       <button class="context-menu-item" data-action="openNewWindow">
         <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        Open in New Window
+        open in new window
       </button>
       <div class="context-menu-divider"></div>
       <button class="context-menu-item" data-action="copyUrl">
         <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        Copy URL
+        copy url
       </button>
       <button class="context-menu-item" data-action="copyTitle">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-        Copy Title
+        copy title
       </button>
       <div class="context-menu-divider"></div>
       <button class="context-menu-item multi-tab-only" data-action="muteTab">
         <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/></svg>
-        <span class="mute-label">Mute Tab</span>
+        <span class="mute-label">mute tab</span>
       </button>
       <button class="context-menu-item multi-tab-only" data-action="pinTab">
         <svg viewBox="0 0 24 24"><path d="M12 2v8M8 6l8 0M9 14l-2 8 5-4 5 4-2-8"/></svg>
-        <span class="pin-label">Pin Tab</span>
+        <span class="pin-label">pin tab</span>
       </button>
       <button class="context-menu-item multi-tab-only" data-action="duplicateTab">
         <svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
-        Duplicate Tab
+        duplicate tab
       </button>
       <button class="context-menu-item multi-tab-only" data-action="closeTab">
         <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        Close Tab
+        close tab
       </button>
       <div class="context-menu-divider"></div>
       <button class="context-menu-item danger" data-action="removeFromHistory">
         <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-        Remove from History
+        remove from history
       </button>
     </div>
 
@@ -170,7 +170,7 @@
           <svg class="category-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="9 18 15 12 9 6"/>
           </svg>
-          <span>Appearance</span>
+          <span>appearance</span>
         </button>
         <div class="category-content">
           <div class="popover-section">
@@ -195,13 +195,13 @@
               </button>
             </div>
           </div>
-          <div class="popover-section">
+          <!-- <div class="popover-section">
             <label class="popover-toggle popover-toggle-small" id="compactGraphOption">
-              <span class="popover-label-small">Compact Graph</span>
+              <span class="popover-label-small">compact graph</span>
               <input type="checkbox" id="compactGraphToggle">
               <span class="toggle-slider toggle-slider-small"></span>
             </label>
-          </div>
+          </div> -->
         </div>
       </div>
       
@@ -214,14 +214,14 @@
           <span>Behavior</span>
         </button>
         <div class="category-content">
-          <div class="popover-section">
+          <!-- <div class="popover-section">
             <label class="popover-toggle popover-toggle-small graph-only-option" id="selectionMenuOption">
               <span class="popover-label-small">Instant Selection Menu</span>
               <input type="checkbox" id="selectionMenuToggle">
               <span class="toggle-slider toggle-slider-small"></span>
             </label>
             <div class="popover-hint">Show menu immediately after selection (vs right-click)</div>
-          </div>
+          </div> -->
         </div>
       </div>
       
