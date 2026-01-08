@@ -1,24 +1,45 @@
+import { TreeNode } from "../../background/state/tree-node";
 import type { NodeId, Timestamp, Title, Url, FaviconUrl, Tag } from "./ids"
-import { now, urlToTitle } from "./ids";
 
-// types
 
-export interface TreeEntry {
-    url: Url;
-    title?: Title;
-    favicon?: FaviconUrl;
-}
+export type NodeData = {
+    readonly url: Url;
 
-export interface TreeNodeJSON {
-    id: NodeId;
-    url: Url;
     title: Title;
     favicon?: FaviconUrl;
-    timestamp: Timestamp;
-
+    
     pinned: boolean;
     tags: Tag[];
     collapsed: boolean;
-
-    children: TreeNodeJSON[];
 }
+
+export type NodeDataPatch = Partial<Omit<NodeData, "url">>;
+
+export function updateNodeData(
+  old: NodeData,
+  patch: NodeDataPatch
+): NodeData {
+  return {
+    ...old,
+    ...patch,
+
+    favicon:
+      patch.favicon !== undefined ? patch.favicon : old.favicon,
+
+    tags: patch.tags ? [...patch.tags] : old.tags,
+  } as NodeData;
+}
+
+
+export type TreeNodeJSON<T> = {
+    id: NodeId;
+    timestamp: Timestamp;
+    
+    data: T;
+
+    children: TreeNodeJSON<T>[];
+}
+
+export type NavigationNode = TreeNode<NodeData>;
+
+export type NavigationNodeJSON = TreeNodeJSON<NodeData>;

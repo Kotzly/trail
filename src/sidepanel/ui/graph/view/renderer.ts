@@ -1,5 +1,5 @@
 import type { NodeId } from '../../../../shared/types/ids';
-import type { TreeNode } from '../../../../background/state/treenode';
+import type { TreeNode } from '../../../../background/state/tree-node';
 import type { TreeData, RenderGraphOptions } from '../types';
 import { createGraphCanvas } from './canvas';
 import { createGraphNode, drawConnections, getPathToNodeInForest } from './node';

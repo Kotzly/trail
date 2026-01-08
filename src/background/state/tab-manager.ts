@@ -1,5 +1,5 @@
 import type { NodeId, TabId } from "../../shared/types/ids";
-import { NavigationTree } from "./tree-store";
+import { NavigationTree } from "./nav-tree";
 import { TabIndex } from "./tab-index";
 import { LruManager } from "./tab-lru";
 
@@ -55,6 +55,16 @@ export class TabManager {
     openNodes(): Set<NodeId> {
         return this.index.openNodes();
     }
+
+    // Get tab count for a node.
+    tabCountForNode(nodeId: NodeId): number {
+        return this.index.tabCountForNode(nodeId);
+    }
+
+    // Get all tabs for a node.
+    tabsByNode(nodeId: NodeId): Set<TabId> {
+        return this.index.tabsByNode(nodeId);
+    }
   
     // Unregister a tab (when it is closed).
     unregister(tabId: TabId) {
@@ -69,7 +79,7 @@ export class TabManager {
     // Close oldest tab globally if the limit is exceeded (skips pinned nodes).
     async closeOldest(limit: number, tree: NavigationTree | null = null): Promise<TabId | null> {
       if (limit === 0) return null; // Unlimited
-  
+
       const count = this.index.tabCount();
       if (count <= limit) return null;
       let tabIdToClose = null;
@@ -80,15 +90,15 @@ export class TabManager {
             continue;
         }
         if (tree) {
-          const node = tree.findNodeByIdDFS(nodeId);
-          if (node?.pinned) continue; // Skip pinned nodes
+          const node = tree.findNodeById(nodeId);
+          if (node?.data.pinned) continue; // Skip pinned nodes
         }
         tabIdToClose = tabId;
         break;
       }
-  
+
       if (!tabIdToClose) return null; // All tabs are pinned
-  
+
       try {
         await chrome.tabs.remove(tabIdToClose);
         this.unregister(tabIdToClose);

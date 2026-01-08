@@ -1,5 +1,5 @@
 import type { NodeId } from '../../../../shared/types/ids';
-import type { TreeNode } from '../../../../background/state/treenode';
+import type { TreeNode } from '../../../../background/state/tree-node';
 import type { NodePosition } from '../types';
 import { formatUrl, escapeHtml } from '../../shared/format';
 import { getLayoutConfig } from '../layout/config';

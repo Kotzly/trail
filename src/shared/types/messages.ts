@@ -1,5 +1,7 @@
 import type { Description, NodeId, Title, Url } from "./ids";
 import { Settings } from "./settings";
+import { TabState } from "./tabs";
+import { NavigationTreeJSON } from "./tree";
 
 export const MSG = {
     NAVIGATE_TO: 'NAVIGATE_TO',
@@ -10,6 +12,7 @@ export const MSG = {
     SAVE_SETTINGS: 'SAVE_SETTINGS',
     GET_SETTINGS: 'GET_SETTINGS',
     TITLE_CHANGED: 'TITLE_CHANGED',
+    TREE_UPDATED: 'TREE_UPDATED',
 } as const;
 
 export type RequestType = typeof MSG[keyof typeof MSG];
@@ -29,9 +32,10 @@ export type TabsForNodeMessage = RequestMessageBase<typeof MSG.GET_TABS_FOR_NODE
 export type SaveSettingsMessage = RequestMessageBase<typeof MSG.SAVE_SETTINGS, SaveSettingsInput>;
 export type GetSettingsMessage = RequestMessageBase<typeof MSG.GET_SETTINGS>;
 export type TitleChangedMessage = RequestMessageBase<typeof MSG.TITLE_CHANGED, TitleChangedInput>;
+export type TreeUpdatedMessage = RequestMessageBase<typeof MSG.TREE_UPDATED, TreeUpdatedInput>;
 export type RequestMessage = NavigateToMessage | 
     UndoMessage | RedoMessage | 
-    CommandStateMessage | TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage;
+    CommandStateMessage | TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage | TreeUpdatedMessage;
 
 
 // ==== Responses ====
@@ -49,6 +53,7 @@ export type ResponseDataByType = {
     [MSG.SAVE_SETTINGS]: void;
     [MSG.GET_SETTINGS]: Settings;
     [MSG.TITLE_CHANGED]: void;
+    [MSG.TREE_UPDATED]: void;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -69,6 +74,7 @@ export const msg = {
     saveSettings(payload: SaveSettingsInput): SaveSettingsMessage { return { type: MSG.SAVE_SETTINGS, ...payload } },
     getSettings(): GetSettingsMessage { return { type: MSG.GET_SETTINGS } },
     titleChanged(url: Url, title: Title): TitleChangedMessage { return { type: MSG.TITLE_CHANGED, url, title } },
+    treeUpdated(payload: TreeUpdatedInput): TreeUpdatedMessage { return { type: MSG.TREE_UPDATED, ...payload } },
 }
 
 // ==== message handler ====
@@ -76,8 +82,19 @@ export const msg = {
 export type MessageHandler<T extends RequestType = RequestType> = (
     message: MessageByType<T>,
     sender: chrome.runtime.MessageSender,
-    sendResponse: (response: ResponseMessage<T>) => void
-) => void | Promise<void>;
+) => Promise<ResponseMessage<T>> | ResponseMessage<T>;
+
+export type HandlerMap = Partial<{ [K in RequestType]: MessageHandler<K>}>;
+
+export function defineHandlers<const H extends HandlerMap>(h: H): H {
+    return h;
+}
+
+export type StrictHandlerMap = { [K in RequestType]: MessageHandler<K>};
+
+export function defineStrictHandlers<const H extends StrictHandlerMap>(h: H): H {
+    return h;
+}
 
 // ==== data types ====
 
@@ -108,4 +125,11 @@ export type SaveSettingsInput = {
 export type TitleChangedInput = {
     url: Url;
     title: Title;
+}
+
+export type TreeUpdatedInput = {
+    tree: NavigationTreeJSON,
+    openNodeIds: NodeId[],
+    tabStates: Record<NodeId, TabState>,
+    nodeTabCounts: Record<NodeId, number>,
 }

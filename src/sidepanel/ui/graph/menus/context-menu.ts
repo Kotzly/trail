@@ -1,5 +1,5 @@
 import type { NodeId, Tag } from '../../../../shared/types/ids';
-import type { TreeNode } from '../../../../background/state/treenode';
+import type { TreeNode } from '../../../../background/state/tree-node';
 import { TAG_PRESETS } from '../tags';
 import { GraphState } from '../state/graph-state';
 

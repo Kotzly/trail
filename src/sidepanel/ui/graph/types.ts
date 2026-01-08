@@ -1,5 +1,5 @@
 import type { NodeId } from '../../../shared/types/ids';
-import type { TreeNode } from '../../../background/state/treenode';
+import type { TreeNode } from '../../../background/state/tree-node';
 import { TabState } from '../../../shared/types/tabs';
 
 export interface LayoutConfig {

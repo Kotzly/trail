@@ -1,5 +1,5 @@
 import { sendMessage } from "./background";
-import { MSG, msg, ResponseMessage } from "../../shared/types/messages";
+import { msg } from "../../shared/types/messages";
 import type { CommandState } from "../../shared/types/messages";
 
 export async function getCommandState(): Promise<CommandState> {

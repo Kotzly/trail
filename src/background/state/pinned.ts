@@ -1,5 +1,5 @@
-import { NavigationTree } from "./tree-store"
-import { TreeNode } from "./treenode";
+import { NavigationTree } from "./nav-tree"
+import { TreeNode } from "./tree-node";
 
 export class PinnedManager {
     private tree: NavigationTree

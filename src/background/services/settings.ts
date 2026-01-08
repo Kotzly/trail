@@ -3,7 +3,7 @@ import type { Settings } from "../../shared/types/settings";
 
 export const defaultSettings: Settings = {
     maxOpenTabs: 100,
-    capacity: 1000,
+    capacity: Infinity,
     theme: THEME_IDS.SYSTEM,
 }
 
@@ -29,14 +29,20 @@ class SettingsManager {
     }
 
     async loadSettings(): Promise<Settings> {
-        const result = await settingsArea.get({ [settingsKey]: defaultSettings })
+        const result = await settingsArea.get({ [settingsKey]: defaultSettings }).catch(error => {
+            console.error('SettingsManager.loadSettings: Error loading settings:', error);
+            throw error;
+        });
         this.settings = mergeDefaults(result[settingsKey]);
         return this.settings;
     }
 
     async saveSettings(next: Settings): Promise<void> {
         this.settings = { ...defaultSettings, ...next };
-        await settingsArea.set({ [settingsKey]: this.settings });
+        await settingsArea.set({ [settingsKey]: this.settings }).catch(error => {
+            console.error('SettingsManager.saveSettings: Error saving settings:', error);
+            throw error;
+        });
     }
 
     async patch(patch: Partial<Settings>): Promise<Settings> {

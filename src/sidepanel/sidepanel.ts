@@ -1,7 +1,7 @@
 import './ui/graph/view/renderer';
 import { initPanelState } from './state/panel-state';
 import { PinnedManager } from '../background/state/pinned';
-import { NavigationTree } from '../background/state/tree-store';
+import { NavigationTree } from '../background/state/nav-tree';
 import { fetchCommandState } from './controllers/commands-controller';
 import { initContextMenu } from './controllers/context-menu-controller';
 

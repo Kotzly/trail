@@ -5,9 +5,16 @@ export class RedirectDetector {
   private lastTabUrl: Map<TabId, UrlWithTimestamp> = new Map();
   static readonly REDIRECT_THRESHOLD_MS: number = 2000;
 
-  // Record URL for a tab.
-  recordTabUrl(tabId: TabId, url: UrlWithTimestamp): void {
+  // Record URL for a tab and return previous URL.
+  recordTabUrl(tabId: TabId, url: UrlWithTimestamp): UrlWithTimestamp | undefined {
+    const prev = this.lastTabUrl.get(tabId);
     this.lastTabUrl.set(tabId, url);
+    return prev;
+  }
+
+  // Get last recorded URL for a tab.
+  getLastUrl(tabId: TabId): UrlWithTimestamp | undefined {
+    return this.lastTabUrl.get(tabId);
   }
 
   // Check if navigation is a redirect (same tab, different URL, within threshold).

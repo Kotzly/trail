@@ -5,6 +5,10 @@ export type NavigationOptions = {
     backOnRevisit?: boolean;
 }
 
+export const DefaultNavigationOptions: NavigationOptions = {
+    backOnRevisit: true,
+} as const;
+
 export interface NavigationTreeJSON {
     root: TreeNodeJSON | null;
     currentNodeId: NodeId | null;

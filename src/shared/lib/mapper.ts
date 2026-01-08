@@ -1,50 +1,55 @@
-import { TreeEntry, TreeNodeJSON } from "../types/node";
-import { TreeNode } from "../../background/state/treenode";
+import type { NavigationNode, NavigationNodeJSON } from "../types/node";
+import { TreeNode } from "../../background/state/tree-node";
+import { NavigationTreeJSON } from "../types/tree";
+import { NavigationTree } from "../../background/state/nav-tree";
+import { defaultSettings } from "../../background/services/settings";
 
 export class TreeNodeMapper {
-    static fromJSON(json: TreeNodeJSON, parent: TreeNode | null = null): TreeNode {
-      const node = new TreeNode({
-        url: json.url,
-        title: json.title,        // if your TreeNode allows optional title, see defaults below
-        favicon: json.favicon,
-      } as TreeEntry);
+    static fromJSON(json: NavigationNodeJSON, parent?: NavigationNode): NavigationNode {
+      const node = new TreeNode(json.data, parent, json.id);
   
-      // Better: avoid `(any)` by letting TreeNode accept id in ctor or a factory
-      (node as any).id = json.id;
-  
-      node.timestamp = json.timestamp;
-      node.parent = parent;
-      node.collapsed = json.collapsed ?? false;
-      node.pinned = json.pinned ?? false;
-      node.tags = [...(json.tags ?? [])];
-  
-      node.children = (json.children ?? []).map(child => TreeNodeMapper.fromJSON(child, node));
+      node.getChildren().push(...(json.children ?? []).map(child => TreeNodeMapper.fromJSON(child, node)));
       return node;
     }
   
-    static toJSON(node: TreeNode): TreeNodeJSON {
+    static toJSON(node: NavigationNode): NavigationNodeJSON {
       return {
         id: node.id,
-        url: node.url,
-        title: node.title ?? '',          // ensure required fields exist
-        favicon: node.favicon,
         timestamp: node.timestamp,
-  
-        pinned: node.pinned ?? false,
-        collapsed: node.collapsed ?? false,
-        tags: [...(node.tags ?? [])],
-  
-        children: node.children.map(TreeNodeMapper.toJSON),
-      } as TreeNodeJSON;
-    }
-  
-    // Boundary helpers for optional root
-    static rootFromJSON(json: TreeNodeJSON | null): TreeNode | null {
-      return json ? TreeNodeMapper.fromJSON(json, null) : null;
-    }
-  
-    static rootToJSON(node: TreeNode | null): TreeNodeJSON | null {
-      return node ? TreeNodeMapper.toJSON(node) : null;
+
+        data: node.data,
+
+        children: node.getChildren().map(TreeNodeMapper.toJSON),
+      };
     }
   }
   
+
+export class NavigationTreeMapper {
+    static toJSON(tree: NavigationTree): NavigationTreeJSON {
+        const root = tree.getRoot();
+        const current = tree.getCurrent();
+        const capacity = tree.getCapacity();
+        const nodeCount = tree.size();
+        
+        return {
+            root: root ? TreeNodeMapper.toJSON(root) : null,
+            currentNodeId: current?.id ?? null,
+            capacity: capacity,
+            nodeCount: nodeCount,
+        };
+    }
+
+    static fromJSON(json: NavigationTreeJSON): NavigationTree {
+      if (!json.root) {
+          return new NavigationTree(json.capacity ?? defaultSettings.capacity);
+      }
+
+      const root = TreeNodeMapper.fromJSON(json.root);
+      const tree = new NavigationTree(json.capacity ?? defaultSettings.capacity, root);
+
+      if (json.currentNodeId) tree.setCurrentById(json.currentNodeId);
+      
+      return tree;
+    }
+}

@@ -1,4 +1,4 @@
-import type { TreeNode } from "../../background/state/treenode";
+import type { TreeNode } from "../../background/state/tree-node";
 import { PanelState } from "../state/panel-state";
 import { getTabsForNode } from "../api/tabs";
 import { navigateTo } from "../api/tree";

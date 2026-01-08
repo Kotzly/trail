@@ -1,9 +1,9 @@
 import { NodeId, TabId } from "../../shared/types/ids";
 import { Settings } from "../../shared/types/settings";
-import type { TreeNode } from "../../background/state/treenode";
+import type { TreeNode } from "../../background/state/tree-node";
 import { TabState } from "../../shared/types/tabs";
 import { isMac } from "../../shared/utils/platform"
-import { NavigationTree } from "../../background/state/tree-store";
+import { NavigationTree } from "../../background/state/nav-tree";
 import { PinnedManager } from "../../background/state/pinned";
 import { TabManager, tabManager } from "../../background/state/tab-manager";
 

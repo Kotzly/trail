@@ -1,4 +1,4 @@
-import type { TreeNode } from '../../../../background/state/treenode';
+import type { TreeNode } from '../../../../background/state/tree-node';
 import type { NodePosition, CanvasBounds } from '../types';
 import { getLayoutConfig, PADDING } from './config';
 
