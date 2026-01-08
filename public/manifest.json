@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "trailly",
-  "description": "transform your browsing experience. trailly enables you to track your browsing sessions as trees",
+  "name": "trail",
+  "description": "transform your browsing experience. trail enables you to track your browsing sessions as trees",
   "version": "0.0.1",
   "icons": {
-    "16": "icons/icon16.png",
-    "32": "icons/icon32.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "public/icons/icon16.png",
+    "32": "public/icons/icon32.png",
+    "48": "public/icons/icon48.png",
+    "128": "public/icons/icon128.png"
   },
   "permissions": [
     "sidePanel",
@@ -32,14 +32,14 @@
     }
   ],
   "side_panel": {
-    "default_path": "sidepanel/sidepanel.html"
+    "default_path": "dist/sidepanel/sidepanel.html"
   },
   "action": {
-    "default_title": "Open Trail",
+    "default_title": "open trail",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "32": "icons/icon32.png",
-      "48": "icons/icon48.png"
+      "16": "public/icons/icon16.png",
+      "32": "public/icons/icon32.png",
+      "48": "public/icons/icon48.png"
     }
   }
 }

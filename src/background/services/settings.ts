@@ -1,5 +1,5 @@
 import { THEME_IDS } from "../../sidepanel/ui/shared/themes";
-import type { Settings } from "../types/settings";
+import type { Settings } from "../../shared/types/settings";
 
 export const defaultSettings: Settings = {
     maxOpenTabs: 100,
@@ -17,7 +17,7 @@ function mergeDefaults(raw: unknown): Settings {
     return {...defaultSettings, ...(raw as Partial<Settings>)};
 }
 
-export class SettingsManager {
+class SettingsManager {
     private settings: Settings = { ...defaultSettings };
     
     async init(): Promise<void> {
@@ -46,3 +46,8 @@ export class SettingsManager {
     }
 }
 
+export const settingsManager = await (async (): Promise<SettingsManager> => {
+    const manager = new SettingsManager();
+    await manager.init();
+    return manager;
+})();
