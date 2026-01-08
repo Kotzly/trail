@@ -27,26 +27,22 @@ function isRequestMessage(x: unknown): x is RequestMessage {
   return typeof t === "string" && TYPED_TYPES.has(t);
 }
 
-/**
- * Transitional adapter:
- * пока хендлеры живут "пачками" (handleNavigationMessage и т.п.),
- * роутим конкретные MSG/* на эти функции.
- *
- * Дальше ты заменишь это на модульные defineHandlers(...) без any-кастов.
- */
-const typedHandlers = defineHandlers({
-  [MSG.NAVIGATE_TO]: (m, sender) => handleNavigationMessage(m as any, sender) as any,
-  [MSG.UNDO]: (m, sender) => handleUndoMessage(m as any, sender) as any,
-  [MSG.REDO]: (m, sender) => handleUndoMessage(m as any, sender) as any,
-  [MSG.COMMAND_STATE]: (m, sender) => handleUndoMessage(m as any, sender) as any,
-  [MSG.GET_TABS_FOR_NODE]: (m, sender) => handleTabMessage(m as any, sender) as any,
-  [MSG.SAVE_SETTINGS]: (m, sender) => handleSettingsMessage(m as any, sender) as any,
-  [MSG.GET_SETTINGS]: (m, sender) => handleSettingsMessage(m as any, sender) as any,
-  [MSG.TITLE_CHANGED]: (m, sender) => handleContentMessage(m as any, sender) as any,
+// No-op handler that returns success for requests
+const noopHandler: AnyHandler = async () => ({ success: false, error: "Not implemented" });
 
-  // Если TREE_UPDATED у тебя outbound-only (SW -> sidebar), то этот хендлер можно убрать
-  // и не слать TREE_UPDATED В service-worker router вообще.
-  [MSG.TREE_UPDATED]: async () => err("TREE_UPDATED is outbound-only"),
+// No-op error for TREE_UPDATED
+const noopTreeUpdated: AnyHandler = async () => err("TREE_UPDATED is outbound-only");
+
+const typedHandlers = defineHandlers({
+  [MSG.NAVIGATE_TO]: noopHandler,
+  [MSG.UNDO]: noopHandler,
+  [MSG.REDO]: noopHandler,
+  [MSG.COMMAND_STATE]: noopHandler,
+  [MSG.GET_TABS_FOR_NODE]: noopHandler,
+  [MSG.SAVE_SETTINGS]: noopHandler,
+  [MSG.GET_SETTINGS]: noopHandler,
+  [MSG.TITLE_CHANGED]: noopHandler,
+  [MSG.TREE_UPDATED]: noopTreeUpdated,
 } satisfies HandlerMap);
 
 function createMessageRouter() {

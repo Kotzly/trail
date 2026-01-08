@@ -1,5 +1,5 @@
 import { NodeId } from "./ids";
-import { TreeNodeJSON } from "./node";
+import { NavigationNodeJSON, TreeNodeJSON } from "./node";
 
 export type NavigationOptions = {
     backOnRevisit?: boolean;
@@ -10,7 +10,7 @@ export const DefaultNavigationOptions: NavigationOptions = {
 } as const;
 
 export interface NavigationTreeJSON {
-    root: TreeNodeJSON | null;
+    root: NavigationNodeJSON | null;
     currentNodeId: NodeId | null;
     capacity: number;
     nodeCount: number;

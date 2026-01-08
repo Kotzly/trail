@@ -21,7 +21,7 @@ class graphState {
   // Preserve view state across re-renders
   private savedViewState: ViewState | null = null;
 
-  // Store tabStates and onNavigate for use in node creation and context menu
+  // Store tabStates for use in node creation and context menu
   private currentTabStates: Record<NodeId, TabState> = {};
 
   private currentNodeTabCounts: Record<NodeId, number> = {};

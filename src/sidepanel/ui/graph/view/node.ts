@@ -14,7 +14,6 @@ export function createGraphNode(
   node: NavigationNode,
   position: NodePosition,
   currentId: NodeId | null,
-  onNavigate: (node: NavigationNode) => void,
   openNodeIds: Set<NodeId> | null = null,
   nodeTabCounts: Record<NodeId, number> = {}
 ): HTMLElement {
@@ -140,7 +139,7 @@ export function createGraphNode(
       return;
     }
     
-    // Regular click: clear selection and navigate
+    // Regular click: clear selection and center on node
     GraphState.setSelectedNodeIds(new Set());
     document.querySelectorAll('.graph-node.selected').forEach(el => {
       el.classList.remove('selected');
@@ -150,8 +149,6 @@ export function createGraphNode(
     if (graphAPI && graphAPI.centerOnNode) {
       graphAPI.centerOnNode(node.id, true);
     }
-    
-    onNavigate(node);
   });
   
   // Right-click context menu

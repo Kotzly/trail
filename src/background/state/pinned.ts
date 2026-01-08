@@ -1,24 +1,24 @@
+import { NavigationNode } from "../../shared/types/node";
 import { NavigationTree } from "./nav-tree"
-import { TreeNode } from "./tree-node";
 
 export class PinnedManager {
     private tree: NavigationTree
-    pinned: Set<TreeNode> // todo: perhaps, nodeId would be better here?
+    pinned: Set<NavigationNode> // todo: perhaps, nodeId would be better here?
 
     constructor(tree: NavigationTree) {
         this.tree = tree;
         this.pinned = this.tree.collectPinned();
     }
 
-    pin(node: TreeNode) {
+    pin(node: NavigationNode) {
         this.pinned.add(node);
     }
 
-    isPinned(node: TreeNode): boolean {
+    isPinned(node: NavigationNode): boolean {
         return this.pinned.has(node);
     }
 
-    unpin(node: TreeNode) {
+    unpin(node: NavigationNode) {
         this.pinned.delete(node);
     }
 

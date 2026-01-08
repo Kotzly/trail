@@ -1,11 +1,11 @@
 import { NodeId, TabId } from "../../shared/types/ids";
 import { Settings } from "../../shared/types/settings";
-import type { TreeNode } from "../../background/state/tree-node";
 import { TabState } from "../../shared/types/tabs";
 import { isMac } from "../../shared/utils/platform"
 import { NavigationTree } from "../../background/state/nav-tree";
 import { PinnedManager } from "../../background/state/pinned";
-import { TabManager, tabManager } from "../../background/state/tab-manager";
+import { tabManager } from "../../background/state/tab-manager";
+import { NavigationNode } from "../../shared/types/node";
 
 export async function initPanelState(tree: NavigationTree, pins: PinnedManager): Promise<void> {
     PanelState.tree = tree;
@@ -32,7 +32,7 @@ export const PanelState = {
     },
     
     contextMenu: {
-        node: null as TreeNode | null,
+        node: null as NavigationNode | null,
         tabs: [] as chrome.tabs.Tab[],
     },
 

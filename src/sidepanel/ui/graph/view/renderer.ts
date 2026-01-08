@@ -14,7 +14,6 @@ import { NavigationNode } from '../../../../shared/types/node';
  */
 export function renderGraphView(treeData: TreeData, container: HTMLElement, options: RenderGraphOptions): NodeId | null {
   const {
-    onNavigate,
     openNodeIds = null,
     tabStates = {},
     nodeTabCounts = {}
@@ -80,7 +79,6 @@ export function renderGraphView(treeData: TreeData, container: HTMLElement, opti
       pos.node,
       pos,
       currentId,
-      onNavigate,
       openNodeIds,
       nodeTabCounts
     );

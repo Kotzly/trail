@@ -1,6 +1,6 @@
 import { ThemeId } from "../ui/shared/themes";
 import { PanelState } from "../state/panel-state";
-import { defaultSettings } from "../../shared/lib/settings";
+import { defaultSettings } from "../../background/services/settings";
 import { Settings } from "../../shared/types/settings";
 import { saveSettings } from "../api/settings";
 

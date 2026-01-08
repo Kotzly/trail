@@ -1,6 +1,6 @@
 import type { TabId, NodeId } from '../../../shared/types/ids';
 import { tabManager } from '../../state/tab-manager';
-import { notifyGlobalTreeUpdate } from '../notifications';
+import { notifyTreeUpdate } from '../notifications';
 import { treeStorage } from '../../services/tree-storage';
 
 export async function handleTabMessage(
@@ -15,9 +15,9 @@ export async function handleTabMessage(
       if (tabsForNode.size > 0) {
         const tabId = Array.from(tabsForNode)[0];
         try {
-          const tab = await chrome.tabs.get(tabId);
+          const tab = await chrome.tabs.get(tabId!);
           const newMuted = !tab.mutedInfo?.muted;
-          await chrome.tabs.update(tabId, { muted: newMuted });
+          await chrome.tabs.update(tabId!, { muted: newMuted });
           return { success: true, muted: newMuted };
         } catch (e) {
           return { success: false, error: (e as Error).message };
@@ -34,7 +34,7 @@ export async function handleTabMessage(
       if (tabsForNode.size > 0) {
         const tabId = Array.from(tabsForNode)[0];
         try {
-          await chrome.tabs.remove(tabId);
+          await chrome.tabs.remove(tabId!);
           return { success: true };
         } catch (e) {
           return { success: false, error: (e as Error).message };
@@ -53,7 +53,7 @@ export async function handleTabMessage(
         const tabsForNode = tabManager.tabsByNode(id);
         for (const tabId of tabsForNode) {
           try {
-            await chrome.tabs.remove(tabId);
+            await chrome.tabs.remove(tabId!);
             tabManager.unregister(tabId);
             closedCount++;
           } catch (e) {
@@ -64,7 +64,7 @@ export async function handleTabMessage(
       
       // Notify update
       const tree = await treeStorage.getTree();
-      await notifyGlobalTreeUpdate(tree);
+      await notifyTreeUpdate(tree);
       return { success: true, closedCount };
     }
     
@@ -76,11 +76,11 @@ export async function handleTabMessage(
       if (tabsForNode.size > 0) {
         const tabId = Array.from(tabsForNode)[0];
         try {
-          const tab = await chrome.tabs.get(tabId);
+          const tab = await chrome.tabs.get(tabId!);
           return { success: true, tabInfo: tab };
         } catch (e) {
           // Tab no longer exists
-          tabManager.unregister(tabId);
+          tabManager.unregister(tabId!);
           return { success: true, tabInfo: null };
         }
       } else {

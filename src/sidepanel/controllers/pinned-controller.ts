@@ -160,11 +160,11 @@ export class PinnedDropdownController {
       item.dataset.nodeId = String(node.id);
 
       // favicon
-      if (node.favicon) {
+      if (node.data.favicon) {
         const img = document.createElement("img");
         img.className = "pinned-dropdown-item-favicon";
         img.alt = "";
-        img.src = node.favicon;
+        img.src = node.data.favicon;
         // fallback if favicon fails
         img.onerror = () => {
           const placeholder = document.createElement("div");
@@ -186,11 +186,11 @@ export class PinnedDropdownController {
 
       const title = document.createElement("div");
       title.className = "pinned-dropdown-item-title";
-      title.textContent = node.title || "Untitled";
+      title.textContent = node.data.title || "Untitled";
 
       const urlLine = document.createElement("div");
       urlLine.className = "pinned-dropdown-item-url";
-      urlLine.textContent = this.safeDomain(node.url);
+      urlLine.textContent = this.safeDomain(node.data.url);
 
       info.appendChild(title);
       info.appendChild(urlLine);
@@ -377,7 +377,7 @@ export class PinnedDropdownController {
     const nodeId = this.pinnedIds[this.focusedIndex];
     if (nodeId === undefined) return;
 
-    const node = PanelState.tree?.findNodeByIdDFS(nodeId);
+    const node = PanelState.tree?.findNodeById(nodeId);
     if (!node) {
       // tree might have changed; refresh once
       this.refresh();

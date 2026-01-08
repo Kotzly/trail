@@ -2,7 +2,7 @@ import type { NodeId } from '../../../shared/types/ids';
 import { tabManager } from '../../state/tab-manager';
 import { treeStorage } from '../../services/tree-storage';
 import { settingsManager } from '../../services/settings';
-import { notifyGlobalTreeUpdate } from '../notifications';
+import { notifyTreeUpdate } from '../notifications';
 
 export async function handlePinMessage(
   message: any,
@@ -16,30 +16,18 @@ export async function handlePinMessage(
       // Toggle pinned state for a node
       const { nodeId } = message;
       
-      const node = tree.findNodeByIdDFS(nodeId);
+      const node = tree.findNodeById(nodeId);
       if (!node) {
         return { success: false, error: 'Node not found' };
       }
       
       // Always toggle just this node
-      const newPinned = !node.pinned;
-      node.pinned = newPinned;
+      const newPinned = !node.data.pinned;
+      node.data.pinned = newPinned;
       
-      // Mode A: also sync with browser tab pin
-      if (settings.pinSyncBrowser) {
-        const tabsForNode = tabManager.tabsByNode(nodeId);
-        if (tabsForNode.size > 0) {
-          const tabId = Array.from(tabsForNode)[0];
-          try {
-            await chrome.tabs.update(tabId, { pinned: newPinned });
-          } catch (e) {
-            // Tab might be closed
-          }
-        }
-      }
-      
+
       await treeStorage.saveTree(tree);
-      await notifyGlobalTreeUpdate(tree);
+      await notifyTreeUpdate(tree);
       return { success: true, pinned: newPinned };
     }
     
@@ -49,15 +37,15 @@ export async function handlePinMessage(
       let pinnedCount = 0;
       
       for (const id of nodeIds) {
-        const node = tree.findNodeByIdDFS(id);
-        if (node && !node.pinned) {
-          node.pinned = true;
+        const node = tree.findNodeById(id);
+        if (node && !node.data.pinned) {
+          node.data.pinned = true;
           pinnedCount++;
         }
       }
       
       await treeStorage.saveTree(tree);
-      await notifyGlobalTreeUpdate(tree);
+      await notifyTreeUpdate(tree);
       return { success: true, pinnedCount };
     }
     
@@ -67,15 +55,15 @@ export async function handlePinMessage(
       let unpinnedCount = 0;
       
       for (const id of nodeIds) {
-        const node = tree.findNodeByIdDFS(id);
-        if (node && node.pinned) {
-          node.pinned = false;
+        const node = tree.findNodeById(id);
+        if (node && node.data.pinned) {
+          node.data.pinned = false;
           unpinnedCount++;
         }
       }
       
       await treeStorage.saveTree(tree);
-      await notifyGlobalTreeUpdate(tree);
+      await notifyTreeUpdate(tree);
       return { success: true, unpinnedCount };
     }
     

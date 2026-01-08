@@ -1,6 +1,6 @@
 import type { NodeId, Tag } from '../../../shared/types/ids';
 import { treeStorage } from '../../services/tree-storage';
-import { notifyGlobalTreeUpdate } from '../notifications';
+import { notifyTreeUpdate } from '../notifications';
 
 export async function handleTagMessage(
   message: any,
@@ -12,11 +12,11 @@ export async function handleTagMessage(
     case 'SET_TAGS': {
       // Set all tags for a node
       const { nodeId, tags } = message;
-      const node = tree.findNodeByIdDFS(nodeId);
+      const node = tree.findNodeById(nodeId);
       if (node) {
-        node.tags = tags as Tag[];
+        node.data.tags = tags as Tag[];
         await treeStorage.saveTree(tree);
-        await notifyGlobalTreeUpdate(tree);
+        await notifyTreeUpdate(tree);
         return { success: true };
       } else {
         return { success: false, error: 'Node not found' };
@@ -26,13 +26,13 @@ export async function handleTagMessage(
     case 'ADD_TAG': {
       // Add a single tag to a node
       const { nodeId, tagId } = message;
-      const node = tree.findNodeByIdDFS(nodeId);
+      const node = tree.findNodeById(nodeId);
       if (node) {
-        if (!node.tags.includes(tagId as Tag)) {
-          node.tags.push(tagId as Tag);
+        if (!node.data.tags.includes(tagId as Tag)) {
+          node.data.tags.push(tagId as Tag);
         }
         await treeStorage.saveTree(tree);
-        await notifyGlobalTreeUpdate(tree);
+        await notifyTreeUpdate(tree);
         return { success: true };
       } else {
         return { success: false, error: 'Node not found' };
@@ -42,11 +42,11 @@ export async function handleTagMessage(
     case 'REMOVE_TAG': {
       // Remove a single tag from a node
       const { nodeId, tagId } = message;
-      const node = tree.findNodeByIdDFS(nodeId);
+      const node = tree.findNodeById(nodeId);
       if (node) {
-        node.tags = node.tags.filter(t => t !== tagId);
+        node.data.tags = node.data.tags.filter((t: Tag) => t !== tagId);
         await treeStorage.saveTree(tree);
-        await notifyGlobalTreeUpdate(tree);
+        await notifyTreeUpdate(tree);
         return { success: true };
       } else {
         return { success: false, error: 'Node not found' };

@@ -2,6 +2,8 @@ import type { NodeId, Tag } from '../../../../shared/types/ids';
 import type { TreeNode } from '../../../../background/state/tree-node';
 import { TAG_PRESETS } from '../tags';
 import { GraphState } from '../state/graph-state';
+import { NavigationNode } from '../../../../shared/types/node';
+import { navigateTo } from '../../../api/tree';
 
 /**
  * Remove active context menu if exists.
@@ -17,9 +19,9 @@ export function removeContextMenu(): void {
 /**
  * Create and show context menu for a node.
  */
-export function showContextMenu(e: MouseEvent, node: TreeNode): void {
+export function showContextMenu(e: MouseEvent, node: NavigationNode): void {
   e.preventDefault();
-  removeContextMenu();
+  removeContextMenu(); // todo: wtf is this?
   
   const menu = document.createElement('div');
   menu.className = 'graph-context-menu';
@@ -27,7 +29,6 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
   menu.style.top = `${e.clientY}px`;
   
   const currentTabStates = GraphState.getCurrentTabStates();
-  const currentOnNavigate = GraphState.getCurrentOnNavigate();
   
   // Get tab state for this node
   const tabState = currentTabStates[node.id];
@@ -37,10 +38,8 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
   const openHere = document.createElement('div');
   openHere.className = 'graph-context-menu-item';
   openHere.textContent = 'Open in this tab';
-  openHere.addEventListener('click', () => {
-    if (currentOnNavigate) {
-      currentOnNavigate(node);
-    }
+  openHere.addEventListener('click', async () => {
+    await navigateTo(node);
     removeContextMenu();
   });
   menu.appendChild(openHere);
@@ -93,7 +92,7 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
   // Pin/Unpin
   const pinItem = document.createElement('div');
   pinItem.className = 'graph-context-menu-item';
-  pinItem.innerHTML = node.pinned 
+  pinItem.innerHTML = node.data.pinned 
     ? '<svg class="menu-icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg> Unpin'
     : '<svg class="menu-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg> Pin';
   pinItem.addEventListener('click', () => {
@@ -113,7 +112,7 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
   TAG_PRESETS.forEach(tag => {
     const tagOption = document.createElement('div');
     tagOption.className = 'graph-context-menu-item tag-option';
-    const hasTag = node.tags && node.tags.includes(tag.label as Tag);
+    const hasTag = node.data.tags && node.data.tags.includes(tag.label as Tag);
     tagOption.innerHTML = `
       <span class="tag-dot" style="background:${tag.color}"></span>
       <span class="tag-label">${tag.label}</span>
@@ -140,7 +139,7 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
   copyUrl.innerHTML = '<svg class="menu-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy URL';
   copyUrl.addEventListener('click', async () => {
     try {
-      await navigator.clipboard.writeText(node.url);
+      await navigator.clipboard.writeText(node.data.url);
     } catch (err) {
       console.error('Failed to copy URL:', err);
     }
@@ -149,7 +148,7 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
   menu.appendChild(copyUrl);
   
   // Delete options
-  const hasChildren = node.children && node.children.length > 0;
+  const hasChildren = node.getChildren() && node.getChildren().length > 0;
   const isRoot = (node as any).isRoot !== false; // Check if node is root (legacy property)
   
   // Always show delete options (with a divider)

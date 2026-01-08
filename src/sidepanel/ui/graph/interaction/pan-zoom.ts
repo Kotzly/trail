@@ -193,10 +193,8 @@ export function setupPanZoom(
     wrapper.querySelectorAll('.graph-node.selected-preview').forEach(el => el.classList.remove('selected-preview'));
     removeSelectionBox();
     
-    // Show menu immediately if setting is enabled and nodes were selected
-    const selectionMenuInstant = GraphState.getSelectionMenuInstantSetting();
     const finalSelectedIds = GraphState.getSelectedNodeIds();
-    if (selectionMenuInstant && finalSelectedIds.size > 0 && mouseEvent) {
+    if (finalSelectedIds.size > 0 && mouseEvent) {
       showBulkContextMenu(mouseEvent, finalSelectedIds);
     }
   }

@@ -2,15 +2,12 @@
 import { initMessaging } from './messaging/router';
 import { initWebNavigation } from './navigation/webnavigation';
 import { initTabsLifecycle } from './tabs/lifecycle';
-import { initBootstrap } from './bootstrap/bootstrap';
+
 
 // Initialize all modules
 initMessaging();
 initWebNavigation();
 initTabsLifecycle();
-
-// Initialize bootstrap (async)
-initBootstrap().catch(console.error);
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 

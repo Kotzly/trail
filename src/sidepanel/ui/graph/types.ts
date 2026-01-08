@@ -40,13 +40,11 @@ export interface GraphNodeOptions {
   node: NavigationNode;
   position: NodePosition;
   currentId: NodeId | null;
-  onNavigate: (node: NavigationNode) => void;
   openNodeIds: Set<NodeId> | null;
   nodeTabCounts: Record<NodeId, number>;
 }
 
 export interface RenderGraphOptions {
-  onNavigate: (node: NavigationNode) => void;
   openNodeIds?: Set<NodeId> | null;
   tabStates?: Record<NodeId, TabState>;
   nodeTabCounts?: Record<NodeId, number>;

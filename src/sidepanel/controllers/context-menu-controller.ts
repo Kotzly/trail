@@ -50,7 +50,7 @@ export async function showContextMenu(x: number, y: number, node: NavigationNode
   function updateContextMenuItems(): void {
     const hasOpenTab = PanelState.contextMenu.tabs.length > 0;
     const node = PanelState.contextMenu.node;
-    const hasTitle = node && node.title && node.title.trim() !== '';
+    const hasTitle = node && node.data.title && node.data.title.trim() !== '';
     
     // todo: optimize to show mute label for all tabs in the node, not just the first one
 
@@ -97,22 +97,22 @@ export async function showContextMenu(x: number, y: number, node: NavigationNode
           break;
           
         case 'openNewTab':
-          await chrome.tabs.create({ url: node.url, active: false });
+          await chrome.tabs.create({ url: node.data.url, active: false });
           // hideContextMenu() // we dont use it here as this ^ is false
           break;
           
         case 'openNewWindow':
-          await chrome.windows.create({ url: node.url });
+          await chrome.windows.create({ url: node.data.url });
           hideContextMenu()
           break;
           
         case 'copyUrl':
-          await navigator.clipboard.writeText(node.url);
+          await navigator.clipboard.writeText(node.data.url);
           // dont hide context menu here
           break;
           
         case 'copyTitle': 
-          await navigator.clipboard.writeText(node.title || 'Untitled');
+          await navigator.clipboard.writeText(node.data.title || 'Untitled');
           // dont hide context menu
           break;
           
