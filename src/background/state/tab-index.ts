@@ -40,12 +40,12 @@ export class TabIndex {
         this.nodeToTabs.get(nodeId)?.add(tabId);
     }
 
-    tabsByNode(nodeId: NodeId): Set<TabId> | undefined {
-        return this.nodeToTabs.get(nodeId);
+    tabsByNode(nodeId: NodeId): Set<TabId> {
+        return this.nodeToTabs.get(nodeId) ?? new Set();
     }
 
     tabCountForNode(nodeId: NodeId): number {
-        return this.nodeToTabs.get(nodeId)?.size || 0;
+        return this.nodeToTabs.get(nodeId)?.size ?? 0;
     }
 
     tabCount(): number {

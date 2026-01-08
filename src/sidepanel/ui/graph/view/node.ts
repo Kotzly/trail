@@ -1,16 +1,9 @@
 import type { NodeId } from '../../../../shared/types/ids';
-import type { TreeNode } from '../../../../shared/types/node';
+import type { TreeNode } from '../../../../background/state/treenode';
 import type { NodePosition } from '../types';
 import { formatUrl, escapeHtml } from '../../shared/format';
 import { getLayoutConfig } from '../layout/config';
-import { 
-  getCurrentTabStates, 
-  getCurrentOnNavigate, 
-  getCurrentNodeTabCounts,
-  getSelectedNodeIds,
-  setSelectedNodeIds,
-  getGraphAPI
-} from '../state/graph-state';
+import { GraphState } from '../state/graph-state';
 import { TAG_PRESETS } from '../tags';
 import { showContextMenu } from '../menus/context-menu';
 
@@ -26,9 +19,8 @@ export function createGraphNode(
   nodeTabCounts: Record<NodeId, number> = {}
 ): HTMLElement {
   const layoutConfig = getLayoutConfig();
-  const currentTabStates = getCurrentTabStates();
-  const selectedNodeIds = getSelectedNodeIds();
-  const graphAPI = getGraphAPI();
+  const currentTabStates = GraphState.getCurrentTabStates();
+  const graphAPI = GraphState.getGraphAPI();
   
   const nodeEl = document.createElement('div');
   nodeEl.className = 'graph-node';
@@ -53,7 +45,7 @@ export function createGraphNode(
   
   // Get tab state for this node
   const tabState = currentTabStates[node.id];
-  if (tabState?.muted) {
+  if (tabState?.sound.muted) {
     nodeEl.classList.add('muted');
   }
   
@@ -128,11 +120,11 @@ export function createGraphNode(
   }
   
   // Audio indicator for tabs playing sound
-  if (tabState?.audible) {
+  if (tabState?.sound.audible) {
     const audioIcon = document.createElement('div');
     audioIcon.className = 'graph-node-audio';
-    audioIcon.title = tabState.muted ? 'Unmute tab' : 'Mute tab';
-    audioIcon.innerHTML = tabState.muted 
+    audioIcon.title = tabState.sound.muted ? 'Unmute tab' : 'Mute tab';
+    audioIcon.innerHTML = tabState.sound.muted 
       ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
       : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
     audioIcon.addEventListener('click', (e) => {
@@ -148,21 +140,21 @@ export function createGraphNode(
     
     // Shift+click to add/remove from selection
     if (e.shiftKey) {
-      const currentSelected = getSelectedNodeIds();
+      const currentSelected = GraphState.getSelectedNodeIds();
       if (currentSelected.has(node.id)) {
         currentSelected.delete(node.id);
         nodeEl.classList.remove('selected');
-        setSelectedNodeIds(new Set(currentSelected));
+        GraphState.setSelectedNodeIds(new Set(currentSelected));
       } else {
         currentSelected.add(node.id);
         nodeEl.classList.add('selected');
-        setSelectedNodeIds(new Set(currentSelected));
+        GraphState.setSelectedNodeIds(new Set(currentSelected));
       }
       return;
     }
     
     // Regular click: clear selection and navigate
-    setSelectedNodeIds(new Set());
+    GraphState.setSelectedNodeIds(new Set());
     document.querySelectorAll('.graph-node.selected').forEach(el => {
       el.classList.remove('selected');
     });
@@ -230,7 +222,7 @@ export function drawConnections(
   const parentPos = positions.get(node.id);
   if (!parentPos) return;
   
-  node.children.forEach((child, idx) => {
+  node.children.forEach((child: TreeNode, idx: number) => {
     const childPos = positions.get(child.id);
     if (childPos) {
       const connection = createConnection(parentPos, childPos, idx);

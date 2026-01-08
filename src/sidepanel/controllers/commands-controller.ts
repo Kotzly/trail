@@ -18,8 +18,8 @@ export function updateCommandButtons(state: CommandState): void {
     const undoBtn = document.getElementById('undoBtn') as HTMLButtonElement | null;
     const redoBtn = document.getElementById('redoBtn') as HTMLButtonElement | null;
     
-    const undoShortcut = `${PanelState.metaKey!.view}+z (${PanelState.metaKey!.write}+z)`;
-    const redoShortcut = `${PanelState.metaKey!.view}+⇧+z (${PanelState.metaKey!.write}+shift+z)`;
+    const undoShortcut = `${PanelState.metaKey!.short}+z (${PanelState.metaKey!.long}+z)`;
+    const redoShortcut = `${PanelState.metaKey!.short}+⇧+z (${PanelState.metaKey!.long}+shift+z)`;
     
     if (undoBtn) {
       undoBtn.disabled = !state.canUndo;

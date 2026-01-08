@@ -1,5 +1,6 @@
 import type { NodeId } from '../../../shared/types/ids';
-import type { TreeNode } from '../../../shared/types/node';
+import type { TreeNode } from '../../../background/state/treenode';
+import { TabState } from '../../../shared/types/tabs';
 
 export interface LayoutConfig {
   nodeWidth: number;
@@ -44,11 +45,6 @@ export interface GraphNodeOptions {
   onNavigate: (node: TreeNode) => void;
   openNodeIds: Set<NodeId> | null;
   nodeTabCounts: Record<NodeId, number>;
-}
-
-export interface TabState {
-  muted?: boolean;
-  audible?: boolean;
 }
 
 export interface RenderGraphOptions {

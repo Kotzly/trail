@@ -1,4 +1,4 @@
-import type { TreeNode } from '../../../../shared/types/node';
+import type { TreeNode } from '../../../../background/state/treenode';
 import type { NodePosition, CanvasBounds } from '../types';
 import { getLayoutConfig, PADDING } from './config';
 
@@ -25,7 +25,7 @@ export function calculateTreeLayout(
     }
     
     let totalWidth = 0;
-    node.children.forEach((child, idx) => {
+    node.children.forEach((child: TreeNode, idx: number) => {
       totalWidth += calcWidths(child);
       if (idx < node.children.length - 1) {
         totalWidth += horizontalGap;
@@ -57,7 +57,7 @@ export function calculateTreeLayout(
     const childY = y + nodeHeight + verticalGap;
     let childX = x;
     
-    node.children.forEach((child) => {
+    node.children.forEach((child: TreeNode) => {
       const childWidth = subtreeWidths.get(child.id) || nodeWidth;
       layoutNode(child, childX, childY);
       childX += childWidth + horizontalGap;
@@ -80,7 +80,7 @@ export function calculateForestLayout(
   let currentX = PADDING;
   const layoutConfig = getLayoutConfig();
   
-  roots.forEach((root) => {
+  roots.forEach((root: TreeNode) => {
     const { positions, width } = calculateTreeLayout(root, currentX);
     
     // Merge positions into allPositions
@@ -103,7 +103,7 @@ export function getCanvasBounds(positions: Map<number, NodePosition>): CanvasBou
   const layoutConfig = getLayoutConfig();
   const { nodeWidth, nodeHeight } = layoutConfig;
   
-  positions.forEach(pos => {
+  positions.forEach((pos: NodePosition) => {
     minX = Math.min(minX, pos.x);
     minY = Math.min(minY, pos.y);
     maxX = Math.max(maxX, pos.x + nodeWidth);

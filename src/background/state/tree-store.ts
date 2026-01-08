@@ -32,7 +32,7 @@ class LRUEvictionPolicy implements EvictionPolicy {
         let oldestTime = Infinity;
 
         const visit = (node: TreeNode) => {
-            if (node.children.length === 0 && node !== tree.current) {
+            if (node.children.length === 0 && node !== tree.getCurrent()) {
                 if (node.timestamp < oldestTime) {
                     oldest = node;
                     oldestTime = node.timestamp;
@@ -41,7 +41,8 @@ class LRUEvictionPolicy implements EvictionPolicy {
             for (const c of node.children) visit(c);
         }
 
-        if (tree.root) visit(tree.root);
+        const root = tree.getRoot();
+        if (root) visit(root);
         return oldest;
     }
 
@@ -54,9 +55,9 @@ class LRUEvictionPolicy implements EvictionPolicy {
 
 
 export class NavigationTree {
-    root: TreeNode | null = null;
-    current: TreeNode | null = null;
-    nodeCount: number;
+    private root: TreeNode | null = null;
+    private current: TreeNode | null = null;
+    private nodeCount: number;
 
     private evictionPolicy: EvictionPolicy;
 
@@ -69,6 +70,21 @@ export class NavigationTree {
     size(): number {
         return this.nodeCount;
     }
+
+    getRoot(): TreeNode | null {
+        return this.root;
+    }
+
+    getCurrent(): TreeNode | null {
+        return this.current;
+    }
+
+    setCurrent(node: TreeNode): void {
+        this.current = node;
+    }
+
+    // todo: add `set root` functionality
+
 
     init(entry: TreeEntry): TreeNode {
         if (this.root) return this.root;

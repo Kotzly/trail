@@ -1,15 +1,7 @@
 import type { NodeId } from '../../../../shared/types/ids';
 import type { CanvasBounds, GraphAPI } from '../types';
 import { PADDING } from '../layout/config';
-import {
-  getSavedViewState,
-  setSavedViewState,
-  getCurrentTool,
-  setCurrentTool,
-  getSelectedNodeIds,
-  setSelectedNodeIds,
-  getSelectionMenuInstantSetting
-} from '../state/graph-state';
+import { GraphState } from '../state/graph-state';
 import { showBulkContextMenu } from '../menus/context-menu';
 
 export function setupPanZoom(
@@ -23,7 +15,7 @@ export function setupPanZoom(
   let startX = 0, startY = 0;
 
   // Restore saved state or use initial position
-  const savedState = getSavedViewState();
+  const savedState = GraphState.getSavedViewState();
   const hasState = savedState !== null;
   let translateX = hasState ? savedState.translateX : initialTranslate.x;
   let translateY = hasState ? savedState.translateY : initialTranslate.y;
@@ -45,7 +37,7 @@ export function setupPanZoom(
       canvas.style.transition = 'none';
     }
     canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-    setSavedViewState({ translateX, translateY, scale });
+    GraphState.setSavedViewState({ translateX, translateY, scale });
   }
   
   // Fit entire tree in view
@@ -182,15 +174,15 @@ export function setupPanZoom(
     });
     
     // Apply final selection
-    const currentSelected = getSelectedNodeIds();
+    const currentSelected = GraphState.getSelectedNodeIds();
     if (mouseEvent?.shiftKey) {
-      setSelectedNodeIds(new Set([...baseSelection, ...intersects]));
+      GraphState.setSelectedNodeIds(new Set([...baseSelection, ...intersects]));
     } else {
-      setSelectedNodeIds(intersects);
+      GraphState.setSelectedNodeIds(intersects);
     }
 
     clearSelectionHighlights();
-    const finalSelected = getSelectedNodeIds();
+    const finalSelected = GraphState.getSelectedNodeIds();
     finalSelected.forEach(id => {
       const nodeEl = wrapper.querySelector(`.graph-node[data-node-id="${id}"]`) as HTMLElement | null;
       if (nodeEl) nodeEl.classList.add('selected');
@@ -202,8 +194,8 @@ export function setupPanZoom(
     removeSelectionBox();
     
     // Show menu immediately if setting is enabled and nodes were selected
-    const selectionMenuInstant = getSelectionMenuInstantSetting();
-    const finalSelectedIds = getSelectedNodeIds();
+    const selectionMenuInstant = GraphState.getSelectionMenuInstantSetting();
+    const finalSelectedIds = GraphState.getSelectedNodeIds();
     if (selectionMenuInstant && finalSelectedIds.size > 0 && mouseEvent) {
       showBulkContextMenu(mouseEvent, finalSelectedIds);
     }
@@ -215,7 +207,7 @@ export function setupPanZoom(
     if (target === wrapper || target === canvas ||
         target.tagName === 'svg' || target.tagName === 'path') {
       
-      const currentTool = getCurrentTool();
+      const currentTool = GraphState.getCurrentTool();
       if (currentTool === 'hand') {
         // Hand tool: panning
         isPanning = true;
@@ -225,7 +217,7 @@ export function setupPanZoom(
       } else if (currentTool === 'select') {
         // Select tool: start selection box
         isSelecting = true;
-        const currentSelected = getSelectedNodeIds();
+        const currentSelected = GraphState.getSelectedNodeIds();
         baseSelection = new Set(currentSelected);
         liveSelection.clear();
         wrapper.querySelectorAll('.graph-node.selected-preview').forEach(el => el.classList.remove('selected-preview'));
@@ -386,7 +378,7 @@ export function setupPanZoom(
 
   // Update cursor based on tool
   function updateCursor(): void {
-    const currentTool = getCurrentTool();
+    const currentTool = GraphState.getCurrentTool();
     if (currentTool === 'hand') {
       wrapper.style.cursor = isPanning ? 'grabbing' : 'grab';
     } else {
@@ -397,8 +389,8 @@ export function setupPanZoom(
 
   // ========== TOOL SWITCHING ==========
   function setTool(tool: 'hand' | 'select'): void {
-    setCurrentTool(tool);
-    setSelectedNodeIds(new Set());
+    GraphState.setCurrentTool(tool);
+    GraphState.setSelectedNodeIds(new Set());
     clearSelectionHighlights();
     removeSelectionBox();
     
@@ -458,7 +450,7 @@ export function setupPanZoom(
       e.preventDefault();
       setTool('select');
     } else if (e.key === 'Escape') {
-      setSelectedNodeIds(new Set());
+      GraphState.setSelectedNodeIds(new Set());
       clearSelectionHighlights();
       removeSelectionBox();
     }
@@ -498,7 +490,7 @@ export function setupPanZoom(
     const target = e.target as HTMLElement;
     if (target === wrapper || target === canvas ||
         target.tagName === 'svg' || target.tagName === 'path') {
-      const selectedNodeIds = getSelectedNodeIds();
+      const selectedNodeIds = GraphState.getSelectedNodeIds();
       if (selectedNodeIds.size > 0) {
         showBulkContextMenu(e, selectedNodeIds);
       }

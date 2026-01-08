@@ -10,7 +10,7 @@ export async function getTabStates(): Promise<Record<NodeId, TabState>> {
   
   for (const tab of allTabs) {
     if (tab.id === undefined) continue;
-    const nodeId = tabManager.getNodeForTabGlobal(tab.id as TabId);
+    const nodeId = tabManager.nodeByTab(tab.id as TabId);
     if (!nodeId) continue;
     const soundState: TabSoundState = {
       muted: tab.mutedInfo?.muted || false,

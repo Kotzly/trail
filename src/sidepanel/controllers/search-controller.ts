@@ -1,6 +1,6 @@
 import { NodeId } from "../../shared/types/ids";
 import { PanelState } from "../state/panel-state";
-import { getGraphAPI } from "../ui/graph/state/graph-state";
+import { GraphState } from "../ui/graph/state/graph-state";
 
 // Search through tree data for matching nodes.
 function searchNodes(query: string): NodeId[] {
@@ -82,7 +82,7 @@ function focusSearchResult(index: number): void {
     applySearchHighlights();
     
     // Center on the node in graph view
-    const graphAPI = getGraphAPI();
+    const graphAPI = GraphState.getGraphAPI();
     if (graphAPI && graphAPI.centerOnNode) {
         graphAPI.centerOnNode(nodeId, true);
     } else {

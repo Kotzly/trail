@@ -152,7 +152,7 @@ export async function showContextMenu(x: number, y: number, node: TreeNode): Pro
   }
   
   // Initialize context menu listeners.
-  function initContextMenu(): void {
+export function initContextMenu(): void {
     const menu = document.getElementById('contextMenu');
     if (!menu) return;
     

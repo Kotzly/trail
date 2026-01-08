@@ -12,9 +12,9 @@ export class TabManager {
         this.lru = new LruManager();
     }
 
-    touch(tabId: TabId) {
+    touch(tabId: TabId, nodeId: NodeId) {
         if (!this.index.nodeByTab(tabId)) return;
-        this.lru.touch(tabId);
+        this.lru.touch(tabId, nodeId);
     }
 
     // Register a tab for a node (global across windows).
@@ -26,7 +26,7 @@ export class TabManager {
         this.index.removeTabFromNode(previousNodeId, tabId);
       }
       this.index.addTabToNode(nodeId, tabId);
-      this.lru.touch(tabId);
+      this.lru.touch(tabId, nodeId);
     }
   
     getNextTabForNode(nodeId: NodeId, currentTabId: TabId | null = null): TabId | null {
@@ -47,7 +47,7 @@ export class TabManager {
     }
   
     // Get the node ID for a tab.
-    getNodeForTabGlobal(tabId: TabId): NodeId | undefined {
+    nodeByTab(tabId: TabId): NodeId | undefined {
       return this.index.nodeByTab(tabId);
     }
   
@@ -80,7 +80,7 @@ export class TabManager {
             continue;
         }
         if (tree) {
-          const node = tree.findById(nodeId);
+          const node = tree.findNodeByIdDFS(nodeId);
           if (node?.pinned) continue; // Skip pinned nodes
         }
         tabIdToClose = tabId;
@@ -107,7 +107,8 @@ export class TabManager {
           ),
           lruOrder: [...this.lru.iter()],
           lastUsed: Object.fromEntries(this.lru["lastUsed"]?.entries?.() ?? []),
-          latest: this.lru.latest
+          latestTabId: this.lru.getLatestTabId(),
+          latestNodeId: this.lru.getLatestNodeId(),
         };
       }
   }

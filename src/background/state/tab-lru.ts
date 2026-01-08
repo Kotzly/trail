@@ -1,20 +1,22 @@
-import type { TabId } from "../../shared/types/ids";
+import type { NodeId, TabId } from "../../shared/types/ids";
 
 export class LruManager {
     private set: Set<TabId>;
     private seq = 0;
     private lastUsed = new Map<TabId, number>();
-    public latest: TabId | null = null;
+    private latestTabId: TabId | null = null;
+    private latestNodeId: NodeId | null = null;
     constructor() {
         this.set = new Set<TabId>();
     }
     
-    touch(tabId: TabId) {
+    touch(tabId: TabId, nodeId: NodeId) {
         this.set.delete(tabId);
         this.set.add(tabId);
 
         this.lastUsed.set(tabId, ++this.seq);
-        this.latest = tabId;
+        this.latestTabId = tabId;
+        this.latestNodeId = nodeId;
     }
 
     iter(): IterableIterator<TabId> {
@@ -28,8 +30,16 @@ export class LruManager {
 
     remove(tabId: TabId) {
         this.lastUsed.delete(tabId);
-        if (this.latest === tabId) this.latest = null;
+        if (this.latestTabId === tabId) this.latestTabId = null; // todo: check if this is correct
         return this.set.delete(tabId);
+    }
+
+    getLatestTabId(): TabId | null {
+        return this.latestTabId;
+    }
+
+    getLatestNodeId(): NodeId | null {
+        return this.latestNodeId;
     }
 
 }

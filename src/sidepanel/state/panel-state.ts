@@ -5,26 +5,25 @@ import { TabState } from "../../shared/types/tabs";
 import { isMac } from "../../shared/utils/platform"
 import { NavigationTree } from "../../background/state/tree-store";
 import { PinnedManager } from "../../background/state/pinned";
+import { TabManager, tabManager } from "../../background/state/tab-manager";
 
-export async function initPanelState(): Promise<void> {
-    PanelState.metaKey = (await isMac()) ? {view: '⌘', write: 'cmd'} : {view: '^', write: 'ctrl'};
-    // todo: initialize navigation tree here
-    // and pins manager here
+export async function initPanelState(tree: NavigationTree, pins: PinnedManager): Promise<void> {
+    PanelState.tree = tree;
+    PanelState.pins = pins;
+    PanelState.isMac = await isMac();
+    PanelState.metaKey = PanelState.isMac ? {short: '⌘', long: 'cmd'} : {short: '^', long: 'ctrl'};
+
 }
 
 export const PanelState = {
     settings: null as Settings | null,
 
-    currentTabId: null as TabId | null,
-
-    currentNodeId: null as NodeId | null,
     previousNodeId: null as NodeId | null,
-
-    openNodeIds: new Set<NodeId>(),
     tabStates: {} as Record<NodeId, TabState>,
 
     tree: null as NavigationTree | null,
     pins: null as PinnedManager | null,
+    tabs: tabManager,
 
     search: {
         query: '',
@@ -38,6 +37,27 @@ export const PanelState = {
     },
 
     metaKey: null as metaKeyPair | null,
+    isMac: false,
 }
 
-type metaKeyPair = {view: '^', write: 'ctrl'} | {view: '⌘', write: 'cmd'} | null;
+type metaKeyPair = {short: '^', long: 'ctrl'} | {short: '⌘', long: 'cmd'} | null;
+
+export async function verifyAndUpdateCurrentNode() {
+    if (!PanelState.tree) return;
+  
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tabs.length || !tabs[0] || !tabs[0].id) {
+      console.error('verifyAndUpdateCurrentNode: No active tab found');
+      return;
+    }
+  
+    const tabId = tabs[0].id as TabId;
+    const nodeId = PanelState.tabs.nodeByTab(tabId);
+    
+    const currentNode = PanelState.tree.getCurrent();
+    if (!currentNode) return;
+  
+    if (currentNode.id !== nodeId) {
+      PanelState.tree.setCurrent(currentNode);
+    }
+  }

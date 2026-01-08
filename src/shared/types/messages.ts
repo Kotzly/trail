@@ -1,4 +1,4 @@
-import type { Description, NodeId, Url } from "./ids";
+import type { Description, NodeId, Title, Url } from "./ids";
 import { Settings } from "./settings";
 
 export const MSG = {
@@ -9,6 +9,7 @@ export const MSG = {
     GET_TABS_FOR_NODE: 'GET_TABS_FOR_NODE',
     SAVE_SETTINGS: 'SAVE_SETTINGS',
     GET_SETTINGS: 'GET_SETTINGS',
+    TITLE_CHANGED: 'TITLE_CHANGED',
 } as const;
 
 export type RequestType = typeof MSG[keyof typeof MSG];
@@ -27,8 +28,10 @@ export type CommandStateMessage = RequestMessageBase<typeof MSG.COMMAND_STATE>
 export type TabsForNodeMessage = RequestMessageBase<typeof MSG.GET_TABS_FOR_NODE, TabsForNodeInput>;
 export type SaveSettingsMessage = RequestMessageBase<typeof MSG.SAVE_SETTINGS, SaveSettingsInput>;
 export type GetSettingsMessage = RequestMessageBase<typeof MSG.GET_SETTINGS>;
-
-export type RequestMessage = NavigateToMessage | UndoMessage | RedoMessage | CommandStateMessage | TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage;
+export type TitleChangedMessage = RequestMessageBase<typeof MSG.TITLE_CHANGED, TitleChangedInput>;
+export type RequestMessage = NavigateToMessage | 
+    UndoMessage | RedoMessage | 
+    CommandStateMessage | TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage;
 
 
 // ==== Responses ====
@@ -45,6 +48,7 @@ export type ResponseDataByType = {
     [MSG.GET_TABS_FOR_NODE]: TabsForNodeData;
     [MSG.SAVE_SETTINGS]: void;
     [MSG.GET_SETTINGS]: Settings;
+    [MSG.TITLE_CHANGED]: void;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -64,6 +68,7 @@ export const msg = {
     getTabsForNode(payload: TabsForNodeInput): TabsForNodeMessage { return { type: MSG.GET_TABS_FOR_NODE, ...payload } },
     saveSettings(payload: SaveSettingsInput): SaveSettingsMessage { return { type: MSG.SAVE_SETTINGS, ...payload } },
     getSettings(): GetSettingsMessage { return { type: MSG.GET_SETTINGS } },
+    titleChanged(url: Url, title: Title): TitleChangedMessage { return { type: MSG.TITLE_CHANGED, url, title } },
 }
 
 // ==== message handler ====
@@ -98,4 +103,9 @@ export type TabsForNodeData = {
 
 export type SaveSettingsInput = {
     settings: Settings;
+}
+
+export type TitleChangedInput = {
+    url: Url;
+    title: Title;
 }

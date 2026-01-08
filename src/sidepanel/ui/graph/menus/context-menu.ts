@@ -1,23 +1,16 @@
-import type { NodeId } from '../../../../shared/types/ids';
-import type { TreeNode } from '../../../../shared/types/node';
+import type { NodeId, Tag } from '../../../../shared/types/ids';
+import type { TreeNode } from '../../../../background/state/treenode';
 import { TAG_PRESETS } from '../tags';
-import {
-  getActiveContextMenu,
-  setActiveContextMenu,
-  getCurrentTabStates,
-  getCurrentOnNavigate,
-  getSelectedNodeIds,
-  setSelectedNodeIds
-} from '../state/graph-state';
+import { GraphState } from '../state/graph-state';
 
 /**
  * Remove active context menu if exists.
  */
 export function removeContextMenu(): void {
-  const activeMenu = getActiveContextMenu();
+  const activeMenu = GraphState.getActiveContextMenu();
   if (activeMenu) {
     activeMenu.remove();
-    setActiveContextMenu(null);
+    GraphState.setActiveContextMenu(null);
   }
 }
 
@@ -33,8 +26,8 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
   menu.style.left = `${e.clientX}px`;
   menu.style.top = `${e.clientY}px`;
   
-  const currentTabStates = getCurrentTabStates();
-  const currentOnNavigate = getCurrentOnNavigate();
+  const currentTabStates = GraphState.getCurrentTabStates();
+  const currentOnNavigate = GraphState.getCurrentOnNavigate();
   
   // Get tab state for this node
   const tabState = currentTabStates[node.id];
@@ -72,7 +65,7 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
     // Mute/Unmute tab
     const muteItem = document.createElement('div');
     muteItem.className = 'graph-context-menu-item';
-    muteItem.innerHTML = tabState.muted 
+    muteItem.innerHTML = tabState.sound.muted 
       ? '<svg class="menu-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg> Unmute tab'
       : '<svg class="menu-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Mute tab';
     muteItem.addEventListener('click', () => {
@@ -120,7 +113,7 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
   TAG_PRESETS.forEach(tag => {
     const tagOption = document.createElement('div');
     tagOption.className = 'graph-context-menu-item tag-option';
-    const hasTag = node.tags && node.tags.includes(tag.id);
+    const hasTag = node.tags && node.tags.includes(tag.label as Tag);
     tagOption.innerHTML = `
       <span class="tag-dot" style="background:${tag.color}"></span>
       <span class="tag-label">${tag.label}</span>
@@ -232,7 +225,7 @@ export function showContextMenu(e: MouseEvent, node: TreeNode): void {
   }
   
   document.body.appendChild(menu);
-  setActiveContextMenu(menu);
+  GraphState.setActiveContextMenu(menu);
   
   // Adjust position if menu goes off-screen
   const menuRect = menu.getBoundingClientRect();
@@ -263,7 +256,7 @@ export function showBulkContextMenu(e: MouseEvent, nodeIds: Set<NodeId>): void {
   
   // Copy the nodeIds at menu open time (the Set could be mutated later)
   const nodeIdsCopy = Array.from(nodeIds);
-  const selectedNodeIds = getSelectedNodeIds();
+  const selectedNodeIds = GraphState.getSelectedNodeIds();
   
   const menu = document.createElement('div');
   menu.className = 'graph-context-menu';
@@ -287,7 +280,7 @@ export function showBulkContextMenu(e: MouseEvent, nodeIds: Set<NodeId>): void {
   pinSelected.innerHTML = '<svg class="menu-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg> Pin selected';
   pinSelected.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'BULK_PIN', nodeIds: nodeIdsCopy });
-    setSelectedNodeIds(new Set());
+    GraphState.setSelectedNodeIds(new Set());
     removeContextMenu();
   });
   menu.appendChild(pinSelected);
@@ -298,7 +291,7 @@ export function showBulkContextMenu(e: MouseEvent, nodeIds: Set<NodeId>): void {
   unpinSelected.innerHTML = '<svg class="menu-icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg> Unpin selected';
   unpinSelected.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'BULK_UNPIN', nodeIds: nodeIdsCopy });
-    setSelectedNodeIds(new Set());
+    GraphState.setSelectedNodeIds(new Set());
     removeContextMenu();
   });
   menu.appendChild(unpinSelected);
@@ -309,7 +302,7 @@ export function showBulkContextMenu(e: MouseEvent, nodeIds: Set<NodeId>): void {
   closeTabs.innerHTML = '<svg class="menu-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close selected tabs';
   closeTabs.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'BULK_CLOSE_TABS', nodeIds: nodeIdsCopy });
-    setSelectedNodeIds(new Set());
+    GraphState.setSelectedNodeIds(new Set());
     removeContextMenu();
   });
   menu.appendChild(closeTabs);
@@ -325,13 +318,13 @@ export function showBulkContextMenu(e: MouseEvent, nodeIds: Set<NodeId>): void {
   deleteSelected.innerHTML = '<svg class="menu-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Delete selected';
   deleteSelected.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'BULK_DELETE', nodeIds: nodeIdsCopy });
-    setSelectedNodeIds(new Set());
+    GraphState.setSelectedNodeIds(new Set());
     removeContextMenu();
   });
   menu.appendChild(deleteSelected);
   
   document.body.appendChild(menu);
-  setActiveContextMenu(menu);
+  GraphState.setActiveContextMenu(menu);
   
   // Adjust position
   const menuRect = menu.getBoundingClientRect();

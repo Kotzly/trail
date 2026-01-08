@@ -1,20 +1,12 @@
 import type { NodeId } from '../../../../shared/types/ids';
-import type { TreeNode } from '../../../../shared/types/node';
+import type { TreeNode } from '../../../../background/state/treenode';
 import type { TreeData, RenderGraphOptions } from '../types';
 import { createGraphCanvas } from './canvas';
 import { createGraphNode, drawConnections, getPathToNodeInForest } from './node';
 import { calculateForestLayout, getCanvasBounds } from '../layout/calculator';
 import { PADDING, setLayoutConfig, COMPACT_NODE_WIDTH, COMPACT_NODE_HEIGHT, COMPACT_VERTICAL_GAP, COMPACT_HORIZONTAL_GAP, COMPACT_ROOT_GAP, NODE_WIDTH, NODE_HEIGHT, VERTICAL_GAP, HORIZONTAL_GAP, ROOT_GAP } from '../layout/config';
 import { setupPanZoom } from '../interaction/pan-zoom';
-import {
-  setCurrentTabStates,
-  setCurrentNodeTabCounts,
-  setCurrentOnNavigate,
-  setSelectionMenuInstantSetting,
-  setGraphAPI
-} from '../state/graph-state';
-import { registerRenderer } from '../../../ui/renderers/registry';
-import { VIEW_MODE } from '../../shared/view-modes';
+import { GraphState } from '../state/graph-state';
 
 /**
  * Render graph view.
@@ -35,12 +27,12 @@ export function renderGraphView(
   } = options;
   
   // Store settings for use in other functions
-  setSelectionMenuInstantSetting(selectionMenuInstant);
-  setCurrentOnNavigate(onNavigate);
+  GraphState.setSelectionMenuInstantSetting(selectionMenuInstant);
+  GraphState.setCurrentOnNavigate(onNavigate);
   
   // Store tab states and tab counts for node creation
-  setCurrentTabStates(tabStates);
-  setCurrentNodeTabCounts(nodeTabCounts);
+  GraphState.setCurrentTabStates(tabStates);
+  GraphState.setCurrentNodeTabCounts(nodeTabCounts);
   
   // Set layout config based on compact mode
   if (compactGraph) {
@@ -84,8 +76,8 @@ export function renderGraphView(
     
     // Setup pan/zoom for empty canvas (with no initial translate)
     const emptyBounds = { minX: 0, minY: 0, maxX: 100, maxY: 100, width: 100, height: 100 };
-    const graphAPI = setupPanZoom(wrapper, canvas, emptyBounds, { x: 0, y: 0 }, zoomControls, null);
-    setGraphAPI(graphAPI);
+    const graphAPI = setupPanZoom(wrapper, canvas, emptyBounds, { x: 0, y: 0 }, zoomControls);
+    GraphState.setGraphAPI(graphAPI);
     
     return null;
   }
@@ -144,12 +136,8 @@ export function renderGraphView(
   }
   
   // Setup pan/zoom after adding to DOM
-  const graphAPI = setupPanZoom(wrapper, canvas, bounds, initialTranslate, zoomControls, currentId);
-  setGraphAPI(graphAPI);
+  const graphAPI = setupPanZoom(wrapper, canvas, bounds, initialTranslate, zoomControls);
+  GraphState.setGraphAPI(graphAPI);
   
   return currentId;
 }
-
-// Register the renderer
-registerRenderer(VIEW_MODE.GRAPH, renderGraphView);
-

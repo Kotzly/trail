@@ -1,98 +1,123 @@
-import type { NodeId } from '../../../../shared/types/ids';
-import type { GraphAPI, ViewState } from '../types';
+import type { NodeId } from "../../../../shared/types/ids";
+import type { GraphAPI, ViewState } from "../types";
+import type { TabState } from "../../../../shared/types/tabs";
 
-// Active context menu (for cleanup)
-let activeContextMenu: HTMLElement | null = null;
+type Tool = "hand" | "select";
+type OnNavigate = ((node: any) => void) | null;
 
-// Current tool: 'hand' (pan) or 'select' (selection box)
-let currentTool: 'hand' | 'select' = 'hand';
 
-// Selected nodes (for multi-select)
-let selectedNodeIds = new Set<NodeId>();
+class graphState {
+  // Active context menu (for cleanup)
+  private activeContextMenu: HTMLElement | null = null;
 
-// Graph API for external control (centering, etc.)
-let graphAPI: GraphAPI | null = null;
+  // Current tool: 'hand' (pan) or 'select' (selection box)
+  private currentTool: Tool = "hand";
 
-// Preserve view state across re-renders
-let savedViewState: ViewState | null = null;
+  // Selected nodes (for multi-select)
+  private selectedNodeIds: Set<NodeId> = new Set<NodeId>();
 
-// Store tabStates and onNavigate for use in node creation and context menu
-let currentTabStates: Record<NodeId, { muted?: boolean; audible?: boolean }> = {};
-let currentOnNavigate: ((node: any) => void) | null = null;
-let currentNodeTabCounts: Record<NodeId, number> = {};
+  // Graph API for external control (centering, etc.)
+  private graphAPI: GraphAPI | null = null;
 
-// Store selection menu setting for use in setupPanZoom
-let selectionMenuInstantSetting = false;
+  // Preserve view state across re-renders
+  private savedViewState: ViewState | null = null;
 
-export function getActiveContextMenu(): HTMLElement | null {
-  return activeContextMenu;
+  // Store tabStates and onNavigate for use in node creation and context menu
+  private currentTabStates: Record<NodeId, TabState> = {};
+
+  private currentOnNavigate: OnNavigate = null;
+
+  private currentNodeTabCounts: Record<NodeId, number> = {};
+
+  // Store selection menu setting for use in setupPanZoom
+  private selectionMenuInstantSetting = false;
+
+  // ---- getters / setters ----
+
+  getActiveContextMenu(): HTMLElement | null {
+    return this.activeContextMenu;
+  }
+  setActiveContextMenu(menu: HTMLElement | null): void {
+    this.activeContextMenu = menu;
+  }
+
+  getCurrentTool(): Tool {
+    return this.currentTool;
+  }
+  setCurrentTool(tool: Tool): void {
+    this.currentTool = tool;
+  }
+
+  /** Returns the live Set reference (mutating it mutates store). */
+  getSelectedNodeIds(): Set<NodeId> {
+    return this.selectedNodeIds;
+  }
+  /** Replace the whole Set. */
+  setSelectedNodeIds(ids: Set<NodeId>): void {
+    this.selectedNodeIds = ids;
+  }
+  /** Convenience helpers (optional but handy) */
+  clearSelection(): void {
+    this.selectedNodeIds.clear();
+  }
+  selectOnly(ids: Iterable<NodeId>): void {
+    this.selectedNodeIds = new Set(ids);
+  }
+
+  getGraphAPI(): GraphAPI | null {
+    return this.graphAPI;
+  }
+  setGraphAPI(api: GraphAPI | null): void {
+    this.graphAPI = api;
+  }
+
+  getSavedViewState(): ViewState | null {
+    return this.savedViewState;
+  }
+  setSavedViewState(state: ViewState | null): void {
+    this.savedViewState = state;
+  }
+
+  getCurrentTabStates(): Record<NodeId, TabState> {
+    return this.currentTabStates;
+  }
+  setCurrentTabStates(states: Record<NodeId, TabState>): void {
+    this.currentTabStates = states;
+  }
+
+  getCurrentOnNavigate(): OnNavigate {
+    return this.currentOnNavigate;
+  }
+  setCurrentOnNavigate(onNavigate: OnNavigate): void {
+    this.currentOnNavigate = onNavigate;
+  }
+
+  getCurrentNodeTabCounts(): Record<NodeId, number> {
+    return this.currentNodeTabCounts;
+  }
+  setCurrentNodeTabCounts(counts: Record<NodeId, number>): void {
+    this.currentNodeTabCounts = counts;
+  }
+
+  getSelectionMenuInstantSetting(): boolean {
+    return this.selectionMenuInstantSetting;
+  }
+  setSelectionMenuInstantSetting(setting: boolean): void {
+    this.selectionMenuInstantSetting = setting;
+  }
+
+  /** Optional: reset to initial state (keeps instance). */
+  reset(): void {
+    this.activeContextMenu = null;
+    this.currentTool = "hand";
+    this.selectedNodeIds = new Set<NodeId>();
+    this.graphAPI = null;
+    this.savedViewState = null;
+    this.currentTabStates = {};
+    this.currentOnNavigate = null;
+    this.currentNodeTabCounts = {};
+    this.selectionMenuInstantSetting = false;
+  }
 }
 
-export function setActiveContextMenu(menu: HTMLElement | null): void {
-  activeContextMenu = menu;
-}
-
-export function getCurrentTool(): 'hand' | 'select' {
-  return currentTool;
-}
-
-export function setCurrentTool(tool: 'hand' | 'select'): void {
-  currentTool = tool;
-}
-
-export function getSelectedNodeIds(): Set<NodeId> {
-  return selectedNodeIds;
-}
-
-export function setSelectedNodeIds(ids: Set<NodeId>): void {
-  selectedNodeIds = ids;
-}
-
-export function getGraphAPI(): GraphAPI | null {
-  return graphAPI;
-}
-
-export function setGraphAPI(api: GraphAPI | null): void {
-  graphAPI = api;
-}
-
-export function getSavedViewState(): ViewState | null {
-  return savedViewState;
-}
-
-export function setSavedViewState(state: ViewState | null): void {
-  savedViewState = state;
-}
-
-export function getCurrentTabStates(): Record<NodeId, { muted?: boolean; audible?: boolean }> {
-  return currentTabStates;
-}
-
-export function setCurrentTabStates(states: Record<NodeId, { muted?: boolean; audible?: boolean }>): void {
-  currentTabStates = states;
-}
-
-export function getCurrentOnNavigate(): ((node: any) => void) | null {
-  return currentOnNavigate;
-}
-
-export function setCurrentOnNavigate(onNavigate: ((node: any) => void) | null): void {
-  currentOnNavigate = onNavigate;
-}
-
-export function getCurrentNodeTabCounts(): Record<NodeId, number> {
-  return currentNodeTabCounts;
-}
-
-export function setCurrentNodeTabCounts(counts: Record<NodeId, number>): void {
-  currentNodeTabCounts = counts;
-}
-
-export function getSelectionMenuInstantSetting(): boolean {
-  return selectionMenuInstantSetting;
-}
-
-export function setSelectionMenuInstantSetting(setting: boolean): void {
-  selectionMenuInstantSetting = setting;
-}
-
+export const GraphState = new graphState();
