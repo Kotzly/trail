@@ -63,7 +63,7 @@ export async function handleTabMessage(
       }
       
       // Notify update
-      const tree = await treeStorage.getGlobalTree();
+      const tree = await treeStorage.getTree();
       await notifyGlobalTreeUpdate(tree);
       return { success: true, closedCount };
     }

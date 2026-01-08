@@ -35,7 +35,6 @@ class TreeStorageService {
         throw error;
       });
   }
-
 }
 
 export const treeStorage = new TreeStorageService();

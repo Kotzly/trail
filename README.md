@@ -4,32 +4,21 @@ Trail is a browser extension for Chrome/Brave that visualizes your browsing hist
 
 ## Features
 
-### View Modes
-- **Graph View** - Interactive canvas with pan/zoom, shows your browsing as a visual tree
-- **Tree View** - Collapsible hierarchical list, great for deep navigation structures  
-- **Stack View** - Simple linear stack, LIFO-style history
 
-### Multi-Tab Mode
+# View
+
+- **Graph View** - Interactive canvas with pan/zoom, shows your browsing as a visual tree
 - **Global Navigation Graph** - One unified tree across all browser windows
 - **Visual Tab States** - See which nodes have open tabs, which are closed
 - **Audio Indicators** - Speaker icons on tabs playing audio, click to mute
 - **Muted Tab Indicators** - Red border on muted tabs
 - **Window Focus** - Clicking a node focuses the correct window and tab
 
-### Forest Mode
-- Each new tab starts its own separate tree
-- Multiple roots displayed side-by-side
-- Great for parallel research sessions
-
 ### Smart Navigation
 - **Back on Revisit** - Scrolling back to a previously visited URL (like YouTube Shorts) navigates to the existing node instead of creating duplicates
 - **Context Menu** - Right-click any node to "Open in this tab"
 - **SPA Support** - Tracks History API navigations in single-page applications
 
-### Compact Graph Mode
-- Smaller nodes showing page title only
-- Tighter spacing for dense trees
-- URL shown on hover
 
 ### Search (Cmd/Ctrl+F)
 - Search by page title, URL, or domain

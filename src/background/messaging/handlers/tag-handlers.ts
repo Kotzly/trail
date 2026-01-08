@@ -6,7 +6,7 @@ export async function handleTagMessage(
   message: any,
   sender: chrome.runtime.MessageSender
 ): Promise<any> {
-  const tree = await treeStorage.getGlobalTree();
+  const tree = await treeStorage.getTree();
   
   switch (message.type) {
     case 'SET_TAGS': {
@@ -15,7 +15,7 @@ export async function handleTagMessage(
       const node = tree.findNodeByIdDFS(nodeId);
       if (node) {
         node.tags = tags as Tag[];
-        await treeStorage.saveGlobalTree(tree);
+        await treeStorage.saveTree(tree);
         await notifyGlobalTreeUpdate(tree);
         return { success: true };
       } else {
@@ -31,7 +31,7 @@ export async function handleTagMessage(
         if (!node.tags.includes(tagId as Tag)) {
           node.tags.push(tagId as Tag);
         }
-        await treeStorage.saveGlobalTree(tree);
+        await treeStorage.saveTree(tree);
         await notifyGlobalTreeUpdate(tree);
         return { success: true };
       } else {
@@ -45,7 +45,7 @@ export async function handleTagMessage(
       const node = tree.findNodeByIdDFS(nodeId);
       if (node) {
         node.tags = node.tags.filter(t => t !== tagId);
-        await treeStorage.saveGlobalTree(tree);
+        await treeStorage.saveTree(tree);
         await notifyGlobalTreeUpdate(tree);
         return { success: true };
       } else {

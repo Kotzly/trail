@@ -1,6 +1,7 @@
 import type { TabId, Title, Url } from '../../shared/types/ids';
 import { tabManager } from '../state/tab-manager';
 import { treeStorage } from '../services/tree-storage';
+import { notifyTreeUpdate } from '../messaging/notifications';
 
 import { syncTabTitleFavicon, syncTabAudioState } from './tab-sync';
 import { NodeData } from '../../shared/types/node';

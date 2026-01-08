@@ -1,7 +1,6 @@
 /**
  * Content script for Trail.
- * In single-tab mode: intercepts target="_blank" links to open in same tab.
- * In multi-tab mode: lets links open naturally in new tabs.
+ * Tracks title changes for pages that update title dynamically.
  */
 
 import { Title, Url } from "../shared/types/ids";

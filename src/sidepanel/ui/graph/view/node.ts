@@ -1,20 +1,20 @@
 import type { NodeId } from '../../../../shared/types/ids';
-import type { TreeNode } from '../../../../background/state/tree-node';
 import type { NodePosition } from '../types';
 import { formatUrl, escapeHtml } from '../../shared/format';
 import { getLayoutConfig } from '../layout/config';
 import { GraphState } from '../state/graph-state';
 import { TAG_PRESETS } from '../tags';
 import { showContextMenu } from '../menus/context-menu';
+import { NavigationNode } from '../../../../shared/types/node';
 
 /**
  * Create a graph node element.
  */
 export function createGraphNode(
-  node: TreeNode,
+  node: NavigationNode,
   position: NodePosition,
   currentId: NodeId | null,
-  onNavigate: (node: TreeNode) => void,
+  onNavigate: (node: NavigationNode) => void,
   openNodeIds: Set<NodeId> | null = null,
   nodeTabCounts: Record<NodeId, number> = {}
 ): HTMLElement {
@@ -29,11 +29,7 @@ export function createGraphNode(
   nodeEl.style.top = `${position.y}px`;
   nodeEl.style.width = `${layoutConfig.nodeWidth}px`;
   nodeEl.style.height = `${layoutConfig.nodeHeight}px`;
-  
-  if (layoutConfig.compact) {
-    nodeEl.classList.add('compact');
-  }
-  
+
   if (node.id === currentId) {
     nodeEl.classList.add('current');
   }
@@ -50,7 +46,7 @@ export function createGraphNode(
   }
   
   // Pinned indicator - flat pin icon
-  if (node.pinned) {
+  if (node.data.pinned) {
     nodeEl.classList.add('pinned');
     const pinIcon = document.createElement('div');
     pinIcon.className = 'graph-node-pin';
@@ -62,9 +58,9 @@ export function createGraphNode(
   // Favicon
   const favicon = document.createElement('div');
   favicon.className = 'graph-node-favicon';
-  if (node.favicon) {
+  if (node.data.favicon) {
     const img = document.createElement('img');
-    img.src = node.favicon;
+    img.src = node.data.favicon;
     img.alt = '';
     img.onerror = () => { favicon.innerHTML = '🌐'; };
     favicon.appendChild(img);
@@ -74,22 +70,13 @@ export function createGraphNode(
   
   nodeEl.appendChild(favicon);
   
-  // Content - compact mode shows title, normal shows title + url
-  if (layoutConfig.compact) {
-    const title = document.createElement('div');
-    title.className = 'graph-node-title-compact';
-    title.textContent = node.title || 'Untitled';
-    title.title = node.url; // Show URL on hover
-    nodeEl.appendChild(title);
-  } else {
-    const content = document.createElement('div');
-    content.className = 'graph-node-content';
-    content.innerHTML = `
-      <div class="graph-node-title">${escapeHtml(node.title || 'Untitled')}</div>
-      <div class="graph-node-url">${escapeHtml(formatUrl(node.url))}</div>
-    `;
-    nodeEl.appendChild(content);
-  }
+  const content = document.createElement('div');
+  content.className = 'graph-node-content';
+  content.innerHTML = `
+    <div class="graph-node-title">${escapeHtml(node.data.title || 'Untitled')}</div>
+    <div class="graph-node-url">${escapeHtml(formatUrl(node.data.url))}</div>
+  `;
+  nodeEl.appendChild(content);
   
   // Tab count badge (multiple tabs for same node in same window)
   // Add AFTER all other content so it's on top
@@ -103,10 +90,10 @@ export function createGraphNode(
   }
 
   // Tag dots
-  if (node.tags && node.tags.length > 0) {
+  if (node.data.tags && node.data.tags.length > 0) {
     const tagsContainer = document.createElement('div');
     tagsContainer.className = 'graph-node-tags';
-    node.tags.forEach(tagId => {
+    node.data.tags.forEach(tagId => {
       const tagPreset = TAG_PRESETS.find(t => t.id === tagId);
       if (tagPreset) {
         const dot = document.createElement('span');
@@ -212,17 +199,17 @@ export function createConnection(
  * Draw all connections recursively.
  */
 export function drawConnections(
-  node: TreeNode | null,
+  node: NavigationNode | null,
   positions: Map<number, NodePosition>,
   svg: SVGElement,
   pathNodeIds: Set<NodeId> | null = null
 ): void {
-  if (!node || !node.children) return;
+  if (!node || !node.getChildren()) return;
   
   const parentPos = positions.get(node.id);
   if (!parentPos) return;
   
-  node.children.forEach((child: TreeNode, idx: number) => {
+  node.getChildren().forEach((child: NavigationNode, idx: number) => {
     const childPos = positions.get(child.id);
     if (childPos) {
       const connection = createConnection(parentPos, childPos, idx);
@@ -241,20 +228,18 @@ export function drawConnections(
 /**
  * Get path from root to a specific node within a given root.
  */
-export function getPathToNode(root: TreeNode, targetId: NodeId): Set<NodeId> {
+export function getPathToNode(root: NavigationNode, targetId: NodeId): Set<NodeId> {
   const path = new Set<NodeId>();
   
-  function findPath(node: TreeNode | null): boolean {
+  function findPath(node: NavigationNode | null): boolean {
     if (!node) return false;
     
     path.add(node.id);
     
     if (node.id === targetId) return true;
     
-    if (node.children) {
-      for (const child of node.children) {
-        if (findPath(child)) return true;
-      }
+    for (const child of node.getChildren()) {
+      if (findPath(child)) return true;
     }
     
     path.delete(node.id);
@@ -265,14 +250,4 @@ export function getPathToNode(root: TreeNode, targetId: NodeId): Set<NodeId> {
   return path;
 }
 
-/**
- * Get path to a target node across all roots in a forest.
- */
-export function getPathToNodeInForest(roots: TreeNode[], targetId: NodeId): Set<NodeId> {
-  for (const root of roots) {
-    const path = getPathToNode(root, targetId);
-    if (path.size > 0) return path;
-  }
-  return new Set<NodeId>();
-}
 

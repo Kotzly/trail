@@ -1,20 +1,18 @@
 import type { NodeId } from '../../../shared/types/ids';
-import type { TreeNode } from '../../../background/state/tree-node';
 import { TabState } from '../../../shared/types/tabs';
+import { NavigationNode } from '../../../shared/types/node';
 
 export interface LayoutConfig {
   nodeWidth: number;
   nodeHeight: number;
   verticalGap: number;
   horizontalGap: number;
-  rootGap: number;
-  compact: boolean;
 }
 
 export interface NodePosition {
   x: number;
   y: number;
-  node: TreeNode;
+  node: NavigationNode;
 }
 
 export interface CanvasBounds {
@@ -39,27 +37,23 @@ export interface GraphAPI {
 }
 
 export interface GraphNodeOptions {
-  node: TreeNode;
+  node: NavigationNode;
   position: NodePosition;
   currentId: NodeId | null;
-  onNavigate: (node: TreeNode) => void;
+  onNavigate: (node: NavigationNode) => void;
   openNodeIds: Set<NodeId> | null;
   nodeTabCounts: Record<NodeId, number>;
 }
 
 export interface RenderGraphOptions {
-  onNavigate: (node: TreeNode) => void;
+  onNavigate: (node: NavigationNode) => void;
   openNodeIds?: Set<NodeId> | null;
-  compactGraph?: boolean;
   tabStates?: Record<NodeId, TabState>;
-  selectionMenuInstant?: boolean;
   nodeTabCounts?: Record<NodeId, number>;
-  showOrphanTrees?: boolean;
 }
 
 export interface TreeData {
-  root?: TreeNode;
-  roots?: TreeNode[];
+  root?: NavigationNode;
   currentNodeId?: NodeId | null;
   nodeCount?: number;
 }

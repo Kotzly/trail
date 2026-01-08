@@ -5,7 +5,7 @@ import { treeStorage } from '../services/tree-storage';
 import { settingsManager } from '../services/settings';
 import { programmaticTabs } from '../state/programmatic-tabs';
 import { redirectDetector } from './redirect-detection';
-import { createNodeInSingleTree } from '../utils/tree-utils';
+import { createNode } from '../utils/tree-utils';
 import { getFaviconUrl, shouldTrackUrl } from '../utils/url-utils';
 import { notifyGlobalTreeUpdate } from '../messaging/notifications';
 
@@ -81,7 +81,7 @@ export async function handleMultiTabNavigation(
     };
 
     // Use GLOBAL tree - shared across all windows
-    const tree = await treeStorage.getGlobalTree();
+    const tree = await treeStorage.getTree();
 
     if (existingNodeId !== undefined) {
       // Tab already has a node
@@ -116,7 +116,7 @@ export async function handleMultiTabNavigation(
           }
           // Update tab counts immediately after re-registration (even if tab is inactive)
           // This ensures "New Tab" counter decreases immediately when tab navigates away
-          await treeStorage.saveGlobalTree(tree);
+          await treeStorage.saveTree(tree);
           await notifyGlobalTreeUpdate(tree);
         }
       } else if (node) {
@@ -145,7 +145,7 @@ export async function handleMultiTabNavigation(
         programmaticTabs.recordRegistration(tabId as TabId);
         // Update tab counts immediately after registration (even if tab is inactive)
         // This ensures "New Tab" counter decreases immediately when tab navigates to existing node
-        await treeStorage.saveGlobalTree(tree);
+        await treeStorage.saveTree(tree);
         await notifyGlobalTreeUpdate(tree);
       } else {
         // Check if this is a redirect
@@ -154,7 +154,7 @@ export async function handleMultiTabNavigation(
         // Single tree: create under existing root (unless redirect)
         if (!isRedirect) {
           // Single tree: create under existing root
-          newNode = createNodeInSingleTree(tree, entry);
+          newNode = createNode(tree, entry);
         } else {
           // Redirect: branch from current node (backOnRevisit always enabled)
           const current = tree.getCurrent();
@@ -162,7 +162,7 @@ export async function handleMultiTabNavigation(
             tree.setCurrent(current);
             newNode = tree.navigate(entry, { backOnRevisit: true });
           } else {
-            newNode = createNodeInSingleTree(tree, entry);
+            newNode = createNode(tree, entry);
           }
         }
         
@@ -180,7 +180,7 @@ export async function handleMultiTabNavigation(
         }
         // Update tab counts immediately after registration (even if tab is inactive)
         // This ensures "New Tab" counter decreases immediately when tab navigates to new node
-        await treeStorage.saveGlobalTree(tree);
+        await treeStorage.saveTree(tree);
         await notifyGlobalTreeUpdate(tree);
       }
       
@@ -203,7 +203,7 @@ export async function handleMultiTabNavigation(
       await tabManager.closeOldestGlobalIfNeeded(settings.maxOpenTabs, tree);
     }
 
-    await treeStorage.saveGlobalTree(tree);
+    await treeStorage.saveTree(tree);
     
     // Only notify if tab is active OR if we created a new node (not just reused existing)
     // This prevents unnecessary UI updates for programmatic tab creation

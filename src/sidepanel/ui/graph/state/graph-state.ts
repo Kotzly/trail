@@ -3,7 +3,6 @@ import type { GraphAPI, ViewState } from "../types";
 import type { TabState } from "../../../../shared/types/tabs";
 
 type Tool = "hand" | "select";
-type OnNavigate = ((node: any) => void) | null;
 
 
 class graphState {
@@ -25,12 +24,7 @@ class graphState {
   // Store tabStates and onNavigate for use in node creation and context menu
   private currentTabStates: Record<NodeId, TabState> = {};
 
-  private currentOnNavigate: OnNavigate = null;
-
   private currentNodeTabCounts: Record<NodeId, number> = {};
-
-  // Store selection menu setting for use in setupPanZoom
-  private selectionMenuInstantSetting = false;
 
   // ---- getters / setters ----
 
@@ -85,13 +79,6 @@ class graphState {
     this.currentTabStates = states;
   }
 
-  getCurrentOnNavigate(): OnNavigate {
-    return this.currentOnNavigate;
-  }
-  setCurrentOnNavigate(onNavigate: OnNavigate): void {
-    this.currentOnNavigate = onNavigate;
-  }
-
   getCurrentNodeTabCounts(): Record<NodeId, number> {
     return this.currentNodeTabCounts;
   }
@@ -99,12 +86,6 @@ class graphState {
     this.currentNodeTabCounts = counts;
   }
 
-  getSelectionMenuInstantSetting(): boolean {
-    return this.selectionMenuInstantSetting;
-  }
-  setSelectionMenuInstantSetting(setting: boolean): void {
-    this.selectionMenuInstantSetting = setting;
-  }
 
   /** Optional: reset to initial state (keeps instance). */
   reset(): void {
@@ -114,9 +95,7 @@ class graphState {
     this.graphAPI = null;
     this.savedViewState = null;
     this.currentTabStates = {};
-    this.currentOnNavigate = null;
     this.currentNodeTabCounts = {};
-    this.selectionMenuInstantSetting = false;
   }
 }
 

@@ -8,7 +8,7 @@ export async function handlePinMessage(
   message: any,
   sender: chrome.runtime.MessageSender
 ): Promise<any> {
-  const tree = await treeStorage.getGlobalTree();
+  const tree = await treeStorage.getTree();
   const settings = settingsManager.get();
   
   switch (message.type) {
@@ -38,7 +38,7 @@ export async function handlePinMessage(
         }
       }
       
-      await treeStorage.saveGlobalTree(tree);
+      await treeStorage.saveTree(tree);
       await notifyGlobalTreeUpdate(tree);
       return { success: true, pinned: newPinned };
     }
@@ -56,7 +56,7 @@ export async function handlePinMessage(
         }
       }
       
-      await treeStorage.saveGlobalTree(tree);
+      await treeStorage.saveTree(tree);
       await notifyGlobalTreeUpdate(tree);
       return { success: true, pinnedCount };
     }
@@ -74,7 +74,7 @@ export async function handlePinMessage(
         }
       }
       
-      await treeStorage.saveGlobalTree(tree);
+      await treeStorage.saveTree(tree);
       await notifyGlobalTreeUpdate(tree);
       return { success: true, unpinnedCount };
     }

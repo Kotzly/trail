@@ -1,14 +1,10 @@
-import type { TreeNode } from '../../../../background/state/tree-node';
+import { NavigationNode } from '../../../../shared/types/node';
 import type { NodePosition, CanvasBounds } from '../types';
 import { getLayoutConfig, PADDING } from './config';
 
-/**
- * Calculate positions for all nodes in a single tree.
- * Vertical layout: root at top, children below, spreading horizontally.
- * Uses proper subtree width calculation to avoid overlapping.
- */
-export function calculateTreeLayout(
-  root: TreeNode,
+
+export function calculateLayout(
+  root: NavigationNode,
   startX: number = PADDING
 ): { positions: Map<number, NodePosition>, width: number } {
   const positions = new Map<number, NodePosition>();
@@ -17,17 +13,17 @@ export function calculateTreeLayout(
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
   
   // First pass: calculate subtree widths (bottom-up)
-  function calcWidths(node: TreeNode | null): number {
+  function calcWidths(node: NavigationNode | null): number {
     if (!node) return 0;
-    if (!node.children || node.children.length === 0) {
+    if (!node.getChildren() || node.getChildren().length === 0) {
       subtreeWidths.set(node.id, nodeWidth);
       return nodeWidth;
     }
-    
+
     let totalWidth = 0;
-    node.children.forEach((child: TreeNode, idx: number) => {
+    node.getChildren().forEach((child: NavigationNode, idx: number) => {
       totalWidth += calcWidths(child);
-      if (idx < node.children.length - 1) {
+      if (idx < node.getChildren().length - 1) {
         totalWidth += horizontalGap;
       }
     });
@@ -40,7 +36,7 @@ export function calculateTreeLayout(
   const treeWidth = calcWidths(root);
   
   // Second pass: assign positions (top-down)
-  function layoutNode(node: TreeNode | null, x: number, y: number): void {
+  function layoutNode(node: NavigationNode | null, x: number, y: number): void {
     if (!node) return;
     
     const subtreeWidth = subtreeWidths.get(node.id) || nodeWidth;
@@ -49,7 +45,7 @@ export function calculateTreeLayout(
     const nodeX = x + (subtreeWidth - nodeWidth) / 2;
     positions.set(node.id, { x: nodeX, y, node });
     
-    if (!node.children || node.children.length === 0) {
+    if (!node.getChildren() || node.getChildren().length === 0) {
       return;
     }
     
@@ -57,7 +53,7 @@ export function calculateTreeLayout(
     const childY = y + nodeHeight + verticalGap;
     let childX = x;
     
-    node.children.forEach((child: TreeNode) => {
+    node.getChildren().forEach((child: NavigationNode) => {
       const childWidth = subtreeWidths.get(child.id) || nodeWidth;
       layoutNode(child, childX, childY);
       childX += childWidth + horizontalGap;
@@ -69,31 +65,6 @@ export function calculateTreeLayout(
   return { positions, width: treeWidth };
 }
 
-/**
- * Calculate positions for a forest (multiple root trees).
- * Trees are arranged horizontally, left to right.
- */
-export function calculateForestLayout(
-  roots: TreeNode[]
-): Map<number, NodePosition> {
-  const allPositions = new Map<number, NodePosition>();
-  let currentX = PADDING;
-  const layoutConfig = getLayoutConfig();
-  
-  roots.forEach((root: TreeNode) => {
-    const { positions, width } = calculateTreeLayout(root, currentX);
-    
-    // Merge positions into allPositions
-    positions.forEach((pos, id) => {
-      allPositions.set(id, pos);
-    });
-    
-    // Move X for next tree
-    currentX += width + layoutConfig.rootGap;
-  });
-  
-  return allPositions;
-}
 
 /**
  * Get canvas bounds from positions.

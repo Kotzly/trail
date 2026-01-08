@@ -1,11 +1,11 @@
-import type { TreeNode } from "../../background/state/tree-node";
+import type { NavigationNode } from "../../shared/types/node";
 import { PanelState } from "../state/panel-state";
 import { getTabsForNode } from "../api/tabs";
 import { navigateTo } from "../api/tree";
 import { NodeId } from "../../shared/types/ids";
 
 // Show context menu at position.
-export async function showContextMenu(x: number, y: number, node: TreeNode): Promise<void> {
+export async function showContextMenu(x: number, y: number, node: NavigationNode): Promise<void> {
     const menu = document.getElementById('contextMenu');
     if (!menu) return;
     
@@ -188,7 +188,7 @@ export function initContextMenu(): void {
           
           // Find node data from the tree
           const nodeId = parseInt(nodeEl.dataset.nodeId || '0', 10) as NodeId;
-          const nodeData = PanelState.tree?.findNodeByIdDFS(nodeId) ?? null;
+          const nodeData = PanelState.tree?.findNodeById(nodeId) ?? null;
           
           if (nodeData) {
             showContextMenu(e.clientX, e.clientY, nodeData);

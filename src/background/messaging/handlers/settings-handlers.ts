@@ -13,15 +13,6 @@ export async function handleSettingsMessage(
     
     case 'SAVE_SETTINGS': {
       await settingsManager.saveSettings(message.settings);
-      
-      // Update all trees with new capacity
-      const tabIds = await treeStorage.getAllTabIds();
-      for (const tabId of tabIds) {
-        const tree = await treeStorage.getTree(tabId);
-        // TODO: Update capacity in tree
-        await treeStorage.saveTree(tabId, tree);
-      }
-      
       return { success: true, settings: settingsManager.get() };
     }
     

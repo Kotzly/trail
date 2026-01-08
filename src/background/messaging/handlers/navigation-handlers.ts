@@ -2,10 +2,7 @@ import type { TabId, NodeId } from '../../../shared/types/ids';
 import { tabManager } from '../../state/tab-manager';
 import { treeStorage } from '../../services/tree-storage';
 import { settingsManager } from '../../services/settings';
-import { programmaticTabs } from '../../state/programmatic-tabs';
-import { setPendingNodeForWindow } from '../../windows/window-state';
-import { ensureRootOwner } from '../../utils/tree-utils';
-import { notifyGlobalTreeUpdate } from '../notifications';
+import { notifyTreeUpdate } from '../notifications';
 
 export async function handleNavigationMessage(
   message: any,
@@ -16,9 +13,7 @@ export async function handleNavigationMessage(
       const { windowId, nodeId, url, tabId } = message;
       const settings = settingsManager.get();
       
-      // Always multi-tab mode with GLOBAL tree: node may be in ANY window
-      const tree = await treeStorage.getGlobalTree();
-      const ownerWindowId = ensureRootOwner(tree, nodeId, windowId ?? null);
+      const tree = await treeStorage.getTree();
       
       // Get tabs for this node
       const nodeTabs = tabManager.tabsByNode(nodeId);
@@ -35,8 +30,8 @@ export async function handleNavigationMessage(
             await chrome.tabs.update(nextTab, { active: true });
             tabManager.touch(nextTab, nodeId);
             tree.setCurrentById(nodeId);
-            await treeStorage.saveGlobalTree(tree);
-            await notifyGlobalTreeUpdate(tree);
+            await treeStorage.saveTree(tree);
+            await notifyTreeUpdate(tree);
             return { success: true };
           } catch (e) {
             // Tab may have closed; fall through to open logic
@@ -48,22 +43,22 @@ export async function handleNavigationMessage(
       if (tabsArray.length > 0) {
         const existingTabId = tabsArray[0];
         try {
-          const tab = await chrome.tabs.get(existingTabId);
+          const tab = await chrome.tabs.get(existingTabId as TabId);
           await chrome.windows.update(tab.windowId!, { focused: true });
           await chrome.tabs.update(existingTabId, { active: true });
-          tabManager.touch(existingTabId, nodeId);
+          tabManager.touch(existingTabId as TabId, nodeId);
           tree.setCurrentById(nodeId);
-          await treeStorage.saveGlobalTree(tree);
-          await notifyGlobalTreeUpdate(tree);
+          await treeStorage.saveTree(tree);
+          await notifyTreeUpdate(tree);
           return { success: true };
         } catch (e) {
-          tabManager.unregister(existingTabId);
+          tabManager.unregister(existingTabId as TabId);
         }
       }
       
       // If no tab is open, create one in owning window (or new window)
       if (tabsArray.length === 0) {
-        let targetWindowId = ownerWindowId || windowId;
+        let targetWindowId = windowId;
         let targetWindowExists = false;
         if (targetWindowId) {
           try {
@@ -75,37 +70,32 @@ export async function handleNavigationMessage(
         }
         
         if (!targetWindowExists) {
-          const node = tree.findNodeByIdDFS(nodeId);
+          const node = tree.findNodeById(nodeId);
           if (!node) return { success: false, error: 'Node not found' };
           
-          const newWindow = await chrome.windows.create({ focused: true, url: node.url });
-          targetWindowId = newWindow.id!;
-          setPendingNodeForWindow(targetWindowId, nodeId);
-          const root = tree.findRootForNode(nodeId);
-          if (root) {
-            (root as any).windowId = targetWindowId;
-          }
-          const tabs = await chrome.tabs.query({ windowId: newWindow.id });
+          const newWindow = await chrome.windows.create({ focused: true, url: node.data.url });
+          targetWindowId = newWindow?.id;
+          const tabs = await chrome.tabs.query({ windowId: newWindow?.id });
           const newTab = tabs[0];
           if (newTab && newTab.id) {
             tabManager.register(nodeId, newTab.id as TabId);
           }
         } else {
-          const node = tree.findNodeByIdDFS(nodeId);
+          const node = tree.findNodeById(nodeId);
           if (!node) return { success: false, error: 'Node not found' };
           
-          const newTab = await chrome.tabs.create({ windowId: targetWindowId, url: node.url, active: true });
+          const newTab = await chrome.tabs.create({ windowId: targetWindowId, url: node.data.url, active: true });
           tabManager.register(nodeId, newTab.id! as TabId);
         }
         
-        // Enforce tab limit globally (skip pinned nodes)
-        await tabManager.closeOldestGlobalIfNeeded(settings.maxOpenTabs, tree);
+        // Enforce tab limit globally (skip pinned nodes) // todo: implement with LRU eviction policy
+        // await tabManager.closeOldestGlobalIfNeeded(settings.maxOpenTabs, tree);
       }
       
-      // Update current node in GLOBAL tree
+      // Update current node in tree
       tree.setCurrentById(nodeId);
-      await treeStorage.saveGlobalTree(tree);
-      await notifyGlobalTreeUpdate(tree);
+      await treeStorage.saveTree(tree);
+      await notifyTreeUpdate(tree);
       
       return { success: true };
     }
@@ -123,21 +113,18 @@ export async function handleNavigationMessage(
     case 'OPEN_IN_NEW_TAB': {
       // Open node URL in a new tab (background, don't switch focus)
       const { nodeId } = message;
-      const tree = await treeStorage.getGlobalTree();
-      const node = tree.findNodeByIdDFS(nodeId);
+      const tree = await treeStorage.getTree();
+      const node = tree.findNodeById(nodeId);
       if (node) {
         // Mark as programmatic BEFORE creating tab to prevent auto-focus
-        const tab = await chrome.tabs.create({ url: node.url, active: false });
-        
-        // Immediately mark actual tab as programmatic (before any events fire)
-        programmaticTabs.markAsProgrammatic(tab.id! as TabId);
+        const tab = await chrome.tabs.create({ url: node.data.url, active: false });
         
         // Always multi-tab mode
         tabManager.register(nodeId, tab.id! as TabId);
         // DO NOT update currentNode - keep focus on current tab
         // But DO notify to update tab count badge immediately
-        await treeStorage.saveGlobalTree(tree);
-        await notifyGlobalTreeUpdate(tree);
+        await treeStorage.saveTree(tree);
+        await notifyTreeUpdate(tree);
         return { success: true };
       } else {
         return { success: false, error: 'Node not found' };
