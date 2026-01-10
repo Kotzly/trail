@@ -3,9 +3,14 @@
  * Tracks title changes for pages that update title dynamically.
  */
 
-import { TabId, Title, Url } from "../shared/types/ids.js";
-import { notifyTitleChange } from "../sidepanel/api/chrome.js";
-import { tabManager } from "../background/state/tab-manager.js";
+type Title = string;
+type Url = string;
+
+const MSG_TITLE_CHANGED = 'TITLE_CHANGED' as const;
+
+function notifyTitleChange(url: Url, title: Title): void {
+  chrome.runtime.sendMessage({ type: MSG_TITLE_CHANGED, url, title });
+}
 
 (function() {
   'use strict';
