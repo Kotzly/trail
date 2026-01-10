@@ -1,9 +1,9 @@
-import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '../../shared/types/ids.js';
+import { now, UrlWithTimestamp, type TabId, type Title, type Url } from '../../shared/types/ids.js';
 import { NodeMetaPatch, updateNodeMeta, type NodeData } from '../../shared/types/node.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { redirectDetector } from './redirect-detection.js';
-import { getFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
+import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { CommandManager } from '../../shared/lib/commands.js';
@@ -57,10 +57,10 @@ export async function handleNavigation(
     const data: NodeData = {
       url: url as Url,
       title: (tab.title || url) as Title,
-      favicon: (tab.favIconUrl as FaviconUrl | undefined) ?? getFaviconUrl(url as Url),
+      favicon: normalizeFaviconUrl(url as Url, tab.favIconUrl),
       pinned: false, // todo: check pinned.
       tags: [],
-    };
+    } as NodeData;
     const metaPatch = { title: data.title, favicon: data.favicon} as NodeMetaPatch;
 
     // Use GLOBAL tree - shared across all windows

@@ -1,7 +1,8 @@
-import type { FaviconUrl, TabId, Title } from '../../shared/types/ids.js';
+import type { TabId, Title, Url } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
+import { normalizeFaviconUrl } from '../utils/url-utils.js';
 
 /**
  * Sync tab title and favicon changes to node.
@@ -26,7 +27,10 @@ export async function syncTabTitleFavicon(
   }
 
   if (changeInfo.favIconUrl) {
-    node.data.favicon = changeInfo.favIconUrl as FaviconUrl;
+    const normalized = normalizeFaviconUrl(tab.url as Url | undefined, changeInfo.favIconUrl);
+    if (normalized !== undefined) {
+      node.data.favicon = normalized;
+    }
   }
 
   await notifyTreeUpdate(tree);

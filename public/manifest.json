@@ -15,7 +15,8 @@
     "tabs",
     "webNavigation",
     "scripting",
-    "alarms"
+    "alarms",
+    "favicon"
   ],
   "host_permissions": [
     "<all_urls>"
