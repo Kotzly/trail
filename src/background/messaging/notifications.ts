@@ -41,13 +41,5 @@ export async function notifyTreeUpdate(tree: NavigationTree): Promise<void> {
         nodeTabCounts: nodeTabCounts,
     });
 
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage(payload, () => {
-        const err = chrome.runtime.lastError;
-        if (err && !err.message?.includes('Receiving end does not exist')) {
-          console.debug('notifyTreeUpdate failed:', err.message);
-        }
-        resolve();
-      });
-    });
+    chrome.runtime.sendMessage(payload);
 }
