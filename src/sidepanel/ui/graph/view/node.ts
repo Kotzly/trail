@@ -22,7 +22,6 @@ export function createGraphNode(
 ): HTMLElement {
   const layoutConfig = getLayoutConfig();
   const currentTabStates = GraphState.getCurrentTabStates();
-  const graphAPI = GraphState.getGraphAPI();
   
   const nodeEl = document.createElement('div');
   nodeEl.className = 'graph-node';
@@ -163,6 +162,7 @@ export function createGraphNode(
       el.classList.remove('selected');
     });
 
+    const graphAPI = GraphState.getGraphAPI();
     if (graphAPI && graphAPI.centerOnNode) {
       graphAPI.centerOnNode(node.id, true);
     }
