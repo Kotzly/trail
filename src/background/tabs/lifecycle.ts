@@ -32,14 +32,14 @@ async function onTabRemoved(tabId_: number, _: chrome.tabs.OnRemovedInfo): Promi
 
   const tree = await treeStorage.getOrCreateTree();
   const activeTab = await getActiveTab();
-  if (!activeTab) return;
-
-  const activeNodeId = tabManager.nodeByTab(activeTab.id as TabId);
-  if (!activeNodeId) return;
-
-  tree.setCurrentById(activeNodeId);
-
+  if (!activeTab || !shouldTrackUrl(activeTab.url as Url)) {
+    tree.clearCurrent();
+  } else {
+    const activeNodeId = tabManager.nodeByTab(activeTab.id as TabId);
+    if (activeNodeId) tree.setCurrentById(activeNodeId);
+  }
   tabManager.unregister(tabId);
+
   await notifyTreeUpdate(tree);
   treeStorage.cacheTree(tree);
 }

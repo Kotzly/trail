@@ -286,5 +286,9 @@ export class NavigationTree implements Owner {
     canRemove(node: NavigationNode): boolean {
         return !node.isRoot() && !node.data.pinned;
     }
+
+    clearCurrent(): void {
+        this.current = null;
+    }
 }
 

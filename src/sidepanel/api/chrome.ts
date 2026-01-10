@@ -1,7 +1,7 @@
 import { NodeId, TabId, Title, Url } from "../../shared/types/ids.js";
 import { msg } from "../../shared/types/messages.js";
 import { PanelState } from "../state/panel-state.js";
-import { sendMessage } from "./background.js";
+import { fireAndForget } from "./background.js";
 
 export async function getCurrentTab(): Promise<chrome.tabs.Tab | undefined> {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -15,5 +15,5 @@ export async function getCurrentNodeId(): Promise<NodeId | undefined> {
 }
 
 export function notifyTitleChange(url: Url, title: Title): void {
-    sendMessage(msg.titleChanged(url, title)).catch(console.error);
+    fireAndForget(msg.titleChanged({ url, title }));
 }

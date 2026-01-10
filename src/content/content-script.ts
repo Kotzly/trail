@@ -3,8 +3,9 @@
  * Tracks title changes for pages that update title dynamically.
  */
 
-import { Title, Url } from "../shared/types/ids.js";
+import { TabId, Title, Url } from "../shared/types/ids.js";
 import { notifyTitleChange } from "../sidepanel/api/chrome.js";
+import { tabManager } from "../background/state/tab-manager.js";
 
 (function() {
   'use strict';

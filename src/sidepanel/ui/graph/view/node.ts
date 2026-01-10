@@ -119,7 +119,7 @@ export function createGraphNode(
     audioIcon.addEventListener('click', (e) => {
       e.stopPropagation();
       // todo: add tab id to the message
-      // fireAndForget(msg.toggleMute({ nodeId: node.id }))
+      // fireAndForget(msg.toggleMute({ nodeId: node.id, tabId: tabState.tabId }));
     });
     nodeEl.appendChild(audioIcon);
   }
@@ -127,6 +127,7 @@ export function createGraphNode(
   // Click to navigate or select
   nodeEl.addEventListener('click', (e) => {
     e.stopPropagation();
+    const currentTool = GraphState.getCurrentTool();
     
     // Shift+click to add/remove from selection
     if (e.shiftKey) {
@@ -142,14 +143,26 @@ export function createGraphNode(
       }
       return;
     }
-    
-    // Regular click: clear selection and center on node
+
+    if (currentTool === 'select') {
+      // Single select in select tool
+      GraphState.setSelectedNodeIds(new Set([node.id]));
+      document.querySelectorAll('.graph-node.selected').forEach(el => {
+        el.classList.remove('selected');
+      });
+      nodeEl.classList.add('selected');
+      return;
+    }
+
+    // Hand tool: navigate + center
+    fireAndForget(msg.navigateTo({ url: node.data.url, nodeId: node.id }));
+
+    // Clear selection highlight
     GraphState.setSelectedNodeIds(new Set());
     document.querySelectorAll('.graph-node.selected').forEach(el => {
       el.classList.remove('selected');
     });
-    
-    // Center on this node with smooth animation
+
     if (graphAPI && graphAPI.centerOnNode) {
       graphAPI.centerOnNode(node.id, true);
     }
@@ -250,4 +263,3 @@ export function getPathToNode(root: NavigationNode, targetId: NodeId): Set<NodeI
   findPath(root);
   return path;
 }
-

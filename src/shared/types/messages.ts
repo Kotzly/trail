@@ -206,8 +206,6 @@ export type SaveSettingsInput = {
 export type TitleChangedInput = {
     url: Url;
     title: Title;
-    tabId: TabId;
-    nodeId: NodeId;
 }
 
 export type TreeUpdatedInput = {
