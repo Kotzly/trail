@@ -33,6 +33,7 @@ export async function syncTabTitleFavicon(
     }
   }
 
+  treeStorage.cacheTree(tree);
   await notifyTreeUpdate(tree);
 }
 

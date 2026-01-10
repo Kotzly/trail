@@ -19,6 +19,7 @@ async function applyTree(json: ReturnType<typeof NavigationTreeMapper.toJSON>): 
   pruneTabMappings(tree);
   treeStorage.cacheTree(tree);
   await notifyTreeUpdate(tree);
+  await treeStorage.flushSaveNow();
 }
 
 export const commandHandlers = defineHandlers({

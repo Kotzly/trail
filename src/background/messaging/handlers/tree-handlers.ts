@@ -46,6 +46,7 @@ export const treeHandlers = defineHandlers({
 
     unregisterTabsForNodes(tabManager.openNodes());
     await notifyTreeUpdate(tree);
+    await treeStorage.flushSaveNow();
     return ok();
   },
 

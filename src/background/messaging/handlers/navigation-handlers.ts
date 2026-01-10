@@ -32,6 +32,7 @@ export const navigationHandlers = defineHandlers({
       if (focused) {
         tabManager.touch(tabId as TabId, message.nodeId);
         tree.setCurrentById(message.nodeId);
+        treeStorage.cacheTree(tree);
         await notifyTreeUpdate(tree);
         return ok();
       }
@@ -50,6 +51,7 @@ export const navigationHandlers = defineHandlers({
     }
 
     tree.setCurrentById(message.nodeId);
+    treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
 
     CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Navigate to' as Description);

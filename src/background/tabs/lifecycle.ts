@@ -78,6 +78,7 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
 
     if (nodeId === undefined) return;
     tree.setCurrentById(nodeId);
+    treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
 }
 

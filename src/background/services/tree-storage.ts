@@ -9,16 +9,13 @@ const treeArea = chrome.storage.local;
 
 // Tree storage service for managing navigation trees in chrome.storage.
 class TreeStorageService {
-  private static alarmListenerAttached = false;
-
   cachedTree: NavigationTree | null = null;
   private loading: Promise<NavigationTree> | undefined = undefined;
-  private readonly saveAlarmName = 'trail_save_tree';
+  private dirty = false;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly saveDebounceMs = 1500;
 
-  constructor() {
-    this.ensureAlarmListener();
-    this.saveEvery(1); // save every minute by default
-  }
+  constructor() {}
 
   async getOrCreateTree(): Promise<NavigationTree> {
     if (this.cachedTree) return this.cachedTree;
@@ -49,30 +46,40 @@ class TreeStorageService {
 
   cacheTree(tree: NavigationTree): void {
       this.cachedTree = tree;
+      this.dirty = true;
+      this.scheduleSave();
   }
 
-  // saveTreeToChrome will be handled by the background service as a cronjob
   async saveTreeToChrome(tree: NavigationTree) {
     const json = NavigationTreeMapper.toJSON(tree);
     await treeArea.set({ [TREE_KEY]: json });
   }
 
-  saveEvery(minutes: number): void {
-    chrome.alarms.clear(this.saveAlarmName);
-    if (minutes <= 0) return;
-
-    chrome.alarms.create(this.saveAlarmName, { periodInMinutes: minutes });
+  async flushSaveNow(): Promise<void> {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    if (!this.dirty || !this.cachedTree) return;
+    const tree = this.cachedTree;
+    this.dirty = false;
+    try {
+      await this.saveTreeToChrome(tree);
+    } catch (error) {
+      console.error('TreeStorageService.flushSaveNow: Error saving tree:', error);
+      this.dirty = true;
+      this.scheduleSave();
+    }
   }
 
-  private ensureAlarmListener(): void {
-    if (TreeStorageService.alarmListenerAttached) return;
-    chrome.alarms.onAlarm.addListener((alarm) => {
-      if (alarm.name !== this.saveAlarmName) return;
-      if (this.cachedTree) {
-        void this.saveTreeToChrome(this.cachedTree);
-      }
-    });
-    TreeStorageService.alarmListenerAttached = true;
+  private scheduleSave(): void {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+    }
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      void this.flushSaveNow();
+    }, this.saveDebounceMs);
   }
 }
 

@@ -17,6 +17,7 @@ export const tagHandlers = defineHandlers({
     if (!node.data.tags.includes(message.tagId as Tag)) {
       node.data.tags.push(message.tagId as Tag);
     }
+    treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
     return ok();
   },
@@ -28,6 +29,7 @@ export const tagHandlers = defineHandlers({
 
     CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Remove tag' as Description);
     node.data.tags = node.data.tags.filter((t: Tag) => t !== message.tagId);
+    treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
     return ok();
   },
