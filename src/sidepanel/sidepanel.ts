@@ -7,6 +7,7 @@ import { initPanelState, PanelState } from './state/panel-state.js';
 import { PinnedManager } from '../background/state/pinned.js';
 import { renderGraphView } from './ui/graph/view/renderer.js';
 import type { TreeData } from './ui/graph/types.js';
+import { GraphState } from './ui/graph/state/graph-state.js';
 import { fetchCommandState, handleRedo, handleUndo } from './controllers/commands-controller.js';
 import { initContextMenu } from './controllers/context-menu-controller.js';
 import { PinnedDropdownController } from './controllers/pinned-controller.js';
@@ -44,13 +45,23 @@ async function applyTreeState(payload: TreeUpdatedInput): Promise<void> {
   PanelState.pins = pins;
   PanelState.tabStates = payload.tabStates;
 
+  const currentId = tree.getCurrentId();
+  const nodeCount = tree.size();
+  const prevNodeCount = PanelState.previousNodeCount;
+  const prevNodeId = PanelState.previousNodeId;
+  const hasPrev = prevNodeCount !== null;
+  const shouldCenter =
+    hasPrev &&
+    ((prevNodeCount !== null && nodeCount > prevNodeCount) ||
+      (currentId !== null && currentId !== prevNodeId));
+
   const container = document.getElementById('stackList');
   if (container) {
     const root = tree.getRoot();
     updateEmptyState(Boolean(root));
     const treeData: TreeData = {
-      currentNodeId: tree.getCurrentId(),
-      nodeCount: tree.size(),
+      currentNodeId: currentId,
+      nodeCount: nodeCount,
     };
     if (root) treeData.root = root;
 
@@ -63,6 +74,15 @@ async function applyTreeState(payload: TreeUpdatedInput): Promise<void> {
         nodeTabCounts: payload.nodeTabCounts,
       },
     );
+
+    if (shouldCenter && currentId !== null) {
+      requestAnimationFrame(() => {
+        const graphAPI = GraphState.getGraphAPI();
+        if (graphAPI?.centerOnNode) {
+          graphAPI.centerOnNode(currentId, true);
+        }
+      });
+    }
   }
 
   updateTabCount(payload.nodeTabCounts);
@@ -71,6 +91,9 @@ async function applyTreeState(payload: TreeUpdatedInput): Promise<void> {
   if (PanelState.search.query) {
     performSearch(PanelState.search.query);
   }
+
+  PanelState.previousNodeId = currentId;
+  PanelState.previousNodeCount = nodeCount;
 
   await fetchCommandState();
 }

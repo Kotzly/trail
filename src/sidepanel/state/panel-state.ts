@@ -19,6 +19,7 @@ export const PanelState = {
     settings: null as Settings | null,
 
     previousNodeId: null as NodeId | null,
+    previousNodeCount: null as number | null,
     tabStates: {} as Record<NodeId, TabState>,
 
     tree: null as NavigationTree | null,
