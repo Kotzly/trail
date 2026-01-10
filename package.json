@@ -10,7 +10,8 @@
     "build": "tsc && node scripts/build-extension.js",
     "watch": "tsc --watch",
     "dev": "tsc --watch",
-    "generate-icons": "tsx src/shared/utils/generate-icons.ts"
+    "generate-icons": "tsx src/shared/utils/generate-icons.ts",
+    "test": "node --import tsx tests/basic.test.ts"
   },
   "keywords": [],
   "author": "",

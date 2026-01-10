@@ -106,3 +106,13 @@ export function clearSearch(): void {
     updateSearchUI();
     applySearchHighlights();
 }
+
+export function nextSearchResult(): void {
+    if (PanelState.search.results.length === 0) return;
+    focusSearchResult(PanelState.search.index + 1);
+}
+
+export function prevSearchResult(): void {
+    if (PanelState.search.results.length === 0) return;
+    focusSearchResult(PanelState.search.index - 1);
+}

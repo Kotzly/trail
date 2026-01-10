@@ -1,6 +1,6 @@
 import type { NavigationNode } from "../../shared/types/node.js";
 import { PanelState } from "../state/panel-state.js";
-import { getTabsForNode } from "../api/tabs.js";
+import { getTabsForNodeMessage } from "../api/tabs.js";
 import { navigateTo } from "../api/tree.js";
 import { NodeId } from "../../shared/types/ids.js";
 
@@ -11,7 +11,7 @@ export async function showContextMenu(x: number, y: number, node: NavigationNode
     
     PanelState.contextMenu.node = node;
     
-    const tabs = await getTabsForNode(node.id);
+    const tabs = await getTabsForNodeMessage(node.id);
     PanelState.contextMenu.tabs = tabs;
     
     // Update menu items based on state

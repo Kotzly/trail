@@ -1,26 +1,11 @@
 // messaging/handlers/content-handlers.ts
-import { shouldTrackUrl, getFaviconUrl } from "../../utils/url-utils.js";
+import { shouldTrackUrl } from "../../utils/url-utils.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { notifyTreeUpdate } from "../notifications.js";
-import {
-  MSG,
-  defineHandlers,
-  type MessageByType,
-  type MessageHandler,
-  type Response,
-} from "../../../shared/types/messages.js";
-import { TabId } from "../../../shared/types/ids.js";
-
-type ContentRequestType = typeof MSG.TITLE_CHANGED;
-
-function ok<T = void>(data?: T): Response<T> {
-  return { success: true, data: data as T };
-}
-
-function err(error: string): Response<never> {
-  return { success: false, error };
-}
+import { MSG, defineHandlers } from "../../../shared/types/messages.js";
+import type { TabId } from "../../../shared/types/ids.js";
+import { ok, err } from "../../../shared/types/messages.js";
 
 function getSenderTabId(sender: chrome.runtime.MessageSender): TabId | null {
   const id = sender.tab?.id;
@@ -41,17 +26,16 @@ export const contentHandlers = defineHandlers({
     if (!newTitle || !shouldTrackUrl(url)) return ok();
 
     try {
-      // Always multi-tab mode - use GLOBAL tree
       const rawTabId = sender.tab?.id;
-      const nodeId = typeof rawTabId === "number" ? tabManager.nodeByTab(rawTabId as any) : undefined;
+      const nodeId = typeof rawTabId === "number" ? tabManager.nodeByTab(rawTabId as TabId) : undefined;
 
       if (nodeId !== undefined) {
-        const tree = await treeStorage.getTree();
+        const tree = await treeStorage.getOrCreateTree();
         const node = tree.findNodeById(nodeId);
 
         if (node && node.data.url === url && node.data.title !== newTitle) {
           node.data.title = newTitle;
-          await treeStorage.saveTree(tree);
+          treeStorage.cacheTree(tree);
           await notifyTreeUpdate(tree);
         }
       }
@@ -63,18 +47,3 @@ export const contentHandlers = defineHandlers({
     }
   },
 });
-
-/**
- * Convenience wrapper (keeps router simple while you migrate other handler packs).
- */
-export const handleContentMessage: MessageHandler<ContentRequestType> = async (
-  message: MessageByType<ContentRequestType>,
-  sender
-) => {
-  const fn = (contentHandlers as any)[message.type] as
-    | ((m: any, s: chrome.runtime.MessageSender) => Promise<Response<any>> | Response<any>)
-    | undefined;
-
-  if (!fn) return err(`No content handler for message type: ${message.type}`);
-  return await fn(message, sender);
-};

@@ -1,35 +1,25 @@
-import type { TabId, Title, Url } from '../../shared/types/ids.js';
+import type { FaviconUrl, TabId, Title, Url } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 
 import { syncTabTitleFavicon, syncTabAudioState } from './tab-sync.js';
 import { NodeData } from '../../shared/types/node.js';
+import { getFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 
 
 async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
   if (!tab.id) return;
   const nodeId = tabManager.nodeByTab(tab.id as TabId);
   if (nodeId) return;
-  if (tab?.active === undefined) return;
+  if (!tab.url || !shouldTrackUrl(tab.url as Url)) return;
 
-  const tree = await treeStorage.getTree();
+  const tree = await treeStorage.getOrCreateTree();
+  const existing = tree.findByUrl(tab.url as Url);
+  if (!existing) return;
 
-  const data: NodeData = {
-    url: tab.url as Url,
-    title: tab.title as Title,
-    pinned: false,
-    tags: [],
-    collapsed: false,
-  }
-
-  const node = tree.navigate(data);
-  if (!node) return;
-
-  tabManager.register(node.id, tab.id as TabId);
+  tabManager.register(existing.id, tab.id as TabId);
   await notifyTreeUpdate(tree);
-  await treeStorage.saveTree(tree);
-
 }
 
 async function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
@@ -40,7 +30,7 @@ async function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
 async function onTabRemoved(tabId_: number, _: chrome.tabs.OnRemovedInfo): Promise<void> {
   const tabId = tabId_ as TabId;
 
-  const tree = await treeStorage.getTree();
+  const tree = await treeStorage.getOrCreateTree();
   const activeTab = await getActiveTab();
   if (!activeTab) return;
 
@@ -49,30 +39,44 @@ async function onTabRemoved(tabId_: number, _: chrome.tabs.OnRemovedInfo): Promi
 
   tree.setCurrentById(activeNodeId);
 
-  const prevNodeId = tabManager.nodeByTab(tabId);
-  if (prevNodeId) {
-    const node = tree.findNodeById(prevNodeId);
-    if (node) {
-      node.data.collapsed = true;
-    }
-  }
-
   tabManager.unregister(tabId);
   await notifyTreeUpdate(tree);
-  await treeStorage.saveTree(tree);
+  treeStorage.cacheTree(tree);
 }
 
 async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<void> {
     const tabId = activeInfo.tabId as TabId;
 
-    const nodeId = tabManager.nodeByTab(tabId);
+    let nodeId = tabManager.nodeByTab(tabId);
+    const tree = await treeStorage.getOrCreateTree();
+
     if (nodeId === undefined) {
-        console.warn("onTabActivated: nodeId is undefined");
-        return;
+        try {
+            const tab = await chrome.tabs.get(tabId);
+            if (!tab.url || !shouldTrackUrl(tab.url as Url)) return;
+
+            const existing = tree.findByUrl(tab.url as Url);
+            if (existing) {
+                tabManager.register(existing.id, tabId);
+                nodeId = existing.id;
+            } else {
+                const data: NodeData = {
+                    url: tab.url as Url,
+                    title: (tab.title || tab.url) as Title,
+                    favicon: (tab.favIconUrl as FaviconUrl | undefined) ?? getFaviconUrl(tab.url as Url),
+                    pinned: false,
+                    tags: [],
+                };
+                const node = tree.navigate(data);
+                tabManager.register(node.id, tabId);
+                nodeId = node.id;
+            }
+        } catch (e) {
+            return;
+        }
     }
 
-    const tree = await treeStorage.getTree();
-
+    if (nodeId === undefined) return;
     tree.setCurrentById(nodeId);
     await notifyTreeUpdate(tree);
 }

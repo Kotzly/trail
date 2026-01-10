@@ -1,12 +1,13 @@
-import { now, UrlWithTimestamp, type TabId, type Url } from '../../shared/types/ids.js';
-import type { NodeData } from '../../shared/types/node.js';
+import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '../../shared/types/ids.js';
+import { updateNodeData, type NodeData } from '../../shared/types/node.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
-import { settingsManager } from '../services/settings.js';
 import { redirectDetector } from './redirect-detection.js';
-import { createNode } from '../utils/tree-utils.js';
 import { getFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
+import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
+import { CommandManager } from '../../shared/lib/commands.js';
+import type { Description } from '../../shared/types/ids.js';
 
 /**
  * Handle navigation events and add to tree.
@@ -14,7 +15,7 @@ import { notifyTreeUpdate } from '../messaging/notifications.js';
  */
 export async function handleNavigation(
   details: chrome.webNavigation.WebNavigationFramedCallbackDetails,
-  transitionType?: string
+  _transitionType?: string
 ): Promise<void> {
   const { tabId, url, frameId } = details;
 
@@ -24,11 +25,9 @@ export async function handleNavigation(
   // Skip ignored URLs
   if (!shouldTrackUrl(url as Url)) return;
 
-  // Get tab to determine window
-  let windowId: number;
+  // Ensure tab still exists
   try {
-    const tab = await chrome.tabs.get(tabId);
-    windowId = tab.windowId;
+    await chrome.tabs.get(tabId);
   } catch (e) {
     return; // Tab no longer exists
   }
@@ -41,33 +40,33 @@ export async function handleNavigation(
 
   try {
     const tab = await chrome.tabs.get(tabId);
-    const settings = settingsManager.get();
-    
     // CRITICAL: Only update currentNode if this tab is active (user navigated)
     // If tab is not active, it was created programmatically - don't switch focus
     const isActiveTab = tab.active;
     
     // Track whether we create a new node (vs reusing existing)
     let wasNewNodeCreated = false;
+    let didUpdateCurrent = false;
 
     // Track URL for about:blank redirect detection
-    const prevUrlData = redirectDetector.recordTabUrl(tabId as TabId, { url: url as Url, timestamp: now() } as UrlWithTimestamp);
-    const isFromBlankUrl = !prevUrlData || prevUrlData.url === 'about:blank';
+    redirectDetector.recordTabUrl(tabId as TabId, { url: url as Url, timestamp: now() } as UrlWithTimestamp);
 
     // Check if this tab is already registered to a node (global)
     const existingNodeId = tabManager.nodeByTab(tabId as TabId);
 
     const data: NodeData = {
       url: url as Url,
-      title: (tab.title || url) as any,
-      favicon: (tab.favIconUrl || getFaviconUrl(url as Url)) as any,
+      title: (tab.title || url) as Title,
+      favicon: (tab.favIconUrl as FaviconUrl | undefined) ?? getFaviconUrl(url as Url),
       pinned: false, // todo: check pinned.
       tags: [],
-      collapsed: false,
     };
 
     // Use GLOBAL tree - shared across all windows
-    const tree = await treeStorage.getTree();
+    const tree = await treeStorage.getOrCreateTree();
+    const prevCurrentId = tree.getCurrentId();
+    const snapshot = NavigationTreeMapper.toJSON(tree);
+    let didMutate = false;
 
     if (existingNodeId !== undefined) {
       // Tab already has a node
@@ -76,26 +75,28 @@ export async function handleNavigation(
         // Different URL
         
           // Normal behavior: navigate from current node (creates child)
-          // Only update currentNode if tab is active (user navigated)
-          if (tab.active) {
-            tree.setCurrentById(existingNodeId);
-          }
+          tree.setCurrentById(existingNodeId);
+          didMutate = true;
           const newNode = tree.navigate(data);
           wasNewNodeCreated = true; // New node was created
           // Re-register tab with new node (global) - this automatically unregisters from old node
           tabManager.register(newNode.id, tabId as TabId);
           // Update currentNode to new node only if tab is active
-          if (tab.active) {
-            tree.setCurrentById(newNode.id);
+          if (!isActiveTab && prevCurrentId !== null) {
+            tree.setCurrentById(prevCurrentId);
+          } else {
+            didUpdateCurrent = true;
           }
-          // Update tab counts immediately after re-registration (even if tab is inactive)
-          // This ensures "New Tab" counter decreases immediately when tab navigates away
-          await treeStorage.saveTree(tree);
-          await notifyTreeUpdate(tree);
       } else if (node) {
         // Same URL - only update current if tab is active
+        const updated = updateNodeData(node.data, data);
+        if (updated.title !== node.data.title || updated.favicon !== node.data.favicon) {
+          node.data = updated;
+          didMutate = true;
+        }
         if (tab.active) {
           tree.setCurrentById(existingNodeId);
+          didUpdateCurrent = true;
         }
       }
       tabManager.touch(tabId as TabId, existingNodeId);
@@ -109,23 +110,28 @@ export async function handleNavigation(
       // If found existing node, use it instead of creating new
       if (existingNodeInWindow) {
         newNode = existingNodeInWindow;
+        const updated = updateNodeData(newNode.data, data);
+        if (updated.title !== newNode.data.title || updated.favicon !== newNode.data.favicon) {
+          newNode.data = updated;
+          didMutate = true;
+        }
         // Only update currentNode if tab is active (user navigated, not programmatic)
         if (isActiveTab) {
           tree.setCurrentById(newNode.id);
+          didUpdateCurrent = true;
         }
         // Register this tab with the existing node - this automatically unregisters from old node if any
         tabManager.register(newNode.id, tabId as TabId);
-        // Update tab counts immediately after registration (even if tab is inactive)
-        // This ensures "New Tab" counter decreases immediately when tab navigates to existing node
-        await treeStorage.saveTree(tree);
-        await notifyTreeUpdate(tree);
       } else {
-          newNode = tree.navigate(data);
-        
-        // Update tab counts immediately after registration (even if tab is inactive)
-        // This ensures "New Tab" counter decreases immediately when tab navigates to new node
-        await treeStorage.saveTree(tree);
-        await notifyTreeUpdate(tree);
+        didMutate = true;
+        newNode = tree.navigate(data);
+        wasNewNodeCreated = true;
+        tabManager.register(newNode.id, tabId as TabId);
+        if (!isActiveTab && prevCurrentId !== null) {
+          tree.setCurrentById(prevCurrentId);
+        } else {
+          didUpdateCurrent = true;
+        }
       }
     
 
@@ -133,7 +139,13 @@ export async function handleNavigation(
       // await tabManager.closeOldestGlobalIfNeeded(settings.maxOpenTabs, tree); // todo: implement LRU in tab manager
     }
 
-    await treeStorage.saveTree(tree);
+    if (didMutate) {
+      CommandManager.saveSnapshot(snapshot, 'Navigate' as Description);
+    }
+
+    if (didMutate || didUpdateCurrent) {
+      treeStorage.cacheTree(tree);
+    }
     
     // Only notify if tab is active OR if we created a new node (not just reused existing)
     // This prevents unnecessary UI updates for programmatic tab creation

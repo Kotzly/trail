@@ -19,6 +19,9 @@ export class TreeNode<T> implements Element {
 
     constructor(data: T, parent?: TreeNode<T>, id: NodeId = nextNodeId()) {
         this.id = id;
+        if (this.id > nodeIdCounter) {
+            nodeIdCounter = this.id;
+        }
         this.timestamp = now();
         this.data = data;
         this.parent = parent ?? null;
@@ -54,6 +57,17 @@ export class TreeNode<T> implements Element {
             this.parent.children.push(c);
         }
         this.children = [];
+        this.parent = null;
+    }
+
+    // Detach this node from its parent without reattaching children.
+    // Useful for removing entire subtrees.
+    detach(): void {
+        if (!this.parent) return;
+        const index = this.parent.children.indexOf(this);
+        if (index !== -1) {
+            this.parent.children.splice(index, 1);
+        }
         this.parent = null;
     }
 

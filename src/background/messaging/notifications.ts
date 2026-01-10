@@ -2,7 +2,6 @@ import type { TabId, NodeId } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import type { TabSoundState, TabState } from '../../shared/types/tabs.js';
 import { msg } from '../../shared/types/messages.js';
-import { treeStorage } from '../services/tree-storage.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { NavigationTree } from '../state/nav-tree.js';
 
@@ -35,10 +34,20 @@ export async function notifyTreeUpdate(tree: NavigationTree): Promise<void> {
     
     const nodeTabCounts = Object.fromEntries(openNodes.map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)]));
 
-    return chrome.runtime.sendMessage(msg.treeUpdated({
+    const payload = msg.treeUpdated({
         tree: NavigationTreeMapper.toJSON(tree),
         openNodeIds: openNodes,
         tabStates: tabStates,
         nodeTabCounts: nodeTabCounts,
-    }));
+    });
+
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(payload, () => {
+        const err = chrome.runtime.lastError;
+        if (err && !err.message?.includes('Receiving end does not exist')) {
+          console.debug('notifyTreeUpdate failed:', err.message);
+        }
+        resolve();
+      });
+    });
 }

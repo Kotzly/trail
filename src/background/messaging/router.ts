@@ -4,14 +4,25 @@ import {
   MSG,
   type HandlerMap,
   type RequestMessage,
-  type Response,
-  defineHandlers,
+  type Err,
+  type MessageHandler,
+  type RequestType,
+  type ResponseMessage,
 } from "../../shared/types/messages.js";
+import { defineHandlers } from "../../shared/types/messages.js";
+import { navigationHandlers } from "./handlers/navigation-handlers.js";
+import { tabHandlers } from "./handlers/tab-handlers.js";
+import { settingsHandlers } from "./handlers/settings-handlers.js";
+import { contentHandlers } from "./handlers/content-handlers.js";
+import { treeHandlers } from "./handlers/tree-handlers.js";
+import { commandHandlers } from "./handlers/undo-handlers.js";
+import { pinHandlers } from "./handlers/pin-handlers.js";
+import { tagHandlers } from "./handlers/tag-handlers.js";
 
-type AnyResponse = Response<any>;
-type AnyHandler = (message: any, sender: chrome.runtime.MessageSender) => Promise<AnyResponse> | AnyResponse;
+type AnyResponse = ResponseMessage<RequestType>;
+type AnyHandler = (message: RequestMessage, sender: chrome.runtime.MessageSender) => Promise<AnyResponse> | AnyResponse;
 
-function err(error: string): AnyResponse {
+function err(error: string): Err {
   return { success: false, error };
 }
 
@@ -27,33 +38,21 @@ function isRequestMessage(x: unknown): x is RequestMessage {
   return typeof t === "string" && TYPED_TYPES.has(t);
 }
 
-// No-op handler that returns success for requests
-const noopHandler: AnyHandler = async () => ({ success: false, error: "Not implemented" });
-
-// No-op error for TREE_UPDATED
-const noopTreeUpdated: AnyHandler = async () => err("TREE_UPDATED is outbound-only");
-
-const typedHandlers = defineHandlers({
-  [MSG.NAVIGATE_TO]: noopHandler,
-  [MSG.UNDO]: noopHandler,
-  [MSG.REDO]: noopHandler,
-  [MSG.COMMAND_STATE]: noopHandler,
-  [MSG.GET_TABS_FOR_NODE]: noopHandler,
-  [MSG.SAVE_SETTINGS]: noopHandler,
-  [MSG.GET_SETTINGS]: noopHandler,
-  [MSG.TITLE_CHANGED]: noopHandler,
-  [MSG.TREE_UPDATED]: noopTreeUpdated,
+const outboundOnlyHandlers = defineHandlers({
+  [MSG.TREE_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TREE_UPDATED>> =>
+    err("TREE_UPDATED is outbound-only"),
 } satisfies HandlerMap);
 
 function createMessageRouter() {
-  const handlers: Record<string, AnyHandler> = Object.create(null);
+  const handlers: HandlerMap = {};
 
   function merge(map: HandlerMap) {
-    for (const [type, fn] of Object.entries(map)) {
-      if (!fn) continue;
-      handlers[type] = fn as unknown as AnyHandler;
-    }
+    Object.assign(handlers, map);
     return api;
+  }
+
+  function getHandler<T extends RequestType>(type: T): MessageHandler<T> | undefined {
+    return handlers[type] as MessageHandler<T> | undefined;
   }
 
   async function dispatch(message: unknown, sender: chrome.runtime.MessageSender): Promise<AnyResponse> {
@@ -64,14 +63,14 @@ function createMessageRouter() {
       return err("Invalid message");
     }
 
-    const fn = handlers[message.type];
+    const fn = getHandler(message.type);
     if (!fn) return err(`No handler registered for message type: ${message.type}`);
 
     try {
       return await fn(message, sender);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Message handler crashed:", message.type, e);
-      return err(e?.message ?? "Unknown error");
+      return err(e instanceof Error ? e.message : "Unknown error");
     }
   }
 
@@ -94,6 +93,14 @@ function createMessageRouter() {
  */
 export function initMessaging(): void {
   createMessageRouter()
-    .merge(typedHandlers)
+    .merge(outboundOnlyHandlers)
+    .merge(navigationHandlers)
+    .merge(tabHandlers)
+    .merge(settingsHandlers)
+    .merge(contentHandlers)
+    .merge(treeHandlers)
+    .merge(commandHandlers)
+    .merge(pinHandlers)
+    .merge(tagHandlers)
     .listen();
 }

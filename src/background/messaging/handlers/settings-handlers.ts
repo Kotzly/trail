@@ -1,22 +1,13 @@
 import { settingsManager } from '../../services/settings.js';
-import { treeStorage } from '../../services/tree-storage.js';
+import { MSG, defineHandlers, ok } from '../../../shared/types/messages.js';
 
-export async function handleSettingsMessage(
-  message: any,
-  sender: chrome.runtime.MessageSender
-): Promise<any> {
-  switch (message.type) {
-    case 'GET_SETTINGS': {
-      const settings = settingsManager.get();
-      return { success: true, settings };
-    }
-    
-    case 'SAVE_SETTINGS': {
-      await settingsManager.saveSettings(message.settings);
-      return { success: true, settings: settingsManager.get() };
-    }
-    
-    default:
-      return { success: false, error: 'Unknown settings message type' };
-  }
-}
+export const settingsHandlers = defineHandlers({
+  async [MSG.GET_SETTINGS]() {
+    return ok(settingsManager.get());
+  },
+
+  async [MSG.SAVE_SETTINGS](message) {
+    await settingsManager.patch(message.settings);
+    return ok();
+  },
+});

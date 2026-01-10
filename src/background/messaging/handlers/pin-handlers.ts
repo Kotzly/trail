@@ -1,73 +1,42 @@
-import type { NodeId } from '../../../shared/types/ids.js';
-import { tabManager } from '../../state/tab-manager.js';
+import { MSG, defineHandlers, ok, err } from '../../../shared/types/messages.js';
 import { treeStorage } from '../../services/tree-storage.js';
-import { settingsManager } from '../../services/settings.js';
 import { notifyTreeUpdate } from '../notifications.js';
+import { CommandManager } from '../../../shared/lib/commands.js';
+import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
+import type { Description } from '../../../shared/types/ids.js';
 
-export async function handlePinMessage(
-  message: any,
-  sender: chrome.runtime.MessageSender
-): Promise<any> {
-  const tree = await treeStorage.getTree();
-  const settings = settingsManager.get();
-  
-  switch (message.type) {
-    case 'TOGGLE_PIN': {
-      // Toggle pinned state for a node
-      const { nodeId } = message;
-      
-      const node = tree.findNodeById(nodeId);
-      if (!node) {
-        return { success: false, error: 'Node not found' };
-      }
-      
-      // Always toggle just this node
-      const newPinned = !node.data.pinned;
-      node.data.pinned = newPinned;
-      
 
-      await treeStorage.saveTree(tree);
-      await notifyTreeUpdate(tree);
-      return { success: true, pinned: newPinned };
+export const pinHandlers = defineHandlers({
+  async [MSG.TOGGLE_PIN](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    const node = tree.findNodeById(message.nodeId);
+    if (!node) return err('Node not found');
+
+    CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Toggle pin' as Description);
+    node.data.pinned = !node.data.pinned;
+    await notifyTreeUpdate(tree);
+    return ok();
+  },
+
+  async [MSG.BULK_PIN](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Pin nodes' as Description);
+    for (const id of message.nodeIds) {
+      const node = tree.findNodeById(id);
+      if (node) node.data.pinned = true;
     }
-    
-    case 'BULK_PIN': {
-      // Pin multiple nodes
-      const { nodeIds } = message;
-      let pinnedCount = 0;
-      
-      for (const id of nodeIds) {
-        const node = tree.findNodeById(id);
-        if (node && !node.data.pinned) {
-          node.data.pinned = true;
-          pinnedCount++;
-        }
-      }
-      
-      await treeStorage.saveTree(tree);
-      await notifyTreeUpdate(tree);
-      return { success: true, pinnedCount };
+    await notifyTreeUpdate(tree);
+    return ok();
+  },
+
+  async [MSG.BULK_UNPIN](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Unpin nodes' as Description);
+    for (const id of message.nodeIds) {
+      const node = tree.findNodeById(id);
+      if (node) node.data.pinned = false;
     }
-    
-    case 'BULK_UNPIN': {
-      // Unpin multiple nodes
-      const { nodeIds } = message;
-      let unpinnedCount = 0;
-      
-      for (const id of nodeIds) {
-        const node = tree.findNodeById(id);
-        if (node && node.data.pinned) {
-          node.data.pinned = false;
-          unpinnedCount++;
-        }
-      }
-      
-      await treeStorage.saveTree(tree);
-      await notifyTreeUpdate(tree);
-      return { success: true, unpinnedCount };
-    }
-    
-    default:
-      return { success: false, error: 'Unknown pin message type' };
-  }
-}
+    await notifyTreeUpdate(tree);
+    return ok();
+  },
+});

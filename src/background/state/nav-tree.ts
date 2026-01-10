@@ -143,6 +143,94 @@ export class NavigationTree implements Owner {
         const node = this.nodeMap.get(id);
         return node ?? null
     }
+
+    private collectSubtreeNodes(node: NavigationNode): NavigationNode[] {
+        const nodes: NavigationNode[] = [];
+        for (const n of node.iter()) {
+            nodes.push(n);
+        }
+        return nodes;
+    }
+
+    // todo: remove this functionality of deleting nodes
+    deleteNode(nodeId: NodeId): NavigationNode[] {
+        const node = this.findNodeById(nodeId);
+        if (!node || node.isRoot()) return [];
+
+        const parent = node.getParent();
+        const removed = [node];
+
+        node.remove();
+        this.nodeMap.delete(node.id);
+        this.nodeCount = Math.max(0, this.nodeCount - 1);
+
+        if (this.current && this.current.id === nodeId) {
+            if (parent) this.current = parent;
+            else this.current = this.root;
+        }
+
+        return removed;
+    }
+
+    deleteChildren(nodeId: NodeId): NavigationNode[] {
+        const node = this.findNodeById(nodeId);
+        if (!node) return [];
+
+        const children = [...node.getChildren()];
+        const removed: NavigationNode[] = [];
+
+        for (const child of children) {
+            removed.push(...this.collectSubtreeNodes(child));
+            child.detach();
+        }
+
+        for (const removedNode of removed) {
+            this.nodeMap.delete(removedNode.id);
+        }
+        this.nodeCount = Math.max(0, this.nodeCount - removed.length);
+
+        if (this.current && removed.some(n => n.id === this.current?.id)) {
+            this.current = node;
+        }
+
+        return removed;
+    }
+
+    deleteSubtree(nodeId: NodeId): NavigationNode[] {
+        const node = this.findNodeById(nodeId);
+        if (!node) return [];
+
+        const removed = this.collectSubtreeNodes(node);
+
+        if (node.isRoot()) {
+            this.root = null;
+            this.current = null;
+            this.nodeMap.clear();
+            this.nodeCount = 0;
+            return removed;
+        }
+
+        const parent = node.getParent();
+        node.detach();
+
+        for (const removedNode of removed) {
+            this.nodeMap.delete(removedNode.id);
+        }
+        this.nodeCount = Math.max(0, this.nodeCount - removed.length);
+
+        if (this.current && removed.some(n => n.id === this.current?.id)) {
+            this.current = parent ?? null;
+        }
+
+        return removed;
+    }
+
+    clear(): void {
+        this.root = null;
+        this.current = null;
+        this.nodeMap.clear();
+        this.nodeCount = 0;
+    }
     
     collectPinned(root: NavigationNode | null = this.root): Set<NavigationNode> {
         const pinned: Set<NavigationNode> = new Set<NavigationNode>();
@@ -196,8 +284,7 @@ export class NavigationTree implements Owner {
     }
 
     canRemove(node: NavigationNode): boolean {
-        return !node.isRoot() && !node.data.pinned && node.data.collapsed;
+        return !node.isRoot() && !node.data.pinned;
     }
 }
-
 

@@ -1,99 +1,74 @@
-import type { TabId, NodeId } from '../../../shared/types/ids.js';
+import type { NodeId, TabId } from '../../../shared/types/ids.js';
+import { MSG, defineHandlers } from '../../../shared/types/messages.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { notifyTreeUpdate } from '../notifications.js';
 import { treeStorage } from '../../services/tree-storage.js';
+import { ok, err } from '../../../shared/types/messages.js';
+import { NavigationTree } from '../../state/nav-tree.js';
 
-export async function handleTabMessage(
-  message: any,
-  sender: chrome.runtime.MessageSender
-): Promise<any> {
-  switch (message.type) {
-    case 'TOGGLE_MUTE': {
-      // Toggle mute state for a tab by nodeId
-      const { nodeId } = message;
-      const tabsForNode = tabManager.tabsByNode(nodeId);
-      if (tabsForNode.size > 0) {
-        const tabId = Array.from(tabsForNode)[0];
-        try {
-          const tab = await chrome.tabs.get(tabId!);
-          const newMuted = !tab.mutedInfo?.muted;
-          await chrome.tabs.update(tabId!, { muted: newMuted });
-          return { success: true, muted: newMuted };
-        } catch (e) {
-          return { success: false, error: (e as Error).message };
-        }
-      } else {
-        return { success: false, error: 'Tab not found' };
-      }
+
+
+export const tabHandlers = defineHandlers({
+  async [MSG.GET_TABS_FOR_NODE](message) {
+    const tabs: chrome.tabs.Tab[] = [];
+    const tabsForNode = tabManager.tabsByNode(message.nodeId);
+
+    tabsForNode.forEach(async (tabId) => {
+      chrome.tabs.get(tabId as TabId).catch(console.error).then((tab) => tab ? tabs.push(tab) : tabManager.unregister(tabId as TabId));
+    });
+
+    return ok({ tabs });
+  },
+
+  async [MSG.TOGGLE_MUTE](message) {
+    const { nodeId, tabId } = message;
+
+    const tabsForNode = tabManager.tabsByNode(nodeId);
+    if (!tabsForNode?.has(tabId)) return err('Tab not found');
+
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      const newMuted = !tab.mutedInfo?.muted;
+      await chrome.tabs.update(tabId, { muted: newMuted });
+      return ok();
+    } catch (e) {
+      return err((e as Error).message);
     }
-    
-    case 'CLOSE_TAB': {
-      // Close tab for a node
-      const { nodeId } = message;
-      const tabsForNode = tabManager.tabsByNode(nodeId);
-      if (tabsForNode.size > 0) {
-        const tabId = Array.from(tabsForNode)[0];
-        try {
-          await chrome.tabs.remove(tabId!);
-          return { success: true };
-        } catch (e) {
-          return { success: false, error: (e as Error).message };
-        }
-      } else {
-        return { success: false, error: 'Tab not found' };
-      }
-    }
-    
-    case 'BULK_CLOSE_TABS': {
-      // Close tabs for multiple nodes (without removing from tree)
-      const { nodeIds } = message;
-      let closedCount = 0;
-      
-      for (const id of nodeIds) {
-        const tabsForNode = tabManager.tabsByNode(id);
-        for (const tabId of tabsForNode) {
-          try {
-            await chrome.tabs.remove(tabId!);
-            tabManager.unregister(tabId);
-            closedCount++;
-          } catch (e) {
-            // Tab might already be closed
-          }
-        }
-      }
-      
-      // Notify update
-      const tree = await treeStorage.getTree();
+  },
+
+  async [MSG.CLOSE_TAB](message) {
+    const { nodeId, tabId } = message;
+    const tabsForNode = tabManager.tabsByNode(nodeId);
+    if (!tabsForNode?.has(tabId)) return err('Tab not found');
+
+    const tree = await treeStorage.getOrCreateTree();
+    try {
+      await chrome.tabs.remove(tabId);
+      await unregisterTabForNode(tree, nodeId, tabId);
       await notifyTreeUpdate(tree);
-      return { success: true, closedCount };
+      return ok();
+    } catch (e) {
+      return err((e as Error).message);
     }
-    
-    case 'GET_TAB_FOR_NODE': {
-      // Get tab info for a node (used by context menu)
-      const { nodeId } = message;
-      
-      const tabsForNode = tabManager.tabsByNode(nodeId);
-      if (tabsForNode.size > 0) {
-        const tabId = Array.from(tabsForNode)[0];
-        try {
-          const tab = await chrome.tabs.get(tabId!);
-          return { success: true, tabInfo: tab };
-        } catch (e) {
-          // Tab no longer exists
-          tabManager.unregister(tabId!);
-          return { success: true, tabInfo: null };
-        }
-      } else {
-        return { success: true, tabInfo: null };
-      }
-    }
-    
-    case 'GET_CURRENT_TAB': {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      return { success: true, tab };
-    }
-    
-    default:
-      return { success: false, error: 'Unknown tab message type' };
+  },
+
+  async [MSG.BULK_CLOSE_TABS](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    const { nodeIds } = message;
+    nodeIds.forEach(async (nodeId) => {
+      tabManager.tabsByNode(nodeId).forEach(async (tabId) => {
+        chrome.tabs.remove(tabId).catch(console.error).then(async () => await unregisterTabForNode(tree, nodeId, tabId));
+      })
+    })
+   
+    await notifyTreeUpdate(tree);
+    return ok();
+  },
+});
+
+async function unregisterTabForNode(tree: NavigationTree, nodeId: NodeId, tabId: TabId): Promise<void> {
+  tabManager.unregister(tabId);
+  if (tabManager.tabCountForNode(nodeId) === 0) {
+    await notifyTreeUpdate(tree);
   }
 }

@@ -12,3 +12,9 @@ export function sendMessage<T extends RequestType>(
         });
     });
 }
+
+export function fireAndForget<T extends RequestType>(message: MessageByType<T>): void {
+    sendMessage(message).catch((error) => {
+      console.error('Failed to send message:', message.type, error);
+    });
+}

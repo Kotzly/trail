@@ -1,6 +1,17 @@
 import type { FaviconUrl, Url } from '../../shared/types/ids.js';
 
-const ignoredUrlPatterns: RegExp[] = [];
+const ignoredUrlPatterns: RegExp[] = [
+  /^chrome:/,
+  /^chrome-extension:/,
+  /^brave:/,
+  /^about:/,
+  /^javascript:/,
+  /^mailto:/,
+  /^tel:/,
+  /^data:/,
+  /^moz-extension:/,
+  /^edge:/,
+];
 
 const ignoredFaviconPatterns: RegExp[] = [
   /^chrome:/,

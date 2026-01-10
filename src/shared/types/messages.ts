@@ -1,4 +1,4 @@
-import type { Description, NodeId, Title, Url } from "./ids.js";
+import type { Description, NodeId, Title, Url, Tag, TabId } from "./ids.js";
 import { Settings } from "./settings.js";
 import { TabState } from "./tabs.js";
 import { NavigationTreeJSON } from "./tree.js";
@@ -13,6 +13,21 @@ export const MSG = {
     GET_SETTINGS: 'GET_SETTINGS',
     TITLE_CHANGED: 'TITLE_CHANGED',
     TREE_UPDATED: 'TREE_UPDATED',
+    GET_TREE: 'GET_TREE',
+    CLEAR_TREE: 'CLEAR_TREE',
+    OPEN_IN_NEW_TAB: 'OPEN_IN_NEW_TAB',
+    TOGGLE_MUTE: 'TOGGLE_MUTE',
+    CLOSE_TAB: 'CLOSE_TAB',
+    BULK_CLOSE_TABS: 'BULK_CLOSE_TABS',
+    TOGGLE_PIN: 'TOGGLE_PIN',
+    BULK_PIN: 'BULK_PIN',
+    BULK_UNPIN: 'BULK_UNPIN',
+    ADD_TAG: 'ADD_TAG',
+    REMOVE_TAG: 'REMOVE_TAG',
+    DELETE_NODE: 'DELETE_NODE',
+    DELETE_CHILDREN: 'DELETE_CHILDREN',
+    DELETE_WITH_CHILDREN: 'DELETE_WITH_CHILDREN',
+    BULK_DELETE: 'BULK_DELETE',
 } as const;
 
 export type RequestType = typeof MSG[keyof typeof MSG];
@@ -33,9 +48,37 @@ export type SaveSettingsMessage = RequestMessageBase<typeof MSG.SAVE_SETTINGS, S
 export type GetSettingsMessage = RequestMessageBase<typeof MSG.GET_SETTINGS>;
 export type TitleChangedMessage = RequestMessageBase<typeof MSG.TITLE_CHANGED, TitleChangedInput>;
 export type TreeUpdatedMessage = RequestMessageBase<typeof MSG.TREE_UPDATED, TreeUpdatedInput>;
-export type RequestMessage = NavigateToMessage | 
-    UndoMessage | RedoMessage | 
-    CommandStateMessage | TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage | TreeUpdatedMessage;
+export type GetTreeMessage = RequestMessageBase<typeof MSG.GET_TREE>;
+export type ClearTreeMessage = RequestMessageBase<typeof MSG.CLEAR_TREE>;
+
+export type OpenInNewTabMessage = RequestMessageBase<typeof MSG.OPEN_IN_NEW_TAB, {
+  nodeId: NodeId;
+}>;
+
+export type ToggleMuteMessage = RequestMessageBase<typeof MSG.TOGGLE_MUTE, { nodeId: NodeId, tabId: TabId }>;
+export type CloseTabMessage = RequestMessageBase<typeof MSG.CLOSE_TAB, { nodeId: NodeId, tabId: TabId }>;
+export type BulkCloseTabsMessage = RequestMessageBase<typeof MSG.BULK_CLOSE_TABS, BulkNodeIdsInput>;
+
+export type TogglePinMessage = RequestMessageBase<typeof MSG.TOGGLE_PIN, { nodeId: NodeId }>;
+export type BulkPinMessage = RequestMessageBase<typeof MSG.BULK_PIN, BulkNodeIdsInput>;
+export type BulkUnpinMessage = RequestMessageBase<typeof MSG.BULK_UNPIN, BulkNodeIdsInput>;
+
+export type AddTagMessage = RequestMessageBase<typeof MSG.ADD_TAG, TagMessageInput>;
+export type RemoveTagMessage = RequestMessageBase<typeof MSG.REMOVE_TAG, TagMessageInput>;
+
+export type DeleteNodeMessage = RequestMessageBase<typeof MSG.DELETE_NODE, { nodeId: NodeId }>;
+export type DeleteChildrenMessage = RequestMessageBase<typeof MSG.DELETE_CHILDREN, { nodeId: NodeId }>;
+export type DeleteWithChildrenMessage = RequestMessageBase<typeof MSG.DELETE_WITH_CHILDREN, { nodeId: NodeId }>;
+export type BulkDeleteMessage = RequestMessageBase<typeof MSG.BULK_DELETE, BulkNodeIdsInput>;
+
+export type RequestMessage = NavigateToMessage |
+    UndoMessage | RedoMessage |
+    CommandStateMessage | TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage | TreeUpdatedMessage |
+    GetTreeMessage | ClearTreeMessage |
+    OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
+    TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
+    AddTagMessage | RemoveTagMessage |
+    DeleteNodeMessage | DeleteChildrenMessage | DeleteWithChildrenMessage | BulkDeleteMessage;
 
 
 // ==== Responses ====
@@ -44,8 +87,16 @@ export type Ok<T = void> = { success: true; data: T };
 export type Err = { success: false; error: string };
 export type Response<T = void> = Ok<T> | Err;
 
+export function ok<T = void>(data?: T): Response<T> {
+    return { success: true, data: data as T };
+}
+
+export function err(error: string): Response<never> {
+    return { success: false, error };
+}
+
 export type ResponseDataByType = {
-    [MSG.NAVIGATE_TO]: NavigateToData;
+    [MSG.NAVIGATE_TO]: void;
     [MSG.UNDO]: CommandState;
     [MSG.REDO]: CommandState;
     [MSG.COMMAND_STATE]: CommandState;
@@ -54,6 +105,21 @@ export type ResponseDataByType = {
     [MSG.GET_SETTINGS]: Settings;
     [MSG.TITLE_CHANGED]: void;
     [MSG.TREE_UPDATED]: void;
+    [MSG.GET_TREE]: TreeUpdatedInput;
+    [MSG.CLEAR_TREE]: void;
+    [MSG.OPEN_IN_NEW_TAB]: void;
+    [MSG.TOGGLE_MUTE]: void;
+    [MSG.CLOSE_TAB]: void;
+    [MSG.BULK_CLOSE_TABS]: void;
+    [MSG.TOGGLE_PIN]: void;
+    [MSG.BULK_PIN]: void;
+    [MSG.BULK_UNPIN]: void;
+    [MSG.ADD_TAG]: void;
+    [MSG.REMOVE_TAG]: void;
+    [MSG.DELETE_NODE]: void;
+    [MSG.DELETE_CHILDREN]: void;
+    [MSG.DELETE_WITH_CHILDREN]: void;
+    [MSG.BULK_DELETE]: void;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -73,8 +139,23 @@ export const msg = {
     getTabsForNode(payload: TabsForNodeInput): TabsForNodeMessage { return { type: MSG.GET_TABS_FOR_NODE, ...payload } },
     saveSettings(payload: SaveSettingsInput): SaveSettingsMessage { return { type: MSG.SAVE_SETTINGS, ...payload } },
     getSettings(): GetSettingsMessage { return { type: MSG.GET_SETTINGS } },
-    titleChanged(url: Url, title: Title): TitleChangedMessage { return { type: MSG.TITLE_CHANGED, url, title } },
+    titleChanged(payload: TitleChangedInput): TitleChangedMessage { return { type: MSG.TITLE_CHANGED, ...payload } },
     treeUpdated(payload: TreeUpdatedInput): TreeUpdatedMessage { return { type: MSG.TREE_UPDATED, ...payload } },
+    getTree(): GetTreeMessage { return { type: MSG.GET_TREE } },
+    clearTree(): ClearTreeMessage { return { type: MSG.CLEAR_TREE } },
+    openInNewTab(payload: { nodeId: NodeId }): OpenInNewTabMessage { return { type: MSG.OPEN_IN_NEW_TAB, ...payload } },
+    toggleMute(payload: { nodeId: NodeId, tabId: TabId }): ToggleMuteMessage { return { type: MSG.TOGGLE_MUTE, ...payload } },
+    closeTab(payload: { nodeId: NodeId, tabId: TabId }): CloseTabMessage { return { type: MSG.CLOSE_TAB, ...payload } },
+    bulkCloseTabs(payload: BulkNodeIdsInput): BulkCloseTabsMessage { return { type: MSG.BULK_CLOSE_TABS, ...payload } },
+    togglePin(payload: { nodeId: NodeId }): TogglePinMessage { return { type: MSG.TOGGLE_PIN, ...payload } },
+    bulkPin(payload: BulkNodeIdsInput): BulkPinMessage { return { type: MSG.BULK_PIN, ...payload } },
+    bulkUnpin(payload: BulkNodeIdsInput): BulkUnpinMessage { return { type: MSG.BULK_UNPIN, ...payload } },
+    addTag(payload: TagMessageInput): AddTagMessage { return { type: MSG.ADD_TAG, ...payload } },
+    removeTag(payload: TagMessageInput): RemoveTagMessage { return { type: MSG.REMOVE_TAG, ...payload } },
+    deleteNode(payload: { nodeId: NodeId }): DeleteNodeMessage { return { type: MSG.DELETE_NODE, ...payload } },
+    deleteChildren(payload: { nodeId: NodeId }): DeleteChildrenMessage { return { type: MSG.DELETE_CHILDREN, ...payload } },
+    deleteWithChildren(payload: { nodeId: NodeId }): DeleteWithChildrenMessage { return { type: MSG.DELETE_WITH_CHILDREN, ...payload } },
+    bulkDelete(payload: BulkNodeIdsInput): BulkDeleteMessage { return { type: MSG.BULK_DELETE, ...payload } },
 }
 
 // ==== message handler ====
@@ -125,6 +206,8 @@ export type SaveSettingsInput = {
 export type TitleChangedInput = {
     url: Url;
     title: Title;
+    tabId: TabId;
+    nodeId: NodeId;
 }
 
 export type TreeUpdatedInput = {
@@ -132,4 +215,13 @@ export type TreeUpdatedInput = {
     openNodeIds: NodeId[],
     tabStates: Record<NodeId, TabState>,
     nodeTabCounts: Record<NodeId, number>,
+}
+
+export type BulkNodeIdsInput = {
+    nodeIds: NodeId[];
+}
+
+export type TagMessageInput = {
+    nodeId: NodeId;
+    tagId: Tag;
 }

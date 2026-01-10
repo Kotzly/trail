@@ -16,7 +16,7 @@ export async function syncTabTitleFavicon(
   const nodeId = tabManager.nodeByTab(tabId);
   if (!nodeId) return;
   
-  const tree = await treeStorage.getTree();
+  const tree = await treeStorage.getOrCreateTree();
 
   const node = tree.findNodeById(nodeId);
   if (!node) return;
@@ -30,7 +30,6 @@ export async function syncTabTitleFavicon(
   }
 
   await notifyTreeUpdate(tree);
-  await treeStorage.saveTree(tree);
 }
 
 
@@ -47,7 +46,7 @@ export async function syncTabAudioState(
   const nodeId = tabManager.nodeByTab(tabId);
   if (!nodeId) return;
 
-  const tree = await treeStorage.getTree();
+  const tree = await treeStorage.getOrCreateTree();
   if (!tree) return;
   await notifyTreeUpdate(tree);  
 }

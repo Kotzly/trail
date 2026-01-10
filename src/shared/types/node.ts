@@ -7,10 +7,9 @@ export type NodeData = {
 
     title: Title;
     favicon?: FaviconUrl;
-    
     pinned: boolean;
     tags: Tag[];
-    collapsed: boolean;
+
 }
 
 export type NodeDataPatch = Partial<Omit<NodeData, "url">>;
