@@ -1,7 +1,6 @@
-import type { TabId, NodeId } from '../../shared/types/ids.js';
 import type { NavigationTreeJSON } from '../../shared/types/tree.js';
 import { NavigationTree } from '../state/nav-tree.js';
-import { NavigationTreeMapper, TreeNodeMapper } from '../../shared/lib/mapper.js';
+import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { settingsManager } from './settings.js';
 
 const TREE_KEY = 'trail_tree' as const;
@@ -10,8 +9,16 @@ const treeArea = chrome.storage.local;
 
 // Tree storage service for managing navigation trees in chrome.storage.
 class TreeStorageService {
+  private static alarmListenerAttached = false;
+
   cachedTree: NavigationTree | null = null;
   private loading: Promise<NavigationTree> | undefined = undefined;
+  private readonly saveAlarmName = 'trail_save_tree';
+
+  constructor() {
+    this.ensureAlarmListener();
+    this.saveEvery(1); // save every minute by default
+  }
 
   async getOrCreateTree(): Promise<NavigationTree> {
     if (this.cachedTree) return this.cachedTree;
@@ -50,7 +57,23 @@ class TreeStorageService {
     await treeArea.set({ [TREE_KEY]: json });
   }
 
-  
+  saveEvery(minutes: number): void {
+    chrome.alarms.clear(this.saveAlarmName);
+    if (minutes <= 0) return;
+
+    chrome.alarms.create(this.saveAlarmName, { periodInMinutes: minutes });
+  }
+
+  private ensureAlarmListener(): void {
+    if (TreeStorageService.alarmListenerAttached) return;
+    chrome.alarms.onAlarm.addListener((alarm) => {
+      if (alarm.name !== this.saveAlarmName) return;
+      if (this.cachedTree) {
+        void this.saveTreeToChrome(this.cachedTree);
+      }
+    });
+    TreeStorageService.alarmListenerAttached = true;
+  }
 }
 
 export const treeStorage = new TreeStorageService();
