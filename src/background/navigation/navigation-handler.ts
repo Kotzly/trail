@@ -1,5 +1,5 @@
 import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '../../shared/types/ids.js';
-import { updateNodeData, type NodeData } from '../../shared/types/node.js';
+import { NodeMetaPatch, updateNodeMeta, type NodeData } from '../../shared/types/node.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { redirectDetector } from './redirect-detection.js';
@@ -61,6 +61,7 @@ export async function handleNavigation(
       pinned: false, // todo: check pinned.
       tags: [],
     };
+    const metaPatch = { title: data.title, favicon: data.favicon} as NodeMetaPatch;
 
     // Use GLOBAL tree - shared across all windows
     const tree = await treeStorage.getOrCreateTree();
@@ -89,7 +90,7 @@ export async function handleNavigation(
           }
       } else if (node) {
         // Same URL - only update current if tab is active
-        const updated = updateNodeData(node.data, data);
+        const updated = updateNodeMeta(node.data, metaPatch);
         if (updated.title !== node.data.title || updated.favicon !== node.data.favicon) {
           node.data = updated;
           didMutate = true;
@@ -110,7 +111,7 @@ export async function handleNavigation(
       // If found existing node, use it instead of creating new
       if (existingNodeInWindow) {
         newNode = existingNodeInWindow;
-        const updated = updateNodeData(newNode.data, data);
+        const updated = updateNodeMeta(newNode.data, metaPatch);
         if (updated.title !== newNode.data.title || updated.favicon !== newNode.data.favicon) {
           newNode.data = updated;
           didMutate = true;

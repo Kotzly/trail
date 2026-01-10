@@ -13,6 +13,7 @@ export type NodeData = {
 }
 
 export type NodeDataPatch = Partial<Omit<NodeData, "url">>;
+export type NodeMetaPatch = Pick<NodeData, "title" | "favicon">;
 
 export function updateNodeData(
   old: NodeData,
@@ -26,6 +27,17 @@ export function updateNodeData(
       patch.favicon !== undefined ? patch.favicon : old.favicon,
 
     tags: patch.tags ? [...patch.tags] : old.tags,
+  } as NodeData;
+}
+
+export function updateNodeMeta(
+  old: NodeData,
+  patch: NodeMetaPatch
+): NodeData {
+  return {
+    ...old,
+    title: patch.title ?? old.title,
+    favicon: patch.favicon !== undefined ? patch.favicon : old.favicon,
   } as NodeData;
 }
 

@@ -47,9 +47,6 @@ export class NavigationTreeMapper {
 
       const root = TreeNodeMapper.fromJSON(json.root);
       const tree = new NavigationTree(json.capacity ?? defaultSettings.capacity, root);
-
-      if (json.currentNodeId) tree.setCurrentById(json.currentNodeId);
-      else tree.clearCurrent();
       
       return tree;
     }

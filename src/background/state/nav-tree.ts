@@ -2,7 +2,7 @@ import type { NodeId, Url } from "../../shared/types/ids.js";
 import { TreeNode } from "./tree-node.js";
 import { DefaultNavigationOptions, type NavigationOptions } from "../../shared/types/tree.js";
 import { EvictionPolicy, LRUEvictionPolicy, Owner } from "../../shared/lib/eviction.js";
-import { NodeData, NavigationNode, updateNodeData } from "../../shared/types/node.js";
+import { NodeData, NavigationNode, updateNodeMeta } from "../../shared/types/node.js";
 
 
 function epForTree(tree: NavigationTree, capacity: number): EvictionPolicy {
@@ -28,7 +28,6 @@ export class NavigationTree implements Owner {
 
     private constructFromRoot(root: NavigationNode): void {
         this.root = root;
-        this.current = root;
         let count = 0;
 
         this.root.forEach((node) => {
@@ -100,14 +99,14 @@ export class NavigationTree implements Owner {
 
         // same url as current ==> update metadata
         if (this.current.data.url === data.url) {
-            this.current.data = updateNodeData(this.current.data, data);
+            this.current.data = updateNodeMeta(this.current.data, data);
             return this.current;
         } 
 
         // if current has a child with the same url ==> update metadata
         const existingChild = this.current.getChildren().find(c => c.data.url === data.url);
         if (existingChild) {
-            existingChild.data = updateNodeData(existingChild.data, data);
+            existingChild.data = updateNodeMeta(existingChild.data, data);
             this.current = existingChild;
             return existingChild;
         }
@@ -117,7 +116,7 @@ export class NavigationTree implements Owner {
             let ancestor = this.current.getParent();
             while (ancestor) {
                 if (ancestor.data.url === data.url) {
-                    ancestor.data = updateNodeData(ancestor.data, data);
+                    ancestor.data = updateNodeMeta(ancestor.data, data);
                     this.current = ancestor;
                     return ancestor;
                 }
@@ -291,4 +290,3 @@ export class NavigationTree implements Owner {
         this.current = null;
     }
 }
-
