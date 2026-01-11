@@ -1,10 +1,10 @@
 import './ui/graph/view/renderer.js';
 import { NavigationTreeMapper } from '../shared/lib/mapper.js';
-import type { NavigationTreeJSON } from '../shared/types/tree.js';
 import type { NodeId } from '../shared/types/ids.js';
-import { MSG, type TreeUpdatedMessage, type TreeUpdatedInput } from '../shared/types/messages.js';
+import { MSG, type RequestMessage, type TreeUpdatedInput } from '../shared/types/messages.js';
 import { initPanelState, PanelState } from './state/panel-state.js';
 import { PinnedManager } from '../background/state/pinned.js';
+import type { NavigationTree } from '../background/state/nav-tree.js';
 import { renderGraphView } from './ui/graph/view/renderer.js';
 import type { TreeData } from './ui/graph/types.js';
 import { GraphState } from './ui/graph/state/graph-state.js';
@@ -19,10 +19,6 @@ import type { ThemeId } from './ui/shared/themes.js';
 
 const pinnedDropdown = new PinnedDropdownController({ triggerId: 'pinnedBtn' });
 
-function isTreeUpdatedMessage(message: unknown): message is TreeUpdatedMessage {
-  return typeof message === 'object' && message !== null && (message as { type?: string }).type === MSG.TREE_UPDATED;
-}
-
 function updateEmptyState(hasRoot: boolean): void {
   const empty = document.getElementById('emptyState');
   if (!empty) return;
@@ -36,25 +32,13 @@ function updateTabCount(nodeTabCounts: Record<NodeId, number>): void {
   if (el) el.textContent = label;
 }
 
-async function applyTreeState(payload: TreeUpdatedInput): Promise<void> {
-  const treeJson = payload.tree as NavigationTreeJSON;
-  const tree = NavigationTreeMapper.fromJSON(treeJson);
-  const pins = new PinnedManager(tree);
-
-  PanelState.tree = tree;
-  PanelState.pins = pins;
-  PanelState.tabStates = payload.tabStates;
-
-  const currentId = tree.getCurrentId();
-  const nodeCount = tree.size();
-  const prevNodeCount = PanelState.previousNodeCount;
-  const prevNodeId = PanelState.previousNodeId;
-  const hasPrev = prevNodeCount !== null;
-  const shouldCenter =
-    hasPrev &&
-    ((prevNodeCount !== null && nodeCount > prevNodeCount) ||
-      (currentId !== null && currentId !== prevNodeId));
-
+function applyUIState(
+  tree: NavigationTree,
+  payload: TreeUpdatedInput,
+  currentId: NodeId | null,
+  nodeCount: number,
+  shouldCenter: boolean,
+): void {
   const container = document.getElementById('stackList');
   if (container) {
     const root = tree.getRoot();
@@ -91,6 +75,27 @@ async function applyTreeState(payload: TreeUpdatedInput): Promise<void> {
   if (PanelState.search.query) {
     performSearch(PanelState.search.query);
   }
+}
+
+async function applyTreeState(payload: TreeUpdatedInput): Promise<void> {
+  const tree = NavigationTreeMapper.fromJSON(payload.tree);
+  const pins = new PinnedManager(tree);
+
+  PanelState.tree = tree;
+  PanelState.pins = pins;
+  PanelState.tabStates = payload.tabStates;
+
+  const currentId = tree.getCurrentId();
+  const nodeCount = tree.size();
+  const prevNodeCount = PanelState.previousNodeCount;
+  const prevNodeId = PanelState.previousNodeId;
+  const hasPrev = prevNodeCount !== null;
+  const shouldCenter =
+    hasPrev &&
+    ((prevNodeCount !== null && nodeCount > prevNodeCount) ||
+      (currentId !== null && currentId !== prevNodeId));
+
+  applyUIState(tree, payload, currentId, nodeCount, shouldCenter);
 
   PanelState.previousNodeId = currentId;
   PanelState.previousNodeCount = nodeCount;
@@ -203,8 +208,8 @@ function initDomListeners(): void {
 }
 
 function initChromeListeners(): void {
-  chrome.runtime.onMessage.addListener((message) => {
-    if (!isTreeUpdatedMessage(message)) return;
+  chrome.runtime.onMessage.addListener((message: RequestMessage) => {
+    if (message.type !== MSG.TREE_UPDATED) return;
     applyTreeState(message).catch((error) => {
       console.error('Failed to apply tree update:', error);
     });
