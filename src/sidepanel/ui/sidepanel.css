@@ -77,6 +77,11 @@
   box-sizing: border-box;
 }
 
+html, body, #root, .container {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--md-surface);
@@ -499,6 +504,7 @@ body {
   right: 0;
   bottom: 0;
   overflow: hidden;
+  overscroll-behavior: contain;
   background: var(--md-surface);
   /* Grid background like n8n */
   background-image: 

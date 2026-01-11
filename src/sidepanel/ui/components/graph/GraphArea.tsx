@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
 import type { NodeId } from '../../../../shared/types/ids.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
@@ -229,7 +229,7 @@ export default function GraphArea() {
     prevMetaRef.current = { nodeCount, currentNodeId };
   }, [currentNodeId, root, tree]);
 
-  const zoomAt = (pointerX: number, pointerY: number, scaleFactor: number) => {
+  const zoomAt = useCallback((pointerX: number, pointerY: number, scaleFactor: number) => {
     const { translateX, translateY, scale } = viewRef.current;
     const nextScale = Math.min(3, Math.max(0.15, scale * scaleFactor));
     if (nextScale === scale) return;
@@ -238,7 +238,7 @@ export default function GraphArea() {
     const nextTranslateX = pointerX - canvasX * nextScale;
     const nextTranslateY = pointerY - canvasY * nextScale;
     setGraphView({ translateX: nextTranslateX, translateY: nextTranslateY, scale: nextScale });
-  };
+  }, [setGraphView]);
 
   const zoom = (direction: 'in' | 'out' | 'reset') => {
     const wrapper = wrapperRef.current;
@@ -353,7 +353,7 @@ export default function GraphArea() {
     }
   };
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+  const handleWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
     const rect = wrapperRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -372,7 +372,17 @@ export default function GraphArea() {
         translateY: viewRef.current.translateY - event.deltaY,
       });
     }
-  };
+  }, [setGraphView, zoomAt]);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const onWheel = (event: WheelEvent) => handleWheel(event);
+    wrapper.addEventListener('wheel', onWheel, { passive: false, capture: true });
+    return () => {
+      wrapper.removeEventListener('wheel', onWheel, { capture: true });
+    };
+  }, [handleWheel, root]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const key = event.key;
@@ -475,7 +485,6 @@ export default function GraphArea() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        onWheel={handleWheel}
         onKeyDown={handleKeyDown}
         onContextMenu={handleWrapperContextMenu}
         onClick={handleBackgroundClick}
