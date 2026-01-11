@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import type { NodeId } from '../../../shared/types/ids.js';
-import type { Tag } from '../../../shared/types/ids.js';
+import type { NodeId, Tag } from '../../../shared/types/ids.js';
 import { msg } from '../../../shared/types/messages.js';
 import { fireAndForget } from '../../api/background.js';
 import { navigateTo } from '../../api/tree.js';
@@ -47,9 +46,7 @@ export default function ContextMenus() {
       closeContextMenu();
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeContextMenu();
-      }
+      if (event.key === 'Escape') closeContextMenu();
     };
     document.addEventListener('click', onClick);
     document.addEventListener('keydown', onKeyDown);
@@ -104,11 +101,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   if (!node) return null;
 
   return (
-    <div
-      ref={menuRef}
-      className="graph-context-menu"
-      style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px` }}
-    >
+    <div ref={menuRef} className="graph-context-menu" style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px` }}>
       <div
         className="graph-context-menu-item"
         onClick={() => {
@@ -172,7 +165,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
       )}
 
       <div className="graph-context-menu-divider" />
-
       <div
         className="graph-context-menu-item"
         onClick={() => {
@@ -289,11 +281,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const clearSelection = useStore((state) => state.clearSelection);
 
   return (
-    <div
-      ref={menuRef}
-      className="graph-context-menu"
-      style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px` }}
-    >
+    <div ref={menuRef} className="graph-context-menu" style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px` }}>
       <div className="graph-context-menu-header">{nodeIds.length} nodes selected</div>
       <div className="graph-context-menu-divider" />
       <div

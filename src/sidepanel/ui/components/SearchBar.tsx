@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import { useSearch } from '../hooks/useSearch.js';
+import { Icons } from './Icon.js';
 import React from 'react';
 
 type SearchBarProps = {
@@ -13,10 +14,7 @@ export default function SearchBar({ inputRef }: SearchBarProps) {
   return (
     <div className="search-bar" id="searchBar">
       <div className="search-input-wrapper">
-        <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" />
-          <path d="M21 21l-4.35-4.35" />
-        </svg>
+        <Icons.Search className="search-icon" size={16} />
         <input
           ref={inputRef}
           type="text"
@@ -33,9 +31,7 @@ export default function SearchBar({ inputRef }: SearchBarProps) {
           title="Clear search"
           onClick={clearSearch}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          <Icons.X size={16} />
         </button>
       </div>
       <div className={`search-results ${hasQuery ? '' : 'hidden'}`} id="searchResults">
@@ -48,14 +44,10 @@ export default function SearchBar({ inputRef }: SearchBarProps) {
         </span>
         <div className="search-nav">
           <button className="search-nav-btn" id="searchPrev" type="button" title="Previous (↑)" onClick={prevResult}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 15l-6-6-6 6" />
-            </svg>
+            <Icons.ChevronUp size={16} />
           </button>
           <button className="search-nav-btn" id="searchNext" type="button" title="Next (↓)" onClick={nextResult}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+            <Icons.ChevronDown size={16} />
           </button>
         </div>
       </div>

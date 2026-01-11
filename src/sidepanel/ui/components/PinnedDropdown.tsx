@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { NodeId } from '../../../shared/types/ids.js';
 import { navigateTo } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
+import { Icons } from './Icon.js';
 import React from 'react';
 
 export default function PinnedDropdown() {
@@ -39,11 +40,15 @@ export default function PinnedDropdown() {
           return;
         case 'ArrowUp':
           event.preventDefault();
-          setFocusedIndex((prev) => (pinnedNodes.length === 0 ? 0 : (prev - 1 + pinnedNodes.length) % pinnedNodes.length));
+          setFocusedIndex((prev) =>
+            pinnedNodes.length === 0 ? 0 : (prev - 1 + pinnedNodes.length) % pinnedNodes.length,
+          );
           return;
         case 'ArrowDown':
           event.preventDefault();
-          setFocusedIndex((prev) => (pinnedNodes.length === 0 ? 0 : (prev + 1) % pinnedNodes.length));
+          setFocusedIndex((prev) =>
+            pinnedNodes.length === 0 ? 0 : (prev + 1) % pinnedNodes.length,
+          );
           return;
         case 'Enter': {
           event.preventDefault();
@@ -94,9 +99,7 @@ export default function PinnedDropdown() {
         title="Pinned pages"
         onClick={() => setPinnedOpen(!pinnedOpen)}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
-        </svg>
+        <Icons.Pin size={20} />
       </button>
       <div
         ref={dropdownRef}
@@ -124,7 +127,9 @@ export default function PinnedDropdown() {
                 {node.data.favicon ? (
                   <img className="pinned-dropdown-item-favicon" alt="" src={node.data.favicon} />
                 ) : (
-                  <div className="pinned-dropdown-item-favicon placeholder">📌</div>
+                  <div className="pinned-dropdown-item-favicon placeholder">
+                    <Icons.Pin size={14} />
+                  </div>
                 )}
                 <div className="pinned-dropdown-item-info">
                   <div className="pinned-dropdown-item-title">{node.data.title || 'Untitled'}</div>

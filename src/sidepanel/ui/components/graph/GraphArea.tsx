@@ -3,7 +3,15 @@ import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent
 import type { NodeId } from '../../../../shared/types/ids.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
 import { navigateTo } from '../../../api/tree.js';
-import { getLayoutConfig, NODE_HEIGHT, NODE_WIDTH, PADDING, setLayoutConfig, VERTICAL_GAP, HORIZONTAL_GAP } from '../../graph/layout/config.js';
+import {
+  getLayoutConfig,
+  NODE_HEIGHT,
+  NODE_WIDTH,
+  PADDING,
+  setLayoutConfig,
+  VERTICAL_GAP,
+  HORIZONTAL_GAP,
+} from '../../graph/layout/config.js';
 import { calculateLayout, getCanvasBounds } from '../../graph/layout/calculator.js';
 import type { CanvasBounds, NodePosition } from '../../graph/types.js';
 import GraphNode from './GraphNode.js';
@@ -296,7 +304,6 @@ export default function GraphArea() {
       const graphTop = (top - translateY) / scale;
       const graphRight = (left + width - translateX) / scale;
       const graphBottom = (top + height - translateY) / scale;
-      const { nodeWidth, nodeHeight } = getLayoutConfig();
       const intersects = new Set<NodeId>();
       nodes.forEach((pos) => {
         const nodeLeft = pos.x;
@@ -398,10 +405,7 @@ export default function GraphArea() {
     }
   };
 
-  const handleNodeClick = async (
-    node: NavigationNode,
-    event: ReactMouseEvent<HTMLDivElement>,
-  ) => {
+  const handleNodeClick = async (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
     if (event.shiftKey) {
       toggleSelectedNode(node.id);
@@ -420,10 +424,7 @@ export default function GraphArea() {
     setFocusNodeId(node.id);
   };
 
-  const handleNodeContextMenu = (
-    node: NavigationNode,
-    event: ReactMouseEvent<HTMLDivElement>,
-  ) => {
+  const handleNodeContextMenu = (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     openContextMenu({
       type: 'node',

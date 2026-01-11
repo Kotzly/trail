@@ -6,6 +6,7 @@ import type { NavigationNode } from '../../../../shared/types/node.js';
 import type { NodePosition } from '../../graph/types.js';
 import { TAG_PRESETS } from '../../graph/tags.js';
 import { formatUrl } from '../../shared/format.js';
+import { Icons } from '../Icon.js';
 import React from 'react';
 
 
@@ -88,18 +89,12 @@ export default function GraphNode({
     >
       {node.data.pinned && (
         <div className="graph-node-pin" title="Pinned">
-          <svg viewBox="0 0 24 24">
-            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
-          </svg>
+          <Icons.Pin size={16} />
         </div>
       )}
       <div className="graph-node-favicon">
         {node.data.favicon && !faviconError ? (
-          <img
-            src={node.data.favicon}
-            alt=""
-            onError={() => setFaviconError(true)}
-          />
+          <img src={node.data.favicon} alt="" onError={() => setFaviconError(true)} />
         ) : (
           '🌐'
         )}
@@ -135,19 +130,7 @@ export default function GraphNode({
           title={tabState.sound.muted ? 'Unmute tab' : 'Mute tab'}
           onClick={(event) => event.stopPropagation()}
         >
-          {tabState.sound.muted ? (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M11 5L6 9H2v6h4l5 4V5z" />
-              <line x1="23" y1="9" x2="17" y2="15" />
-              <line x1="17" y1="9" x2="23" y2="15" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M11 5L6 9H2v6h4l5 4V5z" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-            </svg>
-          )}
+          {tabState.sound.muted ? <Icons.VolumeX size={16} /> : <Icons.Volume2 size={16} />}
         </div>
       )}
     </div>
