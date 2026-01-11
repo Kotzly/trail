@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import { redo, undo } from '../../api/commands.js';
-import { clearTree } from '../../api/tree.js';
+import { clearTree as newTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
 import PinnedDropdown from './PinnedDropdown.js';
@@ -38,11 +38,11 @@ export default function Header({ settingsBtnRef }: HeaderProps) {
     }
   };
 
-  const handleClear = async () => {
+  const handleNewTree = async () => {
     try {
-      await clearTree();
+      await newTree();
     } catch (error) {
-      console.error('Failed to clear history:', error);
+      console.error('Failed to create new tree:', error);
     }
   };
 
@@ -83,8 +83,8 @@ export default function Header({ settingsBtnRef }: HeaderProps) {
         </button>
         <div className="header-divider" />
         <PinnedDropdown />
-        <button id="clearBtn" className="btn-icon" type="button" title="clear tree" onClick={handleClear}>
-          <Icons.Trash2 size={20} />
+        <button id="newTreeBtn" className="btn-icon" type="button" title="new tree" onClick={handleNewTree}>
+          <Icons.GitBranchPlus size={20} />
         </button>
         <button
           id="settingsBtn"

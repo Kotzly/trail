@@ -94,7 +94,7 @@ export default function PinnedDropdown() {
       <button
         ref={triggerRef}
         id="pinnedBtn"
-        className="btn-icon"
+        className="btn-icon orb-button"
         type="button"
         title="Pinned pages"
         onClick={() => setPinnedOpen(!pinnedOpen)}

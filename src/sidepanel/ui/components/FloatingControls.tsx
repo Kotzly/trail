@@ -1,0 +1,176 @@
+import { useEffect, useState } from 'react';
+import type { RefObject } from 'react';
+import { redo, undo } from '../../api/commands.js';
+import { clearTree as newTree } from '../../api/tree.js';
+import { useStore } from '../state/store.js';
+import { Icons } from './Icon.js';
+import FloatingSearch from './FloatingSearch.js';
+import PinnedDropdown from './PinnedDropdown.js';
+import { createPortal } from 'react-dom';
+
+type FloatingControlsProps = {
+  settingsBtnRef: RefObject<HTMLButtonElement>;
+  searchInputRef: RefObject<HTMLInputElement>;
+};
+
+export default function FloatingControls({ settingsBtnRef, searchInputRef }: FloatingControlsProps) {
+  const commandState = useStore((state) => state.commandState);
+  const metaKey = useStore((state) => state.metaKey);
+  const setCommandState = useStore((state) => state.setCommandState);
+  const settingsOpen = useStore((state) => state.ui.settingsOpen);
+  const setSettingsOpen = useStore((state) => state.setSettingsOpen);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : 'Ctrl+Z';
+  const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : 'Ctrl+Shift+Z';
+
+  const handleUndo = async () => {
+    try {
+      const state = await undo();
+      setCommandState(state);
+    } catch (error) {
+      console.error('Failed to undo:', error);
+    }
+  };
+
+  const handleRedo = async () => {
+    try {
+      const state = await redo();
+      setCommandState(state);
+    } catch (error) {
+      console.error('Failed to redo:', error);
+    }
+  };
+
+  const handleNewTree = async () => {
+    try {
+      await newTree();
+    } catch (error) {
+      console.error('Failed to create new tree:', error);
+    }
+  };
+
+  return (
+    <div className="floating-controls">
+      <div className="floating-controls-left">
+        <div className="floating-island">
+          <button
+            id="undoBtn"
+            className="btn-icon orb-button"
+            type="button"
+            title={
+              commandState?.nextUndoDesc
+                ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
+                : `Undo (${undoShortcut})`
+            }
+            disabled={!commandState?.canUndo}
+            onClick={handleUndo}
+          >
+            <Icons.Undo2 size={18} />
+          </button>
+          <button
+            id="redoBtn"
+            className="btn-icon orb-button"
+            type="button"
+            title={
+              commandState?.nextRedoDesc
+                ? `Redo: ${commandState.nextRedoDesc} (${redoShortcut})`
+                : `Redo (${redoShortcut})`
+            }
+            disabled={!commandState?.canRedo}
+            onClick={handleRedo}
+          >
+            <Icons.Redo2 size={18} />
+          </button>
+        </div>
+
+        <div className="floating-island">
+          <PinnedDropdown />
+          <button
+            id="newTreeBtn"
+            className="btn-icon orb-button"
+            type="button"
+            title="new tree"
+            onClick={() => setConfirmOpen(true)}
+          >
+            <Icons.GitBranchPlus size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="floating-controls-right">
+        <FloatingSearch inputRef={searchInputRef} />
+        <div className="floating-island">
+          <button
+            id="settingsBtn"
+            className="btn-icon orb-button"
+            type="button"
+            title="settings"
+            ref={settingsBtnRef}
+            onClick={() => setSettingsOpen(!settingsOpen)}
+          >
+            <Icons.Settings size={18} />
+          </button>
+        </div>
+      </div>
+
+      <ConfirmOverlay
+        open={confirmOpen}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          void handleNewTree();
+        }}
+      />
+    </div>
+  );
+}
+
+type ConfirmOverlayProps = {
+  open: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
+function ConfirmOverlay({ open, onCancel, onConfirm }: ConfirmOverlayProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [onCancel, open]);
+
+  if (!open) return null;
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div
+      className="confirm-overlay"
+      onClick={onCancel}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <div
+        className="confirm-dialog"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <div className="confirm-title">are you sure you want to create a new tree?</div>
+        <div className="confirm-actions">
+          <button className="confirm-btn ghost" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button className="confirm-btn" type="button" onClick={onConfirm}>
+            Create
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}

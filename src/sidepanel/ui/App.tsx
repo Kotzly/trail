@@ -1,7 +1,5 @@
 import { useRef } from 'react';
-import Header from './components/Header.js';
-import SearchBar from './components/SearchBar.js';
-import TabInfo from './components/TabInfo.js';
+import FloatingControls from './components/FloatingControls.js';
 import GraphArea from './components/graph/GraphArea.js';
 import SettingsPopover from './components/SettingsPopover.js';
 import ContextMenus from './components/ContextMenus.js';
@@ -20,9 +18,7 @@ export default function App() {
 
   return (
     <div className="container">
-      <Header settingsBtnRef={settingsBtnRef} />
-      <SearchBar inputRef={searchInputRef} />
-      <TabInfo />
+      <FloatingControls settingsBtnRef={settingsBtnRef} searchInputRef={searchInputRef} />
       <GraphArea />
       <SettingsPopover anchorRef={settingsBtnRef} />
       <ContextMenus />

@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   ChevronUp,
+  GitBranchPlus,
   Hand,
   Laptop2,
   Moon,
@@ -23,6 +24,7 @@ import {
 export const Icons = {
   ChevronDown,
   ChevronUp,
+  GitBranchPlus,
   Hand,
   Laptop2,
   Moon,
