@@ -49,34 +49,35 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
             </button>
           ) : null}
         </div>
-
-        <div className={`floating-search-results ${hasQuery ? '' : 'hidden'}`}>
-          <span className="floating-search-count">
-            {!hasQuery
-              ? '0 results'
-              : search.results.length === 0
-              ? 'No results'
-              : `${search.index + 1} of ${search.results.length}`}
-          </span>
-          <div className="floating-search-nav">
-            <button
-              className="floating-search-nav-btn"
-              type="button"
-              title="Previous (↑)"
-              onClick={prevResult}
-            >
-              <Icons.ChevronUp size={14} />
-            </button>
-            <button
-              className="floating-search-nav-btn"
-              type="button"
-              title="Next (↓)"
-              onClick={nextResult}
-            >
-              <Icons.ChevronDown size={14} />
-            </button>
+        {hasQuery ? (
+          <div className="floating-search-results-panel">
+            <div className="floating-search-results">
+              <span className="floating-search-count">
+                {search.results.length === 0
+                  ? 'No results'
+                  : `${search.index + 1} of ${search.results.length}`}
+              </span>
+              <div className="floating-search-nav">
+                <button
+                  className="floating-search-nav-btn"
+                  type="button"
+                  title="Previous (↑)"
+                  onClick={prevResult}
+                >
+                  <Icons.ChevronUp size={14} />
+                </button>
+                <button
+                  className="floating-search-nav-btn"
+                  type="button"
+                  title="Next (↓)"
+                  onClick={nextResult}
+                >
+                  <Icons.ChevronDown size={14} />
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );

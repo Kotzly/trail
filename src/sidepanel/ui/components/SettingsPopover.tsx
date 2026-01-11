@@ -106,7 +106,6 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
               type="number"
               id="multiTabLimit"
               min="0"
-              max="50"
               className="popover-input-small"
               value={settings?.maxOpenTabs ?? 0}
               onChange={(event) => {
