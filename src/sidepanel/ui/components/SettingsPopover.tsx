@@ -74,63 +74,49 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
 
   return (
     <div ref={popoverRef} className="settings-popover" id="settingsPopover" style={style}>
-      <div className="settings-category" data-category="appearance">
-        <button className="category-header" type="button">
-          <Icons.ChevronRight className="category-arrow" size={16} />
-          <span>appearance</span>
-        </button>
-        <div className="category-content">
-          <div className="popover-section">
-            <div className="popover-label-small">Theme</div>
-            <div className="popover-icons" id="themeIcons">
-              {themeIds.map((themeId) => (
-                <button
-                  key={themeId}
-                  className={`popover-icon-btn ${settings?.theme === themeId ? 'active' : ''}`}
-                  data-theme={themeId}
-                  title={themeId[0]!.toUpperCase() + themeId.slice(1)}
-                  type="button"
-                  onClick={() => updateSettings({ theme: themeId })}
-                >
-                  {themeId === THEME_IDS.LIGHT ? (
-                    <Icons.Sun size={18} />
-                  ) : themeId === THEME_IDS.DARK ? (
-                    <Icons.Moon size={18} />
-                  ) : (
-                    <Icons.Laptop2 size={18} />
-                  )}
-                </button>
-              ))}
-            </div>
+      <div className="settings-content">
+        <div className="popover-section">
+          <div className="popover-label-small">Theme</div>
+          <div className="popover-icons" id="themeIcons">
+            {themeIds.map((themeId) => (
+              <button
+                key={themeId}
+                className={`popover-icon-btn ${settings?.theme === themeId ? 'active' : ''}`}
+                data-theme={themeId}
+                title={themeId[0]!.toUpperCase() + themeId.slice(1)}
+                type="button"
+                onClick={() => updateSettings({ theme: themeId })}
+              >
+                {themeId === THEME_IDS.LIGHT ? (
+                  <Icons.Sun size={18} />
+                ) : themeId === THEME_IDS.DARK ? (
+                  <Icons.Moon size={18} />
+                ) : (
+                  <Icons.Laptop2 size={18} />
+                )}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      <div className="settings-category" data-category="multitab">
-        <button className="category-header" type="button">
-          <Icons.ChevronRight className="category-arrow" size={16} />
-          <span>Multi-Tab</span>
-        </button>
-        <div className="category-content">
-          <div className="popover-section">
-            <div className="popover-row">
-              <span className="popover-label-small">Tab Limit</span>
-              <input
-                type="number"
-                id="multiTabLimit"
-                min="0"
-                max="50"
-                className="popover-input-small"
-                value={settings?.maxOpenTabs ?? 0}
-                onChange={(event) => {
-                  const value = Number(event.target.value);
-                  const maxOpenTabs = Number.isFinite(value) && value >= 0 ? value : 0;
-                  void updateSettings({ maxOpenTabs });
-                }}
-              />
-            </div>
-            <div className="popover-hint">0 = unlimited</div>
+        <div className="popover-section">
+          <div className="popover-row">
+            <span className="popover-label-small">Tab Limit</span>
+            <input
+              type="number"
+              id="multiTabLimit"
+              min="0"
+              max="50"
+              className="popover-input-small"
+              value={settings?.maxOpenTabs ?? 0}
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                const maxOpenTabs = Number.isFinite(value) && value >= 0 ? value : 0;
+                void updateSettings({ maxOpenTabs });
+              }}
+            />
           </div>
+          <div className="popover-hint">0 = unlimited</div>
         </div>
       </div>
     </div>

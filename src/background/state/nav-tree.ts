@@ -234,7 +234,7 @@ export class NavigationTree implements Owner {
     collectPinned(root: NavigationNode | null = this.root): Set<NavigationNode> {
         const pinned: Set<NavigationNode> = new Set<NavigationNode>();
         root?.forEach((node: NavigationNode) => {
-            if (node.data.pinned) {
+            if (node.data?.pinned) {
                 pinned.add(node);
             }
         });
