@@ -4,7 +4,7 @@ import { notifyTreeUpdate, getTabStates } from '../notifications.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
-import type { Description, NodeId } from '../../../shared/types/ids.js';
+import type { Description, NodeId, TabId } from '../../../shared/types/ids.js';
 import type { NavigationTree } from '../../state/nav-tree.js';
 import { ok, err } from '../../../shared/types/messages.js';
 import { ForEacher } from '../../../shared/types/foreach.js';
@@ -17,8 +17,13 @@ function snapshot(tree: NavigationTree, description: string): void {
   );
 }
 
-function unregisterTabsForNodes(nodeIds: ForEacher<NodeId>): void {
-  nodeIds.forEach(nodeId => {tabManager.tabsByNode(nodeId).forEach(tabId => tabManager.unregister(tabId))});
+async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
+  const tabIds: TabId[] = [];
+  nodeIds.forEach(nodeId => {
+    tabManager.tabsByNode(nodeId).forEach(tabId => tabIds.push(tabId as TabId));
+  });
+  if (tabIds.length === 0) return;
+  chrome.tabs.remove(tabIds).catch((e) => console.error('Failed to close tabs for nodes:', e));
 }
 
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
@@ -44,7 +49,7 @@ export const treeHandlers = defineHandlers({
     tree.clear();
     treeStorage.cacheTree(tree);
 
-    unregisterTabsForNodes(tabManager.openNodes());
+    await closeTabsForNodes(tabManager.openNodes());
     await notifyTreeUpdate(tree);
     await treeStorage.flushSaveNow();
     return ok();
@@ -56,7 +61,7 @@ export const treeHandlers = defineHandlers({
     snapshot(tree, 'Delete node');
     const removed = tree.deleteNode(message.nodeId);
     if (removed.length === 0) return err('Node not found');
-    unregisterTabsForNodes(removed.map(node => node.id));
+    await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
     return ok();
@@ -68,7 +73,7 @@ export const treeHandlers = defineHandlers({
     snapshot(tree, 'Delete children');
     const removed = tree.deleteChildren(message.nodeId);
     if (removed.length === 0) return err('Node not found');
-    unregisterTabsForNodes(removed.map(node => node.id));
+    await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
     return ok();
@@ -80,7 +85,7 @@ export const treeHandlers = defineHandlers({
     snapshot(tree, 'Delete subtree');
     const removed = tree.deleteSubtree(message.nodeId);
     if (removed.length === 0) return err('Node not found');
-    unregisterTabsForNodes(removed.map(node => node.id));
+    await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
     return ok();
@@ -96,7 +101,7 @@ export const treeHandlers = defineHandlers({
       removedIds.push(...removed.map(node => node.id));
     }
 
-    unregisterTabsForNodes(removedIds);
+    await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
     return ok();
