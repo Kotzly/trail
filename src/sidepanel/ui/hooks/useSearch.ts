@@ -1,5 +1,4 @@
 import { useCallback, useEffect } from 'react';
-import type { NodeId } from '../../../shared/types/ids.js';
 import { useStore } from '../state/store.js';
 
 
@@ -9,7 +8,6 @@ export function useSearch() {
   const setSearch = useStore((state) => state.setSearch);
   const setSearchIndex = useStore((state) => state.setSearchIndex);
   const clearSearch = useStore((state) => state.clearSearch);
-  const setFocusNodeId = useStore((state) => state.setFocusNodeId);
 
   useEffect(() => {
     if (!search.query) return;
@@ -25,11 +23,8 @@ export function useSearch() {
       }
       const results = tree ? tree.findNodesByQuery(query) : [];
       setSearch(query, results, 0);
-      if (results.length > 0) {
-        setFocusNodeId(results[0] as NodeId);
-      }
     },
-    [clearSearch, setFocusNodeId, setSearch, tree],
+    [clearSearch, setSearch, tree],
   );
 
   const focusResult = useCallback(
@@ -38,12 +33,8 @@ export function useSearch() {
       setSearchIndex(index);
       const nextIndex =
         ((index % search.results.length) + search.results.length) % search.results.length;
-      const nodeId = search.results[nextIndex];
-      if (nodeId !== undefined) {
-        setFocusNodeId(nodeId as NodeId);
-      }
     },
-    [search.results, setFocusNodeId, setSearchIndex],
+    [search.results, setSearchIndex],
   );
 
   const nextResult = useCallback(() => {

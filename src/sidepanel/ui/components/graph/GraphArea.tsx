@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
 import type { NodeId } from '../../../../shared/types/ids.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
@@ -96,15 +96,12 @@ export default function GraphArea() {
   const selectedNodeIds = useStore((state) => state.graph.selectedNodeIds);
   const tool = useStore((state) => state.graph.tool);
   const graphView = useStore((state) => state.graph.view);
-  const focusNodeId = useStore((state) => state.focusNodeId);
-
   const setGraphTool = useStore((state) => state.setGraphTool);
   const setSelectedNodeIds = useStore((state) => state.setSelectedNodeIds);
   const toggleSelectedNode = useStore((state) => state.toggleSelectedNode);
   const clearSelection = useStore((state) => state.clearSelection);
   const setGraphView = useStore((state) => state.setGraphView);
   const openContextMenu = useStore((state) => state.openContextMenu);
-  const setFocusNodeId = useStore((state) => state.setFocusNodeId);
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -186,13 +183,13 @@ export default function GraphArea() {
 
   const centerOnNode = (nodeId: NodeId, animate = true) => {
     const wrapper = wrapperRef.current;
-    const nodeEl = wrapper?.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement | null;
-    if (!wrapper || !nodeEl) return;
+    if (!wrapper) return;
+    const pos = positions.get(nodeId);
+    if (!pos) return;
     const rect = wrapper.getBoundingClientRect();
-    const nodeRect = nodeEl.getBoundingClientRect();
-    const { translateX, translateY, scale } = viewRef.current;
-    const nodeCenterX = (nodeRect.left + nodeRect.width / 2 - rect.left - translateX) / scale;
-    const nodeCenterY = (nodeRect.top + nodeRect.height / 2 - rect.top - translateY) / scale;
+    const { scale } = viewRef.current;
+    const nodeCenterX = pos.x + nodeWidth / 2;
+    const nodeCenterY = pos.y + nodeHeight / 2;
     const nextTranslateX = rect.width / 2 - nodeCenterX * scale;
     const nextTranslateY = rect.height / 2 - nodeCenterY * scale;
     setGraphView({ translateX: nextTranslateX, translateY: nextTranslateY });
@@ -210,13 +207,7 @@ export default function GraphArea() {
     fitToView(false);
   }, [bounds.height, bounds.width, root]);
 
-  useEffect(() => {
-    if (focusNodeId === null) return;
-    centerOnNode(focusNodeId, true);
-    setFocusNodeId(null);
-  }, [focusNodeId, setFocusNodeId]);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!root || currentNodeId === null) return;
     const prev = prevMetaRef.current;
     const nodeCount = tree?.size() ?? 0;
@@ -227,7 +218,7 @@ export default function GraphArea() {
       centerOnNode(currentNodeId, true);
     }
     prevMetaRef.current = { nodeCount, currentNodeId };
-  }, [currentNodeId, root, tree]);
+  }, [currentNodeId, root, tree, positions, nodeHeight, nodeWidth]);
 
   const zoomAt = useCallback((pointerX: number, pointerY: number, scaleFactor: number) => {
     const { translateX, translateY, scale } = viewRef.current;
@@ -431,7 +422,6 @@ export default function GraphArea() {
     } catch (error) {
       console.error('Failed to navigate:', error);
     }
-    setFocusNodeId(node.id);
   };
 
   const handleNodeContextMenu = (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => {

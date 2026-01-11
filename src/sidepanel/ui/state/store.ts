@@ -57,7 +57,6 @@ type StoreState = {
   contextMenu: ContextMenuState;
   metaKey: MetaKeyPair | null;
   isMac: boolean;
-  focusNodeId: NodeId | null;
 };
 
 type StoreActions = {
@@ -77,7 +76,6 @@ type StoreActions = {
   setGraphView: (view: Partial<ViewState>) => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
-  setFocusNodeId: (nodeId: NodeId | null) => void;
 };
 
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
@@ -107,7 +105,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   contextMenu: null,
   metaKey: null,
   isMac: false,
-  focusNodeId: null,
 
   bootstrap: (settings, payload, meta, isMac) => {
     const tree = NavigationTreeMapper.fromJSON(payload.tree);
@@ -141,7 +138,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       openNodeIds: new Set(payload.openNodeIds),
       currentNodeId: currentId,
       nodeCount,
-      focusNodeId: state.focusNodeId,
     }));
   },
 
@@ -197,5 +193,4 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
 
   openContextMenu: (menu) => set({ contextMenu: menu }),
   closeContextMenu: () => set({ contextMenu: null }),
-  setFocusNodeId: (nodeId) => set({ focusNodeId: nodeId }),
 }));
