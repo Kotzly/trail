@@ -122,6 +122,7 @@ export default function GraphArea() {
   const panStartRef = useRef({ x: 0, y: 0 });
   const selectionStartRef = useRef({ x: 0, y: 0 });
   const baseSelectionRef = useRef<Set<NodeId>>(new Set());
+  const transitionTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     setLayoutConfig({
@@ -135,6 +136,28 @@ export default function GraphArea() {
   useEffect(() => {
     viewRef.current = graphView;
   }, [graphView]);
+
+  const clearCanvasTransition = useCallback(() => {
+    if (transitionTimeoutRef.current !== null) {
+      window.clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = null;
+    }
+    if (canvasRef.current) {
+      canvasRef.current.style.transition = 'none';
+    }
+  }, []);
+
+  const applyCanvasTransition = useCallback((durationMs: number) => {
+    if (!canvasRef.current) return;
+    if (transitionTimeoutRef.current !== null) {
+      window.clearTimeout(transitionTimeoutRef.current);
+    }
+    canvasRef.current.style.transition = `transform ${durationMs}ms ease-out`;
+    transitionTimeoutRef.current = window.setTimeout(() => {
+      if (canvasRef.current) canvasRef.current.style.transition = 'none';
+      transitionTimeoutRef.current = null;
+    }, durationMs);
+  }, []);
 
   const root = tree?.getRoot() ?? null;
   const { nodeWidth, nodeHeight } = getLayoutConfig();
@@ -173,12 +196,12 @@ export default function GraphArea() {
     const scale = Math.min(scaleX, scaleY, 2);
     const translateX = (rect.width - treeWidth * scale) / 2 - (bounds.minX - PADDING) * scale;
     const translateY = (rect.height - treeHeight * scale) / 2 - (bounds.minY - PADDING) * scale;
+    if (!animate) {
+      clearCanvasTransition();
+    }
     setGraphView({ translateX, translateY, scale });
-    if (animate && canvasRef.current) {
-      canvasRef.current.style.transition = 'transform 0.3s ease-out';
-      setTimeout(() => {
-        if (canvasRef.current) canvasRef.current.style.transition = 'none';
-      }, 300);
+    if (animate) {
+      applyCanvasTransition(300);
     }
   };
 
@@ -193,12 +216,12 @@ export default function GraphArea() {
     const nodeCenterY = pos.y + nodeHeight / 2;
     const nextTranslateX = rect.width / 2 - nodeCenterX * scale;
     const nextTranslateY = rect.height / 2 - nodeCenterY * scale;
+    if (!animate) {
+      clearCanvasTransition();
+    }
     setGraphView({ translateX: nextTranslateX, translateY: nextTranslateY });
-    if (animate && canvasRef.current) {
-      canvasRef.current.style.transition = 'transform 0.3s ease-out';
-      setTimeout(() => {
-        if (canvasRef.current) canvasRef.current.style.transition = 'none';
-      }, 300);
+    if (animate) {
+      applyCanvasTransition(300);
     }
   };
 
@@ -247,17 +270,22 @@ export default function GraphArea() {
     setGraphView({ translateX: nextTranslateX, translateY: nextTranslateY, scale: nextScale });
   }, [setGraphView]);
 
-  const zoom = (direction: 'in' | 'out' | 'reset') => {
+  const zoom = (direction: 'in' | 'out' | 'reset', animate = false) => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     if (direction === 'reset') {
-      fitToView(true);
+      fitToView(animate);
       return;
     }
     const rect = wrapper.getBoundingClientRect();
     const pointerX = rect.width / 2;
     const pointerY = rect.height / 2;
     const scaleFactor = direction === 'in' ? 1.25 : 0.8;
+    if (animate) {
+      applyCanvasTransition(180);
+    } else {
+      clearCanvasTransition();
+    }
     zoomAt(pointerX, pointerY, scaleFactor);
   };
 
@@ -266,6 +294,7 @@ export default function GraphArea() {
     const target = event.target as HTMLElement;
     if (target.closest('.graph-node')) return;
     if (!wrapperRef.current) return;
+    clearCanvasTransition();
 
     if (tool === 'hand') {
       isPanningRef.current = true;
@@ -362,6 +391,7 @@ export default function GraphArea() {
 
   const handleWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
+    clearCanvasTransition();
     const rect = wrapperRef.current?.getBoundingClientRect();
     if (!rect) return;
     const pointerX = event.clientX - rect.left;
@@ -379,7 +409,7 @@ export default function GraphArea() {
         translateY: viewRef.current.translateY - event.deltaY,
       });
     }
-  }, [setGraphView, zoomAt]);
+  }, [clearCanvasTransition, setGraphView, zoomAt]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -395,13 +425,13 @@ export default function GraphArea() {
     const key = event.key;
     if (key === '+' || key === '=') {
       event.preventDefault();
-      zoom('in');
+      zoom('in', true);
     } else if (key === '-' || key === '_') {
       event.preventDefault();
-      zoom('out');
+      zoom('out', true);
     } else if (key === '0') {
       event.preventDefault();
-      zoom('reset');
+      zoom('reset', true);
     } else if (key === 'h' || key === 'H') {
       event.preventDefault();
       setGraphTool('hand');
@@ -556,7 +586,7 @@ export default function GraphArea() {
             setPreviewSelection(new Set());
             setSelectionBox(null);
           }}
-          onZoom={zoom}
+          onZoom={(direction) => zoom(direction, true)}
         />
       </div>
     </div>

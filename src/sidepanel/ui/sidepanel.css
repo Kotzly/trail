@@ -263,7 +263,8 @@ body {
 .pinned-dropdown {
   position: absolute;
   top: 100%;
-  right: 0;
+  left: 0;
+  right: auto;
   margin-top: 4px;
   min-width: 280px;
   max-width: 320px;
@@ -391,7 +392,7 @@ body {
 .floating-search-panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   width: 0;
   opacity: 0;
   pointer-events: none;
@@ -403,6 +404,40 @@ body {
   transform-origin: right top;
   transform: translateX(6px) scale(0.98) scaleX(0);
   transition: width 180ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+.floating-search-island,
+.floating-search-actions-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: right top;
+  pointer-events: none;
+  margin-top: 0;
+  overflow: hidden;
+  transition: grid-template-rows 180ms ease, opacity 160ms ease, transform 180ms ease, margin-top 180ms ease;
+  will-change: transform, opacity;
+}
+
+.floating-search-actions-wrap {
+  transform: translateY(-4px) scale(0.98);
+  transition-delay: 40ms;
+}
+
+.floating-search.has-query .floating-search-island,
+.floating-search.has-query .floating-search-actions-wrap {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  margin-top: 10px;
+  overflow: visible;
+}
+
+.floating-search-island > .floating-search-results-panel,
+.floating-search-actions-wrap > .floating-search-actions {
+  min-height: 0;
 }
 
 .floating-search:focus-within .floating-search-panel,
