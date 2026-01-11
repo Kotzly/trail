@@ -7,6 +7,7 @@ import { ok, err } from '../../../shared/types/messages.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { getActiveTab } from '../../tabs/lifecycle.js';
+import { tempSelectionManager } from '../../services/temporary-selection.js';
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
@@ -96,6 +97,50 @@ export const navigationHandlers = defineHandlers({
       }
       tabManager.unregister(tabId as TabId);
     }
+    return ok();
+  },
+
+  async [MSG.BEGIN_TEMP_SELECTION](message) {
+    try {
+      const sessionId = await tempSelectionManager.begin(
+        message.baseNodeId ?? null,
+        message.options,
+      );
+      return ok({ sessionId });
+    } catch (error) {
+      return err(error instanceof Error ? error.message : 'Failed to begin temp selection');
+    }
+  },
+
+  async [MSG.PREVIEW_TEMP_SELECTION](message) {
+    try {
+      const result = await tempSelectionManager.preview(message.sessionId, message.nodeId);
+      return ok(result);
+    } catch (error) {
+      return err(error instanceof Error ? error.message : 'Failed to preview temp selection');
+    }
+  },
+
+  async [MSG.ACCEPT_TEMP_SELECTION](message) {
+    try {
+      await tempSelectionManager.accept(message.sessionId, message.nodeId);
+      return ok();
+    } catch (error) {
+      return err(error instanceof Error ? error.message : 'Failed to accept temp selection');
+    }
+  },
+
+  async [MSG.CANCEL_TEMP_SELECTION](message) {
+    try {
+      await tempSelectionManager.cancel(message.sessionId);
+      return ok();
+    } catch (error) {
+      return err(error instanceof Error ? error.message : 'Failed to cancel temp selection');
+    }
+  },
+
+  async [MSG.END_TEMP_SELECTION](message) {
+    tempSelectionManager.end(message.sessionId);
     return ok();
   },
 

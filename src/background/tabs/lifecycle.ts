@@ -2,6 +2,7 @@ import type { TabId, Title, Url } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
+import { tempSelectionManager } from '../services/temporary-selection.js';
 
 import { syncTabTitleFavicon, syncTabAudioState } from './tab-sync.js';
 import { NodeData } from '../../shared/types/node.js';
@@ -80,6 +81,7 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
     if (tabManager.shouldSuppressActivate(tabId)) {
         return;
     }
+    tempSelectionManager.handleTabActivated(tabId);
     if (!tabManager.shouldSuppressTouch(tabId)) {
         tabManager.touch(tabId, nodeId);
     }

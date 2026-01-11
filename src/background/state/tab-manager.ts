@@ -9,7 +9,7 @@ export class TabManager {
     private cycleOrderByNode = new Map<NodeId, TabId[]>();
     private cycleIndexByNode = new Map<NodeId, number>();
     private suppressTouchForTabId: TabId | null = null;
-    private suppressActivateForTabId: TabId | null = null;
+    private suppressActivateForTabId = new Map<TabId, string | undefined>();
 
     constructor() {
         this.index = new TabIndex();
@@ -101,14 +101,26 @@ export class TabManager {
       return true;
     }
 
-    suppressNextActivate(tabId: TabId): void {
-      this.suppressActivateForTabId = tabId;
+    suppressNextActivate(tabId: TabId, sessionId?: string): void {
+      this.suppressActivateForTabId.set(tabId, sessionId);
     }
 
     shouldSuppressActivate(tabId: TabId): boolean {
-      if (this.suppressActivateForTabId !== tabId) return false;
-      this.suppressActivateForTabId = null;
+      if (!this.suppressActivateForTabId.has(tabId)) return false;
+      this.suppressActivateForTabId.delete(tabId);
       return true;
+    }
+
+    clearSuppressActivate(tabId: TabId): void {
+      this.suppressActivateForTabId.delete(tabId);
+    }
+
+    clearSuppressActivateBySession(sessionId: string): void {
+      for (const [tabId, id] of this.suppressActivateForTabId.entries()) {
+        if (id === sessionId) {
+          this.suppressActivateForTabId.delete(tabId);
+        }
+      }
     }
 
     getTabsByRecency(nodeId: NodeId): TabId[] {

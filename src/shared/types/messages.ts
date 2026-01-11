@@ -7,6 +7,11 @@ export const MSG = {
     NAVIGATE_TO: 'NAVIGATE_TO',
     PREVIEW_NODE: 'PREVIEW_NODE',
     SET_CURRENT: 'SET_CURRENT',
+    BEGIN_TEMP_SELECTION: 'BEGIN_TEMP_SELECTION',
+    PREVIEW_TEMP_SELECTION: 'PREVIEW_TEMP_SELECTION',
+    ACCEPT_TEMP_SELECTION: 'ACCEPT_TEMP_SELECTION',
+    CANCEL_TEMP_SELECTION: 'CANCEL_TEMP_SELECTION',
+    END_TEMP_SELECTION: 'END_TEMP_SELECTION',
     UNDO: 'UNDO',
     REDO: 'REDO',
     COMMAND_STATE: 'COMMAND_STATE',
@@ -47,6 +52,30 @@ export type PreviewNodeMessage = RequestMessageBase<typeof MSG.PREVIEW_NODE, {
 export type SetCurrentMessage = RequestMessageBase<typeof MSG.SET_CURRENT, {
   nodeId: NodeId;
 }>;
+export type TempSelectionSessionId = string;
+export type TempSelectionOptions = {
+  allowCreateOnCommit?: boolean;
+  allowPreviewWithoutTabs?: boolean;
+};
+export type BeginTempSelectionInput = {
+  baseNodeId?: NodeId | null;
+  options?: TempSelectionOptions;
+};
+export type BeginTempSelectionMessage = RequestMessageBase<typeof MSG.BEGIN_TEMP_SELECTION, BeginTempSelectionInput>;
+export type PreviewTempSelectionMessage = RequestMessageBase<typeof MSG.PREVIEW_TEMP_SELECTION, {
+  sessionId: TempSelectionSessionId;
+  nodeId: NodeId;
+}>;
+export type AcceptTempSelectionMessage = RequestMessageBase<typeof MSG.ACCEPT_TEMP_SELECTION, {
+  sessionId: TempSelectionSessionId;
+  nodeId?: NodeId;
+}>;
+export type CancelTempSelectionMessage = RequestMessageBase<typeof MSG.CANCEL_TEMP_SELECTION, {
+  sessionId: TempSelectionSessionId;
+}>;
+export type EndTempSelectionMessage = RequestMessageBase<typeof MSG.END_TEMP_SELECTION, {
+  sessionId: TempSelectionSessionId;
+}>;
 
 export type UndoMessage = RequestMessageBase<typeof MSG.UNDO>
 export type RedoMessage = RequestMessageBase<typeof MSG.REDO>
@@ -81,6 +110,8 @@ export type BulkDeleteMessage = RequestMessageBase<typeof MSG.BULK_DELETE, BulkN
 
 export type RequestMessage = NavigateToMessage |
     PreviewNodeMessage | SetCurrentMessage |
+    BeginTempSelectionMessage | PreviewTempSelectionMessage | AcceptTempSelectionMessage |
+    CancelTempSelectionMessage | EndTempSelectionMessage |
     UndoMessage | RedoMessage |
     CommandStateMessage | TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage | TreeUpdatedMessage |
     GetTreeMessage | ClearTreeMessage |
@@ -108,6 +139,11 @@ export type ResponseDataByType = {
     [MSG.NAVIGATE_TO]: void;
     [MSG.PREVIEW_NODE]: void;
     [MSG.SET_CURRENT]: void;
+    [MSG.BEGIN_TEMP_SELECTION]: { sessionId: TempSelectionSessionId };
+    [MSG.PREVIEW_TEMP_SELECTION]: { previewedTabId: TabId | null };
+    [MSG.ACCEPT_TEMP_SELECTION]: void;
+    [MSG.CANCEL_TEMP_SELECTION]: void;
+    [MSG.END_TEMP_SELECTION]: void;
     [MSG.UNDO]: CommandState;
     [MSG.REDO]: CommandState;
     [MSG.COMMAND_STATE]: CommandState;
@@ -146,6 +182,21 @@ export const msg = {
     },
     previewNode(payload: { nodeId: NodeId }): PreviewNodeMessage { return { type: MSG.PREVIEW_NODE, ...payload } },
     setCurrent(payload: { nodeId: NodeId }): SetCurrentMessage { return { type: MSG.SET_CURRENT, ...payload } },
+    beginTempSelection(payload: BeginTempSelectionInput): BeginTempSelectionMessage {
+        return { type: MSG.BEGIN_TEMP_SELECTION, ...payload };
+    },
+    previewTempSelection(payload: { sessionId: TempSelectionSessionId; nodeId: NodeId }): PreviewTempSelectionMessage {
+        return { type: MSG.PREVIEW_TEMP_SELECTION, ...payload };
+    },
+    acceptTempSelection(payload: { sessionId: TempSelectionSessionId; nodeId?: NodeId }): AcceptTempSelectionMessage {
+        return { type: MSG.ACCEPT_TEMP_SELECTION, ...payload };
+    },
+    cancelTempSelection(payload: { sessionId: TempSelectionSessionId }): CancelTempSelectionMessage {
+        return { type: MSG.CANCEL_TEMP_SELECTION, ...payload };
+    },
+    endTempSelection(payload: { sessionId: TempSelectionSessionId }): EndTempSelectionMessage {
+        return { type: MSG.END_TEMP_SELECTION, ...payload };
+    },
     undo(): UndoMessage { return { type: MSG.UNDO } },
     redo(): RedoMessage { return { type: MSG.REDO } },
     getCommandState(): CommandStateMessage { return { type: MSG.COMMAND_STATE } },
