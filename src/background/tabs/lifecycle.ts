@@ -22,7 +22,7 @@ async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
   await notifyTreeUpdate(tree);
 }
 
-async function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
+export async function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
   const active = await chrome.tabs.query({ active: true, currentWindow: true });
   return active[0];
 }
@@ -77,6 +77,9 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
     }
 
     if (nodeId === undefined) return;
+    if (!tabManager.shouldSuppressTouch(tabId)) {
+        tabManager.touch(tabId, nodeId);
+    }
     tree.setCurrentById(nodeId);
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);

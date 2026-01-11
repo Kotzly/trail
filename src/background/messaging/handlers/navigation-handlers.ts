@@ -6,6 +6,7 @@ import { notifyTreeUpdate } from '../notifications.js';
 import { ok, err } from '../../../shared/types/messages.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
+import { getActiveTab } from '../../tabs/lifecycle.js';
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
@@ -26,7 +27,27 @@ export const navigationHandlers = defineHandlers({
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
 
-    const tabsArray = Array.from(tabManager.tabsByNode(message.nodeId));
+    const activeTab = await getActiveTab();
+    const activeTabId = activeTab?.id as TabId | undefined;
+    const activeNodeId = activeTabId ? tabManager.nodeByTab(activeTabId) : undefined;
+    const shouldCycle = activeTabId !== undefined && activeNodeId === message.nodeId;
+
+    if (shouldCycle) {
+      const nextTabId = tabManager.getNextTabForNode(message.nodeId, activeTabId);
+      if (nextTabId && nextTabId !== activeTabId) {
+        tabManager.suppressNextTouch(nextTabId as TabId);
+        const focused = await focusTab(nextTabId as TabId);
+        if (focused) {
+          tree.setCurrentById(message.nodeId);
+          treeStorage.cacheTree(tree);
+          await notifyTreeUpdate(tree);
+          return ok();
+        }
+        tabManager.unregister(nextTabId as TabId);
+      }
+    }
+
+    const tabsArray = tabManager.getTabsByRecency(message.nodeId);
     for (const tabId of tabsArray) {
       const focused = await focusTab(tabId as TabId);
       if (focused) {

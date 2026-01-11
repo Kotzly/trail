@@ -6,15 +6,20 @@ import { LruManager } from "./tab-lru.js";
 export class TabManager {
     private index: TabIndex;
     private lru: LruManager
+    private cycleOrderByNode = new Map<NodeId, TabId[]>();
+    private cycleIndexByNode = new Map<NodeId, number>();
+    private suppressTouchForTabId: TabId | null = null;
 
     constructor() {
         this.index = new TabIndex();
         this.lru = new LruManager();
     }
 
-    touch(tabId: TabId, nodeId: NodeId) {
-        if (!this.index.nodeByTab(tabId)) return;
-        this.lru.touch(tabId, nodeId);
+    touch(tabId: TabId, _nodeId: NodeId) {
+        const actualNodeId = this.index.nodeByTab(tabId);
+        if (!actualNodeId) return;
+        this.lru.touch(tabId, actualNodeId);
+        this.invalidateCycle(actualNodeId);
     }
 
     // Register a tab for a node (global across windows).
@@ -24,26 +29,34 @@ export class TabManager {
       
       if (previousNodeId) { // reassigning from previous node
         this.index.removeTabFromNode(previousNodeId, tabId);
+        this.invalidateCycle(previousNodeId);
       }
       this.index.addTabToNode(nodeId, tabId);
       this.lru.touch(tabId, nodeId);
+      this.invalidateCycle(nodeId);
     }
   
     getNextTabForNode(nodeId: NodeId, currentTabId: TabId | null = null): TabId | null {
       const tabsSet = this.index.tabsByNode(nodeId);
       if (!tabsSet || tabsSet.size <= 1) return null;
-
-      const tabs = [...tabsSet].sort((a, b) => this.lru.getLastUsed(b) - this.lru.getLastUsed(a));
-      // tabs[0] is the most recently used tab
-
-      if (currentTabId === null) {
-        return tabs[0] ?? null;
+      let order = this.cycleOrderByNode.get(nodeId);
+      if (!this.isCycleOrderValid(order, tabsSet)) {
+        order = this.getTabsByRecency(nodeId);
+        this.cycleOrderByNode.set(nodeId, order);
       }
 
-      const idx = tabs.indexOf(currentTabId);
-      if (idx === -1) return tabs[0] ?? null;
-      const nextIdx = (idx + 1) % tabs.length;
-      return tabs[nextIdx] ?? null;
+      if (currentTabId === null) {
+        return order[0] ?? null;
+      }
+
+      let idx = this.cycleIndexByNode.get(nodeId);
+      if (idx === undefined || order[idx] !== currentTabId) {
+        idx = order.indexOf(currentTabId);
+        if (idx === -1) idx = 0;
+      }
+      const nextIdx = (idx + 1) % order.length;
+      this.cycleIndexByNode.set(nodeId, nextIdx);
+      return order[nextIdx] ?? null;
     }
   
     // Get the node ID for a tab.
@@ -71,9 +84,39 @@ export class TabManager {
       const nodeId = this.index.nodeByTab(tabId);
       if (nodeId) {
         this.index.removeTabFromNode(nodeId, tabId);
+        this.invalidateCycle(nodeId);
       }
   
       this.lru.remove(tabId);
+    }
+
+    suppressNextTouch(tabId: TabId): void {
+      this.suppressTouchForTabId = tabId;
+    }
+
+    shouldSuppressTouch(tabId: TabId): boolean {
+      if (this.suppressTouchForTabId !== tabId) return false;
+      this.suppressTouchForTabId = null;
+      return true;
+    }
+
+    getTabsByRecency(nodeId: NodeId): TabId[] {
+      const tabsSet = this.index.tabsByNode(nodeId);
+      if (!tabsSet) return [];
+      return [...tabsSet].sort((a, b) => this.lru.getLastUsed(b) - this.lru.getLastUsed(a));
+    }
+
+    private isCycleOrderValid(order: TabId[] | undefined, tabsSet: Set<TabId>): order is TabId[] {
+      if (!order || order.length !== tabsSet.size) return false;
+      for (const tabId of order) {
+        if (!tabsSet.has(tabId)) return false;
+      }
+      return true;
+    }
+
+    private invalidateCycle(nodeId: NodeId): void {
+      this.cycleOrderByNode.delete(nodeId);
+      this.cycleIndexByNode.delete(nodeId);
     }
   
     // Close oldest tab globally if the limit is exceeded (skips pinned nodes).
