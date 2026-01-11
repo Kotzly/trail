@@ -15,12 +15,6 @@
   --md-primary-container: #E0E0FF;
   --md-shadow: rgba(0, 0, 0, 0.1);
   
-  /* Branch colors */
-  --branch-1: #6750A4;
-  --branch-2: #7D5260;
-  --branch-3: #006B5D;
-  --branch-4: #9C4234;
-  --branch-5: #5D5F71;
 }
 
 /* Dark Theme */
@@ -38,11 +32,6 @@
   --md-primary-container: #3E4290;
   --md-shadow: rgba(0, 0, 0, 0.4);
   
-  --branch-1: #BFC2FF;
-  --branch-2: #EBB8D0;
-  --branch-3: #6FDBC4;
-  --branch-4: #FFB4A8;
-  --branch-5: #C5C4DD;
 }
 
 /* System preference */
@@ -61,11 +50,6 @@
     --md-primary-container: #3E4290;
     --md-shadow: rgba(0, 0, 0, 0.4);
     
-    --branch-1: #BFC2FF;
-    --branch-2: #EBB8D0;
-    --branch-3: #6FDBC4;
-    --branch-4: #FFB4A8;
-    --branch-5: #C5C4DD;
   }
 }
 
@@ -84,11 +68,6 @@
     --md-primary-container: #E0E0FF;
     --md-shadow: rgba(0, 0, 0, 0.1);
     
-    --branch-1: #6750A4;
-    --branch-2: #7D5260;
-    --branch-3: #006B5D;
-    --branch-4: #9C4234;
-    --branch-5: #5D5F71;
   }
 }
 
@@ -311,10 +290,6 @@ body {
   gap: 6px;
 }
 
-.search-bar.hidden {
-  display: none;
-}
-
 .search-input-wrapper {
   display: flex;
   align-items: center;
@@ -483,10 +458,6 @@ body {
   text-align: center;
 }
 
-.empty-state.hidden {
-  display: none;
-}
-
 .empty-icon {
   width: 48px;
   height: 48px;
@@ -551,21 +522,6 @@ body {
   pointer-events: none;
   overflow: visible;
 }
-
-.graph-connection {
-  fill: none;
-  stroke: var(--md-outline);
-  stroke-width: 2;
-  opacity: 0.6;
-}
-
-/* Branch colors disabled for graph - using uniform gray
-.graph-connection.branch-1 { stroke: var(--branch-1); }
-.graph-connection.branch-2 { stroke: var(--branch-2); }
-.graph-connection.branch-3 { stroke: var(--branch-3); }
-.graph-connection.branch-4 { stroke: var(--branch-4); }
-.graph-connection.branch-5 { stroke: var(--branch-5); }
-*/
 
 .graph-nodes {
   position: absolute;
@@ -802,10 +758,6 @@ body {
   }
 }
 
-.settings-popover.hidden {
-  display: none;
-}
-
 /* Collapsible Settings Categories */
 .settings-category {
   border-bottom: 1px solid var(--md-outline-variant);
@@ -841,39 +793,15 @@ body {
   flex-shrink: 0;
 }
 
-.settings-category.expanded .category-arrow {
-  transform: rotate(90deg);
-}
-
 .category-content {
   display: none;
   padding: 0 4px 12px 4px;
 }
 
-.settings-category.expanded .category-content {
-  display: block;
-}
-
-
 .popover-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.popover-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--md-on-surface-variant);
-  padding: 0 4px;
-}
-
-.popover-divider {
-  height: 1px;
-  background: var(--md-outline-variant);
-  margin: 10px 0;
 }
 
 .popover-icons {
@@ -1051,6 +979,8 @@ body {
 }
 
 .graph-context-menu-item {
+  display: flex;
+  align-items: center;
   padding: 8px 16px;
   cursor: pointer;
   font-size: 13px;
@@ -1085,23 +1015,6 @@ body {
   height: 1px;
   background: var(--md-outline-variant);
   margin: 4px 0;
-}
-
-.graph-context-menu-item .menu-icon {
-  margin-right: 8px;
-}
-
-.graph-context-menu-item .menu-icon-svg {
-  width: 14px;
-  height: 14px;
-  margin-right: 8px;
-  vertical-align: middle;
-  flex-shrink: 0;
-}
-
-.graph-context-menu-item {
-  display: flex;
-  align-items: center;
 }
 
 /* Submenu for tags */
@@ -1207,183 +1120,4 @@ body {
 .popover-input-small:focus {
   outline: none;
   border-color: var(--md-primary);
-}
-
-
-.popover-icon-btn.has-tooltip {
-  position: relative;
-}
-
-.icon-tooltip {
-  position: absolute;
-  bottom: -24px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  color: var(--md-on-surface-variant);
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-
-.popover-icon-btn.has-tooltip:hover .icon-tooltip {
-  opacity: 1;
-}
-
-/* ========================================
-   HELP BUTTON & TOOLTIP
-   ======================================== */
-
-.popover-header-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.help-btn {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1px solid var(--md-outline-variant);
-  background: transparent;
-  color: var(--md-on-surface-variant);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-}
-
-.help-btn:hover {
-  background: var(--md-surface-variant);
-  border-color: var(--md-outline);
-  color: var(--md-on-surface);
-}
-
-.help-btn.active {
-  background: var(--md-primary-container);
-  border-color: var(--md-primary);
-  color: var(--md-on-primary-container);
-}
-
-.multi-tab-help {
-  background: var(--md-surface-variant);
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--md-on-surface-variant);
-}
-
-.multi-tab-help.hidden {
-  display: none;
-}
-
-.multi-tab-help p {
-  margin: 0 0 8px 0;
-}
-
-.multi-tab-help p:last-child {
-  margin-bottom: 0;
-}
-
-.multi-tab-help strong {
-  color: var(--md-on-surface);
-}
-
-/* ========================================
-   SMALL TOGGLE (For window override)
-   ======================================== */
-
-.popover-toggle-small {
-  gap: 8px;
-}
-
-.toggle-slider-small {
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
-}
-
-.toggle-slider-small::after {
-  width: 16px;
-  height: 16px;
-}
-
-.popover-toggle input:checked + .toggle-slider-small::after {
-  transform: translateX(16px);
-}
-
-/* Pin sub-option (indented under Pin Nodes) */
-.pin-sub-option {
-  margin-left: 16px;
-  margin-top: 4px;
-}
-
-.pin-sub-hint {
-  margin-left: 16px;
-  margin-top: 2px;
-  margin-bottom: 8px;
-}
-
-.pin-sub-option.hidden,
-.pin-sub-hint.hidden {
-  display: none;
-}
-
-/* ========================================
-   Warning Icon & Tooltips
-   ======================================== */
-
-.warning-icon {
-  color: #f59e0b;
-  font-size: 12px;
-  margin-left: 4px;
-  cursor: help;
-  opacity: 0.8;
-}
-
-.warning-icon:hover {
-  opacity: 1;
-}
-
-/* Graph-only option (compact toggle) */
-.graph-only-option {
-  margin-top: 8px;
-  padding-left: 4px;
-}
-
-/* ========================================
-   Compact Graph Mode
-   ======================================== */
-
-.graph-node.compact {
-  padding: 6px 8px;
-  gap: 6px;
-}
-
-.graph-node.compact .graph-node-favicon {
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
-}
-
-.graph-node.compact .graph-node-favicon img {
-  width: 14px;
-  height: 14px;
-}
-
-.graph-node-title-compact {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--md-on-surface);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  min-width: 0;
 }
