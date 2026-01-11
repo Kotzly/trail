@@ -93,6 +93,7 @@ export default function GraphArea() {
   const nodeTabCounts = useStore((state) => state.nodeTabCounts);
   const tabStates = useStore((state) => state.tabStates);
   const search = useStore((state) => state.search);
+  const searchActive = useStore((state) => state.search.active);
   const selectedNodeIds = useStore((state) => state.graph.selectedNodeIds);
   const tool = useStore((state) => state.graph.tool);
   const graphView = useStore((state) => state.graph.view);
@@ -208,6 +209,7 @@ export default function GraphArea() {
   }, [bounds.height, bounds.width, root]);
 
   useLayoutEffect(() => {
+    if (searchActive) return;
     if (!root || currentNodeId === null) return;
     const prev = prevMetaRef.current;
     const nodeCount = tree?.size() ?? 0;
@@ -218,7 +220,21 @@ export default function GraphArea() {
       centerOnNode(currentNodeId, true);
     }
     prevMetaRef.current = { nodeCount, currentNodeId };
-  }, [currentNodeId, root, tree, positions, nodeHeight, nodeWidth]);
+  }, [currentNodeId, root, searchActive, tree, positions, nodeHeight, nodeWidth]);
+
+  const prevSearchFocusRef = useRef<NodeId | null>(null);
+
+  useLayoutEffect(() => {
+    if (!searchActive) {
+      prevSearchFocusRef.current = null;
+      return;
+    }
+    if (!root) return;
+    if (!focusedSearchId) return;
+    if (prevSearchFocusRef.current === focusedSearchId) return;
+    prevSearchFocusRef.current = focusedSearchId;
+    centerOnNode(focusedSearchId, true);
+  }, [focusedSearchId, root, searchActive, positions, nodeHeight, nodeWidth]);
 
   const zoomAt = useCallback((pointerX: number, pointerY: number, scaleFactor: number) => {
     const { translateX, translateY, scale } = viewRef.current;

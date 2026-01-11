@@ -77,6 +77,9 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
     }
 
     if (nodeId === undefined) return;
+    if (tabManager.shouldSuppressActivate(tabId)) {
+        return;
+    }
     if (!tabManager.shouldSuppressTouch(tabId)) {
         tabManager.touch(tabId, nodeId);
     }

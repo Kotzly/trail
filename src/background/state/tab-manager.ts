@@ -9,6 +9,7 @@ export class TabManager {
     private cycleOrderByNode = new Map<NodeId, TabId[]>();
     private cycleIndexByNode = new Map<NodeId, number>();
     private suppressTouchForTabId: TabId | null = null;
+    private suppressActivateForTabId: TabId | null = null;
 
     constructor() {
         this.index = new TabIndex();
@@ -97,6 +98,16 @@ export class TabManager {
     shouldSuppressTouch(tabId: TabId): boolean {
       if (this.suppressTouchForTabId !== tabId) return false;
       this.suppressTouchForTabId = null;
+      return true;
+    }
+
+    suppressNextActivate(tabId: TabId): void {
+      this.suppressActivateForTabId = tabId;
+    }
+
+    shouldSuppressActivate(tabId: TabId): boolean {
+      if (this.suppressActivateForTabId !== tabId) return false;
+      this.suppressActivateForTabId = null;
       return true;
     }
 

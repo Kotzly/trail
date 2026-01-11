@@ -79,6 +79,37 @@ export const navigationHandlers = defineHandlers({
     return ok();
   },
 
+  async [MSG.PREVIEW_NODE](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    const node = tree.findNodeById(message.nodeId);
+    if (!node) return err('Node not found');
+
+    const tabsArray = tabManager.getTabsByRecency(message.nodeId);
+    if (tabsArray.length === 0) {
+      return ok();
+    }
+    for (const tabId of tabsArray) {
+      tabManager.suppressNextActivate(tabId as TabId);
+      const focused = await focusTab(tabId as TabId);
+      if (focused) {
+        return ok();
+      }
+      tabManager.unregister(tabId as TabId);
+    }
+    return ok();
+  },
+
+  async [MSG.SET_CURRENT](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    const node = tree.findNodeById(message.nodeId);
+    if (!node) return err('Node not found');
+
+    tree.setCurrentById(message.nodeId);
+    treeStorage.cacheTree(tree);
+    await notifyTreeUpdate(tree);
+    return ok();
+  },
+
   async [MSG.OPEN_IN_NEW_TAB](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);

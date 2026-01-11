@@ -44,6 +44,8 @@ type StoreState = {
     query: string;
     results: NodeId[];
     index: number;
+    active: boolean;
+    baseCurrentId: NodeId | null;
   };
   ui: {
     settingsOpen: boolean;
@@ -63,7 +65,12 @@ type StoreActions = {
   bootstrap: (settings: Settings, payload: TreeUpdatedInput, meta: MetaKeyPair, isMac: boolean) => void;
   applyTreeState: (payload: TreeUpdatedInput) => void;
   setCommandState: (state: CommandState) => void;
-  setSearch: (query: string, results: NodeId[], index?: number) => void;
+  setSearch: (
+    query: string,
+    results: NodeId[],
+    index?: number,
+    baseCurrentId?: NodeId | null
+  ) => void;
   setSearchIndex: (index: number) => void;
   clearSearch: () => void;
   setSettings: (settings: Settings) => void;
@@ -92,6 +99,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     query: '',
     results: [],
     index: 0,
+    active: false,
+    baseCurrentId: null,
   },
   ui: {
     settingsOpen: false,
@@ -142,13 +151,24 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
 
   setCommandState: (state) => set({ commandState: state }),
-  setSearch: (query, results, index = 0) =>
-    set({
-      search: {
-        query,
-        results,
-        index: results.length === 0 ? 0 : Math.min(index, results.length - 1),
-      },
+  setSearch: (query, results, index = 0, baseCurrentId) =>
+    set((state) => {
+      const active = query.length > 0;
+      const nextIndex = results.length === 0 ? 0 : Math.min(index, results.length - 1);
+      const base =
+        active
+          ? baseCurrentId ?? state.search.baseCurrentId ?? state.currentNodeId ?? null
+          : null;
+      return {
+        search: {
+          ...state.search,
+          query,
+          results,
+          index: nextIndex,
+          active,
+          baseCurrentId: base,
+        },
+      };
     }),
   setSearchIndex: (index) =>
     set((state) => ({
@@ -167,6 +187,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         query: '',
         results: [],
         index: 0,
+        active: false,
+        baseCurrentId: null,
       },
     }),
 

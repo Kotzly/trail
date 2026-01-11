@@ -5,6 +5,8 @@ import { NavigationTreeJSON } from "./tree.js";
 
 export const MSG = {
     NAVIGATE_TO: 'NAVIGATE_TO',
+    PREVIEW_NODE: 'PREVIEW_NODE',
+    SET_CURRENT: 'SET_CURRENT',
     UNDO: 'UNDO',
     REDO: 'REDO',
     COMMAND_STATE: 'COMMAND_STATE',
@@ -37,6 +39,12 @@ export type RequestMessageBase<T extends string, P = {}> = { type: T } & P;
 
 export type NavigateToMessage = RequestMessageBase<typeof MSG.NAVIGATE_TO, {
   url: Url;
+  nodeId: NodeId;
+}>;
+export type PreviewNodeMessage = RequestMessageBase<typeof MSG.PREVIEW_NODE, {
+  nodeId: NodeId;
+}>;
+export type SetCurrentMessage = RequestMessageBase<typeof MSG.SET_CURRENT, {
   nodeId: NodeId;
 }>;
 
@@ -72,6 +80,7 @@ export type DeleteWithChildrenMessage = RequestMessageBase<typeof MSG.DELETE_WIT
 export type BulkDeleteMessage = RequestMessageBase<typeof MSG.BULK_DELETE, BulkNodeIdsInput>;
 
 export type RequestMessage = NavigateToMessage |
+    PreviewNodeMessage | SetCurrentMessage |
     UndoMessage | RedoMessage |
     CommandStateMessage | TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage | TreeUpdatedMessage |
     GetTreeMessage | ClearTreeMessage |
@@ -97,6 +106,8 @@ export function err(error: string): Response<never> {
 
 export type ResponseDataByType = {
     [MSG.NAVIGATE_TO]: void;
+    [MSG.PREVIEW_NODE]: void;
+    [MSG.SET_CURRENT]: void;
     [MSG.UNDO]: CommandState;
     [MSG.REDO]: CommandState;
     [MSG.COMMAND_STATE]: CommandState;
@@ -133,6 +144,8 @@ export const msg = {
             ...payload,
         }
     },
+    previewNode(payload: { nodeId: NodeId }): PreviewNodeMessage { return { type: MSG.PREVIEW_NODE, ...payload } },
+    setCurrent(payload: { nodeId: NodeId }): SetCurrentMessage { return { type: MSG.SET_CURRENT, ...payload } },
     undo(): UndoMessage { return { type: MSG.UNDO } },
     redo(): RedoMessage { return { type: MSG.REDO } },
     getCommandState(): CommandStateMessage { return { type: MSG.COMMAND_STATE } },

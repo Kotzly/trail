@@ -1,4 +1,5 @@
 import {
+  Check,
   ChevronDown,
   ChevronUp,
   GitBranchPlus,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 
 export const Icons = {
+  Check,
   ChevronDown,
   ChevronUp,
   GitBranchPlus,

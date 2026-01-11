@@ -8,7 +8,15 @@ type FloatingSearchProps = {
 };
 
 export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
-  const { search, performSearch, clearSearch, nextResult, prevResult } = useSearch();
+  const {
+    search,
+    performSearch,
+    clearSearch,
+    nextResult,
+    prevResult,
+    acceptSelection,
+    cancelSelection,
+  } = useSearch();
   const hasQuery = search.query.length > 0;
   const handleClear = () => {
     clearSearch();
@@ -50,33 +58,54 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
           ) : null}
         </div>
         {hasQuery ? (
-          <div className="floating-search-results-panel">
-            <div className="floating-search-results">
-              <span className="floating-search-count">
-                {search.results.length === 0
-                  ? 'No results'
-                  : `${search.index + 1} of ${search.results.length}`}
-              </span>
-              <div className="floating-search-nav">
-                <button
-                  className="floating-search-nav-btn"
-                  type="button"
-                  title="Previous (↑)"
-                  onClick={prevResult}
-                >
-                  <Icons.ChevronUp size={14} />
-                </button>
-                <button
-                  className="floating-search-nav-btn"
-                  type="button"
-                  title="Next (↓)"
-                  onClick={nextResult}
-                >
-                  <Icons.ChevronDown size={14} />
-                </button>
+          <>
+            <div className="floating-search-results-panel">
+              <div className="floating-search-results">
+                <span className="floating-search-count">
+                  {search.results.length === 0
+                    ? 'No results'
+                    : `${search.index + 1} of ${search.results.length}`}
+                </span>
+                <div className="floating-search-nav">
+                  <button
+                    className="floating-search-nav-btn"
+                    type="button"
+                    title="Previous (↑)"
+                    onClick={prevResult}
+                  >
+                    <Icons.ChevronUp size={14} />
+                  </button>
+                  <button
+                    className="floating-search-nav-btn"
+                    type="button"
+                    title="Next (↓)"
+                    onClick={nextResult}
+                  >
+                    <Icons.ChevronDown size={14} />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+            <div className="floating-search-actions">
+              <button
+                className="floating-search-action-btn"
+                type="button"
+                title="Accept selection"
+                onClick={acceptSelection}
+                disabled={search.results.length === 0}
+              >
+                <Icons.Check size={14} />
+              </button>
+              <button
+                className="floating-search-action-btn"
+                type="button"
+                title="Cancel selection"
+                onClick={cancelSelection}
+              >
+                <Icons.X size={14} />
+              </button>
+            </div>
+          </>
         ) : null}
       </div>
     </div>
