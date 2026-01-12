@@ -1,12 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import type { NodeId, Tag } from '../../../shared/types/ids.js';
+import type { TagDefinition } from '../../../shared/types/tags.js';
 import { msg } from '../../../shared/types/messages.js';
 import { fireAndForget } from '../../api/background.js';
 import { navigateTo } from '../../api/tree.js';
 import { getTabsForNodeMessage } from '../../api/tabs.js';
-import { TAG_PRESETS } from '../graph/tags.js';
 import { useStore } from '../state/store.js';
+import TagEditorModal from './tags/TagEditorModal.js';
+import { upsertTagDef } from '../../api/tags.js';
+import { TagIcon } from './tags/TagIcon.js';
+import { Icons } from './Icon.js';
 import React from 'react';
 
 type MenuPosition = { left: number; top: number };
@@ -36,6 +40,11 @@ export default function ContextMenus() {
   const contextMenu = useStore((state) => state.contextMenu);
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const tree = useStore((state) => state.tree);
+  const [tagEditorState, setTagEditorState] = useState<{
+    open: boolean;
+    nodeId: NodeId | null;
+    initial?: TagDefinition | null;
+  }>({ open: false, nodeId: null, initial: null });
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -56,25 +65,81 @@ export default function ContextMenus() {
     };
   }, [closeContextMenu, contextMenu]);
 
-  if (!contextMenu) return null;
+  const tagEditorModal = tagEditorState.open ? (
+    <TagEditorModal
+      open={tagEditorState.open}
+      mode="create"
+      initial={tagEditorState.initial}
+      onCancel={() => setTagEditorState({ open: false, nodeId: null })}
+      onSubmit={async (value) => {
+        if (!tagEditorState.nodeId) {
+          setTagEditorState({ open: false, nodeId: null });
+          return;
+        }
+        const id = `custom-${Date.now().toString(36)}-${Math.random()
+          .toString(36)
+          .slice(2, 6)}` as Tag;
+        const tagDef: TagDefinition = {
+          id,
+          label: value.label,
+          color: value.color,
+          iconId: value.iconId,
+          system: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        try {
+          await upsertTagDef(tagDef);
+          fireAndForget(msg.addTag({ nodeId: tagEditorState.nodeId, tagId: id }));
+        } catch (error) {
+          console.error('Failed to create tag:', error);
+        } finally {
+          setTagEditorState({ open: false, nodeId: null });
+        }
+      }}
+    />
+  ) : null;
+
+  if (!contextMenu) {
+    return tagEditorModal;
+  }
 
   if (contextMenu.type === 'node') {
     const node = tree?.findNodeById(contextMenu.nodeId);
     if (!node) return null;
-    return <NodeContextMenu nodeId={contextMenu.nodeId} position={contextMenu.position} />;
+    return (
+      <>
+        <NodeContextMenu
+          nodeId={contextMenu.nodeId}
+          position={contextMenu.position}
+          onCreateTag={() => {
+            setTagEditorState({ open: true, nodeId: contextMenu.nodeId, initial: null });
+            closeContextMenu();
+          }}
+        />
+        {tagEditorModal}
+      </>
+    );
   }
 
-  return <BulkContextMenu nodeIds={contextMenu.nodeIds} position={contextMenu.position} />;
+  return (
+    <>
+      <BulkContextMenu nodeIds={contextMenu.nodeIds} position={contextMenu.position} />
+      {tagEditorModal}
+    </>
+  );
 }
 
 type NodeMenuProps = {
   nodeId: NodeId;
   position: { x: number; y: number };
+  onCreateTag: () => void;
 };
 
-function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
+function NodeContextMenu({ nodeId, position, onCreateTag }: NodeMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const tree = useStore((state) => state.tree);
+  const tagDefsList = useStore((state) => state.tagDefsList);
   const node = tree?.findNodeById(nodeId);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuStyle = useMenuPosition(menuRef, position);
@@ -101,7 +166,12 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   if (!node) return null;
 
   return (
-    <div ref={menuRef} className="graph-context-menu" style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px` }}>
+    <>
+      <div
+        ref={menuRef}
+        className="graph-context-menu"
+        style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px` }}
+      >
       <div
         className="graph-context-menu-item"
         onClick={() => {
@@ -178,11 +248,11 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
       <div className="graph-context-menu-item has-submenu">
         Tags <span className="submenu-arrow">›</span>
         <div className="graph-context-submenu">
-          {TAG_PRESETS.map((tag) => {
+          {tagDefsList.map((tag) => {
             const hasTag = node.data.tags?.includes(tag.id as Tag);
             return (
               <div
-                key={tag.id}
+                key={tag.id as string}
                 className="graph-context-menu-item tag-option"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -194,12 +264,26 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                   closeContextMenu();
                 }}
               >
-                <span className="tag-dot" style={{ background: tag.color }} />
+                <span className="tag-dot" style={{ background: tag.color }}>
+                  <TagIcon id={tag.iconId} size={12} />
+                </span>
                 <span className="tag-label">{tag.label}</span>
                 {hasTag ? <span className="tag-check">✓</span> : null}
               </div>
             );
           })}
+          <div
+            className="graph-context-menu-item tag-option tag-option-new"
+            onClick={(event) => {
+              event.stopPropagation();
+              onCreateTag();
+            }}
+          >
+            <span className="tag-dot tag-dot-new">
+              <Icons.Plus size={12} />
+            </span>
+            <span className="tag-label">New Tag...</span>
+          </div>
         </div>
       </div>
 
@@ -265,7 +349,8 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
       >
         {isRoot && !hasChildren ? 'Delete tree' : 'Delete with children'}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

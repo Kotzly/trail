@@ -2,6 +2,7 @@ import type { Description, NodeId, Title, Url, Tag, TabId } from "./ids.js";
 import { Settings } from "./settings.js";
 import { TabState } from "./tabs.js";
 import { NavigationTreeJSON } from "./tree.js";
+import type { TagDefinition } from "./tags.js";
 
 export const MSG = {
     NAVIGATE_TO: 'NAVIGATE_TO',
@@ -15,11 +16,15 @@ export const MSG = {
     UNDO: 'UNDO',
     REDO: 'REDO',
     COMMAND_STATE: 'COMMAND_STATE',
+    GET_TAG_DEFS: 'GET_TAG_DEFS',
+    UPSERT_TAG_DEF: 'UPSERT_TAG_DEF',
+    DELETE_TAG_DEF: 'DELETE_TAG_DEF',
     GET_TABS_FOR_NODE: 'GET_TABS_FOR_NODE',
     SAVE_SETTINGS: 'SAVE_SETTINGS',
     GET_SETTINGS: 'GET_SETTINGS',
     TITLE_CHANGED: 'TITLE_CHANGED',
     TREE_UPDATED: 'TREE_UPDATED',
+    TAGS_UPDATED: 'TAGS_UPDATED',
     GET_TREE: 'GET_TREE',
     CLEAR_TREE: 'CLEAR_TREE',
     OPEN_IN_NEW_TAB: 'OPEN_IN_NEW_TAB',
@@ -80,11 +85,16 @@ export type EndTempSelectionMessage = RequestMessageBase<typeof MSG.END_TEMP_SEL
 export type UndoMessage = RequestMessageBase<typeof MSG.UNDO>
 export type RedoMessage = RequestMessageBase<typeof MSG.REDO>
 export type CommandStateMessage = RequestMessageBase<typeof MSG.COMMAND_STATE>
+export type GetTagDefsMessage = RequestMessageBase<typeof MSG.GET_TAG_DEFS>;
+export type UpsertTagDefMessage = RequestMessageBase<typeof MSG.UPSERT_TAG_DEF, { tagDef: TagDefinition }>;
+export type DeleteTagDefMessage = RequestMessageBase<typeof MSG.DELETE_TAG_DEF, { tagId: Tag }>;
 export type TabsForNodeMessage = RequestMessageBase<typeof MSG.GET_TABS_FOR_NODE, TabsForNodeInput>;
 export type SaveSettingsMessage = RequestMessageBase<typeof MSG.SAVE_SETTINGS, SaveSettingsInput>;
 export type GetSettingsMessage = RequestMessageBase<typeof MSG.GET_SETTINGS>;
 export type TitleChangedMessage = RequestMessageBase<typeof MSG.TITLE_CHANGED, TitleChangedInput>;
 export type TreeUpdatedMessage = RequestMessageBase<typeof MSG.TREE_UPDATED, TreeUpdatedInput>;
+export type TagDefsUpdatedInput = { tagDefs: TagDefinition[] };
+export type TagsUpdatedMessage = RequestMessageBase<typeof MSG.TAGS_UPDATED, TagDefsUpdatedInput>;
 export type GetTreeMessage = RequestMessageBase<typeof MSG.GET_TREE>;
 export type ClearTreeMessage = RequestMessageBase<typeof MSG.CLEAR_TREE>;
 
@@ -113,7 +123,9 @@ export type RequestMessage = NavigateToMessage |
     BeginTempSelectionMessage | PreviewTempSelectionMessage | AcceptTempSelectionMessage |
     CancelTempSelectionMessage | EndTempSelectionMessage |
     UndoMessage | RedoMessage |
-    CommandStateMessage | TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage | TreeUpdatedMessage |
+    CommandStateMessage | GetTagDefsMessage | UpsertTagDefMessage | DeleteTagDefMessage |
+    TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage |
+    TreeUpdatedMessage | TagsUpdatedMessage |
     GetTreeMessage | ClearTreeMessage |
     OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
@@ -147,11 +159,15 @@ export type ResponseDataByType = {
     [MSG.UNDO]: CommandState;
     [MSG.REDO]: CommandState;
     [MSG.COMMAND_STATE]: CommandState;
+    [MSG.GET_TAG_DEFS]: TagDefinition[];
+    [MSG.UPSERT_TAG_DEF]: void;
+    [MSG.DELETE_TAG_DEF]: void;
     [MSG.GET_TABS_FOR_NODE]: TabsForNodeData;
     [MSG.SAVE_SETTINGS]: void;
     [MSG.GET_SETTINGS]: Settings;
     [MSG.TITLE_CHANGED]: void;
     [MSG.TREE_UPDATED]: void;
+    [MSG.TAGS_UPDATED]: void;
     [MSG.GET_TREE]: TreeUpdatedInput;
     [MSG.CLEAR_TREE]: void;
     [MSG.OPEN_IN_NEW_TAB]: void;
@@ -197,6 +213,9 @@ export const msg = {
     endTempSelection(payload: { sessionId: TempSelectionSessionId }): EndTempSelectionMessage {
         return { type: MSG.END_TEMP_SELECTION, ...payload };
     },
+    getTagDefs(): GetTagDefsMessage { return { type: MSG.GET_TAG_DEFS }; },
+    upsertTagDef(payload: { tagDef: TagDefinition }): UpsertTagDefMessage { return { type: MSG.UPSERT_TAG_DEF, ...payload }; },
+    deleteTagDef(payload: { tagId: Tag }): DeleteTagDefMessage { return { type: MSG.DELETE_TAG_DEF, ...payload }; },
     undo(): UndoMessage { return { type: MSG.UNDO } },
     redo(): RedoMessage { return { type: MSG.REDO } },
     getCommandState(): CommandStateMessage { return { type: MSG.COMMAND_STATE } },
@@ -205,6 +224,7 @@ export const msg = {
     getSettings(): GetSettingsMessage { return { type: MSG.GET_SETTINGS } },
     titleChanged(payload: TitleChangedInput): TitleChangedMessage { return { type: MSG.TITLE_CHANGED, ...payload } },
     treeUpdated(payload: TreeUpdatedInput): TreeUpdatedMessage { return { type: MSG.TREE_UPDATED, ...payload } },
+    tagsUpdated(payload: TagDefsUpdatedInput): TagsUpdatedMessage { return { type: MSG.TAGS_UPDATED, ...payload } },
     getTree(): GetTreeMessage { return { type: MSG.GET_TREE } },
     clearTree(): ClearTreeMessage { return { type: MSG.CLEAR_TREE } },
     openInNewTab(payload: { nodeId: NodeId }): OpenInNewTabMessage { return { type: MSG.OPEN_IN_NEW_TAB, ...payload } },

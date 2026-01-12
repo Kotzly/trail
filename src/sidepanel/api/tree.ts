@@ -39,7 +39,7 @@ export async function previewTempSelection(sessionId: TempSelectionSessionId, no
 }
 
 export async function acceptTempSelection(sessionId: TempSelectionSessionId, nodeId?: NodeId): Promise<void> {
-    const res = await sendMessage(msg.acceptTempSelection({ sessionId, nodeId }));
+    const res = await sendMessage(msg.acceptTempSelection({ sessionId, nodeId } as { sessionId: TempSelectionSessionId; nodeId?: NodeId }));
     if (!res.success) throw new Error(res.error);
     return res.data;
 }

@@ -18,6 +18,7 @@ import { treeHandlers } from "./handlers/tree-handlers.js";
 import { commandHandlers } from "./handlers/undo-handlers.js";
 import { pinHandlers } from "./handlers/pin-handlers.js";
 import { tagHandlers } from "./handlers/tag-handlers.js";
+import { tagDefHandlers } from "./handlers/tag-def-handlers.js";
 
 type AnyResponse = ResponseMessage<RequestType>;
 type AnyHandler = (message: RequestMessage, sender: chrome.runtime.MessageSender) => Promise<AnyResponse> | AnyResponse;
@@ -41,6 +42,8 @@ function isRequestMessage(x: unknown): x is RequestMessage {
 const outboundOnlyHandlers = defineHandlers({
   [MSG.TREE_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TREE_UPDATED>> =>
     err("TREE_UPDATED is outbound-only"),
+  [MSG.TAGS_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TAGS_UPDATED>> =>
+    err("TAGS_UPDATED is outbound-only"),
 } satisfies HandlerMap);
 
 function createMessageRouter() {
@@ -102,5 +105,6 @@ export function initMessaging(): void {
     .merge(commandHandlers)
     .merge(pinHandlers)
     .merge(tagHandlers)
+    .merge(tagDefHandlers)
     .listen();
 }

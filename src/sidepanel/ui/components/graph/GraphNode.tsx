@@ -4,9 +4,10 @@ import type { NodeId } from '../../../../shared/types/ids.js';
 import type { TabState } from '../../../../shared/types/tabs.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
 import type { NodePosition } from '../../graph/types.js';
-import { TAG_PRESETS } from '../../graph/tags.js';
 import { formatUrl } from '../../shared/format.js';
 import { Icons } from '../Icon.js';
+import { useStore } from '../../state/store.js';
+import { TagIcon } from '../tags/TagIcon.js';
 import React from 'react';
 
 
@@ -48,6 +49,7 @@ export default function GraphNode({
   const [faviconError, setFaviconError] = useState(false);
   const tabCount = nodeTabCounts[node.id];
   const hasTags = node.data.tags && node.data.tags.length > 0;
+  const tagDefs = useStore((state) => state.tagDefs);
 
   const className = useMemo(() => {
     const classes = ['graph-node'];
@@ -111,15 +113,17 @@ export default function GraphNode({
       {hasTags && (
         <div className="graph-node-tags">
           {node.data.tags?.map((tagId) => {
-            const tagPreset = TAG_PRESETS.find((tag) => tag.id === tagId);
+            const tagPreset = tagDefs[tagId];
             if (!tagPreset) return null;
             return (
               <span
-                key={tagPreset.id}
+                key={tagPreset.id as string}
                 className="graph-node-tag-dot"
                 style={{ backgroundColor: tagPreset.color }}
                 title={tagPreset.label}
-              />
+              >
+                <TagIcon id={tagPreset.iconId} size={9} />
+              </span>
             );
           })}
         </div>

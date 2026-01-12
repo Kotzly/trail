@@ -6,6 +6,7 @@ import type { CommandState, TreeUpdatedInput } from '../../../shared/types/messa
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { PinnedManager } from '../../../background/state/pinned.js';
+import type { TagDefinition } from '../../../shared/types/tags.js';
 
 export type MetaKeyPair = { short: '^'; long: 'ctrl' } | { short: '⌘'; long: 'cmd' };
 
@@ -40,6 +41,8 @@ type StoreState = {
   currentNodeId: NodeId | null;
   nodeCount: number;
   commandState: CommandState | null;
+  tagDefs: Record<string, TagDefinition>;
+  tagDefsList: TagDefinition[];
   search: {
     query: string;
     results: NodeId[];
@@ -65,6 +68,9 @@ type StoreActions = {
   bootstrap: (settings: Settings, payload: TreeUpdatedInput, meta: MetaKeyPair, isMac: boolean) => void;
   applyTreeState: (payload: TreeUpdatedInput) => void;
   setCommandState: (state: CommandState) => void;
+  setTagDefs: (defs: TagDefinition[]) => void;
+  upsertTagDef: (def: TagDefinition) => void;
+  removeTagDef: (id: string) => void;
   setSearch: (
     query: string,
     results: NodeId[],
@@ -95,6 +101,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   currentNodeId: null,
   nodeCount: 0,
   commandState: null,
+  tagDefs: {},
+  tagDefsList: [],
   search: {
     query: '',
     results: [],
@@ -151,6 +159,29 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
 
   setCommandState: (state) => set({ commandState: state }),
+  setTagDefs: (defs) =>
+    set({
+      tagDefs: Object.fromEntries(defs.map((def) => [def.id, def])),
+      tagDefsList: defs,
+    }),
+  upsertTagDef: (def) =>
+    set((state) => {
+      const nextMap = { ...state.tagDefs, [def.id]: def };
+      const nextList = state.tagDefsList.some((item) => item.id === def.id)
+        ? state.tagDefsList.map((item) => (item.id === def.id ? def : item))
+        : [...state.tagDefsList, def];
+      return { tagDefs: nextMap, tagDefsList: nextList };
+    }),
+  removeTagDef: (id) =>
+    set((state) => {
+      if (!state.tagDefs[id]) return state;
+      const nextMap = { ...state.tagDefs };
+      delete nextMap[id];
+      return {
+        tagDefs: nextMap,
+        tagDefsList: state.tagDefsList.filter((item) => item.id !== id),
+      };
+    }),
   setSearch: (query, results, index = 0, baseCurrentId) =>
     set((state) => {
       const active = query.length > 0;
