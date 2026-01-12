@@ -32,6 +32,7 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
     openNodeIds: Array.from(tabManager.openNodes()),
     tabStates: await getTabStates(),
     nodeTabCounts: Object.fromEntries(Array.from(tabManager.openNodes()).map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)])),
+    reason: 'sync',
   };
 }
 
@@ -50,7 +51,7 @@ export const treeHandlers = defineHandlers({
     treeStorage.cacheTree(tree);
 
     await closeTabsForNodes(tabManager.openNodes());
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'tree-reset');
     await treeStorage.flushSaveNow();
     return ok();
   },
@@ -63,7 +64,7 @@ export const treeHandlers = defineHandlers({
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'sync');
     return ok();
   },
 
@@ -75,7 +76,7 @@ export const treeHandlers = defineHandlers({
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'sync');
     return ok();
   },
 
@@ -87,7 +88,7 @@ export const treeHandlers = defineHandlers({
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'sync');
     return ok();
   },
 
@@ -103,7 +104,7 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'sync');
     return ok();
   },
 
@@ -128,7 +129,7 @@ export const treeHandlers = defineHandlers({
     if (!hasChanges) return ok();
     node.data = updateNodeData(node.data, { layout: nextLayout });
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'layout');
     return ok();
   },
 
@@ -144,7 +145,7 @@ export const treeHandlers = defineHandlers({
     }
     if (!changed) return ok();
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'layout');
     return ok();
   },
 });

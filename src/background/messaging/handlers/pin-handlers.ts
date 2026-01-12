@@ -15,7 +15,7 @@ export const pinHandlers = defineHandlers({
     CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Toggle pin' as Description);
     node.data.pinned = !node.data.pinned;
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'pins');
     return ok();
   },
 
@@ -27,7 +27,7 @@ export const pinHandlers = defineHandlers({
       if (node) node.data.pinned = true;
     }
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'pins');
     return ok();
   },
 
@@ -39,7 +39,7 @@ export const pinHandlers = defineHandlers({
       if (node) node.data.pinned = false;
     }
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'pins');
     return ok();
   },
 });

@@ -35,7 +35,7 @@ export async function syncOpenTabs(): Promise<void> {
         tabManager.touch(entry.tabId, entry.nodeId);
       });
 
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'tabs');
   })()
     .catch((error) => {
       console.error('Failed to sync open tabs:', error);

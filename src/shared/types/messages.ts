@@ -319,11 +319,34 @@ export type TitleChangedInput = {
     title: Title;
 }
 
+export type TreeUpdateReason =
+    | 'navigate'
+    | 'set-current'
+    | 'tree-reset'
+    | 'layout'
+    | 'undo'
+    | 'pins'
+    | 'tags'
+    | 'tabs'
+    | 'temp-selection'
+    | 'sync';
+
+export type TreeViewIntentMode = 'force' | 'soft';
+
+export type TreeViewIntent = {
+    focusNodeId?: NodeId;
+    fitToView?: boolean;
+    mode?: TreeViewIntentMode;
+    intentId?: number;
+};
+
 export type TreeUpdatedInput = {
     tree: NavigationTreeJSON,
     openNodeIds: NodeId[],
     tabStates: Record<NodeId, TabState>,
     nodeTabCounts: Record<NodeId, number>,
+    reason: TreeUpdateReason,
+    view?: TreeViewIntent,
 }
 
 export type BulkNodeIdsInput = {

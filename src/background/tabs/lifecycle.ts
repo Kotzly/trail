@@ -20,7 +20,7 @@ async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
   if (!existing) return;
 
   tabManager.register(existing.id, tab.id as TabId);
-  await notifyTreeUpdate(tree);
+  await notifyTreeUpdate(tree, 'tabs');
 }
 
 export async function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
@@ -41,7 +41,7 @@ async function onTabRemoved(tabId_: number, _: chrome.tabs.OnRemovedInfo): Promi
   }
   tabManager.unregister(tabId);
 
-  await notifyTreeUpdate(tree);
+  await notifyTreeUpdate(tree, 'tabs');
   treeStorage.cacheTree(tree);
 }
 
@@ -87,7 +87,7 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
     }
     tree.setCurrentById(nodeId);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'tabs');
 }
 
 async function onTabUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab): Promise<void> {

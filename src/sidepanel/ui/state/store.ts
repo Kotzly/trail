@@ -62,7 +62,7 @@ type StoreState = {
     view: ViewState;
     layoutVersion: number;
     resetVersion: number;
-    autoCenterToken: number;
+    viewIntent: TreeUpdatedInput['view'] | null;
   };
   contextMenu: ContextMenuState;
   metaKey: MetaKeyPair | null;
@@ -95,9 +95,9 @@ type StoreActions = {
   setNodeLayoutOffset: (nodeId: NodeId, offsetX: number, offsetY: number) => void;
   setNodeLayoutRadial: (nodeId: NodeId, angleDelta: number, radiusDelta: number) => void;
   requestGraphReset: () => void;
-  requestAutoCenter: () => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
+  clearViewIntent: () => void;
   addNotification: (notification: NotificationItem) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
@@ -133,7 +133,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     view: { translateX: 0, translateY: 0, scale: 1 },
     layoutVersion: 0,
     resetVersion: 0,
-    autoCenterToken: 0,
+    viewIntent: null,
   },
   contextMenu: null,
   metaKey: null,
@@ -164,10 +164,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     const currentId = tree.getCurrentId();
     const nodeCount = tree.size();
     set((state) => {
-      const shouldAutoCenter =
-        !state.search.active &&
-        ((state.nodeCount !== 0 && nodeCount > state.nodeCount) ||
-          (state.currentNodeId !== null && currentId !== null && state.currentNodeId !== currentId));
+      const nextViewIntent = payload.view ?? state.graph.viewIntent;
       return {
         tree,
         pins,
@@ -176,9 +173,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         openNodeIds: new Set(payload.openNodeIds),
         currentNodeId: currentId,
         nodeCount,
-        graph: shouldAutoCenter
-          ? { ...state.graph, autoCenterToken: state.graph.autoCenterToken + 1 }
-          : state.graph,
+        graph: nextViewIntent ? { ...state.graph, viewIntent: nextViewIntent } : state.graph,
       };
     });
   },
@@ -299,13 +294,13 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set((state) => ({
       graph: { ...state.graph, resetVersion: state.graph.resetVersion + 1 },
     })),
-  requestAutoCenter: () =>
-    set((state) => ({
-      graph: { ...state.graph, autoCenterToken: state.graph.autoCenterToken + 1 },
-    })),
 
   openContextMenu: (menu) => set({ contextMenu: menu }),
   closeContextMenu: () => set({ contextMenu: null }),
+  clearViewIntent: () =>
+    set((state) => ({
+      graph: { ...state.graph, viewIntent: null },
+    })),
   addNotification: (notification) =>
     set((state) => ({
       notifications: [notification, ...state.notifications],

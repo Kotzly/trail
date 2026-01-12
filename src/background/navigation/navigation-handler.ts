@@ -1,4 +1,5 @@
 import { now, UrlWithTimestamp, type TabId, type Title, type Url } from '../../shared/types/ids.js';
+import type { TreeViewIntent } from '../../shared/types/messages.js';
 import { NodeMetaPatch, updateNodeMeta, type NodeData } from '../../shared/types/node.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
@@ -152,7 +153,11 @@ export async function handleNavigation(
     // This prevents unnecessary UI updates for programmatic tab creation
     // For inactive tabs, only notify if a new node was actually created
     if (isActiveTab || wasNewNodeCreated) {
-      await notifyTreeUpdate(tree);
+      const reason = isActiveTab ? 'navigate' : 'sync';
+      const currentId = tree.getCurrentId();
+      const view: TreeViewIntent | undefined =
+        isActiveTab && currentId !== null ? { focusNodeId: currentId, mode: 'force' } : undefined;
+      await notifyTreeUpdate(tree, reason, view);
     }
   } catch (error) {
     console.debug('Navigation error:', error);

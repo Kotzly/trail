@@ -124,7 +124,7 @@ export class TemporaryTabSelectionManager {
       tabManager.touch(previewTabId, resolvedNodeId);
       tree.setCurrentById(resolvedNodeId);
       treeStorage.cacheTree(tree);
-      await notifyTreeUpdate(tree);
+      await notifyTreeUpdate(tree, 'temp-selection', { focusNodeId: resolvedNodeId, mode: 'force' });
       this.end(sessionId);
       return;
     }
@@ -136,7 +136,7 @@ export class TemporaryTabSelectionManager {
         tabManager.touch(tabId as TabId, resolvedNodeId);
         tree.setCurrentById(resolvedNodeId);
         treeStorage.cacheTree(tree);
-        await notifyTreeUpdate(tree);
+        await notifyTreeUpdate(tree, 'temp-selection', { focusNodeId: resolvedNodeId, mode: 'force' });
         this.end(sessionId);
         return;
       }
@@ -155,7 +155,7 @@ export class TemporaryTabSelectionManager {
 
     tree.setCurrentById(resolvedNodeId);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'temp-selection', { focusNodeId: resolvedNodeId, mode: 'force' });
     this.end(sessionId);
   }
 

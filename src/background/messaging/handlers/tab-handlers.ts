@@ -45,7 +45,7 @@ export const tabHandlers = defineHandlers({
     try {
       await chrome.tabs.remove(tabId);
       await unregisterTabForNode(tree, nodeId, tabId);
-      await notifyTreeUpdate(tree);
+      await notifyTreeUpdate(tree, 'tabs');
       return ok();
     } catch (e) {
       return err((e as Error).message);
@@ -61,7 +61,7 @@ export const tabHandlers = defineHandlers({
       })
     })
    
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'tabs');
     return ok();
   },
 });
@@ -69,6 +69,6 @@ export const tabHandlers = defineHandlers({
 async function unregisterTabForNode(tree: NavigationTree, nodeId: NodeId, tabId: TabId): Promise<void> {
   tabManager.unregister(tabId);
   if (tabManager.tabCountForNode(nodeId) === 0) {
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'tabs');
   }
 }

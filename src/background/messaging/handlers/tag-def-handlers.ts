@@ -21,7 +21,7 @@ async function removeTagFromTree(tagId: Tag): Promise<boolean> {
   }
   if (changed) {
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'tags');
   }
   return changed;
 }

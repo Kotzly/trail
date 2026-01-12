@@ -45,7 +45,7 @@ export const navigationHandlers = defineHandlers({
         if (focused) {
           tree.setCurrentById(message.nodeId);
           treeStorage.cacheTree(tree);
-          await notifyTreeUpdate(tree);
+          await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
           return ok();
         }
         tabManager.unregister(nextTabId as TabId);
@@ -59,7 +59,7 @@ export const navigationHandlers = defineHandlers({
         tabManager.touch(tabId as TabId, message.nodeId);
         tree.setCurrentById(message.nodeId);
         treeStorage.cacheTree(tree);
-        await notifyTreeUpdate(tree);
+        await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
         return ok();
       }
       tabManager.unregister(tabId as TabId);
@@ -78,7 +78,7 @@ export const navigationHandlers = defineHandlers({
 
     tree.setCurrentById(message.nodeId);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
 
     CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Navigate to' as Description);
     return ok();
@@ -155,7 +155,7 @@ export const navigationHandlers = defineHandlers({
 
     tree.setCurrentById(message.nodeId);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
     return ok();
   },
 
@@ -169,7 +169,7 @@ export const navigationHandlers = defineHandlers({
       tabManager.register(message.nodeId, tab.id as TabId);
     }
 
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'tabs');
     return ok();
   },
 });

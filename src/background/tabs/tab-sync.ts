@@ -12,6 +12,8 @@ export async function syncTabTitleFavicon(
   changeInfo: chrome.tabs.OnUpdatedInfo,
   tab: chrome.tabs.Tab
 ): Promise<void> {
+  console.log('syncTabTitleFavicon');
+  console.log(changeInfo);
   if (!changeInfo.title && !changeInfo.favIconUrl) return;
 
   const nodeId = tabManager.nodeByTab(tabId);
@@ -34,7 +36,7 @@ export async function syncTabTitleFavicon(
   }
 
   treeStorage.cacheTree(tree);
-  await notifyTreeUpdate(tree);
+  await notifyTreeUpdate(tree, 'tabs');
 }
 
 
@@ -53,5 +55,5 @@ export async function syncTabAudioState(
 
   const tree = await treeStorage.getOrCreateTree();
   if (!tree) return;
-  await notifyTreeUpdate(tree);  
+  await notifyTreeUpdate(tree, 'tabs');  
 }

@@ -18,7 +18,7 @@ async function applyTree(json: ReturnType<typeof NavigationTreeMapper.toJSON>): 
   const tree = NavigationTreeMapper.fromJSON(json);
   pruneTabMappings(tree);
   treeStorage.cacheTree(tree);
-  await notifyTreeUpdate(tree);
+  await notifyTreeUpdate(tree, 'undo');
   await treeStorage.flushSaveNow();
 }
 

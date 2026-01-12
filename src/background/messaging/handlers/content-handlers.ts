@@ -36,7 +36,7 @@ export const contentHandlers = defineHandlers({
     if (node.data.url !== url) return err("URL mismatch");
     node.data.title = newTitle;
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree);
+    await notifyTreeUpdate(tree, 'sync');
     return ok();
   },
 });

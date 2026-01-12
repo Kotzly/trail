@@ -1,7 +1,7 @@
 import type { TabId, NodeId } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import type { TabSoundState, TabState } from '../../shared/types/tabs.js';
-import { msg } from '../../shared/types/messages.js';
+import { msg, type TreeUpdateReason, type TreeViewIntent } from '../../shared/types/messages.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { NavigationTree } from '../state/nav-tree.js';
 
@@ -28,17 +28,45 @@ export async function getTabStates(): Promise<Record<NodeId, TabState>> {
   return tabStates;
 }
 
-export async function notifyTreeUpdate(tree: NavigationTree): Promise<void> {
+let viewIntentCounter = 0;
+
+export async function notifyTreeUpdate(
+  tree: NavigationTree,
+  reason: TreeUpdateReason = 'sync',
+  view?: TreeViewIntent,
+): Promise<void> {
+  console.log('notifyTreeUpdate', reason);
+    // INSERT_YOUR_CODE
+    // Log the calling function name, if possible.
+    const err = new Error();
+    if (err.stack) {
+        const stackLines = err.stack.split('\n');
+        // stackLines[0] is 'Error', stackLines[1] is this function, stackLines[2] is the caller
+        if (stackLines.length > 2) {
+            const callerLine = stackLines[2]!.trim();
+            console.log('notifyTreeUpdate called by:', callerLine);
+        }
+        else {
+            console.log('notifyTreeUpdate called by:', 'unknown');
+        }
+    } else {
+      console.log("err not stack")
+    }
     const openNodes = Array.from(tabManager.openNodes());
     const tabStates = await getTabStates();
     
     const nodeTabCounts = Object.fromEntries(openNodes.map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)]));
+    const nextView = view
+      ? { ...view, intentId: view.intentId ?? (viewIntentCounter += 1) }
+      : undefined;
 
     const payload = msg.treeUpdated({
         tree: NavigationTreeMapper.toJSON(tree),
         openNodeIds: openNodes,
         tabStates: tabStates,
         nodeTabCounts: nodeTabCounts,
+        reason,
+        ...(nextView ? { view: nextView } : {}),
     });
 
     chrome.runtime.sendMessage(payload);

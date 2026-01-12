@@ -121,7 +121,8 @@ export default function GraphArea() {
   const selectedNodeIds = useStore((state) => state.graph.selectedNodeIds);
   const layoutVersion = useStore((state) => state.graph.layoutVersion);
   const resetVersion = useStore((state) => state.graph.resetVersion);
-  const autoCenterToken = useStore((state) => state.graph.autoCenterToken);
+  const viewIntent = useStore((state) => state.graph.viewIntent);
+  const clearViewIntent = useStore((state) => state.clearViewIntent);
   const tool = useStore((state) => state.graph.tool);
   const graphView = useStore((state) => state.graph.view);
   const setGraphTool = useStore((state) => state.setGraphTool);
@@ -169,6 +170,8 @@ export default function GraphArea() {
   const selectionStartRef = useRef({ x: 0, y: 0 });
   const baseSelectionRef = useRef<Set<NodeId>>(new Set());
   const transitionTimeoutRef = useRef<number | null>(null);
+  const lastResetRef = useRef(0);
+  const lastViewIntentRef = useRef<number | null>(null);
 
   const layoutOptions = useMemo(() => deriveLayoutOptions(settings), [settings]);
 
@@ -344,18 +347,38 @@ export default function GraphArea() {
   }, [bounds.height, bounds.width, root]);
 
   useLayoutEffect(() => {
-    if (searchActive) return;
-    if (!root || currentNodeId === null) return;
-    if (autoCenterToken === 0) return;
-    if (isDraggingNode || isPanningRef.current) return;
-    centerOnNode(currentNodeId, true);
-  }, [autoCenterToken, currentNodeId, isDraggingNode, root, searchActive]);
+    if (!viewIntent) return;
+    if (viewIntent.mode === 'soft' && (isDraggingNode || isPanningRef.current)) return;
+    const intentId = viewIntent.intentId ?? 0;
+    if (intentId !== 0 && lastViewIntentRef.current === intentId) return;
+    if (viewIntent.fitToView) {
+      lastViewIntentRef.current = intentId;
+      fitToView(true);
+      clearViewIntent();
+      return;
+    }
+    if (viewIntent.focusNodeId) {
+      if (!positions.has(viewIntent.focusNodeId)) return;
+      lastViewIntentRef.current = intentId;
+      centerOnNode(viewIntent.focusNodeId, true);
+      clearViewIntent();
+    }
+  }, [
+    clearViewIntent,
+    isDraggingNode,
+    positions,
+    viewIntent,
+    nodeHeight,
+    nodeWidth,
+  ]);
 
   useEffect(() => {
     if (!root) return;
     if (resetVersion === 0) return;
+    if (lastResetRef.current === resetVersion) return;
+    lastResetRef.current = resetVersion;
     fitToView(true);
-  }, [bounds.height, bounds.width, resetVersion, root]);
+  }, [resetVersion, root]);
 
   const prevSearchFocusRef = useRef<NodeId | null>(null);
 
