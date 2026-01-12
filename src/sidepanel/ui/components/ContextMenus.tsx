@@ -148,7 +148,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag }: NodeMenuProps) {
   const [submenuLeft, setSubmenuLeft] = useState(false);
   const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
 
-  const updateSubmenuDirection = useCallback(() => {
+  const updateSubmenuLayout = useCallback(() => {
     const menu = menuRef.current;
     if (!menu) return;
     const rect = menu.getBoundingClientRect();
@@ -157,6 +157,26 @@ function NodeContextMenu({ nodeId, position, onCreateTag }: NodeMenuProps) {
     const spaceLeft = rect.left;
     const shouldFlip = spaceRight < required && spaceLeft >= required;
     setSubmenuLeft(shouldFlip);
+
+    const items = menu.querySelectorAll<HTMLElement>('.graph-context-menu-item.has-submenu');
+    items.forEach((item) => {
+      const submenu = item.querySelector<HTMLElement>('.graph-context-submenu');
+      if (!submenu) return;
+      submenu.style.setProperty('--submenu-offset-y', '0px');
+      const submenuRect = submenu.getBoundingClientRect();
+      const itemRect = item.getBoundingClientRect();
+      const maxBottom = window.innerHeight - 8;
+      const maxTop = 8;
+      const overflowBottom = itemRect.top + submenuRect.height - maxBottom;
+      if (overflowBottom > 0) {
+        const maxShift = Math.max(0, itemRect.top - maxTop);
+        const shift = Math.min(overflowBottom, maxShift);
+        submenu.style.setProperty('--submenu-offset-y', `${-shift}px`);
+      } else if (itemRect.top < maxTop) {
+        const shiftDown = maxTop - itemRect.top;
+        submenu.style.setProperty('--submenu-offset-y', `${shiftDown}px`);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -172,13 +192,13 @@ function NodeContextMenu({ nodeId, position, onCreateTag }: NodeMenuProps) {
   }, [nodeId]);
 
   useLayoutEffect(() => {
-    updateSubmenuDirection();
-  }, [menuStyle.left, menuStyle.top, updateSubmenuDirection]);
+    updateSubmenuLayout();
+  }, [menuStyle.left, menuStyle.top, updateSubmenuLayout]);
 
   useEffect(() => {
-    window.addEventListener('resize', updateSubmenuDirection);
-    return () => window.removeEventListener('resize', updateSubmenuDirection);
-  }, [updateSubmenuDirection]);
+    window.addEventListener('resize', updateSubmenuLayout);
+    return () => window.removeEventListener('resize', updateSubmenuLayout);
+  }, [updateSubmenuLayout]);
 
   const hasOpenTab = tabs.length > 0;
   const tabInfo = tabs[0];
