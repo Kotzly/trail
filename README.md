@@ -1,67 +1,110 @@
-# trail
+# Trail
 
-Trail is a browser extension for Brave.
-The extension is put in the sidebar.
-After it has been installed, it starts tracking the user's activities, most prominently,
-the user's clicks on links.
-It represents the history of the user's clicks in a stack, the LIFO data structure.
-The history is shown as a clickable diagram going down, with each web page clickable.
-The extension is configurable for the max amount (N) of cached links. For example: it can store the last 10 web pages to 
-avoid reloading it upon click.
-The extension can also be configured to store N links, i.e. the capacity of the stack.
-The stack diagram is scrollable.
-Clicking on an object, when stored in memory, instantly opens it in the same tab.
-Each new tab in a browser with this extension is working as a separate environment, with different stacks.
-
-## Installation
-
-1. Open Brave browser and navigate to `brave://extensions/`
-2. Enable **Developer mode** (toggle in the top right)
-3. Click **Load unpacked** and select the `stack-history` folder
-4. The extension icon will appear in your toolbar
-5. Click the icon to open the side panel
+Trail is a browser extension for Chrome/Brave that visualizes your browsing history as an interactive navigation tree. Instead of a linear history, Trail shows how you actually browse - with branches, forks, and parallel explorations.
 
 ## Features
 
-- **Per-tab stacks**: Each browser tab maintains its own independent navigation stack
-- **LIFO visualization**: See your browsing history as a vertical stack with the most recent page at the top
-- **Quick navigation**: Click any entry to instantly navigate back to that page
-- **Cached indicators**: Top N entries are highlighted (configurable) for quick identification
-- **SPA support**: Tracks History API navigations in single-page applications
-- **Configurable**: Adjust stack capacity and cached links count in settings
+
+# View
+
+- **Graph View** - Interactive canvas with pan/zoom, shows your browsing as a visual tree
+- **Global Navigation Graph** - One unified tree across all browser windows
+- **Visual Tab States** - See which nodes have open tabs, which are closed
+- **Audio Indicators** - Speaker icons on tabs playing audio, click to mute
+- **Muted Tab Indicators** - Red border on muted tabs
+- **Window Focus** - Clicking a node focuses the correct window and tab
+
+### Smart Navigation
+- **Back on Revisit** - Scrolling back to a previously visited URL (like YouTube Shorts) navigates to the existing node instead of creating duplicates
+- **Context Menu** - Right-click any node to "Open in this tab"
+- **SPA Support** - Tracks History API navigations in single-page applications
+
+
+### Search (Cmd/Ctrl+F)
+- Search by page title, URL, or domain
+- Highlights matching nodes, dims others
+- Navigate through results with arrow keys
+- Enter to go to node, Shift+Enter to open in new tab
+
+### Pin Nodes
+- Pin important pages to protect from LRU eviction
+- Pinned nodes marked with 📌 and golden border
+- Right-click → Pin node
+
+### Tags / Labels
+- Add colored tags to organize pages
+- Predefined tags: Important, Reference, To Do, Dead End, Bookmark
+- Right-click → Tags to add/remove
+- Colored dots shown on tagged nodes
+
+### Additional Features
+- Click any node to navigate and smoothly center view
+- Pinch-to-zoom and scroll zoom on trackpad
+- Keyboard shortcuts (+/- for zoom, 0 to reset)
+- Dark/light theme support
+- Configurable limits for cached pages and open tabs
+- A/B feature flags to enable/disable Search, Pin, Tags
+
+## Installation
+
+1. Open Chrome/Brave and navigate to `chrome://extensions/` or `brave://extensions/`
+2. Enable **Developer mode** (toggle in the top right)
+3. Click **Load unpacked** and select the `trail` folder
+4. The extension icon will appear in your toolbar
+5. Click the icon to open the side panel
 
 ## Configuration
 
 Click the gear icon in the side panel to access settings:
 
-- **Stack Capacity**: Maximum pages to remember per tab (10-1000)
-- **Cached Links**: Number of recent entries to highlight (0-100)
+- **View Mode** - Graph, Tree, or Stack
+- **Multi-Tab Mode** - Enable global graph with multiple open tabs
+- **Multi-Tab Limit** - Maximum concurrent tabs to keep open
+- **Forest Mode** - Separate tree per new tab
+- **Back on Revisit** - Navigate to ancestor on duplicate URLs
+- **Compact Graph** - Use smaller, denser graph layout
+- **Stack Capacity** - Maximum pages to remember (10-1000)
+- **Cached Links** - Recent entries to keep in memory (0-100)
+
+**Feature Flags:**
+- **Search** - Enable search functionality (Cmd/Ctrl+F)
+- **Pin Nodes** - Enable pinning nodes for LRU protection
+- **Tags** - Enable tagging nodes with colored labels
 
 ## Project Structure
 
 ```
-stack-history/
+trail/
 ├── manifest.json           # Extension manifest (MV3)
 ├── service-worker.js       # Background service worker
 ├── sidepanel/
-│   ├── sidepanel.html      # Sidebar UI
-│   ├── sidepanel.css       # Sidebar styles
-│   └── sidepanel.js        # Sidebar logic
-├── options/
-│   ├── options.html        # Settings page
-│   ├── options.css
-│   └── options.js
+│   ├── sidepanel.html      # Side panel UI
+│   ├── sidepanel.css       # Styles (Material Design 3)
+│   └── sidepanel.js        # Side panel logic
+├── content/
+│   └── content-script.js   # Page content script
 ├── lib/
+│   ├── tree.js             # NavigationTree data structure
+│   ├── graph-renderer.js   # Interactive graph canvas
+│   ├── tree-renderer.js    # Collapsible tree view
+│   ├── stack-renderer.js   # Linear stack view
+│   ├── renderers.js        # Renderer utilities
+│   ├── view-modes.js       # View mode constants
+│   ├── storage-manager.js  # Storage abstraction
+│   ├── tab-manager.js      # Tab ↔ Node mapping
 │   ├── stack.js            # Stack data structure
-│   └── storage-manager.js  # Storage abstraction
+│   └── themes.js           # Theme management
 └── icons/
-    └── icon*.svg           # Extension icons
+    └── icon*.svg/png       # Extension icons
 ```
 
 ## Technical Notes
 
-- Uses Chrome Manifest V3 (compatible with Brave)
+- Chrome Manifest V3 compatible
 - `chrome.sidePanel` API for sidebar integration
-- `chrome.webNavigation` for tracking link clicks and SPA navigation
-- `chrome.storage.session` for ephemeral per-tab state
+- `chrome.webNavigation` for tracking navigations
+- `chrome.storage.session` for ephemeral state
 - `chrome.storage.sync` for persistent settings
+- Canvas-based graph with smooth pan/zoom
+- Tree data structure with forest support
+- LRU eviction for tab limits
