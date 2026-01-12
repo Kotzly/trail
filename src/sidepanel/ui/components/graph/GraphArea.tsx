@@ -5,14 +5,10 @@ import type { NavigationNode } from '../../../../shared/types/node.js';
 import { navigateTo } from '../../../api/tree.js';
 import {
   getLayoutConfig,
-  NODE_HEIGHT,
-  NODE_WIDTH,
   PADDING,
-  setLayoutConfig,
-  VERTICAL_GAP,
-  HORIZONTAL_GAP,
 } from '../../graph/layout/config.js';
-import { calculateRadialLayout, getCanvasBounds } from '../../graph/layout/calculator.js';
+import { calculateLayout, calculateRadialLayout, getCanvasBounds } from '../../graph/layout/calculator.js';
+import { deriveLayoutOptions } from '../../graph/layout/options.js';
 import type { CanvasBounds, NodePosition } from '../../graph/types.js';
 import GraphNode from './GraphNode.js';
 import GraphZoomControls from './GraphZoomControls.js';
@@ -94,6 +90,7 @@ export default function GraphArea() {
   const tabStates = useStore((state) => state.tabStates);
   const search = useStore((state) => state.search);
   const searchActive = useStore((state) => state.search.active);
+  const settings = useStore((state) => state.settings);
   const selectedNodeIds = useStore((state) => state.graph.selectedNodeIds);
   const tool = useStore((state) => state.graph.tool);
   const graphView = useStore((state) => state.graph.view);
@@ -124,14 +121,7 @@ export default function GraphArea() {
   const baseSelectionRef = useRef<Set<NodeId>>(new Set());
   const transitionTimeoutRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    setLayoutConfig({
-      nodeWidth: NODE_WIDTH,
-      nodeHeight: NODE_HEIGHT,
-      verticalGap: VERTICAL_GAP,
-      horizontalGap: HORIZONTAL_GAP,
-    });
-  }, []);
+  const layoutOptions = useMemo(() => deriveLayoutOptions(settings), [settings]);
 
   useEffect(() => {
     viewRef.current = graphView;
@@ -164,8 +154,10 @@ export default function GraphArea() {
 
   const layout = useMemo(() => {
     if (!root) return null;
-    return calculateRadialLayout(root);
-  }, [root]);
+    return layoutOptions.mode === 'tree'
+      ? calculateLayout(root, layoutOptions.tree)
+      : calculateRadialLayout(root, layoutOptions.radial);
+  }, [layoutOptions.mode, layoutOptions.radial, layoutOptions.tree, root]);
 
   const positions = layout?.positions ?? new Map<number, NodePosition>();
   const bounds: CanvasBounds = useMemo(() => {

@@ -9,6 +9,16 @@ export interface LayoutConfig {
   horizontalGap: number;
 }
 
+export interface RadialLayoutConfig {
+  angleWeightExp: number;
+  minSpanFactor: number;
+  minSpanAbs: number;
+  requiredScale: number;
+  depthGapBase: number;
+  depthGapGrowth: number;
+  effectiveWidth: number;
+}
+
 export interface NodePosition {
   x: number;
   y: number;
@@ -55,4 +65,3 @@ export interface TreeData {
   currentNodeId?: NodeId | null;
   nodeCount?: number;
 }
-

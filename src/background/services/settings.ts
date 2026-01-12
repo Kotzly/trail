@@ -1,10 +1,16 @@
 import { THEME_IDS } from "../../sidepanel/ui/shared/themes.js";
 import type { Settings } from "../../shared/types/settings.js";
+import { DEFAULT_LAYOUT_SETTINGS } from "../../shared/layout/defaults.js";
 
 export const defaultSettings: Settings = {
     maxOpenTabs: 100,
     capacity: Infinity,
     theme: THEME_IDS.SYSTEM,
+    layout: {
+        mode: DEFAULT_LAYOUT_SETTINGS.mode,
+        tree: { ...DEFAULT_LAYOUT_SETTINGS.tree },
+        radial: { ...DEFAULT_LAYOUT_SETTINGS.radial },
+    },
 }
 
 const settingsKey = 'trail_settings' as const;
@@ -14,7 +20,23 @@ function mergeDefaults(raw: unknown): Settings {
     if (!raw || typeof raw !== 'object') {
         return {...defaultSettings};
     }
-    return {...defaultSettings, ...(raw as Partial<Settings>)};
+    const partial = raw as Partial<Settings>;
+    const layout = partial.layout ?? DEFAULT_LAYOUT_SETTINGS;
+    return {
+        ...defaultSettings,
+        ...partial,
+        layout: {
+            mode: layout.mode ?? DEFAULT_LAYOUT_SETTINGS.mode,
+            tree: {
+                ...DEFAULT_LAYOUT_SETTINGS.tree,
+                ...(layout.tree ?? {}),
+            },
+            radial: {
+                ...DEFAULT_LAYOUT_SETTINGS.radial,
+                ...(layout.radial ?? {}),
+            },
+        },
+    };
 }
 
 class SettingsManager {

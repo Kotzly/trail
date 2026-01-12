@@ -1,15 +1,15 @@
 import { NavigationNode } from '../../../../shared/types/node.js';
-import type { NodePosition, CanvasBounds } from '../types.js';
+import type { LayoutConfig, NodePosition, CanvasBounds, RadialLayoutConfig } from '../types.js';
 import { getLayoutConfig, PADDING } from './config.js';
 
 
 export function calculateLayout(
   root: NavigationNode,
+  layoutConfig: LayoutConfig,
   startX: number = PADDING
 ): { positions: Map<number, NodePosition>, width: number } {
   const positions = new Map<number, NodePosition>();
   const subtreeWidths = new Map<number, number>();
-  const layoutConfig = getLayoutConfig();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
   
   // First pass: calculate subtree widths (bottom-up)
@@ -70,15 +70,16 @@ export function calculateLayout(
  * and each node gets an angular span proportional to its subtree size.
  */
 export function calculateRadialLayout(
-  root: NavigationNode
+  root: NavigationNode,
+  layoutConfig: RadialLayoutConfig
 ): { positions: Map<number, NodePosition>, width: number } {
   const positions = new Map<number, NodePosition>();
-  const layoutConfig = getLayoutConfig();
-  const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
+  const baseLayout = getLayoutConfig();
+  const { nodeWidth, nodeHeight } = baseLayout;
 
   const subtreeSizes = new Map<number, number>();
   const angleRanges = new Map<number, { start: number; end: number }>();
-  const depthById = new Map<number, number>();
+  const radiusById = new Map<number, number>();
   const nodeById = new Map<number, NavigationNode>();
 
   function calcSize(node: NavigationNode | null): number {
@@ -92,58 +93,90 @@ export function calculateRadialLayout(
     return size;
   }
 
+  const ANGLE_WEIGHT_EXP = layoutConfig.angleWeightExp;
+  const MIN_SPAN_FACTOR = layoutConfig.minSpanFactor;
+  const MIN_SPAN_ABS = layoutConfig.minSpanAbs;
+  const REQUIRED_SCALE = layoutConfig.requiredScale;
+  const baseRadius = 0;
+  const depthGapBase = layoutConfig.depthGapBase;
+  const depthGapGrowth = layoutConfig.depthGapGrowth;
+  const effectiveWidth = layoutConfig.effectiveWidth;
+
+  function getChildSpans(children: NavigationNode[], totalSpan: number): number[] {
+    if (children.length === 0) return [];
+    const weights = children.map((child) => {
+      const size = subtreeSizes.get(child.id) ?? 1;
+      return Math.pow(size, ANGLE_WEIGHT_EXP);
+    });
+    const weightSum = weights.reduce((sum, weight) => sum + weight, 0) || 1;
+    const rawSpans = weights.map((weight) => (totalSpan * weight) / weightSum);
+    const equalSpan = totalSpan / children.length;
+    const minSpan = Math.min(Math.max(equalSpan * MIN_SPAN_FACTOR, MIN_SPAN_ABS), equalSpan);
+
+    let deficit = 0;
+    const spans = rawSpans.map((span) => {
+      if (span < minSpan) {
+        deficit += minSpan - span;
+        return minSpan;
+      }
+      return span;
+    });
+
+    if (deficit > 0) {
+      const adjustableIndices = spans
+        .map((span, idx) => (span > minSpan ? idx : -1))
+        .filter((idx) => idx !== -1);
+      const adjustableTotal = adjustableIndices.reduce((sum, idx) => sum + spans[idx]!, 0);
+      if (adjustableTotal <= deficit + 1e-6) {
+        return new Array(children.length).fill(equalSpan);
+      }
+      adjustableIndices.forEach((idx) => {
+        spans[idx]! -= deficit * (spans[idx]! / adjustableTotal);
+      });
+    }
+
+    const spanSum = spans.reduce((sum, span) => sum + span, 0) || totalSpan;
+    const scale = totalSpan / spanSum;
+    if (Math.abs(scale - 1) > 1e-6) {
+      return spans.map((span) => span * scale);
+    }
+    return spans;
+  }
+
   function assignAngles(
     node: NavigationNode,
     start: number,
     end: number,
     depth: number,
+    parentRadius: number,
   ): void {
     nodeById.set(node.id, node);
     angleRanges.set(node.id, { start, end });
-    depthById.set(node.id, depth);
+
+    const span = Math.max(end - start, MIN_SPAN_ABS);
+    const depthGap = depth === 0 ? 0 : depthGapBase * (1 + (depth - 1) * depthGapGrowth);
+    const desired = depth === 0 ? baseRadius : parentRadius + depthGap;
+    const required = depth === 0 ? baseRadius : (effectiveWidth * REQUIRED_SCALE) / span;
+    const radius = depth === 0 ? baseRadius : Math.max(desired, required);
+    radiusById.set(node.id, radius);
+
     const children = node.getChildren?.() ?? [];
     if (children.length === 0) return;
-    const total = children.reduce((sum, child) => sum + (subtreeSizes.get(child.id) ?? 1), 0);
+    const totalSpan = end - start;
+    const spans = getChildSpans(children, totalSpan);
     let cursor = start;
-    children.forEach((child) => {
-      const portion = total === 0 ? 0 : (subtreeSizes.get(child.id) ?? 1) / total;
-      const span = (end - start) * portion;
-      assignAngles(child, cursor, cursor + span, depth + 1);
-      cursor += span;
+    children.forEach((child, idx) => {
+      const childSpan = spans[idx] ?? 0;
+      assignAngles(child, cursor, cursor + childSpan, depth + 1, radius);
+      cursor += childSpan;
     });
   }
 
   calcSize(root);
-  assignAngles(root, -Math.PI / 2, Math.PI * 1.5, 0);
-
-  const radialGap = Math.max(nodeHeight, nodeWidth) + verticalGap;
-  const baseRadius = 0;
-  const minAngle = 0.0005;
-  const radiusByDepth = new Map<number, number>();
+  assignAngles(root, -Math.PI / 2, Math.PI * 1.5, 0, baseRadius);
 
   angleRanges.forEach((range, id) => {
-    const depth = depthById.get(id) ?? 0;
-    const span = Math.max(minAngle, range.end - range.start);
-    const desired = baseRadius + depth * radialGap;
-    const required = (nodeWidth + horizontalGap) / span;
-    const next = Math.max(desired, required);
-    const prev = radiusByDepth.get(depth) ?? 0;
-    if (next > prev) radiusByDepth.set(depth, next);
-  });
-
-  const sortedDepths = Array.from(radiusByDepth.keys()).sort((a, b) => a - b);
-  let previousRadius = baseRadius;
-  sortedDepths.forEach((depth) => {
-    const current = radiusByDepth.get(depth) ?? baseRadius;
-    const minRadius = depth === 0 ? baseRadius : previousRadius + radialGap;
-    const adjusted = Math.max(current, minRadius);
-    radiusByDepth.set(depth, adjusted);
-    previousRadius = adjusted;
-  });
-
-  angleRanges.forEach((range, id) => {
-    const depth = depthById.get(id) ?? 0;
-    const radius = radiusByDepth.get(depth) ?? baseRadius;
+    const radius = radiusById.get(id) ?? baseRadius;
     const angle = (range.start + range.end) / 2;
     const x = radius * Math.cos(angle) - nodeWidth / 2;
     const y = radius * Math.sin(angle) - nodeHeight / 2;
@@ -167,7 +200,7 @@ export function calculateRadialLayout(
     });
   }
 
-  const maxRadius = Math.max(...Array.from(radiusByDepth.values()), nodeWidth);
+  const maxRadius = Math.max(...Array.from(radiusById.values()), nodeWidth);
   return { positions, width: maxRadius * 2 + nodeWidth };
 }
 

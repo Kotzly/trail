@@ -1319,6 +1319,59 @@ body {
   gap: 6px;
 }
 
+.popover-segment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+}
+
+.popover-segment-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.popover-segment-btn:hover {
+  background: var(--md-surface-container);
+  color: var(--md-on-surface);
+}
+
+.popover-segment-btn.active {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+
+.popover-reset-btn {
+  margin-top: 8px;
+  width: 100%;
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container);
+  color: var(--md-on-surface);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.popover-reset-btn:hover {
+  background: var(--md-surface-container-high);
+}
+
+.popover-input-small.drag-number {
+  cursor: ew-resize;
+}
+
 .popover-icon-btn {
   width: 40px;
   height: 40px;
