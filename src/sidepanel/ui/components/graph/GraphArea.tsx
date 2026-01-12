@@ -56,13 +56,11 @@ function buildConnections(
   if (!root) return [];
   const { nodeWidth, nodeHeight } = getLayoutConfig();
   const list: Connection[] = [];
-  const isClosed = (nodeId: NodeId) => openNodeIds ? !openNodeIds.has(nodeId) : false;
   const traverse = (node: NavigationNode | null) => {
     if (!node) return;
     const parentPos = positions.get(node.id);
     if (!parentPos) return;
     node.getChildren().forEach((child, idx) => {
-      if (isClosed(node.id) || isClosed(child.id)) return;
       const childPos = positions.get(child.id);
       if (!childPos) return;
       let startX: number;

@@ -1428,11 +1428,43 @@ body {
    ======================================== */
 
 .graph-node.closed {
-  opacity: 0.55;
+  filter: saturate(0.25) brightness(0.68);
+  background: var(--graph-node-closed-bg, var(--md-surface-container-high));
+  border-color: var(--graph-node-closed-border, var(--md-outline-variant));
 }
 
 .graph-node.closed:hover {
-  opacity: 0.75;
+  filter: saturate(0.35) brightness(0.78);
+  background: var(--graph-node-closed-bg-hover, var(--md-surface-container));
+}
+
+:root,
+[data-theme="light"] {
+  --graph-node-closed-bg: #CFCFD6;
+  --graph-node-closed-bg-hover: #D7D7DD;
+  --graph-node-closed-border: rgba(60, 60, 70, 0.8);
+}
+
+[data-theme="dark"] {
+  --graph-node-closed-bg: #16171B;
+  --graph-node-closed-bg-hover: #1B1D22;
+  --graph-node-closed-border: rgba(200, 200, 215, 0.22);
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    --graph-node-closed-bg: var(--md-surface-container-low);
+    --graph-node-closed-bg-hover: var(--md-surface-container);
+    --graph-node-closed-border: rgba(144, 143, 153, 0.35);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] {
+    --graph-node-closed-bg: var(--md-surface-container-high);
+    --graph-node-closed-bg-hover: var(--md-surface-container);
+    --graph-node-closed-border: rgba(118, 118, 127, 0.6);
+  }
 }
 
 .graph-node.closed.selected,
