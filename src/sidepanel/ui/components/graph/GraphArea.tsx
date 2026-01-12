@@ -122,6 +122,7 @@ export default function GraphArea() {
   const settings = useStore((state) => state.settings);
   const selectedNodeIds = useStore((state) => state.graph.selectedNodeIds);
   const layoutVersion = useStore((state) => state.graph.layoutVersion);
+  const resetVersion = useStore((state) => state.graph.resetVersion);
   const tool = useStore((state) => state.graph.tool);
   const graphView = useStore((state) => state.graph.view);
   const setGraphTool = useStore((state) => state.setGraphTool);
@@ -360,6 +361,12 @@ export default function GraphArea() {
     }
     prevMetaRef.current = { nodeCount, currentNodeId };
   }, [currentNodeId, root, searchActive, tree, positions, nodeHeight, nodeWidth]);
+
+  useEffect(() => {
+    if (!root) return;
+    if (resetVersion === 0) return;
+    fitToView(true);
+  }, [bounds.height, bounds.width, resetVersion, root]);
 
   const prevSearchFocusRef = useRef<NodeId | null>(null);
 

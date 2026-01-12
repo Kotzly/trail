@@ -131,4 +131,20 @@ export const treeHandlers = defineHandlers({
     await notifyTreeUpdate(tree);
     return ok();
   },
+
+  async [MSG.RESET_NODE_LAYOUTS]() {
+    const tree = await treeStorage.getOrCreateTree();
+    let changed = false;
+    for (const node of tree.iter() ?? []) {
+      if (node.data.layout) {
+        const { layout: _layout, ...rest } = node.data;
+        node.data = rest as typeof node.data;
+        changed = true;
+      }
+    }
+    if (!changed) return ok();
+    treeStorage.cacheTree(tree);
+    await notifyTreeUpdate(tree);
+    return ok();
+  },
 });

@@ -59,6 +59,7 @@ type StoreState = {
     selectedNodeIds: Set<NodeId>;
     view: ViewState;
     layoutVersion: number;
+    resetVersion: number;
   };
   contextMenu: ContextMenuState;
   metaKey: MetaKeyPair | null;
@@ -90,6 +91,7 @@ type StoreActions = {
   setGraphView: (view: Partial<ViewState>) => void;
   setNodeLayoutOffset: (nodeId: NodeId, offsetX: number, offsetY: number) => void;
   setNodeLayoutRadial: (nodeId: NodeId, angleDelta: number, radiusDelta: number) => void;
+  requestGraphReset: () => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
 };
@@ -122,6 +124,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     selectedNodeIds: new Set<NodeId>(),
     view: { translateX: 0, translateY: 0, scale: 1 },
     layoutVersion: 0,
+    resetVersion: 0,
   },
   contextMenu: null,
   metaKey: null,
@@ -274,6 +277,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         graph: { ...state.graph, layoutVersion: state.graph.layoutVersion + 1 },
       };
     }),
+  requestGraphReset: () =>
+    set((state) => ({
+      graph: { ...state.graph, resetVersion: state.graph.resetVersion + 1 },
+    })),
 
   openContextMenu: (menu) => set({ contextMenu: menu }),
   closeContextMenu: () => set({ contextMenu: null }),

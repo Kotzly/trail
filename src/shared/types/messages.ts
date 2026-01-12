@@ -41,6 +41,7 @@ export const MSG = {
     DELETE_WITH_CHILDREN: 'DELETE_WITH_CHILDREN',
     BULK_DELETE: 'BULK_DELETE',
     SET_NODE_LAYOUT: 'SET_NODE_LAYOUT',
+    RESET_NODE_LAYOUTS: 'RESET_NODE_LAYOUTS',
 } as const;
 
 export type RequestType = typeof MSG[keyof typeof MSG];
@@ -123,6 +124,7 @@ export type SetNodeLayoutMessage = RequestMessageBase<typeof MSG.SET_NODE_LAYOUT
     radiusDelta: number;
   };
 }>;
+export type ResetNodeLayoutsMessage = RequestMessageBase<typeof MSG.RESET_NODE_LAYOUTS>;
 
 export type DeleteNodeMessage = RequestMessageBase<typeof MSG.DELETE_NODE, { nodeId: NodeId }>;
 export type DeleteChildrenMessage = RequestMessageBase<typeof MSG.DELETE_CHILDREN, { nodeId: NodeId }>;
@@ -142,7 +144,7 @@ export type RequestMessage = NavigateToMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
     AddTagMessage | RemoveTagMessage |
     DeleteNodeMessage | DeleteChildrenMessage | DeleteWithChildrenMessage | BulkDeleteMessage |
-    SetNodeLayoutMessage;
+    SetNodeLayoutMessage | ResetNodeLayoutsMessage;
 
 
 // ==== Responses ====
@@ -196,6 +198,7 @@ export type ResponseDataByType = {
     [MSG.DELETE_WITH_CHILDREN]: void;
     [MSG.BULK_DELETE]: void;
     [MSG.SET_NODE_LAYOUT]: void;
+    [MSG.RESET_NODE_LAYOUTS]: void;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -260,6 +263,9 @@ export const msg = {
         radial?: { angleDelta: number; radiusDelta: number };
     }): SetNodeLayoutMessage {
         return { type: MSG.SET_NODE_LAYOUT, ...payload };
+    },
+    resetNodeLayouts(): ResetNodeLayoutsMessage {
+        return { type: MSG.RESET_NODE_LAYOUTS };
     },
 }
 

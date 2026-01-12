@@ -80,3 +80,9 @@ export async function setNodeLayout(
     if (!res.success) throw new Error(res.error);
     return res.data;
 }
+
+export async function resetNodeLayouts(): Promise<void> {
+    const res = await sendMessage(msg.resetNodeLayouts());
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}

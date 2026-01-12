@@ -9,6 +9,7 @@ import type {
 } from '../../../shared/types/settings.js';
 import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
 import { saveSettings } from '../../api/settings.js';
+import { resetNodeLayouts } from '../../api/tree.js';
 import { THEME_IDS } from '../shared/themes.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
@@ -94,6 +95,7 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
   const settings = useStore((state) => state.settings);
   const setSettings = useStore((state) => state.setSettings);
+  const requestGraphReset = useStore((state) => state.requestGraphReset);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const [style, setStyle] = useState<CSSProperties>({});
   const saveTimerRef = useRef<number | null>(null);
@@ -211,6 +213,15 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
       },
     });
   };
+  const resetView = async () => {
+    resetLayout();
+    try {
+      await resetNodeLayouts();
+    } catch (error) {
+      console.error('Failed to reset node layouts:', error);
+    }
+    requestGraphReset();
+  };
 
   if (!settingsOpen) return null;
 
@@ -291,6 +302,9 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
           <div className="popover-hint">{layoutHints[layout.mode]}</div>
           <button type="button" className="popover-reset-btn" onClick={resetLayout}>
             Reset to defaults
+          </button>
+          <button type="button" className="popover-reset-btn secondary" onClick={resetView}>
+            Reset view (factory)
           </button>
         </div>
 

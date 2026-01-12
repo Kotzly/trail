@@ -1373,6 +1373,17 @@ body {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
+.popover-reset-btn.secondary {
+  margin-top: 0;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+}
+
+.popover-reset-btn.secondary:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
 .popover-reset-btn:hover {
   background: var(--md-surface-container-high);
 }
