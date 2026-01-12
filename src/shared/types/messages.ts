@@ -116,8 +116,12 @@ export type RemoveTagMessage = RequestMessageBase<typeof MSG.REMOVE_TAG, TagMess
 
 export type SetNodeLayoutMessage = RequestMessageBase<typeof MSG.SET_NODE_LAYOUT, {
   nodeId: NodeId;
-  offsetX: number;
-  offsetY: number;
+  offsetX?: number;
+  offsetY?: number;
+  radial?: {
+    angleDelta: number;
+    radiusDelta: number;
+  };
 }>;
 
 export type DeleteNodeMessage = RequestMessageBase<typeof MSG.DELETE_NODE, { nodeId: NodeId }>;
@@ -249,7 +253,12 @@ export const msg = {
     deleteChildren(payload: { nodeId: NodeId }): DeleteChildrenMessage { return { type: MSG.DELETE_CHILDREN, ...payload } },
     deleteWithChildren(payload: { nodeId: NodeId }): DeleteWithChildrenMessage { return { type: MSG.DELETE_WITH_CHILDREN, ...payload } },
     bulkDelete(payload: BulkNodeIdsInput): BulkDeleteMessage { return { type: MSG.BULK_DELETE, ...payload } },
-    setNodeLayout(payload: { nodeId: NodeId; offsetX: number; offsetY: number }): SetNodeLayoutMessage {
+    setNodeLayout(payload: {
+        nodeId: NodeId;
+        offsetX?: number;
+        offsetY?: number;
+        radial?: { angleDelta: number; radiusDelta: number };
+    }): SetNodeLayoutMessage {
         return { type: MSG.SET_NODE_LAYOUT, ...payload };
     },
 }

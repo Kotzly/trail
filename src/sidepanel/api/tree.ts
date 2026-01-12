@@ -68,8 +68,15 @@ export async function clearTree(): Promise<void> {
     return res.data;
 }
 
-export async function setNodeLayout(nodeId: NodeId, offsetX: number, offsetY: number): Promise<void> {
-    const res = await sendMessage(msg.setNodeLayout({ nodeId, offsetX, offsetY }));
+export async function setNodeLayout(
+  nodeId: NodeId,
+  layout: {
+    offsetX?: number;
+    offsetY?: number;
+    radial?: { angleDelta: number; radiusDelta: number };
+  }
+): Promise<void> {
+    const res = await sendMessage(msg.setNodeLayout({ nodeId, ...layout }));
     if (!res.success) throw new Error(res.error);
     return res.data;
 }

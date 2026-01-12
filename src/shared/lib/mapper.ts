@@ -15,12 +15,21 @@ export class TreeNodeMapper {
       const favicon = typeof raw?.favicon === "string" ? raw.favicon : undefined;
       const pinned = Boolean(raw?.pinned);
       const tags = Array.isArray(raw?.tags) ? raw.tags.filter((tag) => typeof tag === "string") : [];
-      const rawLayout = (raw as Partial<NodeData>).layout as Partial<NodeData['layout']> | undefined;
+      const rawLayout = (raw as Partial<NodeData>).layout as NodeData['layout'] | undefined;
       const offsetX = typeof rawLayout?.offsetX === "number" ? rawLayout.offsetX : 0;
       const offsetY = typeof rawLayout?.offsetY === "number" ? rawLayout.offsetY : 0;
+      const rawRadial = rawLayout?.radial;
+      const angleDelta = typeof rawRadial?.angleDelta === "number" ? rawRadial.angleDelta : 0;
+      const radiusDelta = typeof rawRadial?.radiusDelta === "number" ? rawRadial.radiusDelta : 0;
+      const radial =
+        typeof rawRadial?.angleDelta === "number" || typeof rawRadial?.radiusDelta === "number"
+          ? { angleDelta, radiusDelta }
+          : undefined;
       const layout =
-        typeof rawLayout?.offsetX === "number" || typeof rawLayout?.offsetY === "number"
-          ? { offsetX, offsetY }
+        typeof rawLayout?.offsetX === "number" ||
+        typeof rawLayout?.offsetY === "number" ||
+        radial
+          ? { offsetX, offsetY, radial }
           : undefined;
 
       return {

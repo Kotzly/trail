@@ -101,6 +101,11 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
 
   const themeIds = useMemo(() => [THEME_IDS.LIGHT, THEME_IDS.DARK, THEME_IDS.SYSTEM], []);
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
+  const layoutHints: Record<Settings['layout']['mode'], string> = {
+    mindmap: 'best for short journeys',
+    tree: 'best for long journeys',
+    radial: 'best for many short journeys',
+  };
 
   useLayoutEffect(() => {
     if (!settingsOpen) return;
@@ -260,26 +265,30 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
           <div className="popover-segment">
             <button
               type="button"
-              className={`popover-segment-btn ${layout.mode === 'tree' ? 'active' : ''}`}
-              onClick={() => updateLayout({ mode: 'tree' })}
-            >
-              Tree
-            </button>
-            <button
-              type="button"
               className={`popover-segment-btn ${layout.mode === 'mindmap' ? 'active' : ''}`}
               onClick={() => updateLayout({ mode: 'mindmap' })}
             >
+              <Icons.BrainCircuit size={14} />
               Mindmap
+            </button>
+            <button
+              type="button"
+              className={`popover-segment-btn ${layout.mode === 'tree' ? 'active' : ''}`}
+              onClick={() => updateLayout({ mode: 'tree' })}
+            >
+              <Icons.Network size={14} />
+              Tree
             </button>
             <button
               type="button"
               className={`popover-segment-btn ${layout.mode === 'radial' ? 'active' : ''}`}
               onClick={() => updateLayout({ mode: 'radial' })}
             >
+              <Icons.Radius size={14} />
               Radial
             </button>
           </div>
+          <div className="popover-hint">{layoutHints[layout.mode]}</div>
           <button type="button" className="popover-reset-btn" onClick={resetLayout}>
             Reset to defaults
           </button>

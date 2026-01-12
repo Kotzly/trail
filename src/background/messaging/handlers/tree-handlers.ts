@@ -111,9 +111,22 @@ export const treeHandlers = defineHandlers({
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
-    node.data = updateNodeData(node.data, {
-      layout: { offsetX: message.offsetX, offsetY: message.offsetY },
-    });
+    const existingLayout = node.data.layout ?? { offsetX: 0, offsetY: 0 };
+    const nextLayout = {
+      offsetX: typeof message.offsetX === 'number' ? message.offsetX : existingLayout.offsetX,
+      offsetY: typeof message.offsetY === 'number' ? message.offsetY : existingLayout.offsetY,
+      ...(message.radial
+        ? { radial: message.radial }
+        : existingLayout.radial
+          ? { radial: existingLayout.radial }
+          : {}),
+    };
+    const hasChanges =
+      typeof message.offsetX === 'number' ||
+      typeof message.offsetY === 'number' ||
+      typeof message.radial !== 'undefined';
+    if (!hasChanges) return ok();
+    node.data = updateNodeData(node.data, { layout: nextLayout });
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
     return ok();

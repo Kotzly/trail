@@ -13,6 +13,7 @@ import type { CanvasBounds, NodePosition } from '../../graph/types.js';
 import GraphNode from './GraphNode.js';
 import GraphZoomControls from './GraphZoomControls.js';
 import { useStore } from '../../state/store.js';
+import React from 'react';
 
 
 type SelectionBox = {
@@ -49,24 +50,52 @@ function buildConnections(
   root: NavigationNode | null,
   positions: Map<number, NodePosition>,
   pathNodeIds: Set<NodeId> | null,
+  layoutMode: 'tree' | 'mindmap' | 'radial',
+  openNodeIds: Set<NodeId> | null,
 ): Connection[] {
   if (!root) return [];
   const { nodeWidth, nodeHeight } = getLayoutConfig();
   const list: Connection[] = [];
+  const isClosed = (nodeId: NodeId) => openNodeIds ? !openNodeIds.has(nodeId) : false;
   const traverse = (node: NavigationNode | null) => {
     if (!node) return;
     const parentPos = positions.get(node.id);
     if (!parentPos) return;
     node.getChildren().forEach((child, idx) => {
+      if (isClosed(node.id) || isClosed(child.id)) return;
       const childPos = positions.get(child.id);
       if (!childPos) return;
-      const startX = parentPos.x + nodeWidth / 2;
-      const startY = parentPos.y + nodeHeight / 2;
-      const endX = childPos.x + nodeWidth / 2;
-      const endY = childPos.y + nodeHeight / 2;
+      let startX: number;
+      let startY: number;
+      let endX: number;
+      let endY: number;
+      if (layoutMode === 'tree') {
+        startX = parentPos.x + nodeWidth / 2;
+        startY = parentPos.y + nodeHeight;
+        endX = childPos.x + nodeWidth / 2;
+        endY = childPos.y;
+      } else if (layoutMode === 'mindmap') {
+        const childOnRight = childPos.x >= parentPos.x;
+        startX = parentPos.x + (childOnRight ? nodeWidth : 0);
+        startY = parentPos.y + nodeHeight / 2;
+        endX = childPos.x + (childOnRight ? 0 : nodeWidth);
+        endY = childPos.y + nodeHeight / 2;
+      } else {
+        startX = parentPos.x + nodeWidth / 2;
+        startY = parentPos.y + nodeHeight / 2;
+        endX = childPos.x + nodeWidth / 2;
+        endY = childPos.y + nodeHeight / 2;
+      }
       const midX = (startX + endX) / 2;
       const midY = (startY + endY) / 2;
-      const d = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
+      let d: string;
+      if (layoutMode === 'tree') {
+        d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+      } else if (layoutMode === 'mindmap') {
+        d = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
+      } else {
+        d = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
+      }
       const onPath =
         pathNodeIds ? pathNodeIds.has(node.id) && pathNodeIds.has(child.id) : false;
       list.push({
@@ -101,6 +130,7 @@ export default function GraphArea() {
   const clearSelection = useStore((state) => state.clearSelection);
   const setGraphView = useStore((state) => state.setGraphView);
   const setNodeLayoutOffset = useStore((state) => state.setNodeLayoutOffset);
+  const setNodeLayoutRadial = useStore((state) => state.setNodeLayoutRadial);
   const openContextMenu = useStore((state) => state.openContextMenu);
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -115,14 +145,27 @@ export default function GraphArea() {
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [previewSelection, setPreviewSelection] = useState<Set<NodeId>>(new Set());
   const previewSelectionRef = useRef<Set<NodeId>>(new Set());
+  const [isDraggingNode, setIsDraggingNode] = useState(false);
   const isPanningRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
   const dragStateRef = useRef<{
     nodeId: NodeId;
     startX: number;
     startY: number;
+    startNodeX: number;
+    startNodeY: number;
     baseOffsetX: number;
     baseOffsetY: number;
+    mode: 'tree' | 'mindmap' | 'radial';
+    radial?: {
+      rootCenterX: number;
+      rootCenterY: number;
+      baseAngle: number;
+      baseRadius: number;
+      ancestorAngle: number;
+      ancestorRadius: number;
+      minRadius: number;
+    };
   } | null>(null);
   const dragMovedRef = useRef(false);
   const isSelectingRef = useRef(false);
@@ -177,27 +220,66 @@ export default function GraphArea() {
   const basePositions = layout?.positions ?? new Map<number, NodePosition>();
   const positions = useMemo(() => {
     if (basePositions.size === 0) return basePositions;
-    const offsetCache = new Map<NodeId, { x: number; y: number }>();
-    const computeOffset = (node: NavigationNode): { x: number; y: number } => {
+    if (layoutOptions.mode !== 'radial') {
+      const offsetCache = new Map<NodeId, { x: number; y: number }>();
+      const computeOffset = (node: NavigationNode): { x: number; y: number } => {
+        if (offsetCache.has(node.id)) {
+          return offsetCache.get(node.id)!;
+        }
+        const parent = node.getParent?.();
+        const parentOffset = parent ? computeOffset(parent) : { x: 0, y: 0 };
+        const layoutData = node.data.layout;
+        const offsetX = typeof layoutData?.offsetX === 'number' ? layoutData.offsetX : 0;
+        const offsetY = typeof layoutData?.offsetY === 'number' ? layoutData.offsetY : 0;
+        const total = { x: parentOffset.x + offsetX, y: parentOffset.y + offsetY };
+        offsetCache.set(node.id, total);
+        return total;
+      };
+      const next = new Map<number, NodePosition>();
+      basePositions.forEach((pos, id) => {
+        const offset = computeOffset(pos.node);
+        next.set(id, { ...pos, x: pos.x + offset.x, y: pos.y + offset.y });
+      });
+      return next;
+    }
+
+    if (!root) return basePositions;
+    const rootPos = basePositions.get(root.id);
+    if (!rootPos) return basePositions;
+    const centerX = rootPos.x + nodeWidth / 2;
+    const centerY = rootPos.y + nodeHeight / 2;
+    const offsetCache = new Map<NodeId, { angle: number; radius: number }>();
+    const computeRadialOffset = (node: NavigationNode): { angle: number; radius: number } => {
       if (offsetCache.has(node.id)) {
         return offsetCache.get(node.id)!;
       }
       const parent = node.getParent?.();
-      const parentOffset = parent ? computeOffset(parent) : { x: 0, y: 0 };
-      const layoutData = node.data.layout;
-      const offsetX = typeof layoutData?.offsetX === 'number' ? layoutData.offsetX : 0;
-      const offsetY = typeof layoutData?.offsetY === 'number' ? layoutData.offsetY : 0;
-      const total = { x: parentOffset.x + offsetX, y: parentOffset.y + offsetY };
+      const parentOffset = parent ? computeRadialOffset(parent) : { angle: 0, radius: 0 };
+      const radial = node.data.layout?.radial;
+      const angleDelta = typeof radial?.angleDelta === 'number' ? radial.angleDelta : 0;
+      const radiusDelta = typeof radial?.radiusDelta === 'number' ? radial.radiusDelta : 0;
+      const total = { angle: parentOffset.angle + angleDelta, radius: parentOffset.radius + radiusDelta };
       offsetCache.set(node.id, total);
       return total;
     };
     const next = new Map<number, NodePosition>();
     basePositions.forEach((pos, id) => {
-      const offset = computeOffset(pos.node);
-      next.set(id, { ...pos, x: pos.x + offset.x, y: pos.y + offset.y });
+      const offset = computeRadialOffset(pos.node);
+      const nodeCenterX = pos.x + nodeWidth / 2;
+      const nodeCenterY = pos.y + nodeHeight / 2;
+      const baseDx = nodeCenterX - centerX;
+      const baseDy = nodeCenterY - centerY;
+      const baseRadius = Math.hypot(baseDx, baseDy);
+      const baseAngle = Math.atan2(baseDy, baseDx);
+      const minRadius = pos.node.isRoot?.() ? 0 : nodeWidth * 0.35;
+      const radius = Math.max(minRadius, baseRadius + offset.radius);
+      const angle = baseAngle + offset.angle;
+      const x = centerX + radius * Math.cos(angle) - nodeWidth / 2;
+      const y = centerY + radius * Math.sin(angle) - nodeHeight / 2;
+      next.set(id, { ...pos, x, y });
     });
     return next;
-  }, [basePositions, layoutVersion]);
+  }, [basePositions, layoutOptions.mode, layoutVersion, nodeHeight, nodeWidth, root]);
 
   const bounds: CanvasBounds = useMemo(() => {
     if (!layout) {
@@ -214,7 +296,10 @@ export default function GraphArea() {
     return getPathToNode(root, currentNodeId);
   }, [currentNodeId, root]);
 
-  const connections = useMemo(() => buildConnections(root, positions, pathNodeIds), [positions, pathNodeIds, root]);
+  const connections = useMemo(
+    () => buildConnections(root, positions, pathNodeIds, layoutOptions.mode, openNodeIds),
+    [layoutOptions.mode, openNodeIds, pathNodeIds, positions, root],
+  );
 
   const fitToView = (animate = false) => {
     const wrapper = wrapperRef.current;
@@ -506,9 +591,11 @@ export default function GraphArea() {
   };
 
   const handleNodePointerDown = (node: NavigationNode, event: React.PointerEvent<HTMLDivElement>) => {
-    if (tool === 'hand') return;
     if (event.button !== 0) return;
     if (event.shiftKey) return;
+    if (layoutOptions.mode === 'radial' && node.isRoot?.()) return;
+    const startPos = positions.get(node.id);
+    if (!startPos) return;
     event.stopPropagation();
     dragMovedRef.current = false;
     const startLayout = node.data.layout;
@@ -518,9 +605,43 @@ export default function GraphArea() {
       nodeId: node.id,
       startX: event.clientX,
       startY: event.clientY,
+      startNodeX: startPos.x,
+      startNodeY: startPos.y,
       baseOffsetX,
       baseOffsetY,
+      mode: layoutOptions.mode,
     };
+    if (layoutOptions.mode === 'radial') {
+      const rootPos = basePositions.get(root?.id ?? -1);
+      const basePos = basePositions.get(node.id);
+      if (!rootPos || !basePos) return;
+      const rootCenterX = rootPos.x + nodeWidth / 2;
+      const rootCenterY = rootPos.y + nodeHeight / 2;
+      const baseCenterX = basePos.x + nodeWidth / 2;
+      const baseCenterY = basePos.y + nodeHeight / 2;
+      const baseDx = baseCenterX - rootCenterX;
+      const baseDy = baseCenterY - rootCenterY;
+      const baseAngle = Math.atan2(baseDy, baseDx);
+      const baseRadius = Math.hypot(baseDx, baseDy);
+      let ancestorAngle = 0;
+      let ancestorRadius = 0;
+      let parent = node.getParent?.();
+      while (parent) {
+        const radial = parent.data.layout?.radial;
+        ancestorAngle += radial?.angleDelta ?? 0;
+        ancestorRadius += radial?.radiusDelta ?? 0;
+        parent = parent.getParent?.();
+      }
+      dragStateRef.current.radial = {
+        rootCenterX,
+        rootCenterY,
+        baseAngle,
+        baseRadius,
+        ancestorAngle,
+        ancestorRadius,
+        minRadius: nodeWidth * 0.35,
+      };
+    }
 
     const handleMove = (moveEvent: PointerEvent) => {
       const state = dragStateRef.current;
@@ -530,23 +651,48 @@ export default function GraphArea() {
       const deltaY = (moveEvent.clientY - state.startY) / scale;
       if (!dragMovedRef.current && Math.hypot(deltaX, deltaY) > 3) {
         dragMovedRef.current = true;
+        setIsDraggingNode(true);
       }
       if (!dragMovedRef.current) return;
-      setNodeLayoutOffset(state.nodeId, state.baseOffsetX + deltaX, state.baseOffsetY + deltaY);
+      if (state.mode === 'radial' && state.radial) {
+        const targetCenterX = state.startNodeX + deltaX + nodeWidth / 2;
+        const targetCenterY = state.startNodeY + deltaY + nodeHeight / 2;
+        const desiredDx = targetCenterX - state.radial.rootCenterX;
+        const desiredDy = targetCenterY - state.radial.rootCenterY;
+        const desiredAngle = Math.atan2(desiredDy, desiredDx);
+        const desiredRadius = Math.max(state.radial.minRadius, Math.hypot(desiredDx, desiredDy));
+        const totalAngleDelta = desiredAngle - state.radial.baseAngle;
+        const totalRadiusDelta = desiredRadius - state.radial.baseRadius;
+        const nodeAngleDelta = totalAngleDelta - state.radial.ancestorAngle;
+        const nodeRadiusDelta = totalRadiusDelta - state.radial.ancestorRadius;
+        setNodeLayoutRadial(state.nodeId, nodeAngleDelta, nodeRadiusDelta);
+      } else {
+        setNodeLayoutOffset(state.nodeId, state.baseOffsetX + deltaX, state.baseOffsetY + deltaY);
+      }
     };
 
     const handleUp = async () => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
       const state = dragStateRef.current;
       dragStateRef.current = null;
+      setIsDraggingNode(false);
       if (!state) return;
       if (!dragMovedRef.current) return;
       const treeNode = tree?.findNodeById(state.nodeId);
       const layoutData = treeNode?.data.layout;
       if (!layoutData) return;
       try {
-        await setNodeLayout(state.nodeId, layoutData.offsetX, layoutData.offsetY);
+        if (state.mode === 'radial') {
+          if (!layoutData.radial) return;
+          await setNodeLayout(state.nodeId, { radial: layoutData.radial });
+        } else {
+          await setNodeLayout(state.nodeId, {
+            offsetX: layoutData.offsetX,
+            offsetY: layoutData.offsetY,
+          });
+        }
       } catch (error) {
         console.error('Failed to save node position:', error);
       }
@@ -554,6 +700,7 @@ export default function GraphArea() {
 
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleUp, { once: true });
+    window.addEventListener('pointercancel', handleUp, { once: true });
   };
 
   const handleNodeContextMenu = (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => {
@@ -600,7 +747,7 @@ export default function GraphArea() {
   return (
     <div className="stack-container" id="stackContainer">
       <div
-        className="graph-wrapper"
+        className={`graph-wrapper${isDraggingNode ? ' is-dragging' : ''}`}
         ref={wrapperRef}
         tabIndex={0}
         onMouseDown={handleMouseDown}

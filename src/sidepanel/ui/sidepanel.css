@@ -1084,9 +1084,14 @@ body {
   border: 2px solid var(--md-outline-variant);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
   box-shadow: 0 2px 8px var(--md-shadow);
   user-select: none;
+}
+
+.graph-wrapper.is-dragging .graph-node,
+.graph-wrapper.is-dragging .graph-connection {
+  transition: none;
 }
 
 .graph-node:hover {
@@ -1331,6 +1336,10 @@ body {
 
 .popover-segment-btn {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border: none;
   background: transparent;
   color: var(--md-on-surface-variant);

@@ -89,6 +89,7 @@ type StoreActions = {
   clearSelection: () => void;
   setGraphView: (view: Partial<ViewState>) => void;
   setNodeLayoutOffset: (nodeId: NodeId, offsetX: number, offsetY: number) => void;
+  setNodeLayoutRadial: (nodeId: NodeId, angleDelta: number, radiusDelta: number) => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
 };
@@ -252,7 +253,22 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       if (!tree) return state;
       const node = tree.findNodeById(nodeId);
       if (!node) return state;
-      node.data.layout = { offsetX, offsetY };
+      const radial = node.data.layout?.radial;
+      node.data.layout = radial ? { offsetX, offsetY, radial } : { offsetX, offsetY };
+      return {
+        tree,
+        graph: { ...state.graph, layoutVersion: state.graph.layoutVersion + 1 },
+      };
+    }),
+  setNodeLayoutRadial: (nodeId, angleDelta, radiusDelta) =>
+    set((state) => {
+      const tree = state.tree;
+      if (!tree) return state;
+      const node = tree.findNodeById(nodeId);
+      if (!node) return state;
+      const offsetX = node.data.layout?.offsetX ?? 0;
+      const offsetY = node.data.layout?.offsetY ?? 0;
+      node.data.layout = { offsetX, offsetY, radial: { angleDelta, radiusDelta } };
       return {
         tree,
         graph: { ...state.graph, layoutVersion: state.graph.layoutVersion + 1 },

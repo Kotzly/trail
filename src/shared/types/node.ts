@@ -12,6 +12,10 @@ export type NodeData = {
     layout?: {
       offsetX: number;
       offsetY: number;
+      radial?: {
+        angleDelta: number;
+        radiusDelta: number;
+      };
     };
 
 }
@@ -23,8 +27,14 @@ export function updateNodeData(
   old: NodeData,
   patch: NodeDataPatch
 ): NodeData {
+  const radial = patch.layout?.radial
+    ? {
+        ...(old.layout?.radial ?? { angleDelta: 0, radiusDelta: 0 }),
+        ...patch.layout.radial,
+      }
+    : old.layout?.radial;
   const layout = patch.layout
-    ? { ...(old.layout ?? { offsetX: 0, offsetY: 0 }), ...patch.layout }
+    ? { ...(old.layout ?? { offsetX: 0, offsetY: 0 }), ...patch.layout, radial }
     : old.layout;
 
   return {
