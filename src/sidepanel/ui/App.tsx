@@ -3,6 +3,7 @@ import FloatingControls from './components/FloatingControls.js';
 import GraphArea from './components/graph/GraphArea.js';
 import SettingsPopover from './components/SettingsPopover.js';
 import ContextMenus from './components/ContextMenus.js';
+import NotificationsHost from './components/NotificationsHost.js';
 import { useBootstrap } from './hooks/useBootstrap.js';
 import { useChromeMessages } from './hooks/useChromeMessages.js';
 import { useShortcuts } from './hooks/useShortcuts.js';
@@ -19,6 +20,7 @@ export default function App() {
   return (
     <div className="container">
       <FloatingControls settingsBtnRef={settingsBtnRef} searchInputRef={searchInputRef} />
+      <NotificationsHost />
       <GraphArea />
       <SettingsPopover anchorRef={settingsBtnRef} />
       <ContextMenus />

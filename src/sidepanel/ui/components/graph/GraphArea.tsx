@@ -726,20 +726,6 @@ export default function GraphArea() {
     clearSelection();
   };
 
-  if (!root) {
-    return (
-      <div className="stack-container" id="stackContainer">
-        <div className="empty-state" id="emptyState">
-          <svg className="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-          </svg>
-          <p>no history yet</p>
-          <span>start browsing to see your navigation graph</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="stack-container" id="stackContainer">
       <div

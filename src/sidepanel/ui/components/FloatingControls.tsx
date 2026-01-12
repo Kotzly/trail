@@ -51,7 +51,7 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
   };
 
   return (
-    <div className="floating-controls">
+    <div className="floating-controls" data-notify-anchor="true">
       <div className="floating-controls-left">
         <div className="floating-island">
           <button

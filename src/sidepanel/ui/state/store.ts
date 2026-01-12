@@ -7,6 +7,7 @@ import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { PinnedManager } from '../../../background/state/pinned.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
+import type { NotificationItem } from '../notifications/types.js';
 
 export type MetaKeyPair = { short: '^'; long: 'ctrl' } | { short: '⌘'; long: 'cmd' };
 
@@ -43,6 +44,7 @@ type StoreState = {
   commandState: CommandState | null;
   tagDefs: Record<string, TagDefinition>;
   tagDefsList: TagDefinition[];
+  notifications: NotificationItem[];
   search: {
     query: string;
     results: NodeId[];
@@ -96,6 +98,9 @@ type StoreActions = {
   requestAutoCenter: () => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
+  addNotification: (notification: NotificationItem) => void;
+  removeNotification: (id: string) => void;
+  clearNotifications: () => void;
 };
 
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
@@ -110,6 +115,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   commandState: null,
   tagDefs: {},
   tagDefsList: [],
+  notifications: [],
   search: {
     query: '',
     results: [],
@@ -300,4 +306,13 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
 
   openContextMenu: (menu) => set({ contextMenu: menu }),
   closeContextMenu: () => set({ contextMenu: null }),
+  addNotification: (notification) =>
+    set((state) => ({
+      notifications: [notification, ...state.notifications],
+    })),
+  removeNotification: (id) =>
+    set((state) => ({
+      notifications: state.notifications.filter((item) => item.id !== id),
+    })),
+  clearNotifications: () => set({ notifications: [] }),
 }));

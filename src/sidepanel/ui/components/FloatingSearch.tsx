@@ -36,7 +36,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
         <Icons.Search size={18} />
       </button>
 
-      <div className="floating-search-panel">
+      <div className="floating-search-panel" data-notify-anchor={hasQuery ? 'true' : undefined}>
         <div className="floating-search-input">
           <input
             ref={inputRef}
