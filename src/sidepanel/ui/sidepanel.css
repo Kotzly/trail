@@ -10,9 +10,11 @@
   --md-on-surface-variant: #45464F;
   --md-outline: #76767F;
   --md-outline-variant: #C6C6D0;
-  --md-primary: #5056A9;
+  --md-primary: #0E0F12;
   --md-on-primary: #FFFFFF;
-  --md-primary-container: #E0E0FF;
+  --md-primary-container: #F2F4F7;
+  --md-on-primary-container: #1B1E23;
+  --md-primary-rgb: 14, 15, 18;
   --md-shadow: rgba(0, 0, 0, 0.1);
   --md-closed-highlight: var(--md-surface-container);
   --md-elev-1: 0 2px 8px rgba(20, 24, 40, 0.1);
@@ -35,9 +37,11 @@
   --md-on-surface-variant: #C6C5D0;
   --md-outline: #908F99;
   --md-outline-variant: #46464F;
-  --md-primary: #BFC2FF;
-  --md-on-primary: #272B78;
-  --md-primary-container: #3E4290;
+  --md-primary: #FFFFFF;
+  --md-on-primary: #111318;
+  --md-primary-container: #1C1F24;
+  --md-on-primary-container: #F5F7FA;
+  --md-primary-rgb: 255, 255, 255;
   --md-shadow: rgba(0, 0, 0, 0.4);
   --md-closed-highlight: var(--md-surface);
   --md-elev-1:
@@ -69,9 +73,11 @@
     --md-on-surface-variant: #C6C5D0;
     --md-outline: #908F99;
     --md-outline-variant: #46464F;
-    --md-primary: #BFC2FF;
-    --md-on-primary: #272B78;
-    --md-primary-container: #3E4290;
+    --md-primary: #FFFFFF;
+    --md-on-primary: #111318;
+    --md-primary-container: #1C1F24;
+    --md-on-primary-container: #F5F7FA;
+    --md-primary-rgb: 255, 255, 255;
     --md-shadow: rgba(0, 0, 0, 0.4);
     --md-closed-highlight: var(--md-surface);
     --md-elev-1:
@@ -103,9 +109,11 @@
     --md-on-surface-variant: #45464F;
     --md-outline: #76767F;
     --md-outline-variant: #C6C6D0;
-    --md-primary: #5056A9;
+    --md-primary: #0E0F12;
     --md-on-primary: #FFFFFF;
-    --md-primary-container: #E0E0FF;
+    --md-primary-container: #F2F4F7;
+    --md-on-primary-container: #1B1E23;
+    --md-primary-rgb: 14, 15, 18;
     --md-shadow: rgba(0, 0, 0, 0.1);
     --md-closed-highlight: var(--md-surface-container);
     --md-elev-1: 0 2px 8px rgba(20, 24, 40, 0.1);
@@ -1498,21 +1506,23 @@ body {
    ======================================== */
 
 .graph-node.closed {
-  filter: saturate(0.25) brightness(0.68);
+  filter: var(--graph-node-closed-filter, saturate(0.25) brightness(0.68));
   background: var(--graph-node-closed-bg, var(--md-surface-container-high));
   border-color: var(--graph-node-closed-border, var(--md-outline-variant));
 }
 
 .graph-node.closed:hover {
-  filter: saturate(0.35) brightness(0.78);
+  filter: var(--graph-node-closed-filter-hover, saturate(0.35) brightness(0.78));
   background: var(--graph-node-closed-bg-hover, var(--md-surface-container));
 }
 
 :root,
 [data-theme="light"] {
-  --graph-node-closed-bg: #CFCFD6;
-  --graph-node-closed-bg-hover: #D7D7DD;
-  --graph-node-closed-border: rgba(60, 60, 70, 0.8);
+  --graph-node-closed-bg: #E5E7EB;
+  --graph-node-closed-bg-hover: #ECEFF3;
+  --graph-node-closed-border: rgba(80, 86, 96, 0.45);
+  --graph-node-closed-filter: none;
+  --graph-node-closed-filter-hover: none;
 }
 
 [data-theme="dark"] {
@@ -1531,9 +1541,11 @@ body {
 
 @media (prefers-color-scheme: light) {
   [data-theme="system"] {
-    --graph-node-closed-bg: var(--md-surface-container-high);
-    --graph-node-closed-bg-hover: var(--md-surface-container);
-    --graph-node-closed-border: rgba(118, 118, 127, 0.6);
+    --graph-node-closed-bg: #E5E7EB;
+    --graph-node-closed-bg-hover: #ECEFF3;
+    --graph-node-closed-border: rgba(80, 86, 96, 0.45);
+    --graph-node-closed-filter: none;
+    --graph-node-closed-filter-hover: none;
   }
 }
 
