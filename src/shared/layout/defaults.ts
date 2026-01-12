@@ -13,9 +13,9 @@ export const DEFAULT_LAYOUT_SETTINGS: LayoutSettings = {
     radial: {
         angleWeightExp: 0.42,
         minSpanFactor: 0.75,
-        minSpanAbs: 0.12,
-        requiredScale: 0.7,
-        depthGapBase: 1.25,
-        depthGapGrowth: 0.22,
+        minSpanAbs: 0.11,
+        requiredScale: 0.85,
+        depthGapBase: 2.2,
+        depthGapGrowth: 0.2,
     },
 };

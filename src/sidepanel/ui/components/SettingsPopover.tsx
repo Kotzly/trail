@@ -211,7 +211,7 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
   const resetLayout = () => {
     void updateSettings({
       layout: {
-        mode: DEFAULT_LAYOUT_SETTINGS.mode,
+        mode: layout.mode,
         tree: { ...DEFAULT_LAYOUT_SETTINGS.tree },
         mindmap: { ...DEFAULT_LAYOUT_SETTINGS.mindmap },
         radial: { ...DEFAULT_LAYOUT_SETTINGS.radial },
@@ -219,7 +219,14 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
     });
   };
   const resetView = async () => {
-    resetLayout();
+    void updateSettings({
+      layout: {
+        mode: layout.mode,
+        tree: { ...DEFAULT_LAYOUT_SETTINGS.tree },
+        mindmap: { ...DEFAULT_LAYOUT_SETTINGS.mindmap },
+        radial: { ...DEFAULT_LAYOUT_SETTINGS.radial },
+      },
+    });
     try {
       await resetNodeLayouts();
     } catch (error) {
