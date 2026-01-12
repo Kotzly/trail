@@ -85,9 +85,14 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
     if (!tabManager.shouldSuppressTouch(tabId)) {
         tabManager.touch(tabId, nodeId);
     }
+    const prevCurrentId = tree.getCurrentId();
     tree.setCurrentById(nodeId);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'tabs');
+    if (prevCurrentId !== nodeId) {
+      await notifyTreeUpdate(tree, 'set-current', { focusNodeId: nodeId, mode: 'force' });
+    } else {
+      await notifyTreeUpdate(tree, 'tabs');
+    }
 }
 
 async function onTabUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab): Promise<void> {
