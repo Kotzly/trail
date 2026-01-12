@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { CSSProperties, RefObject } from 'react';
 import type {
   LayoutSettings,
+  MindmapLayoutSettings,
   RadialLayoutSettings,
   Settings,
   TreeLayoutSettings,
@@ -180,6 +181,7 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
   type LayoutPatch = {
     mode?: LayoutSettings['mode'];
     tree?: Partial<TreeLayoutSettings>;
+    mindmap?: Partial<MindmapLayoutSettings>;
     radial?: Partial<RadialLayoutSettings>;
   };
 
@@ -188,6 +190,7 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
       ...layout,
       ...partial,
       tree: { ...layout.tree, ...(partial.tree ?? {}) },
+      mindmap: { ...layout.mindmap, ...(partial.mindmap ?? {}) },
       radial: { ...layout.radial, ...(partial.radial ?? {}) },
     };
     void updateSettings({ layout: next });
@@ -198,6 +201,7 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
       layout: {
         mode: DEFAULT_LAYOUT_SETTINGS.mode,
         tree: { ...DEFAULT_LAYOUT_SETTINGS.tree },
+        mindmap: { ...DEFAULT_LAYOUT_SETTINGS.mindmap },
         radial: { ...DEFAULT_LAYOUT_SETTINGS.radial },
       },
     });
@@ -263,6 +267,13 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
             </button>
             <button
               type="button"
+              className={`popover-segment-btn ${layout.mode === 'mindmap' ? 'active' : ''}`}
+              onClick={() => updateLayout({ mode: 'mindmap' })}
+            >
+              Mindmap
+            </button>
+            <button
+              type="button"
               className={`popover-segment-btn ${layout.mode === 'radial' ? 'active' : ''}`}
               onClick={() => updateLayout({ mode: 'radial' })}
             >
@@ -296,6 +307,31 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
                 max={3}
                 className="popover-input-small drag-number"
                 onValueChange={(value) => updateLayout({ tree: { horizontalGapScale: value } })}
+              />
+            </div>
+          </div>
+        ) : layout.mode === 'mindmap' ? (
+          <div className="popover-section">
+            <div className="popover-row">
+              <span className="popover-label-small">Vertical gap</span>
+              <DragNumberInput
+                value={layout.mindmap.verticalGapScale}
+                step={0.1}
+                min={0.4}
+                max={3}
+                className="popover-input-small drag-number"
+                onValueChange={(value) => updateLayout({ mindmap: { verticalGapScale: value } })}
+              />
+            </div>
+            <div className="popover-row">
+              <span className="popover-label-small">Horizontal gap</span>
+              <DragNumberInput
+                value={layout.mindmap.horizontalGapScale}
+                step={0.1}
+                min={0.4}
+                max={3}
+                className="popover-input-small drag-number"
+                onValueChange={(value) => updateLayout({ mindmap: { horizontalGapScale: value } })}
               />
             </div>
           </div>

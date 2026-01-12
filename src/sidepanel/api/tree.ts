@@ -67,3 +67,9 @@ export async function clearTree(): Promise<void> {
     if (!res.success) throw new Error(res.error);
     return res.data;
 }
+
+export async function setNodeLayout(nodeId: NodeId, offsetX: number, offsetY: number): Promise<void> {
+    const res = await sendMessage(msg.setNodeLayout({ nodeId, offsetX, offsetY }));
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}

@@ -2,18 +2,17 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
 import type { NodeId } from '../../../../shared/types/ids.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
-import { navigateTo } from '../../../api/tree.js';
+import { navigateTo, setNodeLayout } from '../../../api/tree.js';
 import {
   getLayoutConfig,
   PADDING,
 } from '../../graph/layout/config.js';
-import { calculateLayout, calculateRadialLayout, getCanvasBounds } from '../../graph/layout/calculator.js';
+import { calculateLayout, calculateMindmapLayout, calculateRadialLayout, getCanvasBounds } from '../../graph/layout/calculator.js';
 import { deriveLayoutOptions } from '../../graph/layout/options.js';
 import type { CanvasBounds, NodePosition } from '../../graph/types.js';
 import GraphNode from './GraphNode.js';
 import GraphZoomControls from './GraphZoomControls.js';
 import { useStore } from '../../state/store.js';
-import React from 'react';
 
 
 type SelectionBox = {
@@ -62,11 +61,12 @@ function buildConnections(
       const childPos = positions.get(child.id);
       if (!childPos) return;
       const startX = parentPos.x + nodeWidth / 2;
-      const startY = parentPos.y + nodeHeight;
+      const startY = parentPos.y + nodeHeight / 2;
       const endX = childPos.x + nodeWidth / 2;
-      const endY = childPos.y;
+      const endY = childPos.y + nodeHeight / 2;
+      const midX = (startX + endX) / 2;
       const midY = (startY + endY) / 2;
-      const d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+      const d = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
       const onPath =
         pathNodeIds ? pathNodeIds.has(node.id) && pathNodeIds.has(child.id) : false;
       list.push({
@@ -92,6 +92,7 @@ export default function GraphArea() {
   const searchActive = useStore((state) => state.search.active);
   const settings = useStore((state) => state.settings);
   const selectedNodeIds = useStore((state) => state.graph.selectedNodeIds);
+  const layoutVersion = useStore((state) => state.graph.layoutVersion);
   const tool = useStore((state) => state.graph.tool);
   const graphView = useStore((state) => state.graph.view);
   const setGraphTool = useStore((state) => state.setGraphTool);
@@ -99,6 +100,7 @@ export default function GraphArea() {
   const toggleSelectedNode = useStore((state) => state.toggleSelectedNode);
   const clearSelection = useStore((state) => state.clearSelection);
   const setGraphView = useStore((state) => state.setGraphView);
+  const setNodeLayoutOffset = useStore((state) => state.setNodeLayoutOffset);
   const openContextMenu = useStore((state) => state.openContextMenu);
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -115,6 +117,14 @@ export default function GraphArea() {
   const previewSelectionRef = useRef<Set<NodeId>>(new Set());
   const isPanningRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
+  const dragStateRef = useRef<{
+    nodeId: NodeId;
+    startX: number;
+    startY: number;
+    baseOffsetX: number;
+    baseOffsetY: number;
+  } | null>(null);
+  const dragMovedRef = useRef(false);
   const isSelectingRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0 });
   const selectionStartRef = useRef({ x: 0, y: 0 });
@@ -154,18 +164,47 @@ export default function GraphArea() {
 
   const layout = useMemo(() => {
     if (!root) return null;
-    return layoutOptions.mode === 'tree'
-      ? calculateLayout(root, layoutOptions.tree)
-      : calculateRadialLayout(root, layoutOptions.radial);
-  }, [layoutOptions.mode, layoutOptions.radial, layoutOptions.tree, root]);
+    switch (layoutOptions.mode) {
+      case 'tree':
+        return calculateLayout(root, layoutOptions.tree);
+      case 'mindmap':
+        return calculateMindmapLayout(root, layoutOptions.mindmap);
+      default:
+        return calculateRadialLayout(root, layoutOptions.radial);
+    }
+  }, [layoutOptions.mode, layoutOptions.mindmap, layoutOptions.radial, layoutOptions.tree, root]);
 
-  const positions = layout?.positions ?? new Map<number, NodePosition>();
+  const basePositions = layout?.positions ?? new Map<number, NodePosition>();
+  const positions = useMemo(() => {
+    if (basePositions.size === 0) return basePositions;
+    const offsetCache = new Map<NodeId, { x: number; y: number }>();
+    const computeOffset = (node: NavigationNode): { x: number; y: number } => {
+      if (offsetCache.has(node.id)) {
+        return offsetCache.get(node.id)!;
+      }
+      const parent = node.getParent?.();
+      const parentOffset = parent ? computeOffset(parent) : { x: 0, y: 0 };
+      const layoutData = node.data.layout;
+      const offsetX = typeof layoutData?.offsetX === 'number' ? layoutData.offsetX : 0;
+      const offsetY = typeof layoutData?.offsetY === 'number' ? layoutData.offsetY : 0;
+      const total = { x: parentOffset.x + offsetX, y: parentOffset.y + offsetY };
+      offsetCache.set(node.id, total);
+      return total;
+    };
+    const next = new Map<number, NodePosition>();
+    basePositions.forEach((pos, id) => {
+      const offset = computeOffset(pos.node);
+      next.set(id, { ...pos, x: pos.x + offset.x, y: pos.y + offset.y });
+    });
+    return next;
+  }, [basePositions, layoutVersion]);
+
   const bounds: CanvasBounds = useMemo(() => {
     if (!layout) {
       return { minX: 0, minY: 0, maxX: 100, maxY: 100, width: 100, height: 100 };
     }
-    return getCanvasBounds(layout.positions);
-  }, [layout]);
+    return getCanvasBounds(positions);
+  }, [layout, positions]);
 
   const nodes = useMemo(() => Array.from(positions.values()), [positions]);
   const searchSet = useMemo(() => new Set(search.results), [search.results]);
@@ -446,6 +485,10 @@ export default function GraphArea() {
 
   const handleNodeClick = async (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
+    if (dragMovedRef.current) {
+      dragMovedRef.current = false;
+      return;
+    }
     if (event.shiftKey) {
       toggleSelectedNode(node.id);
       return;
@@ -460,6 +503,57 @@ export default function GraphArea() {
     } catch (error) {
       console.error('Failed to navigate:', error);
     }
+  };
+
+  const handleNodePointerDown = (node: NavigationNode, event: React.PointerEvent<HTMLDivElement>) => {
+    if (tool === 'hand') return;
+    if (event.button !== 0) return;
+    if (event.shiftKey) return;
+    event.stopPropagation();
+    dragMovedRef.current = false;
+    const startLayout = node.data.layout;
+    const baseOffsetX = typeof startLayout?.offsetX === 'number' ? startLayout.offsetX : 0;
+    const baseOffsetY = typeof startLayout?.offsetY === 'number' ? startLayout.offsetY : 0;
+    dragStateRef.current = {
+      nodeId: node.id,
+      startX: event.clientX,
+      startY: event.clientY,
+      baseOffsetX,
+      baseOffsetY,
+    };
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      const state = dragStateRef.current;
+      if (!state) return;
+      const { scale } = viewRef.current;
+      const deltaX = (moveEvent.clientX - state.startX) / scale;
+      const deltaY = (moveEvent.clientY - state.startY) / scale;
+      if (!dragMovedRef.current && Math.hypot(deltaX, deltaY) > 3) {
+        dragMovedRef.current = true;
+      }
+      if (!dragMovedRef.current) return;
+      setNodeLayoutOffset(state.nodeId, state.baseOffsetX + deltaX, state.baseOffsetY + deltaY);
+    };
+
+    const handleUp = async () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      const state = dragStateRef.current;
+      dragStateRef.current = null;
+      if (!state) return;
+      if (!dragMovedRef.current) return;
+      const treeNode = tree?.findNodeById(state.nodeId);
+      const layoutData = treeNode?.data.layout;
+      if (!layoutData) return;
+      try {
+        await setNodeLayout(state.nodeId, layoutData.offsetX, layoutData.offsetY);
+      } catch (error) {
+        console.error('Failed to save node position:', error);
+      }
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp, { once: true });
   };
 
   const handleNodeContextMenu = (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => {
@@ -555,6 +649,7 @@ export default function GraphArea() {
                 isSearchDimmed={search.query.length > 0 && !searchSet.has(pos.node.id)}
                 onClick={(event) => void handleNodeClick(pos.node, event)}
                 onContextMenu={(event) => handleNodeContextMenu(pos.node, event)}
+                onPointerDown={(event) => handleNodePointerDown(pos.node, event)}
               />
             ))}
           </div>

@@ -40,6 +40,7 @@ export const MSG = {
     DELETE_CHILDREN: 'DELETE_CHILDREN',
     DELETE_WITH_CHILDREN: 'DELETE_WITH_CHILDREN',
     BULK_DELETE: 'BULK_DELETE',
+    SET_NODE_LAYOUT: 'SET_NODE_LAYOUT',
 } as const;
 
 export type RequestType = typeof MSG[keyof typeof MSG];
@@ -113,6 +114,12 @@ export type BulkUnpinMessage = RequestMessageBase<typeof MSG.BULK_UNPIN, BulkNod
 export type AddTagMessage = RequestMessageBase<typeof MSG.ADD_TAG, TagMessageInput>;
 export type RemoveTagMessage = RequestMessageBase<typeof MSG.REMOVE_TAG, TagMessageInput>;
 
+export type SetNodeLayoutMessage = RequestMessageBase<typeof MSG.SET_NODE_LAYOUT, {
+  nodeId: NodeId;
+  offsetX: number;
+  offsetY: number;
+}>;
+
 export type DeleteNodeMessage = RequestMessageBase<typeof MSG.DELETE_NODE, { nodeId: NodeId }>;
 export type DeleteChildrenMessage = RequestMessageBase<typeof MSG.DELETE_CHILDREN, { nodeId: NodeId }>;
 export type DeleteWithChildrenMessage = RequestMessageBase<typeof MSG.DELETE_WITH_CHILDREN, { nodeId: NodeId }>;
@@ -130,7 +137,8 @@ export type RequestMessage = NavigateToMessage |
     OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
     AddTagMessage | RemoveTagMessage |
-    DeleteNodeMessage | DeleteChildrenMessage | DeleteWithChildrenMessage | BulkDeleteMessage;
+    DeleteNodeMessage | DeleteChildrenMessage | DeleteWithChildrenMessage | BulkDeleteMessage |
+    SetNodeLayoutMessage;
 
 
 // ==== Responses ====
@@ -183,6 +191,7 @@ export type ResponseDataByType = {
     [MSG.DELETE_CHILDREN]: void;
     [MSG.DELETE_WITH_CHILDREN]: void;
     [MSG.BULK_DELETE]: void;
+    [MSG.SET_NODE_LAYOUT]: void;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -240,6 +249,9 @@ export const msg = {
     deleteChildren(payload: { nodeId: NodeId }): DeleteChildrenMessage { return { type: MSG.DELETE_CHILDREN, ...payload } },
     deleteWithChildren(payload: { nodeId: NodeId }): DeleteWithChildrenMessage { return { type: MSG.DELETE_WITH_CHILDREN, ...payload } },
     bulkDelete(payload: BulkNodeIdsInput): BulkDeleteMessage { return { type: MSG.BULK_DELETE, ...payload } },
+    setNodeLayout(payload: { nodeId: NodeId; offsetX: number; offsetY: number }): SetNodeLayoutMessage {
+        return { type: MSG.SET_NODE_LAYOUT, ...payload };
+    },
 }
 
 // ==== message handler ====

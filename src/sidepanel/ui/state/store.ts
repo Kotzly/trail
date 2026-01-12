@@ -58,6 +58,7 @@ type StoreState = {
     tool: GraphTool;
     selectedNodeIds: Set<NodeId>;
     view: ViewState;
+    layoutVersion: number;
   };
   contextMenu: ContextMenuState;
   metaKey: MetaKeyPair | null;
@@ -87,6 +88,7 @@ type StoreActions = {
   toggleSelectedNode: (id: NodeId) => void;
   clearSelection: () => void;
   setGraphView: (view: Partial<ViewState>) => void;
+  setNodeLayoutOffset: (nodeId: NodeId, offsetX: number, offsetY: number) => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
 };
@@ -118,6 +120,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     tool: 'hand',
     selectedNodeIds: new Set<NodeId>(),
     view: { translateX: 0, translateY: 0, scale: 1 },
+    layoutVersion: 0,
   },
   contextMenu: null,
   metaKey: null,
@@ -243,6 +246,18 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set((state) => ({
       graph: { ...state.graph, view: { ...state.graph.view, ...view } },
     })),
+  setNodeLayoutOffset: (nodeId, offsetX, offsetY) =>
+    set((state) => {
+      const tree = state.tree;
+      if (!tree) return state;
+      const node = tree.findNodeById(nodeId);
+      if (!node) return state;
+      node.data.layout = { offsetX, offsetY };
+      return {
+        tree,
+        graph: { ...state.graph, layoutVersion: state.graph.layoutVersion + 1 },
+      };
+    }),
 
   openContextMenu: (menu) => set({ contextMenu: menu }),
   closeContextMenu: () => set({ contextMenu: null }),

@@ -9,6 +9,10 @@ export type NodeData = {
     favicon?: FaviconUrl;
     pinned: boolean;
     tags: Tag[];
+    layout?: {
+      offsetX: number;
+      offsetY: number;
+    };
 
 }
 
@@ -19,6 +23,10 @@ export function updateNodeData(
   old: NodeData,
   patch: NodeDataPatch
 ): NodeData {
+  const layout = patch.layout
+    ? { ...(old.layout ?? { offsetX: 0, offsetY: 0 }), ...patch.layout }
+    : old.layout;
+
   return {
     ...old,
     ...patch,
@@ -27,6 +35,7 @@ export function updateNodeData(
       patch.favicon !== undefined ? patch.favicon : old.favicon,
 
     tags: patch.tags ? [...patch.tags] : old.tags,
+    layout,
   } as NodeData;
 }
 

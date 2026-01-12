@@ -66,6 +66,128 @@ export function calculateLayout(
 }
 
 /**
+ * Mindmap layout (left/right). Root stays centered, its children split into
+ * left and right columns, and descendants inherit the side.
+ */
+export function calculateMindmapLayout(
+  root: NavigationNode,
+  layoutConfig: LayoutConfig
+): { positions: Map<number, NodePosition>, width: number } {
+  const positions = new Map<number, NodePosition>();
+  const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
+  const subtreeHeights = new Map<number, number>();
+  const sideById = new Map<number, 'left' | 'right'>();
+
+  function calcHeights(node: NavigationNode | null): number {
+    if (!node) return 0;
+    const children = node.getChildren?.() ?? [];
+    if (children.length === 0) {
+      subtreeHeights.set(node.id, nodeHeight);
+      return nodeHeight;
+    }
+    let total = 0;
+    children.forEach((child, idx) => {
+      total += calcHeights(child);
+      if (idx < children.length - 1) total += verticalGap;
+    });
+    const height = Math.max(nodeHeight, total);
+    subtreeHeights.set(node.id, height);
+    return height;
+  }
+
+  function markSide(node: NavigationNode, side: 'left' | 'right'): void {
+    sideById.set(node.id, side);
+    node.getChildren?.().forEach((child) => markSide(child, side));
+  }
+
+  calcHeights(root);
+
+  const rootChildren = root.getChildren?.() ?? [];
+  const sorted = [...rootChildren].sort((a, b) => {
+    return (subtreeHeights.get(b.id) ?? 0) - (subtreeHeights.get(a.id) ?? 0);
+  });
+  let leftHeight = 0;
+  let rightHeight = 0;
+  sorted.forEach((child) => {
+    const height = subtreeHeights.get(child.id) ?? nodeHeight;
+    if (leftHeight <= rightHeight) {
+      markSide(child, 'left');
+      leftHeight += height;
+    } else {
+      markSide(child, 'right');
+      rightHeight += height;
+    }
+  });
+
+  function layoutChildren(
+    children: NavigationNode[],
+    parentX: number,
+    parentY: number,
+    direction: 1 | -1
+  ): void {
+    if (children.length === 0) return;
+    const totalHeight = children.reduce((sum, child) => {
+      return sum + (subtreeHeights.get(child.id) ?? nodeHeight);
+    }, 0) + verticalGap * (children.length - 1);
+    let cursorY = parentY + nodeHeight / 2 - totalHeight / 2;
+    children.forEach((child) => {
+      const childHeight = subtreeHeights.get(child.id) ?? nodeHeight;
+      const childX = parentX + direction * (nodeWidth + horizontalGap);
+      const childY = cursorY;
+      layoutNode(child, childX, childY, direction);
+      cursorY += childHeight + verticalGap;
+    });
+  }
+
+  function layoutNode(
+    node: NavigationNode,
+    x: number,
+    y: number,
+    direction: 1 | -1
+  ): void {
+    positions.set(node.id, { x, y, node });
+    const children = node.getChildren?.() ?? [];
+    if (children.length === 0) return;
+    layoutChildren(children, x, y, direction);
+  }
+
+  const rootX = 0;
+  const rootY = 0;
+  positions.set(root.id, { x: rootX, y: rootY, node: root });
+
+  const leftChildren = rootChildren.filter((child) => sideById.get(child.id) === 'left');
+  const rightChildren = rootChildren.filter((child) => sideById.get(child.id) === 'right');
+  layoutChildren(leftChildren, rootX, rootY, -1);
+  layoutChildren(rightChildren, rootX, rootY, 1);
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  positions.forEach((pos) => {
+    minX = Math.min(minX, pos.x);
+    minY = Math.min(minY, pos.y);
+    maxX = Math.max(maxX, pos.x + nodeWidth);
+    maxY = Math.max(maxY, pos.y + nodeHeight);
+  });
+
+  const shiftX = minX < PADDING ? PADDING - minX : 0;
+  const shiftY = minY < PADDING ? PADDING - minY : 0;
+  if (shiftX !== 0 || shiftY !== 0) {
+    positions.forEach((pos, id) => {
+      positions.set(id, { ...pos, x: pos.x + shiftX, y: pos.y + shiftY });
+    });
+    maxX += shiftX;
+    maxY += shiftY;
+    minX += shiftX;
+    minY += shiftY;
+  }
+
+  const width = maxX - minX + PADDING * 2;
+  return { positions, width };
+}
+
+/**
  * Radial layout (all directions). Nodes are placed on concentric rings by depth,
  * and each node gets an angular span proportional to its subtree size.
  */

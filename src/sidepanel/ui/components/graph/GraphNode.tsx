@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { NodeId } from '../../../../shared/types/ids.js';
 import type { TabState } from '../../../../shared/types/tabs.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
@@ -8,7 +8,6 @@ import { formatUrl } from '../../shared/format.js';
 import { Icons } from '../Icon.js';
 import { useStore } from '../../state/store.js';
 import { TagIcon } from '../tags/TagIcon.js';
-import React from 'react';
 
 
 type GraphNodeProps = {
@@ -27,6 +26,7 @@ type GraphNodeProps = {
   isSearchDimmed: boolean;
   onClick: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => void;
+  onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
 };
 
 export default function GraphNode({
@@ -45,6 +45,7 @@ export default function GraphNode({
   isSearchDimmed,
   onClick,
   onContextMenu,
+  onPointerDown,
 }: GraphNodeProps) {
   const [faviconError, setFaviconError] = useState(false);
   const tabCount = nodeTabCounts[node.id];
@@ -88,6 +89,7 @@ export default function GraphNode({
       }}
       onClick={onClick}
       onContextMenu={onContextMenu}
+      onPointerDown={onPointerDown}
     >
       {node.data.pinned && (
         <div className="graph-node-pin" title="Pinned">

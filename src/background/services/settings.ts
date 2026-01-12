@@ -9,6 +9,7 @@ export const defaultSettings: Settings = {
     layout: {
         mode: DEFAULT_LAYOUT_SETTINGS.mode,
         tree: { ...DEFAULT_LAYOUT_SETTINGS.tree },
+        mindmap: { ...DEFAULT_LAYOUT_SETTINGS.mindmap },
         radial: { ...DEFAULT_LAYOUT_SETTINGS.radial },
     },
 }
@@ -30,6 +31,10 @@ function mergeDefaults(raw: unknown): Settings {
             tree: {
                 ...DEFAULT_LAYOUT_SETTINGS.tree,
                 ...(layout.tree ?? {}),
+            },
+            mindmap: {
+                ...DEFAULT_LAYOUT_SETTINGS.mindmap,
+                ...(layout.mindmap ?? {}),
             },
             radial: {
                 ...DEFAULT_LAYOUT_SETTINGS.radial,

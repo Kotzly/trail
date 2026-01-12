@@ -1,4 +1,4 @@
-import { MSG, defineHandlers, type TreeUpdatedInput } from '../../../shared/types/messages.js';
+import { MSG, defineHandlers, ok, err, type TreeUpdatedInput } from '../../../shared/types/messages.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate, getTabStates } from '../notifications.js';
 import { tabManager } from '../../state/tab-manager.js';
@@ -6,8 +6,8 @@ import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
 import type { Description, NodeId, TabId } from '../../../shared/types/ids.js';
 import type { NavigationTree } from '../../state/nav-tree.js';
-import { ok, err } from '../../../shared/types/messages.js';
 import { ForEacher } from '../../../shared/types/foreach.js';
+import { updateNodeData } from '../../../shared/types/node.js';
 
 
 function snapshot(tree: NavigationTree, description: string): void {
@@ -102,6 +102,18 @@ export const treeHandlers = defineHandlers({
     }
 
     await closeTabsForNodes(removedIds);
+    treeStorage.cacheTree(tree);
+    await notifyTreeUpdate(tree);
+    return ok();
+  },
+
+  async [MSG.SET_NODE_LAYOUT](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    const node = tree.findNodeById(message.nodeId);
+    if (!node) return err('Node not found');
+    node.data = updateNodeData(node.data, {
+      layout: { offsetX: message.offsetX, offsetY: message.offsetY },
+    });
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree);
     return ok();

@@ -6,6 +6,10 @@ export const DEFAULT_LAYOUT_SETTINGS: LayoutSettings = {
         verticalGapScale: 1,
         horizontalGapScale: 1,
     },
+    mindmap: {
+        verticalGapScale: 1,
+        horizontalGapScale: 1,
+    },
     radial: {
         angleWeightExp: 0.42,
         minSpanFactor: 0.75,

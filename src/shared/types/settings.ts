@@ -1,8 +1,13 @@
 import { ThemeId } from "../../sidepanel/ui/shared/themes.js";
 
-export type LayoutMode = 'tree' | 'radial';
+export type LayoutMode = 'tree' | 'radial' | 'mindmap';
 
 export type TreeLayoutSettings = {
+    verticalGapScale: number;
+    horizontalGapScale: number;
+};
+
+export type MindmapLayoutSettings = {
     verticalGapScale: number;
     horizontalGapScale: number;
 };
@@ -19,6 +24,7 @@ export type RadialLayoutSettings = {
 export type LayoutSettings = {
     mode: LayoutMode;
     tree: TreeLayoutSettings;
+    mindmap: MindmapLayoutSettings;
     radial: RadialLayoutSettings;
 };
 

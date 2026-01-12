@@ -7,8 +7,9 @@ const clamp = (value: number, min: number, max: number): number =>
   Number.isFinite(value) ? Math.min(Math.max(value, min), max) : min;
 
 type LayoutOptions = {
-  mode: 'tree' | 'radial';
+  mode: Settings['layout']['mode'];
   tree: LayoutConfig;
+  mindmap: LayoutConfig;
   radial: RadialLayoutConfig;
 };
 
@@ -16,16 +17,26 @@ export function deriveLayoutOptions(settings: Settings | null | undefined): Layo
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
 
   const treeSettings = layout.tree ?? DEFAULT_LAYOUT_SETTINGS.tree;
+  const mindmapSettings = layout.mindmap ?? DEFAULT_LAYOUT_SETTINGS.mindmap;
   const radialSettings = layout.radial ?? DEFAULT_LAYOUT_SETTINGS.radial;
 
   const verticalGapScale = clamp(treeSettings.verticalGapScale, 0.4, 3);
   const horizontalGapScale = clamp(treeSettings.horizontalGapScale, 0.4, 3);
+  const mindmapVerticalScale = clamp(mindmapSettings.verticalGapScale, 0.4, 3);
+  const mindmapHorizontalScale = clamp(mindmapSettings.horizontalGapScale, 0.4, 3);
 
   const tree: LayoutConfig = {
     nodeWidth: NODE_WIDTH,
     nodeHeight: NODE_HEIGHT,
     verticalGap: Math.round(VERTICAL_GAP * verticalGapScale),
     horizontalGap: Math.round(HORIZONTAL_GAP * horizontalGapScale),
+  };
+
+  const mindmap: LayoutConfig = {
+    nodeWidth: NODE_WIDTH,
+    nodeHeight: NODE_HEIGHT,
+    verticalGap: Math.round(VERTICAL_GAP * mindmapVerticalScale),
+    horizontalGap: Math.round(HORIZONTAL_GAP * mindmapHorizontalScale),
   };
 
   const angleWeightExp = clamp(radialSettings.angleWeightExp, 0.2, 1.2);
@@ -51,6 +62,7 @@ export function deriveLayoutOptions(settings: Settings | null | undefined): Layo
   return {
     mode: layout.mode ?? DEFAULT_LAYOUT_SETTINGS.mode,
     tree,
+    mindmap,
     radial,
   };
 }
