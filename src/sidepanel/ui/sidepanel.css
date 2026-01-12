@@ -1291,6 +1291,7 @@ body {
   padding: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
   min-width: 160px;
+  max-width: calc(100vw - 16px);
   backdrop-filter: blur(8px);
   animation: popover-in 0.15s ease-out;
 }
@@ -1327,6 +1328,7 @@ body {
 .popover-segment {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 4px;
   border-radius: 999px;
@@ -1335,7 +1337,6 @@ body {
 }
 
 .popover-segment-btn {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1344,7 +1345,9 @@ body {
   background: transparent;
   color: var(--md-on-surface-variant);
   border-radius: 999px;
-  padding: 6px 10px;
+  width: 36px;
+  height: 32px;
+  padding: 0;
   font-size: 12px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -1358,6 +1361,73 @@ body {
 .popover-segment-btn.active {
   background: var(--md-primary-container);
   color: var(--md-on-primary-container);
+}
+
+.layout-selected-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-on-surface);
+  text-align: center;
+}
+
+.popover-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.popover-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.popover-slider-value {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--md-outline-variant);
+}
+
+.popover-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--md-outline-variant);
+  outline: none;
+  cursor: pointer;
+}
+
+.popover-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  border: 2px solid var(--md-surface);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.popover-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  border: 2px solid var(--md-surface);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.popover-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--md-outline-variant);
 }
 
 .popover-reset-btn {
