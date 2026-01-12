@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import type { NodeId, Tag } from '../../../shared/types/ids.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
@@ -14,6 +14,8 @@ import { Icons } from './Icon.js';
 import React from 'react';
 
 type MenuPosition = { left: number; top: number };
+
+const SUBMENU_MIN_WIDTH = 160;
 
 function useMenuPosition(menuRef: RefObject<HTMLDivElement>, position: { x: number; y: number }) {
   const [menuStyle, setMenuStyle] = useState<MenuPosition>({ left: position.x, top: position.y });
@@ -143,7 +145,19 @@ function NodeContextMenu({ nodeId, position, onCreateTag }: NodeMenuProps) {
   const node = tree?.findNodeById(nodeId);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuStyle = useMenuPosition(menuRef, position);
+  const [submenuLeft, setSubmenuLeft] = useState(false);
   const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
+
+  const updateSubmenuDirection = useCallback(() => {
+    const menu = menuRef.current;
+    if (!menu) return;
+    const rect = menu.getBoundingClientRect();
+    const required = SUBMENU_MIN_WIDTH + 8;
+    const spaceRight = window.innerWidth - rect.right;
+    const spaceLeft = rect.left;
+    const shouldFlip = spaceRight < required && spaceLeft >= required;
+    setSubmenuLeft(shouldFlip);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -157,6 +171,15 @@ function NodeContextMenu({ nodeId, position, onCreateTag }: NodeMenuProps) {
     };
   }, [nodeId]);
 
+  useLayoutEffect(() => {
+    updateSubmenuDirection();
+  }, [menuStyle.left, menuStyle.top, updateSubmenuDirection]);
+
+  useEffect(() => {
+    window.addEventListener('resize', updateSubmenuDirection);
+    return () => window.removeEventListener('resize', updateSubmenuDirection);
+  }, [updateSubmenuDirection]);
+
   const hasOpenTab = tabs.length > 0;
   const tabInfo = tabs[0];
   const hasTitle = Boolean(node?.data.title && node.data.title.trim().length > 0);
@@ -169,7 +192,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag }: NodeMenuProps) {
     <>
       <div
         ref={menuRef}
-        className="graph-context-menu"
+        className={`graph-context-menu${submenuLeft ? ' submenu-left' : ''}`}
         style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px` }}
       >
       <div

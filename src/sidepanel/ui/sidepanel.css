@@ -1566,6 +1566,17 @@ body {
   display: block;
 }
 
+.graph-context-menu.submenu-left .graph-context-submenu {
+  left: auto;
+  right: 100%;
+  transform-origin: top right;
+}
+
+.graph-context-menu.submenu-left .submenu-arrow {
+  display: inline-block;
+  transform: rotate(180deg);
+}
+
 .tag-option {
   display: flex;
   align-items: center;
