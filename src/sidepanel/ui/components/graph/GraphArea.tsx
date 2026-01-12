@@ -121,6 +121,7 @@ export default function GraphArea() {
   const selectedNodeIds = useStore((state) => state.graph.selectedNodeIds);
   const layoutVersion = useStore((state) => state.graph.layoutVersion);
   const resetVersion = useStore((state) => state.graph.resetVersion);
+  const autoCenterToken = useStore((state) => state.graph.autoCenterToken);
   const tool = useStore((state) => state.graph.tool);
   const graphView = useStore((state) => state.graph.view);
   const setGraphTool = useStore((state) => state.setGraphTool);
@@ -136,10 +137,6 @@ export default function GraphArea() {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef(graphView);
   const didInitView = useRef(false);
-  const prevMetaRef = useRef<{ nodeCount: number; currentNodeId: NodeId | null }>({
-    nodeCount: 0,
-    currentNodeId: null,
-  });
 
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [previewSelection, setPreviewSelection] = useState<Set<NodeId>>(new Set());
@@ -349,16 +346,10 @@ export default function GraphArea() {
   useLayoutEffect(() => {
     if (searchActive) return;
     if (!root || currentNodeId === null) return;
-    const prev = prevMetaRef.current;
-    const nodeCount = tree?.size() ?? 0;
-    const shouldCenter =
-      (prev.nodeCount !== 0 && nodeCount > prev.nodeCount) ||
-      (prev.currentNodeId !== null && prev.currentNodeId !== currentNodeId);
-    if (shouldCenter) {
-      centerOnNode(currentNodeId, true);
-    }
-    prevMetaRef.current = { nodeCount, currentNodeId };
-  }, [currentNodeId, root, searchActive, tree, positions, nodeHeight, nodeWidth]);
+    if (autoCenterToken === 0) return;
+    if (isDraggingNode || isPanningRef.current) return;
+    centerOnNode(currentNodeId, true);
+  }, [autoCenterToken, currentNodeId, isDraggingNode, root, searchActive]);
 
   useEffect(() => {
     if (!root) return;

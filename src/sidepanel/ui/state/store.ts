@@ -60,6 +60,7 @@ type StoreState = {
     view: ViewState;
     layoutVersion: number;
     resetVersion: number;
+    autoCenterToken: number;
   };
   contextMenu: ContextMenuState;
   metaKey: MetaKeyPair | null;
@@ -92,6 +93,7 @@ type StoreActions = {
   setNodeLayoutOffset: (nodeId: NodeId, offsetX: number, offsetY: number) => void;
   setNodeLayoutRadial: (nodeId: NodeId, angleDelta: number, radiusDelta: number) => void;
   requestGraphReset: () => void;
+  requestAutoCenter: () => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
 };
@@ -125,6 +127,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     view: { translateX: 0, translateY: 0, scale: 1 },
     layoutVersion: 0,
     resetVersion: 0,
+    autoCenterToken: 0,
   },
   contextMenu: null,
   metaKey: null,
@@ -154,15 +157,24 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     const pins = new PinnedManager(tree);
     const currentId = tree.getCurrentId();
     const nodeCount = tree.size();
-    set((state) => ({
-      tree,
-      pins,
-      tabStates: payload.tabStates,
-      nodeTabCounts: payload.nodeTabCounts,
-      openNodeIds: new Set(payload.openNodeIds),
-      currentNodeId: currentId,
-      nodeCount,
-    }));
+    set((state) => {
+      const shouldAutoCenter =
+        !state.search.active &&
+        ((state.nodeCount !== 0 && nodeCount > state.nodeCount) ||
+          (state.currentNodeId !== null && currentId !== null && state.currentNodeId !== currentId));
+      return {
+        tree,
+        pins,
+        tabStates: payload.tabStates,
+        nodeTabCounts: payload.nodeTabCounts,
+        openNodeIds: new Set(payload.openNodeIds),
+        currentNodeId: currentId,
+        nodeCount,
+        graph: shouldAutoCenter
+          ? { ...state.graph, autoCenterToken: state.graph.autoCenterToken + 1 }
+          : state.graph,
+      };
+    });
   },
 
   setCommandState: (state) => set({ commandState: state }),
@@ -280,6 +292,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   requestGraphReset: () =>
     set((state) => ({
       graph: { ...state.graph, resetVersion: state.graph.resetVersion + 1 },
+    })),
+  requestAutoCenter: () =>
+    set((state) => ({
+      graph: { ...state.graph, autoCenterToken: state.graph.autoCenterToken + 1 },
     })),
 
   openContextMenu: (menu) => set({ contextMenu: menu }),
