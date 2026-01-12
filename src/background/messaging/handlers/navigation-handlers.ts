@@ -8,6 +8,7 @@ import { CommandManager } from '../../../shared/lib/commands.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { getActiveTab } from '../../tabs/lifecycle.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
+import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
@@ -27,6 +28,9 @@ export const navigationHandlers = defineHandlers({
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
+    if (tabManager.openNodes().size === 0) {
+      await syncOpenTabs();
+    }
 
     const activeTab = await getActiveTab();
     const activeTabId = activeTab?.id as TabId | undefined;

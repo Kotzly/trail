@@ -16,6 +16,15 @@ export class TabManager {
         this.lru = new LruManager();
     }
 
+    reset() {
+      this.index = new TabIndex();
+      this.lru = new LruManager();
+      this.cycleOrderByNode.clear();
+      this.cycleIndexByNode.clear();
+      this.suppressTouchForTabId = null;
+      this.suppressActivateForTabId.clear();
+    }
+
     touch(tabId: TabId, _nodeId: NodeId) {
         const actualNodeId = this.index.nodeByTab(tabId);
         if (!actualNodeId) return;
