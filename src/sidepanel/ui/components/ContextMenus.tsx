@@ -8,7 +8,7 @@ import { navigateTo } from '../../api/tree.js';
 import { getTabsForNodeMessage } from '../../api/tabs.js';
 import { useStore } from '../state/store.js';
 import TagEditorModal from './tags/TagEditorModal.js';
-import { upsertTagDef } from '../../api/tags.js';
+import { deleteTagDef, upsertTagDef } from '../../api/tags.js';
 import { TagIcon } from './tags/TagIcon.js';
 import { Icons } from './Icon.js';
 import React from 'react';
@@ -45,8 +45,9 @@ export default function ContextMenus() {
   const [tagEditorState, setTagEditorState] = useState<{
     open: boolean;
     nodeId: NodeId | null;
+    mode: 'create' | 'edit';
     initial?: TagDefinition | null;
-  }>({ open: false, nodeId: null, initial: null });
+  }>({ open: false, nodeId: null, mode: 'create', initial: null });
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -70,33 +71,44 @@ export default function ContextMenus() {
   const tagEditorModal = tagEditorState.open ? (
     <TagEditorModal
       open={tagEditorState.open}
-      mode="create"
+      mode={tagEditorState.mode}
       initial={tagEditorState.initial}
-      onCancel={() => setTagEditorState({ open: false, nodeId: null })}
+      onCancel={() => setTagEditorState({ open: false, nodeId: null, mode: 'create', initial: null })}
       onSubmit={async (value) => {
-        if (!tagEditorState.nodeId) {
-          setTagEditorState({ open: false, nodeId: null });
-          return;
-        }
-        const id = `custom-${Date.now().toString(36)}-${Math.random()
-          .toString(36)
-          .slice(2, 6)}` as Tag;
-        const tagDef: TagDefinition = {
-          id,
-          label: value.label,
-          color: value.color,
-          iconId: value.iconId,
-          system: false,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
         try {
-          await upsertTagDef(tagDef);
-          fireAndForget(msg.addTag({ nodeId: tagEditorState.nodeId, tagId: id }));
+          if (tagEditorState.mode === 'edit' && tagEditorState.initial) {
+            const updated: TagDefinition = {
+              ...tagEditorState.initial,
+              label: value.label,
+              color: value.color,
+              iconId: value.iconId,
+              updatedAt: Date.now(),
+            };
+            await upsertTagDef(updated);
+          } else {
+            if (!tagEditorState.nodeId) {
+              setTagEditorState({ open: false, nodeId: null, mode: 'create', initial: null });
+              return;
+            }
+            const id = `custom-${Date.now().toString(36)}-${Math.random()
+              .toString(36)
+              .slice(2, 6)}` as Tag;
+            const tagDef: TagDefinition = {
+              id,
+              label: value.label,
+              color: value.color,
+              iconId: value.iconId,
+              system: false,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            };
+            await upsertTagDef(tagDef);
+            fireAndForget(msg.addTag({ nodeId: tagEditorState.nodeId, tagId: id }));
+          }
         } catch (error) {
-          console.error('Failed to create tag:', error);
+          console.error('Failed to save tag:', error);
         } finally {
-          setTagEditorState({ open: false, nodeId: null });
+          setTagEditorState({ open: false, nodeId: null, mode: 'create', initial: null });
         }
       }}
     />
@@ -115,7 +127,21 @@ export default function ContextMenus() {
           nodeId={contextMenu.nodeId}
           position={contextMenu.position}
           onCreateTag={() => {
-            setTagEditorState({ open: true, nodeId: contextMenu.nodeId, initial: null });
+            setTagEditorState({
+              open: true,
+              nodeId: contextMenu.nodeId,
+              mode: 'create',
+              initial: null,
+            });
+            closeContextMenu();
+          }}
+          onEditTag={(tag) => {
+            setTagEditorState({
+              open: true,
+              nodeId: null,
+              mode: 'edit',
+              initial: tag,
+            });
             closeContextMenu();
           }}
         />
@@ -136,9 +162,10 @@ type NodeMenuProps = {
   nodeId: NodeId;
   position: { x: number; y: number };
   onCreateTag: () => void;
+  onEditTag: (tag: TagDefinition) => void;
 };
 
-function NodeContextMenu({ nodeId, position, onCreateTag }: NodeMenuProps) {
+function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const tree = useStore((state) => state.tree);
   const tagDefsList = useStore((state) => state.tagDefsList);
@@ -311,6 +338,36 @@ function NodeContextMenu({ nodeId, position, onCreateTag }: NodeMenuProps) {
                   <TagIcon id={tag.iconId} size={12} />
                 </span>
                 <span className="tag-label">{tag.label}</span>
+                <span className="tag-actions">
+                  <button
+                    type="button"
+                    className="tag-action-btn"
+                    aria-label="Edit tag"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onEditTag(tag);
+                    }}
+                  >
+                    <Icons.Pencil size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    className="tag-action-btn danger"
+                    aria-label="Delete tag"
+                    disabled={tag.system}
+                    onClick={async (event) => {
+                      event.stopPropagation();
+                      if (tag.system) return;
+                      try {
+                        await deleteTagDef(tag.id as Tag);
+                      } catch (error) {
+                        console.error('Failed to delete tag:', error);
+                      }
+                    }}
+                  >
+                    <Icons.Trash2 size={12} />
+                  </button>
+                </span>
                 {hasTag ? <span className="tag-check">✓</span> : null}
               </div>
             );

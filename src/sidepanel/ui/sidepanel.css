@@ -1622,6 +1622,53 @@ body {
   text-overflow: ellipsis;
 }
 
+.tag-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.graph-context-menu-item.tag-option:hover .tag-actions {
+  opacity: 1;
+}
+
+.tag-action-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--md-on-surface-variant);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.tag-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--md-on-surface);
+  transform: translateY(-1px);
+}
+
+.tag-action-btn:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.tag-action-btn.danger {
+  color: var(--md-error);
+}
+
+.tag-action-btn.danger:hover:not(:disabled) {
+  background: rgba(var(--md-error-rgb, 220, 53, 69), 0.16);
+  color: var(--md-error);
+}
+
 .tag-check {
   color: var(--md-primary);
   font-weight: bold;
