@@ -8,7 +8,7 @@ import { formatUrl } from '../../shared/format.js';
 import { Icons } from '../Icon.js';
 import { useStore } from '../../state/store.js';
 import { TagIcon } from '../tags/TagIcon.js';
-
+import React from 'react';
 
 type GraphNodeProps = {
   node: NavigationNode;
