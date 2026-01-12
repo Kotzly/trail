@@ -12,7 +12,7 @@ import {
   VERTICAL_GAP,
   HORIZONTAL_GAP,
 } from '../../graph/layout/config.js';
-import { calculateLayout, getCanvasBounds } from '../../graph/layout/calculator.js';
+import { calculateRadialLayout, getCanvasBounds } from '../../graph/layout/calculator.js';
 import type { CanvasBounds, NodePosition } from '../../graph/types.js';
 import GraphNode from './GraphNode.js';
 import GraphZoomControls from './GraphZoomControls.js';
@@ -164,7 +164,7 @@ export default function GraphArea() {
 
   const layout = useMemo(() => {
     if (!root) return null;
-    return calculateLayout(root);
+    return calculateRadialLayout(root);
   }, [root]);
 
   const positions = layout?.positions ?? new Map<number, NodePosition>();
