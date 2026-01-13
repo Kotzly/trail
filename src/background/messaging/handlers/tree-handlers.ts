@@ -108,6 +108,70 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
+  async [MSG.BULK_DELETE_NODES](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    snapshot(tree, 'Delete selected nodes');
+    const removedIds: NodeId[] = [];
+
+    for (const id of message.nodeIds) {
+      const removed = tree.deleteNode(id);
+      removedIds.push(...removed.map(node => node.id));
+    }
+
+    await closeTabsForNodes(removedIds);
+    treeStorage.cacheTree(tree);
+    await notifyTreeUpdate(tree, 'sync');
+    return ok();
+  },
+
+  async [MSG.BULK_DELETE_RECURSIVE](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    snapshot(tree, 'Delete selected nodes recursively');
+    const removedIds: NodeId[] = [];
+    const selectedIds = new Set<NodeId>(message.nodeIds);
+    const candidates: NodeId[] = [];
+
+    for (const id of message.nodeIds) {
+      const node = tree.findNodeById(id);
+      if (!node) continue;
+      if (node.isRoot()) {
+        const removed = tree.deleteSubtree(id);
+        removedIds.push(...removed.map(n => n.id));
+        await closeTabsForNodes(removedIds);
+        treeStorage.cacheTree(tree);
+        await notifyTreeUpdate(tree, 'sync');
+        return ok();
+      }
+      candidates.push(id);
+    }
+
+    const topLevelIds: NodeId[] = [];
+    for (const id of candidates) {
+      const node = tree.findNodeById(id);
+      if (!node) continue;
+      let parent = node.getParent();
+      let skip = false;
+      while (parent) {
+        if (selectedIds.has(parent.id)) {
+          skip = true;
+          break;
+        }
+        parent = parent.getParent();
+      }
+      if (!skip) topLevelIds.push(id);
+    }
+
+    for (const id of topLevelIds) {
+      const removed = tree.deleteSubtree(id);
+      removedIds.push(...removed.map(node => node.id));
+    }
+
+    await closeTabsForNodes(removedIds);
+    treeStorage.cacheTree(tree);
+    await notifyTreeUpdate(tree, 'sync');
+    return ok();
+  },
+
   async [MSG.SET_NODE_LAYOUT](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);

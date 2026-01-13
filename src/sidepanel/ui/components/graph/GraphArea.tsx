@@ -709,6 +709,14 @@ export default function GraphArea() {
       dragMovedRef.current = false;
       return;
     }
+    if (tool === 'select') {
+      try {
+        await navigateTo(node);
+      } catch (error) {
+        console.error('Failed to navigate:', error);
+      }
+      return;
+    }
     const isMeta = event.metaKey || event.ctrlKey;
     if (isMeta) {
       let anchorId = selectionAnchorRef.current;
@@ -860,6 +868,15 @@ export default function GraphArea() {
 
   const handleNodeContextMenu = (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => {
     event.preventDefault();
+    event.stopPropagation();
+    if (selectedNodeIds.size > 0) {
+      openContextMenu({
+        type: 'bulk',
+        nodeIds: Array.from(selectedNodeIds),
+        position: { x: event.clientX, y: event.clientY },
+      });
+      return;
+    }
     openContextMenu({
       type: 'node',
       nodeId: node.id,
@@ -868,8 +885,6 @@ export default function GraphArea() {
   };
 
   const handleWrapperContextMenu = (event: ReactMouseEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLElement;
-    if (target.closest('.graph-node')) return;
     if (selectedNodeIds.size === 0) return;
     event.preventDefault();
     openContextMenu({
@@ -903,7 +918,7 @@ export default function GraphArea() {
         onKeyDown={handleKeyDown}
         onContextMenu={handleWrapperContextMenu}
         onClick={handleBackgroundClick}
-        style={{ cursor: tool === 'hand' ? (isPanning ? 'grabbing' : 'grab') : 'crosshair' }}
+        style={{ cursor: tool === 'hand' ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
       >
         <div
           className="graph-canvas"

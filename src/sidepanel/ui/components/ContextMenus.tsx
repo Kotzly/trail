@@ -503,12 +503,22 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       <div
         className="graph-context-menu-item danger"
         onClick={() => {
-          fireAndForget(msg.bulkDelete({ nodeIds }));
+          fireAndForget(msg.bulkDeleteNodes({ nodeIds }));
           clearSelection();
           closeContextMenu();
         }}
       >
-        Delete selected
+        Delete nodes
+      </div>
+      <div
+        className="graph-context-menu-item danger"
+        onClick={() => {
+          fireAndForget(msg.bulkDeleteRecursive({ nodeIds }));
+          clearSelection();
+          closeContextMenu();
+        }}
+      >
+        Delete nodes recursively
       </div>
     </div>
   );
