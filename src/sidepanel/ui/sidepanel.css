@@ -1648,13 +1648,11 @@ body {
   background: var(--graph-node-closed-bg, var(--md-surface-container-high));
   border-color: var(--graph-node-closed-border, var(--md-outline-variant));
   box-shadow: var(--graph-node-closed-shadow, none);
-  opacity: 0.55;
 }
 
 .graph-node.closed:hover {
   filter: var(--graph-node-closed-filter-hover, grayscale(0.5) brightness(0.92));
   background: var(--graph-node-closed-bg-hover, var(--md-surface-container));
-  opacity: 0.65;
 }
 
 :root,
@@ -1722,7 +1720,6 @@ body {
 .graph-node.closed.search-match,
 .graph-node.closed.search-focused {
   background: var(--md-closed-highlight);
-  opacity: 0.9;
   filter: none;
   border-color: var(--md-primary);
   box-shadow: 0 0 0 2px var(--md-primary), 0 4px 16px rgba(0, 0, 0, 0.18);
