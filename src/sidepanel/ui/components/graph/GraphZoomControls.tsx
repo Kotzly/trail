@@ -9,17 +9,8 @@ type GraphZoomControlsProps = {
 
 export default function GraphZoomControls({ tool, onToolChange, onZoom }: GraphZoomControlsProps) {
   return (
-    <div className="graph-zoom-controls">
-      <div className="graph-tool-group">
-        <button
-          className={`graph-tool-btn ${tool === 'hand' ? 'active' : ''}`}
-          data-tool="hand"
-          title="Hand tool (H) - Pan"
-          type="button"
-          onClick={() => onToolChange('hand')}
-        >
-          <Icons.Hand size={18} />
-        </button>
+    <div className="graph-zoom-controls" data-graph-ui="true">
+      <div className="graph-tool-group" data-graph-ui="true">
         <button
           className={`graph-tool-btn ${tool === 'select' ? 'active' : ''}`}
           data-tool="select"
@@ -28,6 +19,15 @@ export default function GraphZoomControls({ tool, onToolChange, onZoom }: GraphZ
           onClick={() => onToolChange('select')}
         >
           <Icons.MousePointer2 size={18} />
+        </button>
+        <button
+          className={`graph-tool-btn ${tool === 'hand' ? 'active' : ''}`}
+          data-tool="hand"
+          title="Hand tool (H) - Pan"
+          type="button"
+          onClick={() => onToolChange('hand')}
+        >
+          <Icons.Hand size={18} />
         </button>
       </div>
       <div className="graph-zoom-divider" />

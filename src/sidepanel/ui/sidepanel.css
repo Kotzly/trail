@@ -1691,7 +1691,17 @@ body {
 .graph-node.closed.search-match,
 .graph-node.closed.search-focused {
   background: var(--md-closed-highlight);
-  opacity: 0.8;
+  opacity: 0.9;
+  filter: none;
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 2px var(--md-primary), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.graph-node.closed.selected-preview {
+  filter: none;
+  border-color: var(--md-primary);
+  border-style: dashed;
+  box-shadow: 0 0 0 2px var(--md-primary);
 }
 
 /* Muted tabs - red border */

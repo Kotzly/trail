@@ -500,9 +500,12 @@ export default function GraphArea() {
     }
   };
 
+  const isGraphUiTarget = (target: HTMLElement) => target.closest('[data-graph-ui="true"]');
+
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const target = event.target as HTMLElement;
+    if (isGraphUiTarget(target)) return;
     if (target.closest('.graph-node')) return;
     if (!wrapperRef.current) return;
     clearCanvasTransition();
@@ -536,6 +539,8 @@ export default function GraphArea() {
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!wrapperRef.current) return;
+    const target = event.target as HTMLElement;
+    if (isGraphUiTarget(target)) return;
     if (isPanningRef.current) {
       const nextTranslateX = event.clientX - panStartRef.current.x;
       const nextTranslateY = event.clientY - panStartRef.current.y;
@@ -586,6 +591,12 @@ export default function GraphArea() {
   };
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (isGraphUiTarget(target)) {
+      releasePointerCapture(event.currentTarget, activePointerIdRef.current);
+      activePointerIdRef.current = null;
+      return;
+    }
     releasePointerCapture(event.currentTarget, activePointerIdRef.current);
     activePointerIdRef.current = null;
     if (isPanningRef.current) {
@@ -611,6 +622,12 @@ export default function GraphArea() {
   };
 
   const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (isGraphUiTarget(target)) {
+      releasePointerCapture(event.currentTarget, activePointerIdRef.current);
+      activePointerIdRef.current = null;
+      return;
+    }
     releasePointerCapture(event.currentTarget, activePointerIdRef.current);
     activePointerIdRef.current = null;
     if (isPanningRef.current) {
@@ -718,12 +735,8 @@ export default function GraphArea() {
       }
       return;
     }
-    if (tool === 'select') {
-      setSelectedNodeIds(new Set([node.id]));
-      selectionAnchorRef.current = node.id;
-      return;
-    }
-    clearSelectionState();
+    setSelectedNodeIds(new Set([node.id]));
+    selectionAnchorRef.current = node.id;
     try {
       await navigateTo(node);
     } catch (error) {
@@ -868,6 +881,7 @@ export default function GraphArea() {
 
   const handleBackgroundClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
+    if (isGraphUiTarget(target)) return;
     if (target.closest('.graph-node')) return;
     if (suppressClickRef.current) {
       suppressClickRef.current = false;

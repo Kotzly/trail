@@ -128,7 +128,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     pinnedOpen: false,
   },
   graph: {
-    tool: 'hand',
+    tool: 'select',
     selectedNodeIds: new Set<NodeId>(),
     view: { translateX: 0, translateY: 0, scale: 1 },
     layoutVersion: 0,
