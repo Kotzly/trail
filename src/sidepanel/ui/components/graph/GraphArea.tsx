@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { NodeId } from '../../../../shared/types/ids.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
 import { navigateTo, setNodeLayout } from '../../../api/tree.js';
@@ -109,6 +109,41 @@ function buildConnections(
   return list;
 }
 
+function getPathBetweenNodes(
+  start: NavigationNode | null,
+  end: NavigationNode | null,
+): Set<NodeId> {
+  if (!start || !end) return new Set();
+  if (start.id === end.id) return new Set([start.id]);
+  const startAncestors = new Map<NodeId, NavigationNode>();
+  let current: NavigationNode | null = start;
+  while (current) {
+    startAncestors.set(current.id, current);
+    current = current.getParent?.() ?? null;
+  }
+  const endPath: NavigationNode[] = [];
+  current = end;
+  let lca: NavigationNode | null = null;
+  while (current) {
+    if (startAncestors.has(current.id)) {
+      lca = current;
+      break;
+    }
+    endPath.push(current);
+    current = current.getParent?.() ?? null;
+  }
+  if (!lca) return new Set([start.id, end.id]);
+  const ids = new Set<NodeId>();
+  current = start;
+  while (current) {
+    ids.add(current.id);
+    if (current.id === lca.id) break;
+    current = current.getParent?.() ?? null;
+  }
+  endPath.forEach((node) => ids.add(node.id));
+  return ids;
+}
+
 export default function GraphArea() {
   const tree = useStore((state) => state.tree);
   const currentNodeId = useStore((state) => state.currentNodeId);
@@ -145,6 +180,7 @@ export default function GraphArea() {
   const [isDraggingNode, setIsDraggingNode] = useState(false);
   const isPanningRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
+  const selectionAnchorRef = useRef<NodeId | null>(null);
   const dragStateRef = useRef<{
     nodeId: NodeId;
     startX: number;
@@ -167,8 +203,13 @@ export default function GraphArea() {
   const dragMovedRef = useRef(false);
   const isSelectingRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0 });
+  const panPointerStartRef = useRef({ x: 0, y: 0 });
+  const panMovedRef = useRef(false);
   const selectionStartRef = useRef({ x: 0, y: 0 });
   const baseSelectionRef = useRef<Set<NodeId>>(new Set());
+  const selectionDragRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
   const transitionTimeoutRef = useRef<number | null>(null);
   const lastResetRef = useRef(0);
   const lastViewIntentRef = useRef<number | null>(null);
@@ -424,12 +465,51 @@ export default function GraphArea() {
     zoomAt(pointerX, pointerY, scaleFactor);
   };
 
-  const handleMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
+  const finalizeSelection = () => {
+    if (!isSelectingRef.current) return;
+    isSelectingRef.current = false;
+    const finalSelection = new Set(previewSelectionRef.current);
+    setSelectedNodeIds(finalSelection);
+    if (finalSelection.size === 0) {
+      selectionAnchorRef.current = null;
+    } else if (finalSelection.size === 1) {
+      selectionAnchorRef.current = finalSelection.values().next().value ?? null;
+    } else if (selectionAnchorRef.current && !finalSelection.has(selectionAnchorRef.current)) {
+      selectionAnchorRef.current = null;
+    }
+    setSelectionBox(null);
+    previewSelectionRef.current = new Set();
+    setPreviewSelection(new Set());
+  };
+
+  const clearSelectionState = useCallback(() => {
+    clearSelection();
+    selectionAnchorRef.current = null;
+    setPreviewSelection(new Set());
+    setSelectionBox(null);
+  }, [clearSelection]);
+
+  const releasePointerCapture = (target: HTMLDivElement | null, pointerId: number | null) => {
+    if (!target || pointerId === null) return;
+    try {
+      if (target.hasPointerCapture(pointerId)) {
+        target.releasePointerCapture(pointerId);
+      }
+    } catch {
+      // ignore release errors
+    }
+  };
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const target = event.target as HTMLElement;
     if (target.closest('.graph-node')) return;
     if (!wrapperRef.current) return;
     clearCanvasTransition();
+    suppressClickRef.current = false;
+    selectionDragRef.current = false;
+    activePointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
 
     if (tool === 'hand') {
       isPanningRef.current = true;
@@ -438,6 +518,8 @@ export default function GraphArea() {
         x: event.clientX - viewRef.current.translateX,
         y: event.clientY - viewRef.current.translateY,
       };
+      panPointerStartRef.current = { x: event.clientX, y: event.clientY };
+      panMovedRef.current = false;
     } else if (tool === 'select') {
       isSelectingRef.current = true;
       const rect = wrapperRef.current.getBoundingClientRect();
@@ -452,11 +534,19 @@ export default function GraphArea() {
     }
   };
 
-  const handleMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!wrapperRef.current) return;
     if (isPanningRef.current) {
       const nextTranslateX = event.clientX - panStartRef.current.x;
       const nextTranslateY = event.clientY - panStartRef.current.y;
+      if (!panMovedRef.current) {
+        const dx = event.clientX - panPointerStartRef.current.x;
+        const dy = event.clientY - panPointerStartRef.current.y;
+        if (Math.hypot(dx, dy) > 3) {
+          panMovedRef.current = true;
+          suppressClickRef.current = true;
+        }
+      }
       setGraphView({ translateX: nextTranslateX, translateY: nextTranslateY });
       return;
     }
@@ -469,6 +559,10 @@ export default function GraphArea() {
       const width = Math.abs(x - selectionStartRef.current.x);
       const height = Math.abs(y - selectionStartRef.current.y);
       setSelectionBox({ left, top, width, height });
+      if (!selectionDragRef.current && (width > 3 || height > 3)) {
+        selectionDragRef.current = true;
+        suppressClickRef.current = true;
+      }
 
       const { translateX, translateY, scale } = viewRef.current;
       const graphLeft = (left - translateX) / scale;
@@ -491,36 +585,47 @@ export default function GraphArea() {
     }
   };
 
-  const finalizeSelection = (event: ReactMouseEvent<HTMLDivElement> | null) => {
-    if (!isSelectingRef.current) return;
-    isSelectingRef.current = false;
-    const finalSelection = new Set(previewSelectionRef.current);
-    if (!event?.shiftKey && baseSelectionRef.current.size === 0) {
-      setSelectedNodeIds(finalSelection);
-    } else {
-      setSelectedNodeIds(finalSelection);
-    }
-    setSelectionBox(null);
-    previewSelectionRef.current = new Set();
-    setPreviewSelection(new Set());
-  };
-
-  const handleMouseUp = (event: ReactMouseEvent<HTMLDivElement>) => {
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    releasePointerCapture(event.currentTarget, activePointerIdRef.current);
+    activePointerIdRef.current = null;
     if (isPanningRef.current) {
       isPanningRef.current = false;
       setIsPanning(false);
+      panMovedRef.current = false;
+      if (suppressClickRef.current) {
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
+      }
       return;
     }
-    finalizeSelection(event);
+    if (isSelectingRef.current) {
+      finalizeSelection();
+      selectionDragRef.current = false;
+      if (suppressClickRef.current) {
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
+      }
+    }
   };
 
-  const handleMouseLeave = () => {
+  const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    releasePointerCapture(event.currentTarget, activePointerIdRef.current);
+    activePointerIdRef.current = null;
     if (isPanningRef.current) {
       isPanningRef.current = false;
       setIsPanning(false);
+      panMovedRef.current = false;
     }
     if (isSelectingRef.current) {
-      finalizeSelection(null);
+      finalizeSelection();
+      selectionDragRef.current = false;
+    }
+    if (suppressClickRef.current) {
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
     }
   };
 
@@ -570,20 +675,14 @@ export default function GraphArea() {
     } else if (key === 'h' || key === 'H') {
       event.preventDefault();
       setGraphTool('hand');
-      clearSelection();
-      setPreviewSelection(new Set());
-      setSelectionBox(null);
+      clearSelectionState();
     } else if (key === 'v' || key === 'V') {
       event.preventDefault();
       setGraphTool('select');
-      clearSelection();
-      setPreviewSelection(new Set());
-      setSelectionBox(null);
+      clearSelectionState();
     } else if (key === 'Escape') {
       event.preventDefault();
-      clearSelection();
-      setPreviewSelection(new Set());
-      setSelectionBox(null);
+      clearSelectionState();
     }
   };
 
@@ -593,15 +692,38 @@ export default function GraphArea() {
       dragMovedRef.current = false;
       return;
     }
+    const isMeta = event.metaKey || event.ctrlKey;
+    if (isMeta) {
+      let anchorId = selectionAnchorRef.current;
+      if (!anchorId && selectedNodeIds.size === 1) {
+        anchorId = selectedNodeIds.values().next().value ?? null;
+      }
+      const anchorNode = anchorId ? tree?.findNodeById(anchorId) ?? null : null;
+      if (anchorNode) {
+        const nextSelection = getPathBetweenNodes(anchorNode, node);
+        setSelectedNodeIds(nextSelection);
+      } else {
+        selectionAnchorRef.current = node.id;
+        setSelectedNodeIds(new Set([node.id]));
+      }
+      return;
+    }
     if (event.shiftKey) {
+      const willRemove = selectedNodeIds.has(node.id) && selectedNodeIds.size === 1;
       toggleSelectedNode(node.id);
+      if (willRemove) {
+        selectionAnchorRef.current = null;
+      } else if (!selectionAnchorRef.current) {
+        selectionAnchorRef.current = node.id;
+      }
       return;
     }
     if (tool === 'select') {
       setSelectedNodeIds(new Set([node.id]));
+      selectionAnchorRef.current = node.id;
       return;
     }
-    clearSelection();
+    clearSelectionState();
     try {
       await navigateTo(node);
     } catch (error) {
@@ -612,6 +734,7 @@ export default function GraphArea() {
   const handleNodePointerDown = (node: NavigationNode, event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     if (event.shiftKey) return;
+    if (event.metaKey || event.ctrlKey) return;
     if (layoutOptions.mode === 'radial' && node.isRoot?.()) return;
     const startPos = positions.get(node.id);
     if (!startPos) return;
@@ -746,7 +869,11 @@ export default function GraphArea() {
   const handleBackgroundClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
     if (target.closest('.graph-node')) return;
-    clearSelection();
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    clearSelectionState();
   };
 
   return (
@@ -755,10 +882,10 @@ export default function GraphArea() {
         className={`graph-wrapper${isDraggingNode ? ' is-dragging' : ''}`}
         ref={wrapperRef}
         tabIndex={0}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         onKeyDown={handleKeyDown}
         onContextMenu={handleWrapperContextMenu}
         onClick={handleBackgroundClick}
@@ -821,9 +948,7 @@ export default function GraphArea() {
           tool={tool}
           onToolChange={(nextTool) => {
             setGraphTool(nextTool);
-            clearSelection();
-            setPreviewSelection(new Set());
-            setSelectionBox(null);
+            clearSelectionState();
           }}
           onZoom={(direction) => zoom(direction, true)}
         />
