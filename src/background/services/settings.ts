@@ -12,6 +12,7 @@ export const defaultSettings: Settings = {
         mindmap: { ...DEFAULT_LAYOUT_SETTINGS.mindmap },
         radial: { ...DEFAULT_LAYOUT_SETTINGS.radial },
     },
+    titleTruncation: 'end',
 }
 
 const settingsKey = 'trail_settings' as const;
@@ -41,6 +42,7 @@ function mergeDefaults(raw: unknown): Settings {
                 ...(layout.radial ?? {}),
             },
         },
+        titleTruncation: partial.titleTruncation ?? defaultSettings.titleTruncation,
     };
 }
 

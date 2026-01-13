@@ -281,6 +281,34 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
         </div>
 
         <div className="popover-section">
+          <div className="popover-label-small">Title truncation</div>
+          <div className="popover-segment">
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${settings?.titleTruncation === 'start' ? 'active' : ''}`}
+              onClick={() => updateSettings({ titleTruncation: 'start' })}
+            >
+              Start
+            </button>
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${settings?.titleTruncation === 'middle' ? 'active' : ''}`}
+              onClick={() => updateSettings({ titleTruncation: 'middle' })}
+            >
+              Middle
+            </button>
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${settings?.titleTruncation === 'end' ? 'active' : ''}`}
+              onClick={() => updateSettings({ titleTruncation: 'end' })}
+            >
+              End
+            </button>
+          </div>
+          <div className="popover-hint">Where long titles are shortened</div>
+        </div>
+
+        <div className="popover-section">
           <div className="popover-label-small">Layout</div>
           <div className="popover-segment">
             <button

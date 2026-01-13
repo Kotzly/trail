@@ -1499,6 +1499,11 @@ body {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
+.popover-segment-btn.wide {
+  width: auto;
+  padding: 0 12px;
+}
+
 .popover-segment-btn:hover {
   background: var(--md-surface-container);
   color: var(--md-on-surface);
