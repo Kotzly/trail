@@ -1979,6 +1979,7 @@ body {
   padding: 6px 8px;
   border-radius: 10px;
   cursor: pointer;
+  position: relative;
   transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -2040,6 +2041,39 @@ body {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+}
+
+.graph-context-tab-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.14s ease, transform 0.18s ease;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+}
+
+.graph-context-tab-item.is-checked .graph-context-tab-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.graph-context-tab-item.is-checked .graph-context-tab-check svg {
+  animation: tab-check-pop 220ms ease;
+}
+
+@keyframes tab-check-pop {
+  from {
+    transform: scale(0.6);
+  }
+  to {
+    transform: scale(1);
+  }
 }
 
 .graph-context-tab-action {

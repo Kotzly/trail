@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import type { NodeId, Tag } from '../../../shared/types/ids.js';
+import type { NodeId, TabId, Tag } from '../../../shared/types/ids.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
 import { msg } from '../../../shared/types/messages.js';
 import { fireAndForget } from '../../api/background.js';
@@ -209,6 +209,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const menuStyle = useMenuPosition(menuRef, position);
   const [submenuLeft, setSubmenuLeft] = useState(false);
   const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
+  const [checkedTabId, setCheckedTabId] = useState<number | null>(null);
+  const checkTimeoutRef = useRef<number | null>(null);
   const tempSessionRef = useRef<string | null>(null);
   const tempSessionPromiseRef = useRef<Promise<string | null> | null>(null);
   const sessionStatusRef = useRef<'idle' | 'active' | 'ended'>('idle');
@@ -317,6 +319,10 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     cancelQueuedRef.current = null;
     lastPreviewTabRef.current = null;
     return () => {
+      if (checkTimeoutRef.current !== null) {
+        window.clearTimeout(checkTimeoutRef.current);
+        checkTimeoutRef.current = null;
+      }
       finalizeTempSession(committedRef.current);
     };
   }, [finalizeTempSession, nodeId]);
@@ -397,7 +403,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   }, [updateSubmenuLayout]);
 
   const handleTabHover = useCallback(
-    async (tabId?: number) => {
+    async (tabId?: TabId) => {
       if (!tabId) return;
       if (sessionStatusRef.current !== 'active' && sessionStatusRef.current !== 'idle') return;
       if (lastPreviewTabRef.current === tabId) return;
@@ -430,7 +436,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         style={{
           left: `${menuStyle.left}px`,
           top: `${menuStyle.top}px`,
-          ['--menu-max-height' as const]: `${menuStyle.maxHeight}px`,
+          // @ts-ignore -- Allow custom CSS prop for menu max height
+          ['--menu-max-height']: `${menuStyle.maxHeight}px`,
         }}
       >
         <div className="graph-context-menu-content">
@@ -456,7 +463,9 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       {hasOpenTab && (
         <>
           <div className="graph-context-menu-divider" />
-          <div className="graph-context-menu-header">Open tabs</div>
+          <div className="graph-context-menu-header">
+            {tabs.length} open tab{tabs.length !== 1 ? "s" : ""}
+          </div>
           <div
             className="graph-context-tabs"
             onMouseLeave={() => {
@@ -467,16 +476,24 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
             {tabs.map((tab) => (
               <div
                 key={tab.id}
-                className="graph-context-tab-item"
+                className={`graph-context-tab-item${checkedTabId === tab.id ? ' is-checked' : ''}`}
                 onMouseEnter={() => {
                   setHoverNodeId(nodeId);
-                  void handleTabHover(tab.id);
+                  void handleTabHover(tab.id as TabId);
                 }}
                 onMouseLeave={() => setHoverNodeId(null)}
                 onClick={async () => {
                   committedRef.current = true;
                   finalizeTempSession(true);
                   if (!tab.id) return;
+                  setCheckedTabId(tab.id);
+                  if (checkTimeoutRef.current !== null) {
+                    window.clearTimeout(checkTimeoutRef.current);
+                  }
+                  checkTimeoutRef.current = window.setTimeout(() => {
+                    setCheckedTabId(null);
+                    checkTimeoutRef.current = null;
+                  }, 650);
                   try {
                     await chrome.tabs.update(tab.id, { active: true });
                   } catch (error) {
@@ -498,6 +515,9 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                   </div>
                 </div>
                 <div className="graph-context-tab-actions">
+                  <span className="graph-context-tab-check" aria-hidden="true">
+                    <Icons.Check size={14} />
+                  </span>
                   <button
                     type="button"
                     className="graph-context-tab-action"
@@ -506,7 +526,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                       event.stopPropagation();
                       if (!tab.id) return;
                       fireAndForget(
-                        msg.toggleMute({ nodeId, tabId: tab.id }),
+                        msg.toggleMute({ nodeId, tabId: tab.id as TabId }),
                       );
                       setTabs((prev) =>
                         prev.map((item) =>
@@ -515,11 +535,11 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                                 ...item,
                                 mutedInfo: {
                                   muted: !item.mutedInfo?.muted,
-                                  reason: item.mutedInfo?.reason ?? '',
+                                  reason: (item.mutedInfo?.reason as "user" | "capture" | "extension" | undefined) ?? undefined,
                                 },
-                              }
+                              } as typeof item
                             : item,
-                        ),
+                        )
                       );
                     }}
                   >
@@ -532,7 +552,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                     onClick={(event) => {
                       event.stopPropagation();
                       if (!tab.id) return;
-                      fireAndForget(msg.closeTab({ nodeId, tabId: tab.id }));
+                      fireAndForget(msg.closeTab({ nodeId, tabId: tab.id as TabId }));
                       setTabs((prev) => prev.filter((item) => item.id !== tab.id));
                     }}
                   >
@@ -546,7 +566,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
             className="graph-context-menu-item"
             onClick={() => {
               if (tabs.length === 1 && tabs[0]?.id) {
-                fireAndForget(msg.closeTab({ nodeId, tabId: tabs[0].id }));
+                fireAndForget(msg.closeTab({ nodeId, tabId: tabs[0].id as TabId }));
                 setTabs([]);
               } else if (tabs.length > 1) {
                 fireAndForget(msg.bulkCloseTabs({ nodeIds: [nodeId] }));
@@ -728,6 +748,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       style={{
         left: `${menuStyle.left}px`,
         top: `${menuStyle.top}px`,
+        // @ts-ignore -- Allow custom CSS prop for menu max height
         ['--menu-max-height' as const]: `${menuStyle.maxHeight}px`,
       }}
     >
