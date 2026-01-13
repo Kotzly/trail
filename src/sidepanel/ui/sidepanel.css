@@ -1753,6 +1753,13 @@ body {
   box-shadow: 0 0 0 2px var(--md-primary);
 }
 
+.graph-node.closed.hover-focused {
+  filter: none;
+  opacity: 1;
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 2px var(--md-primary), 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
 /* Muted tabs - red border */
 .graph-node.muted {
   border: 2px solid #dc3545;
@@ -1866,12 +1873,22 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   min-width: 160px;
+  max-width: calc(100vw - 16px);
+  max-height: var(--menu-max-height, calc(100vh - 16px));
+  overflow: visible;
   opacity: 0.92;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   /* Open animation */
   animation: contextMenuOpen 150ms cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top left;
+}
+
+.graph-context-menu-content {
+  display: flex;
+  flex-direction: column;
+  max-height: var(--menu-max-height, calc(100vh - 16px));
+  overflow: visible;
 }
 
 @keyframes contextMenuOpen {
@@ -1932,6 +1949,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 6px;
+  min-height: 0;
   scrollbar-width: thin;
   scrollbar-color: rgba(120, 124, 140, 0.35) transparent;
 }

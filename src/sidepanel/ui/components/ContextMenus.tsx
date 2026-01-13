@@ -13,23 +13,31 @@ import { TagIcon } from './tags/TagIcon.js';
 import { Icons } from './Icon.js';
 import React from 'react';
 
-type MenuPosition = { left: number; top: number };
+type MenuPosition = { left: number; top: number; maxHeight: number };
 
 const SUBMENU_MIN_WIDTH = 160;
 
 function useMenuPosition(menuRef: RefObject<HTMLDivElement>, position: { x: number; y: number }) {
-  const [menuStyle, setMenuStyle] = useState<MenuPosition>({ left: position.x, top: position.y });
+  const [menuStyle, setMenuStyle] = useState<MenuPosition>({
+    left: position.x,
+    top: position.y,
+    maxHeight: window.innerHeight - 16,
+  });
 
   const updatePosition = useCallback(() => {
     const menu = menuRef.current;
     if (!menu) return;
     const rect = menu.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
     const padding = 8;
-    const maxLeft = window.innerWidth - rect.width - padding;
-    const maxTop = window.innerHeight - rect.height - padding;
+    const availableHeight = Math.max(0, window.innerHeight - padding * 2);
+    const clampedHeight = Math.min(menuHeight, availableHeight);
+    const maxLeft = window.innerWidth - menuWidth - padding;
+    const maxTop = window.innerHeight - padding - clampedHeight;
     const left = Math.min(Math.max(position.x, padding), Math.max(padding, maxLeft));
     const top = Math.min(Math.max(position.y, padding), Math.max(padding, maxTop));
-    setMenuStyle({ left, top });
+    setMenuStyle({ left, top, maxHeight: availableHeight });
   }, [menuRef, position.x, position.y]);
 
   useLayoutEffect(() => {
@@ -198,6 +206,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     const menu = menuRef.current;
     if (!menu) return;
     const rect = menu.getBoundingClientRect();
+    const menuHeight = menu.offsetHeight;
     const padding = 8;
     const spaceRight = Math.max(0, window.innerWidth - rect.right - padding);
     const spaceLeft = Math.max(0, rect.left - padding);
@@ -226,6 +235,21 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         submenu.style.setProperty('--submenu-offset-y', `${shiftDown}px`);
       }
     });
+
+    const tabsList = menu.querySelector<HTMLElement>('.graph-context-tabs');
+    if (tabsList) {
+      const availableHeight = Math.max(0, window.innerHeight - padding * 2);
+      const staticHeight = menuHeight - tabsList.offsetHeight;
+      const maxTabsHeight = Math.max(96, availableHeight - staticHeight - padding);
+      const row = tabsList.querySelector<HTMLElement>('.graph-context-tab-item');
+      const rowHeight = row?.getBoundingClientRect().height ?? 44;
+      const gap = 6;
+      const listPadding = 6;
+      const visibleRows = 5;
+      const targetHeight =
+        rowHeight * visibleRows + gap * (visibleRows - 1) + listPadding * 2;
+      tabsList.style.maxHeight = `${Math.max(96, Math.min(targetHeight, maxTabsHeight))}px`;
+    }
   }, []);
 
   useEffect(() => {
@@ -265,27 +289,31 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       <div
         ref={menuRef}
         className={`graph-context-menu${submenuLeft ? ' submenu-left' : ''}`}
-        style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px` }}
-        onMouseLeave={() => setHoverNodeId(null)}
-      >
-      <div
-        className="graph-context-menu-item"
-        onClick={() => {
-          void navigateTo(node);
-          closeContextMenu();
+        style={{
+          left: `${menuStyle.left}px`,
+          top: `${menuStyle.top}px`,
+          ['--menu-max-height' as const]: `${menuStyle.maxHeight}px`,
         }}
       >
-        Open in this tab
-      </div>
-      <div
-        className="graph-context-menu-item"
-        onClick={() => {
-          fireAndForget(msg.openInNewTab({ nodeId }));
-          closeContextMenu();
-        }}
-      >
-        Open in new tab
-      </div>
+        <div className="graph-context-menu-content">
+          <div
+            className="graph-context-menu-item"
+            onClick={() => {
+              void navigateTo(node);
+              closeContextMenu();
+            }}
+          >
+            Open in this tab
+          </div>
+          <div
+            className="graph-context-menu-item"
+            onClick={() => {
+              fireAndForget(msg.openInNewTab({ nodeId }));
+              closeContextMenu();
+            }}
+          >
+            Open in new tab
+          </div>
 
       {hasOpenTab && (
         <>
@@ -527,6 +555,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       >
         {isRoot && !hasChildren ? 'Delete tree' : 'Delete with children'}
       </div>
+        </div>
       </div>
     </>
   );
@@ -544,7 +573,16 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const clearSelection = useStore((state) => state.clearSelection);
 
   return (
-    <div ref={menuRef} className="graph-context-menu" style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px` }}>
+    <div
+      ref={menuRef}
+      className="graph-context-menu"
+      style={{
+        left: `${menuStyle.left}px`,
+        top: `${menuStyle.top}px`,
+        ['--menu-max-height' as const]: `${menuStyle.maxHeight}px`,
+      }}
+    >
+      <div className="graph-context-menu-content">
       <div className="graph-context-menu-header">{nodeIds.length} nodes selected</div>
       <div className="graph-context-menu-divider" />
       <div
@@ -597,6 +635,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         }}
       >
         Delete nodes recursively
+      </div>
       </div>
     </div>
   );
