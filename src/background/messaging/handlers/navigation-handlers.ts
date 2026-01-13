@@ -118,7 +118,11 @@ export const navigationHandlers = defineHandlers({
 
   async [MSG.PREVIEW_TEMP_SELECTION](message) {
     try {
-      const result = await tempSelectionManager.preview(message.sessionId, message.nodeId);
+      const result = await tempSelectionManager.preview(
+        message.sessionId,
+        message.nodeId,
+        message.tabId,
+      );
       return ok(result);
     } catch (error) {
       return err(error instanceof Error ? error.message : 'Failed to preview temp selection');
@@ -136,7 +140,7 @@ export const navigationHandlers = defineHandlers({
 
   async [MSG.CANCEL_TEMP_SELECTION](message) {
     try {
-      await tempSelectionManager.cancel(message.sessionId);
+      await tempSelectionManager.cancel(message.sessionId, { keepSession: message.keepSession } as { keepSession?: boolean });
       return ok();
     } catch (error) {
       return err(error instanceof Error ? error.message : 'Failed to cancel temp selection');

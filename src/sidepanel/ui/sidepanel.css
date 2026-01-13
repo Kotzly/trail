@@ -1979,11 +1979,13 @@ body {
   padding: 6px 8px;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .graph-context-tab-item:hover {
   background: var(--md-surface-variant);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
 }
 
 .graph-context-tab-info {

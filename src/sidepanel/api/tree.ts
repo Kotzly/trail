@@ -32,8 +32,12 @@ export async function beginTempSelection(payload: BeginTempSelectionInput): Prom
     return res.data;
 }
 
-export async function previewTempSelection(sessionId: TempSelectionSessionId, nodeId: NodeId): Promise<{ previewedTabId: TabId | null }> {
-    const res = await sendMessage(msg.previewTempSelection({ sessionId, nodeId }));
+export async function previewTempSelection(
+  sessionId: TempSelectionSessionId,
+  nodeId: NodeId,
+  tabId?: TabId,
+): Promise<{ previewedTabId: TabId | null }> {
+    const res = await sendMessage(msg.previewTempSelection({ sessionId, nodeId, tabId } as { sessionId: TempSelectionSessionId; nodeId: NodeId; tabId?: TabId }));
     if (!res.success) throw new Error(res.error);
     return res.data;
 }
@@ -44,8 +48,11 @@ export async function acceptTempSelection(sessionId: TempSelectionSessionId, nod
     return res.data;
 }
 
-export async function cancelTempSelection(sessionId: TempSelectionSessionId): Promise<void> {
-    const res = await sendMessage(msg.cancelTempSelection({ sessionId }));
+export async function cancelTempSelection(
+  sessionId: TempSelectionSessionId,
+  options?: { keepSession?: boolean },
+): Promise<void> {
+    const res = await sendMessage(msg.cancelTempSelection({ sessionId, ...options }));
     if (!res.success) throw new Error(res.error);
     return res.data;
 }

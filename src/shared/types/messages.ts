@@ -74,6 +74,7 @@ export type BeginTempSelectionMessage = RequestMessageBase<typeof MSG.BEGIN_TEMP
 export type PreviewTempSelectionMessage = RequestMessageBase<typeof MSG.PREVIEW_TEMP_SELECTION, {
   sessionId: TempSelectionSessionId;
   nodeId: NodeId;
+  tabId?: TabId;
 }>;
 export type AcceptTempSelectionMessage = RequestMessageBase<typeof MSG.ACCEPT_TEMP_SELECTION, {
   sessionId: TempSelectionSessionId;
@@ -81,6 +82,7 @@ export type AcceptTempSelectionMessage = RequestMessageBase<typeof MSG.ACCEPT_TE
 }>;
 export type CancelTempSelectionMessage = RequestMessageBase<typeof MSG.CANCEL_TEMP_SELECTION, {
   sessionId: TempSelectionSessionId;
+  keepSession?: boolean;
 }>;
 export type EndTempSelectionMessage = RequestMessageBase<typeof MSG.END_TEMP_SELECTION, {
   sessionId: TempSelectionSessionId;
@@ -224,13 +226,13 @@ export const msg = {
     beginTempSelection(payload: BeginTempSelectionInput): BeginTempSelectionMessage {
         return { type: MSG.BEGIN_TEMP_SELECTION, ...payload };
     },
-    previewTempSelection(payload: { sessionId: TempSelectionSessionId; nodeId: NodeId }): PreviewTempSelectionMessage {
+    previewTempSelection(payload: { sessionId: TempSelectionSessionId; nodeId: NodeId; tabId?: TabId }): PreviewTempSelectionMessage {
         return { type: MSG.PREVIEW_TEMP_SELECTION, ...payload };
     },
     acceptTempSelection(payload: { sessionId: TempSelectionSessionId; nodeId?: NodeId }): AcceptTempSelectionMessage {
         return { type: MSG.ACCEPT_TEMP_SELECTION, ...payload };
     },
-    cancelTempSelection(payload: { sessionId: TempSelectionSessionId }): CancelTempSelectionMessage {
+    cancelTempSelection(payload: { sessionId: TempSelectionSessionId; keepSession?: boolean }): CancelTempSelectionMessage {
         return { type: MSG.CANCEL_TEMP_SELECTION, ...payload };
     },
     endTempSelection(payload: { sessionId: TempSelectionSessionId }): EndTempSelectionMessage {

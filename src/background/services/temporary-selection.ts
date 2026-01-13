@@ -72,7 +72,7 @@ export class TemporaryTabSelectionManager {
     return sessionId;
   }
 
-  async preview(sessionId: SessionId, nodeId: NodeId): Promise<{ previewedTabId: TabId | null }> {
+  async preview(sessionId: SessionId, nodeId: NodeId, tabId?: TabId): Promise<{ previewedTabId: TabId | null }> {
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error('Temp selection session not found');
     session.previewNodeId = nodeId;
@@ -80,6 +80,20 @@ export class TemporaryTabSelectionManager {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(nodeId);
     if (!node) throw new Error('Node not found');
+
+    if (tabId !== undefined) {
+      const resolvedNode = tabManager.nodeByTab(tabId as TabId);
+      if (resolvedNode === nodeId) {
+        tabManager.suppressNextActivate(tabId as TabId, sessionId);
+        const focused = await focusTab(tabId as TabId);
+        if (focused) {
+          session.previewTabId = tabId as TabId;
+          return { previewedTabId: tabId as TabId };
+        }
+        tabManager.clearSuppressActivate(tabId as TabId);
+        tabManager.unregister(tabId as TabId);
+      }
+    }
 
     const tabsArray = tabManager.getTabsByRecency(nodeId);
     if (tabsArray.length === 0) {
@@ -159,17 +173,22 @@ export class TemporaryTabSelectionManager {
     this.end(sessionId);
   }
 
-  async cancel(sessionId: SessionId): Promise<void> {
+  async cancel(sessionId: SessionId, options?: { keepSession?: boolean }): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) return;
     const baseTabId = session.baseTabId;
     const baseNodeId = session.baseNodeId;
+    const keepSession = options?.keepSession === true;
 
     if (baseTabId) {
       tabManager.suppressNextActivate(baseTabId, sessionId);
       const focused = await focusTab(baseTabId);
       if (focused) {
-        this.end(sessionId);
+        session.previewNodeId = null;
+        session.previewTabId = null;
+        if (!keepSession) {
+          this.end(sessionId);
+        }
         return;
       }
       tabManager.clearSuppressActivate(baseTabId);
@@ -181,7 +200,11 @@ export class TemporaryTabSelectionManager {
         tabManager.suppressNextActivate(tabId as TabId, sessionId);
         const focused = await focusTab(tabId as TabId);
         if (focused) {
-          this.end(sessionId);
+          session.previewNodeId = null;
+          session.previewTabId = null;
+          if (!keepSession) {
+            this.end(sessionId);
+          }
           return;
         }
         tabManager.clearSuppressActivate(tabId as TabId);
@@ -189,7 +212,11 @@ export class TemporaryTabSelectionManager {
       }
     }
 
-    this.end(sessionId);
+    session.previewNodeId = null;
+    session.previewTabId = null;
+    if (!keepSession) {
+      this.end(sessionId);
+    }
   }
 
   end(sessionId: SessionId): void {

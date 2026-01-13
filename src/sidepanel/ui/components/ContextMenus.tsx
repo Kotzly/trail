@@ -4,7 +4,13 @@ import type { NodeId, Tag } from '../../../shared/types/ids.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
 import { msg } from '../../../shared/types/messages.js';
 import { fireAndForget } from '../../api/background.js';
-import { navigateTo } from '../../api/tree.js';
+import {
+  beginTempSelection,
+  cancelTempSelection,
+  endTempSelection,
+  navigateTo,
+  previewTempSelection,
+} from '../../api/tree.js';
 import { getTabsForNodeMessage } from '../../api/tabs.js';
 import { useStore } from '../state/store.js';
 import TagEditorModal from './tags/TagEditorModal.js';
@@ -196,11 +202,124 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
   const tree = useStore((state) => state.tree);
   const tagDefsList = useStore((state) => state.tagDefsList);
+  const currentNodeId = useStore((state) => state.currentNodeId);
+  const searchActive = useStore((state) => state.search.active);
   const node = tree?.findNodeById(nodeId);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuStyle = useMenuPosition(menuRef, position);
   const [submenuLeft, setSubmenuLeft] = useState(false);
   const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
+  const tempSessionRef = useRef<string | null>(null);
+  const tempSessionPromiseRef = useRef<Promise<string | null> | null>(null);
+  const sessionStatusRef = useRef<'idle' | 'active' | 'ended'>('idle');
+  const cancelQueuedRef = useRef<null | 'keep'>(null);
+  const lastPreviewTabRef = useRef<number | null>(null);
+  const committedRef = useRef(false);
+
+  const ensureTempSession = useCallback(async () => {
+    if (searchActive) return null;
+    if (sessionStatusRef.current === 'ended') return null;
+    if (tempSessionRef.current) return tempSessionRef.current;
+    if (tempSessionPromiseRef.current) return tempSessionPromiseRef.current;
+    sessionStatusRef.current = 'active';
+    tempSessionPromiseRef.current = beginTempSelection({
+      baseNodeId: currentNodeId ?? null,
+      options: {
+        allowCreateOnCommit: false,
+        allowPreviewWithoutTabs: false,
+      },
+    })
+      .then((result) => {
+        if (sessionStatusRef.current !== 'active') {
+          endTempSelection(result.sessionId).catch((error) =>
+            console.error('Failed to end temp selection:', error),
+          );
+          return null;
+        }
+        tempSessionRef.current = result.sessionId;
+        if (cancelQueuedRef.current) {
+          cancelQueuedRef.current = null;
+          cancelTempSelection(result.sessionId, { keepSession: true }).catch((error) =>
+            console.error('Failed to cancel temp selection:', error),
+          );
+        }
+        return result.sessionId;
+      })
+      .catch((error) => {
+        console.error('Failed to begin temp selection:', error);
+        return null;
+      })
+      .finally(() => {
+        tempSessionPromiseRef.current = null;
+      });
+    return tempSessionPromiseRef.current;
+  }, [currentNodeId, searchActive]);
+
+  const cancelTempSessionPreview = useCallback(() => {
+    if (committedRef.current) return;
+    if (sessionStatusRef.current !== 'active') return;
+    const sessionId = tempSessionRef.current;
+    if (sessionId) {
+      cancelTempSelection(sessionId, { keepSession: true }).catch((error) =>
+        console.error('Failed to cancel temp selection:', error),
+      );
+      lastPreviewTabRef.current = null;
+      return;
+    }
+    if (tempSessionPromiseRef.current) {
+      cancelQueuedRef.current = 'keep';
+    }
+    lastPreviewTabRef.current = null;
+  }, []);
+
+  const finalizeTempSession = useCallback(
+    (commit: boolean) => {
+      if (sessionStatusRef.current === 'ended') return;
+      sessionStatusRef.current = 'ended';
+      cancelQueuedRef.current = null;
+      const sessionId = tempSessionRef.current;
+      if (sessionId) {
+        if (!commit) {
+          cancelTempSelection(sessionId).catch((error) =>
+            console.error('Failed to cancel temp selection:', error),
+          );
+        }
+        endTempSelection(sessionId).catch((error) =>
+          console.error('Failed to end temp selection:', error),
+        );
+        tempSessionRef.current = null;
+        lastPreviewTabRef.current = null;
+      }
+
+      if (tempSessionPromiseRef.current) {
+        tempSessionPromiseRef.current
+          .then((id) => {
+            if (!id) return;
+            if (!commit) {
+              cancelTempSelection(id).catch((error) =>
+                console.error('Failed to cancel temp selection:', error),
+              );
+            }
+            endTempSelection(id).catch((error) =>
+              console.error('Failed to end temp selection:', error),
+            );
+          })
+          .catch(() => undefined);
+        tempSessionPromiseRef.current = null;
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    committedRef.current = false;
+    sessionStatusRef.current = 'idle';
+    cancelQueuedRef.current = null;
+    lastPreviewTabRef.current = null;
+    return () => {
+      finalizeTempSession(committedRef.current);
+    };
+  }, [finalizeTempSession, nodeId]);
 
   const updateSubmenuLayout = useCallback(() => {
     const menu = menuRef.current;
@@ -277,6 +396,25 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     return () => window.removeEventListener('resize', updateSubmenuLayout);
   }, [updateSubmenuLayout]);
 
+  const handleTabHover = useCallback(
+    async (tabId?: number) => {
+      if (!tabId) return;
+      if (sessionStatusRef.current !== 'active' && sessionStatusRef.current !== 'idle') return;
+      if (lastPreviewTabRef.current === tabId) return;
+      const sessionId = await ensureTempSession();
+      if (!sessionId) return;
+      if (sessionStatusRef.current !== 'active') return;
+      lastPreviewTabRef.current = tabId;
+      previewTempSelection(sessionId, nodeId, tabId).catch((error) => {
+        if (sessionStatusRef.current !== 'active') return;
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('Temp selection session not found')) return;
+        console.error('Failed to preview tab:', error);
+      });
+    },
+    [ensureTempSession, nodeId],
+  );
+
   const hasOpenTab = tabs.length > 0;
   const hasTitle = Boolean(node?.data.title && node.data.title.trim().length > 0);
   const hasChildren = node?.getChildren()?.length ? node.getChildren().length > 0 : false;
@@ -319,14 +457,25 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         <>
           <div className="graph-context-menu-divider" />
           <div className="graph-context-menu-header">Open tabs</div>
-          <div className="graph-context-tabs">
+          <div
+            className="graph-context-tabs"
+            onMouseLeave={() => {
+              cancelTempSessionPreview();
+              setHoverNodeId(null);
+            }}
+          >
             {tabs.map((tab) => (
               <div
                 key={tab.id}
                 className="graph-context-tab-item"
-                onMouseEnter={() => setHoverNodeId(nodeId)}
+                onMouseEnter={() => {
+                  setHoverNodeId(nodeId);
+                  void handleTabHover(tab.id);
+                }}
                 onMouseLeave={() => setHoverNodeId(null)}
                 onClick={async () => {
+                  committedRef.current = true;
+                  finalizeTempSession(true);
                   if (!tab.id) return;
                   try {
                     await chrome.tabs.update(tab.id, { active: true });
