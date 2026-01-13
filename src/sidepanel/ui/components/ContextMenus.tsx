@@ -20,20 +20,33 @@ const SUBMENU_MIN_WIDTH = 160;
 function useMenuPosition(menuRef: RefObject<HTMLDivElement>, position: { x: number; y: number }) {
   const [menuStyle, setMenuStyle] = useState<MenuPosition>({ left: position.x, top: position.y });
 
-  useLayoutEffect(() => {
+  const updatePosition = useCallback(() => {
     const menu = menuRef.current;
     if (!menu) return;
     const rect = menu.getBoundingClientRect();
-    let left = position.x;
-    let top = position.y;
-    if (rect.right > window.innerWidth) {
-      left = window.innerWidth - rect.width - 8;
-    }
-    if (rect.bottom > window.innerHeight) {
-      top = window.innerHeight - rect.height - 8;
-    }
+    const padding = 8;
+    const maxLeft = window.innerWidth - rect.width - padding;
+    const maxTop = window.innerHeight - rect.height - padding;
+    const left = Math.min(Math.max(position.x, padding), Math.max(padding, maxLeft));
+    const top = Math.min(Math.max(position.y, padding), Math.max(padding, maxTop));
     setMenuStyle({ left, top });
   }, [menuRef, position.x, position.y]);
+
+  useLayoutEffect(() => {
+    updatePosition();
+  }, [updatePosition]);
+
+  useEffect(() => {
+    const menu = menuRef.current;
+    if (!menu) return;
+    const observer = new ResizeObserver(() => updatePosition());
+    observer.observe(menu);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [menuRef, updatePosition]);
 
   return menuStyle;
 }
@@ -185,21 +198,24 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     const menu = menuRef.current;
     if (!menu) return;
     const rect = menu.getBoundingClientRect();
-    const required = SUBMENU_MIN_WIDTH + 8;
-    const spaceRight = window.innerWidth - rect.right;
-    const spaceLeft = rect.left;
-    const shouldFlip = spaceRight < required && spaceLeft >= required;
+    const padding = 8;
+    const spaceRight = Math.max(0, window.innerWidth - rect.right - padding);
+    const spaceLeft = Math.max(0, rect.left - padding);
+    const shouldFlip = spaceRight < SUBMENU_MIN_WIDTH && spaceLeft > spaceRight;
     setSubmenuLeft(shouldFlip);
+    const availableWidth = shouldFlip ? spaceLeft : spaceRight;
 
     const items = menu.querySelectorAll<HTMLElement>('.graph-context-menu-item.has-submenu');
     items.forEach((item) => {
       const submenu = item.querySelector<HTMLElement>('.graph-context-submenu');
       if (!submenu) return;
       submenu.style.setProperty('--submenu-offset-y', '0px');
+      submenu.style.maxWidth = `${availableWidth}px`;
+      submenu.style.minWidth = `${Math.min(SUBMENU_MIN_WIDTH, availableWidth)}px`;
       const submenuRect = submenu.getBoundingClientRect();
       const itemRect = item.getBoundingClientRect();
-      const maxBottom = window.innerHeight - 8;
-      const maxTop = 8;
+      const maxBottom = window.innerHeight - padding;
+      const maxTop = padding;
       const overflowBottom = itemRect.top + submenuRect.height - maxBottom;
       if (overflowBottom > 0) {
         const maxShift = Math.max(0, itemRect.top - maxTop);
@@ -348,6 +364,20 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                 </div>
               </div>
             ))}
+          </div>
+          <div
+            className="graph-context-menu-item"
+            onClick={() => {
+              if (tabs.length === 1 && tabs[0]?.id) {
+                fireAndForget(msg.closeTab({ nodeId, tabId: tabs[0].id }));
+                setTabs([]);
+              } else if (tabs.length > 1) {
+                fireAndForget(msg.bulkCloseTabs({ nodeIds: [nodeId] }));
+                setTabs([]);
+              }
+            }}
+          >
+            {tabs.length === 1 ? 'Close tab' : 'Close all tabs'}
           </div>
         </>
       )}
