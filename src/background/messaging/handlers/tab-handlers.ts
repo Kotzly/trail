@@ -10,14 +10,21 @@ import { NavigationTree } from '../../state/nav-tree.js';
 
 export const tabHandlers = defineHandlers({
   async [MSG.GET_TABS_FOR_NODE](message) {
-    const tabs: chrome.tabs.Tab[] = [];
     const tabsForNode = tabManager.tabsByNode(message.nodeId);
+    const tabIds = Array.from(tabsForNode ?? []);
+    const tabs = await Promise.all(
+      tabIds.map(async (tabId) => {
+        try {
+          return await chrome.tabs.get(tabId as TabId);
+        } catch (error) {
+          tabManager.unregister(tabId as TabId);
+          console.error('Failed to get tab:', error);
+          return null;
+        }
+      }),
+    );
 
-    tabsForNode.forEach(async (tabId) => {
-      chrome.tabs.get(tabId as TabId).catch(console.error).then((tab) => tab ? tabs.push(tab) : tabManager.unregister(tabId as TabId));
-    });
-
-    return ok({ tabs });
+    return ok({ tabs: tabs.filter((tab): tab is chrome.tabs.Tab => Boolean(tab)) });
   },
 
   async [MSG.TOGGLE_MUTE](message) {

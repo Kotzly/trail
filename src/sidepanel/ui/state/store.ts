@@ -63,6 +63,7 @@ type StoreState = {
     layoutVersion: number;
     resetVersion: number;
     viewIntent: TreeUpdatedInput['view'] | null;
+    hoverNodeId: NodeId | null;
   };
   contextMenu: ContextMenuState;
   metaKey: MetaKeyPair | null;
@@ -92,6 +93,7 @@ type StoreActions = {
   toggleSelectedNode: (id: NodeId) => void;
   clearSelection: () => void;
   setGraphView: (view: Partial<ViewState>) => void;
+  setHoverNodeId: (nodeId: NodeId | null) => void;
   setNodeLayoutOffset: (nodeId: NodeId, offsetX: number, offsetY: number) => void;
   setNodeLayoutRadial: (nodeId: NodeId, angleDelta: number, radiusDelta: number) => void;
   requestGraphReset: () => void;
@@ -134,6 +136,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     layoutVersion: 0,
     resetVersion: 0,
     viewIntent: null,
+    hoverNodeId: null,
   },
   contextMenu: null,
   metaKey: null,
@@ -262,6 +265,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setGraphView: (view) =>
     set((state) => ({
       graph: { ...state.graph, view: { ...state.graph.view, ...view } },
+    })),
+  setHoverNodeId: (nodeId) =>
+    set((state) => ({
+      graph: { ...state.graph, hoverNodeId: nodeId },
     })),
   setNodeLayoutOffset: (nodeId, offsetX, offsetY) =>
     set((state) => {

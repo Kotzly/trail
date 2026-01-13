@@ -24,6 +24,7 @@ type GraphNodeProps = {
   isSearchMatch: boolean;
   isSearchFocused: boolean;
   isSearchDimmed: boolean;
+  isHoverFocused: boolean;
   onClick: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
@@ -43,6 +44,7 @@ export default function GraphNode({
   isSearchMatch,
   isSearchFocused,
   isSearchDimmed,
+  isHoverFocused,
   onClick,
   onContextMenu,
   onPointerDown,
@@ -63,6 +65,7 @@ export default function GraphNode({
     if (isSearchDimmed) classes.push('search-dimmed');
     if (isSearchMatch) classes.push('search-match');
     if (isSearchFocused) classes.push('search-focused');
+    if (isHoverFocused) classes.push('hover-focused');
     return classes.join(' ');
   }, [
     currentId,

@@ -154,6 +154,7 @@ export default function GraphArea() {
   const searchActive = useStore((state) => state.search.active);
   const settings = useStore((state) => state.settings);
   const selectedNodeIds = useStore((state) => state.graph.selectedNodeIds);
+  const hoverNodeId = useStore((state) => state.graph.hoverNodeId);
   const layoutVersion = useStore((state) => state.graph.layoutVersion);
   const resetVersion = useStore((state) => state.graph.resetVersion);
   const viewIntent = useStore((state) => state.graph.viewIntent);
@@ -955,6 +956,7 @@ export default function GraphArea() {
                 isSearchMatch={searchSet.has(pos.node.id)}
                 isSearchFocused={focusedSearchId === pos.node.id}
                 isSearchDimmed={search.query.length > 0 && !searchSet.has(pos.node.id)}
+                isHoverFocused={hoverNodeId === pos.node.id}
                 onClick={(event) => void handleNodeClick(pos.node, event)}
                 onContextMenu={(event) => handleNodeContextMenu(pos.node, event)}
                 onPointerDown={(event) => handleNodePointerDown(pos.node, event)}

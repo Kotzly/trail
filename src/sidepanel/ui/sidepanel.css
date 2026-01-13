@@ -1778,6 +1778,12 @@ body {
   z-index: 10;
 }
 
+.graph-node.hover-focused {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--md-primary), 0 0 12px rgba(0, 0, 0, 0.2);
+  z-index: 9;
+}
+
 /* ========================================
    PATH HIGHLIGHTING (Graph View)
    All branches dark gray, path to current is white
@@ -1867,6 +1873,128 @@ body {
   height: 1px;
   background: var(--md-outline-variant);
   margin: 4px 0;
+}
+
+.graph-context-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 124, 140, 0.35) transparent;
+}
+
+.graph-context-tabs::-webkit-scrollbar {
+  width: 6px;
+}
+
+.graph-context-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.graph-context-tabs::-webkit-scrollbar-thumb {
+  background: rgba(120, 124, 140, 0.35);
+  border-radius: 999px;
+}
+
+.graph-context-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 124, 140, 0.55);
+}
+
+.graph-context-tab-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.graph-context-tab-item:hover {
+  background: var(--md-surface-variant);
+}
+
+.graph-context-tab-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.graph-context-tab-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.graph-context-tab-favicon.placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-surface-container);
+  color: var(--md-on-surface-variant);
+  font-size: 10px;
+}
+
+.graph-context-tab-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-context-tab-title {
+  font-size: 12px;
+  color: var(--md-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.graph-context-tab-url {
+  font-size: 10px;
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.graph-context-tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.graph-context-tab-action {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.graph-context-tab-action:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+.graph-context-tab-action.danger:hover {
+  background: rgba(220, 53, 69, 0.16);
+  color: #dc3545;
 }
 
 /* Submenu for tags */
