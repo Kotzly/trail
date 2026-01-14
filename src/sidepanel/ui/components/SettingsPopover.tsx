@@ -277,7 +277,6 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
               void updateSettings({ maxOpenTabs });
             }}
           />
-          <div className="popover-hint">0 = unlimited</div>
         </div>
 
         <div className="popover-section">

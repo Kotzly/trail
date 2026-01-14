@@ -133,7 +133,7 @@ export function calculateMindmapLayout(
     children.forEach((child) => {
       const childHeight = subtreeHeights.get(child.id) ?? nodeHeight;
       const childX = parentX + direction * (nodeWidth + horizontalGap);
-      const childY = cursorY;
+      const childY = cursorY + (childHeight - nodeHeight) / 2;
       layoutNode(child, childX, childY, direction);
       cursorY += childHeight + verticalGap;
     });
