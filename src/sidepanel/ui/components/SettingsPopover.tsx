@@ -53,6 +53,10 @@ function RangeSlider({
         ? value.toFixed(2)
         : '0'
       : String(Math.round(value)));
+  const percent = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  const rangeStyle = {
+    ['--range-percent' as string]: `${Math.min(100, Math.max(0, percent))}%`,
+  } as CSSProperties;
   return (
     <div className="popover-slider">
       <div className="popover-slider-header">
@@ -66,6 +70,7 @@ function RangeSlider({
         min={min}
         max={max}
         step={step}
+        style={rangeStyle}
         onChange={(event) => {
           const next = clamp(Number(event.target.value), min, max);
           onValueChange(next);
