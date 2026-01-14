@@ -214,12 +214,20 @@ export default function GraphArea() {
   const transitionTimeoutRef = useRef<number | null>(null);
   const lastResetRef = useRef(0);
   const lastViewIntentRef = useRef<number | null>(null);
+  const resetStepRef = useRef<{
+    nodeId: NodeId;
+    view: { translateX: number; translateY: number; scale: number };
+  } | null>(null);
 
   const layoutOptions = useMemo(() => deriveLayoutOptions(settings), [settings]);
 
   useEffect(() => {
     viewRef.current = graphView;
   }, [graphView]);
+
+  useEffect(() => {
+    resetStepRef.current = null;
+  }, [currentNodeId]);
 
   const clearCanvasTransition = useCallback(() => {
     if (transitionTimeoutRef.current !== null) {
@@ -362,21 +370,40 @@ export default function GraphArea() {
     }
   };
 
-  const centerOnNode = (nodeId: NodeId, animate = true) => {
+  const isViewClose = (
+    a: { translateX: number; translateY: number; scale: number },
+    b: { translateX: number; translateY: number; scale: number },
+  ) => {
+    const translateEpsilon = 0.5;
+    const scaleEpsilon = 0.0005;
+    return (
+      Math.abs(a.translateX - b.translateX) <= translateEpsilon &&
+      Math.abs(a.translateY - b.translateY) <= translateEpsilon &&
+      Math.abs(a.scale - b.scale) <= scaleEpsilon
+    );
+  };
+
+  const getCenteredView = (nodeId: NodeId) => {
     const wrapper = wrapperRef.current;
-    if (!wrapper) return;
+    if (!wrapper) return null;
     const pos = positions.get(nodeId);
-    if (!pos) return;
+    if (!pos) return null;
     const rect = wrapper.getBoundingClientRect();
-    const { scale } = viewRef.current;
+    const scale = viewRef.current.scale;
     const nodeCenterX = pos.x + nodeWidth / 2;
     const nodeCenterY = pos.y + nodeHeight / 2;
-    const nextTranslateX = rect.width / 2 - nodeCenterX * scale;
-    const nextTranslateY = rect.height / 2 - nodeCenterY * scale;
+    const translateX = rect.width / 2 - nodeCenterX * scale;
+    const translateY = rect.height / 2 - nodeCenterY * scale;
+    return { translateX, translateY, scale };
+  };
+
+  const centerOnNode = (nodeId: NodeId, animate = true) => {
+    const nextView = getCenteredView(nodeId);
+    if (!nextView) return;
     if (!animate) {
       clearCanvasTransition();
     }
-    setGraphView({ translateX: nextTranslateX, translateY: nextTranslateY });
+    setGraphView(nextView);
     if (animate) {
       applyCanvasTransition(300);
     }
@@ -447,11 +474,39 @@ export default function GraphArea() {
     setGraphView({ translateX: nextTranslateX, translateY: nextTranslateY, scale: nextScale });
   }, [setGraphView]);
 
+  const handleResetZoom = (animate = false) => {
+    const nodeId = currentNodeId;
+    if (!nodeId) {
+      resetStepRef.current = null;
+      fitToView(animate);
+      return;
+    }
+    const nextView = getCenteredView(nodeId);
+    if (!nextView) {
+      resetStepRef.current = null;
+      fitToView(animate);
+      return;
+    }
+    const snapshot = resetStepRef.current;
+    if (snapshot && snapshot.nodeId === nodeId && isViewClose(viewRef.current, snapshot.view)) {
+      resetStepRef.current = null;
+      fitToView(animate);
+      return;
+    }
+    if (animate) {
+      applyCanvasTransition(300);
+    } else {
+      clearCanvasTransition();
+    }
+    setGraphView(nextView);
+    resetStepRef.current = { nodeId, view: nextView };
+  };
+
   const zoom = (direction: 'in' | 'out' | 'reset', animate = false) => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     if (direction === 'reset') {
-      fitToView(animate);
+      handleResetZoom(animate);
       return;
     }
     const rect = wrapper.getBoundingClientRect();
