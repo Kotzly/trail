@@ -10,16 +10,16 @@ import TagFilterDropdown from './tags/TagFilterDropdown.js';
 import { createPortal } from 'react-dom';
 
 type FloatingControlsProps = {
-  settingsBtnRef: RefObject<HTMLButtonElement>;
   searchInputRef: RefObject<HTMLInputElement>;
 };
 
-export default function FloatingControls({ settingsBtnRef, searchInputRef }: FloatingControlsProps) {
+export default function FloatingControls({ searchInputRef }: FloatingControlsProps) {
   const commandState = useStore((state) => state.commandState);
   const metaKey = useStore((state) => state.metaKey);
   const setCommandState = useStore((state) => state.setCommandState);
   const settingsOpen = useStore((state) => state.ui.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
+  const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : 'Ctrl+Z';
@@ -93,7 +93,13 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
             className="btn-icon orb-button"
             type="button"
             title="new tree"
-            onClick={() => setConfirmOpen(true)}
+            onClick={() => {
+              if (confirmNewTree) {
+                setConfirmOpen(true);
+              } else {
+                void handleNewTree();
+              }
+            }}
           >
             <Icons.GitBranchPlus size={18} />
           </button>
@@ -108,7 +114,6 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
             className="btn-icon orb-button"
             type="button"
             title="settings"
-            ref={settingsBtnRef}
             onClick={() => setSettingsOpen(!settingsOpen)}
           >
             <Icons.Settings size={18} />
@@ -117,7 +122,7 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
       </div>
 
       <ConfirmOverlay
-        open={confirmOpen}
+        open={confirmOpen && confirmNewTree}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
           setConfirmOpen(false);

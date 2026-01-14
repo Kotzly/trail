@@ -30,10 +30,22 @@ export type LayoutSettings = {
 
 export type TitleTruncation = 'start' | 'middle' | 'end';
 
+export type GraphDensity = 'compact' | 'comfortable' | 'spacious';
+
 export type Settings = {
     maxOpenTabs: number;
     capacity: number;
     theme: ThemeId;
     layout: LayoutSettings;
     titleTruncation: TitleTruncation;
+    graphDensity: GraphDensity;
+    showFavicons: boolean;
+    showUrls: boolean;
+    showTagDots: boolean;
+    showTabCounts: boolean;
+    showAudioIndicators: boolean;
+    showConnections: boolean;
+    dimClosedNodes: boolean;
+    confirmNewTree: boolean;
+    shortcutsEnabled: boolean;
 }

@@ -7,9 +7,11 @@ import { useStore } from '../state/store.js';
 export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void {
   const setCommandState = useStore((state) => state.setCommandState);
   const isMac = useStore((state) => state.isMac);
+  const shortcutsEnabled = useStore((state) => state.settings?.shortcutsEnabled ?? true);
 
   useEffect(() => {
     const onKeyDown = async (event: KeyboardEvent) => {
+      if (!shortcutsEnabled) return;
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) {
@@ -41,5 +43,5 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [isMac, searchInputRef, setCommandState]);
+  }, [isMac, searchInputRef, setCommandState, shortcutsEnabled]);
 }

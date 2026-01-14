@@ -8,6 +8,15 @@ import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { PinnedManager } from '../../../background/state/pinned.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
 import type { NotificationItem } from '../notifications/types.js';
+import type {
+  AccountError,
+  AccountSnapshot,
+  AuthSession,
+  BillingStatus,
+  Plan,
+  Subscription,
+  User,
+} from '../../../shared/types/account.js';
 
 export type MetaKeyPair = { short: '^'; long: 'ctrl' } | { short: '⌘'; long: 'cmd' };
 
@@ -32,8 +41,24 @@ type ContextMenuState =
     }
   | null;
 
+type AccountStatus = 'idle' | 'loading' | 'ready' | 'error';
+type NetworkStatus = 'online' | 'offline' | 'degraded';
+
+type AccountState = {
+  status: AccountStatus;
+  network: NetworkStatus;
+  session: AuthSession;
+  user: User | null;
+  subscription: Subscription | null;
+  billing: BillingStatus | null;
+  plans: Plan[];
+  error: AccountError | null;
+  lastSyncedAt: string | null;
+};
+
 type StoreState = {
   settings: Settings | null;
+  account: AccountState;
   tree: NavigationTree | null;
   pins: PinnedManager | null;
   tabStates: Record<NodeId, TabState>;
@@ -96,6 +121,9 @@ type StoreActions = {
   setSettingsOpen: (open: boolean) => void;
   setPinnedOpen: (open: boolean) => void;
   setTagFilterOpen: (open: boolean) => void;
+  setAccount: (patch: Partial<AccountState>) => void;
+  setAccountSnapshot: (snapshot: AccountSnapshot) => void;
+  resetAccount: () => void;
   setGraphTool: (tool: GraphTool) => void;
   setSelectedNodeIds: (ids: Set<NodeId>) => void;
   toggleSelectedNode: (id: NodeId) => void;
@@ -115,6 +143,17 @@ type StoreActions = {
 
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
   settings: null,
+  account: {
+    status: 'idle',
+    network: 'online',
+    session: { status: 'guest' },
+    user: null,
+    subscription: null,
+    billing: { state: 'none' },
+    plans: [],
+    error: null,
+    lastSyncedAt: null,
+  },
   tree: null,
   pins: null,
   tabStates: {},
@@ -285,6 +324,32 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setSettingsOpen: (open) => set((state) => ({ ui: { ...state.ui, settingsOpen: open } })),
   setPinnedOpen: (open) => set((state) => ({ ui: { ...state.ui, pinnedOpen: open } })),
   setTagFilterOpen: (open) => set((state) => ({ ui: { ...state.ui, tagFilterOpen: open } })),
+  setAccount: (patch) => set((state) => ({ account: { ...state.account, ...patch } })),
+  setAccountSnapshot: (snapshot) =>
+    set((state) => ({
+      account: {
+        ...state.account,
+        ...snapshot,
+        status: 'ready',
+        network: 'online',
+        error: null,
+        lastSyncedAt: new Date().toISOString(),
+      },
+    })),
+  resetAccount: () =>
+    set({
+      account: {
+        status: 'idle',
+        network: 'online',
+        session: { status: 'guest' },
+        user: null,
+        subscription: null,
+        billing: { state: 'none' },
+        plans: [],
+        error: null,
+        lastSyncedAt: null,
+      },
+    }),
 
   setGraphTool: (tool) => set((state) => ({ graph: { ...state.graph, tool } })),
   setSelectedNodeIds: (ids) =>

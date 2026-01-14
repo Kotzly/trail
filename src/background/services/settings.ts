@@ -13,6 +13,16 @@ export const defaultSettings: Settings = {
         radial: { ...DEFAULT_LAYOUT_SETTINGS.radial },
     },
     titleTruncation: 'end',
+    graphDensity: 'comfortable',
+    showFavicons: true,
+    showUrls: true,
+    showTagDots: true,
+    showTabCounts: true,
+    showAudioIndicators: true,
+    showConnections: true,
+    dimClosedNodes: true,
+    confirmNewTree: true,
+    shortcutsEnabled: true,
 }
 
 const settingsKey = 'trail_settings' as const;
@@ -43,6 +53,16 @@ function mergeDefaults(raw: unknown): Settings {
             },
         },
         titleTruncation: partial.titleTruncation ?? defaultSettings.titleTruncation,
+        graphDensity: partial.graphDensity ?? defaultSettings.graphDensity,
+        showFavicons: partial.showFavicons ?? defaultSettings.showFavicons,
+        showUrls: partial.showUrls ?? defaultSettings.showUrls,
+        showTagDots: partial.showTagDots ?? defaultSettings.showTagDots,
+        showTabCounts: partial.showTabCounts ?? defaultSettings.showTabCounts,
+        showAudioIndicators: partial.showAudioIndicators ?? defaultSettings.showAudioIndicators,
+        showConnections: partial.showConnections ?? defaultSettings.showConnections,
+        dimClosedNodes: partial.dimClosedNodes ?? defaultSettings.dimClosedNodes,
+        confirmNewTree: partial.confirmNewTree ?? defaultSettings.confirmNewTree,
+        shortcutsEnabled: partial.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
     };
 }
 

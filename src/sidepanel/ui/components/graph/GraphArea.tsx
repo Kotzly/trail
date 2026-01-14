@@ -4,8 +4,8 @@ import type { NodeId } from '../../../../shared/types/ids.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
 import { navigateTo, setNodeLayout } from '../../../api/tree.js';
 import {
-  getLayoutConfig,
   PADDING,
+  setLayoutConfig,
 } from '../../graph/layout/config.js';
 import { calculateLayout, calculateMindmapLayout, calculateRadialLayout, getCanvasBounds } from '../../graph/layout/calculator.js';
 import { deriveLayoutOptions } from '../../graph/layout/options.js';
@@ -52,9 +52,10 @@ function buildConnections(
   pathNodeIds: Set<NodeId> | null,
   layoutMode: 'tree' | 'mindmap' | 'radial',
   openNodeIds: Set<NodeId> | null,
+  nodeWidth: number,
+  nodeHeight: number,
 ): Connection[] {
   if (!root) return [];
-  const { nodeWidth, nodeHeight } = getLayoutConfig();
   const list: Connection[] = [];
   const traverse = (node: NavigationNode | null) => {
     if (!node) return;
@@ -153,6 +154,7 @@ export default function GraphArea() {
   const search = useStore((state) => state.search);
   const searchActive = useStore((state) => state.search.active);
   const settings = useStore((state) => state.settings);
+  const showConnections = useStore((state) => state.settings?.showConnections ?? true);
   const selectedNodeIds = useStore((state) => state.graph.selectedNodeIds);
   const hoverNodeId = useStore((state) => state.graph.hoverNodeId);
   const layoutVersion = useStore((state) => state.graph.layoutVersion);
@@ -220,6 +222,9 @@ export default function GraphArea() {
   } | null>(null);
 
   const layoutOptions = useMemo(() => deriveLayoutOptions(settings), [settings]);
+  const baseLayoutConfig =
+    layoutOptions.mode === 'mindmap' ? layoutOptions.mindmap : layoutOptions.tree;
+  setLayoutConfig(baseLayoutConfig);
 
   useEffect(() => {
     viewRef.current = graphView;
@@ -252,7 +257,7 @@ export default function GraphArea() {
   }, []);
 
   const root = tree?.getRoot() ?? null;
-  const { nodeWidth, nodeHeight } = getLayoutConfig();
+  const { nodeWidth, nodeHeight } = baseLayoutConfig;
 
   const layout = useMemo(() => {
     if (!root) return null;
@@ -346,8 +351,19 @@ export default function GraphArea() {
   }, [currentNodeId, root]);
 
   const connections = useMemo(
-    () => buildConnections(root, positions, pathNodeIds, layoutOptions.mode, openNodeIds),
-    [layoutOptions.mode, openNodeIds, pathNodeIds, positions, root],
+    () =>
+      showConnections
+        ? buildConnections(
+            root,
+            positions,
+            pathNodeIds,
+            layoutOptions.mode,
+            openNodeIds,
+            nodeWidth,
+            nodeHeight,
+          )
+        : [],
+    [layoutOptions.mode, nodeHeight, nodeWidth, openNodeIds, pathNodeIds, positions, root, showConnections],
   );
 
   const fitToView = (animate = false) => {
@@ -986,15 +1002,17 @@ export default function GraphArea() {
             transform: `translate(${graphView.translateX}px, ${graphView.translateY}px) scale(${graphView.scale})`,
           }}
         >
-          <svg className="graph-connections" width={bounds.width} height={bounds.height}>
-            {connections.map((connection) => (
-              <path
-                key={connection.id}
-                d={connection.d}
-                className={`graph-connection ${connection.branchClass} ${connection.onPath ? 'on-path' : ''}`}
-              />
-            ))}
-          </svg>
+          {showConnections ? (
+            <svg className="graph-connections" width={bounds.width} height={bounds.height}>
+              {connections.map((connection) => (
+                <path
+                  key={connection.id}
+                  d={connection.d}
+                  className={`graph-connection ${connection.branchClass} ${connection.onPath ? 'on-path' : ''}`}
+                />
+              ))}
+            </svg>
+          ) : null}
           <div className="graph-nodes">
             {nodes.map((pos) => (
               <GraphNode

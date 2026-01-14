@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type {
   LayoutSettings,
   MindmapLayoutSettings,
@@ -7,17 +7,64 @@ import type {
   Settings,
   TreeLayoutSettings,
 } from '../../../shared/types/settings.js';
+import type { ChangePlanInput, PlanInterval } from '../../../shared/types/account.js';
 import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
+import { changePlan, getAccountSnapshot, login, logout, normalizeAccountError } from '../../api/account.js';
 import { saveSettings } from '../../api/settings.js';
 import { resetNodeLayouts } from '../../api/tree.js';
 import { THEME_IDS } from '../shared/themes.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
+import { createPortal } from 'react-dom';
 import React from 'react';
 
-type SettingsPopoverProps = {
-  anchorRef: RefObject<HTMLButtonElement>;
+type SettingsSectionId = 'profile' | 'subscription' | 'preferences' | 'shortcuts' | 'privacy' | 'about';
+
+type SettingsMenuItem = {
+  id: SettingsSectionId;
+  label: string;
+  description: string;
+  icon: (props: { size?: number }) => JSX.Element;
 };
+
+const SETTINGS_SECTIONS: SettingsMenuItem[] = [
+  {
+    id: 'profile',
+    label: 'Profile',
+    description: 'Account and identity',
+    icon: Icons.User,
+  },
+  {
+    id: 'subscription',
+    label: 'Subscription',
+    description: 'Plans and billing',
+    icon: Icons.CreditCard,
+  },
+  {
+    id: 'preferences',
+    label: 'Preferences',
+    description: 'Look and behavior',
+    icon: Icons.SlidersHorizontal,
+  },
+  {
+    id: 'shortcuts',
+    label: 'Shortcuts',
+    description: 'Keyboard map',
+    icon: Icons.Keyboard,
+  },
+  {
+    id: 'privacy',
+    label: 'Data & Privacy',
+    description: 'Local storage',
+    icon: Icons.Shield,
+  },
+  {
+    id: 'about',
+    label: 'About',
+    description: 'Build info',
+    icon: Icons.Info,
+  },
+];
 
 function applyTheme(theme: string): void {
   document.documentElement.setAttribute('data-theme', theme);
@@ -90,14 +137,80 @@ function RangeSlider({
   );
 }
 
-export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
+type ToggleRowProps = {
+  id: string;
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+};
+
+function ToggleRow({ id, label, description, checked, onChange, disabled }: ToggleRowProps) {
+  return (
+    <label className={`settings-toggle-row ${disabled ? 'disabled' : ''}`} htmlFor={id}>
+      <div className="settings-toggle-text">
+        <div className="settings-toggle-title">{label}</div>
+        {description ? <div className="settings-toggle-description">{description}</div> : null}
+      </div>
+      <div className="settings-toggle-switch">
+        <input
+          id={id}
+          className="settings-toggle-input"
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+          disabled={disabled}
+        />
+        <span className="settings-toggle-control" aria-hidden="true" />
+      </div>
+    </label>
+  );
+}
+
+function formatDate(value?: string | null): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+}
+
+function formatPrice(amount: number, currency: string, interval: PlanInterval): string {
+  if (amount === 0) return 'Free';
+  const formatted = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+  return `${formatted}/${interval === 'month' ? 'mo' : 'yr'}`;
+}
+
+function getBillingTone(state: string): 'good' | 'warn' | 'bad' | 'neutral' {
+  if (state === 'ok' || state === 'trialing') return 'good';
+  if (state === 'past_due' || state === 'grace') return 'warn';
+  if (state === 'unpaid' || state === 'canceled') return 'bad';
+  return 'neutral';
+}
+
+export default function SettingsPopover() {
   const settingsOpen = useStore((state) => state.ui.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
   const settings = useStore((state) => state.settings);
   const setSettings = useStore((state) => state.setSettings);
   const requestGraphReset = useStore((state) => state.requestGraphReset);
+  const account = useStore((state) => state.account);
+  const setAccount = useStore((state) => state.setAccount);
+  const setAccountSnapshot = useStore((state) => state.setAccountSnapshot);
+  const nodeCount = useStore((state) => state.nodeCount);
+  const metaKey = useStore((state) => state.metaKey);
+
+  const [activeSection, setActiveSection] = useState<SettingsSectionId>('preferences');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [planBusy, setPlanBusy] = useState(false);
+  const [interval, setInterval] = useState<PlanInterval>('month');
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const [style, setStyle] = useState<CSSProperties>({});
   const saveTimerRef = useRef<number | null>(null);
   const pendingSaveRef = useRef<Settings | null>(null);
 
@@ -120,54 +233,41 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
   const [tabLimitDraft, setTabLimitDraft] = useState<number>(settings?.maxOpenTabs ?? 0);
   const [capacityDraft, setCapacityDraft] = useState<number>(capacityValue);
 
-  const updatePosition = useCallback(() => {
-    if (!settingsOpen) return;
-    const anchor = anchorRef.current;
-    const popover = popoverRef.current;
-    if (!anchor || !popover) return;
-    const btnRect = anchor.getBoundingClientRect();
-    const popRect = popover.getBoundingClientRect();
-    const margin = 8;
-    let left = btnRect.left + btnRect.width / 2 - popRect.width / 2;
-    left = Math.min(Math.max(margin, left), window.innerWidth - popRect.width - margin);
-    let top = btnRect.bottom + 8;
-    if (top + popRect.height > window.innerHeight - margin) {
-      top = Math.max(margin, btnRect.top - popRect.height - 8);
-    }
-    setStyle({ left, top });
-  }, [anchorRef, settingsOpen]);
-
-  useLayoutEffect(() => {
-    updatePosition();
-  }, [layout.mode, settingsOpen, updatePosition]);
+  const sortedPlans = useMemo(() => {
+    const list = account.plans ?? [];
+    return [...list].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+  }, [account.plans]);
+  const currentPlanId = account.subscription?.planId ?? 'free';
+  const currentPlan = sortedPlans.find((plan) => plan.id === currentPlanId);
+  const isAuthenticated = account.session.status === 'authenticated' && Boolean(account.user);
 
   useEffect(() => {
     if (!settingsOpen) return;
-    const handleResize = () => updatePosition();
-    window.addEventListener('resize', handleResize);
-    const popover = popoverRef.current;
-    const anchor = anchorRef.current;
-    const observer = new ResizeObserver(() => updatePosition());
-    if (popover) observer.observe(popover);
-    if (anchor) observer.observe(anchor);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSettingsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
     return () => {
-      window.removeEventListener('resize', handleResize);
-      observer.disconnect();
+      document.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [anchorRef, settingsOpen, updatePosition]);
+  }, [setSettingsOpen, settingsOpen]);
 
   useEffect(() => {
     if (!settingsOpen) return;
-    const onClick = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (popoverRef.current?.contains(target)) return;
-      if (anchorRef.current?.contains(target)) return;
-      setSettingsOpen(false);
-    };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, [anchorRef, setSettingsOpen, settingsOpen]);
+    setEmail('');
+    setPassword('');
+    setAuthBusy(false);
+    setPlanBusy(false);
+    setActiveSection('preferences');
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    if (!account.subscription?.interval) return;
+    setInterval(account.subscription.interval);
+  }, [account.subscription?.interval]);
 
   const flushPendingSave = useCallback(async () => {
     if (saveTimerRef.current !== null) {
@@ -265,11 +365,285 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
     requestGraphReset();
   };
 
-  if (!settingsOpen) return null;
+  const handleLogin = async () => {
+    if (!email.trim()) return;
+    setAuthBusy(true);
+    setAccount({ status: 'loading', error: null });
+    try {
+      const snapshot = await login({ email: email.trim(), password: password.trim() });
+      setAccountSnapshot(snapshot);
+    } catch (error) {
+      const normalized = normalizeAccountError(error);
+      setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
+    } finally {
+      setAuthBusy(false);
+    }
+  };
 
-  return (
-    <div ref={popoverRef} className="settings-popover" id="settingsPopover" style={style}>
-      <div className="settings-content">
+  const handleLogout = async () => {
+    setAuthBusy(true);
+    setAccount({ status: 'loading', error: null });
+    try {
+      await logout();
+      setAccountSnapshot({
+        session: { status: 'guest' },
+        user: null,
+        subscription: null,
+        billing: { state: 'none' },
+        plans: account.plans ?? [],
+      });
+    } catch (error) {
+      const normalized = normalizeAccountError(error);
+      setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handlePlanChange = async (input: ChangePlanInput) => {
+    setPlanBusy(true);
+    setAccount({ status: 'loading', error: null });
+    try {
+      await changePlan(input);
+      const snapshot = await getAccountSnapshot();
+      setAccountSnapshot(snapshot);
+    } catch (error) {
+      const normalized = normalizeAccountError(error);
+      setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
+    } finally {
+      setPlanBusy(false);
+    }
+  };
+
+  if (!settingsOpen) return null;
+  if (typeof document === 'undefined') return null;
+
+  const networkBadge =
+    account.network === 'offline' ? (
+      <div className="settings-banner warn">
+        <Icons.AlertTriangle size={14} />
+        <span>Offline mode. Account data may be stale.</span>
+      </div>
+    ) : null;
+
+  const accountError = account.error ? (
+    <div className="settings-banner error">
+      <Icons.XCircle size={14} />
+      <span>{account.error.message}</span>
+    </div>
+  ) : null;
+
+  const renderProfile = () => (
+    <div className="settings-panel-scroll">
+      <div className="settings-panel-title">Profile</div>
+      <div className="settings-panel-subtitle">Manage your account identity and sign-in state.</div>
+      {networkBadge}
+      {accountError}
+      {isAuthenticated && account.user ? (
+        <div className="settings-card">
+          <div className="profile-row">
+            <div className="profile-avatar">
+              {account.user.displayName?.slice(0, 1).toUpperCase() ?? 'U'}
+            </div>
+            <div className="profile-meta">
+              <div className="profile-name">{account.user.displayName}</div>
+              <div className="profile-email">{account.user.email}</div>
+              <div className="profile-muted">Member since {formatDate(account.user.createdAt)}</div>
+            </div>
+          </div>
+          <div className="settings-divider" />
+          <div className="settings-row">
+            <div>
+              <div className="settings-card-title">Current plan</div>
+              <div className="settings-card-hint">{currentPlan?.name ?? 'Free'}</div>
+            </div>
+            <span className="status-pill" data-tone="good">
+              {account.subscription?.status ?? 'active'}
+            </span>
+          </div>
+          <button className="settings-primary-btn" type="button" onClick={handleLogout} disabled={authBusy}>
+            Sign out
+          </button>
+        </div>
+      ) : (
+        <div className="settings-card">
+          <div className="settings-card-title">Sign in</div>
+          <div className="settings-card-hint">Sync your trees, unlock premium layouts, and manage plans.</div>
+          <label className="settings-input-label" htmlFor="account-email">
+            Email
+          </label>
+          <input
+            id="account-email"
+            className="settings-input"
+            type="email"
+            placeholder="you@domain.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+          />
+          <label className="settings-input-label" htmlFor="account-password">
+            Password
+          </label>
+          <input
+            id="account-password"
+            className="settings-input"
+            type="password"
+            placeholder="Optional"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+          />
+          <div className="settings-row">
+            <button
+              className="settings-primary-btn"
+              type="button"
+              onClick={() => void handleLogin()}
+              disabled={authBusy || !email.trim()}
+            >
+              {authBusy ? 'Signing in…' : 'Continue'}
+            </button>
+            <button className="settings-secondary-btn" type="button" onClick={() => setSettingsOpen(false)}>
+              Later
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSubscription = () => (
+    <div className="settings-panel-scroll">
+      <div className="settings-panel-title">Subscription</div>
+      <div className="settings-panel-subtitle">Compare plans and manage billing status.</div>
+      {networkBadge}
+      {accountError}
+      {!isAuthenticated ? (
+        <div className="settings-card">
+          <div className="settings-card-title">Sign in required</div>
+          <div className="settings-card-hint">Connect an account to unlock paid plans and billing controls.</div>
+        </div>
+      ) : null}
+
+      <div className="settings-card">
+        <div className="settings-row">
+          <div>
+            <div className="settings-card-title">Billing status</div>
+            <div className="settings-card-hint">
+              {account.billing?.failureReason ?? 'All systems normal.'}
+            </div>
+          </div>
+          <span className="status-pill" data-tone={getBillingTone(account.billing?.state ?? 'none')}>
+            {account.billing?.state ?? 'none'}
+          </span>
+        </div>
+        <div className="settings-stat-grid">
+          <div>
+            <div className="settings-stat-label">Next charge</div>
+            <div className="settings-stat-value">{formatDate(account.billing?.nextChargeAt)}</div>
+          </div>
+          <div>
+            <div className="settings-stat-label">Last charge</div>
+            <div className="settings-stat-value">{formatDate(account.billing?.lastChargeAt)}</div>
+          </div>
+          <div>
+            <div className="settings-stat-label">Payment method</div>
+            <div className="settings-stat-value">
+              {account.billing?.paymentMethod
+                ? `${account.billing.paymentMethod.brand} •••• ${account.billing.paymentMethod.last4}`
+                : '—'}
+            </div>
+          </div>
+        </div>
+        {account.subscription && account.subscription.planId !== 'free' ? (
+          <button
+            className="settings-secondary-btn"
+            type="button"
+            onClick={() =>
+              void handlePlanChange({
+                planId: account.subscription?.planId ?? 'free',
+                action: 'cancel',
+              })
+            }
+            disabled={!isAuthenticated || planBusy || account.subscription?.cancelAtPeriodEnd}
+          >
+            {account.subscription.cancelAtPeriodEnd ? 'Cancellation scheduled' : 'Cancel at period end'}
+          </button>
+        ) : null}
+      </div>
+
+      <div className="settings-card">
+        <div className="settings-row">
+          <div>
+            <div className="settings-card-title">Billing interval</div>
+            <div className="settings-card-hint">Switch between monthly and yearly pricing.</div>
+          </div>
+          <div className="popover-segment">
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${interval === 'month' ? 'active' : ''}`}
+              onClick={() => setInterval('month')}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${interval === 'year' ? 'active' : ''}`}
+              onClick={() => setInterval('year')}
+            >
+              Yearly
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="plan-grid">
+        {sortedPlans.map((plan) => {
+          const isCurrent = plan.id === currentPlanId;
+          const price = interval === 'month' ? plan.priceMonthly : plan.priceYearly;
+          return (
+            <div
+              key={plan.id}
+              className={`plan-card${plan.highlight ? ' highlight' : ''}${isCurrent ? ' active' : ''}`}
+            >
+              <div className="plan-card-header">
+                <div>
+                  <div className="plan-card-name">{plan.name}</div>
+                  <div className="plan-card-price">{formatPrice(price, plan.currency, interval)}</div>
+                </div>
+                {plan.highlight ? <span className="plan-badge">Popular</span> : null}
+              </div>
+              <ul className="plan-card-features">
+                {plan.features.map((feature) => (
+                  <li key={feature}>{feature}</li>
+                ))}
+              </ul>
+              <button
+                className={`plan-card-btn ${isCurrent ? 'active' : ''}`}
+                type="button"
+                disabled={!isAuthenticated || isCurrent || planBusy}
+                onClick={() =>
+                  void handlePlanChange({ planId: plan.id, interval, action: 'switch' })
+                }
+              >
+                {isCurrent ? 'Current plan' : planBusy ? 'Updating…' : 'Choose plan'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderPreferences = () => (
+    <div className="settings-panel-scroll">
+      <div className="settings-panel-title">Preferences</div>
+      <div className="settings-panel-subtitle">Tune how Trail looks, feels, and behaves.</div>
+
+      <div className="settings-section">
+        <div className="settings-section-header">
+          <div className="settings-section-title">Appearance</div>
+          <div className="settings-section-hint">Theme, density, and typography choices.</div>
+        </div>
         <div className="popover-section">
           <div className="popover-label-small">Theme</div>
           <div className="popover-icons" id="themeIcons">
@@ -292,6 +666,127 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="popover-section">
+          <div className="popover-label-small">Graph density</div>
+          <div className="popover-segment">
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${settings?.graphDensity === 'compact' ? 'active' : ''}`}
+              onClick={() => updateSettings({ graphDensity: 'compact' })}
+            >
+              Compact
+            </button>
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${settings?.graphDensity === 'comfortable' ? 'active' : ''}`}
+              onClick={() => updateSettings({ graphDensity: 'comfortable' })}
+            >
+              Comfortable
+            </button>
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${settings?.graphDensity === 'spacious' ? 'active' : ''}`}
+              onClick={() => updateSettings({ graphDensity: 'spacious' })}
+            >
+              Spacious
+            </button>
+          </div>
+          <div className="popover-hint">Scale node size and spacing.</div>
+        </div>
+
+        <div className="popover-section">
+          <div className="popover-label-small">Title truncation</div>
+          <div className="popover-segment">
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${settings?.titleTruncation === 'start' ? 'active' : ''}`}
+              onClick={() => updateSettings({ titleTruncation: 'start' })}
+            >
+              Start
+            </button>
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${settings?.titleTruncation === 'middle' ? 'active' : ''}`}
+              onClick={() => updateSettings({ titleTruncation: 'middle' })}
+            >
+              Middle
+            </button>
+            <button
+              type="button"
+              className={`popover-segment-btn wide ${settings?.titleTruncation === 'end' ? 'active' : ''}`}
+              onClick={() => updateSettings({ titleTruncation: 'end' })}
+            >
+              End
+            </button>
+          </div>
+          <div className="popover-hint">Where long titles are shortened.</div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-header">
+          <div className="settings-section-title">Graph display</div>
+          <div className="settings-section-hint">Control what appears on each node.</div>
+        </div>
+        <div className="settings-toggle-grid">
+          <ToggleRow
+            id="pref-favicons"
+            label="Show favicons"
+            description="Display site icons on nodes."
+            checked={settings?.showFavicons ?? true}
+            onChange={(value) => updateSettings({ showFavicons: value })}
+          />
+          <ToggleRow
+            id="pref-urls"
+            label="Show URLs"
+            description="Reveal the destination line under titles."
+            checked={settings?.showUrls ?? true}
+            onChange={(value) => updateSettings({ showUrls: value })}
+          />
+          <ToggleRow
+            id="pref-tags"
+            label="Show tag dots"
+            description="Surface tag colors on nodes."
+            checked={settings?.showTagDots ?? true}
+            onChange={(value) => updateSettings({ showTagDots: value })}
+          />
+          <ToggleRow
+            id="pref-tab-counts"
+            label="Show tab counts"
+            description="Badge nodes with open tab counts."
+            checked={settings?.showTabCounts ?? true}
+            onChange={(value) => updateSettings({ showTabCounts: value })}
+          />
+          <ToggleRow
+            id="pref-audio"
+            label="Show audio indicators"
+            description="Surface muted and audible tabs."
+            checked={settings?.showAudioIndicators ?? true}
+            onChange={(value) => updateSettings({ showAudioIndicators: value })}
+          />
+          <ToggleRow
+            id="pref-connections"
+            label="Show connections"
+            description="Draw branch lines between nodes."
+            checked={settings?.showConnections ?? true}
+            onChange={(value) => updateSettings({ showConnections: value })}
+          />
+          <ToggleRow
+            id="pref-dim-closed"
+            label="Dim closed nodes"
+            description="Fade nodes with no open tabs."
+            checked={settings?.dimClosedNodes ?? true}
+            onChange={(value) => updateSettings({ dimClosedNodes: value })}
+          />
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-header">
+          <div className="settings-section-title">Behavior</div>
+          <div className="settings-section-hint">Limits, confirmations, and shortcuts.</div>
         </div>
 
         <div className="popover-section">
@@ -330,37 +825,32 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
               void updateSettings({ capacity });
             }}
           />
-          <div className="popover-hint">Pinned nodes are never evicted</div>
+          <div className="popover-hint">Pinned nodes are never evicted.</div>
         </div>
 
-        <div className="popover-section">
-          <div className="popover-label-small">Title truncation</div>
-          <div className="popover-segment">
-            <button
-              type="button"
-              className={`popover-segment-btn wide ${settings?.titleTruncation === 'start' ? 'active' : ''}`}
-              onClick={() => updateSettings({ titleTruncation: 'start' })}
-            >
-              Start
-            </button>
-            <button
-              type="button"
-              className={`popover-segment-btn wide ${settings?.titleTruncation === 'middle' ? 'active' : ''}`}
-              onClick={() => updateSettings({ titleTruncation: 'middle' })}
-            >
-              Middle
-            </button>
-            <button
-              type="button"
-              className={`popover-segment-btn wide ${settings?.titleTruncation === 'end' ? 'active' : ''}`}
-              onClick={() => updateSettings({ titleTruncation: 'end' })}
-            >
-              End
-            </button>
-          </div>
-          <div className="popover-hint">Where long titles are shortened</div>
+        <div className="settings-toggle-grid">
+          <ToggleRow
+            id="pref-confirm"
+            label="Confirm new tree"
+            description="Ask before creating a fresh tree."
+            checked={settings?.confirmNewTree ?? true}
+            onChange={(value) => updateSettings({ confirmNewTree: value })}
+          />
+          <ToggleRow
+            id="pref-shortcuts"
+            label="Enable keyboard shortcuts"
+            description="Use global shortcuts inside the panel."
+            checked={settings?.shortcutsEnabled ?? true}
+            onChange={(value) => updateSettings({ shortcutsEnabled: value })}
+          />
         </div>
+      </div>
 
+      <div className="settings-section">
+        <div className="settings-section-header">
+          <div className="settings-section-title">Layout</div>
+          <div className="settings-section-hint">Choose the graph arrangement.</div>
+        </div>
         <div className="popover-section">
           <div className="popover-label-small">Layout</div>
           <div className="popover-segment">
@@ -491,5 +981,164 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
         )}
       </div>
     </div>
+  );
+
+  const renderShortcuts = () => {
+    const isMac = metaKey?.long === 'cmd';
+    const primaryKey = isMac ? '⌘' : 'Ctrl';
+    const primaryLabel = isMac ? 'cmd' : 'ctrl';
+    const shortcuts = [
+      { action: 'Undo', combo: `${primaryKey}+Z (${primaryLabel}+z)` },
+      { action: 'Redo', combo: `${primaryKey}+Shift+Z (${primaryLabel}+shift+z)` },
+      { action: 'Search', combo: `${primaryKey}+F (${primaryLabel}+f)` },
+    ];
+    return (
+      <div className="settings-panel-scroll">
+        <div className="settings-panel-title">Shortcuts</div>
+        <div className="settings-panel-subtitle">Stay fast with keyboard navigation.</div>
+        <div className="settings-card">
+          <div className="settings-card-title">Quick actions</div>
+          <div className="settings-card-hint">Shortcuts respect the enabled state in Preferences.</div>
+          <div className="shortcut-grid">
+            {shortcuts.map((shortcut) => (
+              <div key={shortcut.action} className="shortcut-row">
+                <span>{shortcut.action}</span>
+                <code>{shortcut.combo}</code>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPrivacy = () => {
+    const capacityText = settings?.capacity === Infinity ? '∞' : String(settings?.capacity ?? '—');
+    return (
+      <div className="settings-panel-scroll">
+        <div className="settings-panel-title">Data & Privacy</div>
+        <div className="settings-panel-subtitle">Keep tabs on local storage and retention.</div>
+        <div className="settings-card">
+          <div className="settings-card-title">Local storage snapshot</div>
+          <div className="settings-stat-grid">
+            <div>
+              <div className="settings-stat-label">Nodes stored</div>
+              <div className="settings-stat-value">{nodeCount}</div>
+            </div>
+            <div>
+              <div className="settings-stat-label">Tree capacity</div>
+              <div className="settings-stat-value">{capacityText}</div>
+            </div>
+            <div>
+              <div className="settings-stat-label">Open tab limit</div>
+              <div className="settings-stat-value">{settings?.maxOpenTabs ?? '—'}</div>
+            </div>
+          </div>
+          <div className="settings-card-hint">Trail stores data locally until you opt into sync.</div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAbout = () => {
+    const version =
+      typeof chrome !== 'undefined' && chrome.runtime?.getManifest
+        ? chrome.runtime.getManifest().version
+        : 'dev';
+    return (
+      <div className="settings-panel-scroll">
+        <div className="settings-panel-title">About</div>
+        <div className="settings-panel-subtitle">Trail for sidepanel.</div>
+        <div className="settings-card">
+          <div className="settings-card-title">Build</div>
+          <div className="settings-stat-grid">
+            <div>
+              <div className="settings-stat-label">Version</div>
+              <div className="settings-stat-value">{version}</div>
+            </div>
+            <div>
+              <div className="settings-stat-label">Channel</div>
+              <div className="settings-stat-value">Local</div>
+            </div>
+            <div>
+              <div className="settings-stat-label">Runtime</div>
+              <div className="settings-stat-value">Chrome sidepanel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPanel = () => {
+    switch (activeSection) {
+      case 'profile':
+        return renderProfile();
+      case 'subscription':
+        return renderSubscription();
+      case 'preferences':
+        return renderPreferences();
+      case 'shortcuts':
+        return renderShortcuts();
+      case 'privacy':
+        return renderPrivacy();
+      case 'about':
+        return renderAbout();
+      default:
+        return renderPreferences();
+    }
+  };
+
+  return createPortal(
+    <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
+      <div
+        ref={popoverRef}
+        className="settings-modal"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <div className="settings-modal-header">
+          <div>
+            <div className="settings-modal-title">Settings</div>
+            <div className="settings-modal-subtitle">Accounts, subscriptions, and preferences.</div>
+          </div>
+          <button
+            className="settings-close-btn"
+            type="button"
+            onClick={() => setSettingsOpen(false)}
+            aria-label="Close settings"
+          >
+            <Icons.X size={18} />
+          </button>
+        </div>
+
+        <div className="settings-modal-body">
+          <nav className="settings-sidebar">
+            {SETTINGS_SECTIONS.map((section) => {
+              const Icon = section.icon;
+              const active = section.id === activeSection;
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  className={`settings-nav-item ${active ? 'active' : ''}`}
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  <span className="settings-nav-icon">
+                    <Icon size={16} />
+                  </span>
+                  <span className="settings-nav-text">
+                    <span className="settings-nav-title">{section.label}</span>
+                    <span className="settings-nav-subtitle">{section.description}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="settings-panel">{renderPanel()}</div>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

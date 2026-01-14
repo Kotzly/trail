@@ -1,4 +1,3 @@
-import type { RefObject } from 'react';
 import { redo, undo } from '../../api/commands.js';
 import { clearTree as newTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
@@ -7,11 +6,7 @@ import PinnedDropdown from './PinnedDropdown.js';
 import TagFilterDropdown from './tags/TagFilterDropdown.js';
 import React from 'react';
 
-type HeaderProps = {
-  settingsBtnRef: RefObject<HTMLButtonElement>;
-};
-
-export default function Header({ settingsBtnRef }: HeaderProps) {
+export default function Header() {
   const commandState = useStore((state) => state.commandState);
   const metaKey = useStore((state) => state.metaKey);
   const setCommandState = useStore((state) => state.setCommandState);
@@ -93,7 +88,6 @@ export default function Header({ settingsBtnRef }: HeaderProps) {
           className="btn-icon"
           type="button"
           title="settings"
-          ref={settingsBtnRef}
           onClick={() => setSettingsOpen(!settingsOpen)}
         >
           <Icons.Settings size={20} />
