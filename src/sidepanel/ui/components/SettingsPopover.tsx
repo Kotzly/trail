@@ -226,10 +226,14 @@ export default function SettingsPopover() {
     tree: 'Tree',
     radial: 'Radial',
   };
+  const defaultCapacityMax = 5000;
   const tabLimitMax = Math.max(50, settings?.maxOpenTabs ?? 0);
   const rawCapacity = settings?.capacity;
   const capacityValue = Number.isFinite(rawCapacity) ? (rawCapacity as number) : 0;
-  const capacityMax = Number.isFinite(rawCapacity) ? Math.max(500, rawCapacity as number) : 5000;
+  const [capacityMax, setCapacityMax] = useState<number>(() => {
+    if (!Number.isFinite(rawCapacity)) return defaultCapacityMax;
+    return Math.max(500, rawCapacity as number, defaultCapacityMax);
+  });
   const [tabLimitDraft, setTabLimitDraft] = useState<number>(settings?.maxOpenTabs ?? 0);
   const [capacityDraft, setCapacityDraft] = useState<number>(capacityValue);
 
@@ -311,6 +315,13 @@ export default function SettingsPopover() {
   useEffect(() => {
     setCapacityDraft(capacityValue);
   }, [capacityValue]);
+
+  useEffect(() => {
+    setCapacityMax((prev) => {
+      if (!Number.isFinite(rawCapacity)) return Math.max(prev, defaultCapacityMax);
+      return Math.max(prev, rawCapacity as number, defaultCapacityMax, 500);
+    });
+  }, [rawCapacity]);
 
   const updateSettings = async (partial: Partial<Settings>) => {
     if (!settings) return;
