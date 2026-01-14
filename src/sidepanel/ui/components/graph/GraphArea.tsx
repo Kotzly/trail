@@ -169,7 +169,6 @@ export default function GraphArea() {
   const setNodeLayoutOffset = useStore((state) => state.setNodeLayoutOffset);
   const setNodeLayoutRadial = useStore((state) => state.setNodeLayoutRadial);
   const openContextMenu = useStore((state) => state.openContextMenu);
-  const isMac = useStore((state) => state.isMac);
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -215,8 +214,6 @@ export default function GraphArea() {
   const transitionTimeoutRef = useRef<number | null>(null);
   const lastResetRef = useRef(0);
   const lastViewIntentRef = useRef<number | null>(null);
-  const wheelIntentRef = useRef<'zoom' | 'pan' | null>(null);
-  const wheelIntentTimeoutRef = useRef<number | null>(null);
 
   const layoutOptions = useMemo(() => deriveLayoutOptions(settings), [settings]);
 
@@ -533,12 +530,7 @@ export default function GraphArea() {
       const startX = event.clientX - rect.left;
       const startY = event.clientY - rect.top;
       selectionStartRef.current = { x: startX, y: startY };
-      const hasMeta = isMac ? event.metaKey : event.ctrlKey;
-      if (!hasMeta) {
-        clearSelection();
-        selectionAnchorRef.current = null;
-      }
-      baseSelectionRef.current = hasMeta ? new Set(selectedNodeIds) : new Set();
+      baseSelectionRef.current = event.shiftKey ? new Set(selectedNodeIds) : new Set();
       setSelectionBox({ left: startX, top: startY, width: 0, height: 0 });
       const base = new Set(baseSelectionRef.current);
       previewSelectionRef.current = base;
@@ -655,29 +647,6 @@ export default function GraphArea() {
     }
   };
 
-  const scheduleWheelIntentReset = useCallback(() => {
-    if (wheelIntentTimeoutRef.current) {
-      window.clearTimeout(wheelIntentTimeoutRef.current);
-    }
-    wheelIntentTimeoutRef.current = window.setTimeout(() => {
-      wheelIntentRef.current = null;
-      wheelIntentTimeoutRef.current = null;
-    }, 120);
-  }, []);
-
-  const resolveWheelIntent = useCallback(
-    (event: WheelEvent): 'zoom' | 'pan' => {
-      if (wheelIntentRef.current) return wheelIntentRef.current;
-      const isTrackpadPinch = event.ctrlKey;
-      const modifierZoom = event.altKey || (isMac ? event.metaKey : event.ctrlKey);
-      const isMouseWheel = event.deltaMode === 1 || event.deltaMode === 2;
-      const shouldZoom = isTrackpadPinch || modifierZoom || isMouseWheel;
-      wheelIntentRef.current = shouldZoom ? 'zoom' : 'pan';
-      return wheelIntentRef.current;
-    },
-    [isMac],
-  );
-
   const handleWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
     clearCanvasTransition();
@@ -685,10 +654,11 @@ export default function GraphArea() {
     if (!rect) return;
     const pointerX = event.clientX - rect.left;
     const pointerY = event.clientY - rect.top;
-    const intent = resolveWheelIntent(event);
-    scheduleWheelIntentReset();
-    if (intent === 'zoom') {
-      const isMouseWheel = event.deltaMode === 1 || event.deltaMode === 2;
+    const isTrackpadPinch = event.ctrlKey;
+    const hasModifier = event.altKey || event.metaKey;
+    const isMouseWheel = event.deltaMode === 1 || event.deltaMode === 2;
+    const shouldZoom = isTrackpadPinch || hasModifier || isMouseWheel;
+    if (shouldZoom) {
       const scaleFactor = isMouseWheel ? (event.deltaY > 0 ? 0.85 : 1.18) : 1 - event.deltaY * 0.005;
       zoomAt(pointerX, pointerY, scaleFactor);
     } else {
@@ -697,7 +667,7 @@ export default function GraphArea() {
         translateY: viewRef.current.translateY - event.deltaY,
       });
     }
-  }, [clearCanvasTransition, resolveWheelIntent, scheduleWheelIntentReset, setGraphView, zoomAt]);
+  }, [clearCanvasTransition, setGraphView, zoomAt]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -708,15 +678,6 @@ export default function GraphArea() {
       wrapper.removeEventListener('wheel', onWheel, { capture: true });
     };
   }, [handleWheel, root]);
-
-  useEffect(() => {
-    return () => {
-      if (wheelIntentTimeoutRef.current) {
-        window.clearTimeout(wheelIntentTimeoutRef.current);
-        wheelIntentTimeoutRef.current = null;
-      }
-    };
-  }, []);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const key = event.key;
