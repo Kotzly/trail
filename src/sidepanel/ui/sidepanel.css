@@ -670,6 +670,9 @@ body {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .tag-filter-node-title {
@@ -686,6 +689,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.tag-filter-node-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .tag-filter-empty {
@@ -2360,6 +2370,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.tag-pill.tag-pill-sm {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 9px;
+  letter-spacing: 0.07em;
 }
 
 .tag-pill-new {

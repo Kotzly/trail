@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { NodeId, Tag } from '../../../../shared/types/ids.js';
+import type { TagDefinition } from '../../../../shared/types/tags.js';
 import { navigateTo } from '../../../api/tree.js';
 import { useStore } from '../../state/store.js';
 import { Icons } from '../Icon.js';
@@ -21,6 +22,11 @@ export default function TagFilterDropdown() {
   const [focusedIndex, setFocusedIndex] = useState(0);
 
   const tagCounts = useMemo(() => collectTagCounts(tree), [tree]);
+  const tagDefMap = useMemo(() => {
+    const map = new Map<Tag, TagDefinition>();
+    tagDefsList.forEach((tag) => map.set(tag.id as Tag, tag));
+    return map;
+  }, [tagDefsList]);
   const usedTags = useMemo(
     () => tagDefsList.filter((tag) => (tagCounts.get(tag.id as Tag) ?? 0) > 0),
     [tagCounts, tagDefsList],
@@ -178,6 +184,7 @@ export default function TagFilterDropdown() {
               const title = node.data.title || 'Untitled';
               const url = node.data.url || '';
               const hostname = safeHostname(url);
+              const nodeTags = node.data.tags ?? [];
               return (
                 <div
                   key={node.id}
@@ -195,6 +202,23 @@ export default function TagFilterDropdown() {
                   <div className="tag-filter-node-info">
                     <div className="tag-filter-node-title">{title}</div>
                     <div className="tag-filter-node-url">{hostname}</div>
+                    {nodeTags.length > 0 ? (
+                      <div className="tag-filter-node-tags">
+                        {nodeTags.map((tagId) => {
+                          const def = tagDefMap.get(tagId as Tag);
+                          return (
+                            <span
+                              key={tagId as string}
+                              className="tag-pill tag-pill-sm"
+                              style={{ '--tag-color': def?.color ?? '#667085' } as React.CSSProperties}
+                              title={def?.label ?? (tagId as string)}
+                            >
+                              {def?.label ?? (tagId as string)}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );
