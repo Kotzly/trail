@@ -23,6 +23,7 @@ export const defaultSettings: Settings = {
     dimClosedNodes: true,
     confirmNewTree: true,
     shortcutsEnabled: true,
+    adaptiveMode: false,
 }
 
 const settingsKey = 'trail_settings' as const;
@@ -63,6 +64,7 @@ function mergeDefaults(raw: unknown): Settings {
         dimClosedNodes: partial.dimClosedNodes ?? defaultSettings.dimClosedNodes,
         confirmNewTree: partial.confirmNewTree ?? defaultSettings.confirmNewTree,
         shortcutsEnabled: partial.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
+        adaptiveMode: partial.adaptiveMode ?? defaultSettings.adaptiveMode,
     };
 }
 

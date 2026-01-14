@@ -837,6 +837,13 @@ export default function SettingsPopover() {
             onChange={(value) => updateSettings({ confirmNewTree: value })}
           />
           <ToggleRow
+            id="pref-adaptive"
+            label="Adaptive mode"
+            description="Start new trees in Mindmap and suggest layouts as it grows."
+            checked={settings?.adaptiveMode ?? false}
+            onChange={(value) => updateSettings({ adaptiveMode: value })}
+          />
+          <ToggleRow
             id="pref-shortcuts"
             label="Enable keyboard shortcuts"
             description="Use global shortcuts inside the panel."

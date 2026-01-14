@@ -48,4 +48,5 @@ export type Settings = {
     dimClosedNodes: boolean;
     confirmNewTree: boolean;
     shortcutsEnabled: boolean;
+    adaptiveMode: boolean;
 }

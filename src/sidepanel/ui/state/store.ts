@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { NodeId, Tag } from '../../../shared/types/ids.js';
 import type { Settings } from '../../../shared/types/settings.js';
 import type { TabState } from '../../../shared/types/tabs.js';
-import type { CommandState, TreeUpdatedInput } from '../../../shared/types/messages.js';
+import type { CommandState, TreeUpdateReason, TreeUpdatedInput } from '../../../shared/types/messages.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { PinnedManager } from '../../../background/state/pinned.js';
@@ -60,6 +60,10 @@ type StoreState = {
   settings: Settings | null;
   account: AccountState;
   tree: NavigationTree | null;
+  treeUpdate: {
+    reason: TreeUpdateReason;
+    at: number;
+  } | null;
   pins: PinnedManager | null;
   tabStates: Record<NodeId, TabState>;
   nodeTabCounts: Record<NodeId, number>;
@@ -155,6 +159,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     lastSyncedAt: null,
   },
   tree: null,
+  treeUpdate: null,
   pins: null,
   tabStates: {},
   nodeTabCounts: {},
@@ -201,6 +206,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set({
       settings,
       tree,
+      treeUpdate: { reason: payload.reason, at: Date.now() },
       pins,
       tabStates: payload.tabStates,
       nodeTabCounts: payload.nodeTabCounts,
@@ -221,6 +227,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       const nextViewIntent = payload.view ?? state.graph.viewIntent;
       return {
         tree,
+        treeUpdate: { reason: payload.reason, at: Date.now() },
         pins,
         tabStates: payload.tabStates,
         nodeTabCounts: payload.nodeTabCounts,

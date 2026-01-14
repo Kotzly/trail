@@ -5,6 +5,7 @@ import SettingsPopover from './components/SettingsPopover.js';
 import ContextMenus from './components/ContextMenus.js';
 import NotificationsHost from './components/NotificationsHost.js';
 import { useBootstrap } from './hooks/useBootstrap.js';
+import { useAdaptiveMode } from './hooks/useAdaptiveMode.js';
 import { useAccount } from './hooks/useAccount.js';
 import { useChromeMessages } from './hooks/useChromeMessages.js';
 import { useShortcuts } from './hooks/useShortcuts.js';
@@ -15,6 +16,7 @@ export default function App() {
 
   useBootstrap();
   useAccount();
+  useAdaptiveMode();
   useChromeMessages();
   useShortcuts(searchInputRef);
 
