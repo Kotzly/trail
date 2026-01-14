@@ -8,6 +8,7 @@ import {
   PADDING,
 } from '../../graph/layout/config.js';
 import { calculateLayout, calculateMindmapLayout, calculateRadialLayout, getCanvasBounds } from '../../graph/layout/calculator.js';
+import { resolveOverlaps } from '../../graph/layout/overlap.js';
 import { deriveLayoutOptions } from '../../graph/layout/options.js';
 import type { CanvasBounds, NodePosition } from '../../graph/types.js';
 import GraphNode from './GraphNode.js';
@@ -262,7 +263,7 @@ export default function GraphArea() {
   }, [layoutOptions.mode, layoutOptions.mindmap, layoutOptions.radial, layoutOptions.tree, root]);
 
   const basePositions = layout?.positions ?? new Map<number, NodePosition>();
-  const positions = useMemo(() => {
+  const layoutPositions = useMemo(() => {
     if (basePositions.size === 0) return basePositions;
     if (layoutOptions.mode !== 'radial') {
       const offsetCache = new Map<NodeId, { x: number; y: number }>();
@@ -325,14 +326,19 @@ export default function GraphArea() {
     return next;
   }, [basePositions, layoutOptions.mode, layoutVersion, nodeHeight, nodeWidth, root]);
 
+  const resolvedPositions = useMemo(
+    () => resolveOverlaps(layoutPositions, layoutOptions.mode),
+    [layoutOptions.mode, layoutPositions],
+  );
+
   const bounds: CanvasBounds = useMemo(() => {
     if (!layout) {
       return { minX: 0, minY: 0, maxX: 100, maxY: 100, width: 100, height: 100 };
     }
-    return getCanvasBounds(positions);
-  }, [layout, positions]);
+    return getCanvasBounds(resolvedPositions);
+  }, [layout, resolvedPositions]);
 
-  const nodes = useMemo(() => Array.from(positions.values()), [positions]);
+  const nodes = useMemo(() => Array.from(resolvedPositions.values()), [resolvedPositions]);
   const searchSet = useMemo(() => new Set(search.results), [search.results]);
   const focusedSearchId = search.results[search.index];
   const pathNodeIds = useMemo(() => {
@@ -341,8 +347,8 @@ export default function GraphArea() {
   }, [currentNodeId, root]);
 
   const connections = useMemo(
-    () => buildConnections(root, positions, pathNodeIds, layoutOptions.mode, openNodeIds),
-    [layoutOptions.mode, openNodeIds, pathNodeIds, positions, root],
+    () => buildConnections(root, resolvedPositions, pathNodeIds, layoutOptions.mode, openNodeIds),
+    [layoutOptions.mode, openNodeIds, pathNodeIds, resolvedPositions, root],
   );
 
   const fitToView = (animate = false) => {
@@ -368,7 +374,7 @@ export default function GraphArea() {
   const centerOnNode = (nodeId: NodeId, animate = true) => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-    const pos = positions.get(nodeId);
+    const pos = resolvedPositions.get(nodeId);
     if (!pos) return;
     const rect = wrapper.getBoundingClientRect();
     const { scale } = viewRef.current;
@@ -403,7 +409,7 @@ export default function GraphArea() {
       return;
     }
     if (viewIntent.focusNodeId) {
-      if (!positions.has(viewIntent.focusNodeId)) return;
+      if (!resolvedPositions.has(viewIntent.focusNodeId)) return;
       lastViewIntentRef.current = intentId;
       centerOnNode(viewIntent.focusNodeId, true);
       clearViewIntent();
@@ -411,7 +417,7 @@ export default function GraphArea() {
   }, [
     clearViewIntent,
     isDraggingNode,
-    positions,
+    resolvedPositions,
     viewIntent,
     nodeHeight,
     nodeWidth,
@@ -437,7 +443,7 @@ export default function GraphArea() {
     if (prevSearchFocusRef.current === focusedSearchId) return;
     prevSearchFocusRef.current = focusedSearchId;
     centerOnNode(focusedSearchId, true);
-  }, [focusedSearchId, root, searchActive, positions, nodeHeight, nodeWidth]);
+  }, [focusedSearchId, root, searchActive, resolvedPositions, nodeHeight, nodeWidth]);
 
   const zoomAt = useCallback((pointerX: number, pointerY: number, scaleFactor: number) => {
     const { translateX, translateY, scale } = viewRef.current;
@@ -797,7 +803,7 @@ export default function GraphArea() {
     if (event.shiftKey) return;
     if (event.metaKey || event.ctrlKey) return;
     if (layoutOptions.mode === 'radial' && node.isRoot?.()) return;
-    const startPos = positions.get(node.id);
+    const startPos = layoutPositions.get(node.id);
     if (!startPos) return;
     event.stopPropagation();
     dragMovedRef.current = false;
