@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { NodeId } from '../../../shared/types/ids.js';
+import type { NodeId, Tag } from '../../../shared/types/ids.js';
 import type { Settings } from '../../../shared/types/settings.js';
 import type { TabState } from '../../../shared/types/tabs.js';
 import type { CommandState, TreeUpdatedInput } from '../../../shared/types/messages.js';
@@ -44,6 +44,9 @@ type StoreState = {
   commandState: CommandState | null;
   tagDefs: Record<string, TagDefinition>;
   tagDefsList: TagDefinition[];
+  tagFilter: {
+    selected: Set<Tag>;
+  };
   notifications: NotificationItem[];
   search: {
     query: string;
@@ -55,6 +58,7 @@ type StoreState = {
   ui: {
     settingsOpen: boolean;
     pinnedOpen: boolean;
+    tagFilterOpen: boolean;
   };
   graph: {
     tool: GraphTool;
@@ -77,6 +81,9 @@ type StoreActions = {
   setTagDefs: (defs: TagDefinition[]) => void;
   upsertTagDef: (def: TagDefinition) => void;
   removeTagDef: (id: string) => void;
+  toggleTagFilterTag: (tagId: Tag) => void;
+  setTagFilterSelected: (selected: Set<Tag>) => void;
+  clearTagFilter: () => void;
   setSearch: (
     query: string,
     results: NodeId[],
@@ -88,6 +95,7 @@ type StoreActions = {
   setSettings: (settings: Settings) => void;
   setSettingsOpen: (open: boolean) => void;
   setPinnedOpen: (open: boolean) => void;
+  setTagFilterOpen: (open: boolean) => void;
   setGraphTool: (tool: GraphTool) => void;
   setSelectedNodeIds: (ids: Set<NodeId>) => void;
   toggleSelectedNode: (id: NodeId) => void;
@@ -117,6 +125,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   commandState: null,
   tagDefs: {},
   tagDefsList: [],
+  tagFilter: {
+    selected: new Set<Tag>(),
+  },
   notifications: [],
   search: {
     query: '',
@@ -128,6 +139,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   ui: {
     settingsOpen: false,
     pinnedOpen: false,
+    tagFilterOpen: false,
   },
   graph: {
     tool: 'select',
@@ -183,9 +195,18 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
 
   setCommandState: (state) => set({ commandState: state }),
   setTagDefs: (defs) =>
-    set({
-      tagDefs: Object.fromEntries(defs.map((def) => [def.id, def])),
-      tagDefsList: defs,
+    set((state) => {
+      const tagDefs = Object.fromEntries(defs.map((def) => [def.id, def]));
+      const nextSelected = new Set<Tag>();
+      state.tagFilter.selected.forEach((id) => {
+        if (tagDefs[id]) nextSelected.add(id);
+      });
+      const selectedChanged = nextSelected.size !== state.tagFilter.selected.size;
+      return {
+        tagDefs,
+        tagDefsList: defs,
+        tagFilter: selectedChanged ? { ...state.tagFilter, selected: nextSelected } : state.tagFilter,
+      };
     }),
   upsertTagDef: (def) =>
     set((state) => {
@@ -205,6 +226,20 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         tagDefsList: state.tagDefsList.filter((item) => item.id !== id),
       };
     }),
+  toggleTagFilterTag: (tagId) =>
+    set((state) => {
+      const next = new Set(state.tagFilter.selected);
+      if (next.has(tagId)) {
+        next.delete(tagId);
+      } else {
+        next.add(tagId);
+      }
+      return { tagFilter: { ...state.tagFilter, selected: next } };
+    }),
+  setTagFilterSelected: (selected) =>
+    set((state) => ({ tagFilter: { ...state.tagFilter, selected: new Set(selected) } })),
+  clearTagFilter: () =>
+    set((state) => ({ tagFilter: { ...state.tagFilter, selected: new Set<Tag>() } })),
   setSearch: (query, results, index = 0, baseCurrentId) =>
     set((state) => {
       const active = query.length > 0;
@@ -249,6 +284,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setSettings: (settings) => set({ settings }),
   setSettingsOpen: (open) => set((state) => ({ ui: { ...state.ui, settingsOpen: open } })),
   setPinnedOpen: (open) => set((state) => ({ ui: { ...state.ui, pinnedOpen: open } })),
+  setTagFilterOpen: (open) => set((state) => ({ ui: { ...state.ui, tagFilterOpen: open } })),
 
   setGraphTool: (tool) => set((state) => ({ graph: { ...state.graph, tool } })),
   setSelectedNodeIds: (ids) =>

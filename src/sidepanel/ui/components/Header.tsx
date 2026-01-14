@@ -4,6 +4,7 @@ import { clearTree as newTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
 import PinnedDropdown from './PinnedDropdown.js';
+import TagFilterDropdown from './tags/TagFilterDropdown.js';
 import React from 'react';
 
 type HeaderProps = {
@@ -83,6 +84,7 @@ export default function Header({ settingsBtnRef }: HeaderProps) {
         </button>
         <div className="header-divider" />
         <PinnedDropdown />
+        <TagFilterDropdown />
         <button id="newTreeBtn" className="btn-icon" type="button" title="new tree" onClick={handleNewTree}>
           <Icons.GitBranchPlus size={20} />
         </button>

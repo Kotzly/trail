@@ -4,10 +4,10 @@ import type { NodeId } from '../../../../shared/types/ids.js';
 import type { TabState } from '../../../../shared/types/tabs.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
 import type { NodePosition } from '../../graph/types.js';
+import type { TitleTruncation } from '../../../../shared/types/settings.js';
 import { formatUrl } from '../../shared/format.js';
 import { Icons } from '../Icon.js';
 import { useStore } from '../../state/store.js';
-import { TagIcon } from '../tags/TagIcon.js';
 import React from 'react';
 
 type GraphNodeProps = {
@@ -53,6 +53,7 @@ export default function GraphNode({
   const tabCount = nodeTabCounts[node.id];
   const hasTags = node.data.tags && node.data.tags.length > 0;
   const tagDefs = useStore((state) => state.tagDefs);
+  const titleTruncation = useStore((state) => state.settings?.titleTruncation ?? 'end');
 
   const className = useMemo(() => {
     const classes = ['graph-node'];
@@ -79,6 +80,13 @@ export default function GraphNode({
     openNodeIds,
     tabState?.sound.muted,
   ]);
+
+  const fullTitle = node.data.title || 'Untitled';
+  const maxTitleChars = Math.max(10, Math.floor((nodeWidth - 70) / 6.5));
+  const displayTitle = useMemo(
+    () => truncateTitle(fullTitle, titleTruncation, maxTitleChars),
+    [fullTitle, maxTitleChars, titleTruncation],
+  );
 
   return (
     <div
@@ -107,7 +115,9 @@ export default function GraphNode({
         )}
       </div>
       <div className="graph-node-content">
-        <div className="graph-node-title">{node.data.title || 'Untitled'}</div>
+        <div className="graph-node-title" title={fullTitle}>
+          {displayTitle}
+        </div>
         <div className="graph-node-url">{formatUrl(node.data.url)}</div>
       </div>
       {tabCount && tabCount > 1 ? (
@@ -127,7 +137,6 @@ export default function GraphNode({
                 style={{ backgroundColor: tagPreset.color }}
                 title={tagPreset.label}
               >
-                <TagIcon id={tagPreset.iconId} size={9} />
               </span>
             );
           })}
@@ -144,4 +153,20 @@ export default function GraphNode({
       )}
     </div>
   );
+}
+
+function truncateTitle(text: string, mode: TitleTruncation, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  if (maxChars <= 1) return '…';
+  const ellipsis = '…';
+  const available = maxChars - 1;
+  if (mode === 'start') {
+    return `${ellipsis}${text.slice(text.length - available)}`;
+  }
+  if (mode === 'middle') {
+    const left = Math.ceil(available / 2);
+    const right = Math.floor(available / 2);
+    return `${text.slice(0, left)}${ellipsis}${text.slice(text.length - right)}`;
+  }
+  return `${text.slice(0, available)}${ellipsis}`;
 }

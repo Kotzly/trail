@@ -400,7 +400,6 @@ body {
   height: 18px;
 }
 
-
 /* Pinned Dropdown */
 .pinned-dropdown-wrapper {
   position: relative;
@@ -518,6 +517,195 @@ body {
 }
 
 .pinned-dropdown-hint {
+  padding: 8px 16px;
+  font-size: 11px;
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface-container);
+  border-top: 1px solid var(--md-outline-variant);
+  text-align: center;
+}
+
+/* Tag Filter Dropdown */
+.tag-filter-dropdown-wrapper {
+  position: relative;
+}
+
+.tag-filter-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 320px;
+  max-width: 360px;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.tag-filter-dropdown.hidden {
+  display: none;
+}
+
+.tag-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+.tag-filter-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--md-on-surface);
+}
+
+.tag-filter-count {
+  font-size: 11px;
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface-variant);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.tag-filter-clear {
+  border: none;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.tag-filter-clear:hover {
+  color: var(--md-on-surface);
+  background: var(--md-surface-variant);
+}
+
+.tag-filter-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-filter-strip {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--md-outline-variant);
+  scrollbar-width: none;
+}
+
+.tag-filter-strip::-webkit-scrollbar {
+  height: 0;
+}
+
+.tag-filter-strip .tag-filter-empty {
+  padding: 4px 0;
+  font-size: 11px;
+}
+
+.tag-filter-tag {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tag-filter-tag.selected .tag-pill {
+  box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb), 0.3);
+}
+
+.tag-filter-results {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.tag-filter-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.tag-filter-node:hover,
+.tag-filter-node.focused {
+  background: var(--md-surface-variant);
+}
+
+.tag-filter-node.focused {
+  outline: 2px solid var(--md-primary);
+  outline-offset: -2px;
+}
+
+.tag-filter-node-favicon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.tag-filter-node-favicon.placeholder {
+  background: var(--md-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-on-surface-variant);
+}
+
+.tag-filter-node-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tag-filter-node-title {
+  font-size: 13px;
+  color: var(--md-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag-filter-node-url {
+  font-size: 11px;
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag-filter-node-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tag-filter-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--md-on-surface-variant);
+  font-size: 12px;
+}
+
+.tag-filter-hint {
   padding: 8px 16px;
   font-size: 11px;
   color: var(--md-on-surface-variant);
@@ -1499,6 +1687,11 @@ body {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
+.popover-segment-btn.wide {
+  width: auto;
+  padding: 0 12px;
+}
+
 .popover-segment-btn:hover {
   background: var(--md-surface-container);
   color: var(--md-on-surface);
@@ -1648,13 +1841,11 @@ body {
   background: var(--graph-node-closed-bg, var(--md-surface-container-high));
   border-color: var(--graph-node-closed-border, var(--md-outline-variant));
   box-shadow: var(--graph-node-closed-shadow, none);
-  opacity: 0.55;
 }
 
 .graph-node.closed:hover {
   filter: var(--graph-node-closed-filter-hover, grayscale(0.5) brightness(0.92));
   background: var(--graph-node-closed-bg-hover, var(--md-surface-container));
-  opacity: 0.65;
 }
 
 :root,
@@ -1722,7 +1913,6 @@ body {
 .graph-node.closed.search-match,
 .graph-node.closed.search-focused {
   background: var(--md-closed-highlight);
-  opacity: 0.9;
   filter: none;
   border-color: var(--md-primary);
   box-shadow: 0 0 0 2px var(--md-primary), 0 4px 16px rgba(0, 0, 0, 0.18);
@@ -2158,6 +2348,44 @@ body {
   gap: 8px;
 }
 
+.tag-option .tag-pill {
+  flex: 1;
+  max-width: 100%;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 180px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--tag-color, #667085) 78%, black 22%);
+  color: color-mix(in srgb, var(--tag-color, #667085) 68%, white 32%);
+  border: 1px solid color-mix(in srgb, var(--tag-color, #667085) 65%, white 12%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag-pill.tag-pill-sm {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+}
+
+.tag-pill-new {
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  border: 1px dashed var(--md-outline-variant);
+  box-shadow: none;
+}
+
 .tag-dot {
   width: 14px;
   height: 14px;
@@ -2240,6 +2468,10 @@ body {
   font-weight: bold;
 }
 
+.tag-check.partial {
+  opacity: 0.7;
+}
+
 /* Tag dots on nodes */
 .graph-node-tags {
   position: absolute;
@@ -2258,11 +2490,6 @@ body {
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.9);
-}
-
-.graph-node-tag-dot svg {
-  width: 8px;
-  height: 8px;
 }
 
 

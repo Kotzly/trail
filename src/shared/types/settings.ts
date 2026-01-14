@@ -28,9 +28,12 @@ export type LayoutSettings = {
     radial: RadialLayoutSettings;
 };
 
+export type TitleTruncation = 'start' | 'middle' | 'end';
+
 export type Settings = {
     maxOpenTabs: number;
     capacity: number;
     theme: ThemeId;
     layout: LayoutSettings;
+    titleTruncation: TitleTruncation;
 }

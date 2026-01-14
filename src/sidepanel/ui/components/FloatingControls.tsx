@@ -6,6 +6,7 @@ import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
 import FloatingSearch from './FloatingSearch.js';
 import PinnedDropdown from './PinnedDropdown.js';
+import TagFilterDropdown from './tags/TagFilterDropdown.js';
 import { createPortal } from 'react-dom';
 
 type FloatingControlsProps = {
@@ -86,6 +87,7 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
 
         <div className="floating-island">
           <PinnedDropdown />
+          <TagFilterDropdown />
           <button
             id="newTreeBtn"
             className="btn-icon orb-button"
