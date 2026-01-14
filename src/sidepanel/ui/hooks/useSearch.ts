@@ -20,12 +20,14 @@ export function useSearch() {
   const lastPreviewRef = useRef<NodeId | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const sessionPromiseRef = useRef<Promise<string | null> | null>(null);
+  const sessionTokenRef = useRef(0);
 
   const ensureSession = useCallback(
     async (baseId: NodeId | null) => {
       if (sessionId) return sessionId;
       if (!sessionPromiseRef.current) {
-        sessionPromiseRef.current = beginTempSelection({
+        const token = sessionTokenRef.current;
+        const promise = beginTempSelection({
           baseNodeId: baseId ?? null,
           options: {
             allowCreateOnCommit: false,
@@ -33,6 +35,7 @@ export function useSearch() {
           },
         })
           .then((result) => {
+            if (token !== sessionTokenRef.current) return null;
             setSessionId(result.sessionId);
             return result.sessionId;
           })
@@ -41,8 +44,11 @@ export function useSearch() {
             return null;
           })
           .finally(() => {
-            sessionPromiseRef.current = null;
+            if (sessionPromiseRef.current === promise) {
+              sessionPromiseRef.current = null;
+            }
           });
+        sessionPromiseRef.current = promise;
       }
       return sessionPromiseRef.current;
     },
@@ -52,16 +58,14 @@ export function useSearch() {
   useEffect(() => {
     if (!search.query) return;
     const results = tree ? tree.findNodesByQuery(search.query) : [];
-    setSearch(
-      search.query,
-      results,
-      Math.min(search.index, Math.max(0, results.length - 1)),
-      search.baseCurrentId ?? currentNodeId ?? null,
-    );
+    const maxIndex = Math.max(0, results.length - 1);
+    const nextIndex = results.length === 0 ? 0 : Math.min(Math.max(search.index, 0), maxIndex);
+    setSearch(search.query, results, nextIndex, search.baseCurrentId ?? currentNodeId ?? null);
   }, [currentNodeId, search.baseCurrentId, search.index, search.query, setSearch, tree]);
 
   useEffect(() => {
     if (!search.active) {
+      sessionTokenRef.current += 1;
       lastPreviewRef.current = null;
       if (sessionId) {
         endTempSelection(sessionId).catch((error) =>
@@ -125,9 +129,9 @@ export function useSearch() {
   const focusResult = useCallback(
     (index: number) => {
       if (search.results.length === 0) return;
-      setSearchIndex(index);
       const nextIndex =
         ((index % search.results.length) + search.results.length) % search.results.length;
+      setSearchIndex(nextIndex);
     },
     [search.results, setSearchIndex],
   );
