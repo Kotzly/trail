@@ -8,7 +8,6 @@ import type { TitleTruncation } from '../../../../shared/types/settings.js';
 import { formatUrl } from '../../shared/format.js';
 import { Icons } from '../Icon.js';
 import { useStore } from '../../state/store.js';
-import { TagIcon } from '../tags/TagIcon.js';
 import React from 'react';
 
 type GraphNodeProps = {
@@ -138,7 +137,6 @@ export default function GraphNode({
                 style={{ backgroundColor: tagPreset.color }}
                 title={tagPreset.label}
               >
-                <TagIcon id={tagPreset.iconId} size={9} />
               </span>
             );
           })}

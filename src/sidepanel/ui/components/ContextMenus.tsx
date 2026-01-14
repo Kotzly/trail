@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import type { NodeId, TabId, Tag } from '../../../shared/types/ids.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
@@ -15,7 +15,6 @@ import { getTabsForNodeMessage } from '../../api/tabs.js';
 import { useStore } from '../state/store.js';
 import TagEditorModal from './tags/TagEditorModal.js';
 import { deleteTagDef, upsertTagDef } from '../../api/tags.js';
-import { TagIcon } from './tags/TagIcon.js';
 import { Icons } from './Icon.js';
 import React from 'react';
 
@@ -609,10 +608,9 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                   closeContextMenu();
                 }}
               >
-                <span className="tag-dot" style={{ background: tag.color }}>
-                  <TagIcon id={tag.iconId} size={12} />
+                <span className="tag-pill" style={{ '--tag-color': tag.color } as React.CSSProperties}>
+                  {tag.label}
                 </span>
-                <span className="tag-label">{tag.label}</span>
                 <span className="tag-actions">
                   <button
                     type="button"
@@ -654,10 +652,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
               onCreateTag();
             }}
           >
-            <span className="tag-dot tag-dot-new">
-              <Icons.Plus size={12} />
-            </span>
-            <span className="tag-label">New Tag...</span>
+            <span className="tag-pill tag-pill-new">New Tag...</span>
           </div>
         </div>
       </div>
@@ -740,6 +735,43 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const menuStyle = useMenuPosition(menuRef, position);
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const clearSelection = useStore((state) => state.clearSelection);
+  const tree = useStore((state) => state.tree);
+  const tagDefsList = useStore((state) => state.tagDefsList);
+
+  const selectedNodes = useMemo(() => {
+    if (!tree) return [];
+    return nodeIds
+      .map((id) => tree.findNodeById(id))
+      .filter((node): node is NonNullable<typeof node> => Boolean(node));
+  }, [nodeIds, tree]);
+
+  const tagCounts = useMemo(() => {
+    const counts = new Map<Tag, number>();
+    if (selectedNodes.length === 0) return counts;
+    selectedNodes.forEach((node) => {
+      node.data.tags?.forEach((tagId) => {
+        counts.set(tagId, (counts.get(tagId) ?? 0) + 1);
+      });
+    });
+    return counts;
+  }, [selectedNodes]);
+
+  const toggleTagForSelection = (tagId: Tag) => {
+    if (!tree) return;
+    if (selectedNodes.length === 0) return;
+    const count = tagCounts.get(tagId) ?? 0;
+    const shouldRemove = count === selectedNodes.length;
+    selectedNodes.forEach((node) => {
+      const hasTag = node.data.tags?.includes(tagId);
+      if (shouldRemove && hasTag) {
+        fireAndForget(msg.removeTag({ nodeId: node.id, tagId }));
+      } else if (!shouldRemove && !hasTag) {
+        fireAndForget(msg.addTag({ nodeId: node.id, tagId }));
+      }
+    });
+    clearSelection();
+    closeContextMenu();
+  };
 
   return (
     <div
@@ -774,6 +806,32 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         }}
       >
         Unpin selected
+      </div>
+      <div className="graph-context-menu-item has-submenu">
+        Tags <span className="submenu-arrow">›</span>
+        <div className="graph-context-submenu">
+          {tagDefsList.map((tag) => {
+            const count = tagCounts.get(tag.id as Tag) ?? 0;
+            const allSelected = selectedNodes.length > 0 && count === selectedNodes.length;
+            const someSelected = count > 0 && count < selectedNodes.length;
+            return (
+              <div
+                key={tag.id as string}
+                className="graph-context-menu-item tag-option"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  toggleTagForSelection(tag.id as Tag);
+                }}
+              >
+                <span className="tag-pill" style={{ '--tag-color': tag.color } as React.CSSProperties}>
+                  {tag.label}
+                </span>
+                {allSelected ? <span className="tag-check">✓</span> : null}
+                {someSelected ? <span className="tag-check partial">•</span> : null}
+              </div>
+            );
+          })}
+        </div>
       </div>
       <div
         className="graph-context-menu-item"
