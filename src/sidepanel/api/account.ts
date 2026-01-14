@@ -8,6 +8,7 @@ import type {
   Subscription,
   User,
 } from '../../shared/types/account.js';
+import { BACKEND_CONFIG } from '../../shared/config/backend.js';
 import { createMockAccountClient } from './account/mock.js';
 
 export type AccountClient = {
@@ -89,3 +90,5 @@ export function normalizeAccountError(error: unknown): AccountError {
     retryable: true,
   };
 }
+
+export { BACKEND_CONFIG };
