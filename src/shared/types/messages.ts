@@ -25,6 +25,7 @@ export const MSG = {
     TITLE_CHANGED: 'TITLE_CHANGED',
     TREE_UPDATED: 'TREE_UPDATED',
     TAGS_UPDATED: 'TAGS_UPDATED',
+    NOTIFY: 'NOTIFY',
     GET_TREE: 'GET_TREE',
     CLEAR_TREE: 'CLEAR_TREE',
     OPEN_IN_NEW_TAB: 'OPEN_IN_NEW_TAB',
@@ -101,6 +102,12 @@ export type TitleChangedMessage = RequestMessageBase<typeof MSG.TITLE_CHANGED, T
 export type TreeUpdatedMessage = RequestMessageBase<typeof MSG.TREE_UPDATED, TreeUpdatedInput>;
 export type TagDefsUpdatedInput = { tagDefs: TagDefinition[] };
 export type TagsUpdatedMessage = RequestMessageBase<typeof MSG.TAGS_UPDATED, TagDefsUpdatedInput>;
+export type UiNotificationInput = {
+  message: string;
+  icon?: string;
+  durationMs?: number;
+};
+export type NotifyMessage = RequestMessageBase<typeof MSG.NOTIFY, { notification: UiNotificationInput }>;
 export type GetTreeMessage = RequestMessageBase<typeof MSG.GET_TREE>;
 export type ClearTreeMessage = RequestMessageBase<typeof MSG.CLEAR_TREE>;
 
@@ -145,6 +152,7 @@ export type RequestMessage = NavigateToMessage |
     CommandStateMessage | GetTagDefsMessage | UpsertTagDefMessage | DeleteTagDefMessage |
     TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage |
     TreeUpdatedMessage | TagsUpdatedMessage |
+    NotifyMessage |
     GetTreeMessage | ClearTreeMessage |
     OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
@@ -189,6 +197,7 @@ export type ResponseDataByType = {
     [MSG.TITLE_CHANGED]: void;
     [MSG.TREE_UPDATED]: void;
     [MSG.TAGS_UPDATED]: void;
+    [MSG.NOTIFY]: void;
     [MSG.GET_TREE]: TreeUpdatedInput;
     [MSG.CLEAR_TREE]: void;
     [MSG.OPEN_IN_NEW_TAB]: void;
@@ -250,6 +259,9 @@ export const msg = {
     titleChanged(payload: TitleChangedInput): TitleChangedMessage { return { type: MSG.TITLE_CHANGED, ...payload } },
     treeUpdated(payload: TreeUpdatedInput): TreeUpdatedMessage { return { type: MSG.TREE_UPDATED, ...payload } },
     tagsUpdated(payload: TagDefsUpdatedInput): TagsUpdatedMessage { return { type: MSG.TAGS_UPDATED, ...payload } },
+    notify(payload: { notification: UiNotificationInput }): NotifyMessage {
+        return { type: MSG.NOTIFY, ...payload };
+    },
     getTree(): GetTreeMessage { return { type: MSG.GET_TREE } },
     clearTree(): ClearTreeMessage { return { type: MSG.CLEAR_TREE } },
     openInNewTab(payload: { nodeId: NodeId }): OpenInNewTabMessage { return { type: MSG.OPEN_IN_NEW_TAB, ...payload } },

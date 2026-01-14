@@ -6,6 +6,8 @@ import { treeStorage } from '../services/tree-storage.js';
 import { redirectDetector } from './redirect-detection.js';
 import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
+import { notifyUi } from '../messaging/ui-notifications.js';
+import { enforceTabLimit } from '../tabs/tab-limit.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { CommandManager } from '../../shared/lib/commands.js';
 import type { Description } from '../../shared/types/ids.js';
@@ -63,6 +65,9 @@ export async function handleNavigation(
       tags: [],
     } as NodeData;
     const metaPatch = { title: data.title, favicon: data.favicon} as NodeMetaPatch;
+    const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
+    const registerOptions = (touch: boolean) =>
+      (lastUsed === undefined ? { touch } : { touch, lastUsed });
 
     // Use GLOBAL tree - shared across all windows
     const tree = await treeStorage.getOrCreateTree();
@@ -82,7 +87,7 @@ export async function handleNavigation(
           const newNode = tree.navigate(data);
           wasNewNodeCreated = true; // New node was created
           // Re-register tab with new node (global) - this automatically unregisters from old node
-          tabManager.register(newNode.id, tabId as TabId);
+          tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
           // Update currentNode to new node only if tab is active
           if (!isActiveTab && prevCurrentId !== null) {
             tree.setCurrentById(prevCurrentId);
@@ -101,7 +106,9 @@ export async function handleNavigation(
           didUpdateCurrent = true;
         }
       }
-      tabManager.touch(tabId as TabId, existingNodeId);
+      if (isActiveTab) {
+        tabManager.touch(tabId as TabId, existingNodeId);
+      }
     } else {
       // New tab without existing node
       let newNode;
@@ -123,12 +130,12 @@ export async function handleNavigation(
           didUpdateCurrent = true;
         }
         // Register this tab with the existing node - this automatically unregisters from old node if any
-        tabManager.register(newNode.id, tabId as TabId);
+        tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
       } else {
         didMutate = true;
         newNode = tree.navigate(data);
         wasNewNodeCreated = true;
-        tabManager.register(newNode.id, tabId as TabId);
+        tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
         if (!isActiveTab && prevCurrentId !== null) {
           tree.setCurrentById(prevCurrentId);
         } else {
@@ -137,17 +144,26 @@ export async function handleNavigation(
       }
     
 
-      // Check tab limit (global, skip pinned nodes)
-      // await tabManager.closeOldestGlobalIfNeeded(settings.maxOpenTabs, tree); // todo: implement LRU in tab manager
     }
 
+    const evicted = tree.consumeEvictedCount();
     if (didMutate) {
       CommandManager.saveSnapshot(snapshot, 'Navigate' as Description);
     }
 
-    if (didMutate || didUpdateCurrent) {
+    if (didMutate || didUpdateCurrent || evicted > 0) {
       treeStorage.cacheTree(tree);
     }
+    if (evicted > 0) {
+      notifyUi({
+        message: `Evicted ${evicted} node${evicted === 1 ? '' : 's'} due to capacity`,
+        icon: 'AlertTriangle',
+        durationMs: 5000,
+      });
+    }
+    await enforceTabLimit(tree, {
+      activeTabId: isActiveTab ? (tabId as TabId) : null,
+    });
     
     // Only notify if tab is active OR if we created a new node (not just reused existing)
     // This prevents unnecessary UI updates for programmatic tab creation

@@ -73,7 +73,9 @@ export const navigationHandlers = defineHandlers({
     });
 
     if (created.id !== undefined) {
-      tabManager.register(message.nodeId, created.id as TabId);
+      const lastUsed = Number.isFinite(created.lastAccessed) ? created.lastAccessed : undefined;
+      const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
+      tabManager.register(message.nodeId, created.id as TabId, registerOptions);
     }
 
     tree.setCurrentById(message.nodeId);
@@ -170,7 +172,9 @@ export const navigationHandlers = defineHandlers({
 
     const tab = await chrome.tabs.create({ url: node.data.url, active: false });
     if (tab.id !== undefined) {
-      tabManager.register(message.nodeId, tab.id as TabId);
+      const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
+      const registerOptions = lastUsed === undefined ? { touch: false } : { touch: false, lastUsed };
+      tabManager.register(message.nodeId, tab.id as TabId, registerOptions);
     }
 
     await notifyTreeUpdate(tree, 'tabs');

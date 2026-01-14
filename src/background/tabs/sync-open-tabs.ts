@@ -21,7 +21,7 @@ export async function syncOpenTabs(): Promise<void> {
       const node = tree.findByUrl(tab.url as Url);
       if (!node) continue;
       const tabId = tab.id as TabId;
-      tabManager.register(node.id, tabId);
+      tabManager.register(node.id, tabId, { touch: false, lastUsed: tab.lastAccessed ?? 0 });
       touched.push({
         tabId,
         nodeId: node.id,
@@ -32,7 +32,7 @@ export async function syncOpenTabs(): Promise<void> {
     touched
       .sort((a, b) => a.lastAccessed - b.lastAccessed)
       .forEach((entry) => {
-        tabManager.touch(entry.tabId, entry.nodeId);
+        tabManager.touch(entry.tabId, entry.nodeId, entry.lastAccessed);
       });
 
     await notifyTreeUpdate(tree, 'tabs');

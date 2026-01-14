@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { MSG, type RequestMessage } from '../../../shared/types/messages.js';
 import { getCommandState } from '../../api/commands.js';
 import { useStore } from '../state/store.js';
+import { notificationCenter } from '../notifications/notification-center.js';
+import type { NotificationDurationMs, NotificationInput } from '../notifications/types.js';
+import { Icons } from '../components/Icon.js';
 
 export function useChromeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
@@ -19,6 +22,19 @@ export function useChromeMessages(): void {
       }
       if (message.type === MSG.TAGS_UPDATED) {
         setTagDefs(message.tagDefs);
+        return;
+      }
+      if (message.type === MSG.NOTIFY) {
+        const { message: text, icon, durationMs } = message.notification;
+        const input: NotificationInput = { message: text };
+        if (icon && icon in Icons) {
+          input.icon = icon as Exclude<NotificationInput['icon'], undefined>;
+        }
+        const allowedDurations: NotificationDurationMs[] = [1000, 3000, 5000, 10000, 15000];
+        if (durationMs && allowedDurations.includes(durationMs as NotificationDurationMs)) {
+          input.durationMs = durationMs as NotificationDurationMs;
+        }
+        notificationCenter.notify(input);
       }
     };
 

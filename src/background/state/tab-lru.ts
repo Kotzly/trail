@@ -2,7 +2,6 @@ import type { NodeId, TabId } from "../../shared/types/ids.js";
 
 export class LruManager {
     private set: Set<TabId>;
-    private seq = 0;
     private lastUsed = new Map<TabId, number>();
     private latestTabId: TabId | null = null;
     private latestNodeId: NodeId | null = null;
@@ -10,13 +9,30 @@ export class LruManager {
         this.set = new Set<TabId>();
     }
     
-    touch(tabId: TabId, nodeId: NodeId) {
+    touch(tabId: TabId, nodeId: NodeId, lastUsed?: number) {
         this.set.delete(tabId);
         this.set.add(tabId);
 
-        this.lastUsed.set(tabId, ++this.seq);
+        const nextUsed = lastUsed ?? Date.now();
+        this.lastUsed.set(tabId, nextUsed);
         this.latestTabId = tabId;
         this.latestNodeId = nodeId;
+    }
+
+    track(tabId: TabId, nodeId: NodeId, lastUsed?: number) {
+        if (!this.set.has(tabId)) {
+            this.set.add(tabId);
+        }
+        if (lastUsed !== undefined) {
+            this.lastUsed.set(tabId, lastUsed);
+            const latest = this.latestTabId ? this.lastUsed.get(this.latestTabId) ?? 0 : -1;
+            if (lastUsed >= latest) {
+                this.latestTabId = tabId;
+                this.latestNodeId = nodeId;
+            }
+        } else if (!this.lastUsed.has(tabId)) {
+            this.lastUsed.set(tabId, 0);
+        }
     }
 
     iter(): IterableIterator<TabId> {
@@ -43,4 +59,3 @@ export class LruManager {
     }
 
 }
-

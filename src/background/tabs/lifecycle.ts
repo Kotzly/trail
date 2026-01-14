@@ -3,6 +3,8 @@ import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { tempSelectionManager } from '../services/temporary-selection.js';
+import { enforceTabLimit } from './tab-limit.js';
+import { notifyUi } from '../messaging/ui-notifications.js';
 
 import { syncTabTitleFavicon, syncTabAudioState } from './tab-sync.js';
 import { NodeData } from '../../shared/types/node.js';
@@ -19,7 +21,10 @@ async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
   const existing = tree.findByUrl(tab.url as Url);
   if (!existing) return;
 
-  tabManager.register(existing.id, tab.id as TabId);
+  const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
+  const registerOptions = lastUsed === undefined ? { touch: tab.active } : { touch: tab.active, lastUsed };
+  tabManager.register(existing.id, tab.id as TabId, registerOptions);
+  await enforceTabLimit(tree, { activeTabId: tab.active ? (tab.id as TabId) : null });
   await notifyTreeUpdate(tree, 'tabs');
 }
 
@@ -51,6 +56,7 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
     let nodeId = tabManager.nodeByTab(tabId);
     const tree = await treeStorage.getOrCreateTree();
 
+    let evicted = 0;
     if (nodeId === undefined) {
         try {
             const tab = await chrome.tabs.get(tabId);
@@ -85,14 +91,23 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
     if (!tabManager.shouldSuppressTouch(tabId)) {
         tabManager.touch(tabId, nodeId);
     }
+    evicted = tree.consumeEvictedCount();
     const prevCurrentId = tree.getCurrentId();
     tree.setCurrentById(nodeId);
     treeStorage.cacheTree(tree);
+    if (evicted > 0) {
+      notifyUi({
+        message: `Evicted ${evicted} node${evicted === 1 ? '' : 's'} due to capacity`,
+        icon: 'AlertTriangle',
+        durationMs: 5000,
+      });
+    }
     if (prevCurrentId !== nodeId) {
       await notifyTreeUpdate(tree, 'set-current', { focusNodeId: nodeId, mode: 'force' });
     } else {
       await notifyTreeUpdate(tree, 'tabs');
     }
+    await enforceTabLimit(tree, { activeTabId: tabId });
 }
 
 async function onTabUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab): Promise<void> {

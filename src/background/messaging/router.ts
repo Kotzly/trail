@@ -44,6 +44,8 @@ const outboundOnlyHandlers = defineHandlers({
     err("TREE_UPDATED is outbound-only"),
   [MSG.TAGS_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TAGS_UPDATED>> =>
     err("TAGS_UPDATED is outbound-only"),
+  [MSG.NOTIFY]: async (): Promise<ResponseMessage<typeof MSG.NOTIFY>> =>
+    err("NOTIFY is outbound-only"),
 } satisfies HandlerMap);
 
 function createMessageRouter() {

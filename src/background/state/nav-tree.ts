@@ -17,6 +17,7 @@ export class NavigationTree implements Owner {
     private nodeMap: Map<NodeId, NavigationNode> = new Map<NodeId, NavigationNode>();
 
     private evictionPolicy: EvictionPolicy;
+    private lastEvictedCount = 0;
 
     constructor(capacity: number, root?: NavigationNode) {
         this.evictionPolicy = epForTree(this, capacity);
@@ -36,7 +37,8 @@ export class NavigationTree implements Owner {
         });
 
         this.nodeCount = count;
-        this.evictionPolicy.enforce();
+        const evicted = this.evictionPolicy.enforce();
+        this.lastEvictedCount += evicted;
     }
 
     // remove is called by the eviction policy to remove nodes that are no longer needed.
@@ -71,6 +73,20 @@ export class NavigationTree implements Owner {
 
     getCapacity(): number {
         return this.evictionPolicy.getCapacity();
+    }
+
+    setCapacity(capacity: number): number {
+        const next = Number.isFinite(capacity) && capacity > 0 ? capacity : Infinity;
+        this.evictionPolicy.updateCapacity(next);
+        const evicted = this.evictionPolicy.enforce();
+        this.lastEvictedCount += evicted;
+        return evicted;
+    }
+
+    consumeEvictedCount(): number {
+        const count = this.lastEvictedCount;
+        this.lastEvictedCount = 0;
+        return count;
     }
 
     *iter(): IterableIterator<NavigationNode> {
@@ -134,7 +150,8 @@ export class NavigationTree implements Owner {
         const child = node ? node.addChild(data) : new TreeNode(data);
         this.nodeMap.set(child.id, child);
         this.nodeCount++;
-        this.evictionPolicy.enforce();
+        const evicted = this.evictionPolicy.enforce();
+        this.lastEvictedCount += evicted;
         return child;
     }
 
@@ -229,6 +246,7 @@ export class NavigationTree implements Owner {
         this.current = null;
         this.nodeMap.clear();
         this.nodeCount = 0;
+        this.lastEvictedCount = 0;
     }
     
     collectPinned(root: NavigationNode | null = this.root): Set<NavigationNode> {
