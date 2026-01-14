@@ -25,16 +25,16 @@ export class TabManager {
       this.suppressActivateForTabId.clear();
     }
 
-    touch(tabId: TabId, _nodeId: NodeId) {
+    touch(tabId: TabId, _nodeId: NodeId, lastUsed?: number) {
         const actualNodeId = this.index.nodeByTab(tabId);
         if (!actualNodeId) return;
-        this.lru.touch(tabId, actualNodeId);
+        this.lru.touch(tabId, actualNodeId, lastUsed);
         this.invalidateCycle(actualNodeId);
     }
 
     // Register a tab for a node (global across windows).
     // Reassigns the tab if it previously belonged to another node.
-    register(nodeId: NodeId, tabId: TabId) {
+    register(nodeId: NodeId, tabId: TabId, options?: { touch?: boolean; lastUsed?: number }) {
       const previousNodeId = this.index.nodeByTab(tabId);
       
       if (previousNodeId) { // reassigning from previous node
@@ -42,7 +42,11 @@ export class TabManager {
         this.invalidateCycle(previousNodeId);
       }
       this.index.addTabToNode(nodeId, tabId);
-      this.lru.touch(tabId, nodeId);
+      if (options?.touch === false) {
+        this.lru.track(tabId, nodeId, options?.lastUsed);
+      } else {
+        this.lru.touch(tabId, nodeId, options?.lastUsed);
+      }
       this.invalidateCycle(nodeId);
     }
   
@@ -152,13 +156,20 @@ export class TabManager {
     }
   
     // Close oldest tab globally if the limit is exceeded (skips pinned nodes).
-    async closeOldest(limit: number, tree: NavigationTree | null = null): Promise<TabId | null> {
+    async closeOldest(
+      limit: number,
+      tree: NavigationTree | null = null,
+      options?: { activeTabIds?: Set<TabId>; skipLoading?: boolean }
+    ): Promise<TabId | null> {
       if (limit === 0) return null; // Unlimited
 
       const count = this.index.tabCount();
       if (count <= limit) return null;
       let tabIdToClose = null;
-      for (const tabId of this.lru.iter()) {
+      const candidates = [...this.lru.iter()].sort(
+        (a, b) => this.lru.getLastUsed(a) - this.lru.getLastUsed(b),
+      );
+      for (const tabId of candidates) {
         const nodeId = this.index.nodeByTab(tabId);
         if (!nodeId) {
             this.lru.remove(tabId); // self-remova
@@ -167,6 +178,16 @@ export class TabManager {
         if (tree) {
           const node = tree.findNodeById(nodeId);
           if (node?.data.pinned) continue; // Skip pinned nodes
+        }
+        if (options?.activeTabIds && options.activeTabIds.has(tabId)) continue;
+        if (options?.skipLoading) {
+          try {
+            const tab = await chrome.tabs.get(tabId);
+            if (tab.status === 'loading') continue;
+          } catch {
+            this.unregister(tabId);
+            continue;
+          }
         }
         tabIdToClose = tabId;
         break;
@@ -182,6 +203,20 @@ export class TabManager {
         console.debug('Failed to close oldest tab:', error);
         return null;
       }
+    }
+
+    async closeOldestUntil(
+      limit: number,
+      tree: NavigationTree | null = null,
+      options?: { activeTabIds?: Set<TabId>; skipLoading?: boolean }
+    ): Promise<number> {
+      let closed = 0;
+      while (true) {
+        const closedTabId = await this.closeOldest(limit, tree, options);
+        if (!closedTabId) break;
+        closed += 1;
+      }
+      return closed;
     }
   
     dumpDebug() {

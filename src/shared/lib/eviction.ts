@@ -13,7 +13,8 @@ export interface Element {
 
 export interface EvictionPolicy {
     getCapacity(): number;
-    enforce(): void;
+    updateCapacity(cap: number): void;
+    enforce(): number;
 }
 
 export class LRUEvictionPolicy implements EvictionPolicy {
@@ -33,13 +34,14 @@ export class LRUEvictionPolicy implements EvictionPolicy {
         this.capacity = cap;
     }
 
-    enforce(): void {
+    enforce(): number {
         const toRemove = this.owner.size() - this.capacity;
-        if (toRemove <= 0) return;
+        if (toRemove <= 0) return 0;
         const victims = this.findVictims().slice(0, toRemove);
         for (const victim of victims) {
             this.removeElement(victim);
         }
+        return victims.length;
     }
 
     private findVictims(): Element[] {

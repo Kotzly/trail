@@ -456,12 +456,13 @@ export default function GraphArea() {
       prevSearchFocusRef.current = null;
       return;
     }
+    if (isDraggingNode || isPanningRef.current || isSelectingRef.current) return;
     if (!root) return;
     if (!focusedSearchId) return;
     if (prevSearchFocusRef.current === focusedSearchId) return;
     prevSearchFocusRef.current = focusedSearchId;
     centerOnNode(focusedSearchId, true);
-  }, [focusedSearchId, root, searchActive, positions, nodeHeight, nodeWidth]);
+  }, [focusedSearchId, isDraggingNode, root, searchActive, positions, nodeHeight, nodeWidth]);
 
   const zoomAt = useCallback((pointerX: number, pointerY: number, scaleFactor: number) => {
     const { translateX, translateY, scale } = viewRef.current;

@@ -42,23 +42,3 @@ export const PanelState = {
 }
 
 type metaKeyPair = {short: '^', long: 'ctrl'} | {short: '⌘', long: 'cmd'} | null;
-
-export async function verifyAndUpdateCurrentNode() {
-    if (!PanelState.tree) return;
-  
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tabs.length || !tabs[0] || !tabs[0].id) {
-      console.error('verifyAndUpdateCurrentNode: No active tab found');
-      return;
-    }
-  
-    const tabId = tabs[0].id as TabId;
-    const nodeId = PanelState.tabs.nodeByTab(tabId);
-    
-    const currentNode = PanelState.tree.getCurrent();
-    if (!currentNode) return;
-  
-    if (currentNode.id !== nodeId) {
-      PanelState.tree.setCurrent(currentNode);
-    }
-  }

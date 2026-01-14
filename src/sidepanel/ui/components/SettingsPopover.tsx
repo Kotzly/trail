@@ -33,6 +33,7 @@ type DragNumberInputProps = {
   step: number;
   className?: string;
   onValueChange: (value: number) => void;
+  onValueCommit?: (value: number) => void;
 };
 
 function RangeSlider({
@@ -41,6 +42,7 @@ function RangeSlider({
   max,
   step,
   onValueChange,
+  onValueCommit,
   label,
   valueLabel,
 }: DragNumberInputProps & { label: string; valueLabel?: string }) {
@@ -51,6 +53,10 @@ function RangeSlider({
         ? value.toFixed(2)
         : '0'
       : String(Math.round(value)));
+  const percent = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  const rangeStyle = {
+    ['--range-percent' as string]: `${Math.min(100, Math.max(0, percent))}%`,
+  } as CSSProperties;
   return (
     <div className="popover-slider">
       <div className="popover-slider-header">
@@ -64,9 +70,20 @@ function RangeSlider({
         min={min}
         max={max}
         step={step}
+        style={rangeStyle}
         onChange={(event) => {
           const next = clamp(Number(event.target.value), min, max);
           onValueChange(next);
+        }}
+        onPointerUp={(event) => {
+          if (!onValueCommit) return;
+          const next = clamp(Number(event.currentTarget.value), min, max);
+          onValueCommit(next);
+        }}
+        onKeyUp={(event) => {
+          if (!onValueCommit) return;
+          const next = clamp(Number((event.currentTarget as HTMLInputElement).value), min, max);
+          onValueCommit(next);
         }}
       />
     </div>
@@ -97,6 +114,11 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
     radial: 'Radial',
   };
   const tabLimitMax = Math.max(50, settings?.maxOpenTabs ?? 0);
+  const rawCapacity = settings?.capacity;
+  const capacityValue = Number.isFinite(rawCapacity) ? (rawCapacity as number) : 0;
+  const capacityMax = Number.isFinite(rawCapacity) ? Math.max(500, rawCapacity as number) : 5000;
+  const [tabLimitDraft, setTabLimitDraft] = useState<number>(settings?.maxOpenTabs ?? 0);
+  const [capacityDraft, setCapacityDraft] = useState<number>(capacityValue);
 
   const updatePosition = useCallback(() => {
     if (!settingsOpen) return;
@@ -181,6 +203,14 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
   useEffect(() => () => {
     void flushPendingSave();
   }, [flushPendingSave]);
+
+  useEffect(() => {
+    setTabLimitDraft(settings?.maxOpenTabs ?? 0);
+  }, [settings?.maxOpenTabs]);
+
+  useEffect(() => {
+    setCapacityDraft(capacityValue);
+  }, [capacityValue]);
 
   const updateSettings = async (partial: Partial<Settings>) => {
     if (!settings) return;
@@ -267,16 +297,40 @@ export default function SettingsPopover({ anchorRef }: SettingsPopoverProps) {
         <div className="popover-section">
           <RangeSlider
             label="Tab limit"
-            value={settings?.maxOpenTabs ?? 0}
+            value={tabLimitDraft}
             min={0}
             max={tabLimitMax}
             step={1}
-            valueLabel={(settings?.maxOpenTabs ?? 0) === 0 ? '∞' : String(settings?.maxOpenTabs ?? 0)}
+            valueLabel={tabLimitDraft === 0 ? '∞' : String(tabLimitDraft)}
             onValueChange={(value) => {
+              const maxOpenTabs = Number.isFinite(value) && value >= 0 ? value : 0;
+              setTabLimitDraft(maxOpenTabs);
+            }}
+            onValueCommit={(value) => {
               const maxOpenTabs = Number.isFinite(value) && value >= 0 ? value : 0;
               void updateSettings({ maxOpenTabs });
             }}
           />
+        </div>
+
+        <div className="popover-section">
+          <RangeSlider
+            label="Tree capacity"
+            value={capacityDraft}
+            min={0}
+            max={capacityMax}
+            step={50}
+            valueLabel={capacityDraft === 0 ? '∞' : String(Math.round(capacityDraft))}
+            onValueChange={(value) => {
+              const capacity = value <= 0 ? Infinity : Math.max(1, Math.round(value));
+              setCapacityDraft(capacity === Infinity ? 0 : capacity);
+            }}
+            onValueCommit={(value) => {
+              const capacity = value <= 0 ? Infinity : Math.max(1, Math.round(value));
+              void updateSettings({ capacity });
+            }}
+          />
+          <div className="popover-hint">Pinned nodes are never evicted</div>
         </div>
 
         <div className="popover-section">
