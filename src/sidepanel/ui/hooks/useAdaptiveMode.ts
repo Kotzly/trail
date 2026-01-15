@@ -5,8 +5,24 @@ import { saveSettings } from '../../api/settings.js';
 import { notificationCenter } from '../notifications/notification-center.js';
 import { useStore } from '../state/store.js';
 
-const TREE_DEPTH_THRESHOLD = 5;
-const ROOT_CHILD_THRESHOLD = 7;
+const TREE_MAX_CHILDREN = 8;
+const TREE_MIN_DEPTH = 20;
+const TREE_STAY_MAX_CHILDREN = 10;
+const TREE_STAY_MIN_DEPTH = 18;
+
+const RADIAL_MIN_CHILDREN = 20;
+const RADIAL_MAX_DEPTH = 15;
+const RADIAL_MAX_AVG_DEPTH = 20;
+const RADIAL_STAY_MIN_CHILDREN = 18;
+const RADIAL_STAY_MAX_DEPTH = 17;
+const RADIAL_STAY_MAX_AVG_DEPTH = 22;
+
+const MINDMAP_MAX_CHILDREN = 20;
+const MINDMAP_MAX_DEPTH = 10;
+const MINDMAP_MAX_AVG_DEPTH = 10;
+const MINDMAP_STAY_MAX_CHILDREN = 22;
+const MINDMAP_STAY_MAX_DEPTH = 12;
+const MINDMAP_STAY_MAX_AVG_DEPTH = 12;
 
 function getMaxDepth(node: NavigationNode | null, depth = 1): number {
   if (!node) return 0;
@@ -17,6 +33,59 @@ function getMaxDepth(node: NavigationNode | null, depth = 1): number {
     max = Math.max(max, getMaxDepth(child, depth + 1));
   }
   return max;
+}
+
+function getBranchDepths(root: NavigationNode | null): number[] {
+  if (!root) return [];
+  const children = root.getChildren?.() ?? [];
+  if (children.length === 0) return [];
+  return children.map((child) => getMaxDepth(child, 2));
+}
+
+function average(values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function chooseLayout(root: NavigationNode | null, currentMode: LayoutMode) {
+  if (!root) return null;
+  const rootChildren = root.getChildren?.().length ?? 0;
+  const maxDepth = getMaxDepth(root);
+  const branchDepths = getBranchDepths(root);
+  const avgDepth = average(branchDepths);
+
+  const treeFit = rootChildren > 0 && rootChildren < TREE_MAX_CHILDREN && maxDepth >= TREE_MIN_DEPTH;
+  const treeStay =
+    rootChildren > 0 && rootChildren < TREE_STAY_MAX_CHILDREN && maxDepth >= TREE_STAY_MIN_DEPTH;
+  const radialFit =
+    rootChildren > RADIAL_MIN_CHILDREN && maxDepth <= RADIAL_MAX_DEPTH && avgDepth <= RADIAL_MAX_AVG_DEPTH;
+  const radialStay =
+    rootChildren > RADIAL_STAY_MIN_CHILDREN &&
+    maxDepth <= RADIAL_STAY_MAX_DEPTH &&
+    avgDepth <= RADIAL_STAY_MAX_AVG_DEPTH;
+  const mindmapFit =
+    rootChildren <= MINDMAP_MAX_CHILDREN && maxDepth <= MINDMAP_MAX_DEPTH && avgDepth <= MINDMAP_MAX_AVG_DEPTH;
+  const mindmapStay =
+    rootChildren <= MINDMAP_STAY_MAX_CHILDREN &&
+    maxDepth <= MINDMAP_STAY_MAX_DEPTH &&
+    avgDepth <= MINDMAP_STAY_MAX_AVG_DEPTH;
+
+  const candidate =
+    currentMode === 'tree' && treeStay
+      ? 'tree'
+      : currentMode === 'radial' && radialStay
+        ? 'radial'
+        : currentMode === 'mindmap' && mindmapStay
+          ? 'mindmap'
+          : treeFit
+            ? 'tree'
+            : radialFit
+              ? 'radial'
+              : mindmapFit
+                ? 'mindmap'
+                : null;
+
+  return { candidate, rootChildren, maxDepth, avgDepth };
 }
 
 async function applyLayoutMode(settings: Settings, mode: LayoutMode, setSettings: (next: Settings) => void) {
@@ -52,7 +121,7 @@ export function useAdaptiveMode(): void {
 
     const root = tree?.getRoot?.() ?? null;
     const rootId = root?.id ?? null;
-    const isReset = treeUpdate?.reason === 'tree-reset';
+    const isReset = treeUpdate?.reason === 'tree-reset' || treeUpdate?.reason === 'tree-switch';
 
     const applyMode = (mode: LayoutMode) => {
       const state = useStore.getState();
@@ -60,44 +129,51 @@ export function useAdaptiveMode(): void {
       void applyLayoutMode(state.settings, mode, state.setSettings);
     };
 
-    if (isReset) {
+    if (sessionRef.current.rootId !== rootId) {
+      sessionRef.current = { rootId, suggestedTree: false, suggestedRadial: false };
+      if (rootId !== null) {
+        applyMode('mindmap');
+      }
+      if (isReset) return;
+    } else if (isReset) {
       sessionRef.current = { rootId, suggestedTree: false, suggestedRadial: false };
       applyMode('mindmap');
       return;
     }
 
-    if (sessionRef.current.rootId === null && rootId !== null) {
-      sessionRef.current.rootId = rootId;
-    }
-
     if (!root) return;
 
-    if (!sessionRef.current.suggestedTree) {
-      const maxDepth = getMaxDepth(root);
+    const decision = chooseLayout(root, settings.layout.mode);
+    if (!decision) return;
+
+    if (decision.candidate === 'tree') {
       if (settings.layout.mode === 'tree') {
         sessionRef.current.suggestedTree = true;
-      } else if (maxDepth >= TREE_DEPTH_THRESHOLD) {
+        return;
+      }
+      if (!sessionRef.current.suggestedTree) {
         sessionRef.current.suggestedTree = true;
         notificationCenter.notify({
-          message: 'Deep branch detected. Switch to Tree layout?',
+          message: 'Few branches but deep paths detected. Switch to Tree layout?',
           icon: 'Network',
           durationMs: 10000,
           actions: true,
           onConfirm: () => applyMode('tree'),
           onCancel: () => undefined,
         });
-        return;
-      } else {
-        return;
       }
+      return;
     }
 
-    if (!sessionRef.current.suggestedRadial) {
-      const childCount = root.getChildren?.().length ?? 0;
-      if (childCount >= ROOT_CHILD_THRESHOLD && settings.layout.mode !== 'radial') {
+    if (decision.candidate === 'radial') {
+      if (settings.layout.mode === 'radial') {
+        sessionRef.current.suggestedRadial = true;
+        return;
+      }
+      if (!sessionRef.current.suggestedRadial) {
         sessionRef.current.suggestedRadial = true;
         notificationCenter.notify({
-          message: 'Lots of branches at root. Try the Radial layout?',
+          message: 'Many short branches detected. Try the Radial layout?',
           icon: 'Radius',
           durationMs: 10000,
           actions: true,
@@ -105,6 +181,7 @@ export function useAdaptiveMode(): void {
           onCancel: () => undefined,
         });
       }
+      return;
     }
   }, [settings, tree, treeUpdate?.reason]);
 }

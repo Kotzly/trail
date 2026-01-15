@@ -13,6 +13,7 @@ import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 
 async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
   if (!tab.id) return;
+  if (tabManager.isIgnoredTab(tab.id as TabId)) return;
   const nodeId = tabManager.nodeByTab(tab.id as TabId);
   if (nodeId) return;
   if (!tab.url || !shouldTrackUrl(tab.url as Url)) return;
@@ -52,6 +53,7 @@ async function onTabRemoved(tabId_: number, _: chrome.tabs.OnRemovedInfo): Promi
 
 async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<void> {
     const tabId = activeInfo.tabId as TabId;
+    if (tabManager.isIgnoredTab(tabId)) return;
 
     let nodeId = tabManager.nodeByTab(tabId);
     const tree = await treeStorage.getOrCreateTree();
@@ -111,6 +113,7 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
 }
 
 async function onTabUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab): Promise<void> {
+    if (tabManager.isIgnoredTab(tabId as TabId)) return;
     if (changeInfo.audible || changeInfo.mutedInfo) {
         await syncTabAudioState(tabId as TabId, changeInfo, tab);
         return;

@@ -10,6 +10,7 @@ export function useChromeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
   const setCommandState = useStore((state) => state.setCommandState);
   const setTagDefs = useStore((state) => state.setTagDefs);
+  const setTrees = useStore((state) => state.setTrees);
 
   useEffect(() => {
     const handler = (message: RequestMessage) => {
@@ -22,6 +23,10 @@ export function useChromeMessages(): void {
       }
       if (message.type === MSG.TAGS_UPDATED) {
         setTagDefs(message.tagDefs);
+        return;
+      }
+      if (message.type === MSG.TREES_UPDATED) {
+        setTrees({ active: message.active, archived: message.archived });
         return;
       }
       if (message.type === MSG.NOTIFY) {
@@ -42,5 +47,5 @@ export function useChromeMessages(): void {
     return () => {
       chrome.runtime.onMessage.removeListener(handler);
     };
-  }, [applyTreeState, setCommandState, setTagDefs]);
+  }, [applyTreeState, setCommandState, setTagDefs, setTrees]);
 }

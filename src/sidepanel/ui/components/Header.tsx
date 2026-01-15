@@ -1,8 +1,9 @@
 import { redo, undo } from '../../api/commands.js';
-import { clearTree as newTree } from '../../api/tree.js';
+import { createNewTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
 import PinnedDropdown from './PinnedDropdown.js';
+import TreeDropdown from './TreeDropdown.js';
 import TagFilterDropdown from './tags/TagFilterDropdown.js';
 import React from 'react';
 
@@ -36,7 +37,8 @@ export default function Header() {
 
   const handleNewTree = async () => {
     try {
-      await newTree();
+      const label = window.prompt('Name your new tree', '') ?? '';
+      await createNewTree(label);
     } catch (error) {
       console.error('Failed to create new tree:', error);
     }
@@ -79,6 +81,7 @@ export default function Header() {
         </button>
         <div className="header-divider" />
         <PinnedDropdown />
+        <TreeDropdown />
         <TagFilterDropdown />
         <button id="newTreeBtn" className="btn-icon" type="button" title="new tree" onClick={handleNewTree}>
           <Icons.GitBranchPlus size={20} />

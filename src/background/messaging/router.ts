@@ -42,6 +42,8 @@ function isRequestMessage(x: unknown): x is RequestMessage {
 const outboundOnlyHandlers = defineHandlers({
   [MSG.TREE_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TREE_UPDATED>> =>
     err("TREE_UPDATED is outbound-only"),
+  [MSG.TREES_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TREES_UPDATED>> =>
+    err("TREES_UPDATED is outbound-only"),
   [MSG.TAGS_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TAGS_UPDATED>> =>
     err("TAGS_UPDATED is outbound-only"),
   [MSG.NOTIFY]: async (): Promise<ResponseMessage<typeof MSG.NOTIFY>> =>

@@ -1,13 +1,17 @@
-import { MSG, defineHandlers, ok, err, type TreeUpdatedInput } from '../../../shared/types/messages.js';
+import { MSG, defineHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot } from '../../../shared/types/messages.js';
 import { treeStorage } from '../../services/tree-storage.js';
-import { notifyTreeUpdate, getTabStates } from '../notifications.js';
+import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from '../notifications.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
-import type { Description, NodeId, TabId } from '../../../shared/types/ids.js';
-import type { NavigationTree } from '../../state/nav-tree.js';
+import type { Description, NodeId, TabId, Title, Url } from '../../../shared/types/ids.js';
+import { NavigationTree } from '../../state/nav-tree.js';
 import { ForEacher } from '../../../shared/types/foreach.js';
-import { updateNodeData } from '../../../shared/types/node.js';
+import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } from '../../../shared/types/node.js';
+import { normalizeFaviconUrl } from '../../utils/url-utils.js';
+import { settingsManager } from '../../services/settings.js';
+import { tempSelectionManager } from '../../services/temporary-selection.js';
+import type { TreeMeta } from '../../../shared/types/tree.js';
 
 
 function snapshot(tree: NavigationTree, description: string): void {
@@ -17,13 +21,28 @@ function snapshot(tree: NavigationTree, description: string): void {
   );
 }
 
-async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
+function collectTabIdsForNodes(nodeIds: ForEacher<NodeId>): TabId[] {
   const tabIds: TabId[] = [];
   nodeIds.forEach(nodeId => {
     tabManager.tabsByNode(nodeId).forEach(tabId => tabIds.push(tabId as TabId));
   });
-  if (tabIds.length === 0) return;
-  chrome.tabs.remove(tabIds).catch((e) => console.error('Failed to close tabs for nodes:', e));
+  return Array.from(new Set(tabIds));
+}
+
+async function closeTabs(tabIds: TabId[], context: string): Promise<boolean> {
+  if (tabIds.length === 0) return true;
+  try {
+    await chrome.tabs.remove(tabIds);
+    return true;
+  } catch (error) {
+    console.error(`Failed to close tabs for ${context}:`, error);
+    return false;
+  }
+}
+
+async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
+  const tabIds = collectTabIdsForNodes(nodeIds);
+  await closeTabs(tabIds, 'nodes');
 }
 
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
@@ -36,9 +55,99 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
   };
 }
 
+async function buildTreesSnapshot(): Promise<TreesSnapshot> {
+  return {
+    active: await treeStorage.getActiveMeta(),
+    archived: await treeStorage.getArchivedSummaries(),
+  };
+}
+
+function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
+  const rawUrl = tab.url ?? tab.pendingUrl ?? 'chrome://newtab/';
+  const url = rawUrl as Url;
+  return {
+    url,
+    title: (tab.title || rawUrl) as Title,
+    favicon: normalizeFaviconUrl(url, tab.favIconUrl),
+    pinned: false,
+    tags: [],
+  } as NodeData;
+}
+
+function registerTabForNode(nodeId: NodeId, tab: chrome.tabs.Tab): void {
+  if (tab.id === undefined) return;
+  const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
+  const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
+  tabManager.register(nodeId, tab.id as TabId, registerOptions);
+}
+
+function ensureRootForTab(tree: NavigationTree, tab: chrome.tabs.Tab): NavigationNode | null {
+  const root = tree.getRoot();
+  const data = buildNodeDataFromTab(tab);
+  if (!root) {
+    if (!data) return null;
+    const created = tree.navigate(data);
+    tree.setCurrent(created);
+    registerTabForNode(created.id, tab);
+    return created;
+  }
+  if (data && root.data.url === data.url) {
+    root.data = updateNodeMeta(root.data, data);
+  }
+  tree.setCurrent(root);
+  registerTabForNode(root.id, tab);
+  return root;
+}
+
+async function switchTree(nextTree: NavigationTree, nextMeta: TreeMeta, rootUrl?: Url | null): Promise<void> {
+  const tabsToClose = collectTabIdsForNodes(tabManager.openNodes());
+  tabManager.reset();
+  if (tabsToClose.length > 0) {
+    tabManager.ignoreTabs(tabsToClose);
+  }
+  tempSelectionManager.reset();
+  CommandManager.clearHistory();
+
+  await treeStorage.setActiveTree(nextTree, nextMeta);
+
+  let created: chrome.tabs.Tab;
+  try {
+    created = await chrome.tabs.create(
+      rootUrl ? { url: rootUrl, active: true } : { active: true },
+    );
+  } catch (error) {
+    console.error('Failed to open root tab for tree switch:', error);
+    created = await chrome.tabs.create({ active: true });
+  }
+  const rootNode = ensureRootForTab(nextTree, created);
+  if (rootNode) {
+    treeStorage.cacheTree(nextTree);
+  }
+
+  const view = {
+    fitToView: true,
+    mode: 'force' as const,
+    ...(rootNode ? { focusNodeId: rootNode.id } : {}),
+  };
+  await notifyTreeUpdate(nextTree, 'tree-switch', view);
+  await treeStorage.flushSaveNow();
+
+  const closed = await closeTabs(tabsToClose, 'tree switch');
+  if (closed) {
+    tabManager.clearIgnoredTabs(tabsToClose);
+  }
+
+  await notifyTreesUpdate(await buildTreesSnapshot());
+}
+
 export const treeHandlers = defineHandlers({
   async [MSG.GET_TREE]() {
     const snapshot = await buildTreeSnapshot();
+    return ok(snapshot);
+  },
+
+  async [MSG.GET_TREES]() {
+    const snapshot = await buildTreesSnapshot();
     return ok(snapshot);
   },
 
@@ -53,6 +162,45 @@ export const treeHandlers = defineHandlers({
     await closeTabsForNodes(tabManager.openNodes());
     await notifyTreeUpdate(tree, 'tree-reset');
     await treeStorage.flushSaveNow();
+    return ok();
+  },
+
+  async [MSG.NEW_TREE](message) {
+    const current = await treeStorage.getOrCreateTree();
+    if (current.getRoot()) {
+      snapshot(current, 'New tree');
+    }
+    await treeStorage.archiveActiveTree();
+    const meta = treeStorage.createMeta(message.label, 'user');
+    const nextTree = new NavigationTree(settingsManager.get().capacity);
+    await switchTree(nextTree, meta, null);
+    return ok();
+  },
+
+  async [MSG.OPEN_TREE](message) {
+    const current = await treeStorage.getOrCreateTree();
+    if (current.getRoot()) {
+      snapshot(current, 'Open tree');
+    }
+    await treeStorage.archiveActiveTree();
+    const record = await treeStorage.takeArchivedTree(message.treeId);
+    if (!record) return err('Tree not found');
+    const nextTree = NavigationTreeMapper.fromJSON(record.tree);
+    const meta: TreeMeta = {
+      id: record.id,
+      label: record.label,
+      labelSource: record.labelSource,
+      labelUpdatedAt: record.labelUpdatedAt,
+      createdAt: record.createdAt,
+    };
+    const rootUrl = record.rootUrl ?? nextTree.getRoot()?.data.url ?? null;
+    await switchTree(nextTree, meta, rootUrl);
+    return ok();
+  },
+
+  async [MSG.RENAME_TREE](message) {
+    await treeStorage.renameTree(message.treeId, message.label);
+    await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
   },
 

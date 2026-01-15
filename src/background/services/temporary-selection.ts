@@ -228,6 +228,14 @@ export class TemporaryTabSelectionManager {
     }
   }
 
+  reset(): void {
+    for (const sessionId of this.sessions.keys()) {
+      this.end(sessionId);
+    }
+    this.sessions.clear();
+    this.activeSessionId = null;
+  }
+
   handleTabActivated(tabId: TabId): void {
     if (!this.activeSessionId) return;
     const session = this.sessions.get(this.activeSessionId);

@@ -1,7 +1,7 @@
 import type { TabId, NodeId } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import type { TabSoundState, TabState } from '../../shared/types/tabs.js';
-import { msg, type TreeUpdateReason, type TreeViewIntent } from '../../shared/types/messages.js';
+import { msg, type TreeUpdateReason, type TreeViewIntent, type TreesSnapshot } from '../../shared/types/messages.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { NavigationTree } from '../state/nav-tree.js';
 
@@ -70,4 +70,9 @@ export async function notifyTreeUpdate(
     });
 
     chrome.runtime.sendMessage(payload);
+}
+
+export async function notifyTreesUpdate(snapshot: TreesSnapshot): Promise<void> {
+  const payload = msg.treesUpdated(snapshot);
+  chrome.runtime.sendMessage(payload);
 }

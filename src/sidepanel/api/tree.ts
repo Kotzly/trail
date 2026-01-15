@@ -5,6 +5,7 @@ import {
   type BeginTempSelectionInput,
   type TempSelectionSessionId,
   type TreeUpdatedInput,
+  type TreesSnapshot,
 } from "../../shared/types/messages.js";
 import { sendMessage } from "./background.js";
 
@@ -69,8 +70,32 @@ export async function getTreeState(): Promise<TreeUpdatedInput> {
     return res.data;
 }
 
+export async function getTrees(): Promise<TreesSnapshot> {
+    const res = await sendMessage(msg.getTrees());
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}
+
 export async function clearTree(): Promise<void> {
     const res = await sendMessage(msg.clearTree());
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}
+
+export async function createNewTree(label: string): Promise<void> {
+    const res = await sendMessage(msg.newTree({ label }));
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}
+
+export async function openTree(treeId: string): Promise<void> {
+    const res = await sendMessage(msg.openTree({ treeId }));
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}
+
+export async function renameTree(treeId: string, label: string): Promise<void> {
+    const res = await sendMessage(msg.renameTree({ treeId, label }));
     if (!res.success) throw new Error(res.error);
     return res.data;
 }

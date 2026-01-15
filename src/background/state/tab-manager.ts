@@ -10,6 +10,7 @@ export class TabManager {
     private cycleIndexByNode = new Map<NodeId, number>();
     private suppressTouchForTabId: TabId | null = null;
     private suppressActivateForTabId = new Map<TabId, string | undefined>();
+    private ignoredTabs = new Set<TabId>();
 
     constructor() {
         this.index = new TabIndex();
@@ -23,6 +24,7 @@ export class TabManager {
       this.cycleIndexByNode.clear();
       this.suppressTouchForTabId = null;
       this.suppressActivateForTabId.clear();
+      this.ignoredTabs.clear();
     }
 
     touch(tabId: TabId, _nodeId: NodeId, lastUsed?: number) {
@@ -102,6 +104,7 @@ export class TabManager {
       }
   
       this.lru.remove(tabId);
+      this.ignoredTabs.delete(tabId);
     }
 
     suppressNextTouch(tabId: TabId): void {
@@ -134,6 +137,26 @@ export class TabManager {
           this.suppressActivateForTabId.delete(tabId);
         }
       }
+    }
+
+    ignoreTabs(tabIds: Iterable<TabId>): void {
+      for (const tabId of tabIds) {
+        this.ignoredTabs.add(tabId);
+      }
+    }
+
+    clearIgnoredTabs(tabIds?: Iterable<TabId>): void {
+      if (!tabIds) {
+        this.ignoredTabs.clear();
+        return;
+      }
+      for (const tabId of tabIds) {
+        this.ignoredTabs.delete(tabId);
+      }
+    }
+
+    isIgnoredTab(tabId: TabId): boolean {
+      return this.ignoredTabs.has(tabId);
     }
 
     getTabsByRecency(nodeId: NodeId): TabId[] {

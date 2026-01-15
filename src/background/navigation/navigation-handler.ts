@@ -24,6 +24,7 @@ export async function handleNavigation(
 
   // Only track main frame navigations
   if (frameId !== 0) return;
+  if (tabManager.isIgnoredTab(tabId as TabId)) return;
 
   // Skip ignored URLs
   if (!shouldTrackUrl(url as Url)) return;

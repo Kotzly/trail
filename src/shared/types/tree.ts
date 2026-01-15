@@ -1,4 +1,4 @@
-import { NodeId } from "./ids.js";
+import { NodeId, Url, Title, FaviconUrl } from "./ids.js";
 import { NavigationNodeJSON, TreeNodeJSON } from "./node.js";
 
 export type NavigationOptions = {
@@ -15,3 +15,25 @@ export interface NavigationTreeJSON {
     capacity: number;
     nodeCount: number;
 }
+
+export type TreeLabelSource = 'user' | 'auto' | 'system';
+
+export type TreeMeta = {
+    id: string;
+    label: string;
+    labelSource: TreeLabelSource;
+    labelUpdatedAt: number;
+    createdAt: number;
+};
+
+export type TreeSummary = TreeMeta & {
+    nodeCount: number;
+    savedAt: number;
+    rootUrl?: Url;
+    rootTitle?: Title;
+    rootFavicon?: FaviconUrl;
+};
+
+export type TreeRecord = TreeSummary & {
+    tree: NavigationTreeJSON;
+};
