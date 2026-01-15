@@ -35,23 +35,6 @@ export async function notifyTreeUpdate(
   reason: TreeUpdateReason = 'sync',
   view?: TreeViewIntent,
 ): Promise<void> {
-  console.log('notifyTreeUpdate', reason);
-    // INSERT_YOUR_CODE
-    // Log the calling function name, if possible.
-    const err = new Error();
-    if (err.stack) {
-        const stackLines = err.stack.split('\n');
-        // stackLines[0] is 'Error', stackLines[1] is this function, stackLines[2] is the caller
-        if (stackLines.length > 2) {
-            const callerLine = stackLines[2]!.trim();
-            console.log('notifyTreeUpdate called by:', callerLine);
-        }
-        else {
-            console.log('notifyTreeUpdate called by:', 'unknown');
-        }
-    } else {
-      console.log("err not stack")
-    }
     const openNodes = Array.from(tabManager.openNodes());
     const tabStates = await getTabStates();
     

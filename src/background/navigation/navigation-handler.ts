@@ -8,7 +8,6 @@ import {
   normalizeFaviconUrl,
   shouldTrackUrl,
   isBlankUrl,
-  isPlaceholderUrl,
 } from '../utils/url-utils.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { notifyUi } from '../messaging/ui-notifications.js';
@@ -88,7 +87,8 @@ export async function handleNavigation(
       const node = tree.findNodeById(existingNodeId);
       if (node && node.data.url !== url) {
         // Different URL
-        if (isPlaceholderUrl(node.data.url as Url)) {
+        const nodeUrl = node.data.url as Url;
+        if (!nodeUrl || isBlankUrl(nodeUrl)) {
           node.data = {
             ...node.data,
             url: data.url,

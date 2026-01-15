@@ -63,14 +63,17 @@ async function buildTreesSnapshot(): Promise<TreesSnapshot> {
 }
 
 function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
-  let rawUrl = tab.url ?? tab.pendingUrl ?? 'about:blank';
-  if (isPlaceholderUrl(rawUrl as Url) && tab.pendingUrl && !isPlaceholderUrl(tab.pendingUrl as Url)) {
-    rawUrl = tab.pendingUrl;
+  const urlCandidate = tab.url ?? null;
+  const pendingCandidate = tab.pendingUrl ?? null;
+  let rawUrl = urlCandidate ?? pendingCandidate ?? 'about:blank';
+  if (isPlaceholderUrl(rawUrl as Url) && pendingCandidate && !isPlaceholderUrl(pendingCandidate as Url)) {
+    rawUrl = pendingCandidate;
   }
   const url = rawUrl as Url;
+  const title = tab.title || (isPlaceholderUrl(url) ? 'New Tab' : rawUrl);
   return {
     url,
-    title: (tab.title || (isPlaceholderUrl(url) ? 'New Tab' : rawUrl)) as Title,
+    title: title as Title,
     favicon: normalizeFaviconUrl(url, tab.favIconUrl),
     pinned: false,
     tags: [],
@@ -87,17 +90,27 @@ function registerTabForNode(nodeId: NodeId, tab: chrome.tabs.Tab): void {
 function ensureRootForTab(tree: NavigationTree, tab: chrome.tabs.Tab): NavigationNode | null {
   const root = tree.getRoot();
   const data = buildNodeDataFromTab(tab);
+  // No root yet: build it from the newly created tab and mark it current.
   if (!root) {
-    if (!data) return null;
+    // If we can't derive data from the tab, we can't create a root.
+    if (!data) {
+      return null;
+    }
+    // Navigate creates the first node when root is missing.
     const created = tree.navigate(data);
+    // Keep tree current aligned with the root tab.
     tree.setCurrent(created);
+    // Register the tab so we can track open tab <-> node mapping.
     registerTabForNode(created.id, tab);
     return created;
   }
+  // If the existing root matches this tab, refresh its metadata (title/favicon).
   if (data && root.data.url === data.url) {
     root.data = updateNodeMeta(root.data, data);
   }
+  // Ensure current node points at root after tree switch.
   tree.setCurrent(root);
+  // Make sure the root tab is registered for tab tracking.
   registerTabForNode(root.id, tab);
   return root;
 }
@@ -105,7 +118,7 @@ function ensureRootForTab(tree: NavigationTree, tab: chrome.tabs.Tab): Navigatio
 async function switchTree(nextTree: NavigationTree, nextMeta: TreeMeta, rootUrl?: Url | null): Promise<void> {
   const tabsToClose = collectTabIdsForNodes(tabManager.openNodes());
   tabManager.reset();
-  if (tabsToClose.length > 0) {
+  if (tabsToClose) {
     tabManager.ignoreTabs(tabsToClose);
   }
   tempSelectionManager.reset();
@@ -115,12 +128,10 @@ async function switchTree(nextTree: NavigationTree, nextMeta: TreeMeta, rootUrl?
 
   let created: chrome.tabs.Tab;
   try {
-    created = await chrome.tabs.create(
-      rootUrl ? { url: rootUrl, active: true } : { active: true },
-    );
+    created = await chrome.tabs.create(rootUrl ? { url: rootUrl } : {});
   } catch (error) {
     console.error('Failed to open root tab for tree switch:', error);
-    created = await chrome.tabs.create({ active: true });
+    created = await chrome.tabs.create({});
   }
   const rootNode = ensureRootForTab(nextTree, created);
   if (rootNode) {
@@ -174,7 +185,7 @@ export const treeHandlers = defineHandlers({
       snapshot(current, 'New tree');
     }
     await treeStorage.archiveActiveTree();
-    const meta = treeStorage.createMeta(message.label, 'user');
+    const meta = treeStorage.createMeta(message.label);
     const nextTree = new NavigationTree(settingsManager.get().capacity);
     await switchTree(nextTree, meta, null);
     return ok();

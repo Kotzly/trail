@@ -9,6 +9,7 @@ import PinnedDropdown from './PinnedDropdown.js';
 import TreeDropdown from './TreeDropdown.js';
 import TagFilterDropdown from './tags/TagFilterDropdown.js';
 import { createPortal } from 'react-dom';
+import React from 'react';
 
 type FloatingControlsProps = {
   searchInputRef: RefObject<HTMLInputElement>;
@@ -55,6 +56,14 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       console.error('Failed to create new tree:', error);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDebugNewTab = async () => {
+    try {
+      await chrome.tabs.create({});
+    } catch (error) {
+      console.error('Failed to create debug tab:', error);
     }
   };
 
@@ -107,6 +116,15 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
             }}
           >
             <Icons.GitBranchPlus size={18} />
+          </button>
+          <button
+            id="debugNewTabBtn"
+            className="btn-icon orb-button"
+            type="button"
+            title="debug: new tab"
+            onClick={handleDebugNewTab}
+          >
+            <Icons.Plus size={18} />
           </button>
         </div>
       </div>
