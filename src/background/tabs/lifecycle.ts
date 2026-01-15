@@ -8,7 +8,7 @@ import { notifyUi } from '../messaging/ui-notifications.js';
 
 import { syncTabTitleFavicon, syncTabAudioState } from './tab-sync.js';
 import { NodeData } from '../../shared/types/node.js';
-import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
+import { normalizeFaviconUrl, shouldTrackUrl, isBlankUrl } from '../utils/url-utils.js';
 
 
 async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
@@ -16,7 +16,9 @@ async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
   if (tabManager.isIgnoredTab(tab.id as TabId)) return;
   const nodeId = tabManager.nodeByTab(tab.id as TabId);
   if (nodeId) return;
-  if (!tab.url || !shouldTrackUrl(tab.url as Url)) return;
+  if (!tab.url) return;
+  if (isBlankUrl(tab.url as Url)) return;
+  if (!shouldTrackUrl(tab.url as Url)) return;
 
   const tree = await treeStorage.getOrCreateTree();
   const existing = tree.findByUrl(tab.url as Url);
@@ -62,7 +64,9 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
     if (nodeId === undefined) {
         try {
             const tab = await chrome.tabs.get(tabId);
-            if (!tab.url || !shouldTrackUrl(tab.url as Url)) return;
+            if (!tab.url) return;
+            if (isBlankUrl(tab.url as Url)) return;
+            if (!shouldTrackUrl(tab.url as Url)) return;
 
             const existing = tree.findByUrl(tab.url as Url);
             if (existing) {

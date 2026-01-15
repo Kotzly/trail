@@ -8,7 +8,7 @@ import type { Description, NodeId, TabId, Title, Url } from '../../../shared/typ
 import { NavigationTree } from '../../state/nav-tree.js';
 import { ForEacher } from '../../../shared/types/foreach.js';
 import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } from '../../../shared/types/node.js';
-import { normalizeFaviconUrl } from '../../utils/url-utils.js';
+import { normalizeFaviconUrl, isPlaceholderUrl } from '../../utils/url-utils.js';
 import { settingsManager } from '../../services/settings.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
@@ -63,11 +63,14 @@ async function buildTreesSnapshot(): Promise<TreesSnapshot> {
 }
 
 function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
-  const rawUrl = tab.url ?? tab.pendingUrl ?? 'chrome://newtab/';
+  let rawUrl = tab.url ?? tab.pendingUrl ?? 'about:blank';
+  if (isPlaceholderUrl(rawUrl as Url) && tab.pendingUrl && !isPlaceholderUrl(tab.pendingUrl as Url)) {
+    rawUrl = tab.pendingUrl;
+  }
   const url = rawUrl as Url;
   return {
     url,
-    title: (tab.title || rawUrl) as Title,
+    title: (tab.title || (isPlaceholderUrl(url) ? 'New Tab' : rawUrl)) as Title,
     favicon: normalizeFaviconUrl(url, tab.favIconUrl),
     pinned: false,
     tags: [],

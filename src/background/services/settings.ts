@@ -35,9 +35,14 @@ function mergeDefaults(raw: unknown): Settings {
     }
     const partial = raw as Partial<Settings>;
     const layout = partial.layout ?? DEFAULT_LAYOUT_SETTINGS;
+    const rawCapacity =
+        typeof partial.capacity === 'number' ? partial.capacity : defaultSettings.capacity;
+    const capacity =
+        Number.isFinite(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
     return {
         ...defaultSettings,
         ...partial,
+        capacity,
         layout: {
             mode: layout.mode ?? DEFAULT_LAYOUT_SETTINGS.mode,
             tree: {

@@ -4,7 +4,12 @@ import { NodeMetaPatch, updateNodeMeta, type NodeData } from '../../shared/types
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { redirectDetector } from './redirect-detection.js';
-import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
+import {
+  normalizeFaviconUrl,
+  shouldTrackUrl,
+  isBlankUrl,
+  isPlaceholderUrl,
+} from '../utils/url-utils.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { notifyUi } from '../messaging/ui-notifications.js';
 import { enforceTabLimit } from '../tabs/tab-limit.js';
@@ -26,9 +31,6 @@ export async function handleNavigation(
   if (frameId !== 0) return;
   if (tabManager.isIgnoredTab(tabId as TabId)) return;
 
-  // Skip ignored URLs
-  if (!shouldTrackUrl(url as Url)) return;
-
   // Ensure tab still exists
   try {
     await chrome.tabs.get(tabId);
@@ -36,11 +38,16 @@ export async function handleNavigation(
     return; // Tab no longer exists
   }
   
-  // Skip blank/undefined URLs - just track for redirect detection, don't create nodes
-  if (!url || url === 'about:blank') {
-    redirectDetector.recordTabUrl(tabId as TabId, { url: (url || 'about:blank') as Url, timestamp: now() } as UrlWithTimestamp);
+  // Skip blank/placeholder URLs - just track for redirect detection, don't create nodes
+  if (!url || isBlankUrl(url as Url)) {
+    redirectDetector.recordTabUrl(tabId as TabId, {
+      url: (url || 'about:blank') as Url,
+      timestamp: now(),
+    } as UrlWithTimestamp);
     return;
   }
+  // Skip ignored URLs
+  if (!shouldTrackUrl(url as Url)) return;
 
   try {
     const tab = await chrome.tabs.get(tabId);
@@ -81,7 +88,22 @@ export async function handleNavigation(
       const node = tree.findNodeById(existingNodeId);
       if (node && node.data.url !== url) {
         // Different URL
-        
+        if (isPlaceholderUrl(node.data.url as Url)) {
+          node.data = {
+            ...node.data,
+            url: data.url,
+            title: data.title,
+            favicon: data.favicon,
+          } as NodeData;
+          didMutate = true;
+          tabManager.register(node.id, tabId as TabId, registerOptions(isActiveTab));
+          if (!isActiveTab && prevCurrentId !== null) {
+            tree.setCurrentById(prevCurrentId);
+          } else {
+            tree.setCurrentById(node.id);
+            didUpdateCurrent = true;
+          }
+        } else {
           // Normal behavior: navigate from current node (creates child)
           tree.setCurrentById(existingNodeId);
           didMutate = true;
@@ -95,6 +117,7 @@ export async function handleNavigation(
           } else {
             didUpdateCurrent = true;
           }
+        }
       } else if (node) {
         // Same URL - only update current if tab is active
         const updated = updateNodeMeta(node.data, metaPatch);
