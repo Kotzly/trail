@@ -49,24 +49,27 @@ function average(values: number[]): number {
 
 function chooseLayout(root: NavigationNode | null, currentMode: LayoutMode) {
   if (!root) return null;
-  const rootChildren = root.getChildren?.().length ?? 0;
+  let maxChildren = 0;
+  root.forEach((node) => {
+    maxChildren = Math.max(maxChildren, node.getChildren?.()?.length ?? 0);
+  });
   const maxDepth = getMaxDepth(root);
   const branchDepths = getBranchDepths(root);
   const avgDepth = average(branchDepths);
 
-  const treeFit = rootChildren > 0 && rootChildren < TREE_MAX_CHILDREN && maxDepth >= TREE_MIN_DEPTH;
+  const treeFit = maxChildren > 0 && maxChildren < TREE_MAX_CHILDREN && maxDepth >= TREE_MIN_DEPTH;
   const treeStay =
-    rootChildren > 0 && rootChildren < TREE_STAY_MAX_CHILDREN && maxDepth >= TREE_STAY_MIN_DEPTH;
+    maxChildren > 0 && maxChildren < TREE_STAY_MAX_CHILDREN && maxDepth >= TREE_STAY_MIN_DEPTH;
   const radialFit =
-    rootChildren > RADIAL_MIN_CHILDREN && maxDepth <= RADIAL_MAX_DEPTH && avgDepth <= RADIAL_MAX_AVG_DEPTH;
+    maxChildren > RADIAL_MIN_CHILDREN && maxDepth <= RADIAL_MAX_DEPTH && avgDepth <= RADIAL_MAX_AVG_DEPTH;
   const radialStay =
-    rootChildren > RADIAL_STAY_MIN_CHILDREN &&
+    maxChildren > RADIAL_STAY_MIN_CHILDREN &&
     maxDepth <= RADIAL_STAY_MAX_DEPTH &&
     avgDepth <= RADIAL_STAY_MAX_AVG_DEPTH;
   const mindmapFit =
-    rootChildren <= MINDMAP_MAX_CHILDREN && maxDepth <= MINDMAP_MAX_DEPTH && avgDepth <= MINDMAP_MAX_AVG_DEPTH;
+    maxChildren <= MINDMAP_MAX_CHILDREN && maxDepth <= MINDMAP_MAX_DEPTH && avgDepth <= MINDMAP_MAX_AVG_DEPTH;
   const mindmapStay =
-    rootChildren <= MINDMAP_STAY_MAX_CHILDREN &&
+    maxChildren <= MINDMAP_STAY_MAX_CHILDREN &&
     maxDepth <= MINDMAP_STAY_MAX_DEPTH &&
     avgDepth <= MINDMAP_STAY_MAX_AVG_DEPTH;
 
@@ -85,7 +88,7 @@ function chooseLayout(root: NavigationNode | null, currentMode: LayoutMode) {
                 ? 'mindmap'
                 : null;
 
-  return { candidate, rootChildren, maxDepth, avgDepth };
+  return { candidate, maxChildren, maxDepth, avgDepth };
 }
 
 async function applyLayoutMode(settings: Settings, mode: LayoutMode, setSettings: (next: Settings) => void) {
