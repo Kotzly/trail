@@ -25,6 +25,9 @@ pnpm-debug.log*
 # Environment variables
 .env
 .env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
 
 # Build output
 dist/

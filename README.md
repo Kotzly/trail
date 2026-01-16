@@ -1,8 +1,68 @@
 # Trail
 
-Trail is a Chrome/Brave (Chromium) extension that turns your browsing into a navigable tree and renders it in the browser side panel. It is a Manifest V3 extension with a background service worker, a content script for title updates, and a React-based side panel UI. All data lives in the browser profile (no backend).
+Trail is now a monorepo that ships both the existing Chrome/Brave extension and a full SaaS service (Go backend + React frontend) for user accounts, subscriptions, and billing.
 
-This README is a description of what exists in the codebase today (not a roadmap).
+Monorepo layout:
+- `extension/` — existing browser extension (unchanged)
+- `backend/` — Go 1.22+ API (Echo + PostgreSQL)
+- `frontend/` — React + Vite web app
+- `api/` — OpenAPI source of truth
+
+## Quickstart (local)
+1. `cp backend/.env.example backend/.env`
+2. `cp frontend/.env.example frontend/.env`
+3. `make up` (or `docker compose up --build`)
+4. `make migrate` (or `docker compose run --rm migrate up`)
+5. Open `http://localhost:5173`
+
+## Common commands
+- `make generate` — regenerate backend OpenAPI code + frontend types
+- `make test` — backend tests
+- `make lint` — backend lint (golangci-lint)
+- `make run` — run backend locally
+
+## API overview
+Base URL: `http://localhost:8080/v1`
+
+Core endpoints:
+- Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
+- User: `GET /me`
+- Plans: `GET /plans`, `POST /admin/plans`
+- Subscription: `GET /subscription`, `GET /subscriptions/me`, `POST /subscriptions/cancel`
+- Billing: `POST /billing/checkout`, `POST /billing/portal`, `GET /billing`
+- Webhooks: `POST /webhooks/{provider}`
+- Health: `GET /healthz`, `GET /readyz`, `GET /metrics`
+
+Auth model:
+- Access token is JWT (Authorization: Bearer)
+- Refresh token is httpOnly cookie (`refresh_token`)
+
+## OpenAPI changes
+The OpenAPI spec in `api/openapi.yml` is the source of truth. This repo adds the following minimal extensions to support SaaS flows:
+- Health endpoints: `/healthz`, `/readyz`
+- Auth: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`
+- User profile: `/me`
+- Billing/Subscription aliases: `/billing/checkout`, `/subscriptions/me`, `/subscriptions/cancel`
+- Webhooks: `/webhooks/{provider}`
+- Admin: `/admin/plans`
+- New schemas: `RegisterInput`, `LoginInput`, `AuthResponse`, `RefreshResponse`, `PlanUpsertInput`, `HealthStatus`, `WebhookEventInput`
+
+## Backend architecture
+- `cmd/api` — entrypoint + graceful shutdown
+- `internal/http` — handlers, middleware, OpenAPI validator
+- `internal/usecase` — business logic
+- `internal/repository` — PostgreSQL data access (SQL in `internal/db/sql`)
+- `internal/billing` — provider interface + Stripe stub
+- `internal/observability` — Zerolog + Prometheus
+- `migrations/` — SQL migrations + seed data
+
+## Frontend
+- React + Vite + Tailwind + Framer Motion
+- React Query for data fetching
+- Auth uses access token in memory + refresh cookie
+
+## Extension (existing)
+The section below describes the browser extension as it exists in `extension/`. It remains unchanged.
 
 ## What Trail does
 
