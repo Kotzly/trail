@@ -36,6 +36,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
 
@@ -54,13 +56,19 @@ services:
 
   migrate:
     image: migrate/migrate:v4.17.0
-    profiles: ["tools"]
     volumes:
       - ./backend/migrations:/migrations
     depends_on:
       postgres:
         condition: service_healthy
-    entrypoint: ["migrate", "-path", "/migrations", "-database", "postgres://trail:trail@postgres:5432/trail?sslmode=disable"]
+    entrypoint:
+      - migrate
+      - -path
+      - /migrations
+      - -database
+      - postgres://trail:trail@postgres:5432/trail?sslmode=disable
+    command: ["up"]
+    restart: "no"
 
 volumes:
   pgdata:

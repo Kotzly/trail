@@ -11,15 +11,15 @@ Monorepo layout:
 ## Quickstart (local)
 1. `cp backend/.env.example backend/.env`
 2. `cp frontend/.env.example frontend/.env`
-3. `make up` (or `docker compose up --build`)
-4. `make migrate` (or `docker compose run --rm migrate up`)
-5. Open `http://localhost:5173`
+3. `make up` (or `docker compose up --build`) — migrations run automatically before the API starts
+4. Open `http://localhost:5173`
 
 ## Common commands
 - `make generate` — regenerate backend OpenAPI code + frontend types
 - `make test` — backend tests
 - `make lint` — backend lint (golangci-lint)
 - `make run` — run backend locally
+- `make migrate` — run migrations manually if needed
 
 ## API overview
 Base URL: `http://localhost:8080/v1`

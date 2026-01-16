@@ -24,4 +24,4 @@ up:
 	docker compose up --build
 
 migrate:
-	docker compose --profile tools run --rm migrate up
+	docker compose run --rm migrate
