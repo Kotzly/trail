@@ -7,9 +7,18 @@ import type {
   Settings,
   TreeLayoutSettings,
 } from '../../../shared/types/settings.js';
-import type { ChangePlanInput, PlanInterval } from '../../../shared/types/account.js';
+import type { PlanInterval } from '../../../shared/types/account.js';
+import { BACKEND_CONFIG } from '../../../shared/config/backend.js';
 import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
-import { changePlan, getAccountSnapshot, login, logout, normalizeAccountError } from '../../api/account.js';
+import {
+  checkAuthPortal,
+  createBillingPortalLink,
+  getAccountSnapshot,
+  logout,
+  normalizeAccountError,
+  startAuthPortal,
+  startCheckout,
+} from '../../api/account.js';
 import { saveSettings } from '../../api/settings.js';
 import { resetNodeLayouts } from '../../api/tree.js';
 import { THEME_IDS } from '../shared/themes.js';
@@ -72,6 +81,14 @@ function applyTheme(theme: string): void {
 
 const clamp = (value: number, min: number, max: number): number =>
   Number.isFinite(value) ? Math.min(Math.max(value, min), max) : min;
+
+const sleep = (ms: number) => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+
+const resolveDeadline = (expiresAt?: string | null): number => {
+  if (!expiresAt) return Date.now() + 5 * 60 * 1000;
+  const parsed = Date.parse(expiresAt);
+  return Number.isNaN(parsed) ? Date.now() + 5 * 60 * 1000 : parsed;
+};
 
 const DEFAULT_ADAPTIVE_LAYOUTS: Settings['adaptiveModeLayouts'] = {
   mindmap: true,
@@ -235,14 +252,15 @@ export default function SettingsPopover() {
   const metaKey = useStore((state) => state.metaKey);
 
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('preferences');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
-  const [planBusy, setPlanBusy] = useState(false);
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const [subscriptionNotice, setSubscriptionNotice] = useState<string | null>(null);
   const [interval, setInterval] = useState<PlanInterval>('month');
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const pendingSaveRef = useRef<Settings | null>(null);
+  const authFlowRef = useRef(0);
 
   const themeIds = useMemo(() => [THEME_IDS.LIGHT, THEME_IDS.DARK, THEME_IDS.SYSTEM], []);
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
@@ -294,11 +312,16 @@ export default function SettingsPopover() {
   }, [setSettingsOpen, settingsOpen]);
 
   useEffect(() => {
-    if (!settingsOpen) return;
-    setEmail('');
-    setPassword('');
+    if (!settingsOpen) {
+      authFlowRef.current += 1;
+      setAuthBusy(false);
+      setPortalBusy(false);
+      return;
+    }
+    setAuthNotice(null);
+    setSubscriptionNotice(null);
     setAuthBusy(false);
-    setPlanBusy(false);
+    setPortalBusy(false);
     setActiveSection('preferences');
   }, [settingsOpen]);
 
@@ -418,13 +441,64 @@ export default function SettingsPopover() {
     requestGraphReset();
   };
 
-  const handleLogin = async () => {
-    if (!email.trim()) return;
-    setAuthBusy(true);
+  const syncAccountSnapshot = useCallback(async () => {
     setAccount({ status: 'loading', error: null });
+    const snapshot = await getAccountSnapshot();
+    setAccountSnapshot(snapshot);
+  }, [setAccount, setAccountSnapshot]);
+
+  const openExternalLink = async (url: string) => {
     try {
-      const snapshot = await login({ email: email.trim(), password: password.trim() });
-      setAccountSnapshot(snapshot);
+      await chrome.tabs.create({ url, active: true });
+    } catch (error) {
+      console.error('Failed to open external link:', error);
+      if (typeof window !== 'undefined') {
+        window.open(url, '_blank');
+      }
+    }
+  };
+
+  const handleSignIn = async () => {
+    if (authBusy) return;
+    setAuthBusy(true);
+    setAuthNotice(null);
+    setAccount({ status: 'loading', error: null });
+    authFlowRef.current += 1;
+    const flowId = authFlowRef.current;
+    try {
+      const portalSession = await startAuthPortal({
+        source: 'extension',
+        locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
+        returnUrl: BACKEND_CONFIG.portalUrl,
+      });
+      await openExternalLink(portalSession.url);
+      setAuthNotice('Complete sign-in in the opened tab. Waiting for confirmation…');
+      const deadline = resolveDeadline(portalSession.expiresAt);
+      const pollInterval = portalSession.pollIntervalMs ?? 3000;
+      while (authFlowRef.current === flowId) {
+        if (Date.now() > deadline) {
+          setAuthNotice('Sign-in link expired. Please try again.');
+          setAccount({ status: 'ready', error: null });
+          break;
+        }
+        await sleep(pollInterval);
+        const status = await checkAuthPortal(portalSession.id);
+        if (authFlowRef.current !== flowId) return;
+        if (status.status === 'approved') {
+          if (status.snapshot) {
+            setAccountSnapshot(status.snapshot);
+          } else {
+            await syncAccountSnapshot();
+          }
+          setAuthNotice(null);
+          return;
+        }
+        if (status.status === 'expired') {
+          setAuthNotice('Sign-in link expired. Please try again.');
+          setAccount({ status: 'ready', error: null });
+          return;
+        }
+      }
     } catch (error) {
       const normalized = normalizeAccountError(error);
       setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
@@ -435,16 +509,12 @@ export default function SettingsPopover() {
 
   const handleLogout = async () => {
     setAuthBusy(true);
+    setAuthNotice(null);
     setAccount({ status: 'loading', error: null });
+    authFlowRef.current += 1;
     try {
       await logout();
-      setAccountSnapshot({
-        session: { status: 'guest' },
-        user: null,
-        subscription: null,
-        billing: { state: 'none' },
-        plans: account.plans ?? [],
-      });
+      await syncAccountSnapshot();
     } catch (error) {
       const normalized = normalizeAccountError(error);
       setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
@@ -453,18 +523,50 @@ export default function SettingsPopover() {
     }
   };
 
-  const handlePlanChange = async (input: ChangePlanInput) => {
-    setPlanBusy(true);
+  const handleCheckout = async (planId: string) => {
+    if (!isAuthenticated) return;
+    setPortalBusy(true);
+    setSubscriptionNotice(null);
     setAccount({ status: 'loading', error: null });
     try {
-      await changePlan(input);
-      const snapshot = await getAccountSnapshot();
-      setAccountSnapshot(snapshot);
+      const portal = await startCheckout({ planId, interval });
+      await openExternalLink(portal.url);
+      setSubscriptionNotice('Checkout opened. Complete payment, then refresh to sync.');
     } catch (error) {
       const normalized = normalizeAccountError(error);
       setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
     } finally {
-      setPlanBusy(false);
+      setPortalBusy(false);
+    }
+  };
+
+  const handleBillingPortal = async () => {
+    if (!isAuthenticated) return;
+    setPortalBusy(true);
+    setSubscriptionNotice(null);
+    setAccount({ status: 'loading', error: null });
+    try {
+      const portal = await createBillingPortalLink();
+      await openExternalLink(portal.url);
+      setSubscriptionNotice('Billing portal opened. Return here and refresh to sync changes.');
+    } catch (error) {
+      const normalized = normalizeAccountError(error);
+      setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
+    } finally {
+      setPortalBusy(false);
+    }
+  };
+
+  const handleRefreshAccount = async () => {
+    setPortalBusy(true);
+    setSubscriptionNotice(null);
+    try {
+      await syncAccountSnapshot();
+    } catch (error) {
+      const normalized = normalizeAccountError(error);
+      setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
+    } finally {
+      setPortalBusy(false);
     }
   };
 
@@ -496,23 +598,18 @@ export default function SettingsPopover() {
         <div className="settings-card">
           <div className="profile-row">
             <div className="profile-avatar">
-              {account.user.displayName?.slice(0, 1).toUpperCase() ?? 'U'}
+              {account.user.avatarUrl ? (
+                <img
+                  src={account.user.avatarUrl}
+                  alt={`${account.user.displayName ?? account.user.email} avatar`}
+                />
+              ) : (
+                <span>{account.user.displayName?.slice(0, 1).toUpperCase() ?? 'U'}</span>
+              )}
             </div>
             <div className="profile-meta">
-              <div className="profile-name">{account.user.displayName}</div>
-              <div className="profile-email">{account.user.email}</div>
-              <div className="profile-muted">Member since {formatDate(account.user.createdAt)}</div>
+              <div className="profile-name">{account.user.email}</div>
             </div>
-          </div>
-          <div className="settings-divider" />
-          <div className="settings-row">
-            <div>
-              <div className="settings-card-title">Current plan</div>
-              <div className="settings-card-hint">{currentPlan?.name ?? 'Free'}</div>
-            </div>
-            <span className="status-pill" data-tone="good">
-              {account.subscription?.status ?? 'active'}
-            </span>
           </div>
           <button className="settings-primary-btn" type="button" onClick={handleLogout} disabled={authBusy}>
             Sign out
@@ -521,39 +618,16 @@ export default function SettingsPopover() {
       ) : (
         <div className="settings-card">
           <div className="settings-card-title">Sign in</div>
-          <div className="settings-card-hint">Sync your trees, unlock premium layouts, and manage plans.</div>
-          <label className="settings-input-label" htmlFor="account-email">
-            Email
-          </label>
-          <input
-            id="account-email"
-            className="settings-input"
-            type="email"
-            placeholder="you@domain.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-          />
-          <label className="settings-input-label" htmlFor="account-password">
-            Password
-          </label>
-          <input
-            id="account-password"
-            className="settings-input"
-            type="password"
-            placeholder="Optional"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-          />
+          <div className="settings-card-hint">Open the Trail website to connect your account.</div>
+          {authNotice ? <div className="settings-card-hint">{authNotice}</div> : null}
           <div className="settings-row">
             <button
               className="settings-primary-btn"
               type="button"
-              onClick={() => void handleLogin()}
-              disabled={authBusy || !email.trim()}
+              onClick={() => void handleSignIn()}
+              disabled={authBusy}
             >
-              {authBusy ? 'Signing in…' : 'Continue'}
+              {authBusy ? 'Opening…' : 'Sign in'}
             </button>
             <button className="settings-secondary-btn" type="button" onClick={() => setSettingsOpen(false)}>
               Later
@@ -607,21 +681,25 @@ export default function SettingsPopover() {
             </div>
           </div>
         </div>
-        {account.subscription && account.subscription.planId !== 'free' ? (
+        <div className="settings-row">
           <button
             className="settings-secondary-btn"
             type="button"
-            onClick={() =>
-              void handlePlanChange({
-                planId: account.subscription?.planId ?? 'free',
-                action: 'cancel',
-              })
-            }
-            disabled={!isAuthenticated || planBusy || account.subscription?.cancelAtPeriodEnd}
+            onClick={() => void handleBillingPortal()}
+            disabled={!isAuthenticated || portalBusy}
           >
-            {account.subscription.cancelAtPeriodEnd ? 'Cancellation scheduled' : 'Cancel at period end'}
+            {portalBusy ? 'Opening…' : 'Manage billing'}
           </button>
-        ) : null}
+          <button
+            className="settings-secondary-btn"
+            type="button"
+            onClick={() => void handleRefreshAccount()}
+            disabled={portalBusy}
+          >
+            {portalBusy ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+        {subscriptionNotice ? <div className="settings-card-hint">{subscriptionNotice}</div> : null}
       </div>
 
       <div className="settings-card">
@@ -673,12 +751,10 @@ export default function SettingsPopover() {
               <button
                 className={`plan-card-btn ${isCurrent ? 'active' : ''}`}
                 type="button"
-                disabled={!isAuthenticated || isCurrent || planBusy}
-                onClick={() =>
-                  void handlePlanChange({ planId: plan.id, interval, action: 'switch' })
-                }
+                disabled={!isAuthenticated || isCurrent || portalBusy}
+                onClick={() => void handleCheckout(plan.id)}
               >
-                {isCurrent ? 'Current plan' : planBusy ? 'Updating…' : 'Choose plan'}
+                {isCurrent ? 'Current plan' : portalBusy ? 'Opening…' : 'Choose plan'}
               </button>
             </div>
           );

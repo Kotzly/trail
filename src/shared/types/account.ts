@@ -89,16 +89,34 @@ export type AccountSnapshot = {
   plans: Plan[];
 };
 
-export type LoginInput = {
-  email: string;
-  password?: string;
-  remember?: boolean;
+export type AuthPortalRequest = {
+  source?: string;
+  locale?: string;
+  returnUrl?: string;
 };
 
-export type ChangePlanInput = {
+export type AuthPortalSession = {
+  id: string;
+  url: string;
+  expiresAt: string;
+  pollIntervalMs?: number;
+};
+
+export type AuthPortalStatus = {
+  status: 'pending' | 'approved' | 'expired';
+  snapshot?: AccountSnapshot | null;
+};
+
+export type PortalLink = {
+  url: string;
+  expiresAt?: string | null;
+};
+
+export type CheckoutInput = {
   planId: string;
-  interval?: PlanInterval;
-  action?: 'upgrade' | 'downgrade' | 'switch' | 'cancel';
+  interval: PlanInterval;
+  successUrl?: string;
+  cancelUrl?: string;
 };
 
 export type AccountErrorCode = 'network' | 'auth' | 'payment' | 'validation' | 'unknown';

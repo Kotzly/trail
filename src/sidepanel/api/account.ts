@@ -1,28 +1,37 @@
 import type {
   AccountError,
   AccountSnapshot,
+  AuthPortalRequest,
+  AuthPortalSession,
+  AuthPortalStatus,
   BillingStatus,
-  ChangePlanInput,
-  LoginInput,
+  CheckoutInput,
   Plan,
+  PortalLink,
   Subscription,
   User,
 } from '../../shared/types/account.js';
 import { BACKEND_CONFIG } from '../../shared/config/backend.js';
 import { createMockAccountClient } from './account/mock.js';
+import { createRemoteAccountClient } from './account/remote.js';
 
 export type AccountClient = {
-  login: (input: LoginInput) => Promise<AccountSnapshot>;
+  startAuthPortal: (input?: AuthPortalRequest) => Promise<AuthPortalSession>;
+  checkAuthPortal: (sessionId: string) => Promise<AuthPortalStatus>;
   logout: () => Promise<void>;
   getProfile: () => Promise<User | null>;
   getSubscription: () => Promise<Subscription | null>;
   listPlans: () => Promise<Plan[]>;
-  changePlan: (input: ChangePlanInput) => Promise<Subscription>;
   getBillingStatus: () => Promise<BillingStatus | null>;
   getSnapshot: () => Promise<AccountSnapshot>;
+  startCheckout: (input: CheckoutInput) => Promise<PortalLink>;
+  createBillingPortalLink: () => Promise<PortalLink>;
 };
 
-let accountClient: AccountClient = createMockAccountClient();
+const defaultClient =
+  BACKEND_CONFIG.env === 'local' ? createMockAccountClient() : createRemoteAccountClient();
+
+let accountClient: AccountClient = defaultClient;
 
 export function setAccountClient(client: AccountClient): void {
   accountClient = client;
@@ -36,8 +45,12 @@ export async function getAccountSnapshot(): Promise<AccountSnapshot> {
   return accountClient.getSnapshot();
 }
 
-export async function login(input: LoginInput): Promise<AccountSnapshot> {
-  return accountClient.login(input);
+export async function startAuthPortal(input?: AuthPortalRequest): Promise<AuthPortalSession> {
+  return accountClient.startAuthPortal(input);
+}
+
+export async function checkAuthPortal(sessionId: string): Promise<AuthPortalStatus> {
+  return accountClient.checkAuthPortal(sessionId);
 }
 
 export async function logout(): Promise<void> {
@@ -56,12 +69,16 @@ export async function listPlans(): Promise<Plan[]> {
   return accountClient.listPlans();
 }
 
-export async function changePlan(input: ChangePlanInput): Promise<Subscription> {
-  return accountClient.changePlan(input);
-}
-
 export async function getBillingStatus(): Promise<BillingStatus | null> {
   return accountClient.getBillingStatus();
+}
+
+export async function startCheckout(input: CheckoutInput): Promise<PortalLink> {
+  return accountClient.startCheckout(input);
+}
+
+export async function createBillingPortalLink(): Promise<PortalLink> {
+  return accountClient.createBillingPortalLink();
 }
 
 export function normalizeAccountError(error: unknown): AccountError {

@@ -1,12 +1,15 @@
 import type {
   AccountError,
   AccountSnapshot,
+  AuthPortalRequest,
+  AuthPortalSession,
+  AuthPortalStatus,
   AuthSession,
   BillingStatus,
-  ChangePlanInput,
-  LoginInput,
+  CheckoutInput,
   Plan,
   PlanInterval,
+  PortalLink,
   Subscription,
   User,
 } from '../../../shared/types/account.js';
@@ -64,6 +67,14 @@ const state: MockState = {
   subscription: null,
   billing: { state: 'none' },
 };
+
+type PortalSession = {
+  id: string;
+  expiresAt: number;
+  approved: boolean;
+};
+
+const portalSessions = new Map<string, PortalSession>();
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -125,6 +136,44 @@ function buildSubscription(planId: string, interval: PlanInterval, status: Subsc
   };
 }
 
+function buildPortalSession(): AuthPortalSession {
+  const id = `portal_${Math.random().toString(16).slice(2)}`;
+  const expiresAt = Date.now() + 5 * 60 * 1000;
+  const session: PortalSession = { id, expiresAt, approved: false };
+  portalSessions.set(id, session);
+  return {
+    id,
+    url: `https://trail.local/auth?session=${id}`,
+    expiresAt: new Date(expiresAt).toISOString(),
+    pollIntervalMs: 800,
+  };
+}
+
+function buildPortalLink(path: string): PortalLink {
+  return {
+    url: `https://trail.local${path}`,
+    expiresAt: addDays(1),
+  };
+}
+
+function signInMockUser(email = 'demo@trail.app'): AccountSnapshot {
+  const name = email.split('@')[0] ?? 'User';
+  state.session = {
+    status: 'authenticated',
+    accessToken: `mock_${Math.random().toString(16).slice(2)}`,
+    expiresAt: addDays(30),
+  };
+  state.user = {
+    id: `user_${Math.random().toString(16).slice(2)}`,
+    email,
+    displayName: name.charAt(0).toUpperCase() + name.slice(1),
+    createdAt: nowIso(),
+  };
+  state.subscription = buildSubscription('pro', 'month', 'trialing');
+  state.billing = updateBilling('pro', 'trialing');
+  return snapshot();
+}
+
 function updateBilling(planId: string, status: Subscription['status']): BillingStatus {
   const paidPlan = planId !== 'free';
   if (!paidPlan) {
@@ -159,34 +208,26 @@ function updateBilling(planId: string, status: Subscription['status']): BillingS
 
 export function createMockAccountClient(): AccountClient {
   return {
-    async login(input: LoginInput): Promise<AccountSnapshot> {
+    async startAuthPortal(_input?: AuthPortalRequest): Promise<AuthPortalSession> {
       ensureNetwork();
-      await sleep(DEFAULT_DELAY_MS);
-      const email = input.email.trim();
-      if (!email || !email.includes('@')) {
-        const err: AccountError = {
-          code: 'validation',
-          message: 'Enter a valid email address',
-          retryable: false,
-        };
-        throw err;
-      }
+      await sleep(DEFAULT_DELAY_MS / 2);
+      return buildPortalSession();
+    },
 
-      const name = email.split('@')[0] ?? 'User';
-      state.session = {
-        status: 'authenticated',
-        accessToken: `mock_${Math.random().toString(16).slice(2)}`,
-        expiresAt: addDays(30),
-      };
-      state.user = {
-        id: `user_${Math.random().toString(16).slice(2)}`,
-        email,
-        displayName: name.charAt(0).toUpperCase() + name.slice(1),
-        createdAt: nowIso(),
-      };
-      state.subscription = buildSubscription('pro', 'month', 'trialing');
-      state.billing = updateBilling('pro', 'trialing');
-      return snapshot();
+    async checkAuthPortal(sessionId: string): Promise<AuthPortalStatus> {
+      ensureNetwork();
+      await sleep(DEFAULT_DELAY_MS / 2);
+      const session = portalSessions.get(sessionId);
+      if (!session || Date.now() > session.expiresAt) {
+        portalSessions.delete(sessionId);
+        return { status: 'expired' };
+      }
+      if (!session.approved) {
+        session.approved = true;
+        const approvedSnapshot = signInMockUser();
+        return { status: 'approved', snapshot: approvedSnapshot };
+      }
+      return { status: 'approved', snapshot: snapshot() };
     },
 
     async logout(): Promise<void> {
@@ -216,7 +257,7 @@ export function createMockAccountClient(): AccountClient {
       return [...plans];
     },
 
-    async changePlan(input: ChangePlanInput): Promise<Subscription> {
+    async startCheckout(input: CheckoutInput): Promise<PortalLink> {
       ensureNetwork();
       requireAuth();
       await sleep(DEFAULT_DELAY_MS);
@@ -230,28 +271,23 @@ export function createMockAccountClient(): AccountClient {
         throw err;
       }
 
-      const interval = input.interval ?? 'month';
-      if (input.action === 'cancel' && state.subscription) {
-        state.subscription = {
-          ...state.subscription,
-          cancelAtPeriodEnd: true,
-          status: 'canceled',
-          canceledAt: nowIso(),
-        };
-        state.billing = updateBilling(state.subscription.planId, 'canceled');
-        return state.subscription;
-      }
-
       const status: Subscription['status'] = 'active';
-      state.subscription = buildSubscription(target.id, interval, status);
+      state.subscription = buildSubscription(target.id, input.interval, status);
       state.billing = updateBilling(target.id, status);
-      return state.subscription;
+      return buildPortalLink('/checkout');
     },
 
     async getBillingStatus(): Promise<BillingStatus | null> {
       ensureNetwork();
       await sleep(DEFAULT_DELAY_MS / 2);
       return state.billing;
+    },
+
+    async createBillingPortalLink(): Promise<PortalLink> {
+      ensureNetwork();
+      requireAuth();
+      await sleep(DEFAULT_DELAY_MS / 2);
+      return buildPortalLink('/billing');
     },
 
     async getSnapshot(): Promise<AccountSnapshot> {

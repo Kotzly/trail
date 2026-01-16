@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Trail Account API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     Account and subscription API for the Trail browser extension.
     This file is the single source of truth for backend endpoints and schemas.
@@ -15,26 +15,50 @@ security:
   - bearerAuth: []
 
 paths:
-  /auth/login:
+  /auth/portal:
     post:
-      summary: Sign in
-      description: Create a session and return the current account snapshot.
+      summary: Start sign-in session
+      description: Create a portal session to complete sign-in on the web.
       security: []
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginInput'
+              $ref: '#/components/schemas/AuthPortalRequest'
       responses:
         '200':
-          description: Signed in
+          description: Portal session created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountSnapshot'
-        '400':
-          description: Invalid credentials
+                $ref: '#/components/schemas/AuthPortalSession'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/portal/{sessionId}:
+    get:
+      summary: Check portal session
+      description: Poll the portal session status after opening the sign-in URL.
+      security: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Portal session status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthPortalStatus'
+        '404':
+          description: Session not found
           content:
             application/json:
               schema:
@@ -55,7 +79,8 @@ paths:
   /account:
     get:
       summary: Account snapshot
-      description: Return user, session, subscription, billing, and plan data.
+      description: Return user, session, subscription, billing, and plan data. Returns guest session when unauthenticated.
+      security: []
       responses:
         '200':
           description: Snapshot
@@ -63,15 +88,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountSnapshot'
-        '401':
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /plans:
     get:
       summary: List plans
+      security: []
       responses:
         '200':
           description: Plans list
@@ -99,24 +119,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /subscription/checkout:
     post:
-      summary: Change plan
-      description: Upgrade, downgrade, or cancel subscription.
+      summary: Start checkout
+      description: Create a checkout session on the web portal for a plan change.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChangePlanInput'
+              $ref: '#/components/schemas/CheckoutInput'
       responses:
         '200':
-          description: Updated subscription
+          description: Checkout link
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Subscription'
+                $ref: '#/components/schemas/PortalLink'
         '400':
-          description: Invalid plan change
+          description: Invalid checkout request
           content:
             application/json:
               schema:
@@ -145,6 +166,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /billing/portal:
+    post:
+      summary: Open billing portal
+      description: Create a portal link to manage subscription and payment details.
+      responses:
+        '200':
+          description: Portal link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortalLink'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
@@ -153,31 +191,74 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    LoginInput:
+    AuthPortalRequest:
+      type: object
+      properties:
+        source:
+          type: string
+        locale:
+          type: string
+        returnUrl:
+          type: string
+          format: uri
+    AuthPortalSession:
       type: object
       required:
-        - email
+        - id
+        - url
+        - expiresAt
       properties:
-        email:
+        id:
           type: string
-          format: email
-        password:
+        url:
           type: string
-        remember:
-          type: boolean
-    ChangePlanInput:
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+        pollIntervalMs:
+          type: integer
+    AuthPortalStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [pending, approved, expired]
+        snapshot:
+          allOf:
+            - $ref: '#/components/schemas/AccountSnapshot'
+          nullable: true
+    PortalLink:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+    CheckoutInput:
       type: object
       required:
         - planId
+        - interval
       properties:
         planId:
           type: string
         interval:
           type: string
           enum: [month, year]
-        action:
+        successUrl:
           type: string
-          enum: [upgrade, downgrade, switch, cancel]
+          format: uri
+        cancelUrl:
+          type: string
+          format: uri
     AccountSnapshot:
       type: object
       required:

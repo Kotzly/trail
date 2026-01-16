@@ -4,14 +4,17 @@ export const BACKEND_CONFIG = {
   env: 'production' as BackendEnvironment,
   baseUrl: 'https://api.trail.app',
   basePath: '/v1',
+  portalUrl: 'https://trail.ivakudry.com',
   timeoutMs: 10000,
   endpoints: {
-    login: '/auth/login',
+    authPortal: '/auth/portal',
     logout: '/auth/logout',
     account: '/account',
     plans: '/plans',
     subscription: '/subscription',
     billing: '/billing',
+    checkout: '/subscription/checkout',
+    billingPortal: '/billing/portal',
   },
   openApiPath: 'api/openapi.yml',
 } as const;
