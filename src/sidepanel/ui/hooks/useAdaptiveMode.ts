@@ -24,6 +24,12 @@ const MINDMAP_STAY_MAX_CHILDREN = 22;
 const MINDMAP_STAY_MAX_DEPTH = 12;
 const MINDMAP_STAY_MAX_AVG_DEPTH = 12;
 
+const DEFAULT_ADAPTIVE_LAYOUTS: Settings['adaptiveModeLayouts'] = {
+  mindmap: true,
+  tree: true,
+  radial: true,
+};
+
 function getMaxDepth(node: NavigationNode | null, depth = 1): number {
   if (!node) return 0;
   const children = node.getChildren?.() ?? [];
@@ -47,7 +53,11 @@ function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function chooseLayout(root: NavigationNode | null, currentMode: LayoutMode) {
+function chooseLayout(
+  root: NavigationNode | null,
+  currentMode: LayoutMode,
+  allowedLayouts: Settings['adaptiveModeLayouts'],
+) {
   if (!root) return null;
   let maxChildren = 0;
   root.forEach((node) => {
@@ -73,18 +83,22 @@ function chooseLayout(root: NavigationNode | null, currentMode: LayoutMode) {
     maxDepth <= MINDMAP_STAY_MAX_DEPTH &&
     avgDepth <= MINDMAP_STAY_MAX_AVG_DEPTH;
 
+  const allowTree = allowedLayouts.tree;
+  const allowRadial = allowedLayouts.radial;
+  const allowMindmap = allowedLayouts.mindmap;
+
   const candidate =
-    currentMode === 'tree' && treeStay
+    currentMode === 'tree' && allowTree && treeStay
       ? 'tree'
-      : currentMode === 'radial' && radialStay
+      : currentMode === 'radial' && allowRadial && radialStay
         ? 'radial'
-        : currentMode === 'mindmap' && mindmapStay
+        : currentMode === 'mindmap' && allowMindmap && mindmapStay
           ? 'mindmap'
-          : treeFit
+          : treeFit && allowTree
             ? 'tree'
-            : radialFit
+            : radialFit && allowRadial
               ? 'radial'
-              : mindmapFit
+              : mindmapFit && allowMindmap
                 ? 'mindmap'
                 : null;
 
@@ -108,6 +122,13 @@ async function applyLayoutMode(settings: Settings, mode: LayoutMode, setSettings
   }
 }
 
+function getAdaptiveStartMode(layouts: Settings['adaptiveModeLayouts']): LayoutMode | null {
+  if (layouts.mindmap) return 'mindmap';
+  if (layouts.tree) return 'tree';
+  if (layouts.radial) return 'radial';
+  return null;
+}
+
 export function useAdaptiveMode(): void {
   const settings = useStore((state) => state.settings);
   const tree = useStore((state) => state.tree);
@@ -121,6 +142,8 @@ export function useAdaptiveMode(): void {
 
   useEffect(() => {
     if (!settings?.adaptiveMode) return;
+    const adaptiveLayouts = settings.adaptiveModeLayouts ?? DEFAULT_ADAPTIVE_LAYOUTS;
+    const startMode = getAdaptiveStartMode(adaptiveLayouts);
 
     const root = tree?.getRoot?.() ?? null;
     const rootId = root?.id ?? null;
@@ -134,19 +157,21 @@ export function useAdaptiveMode(): void {
 
     if (sessionRef.current.rootId !== rootId) {
       sessionRef.current = { rootId, suggestedTree: false, suggestedRadial: false };
-      if (rootId !== null) {
-        applyMode('mindmap');
+      if (rootId !== null && startMode) {
+        applyMode(startMode);
       }
       if (isReset) return;
     } else if (isReset) {
       sessionRef.current = { rootId, suggestedTree: false, suggestedRadial: false };
-      applyMode('mindmap');
+      if (startMode) {
+        applyMode(startMode);
+      }
       return;
     }
 
     if (!root) return;
 
-    const decision = chooseLayout(root, settings.layout.mode);
+    const decision = chooseLayout(root, settings.layout.mode, adaptiveLayouts);
     if (!decision) return;
 
     if (decision.candidate === 'tree') {

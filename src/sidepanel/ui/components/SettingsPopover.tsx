@@ -73,6 +73,12 @@ function applyTheme(theme: string): void {
 const clamp = (value: number, min: number, max: number): number =>
   Number.isFinite(value) ? Math.min(Math.max(value, min), max) : min;
 
+const DEFAULT_ADAPTIVE_LAYOUTS: Settings['adaptiveModeLayouts'] = {
+  mindmap: true,
+  tree: true,
+  radial: true,
+};
+
 type DragNumberInputProps = {
   value: number;
   min: number;
@@ -134,6 +140,30 @@ function RangeSlider({
         }}
       />
     </div>
+  );
+}
+
+type CheckboxRowProps = {
+  id: string;
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+};
+
+function CheckboxRow({ id, label, checked, onChange, disabled }: CheckboxRowProps) {
+  return (
+    <label className={`settings-checkbox-row ${disabled ? 'disabled' : ''}`} htmlFor={id}>
+      <input
+        id={id}
+        className="settings-checkbox-input"
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        disabled={disabled}
+      />
+      <span className="settings-checkbox-label">{label}</span>
+    </label>
   );
 }
 
@@ -226,6 +256,10 @@ export default function SettingsPopover() {
     tree: 'Tree',
     radial: 'Radial',
   };
+  const adaptiveLayouts = settings?.adaptiveModeLayouts ?? DEFAULT_ADAPTIVE_LAYOUTS;
+  const adaptiveModeEnabled = settings?.adaptiveMode ?? false;
+  const adaptiveSelectedCount = Object.values(adaptiveLayouts).filter(Boolean).length;
+  const adaptiveLayoutOptions: Settings['layout']['mode'][] = ['mindmap', 'tree', 'radial'];
   const defaultCapacityMax = 5000;
   const tabLimitMax = Math.max(50, settings?.maxOpenTabs ?? 0);
   const rawCapacity = settings?.capacity;
@@ -329,6 +363,14 @@ export default function SettingsPopover() {
     setSettings(next);
     applyTheme(next.theme);
     scheduleSave(next);
+  };
+
+  const updateAdaptiveLayouts = (mode: Settings['layout']['mode'], enabled: boolean) => {
+    if (!settings) return;
+    const isOnlySelected = adaptiveSelectedCount <= 1 && adaptiveLayouts[mode];
+    if (!enabled && isOnlySelected) return;
+    const nextLayouts = { ...adaptiveLayouts, [mode]: enabled };
+    void updateSettings({ adaptiveModeLayouts: nextLayouts });
   };
 
   type LayoutPatch = {
@@ -850,7 +892,7 @@ export default function SettingsPopover() {
           <ToggleRow
             id="pref-adaptive"
             label="Adaptive mode"
-            description="Start new trees in Mindmap and suggest layouts as it grows."
+            description="Start new trees in your chosen layout and suggest others as it grows."
             checked={settings?.adaptiveMode ?? false}
             onChange={(value) => updateSettings({ adaptiveMode: value })}
           />
@@ -861,6 +903,27 @@ export default function SettingsPopover() {
             checked={settings?.shortcutsEnabled ?? true}
             onChange={(value) => updateSettings({ shortcutsEnabled: value })}
           />
+        </div>
+
+        <div className="popover-section">
+          <div className="popover-label-small">Adaptive layouts</div>
+          <div className="settings-checkbox-grid">
+            {adaptiveLayoutOptions.map((mode) => (
+              <CheckboxRow
+                key={`adaptive-layout-${mode}`}
+                id={`adaptive-layout-${mode}`}
+                label={layoutLabels[mode]}
+                checked={adaptiveLayouts[mode]}
+                onChange={(value) => updateAdaptiveLayouts(mode, value)}
+                disabled={!adaptiveModeEnabled || (adaptiveSelectedCount <= 1 && adaptiveLayouts[mode])}
+              />
+            ))}
+          </div>
+          <div className="popover-hint">
+            {adaptiveModeEnabled
+              ? 'Choose which layouts adaptive mode can suggest.'
+              : 'Enable Adaptive mode to use these settings.'}
+          </div>
         </div>
       </div>
 

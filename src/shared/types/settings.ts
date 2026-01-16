@@ -32,6 +32,8 @@ export type TitleTruncation = 'start' | 'middle' | 'end';
 
 export type GraphDensity = 'compact' | 'comfortable' | 'spacious';
 
+export type AdaptiveModeLayouts = Record<LayoutMode, boolean>;
+
 export type Settings = {
     maxOpenTabs: number;
     capacity: number;
@@ -49,4 +51,5 @@ export type Settings = {
     confirmNewTree: boolean;
     shortcutsEnabled: boolean;
     adaptiveMode: boolean;
+    adaptiveModeLayouts: AdaptiveModeLayouts;
 }

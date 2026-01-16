@@ -24,6 +24,11 @@ export const defaultSettings: Settings = {
     confirmNewTree: true,
     shortcutsEnabled: true,
     adaptiveMode: false,
+    adaptiveModeLayouts: {
+        mindmap: true,
+        tree: true,
+        radial: true,
+    },
 }
 
 const settingsKey = 'trail_settings' as const;
@@ -39,6 +44,11 @@ function mergeDefaults(raw: unknown): Settings {
         typeof partial.capacity === 'number' ? partial.capacity : defaultSettings.capacity;
     const capacity =
         Number.isFinite(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
+    const adaptiveModeLayouts = {
+        mindmap: partial.adaptiveModeLayouts?.mindmap ?? defaultSettings.adaptiveModeLayouts.mindmap,
+        tree: partial.adaptiveModeLayouts?.tree ?? defaultSettings.adaptiveModeLayouts.tree,
+        radial: partial.adaptiveModeLayouts?.radial ?? defaultSettings.adaptiveModeLayouts.radial,
+    };
     return {
         ...defaultSettings,
         ...partial,
@@ -70,6 +80,7 @@ function mergeDefaults(raw: unknown): Settings {
         confirmNewTree: partial.confirmNewTree ?? defaultSettings.confirmNewTree,
         shortcutsEnabled: partial.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
         adaptiveMode: partial.adaptiveMode ?? defaultSettings.adaptiveMode,
+        adaptiveModeLayouts,
     };
 }
 

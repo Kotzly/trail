@@ -216,6 +216,7 @@ export default function GraphArea() {
   const transitionTimeoutRef = useRef<number | null>(null);
   const lastResetRef = useRef(0);
   const lastViewIntentRef = useRef<number | null>(null);
+  const lastLayoutModeRef = useRef<'tree' | 'mindmap' | 'radial' | null>(null);
   const resetStepRef = useRef<{
     nodeId: NodeId;
     view: { translateX: number; translateY: number; scale: number };
@@ -413,9 +414,9 @@ export default function GraphArea() {
     return { translateX, translateY, scale };
   };
 
-  const centerOnNode = (nodeId: NodeId, animate = true) => {
+  const centerOnNode = (nodeId: NodeId, animate = true): boolean => {
     const nextView = getCenteredView(nodeId);
-    if (!nextView) return;
+    if (!nextView) return false;
     if (!animate) {
       clearCanvasTransition();
     }
@@ -423,7 +424,24 @@ export default function GraphArea() {
     if (animate) {
       applyCanvasTransition(300);
     }
+    return true;
   };
+
+  useLayoutEffect(() => {
+    if (!root) return;
+    const mode = layoutOptions.mode;
+    if (lastLayoutModeRef.current === null) {
+      lastLayoutModeRef.current = mode;
+      return;
+    }
+    if (lastLayoutModeRef.current === mode) return;
+    const targetId = currentNodeId ?? root.id;
+    if (targetId === null || targetId === undefined) return;
+    const centered = centerOnNode(targetId, true);
+    if (centered) {
+      lastLayoutModeRef.current = mode;
+    }
+  }, [currentNodeId, layoutOptions.mode, nodeHeight, nodeWidth, positions, root]);
 
   useEffect(() => {
     if (!root || didInitView.current) return;
