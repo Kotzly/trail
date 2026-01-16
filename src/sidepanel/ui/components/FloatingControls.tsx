@@ -1,26 +1,30 @@
 import { useEffect, useState } from 'react';
 import type { RefObject } from 'react';
 import { redo, undo } from '../../api/commands.js';
-import { clearTree as newTree } from '../../api/tree.js';
+import { createNewTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
 import FloatingSearch from './FloatingSearch.js';
 import PinnedDropdown from './PinnedDropdown.js';
+import TreeDropdown from './TreeDropdown.js';
 import TagFilterDropdown from './tags/TagFilterDropdown.js';
 import { createPortal } from 'react-dom';
+import React from 'react';
 
 type FloatingControlsProps = {
-  settingsBtnRef: RefObject<HTMLButtonElement>;
   searchInputRef: RefObject<HTMLInputElement>;
 };
 
-export default function FloatingControls({ settingsBtnRef, searchInputRef }: FloatingControlsProps) {
+export default function FloatingControls({ searchInputRef }: FloatingControlsProps) {
   const commandState = useStore((state) => state.commandState);
   const metaKey = useStore((state) => state.metaKey);
   const setCommandState = useStore((state) => state.setCommandState);
   const settingsOpen = useStore((state) => state.ui.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
+  const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [labelDraft, setLabelDraft] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : 'Ctrl+Z';
   const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : 'Ctrl+Shift+Z';
@@ -45,9 +49,13 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
 
   const handleNewTree = async () => {
     try {
-      await newTree();
+      const label = labelDraft.trim() || 'Unnamed Tree';
+      setCreating(true);
+      await createNewTree(label);
     } catch (error) {
       console.error('Failed to create new tree:', error);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -87,13 +95,17 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
 
         <div className="floating-island">
           <PinnedDropdown />
+          <TreeDropdown />
           <TagFilterDropdown />
           <button
             id="newTreeBtn"
             className="btn-icon orb-button"
             type="button"
             title="new tree"
-            onClick={() => setConfirmOpen(true)}
+            onClick={() => {
+              setLabelDraft('');
+              setConfirmOpen(true);
+            }}
           >
             <Icons.GitBranchPlus size={18} />
           </button>
@@ -108,7 +120,6 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
             className="btn-icon orb-button"
             type="button"
             title="settings"
-            ref={settingsBtnRef}
             onClick={() => setSettingsOpen(!settingsOpen)}
           >
             <Icons.Settings size={18} />
@@ -118,8 +129,16 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
 
       <ConfirmOverlay
         open={confirmOpen}
-        onCancel={() => setConfirmOpen(false)}
+        confirmNewTree={confirmNewTree}
+        label={labelDraft}
+        creating={creating}
+        onLabelChange={setLabelDraft}
+        onCancel={() => {
+          if (creating) return;
+          setConfirmOpen(false);
+        }}
         onConfirm={() => {
+          if (creating) return;
           setConfirmOpen(false);
           void handleNewTree();
         }}
@@ -130,11 +149,23 @@ export default function FloatingControls({ settingsBtnRef, searchInputRef }: Flo
 
 type ConfirmOverlayProps = {
   open: boolean;
+  confirmNewTree: boolean;
+  label: string;
+  creating: boolean;
+  onLabelChange: (value: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
 };
 
-function ConfirmOverlay({ open, onCancel, onConfirm }: ConfirmOverlayProps) {
+function ConfirmOverlay({
+  open,
+  confirmNewTree,
+  label,
+  creating,
+  onLabelChange,
+  onCancel,
+  onConfirm,
+}: ConfirmOverlayProps) {
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -162,13 +193,29 @@ function ConfirmOverlay({ open, onCancel, onConfirm }: ConfirmOverlayProps) {
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <div className="confirm-title">are you sure you want to create a new tree?</div>
+        <div className="confirm-title">
+          {confirmNewTree ? 'create a new tree?' : 'name your new tree'}
+        </div>
+        <input
+          className="confirm-input"
+          type="text"
+          value={label}
+          placeholder="Unnamed Tree"
+          onChange={(event) => onLabelChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onConfirm();
+            }
+          }}
+          autoFocus
+        />
         <div className="confirm-actions">
-          <button className="confirm-btn ghost" type="button" onClick={onCancel}>
+          <button className="confirm-btn ghost" type="button" onClick={onCancel} disabled={creating}>
             Cancel
           </button>
-          <button className="confirm-btn" type="button" onClick={onConfirm}>
-            Create
+          <button className="confirm-btn" type="button" onClick={onConfirm} disabled={creating}>
+            {creating ? 'Creating…' : 'Create'}
           </button>
         </div>
       </div>

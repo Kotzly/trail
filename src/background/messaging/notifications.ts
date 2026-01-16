@@ -1,7 +1,7 @@
 import type { TabId, NodeId } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import type { TabSoundState, TabState } from '../../shared/types/tabs.js';
-import { msg, type TreeUpdateReason, type TreeViewIntent } from '../../shared/types/messages.js';
+import { msg, type TreeUpdateReason, type TreeViewIntent, type TreesSnapshot } from '../../shared/types/messages.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { NavigationTree } from '../state/nav-tree.js';
 
@@ -35,23 +35,6 @@ export async function notifyTreeUpdate(
   reason: TreeUpdateReason = 'sync',
   view?: TreeViewIntent,
 ): Promise<void> {
-  console.log('notifyTreeUpdate', reason);
-    // INSERT_YOUR_CODE
-    // Log the calling function name, if possible.
-    const err = new Error();
-    if (err.stack) {
-        const stackLines = err.stack.split('\n');
-        // stackLines[0] is 'Error', stackLines[1] is this function, stackLines[2] is the caller
-        if (stackLines.length > 2) {
-            const callerLine = stackLines[2]!.trim();
-            console.log('notifyTreeUpdate called by:', callerLine);
-        }
-        else {
-            console.log('notifyTreeUpdate called by:', 'unknown');
-        }
-    } else {
-      console.log("err not stack")
-    }
     const openNodes = Array.from(tabManager.openNodes());
     const tabStates = await getTabStates();
     
@@ -70,4 +53,9 @@ export async function notifyTreeUpdate(
     });
 
     chrome.runtime.sendMessage(payload);
+}
+
+export async function notifyTreesUpdate(snapshot: TreesSnapshot): Promise<void> {
+  const payload = msg.treesUpdated(snapshot);
+  chrome.runtime.sendMessage(payload);
 }

@@ -12,8 +12,6 @@ export async function syncTabTitleFavicon(
   changeInfo: chrome.tabs.OnUpdatedInfo,
   tab: chrome.tabs.Tab
 ): Promise<void> {
-  console.log('syncTabTitleFavicon');
-  console.log(changeInfo);
   if (!changeInfo.title && !changeInfo.favIconUrl) return;
 
   const nodeId = tabManager.nodeByTab(tabId);

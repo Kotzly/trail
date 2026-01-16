@@ -1,0 +1,469 @@
+openapi: 3.0.3
+info:
+  title: Trail Account API
+  version: 0.2.0
+  description: |
+    Account and subscription API for the Trail browser extension.
+    This file is the single source of truth for backend endpoints and schemas.
+servers:
+  - url: https://api.trail.app/v1
+    description: Production
+  - url: https://staging-api.trail.app/v1
+    description: Staging
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/portal:
+    post:
+      summary: Start sign-in session
+      description: Create a portal session to complete sign-in on the web.
+      security: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthPortalRequest'
+      responses:
+        '200':
+          description: Portal session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthPortalSession'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/portal/{sessionId}:
+    get:
+      summary: Check portal session
+      description: Poll the portal session status after opening the sign-in URL.
+      security: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Portal session status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthPortalStatus'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/logout:
+    post:
+      summary: Sign out
+      description: Clear the current session.
+      responses:
+        '204':
+          description: Signed out
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /account:
+    get:
+      summary: Account snapshot
+      description: Return user, session, subscription, billing, and plan data. Returns guest session when unauthenticated.
+      security: []
+      responses:
+        '200':
+          description: Snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSnapshot'
+  /plans:
+    get:
+      summary: List plans
+      security: []
+      responses:
+        '200':
+          description: Plans list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+  /subscription:
+    get:
+      summary: Get subscription
+      responses:
+        '200':
+          description: Subscription
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Subscription'
+                nullable: true
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /subscription/checkout:
+    post:
+      summary: Start checkout
+      description: Create a checkout session on the web portal for a plan change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutInput'
+      responses:
+        '200':
+          description: Checkout link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortalLink'
+        '400':
+          description: Invalid checkout request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /billing:
+    get:
+      summary: Billing status
+      responses:
+        '200':
+          description: Billing status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BillingStatus'
+                nullable: true
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /billing/portal:
+    post:
+      summary: Open billing portal
+      description: Create a portal link to manage subscription and payment details.
+      responses:
+        '200':
+          description: Portal link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortalLink'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuthPortalRequest:
+      type: object
+      properties:
+        source:
+          type: string
+        locale:
+          type: string
+        returnUrl:
+          type: string
+          format: uri
+    AuthPortalSession:
+      type: object
+      required:
+        - id
+        - url
+        - expiresAt
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+        pollIntervalMs:
+          type: integer
+    AuthPortalStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [pending, approved, expired]
+        snapshot:
+          allOf:
+            - $ref: '#/components/schemas/AccountSnapshot'
+          nullable: true
+    PortalLink:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+    CheckoutInput:
+      type: object
+      required:
+        - planId
+        - interval
+      properties:
+        planId:
+          type: string
+        interval:
+          type: string
+          enum: [month, year]
+        successUrl:
+          type: string
+          format: uri
+        cancelUrl:
+          type: string
+          format: uri
+    AccountSnapshot:
+      type: object
+      required:
+        - session
+        - user
+        - subscription
+        - billing
+        - plans
+      properties:
+        session:
+          $ref: '#/components/schemas/AuthSession'
+        user:
+          allOf:
+            - $ref: '#/components/schemas/User'
+          nullable: true
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/Subscription'
+          nullable: true
+        billing:
+          allOf:
+            - $ref: '#/components/schemas/BillingStatus'
+          nullable: true
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/Plan'
+    AuthSession:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [guest, authenticated]
+        accessToken:
+          type: string
+          nullable: true
+        refreshToken:
+          type: string
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - displayName
+        - createdAt
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    Plan:
+      type: object
+      required:
+        - id
+        - name
+        - tier
+        - priceMonthly
+        - priceYearly
+        - currency
+        - features
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tier:
+          type: string
+          enum: [free, pro, team, enterprise]
+        priceMonthly:
+          type: number
+        priceYearly:
+          type: number
+        currency:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        limits:
+          $ref: '#/components/schemas/PlanLimits'
+        highlight:
+          type: boolean
+        rank:
+          type: number
+    PlanLimits:
+      type: object
+      properties:
+        maxTrees:
+          type: number
+        maxDevices:
+          type: number
+        maxHistoryDays:
+          type: number
+        maxSavedViews:
+          type: number
+    Subscription:
+      type: object
+      required:
+        - id
+        - planId
+        - status
+        - interval
+        - currentPeriodStart
+        - currentPeriodEnd
+        - cancelAtPeriodEnd
+      properties:
+        id:
+          type: string
+        planId:
+          type: string
+        status:
+          type: string
+          enum: [trialing, active, past_due, paused, canceled, expired]
+        interval:
+          type: string
+          enum: [month, year]
+        currentPeriodStart:
+          type: string
+          format: date-time
+        currentPeriodEnd:
+          type: string
+          format: date-time
+        cancelAtPeriodEnd:
+          type: boolean
+        trialEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        canceledAt:
+          type: string
+          format: date-time
+          nullable: true
+    BillingStatus:
+      type: object
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          enum: [none, trialing, ok, past_due, unpaid, grace, canceled]
+        lastChargeAt:
+          type: string
+          format: date-time
+          nullable: true
+        nextChargeAt:
+          type: string
+          format: date-time
+          nullable: true
+        graceEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        paymentMethod:
+          allOf:
+            - $ref: '#/components/schemas/PaymentMethod'
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+    PaymentMethod:
+      type: object
+      required:
+        - brand
+        - last4
+        - expMonth
+        - expYear
+      properties:
+        brand:
+          type: string
+        last4:
+          type: string
+        expMonth:
+          type: integer
+        expYear:
+          type: integer
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum: [network, auth, payment, validation, unknown]
+        message:
+          type: string
+        retryable:
+          type: boolean
+        details:
+          type: string
+          nullable: true

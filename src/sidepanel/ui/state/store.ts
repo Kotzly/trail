@@ -2,12 +2,22 @@ import { create } from 'zustand';
 import type { NodeId, Tag } from '../../../shared/types/ids.js';
 import type { Settings } from '../../../shared/types/settings.js';
 import type { TabState } from '../../../shared/types/tabs.js';
-import type { CommandState, TreeUpdatedInput } from '../../../shared/types/messages.js';
+import type { CommandState, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '../../../shared/types/messages.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { PinnedManager } from '../../../background/state/pinned.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
 import type { NotificationItem } from '../notifications/types.js';
+import type { TreeMeta, TreeSummary } from '../../../shared/types/tree.js';
+import type {
+  AccountError,
+  AccountSnapshot,
+  AuthSession,
+  BillingStatus,
+  Plan,
+  Subscription,
+  User,
+} from '../../../shared/types/account.js';
 
 export type MetaKeyPair = { short: '^'; long: 'ctrl' } | { short: '⌘'; long: 'cmd' };
 
@@ -32,9 +42,33 @@ type ContextMenuState =
     }
   | null;
 
+type AccountStatus = 'idle' | 'loading' | 'ready' | 'error';
+type NetworkStatus = 'online' | 'offline' | 'degraded';
+
+type AccountState = {
+  status: AccountStatus;
+  network: NetworkStatus;
+  session: AuthSession;
+  user: User | null;
+  subscription: Subscription | null;
+  billing: BillingStatus | null;
+  plans: Plan[];
+  error: AccountError | null;
+  lastSyncedAt: string | null;
+};
+
 type StoreState = {
   settings: Settings | null;
+  account: AccountState;
   tree: NavigationTree | null;
+  treeUpdate: {
+    reason: TreeUpdateReason;
+    at: number;
+  } | null;
+  trees: {
+    active: TreeMeta | null;
+    archived: TreeSummary[];
+  };
   pins: PinnedManager | null;
   tabStates: Record<NodeId, TabState>;
   nodeTabCounts: Record<NodeId, number>;
@@ -58,6 +92,7 @@ type StoreState = {
   ui: {
     settingsOpen: boolean;
     pinnedOpen: boolean;
+    treesOpen: boolean;
     tagFilterOpen: boolean;
   };
   graph: {
@@ -77,6 +112,7 @@ type StoreState = {
 type StoreActions = {
   bootstrap: (settings: Settings, payload: TreeUpdatedInput, meta: MetaKeyPair, isMac: boolean) => void;
   applyTreeState: (payload: TreeUpdatedInput) => void;
+  setTrees: (snapshot: TreesSnapshot) => void;
   setCommandState: (state: CommandState) => void;
   setTagDefs: (defs: TagDefinition[]) => void;
   upsertTagDef: (def: TagDefinition) => void;
@@ -95,7 +131,11 @@ type StoreActions = {
   setSettings: (settings: Settings) => void;
   setSettingsOpen: (open: boolean) => void;
   setPinnedOpen: (open: boolean) => void;
+  setTreesOpen: (open: boolean) => void;
   setTagFilterOpen: (open: boolean) => void;
+  setAccount: (patch: Partial<AccountState>) => void;
+  setAccountSnapshot: (snapshot: AccountSnapshot) => void;
+  resetAccount: () => void;
   setGraphTool: (tool: GraphTool) => void;
   setSelectedNodeIds: (ids: Set<NodeId>) => void;
   toggleSelectedNode: (id: NodeId) => void;
@@ -115,7 +155,23 @@ type StoreActions = {
 
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
   settings: null,
+  account: {
+    status: 'idle',
+    network: 'online',
+    session: { status: 'guest' },
+    user: null,
+    subscription: null,
+    billing: { state: 'none' },
+    plans: [],
+    error: null,
+    lastSyncedAt: null,
+  },
   tree: null,
+  treeUpdate: null,
+  trees: {
+    active: null,
+    archived: [],
+  },
   pins: null,
   tabStates: {},
   nodeTabCounts: {},
@@ -139,6 +195,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   ui: {
     settingsOpen: false,
     pinnedOpen: false,
+    treesOpen: false,
     tagFilterOpen: false,
   },
   graph: {
@@ -162,6 +219,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set({
       settings,
       tree,
+      treeUpdate: { reason: payload.reason, at: Date.now() },
       pins,
       tabStates: payload.tabStates,
       nodeTabCounts: payload.nodeTabCounts,
@@ -180,8 +238,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     const nodeCount = tree.size();
     set((state) => {
       const nextViewIntent = payload.view ?? state.graph.viewIntent;
+      const shouldResetTransient = payload.reason === 'tree-switch' || payload.reason === 'tree-reset';
       return {
         tree,
+        treeUpdate: { reason: payload.reason, at: Date.now() },
         pins,
         tabStates: payload.tabStates,
         nodeTabCounts: payload.nodeTabCounts,
@@ -189,10 +249,29 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         currentNodeId: currentId,
         nodeCount,
         graph: nextViewIntent ? { ...state.graph, viewIntent: nextViewIntent } : state.graph,
+        ...(shouldResetTransient
+          ? {
+              search: { query: '', results: [], index: 0, active: false, baseCurrentId: null },
+              contextMenu: null,
+              graph: {
+                ...state.graph,
+                selectedNodeIds: new Set<NodeId>(),
+                hoverNodeId: null,
+                viewIntent: nextViewIntent ?? null,
+              },
+            }
+          : {}),
       };
     });
   },
 
+  setTrees: (snapshot) =>
+    set({
+      trees: {
+        active: snapshot.active,
+        archived: snapshot.archived,
+      },
+    }),
   setCommandState: (state) => set({ commandState: state }),
   setTagDefs: (defs) =>
     set((state) => {
@@ -284,7 +363,34 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setSettings: (settings) => set({ settings }),
   setSettingsOpen: (open) => set((state) => ({ ui: { ...state.ui, settingsOpen: open } })),
   setPinnedOpen: (open) => set((state) => ({ ui: { ...state.ui, pinnedOpen: open } })),
+  setTreesOpen: (open) => set((state) => ({ ui: { ...state.ui, treesOpen: open } })),
   setTagFilterOpen: (open) => set((state) => ({ ui: { ...state.ui, tagFilterOpen: open } })),
+  setAccount: (patch) => set((state) => ({ account: { ...state.account, ...patch } })),
+  setAccountSnapshot: (snapshot) =>
+    set((state) => ({
+      account: {
+        ...state.account,
+        ...snapshot,
+        status: 'ready',
+        network: 'online',
+        error: null,
+        lastSyncedAt: new Date().toISOString(),
+      },
+    })),
+  resetAccount: () =>
+    set({
+      account: {
+        status: 'idle',
+        network: 'online',
+        session: { status: 'guest' },
+        user: null,
+        subscription: null,
+        billing: { state: 'none' },
+        plans: [],
+        error: null,
+        lastSyncedAt: null,
+      },
+    }),
 
   setGraphTool: (tool) => set((state) => ({ graph: { ...state.graph, tool } })),
   setSelectedNodeIds: (ids) =>

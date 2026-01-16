@@ -1,7 +1,7 @@
 import type { Description, NodeId, Title, Url, Tag, TabId } from "./ids.js";
 import { Settings } from "./settings.js";
 import { TabState } from "./tabs.js";
-import { NavigationTreeJSON } from "./tree.js";
+import { NavigationTreeJSON, TreeMeta, TreeSummary } from "./tree.js";
 import type { TagDefinition } from "./tags.js";
 
 export const MSG = {
@@ -24,10 +24,15 @@ export const MSG = {
     GET_SETTINGS: 'GET_SETTINGS',
     TITLE_CHANGED: 'TITLE_CHANGED',
     TREE_UPDATED: 'TREE_UPDATED',
+    TREES_UPDATED: 'TREES_UPDATED',
     TAGS_UPDATED: 'TAGS_UPDATED',
     NOTIFY: 'NOTIFY',
     GET_TREE: 'GET_TREE',
+    GET_TREES: 'GET_TREES',
     CLEAR_TREE: 'CLEAR_TREE',
+    NEW_TREE: 'NEW_TREE',
+    OPEN_TREE: 'OPEN_TREE',
+    RENAME_TREE: 'RENAME_TREE',
     OPEN_IN_NEW_TAB: 'OPEN_IN_NEW_TAB',
     TOGGLE_MUTE: 'TOGGLE_MUTE',
     CLOSE_TAB: 'CLOSE_TAB',
@@ -100,6 +105,7 @@ export type SaveSettingsMessage = RequestMessageBase<typeof MSG.SAVE_SETTINGS, S
 export type GetSettingsMessage = RequestMessageBase<typeof MSG.GET_SETTINGS>;
 export type TitleChangedMessage = RequestMessageBase<typeof MSG.TITLE_CHANGED, TitleChangedInput>;
 export type TreeUpdatedMessage = RequestMessageBase<typeof MSG.TREE_UPDATED, TreeUpdatedInput>;
+export type TreesUpdatedMessage = RequestMessageBase<typeof MSG.TREES_UPDATED, TreesSnapshot>;
 export type TagDefsUpdatedInput = { tagDefs: TagDefinition[] };
 export type TagsUpdatedMessage = RequestMessageBase<typeof MSG.TAGS_UPDATED, TagDefsUpdatedInput>;
 export type UiNotificationInput = {
@@ -109,7 +115,11 @@ export type UiNotificationInput = {
 };
 export type NotifyMessage = RequestMessageBase<typeof MSG.NOTIFY, { notification: UiNotificationInput }>;
 export type GetTreeMessage = RequestMessageBase<typeof MSG.GET_TREE>;
+export type GetTreesMessage = RequestMessageBase<typeof MSG.GET_TREES>;
 export type ClearTreeMessage = RequestMessageBase<typeof MSG.CLEAR_TREE>;
+export type NewTreeMessage = RequestMessageBase<typeof MSG.NEW_TREE, { label: string }>;
+export type OpenTreeMessage = RequestMessageBase<typeof MSG.OPEN_TREE, { treeId: string }>;
+export type RenameTreeMessage = RequestMessageBase<typeof MSG.RENAME_TREE, { treeId: string; label: string }>;
 
 export type OpenInNewTabMessage = RequestMessageBase<typeof MSG.OPEN_IN_NEW_TAB, {
   nodeId: NodeId;
@@ -151,9 +161,9 @@ export type RequestMessage = NavigateToMessage |
     UndoMessage | RedoMessage |
     CommandStateMessage | GetTagDefsMessage | UpsertTagDefMessage | DeleteTagDefMessage |
     TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage |
-    TreeUpdatedMessage | TagsUpdatedMessage |
+    TreeUpdatedMessage | TreesUpdatedMessage | TagsUpdatedMessage |
     NotifyMessage |
-    GetTreeMessage | ClearTreeMessage |
+    GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | RenameTreeMessage |
     OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
     AddTagMessage | RemoveTagMessage |
@@ -196,10 +206,15 @@ export type ResponseDataByType = {
     [MSG.GET_SETTINGS]: Settings;
     [MSG.TITLE_CHANGED]: void;
     [MSG.TREE_UPDATED]: void;
+    [MSG.TREES_UPDATED]: void;
     [MSG.TAGS_UPDATED]: void;
     [MSG.NOTIFY]: void;
     [MSG.GET_TREE]: TreeUpdatedInput;
+    [MSG.GET_TREES]: TreesSnapshot;
     [MSG.CLEAR_TREE]: void;
+    [MSG.NEW_TREE]: void;
+    [MSG.OPEN_TREE]: void;
+    [MSG.RENAME_TREE]: void;
     [MSG.OPEN_IN_NEW_TAB]: void;
     [MSG.TOGGLE_MUTE]: void;
     [MSG.CLOSE_TAB]: void;
@@ -258,12 +273,17 @@ export const msg = {
     getSettings(): GetSettingsMessage { return { type: MSG.GET_SETTINGS } },
     titleChanged(payload: TitleChangedInput): TitleChangedMessage { return { type: MSG.TITLE_CHANGED, ...payload } },
     treeUpdated(payload: TreeUpdatedInput): TreeUpdatedMessage { return { type: MSG.TREE_UPDATED, ...payload } },
+    treesUpdated(payload: TreesSnapshot): TreesUpdatedMessage { return { type: MSG.TREES_UPDATED, ...payload } },
     tagsUpdated(payload: TagDefsUpdatedInput): TagsUpdatedMessage { return { type: MSG.TAGS_UPDATED, ...payload } },
     notify(payload: { notification: UiNotificationInput }): NotifyMessage {
         return { type: MSG.NOTIFY, ...payload };
     },
     getTree(): GetTreeMessage { return { type: MSG.GET_TREE } },
+    getTrees(): GetTreesMessage { return { type: MSG.GET_TREES } },
     clearTree(): ClearTreeMessage { return { type: MSG.CLEAR_TREE } },
+    newTree(payload: { label: string }): NewTreeMessage { return { type: MSG.NEW_TREE, ...payload } },
+    openTree(payload: { treeId: string }): OpenTreeMessage { return { type: MSG.OPEN_TREE, ...payload } },
+    renameTree(payload: { treeId: string; label: string }): RenameTreeMessage { return { type: MSG.RENAME_TREE, ...payload } },
     openInNewTab(payload: { nodeId: NodeId }): OpenInNewTabMessage { return { type: MSG.OPEN_IN_NEW_TAB, ...payload } },
     toggleMute(payload: { nodeId: NodeId, tabId: TabId }): ToggleMuteMessage { return { type: MSG.TOGGLE_MUTE, ...payload } },
     closeTab(payload: { nodeId: NodeId, tabId: TabId }): CloseTabMessage { return { type: MSG.CLOSE_TAB, ...payload } },
@@ -346,6 +366,7 @@ export type TreeUpdateReason =
     | 'navigate'
     | 'set-current'
     | 'tree-reset'
+    | 'tree-switch'
     | 'layout'
     | 'undo'
     | 'pins'
@@ -371,6 +392,11 @@ export type TreeUpdatedInput = {
     reason: TreeUpdateReason,
     view?: TreeViewIntent,
 }
+
+export type TreesSnapshot = {
+    active: TreeMeta;
+    archived: TreeSummary[];
+};
 
 export type BulkNodeIdsInput = {
     nodeIds: NodeId[];

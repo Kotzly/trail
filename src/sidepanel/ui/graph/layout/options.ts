@@ -15,6 +15,8 @@ type LayoutOptions = {
 
 export function deriveLayoutOptions(settings: Settings | null | undefined): LayoutOptions {
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
+  const density = settings?.graphDensity ?? 'comfortable';
+  const densityScale = density === 'compact' ? 0.9 : density === 'spacious' ? 1.1 : 1;
 
   const treeSettings = layout.tree ?? DEFAULT_LAYOUT_SETTINGS.tree;
   const mindmapSettings = layout.mindmap ?? DEFAULT_LAYOUT_SETTINGS.mindmap;
@@ -25,18 +27,21 @@ export function deriveLayoutOptions(settings: Settings | null | undefined): Layo
   const mindmapVerticalScale = clamp(mindmapSettings.verticalGapScale, 0.4, 3);
   const mindmapHorizontalScale = clamp(mindmapSettings.horizontalGapScale, 0.4, 3);
 
+  const nodeWidth = Math.round(NODE_WIDTH * densityScale);
+  const nodeHeight = Math.round(NODE_HEIGHT * densityScale);
+
   const tree: LayoutConfig = {
-    nodeWidth: NODE_WIDTH,
-    nodeHeight: NODE_HEIGHT,
-    verticalGap: Math.round(VERTICAL_GAP * verticalGapScale),
-    horizontalGap: Math.round(HORIZONTAL_GAP * horizontalGapScale),
+    nodeWidth,
+    nodeHeight,
+    verticalGap: Math.round(VERTICAL_GAP * verticalGapScale * densityScale),
+    horizontalGap: Math.round(HORIZONTAL_GAP * horizontalGapScale * densityScale),
   };
 
   const mindmap: LayoutConfig = {
-    nodeWidth: NODE_WIDTH,
-    nodeHeight: NODE_HEIGHT,
-    verticalGap: Math.round(VERTICAL_GAP * mindmapVerticalScale),
-    horizontalGap: Math.round(HORIZONTAL_GAP * mindmapHorizontalScale),
+    nodeWidth,
+    nodeHeight,
+    verticalGap: Math.round(VERTICAL_GAP * mindmapVerticalScale * densityScale),
+    horizontalGap: Math.round(HORIZONTAL_GAP * mindmapHorizontalScale * densityScale),
   };
 
   const angleWeightExp = clamp(radialSettings.angleWeightExp, 0.2, 1.2);
@@ -46,8 +51,8 @@ export function deriveLayoutOptions(settings: Settings | null | undefined): Layo
   const depthGapBaseScale = clamp(radialSettings.depthGapBase, 0.6, 2.5);
   const depthGapGrowth = clamp(radialSettings.depthGapGrowth, 0, 0.8);
 
-  const depthGapBase = Math.max(NODE_HEIGHT * depthGapBaseScale, VERTICAL_GAP * 0.85);
-  const effectiveWidth = NODE_WIDTH * 0.82 + HORIZONTAL_GAP * 0.35;
+  const depthGapBase = Math.max(nodeHeight * depthGapBaseScale, VERTICAL_GAP * 0.85 * densityScale);
+  const effectiveWidth = nodeWidth * 0.82 + HORIZONTAL_GAP * 0.35 * densityScale;
 
   const radial: RadialLayoutConfig = {
     angleWeightExp,

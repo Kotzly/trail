@@ -1,13 +1,17 @@
-import { MSG, defineHandlers, ok, err, type TreeUpdatedInput } from '../../../shared/types/messages.js';
+import { MSG, defineHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot } from '../../../shared/types/messages.js';
 import { treeStorage } from '../../services/tree-storage.js';
-import { notifyTreeUpdate, getTabStates } from '../notifications.js';
+import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from '../notifications.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
-import type { Description, NodeId, TabId } from '../../../shared/types/ids.js';
-import type { NavigationTree } from '../../state/nav-tree.js';
+import type { Description, NodeId, TabId, Title, Url } from '../../../shared/types/ids.js';
+import { NavigationTree } from '../../state/nav-tree.js';
 import { ForEacher } from '../../../shared/types/foreach.js';
-import { updateNodeData } from '../../../shared/types/node.js';
+import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } from '../../../shared/types/node.js';
+import { normalizeFaviconUrl, isPlaceholderUrl } from '../../utils/url-utils.js';
+import { settingsManager } from '../../services/settings.js';
+import { tempSelectionManager } from '../../services/temporary-selection.js';
+import type { TreeMeta } from '../../../shared/types/tree.js';
 
 
 function snapshot(tree: NavigationTree, description: string): void {
@@ -17,13 +21,28 @@ function snapshot(tree: NavigationTree, description: string): void {
   );
 }
 
-async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
+function collectTabIdsForNodes(nodeIds: ForEacher<NodeId>): TabId[] {
   const tabIds: TabId[] = [];
   nodeIds.forEach(nodeId => {
     tabManager.tabsByNode(nodeId).forEach(tabId => tabIds.push(tabId as TabId));
   });
-  if (tabIds.length === 0) return;
-  chrome.tabs.remove(tabIds).catch((e) => console.error('Failed to close tabs for nodes:', e));
+  return Array.from(new Set(tabIds));
+}
+
+async function closeTabs(tabIds: TabId[], context: string): Promise<boolean> {
+  if (tabIds.length === 0) return true;
+  try {
+    await chrome.tabs.remove(tabIds);
+    return true;
+  } catch (error) {
+    console.error(`Failed to close tabs for ${context}:`, error);
+    return false;
+  }
+}
+
+async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
+  const tabIds = collectTabIdsForNodes(nodeIds);
+  await closeTabs(tabIds, 'nodes');
 }
 
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
@@ -36,9 +55,113 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
   };
 }
 
+async function buildTreesSnapshot(): Promise<TreesSnapshot> {
+  return {
+    active: await treeStorage.getActiveMeta(),
+    archived: await treeStorage.getArchivedSummaries(),
+  };
+}
+
+function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
+  const urlCandidate = tab.url ?? null;
+  const pendingCandidate = tab.pendingUrl ?? null;
+  let rawUrl = urlCandidate ?? pendingCandidate ?? 'about:blank';
+  if (isPlaceholderUrl(rawUrl as Url) && pendingCandidate && !isPlaceholderUrl(pendingCandidate as Url)) {
+    rawUrl = pendingCandidate;
+  }
+  const url = rawUrl as Url;
+  const title = tab.title || (isPlaceholderUrl(url) ? 'New Tab' : rawUrl);
+  return {
+    url,
+    title: title as Title,
+    favicon: normalizeFaviconUrl(url, tab.favIconUrl),
+    pinned: false,
+    tags: [],
+  } as NodeData;
+}
+
+function registerTabForNode(nodeId: NodeId, tab: chrome.tabs.Tab): void {
+  if (tab.id === undefined) return;
+  const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
+  const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
+  tabManager.register(nodeId, tab.id as TabId, registerOptions);
+}
+
+function ensureRootForTab(tree: NavigationTree, tab: chrome.tabs.Tab): NavigationNode | null {
+  const root = tree.getRoot();
+  const data = buildNodeDataFromTab(tab);
+  // No root yet: build it from the newly created tab and mark it current.
+  if (!root) {
+    // If we can't derive data from the tab, we can't create a root.
+    if (!data) {
+      return null;
+    }
+    // Navigate creates the first node when root is missing.
+    const created = tree.navigate(data);
+    // Keep tree current aligned with the root tab.
+    tree.setCurrent(created);
+    // Register the tab so we can track open tab <-> node mapping.
+    registerTabForNode(created.id, tab);
+    return created;
+  }
+  // If the existing root matches this tab, refresh its metadata (title/favicon).
+  if (data && root.data.url === data.url) {
+    root.data = updateNodeMeta(root.data, data);
+  }
+  // Ensure current node points at root after tree switch.
+  tree.setCurrent(root);
+  // Make sure the root tab is registered for tab tracking.
+  registerTabForNode(root.id, tab);
+  return root;
+}
+
+async function switchTree(nextTree: NavigationTree, nextMeta: TreeMeta, rootUrl?: Url | null): Promise<void> {
+  const tabsToClose = collectTabIdsForNodes(tabManager.openNodes());
+  tabManager.reset();
+  if (tabsToClose) {
+    tabManager.ignoreTabs(tabsToClose);
+  }
+  tempSelectionManager.reset();
+  CommandManager.clearHistory();
+
+  await treeStorage.setActiveTree(nextTree, nextMeta);
+
+  let created: chrome.tabs.Tab;
+  try {
+    created = await chrome.tabs.create(rootUrl ? { url: rootUrl } : {});
+  } catch (error) {
+    console.error('Failed to open root tab for tree switch:', error);
+    created = await chrome.tabs.create({});
+  }
+  const rootNode = ensureRootForTab(nextTree, created);
+  if (rootNode) {
+    treeStorage.cacheTree(nextTree);
+  }
+
+  const view = {
+    fitToView: true,
+    mode: 'force' as const,
+    ...(rootNode ? { focusNodeId: rootNode.id } : {}),
+  };
+  await notifyTreeUpdate(nextTree, 'tree-switch', view);
+  await treeStorage.flushSaveNow();
+
+  const closed = await closeTabs(tabsToClose, 'tree switch');
+  if (closed) {
+    tabManager.clearIgnoredTabs(tabsToClose);
+  }
+
+  await notifyTreesUpdate(await buildTreesSnapshot());
+}
+
 export const treeHandlers = defineHandlers({
   async [MSG.GET_TREE]() {
     const snapshot = await buildTreeSnapshot();
+    return ok(snapshot);
+  },
+
+  async [MSG.GET_TREES]() {
+    const snapshot = await buildTreesSnapshot();
     return ok(snapshot);
   },
 
@@ -53,6 +176,45 @@ export const treeHandlers = defineHandlers({
     await closeTabsForNodes(tabManager.openNodes());
     await notifyTreeUpdate(tree, 'tree-reset');
     await treeStorage.flushSaveNow();
+    return ok();
+  },
+
+  async [MSG.NEW_TREE](message) {
+    const current = await treeStorage.getOrCreateTree();
+    if (current.getRoot()) {
+      snapshot(current, 'New tree');
+    }
+    await treeStorage.archiveActiveTree();
+    const meta = treeStorage.createMeta(message.label);
+    const nextTree = new NavigationTree(settingsManager.get().capacity);
+    await switchTree(nextTree, meta, null);
+    return ok();
+  },
+
+  async [MSG.OPEN_TREE](message) {
+    const current = await treeStorage.getOrCreateTree();
+    if (current.getRoot()) {
+      snapshot(current, 'Open tree');
+    }
+    await treeStorage.archiveActiveTree();
+    const record = await treeStorage.takeArchivedTree(message.treeId);
+    if (!record) return err('Tree not found');
+    const nextTree = NavigationTreeMapper.fromJSON(record.tree);
+    const meta: TreeMeta = {
+      id: record.id,
+      label: record.label,
+      labelSource: record.labelSource,
+      labelUpdatedAt: record.labelUpdatedAt,
+      createdAt: record.createdAt,
+    };
+    const rootUrl = record.rootUrl ?? nextTree.getRoot()?.data.url ?? null;
+    await switchTree(nextTree, meta, rootUrl);
+    return ok();
+  },
+
+  async [MSG.RENAME_TREE](message) {
+    await treeStorage.renameTree(message.treeId, message.label);
+    await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
   },
 

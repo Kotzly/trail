@@ -54,11 +54,17 @@ export default function GraphNode({
   const hasTags = node.data.tags && node.data.tags.length > 0;
   const tagDefs = useStore((state) => state.tagDefs);
   const titleTruncation = useStore((state) => state.settings?.titleTruncation ?? 'end');
+  const showFavicons = useStore((state) => state.settings?.showFavicons ?? true);
+  const showUrls = useStore((state) => state.settings?.showUrls ?? true);
+  const showTagDots = useStore((state) => state.settings?.showTagDots ?? true);
+  const showTabCounts = useStore((state) => state.settings?.showTabCounts ?? true);
+  const showAudioIndicators = useStore((state) => state.settings?.showAudioIndicators ?? true);
+  const dimClosedNodes = useStore((state) => state.settings?.dimClosedNodes ?? true);
 
   const className = useMemo(() => {
     const classes = ['graph-node'];
     if (node.id === currentId) classes.push('current');
-    if (openNodeIds && !openNodeIds.has(node.id)) classes.push('closed');
+    if (openNodeIds && !openNodeIds.has(node.id) && dimClosedNodes) classes.push('closed');
     if (tabState?.sound.muted) classes.push('muted');
     if (node.data.pinned) classes.push('pinned');
     if (isSelected) classes.push('selected');
@@ -107,25 +113,27 @@ export default function GraphNode({
           <Icons.Pin size={16} />
         </div>
       )}
-      <div className="graph-node-favicon">
-        {node.data.favicon && !faviconError ? (
-          <img src={node.data.favicon} alt="" onError={() => setFaviconError(true)} />
-        ) : (
-          '🌐'
-        )}
-      </div>
+      {showFavicons ? (
+        <div className="graph-node-favicon">
+          {node.data.favicon && !faviconError ? (
+            <img src={node.data.favicon} alt="" onError={() => setFaviconError(true)} />
+          ) : (
+            '🌐'
+          )}
+        </div>
+      ) : null}
       <div className="graph-node-content">
         <div className="graph-node-title" title={fullTitle}>
           {displayTitle}
         </div>
-        <div className="graph-node-url">{formatUrl(node.data.url)}</div>
+        {showUrls ? <div className="graph-node-url">{formatUrl(node.data.url)}</div> : null}
       </div>
-      {tabCount && tabCount > 1 ? (
+      {showTabCounts && tabCount && tabCount > 1 ? (
         <div className="graph-node-tab-count" title={`${tabCount} tabs open for this page`}>
           {tabCount}x
         </div>
       ) : null}
-      {hasTags && (
+      {showTagDots && hasTags && (
         <div className="graph-node-tags">
           {node.data.tags?.map((tagId) => {
             const tagPreset = tagDefs[tagId];
@@ -142,7 +150,7 @@ export default function GraphNode({
           })}
         </div>
       )}
-      {tabState?.sound.audible && (
+      {showAudioIndicators && tabState?.sound.audible && (
         <div
           className="graph-node-audio"
           title={tabState.sound.muted ? 'Unmute tab' : 'Mute tab'}
