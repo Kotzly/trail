@@ -25,7 +25,7 @@ type Config struct {
 	RefreshTokenTTL     time.Duration `env:"REFRESH_TOKEN_TTL" env-default:"720h"`
 	CookieDomain        string        `env:"COOKIE_DOMAIN" env-default:""`
 	CookieSecure        bool          `env:"COOKIE_SECURE" env-default:"false"`
-	CORSAllowedOrigins  []string      `env:"CORS_ALLOWED_ORIGINS" env-separator:"," env-default:"http://localhost:5173"`
+	CORSAllowedOrigins  []string      `env:"CORS_ALLOWED_ORIGINS" env-separator:"," env-default:"http://localhost:5173,http://127.0.0.1:5173"`
 	PortalBaseURL       string        `env:"PORTAL_BASE_URL" env-default:"http://localhost:5173"`
 	BillingProvider     string        `env:"BILLING_PROVIDER" env-default:"stripe_stub"`
 	StripeSecretKey     string        `env:"STRIPE_SECRET_KEY" env-default:""`
