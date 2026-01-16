@@ -7,16 +7,16 @@ import { Link, useNavigate } from "react-router-dom";
 
 const schema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
   displayName: z.string().min(2),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 export default function RegisterPage() {
-  const { register: registerUser } = useAuth();
+  const { startEmailCode } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   const { register, handleSubmit, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -24,15 +24,21 @@ export default function RegisterPage() {
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
+    setInfo(null);
     try {
-      await registerUser({
+      await startEmailCode({
         email: values.email,
-        password: values.password,
+        purpose: "register",
         displayName: values.displayName,
       });
-      navigate("/dashboard");
+      setInfo("We sent a verification code to your email.");
+      navigate(
+        `/email-confirm?email=${encodeURIComponent(values.email)}&purpose=register&displayName=${encodeURIComponent(
+          values.displayName
+        )}`
+      );
     } catch (err) {
-      setError("Unable to create account.");
+      setError("Unable to send verification code.");
     }
   });
 
@@ -68,23 +74,13 @@ export default function RegisterPage() {
               <p className="mt-1 text-xs text-coral">{formState.errors.email.message}</p>
             )}
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Password</label>
-            <input
-              type="password"
-              {...register("password")}
-              className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm"
-            />
-            {formState.errors.password && (
-              <p className="mt-1 text-xs text-coral">{formState.errors.password.message}</p>
-            )}
-          </div>
           {error && <div className="rounded-2xl bg-coral/10 px-4 py-3 text-xs text-coral">{error}</div>}
+          {info && <div className="rounded-2xl bg-moss/10 px-4 py-3 text-xs text-moss">{info}</div>}
           <button
             type="submit"
             className="w-full rounded-full bg-ink px-4 py-3 text-sm font-semibold text-sand transition hover:bg-slate"
           >
-            Create account
+            Send verification code
           </button>
           <p className="text-center text-xs text-slate-500">
             Already have an account? <Link to="/login" className="font-semibold text-ink">Sign in</Link>

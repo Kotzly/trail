@@ -1,6 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { components } from "@/lib/api/types";
-import { api, type AuthResponse, type LoginInput, type RegisterInput } from "@/lib/api/client";
+import {
+  api,
+  type AuthResponse,
+  type EmailCodeConfirmInput,
+  type EmailCodeStartInput,
+  type EmailCodeStartResponse,
+  type LoginInput,
+  type RegisterInput,
+} from "@/lib/api/client";
 
 export type User = components["schemas"]["User"];
 
@@ -12,6 +20,8 @@ type AuthContextValue = {
   status: AuthStatus;
   login: (input: LoginInput) => Promise<AuthResponse>;
   register: (input: RegisterInput) => Promise<AuthResponse>;
+  startEmailCode: (input: EmailCodeStartInput) => Promise<EmailCodeStartResponse>;
+  confirmEmailCode: (input: EmailCodeConfirmInput) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -64,6 +74,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [applyAuth]
   );
 
+  const startEmailCode = useCallback(async (input: EmailCodeStartInput) => {
+    return api.startEmailCode(input);
+  }, []);
+
+  const confirmEmailCode = useCallback(
+    async (input: EmailCodeConfirmInput) => {
+      const res = await api.confirmEmailCode(input);
+      applyAuth(res.accessToken, res.user);
+      return res;
+    },
+    [applyAuth]
+  );
+
   const logout = useCallback(async () => {
     await api.logout();
     setAccessToken(null);
@@ -82,10 +105,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       status,
       login,
       register,
+      startEmailCode,
+      confirmEmailCode,
       logout,
       refresh,
     }),
-    [accessToken, user, status, login, register, logout, refresh]
+    [accessToken, user, status, login, register, startEmailCode, confirmEmailCode, logout, refresh]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

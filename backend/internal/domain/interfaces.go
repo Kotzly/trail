@@ -45,3 +45,16 @@ type PortalSessionRepository interface {
 type WebhookEventRepository interface {
 	Create(ctx context.Context, event WebhookEvent) error
 }
+
+type EmailCodeRepository interface {
+	Create(ctx context.Context, code EmailCode) (EmailCode, error)
+	GetActive(ctx context.Context, email string, purpose EmailCodePurpose) (EmailCode, error)
+	GetLatest(ctx context.Context, email string, purpose EmailCodePurpose) (EmailCode, error)
+	Consume(ctx context.Context, id string, consumedAt time.Time) error
+	Invalidate(ctx context.Context, email string, purpose EmailCodePurpose, consumedAt time.Time) error
+	IncrementAttempts(ctx context.Context, id string) error
+}
+
+type EmailSender interface {
+	Send(ctx context.Context, to string, subject string, body string) error
+}

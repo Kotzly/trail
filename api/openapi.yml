@@ -105,6 +105,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /auth/email/start:
+    post:
+      summary: Start email code flow
+      description: Send a one-time code to the user's email for login or registration.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailCodeStartInput'
+      responses:
+        '200':
+          description: Code sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailCodeStartResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/email/confirm:
+    post:
+      summary: Confirm email code
+      description: Confirm a one-time code and issue auth tokens.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailCodeConfirmInput'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /auth/refresh:
     post:
       summary: Refresh access token
@@ -828,3 +876,47 @@ components:
         data:
           type: object
           additionalProperties: true
+    EmailCodeStartInput:
+      type: object
+      required:
+        - email
+        - purpose
+      properties:
+        email:
+          type: string
+          format: email
+        purpose:
+          type: string
+          enum: [login, register]
+        displayName:
+          type: string
+          nullable: true
+    EmailCodeStartResponse:
+      type: object
+      required:
+        - expiresAt
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+        retryAfterSeconds:
+          type: integer
+          nullable: true
+    EmailCodeConfirmInput:
+      type: object
+      required:
+        - email
+        - code
+        - purpose
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+        purpose:
+          type: string
+          enum: [login, register]
+        displayName:
+          type: string
+          nullable: true

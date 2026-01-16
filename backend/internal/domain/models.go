@@ -195,3 +195,23 @@ type WebhookEvent struct {
 	ProcessedAt *time.Time
 	Status      string
 }
+
+type EmailCodePurpose string
+
+const (
+	EmailCodeLogin    EmailCodePurpose = "login"
+	EmailCodeRegister EmailCodePurpose = "register"
+)
+
+type EmailCode struct {
+	ID         string
+	Email      string
+	Purpose    EmailCodePurpose
+	CodeHash   string
+	ExpiresAt  time.Time
+	CreatedAt  time.Time
+	ConsumedAt *time.Time
+	Attempts   int
+	UserAgent  *string
+	IP         *string
+}

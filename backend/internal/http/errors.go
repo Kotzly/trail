@@ -78,6 +78,8 @@ func mapDomainError(err error) (*APIError, bool) {
 		return &APIError{Status: http.StatusUnauthorized, Code: "auth", Message: "unauthorized"}, true
 	case errors.Is(err, domain.ErrForbidden):
 		return &APIError{Status: http.StatusForbidden, Code: "auth", Message: "forbidden"}, true
+	case errors.Is(err, domain.ErrExpired):
+		return &APIError{Status: http.StatusBadRequest, Code: "validation", Message: "code expired"}, true
 	case errors.Is(err, domain.ErrNotFound):
 		return &APIError{Status: http.StatusNotFound, Code: "validation", Message: "not found"}, true
 	case errors.Is(err, domain.ErrConflict):

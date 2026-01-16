@@ -213,6 +213,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/email/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start email code flow
+         * @description Send a one-time code to the user's email for login or registration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EmailCodeStartInput"];
+                };
+            };
+            responses: {
+                /** @description Code sent */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EmailCodeStartResponse"];
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm email code
+         * @description Confirm a one-time code and issue auth tokens.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EmailCodeConfirmInput"];
+                };
+            };
+            responses: {
+                /** @description Authenticated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuthResponse"];
+                    };
+                };
+                /** @description Invalid code */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/refresh": {
         parameters: {
             query?: never;
@@ -1168,6 +1272,26 @@ export interface components {
             data: {
                 [key: string]: unknown;
             };
+        };
+        EmailCodeStartInput: {
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            purpose: "login" | "register";
+            displayName?: string | null;
+        };
+        EmailCodeStartResponse: {
+            /** Format: date-time */
+            expiresAt: string;
+            retryAfterSeconds?: number | null;
+        };
+        EmailCodeConfirmInput: {
+            /** Format: email */
+            email: string;
+            code: string;
+            /** @enum {string} */
+            purpose: "login" | "register";
+            displayName?: string | null;
         };
     };
     responses: never;

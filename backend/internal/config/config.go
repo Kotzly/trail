@@ -30,6 +30,16 @@ type Config struct {
 	BillingProvider     string        `env:"BILLING_PROVIDER" env-default:"stripe_stub"`
 	StripeSecretKey     string        `env:"STRIPE_SECRET_KEY" env-default:""`
 	StripeWebhookSecret string        `env:"STRIPE_WEBHOOK_SECRET" env-default:""`
+	EmailProvider       string        `env:"EMAIL_PROVIDER" env-default:"stub"`
+	EmailFrom           string        `env:"EMAIL_FROM" env-default:"no-reply@trail.app"`
+	EmailFromName       string        `env:"EMAIL_FROM_NAME" env-default:"Trail"`
+	EmailCodeTTL        time.Duration `env:"EMAIL_CODE_TTL" env-default:"10m"`
+	EmailCodeLength     int           `env:"EMAIL_CODE_LENGTH" env-default:"6"`
+	SMTPHost            string        `env:"SMTP_HOST" env-default:""`
+	SMTPPort            int           `env:"SMTP_PORT" env-default:"587"`
+	SMTPUser            string        `env:"SMTP_USER" env-default:""`
+	SMTPPass            string        `env:"SMTP_PASS" env-default:""`
+	SMTPTLS             bool          `env:"SMTP_TLS" env-default:"true"`
 }
 
 func Load() (Config, error) {

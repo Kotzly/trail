@@ -13,6 +13,7 @@ import (
 	"github.com/trail/trail/backend/internal/billing"
 	"github.com/trail/trail/backend/internal/config"
 	"github.com/trail/trail/backend/internal/db"
+	"github.com/trail/trail/backend/internal/email"
 	httpserver "github.com/trail/trail/backend/internal/http"
 	"github.com/trail/trail/backend/internal/observability"
 	"github.com/trail/trail/backend/internal/repository"
@@ -44,9 +45,11 @@ func main() {
 	checkoutRepo := repository.NewCheckoutSessionRepository(pool)
 	portalRepo := repository.NewPortalSessionRepository(pool)
 	webhookRepo := repository.NewWebhookEventRepository(pool)
+	emailCodeRepo := repository.NewEmailCodeRepository(pool)
 
 	tokens := usecase.NewJWTManager(cfg.JWTSecret, cfg.AccessTokenTTL)
-	authUC := usecase.NewAuthUsecase(userRepo, refreshRepo, portalRepo, planRepo, subRepo, tokens, cfg.RefreshTokenTTL)
+	emailSender := email.NewSender(cfg, logger)
+	authUC := usecase.NewAuthUsecase(userRepo, refreshRepo, portalRepo, planRepo, subRepo, emailCodeRepo, emailSender, tokens, cfg.RefreshTokenTTL, cfg.EmailCodeTTL, cfg.EmailCodeLength)
 	billingUC := usecase.NewBillingUsecase(subRepo, userRepo, provider)
 	accountUC := usecase.NewAccountUsecase(userRepo, subRepo, planRepo, billingUC)
 	planUC := usecase.NewPlanUsecase(planRepo)

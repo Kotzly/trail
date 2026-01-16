@@ -134,11 +134,17 @@ func (m *memorySubRepo) Cancel(ctx context.Context, userID string, canceledAt ti
 	return domain.Subscription{}, domain.ErrNotFound
 }
 
+type noopEmailSender struct{}
+
+func (n noopEmailSender) Send(ctx context.Context, to string, subject string, body string) error {
+	return nil
+}
+
 func TestAuthRegisterAndLogin(t *testing.T) {
 	users := newMemoryUserRepo()
 	refresh := newMemoryRefreshRepo()
 	jwtManager := NewJWTManager("secret", 15*time.Minute)
-	auth := NewAuthUsecase(users, refresh, noopPortalRepo{}, newMemoryPlanRepo(), newMemorySubRepo(), jwtManager, time.Hour)
+	auth := NewAuthUsecase(users, refresh, noopPortalRepo{}, newMemoryPlanRepo(), newMemorySubRepo(), newMemoryEmailRepo(), noopEmailSender{}, jwtManager, time.Hour, 10*time.Minute, 6)
 
 	result, err := auth.Register(context.Background(), "user@example.com", "password123", "Test User")
 	require.NoError(t, err)
@@ -155,7 +161,7 @@ func TestAuthLoginInvalidPassword(t *testing.T) {
 	users := newMemoryUserRepo()
 	refresh := newMemoryRefreshRepo()
 	jwtManager := NewJWTManager("secret", 15*time.Minute)
-	auth := NewAuthUsecase(users, refresh, noopPortalRepo{}, newMemoryPlanRepo(), newMemorySubRepo(), jwtManager, time.Hour)
+	auth := NewAuthUsecase(users, refresh, noopPortalRepo{}, newMemoryPlanRepo(), newMemorySubRepo(), newMemoryEmailRepo(), noopEmailSender{}, jwtManager, time.Hour, 10*time.Minute, 6)
 
 	_, err := auth.Register(context.Background(), "user@example.com", "password123", "Test User")
 	require.NoError(t, err)

@@ -26,6 +26,7 @@ Base URL: `http://localhost:8080/v1`
 
 Core endpoints:
 - Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
+- Email code auth: `POST /auth/email/start`, `POST /auth/email/confirm`
 - User: `GET /me`
 - Plans: `GET /plans`, `POST /admin/plans`
 - Subscription: `GET /subscription`, `GET /subscriptions/me`, `POST /subscriptions/cancel`
@@ -41,11 +42,12 @@ Auth model:
 The OpenAPI spec in `api/openapi.yml` is the source of truth. This repo adds the following minimal extensions to support SaaS flows:
 - Health endpoints: `/healthz`, `/readyz`
 - Auth: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`
+- Email code auth: `/auth/email/start`, `/auth/email/confirm`
 - User profile: `/me`
 - Billing/Subscription aliases: `/billing/checkout`, `/subscriptions/me`, `/subscriptions/cancel`
 - Webhooks: `/webhooks/{provider}`
 - Admin: `/admin/plans`
-- New schemas: `RegisterInput`, `LoginInput`, `AuthResponse`, `RefreshResponse`, `PlanUpsertInput`, `HealthStatus`, `WebhookEventInput`
+- New schemas: `RegisterInput`, `LoginInput`, `AuthResponse`, `RefreshResponse`, `PlanUpsertInput`, `HealthStatus`, `WebhookEventInput`, `EmailCodeStartInput`, `EmailCodeStartResponse`, `EmailCodeConfirmInput`
 
 ## Backend architecture
 - `cmd/api` — entrypoint + graceful shutdown
@@ -55,6 +57,14 @@ The OpenAPI spec in `api/openapi.yml` is the source of truth. This repo adds the
 - `internal/billing` — provider interface + Stripe stub
 - `internal/observability` — Zerolog + Prometheus
 - `migrations/` — SQL migrations + seed data
+
+## Email verification (code login/register)
+Email codes are stored in Postgres and delivered through a configurable provider:
+- Default provider is `stub` (logs email body to backend logs).
+- To send real emails, set:
+  - `EMAIL_PROVIDER=smtp`
+  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_TLS`
+  - `EMAIL_FROM`, `EMAIL_FROM_NAME`
 
 ## Frontend
 - React + Vite + Tailwind + Framer Motion

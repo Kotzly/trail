@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,19 +21,39 @@ type AuthUsecase struct {
 	portalSessions domain.PortalSessionRepository
 	plans          domain.PlanRepository
 	subs           domain.SubscriptionRepository
+	emailCodes     domain.EmailCodeRepository
+	emailSender    domain.EmailSender
 	tokens         TokenManager
 	refreshTTL     time.Duration
+	emailCodeTTL   time.Duration
+	emailCodeLen   int
 }
 
-func NewAuthUsecase(users domain.UserRepository, refreshTokens domain.RefreshTokenRepository, portalSessions domain.PortalSessionRepository, plans domain.PlanRepository, subs domain.SubscriptionRepository, tokens TokenManager, refreshTTL time.Duration) *AuthUsecase {
+func NewAuthUsecase(
+	users domain.UserRepository,
+	refreshTokens domain.RefreshTokenRepository,
+	portalSessions domain.PortalSessionRepository,
+	plans domain.PlanRepository,
+	subs domain.SubscriptionRepository,
+	emailCodes domain.EmailCodeRepository,
+	emailSender domain.EmailSender,
+	tokens TokenManager,
+	refreshTTL time.Duration,
+	emailCodeTTL time.Duration,
+	emailCodeLen int,
+) *AuthUsecase {
 	return &AuthUsecase{
 		users:          users,
 		refreshTokens:  refreshTokens,
 		portalSessions: portalSessions,
 		plans:          plans,
 		subs:           subs,
+		emailCodes:     emailCodes,
+		emailSender:    emailSender,
 		tokens:         tokens,
 		refreshTTL:     refreshTTL,
+		emailCodeTTL:   emailCodeTTL,
+		emailCodeLen:   emailCodeLen,
 	}
 }
 
@@ -174,6 +196,175 @@ func (u *AuthUsecase) ensureDefaultSubscription(ctx context.Context, userID stri
 		Provider:           "stripe_stub",
 	})
 	return err
+}
+
+func (u *AuthUsecase) StartEmailCode(ctx context.Context, email string, purpose domain.EmailCodePurpose, displayName *string, userAgent *string, ip *string) (time.Time, error) {
+	if purpose != domain.EmailCodeLogin && purpose != domain.EmailCodeRegister {
+		return time.Time{}, domain.ErrValidation
+	}
+
+	switch purpose {
+	case domain.EmailCodeLogin:
+		if _, err := u.users.GetByEmail(ctx, email); err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				return time.Time{}, domain.ErrNotFound
+			}
+			return time.Time{}, err
+		}
+	case domain.EmailCodeRegister:
+		if _, err := u.users.GetByEmail(ctx, email); err == nil {
+			return time.Time{}, domain.ErrConflict
+		} else if !errors.Is(err, domain.ErrNotFound) {
+			return time.Time{}, err
+		}
+		if displayName != nil && *displayName == "" {
+			displayName = nil
+		}
+	}
+
+	now := time.Now().UTC()
+	if u.emailCodeTTL <= 0 {
+		u.emailCodeTTL = 10 * time.Minute
+	}
+	codeLen := u.emailCodeLen
+	if codeLen < 4 || codeLen > 12 {
+		codeLen = 6
+	}
+
+	if err := u.emailCodes.Invalidate(ctx, email, purpose, now); err != nil {
+		return time.Time{}, err
+	}
+
+	code, err := generateNumericCode(codeLen)
+	if err != nil {
+		return time.Time{}, err
+	}
+	codeHash := hashCode(code)
+	expiresAt := now.Add(u.emailCodeTTL)
+
+	record := domain.EmailCode{
+		ID:        uuid.NewString(),
+		Email:     email,
+		Purpose:   purpose,
+		CodeHash:  codeHash,
+		ExpiresAt: expiresAt,
+		CreatedAt: now,
+		UserAgent: userAgent,
+		IP:        ip,
+	}
+
+	created, err := u.emailCodes.Create(ctx, record)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if u.emailSender != nil {
+		subject := "Your Trail verification code"
+		body := fmt.Sprintf("Your verification code is: %s\n\nIt expires in %d minutes.", code, int(u.emailCodeTTL.Minutes()))
+		if err := u.emailSender.Send(ctx, email, subject, body); err != nil {
+			_ = u.emailCodes.Consume(ctx, created.ID, time.Now().UTC())
+			return time.Time{}, err
+		}
+	}
+
+	return expiresAt, nil
+}
+
+func (u *AuthUsecase) ConfirmEmailCode(ctx context.Context, email string, code string, purpose domain.EmailCodePurpose, displayName *string) (AuthResult, error) {
+	if code == "" || email == "" {
+		return AuthResult{}, domain.ErrValidation
+	}
+	if purpose != domain.EmailCodeLogin && purpose != domain.EmailCodeRegister {
+		return AuthResult{}, domain.ErrValidation
+	}
+
+	record, err := u.emailCodes.GetActive(ctx, email, purpose)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			latest, latestErr := u.emailCodes.GetLatest(ctx, email, purpose)
+			if latestErr != nil {
+				return AuthResult{}, err
+			}
+			if time.Now().UTC().After(latest.ExpiresAt) {
+				return AuthResult{}, domain.ErrExpired
+			}
+			return AuthResult{}, domain.ErrValidation
+		}
+		return AuthResult{}, err
+	}
+
+	now := time.Now().UTC()
+	if now.After(record.ExpiresAt) {
+		_ = u.emailCodes.Consume(ctx, record.ID, now)
+		return AuthResult{}, domain.ErrExpired
+	}
+
+	if subtle.ConstantTimeCompare([]byte(record.CodeHash), []byte(hashCode(code))) != 1 {
+		_ = u.emailCodes.IncrementAttempts(ctx, record.ID)
+		return AuthResult{}, domain.ErrValidation
+	}
+
+	if err := u.emailCodes.Consume(ctx, record.ID, now); err != nil {
+		return AuthResult{}, err
+	}
+
+	var user domain.User
+	switch purpose {
+	case domain.EmailCodeLogin:
+		user, err = u.users.GetByEmail(ctx, email)
+		if err != nil {
+			return AuthResult{}, err
+		}
+	case domain.EmailCodeRegister:
+		if displayName == nil || *displayName == "" {
+			value := email
+			displayName = &value
+		}
+		randomPassword, err := generateToken(24)
+		if err != nil {
+			return AuthResult{}, err
+		}
+		passwordHash, err := domain.HashPassword(randomPassword)
+		if err != nil {
+			return AuthResult{}, err
+		}
+		user = domain.User{
+			ID:           uuid.NewString(),
+			Email:        email,
+			PasswordHash: passwordHash,
+			Role:         domain.RoleUser,
+			DisplayName:  *displayName,
+		}
+		created, err := u.users.Create(ctx, user)
+		if err != nil {
+			return AuthResult{}, err
+		}
+		if err := u.ensureDefaultSubscription(ctx, created.ID); err != nil {
+			return AuthResult{}, err
+		}
+		user = created
+	}
+
+	return u.issueTokens(ctx, user)
+}
+
+func generateNumericCode(length int) (string, error) {
+	if length < 4 {
+		length = 6
+	}
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	for i := range b {
+		b[i] = byte('0' + (b[i] % 10))
+	}
+	return string(b), nil
+}
+
+func hashCode(code string) string {
+	sum := sha256.Sum256([]byte(code))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
 func generateToken(size int) (string, error) {

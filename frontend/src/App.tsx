@@ -6,6 +6,7 @@ import PricingPage from "@/pages/PricingPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
+import EmailConfirmPage from "@/pages/EmailConfirmPage";
 import { useAuth } from "@/lib/auth/AuthContext";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/email-confirm" element={<EmailConfirmPage />} />
           <Route
             path="/dashboard"
             element={

@@ -33,6 +33,9 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       PORTAL_BASE_URL: http://localhost:5173
       BILLING_PROVIDER: stripe_stub
+      EMAIL_PROVIDER: stub
+      EMAIL_FROM: no-reply@trail.app
+      EMAIL_FROM_NAME: Trail
     depends_on:
       postgres:
         condition: service_healthy

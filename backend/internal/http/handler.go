@@ -101,6 +101,46 @@ func (h *Handler) PostAuthLogin(ctx echo.Context) error {
 	})
 }
 
+func (h *Handler) PostAuthEmailStart(ctx echo.Context) error {
+	var input openapi.EmailCodeStartInput
+	if err := ctx.Bind(&input); err != nil {
+		return NewAPIError(http.StatusBadRequest, "validation", "invalid payload", "")
+	}
+	if input.Email == "" || input.Purpose == "" {
+		return NewAPIError(http.StatusBadRequest, "validation", "email and purpose required", "")
+	}
+	var userAgent *string
+	if ua := ctx.Request().UserAgent(); ua != "" {
+		userAgent = &ua
+	}
+	var ip *string
+	if realIP := ctx.RealIP(); realIP != "" {
+		ip = &realIP
+	}
+	expiresAt, err := h.auth.StartEmailCode(ctx.Request().Context(), string(input.Email), domain.EmailCodePurpose(input.Purpose), input.DisplayName, userAgent, ip)
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, openapi.EmailCodeStartResponse{ExpiresAt: expiresAt})
+}
+
+func (h *Handler) PostAuthEmailConfirm(ctx echo.Context) error {
+	var input openapi.EmailCodeConfirmInput
+	if err := ctx.Bind(&input); err != nil {
+		return NewAPIError(http.StatusBadRequest, "validation", "invalid payload", "")
+	}
+	result, err := h.auth.ConfirmEmailCode(ctx.Request().Context(), string(input.Email), input.Code, domain.EmailCodePurpose(input.Purpose), input.DisplayName)
+	if err != nil {
+		return err
+	}
+	h.setRefreshCookie(ctx, result.RefreshToken)
+	return ctx.JSON(http.StatusOK, openapi.AuthResponse{
+		User:        mapUser(result.User),
+		AccessToken: result.AccessToken,
+		ExpiresAt:   result.ExpiresAt,
+	})
+}
+
 func (h *Handler) PostAuthRefresh(ctx echo.Context) error {
 	cookie, err := ctx.Cookie("refresh_token")
 	if err != nil || cookie.Value == "" {

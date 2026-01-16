@@ -13,22 +13,24 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, startEmailCode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   const portalSessionId = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return params.get("portalSessionId") ?? undefined;
   }, [location.search]);
 
-  const { register, handleSubmit, formState } = useForm<FormValues>({
+  const { register, handleSubmit, formState, getValues } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
+    setInfo(null);
     try {
       await login({
         email: values.email,
@@ -40,6 +42,24 @@ export default function LoginPage() {
       setError("Invalid credentials. Try again.");
     }
   });
+
+  const handleSendCode = async () => {
+    setError(null);
+    setInfo(null);
+    const email = getValues("email");
+    const parsed = schema.pick({ email: true }).safeParse({ email });
+    if (!parsed.success) {
+      setError("Enter a valid email to receive a code.");
+      return;
+    }
+    try {
+      await startEmailCode({ email, purpose: "login" });
+      setInfo("Code sent. Check your email.");
+      navigate(`/email-confirm?email=${encodeURIComponent(email)}&purpose=login`);
+    } catch (err) {
+      setError("Unable to send code. Try again.");
+    }
+  };
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-16 md:flex-row">
@@ -74,11 +94,19 @@ export default function LoginPage() {
             )}
           </div>
           {error && <div className="rounded-2xl bg-coral/10 px-4 py-3 text-xs text-coral">{error}</div>}
+          {info && <div className="rounded-2xl bg-moss/10 px-4 py-3 text-xs text-moss">{info}</div>}
           <button
             type="submit"
             className="w-full rounded-full bg-ink px-4 py-3 text-sm font-semibold text-sand transition hover:bg-slate"
           >
             Sign in
+          </button>
+          <button
+            type="button"
+            onClick={handleSendCode}
+            className="w-full rounded-full border border-ink/20 px-4 py-3 text-sm font-semibold text-ink"
+          >
+            Send email code
           </button>
           <p className="text-center text-xs text-slate-500">
             No account? <Link to="/register" className="font-semibold text-ink">Create one</Link>

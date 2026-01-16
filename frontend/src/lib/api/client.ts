@@ -13,6 +13,9 @@ export type BillingStatus = components["schemas"]["BillingStatus"];
 export type AccountSnapshot = components["schemas"]["AccountSnapshot"];
 export type PortalLink = components["schemas"]["PortalLink"];
 export type CheckoutInput = components["schemas"]["CheckoutInput"];
+export type EmailCodeStartInput = components["schemas"]["EmailCodeStartInput"];
+export type EmailCodeStartResponse = components["schemas"]["EmailCodeStartResponse"];
+export type EmailCodeConfirmInput = components["schemas"]["EmailCodeConfirmInput"];
 
 export class ApiError extends Error {
   status: number;
@@ -55,6 +58,10 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 export const api = {
   register: (input: RegisterInput) => request<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify(input) }),
   login: (input: LoginInput) => request<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify(input) }),
+  startEmailCode: (input: EmailCodeStartInput) =>
+    request<EmailCodeStartResponse>("/auth/email/start", { method: "POST", body: JSON.stringify(input) }),
+  confirmEmailCode: (input: EmailCodeConfirmInput) =>
+    request<AuthResponse>("/auth/email/confirm", { method: "POST", body: JSON.stringify(input) }),
   refresh: () => request<RefreshResponse>("/auth/refresh", { method: "POST" }),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
   getAccount: (token?: string) => request<AccountSnapshot>("/account", { method: "GET" }, token),
