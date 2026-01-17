@@ -1,121 +1,259 @@
 # Trail
 
-Trail is a browser extension for Chrome/Brave that visualizes your browsing history as an interactive navigation tree. Instead of a linear history, Trail shows how you actually browse - with branches, forks, and parallel explorations.
+Trail is now a monorepo that ships both the existing Chrome/Brave extension and a full SaaS service (Go backend + React frontend) for user accounts, subscriptions, and billing.
 
-## Features
+Monorepo layout:
+- `extension/` — existing browser extension (unchanged)
+- `backend/` — Go 1.22+ API (Echo + PostgreSQL)
+- `frontend/` — React + Vite web app
+- `api/` — OpenAPI source of truth
 
-### View Modes
-- **Graph View** - Interactive canvas with pan/zoom, shows your browsing as a visual tree
-- **Tree View** - Collapsible hierarchical list, great for deep navigation structures  
-- **Stack View** - Simple linear stack, LIFO-style history
+## Quickstart (local)
+1. `cp backend/.env.example backend/.env`
+2. `cp frontend/.env.example frontend/.env`
+3. `./dev` (or `make up` / `docker compose up --build`) — migrations run automatically before the API starts
+4. Open `http://localhost:5173`
 
-### Multi-Tab Mode
-- **Global Navigation Graph** - One unified tree across all browser windows
-- **Visual Tab States** - See which nodes have open tabs, which are closed
-- **Audio Indicators** - Speaker icons on tabs playing audio, click to mute
-- **Muted Tab Indicators** - Red border on muted tabs
-- **Window Focus** - Clicking a node focuses the correct window and tab
+## Common commands
+- `make generate` — regenerate backend OpenAPI code + frontend types
+- `make test` — backend tests
+- `make lint` — backend lint (golangci-lint)
+- `make run` — run backend locally
+- `make migrate` — run migrations manually if needed
 
-### Forest Mode
-- Each new tab starts its own separate tree
-- Multiple roots displayed side-by-side
-- Great for parallel research sessions
+## API overview
+Base URL: `http://localhost:8080/v1`
 
-### Smart Navigation
-- **Back on Revisit** - Scrolling back to a previously visited URL (like YouTube Shorts) navigates to the existing node instead of creating duplicates
-- **Context Menu** - Right-click any node to "Open in this tab"
-- **SPA Support** - Tracks History API navigations in single-page applications
+Core endpoints:
+- Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
+- Email code auth: `POST /auth/email/start`, `POST /auth/email/confirm`
+- User: `GET /me`
+- Plans: `GET /plans`, `POST /admin/plans`
+- Subscription: `GET /subscription`, `GET /subscriptions/me`, `POST /subscriptions/cancel`
+- Billing: `POST /billing/checkout`, `POST /billing/portal`, `GET /billing`
+- Webhooks: `POST /webhooks/{provider}`
+- Health: `GET /healthz`, `GET /readyz`, `GET /metrics`
 
-### Compact Graph Mode
-- Smaller nodes showing page title only
-- Tighter spacing for dense trees
-- URL shown on hover
+Auth model:
+- Access token is JWT (Authorization: Bearer)
+- Refresh token is httpOnly cookie (`refresh_token`)
 
-### Search (Cmd/Ctrl+F)
-- Search by page title, URL, or domain
-- Highlights matching nodes, dims others
-- Navigate through results with arrow keys
-- Enter to go to node, Shift+Enter to open in new tab
+## OpenAPI changes
+The OpenAPI spec in `api/openapi.yml` is the source of truth. This repo adds the following minimal extensions to support SaaS flows:
+- Health endpoints: `/healthz`, `/readyz`
+- Auth: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`
+- Email code auth: `/auth/email/start`, `/auth/email/confirm`
+- User profile: `/me`
+- Billing/Subscription aliases: `/billing/checkout`, `/subscriptions/me`, `/subscriptions/cancel`
+- Webhooks: `/webhooks/{provider}`
+- Admin: `/admin/plans`
+- New schemas: `RegisterInput`, `LoginInput`, `AuthResponse`, `RefreshResponse`, `PlanUpsertInput`, `HealthStatus`, `WebhookEventInput`, `EmailCodeStartInput`, `EmailCodeStartResponse`, `EmailCodeConfirmInput`
 
-### Pin Nodes
-- Pin important pages to protect from LRU eviction
-- Pinned nodes marked with 📌 and golden border
-- Right-click → Pin node
+## Backend architecture
+- `cmd/api` — entrypoint + graceful shutdown
+- `internal/http` — handlers, middleware, OpenAPI validator
+- `internal/usecase` — business logic
+- `internal/repository` — PostgreSQL data access (SQL in `internal/db/sql`)
+- `internal/billing` — provider interface + Stripe stub
+- `internal/observability` — Zerolog + Prometheus
+- `migrations/` — SQL migrations + seed data
 
-### Tags / Labels
-- Add colored tags to organize pages
-- Predefined tags: Important, Reference, To Do, Dead End, Bookmark
-- Right-click → Tags to add/remove
-- Colored dots shown on tagged nodes
+## Email verification (code login/register)
+Email codes are stored in Postgres and delivered through a configurable provider:
+- Default provider is `stub` (logs email body to backend logs).
+- To send real emails, set:
+  - `EMAIL_PROVIDER=smtp`
+  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_TLS`
+  - `EMAIL_FROM`, `EMAIL_FROM_NAME`
 
-### Additional Features
-- Click any node to navigate and smoothly center view
-- Pinch-to-zoom and scroll zoom on trackpad
-- Keyboard shortcuts (+/- for zoom, 0 to reset)
-- Dark/light theme support
-- Configurable limits for cached pages and open tabs
-- A/B feature flags to enable/disable Search, Pin, Tags
+## Billing provider (YooKassa)
+Trail defaults to YooKassa for payment checkout. Configure:
+- `BILLING_PROVIDER=yookassa`
+- `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`
+- `YOOKASSA_API_BASE_URL` (optional, defaults to `https://api.yookassa.ru/v3`)
 
-## Installation
+If YooKassa credentials are not set, the backend falls back to the Stripe stub provider for local development.
 
-1. Open Chrome/Brave and navigate to `chrome://extensions/` or `brave://extensions/`
-2. Enable **Developer mode** (toggle in the top right)
-3. Click **Load unpacked** and select the `trail` folder
-4. The extension icon will appear in your toolbar
-5. Click the icon to open the side panel
+## Frontend
+- React + Vite + Tailwind + Framer Motion
+- React Query for data fetching
+- Auth uses access token in memory + refresh cookie
 
-## Configuration
+## Extension (existing)
+The section below describes the browser extension as it exists in `extension/`. It remains unchanged.
 
-Click the gear icon in the side panel to access settings:
+## What Trail does
 
-- **View Mode** - Graph, Tree, or Stack
-- **Multi-Tab Mode** - Enable global graph with multiple open tabs
-- **Multi-Tab Limit** - Maximum concurrent tabs to keep open
-- **Forest Mode** - Separate tree per new tab
-- **Back on Revisit** - Navigate to ancestor on duplicate URLs
-- **Compact Graph** - Use smaller, denser graph layout
-- **Stack Capacity** - Maximum pages to remember (10-1000)
-- **Cached Links** - Recent entries to keep in memory (0-100)
+### Captures navigation into a global tree
+- Builds a single global navigation tree across all windows and tabs.
+- Listens to `chrome.webNavigation` events:
+  - `onCommitted` (normal navigations)
+  - `onHistoryStateUpdated` (SPA history updates)
+  - `onReferenceFragmentUpdated` (hash changes)
+- Uses `chrome.tabs` events to keep the "current" node in sync with the active tab.
+- Reuses an existing node if the URL already exists in the tree (global reuse), otherwise creates a new node.
+- Keeps a mapping of open tabs per node and tracks last-used tabs for cycling.
 
-**Feature Flags:**
-- **Search** - Enable search functionality (Cmd/Ctrl+F)
-- **Pin Nodes** - Enable pinning nodes for LRU protection
-- **Tags** - Enable tagging nodes with colored labels
+### Tree storage and eviction
+- The tree is stored in `chrome.storage.local` (see `src/background/services/tree-storage.ts`).
+- Nodes contain:
+  - URL, title, favicon
+  - pinned flag
+  - tags array
+  - optional per-node layout offsets (for tree/mindmap) or radial adjustments
+- Tree capacity is enforced by an LRU-style eviction policy based on node timestamps.
+  - Pinned nodes are never evicted (`NavigationTree.canRemove` checks `pinned`).
+  - Capacity exists in settings but is not exposed in the UI (defaults to Infinity).
 
-## Project Structure
+### Side panel UI (graph view)
+The UI is a single interactive graph view with three layout modes:
+- **Tree**
+- **Mindmap**
+- **Radial**
 
+Key interactions:
+- Pan and zoom (mouse wheel, trackpad pinch, +/- keys, 0 to reset).
+- Tool switch between Select and Hand (V / H).
+- Drag nodes to adjust their layout position; adjustments are persisted per node.
+- Selection rectangle for multi-select; Cmd/Ctrl adds to selection.
+- Context menu on a node with:
+  - Open in this tab
+  - Open in new tab
+  - List of open tabs for that node (click to focus)
+  - Pin/unpin
+  - Tags submenu (add/remove tag, edit/delete tag, create new tag)
+  - Copy URL / Copy title
+  - Delete node / delete children / delete subtree
+- Bulk selection context menu with:
+  - Pin/unpin selected
+  - Tags submenu (add/remove tags across selection)
+  - Close selected tabs
+  - Delete selected nodes
+
+### Search
+- Cmd/Ctrl+F focuses the search field.
+- Matches against title, URL, and domain (case-insensitive).
+- Matched nodes are highlighted; non-matches are dimmed.
+- Next/previous and accept/cancel actions are exposed in the search UI.
+- Search uses a temporary selection session to preview/focus results.
+
+### Tags
+- Tags are stored on nodes (array of tag IDs).
+- Tag definitions are stored in `chrome.storage.sync` and can be created/edited/deleted.
+- Default tag presets live in `src/shared/data/tag-presets.ts`.
+- Nodes display tag dots.
+- Tag filter dropdown:
+  - Opens next to the pinned list button.
+  - Top strip shows only tags that are currently used by at least one node.
+  - Default view shows all nodes that have any tag.
+  - Selecting tags filters nodes with OR semantics.
+  - Each node in the list shows its own tags.
+
+### Pins
+- Pinned nodes are visually marked.
+- Pinned list dropdown shows all pinned nodes and lets you jump to them.
+- Pinned nodes are excluded from tree eviction.
+
+### Tabs and audio state
+- Nodes show tab counts when multiple tabs exist for the same node.
+- Audio/mute state is reflected on the node; mute can be toggled from the node UI.
+- Clicking a node focuses an existing tab for that node (cycles through open tabs if multiple), otherwise opens a new tab.
+
+### Undo / redo
+- Undo/redo buttons in the side panel, with Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z shortcuts.
+- History is kept in memory only (static CommandManager). Restarting the service worker clears history.
+- Max history length is 30 snapshots.
+
+### Notifications (UI only)
+- A notification system exists in the UI, but it is not currently used by core flows.
+
+## Settings (side panel)
+Accessible via the gear button.
+
+- **Theme**: Light / Dark / System
+- **Tab limit**: UI allows setting a max open tab limit (0 = unlimited)
+  - Note: LRU tab-closing logic exists in code but is not currently wired into navigation, so this setting is not enforced yet.
+- **Title truncation**: Start / Middle / End
+- **Layout mode**: Mindmap / Tree / Radial
+- **Layout parameters**: sliders specific to each layout mode
+- **Reset**:
+  - Reset to defaults (layout params)
+  - Reset view (layout params + per-node offsets)
+
+## Data storage and privacy
+- **Tree data**: `chrome.storage.local`
+- **Settings**: `chrome.storage.sync`
+- **Tag definitions**: `chrome.storage.sync`
+- No external network calls are made by the extension itself.
+
+## Permissions (from `public/manifest.json`)
+- `sidePanel`: render Trail UI in the browser side panel
+- `storage`: persist tree/settings/tags
+- `tabs`: map nodes to tabs, focus/create/close tabs
+- `webNavigation`: build the tree from navigation events
+- `scripting`: reserved for injection (not used heavily in current code)
+- `favicon`: read favicon URLs
+- `host_permissions: <all_urls>`: needed to observe navigation across all sites
+
+## Build and run
+
+Install dependencies:
+```bash
+npm install
+```
+
+Development (UI only):
+```bash
+npm run dev:ui
+```
+
+TypeScript watch:
+```bash
+npm run watch
+```
+
+Full build (produces `dist/`):
+```bash
+npm run build
+```
+This runs `tsc`, builds the UI with Vite, and then copies/rewrites the manifest via `scripts/build-extension.js`.
+
+Load in Chrome/Brave:
+1. Go to `chrome://extensions` or `brave://extensions`.
+2. Enable Developer mode.
+3. Click "Load unpacked" and select the `dist/` folder.
+
+## Tests
+
+There is a small Node-based test:
+```bash
+npm test
+```
+It validates basic tree deletion behavior and undo/redo snapshots.
+
+## Project layout (current)
 ```
 trail/
-├── manifest.json           # Extension manifest (MV3)
-├── service-worker.js       # Background service worker
-├── sidepanel/
-│   ├── sidepanel.html      # Side panel UI
-│   ├── sidepanel.css       # Styles (Material Design 3)
-│   └── sidepanel.js        # Side panel logic
-├── content/
-│   └── content-script.js   # Page content script
-├── lib/
-│   ├── tree.js             # NavigationTree data structure
-│   ├── graph-renderer.js   # Interactive graph canvas
-│   ├── tree-renderer.js    # Collapsible tree view
-│   ├── stack-renderer.js   # Linear stack view
-│   ├── renderers.js        # Renderer utilities
-│   ├── view-modes.js       # View mode constants
-│   ├── storage-manager.js  # Storage abstraction
-│   ├── tab-manager.js      # Tab ↔ Node mapping
-│   ├── stack.js            # Stack data structure
-│   └── themes.js           # Theme management
-└── icons/
-    └── icon*.svg/png       # Extension icons
+├── public/
+│   ├── manifest.json
+│   └── icons/
+├── src/
+│   ├── background/          # service worker, navigation, tabs, messaging
+│   ├── content/             # content script (title changes)
+│   ├── sidepanel/           # React UI, state, styles
+│   └── shared/              # shared types, layout defaults, tree serialization
+├── scripts/
+│   └── build-extension.js   # rewrites manifest paths and copies icons into dist/
+├── tests/
+│   └── basic.test.ts
+├── dist/                    # build output (generated)
+├── package.json
+└── README.md
 ```
 
-## Technical Notes
+## Known gaps / TODOs
+- Tab limit UI exists, but automatic tab closing is not wired yet.
+- Capacity is part of settings but not exposed in the UI.
+- Notifications are implemented in UI but not used by core flows.
 
-- Chrome Manifest V3 compatible
-- `chrome.sidePanel` API for sidebar integration
-- `chrome.webNavigation` for tracking navigations
-- `chrome.storage.session` for ephemeral state
-- `chrome.storage.sync` for persistent settings
-- Canvas-based graph with smooth pan/zoom
-- Tree data structure with forest support
-- LRU eviction for tab limits
+---
