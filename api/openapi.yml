@@ -864,18 +864,7 @@ components:
           type: boolean
     WebhookEventInput:
       type: object
-      required:
-        - id
-        - type
-        - data
-      properties:
-        id:
-          type: string
-        type:
-          type: string
-        data:
-          type: object
-          additionalProperties: true
+      additionalProperties: true
     EmailCodeStartInput:
       type: object
       required:

@@ -11,7 +11,7 @@ Monorepo layout:
 ## Quickstart (local)
 1. `cp backend/.env.example backend/.env`
 2. `cp frontend/.env.example frontend/.env`
-3. `make up` (or `docker compose up --build`) — migrations run automatically before the API starts
+3. `./dev` (or `make up` / `docker compose up --build`) — migrations run automatically before the API starts
 4. Open `http://localhost:5173`
 
 ## Common commands
@@ -65,6 +65,14 @@ Email codes are stored in Postgres and delivered through a configurable provider
   - `EMAIL_PROVIDER=smtp`
   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_TLS`
   - `EMAIL_FROM`, `EMAIL_FROM_NAME`
+
+## Billing provider (YooKassa)
+Trail defaults to YooKassa for payment checkout. Configure:
+- `BILLING_PROVIDER=yookassa`
+- `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`
+- `YOOKASSA_API_BASE_URL` (optional, defaults to `https://api.yookassa.ru/v3`)
+
+If YooKassa credentials are not set, the backend falls back to the Stripe stub provider for local development.
 
 ## Frontend
 - React + Vite + Tailwind + Framer Motion

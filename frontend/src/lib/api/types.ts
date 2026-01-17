@@ -1267,11 +1267,7 @@ export interface components {
             active?: boolean;
         };
         WebhookEventInput: {
-            id: string;
-            type: string;
-            data: {
-                [key: string]: unknown;
-            };
+            [key: string]: unknown;
         };
         EmailCodeStartInput: {
             /** Format: email */

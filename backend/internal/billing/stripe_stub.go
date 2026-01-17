@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,11 +24,17 @@ func (s *StripeStub) Name() string {
 	return "stripe_stub"
 }
 
-func (s *StripeStub) CreateCheckoutSession(ctx context.Context, user domain.User, plan domain.Plan, interval string, successURL string, cancelURL string) (CheckoutSession, error) {
+func (s *StripeStub) CreateCheckoutSession(ctx context.Context, user domain.User, plan domain.Plan, interval string, successURL string, cancelURL string, idempotencyKey *string) (CheckoutSession, error) {
 	_ = ctx
+	_ = user
+	_ = plan
+	_ = interval
+	_ = successURL
+	_ = cancelURL
+	_ = idempotencyKey
 	id := uuid.NewString()
 	return CheckoutSession{
-		URL:               fmt.Sprintf("%s/checkout/%s", s.PortalBaseURL, id),
+		URL:               fmt.Sprintf("%s/dashboard?checkout=%s", strings.TrimRight(s.PortalBaseURL, "/"), id),
 		Provider:          s.Name(),
 		ProviderSessionID: id,
 	}, nil
@@ -35,8 +42,9 @@ func (s *StripeStub) CreateCheckoutSession(ctx context.Context, user domain.User
 
 func (s *StripeStub) CreateBillingPortalLink(ctx context.Context, user domain.User) (PortalLink, error) {
 	_ = ctx
+	_ = user
 	id := uuid.NewString()
-	return PortalLink{URL: fmt.Sprintf("%s/billing/%s", s.PortalBaseURL, id)}, nil
+	return PortalLink{URL: fmt.Sprintf("%s/dashboard?billing=%s", strings.TrimRight(s.PortalBaseURL, "/"), id)}, nil
 }
 
 func (s *StripeStub) CancelSubscription(ctx context.Context, externalID string) error {

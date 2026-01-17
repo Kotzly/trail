@@ -2,5 +2,5 @@ package: openapi
 output: internal/openapi/openapi.gen.go
 generate:
   models: true
-  server: true
-  spec: true
+  echo-server: true
+  embedded-spec: true

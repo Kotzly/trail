@@ -42,7 +42,7 @@ func (u *SubscriptionUsecase) Checkout(ctx context.Context, userID string, planI
 	if err != nil {
 		return domain.CheckoutSession{}, err
 	}
-	result, err := u.provider.CreateCheckoutSession(ctx, user, plan, interval, successURL, cancelURL)
+	result, err := u.provider.CreateCheckoutSession(ctx, user, plan, interval, successURL, cancelURL, idempotencyKey)
 	if err != nil {
 		return domain.CheckoutSession{}, err
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -36,7 +37,21 @@ func main() {
 
 	metrics := observability.NewMetrics("trail", pool)
 
-	provider := billing.NewStripeStub(cfg.PortalBaseURL)
+	var provider billing.Provider = billing.NewStripeStub(cfg.PortalBaseURL)
+	switch strings.ToLower(cfg.BillingProvider) {
+	case "yookassa", "yoo_kassa", "yoo":
+		yookassa := billing.NewYooKassaProvider(cfg.YooKassaShopID, cfg.YooKassaSecretKey, cfg.YooKassaAPIBaseURL, cfg.PortalBaseURL, &http.Client{Timeout: cfg.RequestTimeout})
+		if err := yookassa.Validate(); err != nil {
+			logger.Warn().Err(err).Msg("yookassa not configured, falling back to stripe_stub")
+		} else {
+			provider = yookassa
+		}
+	case "stripe", "stripe_stub":
+		provider = billing.NewStripeStub(cfg.PortalBaseURL)
+	default:
+		logger.Warn().Str("provider", cfg.BillingProvider).Msg("unknown billing provider, falling back to stripe_stub")
+		provider = billing.NewStripeStub(cfg.PortalBaseURL)
+	}
 
 	userRepo := repository.NewUserRepository(pool)
 	refreshRepo := repository.NewRefreshTokenRepository(pool)

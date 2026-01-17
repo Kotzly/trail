@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 
+	"github.com/trail/trail/backend/internal/billing"
 	"github.com/trail/trail/backend/internal/domain"
 	"github.com/trail/trail/backend/internal/openapi"
 )
@@ -42,6 +43,14 @@ func ErrorHandler(logger zerolog.Logger) echo.HTTPErrorHandler {
 			if e.Details != "" {
 				resp.Details = &e.Details
 			}
+		case *billing.ProviderError:
+			mapped := mapProviderError(e)
+			status = mapped.Status
+			resp.Code = mapErrorCode(mapped.Code)
+			resp.Message = mapped.Message
+			if mapped.Details != "" {
+				resp.Details = &mapped.Details
+			}
 		case *echo.HTTPError:
 			status = e.Code
 			resp.Code = openapi.ErrorResponseCode("unknown")
@@ -69,6 +78,26 @@ func mapErrorCode(code string) openapi.ErrorResponseCode {
 		return openapi.ErrorResponseCode(code)
 	default:
 		return openapi.ErrorResponseCode("unknown")
+	}
+}
+
+func mapProviderError(err *billing.ProviderError) *APIError {
+	status := http.StatusBadRequest
+	switch err.Code {
+	case "auth":
+		status = http.StatusUnauthorized
+	case "payment":
+		status = http.StatusPaymentRequired
+	case "network":
+		status = http.StatusBadGateway
+	case "validation":
+		status = http.StatusBadRequest
+	}
+	return &APIError{
+		Status:  status,
+		Code:    err.Code,
+		Message: err.Message,
+		Details: err.Details,
 	}
 }
 

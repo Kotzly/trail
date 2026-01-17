@@ -27,9 +27,12 @@ type Config struct {
 	CookieSecure        bool          `env:"COOKIE_SECURE" env-default:"false"`
 	CORSAllowedOrigins  []string      `env:"CORS_ALLOWED_ORIGINS" env-separator:"," env-default:"http://localhost:5173,http://127.0.0.1:5173"`
 	PortalBaseURL       string        `env:"PORTAL_BASE_URL" env-default:"http://localhost:5173"`
-	BillingProvider     string        `env:"BILLING_PROVIDER" env-default:"stripe_stub"`
+	BillingProvider     string        `env:"BILLING_PROVIDER" env-default:"yookassa"`
 	StripeSecretKey     string        `env:"STRIPE_SECRET_KEY" env-default:""`
 	StripeWebhookSecret string        `env:"STRIPE_WEBHOOK_SECRET" env-default:""`
+	YooKassaShopID      string        `env:"YOOKASSA_SHOP_ID" env-default:""`
+	YooKassaSecretKey   string        `env:"YOOKASSA_SECRET_KEY" env-default:""`
+	YooKassaAPIBaseURL  string        `env:"YOOKASSA_API_BASE_URL" env-default:"https://api.yookassa.ru/v3"`
 	EmailProvider       string        `env:"EMAIL_PROVIDER" env-default:"stub"`
 	EmailFrom           string        `env:"EMAIL_FROM" env-default:"no-reply@trail.app"`
 	EmailFromName       string        `env:"EMAIL_FROM_NAME" env-default:"Trail"`

@@ -1,4 +1,4 @@
-.PHONY: generate run-local test-backend lint-backend up migrate
+.PHONY: generate run-local test-backend lint-backend up migrate dev
 
 generate:
 	cd backend && go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1 -config oapi-codegen.yaml ../api/openapi.yml
@@ -22,6 +22,9 @@ lint-backend:
 
 up:
 	docker compose up --build
+
+dev:
+	$(MAKE) up
 
 migrate:
 	docker compose run --rm migrate

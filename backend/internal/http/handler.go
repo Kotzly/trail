@@ -2,8 +2,8 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"io"
 	"math"
 	"net/http"
 	"strings"
@@ -329,11 +329,13 @@ func (h *Handler) PostBillingPortal(ctx echo.Context) error {
 }
 
 func (h *Handler) PostWebhooksProvider(ctx echo.Context, provider string) error {
-	var input openapi.WebhookEventInput
-	if err := ctx.Bind(&input); err != nil {
+	payload, err := io.ReadAll(ctx.Request().Body)
+	if err != nil {
 		return NewAPIError(http.StatusBadRequest, "validation", "invalid payload", "")
 	}
-	payload, _ := json.Marshal(input)
+	if len(payload) == 0 {
+		return NewAPIError(http.StatusBadRequest, "validation", "empty payload", "")
+	}
 	headers := map[string]string{}
 	for key, values := range ctx.Request().Header {
 		if len(values) > 0 {

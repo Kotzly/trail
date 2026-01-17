@@ -25,7 +25,7 @@ type WebhookEvent struct {
 // the Provider interface for billing that all examples must implement.
 type Provider interface {
 	Name() string
-	CreateCheckoutSession(ctx context.Context, user domain.User, plan domain.Plan, interval string, successURL string, cancelURL string) (CheckoutSession, error)
+	CreateCheckoutSession(ctx context.Context, user domain.User, plan domain.Plan, interval string, successURL string, cancelURL string, idempotencyKey *string) (CheckoutSession, error)
 	CreateBillingPortalLink(ctx context.Context, user domain.User) (PortalLink, error)
 	CancelSubscription(ctx context.Context, externalID string) error
 	ParseWebhook(ctx context.Context, payload []byte, headers map[string]string) (WebhookEvent, error)
