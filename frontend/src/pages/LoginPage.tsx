@@ -4,20 +4,26 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
-
-type FormValues = z.infer<typeof schema>;
+import { useTranslation } from "react-i18next";
 
 export default function LoginPage() {
+  const { t, i18n } = useTranslation();
   const { login, startEmailCode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z.string().email(t("login.validation.email")),
+        password: z.string().min(8, t("login.validation.password")),
+      }),
+    [i18n.language, t]
+  );
+
+  type FormValues = z.infer<typeof schema>;
 
   const portalSessionId = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -39,7 +45,7 @@ export default function LoginPage() {
       });
       navigate("/dashboard");
     } catch (err) {
-      setError("Invalid credentials. Try again.");
+      setError(t("login.errors.invalidCredentials"));
     }
   });
 
@@ -49,30 +55,30 @@ export default function LoginPage() {
     const email = getValues("email");
     const parsed = schema.pick({ email: true }).safeParse({ email });
     if (!parsed.success) {
-      setError("Enter a valid email to receive a code.");
+      setError(t("login.errors.invalidEmail"));
       return;
     }
     try {
       await startEmailCode({ email, purpose: "login" });
-      setInfo("Code sent. Check your email.");
+      setInfo(t("login.errors.codeSent"));
       navigate(`/email-confirm?email=${encodeURIComponent(email)}&purpose=login`);
     } catch (err) {
-      setError("Unable to send code. Try again.");
+      setError(t("login.errors.sendCodeFailed"));
     }
   };
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-16 md:flex-row">
       <div className="flex-1">
-        <h1 className="font-display text-4xl font-semibold">Welcome back</h1>
-        <p className="mt-3 text-sm text-ink-subtle">
-          Sign in to manage your Trail subscription, saved trails, and billing preferences.
-        </p>
+        <h1 className="font-display text-4xl font-semibold">{t("login.title")}</h1>
+        <p className="mt-3 text-sm text-ink-subtle">{t("login.subtitle")}</p>
       </div>
       <div className="w-full max-w-md rounded-3xl border border-stroke/40 bg-surface/80 p-8 shadow-card">
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-subtle">Email</label>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {t("login.email")}
+            </label>
             <input
               type="email"
               {...register("email")}
@@ -83,7 +89,9 @@ export default function LoginPage() {
             )}
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-subtle">Password</label>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {t("login.password")}
+            </label>
             <input
               type="password"
               {...register("password")}
@@ -99,17 +107,17 @@ export default function LoginPage() {
             type="submit"
             className="w-full rounded-full bg-ink px-4 py-3 text-sm font-semibold text-surface transition hover:bg-ink-muted"
           >
-            Sign in
+            {t("login.signIn")}
           </button>
           <button
             type="button"
             onClick={handleSendCode}
             className="w-full rounded-full border border-stroke/60 px-4 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
           >
-            Send email code
+            {t("login.sendCode")}
           </button>
           <p className="text-center text-xs text-ink-subtle">
-            No account? <Link to="/register" className="font-semibold text-ink">Create one</Link>
+            {t("login.noAccount")} <Link to="/register" className="font-semibold text-ink">{t("login.createAccount")}</Link>
           </p>
         </form>
       </div>

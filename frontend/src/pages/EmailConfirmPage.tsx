@@ -4,12 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/lib/auth/AuthContext";
-
-const schema = z.object({
-  code: z.string().min(4),
-});
-
-type FormValues = z.infer<typeof schema>;
+import { useTranslation } from "react-i18next";
 
 type Purpose = "login" | "register";
 
@@ -17,6 +12,7 @@ export default function EmailConfirmPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { confirmEmailCode, startEmailCode } = useAuth();
+  const { t, i18n } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -24,9 +20,19 @@ export default function EmailConfirmPage() {
   const purpose = (searchParams.get("purpose") as Purpose) ?? "login";
   const displayName = searchParams.get("displayName") ?? undefined;
 
+  const schema = useMemo(
+    () =>
+      z.object({
+        code: z.string().min(4, t("emailConfirm.validation.code")),
+      }),
+    [i18n.language, t]
+  );
+
+  type FormValues = z.infer<typeof schema>;
+
   const title = useMemo(() => {
-    return purpose === "register" ? "Confirm your email" : "Enter your login code";
-  }, [purpose]);
+    return purpose === "register" ? t("emailConfirm.titleRegister") : t("emailConfirm.titleLogin");
+  }, [purpose, t]);
 
   const { register, handleSubmit, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -44,7 +50,7 @@ export default function EmailConfirmPage() {
       });
       navigate("/dashboard");
     } catch (err) {
-      setError("Invalid or expired code.");
+      setError(t("emailConfirm.errors.invalidOrExpired"));
     }
   });
 
@@ -52,14 +58,14 @@ export default function EmailConfirmPage() {
     setError(null);
     setInfo(null);
     if (!email) {
-      setError("Missing email. Go back and start again.");
+      setError(t("emailConfirm.errors.missingEmail"));
       return;
     }
     try {
       await startEmailCode({ email, purpose, displayName });
-      setInfo("A new code was sent.");
+      setInfo(t("emailConfirm.info.resent"));
     } catch (err) {
-      setError("Unable to resend code.");
+      setError(t("emailConfirm.errors.resendFailed"));
     }
   };
 
@@ -68,13 +74,15 @@ export default function EmailConfirmPage() {
       <div className="flex-1">
         <h1 className="font-display text-4xl font-semibold">{title}</h1>
         <p className="mt-3 text-sm text-ink-subtle">
-          We sent a one-time code to <span className="font-semibold text-ink">{email || "your email"}</span>.
+          {t("emailConfirm.subtitle", { email: email || t("emailConfirm.yourEmail") })}
         </p>
       </div>
       <div className="w-full max-w-md rounded-3xl border border-stroke/40 bg-surface/80 p-8 shadow-card">
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-subtle">Code</label>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {t("emailConfirm.code")}
+            </label>
             <input
               type="text"
               inputMode="numeric"
@@ -90,14 +98,14 @@ export default function EmailConfirmPage() {
             type="submit"
             className="w-full rounded-full bg-ink px-4 py-3 text-sm font-semibold text-surface transition hover:bg-ink-muted"
           >
-            Verify & continue
+            {t("emailConfirm.verify")}
           </button>
           <button
             type="button"
             onClick={handleResend}
             className="w-full rounded-full border border-stroke/60 px-4 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
           >
-            Resend code
+            {t("emailConfirm.resend")}
           </button>
         </form>
       </div>

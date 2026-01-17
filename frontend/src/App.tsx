@@ -8,11 +8,13 @@ import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
 import EmailConfirmPage from "@/pages/EmailConfirmPage";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { useTranslation } from "react-i18next";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { status } = useAuth();
+  const { t } = useTranslation();
   if (status === "loading") {
-    return <div className="flex min-h-[60vh] items-center justify-center text-ink-subtle">Loading...</div>;
+    return <div className="flex min-h-[60vh] items-center justify-center text-ink-subtle">{t("app.loading")}</div>;
   }
   if (status !== "authenticated") {
     return <Navigate to="/login" replace />;

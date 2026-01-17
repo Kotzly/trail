@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export default function PricingPage() {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["plans"],
     queryFn: api.getPlans,
@@ -12,10 +14,8 @@ export default function PricingPage() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-16">
       <div className="flex flex-col gap-4 text-center">
-        <h1 className="font-display text-4xl font-semibold text-ink">Simple subscription pricing</h1>
-        <p className="text-sm text-ink-subtle">
-          Trail is a paid extension. Start free, then upgrade for unlimited trails and advanced insights.
-        </p>
+        <h1 className="font-display text-4xl font-semibold text-ink">{t("pricing.title")}</h1>
+        <p className="text-sm text-ink-subtle">{t("pricing.subtitle")}</p>
       </div>
 
       <div className="mt-12 grid gap-6 md:grid-cols-2">
@@ -24,7 +24,7 @@ export default function PricingPage() {
             <div key={i} className="h-64 animate-pulse rounded-3xl bg-surface/80" />
           ))}
 
-        {isError && <div className="text-center text-sm text-ink">Failed to load plans.</div>}
+        {isError && <div className="text-center text-sm text-ink">{t("pricing.loadingError")}</div>}
 
         {data?.map((plan) => (
           <div
@@ -40,16 +40,18 @@ export default function PricingPage() {
               </div>
               {plan.highlight && (
                 <span className="rounded-full bg-surface/15 px-3 py-1 text-xs uppercase tracking-[0.2em]">
-                  Popular
+                  {t("pricing.popular")}
                 </span>
               )}
             </div>
             <div className="mt-6 text-3xl font-semibold">
               ${plan.priceMonthly.toFixed(2)}
-              <span className={`text-xs ${plan.highlight ? "text-surface/70" : "text-ink-subtle"}`}>/mo</span>
+              <span className={`text-xs ${plan.highlight ? "text-surface/70" : "text-ink-subtle"}`}>
+                {t("pricing.perMonth")}
+              </span>
             </div>
             <div className={`mt-2 text-xs ${plan.highlight ? "text-surface/60" : "text-ink-subtle"}`}>
-              ${plan.priceYearly.toFixed(2)} billed yearly
+              {t("pricing.billedYearly", { price: `$${plan.priceYearly.toFixed(2)}` })}
             </div>
             <ul className="mt-6 space-y-3 text-sm">
               {plan.features.map((feature) => (
@@ -67,7 +69,7 @@ export default function PricingPage() {
                   : "border border-stroke/60 text-ink hover:border-stroke"
               }`}
             >
-              Choose {plan.name}
+              {t("pricing.choosePlan", { name: plan.name })}
             </Link>
           </div>
         ))}

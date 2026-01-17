@@ -1,85 +1,48 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0 },
 };
 
-const rotatingWords = ["developers", "researchers", "product teams", "writers", "students", "everyone"];
+type LabeledValue = { label: string; value: string };
 
-const stats = [
-  { label: "Avg. resume time", value: "3.2s" },
-  { label: "Sources captured", value: "120+ / week" },
-  { label: "Auto-tag accuracy", value: "94%" },
-  { label: "Context preserved", value: "100%" },
-];
+type FeatureCard = {
+  title: string;
+  copy: string;
+  bullets: string[];
+};
 
-const featureCards = [
-  {
-    title: "Auto-captured trails",
-    copy: "Every search, doc, and decision is logged into a clean trail you can resume in seconds.",
-    bullets: ["Session timeline", "Visited sources", "Time spent per page"],
-  },
-  {
-    title: "Smart tagging",
-    copy: "Trail tags pages as you browse, so you can filter by topic, client, or research thread.",
-    bullets: ["Auto topic labels", "Pinned highlights", "One-click follow-ups"],
-  },
-  {
-    title: "Shareable context",
-    copy: "Send a trail instead of a tab dump. Keep the storyline, notes, and decisions intact.",
-    bullets: ["Exportable summaries", "Private links", "Team-ready views"],
-  },
-];
+type WorkflowStep = {
+  title: string;
+  copy: string;
+};
 
-const workflowSteps = [
-  {
-    title: "Capture",
-    copy: "Trail runs as a lightweight browser extension, recording every meaningful step in your session.",
-  },
-  {
-    title: "Curate",
-    copy: "Highlight key sources, add notes, and pin the moments that matter before you move on.",
-  },
-  {
-    title: "Resume",
-    copy: "Open a trail later and you are back exactly where you left off, complete with context.",
-  },
-  {
-    title: "Share",
-    copy: "Send a trail to collaborators so they can jump into the same research path instantly.",
-  },
-];
+type FaqItem = {
+  question: string;
+  answer: string;
+};
 
-const insightCards = [
-  { label: "Weekly deep-work sessions", value: "18" },
-  { label: "Avg. tabs per trail", value: "46" },
-  { label: "Decision notes logged", value: "312" },
-  { label: "Follow-ups scheduled", value: "27" },
-];
-
-const faqs = [
-  {
-    question: "Is Trail a cloud product?",
-    answer: "No. Trail is a paid browser extension. Your subscription unlocks premium features and sync options.",
-  },
-  {
-    question: "Does it work offline?",
-    answer: "Yes. Trails are captured locally and can sync when you are back online.",
-  },
-  {
-    question: "Can I export or share trails?",
-    answer: "You can export summaries or share a private link with teammates.",
-  },
-  {
-    question: "Is there a free plan?",
-    answer: "Start free, then upgrade to unlock unlimited trails and advanced insights.",
-  },
-];
+const asArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.map((item) => String(item)) : typeof value === "string" ? [value] : [];
 
 export default function LandingPage() {
+  const { t } = useTranslation();
+
+  const rotatingWords = asStringArray(t("landing.hero.words", { returnObjects: true }));
+  const stats = asArray<LabeledValue>(t("landing.stats", { returnObjects: true }));
+  const snapshotCards = asArray<LabeledValue>(t("landing.snapshot.cards", { returnObjects: true }));
+  const featureCards = asArray<FeatureCard>(t("landing.features.cards", { returnObjects: true }));
+  const workflowSteps = asArray<WorkflowStep>(t("landing.workflow.steps", { returnObjects: true }));
+  const insightCards = asArray<LabeledValue>(t("landing.workflow.insights", { returnObjects: true }));
+  const datasetList = asStringArray(t("landing.dataset.list", { returnObjects: true }));
+  const subscriptionItems = asArray<LabeledValue>(t("landing.dataset.subscriptionItems", { returnObjects: true }));
+  const faqItems = asArray<FaqItem>(t("landing.faq.items", { returnObjects: true }));
+
   return (
     <div className="relative overflow-hidden">
       <section className="relative">
@@ -98,10 +61,10 @@ export default function LandingPage() {
           >
             <span className="inline-flex items-center gap-2 rounded-full border border-stroke/40 bg-surface/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
               <Sparkles className="h-4 w-4" />
-              Browser extension · subscription
+              {t("landing.hero.pill")}
             </span>
             <h1 className="font-display text-4xl font-semibold leading-tight text-ink md:text-6xl">
-              <span className="block text-ink-muted">the best extension for</span>
+              <span className="block text-ink-muted">{t("landing.hero.lead")}</span>
               <span className="mt-2 flex justify-center text-ink">
                 <span className="word-rotator">
                   <span className="word-rotator-track">
@@ -112,23 +75,20 @@ export default function LandingPage() {
                 </span>
               </span>
             </h1>
-            <p className="mx-auto max-w-2xl text-base text-ink-subtle">
-              Trail turns messy tab sessions into structured trails. Keep every decision, source, and next step in one
-              place. It is a paid extension with a simple subscription when you are ready to unlock more.
-            </p>
+            <p className="mx-auto max-w-2xl text-base text-ink-subtle">{t("landing.hero.summary")}</p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
                 to="/register"
                 className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-surface shadow-card transition hover:bg-ink-muted"
               >
-                Start free trial
+                {t("landing.hero.ctaPrimary")}
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/pricing"
                 className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
               >
-                View pricing
+                {t("landing.hero.ctaSecondary")}
               </Link>
             </div>
           </motion.div>
@@ -157,15 +117,13 @@ export default function LandingPage() {
           >
             <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
               <div className="flex items-center justify-between">
-                <h3 className="font-display text-xl font-semibold text-ink">Session snapshot</h3>
-                <span className="rounded-full bg-ink/10 px-3 py-1 text-xs font-semibold text-ink">Live</span>
+                <h3 className="font-display text-xl font-semibold text-ink">{t("landing.snapshot.title")}</h3>
+                <span className="rounded-full bg-ink/10 px-3 py-1 text-xs font-semibold text-ink">
+                  {t("landing.snapshot.badge")}
+                </span>
               </div>
               <div className="mt-6 grid gap-4 md:grid-cols-3">
-                {[
-                  { label: "Active trails", value: "12" },
-                  { label: "Pinned sources", value: "38" },
-                  { label: "Notes captured", value: "74" },
-                ].map((item) => (
+                {snapshotCards.map((item) => (
                   <div key={item.label} className="rounded-2xl border border-stroke/30 bg-base/40 p-4">
                     <div className="text-2xl font-semibold text-ink">{item.value}</div>
                     <div className="text-xs text-ink-subtle">{item.label}</div>
@@ -173,26 +131,26 @@ export default function LandingPage() {
                 ))}
               </div>
               <div className="mt-6 rounded-2xl border border-stroke/30 bg-base/60 p-4">
-                <div className="text-xs uppercase tracking-[0.2em] text-ink-subtle">Trail recap</div>
-                <p className="mt-2 text-sm text-ink">
-                  6 sources reviewed · 2 decisions made · 4 next steps queued for tomorrow.
-                </p>
+                <div className="text-xs uppercase tracking-[0.2em] text-ink-subtle">
+                  {t("landing.snapshot.recapLabel")}
+                </div>
+                <p className="mt-2 text-sm text-ink">{t("landing.snapshot.recapText")}</p>
               </div>
             </div>
             <div className="space-y-6">
               <div className="rounded-3xl bg-ink p-6 text-surface shadow-card">
-                <div className="text-xs uppercase tracking-[0.2em] text-surface/70">Focus score</div>
-                <div className="mt-4 text-4xl font-semibold">92%</div>
-                <p className="mt-2 text-sm text-surface/70">
-                  Trail keeps context tight so you can move faster without losing the thread.
-                </p>
+                <div className="text-xs uppercase tracking-[0.2em] text-surface/70">
+                  {t("landing.focusCard.label")}
+                </div>
+                <div className="mt-4 text-4xl font-semibold">{t("landing.focusCard.score")}</div>
+                <p className="mt-2 text-sm text-surface/70">{t("landing.focusCard.text")}</p>
               </div>
               <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
-                <div className="text-xs uppercase tracking-[0.2em] text-ink-subtle">Subscription status</div>
-                <div className="mt-3 text-lg font-semibold text-ink">Ready to upgrade</div>
-                <p className="mt-2 text-sm text-ink-subtle">
-                  Unlock unlimited trails, deeper insights, and shareable sessions.
-                </p>
+                <div className="text-xs uppercase tracking-[0.2em] text-ink-subtle">
+                  {t("landing.subscriptionCard.label")}
+                </div>
+                <div className="mt-3 text-lg font-semibold text-ink">{t("landing.subscriptionCard.title")}</div>
+                <p className="mt-2 text-sm text-ink-subtle">{t("landing.subscriptionCard.text")}</p>
               </div>
             </div>
           </motion.div>
@@ -208,14 +166,11 @@ export default function LandingPage() {
           variants={fadeUp}
           className="flex flex-col gap-4"
         >
-          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">Features</span>
-          <h2 className="font-display text-3xl font-semibold text-ink md:text-4xl">
-            Everything you need to stay in flow.
-          </h2>
-          <p className="max-w-2xl text-sm text-ink-subtle">
-            Trail is designed to feel invisible while you browse, but incredibly powerful when you need to pick a trail
-            back up.
-          </p>
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
+            {t("landing.features.eyebrow")}
+          </span>
+          <h2 className="font-display text-3xl font-semibold text-ink md:text-4xl">{t("landing.features.title")}</h2>
+          <p className="max-w-2xl text-sm text-ink-subtle">{t("landing.features.summary")}</p>
         </motion.div>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {featureCards.map((card) => (
@@ -254,16 +209,17 @@ export default function LandingPage() {
             className="grid gap-8 md:grid-cols-[1.1fr_0.9fr]"
           >
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">Workflow</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
+                {t("landing.workflow.eyebrow")}
+              </span>
               <h2 className="mt-4 font-display text-3xl font-semibold text-ink md:text-4xl">
-                A calm trail from search to share.
+                {t("landing.workflow.title")}
               </h2>
-              <p className="mt-4 max-w-xl text-sm text-ink-subtle">
-                Your session stays organized without extra clicks. Trail captures the path, helps you curate the best
-                moments, and keeps everything ready for next time.
-              </p>
+              <p className="mt-4 max-w-xl text-sm text-ink-subtle">{t("landing.workflow.summary")}</p>
               <div className="mt-8 rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
-                <div className="text-xs uppercase tracking-[0.2em] text-ink-subtle">Today in Trail</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-ink-subtle">
+                  {t("landing.workflow.insightLabel")}
+                </div>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   {insightCards.map((card) => (
                     <div key={card.label} className="rounded-2xl border border-stroke/40 bg-base/50 p-4">
@@ -306,19 +262,13 @@ export default function LandingPage() {
           className="grid gap-8 md:grid-cols-[0.9fr_1.1fr]"
         >
           <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-8 shadow-card">
-            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">Data you get</span>
-            <h2 className="mt-4 font-display text-3xl font-semibold text-ink">A trail is a dataset.</h2>
-            <p className="mt-4 text-sm text-ink-subtle">
-              Every trail captures the intent, the sources, and the decisions behind your work. Use it to report,
-              onboard, or restart the next morning with zero friction.
-            </p>
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
+              {t("landing.dataset.eyebrow")}
+            </span>
+            <h2 className="mt-4 font-display text-3xl font-semibold text-ink">{t("landing.dataset.title")}</h2>
+            <p className="mt-4 text-sm text-ink-subtle">{t("landing.dataset.summary")}</p>
             <div className="mt-6 grid gap-3">
-              {[
-                "Source list with time spent",
-                "Highlights and saved snippets",
-                "Decision notes + next steps",
-                "Shareable context snapshot",
-              ].map((item) => (
+              {datasetList.map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-ink">
                   <Check className="h-4 w-4" />
                   {item}
@@ -327,18 +277,10 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="rounded-3xl bg-ink p-8 text-surface shadow-card">
-            <h3 className="font-display text-2xl font-semibold">One subscription, all the trails.</h3>
-            <p className="mt-3 text-sm text-surface/70">
-              Trail is a paid browser extension. Upgrade once, unlock unlimited trails, deeper analytics, and team-ready
-              sharing.
-            </p>
+            <h3 className="font-display text-2xl font-semibold">{t("landing.dataset.subscriptionTitle")}</h3>
+            <p className="mt-3 text-sm text-surface/70">{t("landing.dataset.subscriptionSummary")}</p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              {[
-                { label: "Unlimited trails", value: "Included" },
-                { label: "Advanced filters", value: "Pro" },
-                { label: "Team sharing", value: "Pro" },
-                { label: "Priority support", value: "Pro" },
-              ].map((item) => (
+              {subscriptionItems.map((item) => (
                 <div key={item.label} className="rounded-2xl border border-surface/20 bg-surface/10 p-4">
                   <div className="text-xs uppercase tracking-[0.2em] text-surface/60">{item.label}</div>
                   <div className="mt-2 text-lg font-semibold">{item.value}</div>
@@ -349,7 +291,7 @@ export default function LandingPage() {
               to="/pricing"
               className="mt-8 inline-flex items-center gap-2 rounded-full bg-surface px-6 py-3 text-sm font-semibold text-ink"
             >
-              See subscription details
+              {t("landing.dataset.subscriptionCta")}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -367,14 +309,14 @@ export default function LandingPage() {
             className="grid gap-6 md:grid-cols-[0.8fr_1.2fr]"
           >
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">FAQ</span>
-              <h2 className="mt-4 font-display text-3xl font-semibold text-ink">Questions, answered.</h2>
-              <p className="mt-4 text-sm text-ink-subtle">
-                Everything you need to know about Trail subscriptions and how the extension works.
-              </p>
+              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
+                {t("landing.faq.eyebrow")}
+              </span>
+              <h2 className="mt-4 font-display text-3xl font-semibold text-ink">{t("landing.faq.title")}</h2>
+              <p className="mt-4 text-sm text-ink-subtle">{t("landing.faq.summary")}</p>
             </div>
             <div className="space-y-4">
-              {faqs.map((item) => (
+              {faqItems.map((item) => (
                 <div key={item.question} className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
                   <h3 className="text-base font-semibold text-ink">{item.question}</h3>
                   <p className="mt-2 text-sm text-ink-subtle">{item.answer}</p>
@@ -388,16 +330,14 @@ export default function LandingPage() {
       <section className="bg-ink text-surface">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-16 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="font-display text-3xl font-semibold">Ready to start a trail?</h2>
-            <p className="mt-2 text-sm text-surface/70">
-              Install the extension, start for free, and upgrade when you are ready for deeper insights.
-            </p>
+            <h2 className="font-display text-3xl font-semibold">{t("landing.cta.title")}</h2>
+            <p className="mt-2 text-sm text-surface/70">{t("landing.cta.summary")}</p>
           </div>
           <Link
             to="/register"
             className="inline-flex items-center gap-2 rounded-full bg-surface px-6 py-3 text-sm font-semibold text-ink"
           >
-            Get started
+            {t("landing.cta.button")}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
