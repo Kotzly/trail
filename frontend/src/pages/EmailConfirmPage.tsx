@@ -67,35 +67,35 @@ export default function EmailConfirmPage() {
     <div className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-16 md:flex-row">
       <div className="flex-1">
         <h1 className="font-display text-4xl font-semibold">{title}</h1>
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="mt-3 text-sm text-ink-subtle">
           We sent a one-time code to <span className="font-semibold text-ink">{email || "your email"}</span>.
         </p>
       </div>
-      <div className="w-full max-w-md rounded-3xl border border-black/5 bg-white/70 p-8 shadow-card">
+      <div className="w-full max-w-md rounded-3xl border border-stroke/40 bg-surface/80 p-8 shadow-card">
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Code</label>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-subtle">Code</label>
             <input
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
               {...register("code")}
-              className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm tracking-[0.4em]"
+              className="mt-2 w-full rounded-2xl border border-stroke/60 bg-surface px-4 py-3 text-sm tracking-[0.4em] text-ink focus:border-ink/40 focus:outline-none"
             />
-            {formState.errors.code && <p className="mt-1 text-xs text-coral">{formState.errors.code.message}</p>}
+            {formState.errors.code && <p className="mt-1 text-xs text-ink">{formState.errors.code.message}</p>}
           </div>
-          {error && <div className="rounded-2xl bg-coral/10 px-4 py-3 text-xs text-coral">{error}</div>}
-          {info && <div className="rounded-2xl bg-moss/10 px-4 py-3 text-xs text-moss">{info}</div>}
+          {error && <div className="rounded-2xl border border-ink/20 bg-ink/10 px-4 py-3 text-xs text-ink">{error}</div>}
+          {info && <div className="rounded-2xl border border-stroke/40 bg-base/50 px-4 py-3 text-xs text-ink">{info}</div>}
           <button
             type="submit"
-            className="w-full rounded-full bg-ink px-4 py-3 text-sm font-semibold text-sand transition hover:bg-slate"
+            className="w-full rounded-full bg-ink px-4 py-3 text-sm font-semibold text-surface transition hover:bg-ink-muted"
           >
             Verify & continue
           </button>
           <button
             type="button"
             onClick={handleResend}
-            className="w-full rounded-full border border-ink/20 px-4 py-3 text-sm font-semibold text-ink"
+            className="w-full rounded-full border border-stroke/60 px-4 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
           >
             Resend code
           </button>

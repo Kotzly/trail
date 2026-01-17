@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { status } = useAuth();
   if (status === "loading") {
-    return <div className="flex min-h-[60vh] items-center justify-center text-slate-500">Loading...</div>;
+    return <div className="flex min-h-[60vh] items-center justify-center text-ink-subtle">Loading...</div>;
   }
   if (status !== "authenticated") {
     return <Navigate to="/login" replace />;
