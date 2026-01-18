@@ -52,7 +52,7 @@ export function deriveLayoutOptions(settings: Settings | null | undefined): Layo
   const depthGapGrowth = clamp(radialSettings.depthGapGrowth, 0, 0.8);
 
   const depthGapBase = Math.max(nodeHeight * depthGapBaseScale, VERTICAL_GAP * 0.85 * densityScale);
-  const effectiveWidth = nodeWidth * 0.82 + HORIZONTAL_GAP * 0.35 * densityScale;
+  const effectiveWidth = nodeWidth + HORIZONTAL_GAP * densityScale;
 
   const radial: RadialLayoutConfig = {
     angleWeightExp,

@@ -199,22 +199,6 @@ export function calculateRadialLayout(
   const baseLayout = getLayoutConfig();
   const { nodeWidth, nodeHeight } = baseLayout;
 
-  const subtreeSizes = new Map<number, number>();
-  const angleRanges = new Map<number, { start: number; end: number }>();
-  const radiusById = new Map<number, number>();
-  const nodeById = new Map<number, NavigationNode>();
-
-  function calcSize(node: NavigationNode | null): number {
-    if (!node) return 0;
-    const children = node.getChildren?.() ?? [];
-    let size = 1;
-    children.forEach((child) => {
-      size += calcSize(child);
-    });
-    subtreeSizes.set(node.id, size);
-    return size;
-  }
-
   const ANGLE_WEIGHT_EXP = layoutConfig.angleWeightExp;
   const MIN_SPAN_FACTOR = layoutConfig.minSpanFactor;
   const MIN_SPAN_ABS = layoutConfig.minSpanAbs;
@@ -224,87 +208,283 @@ export function calculateRadialLayout(
   const depthGapGrowth = layoutConfig.depthGapGrowth;
   const effectiveWidth = layoutConfig.effectiveWidth;
 
-  function getChildSpans(children: NavigationNode[], totalSpan: number): number[] {
-    if (children.length === 0) return [];
-    const weights = children.map((child) => {
-      const size = subtreeSizes.get(child.id) ?? 1;
-      return Math.pow(size, ANGLE_WEIGHT_EXP);
-    });
-    const weightSum = weights.reduce((sum, weight) => sum + weight, 0) || 1;
-    const rawSpans = weights.map((weight) => (totalSpan * weight) / weightSum);
-    const equalSpan = totalSpan / children.length;
-    const minSpan = Math.min(Math.max(equalSpan * MIN_SPAN_FACTOR, MIN_SPAN_ABS), equalSpan);
+  type TidyNode = {
+    node: NavigationNode;
+    parent: TidyNode | null;
+    children: TidyNode[];
+    depth: number;
+    number: number;
+    x: number;
+    prelim: number;
+    mod: number;
+    change: number;
+    shift: number;
+    thread: TidyNode | null;
+    ancestor: TidyNode;
+  };
 
-    let deficit = 0;
-    const spans = rawSpans.map((span) => {
-      if (span < minSpan) {
-        deficit += minSpan - span;
-        return minSpan;
-      }
-      return span;
-    });
-
-    if (deficit > 0) {
-      const adjustableIndices = spans
-        .map((span, idx) => (span > minSpan ? idx : -1))
-        .filter((idx) => idx !== -1);
-      const adjustableTotal = adjustableIndices.reduce((sum, idx) => sum + spans[idx]!, 0);
-      if (adjustableTotal <= deficit + 1e-6) {
-        return new Array(children.length).fill(equalSpan);
-      }
-      adjustableIndices.forEach((idx) => {
-        spans[idx]! -= deficit * (spans[idx]! / adjustableTotal);
-      });
-    }
-
-    const spanSum = spans.reduce((sum, span) => sum + span, 0) || totalSpan;
-    const scale = totalSpan / spanSum;
-    if (Math.abs(scale - 1) > 1e-6) {
-      return spans.map((span) => span * scale);
-    }
-    return spans;
-  }
-
-  function assignAngles(
+  const buildTidy = (
     node: NavigationNode,
-    start: number,
-    end: number,
+    parent: TidyNode | null,
     depth: number,
-    parentRadius: number,
-  ): void {
-    nodeById.set(node.id, node);
-    angleRanges.set(node.id, { start, end });
-
-    const span = Math.max(end - start, MIN_SPAN_ABS);
-    const depthGap = depth === 0 ? 0 : depthGapBase * (1 + (depth - 1) * depthGapGrowth);
-    const desired = depth === 0 ? baseRadius : parentRadius + depthGap;
-    const required = depth === 0 ? baseRadius : (effectiveWidth * REQUIRED_SCALE) / span;
-    const radius = depth === 0 ? baseRadius : Math.max(desired, required);
-    radiusById.set(node.id, radius);
-
+    number: number,
+  ): TidyNode => {
+    const tidy: TidyNode = {
+      node,
+      parent,
+      depth,
+      number,
+      children: [],
+      x: 0,
+      prelim: 0,
+      mod: 0,
+      change: 0,
+      shift: 0,
+      thread: null,
+      ancestor: null as unknown as TidyNode,
+    };
+    tidy.ancestor = tidy;
     const children = node.getChildren?.() ?? [];
-    if (children.length === 0) return;
-    const totalSpan = end - start;
-    const spans = getChildSpans(children, totalSpan);
-    let cursor = start;
-    children.forEach((child, idx) => {
-      const childSpan = spans[idx] ?? 0;
-      assignAngles(child, cursor, cursor + childSpan, depth + 1, radius);
-      cursor += childSpan;
+    tidy.children = children.map((child, idx) => buildTidy(child, tidy, depth + 1, idx + 1));
+    return tidy;
+  };
+
+  const tidyRoot = buildTidy(root, null, 0, 1);
+
+  const leafCounts = new Map<number, number>();
+  const countLeaves = (node: TidyNode): number => {
+    if (node.children.length === 0) {
+      leafCounts.set(node.node.id, 1);
+      return 1;
+    }
+    let total = 0;
+    node.children.forEach((child) => {
+      total += countLeaves(child);
     });
+    leafCounts.set(node.node.id, total);
+    return total;
+  };
+  const totalLeaves = countLeaves(tidyRoot);
+  const totalLeafWeight = Math.pow(Math.max(totalLeaves, 1), ANGLE_WEIGHT_EXP);
+
+  const baseSeparation = 1 / Math.max(MIN_SPAN_FACTOR, 0.05);
+  const nonSiblingScale = 1 + Math.max(MIN_SPAN_ABS, 0) * 1.5;
+  const globalSepScale = 0.6 + 0.4 * ANGLE_WEIGHT_EXP;
+
+  const separation = (a: TidyNode, b: TidyNode): number => {
+    const base = a.parent === b.parent ? baseSeparation : baseSeparation * nonSiblingScale;
+    const weightA = Math.pow(leafCounts.get(a.node.id) ?? 1, ANGLE_WEIGHT_EXP);
+    const weightB = Math.pow(leafCounts.get(b.node.id) ?? 1, ANGLE_WEIGHT_EXP);
+    const weight = Math.sqrt(weightA * weightB);
+    const weightRatio = totalLeafWeight > 0 ? weight / totalLeafWeight : 0;
+    const sizeScale = 1 + weightRatio * 0.6;
+    return base * globalSepScale * sizeScale;
+  };
+
+  const leftSibling = (node: TidyNode): TidyNode | null => {
+    if (!node.parent) return null;
+    if (node.number <= 1) return null;
+    return node.parent.children[node.number - 2] ?? null;
+  };
+
+  const leftmostSibling = (node: TidyNode): TidyNode | null => {
+    if (!node.parent || node.parent.children.length === 0) return null;
+    return node.parent.children[0] ?? null;
+  };
+
+  const nextLeft = (node: TidyNode): TidyNode | null => {
+    return node.children.length > 0 ? node.children[0]! : node.thread;
+  };
+
+  const nextRight = (node: TidyNode): TidyNode | null => {
+    return node.children.length > 0 ? node.children[node.children.length - 1]! : node.thread;
+  };
+
+  const moveSubtree = (wl: TidyNode, wr: TidyNode, shift: number) => {
+    const subtrees = wr.number - wl.number;
+    if (subtrees <= 0) return;
+    const ratio = shift / subtrees;
+    wr.change -= ratio;
+    wr.shift += shift;
+    wl.change += ratio;
+    wr.prelim += shift;
+    wr.mod += shift;
+  };
+
+  const executeShifts = (node: TidyNode) => {
+    let shift = 0;
+    let change = 0;
+    for (let i = node.children.length - 1; i >= 0; i -= 1) {
+      const child = node.children[i]!;
+      child.prelim += shift;
+      child.mod += shift;
+      change += child.change;
+      shift += child.shift + change;
+    }
+  };
+
+  const ancestor = (vim: TidyNode, v: TidyNode, defaultAncestor: TidyNode): TidyNode => {
+    if (vim.ancestor.parent === v.parent) return vim.ancestor;
+    return defaultAncestor;
+  };
+
+  const apportion = (v: TidyNode, defaultAncestor: TidyNode): TidyNode => {
+    const w = leftSibling(v);
+    if (!w) return defaultAncestor;
+
+    let vip: TidyNode = v;
+    let vop: TidyNode = v;
+    let vim: TidyNode = w;
+    let vom: TidyNode = leftmostSibling(v) ?? w;
+
+    let sip = vip.mod;
+    let sop = vop.mod;
+    let sim = vim.mod;
+    let som = vom.mod;
+
+    let nextRightVim = nextRight(vim);
+    let nextLeftVip = nextLeft(vip);
+    while (nextRightVim && nextLeftVip) {
+      vim = nextRightVim;
+      vip = nextLeftVip;
+      vom = nextLeft(vom) ?? vom;
+      vop = nextRight(vop) ?? vop;
+      vop.ancestor = v;
+
+      const shift = (vim.prelim + sim) - (vip.prelim + sip) + separation(vim, vip);
+      if (shift > 0) {
+        const a = ancestor(vim, v, defaultAncestor);
+        moveSubtree(a, v, shift);
+        sip += shift;
+        sop += shift;
+      }
+
+      sim += vim.mod;
+      sip += vip.mod;
+      som += vom.mod;
+      sop += vop.mod;
+
+      nextRightVim = nextRight(vim);
+      nextLeftVip = nextLeft(vip);
+    }
+
+    if (nextRightVim && !nextRight(vop)) {
+      vop.thread = nextRightVim;
+      vop.mod += sim - sop;
+    }
+    if (nextLeftVip && !nextLeft(vom)) {
+      vom.thread = nextLeftVip;
+      vom.mod += sip - som;
+      return v;
+    }
+
+    return defaultAncestor;
+  };
+
+  const firstWalk = (node: TidyNode): void => {
+    if (node.children.length === 0) {
+      const left = leftSibling(node);
+      node.prelim = left ? left.prelim + separation(node, left) : 0;
+      return;
+    }
+
+    let defaultAncestor = node.children[0]!;
+    node.children.forEach((child) => {
+      firstWalk(child);
+      defaultAncestor = apportion(child, defaultAncestor);
+    });
+
+    executeShifts(node);
+
+    const firstChild = node.children[0]!;
+    const lastChild = node.children[node.children.length - 1]!;
+    const midpoint = (firstChild.prelim + lastChild.prelim) / 2;
+    const left = leftSibling(node);
+    if (left) {
+      node.prelim = left.prelim + separation(node, left);
+      node.mod = node.prelim - midpoint;
+    } else {
+      node.prelim = midpoint;
+    }
+  };
+
+  const secondWalk = (node: TidyNode, modSum: number): void => {
+    node.x = node.prelim + modSum;
+    node.children.forEach((child) => secondWalk(child, modSum + node.mod));
+  };
+
+  firstWalk(tidyRoot);
+  secondWalk(tidyRoot, 0);
+
+  const nodesByDepth = new Map<number, TidyNode[]>();
+  let minXTidy = Infinity;
+  let maxXTidy = -Infinity;
+  let maxDepth = 0;
+  const walk = (node: TidyNode): void => {
+    minXTidy = Math.min(minXTidy, node.x);
+    maxXTidy = Math.max(maxXTidy, node.x);
+    maxDepth = Math.max(maxDepth, node.depth);
+    const list = nodesByDepth.get(node.depth) ?? [];
+    list.push(node);
+    nodesByDepth.set(node.depth, list);
+    node.children.forEach((child) => walk(child));
+  };
+  walk(tidyRoot);
+
+  const angleById = new Map<number, number>();
+  const totalAngle = Math.PI * 2;
+  const startAngle = -Math.PI / 2;
+  const span = maxXTidy - minXTidy;
+  const hasSpan = span > 1e-6;
+  const step = totalLeaves > 1 && hasSpan ? span / (totalLeaves - 1) : 0;
+  const denom = hasSpan ? span + step : 0;
+
+  nodesByDepth.forEach((nodes) => {
+    nodes.forEach((node) => {
+      let angle = startAngle;
+      if (hasSpan && denom > 0) {
+        const normalized = (node.x - minXTidy + step / 2) / denom;
+        angle = startAngle + normalized * totalAngle;
+      }
+      angleById.set(node.node.id, angle);
+    });
+  });
+
+  const radiusByDepth = new Map<number, number>();
+  radiusByDepth.set(0, baseRadius);
+  for (let depth = 1; depth <= maxDepth; depth += 1) {
+    const prevRadius = radiusByDepth.get(depth - 1) ?? baseRadius;
+    const depthGap = depthGapBase * (1 + (depth - 1) * depthGapGrowth);
+    let radius = prevRadius + depthGap;
+    const nodes = nodesByDepth.get(depth) ?? [];
+    if (nodes.length > 1 && hasSpan) {
+      const angles = nodes
+        .map((node) => angleById.get(node.node.id) ?? startAngle)
+        .sort((a, b) => a - b);
+      let minDelta = Infinity;
+      for (let i = 0; i < angles.length; i += 1) {
+        const current = angles[i]!;
+        const next = angles[(i + 1) % angles.length]!;
+        let delta = next - current;
+        if (delta <= 0) delta += totalAngle;
+        minDelta = Math.min(minDelta, delta);
+      }
+      const requiredArcWidth = Math.max(effectiveWidth * REQUIRED_SCALE, 0);
+      const safeDelta = Math.max(minDelta, 1e-4);
+      const requiredRadius = requiredArcWidth / safeDelta;
+      radius = Math.max(radius, requiredRadius);
+    }
+    radiusByDepth.set(depth, radius);
   }
 
-  calcSize(root);
-  assignAngles(root, -Math.PI / 2, Math.PI * 1.5, 0, baseRadius);
-
-  angleRanges.forEach((range, id) => {
-    const radius = radiusById.get(id) ?? baseRadius;
-    const angle = (range.start + range.end) / 2;
-    const x = radius * Math.cos(angle) - nodeWidth / 2;
-    const y = radius * Math.sin(angle) - nodeHeight / 2;
-    const node = nodeById.get(id);
-    if (!node) return;
-    positions.set(id, { x, y, node });
+  nodesByDepth.forEach((nodes) => {
+    nodes.forEach((node) => {
+      const radius = radiusByDepth.get(node.depth) ?? baseRadius;
+      const angle = angleById.get(node.node.id) ?? startAngle;
+      const x = radius * Math.cos(angle) - nodeWidth / 2;
+      const y = radius * Math.sin(angle) - nodeHeight / 2;
+      positions.set(node.node.id, { x, y, node: node.node });
+    });
   });
 
   // Normalize positions to keep everything in positive space.
@@ -322,7 +502,7 @@ export function calculateRadialLayout(
     });
   }
 
-  const maxRadius = Math.max(...Array.from(radiusById.values()), nodeWidth);
+  const maxRadius = Math.max(...Array.from(radiusByDepth.values()), nodeWidth);
   return { positions, width: maxRadius * 2 + nodeWidth };
 }
 
