@@ -367,9 +367,9 @@ export default function GraphArea() {
     [layoutOptions.mode, nodeHeight, nodeWidth, openNodeIds, pathNodeIds, positions, root, showConnections],
   );
 
-  const fitToView = (animate = false) => {
+  const getFitToViewView = useCallback(() => {
     const wrapper = wrapperRef.current;
-    if (!wrapper) return;
+    if (!wrapper) return null;
     const rect = wrapper.getBoundingClientRect();
     const treeWidth = bounds.maxX - bounds.minX + PADDING * 2;
     const treeHeight = bounds.maxY - bounds.minY + PADDING * 2;
@@ -378,10 +378,16 @@ export default function GraphArea() {
     const scale = Math.min(scaleX, scaleY, 2);
     const translateX = (rect.width - treeWidth * scale) / 2 - (bounds.minX - PADDING) * scale;
     const translateY = (rect.height - treeHeight * scale) / 2 - (bounds.minY - PADDING) * scale;
+    return { translateX, translateY, scale };
+  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY]);
+
+  const fitToView = (animate = false) => {
+    const fitView = getFitToViewView();
+    if (!fitView) return;
     if (!animate) {
       clearCanvasTransition();
     }
-    setGraphView({ translateX, translateY, scale });
+    setGraphView(fitView);
     if (animate) {
       applyCanvasTransition(300);
     }
@@ -500,14 +506,16 @@ export default function GraphArea() {
 
   const zoomAt = useCallback((pointerX: number, pointerY: number, scaleFactor: number) => {
     const { translateX, translateY, scale } = viewRef.current;
-    const nextScale = Math.min(3, Math.max(0.15, scale * scaleFactor));
+    const fitView = getFitToViewView();
+    const minScale = Math.min(0.15, fitView?.scale ?? 0.15);
+    const nextScale = Math.min(3, Math.max(minScale, scale * scaleFactor));
     if (nextScale === scale) return;
     const canvasX = (pointerX - translateX) / scale;
     const canvasY = (pointerY - translateY) / scale;
     const nextTranslateX = pointerX - canvasX * nextScale;
     const nextTranslateY = pointerY - canvasY * nextScale;
     setGraphView({ translateX: nextTranslateX, translateY: nextTranslateY, scale: nextScale });
-  }, [setGraphView]);
+  }, [getFitToViewView, setGraphView]);
 
   const handleResetZoom = (animate = false) => {
     const nodeId = currentNodeId;
