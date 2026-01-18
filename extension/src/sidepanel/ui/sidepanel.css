@@ -1718,6 +1718,30 @@ body {
   user-select: none;
 }
 
+.graph-wrapper.lod-low .graph-node {
+  box-shadow: none;
+  filter: none;
+  transition: none;
+}
+
+.graph-wrapper.lod-low .graph-node:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.graph-wrapper.lod-low .graph-node.closed {
+  filter: none;
+}
+
+.graph-wrapper.lod-low .graph-node-favicon,
+.graph-wrapper.lod-low .graph-node-content,
+.graph-wrapper.lod-low .graph-node-pin,
+.graph-wrapper.lod-low .graph-node-tab-count,
+.graph-wrapper.lod-low .graph-node-tags,
+.graph-wrapper.lod-low .graph-node-audio {
+  display: none;
+}
+
 .graph-wrapper.is-dragging .graph-node,
 .graph-wrapper.is-dragging .graph-connection {
   transition: none;

@@ -146,6 +146,7 @@ function getPathBetweenNodes(
 }
 
 export default function GraphArea() {
+  const LOD_LOW_SCALE = 0.15;
   const tree = useStore((state) => state.tree);
   const currentNodeId = useStore((state) => state.currentNodeId);
   const openNodeIds = useStore((state) => state.openNodeIds);
@@ -171,6 +172,8 @@ export default function GraphArea() {
   const setNodeLayoutOffset = useStore((state) => state.setNodeLayoutOffset);
   const setNodeLayoutRadial = useStore((state) => state.setNodeLayoutRadial);
   const openContextMenu = useStore((state) => state.openContextMenu);
+
+  const lodClass = graphView.scale < LOD_LOW_SCALE ? ' lod-low' : '';
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -1007,7 +1010,7 @@ export default function GraphArea() {
   return (
     <div className="stack-container" id="stackContainer">
       <div
-        className={`graph-wrapper${isDraggingNode ? ' is-dragging' : ''}`}
+        className={`graph-wrapper${isDraggingNode ? ' is-dragging' : ''}${lodClass}`}
         ref={wrapperRef}
         tabIndex={0}
         onPointerDown={handlePointerDown}
