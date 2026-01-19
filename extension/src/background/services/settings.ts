@@ -32,7 +32,7 @@ export const defaultSettings: Settings = {
 }
 
 const settingsKey = 'trail_settings' as const;
-const settingsArea = chrome.storage.sync;
+const settingsArea = chrome.storage.local;
 
 function mergeDefaults(raw: unknown): Settings {
     if (!raw || typeof raw !== 'object') {
