@@ -9,60 +9,223 @@ export function calculateLayout(
   startX: number = PADDING
 ): { positions: Map<number, NodePosition>, width: number } {
   const positions = new Map<number, NodePosition>();
-  const subtreeWidths = new Map<number, number>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
-  
-  // First pass: calculate subtree widths (bottom-up)
-  function calcWidths(node: NavigationNode | null): number {
-    if (!node) return 0;
-    if (!node.getChildren() || node.getChildren().length === 0) {
-      subtreeWidths.set(node.id, nodeWidth);
-      return nodeWidth;
+
+  type TidyNode = {
+    node: NavigationNode;
+    parent: TidyNode | null;
+    children: TidyNode[];
+    depth: number;
+    number: number;
+    x: number;
+    prelim: number;
+    mod: number;
+    change: number;
+    shift: number;
+    thread: TidyNode | null;
+    ancestor: TidyNode;
+  };
+
+  const buildTidy = (
+    node: NavigationNode,
+    parent: TidyNode | null,
+    depth: number,
+    number: number,
+  ): TidyNode => {
+    const tidy: TidyNode = {
+      node,
+      parent,
+      depth,
+      number,
+      children: [],
+      x: 0,
+      prelim: 0,
+      mod: 0,
+      change: 0,
+      shift: 0,
+      thread: null,
+      ancestor: null as unknown as TidyNode,
+    };
+    tidy.ancestor = tidy;
+    const children = node.getChildren?.() ?? [];
+    tidy.children = children.map((child, idx) => buildTidy(child, tidy, depth + 1, idx + 1));
+    return tidy;
+  };
+
+  const tidyRoot = buildTidy(root, null, 0, 1);
+  const baseSeparation = Math.max(nodeWidth + horizontalGap, 1);
+
+  const separation = (a: TidyNode, b: TidyNode): number => {
+    const sameParent = a.parent === b.parent;
+    return baseSeparation * (sameParent ? 1 : 1.05);
+  };
+
+  const leftSibling = (node: TidyNode): TidyNode | null => {
+    if (!node.parent) return null;
+    if (node.number <= 1) return null;
+    return node.parent.children[node.number - 2] ?? null;
+  };
+
+  const leftmostSibling = (node: TidyNode): TidyNode | null => {
+    if (!node.parent || node.parent.children.length === 0) return null;
+    return node.parent.children[0] ?? null;
+  };
+
+  const nextLeft = (node: TidyNode): TidyNode | null => {
+    return node.children.length > 0 ? node.children[0]! : node.thread;
+  };
+
+  const nextRight = (node: TidyNode): TidyNode | null => {
+    return node.children.length > 0 ? node.children[node.children.length - 1]! : node.thread;
+  };
+
+  const moveSubtree = (wl: TidyNode, wr: TidyNode, shift: number) => {
+    const subtrees = wr.number - wl.number;
+    if (subtrees <= 0) return;
+    const ratio = shift / subtrees;
+    wr.change -= ratio;
+    wr.shift += shift;
+    wl.change += ratio;
+    wr.prelim += shift;
+    wr.mod += shift;
+  };
+
+  const executeShifts = (node: TidyNode) => {
+    let shift = 0;
+    let change = 0;
+    for (let i = node.children.length - 1; i >= 0; i -= 1) {
+      const child = node.children[i]!;
+      child.prelim += shift;
+      child.mod += shift;
+      change += child.change;
+      shift += child.shift + change;
+    }
+  };
+
+  const ancestor = (vim: TidyNode, v: TidyNode, defaultAncestor: TidyNode): TidyNode => {
+    if (vim.ancestor.parent === v.parent) return vim.ancestor;
+    return defaultAncestor;
+  };
+
+  const apportion = (v: TidyNode, defaultAncestor: TidyNode): TidyNode => {
+    const w = leftSibling(v);
+    if (!w) return defaultAncestor;
+
+    let vip: TidyNode = v;
+    let vop: TidyNode = v;
+    let vim: TidyNode = w;
+    let vom: TidyNode = leftmostSibling(v) ?? w;
+
+    let sip = vip.mod;
+    let sop = vop.mod;
+    let sim = vim.mod;
+    let som = vom.mod;
+
+    let nextRightVim = nextRight(vim);
+    let nextLeftVip = nextLeft(vip);
+    while (nextRightVim && nextLeftVip) {
+      vim = nextRightVim;
+      vip = nextLeftVip;
+      vom = nextLeft(vom) ?? vom;
+      vop = nextRight(vop) ?? vop;
+      vop.ancestor = v;
+
+      const shift = (vim.prelim + sim) - (vip.prelim + sip) + separation(vim, vip);
+      if (shift > 0) {
+        const a = ancestor(vim, v, defaultAncestor);
+        moveSubtree(a, v, shift);
+        sip += shift;
+        sop += shift;
+      }
+
+      sim += vim.mod;
+      sip += vip.mod;
+      som += vom.mod;
+      sop += vop.mod;
+
+      nextRightVim = nextRight(vim);
+      nextLeftVip = nextLeft(vip);
     }
 
-    let totalWidth = 0;
-    node.getChildren().forEach((child: NavigationNode, idx: number) => {
-      totalWidth += calcWidths(child);
-      if (idx < node.getChildren().length - 1) {
-        totalWidth += horizontalGap;
-      }
-    });
-    
-    const width = Math.max(nodeWidth, totalWidth);
-    subtreeWidths.set(node.id, width);
-    return width;
-  }
-  
-  const treeWidth = calcWidths(root);
-  
-  // Second pass: assign positions (top-down)
-  function layoutNode(node: NavigationNode | null, x: number, y: number): void {
-    if (!node) return;
-    
-    const subtreeWidth = subtreeWidths.get(node.id) || nodeWidth;
-    
-    // Center this node within its subtree width
-    const nodeX = x + (subtreeWidth - nodeWidth) / 2;
-    positions.set(node.id, { x: nodeX, y, node });
-    
-    if (!node.getChildren() || node.getChildren().length === 0) {
+    if (nextRightVim && !nextRight(vop)) {
+      vop.thread = nextRightVim;
+      vop.mod += sim - sop;
+    }
+    if (nextLeftVip && !nextLeft(vom)) {
+      vom.thread = nextLeftVip;
+      vom.mod += sip - som;
+      return v;
+    }
+
+    return defaultAncestor;
+  };
+
+  const firstWalk = (node: TidyNode): void => {
+    if (node.children.length === 0) {
+      const left = leftSibling(node);
+      node.prelim = left ? left.prelim + separation(node, left) : 0;
       return;
     }
-    
-    // Position children below
-    const childY = y + nodeHeight + verticalGap;
-    let childX = x;
-    
-    node.getChildren().forEach((child: NavigationNode) => {
-      const childWidth = subtreeWidths.get(child.id) || nodeWidth;
-      layoutNode(child, childX, childY);
-      childX += childWidth + horizontalGap;
+
+    let defaultAncestor = node.children[0]!;
+    node.children.forEach((child) => {
+      firstWalk(child);
+      defaultAncestor = apportion(child, defaultAncestor);
     });
+
+    executeShifts(node);
+
+    const firstChild = node.children[0]!;
+    const lastChild = node.children[node.children.length - 1]!;
+    const midpoint = (firstChild.prelim + lastChild.prelim) / 2;
+    const left = leftSibling(node);
+    if (left) {
+      node.prelim = left.prelim + separation(node, left);
+      node.mod = node.prelim - midpoint;
+    } else {
+      node.prelim = midpoint;
+    }
+  };
+
+  const secondWalk = (node: TidyNode, modSum: number): void => {
+    node.x = node.prelim + modSum;
+    node.children.forEach((child) => secondWalk(child, modSum + node.mod));
+  };
+
+  firstWalk(tidyRoot);
+  secondWalk(tidyRoot, 0);
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  // Track bounding box for normalization.
+
+  const assignPositions = (node: TidyNode): void => {
+    const centerX = node.x;
+    const x = centerX - nodeWidth / 2;
+    const y = node.depth * (nodeHeight + verticalGap);
+    positions.set(node.node.id, { x, y, node: node.node });
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + nodeWidth);
+    node.children.forEach((child) => assignPositions(child));
+  };
+
+  assignPositions(tidyRoot);
+
+  const shiftX = minX < startX ? startX - minX : 0;
+  const shiftY = minY < PADDING ? PADDING - minY : 0;
+  if (shiftX !== 0 || shiftY !== 0) {
+    positions.forEach((pos, id) => {
+      positions.set(id, { ...pos, x: pos.x + shiftX, y: pos.y + shiftY });
+    });
+    minX += shiftX;
+    minY += shiftY;
+    maxX += shiftX;
   }
-  
-  layoutNode(root, startX, PADDING);
-  
-  return { positions, width: treeWidth };
+
+  const width = maxX - minX + PADDING * 2;
+  return { positions, width };
 }
 
 /**
