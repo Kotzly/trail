@@ -1064,6 +1064,13 @@ export default function SettingsPopover() {
               step={0.05}
               onValueChange={(value) => updateLayout({ tree: { horizontalGapScale: value } })}
             />
+            <ToggleRow
+              id="setting-tree-hide-root"
+              label="Hide root"
+              description="Hide the root placeholder node and its links."
+              checked={layout.tree.hideRoot}
+              onChange={(next) => updateLayout({ tree: { hideRoot: next } })}
+            />
           </div>
         ) : layout.mode === 'mindmap' ? (
           <div className="popover-section">

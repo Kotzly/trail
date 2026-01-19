@@ -5,6 +5,7 @@ export const DEFAULT_LAYOUT_SETTINGS: LayoutSettings = {
     tree: {
         verticalGapScale: 1,
         horizontalGapScale: 1,
+        hideRoot: false,
     },
     mindmap: {
         verticalGapScale: 1,

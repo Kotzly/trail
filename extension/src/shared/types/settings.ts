@@ -5,6 +5,7 @@ export type LayoutMode = 'tree' | 'radial' | 'mindmap';
 export type TreeLayoutSettings = {
     verticalGapScale: number;
     horizontalGapScale: number;
+    hideRoot: boolean;
 };
 
 export type MindmapLayoutSettings = {

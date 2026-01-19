@@ -51,6 +51,7 @@ function buildConnections(
   positions: Map<number, NodePosition>,
   pathNodeIds: Set<NodeId> | null,
   layoutMode: 'tree' | 'mindmap' | 'radial',
+  hideRoot: boolean,
   openNodeIds: Set<NodeId> | null,
   nodeWidth: number,
   nodeHeight: number,
@@ -97,12 +98,15 @@ function buildConnections(
       }
       const onPath =
         pathNodeIds ? pathNodeIds.has(node.id) && pathNodeIds.has(child.id) : false;
-      list.push({
-        id: `${node.id}-${child.id}`,
-        d,
-        branchClass: `branch-${(idx % 5) + 1}`,
-        onPath,
-      });
+      const hideConnection = layoutMode === 'tree' && hideRoot && node.isRoot();
+      if (!hideConnection) {
+        list.push({
+          id: `${node.id}-${child.id}`,
+          d,
+          branchClass: `branch-${(idx % 5) + 1}`,
+          onPath,
+        });
+      }
       traverse(child);
     });
   };
@@ -229,6 +233,7 @@ export default function GraphArea() {
   const baseLayoutConfig =
     layoutOptions.mode === 'mindmap' ? layoutOptions.mindmap : layoutOptions.tree;
   setLayoutConfig(baseLayoutConfig);
+  const hideTreeRoot = settings?.layout?.tree?.hideRoot ?? false;
 
   useEffect(() => {
     viewRef.current = graphView;
@@ -346,7 +351,11 @@ export default function GraphArea() {
     return getCanvasBounds(positions);
   }, [layout, positions]);
 
-  const nodes = useMemo(() => Array.from(positions.values()), [positions]);
+  const nodes = useMemo(() => {
+    const list = Array.from(positions.values());
+    if (layoutOptions.mode !== 'tree' || !root || !hideTreeRoot) return list;
+    return list.filter((pos) => pos.node.id !== root.id);
+  }, [hideTreeRoot, layoutOptions.mode, positions, root]);
   const searchSet = useMemo(() => new Set(search.results), [search.results]);
   const focusedSearchId = search.results[search.index];
   const pathNodeIds = useMemo(() => {
@@ -362,12 +371,13 @@ export default function GraphArea() {
             positions,
             pathNodeIds,
             layoutOptions.mode,
+            hideTreeRoot,
             openNodeIds,
             nodeWidth,
             nodeHeight,
           )
         : [],
-    [layoutOptions.mode, nodeHeight, nodeWidth, openNodeIds, pathNodeIds, positions, root, showConnections],
+    [hideTreeRoot, layoutOptions.mode, nodeHeight, nodeWidth, openNodeIds, pathNodeIds, positions, root, showConnections],
   );
 
   const getFitToViewView = useCallback(() => {
