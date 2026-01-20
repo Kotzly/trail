@@ -245,9 +245,10 @@ class NodeVisual {
     const url = model.node.data.url ? formatUrl(model.node.data.url) : '';
     const maxTitleChars = Math.max(10, Math.floor((model.width - 70) / 6.5));
     const displayTitle = truncateTitle(title, model.display.titleTruncation, maxTitleChars);
+    const displayUrl = truncateTitle(url, model.display.titleTruncation, maxTitleChars);
 
     this.titleText.text = showTitle ? displayTitle : '';
-    this.urlText.text = showUrls ? url : '';
+    this.urlText.text = showUrls ? displayUrl : '';
 
     const contentX = NODE_PADDING_X + (showFavicon ? FAVICON_SIZE + NODE_GAP : 0);
     const textBlockHeight = showUrls ? TITLE_FONT_SIZE + URL_FONT_SIZE + 4 : TITLE_FONT_SIZE;
