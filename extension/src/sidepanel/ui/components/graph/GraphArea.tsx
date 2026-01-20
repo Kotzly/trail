@@ -25,7 +25,7 @@ export default function GraphArea() {
         state.ui.pinnedOpen ||
         state.ui.treesOpen ||
         state.ui.tagFilterOpen
-          ? ('low' as const)
+          ? ('dot' as const)
           : ('full' as const),
       graphView: state.graph.view,
       tool: state.graph.tool,

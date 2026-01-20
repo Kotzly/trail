@@ -194,6 +194,7 @@ const normalizeTheme = (theme: CustomTheme | null | undefined): CustomTheme => {
 };
 
 const getPrimaryDot = (theme: CustomTheme): ThemeDot => theme.dots[0] ?? DEFAULT_PRIMARY;
+const TONE_STOPS = Array.from({ length: 7 }, (_, index) => 0.5 + (index / 6) * 0.5);
 
 export default function ThemePalette({
   scheme,
@@ -340,6 +341,21 @@ export default function ThemePalette({
         dots,
         harmony,
         lightness: preset.lightness,
+        enabled: true,
+      });
+    },
+    [commitTheme, draft]
+  );
+
+  const handleTonePreset = useCallback(
+    (x: number) => {
+      const primary: ThemeDot = { x, y: 0.5, type: 'explicit-black-white' };
+      const dots = buildDots(primary, 1, 'floating');
+      commitTheme({
+        ...draft,
+        dots,
+        harmony: 'floating',
+        lightness: getLightnessFromDot(primary),
         enabled: true,
       });
     },
@@ -607,6 +623,33 @@ export default function ThemePalette({
         </button>
       </div>
 
+      <div className="zen-theme-picker-tones">
+        <span className="zen-theme-picker-tones-label">Tone</span>
+        <div className="zen-theme-picker-tones-track">
+          {TONE_STOPS.map((x, index) => {
+            const dot: ThemeDot = { x, y: 0.5, type: 'explicit-black-white' };
+            const { hex } = getColorFromPosition(dot, draft.lightness);
+            const label =
+              index === 0
+                ? 'Black'
+                : index === TONE_STOPS.length - 1
+                  ? 'White'
+                  : 'Gray';
+            return (
+              <button
+                key={`tone-${index}`}
+                type="button"
+                className="zen-theme-picker-tone"
+                style={{ background: hex }}
+                onClick={() => handleTonePreset(x)}
+                title={label}
+                aria-label={label}
+              />
+            );
+          })}
+        </div>
+      </div>
+
       <div className="zen-theme-picker-controls">
         <div className="zen-theme-picker-opacity">
           <div className="zen-theme-picker-wave">
@@ -670,6 +713,7 @@ export default function ThemePalette({
             <input
               type="color"
               value={accentValue}
+              className="zen-theme-picker-color-input"
               onChange={(event) => handleAccentChange(event.target.value)}
               aria-label="Accent color"
             />
@@ -687,6 +731,7 @@ export default function ThemePalette({
           <input
             type="color"
             value={customColor}
+            className="zen-theme-picker-color-input"
             onChange={(event) => setCustomColor(event.target.value)}
           />
           <input
@@ -695,13 +740,14 @@ export default function ThemePalette({
             max={1}
             step={0.01}
             value={customOpacity}
+            className="zen-theme-picker-opacity-input"
             onChange={(event) => {
               const next = Number(event.target.value);
               if (Number.isNaN(next)) return;
               setCustomOpacity(clamp(next, 0, 1));
             }}
           />
-          <button type="button" onClick={handleAddCustomColor}>
+          <button type="button" className="zen-theme-picker-icon-btn" onClick={handleAddCustomColor}>
             <Icons.Plus size={14} />
           </button>
         </div>

@@ -51,6 +51,7 @@ export const THEME_TOKEN_KEYS = [
   '--trail-app-bg-color',
   '--trail-app-bg-image',
   '--trail-grain-opacity',
+  '--trail-grid-dot',
 ] as const;
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
@@ -450,6 +451,11 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
 
   const appBackgroundColor = gradientBase ?? surface;
   const appBackgroundImage = gradientImage ?? 'none';
+  const backgroundRgb = appBackgroundColor.startsWith('#') ? hexToRgb(appBackgroundColor) : surfaceRgb;
+  const backgroundLuminance = getLuminance(backgroundRgb);
+  const gridContrastRgb = getContrastText(backgroundRgb);
+  const gridAlpha = backgroundLuminance > 0.6 ? 0.18 : backgroundLuminance < 0.35 ? 0.28 : 0.22;
+  const gridDot = toRgbaString(gridContrastRgb, gridAlpha);
 
   const glass = `rgba(${rgbToCssTuple(surfaceRgb)}, ${glassAlpha})`;
   const glassStrong = `rgba(${rgbToCssTuple(surfaceRgb)}, ${glassStrongAlpha})`;
@@ -517,6 +523,7 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
     '--trail-app-bg-color': appBackgroundColor,
     '--trail-app-bg-image': appBackgroundImage,
     '--trail-grain-opacity': String(clamp(custom.texture ?? 0, 0, 1)),
+    '--trail-grid-dot': gridDot,
   };
 }
 

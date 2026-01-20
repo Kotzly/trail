@@ -26,7 +26,7 @@
 }
 
 .graph-wrapper {
-  --graph-grid-dot: color-mix(in srgb, var(--md-outline-variant) 60%, transparent);
+  --graph-grid-dot: var(--trail-grid-dot, color-mix(in srgb, var(--md-outline-variant) 60%, transparent));
   position: absolute;
   top: 0;
   left: 0;
@@ -39,6 +39,7 @@
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
+  isolation: isolate;
   touch-action: none;
 }
 
@@ -52,6 +53,19 @@
   background-size: 20px 20px;
   background-position: center;
   mix-blend-mode: soft-light;
+  z-index: 0;
+}
+
+.graph-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--trail-grain-opacity, 0);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+  background-size: 120px 120px;
+  mix-blend-mode: hard-light;
+  z-index: 1;
 }
 
 .graph-canvas {
@@ -59,6 +73,7 @@
   inset: 0;
   pointer-events: none;
   touch-action: none;
+  z-index: 2;
 }
 
 .graph-canvas canvas {
