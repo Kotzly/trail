@@ -10,7 +10,7 @@ import React from 'react';
 
 const DEFAULT_THEME: CustomTheme = {
   enabled: false,
-  dots: [{ x: 0.5, y: 0.5, type: 'explicit-lightness' }],
+  dots: [{ x: 0.5, y: 0.5 }],
   harmony: 'floating',
   lightness: 50,
   opacity: 0.6,

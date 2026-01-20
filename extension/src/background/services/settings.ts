@@ -4,7 +4,7 @@ import { DEFAULT_LAYOUT_SETTINGS } from "../../shared/layout/defaults.js";
 
 const DEFAULT_CUSTOM_THEME: CustomTheme = {
     enabled: false,
-    dots: [{ x: 0.5, y: 0.5, type: 'explicit-lightness' }],
+    dots: [{ x: 0.5, y: 0.5 }],
     harmony: 'floating',
     lightness: 50,
     opacity: 0.6,
@@ -36,13 +36,16 @@ function normalizeCustomTheme(raw: unknown): CustomTheme {
     const partial = raw as Partial<CustomTheme>;
     const rawDots = Array.isArray(partial.dots) ? partial.dots : DEFAULT_CUSTOM_THEME.dots;
     const dots = rawDots
-        .map((dot) => ({
-            x: clamp(dot?.x ?? 0.5, 0, 1, 0.5),
-            y: clamp(dot?.y ?? 0.5, 0, 1, 0.5),
-            type: THEME_DOT_TYPES.includes(dot?.type as ThemeDotType)
+        .map((dot) => {
+            const dotType = THEME_DOT_TYPES.includes(dot?.type as ThemeDotType)
                 ? (dot?.type as ThemeDotType)
-                : 'explicit-lightness',
-        }))
+                : undefined;
+            return {
+                x: clamp(dot?.x ?? 0.5, 0, 1, 0.5),
+                y: clamp(dot?.y ?? 0.5, 0, 1, 0.5),
+                ...(dotType ? { type: dotType } : {}),
+            };
+        })
         .slice(0, 3);
     return {
         ...DEFAULT_CUSTOM_THEME,

@@ -16,6 +16,7 @@ type RenderData = {
 };
 
 type LODLevel = 'hidden' | 'dot' | 'low' | 'full';
+type DetailMode = 'full' | 'low' | 'dot';
 
 const LOD_HIDE_PX = 6;
 const LOD_DOT_PX = 14;
@@ -108,7 +109,8 @@ class NodeVisual {
     theme: ReturnType<typeof readGraphTheme>,
     origin: { x: number; y: number },
     fontFamily: string,
-    themeVersion: number
+    themeVersion: number,
+    detailMode: DetailMode
   ) {
     this.fonts.base = fontFamily;
     const scale = view.scale;
@@ -119,6 +121,8 @@ class NodeVisual {
     if (!forceDetail && pixelSize < LOD_HIDE_PX) lod = 'hidden';
     else if (!forceDetail && pixelSize < LOD_DOT_PX) lod = 'dot';
     else if (!forceDetail && pixelSize < LOD_LOW_PX) lod = 'low';
+    if (detailMode === 'low' && lod === 'full') lod = 'low';
+    if (detailMode === 'dot' && lod !== 'hidden') lod = 'dot';
 
     const nextStyleKey = [
       model.isCurrent ? 'c' : 'n',
@@ -449,6 +453,7 @@ export class GraphPixiRenderer {
   private theme = readGraphTheme({ host: document.body });
   private themeVersion = 0;
   private fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
+  private detailMode: DetailMode = 'full';
   private origin = { x: 0, y: 0 };
   private needsRender = false;
   private destroyed = false;
@@ -527,6 +532,12 @@ export class GraphPixiRenderer {
     this.fontFamily = style.fontFamily || this.fontFamily;
     this.themeVersion += 1;
     if (!this.isReady) return;
+    this.invalidateAll();
+  }
+
+  setDetailMode(mode: DetailMode) {
+    if (this.detailMode === mode) return;
+    this.detailMode = mode;
     this.invalidateAll();
   }
 
@@ -663,7 +674,15 @@ export class GraphPixiRenderer {
         this.nodeMap.set(id, visual);
         this.nodeLayer.addChild(visual.container);
       }
-      visual.update(node, this.view, this.theme, this.origin, this.fontFamily, this.themeVersion);
+      visual.update(
+        node,
+        this.view,
+        this.theme,
+        this.origin,
+        this.fontFamily,
+        this.themeVersion,
+        this.detailMode
+      );
     });
     for (const [id, visual] of this.nodeMap.entries()) {
       if (!visibleIds.has(id)) {
@@ -677,7 +696,7 @@ export class GraphPixiRenderer {
   private updateConnections(viewRect: { minX: number; minY: number; maxX: number; maxY: number }) {
     this.connectionLayer.clear();
     this.pathLayer.clear();
-    if (!this.data.showConnections) return;
+    if (!this.data.showConnections || this.detailMode !== 'full') return;
     const baseColor = this.theme.connection.base;
     const pathColor = this.theme.connection.path;
     const baseWidth = 2 / this.view.scale;

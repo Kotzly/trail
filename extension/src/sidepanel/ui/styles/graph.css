@@ -34,10 +34,24 @@
   bottom: 0;
   overflow: hidden;
   overscroll-behavior: contain;
-  background: var(--md-surface);
-  background-image: radial-gradient(circle, var(--graph-grid-dot) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-color: var(--trail-app-bg-color, var(--md-surface));
+  background-image: var(--trail-app-bg-image, none);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
   touch-action: none;
+}
+
+.graph-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 1;
+  background-image: radial-gradient(circle, var(--graph-grid-dot) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+  background-position: center;
+  mix-blend-mode: soft-light;
 }
 
 .graph-canvas {

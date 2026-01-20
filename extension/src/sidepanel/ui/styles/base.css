@@ -36,7 +36,10 @@ body,
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
-  background: var(--md-surface);
+  background-color: var(--trail-app-bg-color, var(--md-surface));
+  background-image: var(--trail-app-bg-image, none);
+  background-repeat: no-repeat;
+  background-size: cover;
   color: var(--md-on-surface);
   font-size: 14px;
   line-height: 1.5;

@@ -1,8 +1,9 @@
-import type { CustomTheme, ThemeDot, ThemeHarmony, ThemeDotType } from '../../../shared/types/settings.js';
+import type { CustomTheme, ThemeDot, ThemeHarmony } from '../../../shared/types/settings.js';
 import type { ThemeId } from './themes.js';
 
 type HslColor = { h: number; s: number; l: number };
 type RgbColor = { r: number; g: number; b: number };
+type RgbaColor = { r: number; g: number; b: number; a: number };
 
 const HARMONY_ANGLES: Record<ThemeHarmony, number[]> = {
   floating: [],
@@ -12,8 +13,6 @@ const HARMONY_ANGLES: Record<ThemeHarmony, number[]> = {
   analogous: [50, 310],
   triadic: [120, 240],
 };
-
-const DEFAULT_DOT_TYPE: ThemeDotType = 'explicit-lightness';
 
 export const THEME_TOKEN_KEYS = [
   '--md-surface',
@@ -49,6 +48,8 @@ export const THEME_TOKEN_KEYS = [
   '--graph-node-active-border',
   '--graph-node-active-title',
   '--graph-node-active-url',
+  '--trail-app-bg-color',
+  '--trail-app-bg-image',
   '--trail-grain-opacity',
 ] as const;
 
@@ -81,6 +82,29 @@ const hexToRgb = (value: string): RgbColor => {
     return { r, g, b };
   }
   return { r: 0, g: 0, b: 0 };
+};
+
+const hexToRgba = (value: string): RgbaColor | null => {
+  const normalized = value.replace('#', '').trim();
+  if (normalized.length === 3 || normalized.length === 4) {
+    const rChar = normalized[0] ?? '0';
+    const gChar = normalized[1] ?? '0';
+    const bChar = normalized[2] ?? '0';
+    const aChar = normalized[3];
+    const r = parseInt(rChar + rChar, 16);
+    const g = parseInt(gChar + gChar, 16);
+    const b = parseInt(bChar + bChar, 16);
+    const a = aChar ? parseInt(aChar + aChar, 16) / 255 : 1;
+    return { r, g, b, a };
+  }
+  if (normalized.length === 6 || normalized.length === 8) {
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    const a = normalized.length === 8 ? parseInt(normalized.slice(6, 8), 16) / 255 : 1;
+    return { r, g, b, a };
+  }
+  return null;
 };
 
 const rgbToHsl = ({ r, g, b }: RgbColor): HslColor => {
@@ -150,6 +174,44 @@ const hslToRgb = ({ h, s, l }: HslColor): RgbColor => {
 
 const rgbToCssTuple = ({ r, g, b }: RgbColor) => `${toRgb(r)}, ${toRgb(g)}, ${toRgb(b)}`;
 
+const toRgbaString = (rgb: RgbColor, alpha: number) =>
+  `rgba(${rgbToCssTuple(rgb)}, ${clamp(alpha, 0, 1)})`;
+
+const toGradientColor = (value: string, alpha: number): string => {
+  const parsed = hexToRgba(value);
+  if (!parsed) return value;
+  const resolvedAlpha = clamp(parsed.a * alpha, 0, 1);
+  return toRgbaString({ r: parsed.r, g: parsed.g, b: parsed.b }, resolvedAlpha);
+};
+
+const buildZenGradient = (colors: string[], useCustomColors: boolean): string | null => {
+  if (colors.length < 2) return null;
+  const rotation = -45;
+  if (useCustomColors || colors.length > 3) {
+    const stops = colors
+      .map((color, index) => {
+        const position = (index / (colors.length - 1)) * 100;
+        return `${color} ${position}%`;
+      })
+      .join(', ');
+    return `linear-gradient(${rotation}deg, ${stops})`;
+  }
+  if (colors.length === 2) {
+    return [
+      `linear-gradient(${rotation}deg, ${colors[1]} 0%, transparent 100%)`,
+      `linear-gradient(${rotation + 180}deg, ${colors[0]} 0%, transparent 100%)`,
+    ].join(', ');
+  }
+  if (colors.length === 3) {
+    return [
+      `linear-gradient(-5deg, ${colors[2]} 10%, transparent 80%)`,
+      `radial-gradient(circle at 95% 0%, ${colors[1]} 0%, transparent 75%)`,
+      `radial-gradient(circle at 0% 0%, ${colors[0]} 10%, transparent 70%)`,
+    ].join(', ');
+  }
+  return null;
+};
+
 const getLuminance = ({ r, g, b }: RgbColor) => {
   const toLinear = (value: number) => {
     const channel = value / 255;
@@ -170,7 +232,7 @@ export function clampDotPosition(dot: ThemeDot): ThemeDot {
   return {
     x: clamp(dot.x, 0, 1),
     y: clamp(dot.y, 0, 1),
-    type: dot.type ?? DEFAULT_DOT_TYPE,
+    ...(dot.type ? { type: dot.type } : {}),
   };
 }
 
@@ -178,7 +240,7 @@ export function calculateCompliments(dots: ThemeDot[], harmony: ThemeHarmony): T
   if (dots.length <= 1) return dots.map(clampDotPosition);
   const angles = HARMONY_ANGLES[harmony] ?? [];
   if (angles.length === 0) return dots.map(clampDotPosition);
-  const primary = clampDotPosition(dots[0] ?? { x: 0.5, y: 0.5, type: DEFAULT_DOT_TYPE });
+  const primary = clampDotPosition(dots[0] ?? { x: 0.5, y: 0.5 });
   const center = { x: 0.5, y: 0.5 };
   const dx = primary.x - center.x;
   const dy = primary.y - center.y;
@@ -187,11 +249,14 @@ export function calculateCompliments(dots: ThemeDot[], harmony: ThemeHarmony): T
   const nextDots: ThemeDot[] = [primary];
   angles.forEach((offset) => {
     const angle = ((baseAngle + offset) * Math.PI) / 180;
-    nextDots.push({
+    const nextDot: ThemeDot = {
       x: clamp(center.x + distance * Math.cos(angle), 0, 1),
       y: clamp(center.y + distance * Math.sin(angle), 0, 1),
-      type: primary.type ?? DEFAULT_DOT_TYPE,
-    });
+    };
+    if (primary.type) {
+      nextDot.type = primary.type;
+    }
+    nextDots.push(nextDot);
   });
   return nextDots;
 }
@@ -208,12 +273,16 @@ export function getColorFromPosition(
   let angle = (Math.atan2(dy, dx) * 180) / Math.PI;
   if (angle < 0) angle += 360;
   const normalizedDistance = 1 - Math.min(distance / 0.5, 1);
-  const type = safeDot.type ?? DEFAULT_DOT_TYPE;
-  let saturation = normalizedDistance * 100;
-  let resolvedLightness = clamp(lightness, 0, 100);
-  if (type === 'explicit-black-white') {
+  const type = safeDot.type;
+  const baseLightness = Math.round((1 - normalizedDistance) * 100);
+  let saturation = 90 + (1 - normalizedDistance) * 10;
+  let resolvedLightness = baseLightness;
+  if (type === 'explicit-lightness') {
+    saturation = normalizedDistance * 100;
+    resolvedLightness = clamp(lightness, 0, 100);
+  } else if (type === 'explicit-black-white') {
     saturation = 0;
-    resolvedLightness = Math.round((1 - normalizedDistance) * 100);
+    resolvedLightness = baseLightness;
   }
   const rgb = hslToRgb({ h: angle, s: saturation, l: resolvedLightness });
   return { rgb, hex: rgbToHex(rgb) };
@@ -233,10 +302,9 @@ const getResolvedScheme = (scheme: ThemeId): 'light' | 'dark' => {
 const toHslString = (color: HslColor) => rgbToHex(hslToRgb(color));
 
 export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Record<string, string> {
-  const safeDots = custom.dots.length ? custom.dots : [{ x: 0.5, y: 0.5, type: DEFAULT_DOT_TYPE }];
-  const colors = (custom.customColors && custom.customColors.length > 0)
-    ? custom.customColors
-    : getDotColors(safeDots, custom.lightness);
+  const safeDots = custom.dots.length ? custom.dots : [{ x: 0.5, y: 0.5 }];
+  const useCustomColors = Boolean(custom.customColors && custom.customColors.length > 0);
+  const colors = useCustomColors ? custom.customColors : getDotColors(safeDots, custom.lightness);
   const paletteRgb = colors.map((color) => hexToRgb(color));
   const fallbackRgb = { r: 59, g: 59, b: 64 };
   const accentRgb = paletteRgb[0] ?? fallbackRgb;
@@ -258,13 +326,17 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
         b: averageRgb.b / paletteRgb.length,
       }
     : fallbackRgb;
+  const gradientAlpha = clamp(custom.opacity, 0.35, 1);
+  const gradientColors = colors.map((color) => toGradientColor(color, gradientAlpha));
+  const gradientImage = buildZenGradient(gradientColors, useCustomColors);
+  const gradientBase = paletteRgb.length ? rgbToHex(averaged) : null;
   const neutralHsl = rgbToHsl(averaged);
   const accentHsl = rgbToHsl(accentRgb);
   const mode = getResolvedScheme(scheme);
   const isDark = mode === 'dark';
 
   const neutralHue = neutralHsl.h;
-  const neutralSat = Math.min(neutralHsl.s * 0.15, 16);
+  const neutralSat = clamp(neutralHsl.s * 0.35, 12, 28);
   const surfaceLevels = isDark
     ? {
         surface: 12,
@@ -344,8 +416,11 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const surfaceRgb = hexToRgb(surface);
   const onSurfaceRgb = hexToRgb(onSurface);
 
-  const glassAlpha = clamp(0.55 + custom.opacity * 0.35, 0.4, 0.9);
-  const glassStrongAlpha = clamp(0.75 + custom.opacity * 0.2, 0.6, 0.95);
+  const glassAlpha = clamp(0.3 + custom.opacity * 0.5, 0.3, 0.9);
+  const glassStrongAlpha = clamp(0.45 + custom.opacity * 0.45, 0.45, 0.95);
+
+  const appBackgroundColor = gradientBase ?? surface;
+  const appBackgroundImage = gradientImage ?? 'none';
 
   const glass = `rgba(${rgbToCssTuple(surfaceRgb)}, ${glassAlpha})`;
   const glassStrong = `rgba(${rgbToCssTuple(surfaceRgb)}, ${glassStrongAlpha})`;
@@ -410,6 +485,8 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
     '--graph-node-active-border': activeBorder,
     '--graph-node-active-title': activeTitle,
     '--graph-node-active-url': activeUrl,
+    '--trail-app-bg-color': appBackgroundColor,
+    '--trail-app-bg-image': appBackgroundImage,
     '--trail-grain-opacity': String(clamp(custom.texture ?? 0, 0, 1)),
   };
 }

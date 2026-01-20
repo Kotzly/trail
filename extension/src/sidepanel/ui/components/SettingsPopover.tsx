@@ -21,6 +21,7 @@ import {
   startCheckout,
 } from '../../api/account.js';
 import { saveSettings } from '../../api/settings.js';
+import { getRangePercent } from '../shared/range.js';
 import { resetNodeLayouts } from '../../api/tree.js';
 import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
@@ -120,7 +121,7 @@ function RangeSlider({
         ? value.toFixed(2)
         : '0'
       : String(Math.round(value)));
-  const percent = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  const percent = getRangePercent(value, min, max);
   const rangeStyle = {
     ['--range-percent' as string]: `${Math.min(100, Math.max(0, percent))}%`,
   } as CSSProperties;

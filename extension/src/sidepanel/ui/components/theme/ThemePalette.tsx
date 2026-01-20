@@ -7,6 +7,7 @@ import {
   getColorFromPosition,
   resolveHarmonyForCount,
 } from '../../shared/theme-generator.js';
+import { getRangePercent } from '../../shared/range.js';
 import { PRESET_PAGES, type ThemePreset } from './theme-presets.js';
 import React from 'react';
 
@@ -18,7 +19,7 @@ type ThemePaletteProps = {
   onCommit: (next: CustomTheme) => void;
 };
 
-const DEFAULT_PRIMARY: ThemeDot = { x: 0.5, y: 0.5, type: 'explicit-lightness' };
+const DEFAULT_PRIMARY: ThemeDot = { x: 0.5, y: 0.5 };
 
 const DEFAULT_THEME: CustomTheme = {
   enabled: false,
@@ -40,6 +41,18 @@ const HARMONY_LABELS: Record<ThemeHarmony, string> = {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+const OPACITY_MIN = 0.35;
+
+const getLightnessFromDot = (dot: ThemeDot) => {
+  const center = { x: 0.5, y: 0.5 };
+  const dx = dot.x - center.x;
+  const dy = dot.y - center.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const normalizedDistance = 1 - Math.min(distance / 0.5, 1);
+  return Math.round((1 - normalizedDistance) * 100);
+};
+
+const shouldSyncLightness = (dot: ThemeDot) => dot.type === undefined;
 
 const clampToCircle = (x: number, y: number) => {
   const cx = 0.5;
@@ -219,7 +232,10 @@ export default function ThemePalette({
       const count = draftRef.current.dots.length || 1;
       const harmony = resolveHarmonyForCount(count, draftRef.current.harmony);
       const dots = buildDots(primary, count, harmony);
-      previewTheme({ ...draftRef.current, dots, harmony, enabled: true });
+      const nextLightness = shouldSyncLightness(primary)
+        ? getLightnessFromDot(primary)
+        : draftRef.current.lightness;
+      previewTheme({ ...draftRef.current, dots, harmony, lightness: nextLightness, enabled: true });
     },
     [previewTheme]
   );
@@ -281,8 +297,12 @@ export default function ThemePalette({
       const clamped = clampToCircle(x, y);
       const count = draftRef.current.dots.length || 1;
       const harmony = resolveHarmonyForCount(count, draftRef.current.harmony);
-      const dots = buildDots({ ...getPrimaryDot(draftRef.current), ...clamped }, count, harmony);
-      commitTheme({ ...draftRef.current, dots, harmony, enabled: true });
+      const primary = { ...getPrimaryDot(draftRef.current), ...clamped };
+      const dots = buildDots(primary, count, harmony);
+      const nextLightness = shouldSyncLightness(primary)
+        ? getLightnessFromDot(primary)
+        : draftRef.current.lightness;
+      commitTheme({ ...draftRef.current, dots, harmony, lightness: nextLightness, enabled: true });
     },
     [commitTheme]
   );
@@ -326,8 +346,8 @@ export default function ThemePalette({
     commitTheme({ ...draft, customColors: nextColors, enabled: true });
   };
 
-  const lightnessPercent = clamp(draft.lightness, 0, 100);
-  const opacityPercent = clamp(draft.opacity, 0, 1) * 100;
+  const lightnessPercent = clamp(getRangePercent(draft.lightness, 0, 100), 0, 100);
+  const opacityPercent = clamp(getRangePercent(draft.opacity, OPACITY_MIN, 1), 0, 100);
 
   const schemeButtons = useMemo(
     () => [
@@ -463,7 +483,7 @@ export default function ThemePalette({
           </div>
           <input
             type="range"
-            min={0.35}
+            min={OPACITY_MIN}
             max={1}
             step={0.01}
             value={draft.opacity}

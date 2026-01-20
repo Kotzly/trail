@@ -57,6 +57,7 @@ type GraphCanvasProps = {
   search: SearchState;
   settings: Settings | null;
   showConnections: boolean;
+  detailMode: 'full' | 'low' | 'dot';
   graphView: ViewState;
   tool: GraphTool;
   selectedNodeIds: Set<NodeId>;
@@ -102,6 +103,7 @@ export default function GraphCanvas({
   search,
   settings,
   showConnections,
+  detailMode,
   graphView,
   tool,
   selectedNodeIds,
@@ -123,6 +125,7 @@ export default function GraphCanvas({
 }: GraphCanvasProps) {
   const searchActive = search.active;
   const searchNavStep = search.navStep;
+  const effectiveShowConnections = showConnections && detailMode === 'full';
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const pixiHostRef = useRef<HTMLDivElement | null>(null);
@@ -227,6 +230,7 @@ export default function GraphCanvas({
     const renderer = new GraphPixiRenderer(host);
     rendererRef.current = renderer;
     renderer.setView(viewRef.current);
+    renderer.setDetailMode(detailMode);
     return () => {
       renderer.destroy();
       rendererRef.current = null;
@@ -658,7 +662,7 @@ export default function GraphCanvas({
 
   const connections = useMemo(
     () =>
-      showConnections
+      effectiveShowConnections
         ? buildConnections(
             root,
             positions,
@@ -669,7 +673,16 @@ export default function GraphCanvas({
             nodeHeight,
           )
         : [],
-    [hideTreeRoot, layoutOptions.mode, nodeHeight, nodeWidth, pathNodeIds, positions, root, showConnections],
+    [
+      effectiveShowConnections,
+      hideTreeRoot,
+      layoutOptions.mode,
+      nodeHeight,
+      nodeWidth,
+      pathNodeIds,
+      positions,
+      root,
+    ],
   );
 
   useEffect(() => {
@@ -678,9 +691,13 @@ export default function GraphCanvas({
       connections,
       nodeWidth,
       nodeHeight,
-      showConnections,
+      showConnections: effectiveShowConnections,
     });
-  }, [connections, nodeHeight, nodeWidth, renderNodes, showConnections]);
+  }, [connections, effectiveShowConnections, nodeHeight, nodeWidth, renderNodes]);
+
+  useEffect(() => {
+    rendererRef.current?.setDetailMode(detailMode);
+  }, [detailMode]);
 
   const getFitToViewView = useCallback(() => {
     const wrapper = wrapperRef.current;
