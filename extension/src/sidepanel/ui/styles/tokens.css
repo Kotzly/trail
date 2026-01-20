@@ -9,11 +9,11 @@
   --md-on-surface-variant: #525866;
   --md-outline: #7a808f;
   --md-outline-variant: #c7cbd6;
-  --md-primary: #3b5ccc;
+  --md-primary: #3b3b40;
   --md-on-primary: #ffffff;
-  --md-primary-container: #e2e7ff;
-  --md-on-primary-container: #1a2b60;
-  --md-primary-rgb: 59, 92, 204;
+  --md-primary-container: #e6e7ec;
+  --md-on-primary-container: #222327;
+  --md-primary-rgb: 59, 59, 64;
   --md-error: #c93636;
   --md-error-rgb: 201, 54, 54;
   --md-elev-1: 0 2px 6px rgba(20, 24, 40, 0.08);
@@ -30,10 +30,10 @@
   --graph-node-closed-border: #cfd4df;
   --graph-node-closed-title: #7a7f8c;
   --graph-node-closed-url: #8d93a0;
-  --graph-node-active-bg: #e2e7ff;
-  --graph-node-active-border: #3b5ccc;
-  --graph-node-active-title: #1a2b60;
-  --graph-node-active-url: #344375;
+  --graph-node-active-bg: #e6e7ec;
+  --graph-node-active-border: #3b3b40;
+  --graph-node-active-title: #222327;
+  --graph-node-active-url: #3b3b40;
 }
 
 [data-theme="dark"] {
@@ -46,11 +46,11 @@
   --md-on-surface-variant: #a7adbb;
   --md-outline: #7b8190;
   --md-outline-variant: #3a3f4c;
-  --md-primary: #8aa2ff;
-  --md-on-primary: #0d1020;
-  --md-primary-container: #2a3566;
-  --md-on-primary-container: #d9e0ff;
-  --md-primary-rgb: 138, 162, 255;
+  --md-primary: #e6e8ee;
+  --md-on-primary: #0f1116;
+  --md-primary-container: #2b2d33;
+  --md-on-primary-container: #ececf0;
+  --md-primary-rgb: 230, 232, 238;
   --md-error: #ff6b6b;
   --md-error-rgb: 255, 107, 107;
   --md-elev-1: 0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9);
@@ -67,10 +67,10 @@
   --graph-node-closed-border: #2e3342;
   --graph-node-closed-title: #8f95a3;
   --graph-node-closed-url: #7b818f;
-  --graph-node-active-bg: #2a3566;
-  --graph-node-active-border: #8aa2ff;
-  --graph-node-active-title: #e3e8ff;
-  --graph-node-active-url: #c3ccf0;
+  --graph-node-active-bg: #2b2d33;
+  --graph-node-active-border: #d2d3d7;
+  --graph-node-active-title: #f2f3f6;
+  --graph-node-active-url: #c9cbd2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -84,11 +84,11 @@
     --md-on-surface-variant: #a7adbb;
     --md-outline: #7b8190;
     --md-outline-variant: #3a3f4c;
-    --md-primary: #8aa2ff;
-    --md-on-primary: #0d1020;
-    --md-primary-container: #2a3566;
-    --md-on-primary-container: #d9e0ff;
-    --md-primary-rgb: 138, 162, 255;
+    --md-primary: #e6e8ee;
+    --md-on-primary: #0f1116;
+    --md-primary-container: #2b2d33;
+    --md-on-primary-container: #ececf0;
+    --md-primary-rgb: 230, 232, 238;
     --md-error: #ff6b6b;
     --md-error-rgb: 255, 107, 107;
     --md-elev-1: 0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9);
@@ -105,10 +105,10 @@
     --graph-node-closed-border: #2e3342;
     --graph-node-closed-title: #8f95a3;
     --graph-node-closed-url: #7b818f;
-    --graph-node-active-bg: #2a3566;
-    --graph-node-active-border: #8aa2ff;
-    --graph-node-active-title: #e3e8ff;
-    --graph-node-active-url: #c3ccf0;
+    --graph-node-active-bg: #2b2d33;
+    --graph-node-active-border: #d2d3d7;
+    --graph-node-active-title: #f2f3f6;
+    --graph-node-active-url: #c9cbd2;
   }
 }
 
@@ -123,11 +123,11 @@
     --md-on-surface-variant: #525866;
     --md-outline: #7a808f;
     --md-outline-variant: #c7cbd6;
-    --md-primary: #3b5ccc;
+    --md-primary: #3b3b40;
     --md-on-primary: #ffffff;
-    --md-primary-container: #e2e7ff;
-    --md-on-primary-container: #1a2b60;
-    --md-primary-rgb: 59, 92, 204;
+    --md-primary-container: #e6e7ec;
+    --md-on-primary-container: #222327;
+    --md-primary-rgb: 59, 59, 64;
     --md-error: #c93636;
     --md-error-rgb: 201, 54, 54;
     --md-elev-1: 0 2px 6px rgba(20, 24, 40, 0.08);
@@ -144,9 +144,9 @@
     --graph-node-closed-border: #cfd4df;
     --graph-node-closed-title: #7a7f8c;
     --graph-node-closed-url: #8d93a0;
-    --graph-node-active-bg: #e2e7ff;
-    --graph-node-active-border: #3b5ccc;
-    --graph-node-active-title: #1a2b60;
-    --graph-node-active-url: #344375;
+    --graph-node-active-bg: #e6e7ec;
+    --graph-node-active-border: #3b3b40;
+    --graph-node-active-title: #222327;
+    --graph-node-active-url: #3b3b40;
   }
 }

@@ -42,6 +42,7 @@ type NodeVisualState = {
   styleKey: string;
   textKey: string;
   tagKey: string;
+  themeVersion: number;
 };
 
 class NodeVisual {
@@ -62,7 +63,7 @@ class NodeVisual {
   private readonly tagDots = new PIXI.Container();
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
-  private state: NodeVisualState = { lod: 'full', styleKey: '', textKey: '', tagKey: '' };
+  private state: NodeVisualState = { lod: 'full', styleKey: '', textKey: '', tagKey: '', themeVersion: 0 };
   private readonly fonts: { base: string; weight: TextStyleFontWeight };
   private readonly invalidate: () => void;
   private destroyed = false;
@@ -106,7 +107,8 @@ class NodeVisual {
     view: ViewState,
     theme: ReturnType<typeof readGraphTheme>,
     origin: { x: number; y: number },
-    fontFamily: string
+    fontFamily: string,
+    themeVersion: number
   ) {
     this.fonts.base = fontFamily;
     const scale = view.scale;
@@ -138,11 +140,12 @@ class NodeVisual {
         ? model.node.data.tags.join(',')
         : '';
 
-    const needsStyleUpdate = this.state.styleKey !== nextStyleKey || this.state.lod !== lod;
-    const needsTextUpdate = this.state.textKey !== textKey || this.state.lod !== lod;
-    const needsTagUpdate = this.state.tagKey !== tagKey || this.state.lod !== lod;
+    const themeChanged = this.state.themeVersion !== themeVersion;
+    const needsStyleUpdate = themeChanged || this.state.styleKey !== nextStyleKey || this.state.lod !== lod;
+    const needsTextUpdate = themeChanged || this.state.textKey !== textKey || this.state.lod !== lod;
+    const needsTagUpdate = themeChanged || this.state.tagKey !== tagKey || this.state.lod !== lod;
 
-    this.state = { lod, styleKey: nextStyleKey, textKey, tagKey };
+    this.state = { lod, styleKey: nextStyleKey, textKey, tagKey, themeVersion };
 
     this.container.visible = lod !== 'hidden';
     if (lod === 'hidden') return;
@@ -444,6 +447,7 @@ export class GraphPixiRenderer {
   private view: ViewState = { translateX: 0, translateY: 0, scale: 1 };
   private data: RenderData = { nodes: [], connections: [], nodeWidth: 180, nodeHeight: 60, showConnections: true };
   private theme = readGraphTheme({ host: document.body });
+  private themeVersion = 0;
   private fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
   private origin = { x: 0, y: 0 };
   private needsRender = false;
@@ -521,6 +525,7 @@ export class GraphPixiRenderer {
     this.theme = readGraphTheme({ host: this.host });
     const style = getComputedStyle(this.host);
     this.fontFamily = style.fontFamily || this.fontFamily;
+    this.themeVersion += 1;
     if (!this.isReady) return;
     this.invalidateAll();
   }
@@ -658,7 +663,7 @@ export class GraphPixiRenderer {
         this.nodeMap.set(id, visual);
         this.nodeLayer.addChild(visual.container);
       }
-      visual.update(node, this.view, this.theme, this.origin, this.fontFamily);
+      visual.update(node, this.view, this.theme, this.origin, this.fontFamily, this.themeVersion);
     });
     for (const [id, visual] of this.nodeMap.entries()) {
       if (!visibleIds.has(id)) {
