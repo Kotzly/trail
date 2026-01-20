@@ -227,6 +227,24 @@ const buildZenGradient = (colors: string[], useCustomColors: boolean): string | 
   return null;
 };
 
+const normalizeCustomStops = (customColors: string[] | undefined | null): string[] =>
+  (customColors ?? []).map((color) => color.trim()).filter((color) => color.length > 0);
+
+const getAutoAccentRgb = (custom: CustomTheme, scheme: ThemeId): RgbColor => {
+  const safeDots = custom.dots.length ? custom.dots : [{ x: 0.5, y: 0.5 }];
+  const dotColors = getDotColors(safeDots, custom.lightness);
+  const paletteRgb = dotColors.map((color) => hexToRgb(color));
+  const mode = getResolvedScheme(scheme);
+  const isDark = mode === 'dark';
+  const baseSurfaceRgb = isDark ? { r: 23, g: 23, b: 26 } : { r: 240, g: 240, b: 244 };
+  const opacity = clamp(custom.opacity, OPACITY_MIN, OPACITY_MAX);
+  const blendedRgb = paletteRgb.map((color) => blendColors(color, baseSurfaceRgb, opacity * 100));
+  return blendedRgb[0] ?? paletteRgb[0] ?? baseSurfaceRgb;
+};
+
+export const getAutoAccentColor = (custom: CustomTheme, scheme: ThemeId): string =>
+  rgbToHex(getAutoAccentRgb(custom, scheme));
+
 const getLuminance = ({ r, g, b }: RgbColor) => {
   const toLinear = (value: number) => {
     const channel = value / 255;
@@ -318,19 +336,18 @@ const toHslString = (color: HslColor) => rgbToHex(hslToRgb(color));
 
 export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Record<string, string> {
   const safeDots = custom.dots.length ? custom.dots : [{ x: 0.5, y: 0.5 }];
-  const useCustomColors = Boolean(custom.customColors && custom.customColors.length > 0);
-  const colors = useCustomColors ? custom.customColors : getDotColors(safeDots, custom.lightness);
-  const paletteRgb = colors.map((color) => hexToRgb(color));
+  const dotColors = getDotColors(safeDots, custom.lightness);
+  const customStops = normalizeCustomStops(custom.customColors);
+  const hasCustomStops = customStops.length > 0;
+  const paletteRgb = dotColors.map((color) => hexToRgb(color));
   const fallbackRgb = { r: 59, g: 59, b: 64 };
   const mode = getResolvedScheme(scheme);
   const isDark = mode === 'dark';
   const baseSurfaceRgb = isDark ? { r: 23, g: 23, b: 26 } : { r: 240, g: 240, b: 244 };
   const opacity = clamp(custom.opacity, OPACITY_MIN, OPACITY_MAX);
-  const blendedRgb = useCustomColors
-    ? paletteRgb
-    : paletteRgb.map((color) => blendColors(color, baseSurfaceRgb, opacity * 100));
+  const blendedRgb = paletteRgb.map((color) => blendColors(color, baseSurfaceRgb, opacity * 100));
   const accentOverride = custom.accentColor ? hexToRgb(custom.accentColor) : null;
-  const accentRgb = accentOverride ?? blendedRgb[0] ?? paletteRgb[0] ?? fallbackRgb;
+  const accentRgb = accentOverride ?? getAutoAccentRgb(custom, scheme);
   const averageSource = blendedRgb.length > 0 ? blendedRgb : [fallbackRgb];
   const averageRgb = averageSource.reduce(
     (acc, color) => ({
@@ -345,8 +362,10 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
     g: averageRgb.g / averageSource.length,
     b: averageRgb.b / averageSource.length,
   };
-  const gradientColors = useCustomColors ? colors : blendedRgb.map(toRgbString);
-  const gradientImage = buildZenGradient(gradientColors, useCustomColors);
+  const gradientStops = hasCustomStops
+    ? [...blendedRgb.map(toRgbString), ...customStops]
+    : blendedRgb.map(toRgbString);
+  const gradientImage = buildZenGradient(gradientStops, hasCustomStops);
   const gradientBase = blendedRgb.length ? rgbToHex(averaged) : null;
   const neutralHsl = rgbToHsl(averaged);
   const accentHsl = rgbToHsl(accentRgb);
@@ -420,7 +439,7 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
     l: surfaceLevels.outlineVariant,
   });
 
-  const shouldBoostAccent = !accentOverride && !useCustomColors;
+  const shouldBoostAccent = !accentOverride;
   const primarySat =
     shouldBoostAccent && accentHsl.s >= 8 ? Math.max(accentHsl.s, 34) : accentHsl.s;
   const containerSat =

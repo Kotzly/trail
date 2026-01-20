@@ -18,6 +18,11 @@ export type ThemePreset = {
 
 const BASE_PRESET_SIZE = 380;
 const normalizePos = (value: number) => value / BASE_PRESET_SIZE;
+const tonePos = (step: number, max: number) => 0.5 + (step / max) * 0.5;
+const toneColor = (step: number, max: number) => {
+  const value = Math.round((step / max) * 255);
+  return `rgb(${value}, ${value}, ${value})`;
+};
 
 export const PRESET_PAGES: ThemePreset[][] = [
   [
@@ -157,13 +162,14 @@ export const PRESET_PAGES: ThemePreset[][] = [
     },
   ],
   [
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: normalizePos(337.5), y: normalizePos(180) }, color: 'rgb(224, 224, 224)', type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: normalizePos(315), y: normalizePos(180) }, color: 'rgb(192, 192, 192)', type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: normalizePos(292.5), y: normalizePos(180) }, color: 'rgb(160, 160, 160)', type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: normalizePos(270), y: normalizePos(180) }, color: 'rgb(128, 128, 128)', type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: normalizePos(247.5), y: normalizePos(180) }, color: 'rgb(96, 96, 96)', type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: normalizePos(225), y: normalizePos(180) }, color: 'rgb(64, 64, 64)', type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: normalizePos(202.5), y: normalizePos(180) }, color: 'rgb(32, 32, 32)', type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: normalizePos(180), y: normalizePos(180) }, color: 'rgb(0, 0, 0)', type: 'explicit-black-white' },
+    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(8, 8), y: 0.5 }, color: toneColor(8, 8), type: 'explicit-black-white' },
+    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(7, 8), y: 0.5 }, color: toneColor(7, 8), type: 'explicit-black-white' },
+    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(6, 8), y: 0.5 }, color: toneColor(6, 8), type: 'explicit-black-white' },
+    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(5, 8), y: 0.5 }, color: toneColor(5, 8), type: 'explicit-black-white' },
+    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(4, 8), y: 0.5 }, color: toneColor(4, 8), type: 'explicit-black-white' },
+    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(3, 8), y: 0.5 }, color: toneColor(3, 8), type: 'explicit-black-white' },
+    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(2, 8), y: 0.5 }, color: toneColor(2, 8), type: 'explicit-black-white' },
+    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(1, 8), y: 0.5 }, color: toneColor(1, 8), type: 'explicit-black-white' },
+    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(0, 8), y: 0.5 }, color: toneColor(0, 8), type: 'explicit-black-white' },
   ],
 ];

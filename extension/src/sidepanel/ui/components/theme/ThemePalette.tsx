@@ -4,7 +4,7 @@ import type { ThemeId } from '../../shared/themes.js';
 import { Icons } from '../Icon.js';
 import {
   calculateCompliments,
-  generateThemeTokens,
+  getAutoAccentColor,
   getColorFromPosition,
   resolveHarmonyForCount,
 } from '../../shared/theme-generator.js';
@@ -123,7 +123,7 @@ const getLightnessFromDot = (dot: ThemeDot) => {
   return Math.round((1 - normalizedDistance) * 100);
 };
 
-const shouldSyncLightness = (dot: ThemeDot) => dot.type === undefined;
+const shouldSyncLightness = (dot: ThemeDot) => dot.type !== 'explicit-lightness';
 
 const clampToCircle = (x: number, y: number) => {
   const cx = 0.5;
@@ -194,7 +194,6 @@ const normalizeTheme = (theme: CustomTheme | null | undefined): CustomTheme => {
 };
 
 const getPrimaryDot = (theme: CustomTheme): ThemeDot => theme.dots[0] ?? DEFAULT_PRIMARY;
-const TONE_STOPS = Array.from({ length: 7 }, (_, index) => 0.5 + (index / 6) * 0.5);
 
 export default function ThemePalette({
   scheme,
@@ -334,28 +333,16 @@ export default function ThemePalette({
         y: preset.position.y,
         type: preset.type ?? 'explicit-lightness',
       };
+      const resolvedType = primary.type ?? 'explicit-lightness';
       const harmony = resolveHarmonyForCount(preset.numDots, preset.algo);
       const dots = buildDots(primary, preset.numDots, harmony);
+      const nextLightness =
+        resolvedType === 'explicit-lightness' ? preset.lightness : getLightnessFromDot(primary);
       commitTheme({
         ...draft,
         dots,
         harmony,
-        lightness: preset.lightness,
-        enabled: true,
-      });
-    },
-    [commitTheme, draft]
-  );
-
-  const handleTonePreset = useCallback(
-    (x: number) => {
-      const primary: ThemeDot = { x, y: 0.5, type: 'explicit-black-white' };
-      const dots = buildDots(primary, 1, 'floating');
-      commitTheme({
-        ...draft,
-        dots,
-        harmony: 'floating',
-        lightness: getLightnessFromDot(primary),
+        lightness: nextLightness,
         enabled: true,
       });
     },
@@ -481,7 +468,7 @@ export default function ThemePalette({
   const handleAddCustomColor = () => {
     const normalized = customColor.trim();
     if (!normalized) return;
-    let color = normalized;
+    let color = normalizeHexInput(normalized, normalized);
     const opacity = clamp(customOpacity, 0, 1);
     if (opacity < 1) {
       const hexOpacity = Math.round(opacity * 255)
@@ -500,15 +487,17 @@ export default function ThemePalette({
     setCustomOpacity(1);
   };
 
-  const handleRemoveCustomColor = (target: string) => {
-    const nextColors = (draft.customColors ?? []).filter((color) => color !== target);
+  const handleRemoveCustomColor = (targetIndex: number) => {
+    const nextColors = [...(draft.customColors ?? [])];
+    if (targetIndex < 0 || targetIndex >= nextColors.length) return;
+    nextColors.splice(targetIndex, 1);
     commitTheme({ ...draft, customColors: nextColors, enabled: true });
   };
 
-  const derivedAccent = useMemo(() => {
-    const tokens = generateThemeTokens({ ...draft, enabled: true }, scheme);
-    return normalizeHexInput(tokens['--md-primary'] ?? '', '#ffffff');
-  }, [draft, scheme]);
+  const derivedAccent = useMemo(
+    () => normalizeHexInput(getAutoAccentColor({ ...draft, enabled: true }, scheme), '#ffffff'),
+    [draft, scheme]
+  );
 
   const accentValue = draft.accentColor ? normalizeHexInput(draft.accentColor, derivedAccent) : derivedAccent;
 
@@ -623,33 +612,6 @@ export default function ThemePalette({
         </button>
       </div>
 
-      <div className="zen-theme-picker-tones">
-        <span className="zen-theme-picker-tones-label">Tone</span>
-        <div className="zen-theme-picker-tones-track">
-          {TONE_STOPS.map((x, index) => {
-            const dot: ThemeDot = { x, y: 0.5, type: 'explicit-black-white' };
-            const { hex } = getColorFromPosition(dot, draft.lightness);
-            const label =
-              index === 0
-                ? 'Black'
-                : index === TONE_STOPS.length - 1
-                  ? 'White'
-                  : 'Gray';
-            return (
-              <button
-                key={`tone-${index}`}
-                type="button"
-                className="zen-theme-picker-tone"
-                style={{ background: hex }}
-                onClick={() => handleTonePreset(x)}
-                title={label}
-                aria-label={label}
-              />
-            );
-          })}
-        </div>
-      </div>
-
       <div className="zen-theme-picker-controls">
         <div className="zen-theme-picker-opacity">
           <div className="zen-theme-picker-wave">
@@ -752,11 +714,22 @@ export default function ThemePalette({
           </button>
         </div>
         <div className="zen-theme-picker-custom-list">
-          {(draft.customColors ?? []).map((color) => (
-            <div className="zen-theme-picker-custom-item" key={color} data-color={color}>
-              <span className="zen-theme-picker-custom-swatch" style={{ ['--zen-theme-picker-dot-color' as string]: color }} />
-              <span className="zen-theme-picker-custom-label">{color}</span>
-              <button type="button" onClick={() => handleRemoveCustomColor(color)}>
+          {(draft.customColors ?? []).map((color, index) => (
+            <div
+              className="zen-theme-picker-custom-list-item"
+              key={`${color}-${index}`}
+              data-color={color}
+            >
+              <span
+                className="zen-theme-picker-custom-swatch"
+                style={{ ['--zen-theme-picker-dot-color' as string]: color }}
+              />
+              <span className="zen-theme-picker-custom-list-item-label">{color}</span>
+              <button
+                type="button"
+                className="zen-theme-picker-custom-list-item-remove"
+                onClick={() => handleRemoveCustomColor(index)}
+              >
                 <Icons.X size={12} />
               </button>
             </div>

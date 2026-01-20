@@ -237,42 +237,6 @@
   transform: scale(1.05);
 }
 
-.zen-theme-picker-tones {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.zen-theme-picker-tones-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--md-on-surface-variant);
-  min-width: 36px;
-}
-
-.zen-theme-picker-tones-track {
-  display: flex;
-  flex: 1;
-  gap: 6px;
-  align-items: center;
-}
-
-.zen-theme-picker-tone {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  background: var(--md-surface);
-  cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
-}
-
-.zen-theme-picker-tone:hover {
-  transform: scale(1.06);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-
 .zen-theme-picker-controls {
   display: flex;
   align-items: center;
@@ -545,15 +509,14 @@
   display: none;
 }
 
-.zen-theme-picker-custom-item {
-  display: grid;
-  grid-template-columns: 20px 1fr 24px;
-  gap: 8px;
+.zen-theme-picker-custom-list-item {
+  display: flex;
   align-items: center;
+  gap: 8px;
   padding: 6px;
   border-radius: 8px;
   background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
 }
 
 .zen-theme-picker-custom-swatch {
@@ -562,26 +525,35 @@
   border-radius: 6px;
   background: var(--zen-theme-picker-dot-color);
   border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  flex-shrink: 0;
 }
 
-.zen-theme-picker-custom-label {
-  font-size: 11px;
+.zen-theme-picker-custom-list-item-label {
+  font-size: 12px;
+  font-weight: 600;
   color: var(--md-on-surface-variant);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.zen-theme-picker-custom-item button {
+.zen-theme-picker-custom-list-item-remove {
+  margin-left: auto;
   border: none;
   background: transparent;
   color: var(--md-on-surface-variant);
   cursor: pointer;
   border-radius: 6px;
   padding: 2px;
-  transition: background 0.15s ease, color 0.15s ease;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.15s ease, color 0.15s ease;
 }
 
-.zen-theme-picker-custom-item button:hover {
+.zen-theme-picker-custom-list-item:hover .zen-theme-picker-custom-list-item-remove {
+  opacity: 1;
+}
+
+.zen-theme-picker-custom-list-item-remove:hover {
   background: color-mix(in srgb, var(--md-on-surface) 10%, transparent);
   color: var(--md-on-surface);
 }
