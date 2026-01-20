@@ -1,6 +1,6 @@
 import type { NodeId } from '../../../shared/types/ids.js';
-import { TabState } from '../../../shared/types/tabs.js';
-import { NavigationNode } from '../../../shared/types/node.js';
+import type { TabState } from '../../../shared/types/tabs.js';
+import type { NavigationNode } from '../../../shared/types/node.js';
 
 export interface LayoutConfig {
   nodeWidth: number;
@@ -8,6 +8,8 @@ export interface LayoutConfig {
   verticalGap: number;
   horizontalGap: number;
 }
+
+export type LayoutMode = 'tree' | 'mindmap' | 'radial';
 
 export interface RadialLayoutConfig {
   angleWeightExp: number;

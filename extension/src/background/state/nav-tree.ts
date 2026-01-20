@@ -15,6 +15,7 @@ export class NavigationTree implements Owner {
     private current: NavigationNode | null = null;
     private nodeCount: number = 0;
     private nodeMap: Map<NodeId, NavigationNode> = new Map<NodeId, NavigationNode>();
+    private searchIndex: Map<NodeId, { combined: string }> = new Map<NodeId, { combined: string }>();
 
     private evictionPolicy: EvictionPolicy;
     private lastEvictedCount = 0;
@@ -33,6 +34,7 @@ export class NavigationTree implements Owner {
 
         this.root.forEach((node) => {
             this.nodeMap.set(node.id, node);
+            this.updateSearchEntry(node);
             ++count;
         });
 
@@ -52,6 +54,7 @@ export class NavigationTree implements Owner {
     private removeNode(node: NavigationNode): void {
         this.nodeCount--;
         this.nodeMap.delete(node.id);
+        this.searchIndex.delete(node.id);
         node.remove();
     }
 
@@ -116,6 +119,7 @@ export class NavigationTree implements Owner {
         // same url as current ==> update metadata
         if (this.current.data.url === data.url) {
             this.current.data = updateNodeMeta(this.current.data, data);
+            this.updateSearchEntry(this.current);
             return this.current;
         } 
 
@@ -123,6 +127,7 @@ export class NavigationTree implements Owner {
         const existingChild = this.current.getChildren().find(c => c.data.url === data.url);
         if (existingChild) {
             existingChild.data = updateNodeMeta(existingChild.data, data);
+            this.updateSearchEntry(existingChild);
             this.current = existingChild;
             return existingChild;
         }
@@ -133,6 +138,7 @@ export class NavigationTree implements Owner {
             while (ancestor) {
                 if (ancestor.data.url === data.url) {
                     ancestor.data = updateNodeMeta(ancestor.data, data);
+                    this.updateSearchEntry(ancestor);
                     this.current = ancestor;
                     return ancestor;
                 }
@@ -149,6 +155,7 @@ export class NavigationTree implements Owner {
     createChild(node: NavigationNode | null, data: NodeData): NavigationNode {
         const child = node ? node.addChild(data) : new TreeNode(data);
         this.nodeMap.set(child.id, child);
+        this.updateSearchEntry(child);
         this.nodeCount++;
         const evicted = this.evictionPolicy.enforce();
         this.lastEvictedCount += evicted;
@@ -178,6 +185,7 @@ export class NavigationTree implements Owner {
 
         node.remove();
         this.nodeMap.delete(node.id);
+        this.searchIndex.delete(node.id);
         this.nodeCount = Math.max(0, this.nodeCount - 1);
 
         if (this.current && this.current.id === nodeId) {
@@ -202,6 +210,7 @@ export class NavigationTree implements Owner {
 
         for (const removedNode of removed) {
             this.nodeMap.delete(removedNode.id);
+            this.searchIndex.delete(removedNode.id);
         }
         this.nodeCount = Math.max(0, this.nodeCount - removed.length);
 
@@ -222,6 +231,7 @@ export class NavigationTree implements Owner {
             this.root = null;
             this.current = null;
             this.nodeMap.clear();
+            this.searchIndex.clear();
             this.nodeCount = 0;
             return removed;
         }
@@ -231,6 +241,7 @@ export class NavigationTree implements Owner {
 
         for (const removedNode of removed) {
             this.nodeMap.delete(removedNode.id);
+            this.searchIndex.delete(removedNode.id);
         }
         this.nodeCount = Math.max(0, this.nodeCount - removed.length);
 
@@ -245,6 +256,7 @@ export class NavigationTree implements Owner {
         this.root = null;
         this.current = null;
         this.nodeMap.clear();
+        this.searchIndex.clear();
         this.nodeCount = 0;
         this.lastEvictedCount = 0;
     }
@@ -261,23 +273,18 @@ export class NavigationTree implements Owner {
 
     findNodesByQuery(query: string): NodeId[] {
         const matches: NodeId[] = [];
-        const q = query.toLowerCase();
+        const q = query.trim().toLowerCase();
+        if (!q) return matches;
+        const terms = q.split(/\s+/).filter(Boolean);
+        if (terms.length === 0) return matches;
 
         this.root?.forEach((node: NavigationNode) => {
-            const title = (node.data.title || '').toLowerCase();
-            const url = (node.data.url || '').toLowerCase();
-            let domain = '';
-            try {
-                domain = new URL(node.data.url).hostname.toLowerCase();
-            } catch (e) {
-                console.error(`Error getting domain for url ${node.data.url}: ${e}`);
-                domain = '';
-            }
-            if (title.includes(q) || url.includes(q) || domain.includes(q)) {
-                matches.push(node.id);
-            }
+            const entry = this.searchIndex.get(node.id);
+            if (!entry) return;
+            const matchesAll = terms.every((term) => entry.combined.includes(term));
+            if (matchesAll) matches.push(node.id);
         });
-        
+
         return matches;
     }
 
@@ -306,5 +313,23 @@ export class NavigationTree implements Owner {
 
     clearCurrent(): void {
         this.current = null;
+    }
+
+    private updateSearchEntry(node: NavigationNode): void {
+        const title = (node.data.title || '').toLowerCase();
+        const url = (node.data.url || '').toLowerCase();
+        const domain = NavigationTree.extractDomain(url);
+        const combined = `${title} ${url} ${domain}`.trim();
+        this.searchIndex.set(node.id, { combined });
+    }
+
+    private static extractDomain(url: string): string {
+        if (!url) return '';
+        try {
+            return new URL(url).hostname.toLowerCase();
+        } catch {
+            const match = url.match(/^(?:https?:\/\/)?([^\/?#]+)/i);
+            return match ? match[1]!.toLowerCase() : '';
+        }
     }
 }

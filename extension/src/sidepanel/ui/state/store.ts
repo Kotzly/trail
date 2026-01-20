@@ -120,12 +120,8 @@ type StoreActions = {
   toggleTagFilterTag: (tagId: Tag) => void;
   setTagFilterSelected: (selected: Set<Tag>) => void;
   clearTagFilter: () => void;
-  setSearch: (
-    query: string,
-    results: NodeId[],
-    index?: number,
-    baseCurrentId?: NodeId | null
-  ) => void;
+  setSearchQuery: (query: string, baseCurrentId?: NodeId | null) => void;
+  setSearchResults: (results: NodeId[], index?: number) => void;
   setSearchIndex: (index: number) => void;
   clearSearch: () => void;
   setSettings: (settings: Settings) => void;
@@ -319,22 +315,39 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set((state) => ({ tagFilter: { ...state.tagFilter, selected: new Set(selected) } })),
   clearTagFilter: () =>
     set((state) => ({ tagFilter: { ...state.tagFilter, selected: new Set<Tag>() } })),
-  setSearch: (query, results, index = 0, baseCurrentId) =>
+  setSearchQuery: (query, baseCurrentId) =>
     set((state) => {
       const active = query.length > 0;
-      const nextIndex = results.length === 0 ? 0 : Math.min(index, results.length - 1);
+      if (!active) {
+        return {
+          search: {
+            query: '',
+            results: [],
+            index: 0,
+            active: false,
+            baseCurrentId: null,
+          },
+        };
+      }
       const base =
-        active
-          ? baseCurrentId ?? state.search.baseCurrentId ?? state.currentNodeId ?? null
-          : null;
+        baseCurrentId ?? state.search.baseCurrentId ?? state.currentNodeId ?? null;
       return {
         search: {
           ...state.search,
           query,
-          results,
-          index: nextIndex,
           active,
           baseCurrentId: base,
+        },
+      };
+    }),
+  setSearchResults: (results, index = 0) =>
+    set((state) => {
+      const nextIndex = results.length === 0 ? 0 : Math.min(index, results.length - 1);
+      return {
+        search: {
+          ...state.search,
+          results,
+          index: nextIndex,
         },
       };
     }),

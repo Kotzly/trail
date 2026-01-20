@@ -1,97 +1,102 @@
 import { useMemo, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
-import type { NodeId } from '../../../../shared/types/ids.js';
 import type { TabState } from '../../../../shared/types/tabs.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
 import type { NodePosition } from '../../graph/types.js';
 import type { TitleTruncation } from '../../../../shared/types/settings.js';
+import type { TagDefinition } from '../../../../shared/types/tags.js';
 import { formatUrl } from '../../shared/format.js';
 import { Icons } from '../Icon.js';
-import { useStore } from '../../state/store.js';
 import React from 'react';
 
-type GraphNodeProps = {
-  node: NavigationNode;
-  position: NodePosition;
-  nodeWidth: number;
-  nodeHeight: number;
-  currentId: NodeId | null;
-  openNodeIds: Set<NodeId> | null;
-  nodeTabCounts: Record<NodeId, number>;
-  tabState?: TabState;
+type GraphNodeDisplay = {
+  titleTruncation: TitleTruncation;
+  showFavicons: boolean;
+  showUrls: boolean;
+  showTagDots: boolean;
+  showTabCounts: boolean;
+  showAudioIndicators: boolean;
+  dimClosedNodes: boolean;
+};
+
+type GraphNodeSelection = {
   isSelected: boolean;
   isPreview: boolean;
   isSearchMatch: boolean;
   isSearchFocused: boolean;
   isSearchDimmed: boolean;
   isHoverFocused: boolean;
+};
+
+type GraphNodeProps = {
+  node: NavigationNode;
+  position: NodePosition;
+  nodeWidth: number;
+  nodeHeight: number;
+  isCurrent: boolean;
+  isOpen: boolean;
+  tabCount: number;
+  tabState?: TabState;
+  tagDefs: Record<string, TagDefinition>;
+  display: GraphNodeDisplay;
+  selection: GraphNodeSelection;
   onClick: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
 };
 
-export default function GraphNode({
+function GraphNode({
   node,
   position,
   nodeWidth,
   nodeHeight,
-  currentId,
-  openNodeIds,
-  nodeTabCounts,
+  isCurrent,
+  isOpen,
+  tabCount,
   tabState,
-  isSelected,
-  isPreview,
-  isSearchMatch,
-  isSearchFocused,
-  isSearchDimmed,
-  isHoverFocused,
+  tagDefs,
+  display,
+  selection,
   onClick,
   onContextMenu,
   onPointerDown,
 }: GraphNodeProps) {
   const [faviconError, setFaviconError] = useState(false);
-  const tabCount = nodeTabCounts[node.id];
   const hasTags = node.data.tags && node.data.tags.length > 0;
-  const tagDefs = useStore((state) => state.tagDefs);
-  const titleTruncation = useStore((state) => state.settings?.titleTruncation ?? 'end');
-  const showFavicons = useStore((state) => state.settings?.showFavicons ?? true);
-  const showUrls = useStore((state) => state.settings?.showUrls ?? true);
-  const showTagDots = useStore((state) => state.settings?.showTagDots ?? true);
-  const showTabCounts = useStore((state) => state.settings?.showTabCounts ?? true);
-  const showAudioIndicators = useStore((state) => state.settings?.showAudioIndicators ?? true);
-  const dimClosedNodes = useStore((state) => state.settings?.dimClosedNodes ?? true);
 
   const className = useMemo(() => {
     const classes = ['graph-node'];
-    if (node.id === currentId) classes.push('current');
-    if (openNodeIds && !openNodeIds.has(node.id) && dimClosedNodes) classes.push('closed');
+    if (isCurrent) classes.push('current');
+    if (!isOpen && display.dimClosedNodes) classes.push('closed');
     if (tabState?.sound.muted) classes.push('muted');
     if (node.data.pinned) classes.push('pinned');
-    if (isSelected) classes.push('selected');
-    if (isPreview) classes.push('selected-preview');
-    if (isSearchDimmed) classes.push('search-dimmed');
-    if (isSearchMatch) classes.push('search-match');
-    if (isSearchFocused) classes.push('search-focused');
-    if (isHoverFocused) classes.push('hover-focused');
+    if (selection.isSelected) classes.push('selected');
+    if (selection.isPreview) classes.push('selected-preview');
+    if (selection.isSearchDimmed) classes.push('search-dimmed');
+    if (selection.isSearchMatch) classes.push('search-match');
+    if (selection.isSearchFocused) classes.push('search-focused');
+    if (selection.isHoverFocused) classes.push('hover-focused');
     return classes.join(' ');
   }, [
-    currentId,
-    isPreview,
-    isSearchDimmed,
-    isSearchFocused,
-    isSearchMatch,
-    isSelected,
+    display.dimClosedNodes,
+    isCurrent,
+    isOpen,
+    selection.isPreview,
+    selection.isSearchDimmed,
+    selection.isSearchFocused,
+    selection.isSearchMatch,
+    selection.isSelected,
+    selection.isHoverFocused,
     node.data.pinned,
     node.id,
-    openNodeIds,
     tabState?.sound.muted,
   ]);
 
   const fullTitle = node.data.title || 'Untitled';
   const maxTitleChars = Math.max(10, Math.floor((nodeWidth - 70) / 6.5));
   const displayTitle = useMemo(
-    () => truncateTitle(fullTitle, titleTruncation, maxTitleChars),
-    [fullTitle, maxTitleChars, titleTruncation],
+    () => truncateTitle(fullTitle, display.titleTruncation, maxTitleChars),
+    [display.titleTruncation, fullTitle, maxTitleChars],
   );
 
   return (
@@ -113,7 +118,7 @@ export default function GraphNode({
           <Icons.Pin size={16} />
         </div>
       )}
-      {showFavicons ? (
+      {display.showFavicons ? (
         <div className="graph-node-favicon">
           {node.data.favicon && !faviconError ? (
             <img src={node.data.favicon} alt="" onError={() => setFaviconError(true)} />
@@ -126,14 +131,14 @@ export default function GraphNode({
         <div className="graph-node-title" title={fullTitle}>
           {displayTitle}
         </div>
-        {showUrls ? <div className="graph-node-url">{formatUrl(node.data.url)}</div> : null}
+        {display.showUrls ? <div className="graph-node-url">{formatUrl(node.data.url)}</div> : null}
       </div>
-      {showTabCounts && tabCount && tabCount > 1 ? (
+      {display.showTabCounts && tabCount > 1 ? (
         <div className="graph-node-tab-count" title={`${tabCount} tabs open for this page`}>
           {tabCount}x
         </div>
       ) : null}
-      {showTagDots && hasTags && (
+      {display.showTagDots && hasTags && (
         <div className="graph-node-tags">
           {node.data.tags?.map((tagId) => {
             const tagPreset = tagDefs[tagId];
@@ -150,7 +155,7 @@ export default function GraphNode({
           })}
         </div>
       )}
-      {showAudioIndicators && tabState?.sound.audible && (
+      {display.showAudioIndicators && tabState?.sound.audible && (
         <div
           className="graph-node-audio"
           title={tabState.sound.muted ? 'Unmute tab' : 'Mute tab'}
@@ -162,6 +167,8 @@ export default function GraphNode({
     </div>
   );
 }
+
+export default React.memo(GraphNode);
 
 function truncateTitle(text: string, mode: TitleTruncation, maxChars: number): string {
   if (text.length <= maxChars) return text;

@@ -1,14 +1,15 @@
-import { NavigationNode } from '../../../../shared/types/node.js';
+import type { NodeId } from '../../../../shared/types/ids.js';
+import type { NavigationNode } from '../../../../shared/types/node.js';
 import type { LayoutConfig, NodePosition, CanvasBounds, RadialLayoutConfig } from '../types.js';
-import { getLayoutConfig, PADDING } from './config.js';
+import { PADDING } from './config.js';
 
 
 export function calculateLayout(
   root: NavigationNode,
   layoutConfig: LayoutConfig,
   startX: number = PADDING
-): { positions: Map<number, NodePosition>, width: number } {
-  const positions = new Map<number, NodePosition>();
+): { positions: Map<NodeId, NodePosition>, width: number } {
+  const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
 
   type TidyNode = {
@@ -235,11 +236,11 @@ export function calculateLayout(
 export function calculateMindmapLayout(
   root: NavigationNode,
   layoutConfig: LayoutConfig
-): { positions: Map<number, NodePosition>, width: number } {
-  const positions = new Map<number, NodePosition>();
+): { positions: Map<NodeId, NodePosition>, width: number } {
+  const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
-  const subtreeHeights = new Map<number, number>();
-  const sideById = new Map<number, 'left' | 'right'>();
+  const subtreeHeights = new Map<NodeId, number>();
+  const sideById = new Map<NodeId, 'left' | 'right'>();
 
   function calcHeights(node: NavigationNode | null): number {
     if (!node) return 0;
@@ -356,10 +357,10 @@ export function calculateMindmapLayout(
  */
 export function calculateRadialLayout(
   root: NavigationNode,
-  layoutConfig: RadialLayoutConfig
-): { positions: Map<number, NodePosition>, width: number } {
-  const positions = new Map<number, NodePosition>();
-  const baseLayout = getLayoutConfig();
+  layoutConfig: RadialLayoutConfig,
+  baseLayout: LayoutConfig
+): { positions: Map<NodeId, NodePosition>, width: number } {
+  const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight } = baseLayout;
 
   const ANGLE_WEIGHT_EXP = layoutConfig.angleWeightExp;
@@ -414,7 +415,7 @@ export function calculateRadialLayout(
 
   const tidyRoot = buildTidy(root, null, 0, 1);
 
-  const leafCounts = new Map<number, number>();
+  const leafCounts = new Map<NodeId, number>();
   const countLeaves = (node: TidyNode): number => {
     if (node.children.length === 0) {
       leafCounts.set(node.node.id, 1);
@@ -594,7 +595,7 @@ export function calculateRadialLayout(
   };
   walk(tidyRoot);
 
-  const angleById = new Map<number, number>();
+  const angleById = new Map<NodeId, number>();
   const totalAngle = Math.PI * 2;
   const startAngle = -Math.PI / 2;
   const span = maxXTidy - minXTidy;
@@ -673,21 +674,32 @@ export function calculateRadialLayout(
 /**
  * Get canvas bounds from positions.
  */
-export function getCanvasBounds(positions: Map<number, NodePosition>): CanvasBounds {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  const layoutConfig = getLayoutConfig();
-  const { nodeWidth, nodeHeight } = layoutConfig;
-  
+export function getCanvasBounds(
+  positions: Map<NodeId, NodePosition>,
+  nodeWidth: number,
+  nodeHeight: number
+): CanvasBounds {
+  if (positions.size === 0) {
+    return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 };
+  }
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
   positions.forEach((pos: NodePosition) => {
     minX = Math.min(minX, pos.x);
     minY = Math.min(minY, pos.y);
     maxX = Math.max(maxX, pos.x + nodeWidth);
     maxY = Math.max(maxY, pos.y + nodeHeight);
   });
-  
-  return { 
-    minX, minY, maxX, maxY, 
-    width: maxX + PADDING, 
-    height: maxY + PADDING 
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX + PADDING * 2,
+    height: maxY - minY + PADDING * 2,
   };
 }

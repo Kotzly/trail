@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { useStore } from '../state/store.js';
 import type { NodeId } from '../../../shared/types/ids.js';
 import {
@@ -14,13 +14,16 @@ export function useSearch() {
   const tree = useStore((state) => state.tree);
   const search = useStore((state) => state.search);
   const currentNodeId = useStore((state) => state.currentNodeId);
-  const setSearch = useStore((state) => state.setSearch);
+  const setSearchQuery = useStore((state) => state.setSearchQuery);
+  const setSearchResults = useStore((state) => state.setSearchResults);
   const setSearchIndex = useStore((state) => state.setSearchIndex);
   const clearSearch = useStore((state) => state.clearSearch);
   const lastPreviewRef = useRef<NodeId | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const sessionPromiseRef = useRef<Promise<string | null> | null>(null);
   const sessionTokenRef = useRef(0);
+  const searchIndexRef = useRef(search.index);
+  const deferredQuery = useDeferredValue(search.query);
 
   const ensureSession = useCallback(
     async (baseId: NodeId | null) => {
@@ -56,12 +59,19 @@ export function useSearch() {
   );
 
   useEffect(() => {
+    searchIndexRef.current = search.index;
+  }, [search.index]);
+
+  useEffect(() => {
+    if (!deferredQuery) return;
     if (!search.query) return;
-    const results = tree ? tree.findNodesByQuery(search.query) : [];
+    if (deferredQuery !== search.query) return;
+    const results = tree ? tree.findNodesByQuery(deferredQuery) : [];
     const maxIndex = Math.max(0, results.length - 1);
-    const nextIndex = results.length === 0 ? 0 : Math.min(Math.max(search.index, 0), maxIndex);
-    setSearch(search.query, results, nextIndex, search.baseCurrentId ?? currentNodeId ?? null);
-  }, [currentNodeId, search.baseCurrentId, search.index, search.query, setSearch, tree]);
+    const nextIndex =
+      results.length === 0 ? 0 : Math.min(Math.max(searchIndexRef.current, 0), maxIndex);
+    setSearchResults(results, nextIndex);
+  }, [deferredQuery, search.query, setSearchResults, tree]);
 
   useEffect(() => {
     if (!search.active) {
@@ -116,14 +126,13 @@ export function useSearch() {
         clearSearch();
         return;
       }
-      const results = tree ? tree.findNodesByQuery(query) : [];
       const baseCurrentId = search.active ? search.baseCurrentId : currentNodeId;
-      setSearch(query, results, 0, baseCurrentId ?? null);
+      setSearchQuery(query, baseCurrentId ?? null);
       if (!search.active) {
         void ensureSession(baseCurrentId ?? null);
       }
     },
-    [clearSearch, currentNodeId, ensureSession, search.active, search.baseCurrentId, setSearch, tree],
+    [clearSearch, currentNodeId, ensureSession, search.active, search.baseCurrentId, setSearchQuery],
   );
 
   const focusResult = useCallback(

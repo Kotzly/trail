@@ -5,6 +5,13 @@ import type { Description, NodeId, Timestamp, Url, Title } from '../src/shared/t
 import type { NavigationTreeJSON } from '../src/shared/types/tree.js';
 import { NavigationTree } from '../src/background/state/nav-tree.js';
 import { CommandManager } from '../src/shared/lib/commands.js';
+import type { LayoutConfig, RadialLayoutConfig } from '../src/sidepanel/ui/graph/types.js';
+import {
+  calculateLayout,
+  calculateMindmapLayout,
+  calculateRadialLayout,
+  getCanvasBounds,
+} from '../src/sidepanel/ui/graph/layout/calculator.js';
 
 function data(url: string, title?: string): NodeData {
   return {
@@ -97,10 +104,71 @@ function testCommandManagerUndoRedo(): void {
   assert.equal(redoState!.root?.children.length, 1);
 }
 
+function testNavigationTreeSearchIndex(): void {
+  const tree = new NavigationTree(100);
+  const root = tree.navigate(data('https://example.com/root', 'Root Page'));
+  const child = tree.navigate(data('https://docs.example.com/guide', 'Guide'));
+  tree.setCurrent(root);
+  const other = tree.navigate(data('https://other.test/path', 'Other Site'));
+
+  const titleMatches = tree.findNodesByQuery('guide');
+  assert.ok(titleMatches.includes(child.id));
+
+  const domainMatches = tree.findNodesByQuery('example.com');
+  assert.ok(domainMatches.includes(root.id));
+  assert.ok(domainMatches.includes(child.id));
+
+  const multiTermMatches = tree.findNodesByQuery('other path');
+  assert.deepEqual(multiTermMatches, [other.id]);
+
+  const updated = tree.navigate(data('https://other.test/path', 'Renamed'));
+  const renameMatches = tree.findNodesByQuery('renamed');
+  assert.ok(renameMatches.includes(updated.id));
+}
+
+function testGraphLayouts(): void {
+  const tree = new NavigationTree(100);
+  const root = tree.navigate(data('https://root.test'));
+  const child = tree.navigate(data('https://child.test'));
+  tree.setCurrent(root);
+  const sibling = tree.navigate(data('https://sibling.test'));
+
+  const layoutConfig: LayoutConfig = {
+    nodeWidth: 120,
+    nodeHeight: 60,
+    verticalGap: 40,
+    horizontalGap: 20,
+  };
+  const radialConfig: RadialLayoutConfig = {
+    angleWeightExp: 0.6,
+    minSpanFactor: 0.6,
+    minSpanAbs: 0.12,
+    requiredScale: 0.6,
+    depthGapBase: 70,
+    depthGapGrowth: 0.1,
+    effectiveWidth: layoutConfig.nodeWidth + layoutConfig.horizontalGap,
+  };
+
+  const treeLayout = calculateLayout(root, layoutConfig);
+  assert.equal(treeLayout.positions.size, 3);
+  const treeBounds = getCanvasBounds(treeLayout.positions, layoutConfig.nodeWidth, layoutConfig.nodeHeight);
+  assert.ok(treeBounds.width >= layoutConfig.nodeWidth);
+  assert.ok(treeBounds.height >= layoutConfig.nodeHeight);
+
+  const mindmapLayout = calculateMindmapLayout(root, layoutConfig);
+  assert.equal(mindmapLayout.positions.size, 3);
+
+  const radialLayout = calculateRadialLayout(root, radialConfig, layoutConfig);
+  assert.equal(radialLayout.positions.size, 3);
+  assert.ok(radialLayout.width > 0);
+}
+
 try {
   testNavigationTreeDeletion();
   testNavigationTreeSubtree();
   testCommandManagerUndoRedo();
+  testNavigationTreeSearchIndex();
+  testGraphLayouts();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);
