@@ -22,6 +22,8 @@ export type CustomTheme = {
     harmony: ThemeHarmony;
     lightness: number;
     opacity: number;
+    texture: number;
+    customColors: string[];
 };
 
 export type LayoutMode = 'tree' | 'radial' | 'mindmap';

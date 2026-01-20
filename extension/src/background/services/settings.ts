@@ -8,6 +8,8 @@ const DEFAULT_CUSTOM_THEME: CustomTheme = {
     harmony: 'floating',
     lightness: 50,
     opacity: 0.6,
+    texture: 0,
+    customColors: [],
 };
 
 const THEME_HARMONIES: ThemeHarmony[] = [
@@ -52,6 +54,10 @@ function normalizeCustomTheme(raw: unknown): CustomTheme {
             : DEFAULT_CUSTOM_THEME.harmony,
         lightness: clamp(partial.lightness ?? DEFAULT_CUSTOM_THEME.lightness, 0, 100, 50),
         opacity: clamp01(partial.opacity ?? DEFAULT_CUSTOM_THEME.opacity, DEFAULT_CUSTOM_THEME.opacity),
+        texture: clamp01(partial.texture ?? DEFAULT_CUSTOM_THEME.texture, DEFAULT_CUSTOM_THEME.texture),
+        customColors: Array.isArray(partial.customColors)
+            ? partial.customColors.filter((color) => typeof color === 'string' && color.trim().length > 0)
+            : DEFAULT_CUSTOM_THEME.customColors,
     };
 }
 

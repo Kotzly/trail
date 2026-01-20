@@ -22,5 +22,5 @@
     "skipLibCheck": true
   },
   "include": ["./src"],
-  "exclude": ["./src/sidepanel/ui/**/*.tsx"]
+  "exclude": ["./src/sidepanel/ui/**/*.tsx"]  
 }

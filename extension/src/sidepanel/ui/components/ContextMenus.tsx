@@ -67,7 +67,7 @@ export default function ContextMenus() {
     open: boolean;
     nodeId: NodeId | null;
     mode: 'create' | 'edit';
-    initial?: TagDefinition | null;
+    initial: TagDefinition | null;
   }>({ open: false, nodeId: null, mode: 'create', initial: null });
 
   useEffect(() => {

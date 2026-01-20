@@ -21,6 +21,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   const setCommandState = useStore((state) => state.setCommandState);
   const settingsOpen = useStore((state) => state.ui.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
+  const themePickerOpen = useStore((state) => state.ui.themePickerOpen);
+  const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
   const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [labelDraft, setLabelDraft] = useState('');
@@ -115,6 +117,15 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       <div className="floating-controls-right">
         <FloatingSearch inputRef={searchInputRef} />
         <div className="floating-island">
+          <button
+            id="themePickerBtn"
+            className="btn-icon orb-button"
+            type="button"
+            title="theme"
+            onClick={() => setThemePickerOpen(!themePickerOpen)}
+          >
+            <Icons.Palette size={18} />
+          </button>
           <button
             id="settingsBtn"
             className="btn-icon orb-button"

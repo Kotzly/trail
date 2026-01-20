@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { NodeId } from '../../../shared/types/ids.js';
+import type { FaviconUrl, NodeId, Timestamp, Url } from '../../../shared/types/ids.js';
 import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { formatTime, formatUrl } from '../shared/format.js';
 import { Icons } from './Icon.js';
@@ -16,9 +16,9 @@ type SearchResultsListProps = {
 type SearchResultItem = {
   id: NodeId;
   title: string;
-  url: string;
-  favicon?: string;
-  timestamp: number;
+  url: Url;
+  favicon?: FaviconUrl;
+  timestamp: Timestamp;
 };
 
 export default function SearchResultsList({
@@ -34,12 +34,13 @@ export default function SearchResultsList({
     for (const id of results) {
       const node = tree.findNodeById(id);
       if (!node) continue;
+      const favicon = node.data.favicon;
       next.push({
         id,
         title: node.data.title || 'Untitled',
-        url: node.data.url || '',
-        favicon: node.data.favicon,
+        url: node.data.url,
         timestamp: node.timestamp,
+        ...(favicon !== undefined ? { favicon } : {}),
       });
     }
     return next;

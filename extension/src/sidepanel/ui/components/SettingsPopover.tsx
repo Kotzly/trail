@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import type {
   LayoutSettings,
   MindmapLayoutSettings,
@@ -21,11 +22,9 @@ import {
 } from '../../api/account.js';
 import { saveSettings } from '../../api/settings.js';
 import { resetNodeLayouts } from '../../api/tree.js';
-import { THEME_IDS } from '../shared/themes.js';
 import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
-import { ThemePicker } from './theme/ThemePicker.js';
 import { createPortal } from 'react-dom';
 import React from 'react';
 
@@ -35,7 +34,7 @@ type SettingsMenuItem = {
   id: SettingsSectionId;
   label: string;
   description: string;
-  icon: (props: { size?: number }) => JSX.Element;
+  icon: LucideIcon;
 };
 
 const SETTINGS_SECTIONS: SettingsMenuItem[] = [
@@ -260,7 +259,6 @@ export default function SettingsPopover() {
   const pendingSaveRef = useRef<Settings | null>(null);
   const authFlowRef = useRef(0);
 
-  const themeIds = useMemo(() => [THEME_IDS.LIGHT, THEME_IDS.DARK, THEME_IDS.SYSTEM], []);
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
   const layoutHints: Record<Settings['layout']['mode'], string> = {
     mindmap: 'best for short journeys',
@@ -769,38 +767,8 @@ export default function SettingsPopover() {
       <div className="settings-section">
         <div className="settings-section-header">
           <div className="settings-section-title">Appearance</div>
-          <div className="settings-section-hint">Theme, density, and typography choices.</div>
+          <div className="settings-section-hint">Density and typography choices.</div>
         </div>
-      <div className="popover-section">
-        <div className="popover-label-small">Theme</div>
-        <div className="popover-icons" id="themeIcons">
-          {themeIds.map((themeId) => (
-            <button
-                key={themeId}
-                className={`popover-icon-btn ${settings?.theme === themeId ? 'active' : ''}`}
-                data-theme={themeId}
-                title={themeId[0]!.toUpperCase() + themeId.slice(1)}
-                type="button"
-                onClick={() => updateSettings({ theme: themeId })}
-              >
-                {themeId === THEME_IDS.LIGHT ? (
-                  <Icons.Sun size={18} />
-                ) : themeId === THEME_IDS.DARK ? (
-                  <Icons.Moon size={18} />
-                ) : (
-                  <Icons.Laptop2 size={18} />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {settings ? (
-          <ThemePicker
-            value={settings.customTheme}
-            onChange={(next) => updateSettings({ customTheme: next })}
-          />
-        ) : null}
 
         <div className="popover-section">
           <div className="popover-label-small">Graph density</div>

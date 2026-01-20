@@ -7,9 +7,10 @@
     "lib": "lib"
   },
   "scripts": {
-    "build": "tsc && vite build && node scripts/build-extension.js",
-    "watch": "tsc --watch",
-    "dev": "tsc --watch",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.app.json --noEmit && vite build && node scripts/build-extension.js",
+    "watch": "tsc -p tsconfig.json --watch",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck:ui": "tsc -p tsconfig.app.json --noEmit",
     "dev:ui": "vite",
     "generate-icons": "tsx src/shared/utils/generate-icons.ts",
     "test": "node --import tsx tests/basic.test.ts"

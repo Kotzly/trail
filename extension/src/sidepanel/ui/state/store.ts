@@ -92,6 +92,7 @@ type StoreState = {
   };
   ui: {
     settingsOpen: boolean;
+    themePickerOpen: boolean;
     pinnedOpen: boolean;
     treesOpen: boolean;
     tagFilterOpen: boolean;
@@ -127,6 +128,7 @@ type StoreActions = {
   clearSearch: () => void;
   setSettings: (settings: Settings) => void;
   setSettingsOpen: (open: boolean) => void;
+  setThemePickerOpen: (open: boolean) => void;
   setPinnedOpen: (open: boolean) => void;
   setTreesOpen: (open: boolean) => void;
   setTagFilterOpen: (open: boolean) => void;
@@ -192,6 +194,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   },
   ui: {
     settingsOpen: false,
+    themePickerOpen: false,
     pinnedOpen: false,
     treesOpen: false,
     tagFilterOpen: false,
@@ -387,6 +390,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
 
   setSettings: (settings) => set({ settings }),
   setSettingsOpen: (open) => set((state) => ({ ui: { ...state.ui, settingsOpen: open } })),
+  setThemePickerOpen: (open) => set((state) => ({ ui: { ...state.ui, themePickerOpen: open } })),
   setPinnedOpen: (open) => set((state) => ({ ui: { ...state.ui, pinnedOpen: open } })),
   setTreesOpen: (open) => set((state) => ({ ui: { ...state.ui, treesOpen: open } })),
   setTagFilterOpen: (open) => set((state) => ({ ui: { ...state.ui, tagFilterOpen: open } })),

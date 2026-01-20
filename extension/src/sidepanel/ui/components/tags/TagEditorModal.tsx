@@ -18,7 +18,7 @@ export type TagEditorValue = {
 type TagEditorModalProps = {
   open: boolean;
   mode: TagEditorMode;
-  initial?: TagDefinition | null;
+  initial: TagDefinition | null;
   onSubmit: (value: TagEditorValue) => void;
   onCancel: () => void;
 };

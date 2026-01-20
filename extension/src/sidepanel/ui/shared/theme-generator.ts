@@ -49,6 +49,7 @@ export const THEME_TOKEN_KEYS = [
   '--graph-node-active-border',
   '--graph-node-active-title',
   '--graph-node-active-url',
+  '--trail-grain-opacity',
 ] as const;
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
@@ -233,15 +234,37 @@ const toHslString = (color: HslColor) => rgbToHex(hslToRgb(color));
 
 export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Record<string, string> {
   const safeDots = custom.dots.length ? custom.dots : [{ x: 0.5, y: 0.5, type: DEFAULT_DOT_TYPE }];
-  const colors = getDotColors(safeDots, custom.lightness);
-  const primaryHex = colors[0] ?? '#3b3b40';
-  const primaryRgb = hexToRgb(primaryHex);
-  const primaryHsl = rgbToHsl(primaryRgb);
+  const colors = (custom.customColors && custom.customColors.length > 0)
+    ? custom.customColors
+    : getDotColors(safeDots, custom.lightness);
+  const paletteRgb = colors.map((color) => hexToRgb(color));
+  const fallbackRgb = { r: 59, g: 59, b: 64 };
+  const accentRgb = paletteRgb[0] ?? fallbackRgb;
+  const averageRgb =
+    paletteRgb.length > 0
+      ? paletteRgb.reduce(
+          (acc, color) => ({
+            r: acc.r + color.r,
+            g: acc.g + color.g,
+            b: acc.b + color.b,
+          }),
+          { r: 0, g: 0, b: 0 }
+        )
+      : fallbackRgb;
+  const averaged = paletteRgb.length
+    ? {
+        r: averageRgb.r / paletteRgb.length,
+        g: averageRgb.g / paletteRgb.length,
+        b: averageRgb.b / paletteRgb.length,
+      }
+    : fallbackRgb;
+  const neutralHsl = rgbToHsl(averaged);
+  const accentHsl = rgbToHsl(accentRgb);
   const mode = getResolvedScheme(scheme);
   const isDark = mode === 'dark';
 
-  const neutralHue = primaryHsl.h;
-  const neutralSat = Math.min(primaryHsl.s * 0.15, 16);
+  const neutralHue = neutralHsl.h;
+  const neutralSat = Math.min(neutralHsl.s * 0.15, 16);
   const surfaceLevels = isDark
     ? {
         surface: 12,
@@ -301,13 +324,13 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   });
 
   const primary = toHslString({
-    h: primaryHsl.h,
-    s: Math.max(primaryHsl.s, 34),
+    h: accentHsl.h,
+    s: Math.max(accentHsl.s, 34),
     l: isDark ? 65 : 35,
   });
   const primaryContainer = toHslString({
-    h: primaryHsl.h,
-    s: Math.min(Math.max(primaryHsl.s, 24), 50),
+    h: accentHsl.h,
+    s: Math.min(Math.max(accentHsl.s, 24), 50),
     l: isDark ? 26 : 90,
   });
   const primaryRgbResolved = hexToRgb(primary);
@@ -387,6 +410,7 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
     '--graph-node-active-border': activeBorder,
     '--graph-node-active-title': activeTitle,
     '--graph-node-active-url': activeUrl,
+    '--trail-grain-opacity': String(clamp(custom.texture ?? 0, 0, 1)),
   };
 }
 

@@ -13,6 +13,8 @@ export default function Header() {
   const setCommandState = useStore((state) => state.setCommandState);
   const settingsOpen = useStore((state) => state.ui.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
+  const themePickerOpen = useStore((state) => state.ui.themePickerOpen);
+  const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
 
   const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : 'Ctrl+Z';
   const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : 'Ctrl+Shift+Z';
@@ -85,6 +87,15 @@ export default function Header() {
         <TagFilterDropdown />
         <button id="newTreeBtn" className="btn-icon" type="button" title="new tree" onClick={handleNewTree}>
           <Icons.GitBranchPlus size={20} />
+        </button>
+        <button
+          id="themePickerBtn"
+          className="btn-icon"
+          type="button"
+          title="theme"
+          onClick={() => setThemePickerOpen(!themePickerOpen)}
+        >
+          <Icons.Palette size={20} />
         </button>
         <button
           id="settingsBtn"

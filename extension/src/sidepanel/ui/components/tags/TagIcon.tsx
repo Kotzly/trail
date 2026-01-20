@@ -10,5 +10,9 @@ type TagIconProps = {
 
 export function TagIcon({ id, size = 12, className }: TagIconProps) {
   const Icon = getTagIcon(id);
-  return <Icon size={size} className={className} />;
+  const props: { size?: number; className?: string } = { size };
+  if (className !== undefined) {
+    props.className = className;
+  }
+  return <Icon {...props} />;
 }

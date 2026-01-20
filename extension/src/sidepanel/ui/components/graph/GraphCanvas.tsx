@@ -611,6 +611,7 @@ export default function GraphCanvas({
     const dimmedBySearch = searchActive;
     return nodes.map((pos) => {
       const id = pos.node.id;
+      const tabState = tabStates[id];
       const isSearchMatch = searchSet.has(id);
       return {
         id,
@@ -622,7 +623,7 @@ export default function GraphCanvas({
         isCurrent: currentNodeId === id,
         isOpen: openNodeIds.has(id),
         tabCount: nodeTabCounts[id] ?? 0,
-        tabState: tabStates[id],
+        ...(tabState !== undefined ? { tabState } : {}),
         isSelected: selectedNodeIds.has(id),
         isPreview: previewSelection.has(id),
         isSearchMatch,
