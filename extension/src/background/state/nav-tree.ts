@@ -286,7 +286,16 @@ export class NavigationTree implements Owner {
         const q = query.trim();
         if (!q) return [];
         const results = this.searchIndex.search(q, { combineWith: 'AND' }) as Array<{ id: NodeId }>;
-        return results.map((result) => result.id);
+        const ids = results.map((result) => result.id);
+        ids.sort((a, b) => {
+            const nodeA = this.nodeMap.get(a);
+            const nodeB = this.nodeMap.get(b);
+            const timeA = nodeA?.timestamp ?? 0;
+            const timeB = nodeB?.timestamp ?? 0;
+            if (timeA === timeB) return Number(a) - Number(b);
+            return timeA - timeB;
+        });
+        return ids;
     }
 
     findByUrl(url: Url): NavigationNode | null {

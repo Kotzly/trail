@@ -1,4 +1,5 @@
-import { useCallback, useDeferredValue, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import type { NodeId } from '../../../shared/types/ids.js';
 import { useStore } from '../state/store.js';
 
 
@@ -11,22 +12,29 @@ export function useSearch() {
   const setSearchIndex = useStore((state) => state.setSearchIndex);
   const clearSearch = useStore((state) => state.clearSearch);
   const searchIndexRef = useRef(search.index);
-  const deferredQuery = useDeferredValue(search.query);
+  const lastQueryRef = useRef(search.query);
 
   useEffect(() => {
     searchIndexRef.current = search.index;
   }, [search.index]);
 
   useEffect(() => {
-    if (!deferredQuery) return;
     if (!search.query) return;
-    if (deferredQuery !== search.query) return;
-    const results = tree ? tree.findNodesByQuery(deferredQuery) : [];
+    const results = tree ? tree.findNodesByQuery(search.query) : [];
     const maxIndex = Math.max(0, results.length - 1);
+    const isSameQuery = lastQueryRef.current === search.query;
     const nextIndex =
-      results.length === 0 ? 0 : Math.min(Math.max(searchIndexRef.current, 0), maxIndex);
+      results.length === 0
+        ? 0
+        : isSameQuery
+        ? Math.min(Math.max(searchIndexRef.current, 0), maxIndex)
+        : maxIndex;
     setSearchResults(results, nextIndex);
-  }, [deferredQuery, search.query, setSearchResults, tree]);
+    if (!isSameQuery && results.length > 0) {
+      setSearchIndex(nextIndex);
+    }
+    lastQueryRef.current = search.query;
+  }, [search.query, setSearchIndex, setSearchResults, tree]);
 
   useEffect(() => {
     if (!search.active) return;
@@ -68,11 +76,21 @@ export function useSearch() {
     focusResult(search.index - 1);
   }, [focusResult, search.index, search.results.length]);
 
+  const selectResult = useCallback(
+    (nodeId: NodeId) => {
+      const index = search.results.indexOf(nodeId);
+      if (index === -1) return;
+      setSearchIndex(index);
+    },
+    [search.results, setSearchIndex],
+  );
+
   return {
     search,
     performSearch,
     clearSearch,
     nextResult,
     prevResult,
+    selectResult,
   };
 }
