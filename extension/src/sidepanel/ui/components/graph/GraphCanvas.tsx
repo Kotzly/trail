@@ -21,9 +21,10 @@ import {
 } from '../../graph/layout/calculator.js';
 import { deriveLayoutOptions } from '../../graph/layout/options.js';
 import type { CanvasBounds, LayoutMode, NodePosition, ViewState } from '../../graph/types.js';
-import GraphNode from './GraphNode.js';
 import GraphZoomControls from './GraphZoomControls.js';
 import { buildConnections, getPathBetweenNodes, getPathToNode } from './graph-utils.js';
+import { GraphPixiRenderer } from '../../graph/render/GraphPixiRenderer.js';
+import type { NodeRenderModel } from '../../graph/render/types.js';
 import React from 'react';
 
 type GraphTool = 'hand' | 'select';
@@ -69,6 +70,7 @@ type GraphCanvasProps = {
   onToggleSelectedNode: (id: NodeId) => void;
   onClearSelection: () => void;
   onGraphViewChange: (view: Partial<ViewState>) => void;
+  onSetHoverNodeId: (nodeId: NodeId | null) => void;
   onNodeLayoutOffset: (nodeId: NodeId, offsetX: number, offsetY: number) => void;
   onNodeLayoutRadial: (nodeId: NodeId, angleDelta: number, radiusDelta: number) => void;
   onOpenContextMenu: (menu: ContextMenuState) => void;
@@ -80,6 +82,15 @@ type SelectionBox = {
   top: number;
   width: number;
   height: number;
+};
+
+type PointerInfo = {
+  clientX: number;
+  clientY: number;
+  button: number;
+  shiftKey: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
 };
 
 export default function GraphCanvas({
@@ -104,19 +115,19 @@ export default function GraphCanvas({
   onToggleSelectedNode,
   onClearSelection,
   onGraphViewChange,
+  onSetHoverNodeId,
   onNodeLayoutOffset,
   onNodeLayoutRadial,
   onOpenContextMenu,
   onClearViewIntent,
 }: GraphCanvasProps) {
-  const LOD_LOW_SCALE = 0.15;
   const searchActive = search.active;
   const searchNavStep = search.navStep;
 
-  const lodClass = graphView.scale < LOD_LOW_SCALE ? ' lod-low' : '';
-
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const pixiHostRef = useRef<HTMLDivElement | null>(null);
+  const rendererRef = useRef<GraphPixiRenderer | null>(null);
+  const viewAnimationRef = useRef<number | null>(null);
   const viewRef = useRef(graphView);
   const didInitView = useRef(false);
   const pendingViewRef = useRef<Partial<ViewState> | null>(null);
@@ -129,6 +140,7 @@ export default function GraphCanvas({
   const isPanningRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
   const selectionAnchorRef = useRef<NodeId | null>(null);
+  const pointerDownNodeIdRef = useRef<NodeId | null>(null);
   const dragStateRef = useRef<{
     nodeId: NodeId;
     startX: number;
@@ -149,6 +161,7 @@ export default function GraphCanvas({
     };
   } | null>(null);
   const dragMovedRef = useRef(false);
+  const nodeDragJustEndedRef = useRef(false);
   const isSelectingRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0 });
   const panPointerStartRef = useRef({ x: 0, y: 0 });
@@ -158,7 +171,7 @@ export default function GraphCanvas({
   const selectionDragRef = useRef(false);
   const suppressClickRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
-  const transitionTimeoutRef = useRef<number | null>(null);
+  const lastHoverNodeIdRef = useRef<NodeId | null>(null);
   const lastResetRef = useRef(0);
   const lastViewIntentRef = useRef<number | null>(null);
   const lastLayoutModeRef = useRef<LayoutMode | null>(null);
@@ -176,7 +189,10 @@ export default function GraphCanvas({
         const next = pendingViewRef.current;
         pendingViewRef.current = null;
         viewRafRef.current = null;
-        if (next) onGraphViewChange(next);
+        if (next) {
+          onGraphViewChange(next);
+          rendererRef.current?.setView(viewRef.current);
+        }
       });
     },
     [onGraphViewChange],
@@ -188,6 +204,10 @@ export default function GraphCanvas({
         window.cancelAnimationFrame(viewRafRef.current);
         viewRafRef.current = null;
       }
+      if (viewAnimationRef.current !== null) {
+        window.cancelAnimationFrame(viewAnimationRef.current);
+        viewAnimationRef.current = null;
+      }
     };
   }, []);
 
@@ -198,33 +218,78 @@ export default function GraphCanvas({
 
   useEffect(() => {
     viewRef.current = graphView;
+    rendererRef.current?.setView(graphView);
   }, [graphView]);
+
+  useEffect(() => {
+    const host = pixiHostRef.current;
+    if (!host) return;
+    const renderer = new GraphPixiRenderer(host);
+    rendererRef.current = renderer;
+    renderer.setView(viewRef.current);
+    return () => {
+      renderer.destroy();
+      rendererRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const resizeObserver = new ResizeObserver(() => {
+      rendererRef.current?.setView(viewRef.current);
+    });
+    resizeObserver.observe(wrapper);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => rendererRef.current?.refreshTheme());
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'style'],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     resetStepRef.current = null;
   }, [currentNodeId]);
 
-  const clearCanvasTransition = useCallback(() => {
-    if (transitionTimeoutRef.current !== null) {
-      window.clearTimeout(transitionTimeoutRef.current);
-      transitionTimeoutRef.current = null;
-    }
-    if (canvasRef.current) {
-      canvasRef.current.style.transition = 'none';
+  const cancelViewAnimation = useCallback(() => {
+    if (viewAnimationRef.current !== null) {
+      window.cancelAnimationFrame(viewAnimationRef.current);
+      viewAnimationRef.current = null;
     }
   }, []);
 
-  const applyCanvasTransition = useCallback((durationMs: number) => {
-    if (!canvasRef.current) return;
-    if (transitionTimeoutRef.current !== null) {
-      window.clearTimeout(transitionTimeoutRef.current);
-    }
-    canvasRef.current.style.transition = `transform ${durationMs}ms ease-out`;
-    transitionTimeoutRef.current = window.setTimeout(() => {
-      if (canvasRef.current) canvasRef.current.style.transition = 'none';
-      transitionTimeoutRef.current = null;
-    }, durationMs);
-  }, []);
+  const animateViewTo = useCallback(
+    (target: ViewState, durationMs: number) => {
+      cancelViewAnimation();
+      const start = performance.now();
+      const from = viewRef.current;
+      const animate = (time: number) => {
+        const elapsed = time - start;
+        const t = Math.min(1, elapsed / durationMs);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const next: ViewState = {
+          translateX: from.translateX + (target.translateX - from.translateX) * eased,
+          translateY: from.translateY + (target.translateY - from.translateY) * eased,
+          scale: from.scale + (target.scale - from.scale) * eased,
+        };
+        viewRef.current = next;
+        onGraphViewChange(next);
+        rendererRef.current?.setView(next);
+        if (t < 1) {
+          viewAnimationRef.current = window.requestAnimationFrame(animate);
+        } else {
+          viewAnimationRef.current = null;
+        }
+      };
+      viewAnimationRef.current = window.requestAnimationFrame(animate);
+    },
+    [cancelViewAnimation, onGraphViewChange],
+  );
 
   const root = tree?.getRoot() ?? null;
   const { nodeWidth, nodeHeight } = baseLayoutConfig;
@@ -332,8 +397,7 @@ export default function GraphCanvas({
     [settings],
   );
 
-  const handleNodeClick = useCallback(async (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => {
-    event.stopPropagation();
+  const handleNodeClick = useCallback(async (node: NavigationNode, info: PointerInfo) => {
     if (dragMovedRef.current) {
       dragMovedRef.current = false;
       return;
@@ -346,7 +410,7 @@ export default function GraphCanvas({
       }
       return;
     }
-    const isMeta = event.metaKey || event.ctrlKey;
+    const isMeta = info.metaKey || info.ctrlKey;
     if (isMeta) {
       let anchorId = selectionAnchorRef.current;
       if (!anchorId && selectedNodeIds.size === 1) {
@@ -362,7 +426,7 @@ export default function GraphCanvas({
       }
       return;
     }
-    if (event.shiftKey) {
+    if (info.shiftKey) {
       const willRemove = selectedNodeIds.has(node.id) && selectedNodeIds.size === 1;
       onToggleSelectedNode(node.id);
       if (willRemove) {
@@ -381,22 +445,21 @@ export default function GraphCanvas({
     }
   }, [onSelectedNodeIdsChange, onToggleSelectedNode, selectedNodeIds, tool, tree]);
 
-  const handleNodePointerDown = useCallback((node: NavigationNode, event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
-    if (event.shiftKey) return;
-    if (event.metaKey || event.ctrlKey) return;
+  const handleNodePointerDown = useCallback((node: NavigationNode, info: PointerInfo) => {
+    if (info.button !== 0) return;
+    if (info.shiftKey) return;
+    if (info.metaKey || info.ctrlKey) return;
     if (layoutOptions.mode === 'radial' && node.isRoot?.()) return;
     const startPos = positions.get(node.id);
     if (!startPos) return;
-    event.stopPropagation();
     dragMovedRef.current = false;
     const startLayout = node.data.layout;
     const baseOffsetX = typeof startLayout?.offsetX === 'number' ? startLayout.offsetX : 0;
     const baseOffsetY = typeof startLayout?.offsetY === 'number' ? startLayout.offsetY : 0;
     dragStateRef.current = {
       nodeId: node.id,
-      startX: event.clientX,
-      startY: event.clientY,
+      startX: info.clientX,
+      startY: info.clientY,
       startNodeX: startPos.x,
       startNodeY: startPos.y,
       baseOffsetX,
@@ -445,6 +508,7 @@ export default function GraphCanvas({
       if (!dragMovedRef.current && Math.hypot(deltaX, deltaY) > 3) {
         dragMovedRef.current = true;
         setIsDraggingNode(true);
+        suppressClickRef.current = true;
       }
       if (!dragMovedRef.current) return;
       if (state.mode === 'radial' && state.radial) {
@@ -469,16 +533,33 @@ export default function GraphCanvas({
       window.removeEventListener('pointerup', handleUp);
       window.removeEventListener('pointercancel', handleUp);
       const state = dragStateRef.current;
+      const didDrag = dragMovedRef.current;
       dragStateRef.current = null;
       setIsDraggingNode(false);
-      if (!state) return;
-      if (!dragMovedRef.current) return;
+      if (didDrag) {
+        nodeDragJustEndedRef.current = true;
+        suppressClickRef.current = true;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
+      }
+      if (!state) {
+        dragMovedRef.current = false;
+        return;
+      }
+      if (!didDrag) return;
       const treeNode = tree?.findNodeById(state.nodeId);
       const layoutData = treeNode?.data.layout;
-      if (!layoutData) return;
+      if (!layoutData) {
+        dragMovedRef.current = false;
+        return;
+      }
       try {
         if (state.mode === 'radial') {
-          if (!layoutData.radial) return;
+          if (!layoutData.radial) {
+            dragMovedRef.current = false;
+            return;
+          }
           await setNodeLayout(state.nodeId, { radial: layoutData.radial });
         } else {
           await setNodeLayout(state.nodeId, {
@@ -489,6 +570,7 @@ export default function GraphCanvas({
       } catch (error) {
         console.error('Failed to save node position:', error);
       }
+      dragMovedRef.current = false;
     };
 
     window.addEventListener('pointermove', handleMove);
@@ -496,36 +578,36 @@ export default function GraphCanvas({
     window.addEventListener('pointercancel', handleUp, { once: true });
   }, [basePositions, layoutOptions.mode, nodeHeight, nodeWidth, onNodeLayoutOffset, onNodeLayoutRadial, positions, root, tree]);
 
-  const handleNodeContextMenu = useCallback((node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (selectedNodeIds.size > 0) {
+  const handleNodeContextMenu = useCallback(
+    (node: NavigationNode, clientX: number, clientY: number) => {
+      if (selectedNodeIds.size > 0) {
+        onOpenContextMenu({
+          type: 'bulk',
+          nodeIds: Array.from(selectedNodeIds),
+          position: { x: clientX, y: clientY },
+        });
+        return;
+      }
       onOpenContextMenu({
-        type: 'bulk',
-        nodeIds: Array.from(selectedNodeIds),
-        position: { x: event.clientX, y: event.clientY },
+        type: 'node',
+        nodeId: node.id,
+        position: { x: clientX, y: clientY },
       });
-      return;
-    }
-    onOpenContextMenu({
-      type: 'node',
-      nodeId: node.id,
-      position: { x: event.clientX, y: event.clientY },
-    });
-  }, [onOpenContextMenu, selectedNodeIds]);
+    },
+    [onOpenContextMenu, selectedNodeIds],
+  );
 
-  const handleWrapperContextMenu = (event: ReactMouseEvent<HTMLDivElement>) => {
+  const handleWrapperContextMenu = (clientX: number, clientY: number) => {
     if (selectedNodeIds.size === 0) return;
-    event.preventDefault();
     onOpenContextMenu({
       type: 'bulk',
       nodeIds: Array.from(selectedNodeIds),
-      position: { x: event.clientX, y: event.clientY },
+      position: { x: clientX, y: clientY },
     });
   };
 
 
-  const nodeViewModels = useMemo(() => {
+  const renderNodes = useMemo<NodeRenderModel[]>(() => {
     const dimmedBySearch = searchActive;
     return nodes.map((pos) => {
       const id = pos.node.id;
@@ -533,7 +615,10 @@ export default function GraphCanvas({
       return {
         id,
         node: pos.node,
-        position: pos,
+        x: pos.x,
+        y: pos.y,
+        width: nodeWidth,
+        height: nodeHeight,
         isCurrent: currentNodeId === id,
         isOpen: openNodeIds.has(id),
         tabCount: nodeTabCounts[id] ?? 0,
@@ -544,13 +629,18 @@ export default function GraphCanvas({
         isSearchFocused: focusedSearchId === id,
         isSearchDimmed: dimmedBySearch && !isSearchMatch,
         isHoverFocused: hoverNodeId === id,
+        display,
+        tagDefs,
       };
     });
   }, [
     currentNodeId,
+    display,
     focusedSearchId,
     hoverNodeId,
+    nodeHeight,
     nodeTabCounts,
+    nodeWidth,
     nodes,
     openNodeIds,
     previewSelection,
@@ -558,6 +648,7 @@ export default function GraphCanvas({
     searchSet,
     selectedNodeIds,
     tabStates,
+    tagDefs,
   ]);
   const pathNodeIds = useMemo(() => {
     if (!root || currentNodeId === null) return null;
@@ -580,6 +671,16 @@ export default function GraphCanvas({
     [hideTreeRoot, layoutOptions.mode, nodeHeight, nodeWidth, pathNodeIds, positions, root, showConnections],
   );
 
+  useEffect(() => {
+    rendererRef.current?.setData({
+      nodes: renderNodes,
+      connections,
+      nodeWidth,
+      nodeHeight,
+      showConnections,
+    });
+  }, [connections, nodeHeight, nodeWidth, renderNodes, showConnections]);
+
   const getFitToViewView = useCallback(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return null;
@@ -598,13 +699,13 @@ export default function GraphCanvas({
   const fitToView = (animate = false) => {
     const fitView = getFitToViewView();
     if (!fitView) return;
-    if (!animate) {
-      clearCanvasTransition();
-    }
     viewRef.current = fitView;
-    onGraphViewChange(fitView);
     if (animate) {
-      applyCanvasTransition(300);
+      animateViewTo(fitView, 300);
+    } else {
+      cancelViewAnimation();
+      onGraphViewChange(fitView);
+      rendererRef.current?.setView(fitView);
     }
   };
 
@@ -638,13 +739,13 @@ export default function GraphCanvas({
   const centerOnNode = (nodeId: NodeId, animate = true): boolean => {
     const nextView = getCenteredView(nodeId);
     if (!nextView) return false;
-    if (!animate) {
-      clearCanvasTransition();
-    }
     viewRef.current = nextView;
-    onGraphViewChange(nextView);
     if (animate) {
-      applyCanvasTransition(300);
+      animateViewTo(nextView, 300);
+    } else {
+      cancelViewAnimation();
+      onGraphViewChange(nextView);
+      rendererRef.current?.setView(nextView);
     }
     return true;
   };
@@ -736,18 +837,35 @@ export default function GraphCanvas({
     nodeWidth,
   ]);
 
-  const zoomAt = useCallback((pointerX: number, pointerY: number, scaleFactor: number) => {
-    const { translateX, translateY, scale } = viewRef.current;
-    const fitView = getFitToViewView();
-    const minScale = Math.min(0.15, fitView?.scale ?? 0.15);
-    const nextScale = Math.min(3, Math.max(minScale, scale * scaleFactor));
-    if (nextScale === scale) return;
-    const canvasX = (pointerX - translateX) / scale;
-    const canvasY = (pointerY - translateY) / scale;
-    const nextTranslateX = pointerX - canvasX * nextScale;
-    const nextTranslateY = pointerY - canvasY * nextScale;
-    scheduleGraphView({ translateX: nextTranslateX, translateY: nextTranslateY, scale: nextScale });
-  }, [getFitToViewView, scheduleGraphView]);
+  const computeZoomView = useCallback(
+    (pointerX: number, pointerY: number, scaleFactor: number): ViewState | null => {
+      const { translateX, translateY, scale } = viewRef.current;
+      const fitView = getFitToViewView();
+      const minScale = Math.min(0.15, fitView?.scale ?? 0.15);
+      const nextScale = Math.min(3, Math.max(minScale, scale * scaleFactor));
+      if (nextScale === scale) return null;
+      const canvasX = (pointerX - translateX) / scale;
+      const canvasY = (pointerY - translateY) / scale;
+      const nextTranslateX = pointerX - canvasX * nextScale;
+      const nextTranslateY = pointerY - canvasY * nextScale;
+      return { translateX: nextTranslateX, translateY: nextTranslateY, scale: nextScale };
+    },
+    [getFitToViewView],
+  );
+
+  const zoomAt = useCallback(
+    (pointerX: number, pointerY: number, scaleFactor: number, animate = false) => {
+      const nextView = computeZoomView(pointerX, pointerY, scaleFactor);
+      if (!nextView) return;
+      viewRef.current = nextView;
+      if (animate) {
+        animateViewTo(nextView, 180);
+      } else {
+        scheduleGraphView(nextView);
+      }
+    },
+    [animateViewTo, computeZoomView, scheduleGraphView],
+  );
 
   const handleResetZoom = (animate = false) => {
     const nodeId = currentNodeId;
@@ -768,13 +886,14 @@ export default function GraphCanvas({
       fitToView(animate);
       return;
     }
-    if (animate) {
-      applyCanvasTransition(300);
-    } else {
-      clearCanvasTransition();
-    }
     viewRef.current = nextView;
-    onGraphViewChange(nextView);
+    if (animate) {
+      animateViewTo(nextView, 300);
+    } else {
+      cancelViewAnimation();
+      onGraphViewChange(nextView);
+      rendererRef.current?.setView(nextView);
+    }
     resetStepRef.current = { nodeId, view: nextView };
   };
 
@@ -789,12 +908,7 @@ export default function GraphCanvas({
     const pointerX = rect.width / 2;
     const pointerY = rect.height / 2;
     const scaleFactor = direction === 'in' ? 1.25 : 0.8;
-    if (animate) {
-      applyCanvasTransition(180);
-    } else {
-      clearCanvasTransition();
-    }
-    zoomAt(pointerX, pointerY, scaleFactor);
+    zoomAt(pointerX, pointerY, scaleFactor, animate);
   };
 
   const finalizeSelection = () => {
@@ -834,17 +948,40 @@ export default function GraphCanvas({
 
   const isGraphUiTarget = (target: HTMLElement) => target.closest('[data-graph-ui="true"]');
 
+  const getPointerNodeId = (
+    event: ReactPointerEvent<HTMLDivElement> | ReactMouseEvent<HTMLDivElement>,
+  ) => {
+    const wrapper = wrapperRef.current;
+    const renderer = rendererRef.current;
+    if (!wrapper || !renderer) return null;
+    const rect = wrapper.getBoundingClientRect();
+    const pointerX = event.clientX - rect.left;
+    const pointerY = event.clientY - rect.top;
+    return renderer.hitTestScreen(pointerX, pointerY);
+  };
+
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const target = event.target as HTMLElement;
     if (isGraphUiTarget(target)) return;
-    if (target.closest('.graph-node')) return;
     if (!wrapperRef.current) return;
-    clearCanvasTransition();
+    cancelViewAnimation();
     suppressClickRef.current = false;
+    nodeDragJustEndedRef.current = false;
     selectionDragRef.current = false;
+    pointerDownNodeIdRef.current = null;
+    const rect = wrapperRef.current.getBoundingClientRect();
     activePointerIdRef.current = event.pointerId;
     event.currentTarget.setPointerCapture(event.pointerId);
+    const hitNodeId = getPointerNodeId(event);
+    pointerDownNodeIdRef.current = hitNodeId;
+    if (hitNodeId && tree) {
+      const node = tree.findNodeById(hitNodeId);
+      if (node) {
+        handleNodePointerDown(node, event);
+        return;
+      }
+    }
 
     if (tool === 'hand') {
       isPanningRef.current = true;
@@ -857,7 +994,6 @@ export default function GraphCanvas({
       panMovedRef.current = false;
     } else if (tool === 'select') {
       isSelectingRef.current = true;
-      const rect = wrapperRef.current.getBoundingClientRect();
       const startX = event.clientX - rect.left;
       const startY = event.clientY - rect.top;
       selectionStartRef.current = { x: startX, y: startY };
@@ -874,8 +1010,6 @@ export default function GraphCanvas({
     if (activePointerIdRef.current !== null && activePointerIdRef.current !== event.pointerId) {
       return;
     }
-    const target = event.target as HTMLElement;
-    if (isGraphUiTarget(target)) return;
     if (isPanningRef.current) {
       const nextTranslateX = event.clientX - panStartRef.current.x;
       const nextTranslateY = event.clientY - panStartRef.current.y;
@@ -922,6 +1056,16 @@ export default function GraphCanvas({
       intersects.forEach((id) => preview.add(id));
       previewSelectionRef.current = preview;
       setPreviewSelection(preview);
+      return;
+    }
+    if (dragStateRef.current) return;
+
+    const target = event.target as HTMLElement;
+    if (isGraphUiTarget(target)) return;
+    const hitNodeId = getPointerNodeId(event);
+    if (hitNodeId !== lastHoverNodeIdRef.current) {
+      lastHoverNodeIdRef.current = hitNodeId;
+      onSetHoverNodeId(hitNodeId);
     }
   };
 
@@ -929,14 +1073,37 @@ export default function GraphCanvas({
     if (activePointerIdRef.current !== null && activePointerIdRef.current !== event.pointerId) {
       return;
     }
-    const target = event.target as HTMLElement;
-    if (isGraphUiTarget(target)) {
-      releasePointerCapture(event.currentTarget, activePointerIdRef.current);
-      activePointerIdRef.current = null;
-      return;
-    }
     releasePointerCapture(event.currentTarget, activePointerIdRef.current);
     activePointerIdRef.current = null;
+    if (pointerDownNodeIdRef.current) {
+      const nodeId = pointerDownNodeIdRef.current;
+      pointerDownNodeIdRef.current = null;
+      if (nodeDragJustEndedRef.current) {
+        nodeDragJustEndedRef.current = false;
+        dragMovedRef.current = false;
+        return;
+      }
+      if (!dragMovedRef.current) {
+        const node = tree?.findNodeById(nodeId);
+        if (node) {
+          handleNodeClick(node, {
+            clientX: event.clientX,
+            clientY: event.clientY,
+            button: event.button,
+            shiftKey: event.shiftKey,
+            metaKey: event.metaKey,
+            ctrlKey: event.ctrlKey,
+          });
+          suppressClickRef.current = true;
+          window.setTimeout(() => {
+            suppressClickRef.current = false;
+          }, 0);
+        }
+      } else {
+        dragMovedRef.current = false;
+      }
+      return;
+    }
     if (isPanningRef.current) {
       isPanningRef.current = false;
       setIsPanning(false);
@@ -957,20 +1124,35 @@ export default function GraphCanvas({
         }, 0);
       }
     }
+
+    if (!isPanningRef.current && !isSelectingRef.current) {
+      const nodeId = pointerDownNodeIdRef.current;
+      pointerDownNodeIdRef.current = null;
+      const wasDraggingNode = dragStateRef.current !== null || dragMovedRef.current || isDraggingNode;
+      if (wasDraggingNode) {
+        return;
+      }
+      if (nodeId && tree) {
+        const node = tree.findNodeById(nodeId);
+        if (node) {
+          suppressClickRef.current = true;
+          handleNodeClick(node, event);
+        }
+      }
+    } else {
+      pointerDownNodeIdRef.current = null;
+    }
   };
 
   const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (activePointerIdRef.current !== null && activePointerIdRef.current !== event.pointerId) {
       return;
     }
-    const target = event.target as HTMLElement;
-    if (isGraphUiTarget(target)) {
-      releasePointerCapture(event.currentTarget, activePointerIdRef.current);
-      activePointerIdRef.current = null;
-      return;
-    }
     releasePointerCapture(event.currentTarget, activePointerIdRef.current);
     activePointerIdRef.current = null;
+    nodeDragJustEndedRef.current = false;
+    pointerDownNodeIdRef.current = null;
+    dragMovedRef.current = false;
     if (isPanningRef.current) {
       isPanningRef.current = false;
       setIsPanning(false);
@@ -985,11 +1167,12 @@ export default function GraphCanvas({
         suppressClickRef.current = false;
       }, 0);
     }
+    pointerDownNodeIdRef.current = null;
   };
 
   const handleWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
-    clearCanvasTransition();
+    cancelViewAnimation();
     const rect = wrapperRef.current?.getBoundingClientRect();
     if (!rect) return;
     const pointerX = event.clientX - rect.left;
@@ -1007,7 +1190,7 @@ export default function GraphCanvas({
         translateY: viewRef.current.translateY - event.deltaY,
       });
     }
-  }, [clearCanvasTransition, scheduleGraphView, zoomAt]);
+  }, [cancelViewAnimation, scheduleGraphView, zoomAt]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -1049,7 +1232,7 @@ export default function GraphCanvas({
   const handleBackgroundClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
     if (isGraphUiTarget(target)) return;
-    if (target.closest('.graph-node')) return;
+    if (getPointerNodeId(event)) return;
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       return;
@@ -1060,65 +1243,45 @@ export default function GraphCanvas({
   return (
     <div className="stack-container" id="stackContainer">
       <div
-        className={`graph-wrapper${isDraggingNode ? ' is-dragging' : ''}${lodClass}`}
+        className={`graph-wrapper${isDraggingNode ? ' is-dragging' : ''}`}
         ref={wrapperRef}
         tabIndex={0}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
+        onPointerLeave={() => {
+          lastHoverNodeIdRef.current = null;
+          onSetHoverNodeId(null);
+        }}
         onKeyDown={handleKeyDown}
-        onContextMenu={handleWrapperContextMenu}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          const target = event.target as HTMLElement;
+          if (isGraphUiTarget(target)) return;
+          const nodeId = getPointerNodeId(event);
+          if (nodeId && tree) {
+            const node = tree.findNodeById(nodeId);
+            if (node) {
+              handleNodeContextMenu(node, event.clientX, event.clientY);
+              return;
+            }
+          }
+          handleWrapperContextMenu(event.clientX, event.clientY);
+        }}
         onClick={handleBackgroundClick}
-        style={{ cursor: tool === 'hand' ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
+        style={{
+          cursor:
+            tool === 'hand'
+              ? isPanning
+                ? 'grabbing'
+                : 'grab'
+              : hoverNodeId
+                ? 'pointer'
+                : 'default',
+        }}
       >
-        <div
-          className="graph-canvas"
-          ref={canvasRef}
-          style={{
-            width: `${bounds.width}px`,
-            height: `${bounds.height}px`,
-            transform: `translate(${graphView.translateX}px, ${graphView.translateY}px) scale(${graphView.scale})`,
-          }}
-        >
-          {showConnections ? (
-            <svg className="graph-connections" width={bounds.width} height={bounds.height}>
-              {connections.map((connection) => (
-                <path
-                  key={connection.id}
-                  d={connection.d}
-                  className={`graph-connection ${connection.branchClass} ${connection.onPath ? 'on-path' : ''}`}
-                />
-              ))}
-            </svg>
-          ) : null}
-          <div className="graph-nodes">
-            {nodeViewModels.map((vm) => (
-              <GraphNode
-                key={vm.id}
-                node={vm.node}
-                position={vm.position}
-                nodeWidth={nodeWidth}
-                nodeHeight={nodeHeight}
-                isCurrent={vm.isCurrent}
-                isOpen={vm.isOpen}
-                tabCount={vm.tabCount}
-                tabState={vm.tabState}
-                tagDefs={tagDefs}
-                display={display}
-                isSelected={vm.isSelected}
-                isPreview={vm.isPreview}
-                isSearchMatch={vm.isSearchMatch}
-                isSearchFocused={vm.isSearchFocused}
-                isSearchDimmed={vm.isSearchDimmed}
-                isHoverFocused={vm.isHoverFocused}
-                onClick={handleNodeClick}
-                onContextMenu={handleNodeContextMenu}
-                onPointerDown={handleNodePointerDown}
-              />
-            ))}
-          </div>
-        </div>
+        <div className="graph-canvas" ref={pixiHostRef} />
         {selectionBox && (
           <div
             className="graph-selection-box"

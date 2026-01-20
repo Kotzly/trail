@@ -9,7 +9,12 @@ type Url = string;
 const MSG_TITLE_CHANGED = 'TITLE_CHANGED' as const;
 
 function notifyTitleChange(url: Url, title: Title): void {
-  chrome.runtime.sendMessage({ type: MSG_TITLE_CHANGED, url, title });
+  chrome.runtime.sendMessage({ type: MSG_TITLE_CHANGED, url, title }, () => {
+    const err = chrome.runtime.lastError;
+    if (!err) return;
+    if (err.message?.includes('Receiving end does not exist')) return;
+    console.debug('Failed to notify title change:', err);
+  });
 }
 
 (function() {

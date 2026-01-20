@@ -38,6 +38,7 @@
     "zustand": "^4.5.5"
   },
   "dependencies": {
-    "minisearch": "^7.2.0"
+    "minisearch": "^7.2.0",
+    "pixi.js": "^8.8.2"
   }
 }

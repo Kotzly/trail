@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/lib/auth/AuthContext";
+import 'pixi.js/unsafe-eval';
 import App from "@/App";
 import "./index.css";
 import "@/i18n";

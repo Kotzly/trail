@@ -5,10 +5,11 @@ import { tagStorage } from '../../services/tag-storage.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
 import { msg } from '../../../shared/types/messages.js';
+import { sendRuntimeMessage } from '../send-message.js';
 
 async function broadcastTagDefs(defs?: TagDefinition[]): Promise<void> {
   const tagDefs = defs ?? (await tagStorage.getAll());
-  chrome.runtime.sendMessage(msg.tagsUpdated({ tagDefs }));
+  sendRuntimeMessage(msg.tagsUpdated({ tagDefs }));
 }
 
 async function removeTagFromTree(tagId: Tag): Promise<boolean> {

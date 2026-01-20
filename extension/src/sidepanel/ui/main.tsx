@@ -1,3 +1,4 @@
+import 'pixi.js/unsafe-eval';
 import { createRoot } from 'react-dom/client';
 import App from './App.js';
 import './sidepanel.css';

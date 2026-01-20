@@ -1,4 +1,5 @@
 import { msg } from '../../shared/types/messages.js';
+import { sendRuntimeMessage } from './send-message.js';
 
 export type UiNotificationPayload = {
   message: string;
@@ -7,5 +8,5 @@ export type UiNotificationPayload = {
 };
 
 export function notifyUi(notification: UiNotificationPayload): void {
-  chrome.runtime.sendMessage(msg.notify({ notification }));
+  sendRuntimeMessage(msg.notify({ notification }));
 }

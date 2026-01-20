@@ -38,6 +38,7 @@ export default function GraphArea() {
       onToggleSelectedNode: state.toggleSelectedNode,
       onClearSelection: state.clearSelection,
       onGraphViewChange: state.setGraphView,
+      onSetHoverNodeId: state.setHoverNodeId,
       onNodeLayoutOffset: state.setNodeLayoutOffset,
       onNodeLayoutRadial: state.setNodeLayoutRadial,
       onOpenContextMenu: state.openContextMenu,

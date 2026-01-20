@@ -48,14 +48,6 @@ export interface GraphAPI {
   wrapper: HTMLElement;
 }
 
-export interface GraphNodeOptions {
-  node: NavigationNode;
-  position: NodePosition;
-  currentId: NodeId | null;
-  openNodeIds: Set<NodeId> | null;
-  nodeTabCounts: Record<NodeId, number>;
-}
-
 export interface RenderGraphOptions {
   openNodeIds?: Set<NodeId> | null;
   tabStates?: Record<NodeId, TabState>;

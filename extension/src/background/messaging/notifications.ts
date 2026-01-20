@@ -4,6 +4,7 @@ import type { TabSoundState, TabState } from '../../shared/types/tabs.js';
 import { msg, type TreeUpdateReason, type TreeViewIntent, type TreesSnapshot } from '../../shared/types/messages.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { NavigationTree } from '../state/nav-tree.js';
+import { sendRuntimeMessage } from './send-message.js';
 
 
 // Get tab states for all open tabs.
@@ -52,10 +53,10 @@ export async function notifyTreeUpdate(
         ...(nextView ? { view: nextView } : {}),
     });
 
-    chrome.runtime.sendMessage(payload);
+    sendRuntimeMessage(payload);
 }
 
 export async function notifyTreesUpdate(snapshot: TreesSnapshot): Promise<void> {
   const payload = msg.treesUpdated(snapshot);
-  chrome.runtime.sendMessage(payload);
+  sendRuntimeMessage(payload);
 }

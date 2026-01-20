@@ -1,13 +1,7 @@
 import type { NodeId } from '../../../../shared/types/ids.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
 import type { LayoutMode, NodePosition } from '../../graph/types.js';
-
-export type Connection = {
-  id: string;
-  d: string;
-  branchClass: string;
-  onPath: boolean;
-};
+import type { ConnectionSegment } from '../../graph/render/types.js';
 
 export function getPathToNode(root: NavigationNode, targetId: NodeId): Set<NodeId> {
   const path = new Set<NodeId>();
@@ -68,14 +62,14 @@ export function buildConnections(
   hideRoot: boolean,
   nodeWidth: number,
   nodeHeight: number,
-): Connection[] {
+): ConnectionSegment[] {
   if (!root) return [];
-  const list: Connection[] = [];
+  const list: ConnectionSegment[] = [];
   const traverse = (node: NavigationNode | null) => {
     if (!node) return;
     const parentPos = positions.get(node.id);
     if (!parentPos) return;
-    node.getChildren().forEach((child, idx) => {
+    node.getChildren().forEach((child) => {
       const childPos = positions.get(child.id);
       if (!childPos) return;
       let startX: number;
@@ -101,23 +95,36 @@ export function buildConnections(
       }
       const midX = (startX + endX) / 2;
       const midY = (startY + endY) / 2;
-      let d: string;
+      let cp1: { x: number; y: number };
+      let cp2: { x: number; y: number };
       if (layoutMode === 'tree') {
-        d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+        cp1 = { x: startX, y: midY };
+        cp2 = { x: endX, y: midY };
       } else if (layoutMode === 'mindmap') {
-        d = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
+        cp1 = { x: midX, y: startY };
+        cp2 = { x: midX, y: endY };
       } else {
-        d = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
+        cp1 = { x: midX, y: startY };
+        cp2 = { x: midX, y: endY };
       }
       const onPath =
         pathNodeIds ? pathNodeIds.has(node.id) && pathNodeIds.has(child.id) : false;
       const hideConnection = layoutMode === 'tree' && hideRoot && node.isRoot();
       if (!hideConnection) {
+        const bounds = {
+          minX: Math.min(startX, endX, cp1.x, cp2.x),
+          minY: Math.min(startY, endY, cp1.y, cp2.y),
+          maxX: Math.max(startX, endX, cp1.x, cp2.x),
+          maxY: Math.max(startY, endY, cp1.y, cp2.y),
+        };
         list.push({
           id: `${node.id}-${child.id}`,
-          d,
-          branchClass: `branch-${(idx % 5) + 1}`,
+          start: { x: startX, y: startY },
+          cp1,
+          cp2,
+          end: { x: endX, y: endY },
           onPath,
+          bounds,
         });
       }
       traverse(child);
