@@ -29,11 +29,10 @@ import React from 'react';
 type GraphTool = 'hand' | 'select';
 
 type SearchState = {
-  query: string;
   results: NodeId[];
   index: number;
+  navStep: number;
   active: boolean;
-  baseCurrentId: NodeId | null;
 };
 
 type ContextMenuState =
@@ -112,6 +111,7 @@ export default function GraphCanvas({
 }: GraphCanvasProps) {
   const LOD_LOW_SCALE = 0.15;
   const searchActive = search.active;
+  const searchNavStep = search.navStep;
 
   const lodClass = graphView.scale < LOD_LOW_SCALE ? ' lod-low' : '';
 
@@ -526,7 +526,7 @@ export default function GraphCanvas({
 
 
   const nodeViewModels = useMemo(() => {
-    const dimmedBySearch = search.query.length > 0;
+    const dimmedBySearch = searchActive;
     return nodes.map((pos) => {
       const id = pos.node.id;
       const isSearchMatch = searchSet.has(id);
@@ -538,33 +538,23 @@ export default function GraphCanvas({
         isOpen: openNodeIds.has(id),
         tabCount: nodeTabCounts[id] ?? 0,
         tabState: tabStates[id],
-        selection: {
-          isSelected: selectedNodeIds.has(id),
-          isPreview: previewSelection.has(id),
-          isSearchMatch,
-          isSearchFocused: focusedSearchId === id,
-          isSearchDimmed: dimmedBySearch && !isSearchMatch,
-          isHoverFocused: hoverNodeId === id,
-        },
-        onClick: (event: ReactMouseEvent<HTMLDivElement>) => void handleNodeClick(pos.node, event),
-        onContextMenu: (event: ReactMouseEvent<HTMLDivElement>) =>
-          handleNodeContextMenu(pos.node, event),
-        onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) =>
-          handleNodePointerDown(pos.node, event),
+        isSelected: selectedNodeIds.has(id),
+        isPreview: previewSelection.has(id),
+        isSearchMatch,
+        isSearchFocused: focusedSearchId === id,
+        isSearchDimmed: dimmedBySearch && !isSearchMatch,
+        isHoverFocused: hoverNodeId === id,
       };
     });
   }, [
     currentNodeId,
     focusedSearchId,
-    handleNodeClick,
-    handleNodeContextMenu,
-    handleNodePointerDown,
     hoverNodeId,
     nodeTabCounts,
     nodes,
     openNodeIds,
     previewSelection,
-    search.query,
+    searchActive,
     searchSet,
     selectedNodeIds,
     tabStates,
@@ -716,19 +706,35 @@ export default function GraphCanvas({
   }, [resetVersion, root]);
 
   const prevSearchFocusRef = useRef<NodeId | null>(null);
+  const lastSearchNavStepRef = useRef(searchNavStep);
 
   useLayoutEffect(() => {
     if (!searchActive) {
       prevSearchFocusRef.current = null;
+      lastSearchNavStepRef.current = searchNavStep;
       return;
     }
     if (isDraggingNode || isPanningRef.current || isSelectingRef.current) return;
     if (!root) return;
     if (!focusedSearchId) return;
-    if (prevSearchFocusRef.current === focusedSearchId) return;
+    if (searchNavStep === lastSearchNavStepRef.current) return;
+    if (prevSearchFocusRef.current === focusedSearchId) {
+      lastSearchNavStepRef.current = searchNavStep;
+      return;
+    }
     prevSearchFocusRef.current = focusedSearchId;
+    lastSearchNavStepRef.current = searchNavStep;
     centerOnNode(focusedSearchId, true);
-  }, [focusedSearchId, isDraggingNode, root, searchActive, positions, nodeHeight, nodeWidth]);
+  }, [
+    focusedSearchId,
+    isDraggingNode,
+    root,
+    searchActive,
+    searchNavStep,
+    positions,
+    nodeHeight,
+    nodeWidth,
+  ]);
 
   const zoomAt = useCallback((pointerX: number, pointerY: number, scaleFactor: number) => {
     const { translateX, translateY, scale } = viewRef.current;
@@ -1100,10 +1106,15 @@ export default function GraphCanvas({
                 tabState={vm.tabState}
                 tagDefs={tagDefs}
                 display={display}
-                selection={vm.selection}
-                onClick={vm.onClick}
-                onContextMenu={vm.onContextMenu}
-                onPointerDown={vm.onPointerDown}
+                isSelected={vm.isSelected}
+                isPreview={vm.isPreview}
+                isSearchMatch={vm.isSearchMatch}
+                isSearchFocused={vm.isSearchFocused}
+                isSearchDimmed={vm.isSearchDimmed}
+                isHoverFocused={vm.isHoverFocused}
+                onClick={handleNodeClick}
+                onContextMenu={handleNodeContextMenu}
+                onPointerDown={handleNodePointerDown}
               />
             ))}
           </div>

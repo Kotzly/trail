@@ -11,7 +11,12 @@ export default function GraphArea() {
       openNodeIds: state.openNodeIds,
       nodeTabCounts: state.nodeTabCounts,
       tabStates: state.tabStates,
-      search: state.search,
+      search: {
+        results: state.search.results,
+        index: state.search.index,
+        navStep: state.search.navStep,
+        active: state.search.active,
+      },
       settings: state.settings,
       showConnections: state.settings?.showConnections ?? true,
       graphView: state.graph.view,

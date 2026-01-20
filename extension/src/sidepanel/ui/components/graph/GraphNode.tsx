@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { TabState } from '../../../../shared/types/tabs.js';
 import type { NavigationNode } from '../../../../shared/types/node.js';
@@ -19,15 +19,6 @@ type GraphNodeDisplay = {
   dimClosedNodes: boolean;
 };
 
-type GraphNodeSelection = {
-  isSelected: boolean;
-  isPreview: boolean;
-  isSearchMatch: boolean;
-  isSearchFocused: boolean;
-  isSearchDimmed: boolean;
-  isHoverFocused: boolean;
-};
-
 type GraphNodeProps = {
   node: NavigationNode;
   position: NodePosition;
@@ -39,10 +30,15 @@ type GraphNodeProps = {
   tabState?: TabState;
   tagDefs: Record<string, TagDefinition>;
   display: GraphNodeDisplay;
-  selection: GraphNodeSelection;
-  onClick: (event: ReactMouseEvent<HTMLDivElement>) => void;
-  onContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => void;
-  onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  isSelected: boolean;
+  isPreview: boolean;
+  isSearchMatch: boolean;
+  isSearchFocused: boolean;
+  isSearchDimmed: boolean;
+  isHoverFocused: boolean;
+  onClick: (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => void;
+  onContextMenu: (node: NavigationNode, event: ReactMouseEvent<HTMLDivElement>) => void;
+  onPointerDown: (node: NavigationNode, event: ReactPointerEvent<HTMLDivElement>) => void;
 };
 
 function GraphNode({
@@ -56,13 +52,27 @@ function GraphNode({
   tabState,
   tagDefs,
   display,
-  selection,
+  isSelected,
+  isPreview,
+  isSearchMatch,
+  isSearchFocused,
+  isSearchDimmed,
+  isHoverFocused,
   onClick,
   onContextMenu,
   onPointerDown,
 }: GraphNodeProps) {
   const [faviconError, setFaviconError] = useState(false);
   const hasTags = node.data.tags && node.data.tags.length > 0;
+  const handleClick = useCallback((event: ReactMouseEvent<HTMLDivElement>) => onClick(node, event), [node, onClick]);
+  const handleContextMenu = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => onContextMenu(node, event),
+    [node, onContextMenu],
+  );
+  const handlePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => onPointerDown(node, event),
+    [node, onPointerDown],
+  );
 
   const className = useMemo(() => {
     const classes = ['graph-node'];
@@ -70,23 +80,23 @@ function GraphNode({
     if (!isOpen && display.dimClosedNodes) classes.push('closed');
     if (tabState?.sound.muted) classes.push('muted');
     if (node.data.pinned) classes.push('pinned');
-    if (selection.isSelected) classes.push('selected');
-    if (selection.isPreview) classes.push('selected-preview');
-    if (selection.isSearchDimmed) classes.push('search-dimmed');
-    if (selection.isSearchMatch) classes.push('search-match');
-    if (selection.isSearchFocused) classes.push('search-focused');
-    if (selection.isHoverFocused) classes.push('hover-focused');
+    if (isSelected) classes.push('selected');
+    if (isPreview) classes.push('selected-preview');
+    if (isSearchDimmed) classes.push('search-dimmed');
+    if (isSearchMatch) classes.push('search-match');
+    if (isSearchFocused) classes.push('search-focused');
+    if (isHoverFocused) classes.push('hover-focused');
     return classes.join(' ');
   }, [
     display.dimClosedNodes,
     isCurrent,
     isOpen,
-    selection.isPreview,
-    selection.isSearchDimmed,
-    selection.isSearchFocused,
-    selection.isSearchMatch,
-    selection.isSelected,
-    selection.isHoverFocused,
+    isPreview,
+    isSearchDimmed,
+    isSearchFocused,
+    isSearchMatch,
+    isSelected,
+    isHoverFocused,
     node.data.pinned,
     node.id,
     tabState?.sound.muted,
@@ -109,9 +119,9 @@ function GraphNode({
         width: `${nodeWidth}px`,
         height: `${nodeHeight}px`,
       }}
-      onClick={onClick}
-      onContextMenu={onContextMenu}
-      onPointerDown={onPointerDown}
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
+      onPointerDown={handlePointerDown}
     >
       {node.data.pinned && (
         <div className="graph-node-pin" title="Pinned">

@@ -86,6 +86,7 @@ type StoreState = {
     query: string;
     results: NodeId[];
     index: number;
+    navStep: number;
     active: boolean;
     baseCurrentId: NodeId | null;
   };
@@ -185,6 +186,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     query: '',
     results: [],
     index: 0,
+    navStep: 0,
     active: false,
     baseCurrentId: null,
   },
@@ -247,7 +249,14 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         graph: nextViewIntent ? { ...state.graph, viewIntent: nextViewIntent } : state.graph,
         ...(shouldResetTransient
           ? {
-              search: { query: '', results: [], index: 0, active: false, baseCurrentId: null },
+              search: {
+                query: '',
+                results: [],
+                index: 0,
+                navStep: 0,
+                active: false,
+                baseCurrentId: null,
+              },
               contextMenu: null,
               graph: {
                 ...state.graph,
@@ -324,6 +333,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
             query: '',
             results: [],
             index: 0,
+            navStep: 0,
             active: false,
             baseCurrentId: null,
           },
@@ -360,6 +370,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
             ? 0
             : ((index % state.search.results.length) + state.search.results.length) %
               state.search.results.length,
+        navStep: state.search.navStep + 1,
       },
     })),
   clearSearch: () =>
@@ -368,6 +379,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         query: '',
         results: [],
         index: 0,
+        navStep: 0,
         active: false,
         baseCurrentId: null,
       },

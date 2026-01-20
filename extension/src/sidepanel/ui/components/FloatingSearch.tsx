@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearch } from '../hooks/useSearch.js';
 import { Icons } from './Icon.js';
-import React from 'react';
 
 type FloatingSearchProps = {
   inputRef: RefObject<HTMLInputElement>;
@@ -15,8 +15,25 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
     nextResult,
     prevResult,
   } = useSearch();
+  const [draft, setDraft] = useState(search.query);
   const hasQuery = search.query.length > 0;
+
+  useEffect(() => {
+    setDraft(search.query);
+  }, [search.query]);
+
+  useEffect(() => {
+    if (draft === search.query) return;
+    const handle = window.setTimeout(() => {
+      if (draft !== search.query) {
+        performSearch(draft);
+      }
+    }, 150);
+    return () => window.clearTimeout(handle);
+  }, [draft, performSearch, search.query]);
+
   const handleClear = () => {
+    setDraft('');
     clearSearch();
     requestAnimationFrame(() => {
       inputRef.current?.focus();
@@ -41,8 +58,8 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
             type="text"
             className="floating-search-field"
             placeholder="search pages..."
-            value={search.query}
-            onChange={(event) => performSearch(event.target.value)}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
           />
           {hasQuery ? (
             <button
