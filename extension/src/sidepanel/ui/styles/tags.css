@@ -1,0 +1,114 @@
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 180px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--tag-color, #667085) 78%, black 22%);
+  color: color-mix(in srgb, var(--tag-color, #667085) 68%, white 32%);
+  border: 1px solid color-mix(in srgb, var(--tag-color, #667085) 65%, white 12%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag-pill.tag-pill-sm {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+}
+
+.tag-pill-new {
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  border: 1px dashed var(--md-outline-variant);
+  box-shadow: none;
+}
+
+.tag-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.tag-dot svg {
+  width: 10px;
+  height: 10px;
+}
+
+.tag-dot-new {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant);
+  border: 1px dashed var(--md-outline-variant);
+}
+
+.tag-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.tag-action-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  color: var(--md-on-surface-variant);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.tag-action-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-on-surface) 14%, transparent);
+  color: var(--md-on-surface);
+  transform: translateY(-1px);
+}
+
+.tag-action-btn:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.tag-action-btn.danger {
+  color: var(--md-error);
+}
+
+.tag-action-btn.danger:hover:not(:disabled) {
+  background: rgba(var(--md-error-rgb), 0.16);
+  color: var(--md-error);
+}
+
+.tag-check {
+  color: var(--md-primary);
+  font-weight: bold;
+}
+
+.tag-check.partial {
+  opacity: 0.7;
+}

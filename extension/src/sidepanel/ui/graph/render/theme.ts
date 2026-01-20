@@ -10,6 +10,12 @@ export type GraphTheme = {
   onSurface: number;
   onSurfaceVariant: number;
   onPrimary: number;
+  active: {
+    background: number;
+    border: number;
+    title: number;
+    url: number;
+  };
   closed: {
     background: number;
     border: number;
@@ -36,6 +42,12 @@ const DEFAULT_THEME: GraphTheme = {
   onSurface: 0xe8e8ee,
   onSurfaceVariant: 0xb5b7c0,
   onPrimary: 0xffffff,
+  active: {
+    background: 0x2a3566,
+    border: 0x6c59ff,
+    title: 0xe8e8ee,
+    url: 0xc4cadb,
+  },
   closed: {
     background: 0x12151d,
     border: 0x333848,
@@ -83,6 +95,21 @@ export function readGraphTheme(source: ThemeSource): GraphTheme {
       DEFAULT_THEME.onSurfaceVariant
     ),
     onPrimary: parseColor(style.getPropertyValue('--md-on-primary'), DEFAULT_THEME.onPrimary),
+    active: {
+      background: parseColor(
+        style.getPropertyValue('--graph-node-active-bg'),
+        DEFAULT_THEME.active.background
+      ),
+      border: parseColor(
+        style.getPropertyValue('--graph-node-active-border'),
+        DEFAULT_THEME.active.border
+      ),
+      title: parseColor(
+        style.getPropertyValue('--graph-node-active-title'),
+        DEFAULT_THEME.active.title
+      ),
+      url: parseColor(style.getPropertyValue('--graph-node-active-url'), DEFAULT_THEME.active.url),
+    },
     closed: {
       background: parseColor(
         style.getPropertyValue('--graph-node-closed-bg'),

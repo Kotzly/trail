@@ -1,0 +1,146 @@
+.stack-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  min-width: 0;
+  position: relative;
+}
+
+.stack-container:has(.graph-wrapper) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.stack-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.stack-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stack-container::-webkit-scrollbar-thumb {
+  background: var(--md-outline-variant);
+  border-radius: 2px;
+}
+
+.graph-wrapper {
+  --graph-grid-dot: color-mix(in srgb, var(--md-outline-variant) 60%, transparent);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: var(--md-surface);
+  background-image: radial-gradient(circle, var(--graph-grid-dot) 1px, transparent 1px);
+  background-size: 20px 20px;
+  touch-action: none;
+}
+
+.graph-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  touch-action: none;
+}
+
+.graph-canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.graph-zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+}
+
+.graph-zoom-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--md-on-surface);
+}
+
+.graph-zoom-btn:hover {
+  background: var(--md-surface-container-high);
+  border-color: color-mix(in srgb, var(--md-primary) 55%, var(--md-outline-variant));
+}
+
+.graph-zoom-btn:active {
+  transform: scale(0.95);
+}
+
+.graph-zoom-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.graph-tool-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.graph-tool-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--md-on-surface-variant);
+}
+
+.graph-tool-btn:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+.graph-tool-btn.active {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+
+.graph-tool-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.graph-zoom-divider {
+  height: 1px;
+  background: var(--md-outline-variant);
+  margin: 4px 0;
+}
+
+.graph-selection-box {
+  position: absolute;
+  border: 2px solid var(--md-primary);
+  background: rgba(var(--md-primary-rgb), 0.1);
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 4px;
+}

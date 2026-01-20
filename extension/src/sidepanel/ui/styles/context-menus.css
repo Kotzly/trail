@@ -1,0 +1,304 @@
+.graph-context-menu {
+  position: fixed;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 10px;
+  padding: 4px 0;
+  box-shadow: var(--md-elev-2);
+  z-index: 1000;
+  min-width: 160px;
+  max-width: calc(100vw - 16px);
+  max-height: var(--menu-max-height, calc(100vh - 16px));
+  overflow: visible;
+  opacity: 0.94;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: context-menu-open 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top left;
+}
+
+.graph-context-menu-content {
+  display: flex;
+  flex-direction: column;
+  max-height: var(--menu-max-height, calc(100vh - 16px));
+  overflow: visible;
+}
+
+@keyframes context-menu-open {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 0.94;
+    transform: scale(1);
+  }
+}
+
+.graph-context-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--md-on-surface);
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), background 150ms ease;
+  transform-origin: center;
+}
+
+.graph-context-menu-item:hover {
+  background: var(--md-surface-variant);
+  transform: scale(1.02);
+}
+
+.graph-context-menu-item.danger {
+  color: var(--md-error);
+}
+
+.graph-context-menu-item.danger:hover {
+  background: rgba(var(--md-error-rgb), 0.15);
+}
+
+.graph-context-menu-header {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--md-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.graph-context-menu-divider {
+  height: 1px;
+  background: var(--md-outline-variant);
+  margin: 4px 0;
+}
+
+.graph-context-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 124, 140, 0.35) transparent;
+}
+
+.graph-context-tabs::-webkit-scrollbar {
+  width: 6px;
+}
+
+.graph-context-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.graph-context-tabs::-webkit-scrollbar-thumb {
+  background: rgba(120, 124, 140, 0.35);
+  border-radius: 999px;
+}
+
+.graph-context-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 124, 140, 0.55);
+}
+
+.graph-context-tab-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.graph-context-tab-item:hover {
+  background: var(--md-surface-variant);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+}
+
+.graph-context-tab-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.graph-context-tab-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.graph-context-tab-favicon.placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-surface-container);
+  color: var(--md-on-surface-variant);
+  font-size: 10px;
+}
+
+.graph-context-tab-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-context-tab-title {
+  font-size: 12px;
+  color: var(--md-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.graph-context-tab-url {
+  font-size: 10px;
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.graph-context-tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.graph-context-tab-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.14s ease, transform 0.18s ease;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+}
+
+.graph-context-tab-item.is-checked .graph-context-tab-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.graph-context-tab-item.is-checked .graph-context-tab-check svg {
+  animation: tab-check-pop 220ms ease;
+}
+
+@keyframes tab-check-pop {
+  from {
+    transform: scale(0.6);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.graph-context-tab-action {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.graph-context-tab-action:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+.graph-context-tab-action.danger:hover {
+  background: rgba(var(--md-error-rgb), 0.16);
+  color: var(--md-error);
+}
+
+.graph-context-menu-item.has-submenu {
+  position: relative;
+}
+
+.graph-context-menu-item .submenu-arrow {
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+.graph-context-submenu {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+  left: 100%;
+  top: var(--submenu-offset-y, 0px);
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 8px;
+  padding: 4px 0;
+  box-shadow: var(--md-elev-2);
+  min-width: 140px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: context-menu-open 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top left;
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+  transform: scale(0.98);
+}
+
+.graph-context-menu-item.has-submenu:hover .graph-context-submenu {
+  opacity: 0.94;
+  visibility: visible;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.graph-context-menu.submenu-left .graph-context-submenu {
+  left: auto;
+  right: 100%;
+  transform-origin: top right;
+}
+
+.graph-context-menu.submenu-left .submenu-arrow {
+  display: inline-block;
+  transform: rotate(180deg);
+}
+
+.tag-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-option .tag-pill {
+  flex: 1;
+  max-width: 100%;
+}
+
+.tag-option-new {
+  color: var(--md-on-surface-variant);
+}
+
+.graph-context-menu-item.tag-option:hover .tag-actions {
+  opacity: 1;
+}

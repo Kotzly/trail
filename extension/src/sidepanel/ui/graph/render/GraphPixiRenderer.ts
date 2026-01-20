@@ -172,14 +172,19 @@ class NodeVisual {
     lod: LODLevel
   ) {
     const isClosed = model.display.dimClosedNodes && !model.isOpen;
+    const isActive = model.isCurrent && !isClosed;
     const isSelected = model.isSelected || model.isSearchMatch || model.isSearchFocused;
     const isPreview = model.isPreview && !model.isSelected;
     const isHover = model.isHoverFocused;
     const isMuted = model.tabState?.sound.muted ?? false;
 
-    const backgroundColor = isClosed ? theme.closed.background : theme.surfaceContainer;
-    let borderColor = isClosed ? theme.closed.border : theme.outline;
-    let borderWidth = 1;
+    const backgroundColor = isClosed
+      ? theme.closed.background
+      : isActive
+        ? theme.active.background
+        : theme.surfaceContainer;
+    let borderColor = isClosed ? theme.closed.border : isActive ? theme.active.border : theme.outline;
+    let borderWidth = isActive ? 2 : 1;
 
     if (isMuted) {
       borderColor = 0xdc3545;
@@ -228,9 +233,18 @@ class NodeVisual {
     const showUrls = model.display.showUrls && showFull;
     const showTitle = showFull || showLow;
     const isClosed = model.display.dimClosedNodes && !model.isOpen;
+    const isActive = model.isCurrent && !isClosed;
 
-    const titleColor = isClosed ? theme.closed.title : theme.onSurface;
-    const urlColor = isClosed ? theme.closed.url : theme.onSurfaceVariant;
+    const titleColor = isClosed
+      ? theme.closed.title
+      : isActive
+        ? theme.active.title
+        : theme.onSurface;
+    const urlColor = isClosed
+      ? theme.closed.url
+      : isActive
+        ? theme.active.url
+        : theme.onSurfaceVariant;
 
     this.titleText.style.fontFamily = fontFamily;
     this.titleText.style.fontWeight = this.fonts.weight;

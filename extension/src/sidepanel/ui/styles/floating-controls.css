@@ -1,0 +1,208 @@
+.floating-controls {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  z-index: 900;
+  pointer-events: none;
+  --orb-shadow: var(--md-elev-2);
+  --orb-border: var(--md-glass-border);
+  --orb-surface: var(--md-glass);
+  --orb-surface-strong: var(--md-glass-strong);
+  --orb-inset: var(--md-glass-inset);
+}
+
+.floating-controls-left,
+.floating-controls-right {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  pointer-events: auto;
+}
+
+.floating-controls-right {
+  flex-direction: row-reverse;
+}
+
+.floating-island {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.btn-icon:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+.btn-icon:focus-visible {
+  outline: 2px solid rgba(var(--md-primary-rgb), 0.35);
+  outline-offset: 2px;
+}
+
+.btn-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.orb-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--orb-surface);
+  border: var(--orb-border);
+  box-shadow: var(--orb-shadow), var(--orb-inset);
+  backdrop-filter: blur(10px);
+  animation: orb-in 180ms ease-out;
+}
+
+.orb-button.btn-icon {
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+.orb-button.btn-icon:hover {
+  background: var(--orb-surface-strong);
+  transform: translateY(-1px);
+}
+
+.orb-button.btn-icon:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.orb-button.btn-icon:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.orb-button.btn-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes orb-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 14, 20, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(6px);
+  cursor: default;
+  pointer-events: auto;
+  touch-action: none;
+  animation: confirm-overlay-in 0.18s ease-out;
+}
+
+.confirm-dialog {
+  min-width: 260px;
+  max-width: 320px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--md-elev-3);
+  animation: confirm-dialog-in 0.2s ease-out;
+}
+
+.confirm-title {
+  font-size: 13px;
+  color: var(--md-on-surface);
+  margin-bottom: 14px;
+}
+
+.confirm-input {
+  width: 100%;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  margin-bottom: 12px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.confirm-btn:hover {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+
+.confirm-btn:active {
+  transform: scale(0.98);
+}
+
+.confirm-btn.ghost {
+  background: transparent;
+  color: var(--md-on-surface-variant);
+}
+
+.confirm-btn.ghost:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+@keyframes confirm-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes confirm-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
