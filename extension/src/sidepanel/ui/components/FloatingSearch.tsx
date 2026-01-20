@@ -14,8 +14,6 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
     clearSearch,
     nextResult,
     prevResult,
-    acceptSelection,
-    cancelSelection,
   } = useSearch();
   const hasQuery = search.query.length > 0;
   const handleClear = () => {
@@ -88,30 +86,6 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-        <div className="floating-search-actions-wrap" aria-hidden={!hasQuery}>
-          <div className="floating-search-actions">
-            <button
-              className="floating-search-action-btn"
-              type="button"
-              title="Accept selection"
-              onClick={acceptSelection}
-              disabled={!hasQuery || search.results.length === 0}
-              tabIndex={hasQuery ? 0 : -1}
-            >
-              <Icons.Check size={14} />
-            </button>
-            <button
-              className="floating-search-action-btn"
-              type="button"
-              title="Cancel selection"
-              onClick={cancelSelection}
-              disabled={!hasQuery}
-              tabIndex={hasQuery ? 0 : -1}
-            >
-              <Icons.X size={14} />
-            </button>
           </div>
         </div>
       </div>

@@ -24,6 +24,7 @@ export async function syncTabTitleFavicon(
 
   if (changeInfo.title) {
     node.data.title = changeInfo.title as Title;
+    tree.refreshSearchEntry(nodeId);
   }
 
   if (changeInfo.favIconUrl) {

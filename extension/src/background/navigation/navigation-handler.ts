@@ -123,6 +123,7 @@ export async function handleNavigation(
         const updated = updateNodeMeta(node.data, metaPatch);
         if (updated.title !== node.data.title || updated.favicon !== node.data.favicon) {
           node.data = updated;
+          tree.refreshSearchEntry(node.id);
           didMutate = true;
         }
         if (tab.active) {
@@ -146,6 +147,7 @@ export async function handleNavigation(
         const updated = updateNodeMeta(newNode.data, metaPatch);
         if (updated.title !== newNode.data.title || updated.favicon !== newNode.data.favicon) {
           newNode.data = updated;
+          tree.refreshSearchEntry(newNode.id);
           didMutate = true;
         }
         // Only update currentNode if tab is active (user navigated, not programmatic)

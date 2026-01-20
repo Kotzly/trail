@@ -107,6 +107,7 @@ function ensureRootForTab(tree: NavigationTree, tab: chrome.tabs.Tab): Navigatio
   // If the existing root matches this tab, refresh its metadata (title/favicon).
   if (data && root.data.url === data.url) {
     root.data = updateNodeMeta(root.data, data);
+    tree.refreshSearchEntry(root.id);
   }
   // Ensure current node points at root after tree switch.
   tree.setCurrent(root);

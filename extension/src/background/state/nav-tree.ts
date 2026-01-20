@@ -1,4 +1,5 @@
 import type { NodeId, Url } from "../../shared/types/ids.js";
+import MiniSearch from "../../shared/vendor/minisearch.js";
 import { TreeNode } from "./tree-node.js";
 import { DefaultNavigationOptions, type NavigationOptions } from "../../shared/types/tree.js";
 import { EvictionPolicy, LRUEvictionPolicy, Owner } from "../../shared/lib/eviction.js";
@@ -15,13 +16,15 @@ export class NavigationTree implements Owner {
     private current: NavigationNode | null = null;
     private nodeCount: number = 0;
     private nodeMap: Map<NodeId, NavigationNode> = new Map<NodeId, NavigationNode>();
-    private searchIndex: Map<NodeId, { combined: string }> = new Map<NodeId, { combined: string }>();
+    private searchIndex: MiniSearch;
+    private searchDocs: Map<NodeId, SearchDoc> = new Map<NodeId, SearchDoc>();
 
     private evictionPolicy: EvictionPolicy;
     private lastEvictedCount = 0;
 
     constructor(capacity: number, root?: NavigationNode) {
         this.evictionPolicy = epForTree(this, capacity);
+        this.searchIndex = NavigationTree.createSearchIndex();
         this.nodeCount = 0;
         if (root) {
             this.constructFromRoot(root);
@@ -31,12 +34,18 @@ export class NavigationTree implements Owner {
     private constructFromRoot(root: NavigationNode): void {
         this.root = root;
         let count = 0;
+        const docs: SearchDoc[] = [];
 
         this.root.forEach((node) => {
             this.nodeMap.set(node.id, node);
-            this.updateSearchEntry(node);
+            const doc = NavigationTree.buildSearchDoc(node);
+            docs.push(doc);
+            this.searchDocs.set(node.id, doc);
             ++count;
         });
+        if (docs.length > 0) {
+            this.searchIndex.addAll(docs);
+        }
 
         this.nodeCount = count;
         const evicted = this.evictionPolicy.enforce();
@@ -54,7 +63,7 @@ export class NavigationTree implements Owner {
     private removeNode(node: NavigationNode): void {
         this.nodeCount--;
         this.nodeMap.delete(node.id);
-        this.searchIndex.delete(node.id);
+        this.removeSearchEntry(node.id);
         node.remove();
     }
 
@@ -185,7 +194,7 @@ export class NavigationTree implements Owner {
 
         node.remove();
         this.nodeMap.delete(node.id);
-        this.searchIndex.delete(node.id);
+        this.removeSearchEntry(node.id);
         this.nodeCount = Math.max(0, this.nodeCount - 1);
 
         if (this.current && this.current.id === nodeId) {
@@ -210,7 +219,7 @@ export class NavigationTree implements Owner {
 
         for (const removedNode of removed) {
             this.nodeMap.delete(removedNode.id);
-            this.searchIndex.delete(removedNode.id);
+            this.removeSearchEntry(removedNode.id);
         }
         this.nodeCount = Math.max(0, this.nodeCount - removed.length);
 
@@ -231,7 +240,8 @@ export class NavigationTree implements Owner {
             this.root = null;
             this.current = null;
             this.nodeMap.clear();
-            this.searchIndex.clear();
+            this.searchIndex = NavigationTree.createSearchIndex();
+            this.searchDocs.clear();
             this.nodeCount = 0;
             return removed;
         }
@@ -241,7 +251,7 @@ export class NavigationTree implements Owner {
 
         for (const removedNode of removed) {
             this.nodeMap.delete(removedNode.id);
-            this.searchIndex.delete(removedNode.id);
+            this.removeSearchEntry(removedNode.id);
         }
         this.nodeCount = Math.max(0, this.nodeCount - removed.length);
 
@@ -256,7 +266,8 @@ export class NavigationTree implements Owner {
         this.root = null;
         this.current = null;
         this.nodeMap.clear();
-        this.searchIndex.clear();
+        this.searchIndex = NavigationTree.createSearchIndex();
+        this.searchDocs.clear();
         this.nodeCount = 0;
         this.lastEvictedCount = 0;
     }
@@ -272,20 +283,10 @@ export class NavigationTree implements Owner {
     }
 
     findNodesByQuery(query: string): NodeId[] {
-        const matches: NodeId[] = [];
-        const q = query.trim().toLowerCase();
-        if (!q) return matches;
-        const terms = q.split(/\s+/).filter(Boolean);
-        if (terms.length === 0) return matches;
-
-        this.root?.forEach((node: NavigationNode) => {
-            const entry = this.searchIndex.get(node.id);
-            if (!entry) return;
-            const matchesAll = terms.every((term) => entry.combined.includes(term));
-            if (matchesAll) matches.push(node.id);
-        });
-
-        return matches;
+        const q = query.trim();
+        if (!q) return [];
+        const results = this.searchIndex.search(q, { combineWith: 'AND' }) as Array<{ id: NodeId }>;
+        return results.map((result) => result.id);
     }
 
     findByUrl(url: Url): NavigationNode | null {
@@ -315,12 +316,47 @@ export class NavigationTree implements Owner {
         this.current = null;
     }
 
+    refreshSearchEntry(nodeId: NodeId): void {
+        const node = this.findNodeById(nodeId);
+        if (!node) return;
+        this.updateSearchEntry(node);
+    }
+
     private updateSearchEntry(node: NavigationNode): void {
-        const title = (node.data.title || '').toLowerCase();
-        const url = (node.data.url || '').toLowerCase();
+        const existing = this.searchDocs.get(node.id);
+        if (existing) {
+            this.searchIndex.remove(existing);
+        }
+        const doc = NavigationTree.buildSearchDoc(node);
+        this.searchIndex.add(doc);
+        this.searchDocs.set(node.id, doc);
+    }
+
+    private removeSearchEntry(nodeId: NodeId): void {
+        const existing = this.searchDocs.get(nodeId);
+        if (!existing) return;
+        this.searchIndex.remove(existing);
+        this.searchDocs.delete(nodeId);
+    }
+
+    private static createSearchIndex(): MiniSearch {
+        return new MiniSearch({
+            fields: ['title', 'url', 'domain'],
+            idField: 'id',
+            storeFields: ['id'],
+            searchOptions: {
+                boost: { title: 3, domain: 2, url: 1 },
+                prefix: true,
+                fuzzy: 0.2,
+            },
+        });
+    }
+
+    private static buildSearchDoc(node: NavigationNode): SearchDoc {
+        const title = node.data.title || '';
+        const url = node.data.url || '';
         const domain = NavigationTree.extractDomain(url);
-        const combined = `${title} ${url} ${domain}`.trim();
-        this.searchIndex.set(node.id, { combined });
+        return { id: node.id, title, url, domain };
     }
 
     private static extractDomain(url: string): string {
@@ -333,3 +369,10 @@ export class NavigationTree implements Owner {
         }
     }
 }
+
+type SearchDoc = {
+    id: NodeId;
+    title: string;
+    url: string;
+    domain: string;
+};

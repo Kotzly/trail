@@ -119,7 +119,8 @@ function testNavigationTreeSearchIndex(): void {
   assert.ok(domainMatches.includes(child.id));
 
   const multiTermMatches = tree.findNodesByQuery('other path');
-  assert.deepEqual(multiTermMatches, [other.id]);
+  assert.equal(multiTermMatches.length, 1);
+  assert.ok(multiTermMatches.includes(other.id));
 
   const updated = tree.navigate(data('https://other.test/path', 'Renamed'));
   const renameMatches = tree.findNodesByQuery('renamed');
