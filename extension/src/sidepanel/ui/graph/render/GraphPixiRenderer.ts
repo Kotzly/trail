@@ -34,6 +34,9 @@ const URL_FONT_SIZE = 10;
 const TAB_BADGE_PADDING_X = 6;
 const TAB_BADGE_PADDING_Y = 3;
 
+const faviconTextureCache = new Map<string, PIXI.Texture>();
+const faviconLoadPromises = new Map<string, Promise<PIXI.Texture | null>>();
+
 type NodeVisualState = {
   lod: LODLevel;
   styleKey: string;
@@ -46,22 +49,25 @@ class NodeVisual {
   readonly container = new PIXI.Container();
   private readonly background = new PIXI.Graphics();
   private readonly faviconBg = new PIXI.Graphics();
-  private readonly faviconText = new PIXI.Text('');
+  private readonly faviconText = new PIXI.Text({ text: '' });
   private faviconSprite: PIXI.Sprite | null = null;
   private faviconUrl: string | null = null;
-  private readonly titleText = new PIXI.Text('');
-  private readonly urlText = new PIXI.Text('');
+  private readonly titleText = new PIXI.Text({ text: '' });
+  private readonly urlText = new PIXI.Text({ text: '' });
   private readonly tabBadge = new PIXI.Container();
   private readonly tabBadgeBg = new PIXI.Graphics();
-  private readonly tabBadgeText = new PIXI.Text('');
-  private readonly pinText = new PIXI.Text('📌');
-  private readonly audioText = new PIXI.Text('🔊');
+  private readonly tabBadgeText = new PIXI.Text({ text: '' });
+  private readonly pinText = new PIXI.Text({ text: '📌' });
+  private readonly audioText = new PIXI.Text({ text: '🔊' });
   private readonly tagDots = new PIXI.Container();
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
   private state: NodeVisualState = { lod: 'full', styleKey: '', textKey: '', tagKey: '' };
   private readonly fonts: { base: string; weight: TextStyleFontWeight };
   private readonly invalidate: () => void;
+  private destroyed = false;
+  private pendingFaviconUrl: string | null = null;
+  private latestFaviconCandidate: string | null = null;
 
   constructor(id: NodeId, fontFamily: string, invalidate: () => void) {
     this.id = id;
@@ -91,6 +97,7 @@ class NodeVisual {
   }
 
   destroy() {
+    this.destroyed = true;
     this.container.destroy({ children: true });
   }
 
@@ -263,31 +270,18 @@ class NodeVisual {
       this.faviconText.style.fontSize = 14;
       this.faviconText.style.fill = theme.onSurfaceVariant;
       const faviconUrl = model.node.data.favicon;
+      this.latestFaviconCandidate = faviconUrl ?? null;
       if (faviconUrl && isSafeFavicon(faviconUrl)) {
-        if (!this.faviconSprite || this.faviconUrl !== faviconUrl) {
-          const texture = PIXI.Texture.from(faviconUrl);
-          texture.once('update', () => {
-            this.invalidate();
-          });
-          this.faviconUrl = faviconUrl;
-          if (!this.faviconSprite) {
-            this.faviconSprite = new PIXI.Sprite(texture);
-            this.container.addChild(this.faviconSprite);
-          } else {
-            this.faviconSprite.texture = texture;
-          }
+        const cachedTexture = getCachedFaviconTexture(faviconUrl);
+        if (cachedTexture) {
+          this.applyFaviconTexture(cachedTexture, faviconUrl, faviconX, faviconY);
+        } else {
+          this.requestFaviconLoad(faviconUrl);
+          if (this.faviconSprite) this.faviconSprite.visible = false;
+          this.faviconUrl = null;
+          this.faviconText.text = '🌐';
+          this.faviconText.position.set(faviconX + FAVICON_SIZE / 2, faviconY + FAVICON_SIZE / 2);
         }
-        if (this.faviconSprite) {
-          this.faviconSprite.visible = true;
-          this.faviconSprite.width = FAVICON_ICON;
-          this.faviconSprite.height = FAVICON_ICON;
-          this.faviconSprite.position.set(
-            faviconX + (FAVICON_SIZE - FAVICON_ICON) / 2,
-            faviconY + (FAVICON_SIZE - FAVICON_ICON) / 2
-          );
-        }
-        this.faviconText.text = '';
-        this.faviconText.visible = false;
       } else {
         if (this.faviconSprite) this.faviconSprite.visible = false;
         this.faviconUrl = null;
@@ -298,6 +292,46 @@ class NodeVisual {
       if (this.faviconSprite) this.faviconSprite.visible = false;
       this.faviconText.text = '';
     }
+  }
+
+  private applyFaviconTexture(
+    texture: PIXI.Texture,
+    faviconUrl: string,
+    faviconX: number,
+    faviconY: number
+  ) {
+    this.faviconUrl = faviconUrl;
+    if (!this.faviconSprite) {
+      this.faviconSprite = new PIXI.Sprite(texture);
+      this.container.addChild(this.faviconSprite);
+    } else {
+      this.faviconSprite.texture = texture;
+    }
+    this.faviconSprite.visible = true;
+    this.faviconSprite.width = FAVICON_ICON;
+    this.faviconSprite.height = FAVICON_ICON;
+    this.faviconSprite.position.set(
+      faviconX + (FAVICON_SIZE - FAVICON_ICON) / 2,
+      faviconY + (FAVICON_SIZE - FAVICON_ICON) / 2
+    );
+    this.faviconText.text = '';
+    this.faviconText.visible = false;
+  }
+
+  private requestFaviconLoad(faviconUrl: string) {
+    if (this.pendingFaviconUrl === faviconUrl) return;
+    this.pendingFaviconUrl = faviconUrl;
+    void loadFaviconTexture(faviconUrl).then((texture) => {
+      if (this.destroyed || this.latestFaviconCandidate !== faviconUrl) {
+        this.pendingFaviconUrl = null;
+        return;
+      }
+      if (texture) {
+        this.faviconUrl = faviconUrl;
+      }
+      this.pendingFaviconUrl = null;
+      this.invalidate();
+    });
   }
 
   private updateBadges(
@@ -717,7 +751,13 @@ function drawDashedRect(
 }
 
 function isSafeFavicon(url: string): boolean {
-  return url.startsWith('chrome-extension://') || url.startsWith('data:') || url.startsWith('blob:');
+  if (url.startsWith('data:') || url.startsWith('blob:')) return true;
+  if (url.startsWith('http://') || url.startsWith('https://')) return true;
+  if (url.startsWith('chrome-extension://')) {
+    const base = getExtensionBaseUrl();
+    return base ? url.startsWith(base) : false;
+  }
+  return false;
 }
 
 function computeZIndex(model: NodeRenderModel): number {
@@ -735,4 +775,49 @@ function safeColor(value: string, fallback: number): number {
   } catch {
     return fallback;
   }
+}
+
+function getCachedFaviconTexture(url: string): PIXI.Texture | null {
+  return faviconTextureCache.get(url) ?? null;
+}
+
+function loadFaviconTexture(url: string): Promise<PIXI.Texture | null> {
+  const cached = faviconTextureCache.get(url);
+  if (cached) return Promise.resolve(cached);
+  const existing = faviconLoadPromises.get(url);
+  if (existing) return existing;
+  const promise = new Promise<PIXI.Texture | null>((resolve) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      try {
+        const texture = PIXI.Texture.from(image);
+        faviconTextureCache.set(url, texture);
+        resolve(texture);
+      } catch {
+        resolve(null);
+      } finally {
+        faviconLoadPromises.delete(url);
+      }
+    };
+    image.onerror = () => {
+      faviconLoadPromises.delete(url);
+      resolve(null);
+    };
+    image.src = url;
+  });
+  faviconLoadPromises.set(url, promise);
+  return promise;
+}
+
+function getExtensionBaseUrl(): string | null {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+      return chrome.runtime.getURL('');
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }

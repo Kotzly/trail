@@ -12,6 +12,7 @@ const blockedFaviconUrlPatterns: RegExp[] = [
   /^chrome:\/\/favicon2/i,
   /^chrome:\/\/favicon\//i,
   /^chrome:\/\/favicon\?/i,
+  /^chrome-extension:\/\/[^/]+\/_favicon\//i,
 ];
 
 const blankUrlPattern = /^about:blank(?:[#?].*)?$/i;
