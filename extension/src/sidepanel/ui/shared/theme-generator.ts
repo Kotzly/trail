@@ -5,14 +5,21 @@ type HslColor = { h: number; s: number; l: number };
 type RgbColor = { r: number; g: number; b: number };
 type RgbaColor = { r: number; g: number; b: number; a: number };
 
-const HARMONY_ANGLES: Record<ThemeHarmony, number[]> = {
-  floating: [],
-  complementary: [180],
-  singleAnalogous: [310],
-  splitComplementary: [150, 210],
-  analogous: [50, 310],
-  triadic: [120, 240],
-};
+const HARMONY_ORDER: Array<{ type: ThemeHarmony; angles: number[] }> = [
+  { type: 'complementary', angles: [180] },
+  { type: 'singleAnalogous', angles: [310] },
+  { type: 'splitComplementary', angles: [150, 210] },
+  { type: 'analogous', angles: [50, 310] },
+  { type: 'triadic', angles: [120, 240] },
+  { type: 'floating', angles: [] },
+];
+
+const PICKER_BASE_SIZE = 380;
+const PICKER_PADDING = 30;
+const PICKER_DOT_HALF_SIZE = 29;
+const PICKER_RECT_SIZE = PICKER_BASE_SIZE + PICKER_PADDING * 2;
+const PICKER_CENTER = PICKER_RECT_SIZE / 2;
+const PICKER_RADIUS = (PICKER_RECT_SIZE - PICKER_PADDING) / 2;
 
 export const THEME_TOKEN_KEYS = [
   '--md-surface',
@@ -231,8 +238,7 @@ const normalizeCustomStops = (customColors: string[] | undefined | null): string
   (customColors ?? []).map((color) => color.trim()).filter((color) => color.length > 0);
 
 const getAutoAccentRgb = (custom: CustomTheme, scheme: ThemeId): RgbColor => {
-  const safeDots = custom.dots.length ? custom.dots : [{ x: 0.5, y: 0.5 }];
-  const dotColors = getDotColors(safeDots, custom.lightness);
+  const dotColors = getDotColors(custom.dots, custom.lightness);
   const paletteRgb = dotColors.map((color) => hexToRgb(color));
   const mode = getResolvedScheme(scheme);
   const isDark = mode === 'dark';
@@ -269,16 +275,76 @@ export function clampDotPosition(dot: ThemeDot): ThemeDot {
   };
 }
 
-export function calculateCompliments(dots: ThemeDot[], harmony: ThemeHarmony): ThemeDot[] {
-  if (dots.length <= 1) return dots.map(clampDotPosition);
-  const angles = HARMONY_ANGLES[harmony] ?? [];
-  if (angles.length === 0) return dots.map(clampDotPosition);
+export type HarmonyAction = 'add' | 'remove' | 'update';
+
+const getHarmonyByType = (type?: ThemeHarmony) =>
+  HARMONY_ORDER.find((harmony) => harmony.type === type);
+
+const getHarmonyForAction = (
+  numDots: number,
+  action: HarmonyAction,
+  useHarmony?: ThemeHarmony
+) => {
+  if (useHarmony) {
+    const selected = getHarmonyByType(useHarmony);
+    if (selected) {
+      if (action === 'remove') {
+        if (numDots <= 0) {
+          return getHarmonyByType('floating');
+        }
+        return HARMONY_ORDER.find((harmony) => harmony.angles.length === selected.angles.length - 1);
+      }
+      if (action === 'add') {
+        return HARMONY_ORDER.find((harmony) => harmony.angles.length === selected.angles.length + 1);
+      }
+      return selected;
+    }
+  }
+
+  if (action === 'remove') {
+    let harmony = HARMONY_ORDER.find((item) => item.angles.length === numDots);
+    if (harmony?.type === 'analogous' && numDots === 1) {
+      harmony = getHarmonyByType('singleAnalogous');
+    }
+    return harmony;
+  }
+
+  if (action === 'add') {
+    return HARMONY_ORDER.find((item) => item.angles.length + 1 === numDots);
+  }
+
+  if (action === 'update') {
+    return HARMONY_ORDER.find((item) => item.angles.length + 1 === numDots);
+  }
+
+  return null;
+};
+
+export function calculateCompliments(
+  dots: ThemeDot[],
+  action: HarmonyAction,
+  useHarmony?: ThemeHarmony
+): { dots: ThemeDot[]; harmony: ThemeHarmony } {
+  if (dots.length === 0) {
+    return { dots: [], harmony: useHarmony ?? 'floating' };
+  }
+
+  const numDots = dots.length + (action === 'add' ? 1 : action === 'remove' ? -1 : 0);
+  const harmony = getHarmonyForAction(numDots, action, useHarmony) ?? getHarmonyByType('floating');
+  const angles = harmony?.angles ?? [];
+  const resolvedHarmony = harmony?.type ?? 'floating';
+
+  if (angles.length === 0) {
+    return { dots: dots.map(clampDotPosition), harmony: resolvedHarmony };
+  }
+
   const primary = clampDotPosition(dots[0] ?? { x: 0.5, y: 0.5 });
   const center = { x: 0.5, y: 0.5 };
   const dx = primary.x - center.x;
   const dy = primary.y - center.y;
   const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 0.5);
   const baseAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
   const nextDots: ThemeDot[] = [primary];
   angles.forEach((offset) => {
     const angle = ((baseAngle + offset) * Math.PI) / 180;
@@ -291,22 +357,33 @@ export function calculateCompliments(dots: ThemeDot[], harmony: ThemeHarmony): T
     }
     nextDots.push(nextDot);
   });
-  return nextDots;
+
+  return { dots: nextDots, harmony: resolvedHarmony };
 }
+
+const getDotPolar = (dot: ThemeDot) => {
+  const safeDot = clampDotPosition(dot);
+  const adjustedX = safeDot.x * PICKER_BASE_SIZE + PICKER_DOT_HALF_SIZE;
+  const adjustedY = safeDot.y * PICKER_BASE_SIZE + PICKER_DOT_HALF_SIZE;
+  const dx = adjustedX - PICKER_CENTER;
+  const dy = adjustedY - PICKER_CENTER;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  let angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+  if (angle < 0) angle += 360;
+  const normalizedDistance = 1 - Math.min(distance / PICKER_RADIUS, 1);
+  return { angle, normalizedDistance, type: safeDot.type };
+};
+
+export const getDotLightness = (dot: ThemeDot) => {
+  const { normalizedDistance } = getDotPolar(dot);
+  return Math.round((1 - normalizedDistance) * 100);
+};
 
 export function getColorFromPosition(
   dot: ThemeDot,
   lightness: number
 ): { rgb: RgbColor; hex: string } {
-  const safeDot = clampDotPosition(dot);
-  const center = { x: 0.5, y: 0.5 };
-  const dx = safeDot.x - center.x;
-  const dy = safeDot.y - center.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  let angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-  if (angle < 0) angle += 360;
-  const normalizedDistance = 1 - Math.min(distance / 0.5, 1);
-  const type = safeDot.type;
+  const { angle, normalizedDistance, type } = getDotPolar(dot);
   const baseLightness = Math.round((1 - normalizedDistance) * 100);
   let saturation = 90 + (1 - normalizedDistance) * 10;
   let resolvedLightness = baseLightness;
@@ -335,8 +412,7 @@ const getResolvedScheme = (scheme: ThemeId): 'light' | 'dark' => {
 const toHslString = (color: HslColor) => rgbToHex(hslToRgb(color));
 
 export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Record<string, string> {
-  const safeDots = custom.dots.length ? custom.dots : [{ x: 0.5, y: 0.5 }];
-  const dotColors = getDotColors(safeDots, custom.lightness);
+  const dotColors = getDotColors(custom.dots, custom.lightness);
   const customStops = normalizeCustomStops(custom.customColors);
   const hasCustomStops = customStops.length > 0;
   const paletteRgb = dotColors.map((color) => hexToRgb(color));
@@ -547,6 +623,7 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
 }
 
 export function resolveHarmonyForCount(count: number, current: ThemeHarmony): ThemeHarmony {
+  if (count <= 0) return 'floating';
   const normalized = clamp(count, 1, 3);
   const valid: ThemeHarmony[] =
     normalized === 1

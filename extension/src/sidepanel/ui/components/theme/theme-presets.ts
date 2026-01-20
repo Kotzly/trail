@@ -18,11 +18,17 @@ export type ThemePreset = {
 
 const BASE_PRESET_SIZE = 380;
 const normalizePos = (value: number) => value / BASE_PRESET_SIZE;
-const tonePos = (step: number, max: number) => 0.5 + (step / max) * 0.5;
-const toneColor = (step: number, max: number) => {
-  const value = Math.round((step / max) * 255);
-  return `rgb(${value}, ${value}, ${value})`;
-};
+const BW_PRESETS = [
+  { x: 337.5, color: 'rgb(224, 224, 224)' },
+  { x: 337.5, color: 'rgb(224, 224, 224)' },
+  { x: 315, color: 'rgb(192, 192, 192)' },
+  { x: 292.5, color: 'rgb(160, 160, 160)' },
+  { x: 270, color: 'rgb(128, 128, 128)' },
+  { x: 247.5, color: 'rgb(96, 96, 96)' },
+  { x: 225, color: 'rgb(64, 64, 64)' },
+  { x: 202.5, color: 'rgb(32, 32, 32)' },
+  { x: 180, color: 'rgb(0, 0, 0)' },
+];
 
 export const PRESET_PAGES: ThemePreset[][] = [
   [
@@ -161,15 +167,12 @@ export const PRESET_PAGES: ThemePreset[][] = [
       preview: { c1: 'rgb(22, 80, 61)', c2: 'rgb(26, 60, 76)', c3: 'rgb(27, 87, 15)' },
     },
   ],
-  [
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(8, 8), y: 0.5 }, color: toneColor(8, 8), type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(7, 8), y: 0.5 }, color: toneColor(7, 8), type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(6, 8), y: 0.5 }, color: toneColor(6, 8), type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(5, 8), y: 0.5 }, color: toneColor(5, 8), type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(4, 8), y: 0.5 }, color: toneColor(4, 8), type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(3, 8), y: 0.5 }, color: toneColor(3, 8), type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(2, 8), y: 0.5 }, color: toneColor(2, 8), type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(1, 8), y: 0.5 }, color: toneColor(1, 8), type: 'explicit-black-white' },
-    { numDots: 1, algo: 'floating', lightness: 50, position: { x: tonePos(0, 8), y: 0.5 }, color: toneColor(0, 8), type: 'explicit-black-white' },
-  ],
+  BW_PRESETS.map((preset) => ({
+    numDots: 1 as const,
+    algo: 'floating' as const,
+    lightness: 50,
+    position: { x: normalizePos(preset.x), y: normalizePos(180) },
+    color: preset.color,
+    type: 'explicit-black-white' as const,
+  })),
 ];

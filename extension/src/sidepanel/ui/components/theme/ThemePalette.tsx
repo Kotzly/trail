@@ -6,6 +6,7 @@ import {
   calculateCompliments,
   getAutoAccentColor,
   getColorFromPosition,
+  getDotLightness,
   resolveHarmonyForCount,
 } from '../../shared/theme-generator.js';
 import { PRESET_PAGES, type ThemePreset } from './theme-presets.js';
@@ -23,7 +24,7 @@ const DEFAULT_PRIMARY: ThemeDot = { x: 0.5, y: 0.5 };
 
 const DEFAULT_THEME: CustomTheme = {
   enabled: false,
-  dots: [{ ...DEFAULT_PRIMARY }],
+  dots: [],
   harmony: 'floating',
   lightness: 50,
   opacity: 0.6,
@@ -31,6 +32,8 @@ const DEFAULT_THEME: CustomTheme = {
   customColors: [],
   accentColor: null,
 };
+
+const DOT_TYPES: Array<ThemeDot['type']> = ['explicit-lightness', 'explicit-black-white'];
 
 const HARMONY_LABELS: Record<ThemeHarmony, string> = {
   floating: 'Floating',
@@ -114,14 +117,7 @@ const interpolateWavePath = (progress: number) => {
   return pathData.trim();
 };
 
-const getLightnessFromDot = (dot: ThemeDot) => {
-  const center = { x: 0.5, y: 0.5 };
-  const dx = dot.x - center.x;
-  const dy = dot.y - center.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  const normalizedDistance = 1 - Math.min(distance / 0.5, 1);
-  return Math.round((1 - normalizedDistance) * 100);
-};
+const getLightnessFromDot = (dot: ThemeDot) => getDotLightness(dot);
 
 const shouldSyncLightness = (dot: ThemeDot) => dot.type !== 'explicit-lightness';
 
@@ -157,18 +153,25 @@ const normalizeHexInput = (value: string, fallback: string) => {
   return fallback;
 };
 
-const buildDots = (primary: ThemeDot, count: number, harmony: ThemeHarmony) => {
-  if (count <= 1) return [primary];
-  const expanded = [primary, ...Array.from({ length: count - 1 }, () => ({ ...primary }))];
-  return calculateCompliments(expanded, harmony);
+const buildDots = (primary: ThemeDot, harmony: ThemeHarmony) => {
+  const result = calculateCompliments([primary], 'update', harmony);
+  return result.dots;
 };
 
 const normalizeTheme = (theme: CustomTheme | null | undefined): CustomTheme => {
   if (!theme) return { ...DEFAULT_THEME };
   const next = { ...DEFAULT_THEME, ...theme };
-  if (!next.dots?.length) {
-    next.dots = [...DEFAULT_THEME.dots];
-  }
+  const rawDots = Array.isArray(next.dots) ? next.dots : [];
+  next.dots = rawDots
+    .map((dot) => {
+      const type = DOT_TYPES.includes(dot?.type) ? dot?.type : undefined;
+      return {
+        x: clamp(dot?.x ?? 0.5, 0, 1),
+        y: clamp(dot?.y ?? 0.5, 0, 1),
+        ...(type ? { type } : {}),
+      };
+    })
+    .slice(0, 3);
   if (!Array.isArray(next.customColors)) {
     next.customColors = [];
   }
@@ -217,6 +220,8 @@ export default function ThemePalette({
   const draggingRef = useRef(false);
   const dragPointerId = useRef<number | null>(null);
   const texturePointerId = useRef<number | null>(null);
+  const recentlyDraggedRef = useRef(false);
+  const recentlyDraggedTimer = useRef<number | null>(null);
   const draftRef = useRef<CustomTheme>(draft);
 
   useEffect(() => {
@@ -224,6 +229,17 @@ export default function ThemePalette({
     setDraft(next);
     draftRef.current = next;
   }, [value]);
+
+  const markRecentlyDragged = useCallback(() => {
+    recentlyDraggedRef.current = true;
+    if (recentlyDraggedTimer.current !== null) {
+      window.clearTimeout(recentlyDraggedTimer.current);
+    }
+    recentlyDraggedTimer.current = window.setTimeout(() => {
+      recentlyDraggedRef.current = false;
+      recentlyDraggedTimer.current = null;
+    }, 100);
+  }, []);
 
   const updateDotsVisual = useCallback(
     (next: CustomTheme) => {
@@ -302,18 +318,58 @@ export default function ThemePalette({
   );
 
   const handleAdd = useCallback(() => {
-    const count = Math.min(3, Math.max(1, draft.dots.length + 1));
-    const harmony = resolveHarmonyForCount(count, draft.harmony);
-    const primary = getPrimaryDot(draft);
-    commitTheme({ ...draft, dots: buildDots(primary, count, harmony), harmony, enabled: true });
+    if (draft.dots.length === 0 || draft.dots.length >= 3) return;
+    const result = calculateCompliments(draft.dots, 'add', draft.harmony);
+    commitTheme({ ...draft, dots: result.dots, harmony: result.harmony, enabled: true });
   }, [commitTheme, draft]);
 
   const handleRemove = useCallback(() => {
-    const count = Math.max(1, draft.dots.length - 1);
-    const harmony = resolveHarmonyForCount(count, draft.harmony);
-    const primary = getPrimaryDot(draft);
-    commitTheme({ ...draft, dots: buildDots(primary, count, harmony), harmony, enabled: true });
+    if (draft.dots.length === 0) return;
+    const trimmed = draft.dots.slice(0, -1);
+    if (trimmed.length === 0) {
+      commitTheme({ ...draft, dots: [], enabled: true });
+      return;
+    }
+    const primary = trimmed[0] ?? DEFAULT_PRIMARY;
+    const result = calculateCompliments(trimmed, 'remove');
+    const nextLightness = shouldSyncLightness(primary)
+      ? getLightnessFromDot(primary)
+      : draft.lightness;
+    commitTheme({
+      ...draft,
+      dots: result.dots,
+      harmony: result.harmony,
+      lightness: nextLightness,
+      enabled: true,
+    });
   }, [commitTheme, draft]);
+
+  const handleDotContextMenu = useCallback(
+    (event: React.MouseEvent, index: number) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const current = draftRef.current;
+      if (current.dots.length === 0) return;
+      const nextDots = current.dots.filter((_, i) => i !== index);
+      if (nextDots.length === 0) {
+        commitTheme({ ...current, dots: [], enabled: true });
+        return;
+      }
+      const primary = nextDots[0] ?? DEFAULT_PRIMARY;
+      const result = calculateCompliments(nextDots, 'remove');
+      const nextLightness = shouldSyncLightness(primary)
+        ? getLightnessFromDot(primary)
+        : current.lightness;
+      commitTheme({
+        ...current,
+        dots: result.dots,
+        harmony: result.harmony,
+        lightness: nextLightness,
+        enabled: true,
+      });
+    },
+    [commitTheme]
+  );
 
   const handleToggleHarmony = useCallback(() => {
     const count = draft.dots.length;
@@ -323,7 +379,7 @@ export default function ThemePalette({
     const currentIndex = Math.max(0, options.indexOf(draft.harmony));
     const nextHarmony = options[(currentIndex + 1) % options.length] ?? draft.harmony;
     const primary = getPrimaryDot(draft);
-    commitTheme({ ...draft, dots: buildDots(primary, count, nextHarmony), harmony: nextHarmony, enabled: true });
+    commitTheme({ ...draft, dots: buildDots(primary, nextHarmony), harmony: nextHarmony, enabled: true });
   }, [commitTheme, draft]);
 
   const handlePreset = useCallback(
@@ -335,7 +391,7 @@ export default function ThemePalette({
       };
       const resolvedType = primary.type ?? 'explicit-lightness';
       const harmony = resolveHarmonyForCount(preset.numDots, preset.algo);
-      const dots = buildDots(primary, preset.numDots, harmony);
+      const dots = buildDots(primary, harmony);
       const nextLightness =
         resolvedType === 'explicit-lightness' ? preset.lightness : getLightnessFromDot(primary);
       commitTheme({
@@ -352,11 +408,13 @@ export default function ThemePalette({
   const handlePointerDown = useCallback(
     (event: React.PointerEvent) => {
       if (!(event.target instanceof HTMLElement)) return;
+      if (event.button !== 0) return;
       const dotIndex = dotRefs.current.findIndex((el) => el === event.target);
       if (dotIndex !== 0) return;
       if (!gradientRef.current) return;
       draggingRef.current = true;
       dragPointerId.current = event.pointerId;
+      dotRefs.current[0]?.classList.add('dragging');
       event.currentTarget.setPointerCapture(event.pointerId);
     },
     [draft.enabled]
@@ -371,13 +429,18 @@ export default function ThemePalette({
       const y = (event.clientY - rect.top) / rect.height;
       const clamped = clampToCircle(x, y);
       const primary = { ...getPrimaryDot(draftRef.current), ...clamped };
-      const count = draftRef.current.dots.length || 1;
-      const harmony = resolveHarmonyForCount(count, draftRef.current.harmony);
-      const dots = buildDots(primary, count, harmony);
+      const seedDots = [primary, ...draftRef.current.dots.slice(1)];
+      const result = calculateCompliments(seedDots, 'update', draftRef.current.harmony);
       const nextLightness = shouldSyncLightness(primary)
         ? getLightnessFromDot(primary)
         : draftRef.current.lightness;
-      previewTheme({ ...draftRef.current, dots, harmony, lightness: nextLightness, enabled: true });
+      previewTheme({
+        ...draftRef.current,
+        dots: result.dots,
+        harmony: result.harmony,
+        lightness: nextLightness,
+        enabled: true,
+      });
     },
     [previewTheme]
   );
@@ -388,9 +451,11 @@ export default function ThemePalette({
       if (dragPointerId.current !== event.pointerId) return;
       draggingRef.current = false;
       dragPointerId.current = null;
+      dotRefs.current[0]?.classList.remove('dragging');
+      markRecentlyDragged();
       commitTheme(draftRef.current);
     },
-    [commitTheme]
+    [commitTheme, markRecentlyDragged]
   );
 
   const handleTexturePointerDown = useCallback((event: React.PointerEvent) => {
@@ -430,6 +495,7 @@ export default function ThemePalette({
   const handlePadClick = useCallback(
     (event: React.MouseEvent) => {
       if (!(event.target instanceof HTMLElement)) return;
+      if (draggingRef.current || recentlyDraggedRef.current) return;
       const dotIndex = dotRefs.current.findIndex((el) => el === event.target);
       if (dotIndex === 0) return;
       if (!gradientRef.current) return;
@@ -437,14 +503,23 @@ export default function ThemePalette({
       const x = (event.clientX - rect.left) / rect.width;
       const y = (event.clientY - rect.top) / rect.height;
       const clamped = clampToCircle(x, y);
-      const count = draftRef.current.dots.length || 1;
-      const harmony = resolveHarmonyForCount(count, draftRef.current.harmony);
+      const harmony =
+        draftRef.current.dots.length === 0
+          ? draftRef.current.harmony
+          : resolveHarmonyForCount(draftRef.current.dots.length, draftRef.current.harmony);
       const primary = { ...getPrimaryDot(draftRef.current), ...clamped };
-      const dots = buildDots(primary, count, harmony);
+      const seedDots = [primary, ...draftRef.current.dots.slice(1)];
+      const result = calculateCompliments(seedDots, 'update', harmony);
       const nextLightness = shouldSyncLightness(primary)
         ? getLightnessFromDot(primary)
         : draftRef.current.lightness;
-      commitTheme({ ...draftRef.current, dots, harmony, lightness: nextLightness, enabled: true });
+      commitTheme({
+        ...draftRef.current,
+        dots: result.dots,
+        harmony: result.harmony,
+        lightness: nextLightness,
+        enabled: true,
+      });
     },
     [commitTheme]
   );
@@ -527,10 +602,14 @@ export default function ThemePalette({
           ))}
         </div>
         <div className="zen-theme-picker-actions">
-            <button type="button" onClick={handleAdd} disabled={draft.dots.length >= 3}>
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={draft.dots.length === 0 || draft.dots.length >= 3}
+            >
               <Icons.Plus size={14} />
             </button>
-            <button type="button" onClick={handleRemove} disabled={draft.dots.length <= 1}>
+            <button type="button" onClick={handleRemove} disabled={draft.dots.length === 0}>
               <Icons.Minus size={14} />
             </button>
             <button
@@ -559,6 +638,7 @@ export default function ThemePalette({
                   dotRefs.current[index] = el;
                 }}
                 className={`zen-theme-picker-dot ${index === 0 ? 'primary' : ''}`}
+                onContextMenu={(event) => handleDotContextMenu(event, index)}
                 style={{ left: `${dot.x * 100}%`, top: `${dot.y * 100}%`, ['--zen-theme-picker-dot-color' as string]: hex }}
               />
             );

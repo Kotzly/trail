@@ -4,7 +4,7 @@ import { DEFAULT_LAYOUT_SETTINGS } from "../../shared/layout/defaults.js";
 
 const DEFAULT_CUSTOM_THEME: CustomTheme = {
     enabled: false,
-    dots: [{ x: 0.5, y: 0.5 }],
+    dots: [],
     harmony: 'floating',
     lightness: 50,
     opacity: 0.6,

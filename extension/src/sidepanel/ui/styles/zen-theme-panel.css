@@ -60,13 +60,16 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  --zen-picker-size: 380px;
+  --zen-picker-padding: 10px;
 }
 
 .zen-theme-picker-gradient {
   position: relative;
-  border-radius: 14px;
-  padding: 12px;
-  background: linear-gradient(135deg, var(--md-surface-container), var(--md-surface-container-high));
+  overflow: hidden;
+  border-radius: 12px;
+  padding: var(--zen-picker-padding);
+  background: color-mix(in srgb, var(--md-on-surface) 4%, transparent);
   border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
 }
 
@@ -74,7 +77,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  min-height: 360px;
+  min-height: calc(var(--zen-picker-size) - var(--zen-picker-padding) * 2 - 2px);
   background: color-mix(in srgb, var(--md-on-surface) 4%, transparent);
   background-image: radial-gradient(
     color-mix(in srgb, var(--md-on-surface) 10%, transparent) 1px,
@@ -93,7 +96,7 @@
   background: var(--zen-theme-picker-dot-color);
   border: 3px solid #ffffff;
   transform: translate(-50%, -50%);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
   pointer-events: none;
 }
 
@@ -104,11 +107,20 @@
   cursor: grab;
   z-index: 3;
   pointer-events: auto;
+  transition: transform 0.2s ease;
+}
+
+.zen-theme-picker-dot.primary:hover {
+  transform: translate(-50%, -50%) scale(1.05);
 }
 
 .zen-theme-picker-dot.primary:active {
   cursor: grabbing;
   transform: translate(-50%, -50%) scale(1.05);
+}
+
+.zen-theme-picker-dot.primary.dragging {
+  transform: translate(-50%, -50%) scale(1.2);
 }
 
 .zen-theme-picker-scheme,
@@ -122,11 +134,11 @@
 }
 
 .zen-theme-picker-scheme {
-  top: 14px;
+  top: 15px;
 }
 
 .zen-theme-picker-actions {
-  bottom: 18px;
+  bottom: 12px;
 }
 
 .zen-theme-picker-scheme-btn,
@@ -142,7 +154,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 .zen-theme-picker-actions button {
@@ -161,7 +173,6 @@
 .zen-theme-picker-actions button:hover:not(:disabled),
 .zen-theme-picker-scheme-btn:hover {
   background: color-mix(in srgb, var(--md-on-surface) 10%, transparent);
-  transform: translateY(-1px);
 }
 
 .zen-theme-picker-actions button:disabled {
@@ -176,6 +187,7 @@
   place-items: center;
   font-weight: 600;
   color: var(--md-on-surface-variant);
+  pointer-events: none;
 }
 
 .zen-theme-picker-pages {
