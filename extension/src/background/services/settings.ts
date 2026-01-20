@@ -10,6 +10,7 @@ const DEFAULT_CUSTOM_THEME: CustomTheme = {
     opacity: 0.6,
     texture: 0,
     customColors: [],
+    accentColor: null,
 };
 
 const THEME_HARMONIES: ThemeHarmony[] = [
@@ -61,6 +62,10 @@ function normalizeCustomTheme(raw: unknown): CustomTheme {
         customColors: Array.isArray(partial.customColors)
             ? partial.customColors.filter((color) => typeof color === 'string' && color.trim().length > 0)
             : DEFAULT_CUSTOM_THEME.customColors,
+        accentColor:
+            typeof partial.accentColor === 'string' && /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(partial.accentColor)
+                ? partial.accentColor
+                : DEFAULT_CUSTOM_THEME.accentColor,
     };
 }
 

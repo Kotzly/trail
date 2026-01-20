@@ -24,6 +24,7 @@ export type CustomTheme = {
     opacity: number;
     texture: number;
     customColors: string[];
+    accentColor: string | null;
 };
 
 export type LayoutMode = 'tree' | 'radial' | 'mindmap';

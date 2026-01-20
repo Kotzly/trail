@@ -57,6 +57,9 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 
 const clamp01 = (value: number) => clamp(value, 0, 1);
 
+const OPACITY_MIN = 0.35;
+const OPACITY_MAX = 0.9;
+
 const toRgb = (value: number) => Math.round(clamp(value, 0, 255));
 
 const rgbToHex = ({ r, g, b }: RgbColor) =>
@@ -174,8 +177,19 @@ const hslToRgb = ({ h, s, l }: HslColor): RgbColor => {
 
 const rgbToCssTuple = ({ r, g, b }: RgbColor) => `${toRgb(r)}, ${toRgb(g)}, ${toRgb(b)}`;
 
+const toRgbString = (rgb: RgbColor) => `rgb(${rgbToCssTuple(rgb)})`;
+
 const toRgbaString = (rgb: RgbColor, alpha: number) =>
   `rgba(${rgbToCssTuple(rgb)}, ${clamp(alpha, 0, 1)})`;
+
+const blendColors = (rgb1: RgbColor, rgb2: RgbColor, percentage: number): RgbColor => {
+  const p = clamp(percentage / 100, 0, 1);
+  return {
+    r: Math.round(rgb1.r * p + rgb2.r * (1 - p)),
+    g: Math.round(rgb1.g * p + rgb2.g * (1 - p)),
+    b: Math.round(rgb1.b * p + rgb2.b * (1 - p)),
+  };
+};
 
 const toGradientColor = (value: string, alpha: number): string => {
   const parsed = hexToRgba(value);
@@ -307,36 +321,38 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const colors = useCustomColors ? custom.customColors : getDotColors(safeDots, custom.lightness);
   const paletteRgb = colors.map((color) => hexToRgb(color));
   const fallbackRgb = { r: 59, g: 59, b: 64 };
-  const accentRgb = paletteRgb[0] ?? fallbackRgb;
-  const averageRgb =
-    paletteRgb.length > 0
-      ? paletteRgb.reduce(
-          (acc, color) => ({
-            r: acc.r + color.r,
-            g: acc.g + color.g,
-            b: acc.b + color.b,
-          }),
-          { r: 0, g: 0, b: 0 }
-        )
-      : fallbackRgb;
-  const averaged = paletteRgb.length
-    ? {
-        r: averageRgb.r / paletteRgb.length,
-        g: averageRgb.g / paletteRgb.length,
-        b: averageRgb.b / paletteRgb.length,
-      }
-    : fallbackRgb;
-  const gradientAlpha = clamp(custom.opacity, 0.35, 1);
-  const gradientColors = colors.map((color) => toGradientColor(color, gradientAlpha));
-  const gradientImage = buildZenGradient(gradientColors, useCustomColors);
-  const gradientBase = paletteRgb.length ? rgbToHex(averaged) : null;
-  const neutralHsl = rgbToHsl(averaged);
-  const accentHsl = rgbToHsl(accentRgb);
   const mode = getResolvedScheme(scheme);
   const isDark = mode === 'dark';
+  const baseSurfaceRgb = isDark ? { r: 23, g: 23, b: 26 } : { r: 240, g: 240, b: 244 };
+  const opacity = clamp(custom.opacity, OPACITY_MIN, OPACITY_MAX);
+  const blendedRgb = useCustomColors
+    ? paletteRgb
+    : paletteRgb.map((color) => blendColors(color, baseSurfaceRgb, opacity * 100));
+  const accentOverride = custom.accentColor ? hexToRgb(custom.accentColor) : null;
+  const accentRgb = accentOverride ?? blendedRgb[0] ?? paletteRgb[0] ?? fallbackRgb;
+  const averageSource = blendedRgb.length > 0 ? blendedRgb : [fallbackRgb];
+  const averageRgb = averageSource.reduce(
+    (acc, color) => ({
+      r: acc.r + color.r,
+      g: acc.g + color.g,
+      b: acc.b + color.b,
+    }),
+    { r: 0, g: 0, b: 0 }
+  );
+  const averaged = {
+    r: averageRgb.r / averageSource.length,
+    g: averageRgb.g / averageSource.length,
+    b: averageRgb.b / averageSource.length,
+  };
+  const gradientColors = useCustomColors ? colors : blendedRgb.map(toRgbString);
+  const gradientImage = buildZenGradient(gradientColors, useCustomColors);
+  const gradientBase = blendedRgb.length ? rgbToHex(averaged) : null;
+  const neutralHsl = rgbToHsl(averaged);
+  const accentHsl = rgbToHsl(accentRgb);
 
   const neutralHue = neutralHsl.h;
-  const neutralSat = clamp(neutralHsl.s * 0.35, 12, 28);
+  const neutralSat = clamp(neutralHsl.s * 0.35, 0, 28);
+  const neutralIsGray = neutralSat < 4;
   const surfaceLevels = isDark
     ? {
         surface: 12,
@@ -379,30 +395,43 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   });
   const surfaceVariant = toHslString({
     h: neutralHue,
-    s: Math.min(neutralSat + 6, 22),
+    s: neutralIsGray ? 0 : Math.min(neutralSat + 6, 22),
     l: surfaceLevels.variant,
   });
-  const onSurface = toHslString({ h: neutralHue, s: 6, l: surfaceLevels.onSurface });
+  const onSurface = toHslString({
+    h: neutralHue,
+    s: neutralIsGray ? 0 : Math.min(neutralSat + 2, 8),
+    l: surfaceLevels.onSurface,
+  });
   const onSurfaceVariant = toHslString({
     h: neutralHue,
-    s: 10,
+    s: neutralIsGray ? 0 : Math.min(neutralSat + 4, 12),
     l: surfaceLevels.onSurfaceVariant,
   });
-  const outline = toHslString({ h: neutralHue, s: 10, l: surfaceLevels.outline });
+  const outline = toHslString({
+    h: neutralHue,
+    s: neutralIsGray ? 0 : Math.min(neutralSat + 2, 10),
+    l: surfaceLevels.outline,
+  });
   const outlineVariant = toHslString({
     h: neutralHue,
-    s: 8,
+    s: neutralIsGray ? 0 : Math.min(neutralSat + 2, 8),
     l: surfaceLevels.outlineVariant,
   });
 
+  const shouldBoostAccent = !accentOverride && !useCustomColors;
+  const primarySat =
+    shouldBoostAccent && accentHsl.s >= 8 ? Math.max(accentHsl.s, 34) : accentHsl.s;
+  const containerSat =
+    shouldBoostAccent && accentHsl.s >= 8 ? Math.min(Math.max(accentHsl.s, 24), 50) : accentHsl.s;
   const primary = toHslString({
     h: accentHsl.h,
-    s: Math.max(accentHsl.s, 34),
+    s: primarySat,
     l: isDark ? 65 : 35,
   });
   const primaryContainer = toHslString({
     h: accentHsl.h,
-    s: Math.min(Math.max(accentHsl.s, 24), 50),
+    s: containerSat,
     l: isDark ? 26 : 90,
   });
   const primaryRgbResolved = hexToRgb(primary);
@@ -416,8 +445,8 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const surfaceRgb = hexToRgb(surface);
   const onSurfaceRgb = hexToRgb(onSurface);
 
-  const glassAlpha = clamp(0.3 + custom.opacity * 0.5, 0.3, 0.9);
-  const glassStrongAlpha = clamp(0.45 + custom.opacity * 0.45, 0.45, 0.95);
+  const glassAlpha = clamp(0.3 + opacity * 0.5, 0.3, 0.9);
+  const glassStrongAlpha = clamp(0.45 + opacity * 0.45, 0.45, 0.95);
 
   const appBackgroundColor = gradientBase ?? surface;
   const appBackgroundImage = gradientImage ?? 'none';

@@ -4,10 +4,10 @@ import type { ThemeId } from '../../shared/themes.js';
 import { Icons } from '../Icon.js';
 import {
   calculateCompliments,
+  generateThemeTokens,
   getColorFromPosition,
   resolveHarmonyForCount,
 } from '../../shared/theme-generator.js';
-import { getRangePercent } from '../../shared/range.js';
 import { PRESET_PAGES, type ThemePreset } from './theme-presets.js';
 import React from 'react';
 
@@ -29,6 +29,7 @@ const DEFAULT_THEME: CustomTheme = {
   opacity: 0.6,
   texture: 0,
   customColors: [],
+  accentColor: null,
 };
 
 const HARMONY_LABELS: Record<ThemeHarmony, string> = {
@@ -42,6 +43,76 @@ const HARMONY_LABELS: Record<ThemeHarmony, string> = {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 const OPACITY_MIN = 0.35;
+const OPACITY_MAX = 0.9;
+
+const LINE_PATH = 'M 51.373 27.395 L 367.037 27.395';
+const SINE_PATH =
+  'M 51.373 27.395 C 60.14 -8.503 68.906 -8.503 77.671 27.395 C 86.438 63.293 95.205 63.293 103.971 27.395 C 112.738 -8.503 121.504 -8.503 130.271 27.395 C 139.037 63.293 147.803 63.293 156.57 27.395 C 165.335 -8.503 174.101 -8.503 182.868 27.395 C 191.634 63.293 200.4 63.293 209.167 27.395 C 217.933 -8.503 226.7 -8.503 235.467 27.395 C 244.233 63.293 252.999 63.293 261.765 27.395 C 270.531 -8.503 279.297 -8.503 288.064 27.395 C 296.83 63.293 305.596 63.293 314.363 27.395 C 323.13 -8.503 331.896 -8.503 340.662 27.395 M 314.438 27.395 C 323.204 -8.503 331.97 -8.503 340.737 27.395 C 349.503 63.293 358.27 63.293 367.037 27.395';
+
+type WavePoint =
+  | { type: 'M'; x: number; y: number }
+  | { type: 'L'; x: number; y: number }
+  | { type: 'C'; x1: number; y1: number; x2: number; y2: number; x: number; y: number };
+
+const parseWavePath = (path: string): WavePoint[] => {
+  const points: WavePoint[] = [];
+  const commands = path.match(/[MCL]\s*[\d\s.\-,]+/g);
+  if (!commands) return points;
+  commands.forEach((command) => {
+    const type = command.charAt(0);
+    const coordsStr = command.slice(1).trim();
+    const coords = coordsStr.split(/[\s,]+/).map(Number);
+    if (type === 'M') {
+      points.push({ type: 'M', x: coords[0] ?? 0, y: coords[1] ?? 0 });
+      return;
+    }
+    if (type === 'L') {
+      points.push({ type: 'L', x: coords[0] ?? 0, y: coords[1] ?? 0 });
+      return;
+    }
+    if (type === 'C' && coords.length >= 6 && coords.length % 6 === 0) {
+      for (let i = 0; i < coords.length; i += 6) {
+        points.push({
+          type: 'C',
+          x1: coords[i] ?? 0,
+          y1: coords[i + 1] ?? 0,
+          x2: coords[i + 2] ?? 0,
+          y2: coords[i + 3] ?? 0,
+          x: coords[i + 4] ?? 0,
+          y: coords[i + 5] ?? 0,
+        });
+      }
+    }
+  });
+  return points;
+};
+
+const SINE_POINTS = parseWavePath(SINE_PATH);
+
+const interpolateWavePath = (progress: number) => {
+  if (SINE_POINTS.length === 0) return progress < 0.5 ? LINE_PATH : SINE_PATH;
+  if (progress <= 0.001) return LINE_PATH;
+  if (progress >= 0.999) return SINE_PATH;
+  const referenceY = 27.3;
+  const t = progress;
+  let pathData = '';
+  SINE_POINTS.forEach((point) => {
+    if (point.type === 'M') {
+      const y = referenceY + (point.y - referenceY) * t;
+      pathData += `M ${point.x} ${y} `;
+      return;
+    }
+    if (point.type === 'L') {
+      pathData += `L ${point.x} ${point.y} `;
+      return;
+    }
+    const y1 = referenceY + (point.y1 - referenceY) * t;
+    const y2 = referenceY + (point.y2 - referenceY) * t;
+    const y = referenceY + (point.y - referenceY) * t;
+    pathData += `C ${point.x1} ${y1} ${point.x2} ${y2} ${point.x} ${y} `;
+  });
+  return pathData.trim();
+};
 
 const getLightnessFromDot = (dot: ThemeDot) => {
   const center = { x: 0.5, y: 0.5 };
@@ -67,6 +138,25 @@ const clampToCircle = (x: number, y: number) => {
   return { x: clamp(cx + dx * scale, 0, 1), y: clamp(cy + dy * scale, 0, 1) };
 };
 
+const normalizeHexInput = (value: string, fallback: string) => {
+  const trimmed = value.trim();
+  const hexMatch = trimmed.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/);
+  if (hexMatch) {
+    const hex = hexMatch[1] ?? '';
+    if (hex.length === 3) {
+      return `#${hex
+        .split('')
+        .map((char) => `${char}${char}`)
+        .join('')}`;
+    }
+    if (hex.length === 8) {
+      return `#${hex.slice(0, 6)}`;
+    }
+    return `#${hex}`;
+  }
+  return fallback;
+};
+
 const buildDots = (primary: ThemeDot, count: number, harmony: ThemeHarmony) => {
   if (count <= 1) return [primary];
   const expanded = [primary, ...Array.from({ length: count - 1 }, () => ({ ...primary }))];
@@ -81,6 +171,24 @@ const normalizeTheme = (theme: CustomTheme | null | undefined): CustomTheme => {
   }
   if (!Array.isArray(next.customColors)) {
     next.customColors = [];
+  }
+  next.lightness = clamp(
+    typeof next.lightness === 'number' ? next.lightness : DEFAULT_THEME.lightness,
+    0,
+    100
+  );
+  next.opacity = clamp(
+    typeof next.opacity === 'number' ? next.opacity : DEFAULT_THEME.opacity,
+    OPACITY_MIN,
+    OPACITY_MAX
+  );
+  next.texture = clamp(
+    typeof next.texture === 'number' ? next.texture : DEFAULT_THEME.texture,
+    0,
+    1
+  );
+  if (typeof next.accentColor !== 'string' || !/^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(next.accentColor)) {
+    next.accentColor = null;
   }
   return next;
 };
@@ -102,6 +210,10 @@ export default function ThemePalette({
   const dotRefs = useRef<Array<HTMLDivElement | null>>([]);
   const textureRef = useRef<HTMLDivElement | null>(null);
   const textureHandleRef = useRef<HTMLDivElement | null>(null);
+  const opacitySliderRef = useRef<HTMLInputElement | null>(null);
+  const wavePathRef = useRef<SVGPathElement | null>(null);
+  const waveStopMidRef = useRef<SVGStopElement | null>(null);
+  const waveStopEndRef = useRef<SVGStopElement | null>(null);
   const draggingRef = useRef(false);
   const dragPointerId = useRef<number | null>(null);
   const texturePointerId = useRef<number | null>(null);
@@ -136,10 +248,37 @@ export default function ThemePalette({
     textureHandleRef.current.style.top = `${y}%`;
   }, []);
 
+  const updateOpacityWave = useCallback((opacity: number) => {
+    const normalized =
+      opacity <= OPACITY_MIN
+        ? 0
+        : opacity >= OPACITY_MAX
+          ? 1
+          : (opacity - OPACITY_MIN) / (OPACITY_MAX - OPACITY_MIN);
+    const path = interpolateWavePath(normalized);
+    if (wavePathRef.current) {
+      wavePathRef.current.setAttribute('d', path);
+      if (waveStopEndRef.current && waveStopMidRef.current) {
+        const offset = `${normalized * 100}%`;
+        waveStopMidRef.current.setAttribute('offset', offset);
+        waveStopEndRef.current.setAttribute('offset', offset);
+        wavePathRef.current.style.stroke =
+          path === LINE_PATH
+            ? waveStopEndRef.current.getAttribute('stop-color') ?? ''
+            : 'url(#zen-theme-picker-wave-gradient)';
+      }
+    }
+    if (opacitySliderRef.current) {
+      opacitySliderRef.current.style.setProperty('--zen-thumb-height', `${40 + normalized * 15}px`);
+      opacitySliderRef.current.style.setProperty('--zen-thumb-width', `${10 + normalized * 15}px`);
+    }
+  }, []);
+
   useEffect(() => {
     updateDotsVisual(draft);
     updateTextureHandle(draft.texture ?? 0);
-  }, [draft, updateDotsVisual]);
+    updateOpacityWave(draft.opacity);
+  }, [draft, updateDotsVisual, updateTextureHandle, updateOpacityWave]);
 
   const commitTheme = useCallback(
     (next: CustomTheme) => {
@@ -311,12 +450,16 @@ export default function ThemePalette({
     onSchemeChange(next);
   };
 
-  const handleLightness = (value: number) => {
-    commitTheme({ ...draft, lightness: value, enabled: true });
-  };
-
   const handleOpacity = (value: number) => {
     commitTheme({ ...draft, opacity: value, enabled: true });
+  };
+
+  const handleAccentChange = (value: string) => {
+    commitTheme({ ...draft, accentColor: value, enabled: true });
+  };
+
+  const handleAccentAuto = () => {
+    commitTheme({ ...draft, accentColor: null, enabled: true });
   };
 
   const handleAddCustomColor = () => {
@@ -346,8 +489,12 @@ export default function ThemePalette({
     commitTheme({ ...draft, customColors: nextColors, enabled: true });
   };
 
-  const lightnessPercent = clamp(getRangePercent(draft.lightness, 0, 100), 0, 100);
-  const opacityPercent = clamp(getRangePercent(draft.opacity, OPACITY_MIN, 1), 0, 100);
+  const derivedAccent = useMemo(() => {
+    const tokens = generateThemeTokens({ ...draft, enabled: true }, scheme);
+    return normalizeHexInput(tokens['--md-primary'] ?? '', '#ffffff');
+  }, [draft, scheme]);
+
+  const accentValue = draft.accentColor ? normalizeHexInput(draft.accentColor, derivedAccent) : derivedAccent;
 
   const schemeButtons = useMemo(
     () => [
@@ -461,33 +608,35 @@ export default function ThemePalette({
       </div>
 
       <div className="zen-theme-picker-controls">
-        <div className="zen-theme-picker-slider">
-          <div className="zen-theme-picker-slider-header">
-            <span>Lightness</span>
-            <span>{Math.round(lightnessPercent)}</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={lightnessPercent}
-            style={{ ['--range-percent' as string]: `${lightnessPercent}%` }}
-            onChange={(event) => handleLightness(Number(event.target.value))}
-          />
-        </div>
-        <div className="zen-theme-picker-slider">
-          <div className="zen-theme-picker-slider-header">
-            <span>Opacity</span>
-            <span>{Math.round(opacityPercent)}%</span>
+        <div className="zen-theme-picker-opacity">
+          <div className="zen-theme-picker-wave">
+            <svg viewBox="0 -7.605 455 70" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid meet">
+              <path
+                ref={wavePathRef}
+                d={LINE_PATH}
+                fill="none"
+                stroke="url(#zen-theme-picker-wave-gradient)"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ strokeWidth: 8 }}
+              />
+              <defs>
+                <linearGradient id="zen-theme-picker-wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="var(--md-on-surface)" stopOpacity="0.6" />
+                  <stop ref={waveStopMidRef} offset="0%" stopColor="var(--md-on-surface)" stopOpacity="0.6" />
+                  <stop ref={waveStopEndRef} offset="100%" stopColor="var(--md-on-surface)" stopOpacity="0.35" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
           <input
             type="range"
             min={OPACITY_MIN}
-            max={1}
+            max={OPACITY_MAX}
             step={0.01}
+            ref={opacitySliderRef}
             value={draft.opacity}
-            style={{ ['--range-percent' as string]: `${opacityPercent}%` }}
+            aria-label="Opacity"
             onChange={(event) => handleOpacity(Number(event.target.value))}
           />
         </div>
@@ -515,6 +664,24 @@ export default function ThemePalette({
       </div>
 
       <div className="zen-theme-picker-custom">
+        <div className="zen-theme-picker-accent">
+          <div className="zen-theme-picker-custom-title">Accent color</div>
+          <div className="zen-theme-picker-accent-inputs">
+            <input
+              type="color"
+              value={accentValue}
+              onChange={(event) => handleAccentChange(event.target.value)}
+              aria-label="Accent color"
+            />
+            <button
+              type="button"
+              className={`zen-theme-picker-accent-btn ${draft.accentColor ? '' : 'active'}`}
+              onClick={handleAccentAuto}
+            >
+              Auto
+            </button>
+          </div>
+        </div>
         <div className="zen-theme-picker-custom-title">Custom colors</div>
         <div className="zen-theme-picker-custom-inputs">
           <input

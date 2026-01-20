@@ -94,6 +94,7 @@
   border: 3px solid #ffffff;
   transform: translate(-50%, -50%);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
 }
 
 .zen-theme-picker-dot.primary {
@@ -102,6 +103,7 @@
   border-width: 4px;
   cursor: grab;
   z-index: 3;
+  pointer-events: auto;
 }
 
 .zen-theme-picker-dot.primary:active {
@@ -236,58 +238,94 @@
 }
 
 .zen-theme-picker-controls {
-  display: grid;
-  gap: 10px;
-}
-
-.zen-theme-picker-slider {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.zen-theme-picker-slider-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--md-on-surface-variant);
+  gap: 16px;
+  padding: 0 4px;
 }
 
-.zen-theme-picker-slider input[type='range'] {
+.zen-theme-picker-opacity {
+  position: relative;
+  flex: 1;
+  min-height: 42px;
+}
+
+.zen-theme-picker-wave {
+  position: absolute;
+  left: -5px;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+}
+
+.zen-theme-picker-wave::before {
+  content: '';
+  position: absolute;
+  width: calc(100% - 8px);
+  height: 16px;
+  background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: -1;
+  top: 50%;
+  left: 8px;
+  transform: translateY(-50%);
+}
+
+.zen-theme-picker-wave svg {
+  overflow: visible;
+  min-width: 110%;
+  transform: scale(1.2);
+  margin-left: 4px;
+}
+
+.zen-theme-picker-opacity input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 8px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(var(--md-primary-rgb), 0.85) 0%,
-    rgba(var(--md-primary-rgb), 0.85) var(--range-percent, 0%),
-    var(--md-outline-variant) var(--range-percent, 0%),
-    var(--md-outline-variant) 100%
-  );
+  height: 40px;
+  background: transparent;
+  z-index: 2;
+  position: relative;
+  padding: 0 5px;
+  margin: 0;
   outline: none;
 }
 
-.zen-theme-picker-slider input[type='range']::-webkit-slider-thumb {
+.zen-theme-picker-opacity input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.6));
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  width: var(--zen-thumb-width, 10px);
+  height: var(--zen-thumb-height, 40px);
+  border-radius: 999px;
+  background: var(--md-on-surface);
+  border: none;
+  cursor: pointer;
 }
 
-.zen-theme-picker-slider input[type='range']::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.6));
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.08);
+.zen-theme-picker-opacity input[type='range']::-moz-range-thumb {
+  width: var(--zen-thumb-width, 10px);
+  height: var(--zen-thumb-height, 40px);
+  border-radius: 999px;
+  background: var(--md-on-surface);
+  border: none;
+  cursor: pointer;
+}
+
+.zen-theme-picker-opacity input[type='range']::-webkit-slider-runnable-track {
+  height: 18px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.zen-theme-picker-opacity input[type='range']::-moz-range-track {
+  height: 18px;
+  border-radius: 999px;
+  background: transparent;
 }
 
 .zen-theme-picker-texture {
@@ -356,6 +394,43 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.zen-theme-picker-accent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zen-theme-picker-accent-inputs {
+  display: grid;
+  grid-template-columns: 1fr 64px;
+  gap: 8px;
+  align-items: center;
+}
+
+.zen-theme-picker-accent-inputs input[type='color'] {
+  width: 100%;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  background: transparent;
+  padding: 0;
+}
+
+.zen-theme-picker-accent-btn {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.zen-theme-picker-accent-btn.active {
+  background: color-mix(in srgb, var(--md-primary) 30%, var(--md-surface-container-high));
 }
 
 .zen-theme-picker-custom-title {

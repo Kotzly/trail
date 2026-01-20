@@ -16,6 +16,7 @@ const DEFAULT_THEME: CustomTheme = {
   opacity: 0.6,
   texture: 0,
   customColors: [],
+  accentColor: null,
 };
 
 const withTheme = (settings: Settings | null, next: Partial<Settings>): Settings | null => {
