@@ -1,11 +1,65 @@
 import { THEME_IDS } from "../../sidepanel/ui/shared/themes.js";
-import type { Settings } from "../../shared/types/settings.js";
+import type { CustomTheme, Settings, ThemeHarmony, ThemeDotType } from "../../shared/types/settings.js";
 import { DEFAULT_LAYOUT_SETTINGS } from "../../shared/layout/defaults.js";
+
+const DEFAULT_CUSTOM_THEME: CustomTheme = {
+    enabled: false,
+    dots: [{ x: 0.5, y: 0.5, type: 'explicit-lightness' }],
+    harmony: 'floating',
+    lightness: 50,
+    opacity: 0.6,
+};
+
+const THEME_HARMONIES: ThemeHarmony[] = [
+    'floating',
+    'complementary',
+    'singleAnalogous',
+    'splitComplementary',
+    'analogous',
+    'triadic',
+];
+
+const THEME_DOT_TYPES: ThemeDotType[] = ['explicit-lightness', 'explicit-black-white'];
+
+const clamp01 = (value: number, fallback: number) =>
+    Number.isFinite(value) ? Math.min(Math.max(value, 0), 1) : fallback;
+
+const clamp = (value: number, min: number, max: number, fallback: number) =>
+    Number.isFinite(value) ? Math.min(Math.max(value, min), max) : fallback;
+
+function normalizeCustomTheme(raw: unknown): CustomTheme {
+    if (!raw || typeof raw !== 'object') {
+        return { ...DEFAULT_CUSTOM_THEME };
+    }
+    const partial = raw as Partial<CustomTheme>;
+    const rawDots = Array.isArray(partial.dots) ? partial.dots : DEFAULT_CUSTOM_THEME.dots;
+    const dots = rawDots
+        .map((dot) => ({
+            x: clamp(dot?.x ?? 0.5, 0, 1, 0.5),
+            y: clamp(dot?.y ?? 0.5, 0, 1, 0.5),
+            type: THEME_DOT_TYPES.includes(dot?.type as ThemeDotType)
+                ? (dot?.type as ThemeDotType)
+                : 'explicit-lightness',
+        }))
+        .slice(0, 3);
+    return {
+        ...DEFAULT_CUSTOM_THEME,
+        ...partial,
+        enabled: Boolean(partial.enabled),
+        dots: dots.length ? dots : DEFAULT_CUSTOM_THEME.dots,
+        harmony: THEME_HARMONIES.includes(partial.harmony as ThemeHarmony)
+            ? (partial.harmony as ThemeHarmony)
+            : DEFAULT_CUSTOM_THEME.harmony,
+        lightness: clamp(partial.lightness ?? DEFAULT_CUSTOM_THEME.lightness, 0, 100, 50),
+        opacity: clamp01(partial.opacity ?? DEFAULT_CUSTOM_THEME.opacity, DEFAULT_CUSTOM_THEME.opacity),
+    };
+}
 
 export const defaultSettings: Settings = {
     maxOpenTabs: 100,
     capacity: Infinity,
     theme: THEME_IDS.SYSTEM,
+    customTheme: { ...DEFAULT_CUSTOM_THEME },
     layout: {
         mode: DEFAULT_LAYOUT_SETTINGS.mode,
         tree: { ...DEFAULT_LAYOUT_SETTINGS.tree },
@@ -53,6 +107,7 @@ function mergeDefaults(raw: unknown): Settings {
         ...defaultSettings,
         ...partial,
         capacity,
+        customTheme: normalizeCustomTheme(partial.customTheme),
         layout: {
             mode: layout.mode ?? DEFAULT_LAYOUT_SETTINGS.mode,
             tree: {

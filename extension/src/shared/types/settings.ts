@@ -1,5 +1,29 @@
 import { ThemeId } from "../../sidepanel/ui/shared/themes.js";
 
+export type ThemeDotType = 'explicit-lightness' | 'explicit-black-white';
+
+export type ThemeHarmony =
+    | 'floating'
+    | 'complementary'
+    | 'singleAnalogous'
+    | 'splitComplementary'
+    | 'analogous'
+    | 'triadic';
+
+export type ThemeDot = {
+    x: number;
+    y: number;
+    type?: ThemeDotType;
+};
+
+export type CustomTheme = {
+    enabled: boolean;
+    dots: ThemeDot[];
+    harmony: ThemeHarmony;
+    lightness: number;
+    opacity: number;
+};
+
 export type LayoutMode = 'tree' | 'radial' | 'mindmap';
 
 export type TreeLayoutSettings = {
@@ -39,6 +63,7 @@ export type Settings = {
     maxOpenTabs: number;
     capacity: number;
     theme: ThemeId;
+    customTheme: CustomTheme;
     layout: LayoutSettings;
     titleTruncation: TitleTruncation;
     graphDensity: GraphDensity;

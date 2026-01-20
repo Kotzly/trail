@@ -22,8 +22,10 @@ import {
 import { saveSettings } from '../../api/settings.js';
 import { resetNodeLayouts } from '../../api/tree.js';
 import { THEME_IDS } from '../shared/themes.js';
+import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
+import { ThemePicker } from './theme/ThemePicker.js';
 import { createPortal } from 'react-dom';
 import React from 'react';
 
@@ -74,10 +76,6 @@ const SETTINGS_SECTIONS: SettingsMenuItem[] = [
     icon: Icons.Info,
   },
 ];
-
-function applyTheme(theme: string): void {
-  document.documentElement.setAttribute('data-theme', theme);
-}
 
 const clamp = (value: number, min: number, max: number): number =>
   Number.isFinite(value) ? Math.min(Math.max(value, min), max) : min;
@@ -384,7 +382,7 @@ export default function SettingsPopover() {
     if (!settings) return;
     const next = { ...settings, ...partial };
     setSettings(next);
-    applyTheme(next.theme);
+    applyTheme(next.theme, next.customTheme);
     scheduleSave(next);
   };
 
@@ -773,11 +771,11 @@ export default function SettingsPopover() {
           <div className="settings-section-title">Appearance</div>
           <div className="settings-section-hint">Theme, density, and typography choices.</div>
         </div>
-        <div className="popover-section">
-          <div className="popover-label-small">Theme</div>
-          <div className="popover-icons" id="themeIcons">
-            {themeIds.map((themeId) => (
-              <button
+      <div className="popover-section">
+        <div className="popover-label-small">Theme</div>
+        <div className="popover-icons" id="themeIcons">
+          {themeIds.map((themeId) => (
+            <button
                 key={themeId}
                 className={`popover-icon-btn ${settings?.theme === themeId ? 'active' : ''}`}
                 data-theme={themeId}
@@ -796,6 +794,13 @@ export default function SettingsPopover() {
             ))}
           </div>
         </div>
+
+        {settings ? (
+          <ThemePicker
+            value={settings.customTheme}
+            onChange={(next) => updateSettings({ customTheme: next })}
+          />
+        ) : null}
 
         <div className="popover-section">
           <div className="popover-label-small">Graph density</div>

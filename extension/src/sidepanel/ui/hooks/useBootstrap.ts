@@ -5,10 +5,7 @@ import { getTagDefs } from '../../api/tags.js';
 import { getCommandState } from '../../api/commands.js';
 import { isMac } from '../../../shared/utils/platform.js';
 import { MetaKeyPair, useStore } from '../state/store.js';
-
-function applyTheme(theme: string): void {
-  document.documentElement.setAttribute('data-theme', theme);
-}
+import { applyTheme } from '../shared/apply-theme.js';
 
 export function useBootstrap(): void {
   const bootstrap = useStore((state) => state.bootstrap);
@@ -34,7 +31,7 @@ export function useBootstrap(): void {
         setSettings(settings);
         setTagDefs(tagDefs);
         setTrees(treesSnapshot);
-        applyTheme(settings.theme);
+        applyTheme(settings.theme, settings.customTheme);
         const commandState = await getCommandState();
         if (mounted) setCommandState(commandState);
       } catch (error) {
