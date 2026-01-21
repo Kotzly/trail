@@ -542,6 +542,7 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const errorRgb = hexToRgb(error);
 
   const surfaceRgb = hexToRgb(surface);
+  const surfaceContainerRgb = hexToRgb(surfaceContainer);
   const onSurfaceRgb = hexToRgb(onSurface);
 
   const appBackgroundColor = gradientBase ?? surface;
@@ -551,7 +552,7 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const gridContrastRgb = getContrastText(backgroundRgb);
   const gridAlpha = backgroundLuminance > 0.6 ? 0.18 : backgroundLuminance < 0.35 ? 0.28 : 0.22;
   const gridDot = toRgbaString(gridContrastRgb, gridAlpha);
-  const glassInkRgb = getContrastText(backgroundRgb);
+  const glassInkRgb = getContrastText(surfaceContainerRgb);
   const glassInk = rgbToHex(glassInkRgb);
   const primarySoftRgb = blendColors(primaryRgbResolved, backgroundRgb, 45);
   const primarySoftInk = rgbToHex(getContrastText(primarySoftRgb));

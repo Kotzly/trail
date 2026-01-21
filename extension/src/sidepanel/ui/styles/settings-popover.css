@@ -31,6 +31,9 @@
   overflow: hidden;
   position: relative;
   animation: settings-modal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --settings-icon-ink: color-mix(in srgb, var(--md-on-surface) 78%, var(--md-surface) 22%);
+  --settings-icon-ink-strong: color-mix(in srgb, var(--md-on-surface) 92%, var(--md-surface) 8%);
+  --settings-icon-opacity: 0.82;
 }
 
 .settings-modal::before {
@@ -194,7 +197,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--md-on-surface);
+  color: var(--settings-icon-ink);
   flex-shrink: 0;
 }
 
@@ -299,7 +302,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--md-on-surface);
+  color: var(--settings-icon-ink);
   flex-shrink: 0;
 }
 
@@ -624,8 +627,31 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--md-on-surface);
+  color: var(--settings-icon-ink);
   flex-shrink: 0;
+}
+
+.settings-modal button svg,
+.settings-nav-icon svg,
+.settings-tab-icon svg,
+.settings-choice-icon svg,
+.popover-segment-btn svg {
+  color: var(--settings-icon-ink);
+  opacity: var(--settings-icon-opacity);
+}
+
+.settings-modal button:hover svg,
+.settings-modal button:focus-visible svg,
+.settings-nav-item.active svg,
+.settings-nav-item:hover svg,
+.settings-tab-btn.active svg,
+.settings-tab-btn:hover svg,
+.settings-choice.active svg,
+.settings-choice:hover svg,
+.popover-segment-btn.active svg,
+.popover-segment-btn:hover svg {
+  color: var(--settings-icon-ink-strong);
+  opacity: 1;
 }
 
 .settings-choice-text {
