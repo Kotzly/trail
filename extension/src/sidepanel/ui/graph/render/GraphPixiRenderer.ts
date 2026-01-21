@@ -202,23 +202,14 @@ class NodeVisual {
     }
 
     this.background.clear();
-    const radius = lod === 'dot' ? Math.min(model.width, model.height) / 2 : NODE_RADIUS;
+    const radius = NODE_RADIUS;
     this.background.roundRect(0, 0, model.width, model.height, radius);
     this.background.fill({ color: backgroundColor, alpha: 1 });
     if (borderWidth > 0) {
       this.background.stroke({ width: borderWidth, color: borderColor, alignment: 0.5 });
     }
 
-    if (lod === 'dot') {
-      this.fallbackDot.clear();
-      const size = Math.max(6, Math.min(10, model.width / 3));
-      const cx = model.width / 2;
-      const cy = model.height / 2;
-      this.fallbackDot.circle(cx, cy, size / 2);
-      this.fallbackDot.fill({ color: borderColor, alpha: 1 });
-    } else {
-      this.fallbackDot.clear();
-    }
+    this.fallbackDot.clear();
 
     if (isPreview) {
       this.background.setStrokeStyle({ width: 2, color: borderColor, alignment: 0.5 });
