@@ -782,32 +782,34 @@ export default function SettingsPopover() {
               return (
                 <>
                   <div className="settings-section">
-                    <div className="settings-section-header">
-                      <div className="settings-section-title">Layout mode</div>
-                      <div className="settings-section-hint">Pick a structure that matches how you browse.</div>
-                    </div>
-                    <div className="settings-choice-grid">
-                      {LAYOUT_OPTIONS.map((option) => {
-                        const Icon = option.icon;
-                        const active = layout.mode === option.id;
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            className={`settings-choice ${active ? 'active' : ''}`}
-                            aria-pressed={active}
-                            onClick={() => updateLayout({ mode: option.id })}
-                          >
-                            <span className="settings-choice-icon">
-                              <Icon size={16} />
-                            </span>
-                            <span className="settings-choice-text">
-                              <span className="settings-choice-title">{option.label}</span>
-                              <span className="settings-choice-hint">{option.description}</span>
-                            </span>
-                          </button>
-                        );
-                      })}
+                    <div className="settings-layout-panel">
+                      <div className="settings-section-header">
+                        <div className="settings-section-title">Layout mode</div>
+                        <div className="settings-section-hint">Pick a structure that matches how you browse.</div>
+                      </div>
+                      <div className="settings-choice-grid">
+                        {LAYOUT_OPTIONS.map((option) => {
+                          const Icon = option.icon;
+                          const active = layout.mode === option.id;
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              className={`settings-choice ${active ? 'active' : ''}`}
+                              aria-pressed={active}
+                              onClick={() => updateLayout({ mode: option.id })}
+                            >
+                              <span className="settings-choice-icon">
+                                <Icon size={16} />
+                              </span>
+                              <span className="settings-choice-text">
+                                <span className="settings-choice-title">{option.label}</span>
+                                <span className="settings-choice-hint">{option.description}</span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 

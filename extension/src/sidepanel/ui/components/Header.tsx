@@ -55,7 +55,7 @@ export default function Header() {
       <div className="header-actions">
         <button
           id="undoBtn"
-          className="btn-icon"
+          className="matte-circle-btn orb-button"
           type="button"
           title={
             commandState?.nextUndoDesc
@@ -69,7 +69,7 @@ export default function Header() {
         </button>
         <button
           id="redoBtn"
-          className="btn-icon"
+          className="matte-circle-btn orb-button"
           type="button"
           title={
             commandState?.nextRedoDesc
@@ -85,12 +85,12 @@ export default function Header() {
         <PinnedDropdown />
         <TreeDropdown />
         <TagFilterDropdown />
-        <button id="newTreeBtn" className="btn-icon" type="button" title="new tree" onClick={handleNewTree}>
+        <button id="newTreeBtn" className="matte-circle-btn orb-button" type="button" title="new tree" onClick={handleNewTree}>
           <Icons.GitBranchPlus size={20} />
         </button>
         <button
           id="themePickerBtn"
-          className="btn-icon"
+          className="matte-circle-btn orb-button"
           type="button"
           title="theme"
           onClick={() => setThemePickerOpen(!themePickerOpen)}
@@ -99,7 +99,7 @@ export default function Header() {
         </button>
         <button
           id="settingsBtn"
-          className="btn-icon"
+          className="matte-circle-btn orb-button"
           type="button"
           title="settings"
           onClick={() => setSettingsOpen(!settingsOpen)}

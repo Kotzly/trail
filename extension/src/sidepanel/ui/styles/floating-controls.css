@@ -9,11 +9,6 @@
   gap: 12px;
   z-index: 900;
   pointer-events: none;
-  --orb-shadow: var(--md-glass-shadow);
-  --orb-border: var(--md-glass-border);
-  --orb-surface: var(--md-glass);
-  --orb-surface-strong: var(--md-glass-strong);
-  --orb-inset: var(--md-glass-inset);
 }
 
 .floating-controls-left,
@@ -34,72 +29,52 @@
   pointer-events: auto;
 }
 
-.btn-icon {
+.matte-circle-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--md-glass);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   border: var(--md-glass-border);
-  border-radius: 20px;
+  background: var(--md-glass);
+  box-shadow: var(--md-glass-shadow), var(--md-glass-inset);
   color: var(--md-glass-ink-muted);
-  box-shadow: var(--md-glass-inset);
   cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease, color 0.12s ease,
+    border-color 0.12s ease;
   backdrop-filter: var(--md-glass-blur);
   -webkit-backdrop-filter: var(--md-glass-blur);
-  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
 }
 
-.btn-icon:hover {
+.matte-circle-btn:hover {
   background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
   color: var(--md-glass-ink);
+  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  transform: translateY(-1px);
 }
 
-.btn-icon:focus-visible {
+.matte-circle-btn:focus-visible {
   outline: 2px solid rgba(var(--md-primary-rgb), 0.35);
   outline-offset: 2px;
 }
 
-.btn-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.orb-button {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--orb-surface);
-  border: var(--orb-border);
-  box-shadow: var(--orb-shadow), var(--orb-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
-  animation: orb-in 180ms ease-out;
-}
-
-.orb-button.btn-icon {
-  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
-}
-
-.orb-button.btn-icon:hover {
-  background: var(--orb-surface-strong);
-  transform: translateY(-1px);
-}
-
-.orb-button.btn-icon:active {
+.matte-circle-btn:active {
   transform: translateY(0) scale(0.96);
 }
 
-.orb-button.btn-icon:disabled {
+.matte-circle-btn:disabled {
   cursor: default;
   opacity: 0.45;
 }
 
-.orb-button.btn-icon svg {
+.matte-circle-btn svg {
   width: 18px;
   height: 18px;
+}
+
+.matte-circle-btn.orb-button {
+  animation: orb-in 180ms ease-out;
 }
 
 @keyframes orb-in {

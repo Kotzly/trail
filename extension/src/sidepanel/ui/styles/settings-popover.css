@@ -351,6 +351,17 @@
   color: var(--md-on-surface-variant);
 }
 
+.settings-layout-panel {
+  background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-on-surface) 14%, transparent);
+  border-radius: 22px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--md-elev-1);
+}
+
 .settings-card {
   background: color-mix(in srgb, var(--md-on-surface) 4%, transparent);
   border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
@@ -548,24 +559,24 @@
 .settings-choice-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
+  gap: 14px;
 }
 
 .settings-choice {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
-  background: color-mix(in srgb, var(--md-on-surface) 4%, transparent);
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
   cursor: pointer;
   text-align: left;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
 .settings-choice:hover {
-  background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
+  background: color-mix(in srgb, var(--md-on-surface) 10%, transparent);
 }
 
 .settings-choice.active {

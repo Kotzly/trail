@@ -69,7 +69,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
         <div className="floating-island">
           <button
             id="undoBtn"
-            className="btn-icon orb-button"
+            className="matte-circle-btn orb-button"
             type="button"
             title={
               commandState?.nextUndoDesc
@@ -83,7 +83,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
           </button>
           <button
             id="redoBtn"
-            className="btn-icon orb-button"
+            className="matte-circle-btn orb-button"
             type="button"
             title={
               commandState?.nextRedoDesc
@@ -103,7 +103,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
           <TagFilterDropdown />
           <button
             id="newTreeBtn"
-            className="btn-icon orb-button"
+            className="matte-circle-btn orb-button"
             type="button"
             title="new tree"
             onClick={() => {
@@ -119,20 +119,20 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
 
       <div className="floating-controls-right">
         <FloatingSearch inputRef={searchInputRef} />
-        <div className="floating-island">
-          <button
-            id="themePickerBtn"
-            className="btn-icon orb-button"
-            type="button"
-            title="theme"
+          <div className="floating-island">
+            <button
+              id="themePickerBtn"
+              className="matte-circle-btn orb-button"
+              type="button"
+              title="theme"
             onClick={() => setThemePickerOpen(!themePickerOpen)}
           >
             <Icons.Palette size={18} />
           </button>
-          <button
-            id="settingsBtn"
-            className="btn-icon orb-button"
-            type="button"
+            <button
+              id="settingsBtn"
+              className="matte-circle-btn orb-button"
+              type="button"
             title="settings"
             onClick={() => setSettingsOpen(!settingsOpen)}
           >

@@ -131,7 +131,7 @@ export default function TagFilterDropdown() {
       <button
         ref={triggerRef}
         id="tagFilterBtn"
-        className="btn-icon orb-button"
+        className="matte-circle-btn orb-button"
         type="button"
         title="Filter by tags"
         onClick={() => setTagFilterOpen(!tagFilterOpen)}

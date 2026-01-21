@@ -92,30 +92,34 @@
   z-index: 10;
 }
 
-.graph-zoom-btn {
+.graph-control-btn {
   width: 36px;
   height: 36px;
-  display: flex;
+  border-radius: 10px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   background: var(--md-glass);
   border: var(--md-glass-border);
-  border-radius: 8px;
-  cursor: pointer;
+  border-radius: 10px;
   box-shadow: var(--md-glass-inset);
   backdrop-filter: var(--md-glass-blur);
   -webkit-backdrop-filter: var(--md-glass-blur);
-  transition: all 0.15s ease;
+  color: var(--md-glass-ink-muted);
+  cursor: pointer;
+  transition: all 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.graph-control-btn:hover {
+  background: var(--md-glass-strong);
+  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
   color: var(--md-glass-ink);
 }
 
-.graph-zoom-btn:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-}
-
-.graph-zoom-btn:active {
-  transform: scale(0.95);
+.graph-control-btn.active {
+  background: color-mix(in srgb, var(--md-primary) 45%, transparent);
+  border-color: color-mix(in srgb, var(--md-primary) 45%, transparent);
+  color: var(--md-on-primary-soft);
 }
 
 .graph-zoom-btn svg {
@@ -123,52 +127,7 @@
   height: 18px;
 }
 
-.graph-tool-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: var(--md-glass);
-  border: var(--md-glass-border);
-  border-radius: 8px;
-  padding: 2px;
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
-}
 
-.graph-tool-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--md-glass);
-  border: var(--md-glass-border);
-  border-radius: 6px;
-  cursor: pointer;
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: all 0.15s ease, border-color 0.15s ease;
-  color: var(--md-glass-ink-muted);
-}
-
-.graph-tool-btn:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-glass-ink);
-}
-
-.graph-tool-btn.active {
-  background: color-mix(in srgb, var(--md-primary) 45%, transparent);
-  border-color: color-mix(in srgb, var(--md-primary) 45%, transparent);
-  color: var(--md-on-primary-soft);
-}
-
-.graph-tool-btn svg {
-  width: 16px;
-  height: 16px;
-}
 
 .graph-zoom-divider {
   height: 1px;

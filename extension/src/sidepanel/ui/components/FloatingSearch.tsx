@@ -75,7 +75,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
   return (
     <div className={`floating-search ${hasQuery ? 'expanded has-query' : ''}${listOpen ? ' list-open' : ''}`}>
       <button
-        className="btn-icon orb-button search-orb"
+        className="matte-circle-btn orb-button search-orb"
         type="button"
         title="Search (Ctrl+F)"
         onClick={() => inputRef.current?.focus()}

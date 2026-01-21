@@ -156,7 +156,7 @@ export default function TreeDropdown() {
       <button
         ref={triggerRef}
         id="treesBtn"
-        className="btn-icon orb-button"
+        className="matte-circle-btn orb-button"
         type="button"
         title="Saved trees"
         onClick={() => setTreesOpen(!treesOpen)}
