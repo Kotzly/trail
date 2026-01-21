@@ -147,6 +147,7 @@ type StoreActions = {
   setPinnedOpen: (open: boolean) => void;
   setTreesOpen: (open: boolean) => void;
   setTagFilterOpen: (open: boolean) => void;
+  closeAllPopups: () => void;
   registerOverlay: (id: string, effects: OverlayEffects) => void;
   unregisterOverlay: (id: string) => void;
   setAccount: (patch: Partial<AccountState>) => void;
@@ -168,6 +169,22 @@ type StoreActions = {
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
 };
+
+type PopupKey = keyof StoreState['ui'];
+
+const closeUiPopups = (ui: StoreState['ui']): StoreState['ui'] => ({
+  ...ui,
+  settingsOpen: false,
+  themePickerOpen: false,
+  pinnedOpen: false,
+  treesOpen: false,
+  tagFilterOpen: false,
+});
+
+const openUiPopup = (ui: StoreState['ui'], key: PopupKey): StoreState['ui'] => ({
+  ...closeUiPopups(ui),
+  [key]: true,
+});
 
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
   settings: null,
@@ -411,11 +428,37 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     }),
 
   setSettings: (settings) => set({ settings }),
-  setSettingsOpen: (open) => set((state) => ({ ui: { ...state.ui, settingsOpen: open } })),
-  setThemePickerOpen: (open) => set((state) => ({ ui: { ...state.ui, themePickerOpen: open } })),
-  setPinnedOpen: (open) => set((state) => ({ ui: { ...state.ui, pinnedOpen: open } })),
-  setTreesOpen: (open) => set((state) => ({ ui: { ...state.ui, treesOpen: open } })),
-  setTagFilterOpen: (open) => set((state) => ({ ui: { ...state.ui, tagFilterOpen: open } })),
+  setSettingsOpen: (open) =>
+    set((state) =>
+      open
+        ? { ui: openUiPopup(state.ui, 'settingsOpen'), contextMenu: null }
+        : { ui: { ...state.ui, settingsOpen: false } },
+    ),
+  setThemePickerOpen: (open) =>
+    set((state) =>
+      open
+        ? { ui: openUiPopup(state.ui, 'themePickerOpen'), contextMenu: null }
+        : { ui: { ...state.ui, themePickerOpen: false } },
+    ),
+  setPinnedOpen: (open) =>
+    set((state) =>
+      open
+        ? { ui: openUiPopup(state.ui, 'pinnedOpen'), contextMenu: null }
+        : { ui: { ...state.ui, pinnedOpen: false } },
+    ),
+  setTreesOpen: (open) =>
+    set((state) =>
+      open
+        ? { ui: openUiPopup(state.ui, 'treesOpen'), contextMenu: null }
+        : { ui: { ...state.ui, treesOpen: false } },
+    ),
+  setTagFilterOpen: (open) =>
+    set((state) =>
+      open
+        ? { ui: openUiPopup(state.ui, 'tagFilterOpen'), contextMenu: null }
+        : { ui: { ...state.ui, tagFilterOpen: false } },
+    ),
+  closeAllPopups: () => set((state) => ({ ui: closeUiPopups(state.ui), contextMenu: null })),
   registerOverlay: (id, effects) =>
     set((state) => {
       const prev = state.overlayEffects.entries[id];
@@ -534,7 +577,11 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       graph: { ...state.graph, resetVersion: state.graph.resetVersion + 1 },
     })),
 
-  openContextMenu: (menu) => set({ contextMenu: menu }),
+  openContextMenu: (menu) =>
+    set((state) => ({
+      contextMenu: menu,
+      ui: closeUiPopups(state.ui),
+    })),
   closeContextMenu: () => set({ contextMenu: null }),
   clearViewIntent: () =>
     set((state) => ({

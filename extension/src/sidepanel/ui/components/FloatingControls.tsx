@@ -24,6 +24,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
   const themePickerOpen = useStore((state) => state.ui.themePickerOpen);
   const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
+  const closeAllPopups = useStore((state) => state.closeAllPopups);
   const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [labelDraft, setLabelDraft] = useState('');
@@ -107,6 +108,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
             title="new tree"
             onClick={() => {
               setLabelDraft('');
+              closeAllPopups();
               setConfirmOpen(true);
             }}
           >
