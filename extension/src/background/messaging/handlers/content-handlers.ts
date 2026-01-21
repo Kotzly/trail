@@ -1,11 +1,11 @@
 // messaging/handlers/content-handlers.ts
-import { shouldTrackUrl } from "../../utils/url-utils.js";
+import { isPlaceholderUrl, shouldTrackUrl } from "../../utils/url-utils.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { notifyTreeUpdate } from "../notifications.js";
 import { MSG, defineHandlers } from "../../../shared/types/messages.js";
 import { ok, err } from "../../../shared/types/messages.js";
-import { TabId } from "../../../shared/types/ids.js";
+import type { TabId, Url } from "../../../shared/types/ids.js";
 
 function getSenderTabId(sender: chrome.runtime.MessageSender): TabId | null {
   const id = sender.tab?.id;
@@ -30,7 +30,7 @@ export const contentHandlers = defineHandlers({
 
     const url = message.url;
 
-    if (!newTitle || !shouldTrackUrl(url)) return ok();
+    if (!newTitle || !shouldTrackUrl(url as Url) || isPlaceholderUrl(url as Url)) return ok();
 
     if (node.data.title === newTitle) return ok();
     if (node.data.url !== url) return err("URL mismatch");

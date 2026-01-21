@@ -7,7 +7,7 @@ import { redirectDetector } from './redirect-detection.js';
 import {
   normalizeFaviconUrl,
   shouldTrackUrl,
-  isBlankUrl,
+  isPlaceholderUrl,
 } from '../utils/url-utils.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { notifyUi } from '../messaging/ui-notifications.js';
@@ -38,7 +38,7 @@ export async function handleNavigation(
   }
   
   // Skip blank/placeholder URLs - just track for redirect detection, don't create nodes
-  if (!url || isBlankUrl(url as Url)) {
+  if (!url || isPlaceholderUrl(url as Url)) {
     redirectDetector.recordTabUrl(tabId as TabId, {
       url: (url || 'about:blank') as Url,
       timestamp: now(),
@@ -88,7 +88,7 @@ export async function handleNavigation(
       if (node && node.data.url !== url) {
         // Different URL
         const nodeUrl = node.data.url as Url;
-        if (!nodeUrl || isBlankUrl(nodeUrl)) {
+        if (!nodeUrl || isPlaceholderUrl(nodeUrl)) {
           node.data = {
             ...node.data,
             url: data.url,
