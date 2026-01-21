@@ -695,7 +695,7 @@ export default function ThemePalette({
       <div className="zen-theme-picker-controls">
         <div className="zen-theme-picker-opacity">
           <div className="zen-theme-picker-wave">
-            <svg viewBox="0 -7.605 455 70" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid meet">
+            <svg viewBox="51.373 -8.503 315.664 71.796" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid meet">
               <path
                 ref={wavePathRef}
                 d={LINE_PATH}

@@ -261,11 +261,15 @@
   position: relative;
   flex: 1;
   height: 44px;
+  --zen-slider-padding: 8px;
+  --zen-slider-track-height: 18px;
+  --zen-slider-wave-inset: 4px;
 }
 
 .zen-theme-picker-wave {
   position: absolute;
-  left: -5px;
+  left: 0;
+  right: 0;
   top: 0;
   width: 100%;
   height: 100%;
@@ -278,24 +282,21 @@
 .zen-theme-picker-wave::before {
   content: '';
   position: absolute;
-  width: calc(100% - 8px);
+  width: calc(100% - (var(--zen-slider-padding) * 2));
   height: 16px;
   background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
   border-radius: 999px;
   pointer-events: none;
   z-index: -1;
   top: 50%;
-  left: 8px;
+  left: var(--zen-slider-padding);
   transform: translateY(-50%);
 }
 
 .zen-theme-picker-wave svg {
   overflow: visible;
-  width: 100%;
-  min-width: 110%;
-  transform: scale(1.2);
-  transform-origin: left center;
-  margin-left: 4px;
+  width: calc(100% - (var(--zen-slider-padding) * 2) - (var(--zen-slider-wave-inset) * 2));
+  margin-left: calc(var(--zen-slider-padding) + var(--zen-slider-wave-inset));
 }
 
 .zen-theme-picker-opacity input[type='range'] {
@@ -306,7 +307,7 @@
   background: transparent;
   z-index: 2;
   position: relative;
-  padding: 0 5px;
+  padding: 0 var(--zen-slider-padding);
   margin: 0;
   outline: none;
 }
@@ -319,6 +320,7 @@
   background: var(--md-on-surface);
   border: none;
   cursor: pointer;
+  margin-top: calc((var(--zen-slider-track-height) - var(--zen-thumb-height, 40px)) / 2);
 }
 
 .zen-theme-picker-opacity input[type='range']::-moz-range-thumb {
@@ -328,16 +330,17 @@
   background: var(--md-on-surface);
   border: none;
   cursor: pointer;
+  margin-top: calc((var(--zen-slider-track-height) - var(--zen-thumb-height, 40px)) / 2);
 }
 
 .zen-theme-picker-opacity input[type='range']::-webkit-slider-runnable-track {
-  height: 18px;
+  height: var(--zen-slider-track-height);
   border-radius: 999px;
   background: transparent;
 }
 
 .zen-theme-picker-opacity input[type='range']::-moz-range-track {
-  height: 18px;
+  height: var(--zen-slider-track-height);
   border-radius: 999px;
   background: transparent;
 }
