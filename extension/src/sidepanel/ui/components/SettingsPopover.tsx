@@ -578,7 +578,7 @@ export default function SettingsPopover() {
         <div className="settings-panel-subtitle">Make Trail feel like your own space.</div>
       </div>
 
-      <div className="settings-tablist" role="tablist" aria-label="Preferences tabs">
+      <div className="settings-tablist settings-card-shell" role="tablist" aria-label="Preferences tabs">
         {PREFERENCE_TABS.map((tab) => {
           const Icon = tab.icon;
           const active = tab.id === activePreferencesTab;
@@ -588,6 +588,7 @@ export default function SettingsPopover() {
               id={`settings-tab-${tab.id}`}
               type="button"
               role="tab"
+              title={`${tab.label} — ${tab.description}`}
               className={`settings-tab-btn ${active ? 'active' : ''}`}
               aria-selected={active}
               aria-controls={`settings-tabpanel-${tab.id}`}
@@ -782,7 +783,7 @@ export default function SettingsPopover() {
               return (
                 <>
                   <div className="settings-section">
-                    <div className="settings-layout-panel">
+                    <div className="settings-layout-panel settings-card-shell">
                       <div className="settings-section-header">
                         <div className="settings-section-title">Layout mode</div>
                         <div className="settings-section-hint">Pick a structure that matches how you browse.</div>
