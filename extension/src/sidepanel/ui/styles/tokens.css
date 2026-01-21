@@ -27,6 +27,10 @@
   --md-glass-highlight-soft: rgba(255, 255, 255, 0.12);
   --md-glass-shadow: 0 20px 10px rgba(0, 0, 0, 0.28);
   --md-glass-blur: blur(20px);
+  --md-glass-ink: var(--md-on-surface);
+  --md-glass-ink-muted: color-mix(in srgb, var(--md-glass-ink) 70%, transparent);
+  --md-on-primary-soft: var(--md-on-surface);
+  --md-overlay: rgba(12, 14, 20, 0.12);
   --scrollbar-thumb: rgba(var(--md-primary-rgb), 0.24);
   --scrollbar-thumb-hover: rgba(var(--md-primary-rgb), 0.4);
 
@@ -68,6 +72,10 @@
   --md-glass-highlight-soft: rgba(255, 255, 255, 0.1);
   --md-glass-shadow: 0 20px 10px rgba(0, 0, 0, 0.38);
   --md-glass-blur: blur(20px);
+  --md-glass-ink: var(--md-on-surface);
+  --md-glass-ink-muted: color-mix(in srgb, var(--md-glass-ink) 65%, transparent);
+  --md-on-primary-soft: var(--md-on-surface);
+  --md-overlay: rgba(8, 10, 14, 0.5);
   --scrollbar-thumb: rgba(var(--md-primary-rgb), 0.2);
   --scrollbar-thumb-hover: rgba(var(--md-primary-rgb), 0.36);
 
@@ -110,6 +118,10 @@
     --md-glass-highlight-soft: rgba(255, 255, 255, 0.1);
     --md-glass-shadow: 0 20px 10px rgba(0, 0, 0, 0.38);
     --md-glass-blur: blur(20px);
+    --md-glass-ink: var(--md-on-surface);
+    --md-glass-ink-muted: color-mix(in srgb, var(--md-glass-ink) 65%, transparent);
+    --md-on-primary-soft: var(--md-on-surface);
+    --md-overlay: rgba(8, 10, 14, 0.5);
     --scrollbar-thumb: rgba(var(--md-primary-rgb), 0.2);
     --scrollbar-thumb-hover: rgba(var(--md-primary-rgb), 0.36);
 
@@ -153,6 +165,10 @@
     --md-glass-highlight-soft: rgba(255, 255, 255, 0.12);
     --md-glass-shadow: 0 20px 10px rgba(0, 0, 0, 0.28);
     --md-glass-blur: blur(20px);
+    --md-glass-ink: var(--md-on-surface);
+    --md-glass-ink-muted: color-mix(in srgb, var(--md-glass-ink) 70%, transparent);
+    --md-on-primary-soft: var(--md-on-surface);
+    --md-overlay: rgba(12, 14, 20, 0.12);
     --scrollbar-thumb: rgba(var(--md-primary-rgb), 0.24);
     --scrollbar-thumb-hover: rgba(var(--md-primary-rgb), 0.4);
 

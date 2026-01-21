@@ -45,6 +45,9 @@ export const THEME_TOKEN_KEYS = [
   '--md-glass-strong',
   '--md-glass-border',
   '--md-glass-inset',
+  '--md-glass-ink',
+  '--md-on-primary-soft',
+  '--md-overlay',
   '--scrollbar-thumb',
   '--scrollbar-thumb-hover',
   '--graph-node-closed-bg',
@@ -548,6 +551,13 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const gridContrastRgb = getContrastText(backgroundRgb);
   const gridAlpha = backgroundLuminance > 0.6 ? 0.18 : backgroundLuminance < 0.35 ? 0.28 : 0.22;
   const gridDot = toRgbaString(gridContrastRgb, gridAlpha);
+  const glassInkRgb = getContrastText(backgroundRgb);
+  const glassInk = rgbToHex(glassInkRgb);
+  const primarySoftRgb = blendColors(primaryRgbResolved, backgroundRgb, 45);
+  const primarySoftInk = rgbToHex(getContrastText(primarySoftRgb));
+  const overlayAlpha =
+    backgroundLuminance > 0.6 ? 0.12 : backgroundLuminance < 0.35 ? 0.45 : 0.28;
+  const overlay = `rgba(8, 10, 14, ${overlayAlpha})`;
 
   const mdElev1 = isDark
     ? '0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9)'
@@ -589,6 +599,9 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
     '--md-elev-1': mdElev1,
     '--md-elev-2': mdElev2,
     '--md-elev-3': mdElev3,
+    '--md-glass-ink': glassInk,
+    '--md-on-primary-soft': primarySoftInk,
+    '--md-overlay': overlay,
     '--scrollbar-thumb': `rgba(${rgbToCssTuple(primaryRgbResolved)}, ${isDark ? 0.2 : 0.24})`,
     '--scrollbar-thumb-hover': `rgba(${rgbToCssTuple(primaryRgbResolved)}, ${
       isDark ? 0.36 : 0.4

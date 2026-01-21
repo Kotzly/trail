@@ -4,9 +4,9 @@
   align-items: flex-start;
   gap: 10px;
   pointer-events: auto;
-  --search-ink: var(--md-on-surface);
-  --search-ink-muted: color-mix(in srgb, var(--md-on-surface) 60%, transparent);
-  --search-ink-subtle: color-mix(in srgb, var(--md-on-surface) 45%, transparent);
+  --search-ink: var(--md-glass-ink);
+  --search-ink-muted: color-mix(in srgb, var(--md-glass-ink) 60%, transparent);
+  --search-ink-subtle: color-mix(in srgb, var(--md-glass-ink) 45%, transparent);
   --search-surface: var(--md-glass);
   --search-surface-strong: var(--md-glass-strong);
   --search-border: var(--md-glass-border);

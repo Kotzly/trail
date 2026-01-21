@@ -195,7 +195,7 @@
   align-items: center;
   justify-content: center;
   background: var(--md-glass);
-  color: var(--md-on-surface);
+  color: var(--md-glass-ink);
   opacity: 0;
   transform: scale(0.6);
   transition: opacity 0.14s ease, transform 0.18s ease;
@@ -226,7 +226,7 @@
   border-radius: 50%;
   border: var(--md-glass-border);
   background: var(--md-glass);
-  color: var(--md-on-surface-variant);
+  color: var(--md-glass-ink-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -240,7 +240,7 @@
 .graph-context-tab-action:hover {
   background: var(--md-glass-strong);
   border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-on-surface);
+  color: var(--md-glass-ink);
 }
 
 .graph-context-tab-action.danger:hover {

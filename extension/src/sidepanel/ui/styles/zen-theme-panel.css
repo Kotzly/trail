@@ -1,7 +1,7 @@
 .theme-panel-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(12, 14, 20, 0.28);
+  background: var(--md-overlay);
   backdrop-filter: blur(8px) saturate(1.05);
   -webkit-backdrop-filter: blur(8px) saturate(1.05);
   display: grid;
@@ -59,7 +59,7 @@
 .theme-panel-close {
   border: var(--md-glass-border);
   background: var(--md-glass);
-  color: var(--md-on-surface-variant);
+  color: var(--md-glass-ink-muted);
   cursor: pointer;
   padding: 4px;
   border-radius: 8px;
@@ -72,7 +72,7 @@
 .theme-panel-close:hover {
   background: var(--md-glass-strong);
   border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-on-surface);
+  color: var(--md-glass-ink);
 }
 
 .zen-theme-picker {
@@ -541,7 +541,7 @@
   border-radius: 8px;
   border: var(--md-glass-border);
   background: var(--md-glass);
-  color: var(--md-on-surface);
+  color: var(--md-glass-ink);
   cursor: pointer;
   display: inline-flex;
   align-items: center;

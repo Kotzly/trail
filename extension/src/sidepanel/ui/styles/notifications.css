@@ -75,7 +75,7 @@
 .notification-icon {
   width: 18px;
   height: 18px;
-  color: var(--md-on-surface-variant);
+  color: var(--md-glass-ink-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -103,7 +103,7 @@
   border: var(--md-glass-border);
   background: var(--md-glass);
   box-shadow: var(--md-glass-inset);
-  color: var(--md-on-surface-variant);
+  color: var(--md-glass-ink-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -115,7 +115,7 @@
 
 .notification-action-btn:hover {
   transform: translateY(-1px);
-  color: var(--md-on-surface);
+  color: var(--md-glass-ink);
   background: var(--md-glass-strong);
   border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
 }

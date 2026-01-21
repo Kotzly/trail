@@ -43,7 +43,7 @@
   background: var(--md-glass);
   border: var(--md-glass-border);
   border-radius: 20px;
-  color: var(--md-on-surface-variant);
+  color: var(--md-glass-ink-muted);
   box-shadow: var(--md-glass-inset);
   cursor: pointer;
   backdrop-filter: var(--md-glass-blur);
@@ -54,7 +54,7 @@
 .btn-icon:hover {
   background: var(--md-glass-strong);
   border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-on-surface);
+  color: var(--md-glass-ink);
 }
 
 .btn-icon:focus-visible {
@@ -116,7 +116,7 @@
 .confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(12, 14, 20, 0.45);
+  background: var(--md-overlay);
   display: flex;
   align-items: center;
   justify-content: center;

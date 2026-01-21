@@ -1,7 +1,7 @@
 .tag-editor-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(12, 14, 20, 0.32);
+  background: var(--md-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -137,7 +137,7 @@
   align-items: center;
   justify-content: center;
   background: var(--md-glass);
-  color: var(--md-on-surface);
+  color: var(--md-glass-ink);
   box-shadow: var(--md-glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
