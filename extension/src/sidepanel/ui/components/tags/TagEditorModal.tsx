@@ -5,6 +5,7 @@ import { TAG_ICON_OPTIONS } from './tag-icons.js';
 import { TagIcon } from './TagIcon.js';
 import { Icons } from '../Icon.js';
 import { createPortal } from 'react-dom';
+import { useOverlayEffects } from '../../state/overlay-effects.js';
 import React from 'react';
 
 type TagEditorMode = 'create' | 'edit';
@@ -30,6 +31,8 @@ export default function TagEditorModal({
   onSubmit,
   onCancel,
 }: TagEditorModalProps) {
+  useOverlayEffects(open, { lod: true, blur: true, kind: 'modal' });
+
   const [label, setLabel] = useState(initial?.label ?? '');
   const [color, setColor] = useState(initial?.color ?? TAG_COLOR_OPTIONS[0]);
   const [iconId, setIconId] = useState(initial?.iconId ?? TAG_ICON_OPTIONS[0].id);
@@ -71,7 +74,7 @@ export default function TagEditorModal({
   if (typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="tag-editor-overlay" onClick={onCancel}>
+    <div className="tag-editor-overlay lod-enabler blur-enabler" onClick={onCancel}>
       <div className="tag-editor" onClick={(event) => event.stopPropagation()}>
         <div className="tag-editor-header">
           <h3 className="tag-editor-title">{title}</h3>

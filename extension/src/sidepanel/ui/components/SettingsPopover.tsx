@@ -25,6 +25,7 @@ import { getRangePercent } from '../shared/range.js';
 import { resetNodeLayouts } from '../../api/tree.js';
 import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
+import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
 import { createPortal } from 'react-dom';
 import React from 'react';
@@ -248,6 +249,8 @@ export default function SettingsPopover() {
   const setAccountSnapshot = useStore((state) => state.setAccountSnapshot);
   const nodeCount = useStore((state) => state.nodeCount);
   const metaKey = useStore((state) => state.metaKey);
+
+  useOverlayEffects(settingsOpen, { lod: true, blur: true, kind: 'modal' });
 
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('preferences');
   const [authBusy, setAuthBusy] = useState(false);
@@ -1240,7 +1243,7 @@ export default function SettingsPopover() {
   };
 
   return createPortal(
-    <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
+    <div className="settings-modal-overlay lod-enabler blur-enabler" onClick={() => setSettingsOpen(false)}>
       <div
         ref={popoverRef}
         className="settings-modal"

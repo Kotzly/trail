@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { NodeId } from '../../../shared/types/ids.js';
 import { navigateTo } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
+import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
 import React from 'react';
 
@@ -10,6 +11,8 @@ export default function PinnedDropdown() {
   const tree = useStore((state) => state.tree);
   const pinnedOpen = useStore((state) => state.ui.pinnedOpen);
   const setPinnedOpen = useStore((state) => state.setPinnedOpen);
+
+  useOverlayEffects(pinnedOpen, { kind: 'dropdown' });
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);

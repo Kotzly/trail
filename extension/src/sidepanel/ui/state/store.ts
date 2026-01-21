@@ -42,6 +42,20 @@ type ContextMenuState =
     }
   | null;
 
+export type OverlayKind = 'modal' | 'dropdown' | 'context' | 'panel';
+
+export type OverlayEffects = {
+  lod: boolean;
+  blur: boolean;
+  kind: OverlayKind;
+};
+
+type OverlayEffectsState = {
+  entries: Record<string, OverlayEffects>;
+  lodCount: number;
+  blurCount: number;
+};
+
 type AccountStatus = 'idle' | 'loading' | 'ready' | 'error';
 type NetworkStatus = 'online' | 'offline' | 'degraded';
 
@@ -90,6 +104,7 @@ type StoreState = {
     active: boolean;
     baseCurrentId: NodeId | null;
   };
+  overlayEffects: OverlayEffectsState;
   ui: {
     settingsOpen: boolean;
     themePickerOpen: boolean;
@@ -132,6 +147,8 @@ type StoreActions = {
   setPinnedOpen: (open: boolean) => void;
   setTreesOpen: (open: boolean) => void;
   setTagFilterOpen: (open: boolean) => void;
+  registerOverlay: (id: string, effects: OverlayEffects) => void;
+  unregisterOverlay: (id: string) => void;
   setAccount: (patch: Partial<AccountState>) => void;
   setAccountSnapshot: (snapshot: AccountSnapshot) => void;
   resetAccount: () => void;
@@ -191,6 +208,11 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     navStep: 0,
     active: false,
     baseCurrentId: null,
+  },
+  overlayEffects: {
+    entries: {},
+    lodCount: 0,
+    blurCount: 0,
   },
   ui: {
     settingsOpen: false,
@@ -394,6 +416,45 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setPinnedOpen: (open) => set((state) => ({ ui: { ...state.ui, pinnedOpen: open } })),
   setTreesOpen: (open) => set((state) => ({ ui: { ...state.ui, treesOpen: open } })),
   setTagFilterOpen: (open) => set((state) => ({ ui: { ...state.ui, tagFilterOpen: open } })),
+  registerOverlay: (id, effects) =>
+    set((state) => {
+      const prev = state.overlayEffects.entries[id];
+      if (prev && prev.lod === effects.lod && prev.blur === effects.blur && prev.kind === effects.kind) {
+        return state;
+      }
+      const entries = { ...state.overlayEffects.entries, [id]: effects };
+      let lodCount = 0;
+      let blurCount = 0;
+      Object.values(entries).forEach((entry) => {
+        if (entry.lod) lodCount += 1;
+        if (entry.blur) blurCount += 1;
+      });
+      return {
+        overlayEffects: {
+          entries,
+          lodCount,
+          blurCount,
+        },
+      };
+    }),
+  unregisterOverlay: (id) =>
+    set((state) => {
+      if (!state.overlayEffects.entries[id]) return state;
+      const { [id]: _removed, ...entries } = state.overlayEffects.entries;
+      let lodCount = 0;
+      let blurCount = 0;
+      Object.values(entries).forEach((entry) => {
+        if (entry.lod) lodCount += 1;
+        if (entry.blur) blurCount += 1;
+      });
+      return {
+        overlayEffects: {
+          entries,
+          lodCount,
+          blurCount,
+        },
+      };
+    }),
   setAccount: (patch) => set((state) => ({ account: { ...state.account, ...patch } })),
   setAccountSnapshot: (snapshot) =>
     set((state) => ({

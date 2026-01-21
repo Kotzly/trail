@@ -10,6 +10,7 @@ import TreeDropdown from './TreeDropdown.js';
 import TagFilterDropdown from './tags/TagFilterDropdown.js';
 import { createPortal } from 'react-dom';
 import React from 'react';
+import { useOverlayEffects } from '../state/overlay-effects.js';
 
 type FloatingControlsProps = {
   searchInputRef: RefObject<HTMLInputElement>;
@@ -177,6 +178,8 @@ function ConfirmOverlay({
   onCancel,
   onConfirm,
 }: ConfirmOverlayProps) {
+  useOverlayEffects(open, { lod: true, blur: true, kind: 'modal' });
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -195,7 +198,7 @@ function ConfirmOverlay({
   if (typeof document === 'undefined') return null;
   return createPortal(
     <div
-      className="confirm-overlay"
+      className="confirm-overlay lod-enabler blur-enabler"
       onClick={onCancel}
       onPointerDown={(event) => event.stopPropagation()}
     >

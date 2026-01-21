@@ -19,14 +19,7 @@ export default function GraphArea() {
       },
       settings: state.settings,
       showConnections: state.settings?.showConnections ?? true,
-      detailMode:
-        state.ui.settingsOpen ||
-        state.ui.themePickerOpen ||
-        state.ui.pinnedOpen ||
-        state.ui.treesOpen ||
-        state.ui.tagFilterOpen
-          ? ('dot' as const)
-          : ('full' as const),
+      detailMode: state.overlayEffects.lodCount > 0 ? ('dot' as const) : ('full' as const),
       graphView: state.graph.view,
       tool: state.graph.tool,
       selectedNodeIds: state.graph.selectedNodeIds,

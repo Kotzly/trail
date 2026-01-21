@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { Settings, CustomTheme } from '../../../../shared/types/settings.js';
 import { saveSettings } from '../../../api/settings.js';
 import { useStore } from '../../state/store.js';
+import { useOverlayEffects } from '../../state/overlay-effects.js';
 import { Icons } from '../Icon.js';
 import ThemePalette from './ThemePalette.js';
 import { applyTheme } from '../../shared/apply-theme.js';
@@ -29,6 +30,8 @@ export default function ThemePanel() {
   const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
   const settings = useStore((state) => state.settings);
   const setSettings = useStore((state) => state.setSettings);
+
+  useOverlayEffects(themePickerOpen, { lod: true, blur: true, kind: 'modal' });
 
   const [draftTheme, setDraftTheme] = useState<CustomTheme>(settings?.customTheme ?? DEFAULT_THEME);
   const pendingSaveRef = useRef<Settings | null>(null);
@@ -137,7 +140,7 @@ export default function ThemePanel() {
   if (!themePickerOpen || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="theme-panel-overlay" onClick={handleClose}>
+    <div className="theme-panel-overlay lod-enabler blur-enabler" onClick={handleClose}>
       <div
         className="theme-panel"
         onClick={(event) => event.stopPropagation()}

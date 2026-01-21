@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { openTree, renameTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
+import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
 import React from 'react';
 
@@ -42,6 +43,8 @@ export default function TreeDropdown() {
   const treesOpen = useStore((state) => state.ui.treesOpen);
   const setTreesOpen = useStore((state) => state.setTreesOpen);
   const nodeCount = useStore((state) => state.nodeCount);
+
+  useOverlayEffects(treesOpen, { kind: 'dropdown' });
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);

@@ -7,6 +7,7 @@ import { fireAndForget } from '../../api/background.js';
 import { navigateTo } from '../../api/tree.js';
 import { getTabsForNodeMessage } from '../../api/tabs.js';
 import { useStore } from '../state/store.js';
+import { useOverlayEffects } from '../state/overlay-effects.js';
 import TagEditorModal from './tags/TagEditorModal.js';
 import { deleteTagDef, upsertTagDef } from '../../api/tags.js';
 import { Icons } from './Icon.js';
@@ -69,6 +70,8 @@ export default function ContextMenus() {
     mode: 'create' | 'edit';
     initial: TagDefinition | null;
   }>({ open: false, nodeId: null, mode: 'create', initial: null });
+
+  useOverlayEffects(Boolean(contextMenu), { kind: 'context' });
 
   useEffect(() => {
     if (!contextMenu) return;

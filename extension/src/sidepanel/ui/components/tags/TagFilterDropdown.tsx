@@ -3,6 +3,7 @@ import type { NodeId, Tag } from '../../../../shared/types/ids.js';
 import type { TagDefinition } from '../../../../shared/types/tags.js';
 import { navigateTo } from '../../../api/tree.js';
 import { useStore } from '../../state/store.js';
+import { useOverlayEffects } from '../../state/overlay-effects.js';
 import { Icons } from '../Icon.js';
 import { collectTagCounts, collectTaggedNodes, filterNodesByTags } from './tag-filter-utils.js';
 import React from 'react';
@@ -16,6 +17,8 @@ export default function TagFilterDropdown() {
   const toggleTagFilterTag = useStore((state) => state.toggleTagFilterTag);
   const setTagFilterSelected = useStore((state) => state.setTagFilterSelected);
   const clearTagFilter = useStore((state) => state.clearTagFilter);
+
+  useOverlayEffects(tagFilterOpen, { kind: 'dropdown' });
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
