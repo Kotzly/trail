@@ -587,8 +587,10 @@ export default function SettingsPopover() {
 
   const renderProfile = () => (
     <div className="settings-panel-scroll">
-      <div className="settings-panel-title">Profile</div>
-      <div className="settings-panel-subtitle">Manage your account identity and sign-in state.</div>
+      <div className="settings-panel-head">
+        <div className="settings-panel-title">Profile</div>
+        <div className="settings-panel-subtitle">Manage your account identity and sign-in state.</div>
+      </div>
       {networkBadge}
       {accountError}
       {isAuthenticated && account.user ? (
@@ -637,8 +639,10 @@ export default function SettingsPopover() {
 
   const renderSubscription = () => (
     <div className="settings-panel-scroll">
-      <div className="settings-panel-title">Subscription</div>
-      <div className="settings-panel-subtitle">Compare plans and manage billing status.</div>
+      <div className="settings-panel-head">
+        <div className="settings-panel-title">Subscription</div>
+        <div className="settings-panel-subtitle">Compare plans and manage billing status.</div>
+      </div>
       {networkBadge}
       {accountError}
       {!isAuthenticated ? (
@@ -762,8 +766,10 @@ export default function SettingsPopover() {
 
   const renderPreferences = () => (
     <div className="settings-panel-scroll">
-      <div className="settings-panel-title">Preferences</div>
-      <div className="settings-panel-subtitle">Tune how Trail looks, feels, and behaves.</div>
+      <div className="settings-panel-head">
+        <div className="settings-panel-title">Preferences</div>
+        <div className="settings-panel-subtitle">Tune how Trail looks, feels, and behaves.</div>
+      </div>
 
       <div className="settings-section">
         <div className="settings-section-header">
@@ -1132,8 +1138,10 @@ export default function SettingsPopover() {
     ];
     return (
       <div className="settings-panel-scroll">
-        <div className="settings-panel-title">Shortcuts</div>
-        <div className="settings-panel-subtitle">Stay fast with keyboard navigation.</div>
+        <div className="settings-panel-head">
+          <div className="settings-panel-title">Shortcuts</div>
+          <div className="settings-panel-subtitle">Stay fast with keyboard navigation.</div>
+        </div>
         <div className="settings-card">
           <div className="settings-card-title">Quick actions</div>
           <div className="settings-card-hint">Shortcuts respect the enabled state in Preferences.</div>
@@ -1154,8 +1162,10 @@ export default function SettingsPopover() {
     const capacityText = settings?.capacity === Infinity ? '∞' : String(settings?.capacity ?? '—');
     return (
       <div className="settings-panel-scroll">
-        <div className="settings-panel-title">Data & Privacy</div>
-        <div className="settings-panel-subtitle">Keep tabs on local storage and retention.</div>
+        <div className="settings-panel-head">
+          <div className="settings-panel-title">Data & Privacy</div>
+          <div className="settings-panel-subtitle">Keep tabs on local storage and retention.</div>
+        </div>
         <div className="settings-card">
           <div className="settings-card-title">Local storage snapshot</div>
           <div className="settings-stat-grid">
@@ -1185,8 +1195,10 @@ export default function SettingsPopover() {
         : 'dev';
     return (
       <div className="settings-panel-scroll">
-        <div className="settings-panel-title">About</div>
-        <div className="settings-panel-subtitle">Trail for sidepanel.</div>
+        <div className="settings-panel-head">
+          <div className="settings-panel-title">About</div>
+          <div className="settings-panel-subtitle">Trail for sidepanel.</div>
+        </div>
         <div className="settings-card">
           <div className="settings-card-title">Build</div>
           <div className="settings-stat-grid">
@@ -1232,13 +1244,19 @@ export default function SettingsPopover() {
       <div
         ref={popoverRef}
         className="settings-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-dialog-title"
+        aria-describedby="settings-dialog-subtitle"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="settings-modal-header">
-          <div>
-            <div className="settings-modal-title">Settings</div>
-            <div className="settings-modal-subtitle">Accounts, subscriptions, and preferences.</div>
+          <div className="settings-modal-heading">
+            <div id="settings-dialog-title" className="settings-modal-title">Settings</div>
+            <div id="settings-dialog-subtitle" className="settings-modal-subtitle">
+              Accounts, subscriptions, and preferences.
+            </div>
           </div>
           <button
             className="settings-close-btn"
@@ -1251,7 +1269,7 @@ export default function SettingsPopover() {
         </div>
 
         <div className="settings-modal-body">
-          <nav className="settings-sidebar">
+          <nav className="settings-sidebar" aria-label="Settings sections">
             {SETTINGS_SECTIONS.map((section) => {
               const Icon = section.icon;
               const active = section.id === activeSection;
@@ -1261,6 +1279,7 @@ export default function SettingsPopover() {
                   type="button"
                   className={`settings-nav-item ${active ? 'active' : ''}`}
                   onClick={() => setActiveSection(section.id)}
+                  aria-current={active ? 'page' : undefined}
                 >
                   <span className="settings-nav-icon">
                     <Icon size={16} />
