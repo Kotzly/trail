@@ -368,9 +368,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                 <div className="graph-context-tab-info">
                   {tab.favIconUrl ? (
                     <img className="graph-context-tab-favicon" src={tab.favIconUrl} alt="" />
-                  ) : (
-                    <span className="graph-context-tab-favicon placeholder">🌐</span>
-                  )}
+                  ) : null}
                   <div className="graph-context-tab-text">
                     <div className="graph-context-tab-title">{tab.title || 'Untitled tab'}</div>
                     {tab.url ? (

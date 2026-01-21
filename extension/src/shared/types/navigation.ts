@@ -1,4 +1,4 @@
-import type { TabId, Url } from "./ids.js";
+import type { FaviconUrl, TabId, Timestamp, Title, Url } from "./ids.js";
 
 export type SidebarNavigationKey = `${TabId}:${Url}`;
 
@@ -33,8 +33,8 @@ export function parseSidebarNavigationKey(key: SidebarNavigationKey): SidebarNav
 
 export interface NavigationEntry {
     url: Url;
-    title: string;
-    favicon: string;
-    timestamp: number;
+    title: Title;
+    favicon: FaviconUrl;
+    timestamp: Timestamp;
 }
 

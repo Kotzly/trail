@@ -1,4 +1,4 @@
-import { now, UrlWithTimestamp, type TabId, type Title, type Url } from '../../shared/types/ids.js';
+import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '../../shared/types/ids.js';
 import type { TreeViewIntent } from '../../shared/types/messages.js';
 import { NodeMetaPatch, updateNodeMeta, type NodeData } from '../../shared/types/node.js';
 import { tabManager } from '../state/tab-manager.js';
@@ -7,7 +7,7 @@ import { redirectDetector } from './redirect-detection.js';
 import {
   normalizeFaviconUrl,
   shouldTrackUrl,
-  isPlaceholderUrl,
+  isBlankUrl,
 } from '../utils/url-utils.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { notifyUi } from '../messaging/ui-notifications.js';
@@ -37,8 +37,8 @@ export async function handleNavigation(
     return; // Tab no longer exists
   }
   
-  // Skip blank/placeholder URLs - just track for redirect detection, don't create nodes
-  if (!url || isPlaceholderUrl(url as Url)) {
+  // Skip blank URLs - just track for redirect detection, don't create nodes
+  if (!url || isBlankUrl(url as Url)) {
     redirectDetector.recordTabUrl(tabId as TabId, {
       url: (url || 'about:blank') as Url,
       timestamp: now(),
@@ -67,7 +67,7 @@ export async function handleNavigation(
     const data: NodeData = {
       url: url as Url,
       title: (tab.title || url) as Title,
-      favicon: normalizeFaviconUrl(url as Url, tab.favIconUrl),
+      favicon: normalizeFaviconUrl(url as Url, tab.favIconUrl as FaviconUrl | undefined),
       pinned: false, // todo: check pinned.
       tags: [],
     } as NodeData;
@@ -88,7 +88,7 @@ export async function handleNavigation(
       if (node && node.data.url !== url) {
         // Different URL
         const nodeUrl = node.data.url as Url;
-        if (!nodeUrl || isPlaceholderUrl(nodeUrl)) {
+        if (!nodeUrl || isBlankUrl(nodeUrl)) {
           node.data = {
             ...node.data,
             url: data.url,

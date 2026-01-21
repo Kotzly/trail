@@ -13,9 +13,9 @@ import {
   getCanvasBounds,
 } from '../src/sidepanel/ui/graph/layout/calculator.js';
 
-function data(url: string, title?: string): NodeData {
+function data(url: Url, title?: Title): NodeData {
   return {
-    url: url as Url,
+    url,
     title: (title ?? url) as Title,
     pinned: false,
     tags: [],
@@ -24,12 +24,12 @@ function data(url: string, title?: string): NodeData {
 
 function testNavigationTreeDeletion(): void {
   const tree = new NavigationTree(100);
-  const root = tree.navigate(data('https://root.test'));
-  const child = tree.navigate(data('https://child.test'));
+  const root = tree.navigate(data('https://root.test' as Url));
+  const child = tree.navigate(data('https://child.test' as Url));
   tree.setCurrent(root);
-  const sibling = tree.navigate(data('https://sibling.test'));
+  const sibling = tree.navigate(data('https://sibling.test' as Url));
   tree.setCurrent(child);
-  const grand = tree.navigate(data('https://grand.test'));
+  const grand = tree.navigate(data('https://grand.test' as Url));
 
   const removed = tree.deleteNode(child.id);
   assert.equal(removed.length, 1);
@@ -45,9 +45,9 @@ function testNavigationTreeDeletion(): void {
 
 function testNavigationTreeSubtree(): void {
   const tree = new NavigationTree(100);
-  const root = tree.navigate(data('https://root.test'));
-  const child = tree.navigate(data('https://child.test'));
-  const grand = tree.navigate(data('https://grand.test'));
+  const root = tree.navigate(data('https://root.test' as Url));
+  const child = tree.navigate(data('https://child.test' as Url));
+  const grand = tree.navigate(data('https://grand.test' as Url));
 
   const removed = tree.deleteSubtree(child.id);
   assert.equal(removed.length, 2);
@@ -106,10 +106,10 @@ function testCommandManagerUndoRedo(): void {
 
 function testNavigationTreeSearchIndex(): void {
   const tree = new NavigationTree(100);
-  const root = tree.navigate(data('https://example.com/root', 'Root Page'));
-  const child = tree.navigate(data('https://docs.example.com/guide', 'Guide'));
+  const root = tree.navigate(data('https://example.com/root' as Url, 'Root Page' as Title));
+  const child = tree.navigate(data('https://docs.example.com/guide' as Url, 'Guide' as Title));
   tree.setCurrent(root);
-  const other = tree.navigate(data('https://other.test/path', 'Other Site'));
+  const other = tree.navigate(data('https://other.test/path' as Url, 'Other Site' as Title));
 
   const titleMatches = tree.findNodesByQuery('guide');
   assert.ok(titleMatches.includes(child.id));

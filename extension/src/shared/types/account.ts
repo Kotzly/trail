@@ -1,3 +1,5 @@
+import type { Url } from './ids.js';
+
 export type PlanInterval = 'month' | 'year';
 export type PlanTier = 'free' | 'pro' | 'team' | 'enterprise';
 
@@ -70,7 +72,7 @@ export type User = {
   id: string;
   email: string;
   displayName: string;
-  avatarUrl?: string | null;
+  avatarUrl?: Url | null;
   createdAt: string;
 };
 
@@ -92,12 +94,12 @@ export type AccountSnapshot = {
 export type AuthPortalRequest = {
   source?: string;
   locale?: string;
-  returnUrl?: string;
+  returnUrl?: Url;
 };
 
 export type AuthPortalSession = {
   id: string;
-  url: string;
+  url: Url;
   expiresAt: string;
   pollIntervalMs?: number;
 };
@@ -108,15 +110,15 @@ export type AuthPortalStatus = {
 };
 
 export type PortalLink = {
-  url: string;
+  url: Url;
   expiresAt?: string | null;
 };
 
 export type CheckoutInput = {
   planId: string;
   interval: PlanInterval;
-  successUrl?: string;
-  cancelUrl?: string;
+  successUrl?: Url;
+  cancelUrl?: Url;
 };
 
 export type AccountErrorCode = 'network' | 'auth' | 'payment' | 'validation' | 'unknown';

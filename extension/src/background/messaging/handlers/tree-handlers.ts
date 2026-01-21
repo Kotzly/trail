@@ -4,7 +4,7 @@ import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from '../notificati
 import { tabManager } from '../../state/tab-manager.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
-import type { Description, NodeId, TabId, Title, Url } from '../../../shared/types/ids.js';
+import type { Description, FaviconUrl, NodeId, TabId, Title, Url } from '../../../shared/types/ids.js';
 import { NavigationTree } from '../../state/nav-tree.js';
 import { ForEacher } from '../../../shared/types/foreach.js';
 import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } from '../../../shared/types/node.js';
@@ -74,7 +74,7 @@ function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
   return {
     url,
     title: title as Title,
-    favicon: normalizeFaviconUrl(url, tab.favIconUrl),
+    favicon: normalizeFaviconUrl(url, tab.favIconUrl as FaviconUrl | undefined),
     pinned: false,
     tags: [],
   } as NodeData;

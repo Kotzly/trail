@@ -17,12 +17,12 @@ const blockedFaviconUrlPatterns: RegExp[] = [
 
 const blankUrlPattern = /^about:blank(?:[#?].*)?$/i;
 const newTabUrlPatterns: RegExp[] = [
-//   /^about:newtab/i,
-//   /^chrome:\/\/newtab/i,
-//   /^chrome:\/\/new-tab-page/i,
-//   /^brave:\/\/newtab/i,
-//   /^edge:\/\/newtab/i,
-//   /^chrome-extension:\/\/[^/]+\/.*(newtab|new-tab|ntp)/i,
+  /^about:newtab/i,
+  /^chrome:\/\/newtab/i,
+  /^chrome:\/\/new-tab-page/i,
+  /^brave:\/\/newtab/i,
+  /^edge:\/\/newtab/i,
+  /^chrome-extension:\/\/[^/]+\/.*(newtab|new-tab|ntp)/i,
 ];
 
 
@@ -51,7 +51,7 @@ export function getFaviconUrl(pageUrl: Url, size = 32): FaviconUrl {
 
 export function normalizeFaviconUrl(
   pageUrl: Url | null | undefined,
-  faviconUrl?: string | null
+  faviconUrl?: FaviconUrl | null
 ): FaviconUrl | undefined {
   if (faviconUrl && !blockedFaviconUrlPatterns.some(pattern => pattern.test(faviconUrl))) {
     return faviconUrl as FaviconUrl;

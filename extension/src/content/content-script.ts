@@ -3,8 +3,7 @@
  * Tracks title changes for pages that update title dynamically.
  */
 
-type Title = string;
-type Url = string;
+import type { Title, Url } from '../shared/types/ids.js';
 
 const MSG_TITLE_CHANGED = 'TITLE_CHANGED' as const;
 

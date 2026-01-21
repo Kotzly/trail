@@ -1,4 +1,4 @@
-import type { NodeId, Url } from "../../shared/types/ids.js";
+import type { NodeId, Title, Url } from "../../shared/types/ids.js";
 import MiniSearch from "../../shared/vendor/minisearch.js";
 import { TreeNode } from "./tree-node.js";
 import { DefaultNavigationOptions, type NavigationOptions } from "../../shared/types/tree.js";
@@ -362,13 +362,13 @@ export class NavigationTree implements Owner {
     }
 
     private static buildSearchDoc(node: NavigationNode): SearchDoc {
-        const title = node.data.title || '';
-        const url = node.data.url || '';
+        const title = node.data.title || '' as Title;
+        const url = node.data.url || '' as Url;
         const domain = NavigationTree.extractDomain(url);
         return { id: node.id, title, url, domain };
     }
 
-    private static extractDomain(url: string): string {
+    private static extractDomain(url: Url): string {
         if (!url) return '';
         try {
             return new URL(url).hostname.toLowerCase();
@@ -381,7 +381,7 @@ export class NavigationTree implements Owner {
 
 type SearchDoc = {
     id: NodeId;
-    title: string;
-    url: string;
+    title: Title;
+    url: Url;
     domain: string;
 };

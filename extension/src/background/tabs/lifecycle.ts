@@ -1,4 +1,4 @@
-import type { TabId, Title, Url } from '../../shared/types/ids.js';
+import type { FaviconUrl, TabId, Title, Url } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
@@ -76,7 +76,7 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
                 const data: NodeData = {
                     url: tab.url as Url,
                     title: (tab.title || tab.url) as Title,
-                    favicon: normalizeFaviconUrl(tab.url as Url, tab.favIconUrl),
+                    favicon: normalizeFaviconUrl(tab.url as Url, tab.favIconUrl as FaviconUrl | undefined),
                     pinned: false,
                     tags: [],
                 } as NodeData;

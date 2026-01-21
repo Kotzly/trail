@@ -4,18 +4,19 @@ import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
 import React from 'react';
+import type { FaviconUrl, Title, Url } from '../../../shared/types/ids.js';
 
 type TreeItem = {
   id: string;
   label: string;
   nodeCount: number;
-  rootUrl?: string;
-  rootTitle?: string;
-  rootFavicon?: string;
+  rootUrl?: Url;
+  rootTitle?: Title;
+  rootFavicon?: FaviconUrl;
   savedAt?: number;
 };
 
-function formatHost(url?: string): string {
+function formatHost(url?: Url): string {
   if (!url) return '';
   try {
     return new URL(url).hostname;

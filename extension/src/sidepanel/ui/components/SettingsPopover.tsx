@@ -8,6 +8,7 @@ import type {
   Settings,
   TreeLayoutSettings,
 } from '../../../shared/types/settings.js';
+import type { Url } from '../../../shared/types/ids.js';
 import { BACKEND_CONFIG } from '../../../shared/config/backend.js';
 import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
 import {
@@ -454,7 +455,7 @@ export default function SettingsPopover() {
     setAccountSnapshot(snapshot);
   }, [setAccount, setAccountSnapshot]);
 
-  const openExternalLink = async (url: string) => {
+  const openExternalLink = async (url: Url) => {
     try {
       await chrome.tabs.create({ url, active: true });
     } catch (error) {
@@ -476,7 +477,7 @@ export default function SettingsPopover() {
       const portalSession = await startAuthPortal({
         source: 'extension',
         locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
-        returnUrl: BACKEND_CONFIG.portalUrl,
+        returnUrl: BACKEND_CONFIG.portalUrl as Url,
       });
       await openExternalLink(portalSession.url);
       setAuthNotice('Complete sign-in in the opened tab. Waiting for confirmation…');
@@ -546,7 +547,7 @@ export default function SettingsPopover() {
     if (portalBusy) return;
     setPortalBusy(true);
     try {
-      await openExternalLink(BACKEND_CONFIG.portalUrl);
+      await openExternalLink(BACKEND_CONFIG.portalUrl as Url);
     } finally {
       setPortalBusy(false);
     }

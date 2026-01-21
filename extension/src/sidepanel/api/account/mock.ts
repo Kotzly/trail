@@ -13,6 +13,7 @@ import type {
   Subscription,
   User,
 } from '../../../shared/types/account.js';
+import type { Url } from '../../../shared/types/ids.js';
 import type { AccountClient } from '../account.js';
 
 const DEFAULT_DELAY_MS = 240;
@@ -143,7 +144,7 @@ function buildPortalSession(): AuthPortalSession {
   portalSessions.set(id, session);
   return {
     id,
-    url: `https://trail.local/auth?session=${id}`,
+    url: `https://trail.local/auth?session=${id}` as Url,
     expiresAt: new Date(expiresAt).toISOString(),
     pollIntervalMs: 800,
   };
@@ -151,7 +152,7 @@ function buildPortalSession(): AuthPortalSession {
 
 function buildPortalLink(path: string): PortalLink {
   return {
-    url: `https://trail.local${path}`,
+    url: `https://trail.local${path}` as Url,
     expiresAt: addDays(1),
   };
 }

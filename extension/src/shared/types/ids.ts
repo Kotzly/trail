@@ -19,7 +19,7 @@ export function now(): Timestamp {
 }
 
 export function urlToTitle(url: Url): Title {
-    return url as unknown as Title;
+    return url as string as Title;
 }
 
 export type JSONString = Brand<string, "JSONString">;

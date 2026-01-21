@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { NodeId, Tag } from '../../../../shared/types/ids.js';
+import type { NodeId, Tag, Url } from '../../../../shared/types/ids.js';
 import type { TagDefinition } from '../../../../shared/types/tags.js';
 import { navigateTo } from '../../../api/tree.js';
 import { useStore } from '../../state/store.js';
@@ -185,7 +185,7 @@ export default function TagFilterDropdown() {
           ) : (
             filteredNodes.map((node, idx) => {
               const title = node.data.title || 'Untitled';
-              const url = node.data.url || '';
+              const url = node.data.url;
               const hostname = safeHostname(url);
               const nodeTags = node.data.tags ?? [];
               return (
@@ -234,7 +234,7 @@ export default function TagFilterDropdown() {
   );
 }
 
-function safeHostname(url: string): string {
+function safeHostname(url: Url): string {
   if (!url) return '';
   try {
     return new URL(url).hostname;

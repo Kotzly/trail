@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 import type { TextStyleFontWeight } from 'pixi.js';
-import type { NodeId } from '../../../../shared/types/ids.js';
+import type { FaviconUrl, NodeId } from '../../../../shared/types/ids.js';
 import { formatUrl } from '../../shared/format.js';
 import type { ViewState } from '../types.js';
 import type { ConnectionSegment, GraphDisplayOptions, NodeRenderModel } from './types.js';
@@ -35,14 +35,15 @@ const URL_FONT_SIZE = 10;
 const TAB_BADGE_PADDING_X = 6;
 const TAB_BADGE_PADDING_Y = 3;
 
-const faviconTextureCache = new Map<string, PIXI.Texture>();
-const faviconLoadPromises = new Map<string, Promise<PIXI.Texture | null>>();
+const faviconTextureCache = new Map<FaviconUrl, PIXI.Texture>();
+const faviconLoadPromises = new Map<FaviconUrl, Promise<PIXI.Texture | null>>();
 
 type NodeVisualState = {
   lod: LODLevel;
   styleKey: string;
   textKey: string;
   tagKey: string;
+  faviconKey: string;
   themeVersion: number;
 };
 
@@ -51,9 +52,7 @@ class NodeVisual {
   readonly container = new PIXI.Container();
   private readonly background = new PIXI.Graphics();
   private readonly faviconBg = new PIXI.Graphics();
-  private readonly faviconText = new PIXI.Text({ text: '' });
   private faviconSprite: PIXI.Sprite | null = null;
-  private faviconUrl: string | null = null;
   private readonly titleText = new PIXI.Text({ text: '' });
   private readonly urlText = new PIXI.Text({ text: '' });
   private readonly tabBadge = new PIXI.Container();
@@ -64,12 +63,12 @@ class NodeVisual {
   private readonly tagDots = new PIXI.Container();
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
-  private state: NodeVisualState = { lod: 'full', styleKey: '', textKey: '', tagKey: '', themeVersion: 0 };
+  private state: NodeVisualState = { lod: 'full', styleKey: '', textKey: '', tagKey: '', faviconKey: '', themeVersion: 0 };
   private readonly fonts: { base: string; weight: TextStyleFontWeight };
   private readonly invalidate: () => void;
   private destroyed = false;
-  private pendingFaviconUrl: string | null = null;
-  private latestFaviconCandidate: string | null = null;
+  private pendingFaviconUrl: FaviconUrl | null = null;
+  private latestFaviconCandidate: FaviconUrl | null = null;
 
   constructor(id: NodeId, fontFamily: string, invalidate: () => void) {
     this.id = id;
@@ -78,7 +77,6 @@ class NodeVisual {
     this.container.addChild(this.background);
     this.container.addChild(this.fallbackDot);
     this.container.addChild(this.faviconBg);
-    this.container.addChild(this.faviconText);
     if (this.faviconSprite) this.container.addChild(this.faviconSprite);
     this.container.addChild(this.textContainer);
     this.textContainer.addChild(this.titleText);
@@ -90,7 +88,6 @@ class NodeVisual {
     this.container.addChild(this.audioText);
     this.container.addChild(this.tagDots);
 
-    this.faviconText.anchor.set(0.5, 0.5);
     this.titleText.resolution = 2;
     this.urlText.resolution = 2;
     this.tabBadgeText.anchor.set(0.5, 0.5);
@@ -136,20 +133,30 @@ class NodeVisual {
       model.display.dimClosedNodes && !model.isOpen ? 'd' : 'n',
     ].join('');
 
+    const showFull = lod === 'full';
+    const showLow = lod === 'low';
+    const showFavicon = model.display.showFavicons && (showFull || showLow);
+    const showUrls = model.display.showUrls && showFull;
     const title = model.node.data.title || 'Untitled';
     const url = model.node.data.url ? formatUrl(model.node.data.url) : '';
-    const textKey = `${title}|${url}|${model.display.titleTruncation}`;
+    const textKey = `${title}|${url}|${model.display.titleTruncation}|${showUrls ? 'u' : 'n'}|${showFavicon ? 'f' : 'n'}`;
     const tagKey =
       model.display.showTagDots && model.node.data.tags?.length
         ? model.node.data.tags.join(',')
         : '';
+    const rawFavicon = showFavicon ? model.node.data.favicon ?? null : null;
+    const safeFavicon = rawFavicon && isSafeFavicon(rawFavicon) ? rawFavicon : null;
+    const cachedFavicon = safeFavicon ? getCachedFaviconTexture(safeFavicon) : null;
+    const faviconKey = `${showFavicon ? '1' : '0'}|${safeFavicon ?? 'none'}|${cachedFavicon ? '1' : '0'}`;
 
     const themeChanged = this.state.themeVersion !== themeVersion;
     const needsStyleUpdate = themeChanged || this.state.styleKey !== nextStyleKey || this.state.lod !== lod;
     const needsTextUpdate = themeChanged || this.state.textKey !== textKey || this.state.lod !== lod;
     const needsTagUpdate = themeChanged || this.state.tagKey !== tagKey || this.state.lod !== lod;
+    const needsFaviconUpdate =
+      themeChanged || this.state.faviconKey !== faviconKey || this.state.lod !== lod;
 
-    this.state = { lod, styleKey: nextStyleKey, textKey, tagKey, themeVersion };
+    this.state = { lod, styleKey: nextStyleKey, textKey, tagKey, faviconKey, themeVersion };
 
     this.container.visible = lod !== 'hidden';
     if (lod === 'hidden') return;
@@ -163,11 +170,15 @@ class NodeVisual {
     }
 
     if (needsTextUpdate) {
-      this.updateText(model, theme, lod, fontFamily);
+      this.updateText(model, theme, lod, fontFamily, showFavicon);
     }
 
     if (needsTagUpdate) {
       this.updateTags(model, theme, lod);
+    }
+
+    if (needsFaviconUpdate) {
+      this.updateFavicon(model, theme, lod, showFavicon, safeFavicon, cachedFavicon);
     }
 
     this.updateBadges(model, theme, lod);
@@ -237,11 +248,11 @@ class NodeVisual {
     model: NodeRenderModel,
     theme: ReturnType<typeof readGraphTheme>,
     lod: LODLevel,
-    fontFamily: string
+    fontFamily: string,
+    showFavicon: boolean
   ) {
     const showFull = lod === 'full';
     const showLow = lod === 'low';
-    const showFavicon = model.display.showFavicons && (showFull || showLow);
     const showUrls = model.display.showUrls && showFull;
     const showTitle = showFull || showLow;
     const isClosed = model.display.dimClosedNodes && !model.isOpen;
@@ -284,50 +295,46 @@ class NodeVisual {
     this.textContainer.position.set(contentX, textStartY);
     this.titleText.y = 0;
     this.urlText.y = showUrls ? TITLE_FONT_SIZE + 2 : 0;
+  }
 
+  private updateFavicon(
+    model: NodeRenderModel,
+    theme: ReturnType<typeof readGraphTheme>,
+    _lod: LODLevel,
+    showFavicon: boolean,
+    faviconUrl: FaviconUrl | null,
+    cachedTexture: PIXI.Texture | null
+  ) {
     this.faviconBg.visible = showFavicon;
-    this.faviconText.visible = showFavicon;
-    if (showFavicon) {
-      const faviconX = NODE_PADDING_X;
-      const faviconY = (model.height - FAVICON_SIZE) / 2;
-      this.faviconBg.clear();
-      this.faviconBg.roundRect(faviconX, faviconY, FAVICON_SIZE, FAVICON_SIZE, 6);
-      this.faviconBg.fill({ color: theme.surfaceContainerHigh, alpha: 1 });
-      this.faviconText.style.fontFamily = fontFamily;
-      this.faviconText.style.fontSize = 14;
-      this.faviconText.style.fill = theme.onSurfaceVariant;
-      const faviconUrl = model.node.data.favicon;
-      this.latestFaviconCandidate = faviconUrl ?? null;
-      if (faviconUrl && isSafeFavicon(faviconUrl)) {
-        const cachedTexture = getCachedFaviconTexture(faviconUrl);
-        if (cachedTexture) {
-          this.applyFaviconTexture(cachedTexture, faviconUrl, faviconX, faviconY);
-        } else {
-          this.requestFaviconLoad(faviconUrl);
-          if (this.faviconSprite) this.faviconSprite.visible = false;
-          this.faviconUrl = null;
-          this.faviconText.text = '🌐';
-          this.faviconText.position.set(faviconX + FAVICON_SIZE / 2, faviconY + FAVICON_SIZE / 2);
-        }
-      } else {
-        if (this.faviconSprite) this.faviconSprite.visible = false;
-        this.faviconUrl = null;
-        this.faviconText.text = '🌐';
-        this.faviconText.position.set(faviconX + FAVICON_SIZE / 2, faviconY + FAVICON_SIZE / 2);
-      }
-    } else {
+    if (!showFavicon) {
+      this.latestFaviconCandidate = null;
       if (this.faviconSprite) this.faviconSprite.visible = false;
-      this.faviconText.text = '';
+      return;
     }
+
+    const faviconX = NODE_PADDING_X;
+    const faviconY = (model.height - FAVICON_SIZE) / 2;
+    this.faviconBg.clear();
+    this.faviconBg.roundRect(faviconX, faviconY, FAVICON_SIZE, FAVICON_SIZE, 6);
+    this.faviconBg.fill({ color: theme.surfaceContainerHigh, alpha: 1 });
+
+    this.latestFaviconCandidate = faviconUrl ?? null;
+    if (faviconUrl) {
+      if (cachedTexture) {
+        this.applyFaviconTexture(cachedTexture, faviconX, faviconY);
+        return;
+      }
+      this.requestFaviconLoad(faviconUrl);
+    }
+
+    if (this.faviconSprite) this.faviconSprite.visible = false;
   }
 
   private applyFaviconTexture(
     texture: PIXI.Texture,
-    faviconUrl: string,
     faviconX: number,
     faviconY: number
   ) {
-    this.faviconUrl = faviconUrl;
     if (!this.faviconSprite) {
       this.faviconSprite = new PIXI.Sprite(texture);
       this.container.addChild(this.faviconSprite);
@@ -341,20 +348,15 @@ class NodeVisual {
       faviconX + (FAVICON_SIZE - FAVICON_ICON) / 2,
       faviconY + (FAVICON_SIZE - FAVICON_ICON) / 2
     );
-    this.faviconText.text = '';
-    this.faviconText.visible = false;
   }
 
-  private requestFaviconLoad(faviconUrl: string) {
+  private requestFaviconLoad(faviconUrl: FaviconUrl) {
     if (this.pendingFaviconUrl === faviconUrl) return;
     this.pendingFaviconUrl = faviconUrl;
     void loadFaviconTexture(faviconUrl).then((texture) => {
       if (this.destroyed || this.latestFaviconCandidate !== faviconUrl) {
         this.pendingFaviconUrl = null;
         return;
-      }
-      if (texture) {
-        this.faviconUrl = faviconUrl;
       }
       this.pendingFaviconUrl = null;
       this.invalidate();
@@ -879,7 +881,7 @@ function drawDashedRoundedRect(
   drawDashedArc(graphics, x + r, y + r, r, Math.PI, Math.PI * 1.5, dash, gap, state);
 }
 
-function isSafeFavicon(url: string): boolean {
+function isSafeFavicon(url: FaviconUrl): boolean {
   if (url.startsWith('data:') || url.startsWith('blob:')) return true;
   if (url.startsWith('http://') || url.startsWith('https://')) return true;
   if (url.startsWith('chrome-extension://')) {
@@ -958,11 +960,11 @@ function safeColor(value: string, fallback: number): number {
   }
 }
 
-function getCachedFaviconTexture(url: string): PIXI.Texture | null {
+function getCachedFaviconTexture(url: FaviconUrl): PIXI.Texture | null {
   return faviconTextureCache.get(url) ?? null;
 }
 
-function loadFaviconTexture(url: string): Promise<PIXI.Texture | null> {
+function loadFaviconTexture(url: FaviconUrl): Promise<PIXI.Texture | null> {
   const cached = faviconTextureCache.get(url);
   if (cached) return Promise.resolve(cached);
   const existing = faviconLoadPromises.get(url);
