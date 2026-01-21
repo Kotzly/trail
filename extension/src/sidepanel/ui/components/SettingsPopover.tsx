@@ -91,7 +91,7 @@ const PREFERENCE_TABS: PreferencesTabItem[] = [
   {
     id: 'advanced',
     label: 'Advanced',
-    description: 'Limits and automation',
+    description: 'Limits and behavior',
     icon: Icons.Zap,
   },
 ];
@@ -158,12 +158,6 @@ const resolveDeadline = (expiresAt?: string | null): number => {
   return Number.isNaN(parsed) ? Date.now() + 5 * 60 * 1000 : parsed;
 };
 
-const DEFAULT_ADAPTIVE_LAYOUTS: Settings['adaptiveModeLayouts'] = {
-  mindmap: true,
-  tree: true,
-  radial: true,
-};
-
 type DragNumberInputProps = {
   value: number;
   min: number;
@@ -225,30 +219,6 @@ function RangeSlider({
         }}
       />
     </div>
-  );
-}
-
-type CheckboxRowProps = {
-  id: string;
-  label: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  disabled?: boolean;
-};
-
-function CheckboxRow({ id, label, checked, onChange, disabled }: CheckboxRowProps) {
-  return (
-    <label className={`settings-checkbox-row ${disabled ? 'disabled' : ''}`} htmlFor={id}>
-      <input
-        id={id}
-        className="settings-checkbox-input"
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        disabled={disabled}
-      />
-      <span className="settings-checkbox-label">{label}</span>
-    </label>
   );
 }
 
@@ -318,10 +288,6 @@ export default function SettingsPopover() {
   const authFlowRef = useRef(0);
 
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
-  const adaptiveLayouts = settings?.adaptiveModeLayouts ?? DEFAULT_ADAPTIVE_LAYOUTS;
-  const adaptiveModeEnabled = settings?.adaptiveMode ?? false;
-  const adaptiveSelectedCount = Object.values(adaptiveLayouts).filter(Boolean).length;
-  const adaptiveLayoutOptions: LayoutMode[] = ['mindmap', 'tree', 'radial'];
   const defaultCapacityMax = 5000;
   const tabLimitMax = Math.max(50, settings?.maxOpenTabs ?? 0);
   const rawCapacity = settings?.capacity;
@@ -434,14 +400,6 @@ export default function SettingsPopover() {
       applyTheme(next.theme, next.customTheme);
     }
     scheduleSave(next);
-  };
-
-  const updateAdaptiveLayouts = (mode: LayoutMode, enabled: boolean) => {
-    if (!settings) return;
-    const isOnlySelected = adaptiveSelectedCount <= 1 && adaptiveLayouts[mode];
-    if (!enabled && isOnlySelected) return;
-    const nextLayouts = { ...adaptiveLayouts, [mode]: enabled };
-    void updateSettings({ adaptiveModeLayouts: nextLayouts });
   };
 
   type LayoutPatch = {
@@ -1045,41 +1003,7 @@ export default function SettingsPopover() {
                     </div>
                   </div>
 
-                  <div className="settings-section">
-                    <div className="settings-section-header">
-                      <div className="settings-section-title">Adaptive layouts</div>
-                      <div className="settings-section-hint">Let Trail pick the best layout as trees grow.</div>
-                    </div>
-                    <div className="settings-toggle-grid">
-                      <ToggleRow
-                        id="pref-adaptive"
-                        label="Adaptive mode"
-                        description="Start new trees in your chosen layout and suggest others as it grows."
-                        checked={settings?.adaptiveMode ?? false}
-                        onChange={(value) => updateSettings({ adaptiveMode: value })}
-                      />
-                    </div>
-                    <div className="popover-section">
-                      <div className="popover-label-small">Allowed layouts</div>
-                      <div className="settings-checkbox-grid">
-                        {adaptiveLayoutOptions.map((mode) => (
-                          <CheckboxRow
-                            key={`adaptive-layout-${mode}`}
-                            id={`adaptive-layout-${mode}`}
-                            label={LAYOUT_LABELS[mode]}
-                            checked={adaptiveLayouts[mode]}
-                            onChange={(value) => updateAdaptiveLayouts(mode, value)}
-                            disabled={!adaptiveModeEnabled || (adaptiveSelectedCount <= 1 && adaptiveLayouts[mode])}
-                          />
-                        ))}
-                      </div>
-                      <div className="popover-hint">
-                        {adaptiveModeEnabled
-                          ? 'Choose which layouts adaptive mode can suggest.'
-                          : 'Enable Adaptive mode to use these settings.'}
-                      </div>
-                    </div>
-                  </div>
+                  
                 </>
               );
             default:

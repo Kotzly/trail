@@ -545,50 +545,6 @@
   outline-offset: 2px;
 }
 
-.settings-checkbox-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 8px;
-}
-
-.settings-checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
-  background: color-mix(in srgb, var(--md-on-surface) 4%, transparent);
-  cursor: pointer;
-  transition: background 0.18s ease, border 0.18s ease;
-}
-
-.settings-checkbox-row:hover {
-  background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
-}
-
-.settings-checkbox-row:focus-within {
-  border-color: color-mix(in srgb, var(--md-primary) 30%, transparent);
-  box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb), 0.18);
-}
-
-.settings-checkbox-row.disabled {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.settings-checkbox-input {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--md-primary);
-}
-
-.settings-checkbox-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--md-on-surface);
-}
-
 .settings-choice-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1001,8 +957,7 @@
 
   .settings-choice-grid,
   .settings-toggle-grid,
-  .settings-stat-grid,
-  .settings-checkbox-grid {
+  .settings-stat-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -91,13 +91,7 @@ export const defaultSettings: Settings = {
     dimClosedNodes: true,
     confirmNewTree: true,
     shortcutsEnabled: true,
-    adaptiveMode: false,
-    adaptiveModeLayouts: {
-        mindmap: true,
-        tree: true,
-        radial: true,
-    },
-}
+};
 
 const settingsKey = 'trail_settings' as const;
 const settingsArea = chrome.storage.local;
@@ -106,22 +100,22 @@ function mergeDefaults(raw: unknown): Settings {
     if (!raw || typeof raw !== 'object') {
         return {...defaultSettings};
     }
-    const partial = raw as Partial<Settings>;
-    const layout = partial.layout ?? DEFAULT_LAYOUT_SETTINGS;
+    const partial = raw as Partial<Settings> & {
+        adaptiveMode?: unknown;
+        adaptiveModeLayouts?: unknown;
+    };
+    const { adaptiveMode: _adaptiveMode, adaptiveModeLayouts: _adaptiveModeLayouts, ...rest } = partial;
+    const sanitized = rest as Partial<Settings>;
+    const layout = sanitized.layout ?? DEFAULT_LAYOUT_SETTINGS;
     const rawCapacity =
-        typeof partial.capacity === 'number' ? partial.capacity : defaultSettings.capacity;
+        typeof sanitized.capacity === 'number' ? sanitized.capacity : defaultSettings.capacity;
     const capacity =
         Number.isFinite(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
-    const adaptiveModeLayouts = {
-        mindmap: partial.adaptiveModeLayouts?.mindmap ?? defaultSettings.adaptiveModeLayouts.mindmap,
-        tree: partial.adaptiveModeLayouts?.tree ?? defaultSettings.adaptiveModeLayouts.tree,
-        radial: partial.adaptiveModeLayouts?.radial ?? defaultSettings.adaptiveModeLayouts.radial,
-    };
     return {
         ...defaultSettings,
-        ...partial,
+        ...sanitized,
         capacity,
-        customTheme: normalizeCustomTheme(partial.customTheme),
+        customTheme: normalizeCustomTheme(sanitized.customTheme),
         layout: {
             mode: layout.mode ?? DEFAULT_LAYOUT_SETTINGS.mode,
             tree: {
@@ -137,19 +131,17 @@ function mergeDefaults(raw: unknown): Settings {
                 ...(layout.radial ?? {}),
             },
         },
-        titleTruncation: partial.titleTruncation ?? defaultSettings.titleTruncation,
-        graphDensity: partial.graphDensity ?? defaultSettings.graphDensity,
-        showFavicons: partial.showFavicons ?? defaultSettings.showFavicons,
-        showUrls: partial.showUrls ?? defaultSettings.showUrls,
-        showTagDots: partial.showTagDots ?? defaultSettings.showTagDots,
-        showTabCounts: partial.showTabCounts ?? defaultSettings.showTabCounts,
-        showAudioIndicators: partial.showAudioIndicators ?? defaultSettings.showAudioIndicators,
-        showConnections: partial.showConnections ?? defaultSettings.showConnections,
-        dimClosedNodes: partial.dimClosedNodes ?? defaultSettings.dimClosedNodes,
-        confirmNewTree: partial.confirmNewTree ?? defaultSettings.confirmNewTree,
-        shortcutsEnabled: partial.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
-        adaptiveMode: partial.adaptiveMode ?? defaultSettings.adaptiveMode,
-        adaptiveModeLayouts,
+        titleTruncation: sanitized.titleTruncation ?? defaultSettings.titleTruncation,
+        graphDensity: sanitized.graphDensity ?? defaultSettings.graphDensity,
+        showFavicons: sanitized.showFavicons ?? defaultSettings.showFavicons,
+        showUrls: sanitized.showUrls ?? defaultSettings.showUrls,
+        showTagDots: sanitized.showTagDots ?? defaultSettings.showTagDots,
+        showTabCounts: sanitized.showTabCounts ?? defaultSettings.showTabCounts,
+        showAudioIndicators: sanitized.showAudioIndicators ?? defaultSettings.showAudioIndicators,
+        showConnections: sanitized.showConnections ?? defaultSettings.showConnections,
+        dimClosedNodes: sanitized.dimClosedNodes ?? defaultSettings.dimClosedNodes,
+        confirmNewTree: sanitized.confirmNewTree ?? defaultSettings.confirmNewTree,
+        shortcutsEnabled: sanitized.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
     };
 }
 
