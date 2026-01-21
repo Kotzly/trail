@@ -1,20 +1,31 @@
 .graph-context-menu {
   position: fixed;
-  background: var(--md-surface-container-high);
-  border: 1px solid var(--md-outline-variant);
+  background: var(--md-glass-strong);
+  border: var(--md-glass-border);
   border-radius: 10px;
   padding: 4px 0;
-  box-shadow: var(--md-elev-2);
+  box-shadow: var(--md-glass-shadow);
   z-index: 1000;
   min-width: 160px;
   max-width: calc(100vw - 16px);
   max-height: var(--menu-max-height, calc(100vh - 16px));
   overflow: visible;
   opacity: 0.94;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: var(--md-glass-blur);
+  -webkit-backdrop-filter: var(--md-glass-blur);
   animation: context-menu-open 150ms cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top left;
+}
+
+.graph-context-menu::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border-top: 2px solid var(--md-glass-highlight);
+  border-left: 1px solid var(--md-glass-highlight-soft);
+  border-right: 1px solid var(--md-glass-highlight);
+  pointer-events: none;
 }
 
 .graph-context-menu-content {
@@ -47,7 +58,7 @@
 }
 
 .graph-context-menu-item:hover {
-  background: var(--md-surface-variant);
+  background: var(--md-glass);
   transform: scale(1.02);
 }
 
@@ -56,7 +67,7 @@
 }
 
 .graph-context-menu-item.danger:hover {
-  background: rgba(var(--md-error-rgb), 0.15);
+  background: color-mix(in srgb, rgba(var(--md-error-rgb), 0.2) 70%, transparent);
 }
 
 .graph-context-menu-header {
@@ -70,7 +81,7 @@
 
 .graph-context-menu-divider {
   height: 1px;
-  background: var(--md-outline-variant);
+  background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
   margin: 4px 0;
 }
 
@@ -117,7 +128,7 @@
 }
 
 .graph-context-tab-item:hover {
-  background: var(--md-surface-variant);
+  background: var(--md-glass);
   transform: translateY(-1px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
 }
@@ -140,7 +151,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--md-surface-container);
+  background: var(--md-glass);
   color: var(--md-on-surface-variant);
   font-size: 10px;
 }
@@ -183,12 +194,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--md-surface-container-high);
+  background: var(--md-glass);
   color: var(--md-on-surface);
   opacity: 0;
   transform: scale(0.6);
   transition: opacity 0.14s ease, transform 0.18s ease;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--md-glass-inset);
 }
 
 .graph-context-tab-item.is-checked .graph-context-tab-check {
@@ -213,23 +224,27 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: none;
-  background: transparent;
+  border: var(--md-glass-border);
+  background: var(--md-glass);
   color: var(--md-on-surface-variant);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  box-shadow: var(--md-glass-inset);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .graph-context-tab-action:hover {
-  background: var(--md-surface-container-high);
+  background: var(--md-glass-strong);
+  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
   color: var(--md-on-surface);
 }
 
 .graph-context-tab-action.danger:hover {
-  background: rgba(var(--md-error-rgb), 0.16);
+  background: color-mix(in srgb, rgba(var(--md-error-rgb), 0.2) 70%, transparent);
   color: var(--md-error);
 }
 
@@ -249,21 +264,32 @@
   position: absolute;
   left: 100%;
   top: var(--submenu-offset-y, 0px);
-  background: var(--md-surface-container-high);
-  border: 1px solid var(--md-outline-variant);
+  background: var(--md-glass-strong);
+  border: var(--md-glass-border);
   border-radius: 8px;
   padding: 4px 0;
-  box-shadow: var(--md-elev-2);
+  box-shadow: var(--md-glass-shadow);
   min-width: 140px;
   max-height: calc(100vh - 16px);
   overflow-y: auto;
   overflow-x: hidden;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: var(--md-glass-blur);
+  -webkit-backdrop-filter: var(--md-glass-blur);
   animation: context-menu-open 150ms cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top left;
   transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
   transform: scale(0.98);
+}
+
+.graph-context-submenu::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border-top: 2px solid var(--md-glass-highlight);
+  border-left: 1px solid var(--md-glass-highlight-soft);
+  border-right: 1px solid var(--md-glass-highlight);
+  pointer-events: none;
 }
 
 .graph-context-menu-item.has-submenu:hover .graph-context-submenu {

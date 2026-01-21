@@ -74,18 +74,22 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: none;
-  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  border: var(--md-glass-border);
+  background: var(--md-glass);
   color: var(--md-on-surface-variant);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+  box-shadow: var(--md-glass-inset);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease, border-color 120ms ease;
 }
 
 .tag-action-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--md-on-surface) 14%, transparent);
+  background: var(--md-glass-strong);
+  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
   color: var(--md-on-surface);
   transform: translateY(-1px);
 }

@@ -541,9 +541,6 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const surfaceRgb = hexToRgb(surface);
   const onSurfaceRgb = hexToRgb(onSurface);
 
-  const glassAlpha = clamp(0.3 + opacity * 0.5, 0.3, 0.9);
-  const glassStrongAlpha = clamp(0.45 + opacity * 0.45, 0.45, 0.95);
-
   const appBackgroundColor = gradientBase ?? surface;
   const appBackgroundImage = gradientImage ?? 'none';
   const backgroundRgb = appBackgroundColor.startsWith('#') ? hexToRgb(appBackgroundColor) : surfaceRgb;
@@ -551,11 +548,6 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const gridContrastRgb = getContrastText(backgroundRgb);
   const gridAlpha = backgroundLuminance > 0.6 ? 0.18 : backgroundLuminance < 0.35 ? 0.28 : 0.22;
   const gridDot = toRgbaString(gridContrastRgb, gridAlpha);
-
-  const glass = `rgba(${rgbToCssTuple(surfaceRgb)}, ${glassAlpha})`;
-  const glassStrong = `rgba(${rgbToCssTuple(surfaceRgb)}, ${glassStrongAlpha})`;
-  const glassBorderAlpha = isDark ? 0.08 : 0.14;
-  const glassInsetAlpha = isDark ? 0.05 : 0.06;
 
   const mdElev1 = isDark
     ? '0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9)'
@@ -597,12 +589,6 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
     '--md-elev-1': mdElev1,
     '--md-elev-2': mdElev2,
     '--md-elev-3': mdElev3,
-    '--md-glass': glass,
-    '--md-glass-strong': glassStrong,
-    '--md-glass-border': `1px solid rgba(${rgbToCssTuple(onSurfaceRgb)}, ${glassBorderAlpha})`,
-    '--md-glass-inset': `inset 0 0 0 1px rgba(${rgbToCssTuple(
-      onSurfaceRgb
-    )}, ${glassInsetAlpha})`,
     '--scrollbar-thumb': `rgba(${rgbToCssTuple(primaryRgbResolved)}, ${isDark ? 0.2 : 0.24})`,
     '--scrollbar-thumb-hover': `rgba(${rgbToCssTuple(primaryRgbResolved)}, ${
       isDark ? 0.36 : 0.4

@@ -19,10 +19,14 @@
   --md-elev-1: 0 2px 6px rgba(20, 24, 40, 0.08);
   --md-elev-2: 0 8px 18px rgba(20, 24, 40, 0.12);
   --md-elev-3: 0 14px 30px rgba(20, 24, 40, 0.18);
-  --md-glass: rgba(248, 250, 255, 0.72);
-  --md-glass-strong: rgba(248, 250, 255, 0.9);
-  --md-glass-border: 1px solid rgba(36, 46, 64, 0.14);
-  --md-glass-inset: inset 0 0 0 1px rgba(36, 46, 64, 0.06);
+  --md-glass: color-mix(in srgb, var(--md-surface) 12%, transparent);
+  --md-glass-strong: color-mix(in srgb, var(--md-surface) 20%, transparent);
+  --md-glass-border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  --md-glass-inset: inset 0 0 0 1px color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  --md-glass-highlight: rgba(255, 255, 255, 0.26);
+  --md-glass-highlight-soft: rgba(255, 255, 255, 0.12);
+  --md-glass-shadow: 0 20px 10px rgba(0, 0, 0, 0.28);
+  --md-glass-blur: blur(20px);
   --scrollbar-thumb: rgba(var(--md-primary-rgb), 0.24);
   --scrollbar-thumb-hover: rgba(var(--md-primary-rgb), 0.4);
 
@@ -56,10 +60,14 @@
   --md-elev-1: 0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9);
   --md-elev-2: 0 2px 3px rgba(0, 0, 0, 0.55), 0 18px 40px -22px rgba(0, 0, 0, 0.95);
   --md-elev-3: 0 3px 5px rgba(0, 0, 0, 0.55), 0 28px 60px -30px rgba(0, 0, 0, 0.95);
-  --md-glass: rgba(17, 19, 27, 0.72);
-  --md-glass-strong: rgba(17, 19, 27, 0.88);
-  --md-glass-border: 1px solid rgba(255, 255, 255, 0.08);
-  --md-glass-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --md-glass: color-mix(in srgb, var(--md-surface) 12%, transparent);
+  --md-glass-strong: color-mix(in srgb, var(--md-surface) 20%, transparent);
+  --md-glass-border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  --md-glass-inset: inset 0 0 0 1px color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  --md-glass-highlight: rgba(255, 255, 255, 0.22);
+  --md-glass-highlight-soft: rgba(255, 255, 255, 0.1);
+  --md-glass-shadow: 0 20px 10px rgba(0, 0, 0, 0.38);
+  --md-glass-blur: blur(20px);
   --scrollbar-thumb: rgba(var(--md-primary-rgb), 0.2);
   --scrollbar-thumb-hover: rgba(var(--md-primary-rgb), 0.36);
 
@@ -94,10 +102,14 @@
     --md-elev-1: 0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9);
     --md-elev-2: 0 2px 3px rgba(0, 0, 0, 0.55), 0 18px 40px -22px rgba(0, 0, 0, 0.95);
     --md-elev-3: 0 3px 5px rgba(0, 0, 0, 0.55), 0 28px 60px -30px rgba(0, 0, 0, 0.95);
-    --md-glass: rgba(17, 19, 27, 0.72);
-    --md-glass-strong: rgba(17, 19, 27, 0.88);
-    --md-glass-border: 1px solid rgba(255, 255, 255, 0.08);
-    --md-glass-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    --md-glass: color-mix(in srgb, var(--md-surface) 12%, transparent);
+    --md-glass-strong: color-mix(in srgb, var(--md-surface) 20%, transparent);
+    --md-glass-border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+    --md-glass-inset: inset 0 0 0 1px color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+    --md-glass-highlight: rgba(255, 255, 255, 0.22);
+    --md-glass-highlight-soft: rgba(255, 255, 255, 0.1);
+    --md-glass-shadow: 0 20px 10px rgba(0, 0, 0, 0.38);
+    --md-glass-blur: blur(20px);
     --scrollbar-thumb: rgba(var(--md-primary-rgb), 0.2);
     --scrollbar-thumb-hover: rgba(var(--md-primary-rgb), 0.36);
 
@@ -133,10 +145,14 @@
     --md-elev-1: 0 2px 6px rgba(20, 24, 40, 0.08);
     --md-elev-2: 0 8px 18px rgba(20, 24, 40, 0.12);
     --md-elev-3: 0 14px 30px rgba(20, 24, 40, 0.18);
-    --md-glass: rgba(248, 250, 255, 0.72);
-    --md-glass-strong: rgba(248, 250, 255, 0.9);
-    --md-glass-border: 1px solid rgba(36, 46, 64, 0.14);
-    --md-glass-inset: inset 0 0 0 1px rgba(36, 46, 64, 0.06);
+    --md-glass: color-mix(in srgb, var(--md-surface) 12%, transparent);
+    --md-glass-strong: color-mix(in srgb, var(--md-surface) 20%, transparent);
+    --md-glass-border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+    --md-glass-inset: inset 0 0 0 1px color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+    --md-glass-highlight: rgba(255, 255, 255, 0.26);
+    --md-glass-highlight-soft: rgba(255, 255, 255, 0.12);
+    --md-glass-shadow: 0 20px 10px rgba(0, 0, 0, 0.28);
+    --md-glass-blur: blur(20px);
     --scrollbar-thumb: rgba(var(--md-primary-rgb), 0.24);
     --scrollbar-thumb-hover: rgba(var(--md-primary-rgb), 0.4);
 

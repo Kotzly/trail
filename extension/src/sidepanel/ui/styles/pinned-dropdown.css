@@ -10,12 +10,25 @@
   margin-top: 6px;
   min-width: 280px;
   max-width: 320px;
-  background: var(--md-surface-container-high);
-  border: 1px solid var(--md-outline-variant);
+  background: var(--md-glass-strong);
+  border: var(--md-glass-border);
   border-radius: 12px;
-  box-shadow: var(--md-elev-2);
+  box-shadow: var(--md-glass-shadow);
   z-index: 100;
   overflow: hidden;
+  backdrop-filter: var(--md-glass-blur);
+  -webkit-backdrop-filter: var(--md-glass-blur);
+}
+
+.pinned-dropdown::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border-top: 2px solid var(--md-glass-highlight);
+  border-left: 1px solid var(--md-glass-highlight-soft);
+  border-right: 1px solid var(--md-glass-highlight);
+  pointer-events: none;
 }
 
 .pinned-dropdown.hidden {
@@ -27,7 +40,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--md-outline-variant);
+  border-bottom: var(--md-glass-border);
+  background: var(--md-glass);
 }
 
 .pinned-dropdown-title {
@@ -39,7 +53,7 @@
 .pinned-dropdown-count {
   font-size: 11px;
   color: var(--md-on-surface-variant);
-  background: var(--md-surface-variant);
+  background: var(--md-glass);
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -67,11 +81,11 @@
 
 .pinned-dropdown-item:hover,
 .pinned-dropdown-item.focused {
-  background: var(--md-surface-variant);
+  background: var(--md-glass);
 }
 
 .pinned-dropdown-item.focused {
-  outline: 2px solid var(--md-primary);
+  outline: 2px solid color-mix(in srgb, var(--md-primary) 55%, transparent);
   outline-offset: -2px;
 }
 
@@ -83,7 +97,7 @@
 }
 
 .pinned-dropdown-item-favicon.placeholder {
-  background: var(--md-surface-variant);
+  background: var(--md-glass);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,7 +131,7 @@
   padding: 8px 16px;
   font-size: 11px;
   color: var(--md-on-surface-variant);
-  background: var(--md-surface-container);
-  border-top: 1px solid var(--md-outline-variant);
+  background: var(--md-glass);
+  border-top: var(--md-glass-border);
   text-align: center;
 }
