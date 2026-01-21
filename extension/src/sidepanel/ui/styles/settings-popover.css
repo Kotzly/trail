@@ -1,12 +1,8 @@
 .settings-modal-overlay {
-  position: fixed;
-  inset: 0;
+  --modal-overlay-z: 850;
   background: color-mix(in srgb, var(--md-overlay) 75%, transparent);
   backdrop-filter: blur(10px) saturate(1.1);
   -webkit-backdrop-filter: blur(10px) saturate(1.1);
-  display: grid;
-  place-items: center;
-  z-index: 1250;
   animation: settings-overlay-in 0.18s ease-out;
 }
 

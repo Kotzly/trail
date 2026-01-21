@@ -1161,7 +1161,7 @@ export default function SettingsPopover() {
   };
 
   return createPortal(
-    <div className="settings-modal-overlay lod-enabler blur-enabler" onClick={() => setSettingsOpen(false)}>
+    <div className="modal-overlay settings-modal-overlay lod-enabler blur-enabler" onClick={() => setSettingsOpen(false)}>
       <div
         className="settings-modal"
         role="dialog"

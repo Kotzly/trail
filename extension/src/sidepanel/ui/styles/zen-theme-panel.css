@@ -1,12 +1,8 @@
 .theme-panel-overlay {
-  position: fixed;
-  inset: 0;
+  --modal-overlay-z: 820;
   background: var(--md-overlay);
   backdrop-filter: blur(8px) saturate(1.05);
   -webkit-backdrop-filter: blur(8px) saturate(1.05);
-  display: grid;
-  place-items: center;
-  z-index: 80;
 }
 
 .theme-panel {

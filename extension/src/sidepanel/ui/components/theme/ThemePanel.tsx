@@ -140,7 +140,7 @@ export default function ThemePanel() {
   if (!themePickerOpen || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="theme-panel-overlay lod-enabler blur-enabler" onClick={handleClose}>
+    <div className="modal-overlay theme-panel-overlay lod-enabler blur-enabler" onClick={handleClose}>
       <div
         className="theme-panel"
         onClick={(event) => event.stopPropagation()}
