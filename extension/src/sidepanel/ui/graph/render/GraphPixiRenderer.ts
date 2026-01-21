@@ -185,13 +185,19 @@ class NodeVisual {
     const isHover = model.isHoverFocused;
     const isMuted = model.tabState?.sound.muted ?? false;
 
-    const backgroundColor = isClosed
-      ? theme.closed.background
-      : isActive
-        ? theme.active.background
-        : theme.surfaceContainer;
+    const openBackground = isActive ? theme.active.background : theme.surfaceContainer;
+    let backgroundColor = openBackground;
+    if (isClosed) {
+      const isDarkTheme = getLuminance(theme.surface) < 0.5;
+      const closedBase = mixColors(openBackground, theme.closed.background, 0.9);
+      const toned = isDarkTheme
+        ? scaleColor(closedBase, 0.4)
+        : mixColors(closedBase, theme.surface, 0.96);
+      backgroundColor = desaturateColor(toned, 0.75);
+    }
     let borderColor = isClosed ? theme.closed.border : isActive ? theme.active.border : theme.outline;
     let borderWidth = isActive ? 2 : 1;
+    const useDashedBorder = isClosed && !(isSelected || isHover || isPreview || isMuted);
 
     if (isMuted) {
       borderColor = 0xdc3545;
@@ -205,16 +211,24 @@ class NodeVisual {
     const radius = NODE_RADIUS;
     this.background.roundRect(0, 0, model.width, model.height, radius);
     this.background.fill({ color: backgroundColor, alpha: 1 });
-    if (borderWidth > 0) {
+    if (borderWidth > 0 && !useDashedBorder) {
       this.background.stroke({ width: borderWidth, color: borderColor, alignment: 0.5 });
     }
 
     this.fallbackDot.clear();
 
+    if (useDashedBorder) {
+      const dashedWidth = Math.max(borderWidth, 2);
+      this.background.setStrokeStyle({ width: dashedWidth, color: borderColor, alignment: 0.5 });
+      this.background.beginPath();
+      drawDashedRoundedRect(this.background, 0, 0, model.width, model.height, NODE_RADIUS, 6, 4);
+      this.background.stroke();
+    }
+
     if (isPreview) {
       this.background.setStrokeStyle({ width: 2, color: borderColor, alignment: 0.5 });
       this.background.beginPath();
-      drawDashedRect(this.background, 0, 0, model.width, model.height, 6, 4);
+      drawDashedRoundedRect(this.background, 0, 0, model.width, model.height, NODE_RADIUS, 6, 4);
       this.background.stroke();
     }
   }
@@ -753,31 +767,116 @@ function truncateTitle(text: string, mode: GraphDisplayOptions['titleTruncation'
   return `${text.slice(0, available)}${ellipsis}`;
 }
 
-function drawDashedRect(
+type DashState = {
+  draw: boolean;
+  remaining: number;
+};
+
+function drawDashedLine(
+  graphics: PIXI.Graphics,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  dash: number,
+  gap: number,
+  state: DashState
+) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const length = Math.hypot(dx, dy);
+  if (length === 0) return;
+  let progress = 0;
+  while (progress < length) {
+    const step = Math.min(state.remaining, length - progress);
+    const t1 = progress / length;
+    const t2 = (progress + step) / length;
+    if (state.draw) {
+      const sx = x1 + dx * t1;
+      const sy = y1 + dy * t1;
+      const ex = x1 + dx * t2;
+      const ey = y1 + dy * t2;
+      graphics.moveTo(sx, sy);
+      graphics.lineTo(ex, ey);
+    }
+    progress += step;
+    if (step === state.remaining) {
+      state.draw = !state.draw;
+      state.remaining = state.draw ? dash : gap;
+    } else {
+      state.remaining -= step;
+    }
+  }
+}
+
+function drawDashedArc(
+  graphics: PIXI.Graphics,
+  cx: number,
+  cy: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
+  dash: number,
+  gap: number,
+  state: DashState
+) {
+  if (radius <= 0) return;
+  const delta = endAngle - startAngle;
+  const arcLength = Math.abs(delta) * radius;
+  if (arcLength === 0) return;
+  const direction = delta >= 0 ? 1 : -1;
+  let progress = 0;
+  while (progress < arcLength) {
+    const step = Math.min(state.remaining, arcLength - progress);
+    if (state.draw) {
+      const angle1 = startAngle + direction * (progress / radius);
+      const angle2 = startAngle + direction * ((progress + step) / radius);
+      const sx = cx + Math.cos(angle1) * radius;
+      const sy = cy + Math.sin(angle1) * radius;
+      graphics.moveTo(sx, sy);
+      graphics.arc(cx, cy, radius, angle1, angle2, direction < 0);
+    }
+    progress += step;
+    if (step === state.remaining) {
+      state.draw = !state.draw;
+      state.remaining = state.draw ? dash : gap;
+    } else {
+      state.remaining -= step;
+    }
+  }
+}
+
+function drawDashedRoundedRect(
   graphics: PIXI.Graphics,
   x: number,
   y: number,
   width: number,
   height: number,
+  radius: number,
   dash: number,
   gap: number
 ) {
-  const segmentsX = Math.floor(width / (dash + gap));
-  const segmentsY = Math.floor(height / (dash + gap));
-  for (let i = 0; i < segmentsX; i += 1) {
-    const startX = x + i * (dash + gap);
-    graphics.moveTo(startX, y);
-    graphics.lineTo(Math.min(startX + dash, x + width), y);
-    graphics.moveTo(startX, y + height);
-    graphics.lineTo(Math.min(startX + dash, x + width), y + height);
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  const right = x + width;
+  const bottom = y + height;
+  const state: DashState = { draw: true, remaining: dash };
+
+  if (r === 0) {
+    drawDashedLine(graphics, x, y, right, y, dash, gap, state);
+    drawDashedLine(graphics, right, y, right, bottom, dash, gap, state);
+    drawDashedLine(graphics, right, bottom, x, bottom, dash, gap, state);
+    drawDashedLine(graphics, x, bottom, x, y, dash, gap, state);
+    return;
   }
-  for (let i = 0; i < segmentsY; i += 1) {
-    const startY = y + i * (dash + gap);
-    graphics.moveTo(x, startY);
-    graphics.lineTo(x, Math.min(startY + dash, y + height));
-    graphics.moveTo(x + width, startY);
-    graphics.lineTo(x + width, Math.min(startY + dash, y + height));
-  }
+
+  drawDashedLine(graphics, x + r, y, right - r, y, dash, gap, state);
+  drawDashedArc(graphics, right - r, y + r, r, -Math.PI / 2, 0, dash, gap, state);
+  drawDashedLine(graphics, right, y + r, right, bottom - r, dash, gap, state);
+  drawDashedArc(graphics, right - r, bottom - r, r, 0, Math.PI / 2, dash, gap, state);
+  drawDashedLine(graphics, right - r, bottom, x + r, bottom, dash, gap, state);
+  drawDashedArc(graphics, x + r, bottom - r, r, Math.PI / 2, Math.PI, dash, gap, state);
+  drawDashedLine(graphics, x, bottom - r, x, y + r, dash, gap, state);
+  drawDashedArc(graphics, x + r, y + r, r, Math.PI, Math.PI * 1.5, dash, gap, state);
 }
 
 function isSafeFavicon(url: string): boolean {
@@ -797,6 +896,58 @@ function computeZIndex(model: NodeRenderModel): number {
   if (model.isHoverFocused) return 20;
   if (model.isCurrent) return 15;
   return 1;
+}
+
+function mixColors(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 0xff;
+  const ag = (a >> 8) & 0xff;
+  const ab = a & 0xff;
+  const br = (b >> 16) & 0xff;
+  const bg = (b >> 8) & 0xff;
+  const bb = b & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bch = Math.round(ab + (bb - ab) * t);
+  return (r << 16) | (g << 8) | bch;
+}
+
+function scaleColor(color: number, factor: number): number {
+  const r = Math.round(((color >> 16) & 0xff) * factor);
+  const g = Math.round(((color >> 8) & 0xff) * factor);
+  const b = Math.round((color & 0xff) * factor);
+  return (clamp8(r) << 16) | (clamp8(g) << 8) | clamp8(b);
+}
+
+function desaturateColor(color: number, amount: number): number {
+  const r = (color >> 16) & 0xff;
+  const g = (color >> 8) & 0xff;
+  const b = color & 0xff;
+  const gray = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
+  const nr = Math.round(r + (gray - r) * amount);
+  const ng = Math.round(g + (gray - g) * amount);
+  const nb = Math.round(b + (gray - b) * amount);
+  return (clamp8(nr) << 16) | (clamp8(ng) << 8) | clamp8(nb);
+}
+
+function clamp8(value: number): number {
+  if (value < 0) return 0;
+  if (value > 255) return 255;
+  return value;
+}
+
+function getLuminance(color: number): number {
+  const r = ((color >> 16) & 0xff) / 255;
+  const g = ((color >> 8) & 0xff) / 255;
+  const b = (color & 0xff) / 255;
+  const rl = srgbToLinear(r);
+  const gl = srgbToLinear(g);
+  const bl = srgbToLinear(b);
+  return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl;
+}
+
+function srgbToLinear(value: number): number {
+  if (value <= 0.04045) return value / 12.92;
+  return Math.pow((value + 0.055) / 1.055, 2.4);
 }
 
 function safeColor(value: string, fallback: number): number {
