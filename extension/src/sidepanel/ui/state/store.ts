@@ -116,7 +116,6 @@ type StoreState = {
     tool: GraphTool;
     selectedNodeIds: Set<NodeId>;
     view: ViewState;
-    layoutVersion: number;
     resetVersion: number;
     viewIntent: TreeUpdatedInput['view'] | null;
     hoverNodeId: NodeId | null;
@@ -159,8 +158,6 @@ type StoreActions = {
   clearSelection: () => void;
   setGraphView: (view: Partial<ViewState>) => void;
   setHoverNodeId: (nodeId: NodeId | null) => void;
-  setNodeLayoutOffset: (nodeId: NodeId, offsetX: number, offsetY: number) => void;
-  setNodeLayoutRadial: (nodeId: NodeId, angleDelta: number, radiusDelta: number) => void;
   requestGraphReset: () => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
@@ -242,7 +239,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     tool: 'select',
     selectedNodeIds: new Set<NodeId>(),
     view: { translateX: 0, translateY: 0, scale: 1 },
-    layoutVersion: 0,
     resetVersion: 0,
     viewIntent: null,
     hoverNodeId: null,
@@ -545,33 +541,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set((state) => ({
       graph: { ...state.graph, hoverNodeId: nodeId },
     })),
-  setNodeLayoutOffset: (nodeId, offsetX, offsetY) =>
-    set((state) => {
-      const tree = state.tree;
-      if (!tree) return state;
-      const node = tree.findNodeById(nodeId);
-      if (!node) return state;
-      const radial = node.data.layout?.radial;
-      node.data.layout = radial ? { offsetX, offsetY, radial } : { offsetX, offsetY };
-      return {
-        tree,
-        graph: { ...state.graph, layoutVersion: state.graph.layoutVersion + 1 },
-      };
-    }),
-  setNodeLayoutRadial: (nodeId, angleDelta, radiusDelta) =>
-    set((state) => {
-      const tree = state.tree;
-      if (!tree) return state;
-      const node = tree.findNodeById(nodeId);
-      if (!node) return state;
-      const offsetX = node.data.layout?.offsetX ?? 0;
-      const offsetY = node.data.layout?.offsetY ?? 0;
-      node.data.layout = { offsetX, offsetY, radial: { angleDelta, radiusDelta } };
-      return {
-        tree,
-        graph: { ...state.graph, layoutVersion: state.graph.layoutVersion + 1 },
-      };
-    }),
   requestGraphReset: () =>
     set((state) => ({
       graph: { ...state.graph, resetVersion: state.graph.resetVersion + 1 },

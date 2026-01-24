@@ -72,6 +72,12 @@ const SETTINGS_SECTIONS: SettingsMenuItem[] = [
 
 const PREFERENCE_TABS: PreferencesTabItem[] = [
   {
+    id: 'layout',
+    label: 'Layout',
+    description: 'Structure and spacing',
+    icon: Icons.Network,
+  },
+  {
     id: 'appearance',
     label: 'Appearance',
     description: 'Theme and typography',
@@ -82,12 +88,6 @@ const PREFERENCE_TABS: PreferencesTabItem[] = [
     label: 'Display',
     description: 'Node details and signals',
     icon: Icons.List,
-  },
-  {
-    id: 'layout',
-    label: 'Layout',
-    description: 'Structure and spacing',
-    icon: Icons.Network,
   },
   {
     id: 'advanced',
@@ -280,7 +280,7 @@ export default function SettingsPopover() {
   useOverlayEffects(settingsOpen, { lod: true, blur: true, kind: 'modal' });
 
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('preferences');
-  const [activePreferencesTab, setActivePreferencesTab] = useState<PreferencesTabId>('appearance');
+  const [activePreferencesTab, setActivePreferencesTab] = useState<PreferencesTabId>('layout');
   const [authBusy, setAuthBusy] = useState(false);
   const [portalBusy, setPortalBusy] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
@@ -337,7 +337,7 @@ export default function SettingsPopover() {
     setAuthBusy(false);
     setPortalBusy(false);
     setActiveSection('preferences');
-    setActivePreferencesTab('appearance');
+    setActivePreferencesTab('layout');
   }, [settingsOpen]);
 
   const flushPendingSave = useCallback(async () => {
