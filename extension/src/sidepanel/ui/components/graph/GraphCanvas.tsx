@@ -57,13 +57,23 @@ type LayoutUpdate = {
   };
 };
 
-type DragPreview = {
+type LayoutUpdateMap = Map<NodeId, LayoutUpdate['layout']>;
+
+type DragNodeState = {
   nodeId: NodeId;
-  mode: LayoutMode;
-  offsetX?: number;
-  offsetY?: number;
-  angleDelta?: number;
-  radiusDelta?: number;
+  startNodeX: number;
+  startNodeY: number;
+  baseOffsetX: number;
+  baseOffsetY: number;
+  radial?: {
+    rootCenterX: number;
+    rootCenterY: number;
+    baseAngle: number;
+    baseRadius: number;
+    ancestorAngle: number;
+    ancestorRadius: number;
+    minRadius: number;
+  };
 };
 
 const LAYOUT_UPDATE_MS = 80;
@@ -154,35 +164,23 @@ export default function GraphCanvas({
   const [previewSelection, setPreviewSelection] = useState<Set<NodeId>>(new Set());
   const previewSelectionRef = useRef<Set<NodeId>>(new Set());
   const [isDraggingNode, setIsDraggingNode] = useState(false);
-  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
+  const [dragPreview, setDragPreview] = useState<LayoutUpdateMap | null>(null);
   const layoutSendRef = useRef<{
     lastSent: number;
     timer: number | null;
-    pending: LayoutUpdate | null;
+    pending: LayoutUpdateMap | null;
   }>({ lastSent: 0, timer: null, pending: null });
   const isPanningRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
   const selectionAnchorRef = useRef<NodeId | null>(null);
   const pointerDownNodeIdRef = useRef<NodeId | null>(null);
+  const pointerDownInfoRef = useRef<PointerInfo | null>(null);
   const dragStateRef = useRef<{
-    nodeId: NodeId;
     startX: number;
     startY: number;
-    startNodeX: number;
-    startNodeY: number;
-    baseOffsetX: number;
-    baseOffsetY: number;
     mode: LayoutMode;
-    latestLayout?: LayoutUpdate['layout'];
-    radial?: {
-      rootCenterX: number;
-      rootCenterY: number;
-      baseAngle: number;
-      baseRadius: number;
-      ancestorAngle: number;
-      ancestorRadius: number;
-      minRadius: number;
-    };
+    nodes: DragNodeState[];
+    latestLayouts: LayoutUpdateMap;
   } | null>(null);
   const dragMovedRef = useRef(false);
   const nodeDragJustEndedRef = useRef(false);
@@ -281,18 +279,26 @@ export default function GraphCanvas({
     resetStepRef.current = null;
   }, [currentNodeId]);
 
-  const flushLayoutUpdate = useCallback(async (update: LayoutUpdate) => {
+  const flushLayoutUpdates = useCallback(async (updates: LayoutUpdateMap) => {
     try {
-      await setNodeLayout(update.nodeId, update.layout);
+      for (const [nodeId, layout] of updates) {
+        await setNodeLayout(nodeId, layout);
+      }
     } catch (error) {
       console.error('Failed to save node position:', error);
     }
   }, []);
 
-  const queueLayoutUpdate = useCallback(
-    (update: LayoutUpdate, immediate = false) => {
+  const queueLayoutUpdates = useCallback(
+    (updates: LayoutUpdateMap, immediate = false) => {
+      if (updates.size === 0) return;
       const state = layoutSendRef.current;
-      state.pending = update;
+      if (!state.pending) {
+        state.pending = new Map();
+      }
+      updates.forEach((layout, nodeId) => {
+        state.pending?.set(nodeId, layout);
+      });
       const now = performance.now();
       const elapsed = now - state.lastSent;
       const canSendNow = immediate || elapsed >= LAYOUT_UPDATE_MS;
@@ -304,7 +310,7 @@ export default function GraphCanvas({
         state.lastSent = now;
         const next = state.pending;
         state.pending = null;
-        if (next) void flushLayoutUpdate(next);
+        if (next) void flushLayoutUpdates(next);
         return;
       }
       if (state.timer !== null) return;
@@ -315,10 +321,10 @@ export default function GraphCanvas({
         state.pending = null;
         if (!next) return;
         state.lastSent = performance.now();
-        void flushLayoutUpdate(next);
+        void flushLayoutUpdates(next);
       }, delay);
     },
-    [flushLayoutUpdate],
+    [flushLayoutUpdates],
   );
 
   useEffect(() => {
@@ -385,25 +391,7 @@ export default function GraphCanvas({
   const basePositions = layout?.positions ?? new Map<NodeId, NodePosition>();
   const positions = useMemo(() => {
     if (basePositions.size === 0) return basePositions;
-    const activePreview = dragPreview && dragPreview.mode === layoutOptions.mode ? dragPreview : null;
     if (layoutOptions.mode !== 'radial') {
-      let previewDelta: { x: number; y: number } | null = null;
-      if (activePreview && tree) {
-        const previewNode = tree.findNodeById(activePreview.nodeId);
-        if (previewNode) {
-          const baseOffsetX = previewNode.data.layout?.offsetX ?? 0;
-          const baseOffsetY = previewNode.data.layout?.offsetY ?? 0;
-          const nextOffsetX =
-            typeof activePreview.offsetX === 'number' ? activePreview.offsetX : baseOffsetX;
-          const nextOffsetY =
-            typeof activePreview.offsetY === 'number' ? activePreview.offsetY : baseOffsetY;
-          const deltaX = nextOffsetX - baseOffsetX;
-          const deltaY = nextOffsetY - baseOffsetY;
-          if (deltaX !== 0 || deltaY !== 0) {
-            previewDelta = { x: deltaX, y: deltaY };
-          }
-        }
-      }
       const offsetCache = new Map<NodeId, { x: number; y: number }>();
       const computeOffset = (node: NavigationNode): { x: number; y: number } => {
         if (offsetCache.has(node.id)) {
@@ -414,8 +402,15 @@ export default function GraphCanvas({
         const layoutData = node.data.layout;
         const offsetX = typeof layoutData?.offsetX === 'number' ? layoutData.offsetX : 0;
         const offsetY = typeof layoutData?.offsetY === 'number' ? layoutData.offsetY : 0;
-        const extra =
-          previewDelta && activePreview?.nodeId === node.id ? previewDelta : { x: 0, y: 0 };
+        const previewLayout = dragPreview?.get(node.id);
+        const previewOffsetX =
+          typeof previewLayout?.offsetX === 'number' ? previewLayout.offsetX : null;
+        const previewOffsetY =
+          typeof previewLayout?.offsetY === 'number' ? previewLayout.offsetY : null;
+        const extra = {
+          x: previewOffsetX !== null ? previewOffsetX - offsetX : 0,
+          y: previewOffsetY !== null ? previewOffsetY - offsetY : 0,
+        };
         const total = {
           x: parentOffset.x + offsetX + extra.x,
           y: parentOffset.y + offsetY + extra.y,
@@ -436,24 +431,6 @@ export default function GraphCanvas({
     if (!rootPos) return basePositions;
     const centerX = rootPos.x + nodeWidth / 2;
     const centerY = rootPos.y + nodeHeight / 2;
-    let previewDelta: { angle: number; radius: number } | null = null;
-    if (activePreview && tree) {
-      const previewNode = tree.findNodeById(activePreview.nodeId);
-      if (previewNode) {
-        const baseRadial = previewNode.data.layout?.radial;
-        const baseAngle = baseRadial?.angleDelta ?? 0;
-        const baseRadius = baseRadial?.radiusDelta ?? 0;
-        const nextAngle =
-          typeof activePreview.angleDelta === 'number' ? activePreview.angleDelta : baseAngle;
-        const nextRadius =
-          typeof activePreview.radiusDelta === 'number' ? activePreview.radiusDelta : baseRadius;
-        const deltaAngle = nextAngle - baseAngle;
-        const deltaRadius = nextRadius - baseRadius;
-        if (deltaAngle !== 0 || deltaRadius !== 0) {
-          previewDelta = { angle: deltaAngle, radius: deltaRadius };
-        }
-      }
-    }
     const offsetCache = new Map<NodeId, { angle: number; radius: number }>();
     const computeRadialOffset = (node: NavigationNode): { angle: number; radius: number } => {
       if (offsetCache.has(node.id)) {
@@ -464,8 +441,14 @@ export default function GraphCanvas({
       const radial = node.data.layout?.radial;
       const angleDelta = typeof radial?.angleDelta === 'number' ? radial.angleDelta : 0;
       const radiusDelta = typeof radial?.radiusDelta === 'number' ? radial.radiusDelta : 0;
-      const extra =
-        previewDelta && activePreview?.nodeId === node.id ? previewDelta : { angle: 0, radius: 0 };
+      const previewLayout = dragPreview?.get(node.id);
+      const previewRadial = previewLayout?.radial;
+      const previewAngle = typeof previewRadial?.angleDelta === 'number' ? previewRadial.angleDelta : null;
+      const previewRadius = typeof previewRadial?.radiusDelta === 'number' ? previewRadial.radiusDelta : null;
+      const extra = {
+        angle: previewAngle !== null ? previewAngle - angleDelta : 0,
+        radius: previewRadius !== null ? previewRadius - radiusDelta : 0,
+      };
       const total = {
         angle: parentOffset.angle + angleDelta + extra.angle,
         radius: parentOffset.radius + radiusDelta + extra.radius,
@@ -490,7 +473,7 @@ export default function GraphCanvas({
       next.set(id, { ...pos, x, y });
     });
     return next;
-  }, [basePositions, dragPreview, layoutOptions.mode, nodeHeight, nodeWidth, root, tree]);
+  }, [basePositions, dragPreview, layoutOptions.mode, nodeHeight, nodeWidth, root]);
 
   const bounds: CanvasBounds = useMemo(() => {
     if (!layout) {
@@ -572,54 +555,92 @@ export default function GraphCanvas({
     if (info.shiftKey) return;
     if (info.metaKey || info.ctrlKey) return;
     if (layoutOptions.mode === 'radial' && node.isRoot?.()) return;
-    const startPos = positions.get(node.id);
-    if (!startPos) return;
-    dragMovedRef.current = false;
-    const startLayout = node.data.layout;
-    const baseOffsetX = typeof startLayout?.offsetX === 'number' ? startLayout.offsetX : 0;
-    const baseOffsetY = typeof startLayout?.offsetY === 'number' ? startLayout.offsetY : 0;
-    dragStateRef.current = {
-      nodeId: node.id,
-      startX: info.clientX,
-      startY: info.clientY,
-      startNodeX: startPos.x,
-      startNodeY: startPos.y,
-      baseOffsetX,
-      baseOffsetY,
-      mode: layoutOptions.mode,
-    };
+    const dragCandidates: NavigationNode[] = [];
+    if (tree && selectedNodeIds.size > 1 && selectedNodeIds.has(node.id)) {
+      selectedNodeIds.forEach((id) => {
+        const candidate = tree.findNodeById(id);
+        if (!candidate) return;
+        let parent = candidate.getParent?.();
+        let hasSelectedAncestor = false;
+        while (parent) {
+          if (selectedNodeIds.has(parent.id)) {
+            hasSelectedAncestor = true;
+            break;
+          }
+          parent = parent.getParent?.();
+        }
+        if (!hasSelectedAncestor) dragCandidates.push(candidate);
+      });
+    } else {
+      dragCandidates.push(node);
+    }
+    const dragNodes =
+      layoutOptions.mode === 'radial'
+        ? dragCandidates.filter((candidate) => !candidate.isRoot?.())
+        : dragCandidates;
+    if (dragNodes.length === 0) return;
+    const nodes: DragNodeState[] = [];
+    let rootCenterX = 0;
+    let rootCenterY = 0;
     if (layoutOptions.mode === 'radial') {
       if (!root) return;
       const rootPos = basePositions.get(root.id);
-      const basePos = basePositions.get(node.id);
-      if (!rootPos || !basePos) return;
-      const rootCenterX = rootPos.x + nodeWidth / 2;
-      const rootCenterY = rootPos.y + nodeHeight / 2;
-      const baseCenterX = basePos.x + nodeWidth / 2;
-      const baseCenterY = basePos.y + nodeHeight / 2;
-      const baseDx = baseCenterX - rootCenterX;
-      const baseDy = baseCenterY - rootCenterY;
-      const baseAngle = Math.atan2(baseDy, baseDx);
-      const baseRadius = Math.hypot(baseDx, baseDy);
-      let ancestorAngle = 0;
-      let ancestorRadius = 0;
-      let parent = node.getParent?.();
-      while (parent) {
-        const radial = parent.data.layout?.radial;
-        ancestorAngle += radial?.angleDelta ?? 0;
-        ancestorRadius += radial?.radiusDelta ?? 0;
-        parent = parent.getParent?.();
-      }
-      dragStateRef.current.radial = {
-        rootCenterX,
-        rootCenterY,
-        baseAngle,
-        baseRadius,
-        ancestorAngle,
-        ancestorRadius,
-        minRadius: nodeWidth * 0.35,
-      };
+      if (!rootPos) return;
+      rootCenterX = rootPos.x + nodeWidth / 2;
+      rootCenterY = rootPos.y + nodeHeight / 2;
     }
+    for (const dragNode of dragNodes) {
+      const startPos = positions.get(dragNode.id);
+      if (!startPos) continue;
+      const startLayout = dragNode.data.layout;
+      const baseOffsetX = typeof startLayout?.offsetX === 'number' ? startLayout.offsetX : 0;
+      const baseOffsetY = typeof startLayout?.offsetY === 'number' ? startLayout.offsetY : 0;
+      const entry: DragNodeState = {
+        nodeId: dragNode.id,
+        startNodeX: startPos.x,
+        startNodeY: startPos.y,
+        baseOffsetX,
+        baseOffsetY,
+      };
+      if (layoutOptions.mode === 'radial') {
+        const basePos = basePositions.get(dragNode.id);
+        if (!basePos) continue;
+        const baseCenterX = basePos.x + nodeWidth / 2;
+        const baseCenterY = basePos.y + nodeHeight / 2;
+        const baseDx = baseCenterX - rootCenterX;
+        const baseDy = baseCenterY - rootCenterY;
+        const baseAngle = Math.atan2(baseDy, baseDx);
+        const baseRadius = Math.hypot(baseDx, baseDy);
+        let ancestorAngle = 0;
+        let ancestorRadius = 0;
+        let parent = dragNode.getParent?.();
+        while (parent) {
+          const radial = parent.data.layout?.radial;
+          ancestorAngle += radial?.angleDelta ?? 0;
+          ancestorRadius += radial?.radiusDelta ?? 0;
+          parent = parent.getParent?.();
+        }
+        entry.radial = {
+          rootCenterX,
+          rootCenterY,
+          baseAngle,
+          baseRadius,
+          ancestorAngle,
+          ancestorRadius,
+          minRadius: nodeWidth * 0.35,
+        };
+      }
+      nodes.push(entry);
+    }
+    if (nodes.length === 0) return;
+    dragMovedRef.current = false;
+    dragStateRef.current = {
+      startX: info.clientX,
+      startY: info.clientY,
+      mode: layoutOptions.mode,
+      nodes,
+      latestLayouts: new Map(),
+    };
 
     const handleMove = (moveEvent: PointerEvent) => {
       const state = dragStateRef.current;
@@ -633,33 +654,39 @@ export default function GraphCanvas({
         suppressClickRef.current = true;
       }
       if (!dragMovedRef.current) return;
-      if (state.mode === 'radial' && state.radial) {
-        const targetCenterX = state.startNodeX + deltaX + nodeWidth / 2;
-        const targetCenterY = state.startNodeY + deltaY + nodeHeight / 2;
-        const desiredDx = targetCenterX - state.radial.rootCenterX;
-        const desiredDy = targetCenterY - state.radial.rootCenterY;
-        const desiredAngle = Math.atan2(desiredDy, desiredDx);
-        const desiredRadius = Math.max(state.radial.minRadius, Math.hypot(desiredDx, desiredDy));
-        const totalAngleDelta = desiredAngle - state.radial.baseAngle;
-        const totalRadiusDelta = desiredRadius - state.radial.baseRadius;
-        const nodeAngleDelta = totalAngleDelta - state.radial.ancestorAngle;
-        const nodeRadiusDelta = totalRadiusDelta - state.radial.ancestorRadius;
-        const layout = { radial: { angleDelta: nodeAngleDelta, radiusDelta: nodeRadiusDelta } };
-        state.latestLayout = layout;
-        setDragPreview({
-          nodeId: state.nodeId,
-          mode: state.mode,
-          angleDelta: nodeAngleDelta,
-          radiusDelta: nodeRadiusDelta,
+      if (state.mode === 'radial') {
+        const layouts: LayoutUpdateMap = new Map();
+        state.nodes.forEach((entry) => {
+          if (!entry.radial) return;
+          const targetCenterX = entry.startNodeX + deltaX + nodeWidth / 2;
+          const targetCenterY = entry.startNodeY + deltaY + nodeHeight / 2;
+          const desiredDx = targetCenterX - entry.radial.rootCenterX;
+          const desiredDy = targetCenterY - entry.radial.rootCenterY;
+          const desiredAngle = Math.atan2(desiredDy, desiredDx);
+          const desiredRadius = Math.max(entry.radial.minRadius, Math.hypot(desiredDx, desiredDy));
+          const totalAngleDelta = desiredAngle - entry.radial.baseAngle;
+          const totalRadiusDelta = desiredRadius - entry.radial.baseRadius;
+          const nodeAngleDelta = totalAngleDelta - entry.radial.ancestorAngle;
+          const nodeRadiusDelta = totalRadiusDelta - entry.radial.ancestorRadius;
+          layouts.set(entry.nodeId, { radial: { angleDelta: nodeAngleDelta, radiusDelta: nodeRadiusDelta } });
         });
-        queueLayoutUpdate({ nodeId: state.nodeId, layout });
+        state.latestLayouts = layouts;
+        if (layouts.size > 0) {
+          setDragPreview(layouts);
+          queueLayoutUpdates(layouts);
+        }
       } else {
-        const offsetX = state.baseOffsetX + deltaX;
-        const offsetY = state.baseOffsetY + deltaY;
-        const layout = { offsetX, offsetY };
-        state.latestLayout = layout;
-        setDragPreview({ nodeId: state.nodeId, mode: state.mode, offsetX, offsetY });
-        queueLayoutUpdate({ nodeId: state.nodeId, layout });
+        const layouts: LayoutUpdateMap = new Map();
+        state.nodes.forEach((entry) => {
+          const offsetX = entry.baseOffsetX + deltaX;
+          const offsetY = entry.baseOffsetY + deltaY;
+          layouts.set(entry.nodeId, { offsetX, offsetY });
+        });
+        state.latestLayouts = layouts;
+        if (layouts.size > 0) {
+          setDragPreview(layouts);
+          queueLayoutUpdates(layouts);
+        }
       }
     };
 
@@ -687,8 +714,8 @@ export default function GraphCanvas({
         setDragPreview(null);
         return;
       }
-      const latestLayout = state.latestLayout;
-      if (latestLayout) {
+      const latestLayouts = state.latestLayouts;
+      if (latestLayouts.size > 0) {
         const sendState = layoutSendRef.current;
         if (sendState.timer !== null) {
           window.clearTimeout(sendState.timer);
@@ -696,7 +723,7 @@ export default function GraphCanvas({
         }
         sendState.pending = null;
         sendState.lastSent = performance.now();
-        await flushLayoutUpdate({ nodeId: state.nodeId, layout: latestLayout });
+        await flushLayoutUpdates(latestLayouts);
       }
       setDragPreview(null);
       dragMovedRef.current = false;
@@ -705,7 +732,7 @@ export default function GraphCanvas({
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleUp, { once: true });
     window.addEventListener('pointercancel', handleUp, { once: true });
-  }, [basePositions, flushLayoutUpdate, layoutOptions.mode, nodeHeight, nodeWidth, positions, queueLayoutUpdate, root, tree]);
+  }, [basePositions, flushLayoutUpdates, layoutOptions.mode, nodeHeight, nodeWidth, positions, queueLayoutUpdates, root, tree]);
 
   const handleNodeContextMenu = useCallback(
     (node: NavigationNode, clientX: number, clientY: number) => {
@@ -1113,6 +1140,14 @@ export default function GraphCanvas({
     nodeDragJustEndedRef.current = false;
     selectionDragRef.current = false;
     pointerDownNodeIdRef.current = null;
+    pointerDownInfoRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      button: event.button,
+      shiftKey: event.shiftKey,
+      metaKey: event.metaKey,
+      ctrlKey: event.ctrlKey,
+    };
     const rect = wrapperRef.current.getBoundingClientRect();
     activePointerIdRef.current = event.pointerId;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -1121,6 +1156,16 @@ export default function GraphCanvas({
     if (hitNodeId && tree) {
       const node = tree.findNodeById(hitNodeId);
       if (node) {
+        if (
+          tool === 'select' &&
+          !event.shiftKey &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          (!selectedNodeIds.has(node.id) || selectedNodeIds.size <= 1)
+        ) {
+          onSelectedNodeIdsChange(new Set([node.id]));
+          selectionAnchorRef.current = node.id;
+        }
         handleNodePointerDown(node, event);
         return;
       }
@@ -1136,6 +1181,9 @@ export default function GraphCanvas({
       panPointerStartRef.current = { x: event.clientX, y: event.clientY };
       panMovedRef.current = false;
     } else if (tool === 'select') {
+      if (!event.shiftKey) {
+        clearSelectionState();
+      }
       isSelectingRef.current = true;
       const startX = event.clientX - rect.left;
       const startY = event.clientY - rect.top;
@@ -1224,19 +1272,21 @@ export default function GraphCanvas({
       if (nodeDragJustEndedRef.current) {
         nodeDragJustEndedRef.current = false;
         dragMovedRef.current = false;
+        pointerDownInfoRef.current = null;
         return;
       }
       if (!dragMovedRef.current) {
         const node = tree?.findNodeById(nodeId);
         if (node) {
-          handleNodeClick(node, {
+          const info = pointerDownInfoRef.current ?? {
             clientX: event.clientX,
             clientY: event.clientY,
             button: event.button,
             shiftKey: event.shiftKey,
             metaKey: event.metaKey,
             ctrlKey: event.ctrlKey,
-          });
+          };
+          handleNodeClick(node, info);
           suppressClickRef.current = true;
           window.setTimeout(() => {
             suppressClickRef.current = false;
@@ -1245,6 +1295,7 @@ export default function GraphCanvas({
       } else {
         dragMovedRef.current = false;
       }
+      pointerDownInfoRef.current = null;
       return;
     }
     if (isPanningRef.current) {
@@ -1256,6 +1307,7 @@ export default function GraphCanvas({
           suppressClickRef.current = false;
         }, 0);
       }
+      pointerDownInfoRef.current = null;
       return;
     }
     if (isSelectingRef.current) {
@@ -1285,6 +1337,7 @@ export default function GraphCanvas({
     } else {
       pointerDownNodeIdRef.current = null;
     }
+    pointerDownInfoRef.current = null;
   };
 
   const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -1295,6 +1348,7 @@ export default function GraphCanvas({
     activePointerIdRef.current = null;
     nodeDragJustEndedRef.current = false;
     pointerDownNodeIdRef.current = null;
+    pointerDownInfoRef.current = null;
     dragMovedRef.current = false;
     if (isPanningRef.current) {
       isPanningRef.current = false;
