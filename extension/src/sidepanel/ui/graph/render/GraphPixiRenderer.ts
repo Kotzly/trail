@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import { icons } from 'lucide';
 import type { TextStyleFontWeight } from 'pixi.js';
 import type { FaviconUrl, NodeId } from '../../../../shared/types/ids.js';
 import { formatUrl } from '../../shared/format.js';
@@ -37,6 +38,65 @@ const TAB_BADGE_PADDING_Y = 3;
 
 const faviconTextureCache = new Map<FaviconUrl, PIXI.Texture>();
 const faviconLoadPromises = new Map<FaviconUrl, Promise<PIXI.Texture | null>>();
+const iconTextureCache = new Map<string, PIXI.Texture>();
+const iconLoadPromises = new Map<string, Promise<PIXI.Texture | null>>();
+
+const STATUS_ICON_SIZE = 24;
+const STATUS_ICON_STROKE = 2;
+
+type LucideNode = Array<[string, Record<string, string>]>;
+type LucideIconRequest = { cacheKey: string; svg: string };
+
+function getLucideIconRequest(
+  iconName: string,
+  color: number,
+  size: number,
+  strokeWidth: number
+): LucideIconRequest | null {
+  const icon = (icons as Record<string, LucideNode>)[iconName];
+  if (!icon) return null;
+  const cacheKey = `${iconName}|${color}|${size}|${strokeWidth}`;
+  const svg = buildLucideSvg(icon, colorToHex(color), size, strokeWidth);
+  return { cacheKey, svg };
+}
+
+function buildLucideSvg(node: LucideNode, stroke: string, size: number, strokeWidth: number) {
+  const attrs = {
+    xmlns: 'http://www.w3.org/2000/svg',
+    width: String(size),
+    height: String(size),
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke,
+    'stroke-width': String(strokeWidth),
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+  };
+  const parts = [
+    `<svg ${toAttrString(attrs)}>`,
+    ...node.map(([tag, tagAttrs]) => `<${tag} ${toAttrString(tagAttrs)} />`),
+    '</svg>',
+  ];
+  return parts.join('');
+}
+
+function toAttrString(attrs: Record<string, string>) {
+  return Object.entries(attrs)
+    .map(([key, value]) => `${key}="${escapeXml(value)}"`)
+    .join(' ');
+}
+
+function escapeXml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function colorToHex(color: number) {
+  return `#${color.toString(16).padStart(6, '0')}`;
+}
 
 type NodeVisualState = {
   lod: LODLevel;
@@ -58,8 +118,8 @@ class NodeVisual {
   private readonly tabBadge = new PIXI.Container();
   private readonly tabBadgeBg = new PIXI.Graphics();
   private readonly tabBadgeText = new PIXI.Text({ text: '' });
-  private readonly pinText = new PIXI.Text({ text: '📌' });
-  private readonly audioText = new PIXI.Text({ text: '🔊' });
+  private readonly pinIcon = new PIXI.Sprite(PIXI.Texture.EMPTY);
+  private readonly audioIcon = new PIXI.Sprite(PIXI.Texture.EMPTY);
   private readonly tagDots = new PIXI.Container();
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
@@ -84,15 +144,15 @@ class NodeVisual {
     this.container.addChild(this.tabBadge);
     this.tabBadge.addChild(this.tabBadgeBg);
     this.tabBadge.addChild(this.tabBadgeText);
-    this.container.addChild(this.pinText);
-    this.container.addChild(this.audioText);
+    this.container.addChild(this.pinIcon);
+    this.container.addChild(this.audioIcon);
     this.container.addChild(this.tagDots);
 
     this.titleText.resolution = 2;
     this.urlText.resolution = 2;
     this.tabBadgeText.anchor.set(0.5, 0.5);
-    this.pinText.anchor.set(1, 0);
-    this.audioText.anchor.set(1, 0);
+    this.pinIcon.anchor.set(1, 0);
+    this.audioIcon.anchor.set(1, 0);
   }
 
   destroy() {
@@ -393,24 +453,66 @@ class NodeVisual {
     const showAudio =
       showBadges && model.display.showAudioIndicators && Boolean(model.tabState?.sound.audible);
 
-    this.pinText.visible = showPin;
-    this.audioText.visible = showAudio;
-
     if (showPin) {
-      this.pinText.style.fontFamily = this.fonts.base;
-      this.pinText.style.fontSize = 12;
-      this.pinText.style.fill = theme.onSurfaceVariant;
-      this.pinText.position.set(model.width - 6, 4);
+      const pinIcon = getLucideIconRequest(
+        'Pin',
+        theme.onSurfaceVariant,
+        STATUS_ICON_SIZE,
+        STATUS_ICON_STROKE
+      );
+      if (pinIcon) {
+        const cached = getCachedIconTexture(pinIcon.cacheKey);
+        if (cached) {
+          this.pinIcon.texture = cached;
+          this.pinIcon.width = STATUS_ICON_SIZE;
+          this.pinIcon.height = STATUS_ICON_SIZE;
+          this.pinIcon.position.set(model.width - 6, 4);
+          this.pinIcon.visible = true;
+        } else {
+          this.pinIcon.visible = false;
+          this.requestIconLoad(pinIcon);
+        }
+      } else {
+        this.pinIcon.visible = false;
+      }
+    } else {
+      this.pinIcon.visible = false;
     }
     if (showAudio) {
-      const icon = model.tabState?.sound.muted ? '🔇' : '🔊';
-      this.audioText.text = icon;
-      this.audioText.style.fontFamily = this.fonts.base;
-      this.audioText.style.fontSize = 12;
-      this.audioText.style.fill = theme.primary;
-      const offset = showPin ? 18 : 6;
-      this.audioText.position.set(model.width - offset, 4);
+      const iconName = model.tabState?.sound.muted ? 'VolumeX' : 'Volume2';
+      const audioIcon = getLucideIconRequest(
+        iconName,
+        theme.primary,
+        STATUS_ICON_SIZE,
+        STATUS_ICON_STROKE
+      );
+      if (audioIcon) {
+        const cached = getCachedIconTexture(audioIcon.cacheKey);
+        if (cached) {
+          this.audioIcon.texture = cached;
+          this.audioIcon.width = STATUS_ICON_SIZE;
+          this.audioIcon.height = STATUS_ICON_SIZE;
+          const offset = showPin ? 18 : 6;
+          this.audioIcon.position.set(model.width - offset, 4);
+          this.audioIcon.visible = true;
+        } else {
+          this.audioIcon.visible = false;
+          this.requestIconLoad(audioIcon);
+        }
+      } else {
+        this.audioIcon.visible = false;
+      }
+    } else {
+      this.audioIcon.visible = false;
     }
+  }
+
+  private requestIconLoad(icon: LucideIconRequest) {
+    if (iconTextureCache.has(icon.cacheKey) || iconLoadPromises.has(icon.cacheKey)) return;
+    void loadIconTexture(icon.cacheKey, icon.svg).then(() => {
+      if (this.destroyed) return;
+      this.invalidate();
+    });
   }
 
   private updateTags(
@@ -991,6 +1093,39 @@ function loadFaviconTexture(url: FaviconUrl): Promise<PIXI.Texture | null> {
     image.src = url;
   });
   faviconLoadPromises.set(url, promise);
+  return promise;
+}
+
+function getCachedIconTexture(cacheKey: string): PIXI.Texture | null {
+  return iconTextureCache.get(cacheKey) ?? null;
+}
+
+function loadIconTexture(cacheKey: string, svg: string): Promise<PIXI.Texture | null> {
+  const cached = iconTextureCache.get(cacheKey);
+  if (cached) return Promise.resolve(cached);
+  const existing = iconLoadPromises.get(cacheKey);
+  if (existing) return existing;
+  const promise = new Promise<PIXI.Texture | null>((resolve) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      try {
+        const texture = PIXI.Texture.from(image);
+        iconTextureCache.set(cacheKey, texture);
+        resolve(texture);
+      } catch {
+        resolve(null);
+      } finally {
+        iconLoadPromises.delete(cacheKey);
+      }
+    };
+    image.onerror = () => {
+      iconLoadPromises.delete(cacheKey);
+      resolve(null);
+    };
+    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  });
+  iconLoadPromises.set(cacheKey, promise);
   return promise;
 }
 
