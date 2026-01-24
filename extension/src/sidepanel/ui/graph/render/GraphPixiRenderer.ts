@@ -38,26 +38,17 @@ const TAB_BADGE_PADDING_Y = 3;
 
 const faviconTextureCache = new Map<FaviconUrl, PIXI.Texture>();
 const faviconLoadPromises = new Map<FaviconUrl, Promise<PIXI.Texture | null>>();
-const iconTextureCache = new Map<string, PIXI.Texture>();
-const iconLoadPromises = new Map<string, Promise<PIXI.Texture | null>>();
-
-const STATUS_ICON_SIZE = 24;
+const STATUS_ICON_SIZE = 12;
 const STATUS_ICON_STROKE = 2;
+const ICON_VIEWBOX = 24;
+const STATUS_ICON_SCALE = STATUS_ICON_SIZE / ICON_VIEWBOX;
 
 type LucideNode = Array<[string, Record<string, string>]>;
-type LucideIconRequest = { cacheKey: string; svg: string };
 
-function getLucideIconRequest(
-  iconName: string,
-  color: number,
-  size: number,
-  strokeWidth: number
-): LucideIconRequest | null {
+function getLucideSvg(iconName: string, color: number, strokeWidth: number): string | null {
   const icon = (icons as Record<string, LucideNode>)[iconName];
   if (!icon) return null;
-  const cacheKey = `${iconName}|${color}|${size}|${strokeWidth}`;
-  const svg = buildLucideSvg(icon, colorToHex(color), size, strokeWidth);
-  return { cacheKey, svg };
+  return buildLucideSvg(icon, colorToHex(color), ICON_VIEWBOX, strokeWidth);
 }
 
 function buildLucideSvg(node: LucideNode, stroke: string, size: number, strokeWidth: number) {
@@ -118,14 +109,16 @@ class NodeVisual {
   private readonly tabBadge = new PIXI.Container();
   private readonly tabBadgeBg = new PIXI.Graphics();
   private readonly tabBadgeText = new PIXI.Text({ text: '' });
-  private readonly pinIcon = new PIXI.Sprite(PIXI.Texture.EMPTY);
-  private readonly audioIcon = new PIXI.Sprite(PIXI.Texture.EMPTY);
+  private readonly pinIcon = new PIXI.Graphics();
+  private readonly audioIcon = new PIXI.Graphics();
   private readonly tagDots = new PIXI.Container();
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
   private state: NodeVisualState = { lod: 'full', styleKey: '', textKey: '', tagKey: '', faviconKey: '', themeVersion: 0 };
   private readonly fonts: { base: string; weight: TextStyleFontWeight };
   private readonly invalidate: () => void;
+  private pinIconKey = '';
+  private audioIconKey = '';
   private destroyed = false;
   private pendingFaviconUrl: FaviconUrl | null = null;
   private latestFaviconCandidate: FaviconUrl | null = null;
@@ -151,8 +144,10 @@ class NodeVisual {
     this.titleText.resolution = 2;
     this.urlText.resolution = 2;
     this.tabBadgeText.anchor.set(0.5, 0.5);
-    this.pinIcon.anchor.set(1, 0);
-    this.audioIcon.anchor.set(1, 0);
+    this.pinIcon.pivot.set(ICON_VIEWBOX, 0);
+    this.audioIcon.pivot.set(ICON_VIEWBOX, 0);
+    this.pinIcon.scale.set(STATUS_ICON_SCALE);
+    this.audioIcon.scale.set(STATUS_ICON_SCALE);
   }
 
   destroy() {
@@ -454,65 +449,37 @@ class NodeVisual {
       showBadges && model.display.showAudioIndicators && Boolean(model.tabState?.sound.audible);
 
     if (showPin) {
-      const pinIcon = getLucideIconRequest(
-        'Pin',
-        theme.onSurfaceVariant,
-        STATUS_ICON_SIZE,
-        STATUS_ICON_STROKE
-      );
-      if (pinIcon) {
-        const cached = getCachedIconTexture(pinIcon.cacheKey);
-        if (cached) {
-          this.pinIcon.texture = cached;
-          this.pinIcon.width = STATUS_ICON_SIZE;
-          this.pinIcon.height = STATUS_ICON_SIZE;
-          this.pinIcon.position.set(model.width - 6, 4);
-          this.pinIcon.visible = true;
-        } else {
-          this.pinIcon.visible = false;
-          this.requestIconLoad(pinIcon);
+      const pinKey = `Pin|${theme.onSurfaceVariant}|${STATUS_ICON_STROKE}`;
+      if (this.pinIconKey !== pinKey) {
+        const svg = getLucideSvg('Pin', theme.onSurfaceVariant, STATUS_ICON_STROKE);
+        if (svg) {
+          this.pinIcon.clear();
+          this.pinIcon.svg(svg);
+          this.pinIconKey = pinKey;
         }
-      } else {
-        this.pinIcon.visible = false;
       }
+      this.pinIcon.position.set(model.width - 6, 4);
+      this.pinIcon.visible = this.pinIconKey === pinKey;
     } else {
       this.pinIcon.visible = false;
     }
     if (showAudio) {
       const iconName = model.tabState?.sound.muted ? 'VolumeX' : 'Volume2';
-      const audioIcon = getLucideIconRequest(
-        iconName,
-        theme.primary,
-        STATUS_ICON_SIZE,
-        STATUS_ICON_STROKE
-      );
-      if (audioIcon) {
-        const cached = getCachedIconTexture(audioIcon.cacheKey);
-        if (cached) {
-          this.audioIcon.texture = cached;
-          this.audioIcon.width = STATUS_ICON_SIZE;
-          this.audioIcon.height = STATUS_ICON_SIZE;
-          const offset = showPin ? 18 : 6;
-          this.audioIcon.position.set(model.width - offset, 4);
-          this.audioIcon.visible = true;
-        } else {
-          this.audioIcon.visible = false;
-          this.requestIconLoad(audioIcon);
+      const audioKey = `${iconName}|${theme.primary}|${STATUS_ICON_STROKE}`;
+      if (this.audioIconKey !== audioKey) {
+        const svg = getLucideSvg(iconName, theme.primary, STATUS_ICON_STROKE);
+        if (svg) {
+          this.audioIcon.clear();
+          this.audioIcon.svg(svg);
+          this.audioIconKey = audioKey;
         }
-      } else {
-        this.audioIcon.visible = false;
       }
+      const offset = showPin ? 18 : 6;
+      this.audioIcon.position.set(model.width - offset, 4);
+      this.audioIcon.visible = this.audioIconKey === audioKey;
     } else {
       this.audioIcon.visible = false;
     }
-  }
-
-  private requestIconLoad(icon: LucideIconRequest) {
-    if (iconTextureCache.has(icon.cacheKey) || iconLoadPromises.has(icon.cacheKey)) return;
-    void loadIconTexture(icon.cacheKey, icon.svg).then(() => {
-      if (this.destroyed) return;
-      this.invalidate();
-    });
   }
 
   private updateTags(
@@ -1096,38 +1063,6 @@ function loadFaviconTexture(url: FaviconUrl): Promise<PIXI.Texture | null> {
   return promise;
 }
 
-function getCachedIconTexture(cacheKey: string): PIXI.Texture | null {
-  return iconTextureCache.get(cacheKey) ?? null;
-}
-
-function loadIconTexture(cacheKey: string, svg: string): Promise<PIXI.Texture | null> {
-  const cached = iconTextureCache.get(cacheKey);
-  if (cached) return Promise.resolve(cached);
-  const existing = iconLoadPromises.get(cacheKey);
-  if (existing) return existing;
-  const promise = new Promise<PIXI.Texture | null>((resolve) => {
-    const image = new Image();
-    image.decoding = 'async';
-    image.onload = () => {
-      try {
-        const texture = PIXI.Texture.from(image);
-        iconTextureCache.set(cacheKey, texture);
-        resolve(texture);
-      } catch {
-        resolve(null);
-      } finally {
-        iconLoadPromises.delete(cacheKey);
-      }
-    };
-    image.onerror = () => {
-      iconLoadPromises.delete(cacheKey);
-      resolve(null);
-    };
-    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  });
-  iconLoadPromises.set(cacheKey, promise);
-  return promise;
-}
 
 function getExtensionBaseUrl(): string | null {
   try {
