@@ -32,6 +32,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
 
   const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : 'Ctrl+Z';
   const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : 'Ctrl+Shift+Z';
+  const settingsShortcut = metaKey ? `${metaKey.short}+,` : 'Ctrl+,';
+  const tooltipsShortcut = metaKey ? `${metaKey.short}+/` : 'Ctrl+/';
 
   const handleUndo = async () => {
     try {
@@ -76,6 +78,11 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
                 ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
                 : `Undo (${undoShortcut})`
             }
+            data-tooltip={
+              commandState?.nextUndoDesc
+                ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
+                : `Undo (${undoShortcut})`
+            }
             disabled={!commandState?.canUndo}
             onClick={handleUndo}
           >
@@ -86,6 +93,11 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
             className="matte-circle-btn orb-button"
             type="button"
             title={
+              commandState?.nextRedoDesc
+                ? `Redo: ${commandState.nextRedoDesc} (${redoShortcut})`
+                : `Redo (${redoShortcut})`
+            }
+            data-tooltip={
               commandState?.nextRedoDesc
                 ? `Redo: ${commandState.nextRedoDesc} (${redoShortcut})`
                 : `Redo (${redoShortcut})`
@@ -105,7 +117,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
             id="newTreeBtn"
             className="matte-circle-btn orb-button"
             type="button"
-            title="new tree"
+            title="New tree"
+            data-tooltip="New tree"
             onClick={() => {
               setLabelDraft('');
               closeAllPopups();
@@ -124,7 +137,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
               id="themePickerBtn"
               className="matte-circle-btn orb-button"
               type="button"
-              title="theme"
+              title="Theme"
+              data-tooltip="Theme"
             onClick={() => setThemePickerOpen(!themePickerOpen)}
           >
             <Icons.Palette size={18} />
@@ -133,7 +147,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
               id="settingsBtn"
               className="matte-circle-btn orb-button"
               type="button"
-            title="settings"
+            title={`Settings (${settingsShortcut})`}
+            data-tooltip={`Settings (${settingsShortcut}) • Tooltips (${tooltipsShortcut})`}
             onClick={() => setSettingsOpen(!settingsOpen)}
           >
             <Icons.Settings size={18} />

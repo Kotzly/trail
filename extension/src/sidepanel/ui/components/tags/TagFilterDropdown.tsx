@@ -17,6 +17,7 @@ export default function TagFilterDropdown() {
   const toggleTagFilterTag = useStore((state) => state.toggleTagFilterTag);
   const setTagFilterSelected = useStore((state) => state.setTagFilterSelected);
   const clearTagFilter = useStore((state) => state.clearTagFilter);
+  const tagFilterShortcut = 'Shift+F';
 
   useOverlayEffects(tagFilterOpen, { kind: 'dropdown' });
 
@@ -133,7 +134,8 @@ export default function TagFilterDropdown() {
         id="tagFilterBtn"
         className="matte-circle-btn orb-button"
         type="button"
-        title="Filter by tags"
+        title={`Filter by tags (${tagFilterShortcut})`}
+        data-tooltip={`Filter by tags (${tagFilterShortcut})`}
         onClick={() => setTagFilterOpen(!tagFilterOpen)}
       >
         <Icons.Tag size={18} />

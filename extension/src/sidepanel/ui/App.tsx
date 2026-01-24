@@ -9,10 +9,12 @@ import { useBootstrap } from './hooks/useBootstrap.js';
 import { useAccount } from './hooks/useAccount.js';
 import { useChromeMessages } from './hooks/useChromeMessages.js';
 import { useShortcuts } from './hooks/useShortcuts.js';
+import { useStore } from './state/store.js';
 import React from 'react';
 
 export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const tooltipsOpen = useStore((state) => state.ui.tooltipsOpen);
 
   useBootstrap();
   useAccount();
@@ -20,7 +22,7 @@ export default function App() {
   useShortcuts(searchInputRef);
 
   return (
-    <div className="container">
+    <div className={`container${tooltipsOpen ? ' show-tooltips' : ''}`}>
       <FloatingControls searchInputRef={searchInputRef} />
       <NotificationsHost />
       <GraphArea />

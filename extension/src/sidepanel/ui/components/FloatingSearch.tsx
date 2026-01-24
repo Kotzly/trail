@@ -11,6 +11,7 @@ type FloatingSearchProps = {
 };
 
 export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
+  const metaKey = useStore((state) => state.metaKey);
   const {
     search,
     performSearch,
@@ -23,6 +24,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
   const [draft, setDraft] = useState(search.query);
   const [listOpen, setListOpen] = useState(false);
   const hasQuery = search.query.length > 0;
+  const searchShortcut = metaKey ? `${metaKey.short}+F / ${metaKey.short}+K / /` : 'Ctrl+F / Ctrl+K / /';
 
   useEffect(() => {
     setDraft(search.query);
@@ -77,7 +79,8 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
       <button
         className="matte-circle-btn orb-button search-orb"
         type="button"
-        title="Search (Ctrl+F)"
+        title={`Search (${searchShortcut})`}
+        data-tooltip={`Search (${searchShortcut})`}
         onClick={() => inputRef.current?.focus()}
       >
         <Icons.Search size={18} />
@@ -107,6 +110,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
               className="floating-search-clear"
               type="button"
               title="Clear search"
+              data-tooltip="Clear search"
               onClick={handleClear}
             >
               <Icons.X size={14} />
@@ -126,6 +130,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
                   className={`floating-search-nav-btn${listOpen ? ' is-active' : ''}`}
                   type="button"
                   title="Results list"
+                  data-tooltip="Results list"
                   onClick={handleToggleList}
                   disabled={!hasQuery || search.results.length === 0}
                   tabIndex={hasQuery ? 0 : -1}
@@ -136,6 +141,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
                   className="floating-search-nav-btn"
                   type="button"
                   title="Previous (↑)"
+                  data-tooltip="Previous (↑)"
                   onClick={prevResult}
                   disabled={!hasQuery}
                   tabIndex={hasQuery ? 0 : -1}
@@ -146,6 +152,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
                   className="floating-search-nav-btn"
                   type="button"
                   title="Next (↓)"
+                  data-tooltip="Next (↓)"
                   onClick={nextResult}
                   disabled={!hasQuery}
                   tabIndex={hasQuery ? 0 : -1}

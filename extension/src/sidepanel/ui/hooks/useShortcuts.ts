@@ -24,12 +24,12 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
       const state = useStore.getState();
       const shortcutsEnabled = state.settings?.shortcutsEnabled ?? true;
       if (!shortcutsEnabled) return;
-      if (isEditableTarget(event.target)) return;
 
       const isMac = state.isMac;
       const metaKey = isMac ? event.metaKey : event.ctrlKey;
       const key = event.key;
       const lower = key.toLowerCase();
+      const isEditable = isEditableTarget(event.target);
 
       const focusSearch = () => {
         searchInputRef.current?.focus();
@@ -197,6 +197,14 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
         void saveSettings(nextSettings);
       };
 
+      if (metaKey && (key === '/' || key === '?')) {
+        event.preventDefault();
+        state.setTooltipsOpen(!state.ui.tooltipsOpen);
+        return;
+      }
+
+      if (isEditable) return;
+
       if (metaKey && lower === 'z') {
         event.preventDefault();
         try {
@@ -253,6 +261,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
         state.closeContextMenu();
         state.clearSelection();
         state.clearSearch();
+        state.setTooltipsOpen(false);
         return;
       }
 

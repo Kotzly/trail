@@ -43,6 +43,7 @@ export default function TreeDropdown() {
   const trees = useStore((state) => state.trees);
   const treesOpen = useStore((state) => state.ui.treesOpen);
   const setTreesOpen = useStore((state) => state.setTreesOpen);
+  const treesShortcut = 'Shift+T';
   const nodeCount = useStore((state) => state.nodeCount);
 
   useOverlayEffects(treesOpen, { kind: 'dropdown' });
@@ -158,7 +159,8 @@ export default function TreeDropdown() {
         id="treesBtn"
         className="matte-circle-btn orb-button"
         type="button"
-        title="Saved trees"
+        title={`Saved trees (${treesShortcut})`}
+        data-tooltip={`Saved trees (${treesShortcut})`}
         onClick={() => setTreesOpen(!treesOpen)}
       >
         <Icons.BookOpen size={20} />

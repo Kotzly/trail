@@ -111,6 +111,7 @@ type StoreState = {
     pinnedOpen: boolean;
     treesOpen: boolean;
     tagFilterOpen: boolean;
+    tooltipsOpen: boolean;
   };
   graph: {
     tool: GraphTool;
@@ -146,6 +147,7 @@ type StoreActions = {
   setPinnedOpen: (open: boolean) => void;
   setTreesOpen: (open: boolean) => void;
   setTagFilterOpen: (open: boolean) => void;
+  setTooltipsOpen: (open: boolean) => void;
   closeAllPopups: () => void;
   registerOverlay: (id: string, effects: OverlayEffects) => void;
   unregisterOverlay: (id: string) => void;
@@ -175,6 +177,7 @@ const closeUiPopups = (ui: StoreState['ui']): StoreState['ui'] => ({
   pinnedOpen: false,
   treesOpen: false,
   tagFilterOpen: false,
+  tooltipsOpen: ui.tooltipsOpen,
 });
 
 const openUiPopup = (ui: StoreState['ui'], key: PopupKey): StoreState['ui'] => ({
@@ -233,6 +236,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     pinnedOpen: false,
     treesOpen: false,
     tagFilterOpen: false,
+    tooltipsOpen: false,
   },
   graph: {
     tool: 'select',
@@ -453,6 +457,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         ? { ui: openUiPopup(state.ui, 'tagFilterOpen'), contextMenu: null }
         : { ui: { ...state.ui, tagFilterOpen: false } },
     ),
+  setTooltipsOpen: (open) =>
+    set((state) => ({ ui: { ...state.ui, tooltipsOpen: open } })),
   closeAllPopups: () => set((state) => ({ ui: closeUiPopups(state.ui), contextMenu: null })),
   registerOverlay: (id, effects) =>
     set((state) => {

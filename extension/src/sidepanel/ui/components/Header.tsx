@@ -18,6 +18,8 @@ export default function Header() {
 
   const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : 'Ctrl+Z';
   const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : 'Ctrl+Shift+Z';
+  const settingsShortcut = metaKey ? `${metaKey.short}+,` : 'Ctrl+,';
+  const tooltipsShortcut = metaKey ? `${metaKey.short}+/` : 'Ctrl+/';
 
   const handleUndo = async () => {
     try {
@@ -62,6 +64,11 @@ export default function Header() {
               ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
               : `Undo (${undoShortcut})`
           }
+          data-tooltip={
+            commandState?.nextUndoDesc
+              ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
+              : `Undo (${undoShortcut})`
+          }
           disabled={!commandState?.canUndo}
           onClick={handleUndo}
         >
@@ -76,6 +83,11 @@ export default function Header() {
               ? `Redo: ${commandState.nextRedoDesc} (${redoShortcut})`
               : `Redo (${redoShortcut})`
           }
+          data-tooltip={
+            commandState?.nextRedoDesc
+              ? `Redo: ${commandState.nextRedoDesc} (${redoShortcut})`
+              : `Redo (${redoShortcut})`
+          }
           disabled={!commandState?.canRedo}
           onClick={handleRedo}
         >
@@ -85,14 +97,22 @@ export default function Header() {
         <PinnedDropdown />
         <TreeDropdown />
         <TagFilterDropdown />
-        <button id="newTreeBtn" className="matte-circle-btn orb-button" type="button" title="new tree" onClick={handleNewTree}>
+        <button
+          id="newTreeBtn"
+          className="matte-circle-btn orb-button"
+          type="button"
+          title="New tree"
+          data-tooltip="New tree"
+          onClick={handleNewTree}
+        >
           <Icons.GitBranchPlus size={20} />
         </button>
         <button
           id="themePickerBtn"
           className="matte-circle-btn orb-button"
           type="button"
-          title="theme"
+          title="Theme"
+          data-tooltip="Theme"
           onClick={() => setThemePickerOpen(!themePickerOpen)}
         >
           <Icons.Palette size={20} />
@@ -101,7 +121,8 @@ export default function Header() {
           id="settingsBtn"
           className="matte-circle-btn orb-button"
           type="button"
-          title="settings"
+          title={`Settings (${settingsShortcut})`}
+          data-tooltip={`Settings (${settingsShortcut}) • Tooltips (${tooltipsShortcut})`}
           onClick={() => setSettingsOpen(!settingsOpen)}
         >
           <Icons.Settings size={20} />
