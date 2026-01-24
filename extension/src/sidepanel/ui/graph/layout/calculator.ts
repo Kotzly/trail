@@ -3,59 +3,57 @@ import type { NavigationNode } from '../../../../shared/types/node.js';
 import type { LayoutConfig, NodePosition, CanvasBounds, RadialLayoutConfig } from '../types.js';
 import { PADDING } from './config.js';
 
+type GetChildren = (node: NavigationNode) => NavigationNode[];
 
-export function calculateLayout(
-  root: NavigationNode,
-  layoutConfig: LayoutConfig,
-  startX: number = PADDING
-): { positions: Map<NodeId, NodePosition>, width: number } {
-  const positions = new Map<NodeId, NodePosition>();
-  const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
+type TidyNode = {
+  node: NavigationNode;
+  parent: TidyNode | null;
+  children: TidyNode[];
+  depth: number;
+  number: number;
+  breadth: number;
+  prelim: number;
+  mod: number;
+  change: number;
+  shift: number;
+  thread: TidyNode | null;
+  ancestor: TidyNode;
+};
 
-  type TidyNode = {
-    node: NavigationNode;
-    parent: TidyNode | null;
-    children: TidyNode[];
-    depth: number;
-    number: number;
-    x: number;
-    prelim: number;
-    mod: number;
-    change: number;
-    shift: number;
-    thread: TidyNode | null;
-    ancestor: TidyNode;
+function buildTidyTree(
+  node: NavigationNode,
+  getChildren: GetChildren,
+  parent: TidyNode | null,
+  depth: number,
+  number: number,
+): TidyNode {
+  const tidy: TidyNode = {
+    node,
+    parent,
+    depth,
+    number,
+    children: [],
+    breadth: 0,
+    prelim: 0,
+    mod: 0,
+    change: 0,
+    shift: 0,
+    thread: null,
+    ancestor: null as unknown as TidyNode,
   };
+  tidy.ancestor = tidy;
+  const children = getChildren(node);
+  tidy.children = children.map((child, idx) =>
+    buildTidyTree(child, getChildren, tidy, depth + 1, idx + 1),
+  );
+  return tidy;
+}
 
-  const buildTidy = (
-    node: NavigationNode,
-    parent: TidyNode | null,
-    depth: number,
-    number: number,
-  ): TidyNode => {
-    const tidy: TidyNode = {
-      node,
-      parent,
-      depth,
-      number,
-      children: [],
-      x: 0,
-      prelim: 0,
-      mod: 0,
-      change: 0,
-      shift: 0,
-      thread: null,
-      ancestor: null as unknown as TidyNode,
-    };
-    tidy.ancestor = tidy;
-    const children = node.getChildren?.() ?? [];
-    tidy.children = children.map((child, idx) => buildTidy(child, tidy, depth + 1, idx + 1));
-    return tidy;
-  };
+function createTidyTree(root: NavigationNode, getChildren: GetChildren): TidyNode {
+  return buildTidyTree(root, getChildren, null, 0, 1);
+}
 
-  const tidyRoot = buildTidy(root, null, 0, 1);
-  const baseSeparation = Math.max(nodeWidth + horizontalGap, 1);
-
+function computeTidyBreadths(root: TidyNode, baseSeparation: number): void {
   const separation = (a: TidyNode, b: TidyNode): number => {
     const sameParent = a.parent === b.parent;
     return baseSeparation * (sameParent ? 1 : 1.05);
@@ -189,12 +187,25 @@ export function calculateLayout(
   };
 
   const secondWalk = (node: TidyNode, modSum: number): void => {
-    node.x = node.prelim + modSum;
+    node.breadth = node.prelim + modSum;
     node.children.forEach((child) => secondWalk(child, modSum + node.mod));
   };
 
-  firstWalk(tidyRoot);
-  secondWalk(tidyRoot, 0);
+  firstWalk(root);
+  secondWalk(root, 0);
+}
+
+
+export function calculateLayout(
+  root: NavigationNode,
+  layoutConfig: LayoutConfig,
+  startX: number = PADDING
+): { positions: Map<NodeId, NodePosition>, width: number } {
+  const positions = new Map<NodeId, NodePosition>();
+  const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
+  const tidyRoot = createTidyTree(root, (node) => node.getChildren?.() ?? []);
+  const baseSeparation = Math.max(nodeWidth + horizontalGap, 1);
+  computeTidyBreadths(tidyRoot, baseSeparation);
 
   let minX = Infinity;
   let minY = Infinity;
@@ -202,7 +213,7 @@ export function calculateLayout(
   // Track bounding box for normalization.
 
   const assignPositions = (node: TidyNode): void => {
-    const centerX = node.x;
+    const centerX = node.breadth;
     const x = centerX - nodeWidth / 2;
     const y = node.depth * (nodeHeight + verticalGap);
     positions.set(node.node.id, { x, y, node: node.node });
@@ -240,7 +251,6 @@ export function calculateMindmapLayout(
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
   const subtreeHeights = new Map<NodeId, number>();
-  const sideById = new Map<NodeId, 'left' | 'right'>();
 
   function calcHeights(node: NavigationNode | null): number {
     if (!node) return 0;
@@ -259,70 +269,56 @@ export function calculateMindmapLayout(
     return height;
   }
 
-  function markSide(node: NavigationNode, side: 'left' | 'right'): void {
-    sideById.set(node.id, side);
-    node.getChildren?.().forEach((child) => markSide(child, side));
-  }
-
   calcHeights(root);
 
   const rootChildren = root.getChildren?.() ?? [];
   const sorted = [...rootChildren].sort((a, b) => {
     return (subtreeHeights.get(b.id) ?? 0) - (subtreeHeights.get(a.id) ?? 0);
   });
+  const leftChildren: NavigationNode[] = [];
+  const rightChildren: NavigationNode[] = [];
   let leftHeight = 0;
   let rightHeight = 0;
   sorted.forEach((child) => {
     const height = subtreeHeights.get(child.id) ?? nodeHeight;
     if (leftHeight <= rightHeight) {
-      markSide(child, 'left');
+      leftChildren.push(child);
       leftHeight += height;
     } else {
-      markSide(child, 'right');
+      rightChildren.push(child);
       rightHeight += height;
     }
   });
-
-  function layoutChildren(
-    children: NavigationNode[],
-    parentX: number,
-    parentY: number,
-    direction: 1 | -1
-  ): void {
-    if (children.length === 0) return;
-    const totalHeight = children.reduce((sum, child) => {
-      return sum + (subtreeHeights.get(child.id) ?? nodeHeight);
-    }, 0) + verticalGap * (children.length - 1);
-    let cursorY = parentY + nodeHeight / 2 - totalHeight / 2;
-    children.forEach((child) => {
-      const childHeight = subtreeHeights.get(child.id) ?? nodeHeight;
-      const childX = parentX + direction * (nodeWidth + horizontalGap);
-      const childY = cursorY + (childHeight - nodeHeight) / 2;
-      layoutNode(child, childX, childY, direction);
-      cursorY += childHeight + verticalGap;
-    });
-  }
-
-  function layoutNode(
-    node: NavigationNode,
-    x: number,
-    y: number,
-    direction: 1 | -1
-  ): void {
-    positions.set(node.id, { x, y, node });
-    const children = node.getChildren?.() ?? [];
-    if (children.length === 0) return;
-    layoutChildren(children, x, y, direction);
-  }
 
   const rootX = 0;
   const rootY = 0;
   positions.set(root.id, { x: rootX, y: rootY, node: root });
 
-  const leftChildren = rootChildren.filter((child) => sideById.get(child.id) === 'left');
-  const rightChildren = rootChildren.filter((child) => sideById.get(child.id) === 'right');
-  layoutChildren(leftChildren, rootX, rootY, -1);
-  layoutChildren(rightChildren, rootX, rootY, 1);
+  const depthStep = nodeWidth + horizontalGap;
+  const baseSeparation = Math.max(nodeHeight + verticalGap, 1);
+
+  const layoutSide = (children: NavigationNode[], direction: 1 | -1): void => {
+    if (children.length === 0) return;
+    const tidyRoot = createTidyTree(root, (node) =>
+      node.id === root.id ? children : node.getChildren?.() ?? [],
+    );
+    computeTidyBreadths(tidyRoot, baseSeparation);
+    const rootBreadth = tidyRoot.breadth;
+
+    const assignPositions = (node: TidyNode): void => {
+      if (node.node.id !== root.id) {
+        const x = rootX + direction * node.depth * depthStep;
+        const y = rootY + node.breadth - rootBreadth;
+        positions.set(node.node.id, { x, y, node: node.node });
+      }
+      node.children.forEach((child) => assignPositions(child));
+    };
+
+    assignPositions(tidyRoot);
+  };
+
+  layoutSide(leftChildren, -1);
+  layoutSide(rightChildren, 1);
 
   let minX = Infinity;
   let minY = Infinity;
