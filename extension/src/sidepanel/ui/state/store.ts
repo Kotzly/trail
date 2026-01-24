@@ -154,7 +154,6 @@ type StoreActions = {
   resetAccount: () => void;
   setGraphTool: (tool: GraphTool) => void;
   setSelectedNodeIds: (ids: Set<NodeId>) => void;
-  toggleSelectedNode: (id: NodeId) => void;
   clearSelection: () => void;
   setGraphView: (view: Partial<ViewState>) => void;
   setHoverNodeId: (nodeId: NodeId | null) => void;
@@ -524,13 +523,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setGraphTool: (tool) => set((state) => ({ graph: { ...state.graph, tool } })),
   setSelectedNodeIds: (ids) =>
     set((state) => ({ graph: { ...state.graph, selectedNodeIds: new Set(ids) } })),
-  toggleSelectedNode: (id) =>
-    set((state) => {
-      const next = new Set(state.graph.selectedNodeIds);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return { graph: { ...state.graph, selectedNodeIds: next } };
-    }),
   clearSelection: () =>
     set((state) => ({ graph: { ...state.graph, selectedNodeIds: new Set<NodeId>() } })),
   setGraphView: (view) =>

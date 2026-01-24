@@ -36,7 +36,6 @@ export default function GraphArea() {
     (state) => ({
       onGraphToolChange: state.setGraphTool,
       onSelectedNodeIdsChange: state.setSelectedNodeIds,
-      onToggleSelectedNode: state.toggleSelectedNode,
       onClearSelection: state.clearSelection,
       onGraphViewChange: state.setGraphView,
       onSetHoverNodeId: state.setHoverNodeId,
