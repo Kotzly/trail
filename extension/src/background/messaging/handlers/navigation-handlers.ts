@@ -1,11 +1,9 @@
-import type { Description, TabId } from '../../../shared/types/ids.js';
+import type { TabId } from '../../../shared/types/ids.js';
 import { MSG, defineHandlers } from '../../../shared/types/messages.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
 import { ok, err } from '../../../shared/types/messages.js';
-import { CommandManager } from '../../../shared/lib/commands.js';
-import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { getActiveTab } from '../../tabs/lifecycle.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
@@ -82,7 +80,6 @@ export const navigationHandlers = defineHandlers({
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
 
-    CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Navigate to' as Description);
     return ok();
   },
 

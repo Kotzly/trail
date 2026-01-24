@@ -7,6 +7,7 @@ export default function GraphArea() {
   const graphState = useStore(
     (state) => ({
       tree: state.tree,
+      treeUpdate: state.treeUpdate,
       currentNodeId: state.currentNodeId,
       openNodeIds: state.openNodeIds,
       nodeTabCounts: state.nodeTabCounts,

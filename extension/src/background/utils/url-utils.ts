@@ -6,7 +6,6 @@ const ignoredUrlPatterns: RegExp[] = [
   /^mailto:/,
   /^tel:/,
   /^data:/,
-  /^about:blank(?:[#?].*)?$/i,
 ]
 
 const blockedFaviconUrlPatterns: RegExp[] = [
@@ -16,25 +15,28 @@ const blockedFaviconUrlPatterns: RegExp[] = [
   /^chrome-extension:\/\/[^/]+\/_favicon\//i,
 ];
 
-// const newTabUrlPatterns: RegExp[] = [
-//   /^about:newtab/i,
-//   /^chrome:\/\/newtab/i,
-//   /^chrome:\/\/new-tab-page/i,
-//   /^brave:\/\/newtab/i,
-//   /^edge:\/\/newtab/i,
-//   /^chrome-extension:\/\/[^/]+\/.*(newtab|new-tab|ntp)/i,
-// ];
+const blankUrlPattern = /^about:blank(?:[#?].*)?$/i;
+const newTabUrlPatterns: RegExp[] = [
+  /^about:newtab/i,
+  /^chrome:\/\/newtab/i,
+  /^chrome:\/\/new-tab-page/i,
+  /^brave:\/\/newtab/i,
+  /^edge:\/\/newtab/i,
+  /^chrome-extension:\/\/[^/]+\/.*(newtab|new-tab|ntp)/i,
+];
 
 
-export function shouldTrackUrl(url?: Url): boolean {
-  if (!url) return false;
+export function shouldTrackUrl(url: Url): boolean {
   return !ignoredUrlPatterns.some(pattern => pattern.test(url));
 }
 
-// export function isNewTabUrl(url: Url): boolean {
-//   return newTabUrlPatterns.some(pattern => pattern.test(url));
-// }
+export function isBlankUrl(url: Url): boolean {
+  return blankUrlPattern.test(url);
+}
 
+export function isNewTabUrl(url: Url): boolean {
+  return newTabUrlPatterns.some(pattern => pattern.test(url));
+}
 
 export function getFaviconUrl(pageUrl: Url, size = 32): FaviconUrl {
   const url = new URL(chrome.runtime.getURL("/_favicon/"));
@@ -44,8 +46,8 @@ export function getFaviconUrl(pageUrl: Url, size = 32): FaviconUrl {
 }
 
 export function normalizeFaviconUrl(
-  pageUrl: Url,
-  faviconUrl?: FaviconUrl
+  pageUrl: Url | null | undefined,
+  faviconUrl?: FaviconUrl | null
 ): FaviconUrl | undefined {
   if (faviconUrl && !blockedFaviconUrlPatterns.some(pattern => pattern.test(faviconUrl))) {
     return faviconUrl as FaviconUrl;
@@ -53,6 +55,5 @@ export function normalizeFaviconUrl(
   if (pageUrl) {
     return getFaviconUrl(pageUrl);
   }
-  console.warn('No favicon URL found for page URL', pageUrl);
   return undefined;
 }

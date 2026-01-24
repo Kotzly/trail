@@ -22,6 +22,7 @@ export type NodeRenderModel = {
   height: number;
   isCurrent: boolean;
   isOpen: boolean;
+  openProgress: number;
   tabCount: number;
   tabState?: TabState;
   isSelected: boolean;
@@ -44,3 +45,10 @@ export type ConnectionSegment = {
   bounds: { minX: number; minY: number; maxX: number; maxY: number };
 };
 
+export type ParticleRenderModel = {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  alpha: number;
+};

@@ -108,6 +108,7 @@ export default function PinnedDropdown() {
         ref={dropdownRef}
         id="pinnedDropdown"
         className={`pinned-dropdown ${pinnedOpen ? '' : 'hidden'}`}
+        aria-hidden={!pinnedOpen}
       >
         <div className="pinned-dropdown-header">
           <span className="pinned-dropdown-title">pinned</span>

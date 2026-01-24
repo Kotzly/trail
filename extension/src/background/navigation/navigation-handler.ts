@@ -11,9 +11,6 @@ import {
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { notifyUi } from '../messaging/ui-notifications.js';
 import { enforceTabLimit } from '../tabs/tab-limit.js';
-import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
-import { CommandManager } from '../../shared/lib/commands.js';
-import type { Description } from '../../shared/types/ids.js';
 
 /**
  * Handle navigation events and add to tree.
@@ -69,7 +66,6 @@ export async function handleNavigation(
     // Use GLOBAL tree - shared across all windows
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
-    const snapshot = NavigationTreeMapper.toJSON(tree);
     let didMutate = false;
 
     if (existingNodeId !== undefined) {
@@ -163,10 +159,6 @@ export async function handleNavigation(
     }
 
     const evicted = tree.consumeEvictedCount();
-    if (didMutate) {
-      CommandManager.saveSnapshot(snapshot, 'Navigate' as Description);
-    }
-
     if (didMutate || didUpdateCurrent || evicted > 0) {
       treeStorage.cacheTree(tree);
     }

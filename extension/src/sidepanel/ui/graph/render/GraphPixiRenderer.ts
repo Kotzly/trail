@@ -4,7 +4,7 @@ import type { TextStyleFontWeight } from 'pixi.js';
 import type { FaviconUrl, NodeId } from '../../../../shared/types/ids.js';
 import { formatUrl } from '../../shared/format.js';
 import type { ViewState } from '../types.js';
-import type { ConnectionSegment, GraphDisplayOptions, NodeRenderModel } from './types.js';
+import type { ConnectionSegment, GraphDisplayOptions, NodeRenderModel, ParticleRenderModel } from './types.js';
 import { SpatialIndex } from './spatial-index.js';
 import { readGraphTheme } from './theme.js';
 
@@ -14,6 +14,7 @@ type RenderData = {
   nodeWidth: number;
   nodeHeight: number;
   showConnections: boolean;
+  particles: ParticleRenderModel[];
 };
 
 type LODLevel = 'hidden' | 'dot' | 'low' | 'full';
@@ -96,6 +97,7 @@ type NodeVisualState = {
   tagKey: string;
   faviconKey: string;
   themeVersion: number;
+  openProgress: number;
 };
 
 class NodeVisual {
@@ -114,7 +116,15 @@ class NodeVisual {
   private readonly tagDots = new PIXI.Container();
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
-  private state: NodeVisualState = { lod: 'full', styleKey: '', textKey: '', tagKey: '', faviconKey: '', themeVersion: 0 };
+  private state: NodeVisualState = {
+    lod: 'full',
+    styleKey: '',
+    textKey: '',
+    tagKey: '',
+    faviconKey: '',
+    themeVersion: 0,
+    openProgress: 1,
+  };
   private readonly fonts: { base: string; weight: TextStyleFontWeight };
   private readonly invalidate: () => void;
   private pinIconKey = '';
@@ -176,6 +186,11 @@ class NodeVisual {
     if (detailMode === 'low' && lod === 'full') lod = 'low';
     if (detailMode === 'dot' && lod !== 'hidden') lod = 'dot';
 
+    const rawOpenProgress = model.display.dimClosedNodes
+      ? model.openProgress
+      : 1;
+    const openProgress = Math.min(1, Math.max(0, rawOpenProgress ?? (model.isOpen ? 1 : 0)));
+
     const nextStyleKey = [
       model.isCurrent ? 'c' : 'n',
       model.isOpen ? 'o' : 'x',
@@ -205,13 +220,24 @@ class NodeVisual {
     const faviconKey = `${showFavicon ? '1' : '0'}|${safeFavicon ?? 'none'}|${cachedFavicon ? '1' : '0'}`;
 
     const themeChanged = this.state.themeVersion !== themeVersion;
-    const needsStyleUpdate = themeChanged || this.state.styleKey !== nextStyleKey || this.state.lod !== lod;
-    const needsTextUpdate = themeChanged || this.state.textKey !== textKey || this.state.lod !== lod;
+    const openProgressChanged = Math.abs(this.state.openProgress - openProgress) > 0.001;
+    const needsStyleUpdate =
+      themeChanged || this.state.styleKey !== nextStyleKey || this.state.lod !== lod || openProgressChanged;
+    const needsTextUpdate =
+      themeChanged || this.state.textKey !== textKey || this.state.lod !== lod || openProgressChanged;
     const needsTagUpdate = themeChanged || this.state.tagKey !== tagKey || this.state.lod !== lod;
     const needsFaviconUpdate =
       themeChanged || this.state.faviconKey !== faviconKey || this.state.lod !== lod;
 
-    this.state = { lod, styleKey: nextStyleKey, textKey, tagKey, faviconKey, themeVersion };
+    this.state = {
+      lod,
+      styleKey: nextStyleKey,
+      textKey,
+      tagKey,
+      faviconKey,
+      themeVersion,
+      openProgress,
+    };
 
     this.container.visible = lod !== 'hidden';
     if (lod === 'hidden') return;
@@ -244,34 +270,49 @@ class NodeVisual {
     theme: ReturnType<typeof readGraphTheme>,
     lod: LODLevel
   ) {
-    const isClosed = model.display.dimClosedNodes && !model.isOpen;
-    const isActive = model.isCurrent && !isClosed;
     const isSelected = model.isSelected || model.isSearchMatch || model.isSearchFocused;
     const isPreview = model.isPreview && !model.isSelected;
     const isHover = model.isHoverFocused;
     const isMuted = model.tabState?.sound.muted ?? false;
+    const rawOpenProgress = model.display.dimClosedNodes ? model.openProgress : 1;
+    const openProgress = Math.min(1, Math.max(0, rawOpenProgress ?? (model.isOpen ? 1 : 0)));
+    const closedFactor = 1 - openProgress;
 
-    const openBackground = isActive ? theme.active.background : theme.surfaceContainer;
-    let backgroundColor = openBackground;
-    if (isClosed) {
-      const isDarkTheme = getLuminance(theme.surface) < 0.5;
-      const closedBase = mixColors(openBackground, theme.closed.background, 0.9);
-      const toned = isDarkTheme
-        ? scaleColor(closedBase, 0.4)
-        : mixColors(closedBase, theme.surface, 0.96);
-      backgroundColor = desaturateColor(toned, 0.75);
-    }
-    let borderColor = isClosed ? theme.closed.border : isActive ? theme.active.border : theme.outline;
-    let borderWidth = isActive ? 2 : 1;
-    const useDashedBorder = isClosed && !(isSelected || isHover || isPreview || isMuted);
+    const computeStyle = (closed: boolean) => {
+      const isActive = model.isCurrent && !closed;
+      const openBackground = isActive ? theme.active.background : theme.surfaceContainer;
+      let backgroundColor = openBackground;
+      if (closed) {
+        const isDarkTheme = getLuminance(theme.surface) < 0.5;
+        const closedBase = mixColors(openBackground, theme.closed.background, 0.9);
+        const toned = isDarkTheme
+          ? scaleColor(closedBase, 0.4)
+          : mixColors(closedBase, theme.surface, 0.96);
+        backgroundColor = desaturateColor(toned, 0.75);
+      }
+      let borderColor = closed ? theme.closed.border : isActive ? theme.active.border : theme.outline;
+      let borderWidth = isActive ? 2 : 1;
+      const useDashedBorder = closed && !(isSelected || isHover || isPreview || isMuted);
 
-    if (isMuted) {
-      borderColor = 0xdc3545;
-      borderWidth = 2;
-    } else if (isSelected || isHover || isPreview) {
-      borderColor = theme.primary;
-      borderWidth = 2;
-    }
+      if (isMuted) {
+        borderColor = 0xdc3545;
+        borderWidth = 2;
+      } else if (isSelected || isHover || isPreview) {
+        borderColor = theme.primary;
+        borderWidth = 2;
+      }
+
+      return { backgroundColor, borderColor, borderWidth, useDashedBorder };
+    };
+
+    const openStyle = computeStyle(false);
+    const closedStyle = computeStyle(true);
+    const backgroundColor =
+      closedFactor > 0 ? mixColors(openStyle.backgroundColor, closedStyle.backgroundColor, closedFactor) : openStyle.backgroundColor;
+    const borderColor =
+      closedFactor > 0 ? mixColors(openStyle.borderColor, closedStyle.borderColor, closedFactor) : openStyle.borderColor;
+    const borderWidth = openStyle.borderWidth + (closedStyle.borderWidth - openStyle.borderWidth) * closedFactor;
+    const useDashedBorder = closedFactor > 0.85 ? closedStyle.useDashedBorder : openStyle.useDashedBorder;
 
     this.background.clear();
     const radius = NODE_RADIUS;
@@ -310,19 +351,18 @@ class NodeVisual {
     const showLow = lod === 'low';
     const showUrls = model.display.showUrls && showFull;
     const showTitle = showFull || showLow;
-    const isClosed = model.display.dimClosedNodes && !model.isOpen;
-    const isActive = model.isCurrent && !isClosed;
+    const rawOpenProgress = model.display.dimClosedNodes ? model.openProgress : 1;
+    const openProgress = Math.min(1, Math.max(0, rawOpenProgress ?? (model.isOpen ? 1 : 0)));
+    const closedFactor = 1 - openProgress;
 
-    const titleColor = isClosed
-      ? theme.closed.title
-      : isActive
-        ? theme.active.title
-        : theme.onSurface;
-    const urlColor = isClosed
-      ? theme.closed.url
-      : isActive
-        ? theme.active.url
-        : theme.onSurfaceVariant;
+    const openTitleColor = model.isCurrent ? theme.active.title : theme.onSurface;
+    const closedTitleColor = theme.closed.title;
+    const openUrlColor = model.isCurrent ? theme.active.url : theme.onSurfaceVariant;
+    const closedUrlColor = theme.closed.url;
+    const titleColor =
+      closedFactor > 0 ? mixColors(openTitleColor, closedTitleColor, closedFactor) : openTitleColor;
+    const urlColor =
+      closedFactor > 0 ? mixColors(openUrlColor, closedUrlColor, closedFactor) : openUrlColor;
 
     this.titleText.style.fontFamily = fontFamily;
     this.titleText.style.fontWeight = this.fonts.weight;
@@ -520,12 +560,14 @@ export class GraphPixiRenderer {
   private readonly connectionLayer = new PIXI.Graphics();
   private readonly pathLayer = new PIXI.Graphics();
   private readonly nodeLayer = new PIXI.Container();
+  private readonly particleLayer = new PIXI.Container();
   private readonly nodeMap = new Map<NodeId, NodeVisual>();
   private readonly nodeData = new Map<NodeId, NodeRenderModel>();
   private index = new SpatialIndex<NodeId>(300);
   private connections: ConnectionSegment[] = [];
+  private particles: ParticleRenderModel[] = [];
   private view: ViewState = { translateX: 0, translateY: 0, scale: 1 };
-  private data: RenderData = { nodes: [], connections: [], nodeWidth: 180, nodeHeight: 60, showConnections: true };
+  private data: RenderData = { nodes: [], connections: [], nodeWidth: 180, nodeHeight: 60, showConnections: true, particles: [] };
   private theme = readGraphTheme({ host: document.body });
   private themeVersion = 0;
   private fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
@@ -548,6 +590,7 @@ export class GraphPixiRenderer {
     this.world.addChild(this.connectionLayer);
     this.world.addChild(this.pathLayer);
     this.world.addChild(this.nodeLayer);
+    this.world.addChild(this.particleLayer);
     this.nodeLayer.sortableChildren = true;
     this.initPromise = this.init();
   }
@@ -619,6 +662,7 @@ export class GraphPixiRenderer {
 
   setData(data: RenderData) {
     this.data = data;
+    this.particles = data.particles ?? [];
     this.connections = data.connections;
     this.nodeData.clear();
     this.index = new SpatialIndex<NodeId>(Math.max(data.nodeWidth, data.nodeHeight) * 3);
@@ -798,6 +842,22 @@ export class GraphPixiRenderer {
       this.connectionLayer.stroke();
       this.pathLayer.stroke();
     }
+
+    this.updateParticles();
+  }
+
+  private updateParticles() {
+    this.particleLayer.removeChildren();
+    if (!this.isReady) return;
+    const color = this.theme.connection.path;
+    this.particles.forEach((particle) => {
+      const circle = new PIXI.Graphics();
+      circle.beginFill(color, particle.alpha);
+      circle.drawCircle(0, 0, particle.radius);
+      circle.endFill();
+      circle.position.set(particle.x - this.origin.x, particle.y - this.origin.y);
+      this.particleLayer.addChild(circle);
+    });
   }
 
   private getViewRect() {

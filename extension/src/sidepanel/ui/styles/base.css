@@ -91,7 +91,10 @@ textarea {
   .floating-search-panel,
   .floating-search-island,
   .floating-search-actions-wrap,
-  .floating-search-list-wrap {
+  .floating-search-list-wrap,
+  .trees-dropdown,
+  .pinned-dropdown,
+  .tag-filter-dropdown {
     animation: none;
     transition: none;
   }

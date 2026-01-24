@@ -2,7 +2,7 @@ import type { FaviconUrl, TabId, Title, Url } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
+import { normalizeFaviconUrl, isBlankUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { resolveTabUrl } from '../utils/tab-utils.js';
 
 /**
@@ -24,7 +24,7 @@ export async function syncTabTitleFavicon(
   if (!node) return;
 
   const tabUrl = resolveTabUrl(tab);
-  if (!tabUrl || !shouldTrackUrl(tabUrl as Url)) return;
+  if (!tabUrl || !shouldTrackUrl(tabUrl as Url) || isBlankUrl(tabUrl as Url)) return;
   if (node.data.url !== tabUrl) return;
 
   if (changeInfo.title) {

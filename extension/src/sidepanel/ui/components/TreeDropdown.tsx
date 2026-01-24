@@ -167,6 +167,7 @@ export default function TreeDropdown() {
         ref={dropdownRef}
         id="treesDropdown"
         className={`trees-dropdown ${treesOpen ? '' : 'hidden'}`}
+        aria-hidden={!treesOpen}
       >
         <div className="trees-dropdown-header">
           <span className="trees-dropdown-title">trees</span>

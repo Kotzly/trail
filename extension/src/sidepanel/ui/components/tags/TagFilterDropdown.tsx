@@ -142,6 +142,7 @@ export default function TagFilterDropdown() {
         ref={dropdownRef}
         id="tagFilterDropdown"
         className={`tag-filter-dropdown ${tagFilterOpen ? '' : 'hidden'}`}
+        aria-hidden={!tagFilterOpen}
       >
         <div className="tag-filter-header">
           <div className="tag-filter-title">tags</div>

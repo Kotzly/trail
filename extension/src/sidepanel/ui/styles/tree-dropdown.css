@@ -18,6 +18,16 @@
   overflow: hidden;
   backdrop-filter: var(--md-glass-blur);
   -webkit-backdrop-filter: var(--md-glass-blur);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transform-origin: top left;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0s;
+  will-change: opacity, transform;
 }
 
 .trees-dropdown::before {
@@ -32,7 +42,14 @@
 }
 
 .trees-dropdown.hidden {
-  display: none;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0.18s;
 }
 
 .trees-dropdown-header {

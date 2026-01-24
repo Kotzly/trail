@@ -24,7 +24,7 @@ import type { CanvasBounds, LayoutMode, NodePosition, ViewState } from '../../gr
 import GraphZoomControls from './GraphZoomControls.js';
 import { buildConnections, getPathBetweenNodes, getPathToNode } from './graph-utils.js';
 import { GraphPixiRenderer } from '../../graph/render/GraphPixiRenderer.js';
-import type { NodeRenderModel } from '../../graph/render/types.js';
+import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
 import React from 'react';
 
 type GraphTool = 'hand' | 'select';
@@ -80,6 +80,7 @@ const LAYOUT_UPDATE_MS = 80;
 
 type GraphCanvasProps = {
   tree: NavigationTree | null;
+  treeUpdate: { reason: TreeUpdatedInput['reason']; at: number } | null;
   currentNodeId: NodeId | null;
   openNodeIds: Set<NodeId>;
   nodeTabCounts: Record<NodeId, number>;
@@ -121,8 +122,41 @@ type PointerInfo = {
   ctrlKey: boolean;
 };
 
+type NodeAnimationType = 'enter' | 'exit' | 'move';
+
+type NodeAnimationState = {
+  id: NodeId;
+  type: NodeAnimationType;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  startTime: number;
+  duration: number;
+};
+
+type OpenAnimationState = {
+  id: NodeId;
+  from: number;
+  to: number;
+  startTime: number;
+  duration: number;
+};
+
+type ParticleState = {
+  id: string;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  life: number;
+  age: number;
+  radius: number;
+};
+
 export default function GraphCanvas({
   tree,
+  treeUpdate,
   currentNodeId,
   openNodeIds,
   nodeTabCounts,
@@ -159,6 +193,124 @@ export default function GraphCanvas({
   const didInitView = useRef(false);
   const pendingViewRef = useRef<Partial<ViewState> | null>(null);
   const viewRafRef = useRef<number | null>(null);
+  const animationStatesRef = useRef<Map<NodeId, NodeAnimationState>>(new Map());
+  const openAnimationStatesRef = useRef<Map<NodeId, OpenAnimationState>>(new Map());
+  const openProgressRef = useRef<Map<NodeId, number>>(new Map());
+  const animatedPositionsRef = useRef<Map<NodeId, { x: number; y: number }>>(new Map());
+  const exitNodesRef = useRef<Map<NodeId, NodePosition>>(new Map());
+  const prevPositionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
+  const exitParticleTimeoutsRef = useRef<Map<NodeId, number>>(new Map());
+  const particleAnimationsRef = useRef<ParticleState[]>([]);
+  const animationFrameRef = useRef<number | null>(null);
+  const [animationVersion, setAnimationVersion] = useState(0);
+  const animationDuration = 150;
+  const animationStagger = Math.round(animationDuration * 0.3);
+  const openAnimationDuration = 240;
+  const invalidateAnimation = useCallback(() => {
+    setAnimationVersion((version) => version + 1);
+  }, []);
+  const [particleVersion, setParticleVersion] = useState(0);
+  const invalidateParticles = useCallback(() => {
+    setParticleVersion((version) => version + 1);
+  }, []);
+  const lastAnimationTimeRef = useRef<number | null>(null);
+  const animationNowRef = useRef<number | null>(null);
+  const prevOpenNodesRef = useRef<Set<NodeId>>(new Set());
+  const animateTick = useCallback(
+    function animateTick(time: number) {
+      const deltaTime = lastAnimationTimeRef.current === null ? 16 : time - lastAnimationTimeRef.current;
+      lastAnimationTimeRef.current = time;
+      animationNowRef.current = time;
+      const states = animationStatesRef.current;
+      const entries = Array.from(states.entries());
+      let nodesDirty = false;
+      entries.forEach(([id, state]) => {
+        const elapsed = time - state.startTime;
+        if (elapsed < 0) {
+          nodesDirty = true;
+          return;
+        }
+        const progress = Math.min(1, elapsed / state.duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const x = state.startX + (state.endX - state.startX) * eased;
+        const y = state.startY + (state.endY - state.startY) * eased;
+        animatedPositionsRef.current.set(id, { x, y });
+        nodesDirty = true;
+        if (progress >= 1) {
+          states.delete(id);
+          animatedPositionsRef.current.delete(id);
+          if (state.type === 'exit') {
+            exitNodesRef.current.delete(id);
+          }
+        }
+      });
+      const openStates = openAnimationStatesRef.current;
+      let openDirty = false;
+      if (openStates.size > 0) {
+        openStates.forEach((state, id) => {
+          const elapsed = time - state.startTime;
+          if (elapsed < 0) {
+            openDirty = true;
+            return;
+          }
+          const progress = Math.min(1, elapsed / state.duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const value = state.from + (state.to - state.from) * eased;
+          openProgressRef.current.set(id, value);
+          openDirty = true;
+          if (progress >= 1) {
+            openStates.delete(id);
+          }
+        });
+      }
+      if (nodesDirty || openDirty) {
+        invalidateAnimation();
+      }
+      const particles = particleAnimationsRef.current;
+      let particlesDirty = false;
+      for (let i = particles.length - 1; i >= 0; i -= 1) {
+        const particle = particles[i]!;
+        particle.age += deltaTime;
+        particlesDirty = true;
+        if (particle.age >= particle.life) {
+          particles.splice(i, 1);
+          particlesDirty = true;
+        }
+      }
+      if (particlesDirty) {
+        invalidateParticles();
+      }
+      const needsLoop = states.size > 0 || particles.length > 0 || openStates.size > 0;
+      if (needsLoop) {
+        animationFrameRef.current = window.requestAnimationFrame(animateTick);
+      } else {
+        animationFrameRef.current = null;
+        lastAnimationTimeRef.current = null;
+        animationNowRef.current = null;
+      }
+    },
+    [invalidateAnimation, invalidateParticles],
+  );
+
+  const startAnimationLoop = useCallback(() => {
+    if (animationFrameRef.current !== null) return;
+    animationFrameRef.current = window.requestAnimationFrame(animateTick);
+  }, [animateTick]);
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+        lastAnimationTimeRef.current = null;
+        animationNowRef.current = null;
+      }
+      exitParticleTimeoutsRef.current.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      exitParticleTimeoutsRef.current.clear();
+    };
+  }, []);
 
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [previewSelection, setPreviewSelection] = useState<Set<NodeId>>(new Set());
@@ -237,6 +389,8 @@ export default function GraphCanvas({
   const baseLayoutConfig =
     layoutOptions.mode === 'mindmap' ? layoutOptions.mindmap : layoutOptions.tree;
   const hideTreeRoot = settings?.layout?.tree?.hideRoot ?? false;
+  const root = tree?.getRoot() ?? null;
+  const { nodeWidth, nodeHeight } = baseLayoutConfig;
 
   useEffect(() => {
     viewRef.current = graphView;
@@ -373,9 +527,6 @@ export default function GraphCanvas({
     [cancelViewAnimation, onGraphViewChange],
   );
 
-  const root = tree?.getRoot() ?? null;
-  const { nodeWidth, nodeHeight } = baseLayoutConfig;
-
   const layout = useMemo(() => {
     if (!root) return null;
     switch (layoutOptions.mode) {
@@ -475,6 +626,225 @@ export default function GraphCanvas({
     return next;
   }, [basePositions, dragPreview, layoutOptions.mode, nodeHeight, nodeWidth, root]);
 
+  const spawnExitParticles = useCallback(
+    (pos: NodePosition) => {
+      const centerX = pos.x + nodeWidth / 2;
+      const centerY = pos.y + nodeHeight / 2;
+      const particles = particleAnimationsRef.current;
+      const count = 8;
+      const now = performance.now();
+      const baseDist = Math.max(nodeWidth, nodeHeight);
+      for (let i = 0; i < count; i += 1) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+        const distance = baseDist * (0.5 + Math.random() * 0.8);
+        particles.push({
+          id: `${pos.node.id}-exit-${now}-${i}`,
+          startX: centerX,
+          startY: centerY,
+          endX: centerX + Math.cos(angle) * distance,
+          endY: centerY + Math.sin(angle) * distance,
+          life: animationDuration,
+          age: 0,
+          radius: Math.random() * 3 + 1.5,
+        });
+      }
+      invalidateParticles();
+      startAnimationLoop();
+    },
+    [animationDuration, invalidateParticles, nodeHeight, nodeWidth, startAnimationLoop],
+  );
+
+  const startEnter = useCallback(
+    (pos: NodePosition, startCenter: { x: number; y: number }, delayMs = 0) => {
+      const id = pos.node.id;
+      animationStatesRef.current.delete(id);
+      exitNodesRef.current.delete(id);
+      const startX = startCenter.x - nodeWidth / 2;
+      const startY = startCenter.y - nodeHeight / 2;
+      const state: NodeAnimationState = {
+        id,
+        type: 'enter',
+        startX,
+        startY,
+        endX: pos.x,
+        endY: pos.y,
+        startTime: performance.now() + delayMs,
+        duration: animationDuration,
+      };
+      animationStatesRef.current.set(id, state);
+      animatedPositionsRef.current.set(id, { x: startX, y: startY });
+      invalidateAnimation();
+      startAnimationLoop();
+    },
+    [animationDuration, invalidateAnimation, nodeHeight, nodeWidth, startAnimationLoop],
+  );
+
+  const startExit = useCallback(
+    (
+      pos: NodePosition,
+      endCenter: { x: number; y: number },
+      delayMs = 0,
+      durationMs = animationDuration,
+    ) => {
+      const id = pos.node.id;
+      if (exitNodesRef.current.has(id)) return;
+      animationStatesRef.current.delete(id);
+      const startX = pos.x;
+      const startY = pos.y;
+      const endX = endCenter.x - nodeWidth / 2;
+      const endY = endCenter.y - nodeHeight / 2;
+      const state: NodeAnimationState = {
+        id,
+        type: 'exit',
+        startX,
+        startY,
+        endX,
+        endY,
+        startTime: performance.now() + delayMs,
+        duration: durationMs,
+      };
+      animationStatesRef.current.set(id, state);
+      animatedPositionsRef.current.set(id, { x: startX, y: startY });
+      exitNodesRef.current.set(id, { ...pos });
+      invalidateAnimation();
+      startAnimationLoop();
+      const existingTimeout = exitParticleTimeoutsRef.current.get(id);
+      if (existingTimeout !== undefined) {
+        window.clearTimeout(existingTimeout);
+        exitParticleTimeoutsRef.current.delete(id);
+      }
+      if (delayMs <= 0) {
+        spawnExitParticles(pos);
+      } else {
+        const timeoutId = window.setTimeout(() => {
+          exitParticleTimeoutsRef.current.delete(id);
+          spawnExitParticles(pos);
+        }, delayMs);
+        exitParticleTimeoutsRef.current.set(id, timeoutId);
+      }
+    },
+    [animationDuration, invalidateAnimation, nodeHeight, nodeWidth, spawnExitParticles, startAnimationLoop],
+  );
+
+  const startMove = useCallback(
+    (id: NodeId, fromX: number, fromY: number, toX: number, toY: number) => {
+      animationStatesRef.current.delete(id);
+      const state: NodeAnimationState = {
+        id,
+        type: 'move',
+        startX: fromX,
+        startY: fromY,
+        endX: toX,
+        endY: toY,
+        startTime: performance.now(),
+        duration: animationDuration,
+      };
+      animationStatesRef.current.set(id, state);
+      animatedPositionsRef.current.set(id, { x: fromX, y: fromY });
+      invalidateAnimation();
+      startAnimationLoop();
+    },
+    [animationDuration, invalidateAnimation, startAnimationLoop],
+  );
+
+  useLayoutEffect(() => {
+    const prev = prevPositionsRef.current;
+    const current = new Map(positions);
+    if (prev.size === 0) {
+      prevPositionsRef.current = current;
+      return;
+    }
+    const suppressMoveAnimations = isDraggingNode || (dragPreview?.size ?? 0) > 0;
+    const enteringIds = new Set<NodeId>();
+    const exitingIds = new Set<NodeId>();
+    current.forEach((_pos, id) => {
+      if (!prev.has(id)) enteringIds.add(id);
+    });
+    prev.forEach((_pos, id) => {
+      if (!current.has(id)) exitingIds.add(id);
+    });
+
+    const enterDepthCache = new Map<NodeId, number>();
+    const getEnterDepth = (node: NavigationNode): number => {
+      if (!enteringIds.has(node.id)) return 0;
+      const cached = enterDepthCache.get(node.id);
+      if (cached !== undefined) return cached;
+      const parent = node.getParent?.();
+      const depth = parent && enteringIds.has(parent.id) ? getEnterDepth(parent) + 1 : 0;
+      enterDepthCache.set(node.id, depth);
+      return depth;
+    };
+
+    const exitDepthCache = new Map<NodeId, number>();
+    const getExitDepth = (node: NavigationNode): number => {
+      if (!exitingIds.has(node.id)) return -1;
+      const cached = exitDepthCache.get(node.id);
+      if (cached !== undefined) return cached;
+      let maxChildDepth = -1;
+      node.getChildren().forEach((child) => {
+        if (!exitingIds.has(child.id)) return;
+        maxChildDepth = Math.max(maxChildDepth, getExitDepth(child));
+      });
+      const depth = maxChildDepth + 1;
+      exitDepthCache.set(node.id, depth);
+      return depth;
+    };
+
+    const currentRootPos = root ? current.get(root.id) : undefined;
+    const currentRootCenter = {
+      x: currentRootPos ? currentRootPos.x + nodeWidth / 2 : 0,
+      y: currentRootPos ? currentRootPos.y + nodeHeight / 2 : 0,
+    };
+    current.forEach((pos, id) => {
+      if (enteringIds.has(id)) {
+        const parent = pos.node.getParent?.();
+        const parentPos = parent ? current.get(parent.id) : undefined;
+        const startCenter = parentPos
+          ? { x: parentPos.x + nodeWidth / 2, y: parentPos.y + nodeHeight / 2 }
+          : currentRootCenter;
+        const depth = getEnterDepth(pos.node);
+        startEnter(pos, startCenter, depth * animationStagger);
+        return;
+      }
+      const prevPos = prev.get(id);
+      if (!prevPos) return;
+      const dx = pos.x - prevPos.x;
+      const dy = pos.y - prevPos.y;
+      if (dx * dx + dy * dy > 1 && !suppressMoveAnimations) {
+        startMove(id, prevPos.x, prevPos.y, pos.x, pos.y);
+      }
+    });
+
+    const isDelete = treeUpdate?.reason === 'delete';
+    const popDuration = Math.max(120, Math.round(animationDuration * 0.4));
+    prev.forEach((pos, id) => {
+      if (!exitingIds.has(id)) return;
+      if (isDelete) {
+        const parent = pos.node.getParent?.();
+        if (parent && exitingIds.has(parent.id)) {
+          return;
+        }
+      }
+      const endCenter = { x: pos.x + nodeWidth / 2, y: pos.y + nodeHeight / 2 };
+      const delayMs = isDelete ? 0 : getExitDepth(pos.node) * animationStagger;
+      startExit(pos, endCenter, delayMs, isDelete ? popDuration : animationDuration);
+    });
+    prevPositionsRef.current = current;
+  }, [
+    animationDuration,
+    animationStagger,
+    dragPreview,
+    isDraggingNode,
+    nodeHeight,
+    nodeWidth,
+    positions,
+    root,
+    startEnter,
+    startExit,
+    startMove,
+    treeUpdate?.reason,
+  ]);
+
   const bounds: CanvasBounds = useMemo(() => {
     if (!layout) {
       return { minX: 0, minY: 0, maxX: 100, maxY: 100, width: 100, height: 100 };
@@ -482,11 +852,33 @@ export default function GraphCanvas({
     return getCanvasBounds(positions, nodeWidth, nodeHeight);
   }, [layout, nodeHeight, nodeWidth, positions]);
 
-  const nodes = useMemo(() => {
+  const activeNodes = useMemo(() => {
     const list = Array.from(positions.values());
     if (layoutOptions.mode !== 'tree' || !root || !hideTreeRoot) return list;
     return list.filter((pos) => pos.node.id !== root.id);
   }, [hideTreeRoot, layoutOptions.mode, positions, root]);
+
+  const displayNodes = useMemo(() => {
+    const list = Array.from(positions.values());
+    exitNodesRef.current.forEach((pos) => list.push(pos));
+    return list;
+  }, [positions, animationVersion]);
+  const pendingEnterIds = useMemo(() => {
+    if (animationStatesRef.current.size === 0) return new Set<NodeId>();
+    const now = animationNowRef.current ?? performance.now();
+    const pending = new Set<NodeId>();
+    animationStatesRef.current.forEach((state, id) => {
+      if (state.type === 'enter' && state.startTime > now) {
+        pending.add(id);
+      }
+    });
+    return pending;
+  }, [animationVersion]);
+  const visibleDisplayNodes = useMemo(() => {
+    const filtered = displayNodes.filter((pos) => !pendingEnterIds.has(pos.node.id));
+    if (layoutOptions.mode !== 'tree' || !root || !hideTreeRoot) return filtered;
+    return filtered.filter((pos) => pos.node.id !== root.id);
+  }, [displayNodes, hideTreeRoot, layoutOptions.mode, pendingEnterIds, root]);
   const searchSet = useMemo(() => new Set(search.results), [search.results]);
   const focusedSearchId = search.results[search.index];
   const display = useMemo(
@@ -501,6 +893,68 @@ export default function GraphCanvas({
     }),
     [settings],
   );
+
+  useLayoutEffect(() => {
+    const activeIds = new Set<NodeId>();
+    positions.forEach((_pos, id) => {
+      activeIds.add(id);
+    });
+    exitNodesRef.current.forEach((_pos, id) => {
+      activeIds.add(id);
+    });
+
+    const openStates = openAnimationStatesRef.current;
+    const openProgress = openProgressRef.current;
+
+    if (!display.dimClosedNodes) {
+      activeIds.forEach((id) => {
+        openProgress.set(id, 1);
+      });
+      openProgress.forEach((_value, id) => {
+        if (!activeIds.has(id)) {
+          openProgress.delete(id);
+        }
+      });
+      openStates.clear();
+      prevOpenNodesRef.current = new Set(openNodeIds);
+      invalidateAnimation();
+      return;
+    }
+
+    const prevOpen = prevOpenNodesRef.current;
+    const isInitial = prevOpen.size === 0 && openProgress.size === 0;
+    const now = performance.now();
+
+    activeIds.forEach((id) => {
+      const target = openNodeIds.has(id) ? 1 : 0;
+      if (isInitial) {
+        openProgress.set(id, target);
+        return;
+      }
+      const current = openProgress.get(id) ?? (prevOpen.has(id) ? 1 : target);
+      if (current === target) return;
+      openStates.set(id, {
+        id,
+        from: current,
+        to: target,
+        startTime: now,
+        duration: openAnimationDuration,
+      });
+    });
+
+    openProgress.forEach((_value, id) => {
+      if (!activeIds.has(id)) {
+        openProgress.delete(id);
+        openStates.delete(id);
+      }
+    });
+
+    prevOpenNodesRef.current = new Set(openNodeIds);
+    if (openStates.size > 0) {
+      invalidateAnimation();
+      startAnimationLoop();
+    }
+  }, [display.dimClosedNodes, invalidateAnimation, openNodeIds, positions, startAnimationLoop]);
 
   const handleNodeClick = useCallback(async (node: NavigationNode, info: PointerInfo) => {
     if (dragMovedRef.current) {
@@ -765,19 +1219,26 @@ export default function GraphCanvas({
 
   const renderNodes = useMemo<NodeRenderModel[]>(() => {
     const dimmedBySearch = searchActive;
-    return nodes.map((pos) => {
+    return visibleDisplayNodes.map((pos) => {
       const id = pos.node.id;
+      const override = animatedPositionsRef.current.get(id);
+      const x = override?.x ?? pos.x;
+      const y = override?.y ?? pos.y;
       const tabState = tabStates[id];
+      const isOpen = openNodeIds.has(id);
       const isSearchMatch = searchSet.has(id);
       return {
         id,
         node: pos.node,
-        x: pos.x,
-        y: pos.y,
+        x,
+        y,
         width: nodeWidth,
         height: nodeHeight,
         isCurrent: currentNodeId === id,
-        isOpen: openNodeIds.has(id),
+        isOpen,
+        openProgress: display.dimClosedNodes
+          ? openProgressRef.current.get(id) ?? (isOpen ? 1 : 0)
+          : 1,
         tabCount: nodeTabCounts[id] ?? 0,
         ...(tabState !== undefined ? { tabState } : {}),
         isSelected: selectedNodeIds.has(id),
@@ -791,6 +1252,7 @@ export default function GraphCanvas({
       };
     });
   }, [
+    animationVersion,
     currentNodeId,
     display,
     focusedSearchId,
@@ -798,7 +1260,6 @@ export default function GraphCanvas({
     nodeHeight,
     nodeTabCounts,
     nodeWidth,
-    nodes,
     openNodeIds,
     previewSelection,
     searchActive,
@@ -806,18 +1267,48 @@ export default function GraphCanvas({
     selectedNodeIds,
     tabStates,
     tagDefs,
+    visibleDisplayNodes,
   ]);
+
+  const particleRenderModels = useMemo<ParticleRenderModel[]>(() => {
+    return particleAnimationsRef.current.map((particle) => {
+      const progress = Math.min(1, particle.age / particle.life);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const alpha = Math.max(0, 1 - progress);
+      return {
+        id: particle.id,
+        x: particle.startX + (particle.endX - particle.startX) * eased,
+        y: particle.startY + (particle.endY - particle.startY) * eased,
+        radius: particle.radius,
+        alpha,
+      };
+    });
+  }, [particleVersion]);
   const pathNodeIds = useMemo(() => {
     if (!root || currentNodeId === null) return null;
     return getPathToNode(root, currentNodeId);
   }, [currentNodeId, root]);
+  const connectionPositions = useMemo(() => {
+    if (animatedPositionsRef.current.size === 0 && pendingEnterIds.size === 0) return positions;
+    const next = new Map<NodeId, NodePosition>();
+    positions.forEach((pos, id) => {
+      if (pendingEnterIds.has(id)) return;
+      const override = animatedPositionsRef.current.get(id);
+      if (override) {
+        next.set(id, { ...pos, x: override.x, y: override.y });
+      } else {
+        next.set(id, pos);
+      }
+    });
+    return next;
+  }, [animationVersion, pendingEnterIds, positions]);
 
   const connections = useMemo(
     () =>
       effectiveShowConnections
         ? buildConnections(
             root,
-            positions,
+            connectionPositions,
             pathNodeIds,
             layoutOptions.mode,
             hideTreeRoot,
@@ -832,7 +1323,7 @@ export default function GraphCanvas({
       nodeHeight,
       nodeWidth,
       pathNodeIds,
-      positions,
+      connectionPositions,
       root,
     ],
   );
@@ -844,8 +1335,17 @@ export default function GraphCanvas({
       nodeWidth,
       nodeHeight,
       showConnections: effectiveShowConnections,
+      particles: particleRenderModels,
     });
-  }, [connections, effectiveShowConnections, nodeHeight, nodeWidth, renderNodes]);
+  }, [
+    connections,
+    effectiveShowConnections,
+    nodeHeight,
+    nodeWidth,
+    particleRenderModels,
+    particleVersion,
+    renderNodes,
+  ]);
 
   useEffect(() => {
     rendererRef.current?.setDetailMode(detailMode);
@@ -869,11 +1369,11 @@ export default function GraphCanvas({
   const fitToView = (animate = false) => {
     const fitView = getFitToViewView();
     if (!fitView) return;
-    viewRef.current = fitView;
     if (animate) {
       animateViewTo(fitView, 300);
     } else {
       cancelViewAnimation();
+      viewRef.current = fitView;
       onGraphViewChange(fitView);
       rendererRef.current?.setView(fitView);
     }
@@ -909,11 +1409,11 @@ export default function GraphCanvas({
   const centerOnNode = (nodeId: NodeId, animate = true): boolean => {
     const nextView = getCenteredView(nodeId);
     if (!nextView) return false;
-    viewRef.current = nextView;
     if (animate) {
       animateViewTo(nextView, 300);
     } else {
       cancelViewAnimation();
+      viewRef.current = nextView;
       onGraphViewChange(nextView);
       rendererRef.current?.setView(nextView);
     }
@@ -1027,10 +1527,10 @@ export default function GraphCanvas({
     (pointerX: number, pointerY: number, scaleFactor: number, animate = false) => {
       const nextView = computeZoomView(pointerX, pointerY, scaleFactor);
       if (!nextView) return;
-      viewRef.current = nextView;
       if (animate) {
         animateViewTo(nextView, 180);
       } else {
+        viewRef.current = nextView;
         scheduleGraphView(nextView);
       }
     },
@@ -1056,11 +1556,11 @@ export default function GraphCanvas({
       fitToView(animate);
       return;
     }
-    viewRef.current = nextView;
     if (animate) {
       animateViewTo(nextView, 300);
     } else {
       cancelViewAnimation();
+      viewRef.current = nextView;
       onGraphViewChange(nextView);
       rendererRef.current?.setView(nextView);
     }
@@ -1235,7 +1735,7 @@ export default function GraphCanvas({
       const graphRight = (left + width - translateX) / scale;
       const graphBottom = (top + height - translateY) / scale;
       const intersects = new Set<NodeId>();
-      nodes.forEach((pos) => {
+      activeNodes.forEach((pos) => {
         const nodeLeft = pos.x;
         const nodeRight = pos.x + nodeWidth;
         const nodeTop = pos.y;

@@ -1,11 +1,11 @@
 // messaging/handlers/content-handlers.ts
-import { shouldTrackUrl } from "../../utils/url-utils.js";
+import { isBlankUrl, shouldTrackUrl } from "../../utils/url-utils.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { notifyTreeUpdate } from "../notifications.js";
 import { MSG, defineHandlers } from "../../../shared/types/messages.js";
 import { ok, err } from "../../../shared/types/messages.js";
-import type { FaviconUrl, TabId, Url } from "../../../shared/types/ids.js";
+import type { FaviconUrl, TabId, Title, Url } from "../../../shared/types/ids.js";
 
 function getSenderTabId(sender: chrome.runtime.MessageSender): TabId | null {
   const id = sender.tab?.id;
@@ -27,7 +27,7 @@ export const contentHandlers = defineHandlers({
     if (!node) return err("No node found for given Node ID");
 
     const url = message.url;
-
+    if (!shouldTrackUrl(url as Url) || isBlankUrl(url as Url)) return ok();
 
     async function handleFaviconChange(favicon: FaviconUrl) {
       if (!node) return err("No node found for given Node ID");
