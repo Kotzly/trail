@@ -31,13 +31,45 @@ export default function ThemePanel() {
   const settings = useStore((state) => state.settings);
   const setSettings = useStore((state) => state.setSettings);
 
-  useOverlayEffects(themePickerOpen, { lod: true, blur: true, kind: 'modal' });
+  const [isMounted, setIsMounted] = useState(themePickerOpen);
+  const [isClosing, setIsClosing] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+
+  useOverlayEffects(isMounted, { lod: true, blur: true, kind: 'modal' });
 
   const [draftTheme, setDraftTheme] = useState<CustomTheme>(settings?.customTheme ?? DEFAULT_THEME);
   const pendingSaveRef = useRef<Settings | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const previewRafRef = useRef<number | null>(null);
   const lastPreviewRef = useRef<CustomTheme | null>(null);
+
+  useEffect(() => {
+    if (themePickerOpen) {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      setIsMounted(true);
+      setIsClosing(false);
+      return;
+    }
+    if (!isMounted) return;
+    setIsClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsMounted(false);
+      setIsClosing(false);
+      closeTimerRef.current = null;
+    }, 180);
+  }, [isMounted, themePickerOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!themePickerOpen) return;
@@ -126,7 +158,7 @@ export default function ThemePanel() {
   }, [handleCommit, setThemePickerOpen]);
 
   useEffect(() => {
-    if (!themePickerOpen) return;
+    if (!isMounted) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -135,14 +167,17 @@ export default function ThemePanel() {
     };
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [handleClose, themePickerOpen]);
+  }, [handleClose, isMounted]);
 
-  if (!themePickerOpen || typeof document === 'undefined') return null;
+  if (!isMounted || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="modal-overlay theme-panel-overlay lod-enabler blur-enabler" onClick={handleClose}>
+    <div
+      className={`modal-overlay theme-panel-overlay lod-enabler blur-enabler ${isClosing ? 'closing' : ''}`}
+      onClick={handleClose}
+    >
       <div
-        className="theme-panel"
+        className={`theme-panel ${isClosing ? 'closing' : ''}`}
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >

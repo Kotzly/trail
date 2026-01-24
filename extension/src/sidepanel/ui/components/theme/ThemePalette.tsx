@@ -209,6 +209,7 @@ export default function ThemePalette({
   const [pageIndex, setPageIndex] = useState(0);
   const [customColor, setCustomColor] = useState('#6f7bf7');
   const [customOpacity, setCustomOpacity] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
   const gradientRef = useRef<HTMLDivElement | null>(null);
   const dotRefs = useRef<Array<HTMLDivElement | null>>([]);
   const textureRef = useRef<HTMLDivElement | null>(null);
@@ -222,6 +223,7 @@ export default function ThemePalette({
   const texturePointerId = useRef<number | null>(null);
   const recentlyDraggedRef = useRef(false);
   const recentlyDraggedTimer = useRef<number | null>(null);
+  const bounceTimerRef = useRef<number | null>(null);
   const draftRef = useRef<CustomTheme>(draft);
 
   useEffect(() => {
@@ -260,8 +262,10 @@ export default function ThemePalette({
     const angle = texture * Math.PI * 2 - Math.PI / 2;
     const x = 50 + Math.cos(angle) * 48;
     const y = 50 + Math.sin(angle) * 48;
+    const rotation = (angle * 180) / Math.PI + 90;
     textureHandleRef.current.style.left = `${x}%`;
     textureHandleRef.current.style.top = `${y}%`;
+    textureHandleRef.current.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
   }, []);
 
   const updateOpacityWave = useCallback((opacity: number) => {
@@ -295,6 +299,31 @@ export default function ThemePalette({
     updateTextureHandle(draft.texture ?? 0);
     updateOpacityWave(draft.opacity);
   }, [draft, updateDotsVisual, updateTextureHandle, updateOpacityWave]);
+
+  useEffect(() => {
+    return () => {
+      if (bounceTimerRef.current !== null) {
+        window.clearTimeout(bounceTimerRef.current);
+        bounceTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const triggerDotBounce = useCallback(() => {
+    dotRefs.current.forEach((el) => {
+      if (!el) return;
+      el.classList.remove('bounce');
+      void el.offsetWidth;
+      el.classList.add('bounce');
+    });
+    if (bounceTimerRef.current !== null) {
+      window.clearTimeout(bounceTimerRef.current);
+    }
+    bounceTimerRef.current = window.setTimeout(() => {
+      dotRefs.current.forEach((el) => el?.classList.remove('bounce'));
+      bounceTimerRef.current = null;
+    }, 520);
+  }, []);
 
   const commitTheme = useCallback(
     (next: CustomTheme) => {
@@ -380,7 +409,8 @@ export default function ThemePalette({
     const nextHarmony = options[(currentIndex + 1) % options.length] ?? draft.harmony;
     const primary = getPrimaryDot(draft);
     commitTheme({ ...draft, dots: buildDots(primary, nextHarmony), harmony: nextHarmony, enabled: true });
-  }, [commitTheme, draft]);
+    triggerDotBounce();
+  }, [commitTheme, draft, triggerDotBounce]);
 
   const handlePreset = useCallback(
     (preset: ThemePreset) => {
@@ -414,6 +444,7 @@ export default function ThemePalette({
       if (!gradientRef.current) return;
       draggingRef.current = true;
       dragPointerId.current = event.pointerId;
+      setIsDragging(true);
       dotRefs.current[0]?.classList.add('dragging');
       event.currentTarget.setPointerCapture(event.pointerId);
     },
@@ -451,6 +482,7 @@ export default function ThemePalette({
       if (dragPointerId.current !== event.pointerId) return;
       draggingRef.current = false;
       dragPointerId.current = null;
+      setIsDragging(false);
       dotRefs.current[0]?.classList.remove('dragging');
       markRecentlyDragged();
       commitTheme(draftRef.current);
@@ -520,8 +552,9 @@ export default function ThemePalette({
         lightness: nextLightness,
         enabled: true,
       });
+      triggerDotBounce();
     },
-    [commitTheme]
+    [commitTheme, triggerDotBounce]
   );
 
   const handleScheme = (next: ThemeId) => {
@@ -618,11 +651,11 @@ export default function ThemePalette({
               disabled={draft.dots.length <= 1}
               title={HARMONY_LABELS[draft.harmony]}
             >
-              <Icons.Radius size={14} />
+              <Icons.CirclePile size={14} />
             </button>
         </div>
         <div
-          className="zen-theme-picker-pad"
+          className={`zen-theme-picker-pad ${isDragging ? 'is-dragging' : ''}`}
           ref={gradientRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}

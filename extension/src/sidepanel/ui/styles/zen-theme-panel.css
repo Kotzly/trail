@@ -3,6 +3,29 @@
   background: var(--md-overlay);
   backdrop-filter: blur(8px) saturate(1.05);
   -webkit-backdrop-filter: blur(8px) saturate(1.05);
+  animation: theme-panel-overlay-in 0.18s ease-out;
+}
+
+.theme-panel-overlay.closing {
+  animation: theme-panel-overlay-out 0.18s ease-in forwards;
+}
+
+@keyframes theme-panel-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes theme-panel-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .theme-panel {
@@ -20,6 +43,34 @@
   backdrop-filter: var(--md-glass-blur);
   -webkit-backdrop-filter: var(--md-glass-blur);
   position: relative;
+  animation: theme-panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+}
+
+.theme-panel.closing {
+  animation: theme-panel-out 0.18s ease-in forwards;
+}
+
+@keyframes theme-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes theme-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
 }
 
 .theme-panel::before {
@@ -119,6 +170,9 @@
   transform: translate(-50%, -50%);
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
   pointer-events: none;
+  transition:
+    left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    top 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .zen-theme-picker-dot.primary {
@@ -129,6 +183,26 @@
   z-index: 3;
   pointer-events: auto;
   transition: transform 0.2s ease;
+}
+
+.zen-theme-picker-pad.is-dragging .zen-theme-picker-dot {
+  transition: none;
+}
+
+.zen-theme-picker-dot.bounce {
+  animation: zen-theme-picker-dot-bounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes zen-theme-picker-dot-bounce {
+  0% {
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .zen-theme-picker-dot.primary:hover {
