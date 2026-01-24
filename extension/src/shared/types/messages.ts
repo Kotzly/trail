@@ -1,4 +1,4 @@
-import type { Description, NodeId, Title, Url, Tag, TabId } from "./ids.js";
+import type { Description, NodeId, Title, Url, Tag, TabId, FaviconUrl } from "./ids.js";
 import { Settings } from "./settings.js";
 import { TabState } from "./tabs.js";
 import { NavigationTreeJSON, TreeMeta, TreeSummary } from "./tree.js";
@@ -22,7 +22,7 @@ export const MSG = {
     GET_TABS_FOR_NODE: 'GET_TABS_FOR_NODE',
     SAVE_SETTINGS: 'SAVE_SETTINGS',
     GET_SETTINGS: 'GET_SETTINGS',
-    TITLE_CHANGED: 'TITLE_CHANGED',
+    TITLE_OR_FAVICON_CHANGED: 'TITLE_OR_FAVICON_CHANGED',
     TREE_UPDATED: 'TREE_UPDATED',
     TREES_UPDATED: 'TREES_UPDATED',
     TAGS_UPDATED: 'TAGS_UPDATED',
@@ -103,7 +103,7 @@ export type DeleteTagDefMessage = RequestMessageBase<typeof MSG.DELETE_TAG_DEF, 
 export type TabsForNodeMessage = RequestMessageBase<typeof MSG.GET_TABS_FOR_NODE, TabsForNodeInput>;
 export type SaveSettingsMessage = RequestMessageBase<typeof MSG.SAVE_SETTINGS, SaveSettingsInput>;
 export type GetSettingsMessage = RequestMessageBase<typeof MSG.GET_SETTINGS>;
-export type TitleChangedMessage = RequestMessageBase<typeof MSG.TITLE_CHANGED, TitleChangedInput>;
+export type TitleOrFaviconChangedMessage = RequestMessageBase<typeof MSG.TITLE_OR_FAVICON_CHANGED, TitleOrFaviconChangedInput>;
 export type TreeUpdatedMessage = RequestMessageBase<typeof MSG.TREE_UPDATED, TreeUpdatedInput>;
 export type TreesUpdatedMessage = RequestMessageBase<typeof MSG.TREES_UPDATED, TreesSnapshot>;
 export type TagDefsUpdatedInput = { tagDefs: TagDefinition[] };
@@ -160,7 +160,7 @@ export type RequestMessage = NavigateToMessage |
     CancelTempSelectionMessage | EndTempSelectionMessage |
     UndoMessage | RedoMessage |
     CommandStateMessage | GetTagDefsMessage | UpsertTagDefMessage | DeleteTagDefMessage |
-    TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleChangedMessage |
+    TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleOrFaviconChangedMessage |
     TreeUpdatedMessage | TreesUpdatedMessage | TagsUpdatedMessage |
     NotifyMessage |
     GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | RenameTreeMessage |
@@ -204,7 +204,7 @@ export type ResponseDataByType = {
     [MSG.GET_TABS_FOR_NODE]: TabsForNodeData;
     [MSG.SAVE_SETTINGS]: void;
     [MSG.GET_SETTINGS]: Settings;
-    [MSG.TITLE_CHANGED]: void;
+    [MSG.TITLE_OR_FAVICON_CHANGED]: void;
     [MSG.TREE_UPDATED]: void;
     [MSG.TREES_UPDATED]: void;
     [MSG.TAGS_UPDATED]: void;
@@ -271,7 +271,7 @@ export const msg = {
     getTabsForNode(payload: TabsForNodeInput): TabsForNodeMessage { return { type: MSG.GET_TABS_FOR_NODE, ...payload } },
     saveSettings(payload: SaveSettingsInput): SaveSettingsMessage { return { type: MSG.SAVE_SETTINGS, ...payload } },
     getSettings(): GetSettingsMessage { return { type: MSG.GET_SETTINGS } },
-    titleChanged(payload: TitleChangedInput): TitleChangedMessage { return { type: MSG.TITLE_CHANGED, ...payload } },
+    titleOrFaviconChanged(payload: TitleOrFaviconChangedInput): TitleOrFaviconChangedMessage { return { type: MSG.TITLE_OR_FAVICON_CHANGED, ...payload } },
     treeUpdated(payload: TreeUpdatedInput): TreeUpdatedMessage { return { type: MSG.TREE_UPDATED, ...payload } },
     treesUpdated(payload: TreesSnapshot): TreesUpdatedMessage { return { type: MSG.TREES_UPDATED, ...payload } },
     tagsUpdated(payload: TagDefsUpdatedInput): TagsUpdatedMessage { return { type: MSG.TAGS_UPDATED, ...payload } },
@@ -357,9 +357,10 @@ export type SaveSettingsInput = {
     settings: Settings;
 }
 
-export type TitleChangedInput = {
+export type TitleOrFaviconChangedInput = {
     url: Url;
-    title: Title;
+    favicon?: FaviconUrl;
+    title?: Title;
 }
 
 export type TreeUpdateReason =

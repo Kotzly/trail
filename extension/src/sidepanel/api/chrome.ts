@@ -15,5 +15,5 @@ export async function getCurrentNodeId(): Promise<NodeId | undefined> {
 }
 
 export function notifyTitleChange(url: Url, title: Title): void {
-    fireAndForget(msg.titleChanged({ url, title }));
+    fireAndForget(msg.titleOrFaviconChanged({ url, title }));
 }

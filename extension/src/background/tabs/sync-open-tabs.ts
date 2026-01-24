@@ -2,7 +2,7 @@ import type { NodeId, TabId, Url } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { isPlaceholderUrl, shouldTrackUrl } from '../utils/url-utils.js';
+import { shouldTrackUrl } from '../utils/url-utils.js';
 
 let syncPromise: Promise<void> | null = null;
 
@@ -17,7 +17,7 @@ export async function syncOpenTabs(): Promise<void> {
 
     for (const tab of tabs) {
       if (!tab.id || !tab.url) continue;
-      if (!shouldTrackUrl(tab.url as Url) || isPlaceholderUrl(tab.url as Url)) continue;
+      if (!shouldTrackUrl(tab.url as Url)) continue;
       const node = tree.findByUrl(tab.url as Url);
       if (!node) continue;
       const tabId = tab.id as TabId;

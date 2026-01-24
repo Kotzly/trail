@@ -7,7 +7,6 @@ import { redirectDetector } from './redirect-detection.js';
 import {
   normalizeFaviconUrl,
   shouldTrackUrl,
-  isBlankUrl,
 } from '../utils/url-utils.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { notifyUi } from '../messaging/ui-notifications.js';
@@ -25,7 +24,6 @@ export async function handleNavigation(
   _transitionType?: string
 ): Promise<void> {
   const { tabId, url, frameId } = details;
-
   // Only track main frame navigations
   if (frameId !== 0) return;
   if (tabManager.isIgnoredTab(tabId as TabId)) return;
@@ -37,14 +35,6 @@ export async function handleNavigation(
     return; // Tab no longer exists
   }
   
-  // Skip blank URLs - just track for redirect detection, don't create nodes
-  if (!url || isBlankUrl(url as Url)) {
-    redirectDetector.recordTabUrl(tabId as TabId, {
-      url: (url || 'about:blank') as Url,
-      timestamp: now(),
-    } as UrlWithTimestamp);
-    return;
-  }
   // Skip ignored URLs
   if (!shouldTrackUrl(url as Url)) return;
 
@@ -88,7 +78,7 @@ export async function handleNavigation(
       if (node && node.data.url !== url) {
         // Different URL
         const nodeUrl = node.data.url as Url;
-        if (!nodeUrl || isBlankUrl(nodeUrl)) {
+        if (!shouldTrackUrl(nodeUrl)) {
           node.data = {
             ...node.data,
             url: data.url,
