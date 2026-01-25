@@ -6,6 +6,7 @@ import { treeStorage } from '../services/tree-storage.js';
 import { redirectDetector } from './redirect-detection.js';
 import {
   normalizeFaviconUrl,
+  isNewTabUrl,
   shouldTrackUrl,
 } from '../utils/url-utils.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
@@ -26,17 +27,54 @@ export async function handleNavigation(
   if (tabManager.isIgnoredTab(tabId as TabId)) return;
 
   // Ensure tab still exists
+  let tab: chrome.tabs.Tab;
   try {
-    await chrome.tabs.get(tabId);
+    tab = await chrome.tabs.get(tabId);
   } catch (e) {
     return; // Tab no longer exists
   }
-  
+
+  // Early handling for new-tab variants: always map them to the root node.
+  if (isNewTabUrl(url as Url)) {
+    try {
+      const tree = await treeStorage.getOrCreateTree();
+      const root = tree.getRoot();
+      const isActiveTab = tab.active;
+      const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
+      const registerOptions =
+        lastUsed === undefined ? { touch: isActiveTab } : { touch: isActiveTab, lastUsed };
+
+      if (!root) {
+        const data: NodeData = {
+          url: url as Url,
+          title: (tab.title || url) as Title,
+          favicon: normalizeFaviconUrl(url as Url, tab.favIconUrl as FaviconUrl | undefined),
+          pinned: false,
+          tags: [],
+        } as NodeData;
+        const node = tree.navigate(data);
+        tabManager.register(node.id, tabId as TabId, registerOptions);
+        if (isActiveTab) tree.setCurrentById(node.id);
+      } else {
+        tabManager.register(root.id, tabId as TabId, registerOptions);
+        if (isActiveTab) tree.setCurrentById(root.id);
+      }
+
+      treeStorage.cacheTree(tree);
+      const currentId = tree.getCurrentId();
+      const view: TreeViewIntent | undefined =
+        isActiveTab && currentId !== null ? { focusNodeId: currentId, mode: 'force' } : undefined;
+      await notifyTreeUpdate(tree, 'tabs', view);
+    } catch (error) {
+      console.debug('Navigation error:', error);
+    }
+    return;
+  }
+
   // Skip ignored URLs
   if (!shouldTrackUrl(url as Url)) return;
 
   try {
-    const tab = await chrome.tabs.get(tabId);
     // CRITICAL: Only update currentNode if this tab is active (user navigated)
     // If tab is not active, it was created programmatically - don't switch focus
     const isActiveTab = tab.active;

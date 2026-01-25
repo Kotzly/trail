@@ -18,6 +18,20 @@ const blockedFaviconUrlPatterns: RegExp[] = [
 ];
 
 
+const ntpUrlPatterns: ReadonlyArray<RegExp> = [
+  /^(?<scheme>[a-z][a-z0-9+.-]*):\/\/(?<page>newtab|new-tab-page)\/?(?:[?#].*)?$/i,
+  /^(?<scheme>chrome-search):\/\/(?<page>local-ntp|newtab)\/.*$/i,
+  /^(?<scheme>chrome-extension):\/\/(?<extId>[a-p]{32})\/(?<path>(?:.*\/)?(?:newtab|new-tab-page|ntp)(?:\.html?)?)(?:[?#].*)?$/i,
+  /^(?<scheme>brave-extension):\/\/(?<extId>[a-p]{32})\/(?<path>(?:.*\/)?(?:newtab|new-tab-page|ntp)(?:\.html?)?)(?:[?#].*)?$/i,
+  /^about:blank(?:[#?].*)?$/i,
+  /^about:newtab(?:[#?].*)?$/i,
+  /^about:new-tab-page(?:[#?].*)?$/i,
+  /^about:ntp(?:[#?].*)?$/i,
+] as const;
+
+export function isNewTabUrl(url: Url): boolean {
+  return ntpUrlPatterns.some((pattern) => pattern.test(url));
+}
 
 
 export function shouldTrackUrl(url: Url): boolean {

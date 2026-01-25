@@ -63,9 +63,9 @@ async function buildTreesSnapshot(): Promise<TreesSnapshot> {
 }
 
 function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
-  const urlCandidate = tab.url ?? null;
-  const pendingCandidate = tab.pendingUrl ?? null;
-  let rawUrl = urlCandidate ?? pendingCandidate ?? 'about:blank';
+  const urlCandidate = tab.url;
+  const pendingCandidate = tab.pendingUrl;
+  let rawUrl = urlCandidate || pendingCandidate;
   if (!shouldTrackUrl(rawUrl as Url) && pendingCandidate && shouldTrackUrl(pendingCandidate as Url)) {
     rawUrl = pendingCandidate;
   }
@@ -134,7 +134,7 @@ async function switchTree(
 
   let created: chrome.tabs.Tab;
   try {
-    created = await chrome.tabs.create(rootUrl ? { url: rootUrl } : {});
+    created = await chrome.tabs.create(rootUrl ? { url: rootUrl, active: true } : { active: true });
   } catch (error) {
     console.error('Failed to open root tab for tree switch:', error);
     created = await chrome.tabs.create({});
