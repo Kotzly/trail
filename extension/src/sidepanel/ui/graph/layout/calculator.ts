@@ -199,7 +199,6 @@ function computeTidyBreadths(root: TidyNode, baseSeparation: number): void {
 export function calculateLayout(
   root: NavigationNode,
   layoutConfig: LayoutConfig,
-  startX: number = PADDING
 ): { positions: Map<NodeId, NodePosition>, width: number } {
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
@@ -225,15 +224,18 @@ export function calculateLayout(
 
   assignPositions(tidyRoot);
 
-  const shiftX = minX < startX ? startX - minX : 0;
-  const shiftY = minY < PADDING ? PADDING - minY : 0;
-  if (shiftX !== 0 || shiftY !== 0) {
-    positions.forEach((pos, id) => {
-      positions.set(id, { ...pos, x: pos.x + shiftX, y: pos.y + shiftY });
-    });
-    minX += shiftX;
-    minY += shiftY;
-    maxX += shiftX;
+  const rootPos = positions.get(root.id);
+  if (rootPos) {
+    const shiftX = -(rootPos.x + nodeWidth / 2);
+    const shiftY = -(rootPos.y + nodeHeight / 2);
+    if (shiftX !== 0 || shiftY !== 0) {
+      positions.forEach((pos, id) => {
+        positions.set(id, { ...pos, x: pos.x + shiftX, y: pos.y + shiftY });
+      });
+      minX += shiftX;
+      minY += shiftY;
+      maxX += shiftX;
+    }
   }
 
   const width = maxX - minX + PADDING * 2;
@@ -320,6 +322,17 @@ export function calculateMindmapLayout(
   layoutSide(leftChildren, -1);
   layoutSide(rightChildren, 1);
 
+  const rootPos = positions.get(root.id);
+  if (rootPos) {
+    const shiftX = -(rootPos.x + nodeWidth / 2);
+    const shiftY = -(rootPos.y + nodeHeight / 2);
+    if (shiftX !== 0 || shiftY !== 0) {
+      positions.forEach((pos, id) => {
+        positions.set(id, { ...pos, x: pos.x + shiftX, y: pos.y + shiftY });
+      });
+    }
+  }
+
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -330,18 +343,6 @@ export function calculateMindmapLayout(
     maxX = Math.max(maxX, pos.x + nodeWidth);
     maxY = Math.max(maxY, pos.y + nodeHeight);
   });
-
-  const shiftX = minX < PADDING ? PADDING - minX : 0;
-  const shiftY = minY < PADDING ? PADDING - minY : 0;
-  if (shiftX !== 0 || shiftY !== 0) {
-    positions.forEach((pos, id) => {
-      positions.set(id, { ...pos, x: pos.x + shiftX, y: pos.y + shiftY });
-    });
-    maxX += shiftX;
-    maxY += shiftY;
-    minX += shiftX;
-    minY += shiftY;
-  }
 
   const width = maxX - minX + PADDING * 2;
   return { positions, width };
@@ -647,19 +648,15 @@ export function calculateRadialLayout(
     });
   });
 
-  // Normalize positions to keep everything in positive space.
-  let minX = Infinity;
-  let minY = Infinity;
-  positions.forEach((pos) => {
-    minX = Math.min(minX, pos.x);
-    minY = Math.min(minY, pos.y);
-  });
-  const shiftX = minX < PADDING ? PADDING - minX : 0;
-  const shiftY = minY < PADDING ? PADDING - minY : 0;
-  if (shiftX !== 0 || shiftY !== 0) {
-    positions.forEach((pos, id) => {
-      positions.set(id, { ...pos, x: pos.x + shiftX, y: pos.y + shiftY });
-    });
+  const rootPos = positions.get(root.id);
+  if (rootPos) {
+    const shiftX = -(rootPos.x + nodeWidth / 2);
+    const shiftY = -(rootPos.y + nodeHeight / 2);
+    if (shiftX !== 0 || shiftY !== 0) {
+      positions.forEach((pos, id) => {
+        positions.set(id, { ...pos, x: pos.x + shiftX, y: pos.y + shiftY });
+      });
+    }
   }
 
   const maxRadius = Math.max(...Array.from(radiusByDepth.values()), nodeWidth);
