@@ -73,14 +73,6 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
     }
   };
 
-  const handleDebugNewTab = async () => {
-    try {
-      await chrome.tabs.create({});
-    } catch (error) {
-      console.error('Failed to open debug tab:', error);
-    }
-  };
-
   return (
     <div className="floating-controls" data-notify-anchor="true">
       <div className="floating-controls-left">
@@ -126,16 +118,6 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
             }}
           >
             <Icons.GitBranchPlus size={18} />
-          </button>
-          <button
-            id="debugNewTabBtn"
-            className="matte-circle-btn orb-button"
-            type="button"
-            aria-label="Debug: open new tab"
-            data-tooltip="Debug: open new tab"
-            onClick={handleDebugNewTab}
-          >
-            <Icons.Zap size={18} />
           </button>
         </div>
       </div>
