@@ -5,18 +5,12 @@ import { CommandManager } from '../../../shared/lib/commands.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { tabManager } from '../../state/tab-manager.js';
 import type { NavigationTree } from '../../state/nav-tree.js';
+import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
 
-
-function pruneTabMappings(tree: NavigationTree): void {
-  tabManager.openNodes().forEach(nodeId => {
-    if (tree.findNodeById(nodeId)) return;
-    tabManager.tabsByNode(nodeId).forEach(tabId => tabManager.unregister(tabId));
-  });
-}
 
 async function applyTree(json: ReturnType<typeof NavigationTreeMapper.toJSON>): Promise<void> {
   const tree = NavigationTreeMapper.fromJSON(json);
-  pruneTabMappings(tree);
+  syncOpenTabs();
   treeStorage.cacheTree(tree);
   await notifyTreeUpdate(tree, 'undo');
   await treeStorage.flushSaveNow();
