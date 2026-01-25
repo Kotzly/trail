@@ -9,26 +9,25 @@ import { useBootstrap } from './hooks/useBootstrap.js';
 import { useAccount } from './hooks/useAccount.js';
 import { useChromeMessages } from './hooks/useChromeMessages.js';
 import { useShortcuts } from './hooks/useShortcuts.js';
-import { useStore } from './state/store.js';
+import TooltipLayer from './components/TooltipLayer.js';
 import React from 'react';
 
 export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const tooltipsOpen = useStore((state) => state.ui.tooltipsOpen);
-
   useBootstrap();
   useAccount();
   useChromeMessages();
   useShortcuts(searchInputRef);
 
   return (
-    <div className={`container${tooltipsOpen ? ' show-tooltips' : ''}`}>
+    <div className="container">
       <FloatingControls searchInputRef={searchInputRef} />
       <NotificationsHost />
       <GraphArea />
       <SettingsPopover />
       <ThemePanel />
       <ContextMenus />
+      <TooltipLayer />
     </div>
   );
 }

@@ -119,10 +119,7 @@ export class NavigationTree implements Owner {
         
         // QUESTION: how should we handle this.current === null?
         if (!this.current) {
-            throw new Error("Current node is null but root is not null");
-            // const child = this.createChild(this.root, data);
-            // this.current = child;
-            // return child;
+            this.current = this.root;
         }
 
         // same url as current ==> update metadata

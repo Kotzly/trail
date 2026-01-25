@@ -10,7 +10,7 @@ import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
 
 async function applyTree(json: ReturnType<typeof NavigationTreeMapper.toJSON>): Promise<void> {
   const tree = NavigationTreeMapper.fromJSON(json);
-  syncOpenTabs();
+  await syncOpenTabs();
   treeStorage.cacheTree(tree);
   await notifyTreeUpdate(tree, 'undo');
   await treeStorage.flushSaveNow();
@@ -22,7 +22,7 @@ export const commandHandlers = defineHandlers({
   },
 
   async [MSG.UNDO]() {
-    if (!CommandManager.canUndo()) return err('No undo available');
+    if (!CommandManager.canUndo()) return ok(CommandManager.getState());
     const tree = await treeStorage.getOrCreateTree();
     const current = NavigationTreeMapper.toJSON(tree);
     const previous = CommandManager.undo(current);
@@ -33,7 +33,7 @@ export const commandHandlers = defineHandlers({
   },
 
   async [MSG.REDO]() {
-    if (!CommandManager.canRedo()) return err('No redo available');
+    if (!CommandManager.canRedo()) return ok(CommandManager.getState());
     const tree = await treeStorage.getOrCreateTree();
     const current = NavigationTreeMapper.toJSON(tree);
     const next = CommandManager.redo(current);

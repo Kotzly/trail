@@ -852,9 +852,8 @@ export class GraphPixiRenderer {
     const color = this.theme.connection.path;
     this.particles.forEach((particle) => {
       const circle = new PIXI.Graphics();
-      circle.beginFill(color, particle.alpha);
-      circle.drawCircle(0, 0, particle.radius);
-      circle.endFill();
+      circle.fill({ color, alpha: particle.alpha });
+      circle.circle(0, 0, particle.radius);
       circle.position.set(particle.x - this.origin.x, particle.y - this.origin.y);
       this.particleLayer.addChild(circle);
     });
