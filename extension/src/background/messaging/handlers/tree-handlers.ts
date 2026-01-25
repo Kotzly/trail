@@ -1,4 +1,4 @@
-import { MSG, defineHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot } from '../../../shared/types/messages.js';
+import { MSG, defineHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot, type TreeViewIntent } from '../../../shared/types/messages.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from '../notifications.js';
 import { tabManager } from '../../state/tab-manager.js';
@@ -116,7 +116,12 @@ function ensureRootForTab(tree: NavigationTree, tab: chrome.tabs.Tab): Navigatio
   return root;
 }
 
-async function switchTree(nextTree: NavigationTree, nextMeta: TreeMeta, rootUrl?: Url | null): Promise<void> {
+async function switchTree(
+  nextTree: NavigationTree,
+  nextMeta: TreeMeta,
+  rootUrl?: Url | null,
+  viewOverride?: TreeViewIntent | null,
+): Promise<void> {
   const tabsToClose = collectTabIdsForNodes(tabManager.openNodes());
   tabManager.reset();
   if (tabsToClose) {
@@ -139,11 +144,12 @@ async function switchTree(nextTree: NavigationTree, nextMeta: TreeMeta, rootUrl?
     treeStorage.cacheTree(nextTree);
   }
 
-  const view = {
+  const defaultView: TreeViewIntent = {
     fitToView: true,
     mode: 'force' as const,
     ...(rootNode ? { focusNodeId: rootNode.id } : {}),
   };
+  const view = viewOverride === null ? undefined : (viewOverride ?? defaultView);
   await notifyTreeUpdate(nextTree, 'tree-switch', view);
   await treeStorage.flushSaveNow();
 
@@ -188,7 +194,7 @@ export const treeHandlers = defineHandlers({
     await treeStorage.archiveActiveTree();
     const meta = treeStorage.createMeta(message.label);
     const nextTree = new NavigationTree(settingsManager.get().capacity);
-    await switchTree(nextTree, meta, null);
+    await switchTree(nextTree, meta, null, null);
     return ok();
   },
 

@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @import "@trail/ui/styles/tokens.css";
 @import "@trail/ui/styles/base.css";
@@ -5,8 +7,220 @@
 @tailwind components;
 @tailwind utilities;
 
-.container-grid {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 1.5rem;
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --base: 197 197 213;
+  --surface: 242 242 242;
+  --surface-strong: 242 242 242;
+  --stroke: 111 111 111;
+  --ink: 13 13 16;
+  --ink-muted: 24 24 29;
+  --ink-subtle: 111 111 111;
+  --accent: 13 13 16;
+  --accent-soft: 197 197 213;
+  --glow: 242 242 242;
+  --glow-strong: 197 197 213;
+
+  --trail-bg: var(--base);
+  --trail-surface: var(--surface);
+  --trail-surface-high: var(--surface-strong);
+  --trail-surface-low: var(--surface);
+  --trail-border: var(--stroke);
+  --trail-ink: var(--ink);
+  --trail-ink-muted: var(--ink-subtle);
+  --trail-accent: var(--accent);
+  --trail-accent-contrast: var(--surface);
+  --trail-highlight: var(--accent-soft);
+  --trail-glass: var(--surface);
+  --trail-glass-strong: var(--surface-strong);
+  --trail-ring: var(--accent);
+
+  --font-sans: "Work Sans", system-ui, sans-serif;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --base: 13 13 16;
+  --surface: 24 24 29;
+  --surface-strong: 24 24 29;
+  --stroke: 111 111 111;
+  --ink: 242 242 242;
+  --ink-muted: 197 197 213;
+  --ink-subtle: 111 111 111;
+  --accent: 242 242 242;
+  --accent-soft: 24 24 29;
+  --glow: 197 197 213;
+  --glow-strong: 111 111 111;
+
+  --trail-bg: var(--base);
+  --trail-surface: var(--surface);
+  --trail-surface-high: var(--surface-strong);
+  --trail-surface-low: var(--surface);
+  --trail-border: var(--stroke);
+  --trail-ink: var(--ink);
+  --trail-ink-muted: var(--ink-subtle);
+  --trail-accent: var(--accent);
+  --trail-accent-contrast: var(--surface);
+  --trail-highlight: var(--accent-soft);
+  --trail-glass: var(--surface);
+  --trail-glass-strong: var(--surface-strong);
+  --trail-ring: var(--accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    color-scheme: dark;
+    --base: 13 13 16;
+    --surface: 24 24 29;
+    --surface-strong: 24 24 29;
+    --stroke: 111 111 111;
+    --ink: 242 242 242;
+    --ink-muted: 197 197 213;
+    --ink-subtle: 111 111 111;
+    --accent: 242 242 242;
+    --accent-soft: 24 24 29;
+    --glow: 197 197 213;
+    --glow-strong: 111 111 111;
+
+    --trail-bg: var(--base);
+    --trail-surface: var(--surface);
+    --trail-surface-high: var(--surface-strong);
+    --trail-surface-low: var(--surface);
+    --trail-border: var(--stroke);
+    --trail-ink: var(--ink);
+    --trail-ink-muted: var(--ink-subtle);
+    --trail-accent: var(--accent);
+    --trail-accent-contrast: var(--surface);
+    --trail-highlight: var(--accent-soft);
+    --trail-glass: var(--surface);
+    --trail-glass-strong: var(--surface-strong);
+    --trail-ring: var(--accent);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] {
+    color-scheme: light;
+    --base: 197 197 213;
+    --surface: 242 242 242;
+    --surface-strong: 242 242 242;
+    --stroke: 111 111 111;
+    --ink: 13 13 16;
+    --ink-muted: 24 24 29;
+    --ink-subtle: 111 111 111;
+    --accent: 13 13 16;
+    --accent-soft: 197 197 213;
+    --glow: 242 242 242;
+    --glow-strong: 197 197 213;
+
+    --trail-bg: var(--base);
+    --trail-surface: var(--surface);
+    --trail-surface-high: var(--surface-strong);
+    --trail-surface-low: var(--surface);
+    --trail-border: var(--stroke);
+    --trail-ink: var(--ink);
+    --trail-ink-muted: var(--ink-subtle);
+    --trail-accent: var(--accent);
+    --trail-accent-contrast: var(--surface);
+    --trail-highlight: var(--accent-soft);
+    --trail-glass: var(--surface);
+    --trail-glass-strong: var(--surface-strong);
+    --trail-ring: var(--accent);
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top, rgb(var(--glow) / 0.35), transparent 55%),
+    radial-gradient(circle at 20% 15%, rgb(var(--glow-strong) / 0.2), transparent 45%),
+    rgb(var(--base));
+  color: rgb(var(--ink));
+  min-height: 100vh;
+}
+
+.word-rotator {
+  display: inline-flex;
+  height: 1.1em;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.word-rotator-track {
+  display: flex;
+  flex-direction: column;
+  animation: word-slide 12s infinite;
+}
+
+.word-rotator-track span {
+  height: 1.1em;
+  line-height: 1.1em;
+}
+
+.float-slow {
+  animation: float-slow 12s ease-in-out infinite;
+}
+
+.float-slower {
+  animation: float-slower 18s ease-in-out infinite;
+}
+
+@keyframes word-slide {
+  0%,
+  12% {
+    transform: translateY(0%);
+  }
+  16%,
+  28% {
+    transform: translateY(-100%);
+  }
+  32%,
+  44% {
+    transform: translateY(-200%);
+  }
+  48%,
+  60% {
+    transform: translateY(-300%);
+  }
+  64%,
+  76% {
+    transform: translateY(-400%);
+  }
+  80%,
+  92% {
+    transform: translateY(-500%);
+  }
+  100% {
+    transform: translateY(0%);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes float-slower {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word-rotator-track,
+  .float-slow,
+  .float-slower {
+    animation: none;
+  }
 }

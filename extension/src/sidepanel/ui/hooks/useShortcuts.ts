@@ -8,6 +8,7 @@ import { fireAndForget } from '../../api/background.js';
 import { navigateTo, setCurrentNode } from '../../api/tree.js';
 import { saveSettings } from '../../api/settings.js';
 import { useStore } from '../state/store.js';
+import { getIncludedRootId } from '../shared/delete-tree.js';
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) return false;
@@ -130,12 +131,9 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
 
       const deleteNodes = (nodeIds: NodeId[], recursive: boolean) => {
         if (nodeIds.length === 0) return;
-        const rootId = state.tree?.getRoot?.()?.id ?? null;
-        const includesRoot = rootId !== null && nodeIds.includes(rootId);
-        if (includesRoot && rootId !== null) {
-          fireAndForget(msg.deleteWithChildren({ nodeId: rootId }));
-          state.clearSelection();
-          state.closeContextMenu();
+        const rootId = getIncludedRootId(state.tree, nodeIds);
+        if (rootId) {
+          state.openDeleteTreeConfirm(rootId);
           return;
         }
         if (nodeIds.length === 1) {

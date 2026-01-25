@@ -4,17 +4,17 @@ import { HowItWorks } from "./components/HowItWorks";
 import { MarketingFooter } from "./components/MarketingFooter";
 import { MarketingHero } from "./components/MarketingHero";
 import { MarketingNav } from "./components/MarketingNav";
-import { SecuritySection } from "./components/SecuritySection";
+import { Showcase } from "./components/Showcase";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-bg text-ink">
+    <div className="min-h-screen bg-base text-ink">
       <MarketingNav />
       <main>
         <MarketingHero />
+        <Showcase />
         <FeatureGrid />
         <HowItWorks />
-        <SecuritySection />
         <CallToAction />
       </main>
       <MarketingFooter />

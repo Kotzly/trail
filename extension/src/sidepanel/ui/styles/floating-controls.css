@@ -168,6 +168,17 @@
   transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
 }
 
+.confirm-btn.danger {
+  border-color: color-mix(in srgb, var(--md-error) 50%, transparent);
+  background: color-mix(in srgb, var(--md-error) 42%, transparent);
+  color: var(--md-on-primary);
+}
+
+.confirm-btn.danger:hover {
+  background: color-mix(in srgb, var(--md-error) 58%, transparent);
+  border-color: color-mix(in srgb, var(--md-error) 65%, transparent);
+}
+
 .confirm-btn:hover {
   background: color-mix(in srgb, var(--md-primary) 55%, transparent);
   border-color: color-mix(in srgb, var(--md-primary) 55%, transparent);

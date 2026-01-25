@@ -1,30 +1,47 @@
 import Link from "next/link";
 import { marketingCopy } from "@trail/content";
-import { Button, ThemeToggle } from "@trail/ui";
+import { ThemeToggle } from "@trail/ui";
 
 export function MarketingNav() {
   const { nav } = marketingCopy;
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/40 bg-bg/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-stroke/40 bg-base/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-sm font-semibold tracking-[0.2em]">
-          TRAIL
+        <Link
+          href="/"
+          className="flex items-center gap-3 text-lg font-display font-semibold tracking-tight text-ink"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-stroke/40 bg-surface shadow-card">
+            <span className="text-xs font-semibold uppercase">t</span>
+          </span>
+          trail
         </Link>
-        <nav className="hidden items-center gap-6 text-xs uppercase tracking-[0.25em] text-ink-muted md:flex">
-          <a href="#product">{nav.product}</a>
-          <a href="#how">{nav.howItWorks}</a>
-          <a href="#security">{nav.security}</a>
-          <Link href="/faq">{nav.faq}</Link>
+        <nav className="hidden items-center gap-5 text-sm font-medium text-ink-subtle md:flex">
+          <a href="#features" className="transition hover:text-ink">
+            {nav.features}
+          </a>
+          <a href="#workflow" className="transition hover:text-ink">
+            {nav.workflow}
+          </a>
+          <Link href="/faq" className="transition hover:text-ink">
+            {nav.faq}
+          </Link>
         </nav>
         <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <Button asChild variant="ghost" className="hidden md:inline-flex">
-            <Link href="https://my.gettrail.net">{nav.signIn}</Link>
-          </Button>
-          <Button asChild className="hidden md:inline-flex">
-            <Link href="https://my.gettrail.net">{nav.getStarted}</Link>
-          </Button>
+          <ThemeToggle className="border-stroke/50 bg-surface/70 text-ink hover:bg-surface-strong" />
+          <a
+            href="https://my.gettrail.net"
+            className="hidden rounded-full border border-stroke/60 px-4 py-2 text-sm font-medium text-ink transition hover:border-stroke md:inline-flex"
+          >
+            {nav.signIn}
+          </a>
+          <a
+            href="https://my.gettrail.net"
+            className="hidden rounded-full bg-ink px-4 py-2 text-sm font-medium text-surface shadow-card transition hover:bg-ink-muted md:inline-flex"
+          >
+            {nav.getStarted}
+          </a>
         </div>
       </div>
     </header>

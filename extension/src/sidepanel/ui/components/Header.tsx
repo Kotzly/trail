@@ -56,6 +56,14 @@ export default function Header() {
     }
   };
 
+  const handleDebugNewTab = async () => {
+    try {
+      await chrome.tabs.create({});
+    } catch (error) {
+      console.error('Failed to open debug tab:', error);
+    }
+  };
+
   return (
     <header className="header">
       <h1 className="title">
@@ -98,6 +106,16 @@ export default function Header() {
           onClick={handleNewTree}
         >
           <Icons.GitBranchPlus size={20} />
+        </button>
+        <button
+          id="debugNewTabBtn"
+          className="matte-circle-btn orb-button"
+          type="button"
+          aria-label="Debug: open new tab"
+          data-tooltip="Debug: open new tab"
+          onClick={handleDebugNewTab}
+        >
+          <Icons.Zap size={20} />
         </button>
         <button
           id="themePickerBtn"

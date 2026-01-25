@@ -105,6 +105,10 @@ type StoreState = {
     baseCurrentId: NodeId | null;
   };
   overlayEffects: OverlayEffectsState;
+  deleteTreeConfirm: {
+    open: boolean;
+    rootId: NodeId | null;
+  };
   ui: {
     settingsOpen: boolean;
     themePickerOpen: boolean;
@@ -149,6 +153,8 @@ type StoreActions = {
   setTagFilterOpen: (open: boolean) => void;
   setTooltipsOpen: (open: boolean) => void;
   closeAllPopups: () => void;
+  openDeleteTreeConfirm: (rootId: NodeId) => void;
+  closeDeleteTreeConfirm: () => void;
   registerOverlay: (id: string, effects: OverlayEffects) => void;
   unregisterOverlay: (id: string) => void;
   setAccount: (patch: Partial<AccountState>) => void;
@@ -229,6 +235,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     entries: {},
     lodCount: 0,
     blurCount: 0,
+  },
+  deleteTreeConfirm: {
+    open: false,
+    rootId: null,
   },
   ui: {
     settingsOpen: false,
@@ -460,6 +470,16 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setTooltipsOpen: (open) =>
     set((state) => ({ ui: { ...state.ui, tooltipsOpen: open } })),
   closeAllPopups: () => set((state) => ({ ui: closeUiPopups(state.ui), contextMenu: null })),
+  openDeleteTreeConfirm: (rootId) =>
+    set((state) => ({
+      deleteTreeConfirm: { open: true, rootId },
+      contextMenu: null,
+      ui: closeUiPopups(state.ui),
+    })),
+  closeDeleteTreeConfirm: () =>
+    set({
+      deleteTreeConfirm: { open: false, rootId: null },
+    }),
   registerOverlay: (id, effects) =>
     set((state) => {
       const prev = state.overlayEffects.entries[id];

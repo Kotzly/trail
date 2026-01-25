@@ -11,6 +11,7 @@ import { useOverlayEffects } from '../state/overlay-effects.js';
 import TagEditorModal from './tags/TagEditorModal.js';
 import { deleteTagDef, upsertTagDef } from '../../api/tags.js';
 import { Icons } from './Icon.js';
+import { getIncludedRootId } from '../shared/delete-tree.js';
 import React from 'react';
 
 type MenuPosition = { left: number; top: number; maxHeight: number };
@@ -62,6 +63,7 @@ function useMenuPosition(menuRef: RefObject<HTMLDivElement>, position: { x: numb
 export default function ContextMenus() {
   const contextMenu = useStore((state) => state.contextMenu);
   const closeContextMenu = useStore((state) => state.closeContextMenu);
+  const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
   const tree = useStore((state) => state.tree);
   const [tagEditorState, setTagEditorState] = useState<{
@@ -295,6 +297,10 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const isRoot = node?.isRoot() ?? false;
 
   if (!node) return null;
+
+  function openDeleteTreeConfirm(nodeId: NodeId) {
+    throw new Error('Function not implemented.');
+  }
 
   return (
     <>
@@ -576,6 +582,10 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       <div
         className="graph-context-menu-item danger"
         onClick={() => {
+          if (isRoot) {
+            openDeleteTreeConfirm(nodeId);
+            return;
+          }
           fireAndForget(msg.deleteWithChildren({ nodeId }));
           closeContextMenu();
         }}
@@ -599,6 +609,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const clearSelection = useStore((state) => state.clearSelection);
   const tree = useStore((state) => state.tree);
+  const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const tagDefsList = useStore((state) => state.tagDefsList);
 
   const selectedNodes = useMemo(() => {
@@ -720,6 +731,11 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       <div
         className="graph-context-menu-item danger"
         onClick={() => {
+          const rootId = getIncludedRootId(tree, nodeIds);
+          if (rootId) {
+            openDeleteTreeConfirm(rootId);
+            return;
+          }
           fireAndForget(msg.bulkDeleteRecursive({ nodeIds }));
           clearSelection();
           closeContextMenu();
