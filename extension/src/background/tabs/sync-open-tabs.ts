@@ -2,7 +2,7 @@ import type { FaviconUrl, NodeId, TabId, Title, Url } from '../../shared/types/i
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { isBlankUrl, normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
+import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import type { NodeData } from '../../shared/types/node.js';
 
 let syncPromise: Promise<void> | null = null;
@@ -16,37 +16,26 @@ export async function syncOpenTabs(): Promise<void> {
     const tabs = await chrome.tabs.query({});
     const touched: Array<{ tabId: TabId; nodeId: NodeId; lastAccessed: number }> = [];
 
-    for (const tab of tabs) {
-      if (!tab.id || !tab.url) continue;
-      if (!shouldTrackUrl(tab.url as Url) || isBlankUrl(tab.url as Url)) continue;
+    const filteredTabs = tabs.filter((tab) => tab.id && tab.url && shouldTrackUrl(tab.url as Url));
+
+    filteredTabs.forEach((tab) => {
       const node = tree.findByUrl(tab.url as Url);
-      if (!node) continue;
+      if (!node) return;
+
       const tabId = tab.id as TabId;
       tabManager.register(node.id, tabId, { touch: false, lastUsed: tab.lastAccessed ?? 0 });
-      touched.push({
-        tabId,
-        nodeId: node.id,
-        lastAccessed: tab.lastAccessed ?? 0,
-      });
-    }
+      touched.push({tabId, nodeId: node.id, lastAccessed: tab.lastAccessed ?? 0});
+    })
 
-    touched
-      .sort((a, b) => a.lastAccessed - b.lastAccessed)
-      .forEach((entry) => {
-        tabManager.touch(entry.tabId, entry.nodeId, entry.lastAccessed);
-      });
+    touched.sort((a, b) => a.lastAccessed - b.lastAccessed).forEach((entry) => {
+      tabManager.touch(entry.tabId, entry.nodeId, entry.lastAccessed);
+    });
 
     const prevCurrentId = tree.getCurrentId();
     const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (
-      activeTab?.id &&
-      activeTab.url &&
-      shouldTrackUrl(activeTab.url as Url) &&
-      !isBlankUrl(activeTab.url as Url)
-    ) {
+    if (activeTab?.id && activeTab.url && shouldTrackUrl(activeTab.url as Url)) {
       const activeTabId = activeTab.id as TabId;
-      const existingId =
-        tabManager.nodeByTab(activeTabId) ?? tree.findByUrl(activeTab.url as Url)?.id ?? null;
+      const existingId = tabManager.nodeByTab(activeTabId) || tree.findByUrl(activeTab.url as Url)?.id;
       if (existingId) {
         tree.setCurrentById(existingId);
       } else {

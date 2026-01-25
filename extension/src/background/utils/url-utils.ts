@@ -13,29 +13,14 @@ const blockedFaviconUrlPatterns: RegExp[] = [
   /^chrome:\/\/favicon\//i,
   /^chrome:\/\/favicon\?/i,
   /^chrome-extension:\/\/[^/]+\/_favicon\//i,
+  /^about:blank(?:[#?].*)?$/i,
 ];
 
-const blankUrlPattern = /^about:blank(?:[#?].*)?$/i;
-const newTabUrlPatterns: RegExp[] = [
-  /^about:newtab/i,
-  /^chrome:\/\/newtab/i,
-  /^chrome:\/\/new-tab-page/i,
-  /^brave:\/\/newtab/i,
-  /^edge:\/\/newtab/i,
-  /^chrome-extension:\/\/[^/]+\/.*(newtab|new-tab|ntp)/i,
-];
+
 
 
 export function shouldTrackUrl(url: Url): boolean {
   return !ignoredUrlPatterns.some(pattern => pattern.test(url));
-}
-
-export function isBlankUrl(url: Url): boolean {
-  return blankUrlPattern.test(url);
-}
-
-export function isNewTabUrl(url: Url): boolean {
-  return newTabUrlPatterns.some(pattern => pattern.test(url));
 }
 
 export function getFaviconUrl(pageUrl: Url, size = 32): FaviconUrl {

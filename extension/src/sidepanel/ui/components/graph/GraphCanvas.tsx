@@ -192,6 +192,7 @@ export default function GraphCanvas({
   const didInitView = useRef(false);
   const pendingViewRef = useRef<Partial<ViewState> | null>(null);
   const viewRafRef = useRef<number | null>(null);
+  const emptyPositionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
   const animationStatesRef = useRef<Map<NodeId, NodeAnimationState>>(new Map());
   const openAnimationStatesRef = useRef<Map<NodeId, OpenAnimationState>>(new Map());
   const openProgressRef = useRef<Map<NodeId, number>>(new Map());
@@ -537,7 +538,7 @@ export default function GraphCanvas({
     }
   }, [baseLayoutConfig, layoutOptions.mode, layoutOptions.mindmap, layoutOptions.radial, layoutOptions.tree, root]);
 
-  const basePositions = layout?.positions ?? new Map<NodeId, NodePosition>();
+  const basePositions = layout?.positions ?? emptyPositionsRef.current;
   const positions = useMemo(() => {
     if (basePositions.size === 0) return basePositions;
     if (layoutOptions.mode !== 'radial') {
@@ -903,6 +904,13 @@ export default function GraphCanvas({
 
     const openStates = openAnimationStatesRef.current;
     const openProgress = openProgressRef.current;
+
+    if (activeIds.size === 0) {
+      openProgress.clear();
+      openStates.clear();
+      prevOpenNodesRef.current = new Set<NodeId>();
+      return;
+    }
 
     if (!display.dimClosedNodes) {
       activeIds.forEach((id) => {

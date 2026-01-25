@@ -1,5 +1,5 @@
 // messaging/handlers/content-handlers.ts
-import { isBlankUrl, shouldTrackUrl } from "../../utils/url-utils.js";
+import { shouldTrackUrl } from "../../utils/url-utils.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { notifyTreeUpdate } from "../notifications.js";
@@ -27,7 +27,7 @@ export const contentHandlers = defineHandlers({
     if (!node) return err("No node found for given Node ID");
 
     const url = message.url;
-    if (!shouldTrackUrl(url as Url) || isBlankUrl(url as Url)) return ok();
+    if (!shouldTrackUrl(url as Url)) return ok();
 
     async function handleFaviconChange(favicon: FaviconUrl) {
       if (!node) return err("No node found for given Node ID");

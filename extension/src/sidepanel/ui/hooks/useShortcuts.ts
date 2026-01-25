@@ -130,6 +130,14 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
 
       const deleteNodes = (nodeIds: NodeId[], recursive: boolean) => {
         if (nodeIds.length === 0) return;
+        const rootId = state.tree?.getRoot?.()?.id ?? null;
+        const includesRoot = rootId !== null && nodeIds.includes(rootId);
+        if (includesRoot && rootId !== null) {
+          fireAndForget(msg.deleteWithChildren({ nodeId: rootId }));
+          state.clearSelection();
+          state.closeContextMenu();
+          return;
+        }
         if (nodeIds.length === 1) {
           const [nodeId] = nodeIds;
           if (!nodeId) return;
@@ -207,6 +215,13 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
 
       if (metaKey && lower === 'z') {
         event.preventDefault();
+        const canRedo = state.commandState?.canRedo ?? false;
+        const canUndo = state.commandState?.canUndo ?? false;
+        if (event.shiftKey) {
+          if (!canRedo) return;
+        } else if (!canUndo) {
+          return;
+        }
         try {
           const commandState = event.shiftKey ? await redo() : await undo();
           state.setCommandState(commandState);
@@ -218,6 +233,8 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
 
       if (!isMac && metaKey && lower === 'y') {
         event.preventDefault();
+        const canRedo = state.commandState?.canRedo ?? false;
+        if (!canRedo) return;
         try {
           const commandState = await redo();
           state.setCommandState(commandState);
