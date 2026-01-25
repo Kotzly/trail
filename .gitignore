@@ -27,13 +27,15 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
-!backend/.env.example
-!frontend/.env.example
+!apps/account/.env.example
+!apps/api/.env.example
+!packages/db/.env.example
 
 # Build output
 dist/
 build/
 out/
+.next/
 
 # Cache
 .cache/

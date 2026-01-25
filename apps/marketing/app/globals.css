@@ -1,0 +1,12 @@
+@tailwind base;
+@import "@trail/ui/styles/tokens.css";
+@import "@trail/ui/styles/base.css";
+@import "@trail/ui/styles/animations.css";
+@tailwind components;
+@tailwind utilities;
+
+.container-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1.5rem;
+}

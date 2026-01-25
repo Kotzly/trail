@@ -1,30 +1,31 @@
-.PHONY: generate run-local test-backend lint-backend up migrate dev
+.PHONY: dev db-up db-down db-migrate dev-marketing dev-account dev-api lint typecheck test
 
-generate:
-	cd backend && go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1 -config oapi-codegen.yaml ../api/openapi.yml
-	cd frontend && npx --yes openapi-typescript ../api/openapi.yml -o src/lib/api/types.ts
+db-up:
+	docker compose up -d postgres
 
-run-backend:
-	cd backend && go run ./cmd/api
+db-down:
+	docker compose down
 
-run-frontend:
-	cd frontend && npm run dev
-
-run-local:
-	$(MAKE) -j2 run-backend run-frontend
-
-
-test-backend:
-	cd backend && go test ./...
-
-lint-backend:
-	cd backend && golangci-lint run ./...
-
-up:
-	docker compose up --build
+db-migrate:
+	pnpm db:migrate
 
 dev:
-	$(MAKE) up
+	pnpm dev
 
-migrate:
-	docker compose run --rm migrate
+dev-marketing:
+	pnpm --filter @trail/marketing dev
+
+dev-account:
+	pnpm --filter @trail/account dev
+
+dev-api:
+	pnpm --filter @trail/api dev
+
+lint:
+	pnpm lint
+
+typecheck:
+	pnpm typecheck
+
+test:
+	pnpm test

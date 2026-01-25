@@ -1,0 +1,24 @@
+{
+  "name": "trail",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:marketing": "pnpm --filter @trail/marketing dev",
+    "dev:account": "pnpm --filter @trail/account dev",
+    "dev:api": "pnpm --filter @trail/api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "typecheck": "pnpm -r typecheck",
+    "format": "pnpm -r format",
+    "db:generate": "pnpm --filter @trail/db prisma generate",
+    "db:migrate": "pnpm --filter @trail/db prisma migrate dev",
+    "db:studio": "pnpm --filter @trail/db prisma studio"
+  },
+  "devDependencies": {
+    "cypress": "^15.9.0"
+  }
+}

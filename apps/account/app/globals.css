@@ -1,0 +1,10 @@
+@tailwind base;
+@import "@trail/ui/styles/tokens.css";
+@import "@trail/ui/styles/base.css";
+@import "@trail/ui/styles/animations.css";
+@tailwind components;
+@tailwind utilities;
+
+.app-shell {
+  min-height: 100vh;
+}

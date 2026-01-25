@@ -1,259 +1,54 @@
 # Trail
 
-Trail is now a monorepo that ships both the existing Chrome/Brave extension and a full SaaS service (Go backend + React frontend) for user accounts, subscriptions, and billing.
+Trail is a monorepo that ships the browser extension plus a Next.js-based SaaS frontend and API.
 
-Monorepo layout:
+## Monorepo layout
+- `apps/marketing` — gettrail.net (landing + FAQ)
+- `apps/account` — my.gettrail.net (account app + Auth0 + tRPC)
+- `apps/api` — api.gettrail.net (tRPC endpoint)
+- `packages/ui` — shared UI + tokens
+- `packages/content` — copy strings (English only)
+- `packages/db` — Prisma schema + client
+- `packages/trpc` — shared tRPC router
 - `extension/` — existing browser extension (unchanged)
-- `backend/` — Go 1.22+ API (Echo + PostgreSQL)
-- `frontend/` — React + Vite web app
-- `api/` — OpenAPI source of truth
 
 ## Quickstart (local)
-1. `cp backend/.env.example backend/.env`
-2. `cp frontend/.env.example frontend/.env`
-3. `./dev` (or `make up` / `docker compose up --build`) — migrations run automatically before the API starts
-4. Open `http://localhost:5173`
+1. Install deps: `pnpm install`
+2. Start Postgres: `docker compose up -d postgres`
+3. Set envs:
+   - `cp apps/account/.env.example apps/account/.env.local`
+   - `cp apps/api/.env.example apps/api/.env.local`
+4. Run migrations: `pnpm db:migrate`
+5. Start apps: `pnpm dev`
 
-## Common commands
-- `make generate` — regenerate backend OpenAPI code + frontend types
-- `make test` — backend tests
-- `make lint` — backend lint (golangci-lint)
-- `make run` — run backend locally
-- `make migrate` — run migrations manually if needed
+Ports:
+- Marketing: `http://localhost:3000`
+- Account: `http://localhost:3001`
+- API: `http://localhost:3002`
 
-## API overview
-Base URL: `http://localhost:8080/v1`
+## Auth0 setup
+Create a new Auth0 tenant + application (Regular Web App) and set:
+- Allowed Callback URLs: `http://localhost:3001/auth/callback`
+- Allowed Logout URLs: `http://localhost:3001`
+- Allowed Web Origins: `http://localhost:3001`
 
-Core endpoints:
-- Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
-- Email code auth: `POST /auth/email/start`, `POST /auth/email/confirm`
-- User: `GET /me`
-- Plans: `GET /plans`, `POST /admin/plans`
-- Subscription: `GET /subscription`, `GET /subscriptions/me`, `POST /subscriptions/cancel`
-- Billing: `POST /billing/checkout`, `POST /billing/portal`, `GET /billing`
-- Webhooks: `POST /webhooks/{provider}`
-- Health: `GET /healthz`, `GET /readyz`, `GET /metrics`
+Then fill `apps/account/.env.local` with `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, and `APP_BASE_URL`.
 
-Auth model:
-- Access token is JWT (Authorization: Bearer)
-- Refresh token is httpOnly cookie (`refresh_token`)
+## Extension login handoff (planned)
+Current flow:
+- Extension opens `https://my.gettrail.net/extension`.
+- User completes Auth0 login in browser.
+- The page issues a one-time code stored in Postgres.
+- The extension exchanges the code via `POST /api/extension/exchange`.
 
-## OpenAPI changes
-The OpenAPI spec in `api/openapi.yml` is the source of truth. This repo adds the following minimal extensions to support SaaS flows:
-- Health endpoints: `/healthz`, `/readyz`
-- Auth: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`
-- Email code auth: `/auth/email/start`, `/auth/email/confirm`
-- User profile: `/me`
-- Billing/Subscription aliases: `/billing/checkout`, `/subscriptions/me`, `/subscriptions/cancel`
-- Webhooks: `/webhooks/{provider}`
-- Admin: `/admin/plans`
-- New schemas: `RegisterInput`, `LoginInput`, `AuthResponse`, `RefreshResponse`, `PlanUpsertInput`, `HealthStatus`, `WebhookEventInput`, `EmailCodeStartInput`, `EmailCodeStartResponse`, `EmailCodeConfirmInput`
+Token issuance will be added when the extension API is finalized.
 
-## Backend architecture
-- `cmd/api` — entrypoint + graceful shutdown
-- `internal/http` — handlers, middleware, OpenAPI validator
-- `internal/usecase` — business logic
-- `internal/repository` — PostgreSQL data access (SQL in `internal/db/sql`)
-- `internal/billing` — provider interface + Stripe stub
-- `internal/observability` — Zerolog + Prometheus
-- `migrations/` — SQL migrations + seed data
-
-## Email verification (code login/register)
-Email codes are stored in Postgres and delivered through a configurable provider:
-- Default provider is `stub` (logs email body to backend logs).
-- To send real emails, set:
-  - `EMAIL_PROVIDER=smtp`
-  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_TLS`
-  - `EMAIL_FROM`, `EMAIL_FROM_NAME`
-
-## Billing provider (YooKassa)
-Trail defaults to YooKassa for payment checkout. Configure:
-- `BILLING_PROVIDER=yookassa`
-- `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`
-- `YOOKASSA_API_BASE_URL` (optional, defaults to `https://api.yookassa.ru/v3`)
-
-If YooKassa credentials are not set, the backend falls back to the Stripe stub provider for local development.
-
-## Frontend
-- React + Vite + Tailwind + Framer Motion
-- React Query for data fetching
-- Auth uses access token in memory + refresh cookie
+## Scripts
+- `pnpm dev` — run all apps
+- `pnpm dev:marketing` — marketing only
+- `pnpm dev:account` — account only
+- `pnpm dev:api` — api only
+- `pnpm db:migrate` — run Prisma migrations
 
 ## Extension (existing)
-The section below describes the browser extension as it exists in `extension/`. It remains unchanged.
-
-## What Trail does
-
-### Captures navigation into a global tree
-- Builds a single global navigation tree across all windows and tabs.
-- Listens to `chrome.webNavigation` events:
-  - `onCommitted` (normal navigations)
-  - `onHistoryStateUpdated` (SPA history updates)
-  - `onReferenceFragmentUpdated` (hash changes)
-- Uses `chrome.tabs` events to keep the "current" node in sync with the active tab.
-- Reuses an existing node if the URL already exists in the tree (global reuse), otherwise creates a new node.
-- Keeps a mapping of open tabs per node and tracks last-used tabs for cycling.
-
-### Tree storage and eviction
-- The tree is stored in `chrome.storage.local` (see `src/background/services/tree-storage.ts`).
-- Nodes contain:
-  - URL, title, favicon
-  - pinned flag
-  - tags array
-  - optional per-node layout offsets (for tree/mindmap) or radial adjustments
-- Tree capacity is enforced by an LRU-style eviction policy based on node timestamps.
-  - Pinned nodes are never evicted (`NavigationTree.canRemove` checks `pinned`).
-  - Capacity exists in settings but is not exposed in the UI (defaults to Infinity).
-
-### Side panel UI (graph view)
-The UI is a single interactive graph view with three layout modes:
-- **Tree**
-- **Mindmap**
-- **Radial**
-
-Key interactions:
-- Pan and zoom (mouse wheel, trackpad pinch, +/- keys, 0 to reset).
-- Tool switch between Select and Hand (V / H).
-- Drag nodes to adjust their layout position; adjustments are persisted per node.
-- Selection rectangle for multi-select; Cmd/Ctrl adds to selection.
-- Context menu on a node with:
-  - Open in this tab
-  - Open in new tab
-  - List of open tabs for that node (click to focus)
-  - Pin/unpin
-  - Tags submenu (add/remove tag, edit/delete tag, create new tag)
-  - Copy URL / Copy title
-  - Delete node / delete children / delete subtree
-- Bulk selection context menu with:
-  - Pin/unpin selected
-  - Tags submenu (add/remove tags across selection)
-  - Close selected tabs
-  - Delete selected nodes
-
-### Search
-- Cmd/Ctrl+F focuses the search field.
-- Matches against title, URL, and domain (case-insensitive).
-- Matched nodes are highlighted; non-matches are dimmed.
-- Next/previous and accept/cancel actions are exposed in the search UI.
-- Search uses a temporary selection session to preview/focus results.
-
-### Tags
-- Tags are stored on nodes (array of tag IDs).
-- Tag definitions are stored in `chrome.storage.sync` and can be created/edited/deleted.
-- Default tag presets live in `src/shared/data/tag-presets.ts`.
-- Nodes display tag dots.
-- Tag filter dropdown:
-  - Opens next to the pinned list button.
-  - Top strip shows only tags that are currently used by at least one node.
-  - Default view shows all nodes that have any tag.
-  - Selecting tags filters nodes with OR semantics.
-  - Each node in the list shows its own tags.
-
-### Pins
-- Pinned nodes are visually marked.
-- Pinned list dropdown shows all pinned nodes and lets you jump to them.
-- Pinned nodes are excluded from tree eviction.
-
-### Tabs and audio state
-- Nodes show tab counts when multiple tabs exist for the same node.
-- Audio/mute state is reflected on the node; mute can be toggled from the node UI.
-- Clicking a node focuses an existing tab for that node (cycles through open tabs if multiple), otherwise opens a new tab.
-
-### Undo / redo
-- Undo/redo buttons in the side panel, with Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z shortcuts.
-- History is kept in memory only (static CommandManager). Restarting the service worker clears history.
-- Max history length is 30 snapshots.
-
-### Notifications (UI only)
-- A notification system exists in the UI, but it is not currently used by core flows.
-
-## Settings (side panel)
-Accessible via the gear button.
-
-- **Theme**: Light / Dark / System
-- **Tab limit**: UI allows setting a max open tab limit (0 = unlimited)
-  - Note: LRU tab-closing logic exists in code but is not currently wired into navigation, so this setting is not enforced yet.
-- **Title truncation**: Start / Middle / End
-- **Layout mode**: Mindmap / Tree / Radial
-- **Layout parameters**: sliders specific to each layout mode
-- **Reset**:
-  - Reset to defaults (layout params)
-  - Reset view (layout params + per-node offsets)
-
-## Data storage and privacy
-- **Tree data**: `chrome.storage.local`
-- **Settings**: `chrome.storage.sync`
-- **Tag definitions**: `chrome.storage.sync`
-- No external network calls are made by the extension itself.
-
-## Permissions (from `public/manifest.json`)
-- `sidePanel`: render Trail UI in the browser side panel
-- `storage`: persist tree/settings/tags
-- `tabs`: map nodes to tabs, focus/create/close tabs
-- `webNavigation`: build the tree from navigation events
-- `scripting`: reserved for injection (not used heavily in current code)
-- `favicon`: read favicon URLs
-- `host_permissions: <all_urls>`: needed to observe navigation across all sites
-
-## Build and run
-
-Install dependencies:
-```bash
-npm install
-```
-
-Development (UI only):
-```bash
-npm run dev:ui
-```
-
-TypeScript watch:
-```bash
-npm run watch
-```
-
-Full build (produces `dist/`):
-```bash
-npm run build
-```
-This runs `tsc`, builds the UI with Vite, and then copies/rewrites the manifest via `scripts/build-extension.js`.
-
-Load in Chrome/Brave:
-1. Go to `chrome://extensions` or `brave://extensions`.
-2. Enable Developer mode.
-3. Click "Load unpacked" and select the `dist/` folder.
-
-## Tests
-
-There is a small Node-based test:
-```bash
-npm test
-```
-It validates basic tree deletion behavior and undo/redo snapshots.
-
-## Project layout (current)
-```
-trail/
-├── public/
-│   ├── manifest.json
-│   └── icons/
-├── src/
-│   ├── background/          # service worker, navigation, tabs, messaging
-│   ├── content/             # content script (title changes)
-│   ├── sidepanel/           # React UI, state, styles
-│   └── shared/              # shared types, layout defaults, tree serialization
-├── scripts/
-│   └── build-extension.js   # rewrites manifest paths and copies icons into dist/
-├── tests/
-│   └── basic.test.ts
-├── dist/                    # build output (generated)
-├── package.json
-└── README.md
-```
-
-## Known gaps / TODOs
-- Tab limit UI exists, but automatic tab closing is not wired yet.
-- Capacity is part of settings but not exposed in the UI.
-- Notifications are implemented in UI but not used by core flows.
-
----
+The extension remains unchanged and runs from `extension/`.
