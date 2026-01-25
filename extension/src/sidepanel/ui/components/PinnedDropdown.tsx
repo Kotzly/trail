@@ -12,6 +12,7 @@ export default function PinnedDropdown() {
   const pinnedOpen = useStore((state) => state.ui.pinnedOpen);
   const setPinnedOpen = useStore((state) => state.setPinnedOpen);
   const pinnedShortcut = 'Shift+P';
+  const pinnedTooltip = `Pinned pages (${pinnedShortcut})`;
 
   useOverlayEffects(pinnedOpen, { kind: 'dropdown' });
 
@@ -100,8 +101,8 @@ export default function PinnedDropdown() {
         id="pinnedBtn"
         className="matte-circle-btn orb-button"
         type="button"
-        title={`Pinned pages (${pinnedShortcut})`}
-        data-tooltip={`Pinned pages (${pinnedShortcut})`}
+        aria-label={pinnedTooltip}
+        data-tooltip={pinnedTooltip}
         onClick={() => setPinnedOpen(!pinnedOpen)}
       >
         <Icons.Pin size={20} />

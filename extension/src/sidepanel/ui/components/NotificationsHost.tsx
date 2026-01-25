@@ -152,7 +152,8 @@ export default function NotificationsHost() {
                   <button
                     type="button"
                     className="notification-action-btn"
-                    title="Confirm"
+                    aria-label="Confirm"
+                    data-tooltip="Confirm"
                     onClick={() => notificationCenter.confirm(item.id)}
                   >
                     <Icons.Check size={14} />
@@ -160,7 +161,8 @@ export default function NotificationsHost() {
                   <button
                     type="button"
                     className="notification-action-btn"
-                    title="Dismiss"
+                    aria-label="Dismiss"
+                    data-tooltip="Dismiss"
                     onClick={() => notificationCenter.cancel(item.id)}
                   >
                     <Icons.X size={14} />

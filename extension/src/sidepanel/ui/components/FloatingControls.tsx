@@ -34,6 +34,14 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : 'Ctrl+Shift+Z';
   const settingsShortcut = metaKey ? `${metaKey.short}+,` : 'Ctrl+,';
   const tooltipsShortcut = metaKey ? `${metaKey.short}+/` : 'Ctrl+/';
+  const undoTooltip = commandState?.nextUndoDesc
+    ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
+    : `Undo (${undoShortcut})`;
+  const redoTooltip = commandState?.nextRedoDesc
+    ? `Redo: ${commandState.nextRedoDesc} (${redoShortcut})`
+    : `Redo (${redoShortcut})`;
+  const settingsLabel = `Settings (${settingsShortcut})`;
+  const settingsTooltip = `Settings (${settingsShortcut}) • Tooltips (${tooltipsShortcut})`;
 
   const handleUndo = async () => {
     try {
@@ -73,16 +81,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
             id="undoBtn"
             className="matte-circle-btn orb-button"
             type="button"
-            title={
-              commandState?.nextUndoDesc
-                ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
-                : `Undo (${undoShortcut})`
-            }
-            data-tooltip={
-              commandState?.nextUndoDesc
-                ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
-                : `Undo (${undoShortcut})`
-            }
+            aria-label={undoTooltip}
+            data-tooltip={undoTooltip}
             disabled={!commandState?.canUndo}
             onClick={handleUndo}
           >
@@ -92,16 +92,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
             id="redoBtn"
             className="matte-circle-btn orb-button"
             type="button"
-            title={
-              commandState?.nextRedoDesc
-                ? `Redo: ${commandState.nextRedoDesc} (${redoShortcut})`
-                : `Redo (${redoShortcut})`
-            }
-            data-tooltip={
-              commandState?.nextRedoDesc
-                ? `Redo: ${commandState.nextRedoDesc} (${redoShortcut})`
-                : `Redo (${redoShortcut})`
-            }
+            aria-label={redoTooltip}
+            data-tooltip={redoTooltip}
             disabled={!commandState?.canRedo}
             onClick={handleRedo}
           >
@@ -117,7 +109,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
             id="newTreeBtn"
             className="matte-circle-btn orb-button"
             type="button"
-            title="New tree"
+            aria-label="New tree"
             data-tooltip="New tree"
             onClick={() => {
               setLabelDraft('');
@@ -132,23 +124,23 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
 
       <div className="floating-controls-right">
         <FloatingSearch inputRef={searchInputRef} />
-          <div className="floating-island">
-            <button
-              id="themePickerBtn"
-              className="matte-circle-btn orb-button"
-              type="button"
-              title="Theme"
-              data-tooltip="Theme"
+        <div className="floating-island">
+          <button
+            id="themePickerBtn"
+            className="matte-circle-btn orb-button"
+            type="button"
+            aria-label="Theme"
+            data-tooltip="Theme"
             onClick={() => setThemePickerOpen(!themePickerOpen)}
           >
             <Icons.Palette size={18} />
           </button>
-            <button
-              id="settingsBtn"
-              className="matte-circle-btn orb-button"
-              type="button"
-            title={`Settings (${settingsShortcut})`}
-            data-tooltip={`Settings (${settingsShortcut}) • Tooltips (${tooltipsShortcut})`}
+          <button
+            id="settingsBtn"
+            className="matte-circle-btn orb-button"
+            type="button"
+            aria-label={settingsLabel}
+            data-tooltip={settingsTooltip}
             onClick={() => setSettingsOpen(!settingsOpen)}
           >
             <Icons.Settings size={18} />

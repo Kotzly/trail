@@ -126,6 +126,7 @@ export default function TagFilterDropdown() {
   const hasTaggedNodes = taggedNodes.length > 0;
   const showEmptyTags = usedTags.length === 0;
   const isEmpty = filteredNodes.length === 0;
+  const tagFilterTooltip = `Filter by tags (${tagFilterShortcut})`;
 
   return (
     <div className="tag-filter-dropdown-wrapper">
@@ -134,8 +135,8 @@ export default function TagFilterDropdown() {
         id="tagFilterBtn"
         className="matte-circle-btn orb-button"
         type="button"
-        title={`Filter by tags (${tagFilterShortcut})`}
-        data-tooltip={`Filter by tags (${tagFilterShortcut})`}
+        aria-label={tagFilterTooltip}
+        data-tooltip={tagFilterTooltip}
         onClick={() => setTagFilterOpen(!tagFilterOpen)}
       >
         <Icons.Tag size={18} />

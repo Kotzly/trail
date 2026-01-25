@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../state/store.js';
+import { useOverlayEffects } from '../state/overlay-effects.js';
+import { Icons } from './Icon.js';
 import React from 'react';
 
 type Placement = 'top' | 'bottom' | 'left' | 'right';
+
+type TooltipTarget = {
+  id: string;
+  text: string;
+  placement: Placement;
+  element: HTMLElement;
+};
 
 type Rect = {
   left: number;
@@ -19,37 +28,16 @@ type Size = {
   height: number;
 };
 
-type TooltipTarget = {
-  id: string;
-  text: string;
-  placement: Placement;
-  element: HTMLElement;
-};
-
-type TooltipBox = {
-  id: string;
-  text: string;
-  placement: Placement;
+type HoverLayout = {
   left: number;
   top: number;
-  width: number;
-  height: number;
-  targetRect: Rect;
-};
-
-type TooltipLayout = {
-  id: string;
-  text: string;
   placement: Placement;
-  left: number;
-  top: number;
   arrowOffsetX: number;
   arrowOffsetY: number;
 };
 
 const VIEWPORT_PADDING = 8;
 const TOOLTIP_GAP = 8;
-const OVERLAP_GAP = 6;
 const ARROW_PADDING = 12;
 
 const FALLBACKS: Record<Placement, Placement[]> = {
@@ -60,6 +48,17 @@ const FALLBACKS: Record<Placement, Placement[]> = {
 };
 
 const PLACEMENTS: Placement[] = ['top', 'bottom', 'left', 'right'];
+
+function isVisible(element: HTMLElement) {
+  if (!element.isConnected) return false;
+  if (element.getAttribute('aria-hidden') === 'true') return false;
+  const rect = element.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0) return false;
+  const style = window.getComputedStyle(element);
+  if (style.display === 'none' || style.visibility === 'hidden') return false;
+  if (style.opacity === '0') return false;
+  return true;
+}
 
 function clamp(value: number, min: number, max: number) {
   if (value < min) return min;
@@ -76,17 +75,6 @@ function toRect(rect: DOMRect): Rect {
     width: rect.width,
     height: rect.height,
   };
-}
-
-function isVisible(element: HTMLElement) {
-  if (!element.isConnected) return false;
-  if (element.getAttribute('aria-hidden') === 'true') return false;
-  const rect = element.getBoundingClientRect();
-  if (rect.width === 0 && rect.height === 0) return false;
-  const style = window.getComputedStyle(element);
-  if (style.display === 'none' || style.visibility === 'hidden') return false;
-  if (style.opacity === '0') return false;
-  return true;
 }
 
 function normalizePlacement(value: string | null): Placement {
@@ -128,12 +116,7 @@ function computeBasePosition(
   }
 }
 
-function fitsWithin(
-  left: number,
-  top: number,
-  tooltipRect: Rect,
-  viewport: Rect,
-) {
+function fitsWithin(left: number, top: number, tooltipRect: Rect, viewport: Rect) {
   const right = left + tooltipRect.width;
   const bottom = top + tooltipRect.height;
   return (
@@ -176,111 +159,29 @@ function computePreferredPosition(
   return { placement: chosen, left: clamped.left, top: clamped.top };
 }
 
-function intersects(a: TooltipBox, b: TooltipBox) {
-  return !(
-    a.left + a.width + OVERLAP_GAP <= b.left ||
-    a.left >= b.left + b.width + OVERLAP_GAP ||
-    a.top + a.height + OVERLAP_GAP <= b.top ||
-    a.top >= b.top + b.height + OVERLAP_GAP
-  );
-}
-
-function clampRect(rect: TooltipBox, viewport: Rect) {
-  const clamped = clampPosition(rect.left, rect.top, rect, viewport);
-  rect.left = clamped.left;
-  rect.top = clamped.top;
-  return rect;
-}
-
-function shiftHorizontal(rect: TooltipBox, overlap: TooltipBox, viewport: Rect) {
-  const moveRight = overlap.left + overlap.width + OVERLAP_GAP - rect.left;
-  const moveLeft = overlap.left - OVERLAP_GAP - rect.width - rect.left;
-  const canMoveRight = rect.left + moveRight + rect.width <= viewport.right;
-  const canMoveLeft = rect.left + moveLeft >= viewport.left;
-
-  if (canMoveRight && (!canMoveLeft || Math.abs(moveRight) <= Math.abs(moveLeft))) {
-    rect.left += moveRight;
-    return true;
-  }
-  if (canMoveLeft) {
-    rect.left += moveLeft;
-    return true;
-  }
-  return false;
-}
-
-function shiftVertical(rect: TooltipBox, overlap: TooltipBox, viewport: Rect) {
-  const moveDown = overlap.top + overlap.height + OVERLAP_GAP - rect.top;
-  const moveUp = overlap.top - OVERLAP_GAP - rect.height - rect.top;
-  const canMoveDown = rect.top + moveDown + rect.height <= viewport.bottom;
-  const canMoveUp = rect.top + moveUp >= viewport.top;
-
-  if (canMoveDown && (!canMoveUp || Math.abs(moveDown) <= Math.abs(moveUp))) {
-    rect.top += moveDown;
-    return true;
-  }
-  if (canMoveUp) {
-    rect.top += moveUp;
-    return true;
-  }
-  return false;
-}
-
-function resolveCollisions(items: TooltipBox[], viewport: Rect) {
-  const placed: TooltipBox[] = [];
-  const resolved: TooltipBox[] = [];
-  const sorted = [...items].sort((a, b) => a.top - b.top || a.left - b.left);
-
-  for (const item of sorted) {
-    let next = { ...item };
-    let tries = 0;
-    const primaryAxis = item.placement === 'left' || item.placement === 'right' ? 'y' : 'x';
-
-    while (placed.some((rect) => intersects(next, rect)) && tries < 12) {
-      const overlap = placed.find((rect) => intersects(next, rect));
-      if (!overlap) break;
-      const moved =
-        primaryAxis === 'x'
-          ? shiftHorizontal(next, overlap, viewport) || shiftVertical(next, overlap, viewport)
-          : shiftVertical(next, overlap, viewport) || shiftHorizontal(next, overlap, viewport);
-      if (!moved) break;
-      next = clampRect(next, viewport);
-      tries += 1;
-    }
-
-    placed.push(next);
-    resolved.push(next);
-  }
-
-  const byId = new Map(resolved.map((item) => [item.id, item]));
-  return items.map((item) => byId.get(item.id) ?? item);
-}
-
-function computeArrowOffset(
-  tooltip: TooltipBox,
-  targetRect: Rect,
-): { arrowOffsetX: number; arrowOffsetY: number } {
+function computeArrowOffset(tooltipRect: Rect, targetRect: Rect, left: number, top: number) {
   const centerX = targetRect.left + targetRect.width / 2;
   const centerY = targetRect.top + targetRect.height / 2;
-  const safePaddingX = Math.min(ARROW_PADDING, tooltip.width / 2);
-  const safePaddingY = Math.min(ARROW_PADDING, tooltip.height / 2);
-  const maxX = tooltip.width - safePaddingX;
-  const maxY = tooltip.height - safePaddingY;
-  const arrowOffsetX = clamp(centerX - tooltip.left, safePaddingX, maxX);
-  const arrowOffsetY = clamp(centerY - tooltip.top, safePaddingY, maxY);
+  const safePaddingX = Math.min(ARROW_PADDING, tooltipRect.width / 2);
+  const safePaddingY = Math.min(ARROW_PADDING, tooltipRect.height / 2);
+  const maxX = tooltipRect.width - safePaddingX;
+  const maxY = tooltipRect.height - safePaddingY;
+  const arrowOffsetX = clamp(centerX - left, safePaddingX, maxX);
+  const arrowOffsetY = clamp(centerY - top, safePaddingY, maxY);
   return { arrowOffsetX, arrowOffsetY };
 }
 
 export default function TooltipLayer() {
   const tooltipsOpen = useStore((state) => state.ui.tooltipsOpen);
+  const setTooltipsOpen = useStore((state) => state.setTooltipsOpen);
   const [hoverTarget, setHoverTarget] = useState<HTMLElement | null>(null);
   const [targets, setTargets] = useState<TooltipTarget[]>([]);
-  const [layouts, setLayouts] = useState<Record<string, TooltipLayout>>({});
-  const tooltipRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [hoverLayout, setHoverLayout] = useState<HoverLayout | null>(null);
+  const hoverBubbleRef = useRef<HTMLDivElement | null>(null);
   const idRef = useRef(0);
   const idMapRef = useRef<WeakMap<HTMLElement, string>>(new WeakMap());
 
-  const mode = tooltipsOpen ? 'all' : 'hover';
+  useOverlayEffects(tooltipsOpen, { lod: true, blur: true, kind: 'panel' });
 
   const getIdFor = useCallback((element: HTMLElement) => {
     const existing = idMapRef.current.get(element);
@@ -331,13 +232,19 @@ export default function TooltipLayer() {
     updateTargets();
   }, [updateTargets]);
 
-  useLayoutEffect(() => {
-    if (!targets.length) {
-      setLayouts({});
+  const updateHoverLayout = useCallback(() => {
+    if (tooltipsOpen) {
+      setHoverLayout(null);
       return;
     }
-    if (typeof window === 'undefined') return;
-
+    const target = targets[0];
+    const bubble = hoverBubbleRef.current;
+    if (!target || !bubble || typeof window === 'undefined') {
+      setHoverLayout(null);
+      return;
+    }
+    const targetRect = toRect(target.element.getBoundingClientRect());
+    const tooltipRect = toRect(bubble.getBoundingClientRect());
     const viewport: Rect = {
       left: VIEWPORT_PADDING,
       top: VIEWPORT_PADDING,
@@ -346,78 +253,30 @@ export default function TooltipLayer() {
       width: window.innerWidth,
       height: window.innerHeight,
     };
-
-    const boxes: TooltipBox[] = [];
-
-    for (const target of targets) {
-      const tooltipEl = tooltipRefs.current.get(target.id);
-      if (!tooltipEl) continue;
-      const targetRect = toRect(target.element.getBoundingClientRect());
-      const tooltipRect = toRect(tooltipEl.getBoundingClientRect());
-      const base = computePreferredPosition(target.placement, targetRect, tooltipRect, viewport);
-      boxes.push({
-        id: target.id,
-        text: target.text,
-        placement: base.placement,
-        left: base.left,
-        top: base.top,
-        width: tooltipRect.width,
-        height: tooltipRect.height,
-        targetRect,
-      });
-    }
-
-    const resolved = mode === 'all' ? resolveCollisions(boxes, viewport) : boxes;
-    const nextLayouts: Record<string, TooltipLayout> = {};
-    for (const item of resolved) {
-      const arrow = computeArrowOffset(item, item.targetRect);
-      nextLayouts[item.id] = {
-        id: item.id,
-        text: item.text,
-        placement: item.placement,
-        left: item.left,
-        top: item.top,
-        arrowOffsetX: arrow.arrowOffsetX,
-        arrowOffsetY: arrow.arrowOffsetY,
-      };
-    }
-    setLayouts(nextLayouts);
-  }, [mode, targets]);
-
-  useEffect(() => {
-    if (!tooltipsOpen) return;
-    const observer = new MutationObserver(() => updateTargets());
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['data-tooltip', 'data-tooltip-position', 'style', 'class', 'aria-hidden'],
+    const position = computePreferredPosition(target.placement, targetRect, tooltipRect, viewport);
+    const arrow = computeArrowOffset(tooltipRect, targetRect, position.left, position.top);
+    setHoverLayout({
+      left: position.left,
+      top: position.top,
+      placement: position.placement,
+      arrowOffsetX: arrow.arrowOffsetX,
+      arrowOffsetY: arrow.arrowOffsetY,
     });
-    window.addEventListener('resize', updateTargets);
-    window.addEventListener('scroll', updateTargets, true);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', updateTargets);
-      window.removeEventListener('scroll', updateTargets, true);
-    };
-  }, [tooltipsOpen, updateTargets]);
+  }, [targets, tooltipsOpen]);
+
+  useLayoutEffect(() => {
+    updateHoverLayout();
+  }, [updateHoverLayout]);
 
   useEffect(() => {
     if (tooltipsOpen) return;
-    if (!hoverTarget) return;
-    const observer = new MutationObserver(() => updateTargets());
-    observer.observe(hoverTarget, {
-      attributes: true,
-      attributeFilter: ['data-tooltip', 'data-tooltip-position', 'style', 'class', 'aria-hidden'],
-    });
-    window.addEventListener('resize', updateTargets);
-    window.addEventListener('scroll', updateTargets, true);
+    window.addEventListener('resize', updateHoverLayout);
+    window.addEventListener('scroll', updateHoverLayout, true);
     return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', updateTargets);
-      window.removeEventListener('scroll', updateTargets, true);
+      window.removeEventListener('resize', updateHoverLayout);
+      window.removeEventListener('scroll', updateHoverLayout, true);
     };
-  }, [hoverTarget, tooltipsOpen, updateTargets]);
+  }, [tooltipsOpen, updateHoverLayout]);
 
   useEffect(() => {
     if (tooltipsOpen) return;
@@ -465,46 +324,119 @@ export default function TooltipLayer() {
     };
   }, [tooltipsOpen]);
 
-  const tooltipNodes = useMemo(() => {
-    return targets.map((target) => {
-      const layout = layouts[target.id];
-      const isVisible = Boolean(layout);
-      const style: React.CSSProperties | undefined = layout
-        ? {
-            left: `${layout.left}px`,
-            top: `${layout.top}px`,
-            ['--tooltip-arrow-offset-x' as string]: `${layout.arrowOffsetX}px`,
-            ['--tooltip-arrow-offset-y' as string]: `${layout.arrowOffsetY}px`,
-          }
-        : undefined;
+  useEffect(() => {
+    if (!tooltipsOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setTooltipsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [setTooltipsOpen, tooltipsOpen]);
 
-      return (
-        <div
-          key={target.id}
-          ref={(node) => {
-            if (node) {
-              tooltipRefs.current.set(target.id, node);
-            } else {
-              tooltipRefs.current.delete(target.id);
-            }
-          }}
-          className="tooltip-bubble"
-          data-placement={layout?.placement ?? target.placement}
-          data-visible={isVisible ? 'true' : 'false'}
-          style={style}
-        >
-          {target.text}
-        </div>
-      );
-    });
-  }, [layouts, targets]);
+  useEffect(() => {
+    if (!tooltipsOpen && !hoverTarget) return;
+    const observer = new MutationObserver(() => updateTargets());
+    const root = tooltipsOpen ? document.body : hoverTarget;
+    if (root) {
+      observer.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-tooltip', 'style', 'class', 'aria-hidden'],
+      });
+    }
+    window.addEventListener('resize', updateTargets);
+    window.addEventListener('scroll', updateTargets, true);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateTargets);
+      window.removeEventListener('scroll', updateTargets, true);
+    };
+  }, [hoverTarget, tooltipsOpen, updateTargets]);
 
   if (typeof document === 'undefined') return null;
-  if (tooltipNodes.length === 0) return null;
+
+  if (tooltipsOpen) {
+    const seen = new Set<string>();
+    const items = targets.reduce<string[]>((acc, target) => {
+      if (seen.has(target.text)) return acc;
+      seen.add(target.text);
+      acc.push(target.text);
+      return acc;
+    }, []);
+
+    return createPortal(
+      <div
+        className="modal-overlay tooltip-panel-overlay lod-enabler blur-enabler"
+        onClick={() => setTooltipsOpen(false)}
+      >
+        <div
+          className="tooltip-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tooltip-panel-title"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <div className="tooltip-panel-header">
+            <div>
+              <div id="tooltip-panel-title" className="tooltip-panel-title">Tooltips</div>
+              <div className="tooltip-panel-subtitle">
+                {items.length === 0 ? 'No tooltips available.' : `${items.length} tips available.`}
+              </div>
+            </div>
+            <button
+              className="tooltip-panel-close"
+              type="button"
+              aria-label="Close tooltips"
+              onClick={() => setTooltipsOpen(false)}
+            >
+              <Icons.X size={18} />
+            </button>
+          </div>
+          {items.length === 0 ? (
+            <div className="tooltip-panel-empty">Nothing to show right now.</div>
+          ) : (
+            <div className="tooltip-panel-list">
+              {items.map((text) => (
+                <div key={text} className="tooltip-panel-item">
+                  {text}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
+  const hoverItem = targets[0];
+  if (!hoverItem) return null;
+
+  const bubbleStyle: React.CSSProperties | undefined = hoverLayout
+    ? {
+        left: `${hoverLayout.left}px`,
+        top: `${hoverLayout.top}px`,
+        ['--tooltip-arrow-offset-x' as string]: `${hoverLayout.arrowOffsetX}px`,
+        ['--tooltip-arrow-offset-y' as string]: `${hoverLayout.arrowOffsetY}px`,
+      }
+    : undefined;
 
   return createPortal(
-    <div className="tooltip-layer" data-mode={mode}>
-      {tooltipNodes}
+    <div className="tooltip-layer">
+      <div
+        ref={hoverBubbleRef}
+        className="tooltip-bubble"
+        data-placement={hoverLayout?.placement ?? hoverItem.placement}
+        data-visible={hoverLayout ? 'true' : 'false'}
+        style={bubbleStyle}
+      >
+        {hoverItem.text}
+      </div>
     </div>,
     document.body,
   );

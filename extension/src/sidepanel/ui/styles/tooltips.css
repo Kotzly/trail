@@ -10,7 +10,7 @@
   position: fixed;
   left: 0;
   top: 0;
-  max-width: min(260px, calc(100vw - 16px));
+  max-width: min(240px, calc(100vw - 16px));
   padding: 6px 10px;
   border-radius: 10px;
   background: var(--md-glass-strong);
@@ -68,12 +68,135 @@
   border-left-color: color-mix(in srgb, var(--md-glass-strong) 92%, transparent);
 }
 
-.tooltip-layer[data-mode='all'] .tooltip-bubble::before {
-  display: none;
+.tooltip-panel-overlay {
+  --modal-overlay-z: 830;
+  background: color-mix(in srgb, var(--md-overlay) 78%, transparent);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  animation: tooltip-overlay-in 0.18s ease-out;
+}
+
+@keyframes tooltip-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tooltip-panel {
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  background: var(--md-glass-strong);
+  border-radius: 20px;
+  border: var(--md-glass-border);
+  box-shadow: var(--md-glass-shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  backdrop-filter: var(--md-glass-blur);
+  -webkit-backdrop-filter: var(--md-glass-blur);
+  position: relative;
+  animation: tooltip-panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tooltip-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border-top: 2px solid var(--md-glass-highlight);
+  border-left: 1px solid var(--md-glass-highlight-soft);
+  border-right: 1px solid var(--md-glass-highlight);
+  pointer-events: none;
+}
+
+@keyframes tooltip-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tooltip-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tooltip-panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--md-on-surface);
+}
+
+.tooltip-panel-subtitle {
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  margin-top: 2px;
+}
+
+.tooltip-panel-close {
+  border: var(--md-glass-border);
+  background: var(--md-glass);
+  color: var(--md-glass-ink-muted);
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  box-shadow: var(--md-glass-inset);
+  backdrop-filter: var(--md-glass-blur);
+  -webkit-backdrop-filter: var(--md-glass-blur);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.tooltip-panel-close:hover {
+  background: var(--md-glass-strong);
+  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  color: var(--md-glass-ink);
+}
+
+.tooltip-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.tooltip-panel-item {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--md-surface-container-low) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-glass-border) 70%, transparent);
+}
+
+.tooltip-panel-empty {
+  padding: 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--md-surface-container-low) 60%, transparent);
+  color: var(--md-on-surface-variant);
+  text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tooltip-bubble {
+  .tooltip-bubble,
+  .tooltip-panel,
+  .tooltip-panel-overlay {
     transition: none;
+    animation: none;
   }
 }

@@ -152,6 +152,8 @@ export default function TreeDropdown() {
     }
   };
 
+  const treesTooltip = `Saved trees (${treesShortcut})`;
+
   return (
     <div className="trees-dropdown-wrapper">
       <button
@@ -159,8 +161,8 @@ export default function TreeDropdown() {
         id="treesBtn"
         className="matte-circle-btn orb-button"
         type="button"
-        title={`Saved trees (${treesShortcut})`}
-        data-tooltip={`Saved trees (${treesShortcut})`}
+        aria-label={treesTooltip}
+        data-tooltip={treesTooltip}
         onClick={() => setTreesOpen(!treesOpen)}
       >
         <Icons.BookOpen size={20} />
@@ -207,7 +209,8 @@ export default function TreeDropdown() {
                 <button
                   className="trees-dropdown-item-action"
                   type="button"
-                  title="Rename tree"
+                  aria-label="Rename tree"
+                  data-tooltip="Rename tree"
                   onClick={(event) => {
                     event.stopPropagation();
                     startEdit(activeTree);
@@ -276,7 +279,8 @@ export default function TreeDropdown() {
                     <button
                       className="trees-dropdown-item-action"
                       type="button"
-                      title="Rename tree"
+                      aria-label="Rename tree"
+                      data-tooltip="Rename tree"
                       onClick={(event) => {
                         event.stopPropagation();
                         startEdit(tree);

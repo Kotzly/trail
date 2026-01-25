@@ -25,6 +25,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
   const [listOpen, setListOpen] = useState(false);
   const hasQuery = search.query.length > 0;
   const searchShortcut = metaKey ? `${metaKey.short}+F / ${metaKey.short}+K / /` : 'Ctrl+F / Ctrl+K / /';
+  const searchTooltip = `Search (${searchShortcut})`;
 
   useEffect(() => {
     setDraft(search.query);
@@ -79,8 +80,8 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
       <button
         className="matte-circle-btn orb-button search-orb"
         type="button"
-        title={`Search (${searchShortcut})`}
-        data-tooltip={`Search (${searchShortcut})`}
+        aria-label={searchTooltip}
+        data-tooltip={searchTooltip}
         onClick={() => inputRef.current?.focus()}
       >
         <Icons.Search size={18} />
@@ -109,7 +110,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
             <button
               className="floating-search-clear"
               type="button"
-              title="Clear search"
+              aria-label="Clear search"
               data-tooltip="Clear search"
               onClick={handleClear}
             >
@@ -129,7 +130,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
                 <button
                   className={`floating-search-nav-btn${listOpen ? ' is-active' : ''}`}
                   type="button"
-                  title="Results list"
+                  aria-label="Results list"
                   data-tooltip="Results list"
                   onClick={handleToggleList}
                   disabled={!hasQuery || search.results.length === 0}
@@ -140,7 +141,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
                 <button
                   className="floating-search-nav-btn"
                   type="button"
-                  title="Previous (↑)"
+                  aria-label="Previous (↑)"
                   data-tooltip="Previous (↑)"
                   onClick={prevResult}
                   disabled={!hasQuery}
@@ -151,7 +152,7 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
                 <button
                   className="floating-search-nav-btn"
                   type="button"
-                  title="Next (↓)"
+                  aria-label="Next (↓)"
                   data-tooltip="Next (↓)"
                   onClick={nextResult}
                   disabled={!hasQuery}

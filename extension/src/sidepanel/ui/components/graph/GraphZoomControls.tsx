@@ -13,9 +13,8 @@ export default function GraphZoomControls({ tool, onToolChange, onZoom }: GraphZ
         <button
           className={`graph-control-btn ${tool === 'select' ? 'active' : ''}`}
           data-tool="select"
-          title="Select tool (V) - Select nodes"
+          aria-label="Select tool (V) - Select nodes"
           data-tooltip="Select tool (V)"
-          data-tooltip-position="left"
           type="button"
           onClick={() => onToolChange('select')}
         >
@@ -24,9 +23,8 @@ export default function GraphZoomControls({ tool, onToolChange, onZoom }: GraphZ
         <button
           className={`graph-control-btn ${tool === 'hand' ? 'active' : ''}`}
           data-tool="hand"
-          title="Hand tool (H) - Pan"
+          aria-label="Hand tool (H) - Pan"
           data-tooltip="Hand tool (H)"
-          data-tooltip-position="left"
           type="button"
           onClick={() => onToolChange('hand')}
         >
@@ -36,9 +34,8 @@ export default function GraphZoomControls({ tool, onToolChange, onZoom }: GraphZ
       <button
         className="graph-control-btn"
         data-zoom="in"
-        title="Zoom in (+)"
+        aria-label="Zoom in (+)"
         data-tooltip="Zoom in (+)"
-        data-tooltip-position="left"
         type="button"
         onClick={() => onZoom('in')}
       >
@@ -47,9 +44,8 @@ export default function GraphZoomControls({ tool, onToolChange, onZoom }: GraphZ
       <button
         className="graph-control-btn"
         data-zoom="out"
-        title="Zoom out (-)"
+        aria-label="Zoom out (-)"
         data-tooltip="Zoom out (-)"
-        data-tooltip-position="left"
         type="button"
         onClick={() => onZoom('out')}
       >
@@ -58,9 +54,8 @@ export default function GraphZoomControls({ tool, onToolChange, onZoom }: GraphZ
       <button
         className="graph-control-btn"
         data-zoom="reset"
-        title="Reset zoom (0)"
+        aria-label="Reset zoom (0)"
         data-tooltip="Reset zoom (0)"
-        data-tooltip-position="left"
         type="button"
         onClick={() => onZoom('reset')}
       >

@@ -28,7 +28,8 @@ export default function SearchBar({ inputRef }: SearchBarProps) {
           className={`search-clear ${hasQuery ? '' : 'hidden'}`}
           id="searchClear"
           type="button"
-          title="Clear search"
+          aria-label="Clear search"
+          data-tooltip="Clear search"
           onClick={clearSearch}
         >
           <Icons.X size={16} />
@@ -43,10 +44,24 @@ export default function SearchBar({ inputRef }: SearchBarProps) {
             : `${search.index + 1} of ${search.results.length}`}
         </span>
         <div className="search-nav">
-          <button className="search-nav-btn" id="searchPrev" type="button" title="Previous (↑)" onClick={prevResult}>
+          <button
+            className="search-nav-btn"
+            id="searchPrev"
+            type="button"
+            aria-label="Previous (↑)"
+            data-tooltip="Previous (↑)"
+            onClick={prevResult}
+          >
             <Icons.ChevronUp size={16} />
           </button>
-          <button className="search-nav-btn" id="searchNext" type="button" title="Next (↓)" onClick={nextResult}>
+          <button
+            className="search-nav-btn"
+            id="searchNext"
+            type="button"
+            aria-label="Next (↓)"
+            data-tooltip="Next (↓)"
+            onClick={nextResult}
+          >
             <Icons.ChevronDown size={16} />
           </button>
         </div>

@@ -6,6 +6,7 @@ const ignoredUrlPatterns: RegExp[] = [
   /^mailto:/,
   /^tel:/,
   /^data:/,
+  /^chrome-extension:/,
 ]
 
 const blockedFaviconUrlPatterns: RegExp[] = [
