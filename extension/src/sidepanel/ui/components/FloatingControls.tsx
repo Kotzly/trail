@@ -79,9 +79,10 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       const gapValue = styles.columnGap || styles.gap || '0';
       const gap = Number.parseFloat(gapValue) || 0;
       const needsCompact = searchExpanded && baseLeft + rightWidth + gap > containerWidth;
-      if (needsCompact === isCompact) return;
-      controlsCompactRef.current = needsCompact;
-      setControlsCompact(needsCompact);
+      if (needsCompact !== isCompact) {
+        controlsCompactRef.current = needsCompact;
+        setControlsCompact(needsCompact);
+      }
     };
 
     measure();

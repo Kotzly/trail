@@ -6,15 +6,20 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--controls-gap);
   z-index: 900;
   pointer-events: none;
+  --controls-gap: clamp(6px, 2vw, 12px);
+  --cluster-gap: clamp(6px, 1.6vw, 10px);
+  --orb-gap: clamp(2px, calc(-2px + 1.5vw), 8px);
+  --orb-size: clamp(36px, calc(28px + 2vw), 44px);
+  --orb-icon: clamp(14px, calc(10px + 1vw), 18px);
 }
 
 .floating-controls-left,
 .floating-controls-right {
   display: flex;
-  gap: 10px;
+  gap: var(--cluster-gap);
   align-items: flex-start;
   pointer-events: auto;
 }
@@ -43,7 +48,7 @@
 
 .floating-island {
   display: flex;
-  gap: 8px;
+  gap: var(--orb-gap);
   pointer-events: auto;
 }
 
@@ -51,8 +56,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: var(--orb-size);
+  height: var(--orb-size);
   border-radius: 50%;
   border: var(--md-glass-border);
   background: var(--md-glass);
@@ -87,8 +92,8 @@
 }
 
 .matte-circle-btn svg {
-  width: 18px;
-  height: 18px;
+  width: var(--orb-icon);
+  height: var(--orb-icon);
 }
 
 .matte-circle-btn.orb-button {

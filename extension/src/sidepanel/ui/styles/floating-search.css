@@ -8,8 +8,10 @@
   --search-surface-strong: var(--md-glass-strong);
   --search-border: var(--md-glass-border);
   --search-shadow: var(--md-glass-shadow);
-  --floating-search-width: clamp(160px, calc(100vw - 184px), 220px);
-  --search-shell-width: 44px;
+  --floating-search-width: clamp(140px, calc(100vw - 184px), 220px);
+  --search-shell-size: var(--orb-size, 44px);
+  --search-shell-radius: calc(var(--search-shell-size) / 2);
+  --search-shell-width: var(--search-shell-size);
   --search-shell-padding: 0;
   --search-shell-gap: 0;
   --search-shell-bg: transparent;
@@ -27,7 +29,7 @@
   pointer-events: auto;
   overflow: visible;
   padding: 0;
-  border-radius: 22px;
+  border-radius: var(--search-shell-radius);
   background: transparent;
   box-shadow: none;
   transform-origin: right center;
@@ -99,7 +101,7 @@
   display: flex;
   align-items: center;
   gap: var(--search-shell-gap);
-  height: 44px;
+  height: var(--search-shell-size);
   padding: var(--search-shell-padding);
   border-radius: 999px;
   background: var(--search-shell-bg);
@@ -137,7 +139,7 @@
   flex: 1 1 auto;
   border: none;
   background: transparent;
-  font-size: 13px;
+  font-size: clamp(12px, 1.7vw, 13px);
   color: var(--search-ink);
   outline: none;
   min-width: 0;
@@ -153,8 +155,8 @@
 
 .floating-search.expanded {
   --search-shell-width: var(--floating-search-width);
-  --search-shell-padding: 0 10px 0 14px;
-  --search-shell-gap: 6px;
+  --search-shell-padding: 0 clamp(8px, 1.8vw, 10px) 0 clamp(10px, 2.4vw, 14px);
+  --search-shell-gap: clamp(4px, 1.2vw, 6px);
   --search-shell-bg: var(--search-surface);
   --search-shell-border: var(--search-border);
   --search-shell-shadow: var(--search-shadow), var(--md-glass-inset);
