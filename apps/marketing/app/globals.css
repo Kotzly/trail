@@ -1,11 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap");
 
-@tailwind base;
+@import "tailwindcss";
 @import "@trail/ui/styles/tokens.css";
 @import "@trail/ui/styles/base.css";
 @import "@trail/ui/styles/animations.css";
-@tailwind components;
-@tailwind utilities;
 
 :root,
 [data-theme="light"] {
