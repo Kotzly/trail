@@ -151,7 +151,10 @@ body {
 .word-rotator-track {
   display: flex;
   flex-direction: column;
-  animation: word-slide 12s infinite;
+  animation-name: var(--word-animation-name, none);
+  animation-duration: var(--word-animation-duration, 12s);
+  animation-iteration-count: infinite;
+  animation-timing-function: var(--word-animation-easing, linear);
 }
 
 .word-rotator-track span {
@@ -165,36 +168,6 @@ body {
 
 .float-slower {
   animation: float-slower 18s ease-in-out infinite;
-}
-
-@keyframes word-slide {
-  0%,
-  12% {
-    transform: translateY(0%);
-  }
-  16%,
-  28% {
-    transform: translateY(-100%);
-  }
-  32%,
-  44% {
-    transform: translateY(-200%);
-  }
-  48%,
-  60% {
-    transform: translateY(-300%);
-  }
-  64%,
-  76% {
-    transform: translateY(-400%);
-  }
-  80%,
-  92% {
-    transform: translateY(-500%);
-  }
-  100% {
-    transform: translateY(0%);
-  }
 }
 
 @keyframes float-slow {

@@ -1,8 +1,44 @@
+import type { CSSProperties } from "react";
+
 import { marketingCopy } from "@trail/content";
 import { Badge } from "@trail/ui";
 
 export function MarketingHero() {
   const { hero } = marketingCopy;
+  const words = hero.words;
+  const wordCount = words.length;
+  const transitionCount = Math.max(wordCount, 1);
+  const loopWords = wordCount > 0 ? [...words, words[0]] : words;
+  const segment = 100 / transitionCount;
+  const holdFraction = 0.62;
+  const bounceFraction = 0.82;
+  const bounceOffset = 12;
+  const animationName = `word-slide-${transitionCount}`;
+  const animationDuration = `${transitionCount * 2}s`;
+  const keyframeStops = Array.from({ length: transitionCount }, (_, index) => {
+    const start = (segment * index).toFixed(4);
+    const hold = (segment * index + segment * holdFraction).toFixed(4);
+    const bounce = (segment * index + segment * bounceFraction).toFixed(4);
+    const next = (segment * (index + 1)).toFixed(4);
+    const currentOffset = `-${index * 100}%`;
+    const nextOffset = `-${(index + 1) * 100}%`;
+    const bounceOffsetValue = `calc(${nextOffset} - ${bounceOffset}%)`;
+    return [
+      `${start}% { transform: translateY(${currentOffset}); }`,
+      `${hold}% { transform: translateY(${currentOffset}); }`,
+      `${bounce}% { transform: translateY(${bounceOffsetValue}); }`,
+      `${next}% { transform: translateY(${nextOffset}); }`,
+    ].join("\n");
+  }).join("\n");
+  const keyframes = `@keyframes ${animationName} {
+${keyframeStops}
+}`;
+  const shouldAnimate = transitionCount > 1;
+  const wordVars = {
+    "--word-animation-name": shouldAnimate ? animationName : "none",
+    "--word-animation-duration": shouldAnimate ? animationDuration : "0s",
+    "--word-animation-easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+  } as CSSProperties;
 
   return (
     <section className="relative overflow-hidden px-6 pb-12 pt-20">
@@ -19,15 +55,16 @@ export function MarketingHero() {
           <h1 className="font-display text-4xl font-semibold leading-tight text-ink md:text-6xl">
             <span className="block text-ink-muted">{hero.lead}</span>
             <span className="mt-2 flex justify-center text-ink">
-              <span className="word-rotator">
+              <span className="word-rotator" style={wordVars}>
                 <span className="word-rotator-track">
-                  {hero.words.map((word) => (
-                    <span key={word}>{word}</span>
+                  {loopWords.map((word, index) => (
+                    <span key={`${word}-${index}`}>{word}</span>
                   ))}
                 </span>
               </span>
             </span>
           </h1>
+          <style dangerouslySetInnerHTML={{ __html: keyframes }} />
           <p className="mx-auto max-w-2xl text-base text-ink-subtle">{hero.summary}</p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
