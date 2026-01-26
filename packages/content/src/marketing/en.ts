@@ -14,7 +14,8 @@ export const marketingCopy = {
   hero: {
     pill: "Browser extension · subscription",
     lead: "the best extension for",
-    words: ["developers", "researchers", "product teams", "writers", "students", "everyone"],
+    words: ["developers", "researchers", "product teams", "founders", "designers", "writers", "marketers", "analysts",
+       "students", "consultants", "knowledge workers", "power users", "anyone who lives in the browser"],
     summary:
       "Trail turns messy tab sessions into structured trails. Keep every decision, source, and next step in one place.",
     ctaPrimary: "Start with the extension",
