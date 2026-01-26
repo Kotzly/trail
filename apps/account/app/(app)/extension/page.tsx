@@ -2,14 +2,13 @@ import { redirect } from "next/navigation";
 import { accountCopy } from "@trail/content";
 import { Card } from "@trail/ui";
 import { auth0 } from "@/src/lib/auth0";
-import { db } from "@trail/db";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
 
 type ExtensionPageProps = {
-  searchParams: {
+  searchParams: Promise<{
     code?: string;
-  };
+  }>;
 };
 
 export default async function ExtensionPage({ searchParams }: ExtensionPageProps) {
@@ -23,12 +22,17 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
     redirect("/auth/login");
   }
 
-  const queryCode = typeof searchParams.code === "string" ? searchParams.code : null;
-  const now = new Date();
+  const resolvedSearchParams = await searchParams;
+  const queryCode =
+    typeof resolvedSearchParams?.code === "string" ? resolvedSearchParams.code : null;
 
   if (queryCode) {
-    const existing = await db.extensionLoginCode.findUnique({ where: { code: queryCode } });
-    if (!existing || existing.usedAt || existing.expiresAt < now) {
+    try {
+      const stored = await createExtensionLoginCode(user.id, queryCode);
+      if (stored !== queryCode) {
+        redirect(`/extension?code=${stored}`);
+      }
+    } catch {
       const newCode = await createExtensionLoginCode(user.id);
       redirect(`/extension?code=${newCode}`);
     }
