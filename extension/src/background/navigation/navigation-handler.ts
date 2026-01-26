@@ -44,11 +44,15 @@ export async function handleNavigation(
       const registerOptions =
         lastUsed === undefined ? { touch: isActiveTab } : { touch: isActiveTab, lastUsed };
 
+      const rawFavicon = tab.favIconUrl as FaviconUrl | undefined;
+      const normalizedFavicon = normalizeFaviconUrl(url as Url, rawFavicon);
+      const canUpdateRootFavicon = normalizedFavicon !== "";
+
       if (!root) {
         const data: NodeData = {
           url: url as Url,
           title: (tab.title || url) as Title,
-          favicon: normalizeFaviconUrl(url as Url, tab.favIconUrl as FaviconUrl | undefined),
+          favicon: normalizedFavicon,
           pinned: false,
           tags: [],
         } as NodeData;
@@ -56,6 +60,9 @@ export async function handleNavigation(
         tabManager.register(node.id, tabId as TabId, registerOptions);
         if (isActiveTab) tree.setCurrentById(node.id);
       } else {
+        if (canUpdateRootFavicon && normalizedFavicon !== root.data.favicon) {
+          root.data.favicon = normalizedFavicon as FaviconUrl;
+        }
         tabManager.register(root.id, tabId as TabId, registerOptions);
         if (isActiveTab) tree.setCurrentById(root.id);
       }

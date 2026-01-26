@@ -1,7 +1,7 @@
 import type { LayoutSettings } from '../types/settings.js';
 
 export const DEFAULT_LAYOUT_SETTINGS: LayoutSettings = {
-    mode: 'radial',
+    mode: 'tree',
     tree: {
         verticalGapScale: 1,
         horizontalGapScale: 1,
