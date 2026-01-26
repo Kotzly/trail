@@ -23,6 +23,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [controlsCompact, setControlsCompact] = useState(false);
+  const controlsCompactRef = useRef(false);
   const controlsRef = useRef<HTMLDivElement | null>(null);
   const leftRef = useRef<HTMLDivElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
@@ -69,7 +70,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       const containerWidth = container.getBoundingClientRect().width;
       const rightWidth = right.getBoundingClientRect().width;
       const leftWidth = left.getBoundingClientRect().width;
-      if (!controlsCompact) {
+      const isCompact = controlsCompactRef.current;
+      if (!isCompact) {
         leftBaselineRef.current = leftWidth;
       }
       const baseLeft = leftBaselineRef.current || leftWidth;
@@ -77,6 +79,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       const gapValue = styles.columnGap || styles.gap || '0';
       const gap = Number.parseFloat(gapValue) || 0;
       const needsCompact = searchExpanded && baseLeft + rightWidth + gap > containerWidth;
+      if (needsCompact === isCompact) return;
+      controlsCompactRef.current = needsCompact;
       setControlsCompact(needsCompact);
     };
 
@@ -86,7 +90,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
     observer.observe(left);
     observer.observe(right);
     return () => observer.disconnect();
-  }, [controlsCompact, searchExpanded]);
+  }, [searchExpanded]);
 
   return (
     <div

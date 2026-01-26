@@ -13,7 +13,7 @@
   --search-shell-padding: 0;
   --search-shell-gap: 0;
   --search-shell-bg: transparent;
-  --search-shell-border: 1px solid transparent;
+  --search-shell-border: 0;
   --search-shell-shadow: none;
   --search-shell-highlight: 0;
 }
@@ -114,6 +114,10 @@
     background 140ms ease,
     border-color 140ms ease,
     box-shadow 140ms ease;
+}
+
+.floating-search:not(.expanded) .floating-search-input {
+  overflow: visible;
 }
 
 .floating-search-input::before {
