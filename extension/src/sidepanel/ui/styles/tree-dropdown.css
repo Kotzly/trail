@@ -172,16 +172,28 @@
 }
 
 .trees-dropdown-item-action {
+  width: 26px;
+  height: 26px;
   border: var(--md-glass-border);
   background: var(--md-glass);
   color: var(--md-on-surface-variant);
-  padding: 4px;
-  border-radius: 6px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   cursor: pointer;
   box-shadow: var(--md-glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.trees-dropdown-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .trees-dropdown-item-action:hover {

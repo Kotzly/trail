@@ -33,6 +33,7 @@ export const MSG = {
     NEW_TREE: 'NEW_TREE',
     OPEN_TREE: 'OPEN_TREE',
     RENAME_TREE: 'RENAME_TREE',
+    DELETE_ARCHIVED_TREE: 'DELETE_ARCHIVED_TREE',
     OPEN_IN_NEW_TAB: 'OPEN_IN_NEW_TAB',
     TOGGLE_MUTE: 'TOGGLE_MUTE',
     CLOSE_TAB: 'CLOSE_TAB',
@@ -120,6 +121,7 @@ export type ClearTreeMessage = RequestMessageBase<typeof MSG.CLEAR_TREE>;
 export type NewTreeMessage = RequestMessageBase<typeof MSG.NEW_TREE, { label: string }>;
 export type OpenTreeMessage = RequestMessageBase<typeof MSG.OPEN_TREE, { treeId: string }>;
 export type RenameTreeMessage = RequestMessageBase<typeof MSG.RENAME_TREE, { treeId: string; label: string }>;
+export type DeleteArchivedTreeMessage = RequestMessageBase<typeof MSG.DELETE_ARCHIVED_TREE, { treeId: string }>;
 
 export type OpenInNewTabMessage = RequestMessageBase<typeof MSG.OPEN_IN_NEW_TAB, {
   nodeId: NodeId;
@@ -163,7 +165,7 @@ export type RequestMessage = NavigateToMessage |
     TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleOrFaviconChangedMessage |
     TreeUpdatedMessage | TreesUpdatedMessage | TagsUpdatedMessage |
     NotifyMessage |
-    GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | RenameTreeMessage |
+    GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | RenameTreeMessage | DeleteArchivedTreeMessage |
     OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
     AddTagMessage | RemoveTagMessage |
@@ -215,6 +217,7 @@ export type ResponseDataByType = {
     [MSG.NEW_TREE]: void;
     [MSG.OPEN_TREE]: void;
     [MSG.RENAME_TREE]: void;
+    [MSG.DELETE_ARCHIVED_TREE]: void;
     [MSG.OPEN_IN_NEW_TAB]: void;
     [MSG.TOGGLE_MUTE]: void;
     [MSG.CLOSE_TAB]: void;
@@ -284,6 +287,9 @@ export const msg = {
     newTree(payload: { label: string }): NewTreeMessage { return { type: MSG.NEW_TREE, ...payload } },
     openTree(payload: { treeId: string }): OpenTreeMessage { return { type: MSG.OPEN_TREE, ...payload } },
     renameTree(payload: { treeId: string; label: string }): RenameTreeMessage { return { type: MSG.RENAME_TREE, ...payload } },
+    deleteArchivedTree(payload: { treeId: string }): DeleteArchivedTreeMessage {
+        return { type: MSG.DELETE_ARCHIVED_TREE, ...payload };
+    },
     openInNewTab(payload: { nodeId: NodeId }): OpenInNewTabMessage { return { type: MSG.OPEN_IN_NEW_TAB, ...payload } },
     toggleMute(payload: { nodeId: NodeId, tabId: TabId }): ToggleMuteMessage { return { type: MSG.TOGGLE_MUTE, ...payload } },
     closeTab(payload: { nodeId: NodeId, tabId: TabId }): CloseTabMessage { return { type: MSG.CLOSE_TAB, ...payload } },

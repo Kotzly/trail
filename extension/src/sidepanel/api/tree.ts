@@ -100,6 +100,12 @@ export async function renameTree(treeId: string, label: string): Promise<void> {
     return res.data;
 }
 
+export async function deleteArchivedTree(treeId: string): Promise<void> {
+    const res = await sendMessage(msg.deleteArchivedTree({ treeId }));
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}
+
 export async function setNodeLayout(
   nodeId: NodeId,
   layout: {

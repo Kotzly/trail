@@ -225,6 +225,15 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
+  async [MSG.DELETE_ARCHIVED_TREE](message) {
+    const active = await treeStorage.getActiveMeta();
+    if (active.id === message.treeId) return err('Cannot delete active tree');
+    const removed = await treeStorage.deleteArchivedTree(message.treeId);
+    if (!removed) return err('Tree not found');
+    await notifyTreesUpdate(await buildTreesSnapshot());
+    return ok();
+  },
+
   async [MSG.DELETE_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');

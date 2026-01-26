@@ -273,6 +273,19 @@ class TreeStorageService {
     }
   }
 
+  async deleteArchivedTree(treeId: string): Promise<boolean> {
+    const archives = await this.getArchives();
+    const next = archives.filter((entry) => entry.id !== treeId);
+    if (next.length === archives.length) return false;
+    this.cachedArchives = next;
+    try {
+      await treeArea.set({ [TREE_ARCHIVES_KEY]: next });
+    } catch (error) {
+      console.error('TreeStorageService.deleteArchivedTree: Error saving archive:', error);
+    }
+    return true;
+  }
+
   cacheTree(tree: NavigationTree): void {
       this.cachedTree = tree;
       this.dirty = true;

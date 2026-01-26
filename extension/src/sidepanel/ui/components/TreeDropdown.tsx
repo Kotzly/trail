@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { openTree, renameTree } from '../../api/tree.js';
+import { deleteArchivedTree, openTree, renameTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
@@ -152,6 +152,14 @@ export default function TreeDropdown() {
     }
   };
 
+  const handleDeleteArchived = async (treeId: string) => {
+    try {
+      await deleteArchivedTree(treeId);
+    } catch (error) {
+      console.error('Failed to delete saved tree:', error);
+    }
+  };
+
   const treesTooltip = `Saved trees (${treesShortcut})`;
 
   return (
@@ -206,18 +214,20 @@ export default function TreeDropdown() {
                 <div className="trees-dropdown-item-meta">active now · {activeTree.nodeCount} nodes</div>
               </div>
               {editingId !== activeTree.id ? (
-                <button
-                  className="trees-dropdown-item-action"
-                  type="button"
-                  aria-label="Rename tree"
-                  data-tooltip="Rename tree"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    startEdit(activeTree);
-                  }}
-                >
-                  <Icons.Pencil size={14} />
-                </button>
+                <div className="trees-dropdown-item-actions">
+                  <button
+                    className="trees-dropdown-item-action"
+                    type="button"
+                    aria-label="Rename tree"
+                    data-tooltip="Rename tree"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      startEdit(activeTree);
+                    }}
+                  >
+                    <Icons.Pencil size={12} />
+                  </button>
+                </div>
               ) : null}
             </div>
           </div>
@@ -276,18 +286,32 @@ export default function TreeDropdown() {
                     <div className="trees-dropdown-item-meta">{meta}</div>
                   </div>
                   {editingId !== tree.id ? (
-                    <button
-                      className="trees-dropdown-item-action"
-                      type="button"
-                      aria-label="Rename tree"
-                      data-tooltip="Rename tree"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        startEdit(tree);
-                      }}
-                    >
-                      <Icons.Pencil size={14} />
-                    </button>
+                    <div className="trees-dropdown-item-actions">
+                      <button
+                        className="trees-dropdown-item-action"
+                        type="button"
+                        aria-label="Rename tree"
+                        data-tooltip="Rename tree"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          startEdit(tree);
+                        }}
+                      >
+                        <Icons.Pencil size={12} />
+                      </button>
+                      <button
+                        className="trees-dropdown-item-action"
+                        type="button"
+                        aria-label="Delete tree"
+                        data-tooltip="Delete tree"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleDeleteArchived(tree.id);
+                        }}
+                      >
+                        <Icons.Trash2 size={12} />
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               );
