@@ -3,6 +3,19 @@
 @import "@trail/ui/styles/base.css";
 @import "@trail/ui/styles/animations.css";
 
+:root {
+  --base: var(--trail-bg);
+  --surface: var(--trail-surface);
+  --surface-strong: var(--trail-surface-high);
+  --stroke: var(--trail-border);
+  --ink: var(--trail-ink);
+  --ink-muted: var(--trail-ink-muted);
+  --ink-subtle: var(--trail-ink-muted);
+  --accent: var(--trail-accent);
+  --accent-soft: var(--trail-highlight);
+  --font-display: var(--font-serif);
+}
+
 .app-shell {
   min-height: 100vh;
 }

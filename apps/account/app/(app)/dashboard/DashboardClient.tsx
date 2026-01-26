@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Badge, Button, Card } from "@trail/ui";
+import { Badge } from "@trail/ui";
 import { trpc } from "@/src/trpc/client";
 
 export function DashboardClient() {
@@ -23,58 +23,77 @@ export function DashboardClient() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Account</p>
+      <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
+        <p className="text-xs uppercase tracking-[0.3em] text-ink-subtle">Account</p>
         <div className="mt-4 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-high text-sm font-semibold">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-sm font-semibold text-surface">
             {initials}
           </div>
           <div>
-            <p className="text-sm font-semibold">{displayName}</p>
-            <p className="text-xs text-ink-muted">{displayEmail}</p>
+            <p className="text-sm font-semibold text-ink">{displayName}</p>
+            <p className="text-xs text-ink-subtle">{displayEmail}</p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Badge tone="muted">Plan: Early access</Badge>
-          <Badge tone="muted">Workspace: Trail</Badge>
+          <Badge className="bg-surface-strong text-xs font-semibold text-ink">Early access</Badge>
+          <Badge className="bg-surface-strong text-xs font-semibold text-ink">Solo workspace</Badge>
         </div>
-        <Button asChild size="sm" variant="outline" className="mt-4 w-full">
-          <Link href="/settings">Manage settings</Link>
-        </Button>
-      </Card>
+        <Link
+          href="/settings"
+          className="mt-5 inline-flex w-full items-center justify-center rounded-full border border-stroke/60 px-4 py-2 text-sm font-semibold text-ink transition hover:border-stroke"
+        >
+          Manage settings
+        </Link>
+      </div>
 
-      <Card>
-        <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">System</p>
+      <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
+        <p className="text-xs uppercase tracking-[0.3em] text-ink-subtle">System</p>
         <div className="mt-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold">API status</p>
-            <p className="mt-1 text-xs text-ink-muted">
-              Live heartbeat from your Trail API.
-            </p>
+            <p className="text-sm font-semibold text-ink">API status</p>
+            <p className="mt-1 text-xs text-ink-subtle">Live heartbeat from your Trail API.</p>
           </div>
-          <Badge tone={health.data?.ok ? "default" : "muted"}>{systemStatus}</Badge>
+          <Badge
+            className={
+              health.data?.ok
+                ? "bg-surface-strong text-xs font-semibold text-ink"
+                : "bg-surface-strong text-xs font-semibold text-ink-muted"
+            }
+          >
+            {systemStatus}
+          </Badge>
         </div>
         {health.data?.timestamp ? (
-          <p className="mt-3 text-xs text-ink-muted">
-            Last check: {health.data.timestamp}
-          </p>
+          <p className="mt-3 text-xs text-ink-subtle">Last check: {health.data.timestamp}</p>
         ) : null}
-      </Card>
+      </div>
 
-      <Card>
-        <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Shortcuts</p>
-        <div className="mt-4 grid gap-3">
-          <Button asChild size="sm">
-            <Link href="/extension">Connect extension</Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/billing">Billing overview</Link>
-          </Button>
-          <Button asChild size="sm" variant="ghost">
-            <Link href="/settings">Workspace settings</Link>
-          </Button>
+      <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
+        <p className="text-xs uppercase tracking-[0.3em] text-ink-subtle">Quick links</p>
+        <div className="mt-4 grid gap-3 text-sm font-semibold">
+          <Link
+            href="/extension"
+            className="inline-flex items-center justify-between rounded-2xl border border-stroke/40 bg-surface/80 px-4 py-3 text-ink transition hover:border-stroke"
+          >
+            <span>Connect extension</span>
+            <span>→</span>
+          </Link>
+          <Link
+            href="/billing"
+            className="inline-flex items-center justify-between rounded-2xl border border-stroke/40 bg-surface/80 px-4 py-3 text-ink transition hover:border-stroke"
+          >
+            <span>Billing overview</span>
+            <span>→</span>
+          </Link>
+          <Link
+            href="/settings"
+            className="inline-flex items-center justify-between rounded-2xl border border-stroke/40 bg-surface/80 px-4 py-3 text-ink transition hover:border-stroke"
+          >
+            <span>Workspace settings</span>
+            <span>→</span>
+          </Link>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

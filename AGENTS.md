@@ -30,3 +30,14 @@
 ## Commit & Pull Request Guidelines
 - Commit messages are short, imperative, and usually capitalized (e.g., “Refactor …”, “Add …”); no scope prefixes in history.
 - PRs should include a concise summary, testing notes, and screenshots for UI changes (frontend or extension).
+
+## Deployment
+- Deployment is handled by Vercel.
+- The marketing, account and API apps are deployed to Vercel.
+- They can be found at the following URLs:
+  - Marketing: https://gettrail.net
+  - Account: https://my.gettrail.net
+  - API: https://api.gettrail.net
+- The extension is not yet deployed.
+- The auth is handled by Auth0.
+- The database is handled by Supabase.
