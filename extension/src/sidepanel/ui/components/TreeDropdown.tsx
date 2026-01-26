@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { deleteArchivedTree, openTree, renameTree } from '../../api/tree.js';
+import { createNewTree, deleteArchivedTree, openTree, renameTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
 import React from 'react';
 import type { FaviconUrl, Title, Url } from '../../../shared/types/ids.js';
+import { createPortal } from 'react-dom';
 
 type TreeItem = {
   id: string;
@@ -43,6 +44,8 @@ export default function TreeDropdown() {
   const trees = useStore((state) => state.trees);
   const treesOpen = useStore((state) => state.ui.treesOpen);
   const setTreesOpen = useStore((state) => state.setTreesOpen);
+  const closeAllPopups = useStore((state) => state.closeAllPopups);
+  const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
   const treesShortcut = 'Shift+T';
   const nodeCount = useStore((state) => state.nodeCount);
 
@@ -80,6 +83,9 @@ export default function TreeDropdown() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const editing = editingId !== null;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [labelDraft, setLabelDraft] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!treesOpen) {
@@ -160,6 +166,18 @@ export default function TreeDropdown() {
     }
   };
 
+  const handleNewTree = async () => {
+    try {
+      const label = labelDraft.trim() || 'Unnamed Tree';
+      setCreating(true);
+      await createNewTree(label);
+    } catch (error) {
+      console.error('Failed to create new tree:', error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const treesTooltip = `Saved trees (${treesShortcut})`;
 
   return (
@@ -173,7 +191,7 @@ export default function TreeDropdown() {
         data-tooltip={treesTooltip}
         onClick={() => setTreesOpen(!treesOpen)}
       >
-        <Icons.BookOpen size={20} />
+        <Icons.ListTree size={20} />
       </button>
       <div
         ref={dropdownRef}
@@ -233,7 +251,23 @@ export default function TreeDropdown() {
           </div>
         ) : null}
         <div className="trees-dropdown-section">
-          <div className="trees-dropdown-section-title">saved</div>
+          <div className="trees-dropdown-section-header">
+            <div className="trees-dropdown-section-title">saved</div>
+            <button
+              id="newTreeBtn"
+              className="trees-dropdown-section-action"
+              type="button"
+              aria-label="New tree"
+              data-tooltip="New tree"
+              onClick={() => {
+                setLabelDraft('');
+                closeAllPopups();
+                setConfirmOpen(true);
+              }}
+            >
+              <Icons.ListTree size={14} />
+            </button>
+          </div>
           {archivedTrees.length === 0 ? (
             <div className="trees-dropdown-empty">no saved trees</div>
           ) : (
@@ -320,6 +354,101 @@ export default function TreeDropdown() {
         </div>
         <div className="trees-dropdown-hint">click a tree to open · edit to rename</div>
       </div>
+      <ConfirmOverlay
+        open={confirmOpen}
+        confirmNewTree={confirmNewTree}
+        label={labelDraft}
+        creating={creating}
+        onLabelChange={setLabelDraft}
+        onCancel={() => {
+          if (creating) return;
+          setConfirmOpen(false);
+        }}
+        onConfirm={() => {
+          if (creating) return;
+          setConfirmOpen(false);
+          void handleNewTree();
+        }}
+      />
     </div>
+  );
+}
+
+type ConfirmOverlayProps = {
+  open: boolean;
+  confirmNewTree: boolean;
+  label: string;
+  creating: boolean;
+  onLabelChange: (value: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
+function ConfirmOverlay({
+  open,
+  confirmNewTree,
+  label,
+  creating,
+  onLabelChange,
+  onCancel,
+  onConfirm,
+}: ConfirmOverlayProps) {
+  useOverlayEffects(open, { lod: true, blur: true, kind: 'modal' });
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [onCancel, open]);
+
+  if (!open) return null;
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div
+      className="confirm-overlay lod-enabler blur-enabler"
+      onClick={onCancel}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <div
+        className="confirm-dialog"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <div className="confirm-title">
+          {confirmNewTree ? 'create a new tree?' : 'name your new tree'}
+        </div>
+        <input
+          className="confirm-input"
+          type="text"
+          value={label}
+          placeholder="Unnamed Tree"
+          onChange={(event) => onLabelChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onConfirm();
+            }
+          }}
+          autoFocus
+        />
+        <div className="confirm-actions">
+          <button className="confirm-btn ghost" type="button" onClick={onCancel} disabled={creating}>
+            Cancel
+          </button>
+          <button className="confirm-btn" type="button" onClick={onConfirm} disabled={creating}>
+            {creating ? 'Creating…' : 'Create'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

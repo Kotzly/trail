@@ -19,6 +19,24 @@
   pointer-events: auto;
 }
 
+.floating-controls-left {
+  min-width: 0;
+  max-width: 100%;
+  transition: max-width 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+}
+
+.floating-controls.is-compact {
+  gap: 8px;
+}
+
+.floating-controls.is-compact .floating-controls-left {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+  overflow: hidden;
+}
+
 .floating-controls-right {
   flex-direction: row-reverse;
 }

@@ -1,5 +1,4 @@
 import { redo, undo } from '../../api/commands.js';
-import { createNewTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
 import PinnedDropdown from './PinnedDropdown.js';
@@ -47,15 +46,6 @@ export default function Header() {
     }
   };
 
-  const handleNewTree = async () => {
-    try {
-      const label = window.prompt('Name your new tree', '') ?? '';
-      await createNewTree(label);
-    } catch (error) {
-      console.error('Failed to create new tree:', error);
-    }
-  };
-
   return (
     <header className="header">
       <h1 className="title">
@@ -89,16 +79,6 @@ export default function Header() {
         <PinnedDropdown />
         <TreeDropdown />
         <TagFilterDropdown />
-        <button
-          id="newTreeBtn"
-          className="matte-circle-btn orb-button"
-          type="button"
-          aria-label="New tree"
-          data-tooltip="New tree"
-          onClick={handleNewTree}
-        >
-          <Icons.GitBranchPlus size={20} />
-        </button>
         <button
           id="themePickerBtn"
           className="matte-circle-btn orb-button"

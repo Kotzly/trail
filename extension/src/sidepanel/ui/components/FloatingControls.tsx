@@ -1,16 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { redo, undo } from '../../api/commands.js';
-import { createNewTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
 import FloatingSearch from './FloatingSearch.js';
 import PinnedDropdown from './PinnedDropdown.js';
 import TreeDropdown from './TreeDropdown.js';
 import TagFilterDropdown from './tags/TagFilterDropdown.js';
-import { createPortal } from 'react-dom';
 import React from 'react';
-import { useOverlayEffects } from '../state/overlay-effects.js';
 
 type FloatingControlsProps = {
   searchInputRef: RefObject<HTMLInputElement>;
@@ -24,11 +21,12 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
   const themePickerOpen = useStore((state) => state.ui.themePickerOpen);
   const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
-  const closeAllPopups = useStore((state) => state.closeAllPopups);
-  const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [labelDraft, setLabelDraft] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [controlsCompact, setControlsCompact] = useState(false);
+  const controlsRef = useRef<HTMLDivElement | null>(null);
+  const leftRef = useRef<HTMLDivElement | null>(null);
+  const rightRef = useRef<HTMLDivElement | null>(null);
+  const leftBaselineRef = useRef(0);
 
   const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : 'Ctrl+Z';
   const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : 'Ctrl+Shift+Z';
@@ -61,21 +59,43 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
     }
   };
 
-  const handleNewTree = async () => {
-    try {
-      const label = labelDraft.trim() || 'Unnamed Tree';
-      setCreating(true);
-      await createNewTree(label);
-    } catch (error) {
-      console.error('Failed to create new tree:', error);
-    } finally {
-      setCreating(false);
-    }
-  };
+  useLayoutEffect(() => {
+    const container = controlsRef.current;
+    const left = leftRef.current;
+    const right = rightRef.current;
+    if (!container || !left || !right) return;
+
+    const measure = () => {
+      const containerWidth = container.getBoundingClientRect().width;
+      const rightWidth = right.getBoundingClientRect().width;
+      const leftWidth = left.getBoundingClientRect().width;
+      if (!controlsCompact) {
+        leftBaselineRef.current = leftWidth;
+      }
+      const baseLeft = leftBaselineRef.current || leftWidth;
+      const styles = window.getComputedStyle(container);
+      const gapValue = styles.columnGap || styles.gap || '0';
+      const gap = Number.parseFloat(gapValue) || 0;
+      const needsCompact = searchExpanded && baseLeft + rightWidth + gap > containerWidth;
+      setControlsCompact(needsCompact);
+    };
+
+    measure();
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(container);
+    observer.observe(left);
+    observer.observe(right);
+    return () => observer.disconnect();
+  }, [controlsCompact, searchExpanded]);
 
   return (
-    <div className="floating-controls" data-notify-anchor="true">
-      <div className="floating-controls-left">
+    <div
+      ref={controlsRef}
+      className={`floating-controls${controlsCompact ? ' is-compact' : ''}`}
+      data-search-expanded={searchExpanded ? 'true' : 'false'}
+      data-notify-anchor="true"
+    >
+      <div ref={leftRef} className="floating-controls-left">
         <div className="floating-island">
           <button
             id="undoBtn"
@@ -105,25 +125,11 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
           <PinnedDropdown />
           <TreeDropdown />
           <TagFilterDropdown />
-          <button
-            id="newTreeBtn"
-            className="matte-circle-btn orb-button"
-            type="button"
-            aria-label="New tree"
-            data-tooltip="New tree"
-            onClick={() => {
-              setLabelDraft('');
-              closeAllPopups();
-              setConfirmOpen(true);
-            }}
-          >
-            <Icons.GitBranchPlus size={18} />
-          </button>
         </div>
       </div>
 
-      <div className="floating-controls-right">
-        <FloatingSearch inputRef={searchInputRef} />
+      <div ref={rightRef} className="floating-controls-right">
+        <FloatingSearch inputRef={searchInputRef} onExpandedChange={setSearchExpanded} />
         <div className="floating-island">
           <button
             id="themePickerBtn"
@@ -147,102 +153,6 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
           </button>
         </div>
       </div>
-
-      <ConfirmOverlay
-        open={confirmOpen}
-        confirmNewTree={confirmNewTree}
-        label={labelDraft}
-        creating={creating}
-        onLabelChange={setLabelDraft}
-        onCancel={() => {
-          if (creating) return;
-          setConfirmOpen(false);
-        }}
-        onConfirm={() => {
-          if (creating) return;
-          setConfirmOpen(false);
-          void handleNewTree();
-        }}
-      />
     </div>
-  );
-}
-
-type ConfirmOverlayProps = {
-  open: boolean;
-  confirmNewTree: boolean;
-  label: string;
-  creating: boolean;
-  onLabelChange: (value: string) => void;
-  onCancel: () => void;
-  onConfirm: () => void;
-};
-
-function ConfirmOverlay({
-  open,
-  confirmNewTree,
-  label,
-  creating,
-  onLabelChange,
-  onCancel,
-  onConfirm,
-}: ConfirmOverlayProps) {
-  useOverlayEffects(open, { lod: true, blur: true, kind: 'modal' });
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCancel();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-    };
-  }, [onCancel, open]);
-
-  if (!open) return null;
-  if (typeof document === 'undefined') return null;
-  return createPortal(
-    <div
-      className="confirm-overlay lod-enabler blur-enabler"
-      onClick={onCancel}
-      onPointerDown={(event) => event.stopPropagation()}
-    >
-      <div
-        className="confirm-dialog"
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <div className="confirm-title">
-          {confirmNewTree ? 'create a new tree?' : 'name your new tree'}
-        </div>
-        <input
-          className="confirm-input"
-          type="text"
-          value={label}
-          placeholder="Unnamed Tree"
-          onChange={(event) => onLabelChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              onConfirm();
-            }
-          }}
-          autoFocus
-        />
-        <div className="confirm-actions">
-          <button className="confirm-btn ghost" type="button" onClick={onCancel} disabled={creating}>
-            Cancel
-          </button>
-          <button className="confirm-btn" type="button" onClick={onConfirm} disabled={creating}>
-            {creating ? 'Creating…' : 'Create'}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
   );
 }

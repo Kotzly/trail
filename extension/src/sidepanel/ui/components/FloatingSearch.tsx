@@ -8,9 +8,10 @@ import SearchResultsList from './SearchResultsList.js';
 
 type FloatingSearchProps = {
   inputRef: RefObject<HTMLInputElement>;
+  onExpandedChange?: (expanded: boolean) => void;
 };
 
-export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
+export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingSearchProps) {
   const metaKey = useStore((state) => state.metaKey);
   const {
     search,
@@ -23,7 +24,9 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
   const tree = useStore((state) => state.tree);
   const [draft, setDraft] = useState(search.query);
   const [listOpen, setListOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const hasQuery = search.query.length > 0;
+  const expanded = hasQuery || focused;
   const searchShortcut = metaKey ? `${metaKey.short}+F / ${metaKey.short}+K / /` : 'Ctrl+F / Ctrl+K / /';
   const searchTooltip = `Search (${searchShortcut})`;
 
@@ -41,13 +44,21 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
     return () => window.clearTimeout(handle);
   }, [draft, performSearch, search.query]);
 
-  const handleClear = () => {
+  const handleClear = (shouldFocus = true) => {
     setDraft('');
     setListOpen(false);
     clearSearch();
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-    });
+    if (shouldFocus) {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    }
+  };
+
+  const handleCollapse = () => {
+    handleClear(false);
+    setFocused(false);
+    inputRef.current?.blur();
   };
 
   useEffect(() => {
@@ -61,6 +72,10 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
       setListOpen(false);
     }
   }, [listOpen, search.results.length]);
+
+  useEffect(() => {
+    onExpandedChange?.(expanded);
+  }, [expanded, onExpandedChange]);
 
   const handleSelectResult = (nodeId: NodeId) => {
     selectResult(nodeId);
@@ -76,17 +91,22 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
   };
 
   return (
-    <div className={`floating-search ${hasQuery ? 'expanded has-query' : ''}${listOpen ? ' list-open' : ''}`}>
-      <button
-        className="matte-circle-btn orb-button search-orb"
-        type="button"
-        aria-label={searchTooltip}
-        data-tooltip={searchTooltip}
-        onClick={() => inputRef.current?.focus()}
-      >
-        <Icons.Search size={18} />
-      </button>
-
+    <div
+      className={`floating-search${expanded ? ' expanded' : ''}${hasQuery ? ' has-query' : ''}${listOpen ? ' list-open' : ''}`}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(event) => {
+        const nextTarget = event.relatedTarget as Node | null;
+        if (!event.currentTarget.contains(nextTarget)) {
+          setFocused(false);
+        }
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          handleCollapse();
+        }
+      }}
+    >
       <div className="floating-search-panel" data-notify-anchor={hasQuery ? 'true' : undefined}>
         <div className="floating-search-input">
           <input
@@ -97,24 +117,31 @@ export default function FloatingSearch({ inputRef }: FloatingSearchProps) {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                event.preventDefault();
-                handleClear();
-              } else if (event.key === 'Enter') {
+              if (event.key === 'Enter') {
                 event.preventDefault();
                 nextResult();
               }
             }}
           />
-          {hasQuery ? (
+          {expanded ? (
             <button
-              className="floating-search-clear"
+              className="floating-search-close"
               type="button"
-              aria-label="Clear search"
-              data-tooltip="Clear search"
-              onClick={handleClear}
+              aria-label="Close search"
+              onClick={handleCollapse}
             >
               <Icons.X size={14} />
+            </button>
+          ) : null}
+          {!expanded ? (
+            <button
+              className="matte-circle-btn orb-button search-orb"
+              type="button"
+              aria-label={searchTooltip}
+              data-tooltip={searchTooltip}
+              onClick={() => inputRef.current?.focus()}
+            >
+              <Icons.Search size={18} />
             </button>
           ) : null}
         </div>
