@@ -50,5 +50,8 @@ Token issuance will be added when the extension API is finalized.
 - `pnpm dev:api` — api only
 - `pnpm db:migrate` — run Prisma migrations
 
+## Deployment notes
+- `apps/account` proxies its `/api/trpc` to `apps/api` using `TRAIL_API_BASE_URL` and a shared server-only `TRAIL_INTERNAL_API_KEY`.
+
 ## Extension (existing)
 The extension remains unchanged and runs from `extension/`.
