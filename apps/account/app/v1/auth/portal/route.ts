@@ -2,6 +2,8 @@ import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { db } from "@trail/db";
 
+export const runtime = "nodejs";
+
 const SESSION_TTL_MS = 5 * 60 * 1000;
 
 function createSessionId() {

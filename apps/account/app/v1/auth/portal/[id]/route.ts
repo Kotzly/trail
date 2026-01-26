@@ -3,6 +3,8 @@ import { db } from "@trail/db";
 import { buildAccountSnapshot } from "@/src/server/account-snapshot";
 import { createExtensionAccessToken } from "@/src/server/extension-auth";
 
+export const runtime = "nodejs";
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

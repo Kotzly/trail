@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth0 } from "@/src/lib/auth0";
 import { ensureUser } from "@/src/server/user";
 
+export const runtime = "nodejs";
+
 const TRAIL_API_BASE_URL = process.env.TRAIL_API_BASE_URL;
 const TRAIL_INTERNAL_API_KEY = process.env.TRAIL_INTERNAL_API_KEY;
 

@@ -5,6 +5,8 @@ import { auth0 } from "@/src/lib/auth0";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
 
+export const runtime = "nodejs";
+
 type ExtensionPageProps = {
   searchParams: Promise<{
     code?: string;

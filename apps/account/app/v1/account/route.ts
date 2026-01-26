@@ -3,6 +3,8 @@ import { db } from "@trail/db";
 import { buildAccountSnapshot } from "@/src/server/account-snapshot";
 import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
 
+export const runtime = "nodejs";
+
 function getBearerToken(headers: Headers): string | null {
   const auth = headers.get("authorization") ?? headers.get("Authorization");
   if (!auth) return null;
