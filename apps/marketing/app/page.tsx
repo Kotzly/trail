@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import { CallToAction } from "./components/CallToAction";
 import { FeatureGrid } from "./components/FeatureGrid";
 import { HowItWorks } from "./components/HowItWorks";
@@ -18,6 +19,7 @@ export default function HomePage() {
         <CallToAction />
       </main>
       <MarketingFooter />
+      <Analytics />
     </div>
   );
 }

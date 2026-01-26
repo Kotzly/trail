@@ -14,17 +14,19 @@
   "dependencies": {
     "@trail/content": "workspace:*",
     "@trail/ui": "workspace:*",
+    "@vercel/analytics": "^1.6.1",
     "next": "^15.1.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.8",
@@ -34,7 +36,6 @@
     "tailwindcss": "^3.4.15",
     "typescript": "^5.7.2",
     "vite": "^7.3.1",
-    "vitest": "^4.0.18",
-    "@vitejs/plugin-react": "^5.1.2"
+    "vitest": "^4.0.18"
   }
 }
