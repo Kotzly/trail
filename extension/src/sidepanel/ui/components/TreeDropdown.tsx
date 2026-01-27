@@ -265,7 +265,7 @@ export default function TreeDropdown() {
                 setConfirmOpen(true);
               }}
             >
-              <Icons.ListTree size={14} />
+              <Icons.GitBranchPlus size={14} />
             </button>
           </div>
           {archivedTrees.length === 0 ? (

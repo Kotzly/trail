@@ -1,110 +1,118 @@
 export const marketingCopy = {
   meta: {
-    title: "Trail — the best extension for focused browsing",
+    title: "trail",
     description:
-      "Trail turns messy tab sessions into structured trails so you never lose the thread.",
+      "trail turns messy tab sessions into structured trails. keep every decision, source, and next step in one place.",
   },
   nav: {
-    features: "Features",
-    workflow: "Workflow",
-    faq: "FAQ",
-    signIn: "Sign in",
-    getStarted: "Get started",
+    features: "features",
+    workflow: "workflow",
+    faq: "F.A.Q.",
+    signIn: "",
+    getStarted: "get",
   },
   hero: {
-    pill: "Browser extension · subscription",
+    pill: "browser extension · freemium",
     lead: "the best extension for",
     words: ["developers", "researchers", "product teams", "founders", "designers", "writers", "marketers", "analysts",
        "students", "consultants", "knowledge workers", "power users", "anyone who lives in the browser"],
     summary:
-      "Trail turns messy tab sessions into structured trails. Keep every decision, source, and next step in one place.",
-    ctaPrimary: "Start with the extension",
-    ctaSecondary: "See how it works",
+      "trail allows you to leverage your browser history to level up your work. you can even manage your tabs with trail. all without leaving the sidepanel.",
+    ctaPrimary: "try free",
+    ctaSecondary: "learn more",
   },
   stats: [
-    { label: "Avg. resume time", value: "3.2s" },
-    { label: "Sources captured", value: "120+ / week" },
-    { label: "Auto-tag accuracy", value: "94%" },
-    { label: "Context preserved", value: "100%" },
+    { label: "browsing time", value: "300+ hours" },
+    { label: "trails created", value: "100+ / hour" },
+    { label: "tabs managed", value: "250K+" },
+    { label: "research sessions", value: "16K+" },
+    { label: "exported trails", value: "2,300+" },
+    { label: "avg. session length", value: "42 min" },
+    { label: "shared links", value: "4,800+" },
   ],
   showcase: {
-    title: "See the trail come alive",
-    subtitle: "Drop your GIF at public/showcase.gif to replace this placeholder.",
+    title: "see trail in action",
+    subtitle: "gif is yet to come, please wait patiently.",
   },
   features: {
-    eyebrow: "Features",
-    title: "Everything you need to stay in flow.",
+    eyebrow: "features",
+    title: "everything you need to stay in flow.",
     summary:
-      "Trail is designed to feel invisible while you browse, but incredibly powerful when you need to pick a trail back up.",
+      "trail is designed to feel invisible while you browse, but incredibly powerful when you need to pick a trail back up.",
     cards: [
       {
-        title: "Auto-captured trails",
-        copy: "Every search, doc, and decision is logged into a clean trail you can resume in seconds.",
-        bullets: ["Session timeline", "Visited sources", "Time spent per page"],
+        title: "auto-captured trails",
+        copy: "every search, doc, and decision is logged into a clean trail you can resume in seconds.",
+        bullets: ["session timeline", "visited sources", "time spent per page"],
+      },
+      // { todo: add smart tagging
+      //   title: "smart tagging",
+      //   copy: "trail tags pages as you browse, so you can filter by topic, client, or research thread.",
+      //   bullets: ["Auto topic labels", "Pinned highlights", "One-click follow-ups"],
+      // },
+      {
+        title: "shareable context",
+        copy: "send a trail instead of a tab dump. keep the storyline, notes, and decisions intact.",
+        bullets: ["exportable summaries", "private links", "team-ready views"],
       },
       {
-        title: "Smart tagging",
-        copy: "Trail tags pages as you browse, so you can filter by topic, client, or research thread.",
-        bullets: ["Auto topic labels", "Pinned highlights", "One-click follow-ups"],
-      },
-      {
-        title: "Shareable context",
-        copy: "Send a trail instead of a tab dump. Keep the storyline, notes, and decisions intact.",
-        bullets: ["Exportable summaries", "Private links", "Team-ready views"],
+        title: "one-click search jump",
+        copy: "instantly revisit any search or website from your session, no hunting or re-Googling required.",
+        bullets: ["effortless revisit", "full search context", "zero friction"],
       },
     ],
   },
   workflow: {
-    eyebrow: "Workflow",
-    title: "A calm trail from search to share.",
+    eyebrow: "workflow",
+    title: "a calm trail from search to share.",
     summary:
-      "Your session stays organized without extra clicks. Trail captures the path, helps you curate the best moments, and keeps everything ready for next time.",
+      "your session stays organized without extra clicks. trail captures the path, helps you curate the best moments, and keeps everything ready for next time.",
     steps: [
       {
         title: "Capture",
-        copy: "Trail runs as a lightweight browser extension, recording every meaningful step in your session.",
+        copy: "trail runs as a lightweight browser extension, recording every meaningful step in your session.",
       },
       {
         title: "Curate",
-        copy: "Highlight key sources, add notes, and pin the moments that matter before you move on.",
+        copy: "highlight key sources, add notes, and pin the moments that matter before you move on.",
       },
       {
         title: "Resume",
-        copy: "Open a trail later and you are back exactly where you left off, complete with context.",
+        copy: "open a trail later and you are back exactly where you left off, complete with context.",
       },
       {
         title: "Share",
-        copy: "Send a trail to collaborators so they can jump into the same research path instantly.",
+        copy: "send a trail to collaborators so they can jump into the same research path instantly.",
       },
     ],
   },
   cta: {
-    title: "Ready to map your browsing?",
-    subtitle: "Install the extension, then unlock your account for sync and collaboration.",
-    primary: "Install extension",
-    secondary: "Go to account",
+    title: "ready to map your browsing?",
+    subtitle: "install the extension, then unlock your account for sync and collaboration.",
+    primary: "install extension",
+    secondary: "go to account",
   },
   faq: {
-    title: "Frequently asked questions",
+    title: "frequently asked questions",
     items: [
       {
-        question: "Is Trail free?",
+        question: "is trail free?",
         answer:
-          "Trail is free during the beta. Billing will be added later through Polar with founder-friendly pricing.",
+          "trail is free during the beta. subscriptions will be available later with freemium model.",
       },
       {
-        question: "Which browsers are supported?",
-        answer: "Chrome and Brave today. More Chromium browsers are next.",
+        question: "which browsers are supported?",
+        answer: "all chromium-based browsers are supported, including Chrome, Brave, Edge, and more.",
       },
       {
-        question: "Does Trail read page content?",
+        question: "does trail read page content?",
         answer:
-          "No. Trail focuses on URLs, titles, and metadata to keep the experience lightweight and privacy-first.",
+          "no. trail focuses on URLs, titles, and metadata to keep the experience lightweight and privacy-first.",
       },
       {
-        question: "How does account sync work?",
+        question: "how does account sync work?",
         answer:
-          "Account sync will let you back up and share trails. You decide what gets synced.",
+          "account sync will let you back up and share trails. you decide what gets synced.",
       },
     ],
   },

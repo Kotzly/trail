@@ -38,7 +38,7 @@ export function MarketingNav() {
           </a>
           <a
             href="https://my.gettrail.net"
-            className="hidden rounded-full bg-ink px-4 py-2 text-sm font-medium text-surface shadow-card transition hover:bg-ink-muted md:inline-flex"
+            className="cta-primary hidden rounded-full bg-ink px-4 py-2 text-sm font-medium shadow-card transition hover:bg-ink-muted md:inline-flex"
           >
             {nav.getStarted}
           </a>

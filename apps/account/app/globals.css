@@ -1,4 +1,7 @@
+@config "../tailwind.config.ts";
 @import "tailwindcss";
+@source "../../../packages/ui/src";
+@source "../../../packages/content/src";
 @import "@trail/ui/styles/tokens.css";
 @import "@trail/ui/styles/base.css";
 @import "@trail/ui/styles/animations.css";

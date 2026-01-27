@@ -35,7 +35,7 @@ export async function handleNavigation(
   }
 
   // Early handling for new-tab variants: always map them to the root node.
-  if (isNewTabUrl(url as Url)) {
+  if (isNewTabUrl(url as Url) || tab.title?.includes('New Tab')) {
     try {
       const tree = await treeStorage.getOrCreateTree();
       const root = tree.getRoot();

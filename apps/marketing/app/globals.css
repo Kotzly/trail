@@ -1,6 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap");
 
+@config "../tailwind.config.ts";
 @import "tailwindcss";
+@source "../../../packages/ui/src";
+@source "../../../packages/content/src";
 @import "@trail/ui/styles/tokens.css";
 @import "@trail/ui/styles/base.css";
 @import "@trail/ui/styles/animations.css";
@@ -15,6 +18,7 @@
   --ink: 13 13 16;
   --ink-muted: 24 24 29;
   --ink-subtle: 111 111 111;
+  --cta-fg: 242 242 242;
   --accent: 13 13 16;
   --accent-soft: 197 197 213;
   --glow: 242 242 242;
@@ -47,6 +51,7 @@
   --ink: 242 242 242;
   --ink-muted: 197 197 213;
   --ink-subtle: 111 111 111;
+  --cta-fg: 13 13 16;
   --accent: 242 242 242;
   --accent-soft: 24 24 29;
   --glow: 197 197 213;
@@ -77,6 +82,7 @@
     --ink: 242 242 242;
     --ink-muted: 197 197 213;
     --ink-subtle: 111 111 111;
+    --cta-fg: 13 13 16;
     --accent: 242 242 242;
     --accent-soft: 24 24 29;
     --glow: 197 197 213;
@@ -108,6 +114,7 @@
     --ink: 13 13 16;
     --ink-muted: 24 24 29;
     --ink-subtle: 111 111 111;
+    --cta-fg: 242 242 242;
     --accent: 13 13 16;
     --accent-soft: 197 197 213;
     --glow: 242 242 242;
@@ -137,6 +144,11 @@ body {
     rgb(var(--base));
   color: rgb(var(--ink));
   min-height: 100vh;
+}
+
+.cta-primary,
+a.cta-primary {
+  color: rgb(var(--cta-fg));
 }
 
 .word-rotator {
