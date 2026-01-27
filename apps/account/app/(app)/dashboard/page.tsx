@@ -22,7 +22,7 @@ export default function DashboardPage() {
             <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">
               {dashboard.title}
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-ink-subtle md:text-base">
+            <p className="mt-2 max-w-2xl text-sm text-ink-subtle md:text-[1rem]">
               {dashboard.subtitle}
             </p>
           </div>
@@ -37,7 +37,7 @@ export default function DashboardPage() {
               href="/settings"
               className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-5 py-2 text-sm font-semibold text-ink transition hover:border-stroke"
             >
-              {accountCopy.nav.settings}
+              Manage account
             </Link>
             <Link
               href="/billing"
@@ -51,7 +51,7 @@ export default function DashboardPage() {
               {
                 label: "Step 1",
                 title: "Connect the extension",
-                description: "Generate a one-time code and sign in to start syncing."
+                description: "Sign in from the extension to start syncing trails."
               },
               {
                 label: "Step 2",
@@ -131,9 +131,9 @@ export default function DashboardPage() {
                 {
                   step: "1",
                   title: "Connect extension",
-                  copy: "Generate a login code and paste it into the browser extension.",
+                  copy: "Open the extension and sign in to link your account.",
                   cta: "/extension",
-                  ctaLabel: "Get code"
+                  ctaLabel: "Open extension"
                 },
                 {
                   step: "2",
@@ -147,7 +147,7 @@ export default function DashboardPage() {
                   title: "Review + share",
                   copy: "Organize trails and prepare to invite collaborators.",
                   cta: "/settings",
-                  ctaLabel: "Open settings"
+                  ctaLabel: "Manage account"
                 }
               ].map((item) => (
                 <div

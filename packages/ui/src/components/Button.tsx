@@ -11,7 +11,7 @@ export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
   sm: "h-9 px-4 text-xs",
   md: "h-11 px-5 text-sm",
-  lg: "h-12 px-6 text-base"
+  lg: "h-12 px-6 text-[1rem]"
 };
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {

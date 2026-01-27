@@ -1,8 +1,5 @@
-@import "@fontsource-variable/zalando-sans-expanded";
-@import "@fontsource-variable/fraunces";
-
 :root {
-  --font-sans: "Zalando Sans Expanded", "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+  --font-sans: "Space Grotesk", "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
   --font-serif: "Fraunces", "Iowan Old Style", "Palatino", serif;
   color-scheme: light dark;
 }
@@ -26,7 +23,6 @@ body {
 }
 
 a {
-  color: inherit;
   text-decoration: none;
 }
 

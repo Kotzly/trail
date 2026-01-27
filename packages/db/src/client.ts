@@ -10,7 +10,38 @@ const globalForPrisma = globalThis as {
   prismaPool?: Pool;
 };
 
-if (!process.env.DATABASE_URL) {
+const envCandidates = [
+  "DATABASE_URL",
+  "POSTGRES_PRISMA_URL",
+  "POSTGRES_URL",
+  "SUPABASE_DATABASE_URL",
+  "SUPABASE_DB_URL",
+  "SUPABASE_POOLER_URL"
+];
+
+const isValidDatabaseUrl = (value: string | undefined | null) => {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "postgres:" || parsed.protocol === "postgresql:";
+  } catch {
+    return false;
+  }
+};
+
+const resolveDatabaseUrl = () => {
+  for (const key of envCandidates) {
+    const candidate = process.env[key];
+    if (isValidDatabaseUrl(candidate)) {
+      return candidate as string;
+    }
+  }
+  return null;
+};
+
+let databaseUrl = resolveDatabaseUrl();
+
+if (!databaseUrl) {
   const candidates = [
     ".env.local",
     ".env",
@@ -26,17 +57,24 @@ if (!process.env.DATABASE_URL) {
     const resolved = path.resolve(process.cwd(), candidate);
     if (fs.existsSync(resolved)) {
       dotenv.config({ path: resolved });
-      if (process.env.DATABASE_URL) {
+      databaseUrl = resolveDatabaseUrl();
+      if (databaseUrl) {
         break;
       }
     }
   }
 }
 
+if (!databaseUrl) {
+  throw new Error(
+    "Missing database connection string. Set DATABASE_URL (or POSTGRES_PRISMA_URL / SUPABASE_DB_URL)."
+  );
+}
+
 const pool =
   globalForPrisma.prismaPool ??
   new Pool({
-    connectionString: process.env.DATABASE_URL
+    connectionString: databaseUrl
   });
 
 const adapter = new PrismaPg(pool);

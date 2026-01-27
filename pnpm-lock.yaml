@@ -268,12 +268,6 @@ importers:
 
   packages/ui:
     dependencies:
-      '@fontsource-variable/fraunces':
-        specifier: ^5.2.1
-        version: 5.2.9
-      '@fontsource-variable/zalando-sans-expanded':
-        specifier: ^5.2.1
-        version: 5.2.1
       '@radix-ui/react-dialog':
         specifier: ^1.1.2
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -722,12 +716,6 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
-
-  '@fontsource-variable/fraunces@5.2.9':
-    resolution: {integrity: sha512-Y6IjunlN9Ni723np+GIgAaKzCDBrPRrqNi01TZxHs5wtHYROWFM9W6yiT+/gGwSjWIRD18oX17kD/BRWekc/Lw==}
-
-  '@fontsource-variable/zalando-sans-expanded@5.2.1':
-    resolution: {integrity: sha512-+gNz/EbGvJPDJNOZ6TCei+CwAhPP96iyyd11W6uqFWQ+68vae0l8ThAwHdeU+jC8WOTgpQOKVkTBxzFRf3DAog==}
 
   '@hono/node-server@1.19.9':
     resolution: {integrity: sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw==}
@@ -4638,10 +4626,6 @@ snapshots:
       react-dom: 19.2.4(react@19.2.4)
 
   '@floating-ui/utils@0.2.10': {}
-
-  '@fontsource-variable/fraunces@5.2.9': {}
-
-  '@fontsource-variable/zalando-sans-expanded@5.2.1': {}
 
   '@hono/node-server@1.19.9(hono@4.11.4)':
     dependencies:

@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,100..900&display=swap");
+
 @config "../tailwind.config.ts";
 @import "tailwindcss";
 @source "../../../packages/ui/src";
@@ -6,7 +8,9 @@
 @import "@trail/ui/styles/base.css";
 @import "@trail/ui/styles/animations.css";
 
-:root {
+:root,
+[data-theme="light"] {
+  color-scheme: light;
   --base: var(--trail-bg);
   --surface: var(--trail-surface);
   --surface-strong: var(--trail-surface-high);
@@ -17,6 +21,22 @@
   --accent: var(--trail-accent);
   --accent-soft: var(--trail-highlight);
   --font-display: var(--font-serif);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] {
+    color-scheme: light;
+  }
 }
 
 .app-shell {

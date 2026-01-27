@@ -1,5 +1,20 @@
 # Repository Guidelines
 
+## Agent Guidelines
+Внимательно проверяй, что ты не нарушаешь какие-либо ограничения или правила, которые могут привести к ошибкам или проблемам.
+если ты что-то менял, перед завершением работы проверяй, что всё успешно скомпилировалось и работает.
+Пиши без костылей. 
+Если пользователь пишет по поводу какой-то ошибки, смотри в корень проблемы, а не решай для конкретного случая.
+Если пользователь не сказал иначе - Legacy код убирай.
+Используй уместные паттерны проектирования.
+- Always use the latest version of the code.
+- Always use the latest version of the dependencies.
+- Always use the latest version of the tools.
+- Always use the latest version of the libraries.
+- Always use the latest version of the frameworks.
+- Always use the latest version of the languages.
+Use Context7 MCP for frameworks and libraries.
+
 ## Project Structure & Module Organization
 - `apps/marketing/` — Next.js marketing site (gettrail.net).
 - `apps/account/` — Next.js account app (my.gettrail.net) with Auth0 + tRPC.

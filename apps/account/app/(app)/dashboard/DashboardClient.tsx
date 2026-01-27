@@ -42,7 +42,7 @@ export function DashboardClient() {
           href="/settings"
           className="mt-5 inline-flex w-full items-center justify-center rounded-full border border-stroke/60 px-4 py-2 text-sm font-semibold text-ink transition hover:border-stroke"
         >
-          Manage settings
+          Manage account
         </Link>
       </div>
 
@@ -75,7 +75,7 @@ export function DashboardClient() {
             href="/extension"
             className="inline-flex items-center justify-between rounded-2xl border border-stroke/40 bg-surface/80 px-4 py-3 text-ink transition hover:border-stroke"
           >
-            <span>Connect extension</span>
+            <span>Open extension</span>
             <span>→</span>
           </Link>
           <Link
@@ -89,7 +89,7 @@ export function DashboardClient() {
             href="/settings"
             className="inline-flex items-center justify-between rounded-2xl border border-stroke/40 bg-surface/80 px-4 py-3 text-ink transition hover:border-stroke"
           >
-            <span>Workspace settings</span>
+            <span>Account preferences</span>
             <span>→</span>
           </Link>
         </div>

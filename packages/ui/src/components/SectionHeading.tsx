@@ -22,7 +22,7 @@ export function SectionHeading({
       <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
         {title}
       </h2>
-      {subtitle ? <p className="text-base text-ink-muted">{subtitle}</p> : null}
+      {subtitle ? <p className="text-[1rem] text-ink-muted">{subtitle}</p> : null}
     </div>
   );
 }

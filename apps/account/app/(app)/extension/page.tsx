@@ -27,6 +27,7 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
   const resolvedSearchParams = await searchParams;
   const queryCode =
     typeof resolvedSearchParams?.code === "string" ? resolvedSearchParams.code : null;
+  let connectionReady = false;
 
   if (queryCode) {
     try {
@@ -34,13 +35,11 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
       if (stored !== queryCode) {
         redirect(`/extension?code=${stored}`);
       }
+      connectionReady = true;
     } catch {
       const newCode = await createExtensionLoginCode(user.id);
       redirect(`/extension?code=${newCode}`);
     }
-  } else {
-    const newCode = await createExtensionLoginCode(user.id);
-    redirect(`/extension?code=${newCode}`);
   }
 
   return (
@@ -51,10 +50,24 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
       </div>
       <Card className="bg-surface/80">
         <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">
-          {accountCopy.extension.success}
+          {connectionReady ? accountCopy.extension.success : "Waiting for extension"}
         </p>
-        <p className="mt-4 text-2xl font-semibold">{queryCode}</p>
-        <p className="mt-2 text-sm text-ink-muted">{accountCopy.extension.instructions}</p>
+        {connectionReady ? (
+          <>
+            <p className="mt-4 text-2xl font-semibold">Connection confirmed</p>
+            <p className="mt-2 text-sm text-ink-muted">{accountCopy.extension.instructions}</p>
+          </>
+        ) : (
+          <>
+            <p className="mt-4 text-lg font-semibold text-ink">
+              Open the extension to finish sign-in
+            </p>
+            <p className="mt-2 text-sm text-ink-muted">
+              Once the extension starts the login flow, this page will confirm the
+              connection automatically.
+            </p>
+          </>
+        )}
       </Card>
     </section>
   );

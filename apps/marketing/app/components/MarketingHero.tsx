@@ -65,7 +65,7 @@ ${keyframeStops}
             </span>
           </h1>
           <style dangerouslySetInnerHTML={{ __html: keyframes }} />
-          <p className="mx-auto max-w-2xl text-base text-ink-subtle">{hero.summary}</p>
+          <p className="mx-auto max-w-2xl text-[1rem] text-ink-subtle">{hero.summary}</p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
               href="https://my.gettrail.net"
