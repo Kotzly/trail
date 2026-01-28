@@ -65,7 +65,7 @@ ${keyframeStops}
             </span>
           </h1>
           <style dangerouslySetInnerHTML={{ __html: keyframes }} />
-          <p className="mx-auto max-w-2xl text-[1rem] text-ink-subtle">{hero.summary}</p>
+          <p className="mx-auto max-w-2xl text-[1rem] text-ink-muted">{hero.summary}</p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
               href="/downloads"
@@ -74,7 +74,7 @@ ${keyframeStops}
               {hero.ctaPrimary}
             </a>
             <a
-              href="/#workflow"
+              href="/#showcase"
               className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
             >
               {hero.ctaSecondary}
@@ -89,6 +89,9 @@ ${keyframeStops}
             </div>
           ))}
         </div>
+        {marketingCopy.statsNote ? (
+          <p className="mt-4 text-xs text-ink-subtle">{marketingCopy.statsNote}</p>
+        ) : null}
       </div>
     </section>
   );

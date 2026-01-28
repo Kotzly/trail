@@ -13,9 +13,13 @@ import { useShortcuts } from './hooks/useShortcuts.js';
 import TooltipLayer from './components/TooltipLayer.js';
 import React from 'react';
 import { listenSystemTheme } from './hooks/listenSystemTheme.js';
+import TrailLoader from './components/TrailLoader.js';
+import { useStore } from './state/store.js';
 
 export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const settings = useStore((state) => state.settings);
+  const bootstrapped = Boolean(settings);
   useBootstrap();
   useAccount();
   useChromeMessages();
@@ -24,6 +28,7 @@ export default function App() {
 
   return (
     <div className="container">
+      {!bootstrapped ? <TrailLoader /> : null}
       <FloatingControls searchInputRef={searchInputRef} />
       <NotificationsHost />
       <GraphArea />

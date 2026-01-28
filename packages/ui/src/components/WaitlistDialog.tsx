@@ -9,6 +9,9 @@ export type WaitlistDialogProps = {
   triggerLabel: string;
   title?: string;
   description?: string;
+  successTitle?: string;
+  successDescription?: string;
+  successCtaLabel?: string;
   source?: string;
   action?: string;
   buttonVariant?: ButtonProps["variant"];
@@ -18,12 +21,19 @@ export type WaitlistDialogProps = {
 
 const defaultTitle = "Join the waitlist";
 const defaultDescription = "Leave your email and we will let you know when it is ready.";
+const defaultSuccessTitle = "You are on the list";
+const defaultSuccessDescription =
+  "We will reach out as soon as downloads open for your browser.";
+const defaultSuccessCta = "Done";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function WaitlistDialog({
   triggerLabel,
   title = defaultTitle,
   description = defaultDescription,
+  successTitle = defaultSuccessTitle,
+  successDescription = defaultSuccessDescription,
+  successCtaLabel = defaultSuccessCta,
   source,
   action = "/api/waitlist",
   buttonVariant = "primary",
@@ -36,15 +46,19 @@ export function WaitlistDialog({
     "idle"
   );
   const [error, setError] = React.useState<string | null>(null);
+  const [successOverride, setSuccessOverride] = React.useState<string | null>(null);
   const titleId = React.useId();
   const descriptionId = React.useId();
   const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const trimmedEmail = email.trim();
+  const isEmailValid = emailPattern.test(trimmedEmail);
 
   const closeDialog = React.useCallback(() => {
     setOpen(false);
     setStatus("idle");
     setError(null);
     setEmail("");
+    setSuccessOverride(null);
   }, []);
 
   React.useEffect(() => {
@@ -72,9 +86,7 @@ export function WaitlistDialog({
 
   const submitEmail = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const trimmedEmail = email.trim();
-
-    if (!emailPattern.test(trimmedEmail)) {
+    if (!isEmailValid) {
       setError("Enter a valid email address.");
       setStatus("error");
       return;
@@ -91,6 +103,11 @@ export function WaitlistDialog({
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          setSuccessOverride("You are already on the list. We will email you when downloads open.");
+          setStatus("success");
+          return;
+        }
         setStatus("error");
         setError("Something went wrong. Try again in a moment.");
         return;
@@ -149,13 +166,13 @@ export function WaitlistDialog({
 
             {status === "success" ? (
               <div className="trail-card-compact mt-6 bg-surface/90 p-4 text-sm text-ink">
-                <p className="font-medium">You are on the list.</p>
+                <p className="font-medium">{successTitle}</p>
                 <p className="trail-copy mt-2">
-                  We will reach out as soon as downloads open up.
+                  {successOverride ?? successDescription}
                 </p>
                 <div className="mt-4 flex justify-end">
                   <Button onClick={closeDialog} size="sm" variant="outline">
-                    Done
+                    {successCtaLabel}
                   </Button>
                 </div>
               </div>
@@ -184,13 +201,13 @@ export function WaitlistDialog({
                     type="submit"
                     size="md"
                     className="w-full sm:w-auto"
-                    disabled={status === "submitting"}
+                    disabled={status === "submitting" || !trimmedEmail || !isEmailValid}
                   >
                     {status === "submitting" ? "Joining..." : "Join"}
                   </Button>
                 </div>
                 <p className="trail-copy text-xs">
-                  No spam. One note when downloads open.
+                  No spam. One email when your download is ready.
                 </p>
                 {status === "error" && error ? (
                   <p className="text-xs text-ink">{error}</p>

@@ -1,0 +1,126 @@
+:root,
+[data-theme="light"] {
+  --trail-logo-border: var(--md-outline);
+  --trail-logo-accent: var(--md-primary);
+}
+
+[data-theme="dark"] {
+  --trail-logo-border: var(--md-outline);
+  --trail-logo-accent: var(--md-primary);
+}
+
+.trail-logo {
+  width: 90px;
+  height: 90px;
+  display: block;
+}
+
+.trail-logo--sm {
+  width: 28px;
+  height: 28px;
+}
+
+.trail-logo__sparkPath {
+  opacity: 0;
+  stroke-dasharray: 0.12 0.88;
+  stroke-dashoffset: 0.12;
+  will-change: stroke-dashoffset, opacity;
+}
+
+.trail-logo__nodeGlow {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.trail-logo--loop .trail-logo__sparkPath,
+.trail-logo--hover:hover .trail-logo__sparkPath,
+.trail-logo--hover:focus-visible .trail-logo__sparkPath {
+  animation: trailLogoSpark 2200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--trail-logo-delay, 0ms);
+}
+
+.trail-logo--loop .trail-logo__nodeGlow,
+.trail-logo--hover:hover .trail-logo__nodeGlow,
+.trail-logo--hover:focus-visible .trail-logo__nodeGlow {
+  animation: trailLogoNodePulse 2200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--trail-logo-delay, 0ms);
+}
+
+.trail-loader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--trail-app-bg-color, var(--md-surface));
+  z-index: 3;
+}
+
+.trail-loader__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.trail-loader__label {
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+  font-weight: 600;
+}
+
+.trail-loader .trail-logo {
+  width: 56px;
+  height: 56px;
+}
+
+@keyframes trailLogoSpark {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 0.12;
+  }
+  3% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 1;
+    stroke-dashoffset: -0.88;
+  }
+  28% {
+    opacity: 0;
+    stroke-dashoffset: -0.88;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -0.88;
+  }
+}
+
+@keyframes trailLogoNodePulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  8% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  18% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trail-logo__sparkPath,
+  .trail-logo__nodeGlow {
+    animation: none !important;
+  }
+}

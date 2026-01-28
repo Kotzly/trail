@@ -33,7 +33,7 @@ export default function DashboardPage() {
               href="/settings"
               className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-5 py-2 text-sm font-semibold text-ink transition hover:border-stroke"
             >
-              Manage account
+              Account settings
             </Link>
             <Link
               href="/billing"
@@ -42,35 +42,12 @@ export default function DashboardPage() {
               {accountCopy.nav.billing}
             </Link>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              {
-                label: "Step 1",
-                title: "Connect the extension",
-                description: "Sign in from the extension to start syncing trails."
-              },
-              {
-                label: "Step 2",
-                title: "Capture a trail",
-                description: "Record a flow and watch it appear here automatically."
-              },
-              {
-                label: "Step 3",
-                title: "Organize your workspace",
-                description: "Review, clean up, and get ready to share with the team."
-              }
-            ].map((step) => (
-              <div
-                key={step.label}
-                className="trail-card p-4 shadow-none"
-              >
-                <p className="text-[10px] uppercase tracking-[0.3em] text-ink-subtle">
-                  {step.label}
-                </p>
-                <p className="mt-3 text-sm font-semibold text-ink">{step.title}</p>
-                <p className="mt-2 text-xs text-ink-subtle">{step.description}</p>
-              </div>
-            ))}
+          <div className="trail-card-compact p-4">
+            <p className="trail-eyebrow">Next up</p>
+            <p className="mt-3 text-sm font-semibold text-ink">Connect the extension</p>
+            <p className="trail-copy mt-2 text-xs">
+              Approve the connection to start syncing trails into your dashboard.
+            </p>
           </div>
         </div>
       </div>
@@ -91,7 +68,7 @@ export default function DashboardPage() {
               </Badge>
             </div>
             <div className="mt-6 grid gap-3 md:grid-cols-2">
-              {["First capture", "Recent highlight"].map((label) => (
+              {["First trail", "Recent highlight"].map((label) => (
                 <div
                   key={label}
                   className="trail-card-compact p-4"
@@ -112,12 +89,10 @@ export default function DashboardPage() {
                 <h2 className="mt-2 font-display text-xl font-semibold text-ink">
                   Your setup checklist
                 </h2>
-                <p className="trail-copy mt-2">
-                  Follow the flow below to stay oriented as you begin.
-                </p>
+                <p className="trail-copy mt-2">Finish the essentials to unlock your first trail.</p>
               </div>
               <span className="rounded-full border border-stroke/40 bg-surface/70 px-3 py-1 text-xs font-semibold text-ink">
-                1/3 complete
+                Start here
               </span>
             </div>
             <div className="mt-5 grid gap-3">

@@ -4,7 +4,13 @@ import { marketingCopy } from "@trail/content";
 
 export const metadata: Metadata = {
   title: marketingCopy.meta.title,
-  description: marketingCopy.meta.description
+  description: marketingCopy.meta.description,
+  icons: {
+    icon: [
+      { url: "/brand/trail-fork-light.svg", media: "(prefers-color-scheme: light)" },
+      { url: "/brand/trail-fork-dark.svg", media: "(prefers-color-scheme: dark)" }
+    ]
+  }
 };
 
 export default function RootLayout({

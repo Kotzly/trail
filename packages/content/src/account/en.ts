@@ -13,8 +13,8 @@ export const accountCopy = {
   },
   dashboard: {
     title: "Dashboard",
-    subtitle: "Your recent trails and activity will appear here.",
-    emptyState: "No trails yet — open the extension to start syncing.",
+    subtitle: "Your recent trails and activity will appear here once you connect.",
+    emptyState: "No trails yet — connect the extension to start capturing.",
   },
   settings: {
     title: "Account",

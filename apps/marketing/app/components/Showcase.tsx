@@ -4,7 +4,10 @@ export function Showcase() {
   const { showcase } = marketingCopy;
 
   return (
-    <section className="mx-auto flex max-w-6xl flex-col items-center px-6 py-16 text-center">
+    <section
+      id="showcase"
+      className="mx-auto flex max-w-6xl flex-col items-center px-6 py-16 text-center"
+    >
       <p className="trail-eyebrow">Showcase</p>
       <h2 className="trail-title mt-4">{showcase.title}</h2>
       <p className="trail-copy mt-4 max-w-2xl">{showcase.subtitle}</p>

@@ -9,49 +9,40 @@ export const marketingCopy = {
     workflow: "workflow",
     faq: "F.A.Q.",
     signIn: "sign in",
-    getStarted: "get started",
+    getStarted: "get the extension",
   },
   hero: {
-    pill: "browser extension · freemium",
-    lead: "the best extension for",
+    pill: "browser extension · free beta",
+    lead: "turn browsing into",
     words: [
-      "developers",
-      "researchers",
-      "product teams",
-      "founders",
-      "designers",
-      "writers",
-      "marketers",
-      "analysts",
-      "students",
-      "consultants",
-      "knowledge workers",
-      "power users",
-      "anyone who lives in the browser",
+      "shareable research trails",
+      "clear decisions",
+      "team-ready context",
+      "repeatable workflows",
+      "lightweight summaries",
+      "a calm trail",
     ],
     summary:
-      "trail allows you to leverage your browser history to level up your work. you can even manage your tabs with trail. all without leaving the sidepanel.",
+      "capture every meaningful step, add notes when it matters, and share a trail instead of a tab dump.",
     ctaPrimary: "get the extension",
-    ctaSecondary: "see the workflow",
+    ctaSecondary: "see the 60s demo",
   },
   stats: [
-    { label: "browsing time", value: "300+ hours" },
-    { label: "trails created", value: "100+ / hour" },
-    { label: "tabs managed", value: "250K+" },
-    { label: "research sessions", value: "16K+" },
-    { label: "exported trails", value: "2,300+" },
+    { label: "hours captured (30 days)", value: "300+" },
+    { label: "trails created", value: "2,300+" },
+    { label: "links shared", value: "4,800+" },
     { label: "avg. session length", value: "42 min" },
-    { label: "shared links", value: "4,800+" },
   ],
+  statsNote: "Based on internal usage from the last 30 days.",
   showcase: {
     title: "see trail in action",
-    subtitle: "gif is yet to come, please wait patiently.",
+    subtitle: "a quick tour of capture → curate → share in under a minute.",
   },
   features: {
     eyebrow: "features",
     title: "everything you need to stay in flow.",
     summary:
-      "trail is designed to feel invisible while you browse, but incredibly powerful when you need to pick a trail back up.",
+      "trail stays out of the way while you browse, then turns your history into a clean, shareable trail.",
     cards: [
       {
         title: "auto-captured trails",
@@ -79,7 +70,7 @@ export const marketingCopy = {
     eyebrow: "workflow",
     title: "a calm trail from search to share.",
     summary:
-      "your session stays organized without extra clicks. trail captures the path, helps you curate the best moments, and keeps everything ready for next time.",
+      "capture what matters, curate the highlights, and return with full context when you need it.",
     steps: [
       {
         title: "Capture",
@@ -102,32 +93,32 @@ export const marketingCopy = {
   downloads: {
     meta: {
       title: "downloads · trail",
-      description:
-        "get the trail browser extension. download links are landing soon, with more platforms on the way.",
+    description:
+      "get the trail browser extension. download links open in waves, with more platforms on the way.",
     },
     eyebrow: "downloads",
     title: "install trail where you work",
     subtitle:
-      "the extension is shipping in waves. check back here for the download links, or sign in if you already have access.",
+      "downloads are opening in waves. join the list and we will email you as soon as your browser build is ready.",
     primaryCta: "join the waitlist",
     secondaryCta: "sign in",
     cards: [
       {
         title: "Chrome extension",
-        status: "coming soon",
-        copy: "the trail sidepanel experience, tuned for chrome on day one.",
+        status: "waitlist",
+        copy: "optimized for chrome and chromium browsers with the full sidepanel experience.",
       },
       {
         title: "Firefox extension",
-        status: "in work",
-        copy: "bringing trail to firefox with the same capture flow and sync.",
+        status: "in progress",
+        copy: "the same capture flow and sync, tailored for firefox.",
       },
     ],
     stepsTitle: "what happens next",
     steps: [
       {
         title: "install the extension",
-        copy: "grab the browser build as soon as the links open for your region.",
+        copy: "we will email you the install link when your browser build is ready.",
       },
       {
         title: "sign in to trail",
@@ -140,12 +131,15 @@ export const marketingCopy = {
     ],
     noteTitle: "already installed?",
     noteCopy: "open the extension to sign in and start capturing trails immediately.",
+    noteCta: "sign in to trail",
+    noteCtaHref: "https://my.gettrail.net/auth/login",
   },
   cta: {
     title: "ready to map your browsing?",
     subtitle: "install the extension, then sign in to sync and collaborate.",
     primary: "open downloads",
     secondary: "sign in",
+    note: "Free plan available · 30-second install · Privacy-first",
   },
   faq: {
     title: "frequently asked questions",

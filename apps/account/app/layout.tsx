@@ -5,7 +5,13 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: accountCopy.meta.title,
-  description: accountCopy.meta.description
+  description: accountCopy.meta.description,
+  icons: {
+    icon: [
+      { url: "/brand/trail-fork-light.svg", media: "(prefers-color-scheme: light)" },
+      { url: "/brand/trail-fork-dark.svg", media: "(prefers-color-scheme: dark)" }
+    ]
+  }
 };
 
 export default function RootLayout({

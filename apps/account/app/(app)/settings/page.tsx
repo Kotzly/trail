@@ -26,7 +26,7 @@ export default async function SettingsPage() {
         <h1 className="text-3xl font-semibold tracking-tight">{settings.title}</h1>
         <p className="mt-2 text-sm text-ink-muted">{settings.subtitle}</p>
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card className="trail-card-soft p-6">
           <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Profile</p>
           <div className="mt-4 flex items-center gap-3">
@@ -49,12 +49,33 @@ export default async function SettingsPage() {
           </p>
         </Card>
         <Card className="trail-card-soft p-6">
+          <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Connected extension</p>
+          <p className="mt-3 text-sm text-ink-muted">
+            Connect your browser extension to sync trails and unlock sharing.
+          </p>
+          <Button asChild variant="outline" className="mt-6">
+            <a href="/extension">Open extension</a>
+          </Button>
+        </Card>
+        <Card className="trail-card-soft p-6">
           <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Security</p>
           <p className="mt-3 text-sm text-ink-muted">
             Sign out to end your session across Trail apps.
           </p>
           <Button asChild variant="outline" className="mt-6">
             <a href="/auth/logout">Sign out</a>
+          </Button>
+        </Card>
+        <Card className="trail-card-soft p-6">
+          <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Data & privacy</p>
+          <p className="mt-3 text-sm text-ink-muted">
+            Trail stores metadata only. You stay in control of what gets synced and shared.
+          </p>
+          <p className="mt-3 text-sm text-ink-muted">
+            Need an export or deletion request? Reach out to support.
+          </p>
+          <Button asChild variant="outline" className="mt-6">
+            <a href="mailto:support@gettrail.net">Contact support</a>
           </Button>
         </Card>
       </div>

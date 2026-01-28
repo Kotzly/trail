@@ -1,3 +1,5 @@
+@import "./trail-logo.css";
+
 :root {
   --font-sans: "Space Grotesk", "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
   --font-serif: "Fraunces", "Iowan Old Style", "Palatino", serif;
@@ -45,7 +47,7 @@
 }
 
 @utility trail-copy {
-  @apply text-sm text-ink-subtle;
+  @apply text-sm text-ink-muted;
 }
 
 @utility trail-pill {
@@ -53,7 +55,7 @@
 }
 
 @utility trail-status {
-  @apply rounded-full border border-stroke/50 px-2 py-1 text-[0.6rem] uppercase tracking-[0.3em] text-ink-subtle;
+  @apply rounded-full border border-stroke/50 px-2 py-1 text-[0.6rem] uppercase tracking-[0.3em] text-ink-muted;
 }
 
 @utility trail-input {

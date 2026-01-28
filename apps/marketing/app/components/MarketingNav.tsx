@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { marketingCopy } from "@trail/content";
-import { ThemeToggle } from "@trail/ui";
+import { ThemeToggle, TrailLogo } from "@trail/ui";
 
 export function MarketingNav() {
   const { nav } = marketingCopy;
@@ -13,7 +13,7 @@ export function MarketingNav() {
           className="flex items-center gap-3 text-lg font-display font-semibold tracking-tight text-ink"
         >
           <span className="trail-card-compact flex h-9 w-9 items-center justify-center bg-surface shadow-card">
-            <span className="text-xs font-semibold uppercase">t</span>
+            <TrailLogo className="trail-logo--sm" />
           </span>
           trail
         </Link>

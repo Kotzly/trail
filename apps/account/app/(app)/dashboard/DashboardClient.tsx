@@ -34,15 +34,21 @@ export function DashboardClient() {
             <p className="trail-copy text-xs">{displayEmail}</p>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Badge className="bg-surface-strong text-xs font-semibold text-ink">Early access</Badge>
-          <Badge className="bg-surface-strong text-xs font-semibold text-ink">Solo workspace</Badge>
+        <div className="mt-4 space-y-2 text-xs text-ink-subtle">
+          <div className="flex items-center justify-between">
+            <span>Workspace</span>
+            <span className="text-ink">Solo</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Plan</span>
+            <span className="text-ink">Early access</span>
+          </div>
         </div>
         <Link
           href="/settings"
           className="mt-5 inline-flex w-full items-center justify-center rounded-full border border-stroke/60 px-4 py-2 text-sm font-semibold text-ink transition hover:border-stroke"
         >
-          Manage account
+          Account settings
         </Link>
       </div>
 
@@ -53,13 +59,7 @@ export function DashboardClient() {
             <p className="text-sm font-semibold text-ink">API status</p>
             <p className="trail-copy mt-1 text-xs">Live heartbeat from your Trail API.</p>
           </div>
-          <Badge
-            className={
-              health.data?.ok
-                ? "bg-surface-strong text-xs font-semibold text-ink"
-                : "bg-surface-strong text-xs font-semibold text-ink-muted"
-            }
-          >
+          <Badge className="bg-surface-strong text-xs font-semibold text-ink">
             {systemStatus}
           </Badge>
         </div>
@@ -89,7 +89,7 @@ export function DashboardClient() {
             href="/settings"
             className="trail-card-compact inline-flex items-center justify-between px-4 py-3 text-ink transition hover:border-stroke"
           >
-            <span>Account preferences</span>
+            <span>Account settings</span>
             <span>→</span>
           </Link>
         </div>

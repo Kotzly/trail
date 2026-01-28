@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ThemeToggle, cn } from "@trail/ui";
+import { ThemeToggle, TrailLogo, cn } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { useUiStore } from "@/src/store/useUiStore";
 
@@ -27,7 +27,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {sidebarOpen ? (
         <aside className="trail-card-soft p-6 shadow-elev-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-[0.3em]">Trail</span>
+            <div className="flex items-center gap-3">
+              <span className="trail-card-compact flex h-8 w-8 items-center justify-center bg-surface shadow-card">
+                <TrailLogo className="trail-logo--sm" />
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-[0.3em]">Trail</span>
+            </div>
             <button
               type="button"
               onClick={toggleSidebar}
