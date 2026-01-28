@@ -10,6 +10,9 @@ export default function GraphArea() {
       treeUpdate: state.treeUpdate,
       currentNodeId: state.currentNodeId,
       openNodeIds: state.openNodeIds,
+      collapsedNodeIds: state.graph.collapsedNodeIds,
+      collapseVersion: state.graph.collapseVersion,
+      collapseAction: state.graph.collapseAction,
       nodeTabCounts: state.nodeTabCounts,
       tabStates: state.tabStates,
       search: {

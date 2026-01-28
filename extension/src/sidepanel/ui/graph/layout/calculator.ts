@@ -199,10 +199,11 @@ function computeTidyBreadths(root: TidyNode, baseSeparation: number): void {
 export function calculateLayout(
   root: NavigationNode,
   layoutConfig: LayoutConfig,
+  getChildren: GetChildren = (node) => node.getChildren?.() ?? [],
 ): { positions: Map<NodeId, NodePosition>, width: number } {
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
-  const tidyRoot = createTidyTree(root, (node) => node.getChildren?.() ?? []);
+  const tidyRoot = createTidyTree(root, getChildren);
   const baseSeparation = Math.max(nodeWidth + horizontalGap, 1);
   computeTidyBreadths(tidyRoot, baseSeparation);
 
@@ -248,7 +249,8 @@ export function calculateLayout(
  */
 export function calculateMindmapLayout(
   root: NavigationNode,
-  layoutConfig: LayoutConfig
+  layoutConfig: LayoutConfig,
+  getChildren: GetChildren = (node) => node.getChildren?.() ?? [],
 ): { positions: Map<NodeId, NodePosition>, width: number } {
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
@@ -256,7 +258,7 @@ export function calculateMindmapLayout(
 
   function calcHeights(node: NavigationNode | null): number {
     if (!node) return 0;
-    const children = node.getChildren?.() ?? [];
+    const children = getChildren(node);
     if (children.length === 0) {
       subtreeHeights.set(node.id, nodeHeight);
       return nodeHeight;
@@ -273,7 +275,7 @@ export function calculateMindmapLayout(
 
   calcHeights(root);
 
-  const rootChildren = root.getChildren?.() ?? [];
+  const rootChildren = getChildren(root);
   const sorted = [...rootChildren].sort((a, b) => {
     return (subtreeHeights.get(b.id) ?? 0) - (subtreeHeights.get(a.id) ?? 0);
   });
@@ -302,7 +304,7 @@ export function calculateMindmapLayout(
   const layoutSide = (children: NavigationNode[], direction: 1 | -1): void => {
     if (children.length === 0) return;
     const tidyRoot = createTidyTree(root, (node) =>
-      node.id === root.id ? children : node.getChildren?.() ?? [],
+      node.id === root.id ? children : getChildren(node),
     );
     computeTidyBreadths(tidyRoot, baseSeparation);
     const rootBreadth = tidyRoot.breadth;
@@ -355,7 +357,8 @@ export function calculateMindmapLayout(
 export function calculateRadialLayout(
   root: NavigationNode,
   layoutConfig: RadialLayoutConfig,
-  baseLayout: LayoutConfig
+  baseLayout: LayoutConfig,
+  getChildren: GetChildren = (node) => node.getChildren?.() ?? [],
 ): { positions: Map<NodeId, NodePosition>, width: number } {
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight } = baseLayout;
@@ -405,7 +408,7 @@ export function calculateRadialLayout(
       ancestor: null as unknown as TidyNode,
     };
     tidy.ancestor = tidy;
-    const children = node.getChildren?.() ?? [];
+    const children = getChildren(node);
     tidy.children = children.map((child, idx) => buildTidy(child, tidy, depth + 1, idx + 1));
     return tidy;
   };

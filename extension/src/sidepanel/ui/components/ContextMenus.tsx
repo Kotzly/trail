@@ -200,6 +200,9 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
   const tree = useStore((state) => state.tree);
   const tagDefsList = useStore((state) => state.tagDefsList);
+  const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
+  const collapseNodes = useStore((state) => state.collapseNodes);
+  const expandNodes = useStore((state) => state.expandNodes);
   const node = tree?.findNodeById(nodeId);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuStyle = useMenuPosition(menuRef, position);
@@ -295,6 +298,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const hasTitle = Boolean(node?.data.title && node.data.title.trim().length > 0);
   const hasChildren = node?.getChildren()?.length ? node.getChildren().length > 0 : false;
   const isRoot = node?.isRoot() ?? false;
+  const isCollapsed = collapsedNodeIds.has(nodeId);
 
   if (!node) return null;
 
@@ -457,6 +461,28 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       >
         {node.data.pinned ? 'Unpin' : 'Pin'}
       </div>
+      {hasChildren && !isCollapsed ? (
+        <div
+          className="graph-context-menu-item"
+          onClick={() => {
+            collapseNodes([nodeId]);
+            closeContextMenu();
+          }}
+        >
+          Collapse node
+        </div>
+      ) : null}
+      {isCollapsed ? (
+        <div
+          className="graph-context-menu-item"
+          onClick={() => {
+            expandNodes([nodeId]);
+            closeContextMenu();
+          }}
+        >
+          Expand node
+        </div>
+      ) : null}
 
       <div className="graph-context-menu-item has-submenu">
         Tags <span className="submenu-arrow">›</span>
@@ -611,6 +637,9 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const tree = useStore((state) => state.tree);
   const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const tagDefsList = useStore((state) => state.tagDefsList);
+  const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
+  const collapseNodes = useStore((state) => state.collapseNodes);
+  const expandNodes = useStore((state) => state.expandNodes);
 
   const selectedNodes = useMemo(() => {
     if (!tree) return [];
@@ -629,6 +658,18 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
     });
     return counts;
   }, [selectedNodes]);
+
+  const collapseCandidates = useMemo(
+    () =>
+      selectedNodes.filter(
+        (node) => (node.getChildren?.() ?? []).length > 0 && !collapsedNodeIds.has(node.id),
+      ),
+    [collapsedNodeIds, selectedNodes],
+  );
+  const expandCandidates = useMemo(
+    () => selectedNodes.filter((node) => collapsedNodeIds.has(node.id)),
+    [collapsedNodeIds, selectedNodes],
+  );
 
   const toggleTagForSelection = (tagId: Tag) => {
     if (!tree) return;
@@ -680,6 +721,30 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         }}
       >
         Unpin selected
+      </div>
+      <div
+        className={`graph-context-menu-item${collapseCandidates.length === 0 ? ' is-disabled' : ''}`}
+        aria-disabled={collapseCandidates.length === 0}
+        onClick={() => {
+          if (collapseCandidates.length === 0) return;
+          collapseNodes(collapseCandidates.map((node) => node.id));
+          clearSelection();
+          closeContextMenu();
+        }}
+      >
+        Collapse selected
+      </div>
+      <div
+        className={`graph-context-menu-item${expandCandidates.length === 0 ? ' is-disabled' : ''}`}
+        aria-disabled={expandCandidates.length === 0}
+        onClick={() => {
+          if (expandCandidates.length === 0) return;
+          expandNodes(expandCandidates.map((node) => node.id));
+          clearSelection();
+          closeContextMenu();
+        }}
+      >
+        Expand selected
       </div>
       <div className="graph-context-menu-item has-submenu">
         Tags <span className="submenu-arrow">›</span>

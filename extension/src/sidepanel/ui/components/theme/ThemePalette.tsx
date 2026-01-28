@@ -34,6 +34,7 @@ const DEFAULT_THEME: CustomTheme = {
 };
 
 const DOT_TYPES: Array<ThemeDot['type']> = ['explicit-lightness', 'explicit-black-white'];
+const CUSTOM_COLOR_LIMIT = 4;
 
 const HARMONY_LABELS: Record<ThemeHarmony, string> = {
   floating: 'Floating',
@@ -172,9 +173,11 @@ const normalizeTheme = (theme: CustomTheme | null | undefined): CustomTheme => {
       };
     })
     .slice(0, 3);
-  if (!Array.isArray(next.customColors)) {
-    next.customColors = [];
-  }
+  const rawCustomColors = Array.isArray(next.customColors) ? next.customColors : [];
+  next.customColors = rawCustomColors
+    .map((color) => (typeof color === 'string' ? color.trim() : ''))
+    .filter((color) => color.length > 0)
+    .slice(0, CUSTOM_COLOR_LIMIT);
   next.lightness = clamp(
     typeof next.lightness === 'number' ? next.lightness : DEFAULT_THEME.lightness,
     0,
@@ -225,6 +228,9 @@ export default function ThemePalette({
   const recentlyDraggedTimer = useRef<number | null>(null);
   const bounceTimerRef = useRef<number | null>(null);
   const draftRef = useRef<CustomTheme>(draft);
+  const customColorsCount = draft.customColors?.length ?? 0;
+  const customMode = customColorsCount > 0;
+  const canAddCustomColor = customColorsCount < CUSTOM_COLOR_LIMIT;
 
   useEffect(() => {
     const next = normalizeTheme(value);
@@ -347,12 +353,14 @@ export default function ThemePalette({
   );
 
   const handleAdd = useCallback(() => {
+    if (customMode) return;
     if (draft.dots.length === 0 || draft.dots.length >= 3) return;
     const result = calculateCompliments(draft.dots, 'add', draft.harmony);
     commitTheme({ ...draft, dots: result.dots, harmony: result.harmony, enabled: true });
-  }, [commitTheme, draft]);
+  }, [commitTheme, customMode, draft]);
 
   const handleRemove = useCallback(() => {
+    if (customMode) return;
     if (draft.dots.length === 0) return;
     const trimmed = draft.dots.slice(0, -1);
     if (trimmed.length === 0) {
@@ -371,12 +379,13 @@ export default function ThemePalette({
       lightness: nextLightness,
       enabled: true,
     });
-  }, [commitTheme, draft]);
+  }, [commitTheme, customMode, draft]);
 
   const handleDotContextMenu = useCallback(
     (event: React.MouseEvent, index: number) => {
       event.preventDefault();
       event.stopPropagation();
+      if (customMode) return;
       const current = draftRef.current;
       if (current.dots.length === 0) return;
       const nextDots = current.dots.filter((_, i) => i !== index);
@@ -397,10 +406,11 @@ export default function ThemePalette({
         enabled: true,
       });
     },
-    [commitTheme]
+    [commitTheme, customMode]
   );
 
   const handleToggleHarmony = useCallback(() => {
+    if (customMode) return;
     const count = draft.dots.length;
     if (count <= 1) return;
     const options: ThemeHarmony[] =
@@ -410,10 +420,11 @@ export default function ThemePalette({
     const primary = getPrimaryDot(draft);
     commitTheme({ ...draft, dots: buildDots(primary, nextHarmony), harmony: nextHarmony, enabled: true });
     triggerDotBounce();
-  }, [commitTheme, draft, triggerDotBounce]);
+  }, [commitTheme, customMode, draft, triggerDotBounce]);
 
   const handlePreset = useCallback(
     (preset: ThemePreset) => {
+      if (customMode) return;
       const primary: ThemeDot = {
         x: preset.position.x,
         y: preset.position.y,
@@ -432,11 +443,12 @@ export default function ThemePalette({
         enabled: true,
       });
     },
-    [commitTheme, draft]
+    [commitTheme, customMode, draft]
   );
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent) => {
+      if (customMode) return;
       if (!(event.target instanceof HTMLElement)) return;
       if (event.button !== 0) return;
       const dotIndex = dotRefs.current.findIndex((el) => el === event.target);
@@ -448,11 +460,12 @@ export default function ThemePalette({
       dotRefs.current[0]?.classList.add('dragging');
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [draft.enabled]
+    [customMode]
   );
 
   const handlePointerMove = useCallback(
     (event: React.PointerEvent) => {
+      if (customMode) return;
       if (!draggingRef.current || !gradientRef.current) return;
       if (dragPointerId.current !== event.pointerId) return;
       const rect = gradientRef.current.getBoundingClientRect();
@@ -473,11 +486,12 @@ export default function ThemePalette({
         enabled: true,
       });
     },
-    [previewTheme]
+    [customMode, previewTheme]
   );
 
   const handlePointerUp = useCallback(
     (event: React.PointerEvent) => {
+      if (customMode) return;
       if (!draggingRef.current) return;
       if (dragPointerId.current !== event.pointerId) return;
       draggingRef.current = false;
@@ -487,7 +501,7 @@ export default function ThemePalette({
       markRecentlyDragged();
       commitTheme(draftRef.current);
     },
-    [commitTheme, markRecentlyDragged]
+    [commitTheme, customMode, markRecentlyDragged]
   );
 
   const handleTexturePointerDown = useCallback((event: React.PointerEvent) => {
@@ -526,6 +540,7 @@ export default function ThemePalette({
 
   const handlePadClick = useCallback(
     (event: React.MouseEvent) => {
+      if (customMode) return;
       if (!(event.target instanceof HTMLElement)) return;
       if (draggingRef.current || recentlyDraggedRef.current) return;
       const dotIndex = dotRefs.current.findIndex((el) => el === event.target);
@@ -554,7 +569,7 @@ export default function ThemePalette({
       });
       triggerDotBounce();
     },
-    [commitTheme, triggerDotBounce]
+    [commitTheme, customMode, triggerDotBounce]
   );
 
   const handleScheme = (next: ThemeId) => {
@@ -574,6 +589,7 @@ export default function ThemePalette({
   };
 
   const handleAddCustomColor = () => {
+    if (!canAddCustomColor) return;
     const normalized = customColor.trim();
     if (!normalized) return;
     let color = normalizeHexInput(normalized, normalized);
@@ -590,7 +606,7 @@ export default function ThemePalette({
     if (!color.startsWith('#') && /^[0-9A-Fa-f]{3,6}$/.test(color)) {
       color = `#${color}`;
     }
-    const nextColors = [color, ...(draft.customColors ?? [])];
+    const nextColors = [color, ...(draft.customColors ?? [])].slice(0, CUSTOM_COLOR_LIMIT);
     commitTheme({ ...draft, customColors: nextColors, enabled: true });
     setCustomOpacity(1);
   };
@@ -638,24 +654,24 @@ export default function ThemePalette({
             <button
               type="button"
               onClick={handleAdd}
-              disabled={draft.dots.length === 0 || draft.dots.length >= 3}
+              disabled={customMode || draft.dots.length === 0 || draft.dots.length >= 3}
             >
               <Icons.Plus size={14} />
             </button>
-            <button type="button" onClick={handleRemove} disabled={draft.dots.length === 0}>
+            <button type="button" onClick={handleRemove} disabled={customMode || draft.dots.length === 0}>
               <Icons.Minus size={14} />
             </button>
             <button
               type="button"
               onClick={handleToggleHarmony}
-              disabled={draft.dots.length <= 1}
+              disabled={customMode || draft.dots.length <= 1}
               title={HARMONY_LABELS[draft.harmony]}
             >
               <Icons.CirclePile size={14} />
             </button>
         </div>
         <div
-          className={`zen-theme-picker-pad ${isDragging ? 'is-dragging' : ''}`}
+          className={`zen-theme-picker-pad ${isDragging ? 'is-dragging' : ''}${customMode ? ' is-disabled' : ''}`}
           ref={gradientRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -686,7 +702,7 @@ export default function ThemePalette({
         <button
           type="button"
           className="zen-theme-picker-page-btn"
-          disabled={pageIndex === 0}
+          disabled={customMode || pageIndex === 0}
           onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
         >
           <Icons.ChevronLeft size={14} />
@@ -709,6 +725,7 @@ export default function ThemePalette({
                     style={style}
                     onClick={() => handlePreset(preset)}
                     title="Preset"
+                    disabled={customMode}
                   />
                 );
               })}
@@ -718,7 +735,7 @@ export default function ThemePalette({
         <button
           type="button"
           className="zen-theme-picker-page-btn"
-          disabled={pageIndex >= PRESET_PAGES.length - 1}
+          disabled={customMode || pageIndex >= PRESET_PAGES.length - 1}
           onClick={() => setPageIndex((prev) => Math.min(PRESET_PAGES.length - 1, prev + 1))}
         >
           <Icons.ChevronRight size={14} />
@@ -809,20 +826,32 @@ export default function ThemePalette({
             className="zen-theme-picker-color-input"
             onChange={(event) => setCustomColor(event.target.value)}
           />
-          <input
-            type="number"
-            min={0}
-            max={1}
-            step={0.01}
-            value={customOpacity}
-            className="zen-theme-picker-opacity-input"
-            onChange={(event) => {
-              const next = Number(event.target.value);
-              if (Number.isNaN(next)) return;
-              setCustomOpacity(clamp(next, 0, 1));
-            }}
-          />
-          <button type="button" className="zen-theme-picker-icon-btn" onClick={handleAddCustomColor}>
+          <div className="zen-theme-picker-opacity-field">
+            <div className="zen-theme-picker-opacity-label">
+              <span>Opacity</span>
+              <span>{customOpacity.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={customOpacity}
+              className="zen-theme-picker-opacity-input"
+              aria-label="Custom color opacity"
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                if (Number.isNaN(next)) return;
+                setCustomOpacity(clamp(next, 0, 1));
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="zen-theme-picker-icon-btn"
+            onClick={handleAddCustomColor}
+            disabled={!canAddCustomColor}
+          >
             <Icons.Plus size={14} />
           </button>
         </div>

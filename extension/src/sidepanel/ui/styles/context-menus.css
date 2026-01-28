@@ -62,6 +62,18 @@
   transform: scale(1.02);
 }
 
+.graph-context-menu-item.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+}
+
+.graph-context-menu-item.is-disabled:hover {
+  background: transparent;
+  transform: none;
+}
+
 .graph-context-menu-item.danger {
   color: var(--md-error);
 }

@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate dev-marketing dev-account dev-api lint typecheck test
+.PHONY: dev db-up db-down db-migrate dev-marketing dev-account dev-api lint typecheck test extension
 
 db-up:
 	docker compose up -d postgres
@@ -29,3 +29,6 @@ typecheck:
 
 test:
 	pnpm test
+
+extension:
+	cd extension && npm run build

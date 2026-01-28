@@ -124,6 +124,9 @@ type StoreState = {
     resetVersion: number;
     viewIntent: TreeUpdatedInput['view'] | null;
     hoverNodeId: NodeId | null;
+    collapsedNodeIds: Set<NodeId>;
+    collapseVersion: number;
+    collapseAction: { kind: 'collapse' | 'expand'; nodeIds: Set<NodeId> } | null;
   };
   contextMenu: ContextMenuState;
   metaKey: MetaKeyPair | null;
@@ -166,6 +169,8 @@ type StoreActions = {
   setGraphView: (view: Partial<ViewState>) => void;
   setHoverNodeId: (nodeId: NodeId | null) => void;
   requestGraphReset: () => void;
+  collapseNodes: (nodeIds: NodeId[]) => void;
+  expandNodes: (nodeIds: NodeId[]) => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
   clearViewIntent: () => void;
@@ -190,6 +195,18 @@ const openUiPopup = (ui: StoreState['ui'], key: PopupKey): StoreState['ui'] => (
   ...closeUiPopups(ui),
   [key]: true,
 });
+
+const pruneCollapsedNodes = (tree: NavigationTree | null, collapsed: Set<NodeId>): Set<NodeId> => {
+  if (!tree || collapsed.size === 0) return new Set<NodeId>();
+  const next = new Set<NodeId>();
+  collapsed.forEach((id) => {
+    const node = tree.findNodeById(id);
+    if (!node) return;
+    if ((node.getChildren?.() ?? []).length === 0) return;
+    next.add(id);
+  });
+  return next;
+};
 
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
   settings: null,
@@ -255,6 +272,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     resetVersion: 0,
     viewIntent: null,
     hoverNodeId: null,
+    collapsedNodeIds: new Set<NodeId>(),
+    collapseVersion: 0,
+    collapseAction: null,
   },
   contextMenu: null,
   metaKey: null,
@@ -288,6 +308,22 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set((state) => {
       const nextViewIntent = payload.view ?? state.graph.viewIntent;
       const shouldResetTransient = payload.reason === 'tree-switch' || payload.reason === 'tree-reset';
+      const resolvedViewIntent = shouldResetTransient ? nextViewIntent ?? null : nextViewIntent ?? state.graph.viewIntent;
+      const nextCollapsedNodeIds = shouldResetTransient
+        ? new Set<NodeId>()
+        : pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
+      const nextGraph = {
+        ...state.graph,
+        viewIntent: resolvedViewIntent,
+        collapsedNodeIds: nextCollapsedNodeIds,
+        ...(shouldResetTransient
+          ? {
+              selectedNodeIds: new Set<NodeId>(),
+              hoverNodeId: null,
+              collapseAction: null,
+            }
+          : {}),
+      };
       return {
         tree,
         treeUpdate: { reason: payload.reason, at: Date.now() },
@@ -297,7 +333,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         openNodeIds: new Set(payload.openNodeIds),
         currentNodeId: currentId,
         nodeCount,
-        graph: nextViewIntent ? { ...state.graph, viewIntent: nextViewIntent } : state.graph,
+        graph: nextGraph,
         ...(shouldResetTransient
           ? {
               search: {
@@ -309,12 +345,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
                 baseCurrentId: null,
               },
               contextMenu: null,
-              graph: {
-                ...state.graph,
-                selectedNodeIds: new Set<NodeId>(),
-                hoverNodeId: null,
-                viewIntent: nextViewIntent ?? null,
-              },
             }
           : {}),
       };
@@ -563,6 +593,46 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set((state) => ({
       graph: { ...state.graph, resetVersion: state.graph.resetVersion + 1 },
     })),
+  collapseNodes: (nodeIds) =>
+    set((state) => {
+      if (nodeIds.length === 0) return state;
+      const next = new Set(state.graph.collapsedNodeIds);
+      const changed: NodeId[] = [];
+      nodeIds.forEach((id) => {
+        if (next.has(id)) return;
+        next.add(id);
+        changed.push(id);
+      });
+      if (changed.length === 0) return state;
+      return {
+        graph: {
+          ...state.graph,
+          collapsedNodeIds: next,
+          collapseVersion: state.graph.collapseVersion + 1,
+          collapseAction: { kind: 'collapse', nodeIds: new Set(changed) },
+        },
+      };
+    }),
+  expandNodes: (nodeIds) =>
+    set((state) => {
+      if (nodeIds.length === 0) return state;
+      const next = new Set(state.graph.collapsedNodeIds);
+      const changed: NodeId[] = [];
+      nodeIds.forEach((id) => {
+        if (!next.has(id)) return;
+        next.delete(id);
+        changed.push(id);
+      });
+      if (changed.length === 0) return state;
+      return {
+        graph: {
+          ...state.graph,
+          collapsedNodeIds: next,
+          collapseVersion: state.graph.collapseVersion + 1,
+          collapseAction: { kind: 'expand', nodeIds: new Set(changed) },
+        },
+      };
+    }),
 
   openContextMenu: (menu) =>
     set((state) => ({

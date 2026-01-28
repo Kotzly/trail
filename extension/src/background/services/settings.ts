@@ -60,7 +60,9 @@ function normalizeCustomTheme(raw: unknown): CustomTheme {
         opacity: clamp01(partial.opacity ?? DEFAULT_CUSTOM_THEME.opacity, DEFAULT_CUSTOM_THEME.opacity),
         texture: clamp01(partial.texture ?? DEFAULT_CUSTOM_THEME.texture, DEFAULT_CUSTOM_THEME.texture),
         customColors: Array.isArray(partial.customColors)
-            ? partial.customColors.filter((color) => typeof color === 'string' && color.trim().length > 0)
+            ? partial.customColors
+                .filter((color) => typeof color === 'string' && color.trim().length > 0)
+                .slice(0, 4)
             : DEFAULT_CUSTOM_THEME.customColors,
         accentColor:
             typeof partial.accentColor === 'string' && /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(partial.accentColor)

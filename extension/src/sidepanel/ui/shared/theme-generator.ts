@@ -70,6 +70,7 @@ const clamp01 = (value: number) => clamp(value, 0, 1);
 
 const OPACITY_MIN = 0.35;
 const OPACITY_MAX = 0.9;
+const CUSTOM_COLOR_LIMIT = 4;
 
 const toRgb = (value: number) => Math.round(clamp(value, 0, 255));
 
@@ -238,16 +239,46 @@ const buildZenGradient = (colors: string[], useCustomColors: boolean): string | 
 };
 
 const normalizeCustomStops = (customColors: string[] | undefined | null): string[] =>
-  (customColors ?? []).map((color) => color.trim()).filter((color) => color.length > 0);
+  (customColors ?? [])
+    .map((color) => color.trim())
+    .filter((color) => color.length > 0)
+    .slice(0, CUSTOM_COLOR_LIMIT);
+
+const parsePaletteColor = (value: string): RgbaColor => {
+  const rgba = hexToRgba(value);
+  if (rgba) return rgba;
+  const rgb = hexToRgb(value);
+  return { ...rgb, a: 1 };
+};
+
+const resolvePaletteStops = (
+  custom: CustomTheme,
+): { stops: string[]; useCustomColors: boolean } => {
+  const customStops = normalizeCustomStops(custom.customColors);
+  if (customStops.length > 0) {
+    return { stops: customStops, useCustomColors: true };
+  }
+  return { stops: getDotColors(custom.dots, custom.lightness), useCustomColors: false };
+};
+
+const blendPaletteColor = (
+  color: RgbaColor,
+  baseSurfaceRgb: RgbColor,
+  opacity: number,
+): RgbColor => {
+  const alpha = clamp((color.a ?? 1) * opacity, 0, 1);
+  return blendColors({ r: color.r, g: color.g, b: color.b }, baseSurfaceRgb, alpha * 100);
+};
 
 const getAutoAccentRgb = (custom: CustomTheme, scheme: ThemeId): RgbColor => {
-  const dotColors = getDotColors(custom.dots, custom.lightness);
-  const paletteRgb = dotColors.map((color) => hexToRgb(color));
+  const { stops } = resolvePaletteStops(custom);
+  const palette = stops.map(parsePaletteColor);
+  const paletteRgb = palette.map((color) => ({ r: color.r, g: color.g, b: color.b }));
   const mode = getResolvedScheme(scheme);
   const isDark = mode === 'dark';
   const baseSurfaceRgb = isDark ? { r: 23, g: 23, b: 26 } : { r: 240, g: 240, b: 244 };
   const opacity = clamp(custom.opacity, OPACITY_MIN, OPACITY_MAX);
-  const blendedRgb = paletteRgb.map((color) => blendColors(color, baseSurfaceRgb, opacity * 100));
+  const blendedRgb = palette.map((color) => blendPaletteColor(color, baseSurfaceRgb, opacity));
   return blendedRgb[0] ?? paletteRgb[0] ?? baseSurfaceRgb;
 };
 
@@ -415,16 +446,14 @@ const getResolvedScheme = (scheme: ThemeId): 'light' | 'dark' => {
 const toHslString = (color: HslColor) => rgbToHex(hslToRgb(color));
 
 export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Record<string, string> {
-  const dotColors = getDotColors(custom.dots, custom.lightness);
-  const customStops = normalizeCustomStops(custom.customColors);
-  const hasCustomStops = customStops.length > 0;
-  const paletteRgb = dotColors.map((color) => hexToRgb(color));
+  const { stops: paletteStops, useCustomColors } = resolvePaletteStops(custom);
+  const palette = paletteStops.map(parsePaletteColor);
   const fallbackRgb = { r: 59, g: 59, b: 64 };
   const mode = getResolvedScheme(scheme);
   const isDark = mode === 'dark';
   const baseSurfaceRgb = isDark ? { r: 23, g: 23, b: 26 } : { r: 240, g: 240, b: 244 };
   const opacity = clamp(custom.opacity, OPACITY_MIN, OPACITY_MAX);
-  const blendedRgb = paletteRgb.map((color) => blendColors(color, baseSurfaceRgb, opacity * 100));
+  const blendedRgb = palette.map((color) => blendPaletteColor(color, baseSurfaceRgb, opacity));
   const accentOverride = custom.accentColor ? hexToRgb(custom.accentColor) : null;
   const accentRgb = accentOverride ?? getAutoAccentRgb(custom, scheme);
   const averageSource = blendedRgb.length > 0 ? blendedRgb : [fallbackRgb];
@@ -441,10 +470,10 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
     g: averageRgb.g / averageSource.length,
     b: averageRgb.b / averageSource.length,
   };
-  const gradientStops = hasCustomStops
-    ? [...blendedRgb.map(toRgbString), ...customStops]
+  const gradientStops = useCustomColors
+    ? paletteStops.map((color) => toGradientColor(color, opacity))
     : blendedRgb.map(toRgbString);
-  const gradientImage = buildZenGradient(gradientStops, hasCustomStops);
+  const gradientImage = buildZenGradient(gradientStops, useCustomColors);
   const gradientBase = blendedRgb.length ? rgbToHex(averaged) : null;
   const neutralHsl = rgbToHsl(averaged);
   const accentHsl = rgbToHsl(accentRgb);
