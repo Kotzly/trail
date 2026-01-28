@@ -11,42 +11,6 @@ export const accountCopy = {
     signIn: "Sign in",
     signOut: "Sign out",
   },
-  home: {
-    eyebrow: "Trail account",
-    title: "Keep your trails in sync",
-    subtitle:
-      "Sign in to connect the extension, review activity, and manage your workspace from one place.",
-    primaryCta: "Continue with Trail",
-    secondaryCta: "Visit gettrail.net",
-    highlights: [
-      {
-        title: "Sync automatically",
-        copy: "Trails flow in from the extension in real time."
-      },
-      {
-        title: "Stay organized",
-        copy: "Keep your team’s journeys and steps in a single workspace."
-      },
-      {
-        title: "Control access",
-        copy: "Manage who can view, capture, and share trails."
-      }
-    ],
-    steps: [
-      {
-        title: "Open the extension",
-        copy: "Sign in inside the extension to start the secure handoff."
-      },
-      {
-        title: "Approve the connection",
-        copy: "Confirm it here in seconds—no codes to copy."
-      },
-      {
-        title: "Review your trails",
-        copy: "Your dashboard updates as soon as you capture a flow."
-      }
-    ]
-  },
   dashboard: {
     title: "Dashboard",
     subtitle: "Your recent trails and activity will appear here.",
@@ -59,7 +23,7 @@ export const accountCopy = {
   billing: {
     title: "Billing",
     subtitle:
-      "Polar integration is coming soon. You will be able to manage plans and invoices here.",
+      "Billing tools are coming soon. Manage plans and invoices here once they launch.",
     cta: "Join the billing waitlist",
   },
   extension: {

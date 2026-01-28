@@ -38,9 +38,6 @@ export default async function SettingsPage() {
               <p className="text-xs text-ink-subtle">{user.email ?? "Signed in"}</p>
             </div>
           </div>
-          <p className="mt-4 text-xs text-ink-subtle">
-            Auth provider: {user.sub?.split("|")[0] ?? "auth0"}
-          </p>
         </Card>
         <Card className="border border-border/50 bg-surface/80 p-6">
           <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Preferences</p>

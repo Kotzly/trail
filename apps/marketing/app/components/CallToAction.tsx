@@ -12,13 +12,13 @@ export function CallToAction() {
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <a
-            href="https://my.gettrail.net"
+            href="/downloads"
             className="cta-primary inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold shadow-card transition hover:bg-ink-muted"
           >
             {cta.primary}
           </a>
           <a
-            href="https://my.gettrail.net"
+            href="https://my.gettrail.net/auth/login"
             className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
           >
             {cta.secondary}

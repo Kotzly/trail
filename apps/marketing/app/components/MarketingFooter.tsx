@@ -7,7 +7,7 @@ export function MarketingFooter() {
         <span>trail © {new Date().getFullYear()}</span>
         <div className="flex flex-wrap gap-4">
           <Link href="/faq">FAQ</Link>
-          <a href="https://my.gettrail.net">Account</a>
+          <a href="https://my.gettrail.net/auth/login">Sign in</a>
           <a href="mailto:support@gettrail.net">support@gettrail.net</a>
         </div>
       </div>

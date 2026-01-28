@@ -14,12 +14,25 @@ export const marketingCopy = {
   hero: {
     pill: "browser extension · freemium",
     lead: "the best extension for",
-    words: ["developers", "researchers", "product teams", "founders", "designers", "writers", "marketers", "analysts",
-       "students", "consultants", "knowledge workers", "power users", "anyone who lives in the browser"],
+    words: [
+      "developers",
+      "researchers",
+      "product teams",
+      "founders",
+      "designers",
+      "writers",
+      "marketers",
+      "analysts",
+      "students",
+      "consultants",
+      "knowledge workers",
+      "power users",
+      "anyone who lives in the browser",
+    ],
     summary:
       "trail allows you to leverage your browser history to level up your work. you can even manage your tabs with trail. all without leaving the sidepanel.",
-    ctaPrimary: "try free",
-    ctaSecondary: "learn more",
+    ctaPrimary: "get the extension",
+    ctaSecondary: "see the workflow",
   },
   stats: [
     { label: "browsing time", value: "300+ hours" },
@@ -86,11 +99,53 @@ export const marketingCopy = {
       },
     ],
   },
+  downloads: {
+    meta: {
+      title: "downloads · trail",
+      description:
+        "get the trail browser extension. download links are landing soon, with more platforms on the way.",
+    },
+    eyebrow: "downloads",
+    title: "install trail where you work",
+    subtitle:
+      "the extension is shipping in waves. check back here for the download links, or sign in if you already have access.",
+    primaryCta: "join the waitlist",
+    secondaryCta: "sign in",
+    cards: [
+      {
+        title: "Chrome extension",
+        status: "coming soon",
+        copy: "the trail sidepanel experience, tuned for chrome on day one.",
+      },
+      {
+        title: "Firefox extension",
+        status: "in work",
+        copy: "bringing trail to firefox with the same capture flow and sync.",
+      },
+    ],
+    stepsTitle: "what happens next",
+    steps: [
+      {
+        title: "install the extension",
+        copy: "grab the browser build as soon as the links open for your region.",
+      },
+      {
+        title: "sign in to trail",
+        copy: "one account keeps your extension and dashboard in sync.",
+      },
+      {
+        title: "capture your flow",
+        copy: "every search, tab, and decision snaps into a shareable trail.",
+      },
+    ],
+    noteTitle: "already installed?",
+    noteCopy: "open the extension to sign in and start capturing trails immediately.",
+  },
   cta: {
     title: "ready to map your browsing?",
-    subtitle: "install the extension, then unlock your account for sync and collaboration.",
-    primary: "install extension",
-    secondary: "go to account",
+    subtitle: "install the extension, then sign in to sync and collaborate.",
+    primary: "open downloads",
+    secondary: "sign in",
   },
   faq: {
     title: "frequently asked questions",

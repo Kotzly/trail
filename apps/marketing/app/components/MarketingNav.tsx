@@ -18,12 +18,12 @@ export function MarketingNav() {
           trail
         </Link>
         <nav className="hidden items-center gap-5 text-sm font-medium text-ink-subtle md:flex">
-          <a href="#features" className="transition hover:text-ink">
+          <Link href="/#features" className="transition hover:text-ink">
             {nav.features}
-          </a>
-          <a href="#workflow" className="transition hover:text-ink">
+          </Link>
+          <Link href="/#workflow" className="transition hover:text-ink">
             {nav.workflow}
-          </a>
+          </Link>
           <Link href="/faq" className="transition hover:text-ink">
             {nav.faq}
           </Link>
@@ -31,17 +31,17 @@ export function MarketingNav() {
         <div className="flex items-center gap-3">
           <ThemeToggle className="border-stroke/50 bg-surface/70 text-ink hover:bg-surface-strong" />
           <a
-            href="https://my.gettrail.net"
+            href="https://my.gettrail.net/auth/login"
             className="hidden rounded-full border border-stroke/60 px-4 py-2 text-sm font-medium text-ink transition hover:border-stroke md:inline-flex"
           >
             {nav.signIn}
           </a>
-          <a
-            href="https://my.gettrail.net"
+          <Link
+            href="/downloads"
             className="cta-primary hidden rounded-full bg-ink px-4 py-2 text-sm font-medium shadow-card transition hover:bg-ink-muted md:inline-flex"
           >
             {nav.getStarted}
-          </a>
+          </Link>
         </div>
       </div>
     </header>

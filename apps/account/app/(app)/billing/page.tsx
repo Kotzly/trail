@@ -1,5 +1,5 @@
 import { accountCopy } from "@trail/content";
-import { Button } from "@trail/ui";
+import { WaitlistDialog } from "@trail/ui";
 
 export default function BillingPage() {
   const { billing } = accountCopy;
@@ -11,14 +11,20 @@ export default function BillingPage() {
         <p className="mt-2 text-sm text-ink-muted">{billing.subtitle}</p>
       </div>
       <div className="rounded-2xl border border-border/50 bg-surface/80 p-6">
-        <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Polar</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Billing access</p>
         <p className="mt-3 text-sm text-ink-muted">
-          We will connect Polar webhooks and checkout here. This space is ready for plans,
-          invoices, and usage.
+          Plans, invoices, and usage tracking are launching soon. Join the waitlist to be
+          notified first.
         </p>
-        <Button className="mt-6" variant="outline">
-          {billing.cta}
-        </Button>
+        <div className="mt-6">
+          <WaitlistDialog
+            triggerLabel={billing.cta}
+            title="Get billing updates"
+            description="Share your email and we will notify you when billing opens."
+            source="billing"
+            buttonVariant="outline"
+          />
+        </div>
       </div>
     </section>
   );

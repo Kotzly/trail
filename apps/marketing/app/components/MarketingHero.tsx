@@ -68,13 +68,13 @@ ${keyframeStops}
           <p className="mx-auto max-w-2xl text-[1rem] text-ink-subtle">{hero.summary}</p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
-              href="https://my.gettrail.net"
+              href="/downloads"
               className="cta-primary inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold shadow-card transition hover:bg-ink-muted"
             >
               {hero.ctaPrimary}
             </a>
             <a
-              href="#workflow"
+              href="/#workflow"
               className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
             >
               {hero.ctaSecondary}
