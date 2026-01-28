@@ -3,7 +3,7 @@ import { auth0 } from "@/src/lib/auth0";
 
 const protectedPrefixes = ["/dashboard", "/settings", "/billing", "/extension"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const authRes = await auth0.middleware(request);
   const { pathname } = request.nextUrl;
 

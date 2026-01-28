@@ -9,6 +9,7 @@ import { PinnedManager } from '../../../background/state/pinned.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
 import type { NotificationItem } from '../notifications/types.js';
 import type { TreeMeta, TreeSummary } from '../../../shared/types/tree.js';
+import { getCollapsedAncestorIds } from '../graph/collapse-utils.js';
 import type {
   AccountError,
   AccountSnapshot,
@@ -312,10 +313,24 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       const nextCollapsedNodeIds = shouldResetTransient
         ? new Set<NodeId>()
         : pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
+      const autoExpandIds = shouldResetTransient
+        ? []
+        : getCollapsedAncestorIds(tree, currentId, nextCollapsedNodeIds);
+      const collapseVersion =
+        autoExpandIds.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion;
+      const collapseAction =
+        autoExpandIds.length > 0
+          ? ({ kind: 'expand', nodeIds: new Set<NodeId>(autoExpandIds) } as const)
+          : state.graph.collapseAction;
+      if (autoExpandIds.length > 0) {
+        autoExpandIds.forEach((id) => nextCollapsedNodeIds.delete(id));
+      }
       const nextGraph = {
         ...state.graph,
         viewIntent: resolvedViewIntent,
         collapsedNodeIds: nextCollapsedNodeIds,
+        collapseVersion,
+        collapseAction,
         ...(shouldResetTransient
           ? {
               selectedNodeIds: new Set<NodeId>(),

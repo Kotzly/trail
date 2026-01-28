@@ -25,6 +25,7 @@ export type NodeRenderModel = {
   openProgress: number;
   tabCount: number;
   tabState?: TabState;
+  isCollapsed: boolean;
   isSelected: boolean;
   isPreview: boolean;
   isSearchMatch: boolean;

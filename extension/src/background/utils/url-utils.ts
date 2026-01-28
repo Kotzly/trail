@@ -33,6 +33,12 @@ export function isNewTabUrl(url: Url): boolean {
   return ntpUrlPatterns.some((pattern) => pattern.test(url));
 }
 
+export function isNewTabContext(url: Url, title?: string | null): boolean {
+  if (isNewTabUrl(url)) return true;
+  if (!title) return false;
+  return title.toLowerCase().includes('new tab');
+}
+
 
 export function shouldTrackUrl(url: Url): boolean {
   return !ignoredUrlPatterns.some(pattern => pattern.test(url));

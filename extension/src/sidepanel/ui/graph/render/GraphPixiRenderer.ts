@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { icons } from 'lucide';
+import { ChevronDown, Pin, Volume2, VolumeX } from 'lucide';
 import type { TextStyleFontWeight } from 'pixi.js';
 import type { FaviconUrl, NodeId } from '../../../../shared/types/ids.js';
 import { formatUrl } from '../../shared/format.js';
@@ -43,11 +43,42 @@ const STATUS_ICON_SIZE = 12;
 const STATUS_ICON_STROKE = 2;
 const ICON_VIEWBOX = 24;
 const STATUS_ICON_SCALE = STATUS_ICON_SIZE / ICON_VIEWBOX;
+const COLLAPSE_BADGE_SIZE = 18;
+const COLLAPSE_BADGE_MARGIN = 8;
+const COLLAPSE_ICON_SIZE = 12;
+const COLLAPSE_ICON_STROKE = 2;
+const COLLAPSE_ICON_SCALE = COLLAPSE_ICON_SIZE / ICON_VIEWBOX;
+const COLLAPSE_ICON_NAME = 'ChevronDown';
 
-type LucideNode = Array<[string, Record<string, string>]>;
+type LucideNode = Array<[string, Record<string, string | number>]>;
+
+const lucideIcons: Record<string, LucideNode> = {
+  ChevronDown,
+  Pin,
+  Volume2,
+  VolumeX,
+};
+
+function resolveNodeLod(
+  model: NodeRenderModel,
+  view: ViewState,
+  detailMode: DetailMode
+): LODLevel {
+  const scale = view.scale;
+  const pixelSize = Math.min(model.width, model.height) * scale;
+  const forceDetail =
+    model.isCurrent || model.isSelected || model.isSearchFocused || model.isHoverFocused;
+  let lod: LODLevel = 'full';
+  if (!forceDetail && pixelSize < LOD_HIDE_PX) lod = 'hidden';
+  else if (!forceDetail && pixelSize < LOD_DOT_PX) lod = 'dot';
+  else if (!forceDetail && pixelSize < LOD_LOW_PX) lod = 'low';
+  if (detailMode === 'low' && lod === 'full') lod = 'low';
+  if (detailMode === 'dot' && lod !== 'hidden') lod = 'dot';
+  return lod;
+}
 
 function getLucideSvg(iconName: string, color: number, strokeWidth: number): string | null {
-  const icon = (icons as Record<string, LucideNode>)[iconName];
+  const icon = lucideIcons[iconName];
   if (!icon) return null;
   return buildLucideSvg(icon, colorToHex(color), ICON_VIEWBOX, strokeWidth);
 }
@@ -72,9 +103,9 @@ function buildLucideSvg(node: LucideNode, stroke: string, size: number, strokeWi
   return parts.join('');
 }
 
-function toAttrString(attrs: Record<string, string>) {
+function toAttrString(attrs: Record<string, string | number>) {
   return Object.entries(attrs)
-    .map(([key, value]) => `${key}="${escapeXml(value)}"`)
+    .map(([key, value]) => `${key}="${escapeXml(String(value))}"`)
     .join(' ');
 }
 
@@ -88,6 +119,13 @@ function escapeXml(value: string) {
 
 function colorToHex(color: number) {
   return `#${color.toString(16).padStart(6, '0')}`;
+}
+
+function getCollapseBadgeRect(width: number, height: number) {
+  const size = COLLAPSE_BADGE_SIZE;
+  const x = width - size - COLLAPSE_BADGE_MARGIN;
+  const y = (height - size) / 2;
+  return { x, y, size };
 }
 
 type NodeVisualState = {
@@ -113,6 +151,9 @@ class NodeVisual {
   private readonly tabBadgeText = new PIXI.Text({ text: '' });
   private readonly pinIcon = new PIXI.Graphics();
   private readonly audioIcon = new PIXI.Graphics();
+  private readonly collapseBadge = new PIXI.Container();
+  private readonly collapseBadgeBg = new PIXI.Graphics();
+  private readonly collapseIcon = new PIXI.Graphics();
   private readonly tagDots = new PIXI.Container();
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
@@ -129,6 +170,8 @@ class NodeVisual {
   private readonly invalidate: () => void;
   private pinIconKey = '';
   private audioIconKey = '';
+  private collapseBadgeKey = '';
+  private collapseIconKey = '';
   private destroyed = false;
   private pendingFaviconUrl: FaviconUrl | null = null;
   private latestFaviconCandidate: FaviconUrl | null = null;
@@ -149,6 +192,9 @@ class NodeVisual {
     this.tabBadge.addChild(this.tabBadgeText);
     this.container.addChild(this.pinIcon);
     this.container.addChild(this.audioIcon);
+    this.container.addChild(this.collapseBadge);
+    this.collapseBadge.addChild(this.collapseBadgeBg);
+    this.collapseBadge.addChild(this.collapseIcon);
     this.container.addChild(this.tagDots);
 
     this.titleText.resolution = 2;
@@ -158,6 +204,8 @@ class NodeVisual {
     this.audioIcon.pivot.set(ICON_VIEWBOX, 0);
     this.pinIcon.scale.set(STATUS_ICON_SCALE);
     this.audioIcon.scale.set(STATUS_ICON_SCALE);
+    this.collapseIcon.pivot.set(ICON_VIEWBOX / 2, ICON_VIEWBOX / 2);
+    this.collapseIcon.scale.set(COLLAPSE_ICON_SCALE);
   }
 
   destroy() {
@@ -175,16 +223,7 @@ class NodeVisual {
     detailMode: DetailMode
   ) {
     this.fonts.base = fontFamily;
-    const scale = view.scale;
-    const pixelSize = Math.min(model.width, model.height) * scale;
-    const forceDetail =
-      model.isCurrent || model.isSelected || model.isSearchFocused || model.isHoverFocused;
-    let lod: LODLevel = 'full';
-    if (!forceDetail && pixelSize < LOD_HIDE_PX) lod = 'hidden';
-    else if (!forceDetail && pixelSize < LOD_DOT_PX) lod = 'dot';
-    else if (!forceDetail && pixelSize < LOD_LOW_PX) lod = 'low';
-    if (detailMode === 'low' && lod === 'full') lod = 'low';
-    if (detailMode === 'dot' && lod !== 'hidden') lod = 'dot';
+    const lod = resolveNodeLod(model, view, detailMode);
 
     const rawOpenProgress = model.display.dimClosedNodes
       ? model.openProgress
@@ -520,6 +559,42 @@ class NodeVisual {
     } else {
       this.audioIcon.visible = false;
     }
+
+    this.updateCollapseBadge(model, theme, showBadges);
+  }
+
+  private updateCollapseBadge(
+    model: NodeRenderModel,
+    theme: ReturnType<typeof readGraphTheme>,
+    showBadges: boolean
+  ) {
+    const show = showBadges && model.isCollapsed;
+    this.collapseBadge.visible = show;
+    if (!show) return;
+
+    const badgeKey = `${theme.surfaceContainerHigh}|${theme.primary}|${theme.outline}`;
+    if (this.collapseBadgeKey !== badgeKey) {
+      const radius = COLLAPSE_BADGE_SIZE / 2;
+      this.collapseBadgeBg.clear();
+      this.collapseBadgeBg.circle(radius, radius, radius);
+      this.collapseBadgeBg.fill({ color: theme.surfaceContainerHigh, alpha: 0.95 });
+      this.collapseBadgeBg.stroke({ width: 1, color: theme.primary, alignment: 0.5 });
+      this.collapseBadgeKey = badgeKey;
+    }
+
+    const iconKey = `${COLLAPSE_ICON_NAME}|${theme.primary}|${COLLAPSE_ICON_STROKE}`;
+    if (this.collapseIconKey !== iconKey) {
+      const svg = getLucideSvg(COLLAPSE_ICON_NAME, theme.primary, COLLAPSE_ICON_STROKE);
+      if (svg) {
+        this.collapseIcon.clear();
+        this.collapseIcon.svg(svg);
+        this.collapseIconKey = iconKey;
+      }
+    }
+
+    const rect = getCollapseBadgeRect(model.width, model.height);
+    this.collapseBadge.position.set(rect.x, rect.y);
+    this.collapseIcon.position.set(rect.size / 2, rect.size / 2);
   }
 
   private updateTags(
@@ -700,6 +775,28 @@ export class GraphPixiRenderer {
     return this.hitTestWorld(world.x, world.y);
   }
 
+  hitTestTargetScreen(
+    screenX: number,
+    screenY: number
+  ): { nodeId: NodeId; target: 'node' | 'collapse-icon' } | null {
+    const world = this.screenToWorld(screenX, screenY);
+    const nodeId = this.hitTestWorld(world.x, world.y);
+    if (!nodeId) return null;
+    const node = this.nodeData.get(nodeId);
+    if (!node) return null;
+    if (this.isCollapseBadgeVisible(node)) {
+      const rect = getCollapseBadgeRect(node.width, node.height);
+      const minX = node.x + rect.x;
+      const minY = node.y + rect.y;
+      const maxX = minX + rect.size;
+      const maxY = minY + rect.size;
+      if (world.x >= minX && world.x <= maxX && world.y >= minY && world.y <= maxY) {
+        return { nodeId, target: 'collapse-icon' };
+      }
+    }
+    return { nodeId, target: 'node' };
+  }
+
   screenToWorld(screenX: number, screenY: number) {
     return {
       x: (screenX - this.view.translateX) / this.view.scale,
@@ -715,22 +812,31 @@ export class GraphPixiRenderer {
       maxY: worldY,
     });
     if (candidates.size === 0) return null;
-    const ordered = Array.from(this.nodeData.keys());
-    for (let i = ordered.length - 1; i >= 0; i -= 1) {
-      const id = ordered[i];
-      if (!id || !candidates.has(id)) continue;
+    let topId: NodeId | null = null;
+    let topZ = -Infinity;
+    candidates.forEach((id) => {
       const node = this.nodeData.get(id);
-      if (!node) continue;
+      if (!node) return;
       if (
         worldX >= node.x &&
         worldX <= node.x + node.width &&
         worldY >= node.y &&
         worldY <= node.y + node.height
       ) {
-        return id;
+        const z = computeZIndex(node);
+        if (z >= topZ) {
+          topZ = z;
+          topId = id;
+        }
       }
-    }
-    return null;
+    });
+    return topId;
+  }
+
+  private isCollapseBadgeVisible(model: NodeRenderModel): boolean {
+    if (!model.isCollapsed) return false;
+    const lod = resolveNodeLod(model, this.view, this.detailMode);
+    return lod === 'full' || lod === 'low';
   }
 
   private invalidateAll() {

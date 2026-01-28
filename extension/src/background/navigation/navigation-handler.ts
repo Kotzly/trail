@@ -4,11 +4,8 @@ import { NodeMetaPatch, updateNodeMeta, type NodeData } from '../../shared/types
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { redirectDetector } from './redirect-detection.js';
-import {
-  normalizeFaviconUrl,
-  isNewTabUrl,
-  shouldTrackUrl,
-} from '../utils/url-utils.js';
+import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
+import { handleNewTabTab } from '../utils/new-tab.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { notifyUi } from '../messaging/ui-notifications.js';
 import { enforceTabLimit } from '../tabs/tab-limit.js';
@@ -35,43 +32,22 @@ export async function handleNavigation(
   }
 
   // Early handling for new-tab variants: always map them to the root node.
-  if (isNewTabUrl(url as Url) || tab.title?.includes('New Tab')) {
+  if (isNewTabContext(url as Url, tab.title)) {
     try {
       const tree = await treeStorage.getOrCreateTree();
-      const root = tree.getRoot();
-      const isActiveTab = tab.active;
-      const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
-      const registerOptions =
-        lastUsed === undefined ? { touch: isActiveTab } : { touch: isActiveTab, lastUsed };
-
-      const rawFavicon = tab.favIconUrl as FaviconUrl | undefined;
-      const normalizedFavicon = normalizeFaviconUrl(url as Url, rawFavicon);
-      const canUpdateRootFavicon = normalizedFavicon !== "";
-
-      if (!root) {
-        const data: NodeData = {
-          url: url as Url,
-          title: (tab.title || url) as Title,
-          favicon: normalizedFavicon,
-          pinned: false,
-          tags: [],
-        } as NodeData;
-        const node = tree.navigate(data);
-        tabManager.register(node.id, tabId as TabId, registerOptions);
-        if (isActiveTab) tree.setCurrentById(node.id);
-      } else {
-        if (canUpdateRootFavicon && normalizedFavicon !== root.data.favicon) {
-          root.data.favicon = normalizedFavicon as FaviconUrl;
+      const result = handleNewTabTab(tree, tab, url as Url, {
+        touch: tab.active,
+        setCurrent: tab.active,
+      });
+      if (result.handled) {
+        if (result.didMutate || result.didUpdateCurrent) {
+          treeStorage.cacheTree(tree);
         }
-        tabManager.register(root.id, tabId as TabId, registerOptions);
-        if (isActiveTab) tree.setCurrentById(root.id);
+        const currentId = tree.getCurrentId();
+        const view: TreeViewIntent | undefined =
+          tab.active && currentId !== null ? { focusNodeId: currentId, mode: 'force' } : undefined;
+        await notifyTreeUpdate(tree, 'tabs', view);
       }
-
-      treeStorage.cacheTree(tree);
-      const currentId = tree.getCurrentId();
-      const view: TreeViewIntent | undefined =
-        isActiveTab && currentId !== null ? { focusNodeId: currentId, mode: 'force' } : undefined;
-      await notifyTreeUpdate(tree, 'tabs', view);
     } catch (error) {
       console.debug('Navigation error:', error);
     }

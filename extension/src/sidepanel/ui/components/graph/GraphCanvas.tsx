@@ -107,6 +107,7 @@ type GraphCanvasProps = {
   onSetHoverNodeId: (nodeId: NodeId | null) => void;
   onOpenContextMenu: (menu: ContextMenuState) => void;
   onClearViewIntent: () => void;
+  onExpandNodes: (nodeIds: NodeId[]) => void;
 };
 
 type SelectionBox = {
@@ -124,6 +125,11 @@ type PointerInfo = {
   altKey: boolean;
   metaKey: boolean;
   ctrlKey: boolean;
+};
+
+type PointerHitTarget = {
+  nodeId: NodeId;
+  target: 'node' | 'collapse-icon';
 };
 
 type NodeAnimationType = 'enter' | 'exit' | 'move';
@@ -226,6 +232,7 @@ export default function GraphCanvas({
   onSetHoverNodeId,
   onOpenContextMenu,
   onClearViewIntent,
+  onExpandNodes,
 }: GraphCanvasProps) {
   const searchActive = search.active;
   const searchNavStep = search.navStep;
@@ -369,6 +376,7 @@ export default function GraphCanvas({
   const isPanningRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
   const pointerDownNodeIdRef = useRef<NodeId | null>(null);
+  const pointerDownTargetRef = useRef<PointerHitTarget | null>(null);
   const dragStateRef = useRef<{
     startX: number;
     startY: number;
@@ -1324,6 +1332,7 @@ export default function GraphCanvas({
           : 1,
         tabCount: nodeTabCounts[id] ?? 0,
         ...(tabState !== undefined ? { tabState } : {}),
+        isCollapsed: collapsedNodeIds.has(id),
         isSelected: effectiveSelection.has(id),
         isPreview: previewSelection.has(id),
         isSearchMatch,
@@ -1337,6 +1346,7 @@ export default function GraphCanvas({
   }, [
     animationVersion,
     currentNodeId,
+    collapsedNodeIds,
     display,
     focusedSearchId,
     hoverNodeId,
@@ -1705,6 +1715,18 @@ export default function GraphCanvas({
     return renderer.hitTestScreen(pointerX, pointerY);
   };
 
+  const getPointerTarget = (
+    event: ReactPointerEvent<HTMLDivElement> | ReactMouseEvent<HTMLDivElement>,
+  ): PointerHitTarget | null => {
+    const wrapper = wrapperRef.current;
+    const renderer = rendererRef.current;
+    if (!wrapper || !renderer) return null;
+    const rect = wrapper.getBoundingClientRect();
+    const pointerX = event.clientX - rect.left;
+    const pointerY = event.clientY - rect.top;
+    return renderer.hitTestTargetScreen(pointerX, pointerY);
+  };
+
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const target = event.target as HTMLElement;
@@ -1715,11 +1737,17 @@ export default function GraphCanvas({
     nodeDragJustEndedRef.current = false;
     selectionDragRef.current = false;
     pointerDownNodeIdRef.current = null;
+    pointerDownTargetRef.current = null;
     const rect = wrapperRef.current.getBoundingClientRect();
     activePointerIdRef.current = event.pointerId;
     event.currentTarget.setPointerCapture(event.pointerId);
-    const hitNodeId = getPointerNodeId(event);
-    pointerDownNodeIdRef.current = hitNodeId;
+    const hitTarget = getPointerTarget(event);
+    pointerDownTargetRef.current = hitTarget;
+    const hitNodeId = hitTarget?.nodeId ?? null;
+    pointerDownNodeIdRef.current = hitTarget?.target === 'node' ? hitNodeId : null;
+    if (hitTarget?.target === 'collapse-icon') {
+      return;
+    }
     if (hitNodeId && tree) {
       const node = tree.findNodeById(hitNodeId);
       if (node) {
@@ -1830,6 +1858,15 @@ export default function GraphCanvas({
     }
     releasePointerCapture(event.currentTarget, activePointerIdRef.current);
     activePointerIdRef.current = null;
+    const downTarget = pointerDownTargetRef.current;
+    pointerDownTargetRef.current = null;
+    if (downTarget?.target === 'collapse-icon') {
+      const hitTarget = getPointerTarget(event);
+      if (hitTarget?.target === 'collapse-icon' && hitTarget.nodeId === downTarget.nodeId) {
+        onExpandNodes([hitTarget.nodeId]);
+      }
+      return;
+    }
     if (pointerDownNodeIdRef.current) {
       const nodeId = pointerDownNodeIdRef.current;
       pointerDownNodeIdRef.current = null;
@@ -1900,6 +1937,7 @@ export default function GraphCanvas({
     activePointerIdRef.current = null;
     nodeDragJustEndedRef.current = false;
     pointerDownNodeIdRef.current = null;
+    pointerDownTargetRef.current = null;
     dragMovedRef.current = false;
     if (isPanningRef.current) {
       isPanningRef.current = false;

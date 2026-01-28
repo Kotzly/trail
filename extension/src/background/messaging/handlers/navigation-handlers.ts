@@ -156,6 +156,36 @@ export const navigationHandlers = defineHandlers({
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
 
+    if (tabManager.openNodes().size === 0) {
+      await syncOpenTabs();
+    }
+
+    const tabsArray = tabManager.getTabsByRecency(message.nodeId);
+    for (const tabId of tabsArray) {
+      const focused = await focusTab(tabId as TabId);
+      if (focused) {
+        tabManager.touch(tabId as TabId, message.nodeId);
+        tree.setCurrentById(message.nodeId);
+        treeStorage.cacheTree(tree);
+        await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
+        return ok();
+      }
+      tabManager.unregister(tabId as TabId);
+    }
+
+    const targetWindow = await chrome.windows.getLastFocused();
+    const created = await chrome.tabs.create({
+      windowId: targetWindow?.id,
+      url: node.data.url,
+      active: true,
+    });
+
+    if (created.id !== undefined) {
+      const lastUsed = Number.isFinite(created.lastAccessed) ? created.lastAccessed : undefined;
+      const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
+      tabManager.register(message.nodeId, created.id as TabId, registerOptions);
+    }
+
     tree.setCurrentById(message.nodeId);
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });

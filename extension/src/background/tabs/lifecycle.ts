@@ -8,7 +8,8 @@ import { notifyUi } from '../messaging/ui-notifications.js';
 
 import { syncTabTitleFavicon, syncTabAudioState } from './tab-sync.js';
 import { NodeData } from '../../shared/types/node.js';
-import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
+import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from '../utils/url-utils.js';
+import { handleNewTabTab } from '../utils/new-tab.js';
 
 
 async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
@@ -17,10 +18,21 @@ async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
   const nodeId = tabManager.nodeByTab(tab.id as TabId);
   if (nodeId) return;
   if (!tab.url) return;
-  if (!shouldTrackUrl(tab.url as Url)) return;
 
   const tree = await treeStorage.getOrCreateTree();
-  const existing = tree.findByUrl(tab.url as Url);
+  const url = tab.url as Url;
+  if (isNewTabContext(url, tab.title)) {
+    const result = handleNewTabTab(tree, tab, url, { touch: tab.active, setCurrent: false });
+    if (result.didMutate || result.didUpdateCurrent) {
+      treeStorage.cacheTree(tree);
+    }
+    await enforceTabLimit(tree, { activeTabId: tab.active ? (tab.id as TabId) : null });
+    await notifyTreeUpdate(tree, 'tabs');
+    return;
+  }
+  if (!shouldTrackUrl(url)) return;
+
+  const existing = tree.findByUrl(url);
   if (!existing) return;
 
   const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
@@ -64,23 +76,29 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
         try {
             const tab = await chrome.tabs.get(tabId);
             if (!tab.url) return;
-            if (!shouldTrackUrl(tab.url as Url)) return;
-
-            const existing = tree.findByUrl(tab.url as Url);
-            if (existing) {
-                tabManager.register(existing.id, tabId);
-                nodeId = existing.id;
+            const url = tab.url as Url;
+            if (isNewTabContext(url, tab.title)) {
+                const result = handleNewTabTab(tree, tab, url, { touch: false, setCurrent: false });
+                nodeId = result.rootId ?? undefined;
             } else {
-                const data: NodeData = {
-                    url: tab.url as Url,
-                    title: (tab.title || tab.url) as Title,
-                    favicon: normalizeFaviconUrl(tab.url as Url, tab.favIconUrl as FaviconUrl | undefined),
-                    pinned: false,
-                    tags: [],
-                } as NodeData;
-                const node = tree.navigate(data);
-                tabManager.register(node.id, tabId);
-                nodeId = node.id;
+                if (!shouldTrackUrl(url)) return;
+
+                const existing = tree.findByUrl(url);
+                if (existing) {
+                    tabManager.register(existing.id, tabId);
+                    nodeId = existing.id;
+                } else {
+                    const data: NodeData = {
+                        url,
+                        title: (tab.title || url) as Title,
+                        favicon: normalizeFaviconUrl(url, tab.favIconUrl as FaviconUrl | undefined),
+                        pinned: false,
+                        tags: [],
+                    } as NodeData;
+                    const node = tree.navigate(data);
+                    tabManager.register(node.id, tabId);
+                    nodeId = node.id;
+                }
             }
         } catch (e) {
             return;

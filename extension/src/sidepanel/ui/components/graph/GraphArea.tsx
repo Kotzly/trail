@@ -44,6 +44,7 @@ export default function GraphArea() {
       onSetHoverNodeId: state.setHoverNodeId,
       onOpenContextMenu: state.openContextMenu,
       onClearViewIntent: state.clearViewIntent,
+      onExpandNodes: state.expandNodes,
     }),
     shallow,
   );

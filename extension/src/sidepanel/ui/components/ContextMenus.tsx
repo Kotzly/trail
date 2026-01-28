@@ -4,7 +4,7 @@ import type { NodeId, TabId, Tag } from '../../../shared/types/ids.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
 import { msg } from '../../../shared/types/messages.js';
 import { fireAndForget } from '../../api/background.js';
-import { navigateTo } from '../../api/tree.js';
+import { navigateTo, setCurrentNode } from '../../api/tree.js';
 import { getTabsForNodeMessage } from '../../api/tabs.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
@@ -12,6 +12,7 @@ import TagEditorModal from './tags/TagEditorModal.js';
 import { deleteTagDef, upsertTagDef } from '../../api/tags.js';
 import { Icons } from './Icon.js';
 import { getIncludedRootId } from '../shared/delete-tree.js';
+import { getNearestCollapsedAncestorId } from '../graph/collapse-utils.js';
 import React from 'react';
 
 type MenuPosition = { left: number; top: number; maxHeight: number };
@@ -63,7 +64,6 @@ function useMenuPosition(menuRef: RefObject<HTMLDivElement>, position: { x: numb
 export default function ContextMenus() {
   const contextMenu = useStore((state) => state.contextMenu);
   const closeContextMenu = useStore((state) => state.closeContextMenu);
-  const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
   const tree = useStore((state) => state.tree);
   const [tagEditorState, setTagEditorState] = useState<{
@@ -199,13 +199,16 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
   const tree = useStore((state) => state.tree);
+  const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const tagDefsList = useStore((state) => state.tagDefsList);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
+  const currentNodeId = useStore((state) => state.currentNodeId);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
   const node = tree?.findNodeById(nodeId);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuStyle = useMenuPosition(menuRef, position);
+  const menuVars = { '--menu-max-height': `${menuStyle.maxHeight}px` } as React.CSSProperties;
   const [submenuLeft, setSubmenuLeft] = useState(false);
   const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
   const [checkedTabId, setCheckedTabId] = useState<number | null>(null);
@@ -302,10 +305,6 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
 
   if (!node) return null;
 
-  function openDeleteTreeConfirm(nodeId: NodeId) {
-    throw new Error('Function not implemented.');
-  }
-
   return (
     <>
       <div
@@ -314,8 +313,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         style={{
           left: `${menuStyle.left}px`,
           top: `${menuStyle.top}px`,
-          // @ts-ignore -- Allow custom CSS prop for menu max height
-          ['--menu-max-height']: `${menuStyle.maxHeight}px`,
+          ...menuVars,
         }}
       >
         <div className="graph-context-menu-content">
@@ -465,6 +463,12 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         <div
           className="graph-context-menu-item"
           onClick={() => {
+            const nextCollapsed = new Set(collapsedNodeIds);
+            nextCollapsed.add(nodeId);
+            const targetId = getNearestCollapsedAncestorId(tree, currentNodeId, nextCollapsed);
+            if (targetId && targetId !== currentNodeId) {
+              void setCurrentNode(targetId);
+            }
             collapseNodes([nodeId]);
             closeContextMenu();
           }}
@@ -632,12 +636,14 @@ type BulkMenuProps = {
 function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuStyle = useMenuPosition(menuRef, position);
+  const menuVars = { '--menu-max-height': `${menuStyle.maxHeight}px` } as React.CSSProperties;
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const clearSelection = useStore((state) => state.clearSelection);
   const tree = useStore((state) => state.tree);
   const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const tagDefsList = useStore((state) => state.tagDefsList);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
+  const currentNodeId = useStore((state) => state.currentNodeId);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
 
@@ -695,8 +701,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       style={{
         left: `${menuStyle.left}px`,
         top: `${menuStyle.top}px`,
-        // @ts-ignore -- Allow custom CSS prop for menu max height
-        ['--menu-max-height' as const]: `${menuStyle.maxHeight}px`,
+        ...menuVars,
       }}
     >
       <div className="graph-context-menu-content">
@@ -727,6 +732,12 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         aria-disabled={collapseCandidates.length === 0}
         onClick={() => {
           if (collapseCandidates.length === 0) return;
+          const nextCollapsed = new Set(collapsedNodeIds);
+          collapseCandidates.forEach((node) => nextCollapsed.add(node.id));
+          const targetId = getNearestCollapsedAncestorId(tree, currentNodeId, nextCollapsed);
+          if (targetId && targetId !== currentNodeId) {
+            void setCurrentNode(targetId);
+          }
           collapseNodes(collapseCandidates.map((node) => node.id));
           clearSelection();
           closeContextMenu();
