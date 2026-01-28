@@ -27,6 +27,9 @@ export function MarketingNav() {
           <Link href="/faq" className="transition hover:text-ink">
             {nav.faq}
           </Link>
+          <Link href="/support" className="transition hover:text-ink">
+            {nav.support}
+          </Link>
         </nav>
         <div className="flex items-center gap-3">
           <ThemeToggle className="border-stroke/50 bg-surface/70 text-ink hover:bg-surface-strong" />

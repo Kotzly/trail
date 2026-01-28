@@ -8,8 +8,58 @@ export const marketingCopy = {
     features: "features",
     workflow: "workflow",
     faq: "F.A.Q.",
+    support: "support",
     signIn: "sign in",
     getStarted: "get the extension",
+  },
+  support: {
+    meta: {
+      title: "support · trail",
+      description: "Get help with trail, the browser extension, and your account.",
+    },
+    eyebrow: "support",
+    title: "Get help, stay in flow.",
+    subtitle:
+      "Email us or skim the quick checks below. A couple details help us help you faster.",
+    email: "support@gettrail.net",
+    actions: {
+      email: "email support",
+      featureRequest: "request a feature",
+      faq: "open the FAQ",
+      downloads: "extension downloads",
+      signIn: "sign in",
+      signInHref: "https://my.gettrail.net/auth/login",
+    },
+    featureRequest: {
+      title: "Feature requests",
+      subtitle:
+        "Tell us what you are trying to do and what is blocking you. We prioritize by impact + frequency.",
+      includeTitle: "Feature request template",
+      include: [
+        "What problem are you solving?",
+        "Your ideal flow (what you wish Trail did).",
+        "Workarounds you tried.",
+        "How often you need this.",
+        "Any example links or screenshots.",
+      ],
+    },
+    includeTitle: "Include this in your message",
+    include: [
+      "Your account email (or the email you tried).",
+      "Browser + version (Chrome / Brave / Edge).",
+      "Extension version (from chrome://extensions).",
+      "What you expected vs. what happened.",
+      "Steps to reproduce (what you clicked).",
+    ],
+    quickChecksTitle: "Quick checks",
+    quickChecks: [
+      "Refresh the page and try again (hard refresh if sign-in looks stuck).",
+      "Make sure the extension is enabled and up to date.",
+      "Try an incognito window to rule out extension conflicts.",
+    ],
+    faqTitle: "Common questions",
+    faqNote: "More answers live in the full FAQ.",
+    faqCta: "Read the full FAQ",
   },
   hero: {
     pill: "browser extension · free beta",
