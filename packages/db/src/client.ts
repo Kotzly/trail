@@ -39,6 +39,24 @@ const resolveDatabaseUrl = () => {
   return null;
 };
 
+const resolveCaCert = () => {
+  const candidate =
+    process.env.SUPABASE_CA_CERT ??
+    process.env.DATABASE_CA_CERT ??
+    process.env.POSTGRES_CA_CERT;
+  if (!candidate) return null;
+  const trimmed = candidate.trim();
+  if (!trimmed) return null;
+  if (trimmed.includes("BEGIN CERTIFICATE")) return trimmed;
+  try {
+    const decoded = Buffer.from(trimmed, "base64").toString("utf8");
+    if (decoded.includes("BEGIN CERTIFICATE")) return decoded;
+  } catch {
+    // fall through to returning raw value
+  }
+  return trimmed;
+};
+
 let databaseUrl = resolveDatabaseUrl();
 
 if (!databaseUrl) {
@@ -71,10 +89,12 @@ if (!databaseUrl) {
   );
 }
 
+const caCert = resolveCaCert();
 const pool =
   globalForPrisma.prismaPool ??
   new Pool({
-    connectionString: databaseUrl
+    connectionString: databaseUrl,
+    ...(caCert ? { ssl: { ca: caCert, rejectUnauthorized: true } } : {})
   });
 
 const adapter = new PrismaPg(pool);
