@@ -305,7 +305,8 @@
 
 .zen-theme-picker-page {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   min-width: 100%;
   gap: 6px;
   padding: 0 4px;
@@ -342,6 +343,8 @@
 .zen-theme-picker-preset {
   width: 26px;
   height: 26px;
+  flex: 0 0 26px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
   cursor: pointer;

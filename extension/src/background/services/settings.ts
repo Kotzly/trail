@@ -93,6 +93,7 @@ export const defaultSettings: Settings = {
     dimClosedNodes: true,
     confirmNewTree: true,
     shortcutsEnabled: true,
+    onboardingSeen: false,
 };
 
 const settingsKey = 'trail_settings' as const;
@@ -144,6 +145,7 @@ function mergeDefaults(raw: unknown): Settings {
         dimClosedNodes: sanitized.dimClosedNodes ?? defaultSettings.dimClosedNodes,
         confirmNewTree: sanitized.confirmNewTree ?? defaultSettings.confirmNewTree,
         shortcutsEnabled: sanitized.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
+        onboardingSeen: sanitized.onboardingSeen ?? defaultSettings.onboardingSeen,
     };
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createNewTree, deleteArchivedTree, openTree, renameTree } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
+import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
 import React from 'react';
 import type { FaviconUrl, Title, Url } from '../../../shared/types/ids.js';
@@ -54,6 +55,7 @@ export default function TreeDropdown() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  useAnchoredDropdown({ open: treesOpen, dropdownRef });
 
   const activeTree = trees.active
     ? ({
@@ -200,8 +202,18 @@ export default function TreeDropdown() {
         aria-hidden={!treesOpen}
       >
         <div className="trees-dropdown-header">
-          <span className="trees-dropdown-title">trees</span>
-          <span className="trees-dropdown-count">{archivedTrees.length}</span>
+          <div className="trees-dropdown-heading">
+            <span className="trees-dropdown-title">trees</span>
+            <span className="trees-dropdown-count">{archivedTrees.length}</span>
+          </div>
+          <button
+            className="dropdown-close-btn trees-dropdown-close"
+            type="button"
+            aria-label="Close trees list"
+            onClick={() => setTreesOpen(false)}
+          >
+            <Icons.X size={14} />
+          </button>
         </div>
         {activeTree ? (
           <div className="trees-dropdown-section">
@@ -352,7 +364,6 @@ export default function TreeDropdown() {
             })
           )}
         </div>
-        <div className="trees-dropdown-hint">click a tree to open · edit to rename</div>
       </div>
       <ConfirmOverlay
         open={confirmOpen}

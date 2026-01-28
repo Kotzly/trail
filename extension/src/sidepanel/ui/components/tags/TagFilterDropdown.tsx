@@ -4,6 +4,7 @@ import type { TagDefinition } from '../../../../shared/types/tags.js';
 import { navigateTo } from '../../../api/tree.js';
 import { useStore } from '../../state/store.js';
 import { useOverlayEffects } from '../../state/overlay-effects.js';
+import { useAnchoredDropdown } from '../../hooks/useAnchoredDropdown.js';
 import { Icons } from '../Icon.js';
 import { collectTagCounts, collectTaggedNodes, filterNodesByTags } from './tag-filter-utils.js';
 import React from 'react';
@@ -24,6 +25,7 @@ export default function TagFilterDropdown() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  useAnchoredDropdown({ open: tagFilterOpen, dropdownRef });
 
   const tagCounts = useMemo(() => collectTagCounts(tree), [tree]);
   const tagDefMap = useMemo(() => {
@@ -156,6 +158,14 @@ export default function TagFilterDropdown() {
               </button>
             ) : null}
             <span className="tag-filter-count">{filteredNodes.length}</span>
+            <button
+              className="dropdown-close-btn tag-filter-close"
+              type="button"
+              aria-label="Close tag filter"
+              onClick={() => setTagFilterOpen(false)}
+            >
+              <Icons.X size={14} />
+            </button>
           </div>
         </div>
 
@@ -232,7 +242,6 @@ export default function TagFilterDropdown() {
             })
           )}
         </div>
-        <div className="tag-filter-hint">click tags to filter · esc close</div>
       </div>
     </div>
   );

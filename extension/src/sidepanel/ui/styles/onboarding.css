@@ -1,0 +1,399 @@
+.onboarding-overlay {
+  --modal-overlay-z: 1150;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 55%),
+    var(--md-overlay);
+  backdrop-filter: blur(10px) saturate(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  animation: onboarding-overlay-in 0.18s ease-out;
+}
+
+.onboarding-overlay.closing {
+  animation: onboarding-overlay-out 0.18s ease-in forwards;
+}
+
+@keyframes onboarding-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes onboarding-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.onboarding-panel {
+  width: min(620px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  background: var(--md-glass-strong);
+  border-radius: 22px;
+  border: var(--md-glass-border);
+  box-shadow: var(--md-glass-shadow);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  overflow: auto;
+  backdrop-filter: var(--md-glass-blur);
+  -webkit-backdrop-filter: var(--md-glass-blur);
+  animation: onboarding-panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+}
+
+.onboarding-panel.closing {
+  animation: onboarding-panel-out 0.18s ease-in forwards;
+}
+
+@keyframes onboarding-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes onboarding-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+.onboarding-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border-top: 2px solid var(--md-glass-highlight);
+  border-left: 1px solid var(--md-glass-highlight-soft);
+  border-right: 1px solid var(--md-glass-highlight);
+  pointer-events: none;
+}
+
+.onboarding-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 60%);
+  pointer-events: none;
+}
+
+.onboarding-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.onboarding-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--md-on-surface);
+}
+
+.onboarding-subtitle {
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  margin-top: 4px;
+}
+
+.onboarding-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-skip {
+  background: transparent;
+  border: none;
+  color: var(--md-on-surface-variant);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.onboarding-skip:hover {
+  color: var(--md-on-surface);
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+}
+
+.onboarding-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.onboarding-hero {
+  padding: 16px;
+  border-radius: 16px;
+  border: var(--md-glass-border);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  box-shadow: var(--md-glass-inset);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--md-on-surface-variant);
+  background: var(--md-glass);
+  border: var(--md-glass-border);
+  border-radius: 999px;
+  padding: 4px 8px;
+  width: fit-content;
+  box-shadow: var(--md-glass-inset);
+}
+
+.onboarding-hero-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--md-on-surface);
+}
+
+.onboarding-hero-subtitle {
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+}
+
+.onboarding-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.onboarding-feature-card {
+  padding: 12px;
+  border-radius: 14px;
+  border: var(--md-glass-border);
+  background: var(--md-glass);
+  box-shadow: var(--md-glass-inset);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.onboarding-feature-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-on-surface);
+}
+
+.onboarding-feature-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--md-on-surface);
+}
+
+.onboarding-feature-text {
+  font-size: 11px;
+  color: var(--md-on-surface-variant);
+}
+
+.onboarding-map {
+  border-radius: 16px;
+  border: var(--md-glass-border);
+  background: var(--md-glass);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--md-glass-inset);
+}
+
+.onboarding-map-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.onboarding-map-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.onboarding-map-group.right {
+  flex-direction: row-reverse;
+}
+
+.onboarding-map-orb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: var(--md-glass-border);
+  background: var(--md-glass-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-on-surface);
+  box-shadow: var(--md-glass-inset);
+}
+
+.onboarding-map-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.onboarding-map-node {
+  height: 32px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+}
+
+.onboarding-control-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-control-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--md-on-surface);
+  background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.onboarding-auth {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.onboarding-auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.onboarding-auth-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--md-on-surface);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: var(--md-glass-border);
+  background: var(--md-glass);
+  box-shadow: var(--md-glass-inset);
+}
+
+.onboarding-auth-note {
+  font-size: 11px;
+  color: var(--md-on-surface-variant);
+}
+
+.onboarding-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.onboarding-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.onboarding-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+}
+
+.onboarding-dot.active {
+  width: 18px;
+  background: color-mix(in srgb, var(--md-on-surface) 55%, transparent);
+}
+
+.onboarding-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-btn {
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border: var(--md-glass-border);
+  background: var(--md-glass);
+  color: var(--md-on-surface);
+  box-shadow: var(--md-glass-inset);
+  backdrop-filter: var(--md-glass-blur);
+  -webkit-backdrop-filter: var(--md-glass-blur);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+
+.onboarding-btn.primary {
+  background: color-mix(in srgb, var(--md-primary) 55%, transparent);
+  border-color: color-mix(in srgb, var(--md-primary) 55%, transparent);
+  color: var(--md-on-primary);
+}
+
+.onboarding-btn.secondary {
+  background: var(--md-glass-strong);
+}
+
+.onboarding-btn.ghost {
+  background: transparent;
+}
+
+.onboarding-btn:hover:not(:disabled) {
+  background: var(--md-glass-strong);
+  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  transform: translateY(-1px);
+}
+
+.onboarding-btn.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--md-primary) 70%, transparent);
+  border-color: color-mix(in srgb, var(--md-primary) 70%, transparent);
+}
+
+.onboarding-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

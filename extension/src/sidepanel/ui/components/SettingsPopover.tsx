@@ -11,13 +11,7 @@ import type {
 import type { Url } from '../../../shared/types/ids.js';
 import { BACKEND_CONFIG } from '../../../shared/config/backend.js';
 import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
-import {
-  checkAuthPortal,
-  getAccountSnapshot,
-  logout,
-  normalizeAccountError,
-  startAuthPortal,
-} from '../../api/account.js';
+import { getAccountSnapshot, logout, normalizeAccountError } from '../../api/account.js';
 import { saveSettings } from '../../api/settings.js';
 import { getRangePercent } from '../shared/range.js';
 import { resetNodeLayouts } from '../../api/tree.js';
@@ -25,6 +19,7 @@ import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
+import { useAuthPortalFlow } from '../hooks/useAuthPortalFlow.js';
 import { createPortal } from 'react-dom';
 import React from 'react';
 
@@ -151,14 +146,6 @@ const THEME_OPTIONS: Array<{ id: Settings['theme']; label: string; icon: LucideI
 const clamp = (value: number, min: number, max: number): number =>
   Number.isFinite(value) ? Math.min(Math.max(value, min), max) : min;
 
-const sleep = (ms: number) => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
-
-const resolveDeadline = (expiresAt?: string | null): number => {
-  if (!expiresAt) return Date.now() + 5 * 60 * 1000;
-  const parsed = Date.parse(expiresAt);
-  return Number.isNaN(parsed) ? Date.now() + 5 * 60 * 1000 : parsed;
-};
-
 type DragNumberInputProps = {
   value: number;
   min: number;
@@ -281,12 +268,13 @@ export default function SettingsPopover() {
 
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('preferences');
   const [activePreferencesTab, setActivePreferencesTab] = useState<PreferencesTabId>('layout');
-  const [authBusy, setAuthBusy] = useState(false);
+  const { busy: authFlowBusy, notice: authNotice, startAuthFlow, cancelAuthFlow, setNotice: setAuthNotice } =
+    useAuthPortalFlow();
+  const [authActionBusy, setAuthActionBusy] = useState(false);
+  const authBusy = authFlowBusy || authActionBusy;
   const [portalBusy, setPortalBusy] = useState(false);
-  const [authNotice, setAuthNotice] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const pendingSaveRef = useRef<Settings | null>(null);
-  const authFlowRef = useRef(0);
 
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
   const defaultCapacityMax = 5000;
@@ -328,17 +316,17 @@ export default function SettingsPopover() {
 
   useEffect(() => {
     if (!settingsOpen) {
-      authFlowRef.current += 1;
-      setAuthBusy(false);
+      cancelAuthFlow();
+      setAuthActionBusy(false);
       setPortalBusy(false);
       return;
     }
     setAuthNotice(null);
-    setAuthBusy(false);
+    setAuthActionBusy(false);
     setPortalBusy(false);
     setActiveSection('preferences');
     setActivePreferencesTab('layout');
-  }, [settingsOpen]);
+  }, [cancelAuthFlow, setAuthNotice, settingsOpen]);
 
   const flushPendingSave = useCallback(async () => {
     if (saveTimerRef.current !== null) {
@@ -468,58 +456,14 @@ export default function SettingsPopover() {
 
   const handleSignIn = async () => {
     if (authBusy) return;
-    setAuthBusy(true);
-    setAuthNotice(null);
-    setAccount({ status: 'loading', error: null });
-    authFlowRef.current += 1;
-    const flowId = authFlowRef.current;
-    try {
-      const portalSession = await startAuthPortal({
-        source: 'extension',
-        locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
-        returnUrl: BACKEND_CONFIG.portalUrl as Url,
-      });
-      await openExternalLink(portalSession.url);
-      setAuthNotice('Complete sign-in in the opened tab. Waiting for confirmation…');
-      const deadline = resolveDeadline(portalSession.expiresAt);
-      const pollInterval = portalSession.pollIntervalMs ?? 3000;
-      while (authFlowRef.current === flowId) {
-        if (Date.now() > deadline) {
-          setAuthNotice('Sign-in link expired. Please try again.');
-          setAccount({ status: 'ready', error: null });
-          break;
-        }
-        await sleep(pollInterval);
-        const status = await checkAuthPortal(portalSession.id);
-        if (authFlowRef.current !== flowId) return;
-        if (status.status === 'approved') {
-          if (status.snapshot) {
-            setAccountSnapshot(status.snapshot);
-          } else {
-            await syncAccountSnapshot();
-          }
-          setAuthNotice(null);
-          return;
-        }
-        if (status.status === 'expired') {
-          setAuthNotice('Sign-in link expired. Please try again.');
-          setAccount({ status: 'ready', error: null });
-          return;
-        }
-      }
-    } catch (error) {
-      const normalized = normalizeAccountError(error);
-      setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
-    } finally {
-      setAuthBusy(false);
-    }
+    await startAuthFlow({ source: 'extension' });
   };
 
   const handleLogout = async () => {
-    setAuthBusy(true);
+    if (authActionBusy) return;
+    setAuthActionBusy(true);
     setAuthNotice(null);
     setAccount({ status: 'loading', error: null });
-    authFlowRef.current += 1;
     try {
       await logout();
       await syncAccountSnapshot();
@@ -527,7 +471,7 @@ export default function SettingsPopover() {
       const normalized = normalizeAccountError(error);
       setAccount({ status: 'error', error: normalized, network: normalized.code === 'network' ? 'offline' : 'online' });
     } finally {
-      setAuthBusy(false);
+      setAuthActionBusy(false);
     }
   };
 

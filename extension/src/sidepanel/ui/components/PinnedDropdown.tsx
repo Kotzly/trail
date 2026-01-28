@@ -3,6 +3,7 @@ import type { NodeId } from '../../../shared/types/ids.js';
 import { navigateTo } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
+import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
 import React from 'react';
 
@@ -18,6 +19,7 @@ export default function PinnedDropdown() {
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  useAnchoredDropdown({ open: pinnedOpen, dropdownRef });
 
   const pinnedNodes = useMemo(() => {
     if (!pins) return [];
@@ -114,10 +116,20 @@ export default function PinnedDropdown() {
         aria-hidden={!pinnedOpen}
       >
         <div className="pinned-dropdown-header">
-          <span className="pinned-dropdown-title">pinned</span>
-          <span className="pinned-dropdown-count" id="pinnedCount">
-            {pinnedNodes.length}
-          </span>
+          <div className="pinned-dropdown-heading">
+            <span className="pinned-dropdown-title">pinned</span>
+            <span className="pinned-dropdown-count" id="pinnedCount">
+              {pinnedNodes.length}
+            </span>
+          </div>
+          <button
+            className="dropdown-close-btn pinned-dropdown-close"
+            type="button"
+            aria-label="Close pinned list"
+            onClick={() => setPinnedOpen(false)}
+          >
+            <Icons.X size={14} />
+          </button>
         </div>
         <div className="pinned-dropdown-list" id="pinnedList">
           {pinnedNodes.length === 0 ? (
@@ -154,7 +166,6 @@ export default function PinnedDropdown() {
             ))
           )}
         </div>
-        <div className="pinned-dropdown-hint">↑↓ navigate · enter open · esc close</div>
       </div>
     </div>
   );

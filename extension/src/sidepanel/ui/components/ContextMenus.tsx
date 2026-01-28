@@ -231,16 +231,21 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     const spaceRight = Math.max(0, window.innerWidth - rect.right - padding);
     const spaceLeft = Math.max(0, rect.left - padding);
     const shouldFlip = spaceRight < SUBMENU_MIN_WIDTH && spaceLeft > spaceRight;
-    setSubmenuLeft(shouldFlip);
     const availableWidth = shouldFlip ? spaceLeft : spaceRight;
+    const shouldOverlap = availableWidth < SUBMENU_MIN_WIDTH;
+    setSubmenuLeft(shouldFlip);
+    menu.classList.toggle('submenu-overlap', shouldOverlap);
+    const maxSubmenuWidth = shouldOverlap
+      ? Math.min(rect.width, window.innerWidth - padding * 2)
+      : availableWidth;
 
     const items = menu.querySelectorAll<HTMLElement>('.graph-context-menu-item.has-submenu');
     items.forEach((item) => {
       const submenu = item.querySelector<HTMLElement>('.graph-context-submenu');
       if (!submenu) return;
       submenu.style.setProperty('--submenu-offset-y', '0px');
-      submenu.style.maxWidth = `${availableWidth}px`;
-      submenu.style.minWidth = `${Math.min(SUBMENU_MIN_WIDTH, availableWidth)}px`;
+      submenu.style.maxWidth = `${maxSubmenuWidth}px`;
+      submenu.style.minWidth = `${Math.min(SUBMENU_MIN_WIDTH, maxSubmenuWidth)}px`;
       const submenuRect = submenu.getBoundingClientRect();
       const itemRect = item.getBoundingClientRect();
       const maxBottom = window.innerHeight - padding;
