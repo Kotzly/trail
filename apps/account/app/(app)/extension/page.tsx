@@ -14,19 +14,20 @@ type ExtensionPageProps = {
 };
 
 export default async function ExtensionPage({ searchParams }: ExtensionPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const queryCode =
+    typeof resolvedSearchParams?.code === "string" ? resolvedSearchParams.code : null;
+  const returnTo = queryCode ? `/extension?code=${queryCode}` : "/extension";
+
   const session = await auth0.getSession();
   if (!session?.user) {
-    redirect("/auth/login");
+    redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
   }
 
   const user = await ensureUser(session.user);
   if (!user) {
-    redirect("/auth/login");
+    redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
   }
-
-  const resolvedSearchParams = await searchParams;
-  const queryCode =
-    typeof resolvedSearchParams?.code === "string" ? resolvedSearchParams.code : null;
   let connectionReady = false;
 
   if (queryCode) {

@@ -44,7 +44,6 @@ const resolveCaCert = () => {
     process.env.SUPABASE_CA_CERT ??
     process.env.DATABASE_CA_CERT ??
     process.env.POSTGRES_CA_CERT;
-  console.log("THIS IS WHERE YOU NEED TO LOOK: candidate is:", candidate);
   if (!candidate) return null;
   const trimmed = candidate.trim();
   if (!trimmed) return null;
