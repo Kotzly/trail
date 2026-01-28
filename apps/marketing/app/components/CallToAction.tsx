@@ -5,8 +5,10 @@ export function CallToAction() {
 
   return (
     <section className="px-6 py-20">
-      <div className="mx-auto max-w-6xl rounded-3xl border border-stroke/40 bg-surface/90 px-8 py-16 text-center shadow-card">
-        <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">{cta.title}</h2>
+      <div className="trail-card mx-auto max-w-6xl px-8 py-16 text-center">
+        <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
+          {cta.title}
+        </h2>
         <p className="mx-auto mt-4 max-w-2xl text-[1rem] text-ink-subtle">
           {cta.subtitle}
         </p>

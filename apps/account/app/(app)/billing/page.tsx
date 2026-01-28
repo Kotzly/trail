@@ -10,7 +10,7 @@ export default function BillingPage() {
         <h1 className="text-3xl font-semibold tracking-tight">{billing.title}</h1>
         <p className="mt-2 text-sm text-ink-muted">{billing.subtitle}</p>
       </div>
-      <div className="rounded-2xl border border-border/50 bg-surface/80 p-6">
+      <div className="trail-card-soft rounded-2xl p-6">
         <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Billing access</p>
         <p className="mt-3 text-sm text-ink-muted">
           Plans, invoices, and usage tracking are launching soon. Join the waitlist to be

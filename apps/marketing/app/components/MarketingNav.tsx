@@ -12,7 +12,7 @@ export function MarketingNav() {
           href="/"
           className="flex items-center gap-3 text-lg font-display font-semibold tracking-tight text-ink"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-stroke/40 bg-surface shadow-card">
+          <span className="trail-card-compact flex h-9 w-9 items-center justify-center bg-surface shadow-card">
             <span className="text-xs font-semibold uppercase">t</span>
           </span>
           trail

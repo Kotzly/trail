@@ -18,7 +18,7 @@ export default function FaqPage() {
           {faq.items.map((item) => (
             <div
               key={item.question}
-              className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card"
+              className="trail-card p-6"
             >
               <h3 className="font-display text-lg font-semibold text-ink">{item.question}</h3>
               <p className="mt-2 text-sm text-ink-subtle">{item.answer}</p>

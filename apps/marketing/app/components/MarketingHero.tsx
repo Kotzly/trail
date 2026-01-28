@@ -83,7 +83,7 @@ ${keyframeStops}
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-4">
           {marketingCopy.stats.map((stat) => (
-            <div key={stat.label} className="rounded-2xl border border-stroke/40 bg-surface/80 p-4 text-left">
+            <div key={stat.label} className="trail-card-compact p-4 text-left">
               <div className="text-2xl font-semibold text-ink">{stat.value}</div>
               <div className="mt-1 text-xs text-ink-subtle">{stat.label}</div>
             </div>

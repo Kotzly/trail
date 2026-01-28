@@ -125,34 +125,32 @@ export function WaitlistDialog({
             aria-modal="true"
             aria-labelledby={titleId}
             aria-describedby={descriptionId}
-            className="relative w-full max-w-md rounded-3xl border border-stroke/50 bg-surface/95 p-6 shadow-elev-2"
+            className="trail-modal relative w-full max-w-md"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
-                  waitlist
-                </p>
+                <p className="trail-eyebrow">waitlist</p>
                 <h2 id={titleId} className="mt-3 font-display text-2xl font-semibold text-ink">
                   {title}
                 </h2>
-                <p id={descriptionId} className="mt-2 text-sm text-ink-subtle">
+                <p id={descriptionId} className="trail-copy mt-2">
                   {description}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeDialog}
-                className="rounded-full border border-stroke/60 px-3 py-1 text-xs uppercase tracking-[0.3em] text-ink-subtle transition hover:border-stroke hover:text-ink"
+                className="trail-pill transition hover:border-stroke hover:text-ink"
               >
                 close
               </button>
             </div>
 
             {status === "success" ? (
-              <div className="mt-6 rounded-2xl border border-stroke/40 bg-surface/90 p-4 text-sm text-ink">
+              <div className="trail-card-compact mt-6 bg-surface/90 p-4 text-sm text-ink">
                 <p className="font-medium">You are on the list.</p>
-                <p className="mt-2 text-ink-subtle">
+                <p className="trail-copy mt-2">
                   We will reach out as soon as downloads open up.
                 </p>
                 <div className="mt-4 flex justify-end">
@@ -163,9 +161,7 @@ export function WaitlistDialog({
               </div>
             ) : (
               <form onSubmit={submitEmail} className="mt-6 space-y-4">
-                <label className="block text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
-                  Email
-                </label>
+                <label className="trail-eyebrow block">Email</label>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <input
                     ref={inputRef}
@@ -180,10 +176,7 @@ export function WaitlistDialog({
                       }
                     }}
                     placeholder="you@company.com"
-                    className={cn(
-                      "h-11 w-full rounded-full border border-stroke/60 bg-surface px-4 text-sm text-ink shadow-inner",
-                      "placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
-                    )}
+                    className={cn("trail-input")}
                     autoComplete="email"
                     disabled={status === "submitting"}
                   />
@@ -196,7 +189,7 @@ export function WaitlistDialog({
                     {status === "submitting" ? "Joining..." : "Join"}
                   </Button>
                 </div>
-                <p className="text-xs text-ink-subtle">
+                <p className="trail-copy text-xs">
                   No spam. One note when downloads open.
                 </p>
                 {status === "error" && error ? (

@@ -8,7 +8,7 @@ export default function DashboardPage() {
 
   return (
     <section className="space-y-10">
-      <div className="relative overflow-hidden rounded-3xl border border-stroke/40 bg-surface/90 p-8 shadow-card">
+      <div className="trail-card relative overflow-hidden p-8">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-10 top-10 h-32 w-32 rounded-full bg-ink/5 blur-3xl" />
           <div className="absolute -right-10 top-20 h-40 w-40 rounded-full bg-ink/10 blur-3xl" />
@@ -19,12 +19,8 @@ export default function DashboardPage() {
             Workspace
           </Badge>
           <div>
-            <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">
-              {dashboard.title}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-ink-subtle md:text-[1rem]">
-              {dashboard.subtitle}
-            </p>
+            <h1 className="trail-title">{dashboard.title}</h1>
+            <p className="trail-copy mt-2 max-w-2xl md:text-[1rem]">{dashboard.subtitle}</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -66,7 +62,7 @@ export default function DashboardPage() {
             ].map((step) => (
               <div
                 key={step.label}
-                className="rounded-3xl border border-stroke/40 bg-surface/90 p-4"
+                className="trail-card p-4 shadow-none"
               >
                 <p className="text-[10px] uppercase tracking-[0.3em] text-ink-subtle">
                   {step.label}
@@ -81,14 +77,14 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
-          <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
+          <div className="trail-card p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-ink-subtle">Trails</p>
+                <p className="trail-eyebrow">Trails</p>
                 <h2 className="mt-2 font-display text-xl font-semibold text-ink">
                   Recent activity
                 </h2>
-                <p className="mt-2 text-sm text-ink-subtle">{dashboard.emptyState}</p>
+                <p className="trail-copy mt-2">{dashboard.emptyState}</p>
               </div>
               <Badge className="bg-surface-strong text-xs font-semibold text-ink">
                 0 synced
@@ -98,10 +94,10 @@ export default function DashboardPage() {
               {["First capture", "Recent highlight"].map((label) => (
                 <div
                   key={label}
-                  className="rounded-2xl border border-stroke/40 bg-surface/80 p-4"
+                  className="trail-card-compact p-4"
                 >
-                  <p className="text-xs uppercase tracking-[0.3em] text-ink-subtle">{label}</p>
-                  <p className="mt-3 text-sm text-ink-subtle">
+                  <p className="trail-eyebrow">{label}</p>
+                  <p className="trail-copy mt-3">
                     Waiting for your extension to sync.
                   </p>
                 </div>
@@ -109,16 +105,14 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
+          <div className="trail-card p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-ink-subtle">
-                  Getting started
-                </p>
+                <p className="trail-eyebrow">Getting started</p>
                 <h2 className="mt-2 font-display text-xl font-semibold text-ink">
                   Your setup checklist
                 </h2>
-                <p className="mt-2 text-sm text-ink-subtle">
+                <p className="trail-copy mt-2">
                   Follow the flow below to stay oriented as you begin.
                 </p>
               </div>
@@ -152,7 +146,7 @@ export default function DashboardPage() {
               ].map((item) => (
                 <div
                   key={item.step}
-                  className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stroke/40 bg-surface/80 px-4 py-4"
+                  className="trail-card-compact flex flex-wrap items-center justify-between gap-4 px-4 py-4"
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-sm font-semibold text-surface">
@@ -160,7 +154,7 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-ink">{item.title}</p>
-                      <p className="mt-1 text-xs text-ink-subtle">{item.copy}</p>
+                      <p className="trail-copy mt-1 text-xs">{item.copy}</p>
                     </div>
                   </div>
                   <Link

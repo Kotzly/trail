@@ -4,6 +4,66 @@
   color-scheme: light dark;
 }
 
+@utility trail-card {
+  @apply rounded-3xl border border-stroke/40 bg-surface/90 shadow-card;
+}
+
+@utility trail-card-compact {
+  @apply rounded-2xl border border-stroke/40 bg-surface/80;
+}
+
+@utility trail-card-soft {
+  @apply rounded-3xl border border-border/50 bg-surface/80;
+}
+
+@utility trail-card-muted {
+  @apply rounded-3xl border border-border/50 bg-surface/70;
+}
+
+@utility trail-card-neutral {
+  @apply rounded-3xl border border-border/40 bg-surface/90 shadow-card;
+}
+
+@utility trail-panel {
+  @apply rounded-3xl border border-border/40 bg-surface/85 shadow-card;
+}
+
+@utility trail-step {
+  @apply rounded-2xl border border-border/40 bg-surface/90 px-4 py-4;
+}
+
+@utility trail-eyebrow {
+  @apply text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle;
+}
+
+@utility trail-overline {
+  @apply text-xs uppercase tracking-[0.2em] text-ink-subtle;
+}
+
+@utility trail-title {
+  @apply font-display text-3xl font-semibold text-ink md:text-4xl;
+}
+
+@utility trail-copy {
+  @apply text-sm text-ink-subtle;
+}
+
+@utility trail-pill {
+  @apply rounded-full border border-stroke/60 px-3 py-1 text-xs uppercase tracking-[0.3em] text-ink-subtle;
+}
+
+@utility trail-status {
+  @apply rounded-full border border-stroke/50 px-2 py-1 text-[0.6rem] uppercase tracking-[0.3em] text-ink-subtle;
+}
+
+@utility trail-input {
+  @apply h-11 w-full rounded-full border border-stroke/60 bg-surface px-4 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30;
+}
+
+@utility trail-modal {
+  @apply rounded-3xl border border-stroke/50 bg-surface/95 p-6 shadow-elev-2;
+}
+
 * {
   box-sizing: border-box;
 }

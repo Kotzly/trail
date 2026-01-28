@@ -6,22 +6,18 @@ export function FeatureGrid() {
   return (
     <section id="features" className="mx-auto max-w-6xl px-6 py-20">
       <div className="flex flex-col gap-4">
-        <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
-          {features.eyebrow}
-        </span>
-        <h2 className="font-display text-3xl font-semibold text-ink md:text-4xl">
-          {features.title}
-        </h2>
-        <p className="max-w-2xl text-sm text-ink-subtle">{features.summary}</p>
+        <span className="trail-eyebrow">{features.eyebrow}</span>
+        <h2 className="trail-title">{features.title}</h2>
+        <p className="trail-copy max-w-2xl">{features.summary}</p>
       </div>
       <div className="mt-10 grid gap-6 md:grid-cols-3">
         {features.cards.map((card) => (
           <div
             key={card.title}
-            className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card"
+            className="trail-card p-6"
           >
             <h3 className="font-display text-xl font-semibold text-ink">{card.title}</h3>
-            <p className="mt-3 text-sm text-ink-subtle">{card.copy}</p>
+            <p className="trail-copy mt-3">{card.copy}</p>
             <ul className="mt-5 space-y-3 text-sm text-ink">
               {card.bullets.map((bullet) => (
                 <li key={bullet} className="flex items-start gap-2">

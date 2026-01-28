@@ -8,23 +8,17 @@ export function HowItWorks() {
       <div className="mx-auto max-w-6xl px-6 py-20">
         <div className="grid gap-8 md:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
-              {workflow.eyebrow}
-            </span>
-            <h2 className="mt-4 font-display text-3xl font-semibold text-ink md:text-4xl">
-              {workflow.title}
-            </h2>
-            <p className="mt-4 max-w-xl text-sm text-ink-subtle">{workflow.summary}</p>
+            <span className="trail-eyebrow">{workflow.eyebrow}</span>
+            <h2 className="trail-title mt-4">{workflow.title}</h2>
+            <p className="trail-copy mt-4 max-w-xl">{workflow.summary}</p>
           </div>
-          <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
+          <div className="trail-card p-6">
             <div className="space-y-5">
               {workflow.steps.map((step, index) => (
                 <div key={step.title} className="border-b border-stroke/30 pb-4 last:border-b-0">
-                  <p className="text-xs uppercase tracking-[0.2em] text-ink-subtle">
-                    Step {index + 1}
-                  </p>
+                  <p className="trail-overline">Step {index + 1}</p>
                   <h3 className="mt-3 font-display text-lg font-semibold text-ink">{step.title}</h3>
-                  <p className="mt-2 text-sm text-ink-subtle">{step.copy}</p>
+                  <p className="trail-copy mt-2">{step.copy}</p>
                 </div>
               ))}
             </div>

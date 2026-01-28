@@ -27,7 +27,7 @@ export default async function SettingsPage() {
         <p className="mt-2 text-sm text-ink-muted">{settings.subtitle}</p>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border border-border/50 bg-surface/80 p-6">
+        <Card className="trail-card-soft p-6">
           <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Profile</p>
           <div className="mt-4 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-sm font-semibold text-surface">
@@ -39,7 +39,7 @@ export default async function SettingsPage() {
             </div>
           </div>
         </Card>
-        <Card className="border border-border/50 bg-surface/80 p-6">
+        <Card className="trail-card-soft p-6">
           <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Preferences</p>
           <p className="mt-3 text-sm text-ink-muted">
             Use the theme toggle in the sidebar to switch light, dark, or system mode.
@@ -48,7 +48,7 @@ export default async function SettingsPage() {
             Extension sync happens automatically once you approve the connection.
           </p>
         </Card>
-        <Card className="border border-border/50 bg-surface/80 p-6">
+        <Card className="trail-card-soft p-6">
           <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">Security</p>
           <p className="mt-3 text-sm text-ink-muted">
             Sign out to end your session across Trail apps.

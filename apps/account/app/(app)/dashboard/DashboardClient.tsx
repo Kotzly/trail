@@ -23,15 +23,15 @@ export function DashboardClient() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
-        <p className="text-xs uppercase tracking-[0.3em] text-ink-subtle">Account</p>
+      <div className="trail-card p-6">
+        <p className="trail-eyebrow">Account</p>
         <div className="mt-4 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-sm font-semibold text-surface">
             {initials}
           </div>
           <div>
             <p className="text-sm font-semibold text-ink">{displayName}</p>
-            <p className="text-xs text-ink-subtle">{displayEmail}</p>
+            <p className="trail-copy text-xs">{displayEmail}</p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -46,12 +46,12 @@ export function DashboardClient() {
         </Link>
       </div>
 
-      <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
-        <p className="text-xs uppercase tracking-[0.3em] text-ink-subtle">System</p>
+      <div className="trail-card p-6">
+        <p className="trail-eyebrow">System</p>
         <div className="mt-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-ink">API status</p>
-            <p className="mt-1 text-xs text-ink-subtle">Live heartbeat from your Trail API.</p>
+            <p className="trail-copy mt-1 text-xs">Live heartbeat from your Trail API.</p>
           </div>
           <Badge
             className={
@@ -64,30 +64,30 @@ export function DashboardClient() {
           </Badge>
         </div>
         {health.data?.timestamp ? (
-          <p className="mt-3 text-xs text-ink-subtle">Last check: {health.data.timestamp}</p>
+          <p className="trail-copy mt-3 text-xs">Last check: {health.data.timestamp}</p>
         ) : null}
       </div>
 
-      <div className="rounded-3xl border border-stroke/40 bg-surface/90 p-6 shadow-card">
-        <p className="text-xs uppercase tracking-[0.3em] text-ink-subtle">Quick links</p>
+      <div className="trail-card p-6">
+        <p className="trail-eyebrow">Quick links</p>
         <div className="mt-4 grid gap-3 text-sm font-semibold">
           <Link
             href="/extension"
-            className="inline-flex items-center justify-between rounded-2xl border border-stroke/40 bg-surface/80 px-4 py-3 text-ink transition hover:border-stroke"
+            className="trail-card-compact inline-flex items-center justify-between px-4 py-3 text-ink transition hover:border-stroke"
           >
             <span>Open extension</span>
             <span>→</span>
           </Link>
           <Link
             href="/billing"
-            className="inline-flex items-center justify-between rounded-2xl border border-stroke/40 bg-surface/80 px-4 py-3 text-ink transition hover:border-stroke"
+            className="trail-card-compact inline-flex items-center justify-between px-4 py-3 text-ink transition hover:border-stroke"
           >
             <span>Billing overview</span>
             <span>→</span>
           </Link>
           <Link
             href="/settings"
-            className="inline-flex items-center justify-between rounded-2xl border border-stroke/40 bg-surface/80 px-4 py-3 text-ink transition hover:border-stroke"
+            className="trail-card-compact inline-flex items-center justify-between px-4 py-3 text-ink transition hover:border-stroke"
           >
             <span>Account preferences</span>
             <span>→</span>

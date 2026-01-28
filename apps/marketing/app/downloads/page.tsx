@@ -25,7 +25,7 @@ export default function DownloadsPage() {
         <section className="relative mx-auto max-w-6xl px-6 pb-20 pt-16">
           <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="space-y-8">
-              <Badge className="border border-stroke/40 bg-surface/70 text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
+              <Badge className="trail-eyebrow border border-stroke/40 bg-surface/70">
                 {downloads.eyebrow}
               </Badge>
               <div className="space-y-4">
@@ -50,48 +50,42 @@ export default function DownloadsPage() {
                 {downloads.cards.map((card) => (
                   <Card
                     key={card.title}
-                    className="border border-stroke/40 bg-surface/90 p-5 shadow-card"
+                    className="trail-card p-5"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
-                        {card.title}
-                      </p>
-                      <span className="rounded-full border border-stroke/50 px-2 py-1 text-[0.6rem] uppercase tracking-[0.3em] text-ink-subtle">
+                      <p className="trail-eyebrow">{card.title}</p>
+                      <span className="trail-status">
                         {card.status}
                       </span>
                     </div>
-                    <p className="mt-3 text-sm text-ink-muted">{card.copy}</p>
+                    <p className="trail-copy mt-3">{card.copy}</p>
                   </Card>
                 ))}
               </div>
             </div>
             <div className="space-y-6">
-              <Card className="border border-border/40 bg-surface/85 p-7 shadow-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
-                  {downloads.stepsTitle}
-                </p>
+              <Card className="trail-panel p-7">
+                <p className="trail-eyebrow">{downloads.stepsTitle}</p>
                 <div className="mt-5 space-y-4">
                   {downloads.steps.map((step, index) => (
                     <div
                       key={step.title}
-                      className="flex items-start gap-4 rounded-2xl border border-border/40 bg-surface/90 px-4 py-4"
+                      className="trail-step flex items-start gap-4"
                     >
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-sm font-semibold text-surface">
                         {index + 1}
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-ink">{step.title}</p>
-                        <p className="mt-1 text-xs text-ink-subtle">{step.copy}</p>
+                        <p className="trail-copy mt-1 text-xs">{step.copy}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </Card>
-              <Card className="border border-border/40 bg-surface/90 p-6 shadow-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle">
-                  {downloads.noteTitle}
-                </p>
-                <p className="mt-2 text-sm text-ink-muted">{downloads.noteCopy}</p>
+              <Card className="trail-card-neutral p-6">
+                <p className="trail-eyebrow">{downloads.noteTitle}</p>
+                <p className="trail-copy mt-2">{downloads.noteCopy}</p>
               </Card>
             </div>
           </div>

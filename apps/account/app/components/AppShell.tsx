@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
     >
       {sidebarOpen ? (
-        <aside className="rounded-3xl border border-border/50 bg-surface/80 p-6 shadow-elev-1">
+        <aside className="trail-card-soft p-6 shadow-elev-1">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-[0.3em]">Trail</span>
             <button
@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
       ) : null}
-      <main className="relative rounded-3xl border border-border/50 bg-surface/70 p-8 shadow-elev-1">
+      <main className="trail-card-muted relative p-8 shadow-elev-1">
         {!sidebarOpen ? (
           <button
             type="button"
