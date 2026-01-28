@@ -8,8 +8,8 @@ export const marketingCopy = {
     features: "features",
     workflow: "workflow",
     faq: "F.A.Q.",
-    signIn: "",
-    getStarted: "get",
+    signIn: "sign in",
+    getStarted: "get started",
   },
   hero: {
     pill: "browser extension · freemium",
