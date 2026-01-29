@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MoonIcon, SunIcon } from "@radix-ui/react-icons";
+import { DesktopIcon, MoonIcon, SunIcon } from "@radix-ui/react-icons";
 import { cn } from "../utils/cn";
 
 const themes = ["system", "light", "dark"] as const;
@@ -27,7 +27,8 @@ export function ThemeToggle({ className }: { className?: string }) {
     window.localStorage.setItem("trail-theme", next);
   };
 
-  const icon = theme === "light" ? <SunIcon /> : <MoonIcon />;
+  const icon =
+    theme === "light" ? <SunIcon /> : theme === "dark" ? <MoonIcon /> : <DesktopIcon />;
 
   return (
     <button
