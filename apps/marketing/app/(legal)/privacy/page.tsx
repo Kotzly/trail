@@ -31,7 +31,7 @@ export default async function PrivacyPage() {
           ) : null}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button asChild variant="outline" size="sm">
-              <Link href="/terms">Read terms</Link>
+              <Link href="/terms">Terms of Service</Link>
             </Button>
             <Button asChild variant="ghost" size="sm">
               <a href="mailto:support@gettrail.net">support@gettrail.net</a>
