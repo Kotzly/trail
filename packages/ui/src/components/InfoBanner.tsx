@@ -27,7 +27,7 @@ export function InfoBanner({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-4 shadow-card",
+        "flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-4",
         toneStyles[tone],
         className
       )}

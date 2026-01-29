@@ -23,7 +23,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-3xl border border-border/60 bg-surface/85 p-6 shadow-card",
+        "relative overflow-hidden rounded-2xl border border-border/60 bg-surface/70 p-5",
         className
       )}
       {...props}
@@ -34,7 +34,7 @@ export function EmptyState({
       </div>
       <div className="relative space-y-4">
         {icon ? (
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/60 bg-surface shadow-card">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/60 bg-surface">
             {icon}
           </div>
         ) : null}

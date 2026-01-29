@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRightIcon, LightningBoltIcon } from "@radix-ui/react-icons";
-import { Button, PageHeader, WaitlistDialog, cn } from "@trail/ui";
+import {
+  ArrowRightIcon,
+  ChevronLeftIcon,
+  MagnifyingGlassIcon
+} from "@radix-ui/react-icons";
+import { Button, cn } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { trpc } from "@/src/trpc/client";
+import { useUiStore } from "@/src/store/useUiStore";
 
 type PageMeta = {
   title: string;
-  subtitle?: string;
-  cta?:
-    | { type: "link"; label: string; href: string }
-    | { type: "waitlist"; label: string };
+  cta?: { label: string; href: string };
 };
 
 const pageMeta: Array<{ href: string; meta: PageMeta }> = [
@@ -20,32 +22,28 @@ const pageMeta: Array<{ href: string; meta: PageMeta }> = [
     href: "/dashboard",
     meta: {
       title: accountCopy.dashboard.title,
-      subtitle: accountCopy.dashboard.subtitle,
-      cta: { type: "link", label: accountCopy.dashboard.cta, href: "/extension" }
+      cta: { label: accountCopy.dashboard.cta, href: "/extension" }
     }
   },
   {
     href: "/settings",
     meta: {
       title: accountCopy.settings.title,
-      subtitle: accountCopy.settings.subtitle,
-      cta: { type: "link", label: accountCopy.settings.cta, href: "/settings#profile" }
+      cta: { label: accountCopy.settings.cta, href: "/settings#profile" }
     }
   },
   {
     href: "/billing",
     meta: {
       title: accountCopy.billing.title,
-      subtitle: accountCopy.billing.subtitle,
-      cta: { type: "waitlist", label: accountCopy.billing.cta }
+      cta: { label: accountCopy.billing.cta, href: "/billing" }
     }
   },
   {
     href: "/extension",
     meta: {
       title: accountCopy.extension.title,
-      subtitle: accountCopy.extension.subtitle,
-      cta: { type: "link", label: accountCopy.extension.cta, href: "/extension" }
+      cta: { label: accountCopy.extension.cta, href: "/extension" }
     }
   }
 ];
@@ -53,62 +51,87 @@ const pageMeta: Array<{ href: string; meta: PageMeta }> = [
 export function TopBar() {
   const pathname = usePathname();
   const health = trpc.health.useQuery(undefined, { refetchInterval: 30000 });
+  const me = trpc.me.useQuery();
+  const { sidebarCollapsed, toggleSidebar, toggleSidebarMobile } = useUiStore();
 
   const active = pageMeta.find((item) => pathname.startsWith(item.href))?.meta ?? {
-    title: "Account",
-    subtitle: ""
+    title: "account"
   };
 
-  const statusLabel = health.data?.ok ? "Sync ready" : "Sync checking";
+  const displayName =
+    me.data?.user?.name?.trim() ||
+    me.data?.user?.email?.split("@")[0] ||
+    "trail member";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((chunk) => chunk[0]?.toLowerCase())
+    .join("");
+
+  const statusLabel = health.data?.ok ? "sync ready" : "sync checking";
   const statusTone = health.data?.ok ? "bg-emerald-500" : "bg-amber-400";
 
-  const action = active.cta ? (
-    active.cta.type === "waitlist" ? (
-      <WaitlistDialog
-        triggerLabel={active.cta.label}
-        title={accountCopy.billing.waitlistTitle}
-        description={accountCopy.billing.waitlistDialogDescription}
-        source="billing"
-        buttonVariant="primary"
-      />
-    ) : (
-      <Button asChild size="md">
-        <Link href={active.cta.href}>
-          {active.cta.label}
-          <ArrowRightIcon />
-        </Link>
-      </Button>
-    )
-  ) : null;
-
   return (
-    <header className="rounded-3xl border border-border/60 bg-surface/80 px-6 py-5 shadow-card">
-      <PageHeader
-        className="border-b-0 pb-0"
-        title={active.title}
-        subtitle={active.subtitle}
-        actions={
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-surface px-3 py-1 text-xs text-ink-muted">
-              <span className={cn("h-2 w-2 rounded-full", statusTone)} />
-              <span>{statusLabel}</span>
-            </div>
-            {action}
+    <header className="sticky top-0 z-20 border-b border-border/60 bg-bg/90 backdrop-blur">
+      <div className="flex flex-wrap items-center gap-4 px-4 py-3 lg:px-6">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.innerWidth >= 1024) {
+              toggleSidebar();
+              return;
+            }
+            toggleSidebarMobile();
+          }}
+          className={cn(
+            "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-ink transition hover:bg-surface-high",
+            sidebarCollapsed && "lg:rotate-180"
+          )}
+          aria-label="toggle sidebar"
+        >
+          <ChevronLeftIcon />
+        </button>
+
+        <div className="min-w-0">
+          <p className="text-xs text-ink-muted">account / {active.title}</p>
+          <h1 className="truncate text-lg font-semibold lowercase text-ink sm:text-xl">
+            {active.title}
+          </h1>
+        </div>
+
+        <div className="hidden flex-1 items-center md:flex">
+          <div className="relative w-full max-w-md">
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+            <input
+              type="text"
+              placeholder={accountCopy.header.searchPlaceholder}
+              className="h-10 w-full rounded-full border border-border/60 bg-surface/70 pl-10 pr-16 text-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-border/60 px-2 py-0.5 text-[0.65rem] text-ink-muted">
+              {accountCopy.header.searchHint}
+            </span>
           </div>
-        }
-      >
-        <nav className="flex items-center gap-2 text-xs text-ink-muted">
-          <Link href="/dashboard" className="transition hover:text-ink">
-            Account
-          </Link>
-          <span>/</span>
-          <span className="text-ink">{active.title}</span>
-          <span className="ml-3 inline-flex items-center gap-1 rounded-full border border-border/60 bg-surface px-2 py-1 text-[0.65rem] font-medium text-ink-muted">
-            <LightningBoltIcon className="h-3 w-3" />
-            Early access
-          </span>
-        </nav>
-      </PageHeader>
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 rounded-full border border-border/60 bg-surface/70 px-3 py-1 text-xs text-ink-muted">
+            <span className={cn("h-2 w-2 rounded-full", statusTone)} />
+            <span>{statusLabel}</span>
+          </div>
+          {active.cta ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={active.cta.href}>
+                {active.cta.label}
+                <ArrowRightIcon />
+              </Link>
+            </Button>
+          ) : null}
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-surface text-xs font-semibold text-ink">
+            {initials}
+          </div>
+        </div>
+      </div>
     </header>
   );
 }

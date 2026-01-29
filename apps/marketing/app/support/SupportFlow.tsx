@@ -164,8 +164,10 @@ function TriageCard({
       onClick={onClick}
       className={cn(
         "group relative w-full rounded-3xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30",
-        tone === "default" ? "bg-surface/80" : "bg-surface/60",
-        selected ? "border-ink/25 shadow-elev-2" : "border-stroke/50 hover:border-ink/20 hover:bg-surface/80"
+        tone === "default" ? "bg-surface/70" : "bg-surface/50",
+        selected
+          ? "border-ink/25 shadow-elev-1"
+          : "border-stroke/40 hover:border-ink/20 hover:bg-surface/70"
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -219,6 +221,7 @@ export function SupportFlow() {
   const { support, faq } = marketingCopy;
   const [path, setPath] = React.useState<SupportPath | null>(null);
   const detailsRef = React.useRef<HTMLDivElement | null>(null);
+  const stepThreeRef = React.useRef<HTMLDivElement | null>(null);
 
   const [accountEmail, setAccountEmail] = React.useState("");
   const [extensionVersion, setExtensionVersion] = React.useState("");
@@ -279,6 +282,15 @@ export function SupportFlow() {
   const checksTotal = activeChecks.length;
   const checksComplete = checksTotal > 0 && checksDoneCount === checksTotal;
   const canContactSupport = (path === "bug" || path === "account") ? checksComplete : false;
+
+  React.useEffect(() => {
+    if (!checksComplete || (path !== "bug" && path !== "account")) {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      stepThreeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [checksComplete, path]);
 
   const diagnostics = React.useMemo(() => {
     return formatDiagnostics({
@@ -375,9 +387,7 @@ export function SupportFlow() {
   return (
     <section className="relative mx-auto max-w-6xl px-6 pb-14 pt-10">
       <div className="mx-auto max-w-3xl text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-stroke/40 bg-surface/70 px-4 py-2 text-xs font-semibold tracking-[0.24em] text-ink-subtle">
-          {support.eyebrow}
-        </div>
+        <p className="trail-eyebrow text-ink-subtle">{support.eyebrow}</p>
         <h1 className="mt-5 font-display text-4xl font-semibold leading-tight text-ink md:text-5xl">
           {support.title}
         </h1>
@@ -386,40 +396,43 @@ export function SupportFlow() {
         </p>
       </div>
 
-      <div className="mx-auto mt-8 max-w-5xl">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TriageCard
-            title="Something's broken"
-            description="Extension issues, capture problems, sharing bugs."
-            selected={path === "bug"}
-            tone="default"
-            onClick={() => setPath("bug")}
-          />
-          <TriageCard
-            title="Sign-in / account"
-            description="Login loops, account access, billing questions."
-            selected={path === "account"}
-            tone="default"
-            onClick={() => setPath("account")}
-          />
-          <TriageCard
-            title="Request a feature"
-            description="Tell us what you want Trail to do next."
-            selected={path === "feature"}
-            tone="muted"
-            onClick={() => setPath("feature")}
-          />
-          <TriageCard
-            title="FAQ / privacy / browsers"
-            description="Quick answers and common fixes."
-            selected={path === "faq"}
-            tone="muted"
-            onClick={() => setPath("faq")}
-          />
-        </div>
+      <div className="mx-auto mt-8 max-w-5xl space-y-6">
+        <Card className="trail-panel p-6 reveal">
+          <StepBadge step={1} label="Choose a topic" />
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <TriageCard
+              title="Something's broken"
+              description="Extension issues, capture problems, sharing bugs."
+              selected={path === "bug"}
+              tone="default"
+              onClick={() => setPath("bug")}
+            />
+            <TriageCard
+              title="Sign-in / account"
+              description="Login loops, account access, billing questions."
+              selected={path === "account"}
+              tone="default"
+              onClick={() => setPath("account")}
+            />
+            <TriageCard
+              title="Request a feature"
+              description="Tell us what you want Trail to do next."
+              selected={path === "feature"}
+              tone="muted"
+              onClick={() => setPath("feature")}
+            />
+            <TriageCard
+              title="FAQ / privacy / browsers"
+              description="Quick answers and common fixes."
+              selected={path === "faq"}
+              tone="muted"
+              onClick={() => setPath("faq")}
+            />
+          </div>
+        </Card>
 
         {path ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-ink-subtle">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-ink-subtle">
             <span>
               Need human help? Email{" "}
               <a className="font-semibold text-ink underline underline-offset-4" href={`mailto:${support.email}`}>
@@ -438,10 +451,10 @@ export function SupportFlow() {
         ) : null}
       </div>
 
-      <div ref={detailsRef} className="mx-auto mt-10 max-w-6xl">
+      <div ref={detailsRef} className="mx-auto mt-10 max-w-5xl space-y-6">
         {path === "bug" || path === "account" ? (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="trail-panel p-6">
+          <>
+            <Card className="trail-panel p-6 reveal">
               <StepBadge
                 step={2}
                 label={path === "account" ? "Quick checks for account issues" : "Quick checks for bugs"}
@@ -450,9 +463,7 @@ export function SupportFlow() {
                 <span>
                   {checksDoneCount}/{checksTotal} done
                 </span>
-                <span className="rounded-full border border-stroke/50 bg-surface/70 px-3 py-1">
-                  takes ~30s
-                </span>
+                <span>takes ~30s</span>
               </div>
 
               <div className="mt-5 space-y-3">
@@ -492,267 +503,266 @@ export function SupportFlow() {
               </p>
             </Card>
 
-            <Card className="trail-panel p-6">
-              <StepBadge step={3} label="Send to support" />
-              <p className="mt-3 text-sm text-ink-muted">
-                Copy diagnostics, describe the issue, then email us. Screenshots help.
-              </p>
+            {checksComplete ? (
+              <div ref={stepThreeRef}>
+                <Card className="trail-panel p-6 reveal">
+                  <StepBadge step={3} label="Send to support" />
+                  <p className="mt-3 text-sm text-ink-muted">
+                    Copy diagnostics, describe the issue, then email us. Screenshots help.
+                  </p>
 
-              <div className="mt-5 grid gap-3">
-                <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                  Account email (optional)
-                </label>
-                <input
-                  value={accountEmail}
-                  onChange={(event) => setAccountEmail(event.target.value)}
-                  placeholder="you@company.com"
-                  autoComplete="email"
-                  className="trail-input"
-                />
+                  <div className="mt-5 grid gap-3">
+                    <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
+                      Account email (optional)
+                    </label>
+                    <input
+                      value={accountEmail}
+                      onChange={(event) => setAccountEmail(event.target.value)}
+                      placeholder="you@company.com"
+                      autoComplete="email"
+                      className="trail-input"
+                    />
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-3">
+                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
+                        Browser
+                      </label>
+                      <input
+                        value={browserLabel}
+                        readOnly
+                        className="trail-input cursor-default opacity-90"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
+                        OS
+                      </label>
+                      <input
+                        value={os}
+                        readOnly
+                        className="trail-input cursor-default opacity-90"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3">
+                    <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
+                      Extension version (optional)
+                    </label>
+                    <input
+                      value={extensionVersion}
+                      onChange={(event) => setExtensionVersion(event.target.value)}
+                      placeholder="Find it in chrome://extensions"
+                      className="trail-input"
+                    />
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={onCopyDiagnostics}
+                    >
+                      {copyDiagStatus === "copied"
+                        ? "Copied"
+                        : copyDiagStatus === "error"
+                          ? "Copy failed"
+                          : "Copy diagnostic info"}
+                    </Button>
+                    <span className="text-xs text-ink-subtle">
+                      Paste into your email if you prefer.
+                    </span>
+                  </div>
+
+                  <div className="mt-6 grid gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
+                        What happened?
+                      </label>
+                      <textarea
+                        value={whatHappened}
+                        onChange={(event) => setWhatHappened(event.target.value)}
+                        rows={3}
+                        placeholder="Describe what you see (error, loop, missing capture, etc.)"
+                        className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
+                        What you expected
+                      </label>
+                      <input
+                        value={expected}
+                        onChange={(event) => setExpected(event.target.value)}
+                        placeholder="One sentence is enough"
+                        className="trail-input"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
+                        Steps to reproduce
+                      </label>
+                      <textarea
+                        value={stepsToReproduce}
+                        onChange={(event) => setStepsToReproduce(event.target.value)}
+                        rows={3}
+                        placeholder="1) Open… 2) Click… 3) See…"
+                        className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                      />
+                    </div>
+                  </div>
+
+                  <details className="mt-5 rounded-3xl border border-stroke/50 bg-surface/70 px-5 py-4">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                      <span className="text-sm font-semibold text-ink">
+                        What we love to see (optional)
+                      </span>
+                      <span className="text-xs text-ink-subtle">expand</span>
+                    </summary>
+                    <ul className="mt-4 space-y-2 text-sm text-ink-muted">
+                      {support.include.map((item) => (
+                        <li key={item} className="flex items-start gap-3">
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-ink/60" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <Button type="button" size="lg" onClick={onContactSupport} disabled={!canContactSupport}>
+                      Email support
+                    </Button>
+                  </div>
+                </Card>
               </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="space-y-3">
-                  <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                    Browser
-                  </label>
-                  <input
-                    value={browserLabel}
-                    readOnly
-                    className="trail-input cursor-default opacity-90"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                    OS
-                  </label>
-                  <input
-                    value={os}
-                    readOnly
-                    className="trail-input cursor-default opacity-90"
-                  />
-                </div>
+            ) : (
+              <div className="rounded-3xl border border-dashed border-stroke/40 bg-surface/50 px-6 py-5 text-sm text-ink-subtle">
+                Complete the checklist above to unlock Step 3.
               </div>
-
-              <div className="mt-4 grid gap-3">
-                <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                  Extension version (optional)
-                </label>
-                <input
-                  value={extensionVersion}
-                  onChange={(event) => setExtensionVersion(event.target.value)}
-                  placeholder="Find it in chrome://extensions"
-                  className="trail-input"
-                />
-              </div>
-
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onCopyDiagnostics}
-                >
-                  {copyDiagStatus === "copied"
-                    ? "Copied"
-                    : copyDiagStatus === "error"
-                      ? "Copy failed"
-                      : "Copy diagnostic info"}
-                </Button>
-                <span className="text-xs text-ink-subtle">
-                  Paste into your email if you prefer.
-                </span>
-              </div>
-
-              <div className="mt-6 grid gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                    What happened?
-                  </label>
-                  <textarea
-                    value={whatHappened}
-                    onChange={(event) => setWhatHappened(event.target.value)}
-                    rows={3}
-                    placeholder="Describe what you see (error, loop, missing capture, etc.)"
-                    className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                    What you expected
-                  </label>
-                  <input
-                    value={expected}
-                    onChange={(event) => setExpected(event.target.value)}
-                    placeholder="One sentence is enough"
-                    className="trail-input"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                    Steps to reproduce
-                  </label>
-                  <textarea
-                    value={stepsToReproduce}
-                    onChange={(event) => setStepsToReproduce(event.target.value)}
-                    rows={3}
-                    placeholder="1) Open… 2) Click… 3) See…"
-                    className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
-                  />
-                </div>
-              </div>
-
-              <details className="mt-5 rounded-3xl border border-stroke/50 bg-surface/70 px-5 py-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                  <span className="text-sm font-semibold text-ink">
-                    What we love to see (optional)
-                  </span>
-                  <span className="text-xs text-ink-subtle">expand</span>
-                </summary>
-                <ul className="mt-4 space-y-2 text-sm text-ink-muted">
-                  {support.include.map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-ink/60" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Button type="button" size="lg" onClick={onContactSupport} disabled={!canContactSupport}>
-                  Email support
-                </Button>
-                {!canContactSupport ? (
-                  <span className="text-xs text-ink-subtle">
-                    Finish quick checks to unlock.
-                  </span>
-                ) : null}
-              </div>
-            </Card>
-          </div>
+            )}
+          </>
         ) : null}
 
         {path === "feature" ? (
-          <div className="mx-auto max-w-5xl">
-            <Card className="trail-panel p-7">
-              <StepBadge step={2} label="Request a feature" />
-              <p className="mt-3 text-sm text-ink-muted">
-                Tell us the outcome you want, what blocks you, and how often you hit this.
-              </p>
+          <Card className="trail-panel p-7 reveal">
+            <StepBadge step={2} label="Request a feature" />
+            <p className="mt-3 text-sm text-ink-muted">
+              Tell us the outcome you want, what blocks you, and how often you hit this.
+            </p>
 
-              <div className="mt-6 grid gap-4">
+            <div className="mt-6 grid gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
+                  What are you trying to do?
+                </label>
+                <textarea
+                  value={featureGoal}
+                  onChange={(event) => setFeatureGoal(event.target.value)}
+                  rows={3}
+                  placeholder="Describe your goal (the job you are trying to get done)."
+                  className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
+                  What blocks you today?
+                </label>
+                <textarea
+                  value={featureBlocker}
+                  onChange={(event) => setFeatureBlocker(event.target.value)}
+                  rows={3}
+                  placeholder="What is missing or painful right now?"
+                  className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                    What are you trying to do?
+                    How often do you need this?
                   </label>
+                  <select
+                    value={featureFrequency}
+                    onChange={(event) => setFeatureFrequency(event.target.value)}
+                    className="h-11 w-full rounded-full border border-stroke/60 bg-surface px-4 text-sm text-ink shadow-inner focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="sometimes">Sometimes</option>
+                    <option value="rarely">Rarely</option>
+                  </select>
+                </div>
+                <details className="rounded-3xl border border-stroke/50 bg-surface/70 px-5 py-4">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                    <span className="text-sm font-semibold text-ink">More context (optional)</span>
+                    <span className="text-xs text-ink-subtle">expand</span>
+                  </summary>
                   <textarea
-                    value={featureGoal}
-                    onChange={(event) => setFeatureGoal(event.target.value)}
-                    rows={3}
-                    placeholder="Describe your goal (the job you are trying to get done)."
-                    className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                    value={featureMore}
+                    onChange={(event) => setFeatureMore(event.target.value)}
+                    rows={4}
+                    placeholder="Links, screenshots, examples, rough mockups…"
+                    className="mt-3 w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
                   />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                    What blocks you today?
-                  </label>
-                  <textarea
-                    value={featureBlocker}
-                    onChange={(event) => setFeatureBlocker(event.target.value)}
-                    rows={3}
-                    placeholder="What is missing or painful right now?"
-                    className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                      How often do you need this?
-                    </label>
-                    <select
-                      value={featureFrequency}
-                      onChange={(event) => setFeatureFrequency(event.target.value)}
-                      className="h-11 w-full rounded-full border border-stroke/60 bg-surface px-4 text-sm text-ink shadow-inner focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="sometimes">Sometimes</option>
-                      <option value="rarely">Rarely</option>
-                    </select>
-                  </div>
-                  <details className="rounded-3xl border border-stroke/50 bg-surface/70 px-5 py-4">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                      <span className="text-sm font-semibold text-ink">More context (optional)</span>
-                      <span className="text-xs text-ink-subtle">expand</span>
-                    </summary>
-                    <textarea
-                      value={featureMore}
-                      onChange={(event) => setFeatureMore(event.target.value)}
-                      rows={4}
-                      placeholder="Links, screenshots, examples, rough mockups…"
-                      className="mt-3 w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
-                    />
-                  </details>
-                </div>
+                </details>
               </div>
+            </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Button type="button" size="lg" onClick={onSendFeatureRequest} disabled={!featureGoal.trim() || !featureBlocker.trim()}>
-                  Email feature request
-                </Button>
-                <Button type="button" variant="outline" size="lg" onClick={onCopyFeature}>
-                  {copyFeatureStatus === "copied"
-                    ? "Copied"
-                    : copyFeatureStatus === "error"
-                      ? "Copy failed"
-                      : "Copy as text"}
-                </Button>
-              </div>
-            </Card>
-          </div>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button type="button" size="lg" onClick={onSendFeatureRequest} disabled={!featureGoal.trim() || !featureBlocker.trim()}>
+                Email feature request
+              </Button>
+              <Button type="button" variant="outline" size="lg" onClick={onCopyFeature}>
+                {copyFeatureStatus === "copied"
+                  ? "Copied"
+                  : copyFeatureStatus === "error"
+                    ? "Copy failed"
+                    : "Copy as text"}
+              </Button>
+            </div>
+          </Card>
         ) : null}
 
         {path === "faq" ? (
-          <div className="mx-auto max-w-5xl">
-            <Card className="trail-panel p-7">
-              <StepBadge step={2} label="Search the FAQ" />
-              <p className="mt-3 text-sm text-ink-muted">
-                Try keywords like "privacy", "browser", "sync", "account".
-              </p>
+          <Card className="trail-panel p-7 reveal">
+            <StepBadge step={2} label="Search the FAQ" />
+            <p className="mt-3 text-sm text-ink-muted">
+              Try keywords like "privacy", "browser", "sync", "account".
+            </p>
 
-              <div className="mt-5">
-                <input
-                  value={faqQuery}
-                  onChange={(event) => setFaqQuery(event.target.value)}
-                  placeholder="Search FAQ…"
-                  className="trail-input"
-                />
-              </div>
+            <div className="mt-5">
+              <input
+                value={faqQuery}
+                onChange={(event) => setFaqQuery(event.target.value)}
+                placeholder="Search FAQ…"
+                className="trail-input"
+              />
+            </div>
 
-              <div className="mt-6 space-y-3">
-                {filteredFaq.length === 0 ? (
-                  <p className="text-sm text-ink-subtle">No matches. Try another keyword.</p>
-                ) : (
-                  filteredFaq.slice(0, 6).map((item) => (
-                    <FaqItem key={item.question} question={item.question} answer={item.answer} />
-                  ))
-                )}
-              </div>
+            <div className="mt-6 space-y-3">
+              {filteredFaq.length === 0 ? (
+                <p className="text-sm text-ink-subtle">No matches. Try another keyword.</p>
+              ) : (
+                filteredFaq.slice(0, 6).map((item) => (
+                  <FaqItem key={item.question} question={item.question} answer={item.answer} />
+                ))
+              )}
+            </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Button asChild variant="outline" size="lg">
-                  <a href="/faq">{support.faqCta}</a>
-                </Button>
-                <Button type="button" variant="ghost" size="lg" onClick={() => setPath("bug")}>
-                  Still stuck? Start quick checks
-                </Button>
-              </div>
-            </Card>
-          </div>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button asChild variant="outline" size="lg">
+                <a href="/faq">{support.faqCta}</a>
+              </Button>
+              <Button type="button" variant="ghost" size="lg" onClick={() => setPath("bug")}>
+                Still stuck? Start quick checks
+              </Button>
+            </div>
+          </Card>
         ) : null}
       </div>
     </section>

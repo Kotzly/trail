@@ -26,8 +26,8 @@ const config: Config = {
         display: ["var(--font-display)", "Space Grotesk", "system-ui", "sans-serif"]
       },
       boxShadow: {
-        glow: "0 24px 60px rgb(var(--ink) / 0.14)",
-        card: "0 20px 50px rgb(var(--ink) / 0.12)"
+        glow: "var(--trail-elev-2)",
+        card: "var(--trail-elev-1)"
       }
     }
   }

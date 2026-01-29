@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { Button, SectionHeader } from "@trail/ui";
 import { accountCopy } from "@trail/content";
+import { Button } from "@trail/ui";
 import { auth0 } from "@/src/lib/auth0";
 
 export default async function SettingsPage() {
@@ -12,12 +12,12 @@ export default async function SettingsPage() {
   }
 
   const user = session.user;
-  const initialsSource = user.name || user.email || "Trail";
+  const initialsSource = user.name || user.email || "trail";
   const initials = initialsSource
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map((chunk) => chunk[0]?.toUpperCase())
+    .map((chunk) => chunk[0]?.toLowerCase())
     .join("");
 
   const auth0Domain = process.env.AUTH0_DOMAIN
@@ -36,16 +36,20 @@ export default async function SettingsPage() {
 
   return (
     <section className="space-y-8">
-      <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-        <div id="profile" className="trail-card p-6">
-          <SectionHeader title={settings.profile.title} subtitle={settings.profile.subtitle} />
-          <div className="mt-6 flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-surface text-sm font-semibold text-ink">
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <div id="profile" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+          <div>
+            <p className="text-xs text-ink-muted">{settings.profile.eyebrow}</p>
+            <p className="text-sm font-semibold text-ink">{settings.profile.title}</p>
+            <p className="text-xs text-ink-muted">{settings.profile.subtitle}</p>
+          </div>
+          <div className="mt-4 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-surface text-sm font-semibold text-ink">
               {user.picture ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={user.picture}
-                  alt={user.name ?? "User avatar"}
+                  alt={user.name ?? "user avatar"}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -53,29 +57,37 @@ export default async function SettingsPage() {
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-ink">{user.name ?? settings.profile.fallbackName}</p>
-              <p className="text-xs text-ink-muted">{user.email ?? settings.profile.fallbackEmail}</p>
+              <p className="text-sm font-semibold lowercase text-ink">
+                {user.name ?? settings.profile.fallbackName}
+              </p>
+              <p className="text-xs lowercase text-ink-muted">
+                {user.email ?? settings.profile.fallbackEmail}
+              </p>
             </div>
           </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild size="sm">
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button asChild size="sm" variant="outline">
               <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
                 {settings.profile.manageCta}
               </a>
             </Button>
-            <Button asChild variant="outline" size="sm">
+            <Button asChild size="sm" variant="ghost">
               <a href="/auth/logout">{settings.profile.signOutCta}</a>
             </Button>
           </div>
         </div>
 
-        <div id="security" className="trail-card p-6">
-          <SectionHeader title={settings.security.title} subtitle={settings.security.subtitle} />
-          <div className="mt-5 space-y-3">
+        <div id="security" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+          <div>
+            <p className="text-xs text-ink-muted">{settings.security.eyebrow}</p>
+            <p className="text-sm font-semibold text-ink">{settings.security.title}</p>
+            <p className="text-xs text-ink-muted">{settings.security.subtitle}</p>
+          </div>
+          <div className="mt-4 divide-y divide-border/40">
             {sessions.map((sessionItem) => (
               <div
                 key={sessionItem.id}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-surface/80 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-4 py-3"
               >
                 <div>
                   <p className="text-sm font-semibold text-ink">{sessionItem.device}</p>
@@ -85,80 +97,96 @@ export default async function SettingsPage() {
               </div>
             ))}
           </div>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Button asChild variant="outline" size="sm">
-              <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
-                {settings.security.changePasswordCta}
-              </a>
-            </Button>
-            <Button variant="ghost" size="sm" disabled>
-              {settings.security.signOutEverywhereCta}
-            </Button>
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-ink-muted">
+            <a href={auth0ProfileUrl} target="_blank" rel="noreferrer" className="text-ink">
+              {settings.security.changePasswordCta}
+            </a>
+            <span>•</span>
+            <span>{settings.security.signOutEverywhereCta}</span>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div id="workspace" className="trail-card p-6">
-          <SectionHeader title={settings.workspace.title} subtitle={settings.workspace.subtitle} />
-          <div className="mt-5 space-y-4">
-            <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-surface/80 px-4 py-3">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div id="workspace" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+          <div>
+            <p className="text-xs text-ink-muted">{settings.workspace.eyebrow}</p>
+            <p className="text-sm font-semibold text-ink">{settings.workspace.title}</p>
+            <p className="text-xs text-ink-muted">{settings.workspace.subtitle}</p>
+          </div>
+          <div className="mt-4 divide-y divide-border/40">
+            <div className="flex items-center justify-between gap-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-ink">{settings.workspace.soloTitle}</p>
                 <p className="text-xs text-ink-muted">{settings.workspace.soloDescription}</p>
               </div>
-              <span className="trail-pill">{settings.workspace.soloBadge}</span>
+              <span className="trail-status">{settings.workspace.soloBadge}</span>
             </div>
-            <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-surface/60 px-4 py-3 opacity-70">
+            <div className="flex items-center justify-between gap-4 py-3 text-ink-muted">
               <div>
                 <p className="text-sm font-semibold text-ink">{settings.workspace.teamTitle}</p>
                 <p className="text-xs text-ink-muted">{settings.workspace.teamDescription}</p>
               </div>
-              <span className="trail-pill">{settings.workspace.comingSoon}</span>
+              <span className="text-[0.7rem] font-semibold lowercase text-ink-muted">
+                {settings.workspace.comingSoon}
+              </span>
             </div>
           </div>
         </div>
 
-        <div id="notifications" className="trail-card p-6">
-          <SectionHeader
-            title={settings.notifications.title}
-            subtitle={settings.notifications.subtitle}
-          />
-          <div className="mt-5 space-y-3 text-sm text-ink-muted">
+        <div id="notifications" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+          <div>
+            <p className="text-xs text-ink-muted">{settings.notifications.eyebrow}</p>
+            <p className="text-sm font-semibold text-ink">{settings.notifications.title}</p>
+            <p className="text-xs text-ink-muted">{settings.notifications.subtitle}</p>
+          </div>
+          <div className="mt-4 divide-y divide-border/40 text-xs text-ink-muted">
             {settings.notifications.items.map((item) => (
               <div
                 key={item}
-                className="flex items-center justify-between rounded-2xl border border-border/60 bg-surface/80 px-4 py-3"
+                className="flex items-center justify-between gap-4 py-3"
               >
                 <span>{item}</span>
-                <span className="text-xs text-ink-subtle">{settings.notifications.status}</span>
+                <span className="text-[0.7rem] font-semibold lowercase text-ink-muted">
+                  {settings.notifications.status}
+                </span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <div id="data-privacy" className="trail-card p-6">
-        <SectionHeader title={settings.data.title} subtitle={settings.data.subtitle} />
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-border/60 bg-surface/80 p-4">
+      <div id="data-privacy" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+        <div>
+          <p className="text-xs text-ink-muted">{settings.data.eyebrow}</p>
+          <p className="text-sm font-semibold text-ink">{settings.data.title}</p>
+          <p className="text-xs text-ink-muted">{settings.data.subtitle}</p>
+        </div>
+        <div className="mt-4 grid gap-6 md:grid-cols-2 md:divide-x md:divide-border/40">
+          <div className="space-y-2 md:pr-6">
             <p className="text-sm font-semibold text-ink">{settings.data.exportTitle}</p>
-            <p className="mt-2 text-xs text-ink-muted">{settings.data.exportDescription}</p>
-            <Button variant="outline" size="sm" className="mt-4" disabled>
+            <p className="text-xs text-ink-muted">{settings.data.exportDescription}</p>
+            <a
+              href={settings.data.exportHref}
+              className="mt-3 inline-flex text-xs font-semibold text-ink"
+            >
               {settings.data.exportCta}
-            </Button>
+            </a>
           </div>
-          <div className="rounded-2xl border border-border/60 bg-surface/80 p-4">
+          <div className="space-y-2 md:pl-6">
             <p className="text-sm font-semibold text-ink">{settings.data.deleteTitle}</p>
-            <p className="mt-2 text-xs text-ink-muted">{settings.data.deleteDescription}</p>
-            <Button variant="outline" size="sm" className="mt-4" disabled>
+            <p className="text-xs text-ink-muted">{settings.data.deleteDescription}</p>
+            <a
+              href={settings.data.deleteHref}
+              className="mt-3 inline-flex text-xs font-semibold text-ink"
+            >
               {settings.data.deleteCta}
-            </Button>
+            </a>
           </div>
         </div>
-        <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-ink-muted">
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
           <span>{settings.data.supportText}</span>
-          <a href="mailto:support@gettrail.net" className="text-ink transition hover:text-ink">
+          <a href="mailto:support@gettrail.net" className="text-ink">
             {settings.data.supportCta}
           </a>
         </div>

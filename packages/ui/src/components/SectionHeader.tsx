@@ -23,7 +23,7 @@ export function SectionHeader({
     >
       <div className="space-y-2">
         {eyebrow ? <p className="trail-eyebrow">{eyebrow}</p> : null}
-        <h2 className="text-xl font-semibold text-ink md:text-2xl">{title}</h2>
+        <h2 className="text-lg font-semibold lowercase text-ink md:text-xl">{title}</h2>
         {subtitle ? <p className="trail-copy text-sm">{subtitle}</p> : null}
       </div>
       {actions ? <div className="flex items-center gap-2">{actions}</div> : null}

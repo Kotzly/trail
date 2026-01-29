@@ -21,21 +21,21 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-2xl border border-border/60 bg-surface/85 p-4 shadow-card",
+        "flex flex-col gap-2 rounded-xl border border-border/40 bg-transparent px-4 py-3",
         className
       )}
       {...props}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-medium text-ink-muted">{label}</p>
+        <p className="text-xs font-medium lowercase text-ink-muted">{label}</p>
         {icon ? (
-          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-surface">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface/60 text-ink">
             {icon}
           </span>
         ) : null}
       </div>
       <div className="flex items-end justify-between gap-3">
-        <p className="text-2xl font-semibold text-ink">{value}</p>
+        <p className="text-xl font-semibold text-ink">{value}</p>
         {badge ? <div className="text-xs text-ink-muted">{badge}</div> : null}
       </div>
       {caption ? <p className="text-xs text-ink-muted">{caption}</p> : null}

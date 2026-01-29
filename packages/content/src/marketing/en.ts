@@ -7,7 +7,7 @@ export const marketingCopy = {
   nav: {
     features: "features",
     workflow: "workflow",
-    faq: "F.A.Q.",
+    faq: "faq",
     support: "support",
     signIn: "sign in",
     getStarted: "get the extension",
@@ -62,7 +62,7 @@ export const marketingCopy = {
     faqCta: "Read the full FAQ",
   },
   hero: {
-    pill: "browser extension · free beta",
+    pill: "Browser extension · free beta",
     lead: "turn browsing into",
     words: [
       "shareable research trails",
@@ -88,6 +88,46 @@ export const marketingCopy = {
     title: "see trail in action",
     subtitle: "a quick tour of capture → curate → share in under a minute.",
   },
+  testimonials: [
+    {
+      name: "Maya C.",
+      role: "Research Lead, Fintech Studio",
+      quote:
+        "Trail removed the tab chaos. We stop losing decisions even when research runs for weeks.",
+      image: "/people/maya.jpg",
+    },
+    {
+      name: "Sofia P.",
+      role: "UX Researcher",
+      quote:
+        "Trail stays out of the way. Collecting sources and notes feels fast and clean.",
+      image: "/people/sofia.jpg",
+    },
+    {
+      name: "Olivia G.",
+      role: "Growth Analyst",
+      quote: "One link instead of a long recap. The team jumps in with full context.",
+      image: "/people/olivia.jpg",
+    },
+    {
+      name: "Daniel R.",
+      role: "Product Manager, AI Team",
+      quote: "Trail saves hours. Open a trail and continue exactly where you left off.",
+      image: "/people/daniel.jpg",
+    },
+    {
+      name: "Jamal R.",
+      role: "PMM",
+      quote: "We share context, not screenshots. Syncs move faster.",
+      image: "/people/jamal.jpg",
+    },
+    {
+      name: "Alex B.",
+      role: "Data Scientist",
+      quote: "Returning to a topic no longer takes hours. Trail preserves the path.",
+      image: "/people/alex.jpg",
+    },
+  ],
   features: {
     eyebrow: "features",
     title: "everything you need to stay in flow.",
@@ -195,23 +235,33 @@ export const marketingCopy = {
     title: "frequently asked questions",
     items: [
       {
-        question: "is trail free?",
+        question: "what does trail capture?",
         answer:
-          "trail is free during the beta. subscriptions will be available later with freemium model.",
+          "trail records URLs, titles, timestamps, and your notes. it does not read page content.",
+      },
+      {
+        question: "is my data private?",
+        answer:
+          "you control what gets synced and shared. trails are private by default until you share them.",
+      },
+      {
+        question: "can i share or export trails?",
+        answer:
+          "yes. share a trail link with collaborators and export highlights for reports or docs.",
+      },
+      {
+        question: "does trail work for teams?",
+        answer:
+          "yes. sharing trails keeps teammates aligned on sources, decisions, and context.",
+      },
+      {
+        question: "does trail work offline?",
+        answer:
+          "you can keep browsing offline, but syncing and sharing require a connection.",
       },
       {
         question: "which browsers are supported?",
-        answer: "all chromium-based browsers are supported, including Chrome, Brave, Edge, and more.",
-      },
-      {
-        question: "does trail read page content?",
-        answer:
-          "no. trail focuses on URLs, titles, and metadata to keep the experience lightweight and privacy-first.",
-      },
-      {
-        question: "how does account sync work?",
-        answer:
-          "account sync will let you back up and share trails. you decide what gets synced.",
+        answer: "trail supports chromium-based browsers including Chrome, Brave, Edge, and more.",
       },
     ],
   },

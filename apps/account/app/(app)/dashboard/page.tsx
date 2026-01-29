@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { LightningBoltIcon } from "@radix-ui/react-icons";
-import { Button, InfoBanner, StepList } from "@trail/ui";
+import { ArrowRightIcon, LightningBoltIcon } from "@radix-ui/react-icons";
+import { SectionHeader, StepList } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { DashboardClient } from "./DashboardClient";
 
@@ -8,42 +8,37 @@ export default function DashboardPage() {
   const { dashboard } = accountCopy;
 
   return (
-    <section className="space-y-10">
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-surface/85 p-8 shadow-card">
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute -left-12 top-10 h-32 w-32 rounded-full bg-ink/5 blur-3xl" />
-            <div className="absolute -right-12 top-6 h-40 w-40 rounded-full bg-ink/10 blur-3xl" />
-            <div className="absolute bottom-0 left-1/2 h-28 w-28 -translate-x-1/2 rounded-full bg-ink/5 blur-3xl" />
-          </div>
-          <div className="relative space-y-6">
+    <section className="space-y-8">
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <Link
+          href="/extension"
+          className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/50 bg-surface/60 px-4 py-2.5 transition hover:border-border"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-surface">
+              <LightningBoltIcon className="h-4 w-4" />
+            </span>
             <div>
-              <p className="trail-eyebrow">{dashboard.hero.eyebrow}</p>
-              <h1 className="trail-title mt-3">{dashboard.hero.title}</h1>
-              <p className="trail-copy mt-3 text-base">{dashboard.hero.subtitle}</p>
+              <p className="text-xs text-ink-muted">{dashboard.activation.eyebrow}</p>
+              <p className="text-sm font-semibold text-ink">
+                {dashboard.activation.title}
+              </p>
+              <p className="text-xs text-ink-muted">{dashboard.activation.subtitle}</p>
             </div>
-            <InfoBanner
-              title={dashboard.hero.bannerTitle}
-              description={dashboard.hero.bannerDescription}
-              icon={<LightningBoltIcon className="h-4 w-4" />}
-              tone="emphasis"
-            />
           </div>
-        </div>
+          <span className="inline-flex items-center gap-2 text-xs font-medium text-ink">
+            {dashboard.activation.cta}
+            <ArrowRightIcon className="h-3 w-3 transition group-hover:translate-x-0.5" />
+          </span>
+        </Link>
 
-        <div className="trail-card p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="trail-eyebrow">{dashboard.onboarding.eyebrow}</p>
-              <p className="mt-2 text-sm font-semibold text-ink">{dashboard.onboarding.title}</p>
-            </div>
-            <span className="trail-pill">{dashboard.onboarding.progress}</span>
-          </div>
-          <p className="trail-copy mt-3 text-xs">{dashboard.onboarding.subtitle}</p>
+        <div className="rounded-2xl border border-border/50 bg-surface/60 p-4">
+          <SectionHeader
+            title={dashboard.onboarding.title}
+            subtitle={dashboard.onboarding.subtitle}
+            actions={<span className="trail-pill">{dashboard.onboarding.progress}</span>}
+          />
           <StepList className="mt-4" steps={dashboard.onboarding.steps} />
-          <Button asChild className="mt-5 w-full" size="md">
-            <Link href="/extension">{dashboard.onboarding.cta}</Link>
-          </Button>
         </div>
       </div>
 

@@ -4,8 +4,9 @@ export function CallToAction() {
   const { cta } = marketingCopy;
 
   return (
-    <section className="px-6 py-20">
-      <div className="trail-card mx-auto max-w-6xl px-8 py-16 text-center">
+    <section className="relative px-6 py-20 reveal">
+      <div className="absolute inset-0 -z-10 bg-surface/40" />
+      <div className="mx-auto max-w-6xl text-center">
         <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
           {cta.title}
         </h2>
@@ -15,7 +16,7 @@ export function CallToAction() {
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <a
             href="/downloads"
-            className="cta-primary inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold shadow-card transition hover:bg-ink-muted"
+            className="cta-primary inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold shadow-elev-1 transition hover:bg-ink-muted"
           >
             {cta.primary}
           </a>

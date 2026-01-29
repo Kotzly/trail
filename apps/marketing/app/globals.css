@@ -23,6 +23,8 @@
   --accent-soft: 226 229 238;
   --glow: 248 248 252;
   --glow-strong: 226 229 238;
+  --grid-line: rgb(14 16 20 / 0.08);
+  --grid-size: 120px;
 
   --trail-bg: var(--base);
   --trail-surface: var(--surface);
@@ -56,6 +58,8 @@
   --accent-soft: 52 55 66;
   --glow: 197 197 213;
   --glow-strong: 111 111 111;
+  --grid-line: rgb(255 255 255 / 0.06);
+  --grid-size: 140px;
 
   --trail-bg: var(--base);
   --trail-surface: var(--surface);
@@ -87,6 +91,8 @@
     --accent-soft: 52 55 66;
     --glow: 197 197 213;
     --glow-strong: 111 111 111;
+    --grid-line: rgb(255 255 255 / 0.06);
+    --grid-size: 140px;
 
     --trail-bg: var(--base);
     --trail-surface: var(--surface);
@@ -119,6 +125,8 @@
     --accent-soft: 226 229 238;
     --glow: 248 248 252;
     --glow-strong: 226 229 238;
+    --grid-line: rgb(14 16 20 / 0.08);
+    --grid-size: 120px;
 
     --trail-bg: var(--base);
     --trail-surface: var(--surface);
@@ -139,9 +147,23 @@
 body {
   font-family: var(--font-sans);
   background:
-    radial-gradient(circle at top, rgb(var(--glow) / 0.35), transparent 55%),
-    radial-gradient(circle at 20% 15%, rgb(var(--glow-strong) / 0.2), transparent 45%),
+    radial-gradient(circle at top, rgb(var(--glow) / 0.35), transparent 60%),
+    radial-gradient(circle at 20% 10%, rgb(var(--glow-strong) / 0.22), transparent 45%),
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px),
     rgb(var(--base));
+  background-size:
+    160% 160%,
+    140% 140%,
+    var(--grid-size) var(--grid-size),
+    var(--grid-size) var(--grid-size),
+    auto;
+  background-position:
+    top left,
+    top right,
+    0 0,
+    0 0,
+    0 0;
   color: rgb(var(--ink));
   min-height: 100vh;
 }
@@ -180,6 +202,27 @@ a.cta-primary {
   animation: float-slower 18s ease-in-out infinite;
 }
 
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.reveal {
+  --reveal-delay: 0s;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    animation: reveal 0.8s ease forwards;
+    animation-delay: var(--reveal-delay);
+    animation-timeline: view();
+    animation-range: entry 15% cover 35%;
+  }
+}
+
 @keyframes float-slow {
   0%,
   100% {
@@ -200,10 +243,24 @@ a.cta-primary {
   }
 }
 
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .word-rotator-track,
   .float-slow,
-  .float-slower {
+  .float-slower,
+  .reveal {
     animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

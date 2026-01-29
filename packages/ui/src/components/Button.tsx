@@ -16,7 +16,7 @@ const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-accent text-accent-contrast shadow-elev-1 hover:shadow-elev-2 focus-visible:ring-2 focus-visible:ring-ink",
+    "bg-accent text-accent-contrast hover:bg-ink-muted focus-visible:ring-2 focus-visible:ring-ink",
   outline:
     "border border-border bg-transparent text-ink hover:bg-surface-high focus-visible:ring-2 focus-visible:ring-ink",
   ghost:

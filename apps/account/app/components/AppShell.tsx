@@ -9,19 +9,25 @@ import { Footer } from "./Footer";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
+  const sidebarWidth = useUiStore((state) => state.sidebarWidth);
+  const effectiveWidth = sidebarCollapsed
+    ? 72
+    : Math.min(Math.max(sidebarWidth, 200), 320);
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="h-screen bg-bg text-ink">
       <div
         className={cn(
-          "grid min-h-screen gap-6 px-4 py-6 lg:grid-cols-[256px_1fr] lg:gap-8 lg:px-6",
-          sidebarCollapsed && "lg:grid-cols-[92px_1fr]"
+          "grid h-screen grid-cols-1 lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]"
         )}
+        style={{ "--sidebar-width": `${effectiveWidth}px` } as React.CSSProperties}
       >
         <Sidebar />
-        <div className="flex min-h-screen flex-col gap-6">
+        <div className="flex h-screen flex-col">
           <TopBar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+            {children}
+          </main>
           <Footer />
         </div>
       </div>

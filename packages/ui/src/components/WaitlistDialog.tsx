@@ -19,12 +19,12 @@ export type WaitlistDialogProps = {
   buttonClassName?: string;
 };
 
-const defaultTitle = "Join the waitlist";
-const defaultDescription = "Leave your email and we will let you know when it is ready.";
-const defaultSuccessTitle = "You are on the list";
+const defaultTitle = "join the waitlist";
+const defaultDescription = "leave your email and we will let you know when it is ready.";
+const defaultSuccessTitle = "you are on the list";
 const defaultSuccessDescription =
-  "We will reach out as soon as downloads open for your browser.";
-const defaultSuccessCta = "Done";
+  "we will reach out as soon as downloads open for your browser.";
+const defaultSuccessCta = "done";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function WaitlistDialog({
@@ -87,7 +87,7 @@ export function WaitlistDialog({
   const submitEmail = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isEmailValid) {
-      setError("Enter a valid email address.");
+      setError("enter a valid email address.");
       setStatus("error");
       return;
     }
@@ -104,19 +104,19 @@ export function WaitlistDialog({
 
       if (!response.ok) {
         if (response.status === 409) {
-          setSuccessOverride("You are already on the list. We will email you when downloads open.");
+          setSuccessOverride("you are already on the list. we will email you when downloads open.");
           setStatus("success");
           return;
         }
         setStatus("error");
-        setError("Something went wrong. Try again in a moment.");
+        setError("something went wrong. try again in a moment.");
         return;
       }
 
       setStatus("success");
     } catch (err) {
       setStatus("error");
-      setError("Unable to submit right now. Try again soon.");
+      setError("unable to submit right now. try again soon.");
     }
   };
 
@@ -178,7 +178,7 @@ export function WaitlistDialog({
               </div>
             ) : (
               <form onSubmit={submitEmail} className="mt-6 space-y-4">
-                <label className="trail-eyebrow block">Email</label>
+                <label className="trail-eyebrow block">email</label>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <input
                     ref={inputRef}
@@ -203,11 +203,11 @@ export function WaitlistDialog({
                     className="w-full sm:w-auto"
                     disabled={status === "submitting" || !trimmedEmail || !isEmailValid}
                   >
-                    {status === "submitting" ? "Joining..." : "Join"}
+                    {status === "submitting" ? "joining..." : "join"}
                   </Button>
                 </div>
                 <p className="trail-copy text-xs">
-                  No spam. One email when your download is ready.
+                  no spam. one email when your download is ready.
                 </p>
                 {status === "error" && error ? (
                   <p className="text-xs text-ink">{error}</p>
