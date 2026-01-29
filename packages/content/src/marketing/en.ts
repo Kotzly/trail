@@ -94,38 +94,38 @@ export const marketingCopy = {
       role: "Research Lead, Fintech Studio",
       quote:
         "Trail removed the tab chaos. We stop losing decisions even when research runs for weeks.",
-      image: "/people/maya.jpg",
+      image: "/assets/people/maya.jpg",
     },
     {
       name: "Sofia P.",
       role: "UX Researcher",
       quote:
         "Trail stays out of the way. Collecting sources and notes feels fast and clean.",
-      image: "/people/sofia.jpg",
+      image: "/assets/people/sofia.jpg",
     },
     {
       name: "Olivia G.",
       role: "Growth Analyst",
       quote: "One link instead of a long recap. The team jumps in with full context.",
-      image: "/people/olivia.jpg",
+      image: "/assets/people/olivia.jpg",
     },
     {
       name: "Daniel R.",
       role: "Product Manager, AI Team",
       quote: "Trail saves hours. Open a trail and continue exactly where you left off.",
-      image: "/people/daniel.jpg",
+      image: "/assets/people/daniel.jpg",
     },
     {
       name: "Jamal R.",
       role: "PMM",
       quote: "We share context, not screenshots. Syncs move faster.",
-      image: "/people/jamal.jpg",
+      image: "/assets/people/jamal.jpg",
     },
     {
       name: "Alex B.",
       role: "Data Scientist",
       quote: "Returning to a topic no longer takes hours. Trail preserves the path.",
-      image: "/people/alex.jpg",
+      image: "/assets/people/alex.jpg",
     },
   ],
   features: {

@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   description: marketingCopy.meta.description,
   icons: {
     icon: [
-      { url: "/brand/trail-fork-light.svg", media: "(prefers-color-scheme: light)" },
-      { url: "/brand/trail-fork-dark.svg", media: "(prefers-color-scheme: dark)" }
+      { url: "/assets/brand/trail-fork-light.svg", media: "(prefers-color-scheme: light)" },
+      { url: "/assets/brand/trail-fork-dark.svg", media: "(prefers-color-scheme: dark)" }
     ]
   }
 };
