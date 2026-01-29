@@ -3,7 +3,12 @@
 export { Button } from "./components/Button";
 export { Card } from "./components/Card";
 export { Badge } from "./components/Badge";
-export { SectionHeading } from "./components/SectionHeading";
+export { SectionHeader } from "./components/SectionHeader";
+export { PageHeader } from "./components/PageHeader";
+export { EmptyState } from "./components/EmptyState";
+export { StatCard } from "./components/StatCard";
+export { StepList } from "./components/StepList";
+export { InfoBanner } from "./components/InfoBanner";
 export { ThemeToggle } from "./components/ThemeToggle";
 export { BackgroundArt } from "./components/BackgroundArt";
 export { WaitlistDialog } from "./components/WaitlistDialog";

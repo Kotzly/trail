@@ -1,13 +1,24 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 type UiState = {
-  sidebarOpen: boolean;
+  sidebarCollapsed: boolean;
   toggleSidebar: () => void;
-  setSidebarOpen: (open: boolean) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 };
 
-export const useUiStore = create<UiState>((set) => ({
-  sidebarOpen: true,
-  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-  setSidebarOpen: (open) => set({ sidebarOpen: open })
-}));
+export const useUiStore = create<UiState>()(
+  persist(
+    (set) => ({
+      sidebarCollapsed: false,
+      toggleSidebar: () =>
+        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed })
+    }),
+    {
+      name: "trail-ui",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ sidebarCollapsed: state.sidebarCollapsed })
+    }
+  )
+);

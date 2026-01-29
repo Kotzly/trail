@@ -1,6 +1,13 @@
 import { redirect } from "next/navigation";
+import {
+  DesktopIcon,
+  LaptopIcon,
+  Link2Icon,
+  LockClosedIcon,
+  TrashIcon
+} from "@radix-ui/react-icons";
+import { Button, EmptyState, SectionHeader, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import { Card } from "@trail/ui";
 import { auth0 } from "@/src/lib/auth0";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
@@ -11,6 +18,14 @@ type ExtensionPageProps = {
   searchParams: Promise<{
     code?: string;
   }>;
+};
+
+type ExtensionSession = {
+  id: string;
+  device: string;
+  location: string;
+  lastSeen: string;
+  status: string;
 };
 
 export default async function ExtensionPage({ searchParams }: ExtensionPageProps) {
@@ -28,6 +43,7 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
   if (!user) {
     redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
   }
+
   let connectionReady = false;
 
   if (queryCode) {
@@ -43,33 +59,119 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
     }
   }
 
+  const sessions: ExtensionSession[] = [];
+
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">{accountCopy.extension.title}</h1>
-        <p className="mt-2 text-sm text-ink-muted">{accountCopy.extension.subtitle}</p>
+    <section className="space-y-10">
+      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+        <div className="trail-card p-6">
+          <SectionHeader title={accountCopy.extension.title} subtitle={accountCopy.extension.subtitle} />
+          <div className="mt-5">
+            {connectionReady ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-surface/80 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-ink">
+                      {accountCopy.extension.connected.title}
+                    </p>
+                    <p className="text-xs text-ink-muted">
+                      {accountCopy.extension.connected.subtitle}
+                    </p>
+                  </div>
+                  <span className="trail-pill">{accountCopy.extension.connected.badge}</span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <StatCard
+                    label={accountCopy.extension.connected.stats.status}
+                    value={accountCopy.extension.connected.stats.value}
+                    caption={accountCopy.extension.connected.stats.caption}
+                    icon={<Link2Icon className="h-4 w-4" />}
+                  />
+                  <StatCard
+                    label={accountCopy.extension.connected.stats.permissions}
+                    value={accountCopy.extension.connected.stats.permissionsValue}
+                    caption={accountCopy.extension.connected.stats.permissionsCaption}
+                    icon={<LockClosedIcon className="h-4 w-4" />}
+                  />
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                title={accountCopy.extension.empty.title}
+                description={accountCopy.extension.empty.description}
+                icon={<LaptopIcon className="h-5 w-5" />}
+                items={accountCopy.extension.empty.items}
+                action={
+                  <Button asChild size="lg">
+                    <a href={accountCopy.extension.empty.ctaHref}>
+                      {accountCopy.extension.empty.cta}
+                    </a>
+                  </Button>
+                }
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="trail-card p-6">
+          <SectionHeader
+            title={accountCopy.extension.device.title}
+            subtitle={accountCopy.extension.device.subtitle}
+          />
+          <div className="mt-5 grid gap-4">
+            <StatCard
+              label={accountCopy.extension.device.primaryDevice}
+              value={connectionReady ? accountCopy.extension.device.connected : "—"}
+              caption={accountCopy.extension.device.primaryDeviceCaption}
+              icon={<DesktopIcon className="h-4 w-4" />}
+            />
+            <StatCard
+              label={accountCopy.extension.device.lastSeen}
+              value={connectionReady ? accountCopy.extension.device.lastSeenValue : "—"}
+              caption={accountCopy.extension.device.lastSeenCaption}
+              icon={<LaptopIcon className="h-4 w-4" />}
+            />
+          </div>
+        </div>
       </div>
-      <Card className="bg-surface/80">
-        <p className="text-xs uppercase tracking-[0.3em] text-ink-muted">
-          {connectionReady ? accountCopy.extension.success : "Waiting for extension"}
-        </p>
-        {connectionReady ? (
-          <>
-            <p className="mt-4 text-2xl font-semibold">Connection confirmed</p>
-            <p className="mt-2 text-sm text-ink-muted">{accountCopy.extension.instructions}</p>
-          </>
+
+      <div className="trail-card p-6">
+        <SectionHeader
+          title={accountCopy.extension.sessions.title}
+          subtitle={accountCopy.extension.sessions.subtitle}
+          actions={
+            <Button size="sm" variant="outline" disabled>
+              {accountCopy.extension.sessions.revokeAll}
+            </Button>
+          }
+        />
+        {sessions.length ? (
+          <div className="mt-5 space-y-3">
+            {sessions.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/60 bg-surface/80 px-4 py-3"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-ink">{item.device}</p>
+                  <p className="text-xs text-ink-muted">{item.location}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="trail-status">{item.lastSeen}</span>
+                  <Button size="sm" variant="ghost" disabled>
+                    <TrashIcon className="h-3 w-3" />
+                    {accountCopy.extension.sessions.revoke}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <>
-            <p className="mt-4 text-lg font-semibold text-ink">
-              Open the extension to finish sign-in
-            </p>
-            <p className="mt-2 text-sm text-ink-muted">
-              Once the extension starts the login flow, this page will confirm the
-              connection automatically.
-            </p>
-          </>
+          <div className="mt-5 rounded-2xl border border-border/60 bg-surface/80 p-4 text-sm text-ink-muted">
+            {accountCopy.extension.sessions.empty}
+          </div>
         )}
-      </Card>
+      </div>
     </section>
   );
 }

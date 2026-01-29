@@ -1,8 +1,9 @@
 @import "./trail-logo.css";
 
 :root {
-  --font-sans: "Space Grotesk", "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
-  --font-serif: "Fraunces", "Iowan Old Style", "Palatino", serif;
+  --font-sans: "Instrument Sans", "SF Pro Text", "Segoe UI", sans-serif;
+  --font-serif: "Instrument Sans", "SF Pro Text", "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", "SF Mono", "Menlo", monospace;
   color-scheme: light dark;
 }
 
@@ -35,11 +36,11 @@
 }
 
 @utility trail-eyebrow {
-  @apply text-xs font-semibold uppercase tracking-[0.3em] text-ink-subtle;
+  @apply text-[0.7rem] font-semibold text-ink-subtle;
 }
 
 @utility trail-overline {
-  @apply text-xs uppercase tracking-[0.2em] text-ink-subtle;
+  @apply text-[0.7rem] font-medium text-ink-subtle;
 }
 
 @utility trail-title {
@@ -47,15 +48,15 @@
 }
 
 @utility trail-copy {
-  @apply text-sm text-ink-muted;
+  @apply text-sm text-ink-muted leading-relaxed;
 }
 
 @utility trail-pill {
-  @apply rounded-full border border-stroke/60 px-3 py-1 text-xs uppercase tracking-[0.3em] text-ink-subtle;
+  @apply rounded-full border border-stroke/60 px-3 py-1 text-[0.7rem] font-medium text-ink-subtle;
 }
 
 @utility trail-status {
-  @apply rounded-full border border-stroke/50 px-2 py-1 text-[0.6rem] uppercase tracking-[0.3em] text-ink-muted;
+  @apply rounded-full border border-stroke/50 px-2 py-1 text-[0.65rem] font-medium text-ink-muted;
 }
 
 @utility trail-input {
