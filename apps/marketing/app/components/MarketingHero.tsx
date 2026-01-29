@@ -50,7 +50,7 @@ ${keyframeStops}
           <p className="trail-eyebrow text-ink-subtle">{hero.pill}</p>
           <h1 className="font-display text-4xl font-semibold leading-tight text-ink md:text-6xl">
             <span className="block text-ink-muted">{hero.lead}</span>
-            <span className="mt-2 flex justify-center text-ink">
+            <span className="mt-2 flex justify-center text-ink text-[clamp(1.6rem,6vw,2.25rem)] sm:text-4xl md:text-6xl">
               <span className="word-rotator" style={wordVars}>
                 <span className="word-rotator-track">
                   {loopWords.map((word, index) => (
