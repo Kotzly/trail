@@ -8,6 +8,9 @@ export default function Loading() {
         <a className="underline underline-offset-4" href="https://www.gettrail.net/privacy">
           Privacy Policy
         </a>
+        <a className="underline underline-offset-4" href="https://www.gettrail.net/terms">
+          Terms of Service
+        </a>
       </div>
     </div>
   );
