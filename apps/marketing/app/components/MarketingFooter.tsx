@@ -8,6 +8,8 @@ export function MarketingFooter() {
         <div className="flex flex-wrap gap-4">
           <Link href="/faq">FAQ</Link>
           <Link href="/support">Support</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
           <a href="https://my.gettrail.net/auth/login">Sign in</a>
           <a href="mailto:support@gettrail.net">support@gettrail.net</a>
         </div>
