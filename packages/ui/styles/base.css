@@ -101,7 +101,13 @@ textarea {
 }
 
 ::selection {
-  background: rgba(var(--trail-ink), 0.12);
+  background: rgb(var(--trail-highlight));
+  color: rgb(var(--trail-ink));
+}
+
+::-moz-selection {
+  background: rgb(var(--trail-highlight));
+  color: rgb(var(--trail-ink));
 }
 
 [data-noise="true"]::before {
