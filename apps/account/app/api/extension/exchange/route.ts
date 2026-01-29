@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@trail/db";
+import { internalApiFetch } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
 
@@ -11,30 +11,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "code_required" }, { status: 400 });
   }
 
-  const record = await db.extensionLoginCode.findUnique({
-    where: { code },
-    include: { user: true }
-  });
+  try {
+    const response = await internalApiFetch("/api/internal/extension/exchange", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code })
+    });
 
-  if (!record) {
-    return NextResponse.json({ error: "invalid_code" }, { status: 404 });
+    return new Response(response.body, {
+      status: response.status,
+      headers: response.headers
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
-
-  if (record.usedAt || record.expiresAt < new Date()) {
-    return NextResponse.json({ error: "expired_code" }, { status: 410 });
-  }
-
-  await db.extensionLoginCode.update({
-    where: { id: record.id },
-    data: { usedAt: new Date() }
-  });
-
-  return NextResponse.json({
-    user: {
-      id: record.user.id,
-      email: record.user.email,
-      name: record.user.name
-    },
-    message: "Exchange stub. Token issuance will be added with extension API."
-  });
 }

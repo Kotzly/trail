@@ -7,7 +7,7 @@ import {
 } from "@radix-ui/react-icons";
 import { EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import { auth0 } from "@/src/lib/auth0";
+import { getAuthSession, isAuthBypassed } from "@/src/lib/auth0";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
 
@@ -32,20 +32,21 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
   const queryCode =
     typeof resolvedSearchParams?.code === "string" ? resolvedSearchParams.code : null;
   const returnTo = queryCode ? `/extension?code=${queryCode}` : "/extension";
+  const authBypassed = isAuthBypassed();
 
-  const session = await auth0.getSession();
-  if (!session?.user) {
+  const session = await getAuthSession();
+  if (!session?.user && !authBypassed) {
     redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
   }
 
-  const user = await ensureUser(session.user);
-  if (!user) {
+  const user = session?.user ? await ensureUser(session.user) : null;
+  if (!user && !authBypassed) {
     redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
   }
 
   let connectionReady = false;
 
-  if (queryCode) {
+  if (queryCode && user && !authBypassed) {
     try {
       const stored = await createExtensionLoginCode(user.id, queryCode);
       if (stored !== queryCode) {

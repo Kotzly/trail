@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 import { accountCopy } from "@trail/content";
 import { Button } from "@trail/ui";
-import { auth0 } from "@/src/lib/auth0";
+import { getAuthSession } from "@/src/lib/auth0";
 
 export default async function SettingsPage() {
   const { settings } = accountCopy;
-  const session = await auth0.getSession();
+  const session = await getAuthSession();
 
   if (!session?.user) {
     redirect("/auth/login");

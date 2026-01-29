@@ -1,9 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { auth0 } from "@/src/lib/auth0";
+import { auth0, getAuthSession, isAuthBypassed } from "@/src/lib/auth0";
 
 const protectedPrefixes = ["/dashboard", "/settings", "/billing", "/extension"];
 
 export async function proxy(request: NextRequest) {
+  if (isAuthBypassed()) {
+    return NextResponse.next();
+  }
+
   const authRes = await auth0.middleware(request);
   const { pathname } = request.nextUrl;
 
@@ -12,7 +16,7 @@ export async function proxy(request: NextRequest) {
     return authRes;
   }
 
-  const session = await auth0.getSession(request);
+  const session = await getAuthSession(request);
   if (!session) {
     return NextResponse.redirect(new URL("/auth/login", request.nextUrl.origin));
   }

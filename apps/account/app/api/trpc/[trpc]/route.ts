@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth0 } from "@/src/lib/auth0";
-import { ensureUser } from "@/src/server/user";
+import { getAuthSession, getDevUser, isAuthBypassed } from "@/src/lib/auth0";
 
 export const runtime = "nodejs";
 
@@ -16,8 +15,9 @@ async function proxyToApi(request: Request): Promise<Response> {
     return NextResponse.json({ error: "missing_TRAIL_INTERNAL_API_KEY" }, { status: 500 });
   }
 
-  const session = await auth0.getSession();
-  const user = session?.user ? await ensureUser(session.user) : null;
+  const session = await getAuthSession();
+  const user = session?.user ?? null;
+  const authBypassed = isAuthBypassed();
 
   const url = new URL(request.url);
   const targetUrl = new URL(url.pathname + url.search, TRAIL_API_BASE_URL);
@@ -29,10 +29,13 @@ async function proxyToApi(request: Request): Promise<Response> {
   headers.delete("cookie");
   headers.delete("x-trail-internal-key");
   headers.delete("x-trail-user");
+  headers.delete("x-trail-auth0-user");
 
   headers.set("x-trail-internal-key", TRAIL_INTERNAL_API_KEY);
-  if (user) {
-    headers.set("x-trail-user", JSON.stringify(user));
+  if (authBypassed) {
+    headers.set("x-trail-user", JSON.stringify(getDevUser()));
+  } else if (user) {
+    headers.set("x-trail-auth0-user", JSON.stringify(user));
   }
 
   const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();

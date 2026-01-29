@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
-import { db } from "@trail/db";
+import { internalApiJson } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
 
@@ -14,12 +14,22 @@ export async function POST() {
   const appBaseUrl = process.env.APP_BASE_URL ?? "https://app.gettrail.net";
 
   let sessionId = createSessionId();
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const existing = await db.extensionLoginCode.findUnique({ where: { code: sessionId } });
-    if (!existing) {
-      break;
+  try {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const { exists } = await internalApiJson<{ exists: boolean }>(
+        "/api/internal/extension/code-exists",
+        {
+          method: "POST",
+          body: { code: sessionId }
+        }
+      );
+      if (!exists) {
+        break;
+      }
+      sessionId = createSessionId();
     }
-    sessionId = createSessionId();
+  } catch (error) {
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);

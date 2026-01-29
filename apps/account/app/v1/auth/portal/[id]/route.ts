@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@trail/db";
 import { buildAccountSnapshot } from "@/src/server/account-snapshot";
 import { createExtensionAccessToken } from "@/src/server/extension-auth";
+import { internalApiJson } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
 
@@ -14,31 +14,43 @@ export async function GET(
     return NextResponse.json({ status: "expired" });
   }
 
-  const record = await db.extensionLoginCode.findUnique({ where: { code: sessionId } });
-  if (!record) {
-    return NextResponse.json({ status: "pending" });
+  let response: {
+    status: "pending" | "expired" | "approved";
+    user?: {
+      id: string;
+      email: string | null;
+      name: string | null;
+      imageUrl: string | null;
+      createdAt: string;
+    };
+  };
+
+  try {
+    response = await internalApiJson(
+      `/api/internal/extension/portal/${encodeURIComponent(sessionId)}`,
+      { method: "GET" }
+    );
+  } catch (error) {
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 
-  const now = new Date();
-  if (record.expiresAt < now) {
+  if (response.status !== "approved") {
+    return NextResponse.json({ status: response.status });
+  }
+
+  if (!response.user) {
     return NextResponse.json({ status: "expired" });
   }
 
-  const user = await db.user.findUnique({ where: { id: record.userId } });
-  if (!user) {
-    return NextResponse.json({ status: "expired" });
-  }
-
-  const token = createExtensionAccessToken(user.id);
-  await db.extensionLoginCode.update({
-    where: { id: record.id },
-    data: { usedAt: new Date() }
-  });
+  const token = createExtensionAccessToken(response.user.id);
 
   return NextResponse.json({
     status: "approved",
     snapshot: buildAccountSnapshot({
-      user,
+      user: {
+        ...response.user,
+        createdAt: new Date(response.user.createdAt)
+      },
       accessToken: token.token,
       expiresAt: token.expiresAt
     })

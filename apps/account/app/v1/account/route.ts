@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@trail/db";
 import { buildAccountSnapshot } from "@/src/server/account-snapshot";
 import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
+import { internalApiJson } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
 
@@ -27,16 +27,33 @@ export async function GET(request: Request) {
     );
   }
 
-  const user = await db.user.findUnique({ where: { id: payload.sub } });
-  if (!user) {
-    return NextResponse.json(buildAccountSnapshot({ user: null }));
+  try {
+    const { user } = await internalApiJson<{
+      user: {
+        id: string;
+        email: string | null;
+        name: string | null;
+        imageUrl: string | null;
+        createdAt: string;
+      } | null;
+    }>(`/api/internal/users/${encodeURIComponent(payload.sub)}`, { method: "GET" });
+
+    if (!user) {
+      return NextResponse.json(buildAccountSnapshot({ user: null }));
+    }
+
+    return NextResponse.json(
+      buildAccountSnapshot({
+        user: {
+          ...user,
+          createdAt: new Date(user.createdAt)
+        },
+        accessToken: token,
+        expiresAt: new Date(payload.exp * 1000).toISOString()
+      })
+    );
+  } catch (error) {
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 
-  return NextResponse.json(
-    buildAccountSnapshot({
-      user,
-      accessToken: token,
-      expiresAt: new Date(payload.exp * 1000).toISOString()
-    })
-  );
 }
