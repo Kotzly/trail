@@ -8,7 +8,7 @@ export default function Loading() {
         <a className="underline underline-offset-4" href="https://www.gettrail.net/privacy">
           Privacy Policy
         </a>
-        <span className="opacity-70">·</span>
+        <span className="opacity-70"> · </span>
         <a className="underline underline-offset-4" href="https://www.gettrail.net/terms">
           Terms of Service
         </a>
