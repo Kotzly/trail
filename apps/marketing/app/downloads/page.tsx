@@ -114,7 +114,7 @@ export default async function DownloadsPage() {
                   buttonSize="lg"
                 />
                 <Button asChild variant="outline" size="lg">
-                  <a href="https://my.gettrail.net/auth/login">{downloads.secondaryCta}</a>
+                  <a href="https://app.gettrail.net/auth/login">{downloads.secondaryCta}</a>
                 </Button>
               </div>
               {detectionNote ? (

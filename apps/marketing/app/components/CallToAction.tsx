@@ -20,7 +20,7 @@ export function CallToAction() {
             {cta.primary}
           </a>
           <a
-            href="https://my.gettrail.net/auth/login"
+            href="https://app.gettrail.net/auth/login"
             className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
           >
             {cta.secondary}

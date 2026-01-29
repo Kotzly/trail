@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const successUrl =
     body?.successUrl && typeof body.successUrl === "string"
       ? body.successUrl
-      : "https://my.gettrail.net/billing";
+      : "https://app.gettrail.net/billing";
 
   return NextResponse.json({
     url: successUrl,

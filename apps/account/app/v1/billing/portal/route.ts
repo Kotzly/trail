@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const returnUrl =
     body?.returnUrl && typeof body.returnUrl === "string"
       ? body.returnUrl
-      : "https://my.gettrail.net/billing";
+      : "https://app.gettrail.net/billing";
 
   return NextResponse.json({
     url: returnUrl,

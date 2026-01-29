@@ -2,9 +2,9 @@ export type BackendEnvironment = 'production' | 'staging' | 'local';
 
 export const BACKEND_CONFIG = {
   env: 'production' as BackendEnvironment,
-  baseUrl: 'https://my.gettrail.net',
+  baseUrl: 'https://app.gettrail.net',
   basePath: '/v1',
-  portalUrl: 'https://my.gettrail.net/extension',
+  portalUrl: 'https://app.gettrail.net/extension',
   timeoutMs: 10000,
   endpoints: {
     authPortal: '/auth/portal',

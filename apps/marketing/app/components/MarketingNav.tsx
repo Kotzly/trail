@@ -34,7 +34,7 @@ export function MarketingNav() {
         <div className="flex items-center gap-3">
           <ThemeToggle className="border-stroke/50 bg-surface/70 text-ink hover:bg-surface-strong" />
           <a
-            href="https://my.gettrail.net/auth/login"
+            href="https://app.gettrail.net/auth/login"
             className="hidden rounded-full border border-stroke/60 px-4 py-2 text-sm font-medium text-ink transition hover:border-stroke md:inline-flex"
           >
             {nav.signIn}

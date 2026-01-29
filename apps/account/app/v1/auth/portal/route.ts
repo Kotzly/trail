@@ -11,7 +11,7 @@ function createSessionId() {
 }
 
 export async function POST() {
-  const appBaseUrl = process.env.APP_BASE_URL ?? "https://my.gettrail.net";
+  const appBaseUrl = process.env.APP_BASE_URL ?? "https://app.gettrail.net";
 
   let sessionId = createSessionId();
   for (let attempt = 0; attempt < 3; attempt += 1) {

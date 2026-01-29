@@ -4,7 +4,7 @@ Trail is a monorepo that ships the browser extension plus a Next.js-based SaaS f
 
 ## Monorepo layout
 - `apps/marketing` — gettrail.net (landing + FAQ)
-- `apps/account` — my.gettrail.net (account app + Auth0 + tRPC)
+- `apps/account` — app.gettrail.net (account app + Auth0 + tRPC)
 - `apps/api` — api.gettrail.net (tRPC endpoint)
 - `packages/ui` — shared UI + tokens
 - `packages/content` — copy strings (English only)
@@ -36,7 +36,7 @@ Then fill `apps/account/.env.local` with `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUT
 
 ## Extension login handoff (planned)
 Current flow:
-- Extension opens `https://my.gettrail.net/extension`.
+- Extension opens `https://app.gettrail.net/extension`.
 - User completes Auth0 login in browser.
 - The page issues a one-time code stored in Postgres.
 - The extension exchanges the code via `POST /api/extension/exchange`.

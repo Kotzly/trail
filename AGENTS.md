@@ -17,7 +17,7 @@ Use Context7 MCP for frameworks and libraries.
 
 ## Project Structure & Module Organization
 - `apps/marketing/` — Next.js marketing site (gettrail.net).
-- `apps/account/` — Next.js account app (my.gettrail.net) with Auth0 + tRPC.
+- `apps/account/` — Next.js account app (app.gettrail.net) with Auth0 + tRPC.
 - `apps/api/` — Next.js API app (api.gettrail.net) exposing tRPC.
 - `packages/ui/` — shared UI components, Tailwind preset, tokens.
 - `packages/content/` — copy strings (English only).
@@ -51,7 +51,7 @@ Use Context7 MCP for frameworks and libraries.
 - The marketing, account and API apps are deployed to Vercel.
 - They can be found at the following URLs:
   - Marketing: https://gettrail.net
-  - Account: https://my.gettrail.net
+  - Account: https://app.gettrail.net
   - API: https://api.gettrail.net
 - The extension is not yet deployed.
 - The auth is handled by Auth0.

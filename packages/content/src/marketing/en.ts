@@ -15,10 +15,10 @@ export const marketingCopy = {
   support: {
     meta: {
       title: "support · trail",
-      description: "Get help with trail, the browser extension, and your account.",
+      description: "get help with Trail, the browser extension, and your account.",
     },
     eyebrow: "support",
-    title: "Get help, stay in flow.",
+    title: "get help, stay in flow.",
     subtitle:
       "Email us or skim the quick checks below. A couple details help us help you faster.",
     email: "support@gettrail.net",
@@ -28,7 +28,7 @@ export const marketingCopy = {
       faq: "open the FAQ",
       downloads: "extension downloads",
       signIn: "sign in",
-      signInHref: "https://my.gettrail.net/auth/login",
+      signInHref: "https://app.gettrail.net/auth/login",
     },
     featureRequest: {
       title: "Feature requests",
@@ -182,7 +182,7 @@ export const marketingCopy = {
     noteTitle: "already installed?",
     noteCopy: "open the extension to sign in and start capturing trails immediately.",
     noteCta: "sign in to trail",
-    noteCtaHref: "https://my.gettrail.net/auth/login",
+    noteCtaHref: "https://app.gettrail.net/auth/login",
   },
   cta: {
     title: "ready to map your browsing?",
