@@ -39,7 +39,7 @@ export function TestimonialsCarousel() {
     if (!track) return;
 
     let rafId: number;
-    let offset = 0; // 👈 аккумулятор float
+    let offset = 0;
 
     const step = () => {
       if (!isPaused) {
@@ -66,19 +66,18 @@ export function TestimonialsCarousel() {
 
 
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-10 pt-6 reveal">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <section className="px-6 pb-10 pt-6 reveal">
+      <div className="mx-auto max-w-6xl flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-3">
           <p className="trail-eyebrow text-ink-subtle">Testimonials</p>
           <h2 className="trail-title text-ink">
-            Teams move faster with Trail.
+            teams move faster with Trail.
           </h2>
           <p className="trail-copy max-w-2xl">
             the totally real stories of how trail helps totally real people
           </p>
         </div>
       </div>
-
       <div
         ref={trackRef}
         role="region"
