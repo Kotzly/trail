@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { marketingCopy } from "@trail/content";
 import { ThemeToggle, TrailLogo } from "@trail/ui";
+import { InteractiveHoverButton } from "./ui/interactive-hover-button";
 
 export function MarketingNav() {
   const { nav } = marketingCopy;
@@ -30,8 +31,8 @@ export function MarketingNav() {
           <Link href="/#features" className="transition hover:text-ink">
             {nav.features}
           </Link>
-          <Link href="/#workflow" className="transition hover:text-ink">
-            {nav.workflow}
+          <Link href="/#pricing" className="transition hover:text-ink">
+            {nav.pricing}
           </Link>
           <Link href="/faq" className="transition hover:text-ink">
             {nav.faq}
@@ -48,12 +49,11 @@ export function MarketingNav() {
           >
             {nav.signIn}
           </a>
-          <Link
+          <InteractiveHoverButton
             href="/downloads"
-            className="cta-primary hidden rounded-full bg-ink px-4 py-2 text-sm font-medium shadow-elev-1 transition hover:bg-ink-muted md:inline-flex"
-          >
-            {nav.getStarted}
-          </Link>
+            text={nav.getStarted}
+            className="hidden md:inline-flex h-10 px-4 text-xs bg-ink text-[color:rgb(var(--cta-fg))] hover:bg-ink-muted"
+          />
           <button
             type="button"
             aria-controls="marketing-mobile-menu"
@@ -84,8 +84,8 @@ export function MarketingNav() {
           <Link href="/#features" onClick={closeMenu} tabIndex={linkTabIndex}>
             {nav.features}
           </Link>
-          <Link href="/#workflow" onClick={closeMenu} tabIndex={linkTabIndex}>
-            {nav.workflow}
+          <Link href="/#pricing" onClick={closeMenu} tabIndex={linkTabIndex}>
+            {nav.pricing}
           </Link>
           <Link href="/faq" onClick={closeMenu} tabIndex={linkTabIndex}>
             {nav.faq}
@@ -102,14 +102,13 @@ export function MarketingNav() {
           >
             {nav.signIn}
           </a>
-          <Link
+          <InteractiveHoverButton
             href="/downloads"
-            className="cta-primary inline-flex items-center justify-center rounded-full bg-ink px-4 py-2 text-sm font-medium text-ink-inverse shadow-elev-1"
+            text={nav.getStarted}
+            className="w-full justify-center bg-ink text-[color:rgb(var(--cta-fg))] hover:bg-ink-muted"
             onClick={closeMenu}
             tabIndex={linkTabIndex}
-          >
-            {nav.getStarted}
-          </Link>
+          />
         </div>
       </div>
     </header>

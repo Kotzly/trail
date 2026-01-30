@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
 
 import { marketingCopy } from "@trail/content";
+import { InteractiveHoverButton } from "./ui/interactive-hover-button";
 export function MarketingHero() {
   const { hero } = marketingCopy;
   const words = hero.words;
@@ -63,18 +65,17 @@ ${keyframeStops}
           <style dangerouslySetInnerHTML={{ __html: keyframes }} />
           <p className="mx-auto max-w-2xl text-[1rem] text-ink-muted">{hero.summary}</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a
+            <InteractiveHoverButton
               href="/downloads"
-              className="cta-primary inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold shadow-elev-1 transition hover:bg-ink-muted"
-            >
-              {hero.ctaPrimary}
-            </a>
-            <a
+              text={hero.ctaPrimary}
+              className="bg-ink text-[color:rgb(var(--cta-fg))] hover:bg-ink-muted"
+            />
+            <Link
               href="/#showcase"
               className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
             >
               {hero.ctaSecondary}
-            </a>
+            </Link>
           </div>
         </div>
         <div className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-ink-subtle md:divide-x md:divide-stroke/40">
