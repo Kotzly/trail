@@ -33,6 +33,9 @@
   --md-overlay: rgba(12, 14, 20, 0.12);
   --scrollbar-thumb: rgba(var(--md-primary-rgb), 0.24);
   --scrollbar-thumb-hover: rgba(var(--md-primary-rgb), 0.4);
+  --trail-grain-image: url("../assets/grain-bg.png");
+  --trail-grain-size: 220px 220px;
+  --trail-grain-blend-mode: overlay;
 
   --graph-node-closed-bg: #f3f4f8;
   --graph-node-closed-border: #cfd4df;
