@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { marketingCopy } from "@trail/content";
 import { RevealObserver } from "./components/RevealObserver";
+import { VideoObserver } from "./components/VideoObserver";
 
 export const metadata: Metadata = {
   title: marketingCopy.meta.title,
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body className="bg-bg text-ink">
         {children}
         <RevealObserver />
+        <VideoObserver />
       </body>
     </html>
   );

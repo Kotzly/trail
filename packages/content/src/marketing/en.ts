@@ -409,10 +409,6 @@ export const marketingCopy = {
     subtitle: "install the extension, then sign in to sync and collaborate.",
     primary: "open downloads",
     secondary: "sign in",
-    openExtension: "open trail [temp button]",
-    openExtensionLoading: "opening trail...",
-    openExtensionNotFound: "extension not detected.",
-    openExtensionInstallCta: "get the extension",
     note: "Free plan available · 30-second install · Privacy-first",
   },
   faq: {

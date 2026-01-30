@@ -91,12 +91,12 @@ function VideoColumn({
             {item.type === "video" ? (
               <video
                 className="h-full w-full object-cover"
-                autoPlay
                 loop
                 muted
                 playsInline
                 preload="metadata"
                 poster="/assets/video-poster-white.jpg"
+                data-play-on-view="true"
               >
                 <source src={item.src} type="video/mp4" />
               </video>

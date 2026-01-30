@@ -14,12 +14,12 @@ export function Showcase() {
       <figure className="mt-10 w-full max-w-5xl overflow-hidden rounded-[32px] border border-stroke/30 bg-surface/60 shadow-elev-1">
         <video
           className="h-auto w-full object-cover"
-          autoPlay
           loop
           muted
           playsInline
           preload="metadata"
           poster="/assets/video-poster-white.jpg"
+          data-play-on-view="true"
         >
           <source src="/assets/showcase.mp4" type="video/mp4" />
         </video>

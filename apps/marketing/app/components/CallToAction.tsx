@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { marketingCopy } from "@trail/content";
-import { OpenExtensionButton } from "./OpenExtensionButton";
 
 export function CallToAction() {
   const { cta } = marketingCopy;
@@ -22,7 +21,6 @@ export function CallToAction() {
           >
             {cta.primary}
           </a>
-          <OpenExtensionButton />
           <Link
             href="https://app.gettrail.net/auth/login"
             className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"

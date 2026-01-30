@@ -1,5 +1,8 @@
 import { MSG, defineHandlers, err, ok } from "../../../shared/types/messages.js";
 
+const SIDE_PANEL_PATH = "sidepanel/sidepanel.html";
+ 
+
 function promisifyChromeCall<T>(fn: (cb: (result?: T) => void) => void): Promise<T | void> {
   return new Promise((resolve, reject) => {
     try {
@@ -31,25 +34,28 @@ async function openSidePanel(tabId: number): Promise<void> {
 async function enableSidePanel(tabId: number): Promise<void> {
   const setOptions = (chrome.sidePanel as any)?.setOptions;
   if (typeof setOptions !== "function") return;
-  const maybePromise = setOptions({ tabId, enabled: true } as any);
+  const options = { tabId, enabled: true, path: SIDE_PANEL_PATH } as any;
+  const maybePromise = setOptions(options);
   if (isPromiseLike<void>(maybePromise)) {
     await maybePromise;
     return;
   }
-  await promisifyChromeCall<void>((cb) => setOptions({ tabId, enabled: true }, cb));
+  await promisifyChromeCall<void>((cb) => setOptions(options, cb));
 }
 
 async function enableAndOpenSidePanel(tabId: number): Promise<void> {
   if (!chrome.sidePanel?.open) throw new Error("Side panel API unavailable");
 
-  const openPromise = openSidePanel(tabId);
+  const enablePromise = enableSidePanel(tabId);
 
-  // Enable in the background so we don't insert an async gap before open().
-  void enableSidePanel(tabId).catch((error) => {
-    console.warn("Failed to enable side panel", { tabId, error });
-  });
-
-  await openPromise;
+  try {
+    await openSidePanel(tabId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("No active side panel")) throw error;
+    await enablePromise;
+    await openSidePanel(tabId);
+  }
 }
 
 export const panelHandlers = defineHandlers({
@@ -62,7 +68,9 @@ export const panelHandlers = defineHandlers({
       return ok();
     } catch (error) {
       console.warn("OPEN_PANEL failed", { tabId, error });
-      return err(error instanceof Error ? error.message : "Failed to open side panel");
+      const message = error instanceof Error ? error.message : "Failed to open side panel";
+      if (message.toLowerCase().includes("already open")) return ok();
+      return err(message);
     }
   },
 });
