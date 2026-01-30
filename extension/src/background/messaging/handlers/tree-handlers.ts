@@ -13,6 +13,14 @@ import { settingsManager } from '../../services/settings.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
 
+function getDeleteFocusView(
+  tree: NavigationTree,
+  prevCurrentId: NodeId | null
+): TreeViewIntent | undefined {
+  const nextCurrentId = tree.getCurrentId();
+  if (!nextCurrentId || nextCurrentId === prevCurrentId) return undefined;
+  return { focusNodeId: nextCurrentId, mode: 'force' };
+}
 
 function snapshot(tree: NavigationTree, description: string): void {
   CommandManager.saveSnapshot(
@@ -237,41 +245,48 @@ export const treeHandlers = defineHandlers({
   async [MSG.DELETE_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
+    const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete node');
     const removed = tree.deleteNode(message.nodeId);
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'delete');
+    const view = getDeleteFocusView(tree, prevCurrentId);
+    await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
   async [MSG.DELETE_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
+    const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete children');
     const removed = tree.deleteChildren(message.nodeId);
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'delete');
+    const view = getDeleteFocusView(tree, prevCurrentId);
+    await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
   async [MSG.DELETE_WITH_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
+    const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete subtree');
     const removed = tree.deleteSubtree(message.nodeId);
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'delete');
+    const view = getDeleteFocusView(tree, prevCurrentId);
+    await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
   async [MSG.BULK_DELETE](message) {
     const tree = await treeStorage.getOrCreateTree();
+    const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete selection');
     const removedIds: NodeId[] = [];
 
@@ -282,12 +297,14 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'delete');
+    const view = getDeleteFocusView(tree, prevCurrentId);
+    await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
   async [MSG.BULK_DELETE_NODES](message) {
     const tree = await treeStorage.getOrCreateTree();
+    const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete selected nodes');
     const removedIds: NodeId[] = [];
 
@@ -298,12 +315,14 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'delete');
+    const view = getDeleteFocusView(tree, prevCurrentId);
+    await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
   async [MSG.BULK_DELETE_RECURSIVE](message) {
     const tree = await treeStorage.getOrCreateTree();
+    const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete selected nodes recursively');
     const removedIds: NodeId[] = [];
     const selectedIds = new Set<NodeId>(message.nodeIds);
@@ -317,7 +336,8 @@ export const treeHandlers = defineHandlers({
         removedIds.push(...removed.map(n => n.id));
         await closeTabsForNodes(removedIds);
         treeStorage.cacheTree(tree);
-        await notifyTreeUpdate(tree, 'delete');
+        const view = getDeleteFocusView(tree, prevCurrentId);
+        await notifyTreeUpdate(tree, 'delete', view);
         return ok();
       }
       candidates.push(id);
@@ -346,7 +366,8 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'delete');
+    const view = getDeleteFocusView(tree, prevCurrentId);
+    await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 

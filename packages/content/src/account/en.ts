@@ -3,6 +3,9 @@ export const accountCopy = {
     title: "trail account",
     description: "manage your trail account, security, and data in one place."
   },
+  brand: {
+    name: "trail"
+  },
   nav: {
     dashboard: "dashboard",
     settings: "account",
@@ -13,7 +16,21 @@ export const accountCopy = {
   },
   header: {
     searchPlaceholder: "search trails, settings, or billing",
-    searchHint: "⌘k"
+    searchHint: "⌘k",
+    navLabel: "navigate",
+    navItems: {
+      dashboard: "status, sessions, and trails",
+      extension: "connect and manage your browser",
+      settings: "profile, security, and access",
+      billing: "plan, usage, and invoices"
+    },
+    userMenu: {
+      settings: "account settings",
+      settingsDescription: "profile, security, and data",
+      signOut: "sign out",
+      signOutDescription: "end your current session"
+    },
+    mobileToggleLabel: "toggle menu"
   },
   dashboard: {
     title: "dashboard",
@@ -107,6 +124,7 @@ export const accountCopy = {
       subtitle: "name, email, and avatar are managed through auth0.",
       manageCta: "manage in auth0",
       signOutCta: "sign out",
+      avatarAlt: "user avatar",
       fallbackName: "trail member",
       fallbackEmail: "signed in"
     },
@@ -216,6 +234,10 @@ export const accountCopy = {
       comingSoon: "coming soon",
       empty: "sessions are coming soon. connect the extension to populate this list."
     }
+  },
+  footer: {
+    supportEmail: "support@gettrail.net",
+    statusText: "status: all systems normal"
   }
 } as const;
 

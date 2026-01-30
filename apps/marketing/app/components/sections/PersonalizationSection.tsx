@@ -26,10 +26,8 @@ export function PersonalizationSection() {
           <p className="trail-copy max-w-2xl">{personalization.summary}</p>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.1fr)_minmax(0,0.75fr)]">
-          <VideoColumn items={personalization.videos.left} />
+        <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)]">
           <GlowingGrid cards={personalization.cards} />
-          <VideoColumn items={personalization.videos.right} align="right" />
         </div>
       </div>
     </section>

@@ -93,7 +93,6 @@ export function BentoFeatures() {
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col gap-4">
           <span className="trail-eyebrow">{features.eyebrow}</span>
-          <h2 className="trail-title">{features.title}</h2>
           <p className="trail-copy max-w-2xl">{features.summary}</p>
         </div>
 

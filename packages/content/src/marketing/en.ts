@@ -6,11 +6,22 @@ export const marketingCopy = {
   },
   nav: {
     features: "features",
-    workflow: "workflow",
+    pricing: "pricing",
     faq: "faq",
     support: "support",
     signIn: "sign in",
     getStarted: "get the extension",
+  },
+  footer: {
+    copyright: "trail",
+    links: {
+      faq: "FAQ",
+      support: "Support",
+      privacy: "Privacy Policy",
+      terms: "Terms of Service",
+      signIn: "Sign in",
+      email: "support@gettrail.net",
+    },
   },
   support: {
     meta: {
@@ -74,7 +85,7 @@ export const marketingCopy = {
     ],
     summary:
       "capture every meaningful step, add notes when it matters, and share a trail instead of a tab dump.",
-    ctaPrimary: "get the extension",
+    ctaPrimary: "get started",
     ctaSecondary: "see the 60s demo",
   },
   stats: [
@@ -87,6 +98,12 @@ export const marketingCopy = {
   showcase: {
     title: "see trail in action",
     subtitle: "a quick tour of capture → curate → share in under a minute.",
+  },
+  testimonialsSection: {
+    eyebrow: "testimonials",
+    title: "real teams, calmer trails.",
+    summary:
+      "researchers, designers, and PMs use trail to keep decisions, sources, and context together.",
   },
   testimonials: [
     {
@@ -127,56 +144,219 @@ export const marketingCopy = {
       quote: "Returning to a topic no longer takes hours. Trail preserves the path.",
       image: "/assets/people/alex.jpg",
     },
+    {
+      name: "Priya S.",
+      role: "Strategy Lead",
+      quote: "Stakeholders finally see the full trail, not just a summary slide.",
+      image:
+        "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=200&q=80",
+    },
+    {
+      name: "Lucas M.",
+      role: "Security Researcher",
+      quote: "Trail keeps an audit-friendly record of every source we used.",
+      image:
+        "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80",
+    },
+    {
+      name: "Ana L.",
+      role: "Product Designer",
+      quote: "Switching between map views helps me explain research paths fast.",
+      image:
+        "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80",
+    },
   ],
   features: {
     eyebrow: "features",
     title: "everything you need to stay in flow.",
     summary:
       "trail stays out of the way while you browse, then turns your history into a clean, shareable trail.",
-    cards: [
+    items: [
       {
-        title: "auto-captured trails",
-        copy: "every search, doc, and decision is logged into a clean trail you can resume in seconds.",
-        bullets: ["session timeline", "visited sources", "time spent per page"],
-      },
-      // { todo: add smart tagging
-      //   title: "smart tagging",
-      //   copy: "trail tags pages as you browse, so you can filter by topic, client, or research thread.",
-      //   bullets: ["Auto topic labels", "Pinned highlights", "One-click follow-ups"],
-      // },
-      {
-        title: "shareable context",
-        copy: "send a trail instead of a tab dump. keep the storyline, notes, and decisions intact.",
-        bullets: ["exportable summaries", "private links", "team-ready views"],
+        id: "capture",
+        name: "always-on capture",
+        description:
+          "trail logs searches, sources, and decisions while you work—no manual cleanup.",
+        href: "/#showcase",
+        cta: "see capture",
+        className: "lg:row-start-1 lg:row-end-4 lg:col-start-2 lg:col-end-3",
       },
       {
-        title: "one-click search jump",
-        copy: "instantly revisit any search or website from your session, no hunting or re-Googling required.",
-        bullets: ["effortless revisit", "full search context", "zero friction"],
+        id: "search",
+        name: "instant rewind search",
+        description:
+          "jump back to any page or query without hunting through tabs or history.",
+        href: "/#showcase",
+        cta: "jump back",
+        className: "lg:col-start-1 lg:col-end-2 lg:row-start-1 lg:row-end-3",
+      },
+      {
+        id: "views",
+        name: "multi-view maps",
+        description:
+          "switch between tree, radial, and mindmap views to match how you think.",
+        href: "/#make-trail-yours",
+        cta: "explore views",
+        className: "lg:col-start-1 lg:col-end-2 lg:row-start-3 lg:row-end-4",
+      },
+      {
+        id: "share",
+        name: "shareable trails",
+        description:
+          "send a single link that preserves sources, notes, and decisions.",
+        href: "/#pricing",
+        cta: "share context",
+        className: "lg:col-start-3 lg:col-end-4 lg:row-start-1 lg:row-end-3",
+      },
+      {
+        id: "polish",
+        name: "export-ready summaries",
+        description:
+          "export highlights with built-in structure for briefs and reports.",
+        href: "/#pricing",
+        cta: "ship the recap",
+        className: "lg:col-start-3 lg:col-end-4 lg:row-start-3 lg:row-end-4",
       },
     ],
   },
-  workflow: {
-    eyebrow: "workflow",
-    title: "a calm trail from search to share.",
+  personalization: {
+    eyebrow: "make trail truly yours",
+    title: "make trail truly yours",
     summary:
-      "capture what matters, curate the highlights, and return with full context when you need it.",
-    steps: [
+      "dial in themes, views, and layouts so every trail matches the way you think.",
+    cards: [
       {
-        title: "Capture",
-        copy: "trail runs as a lightweight browser extension, recording every meaningful step in your session.",
+        title: "Theme picker",
+        description: "match trail to your workspace with quick palette swaps.",
+        icon: "palette",
+        layout: "md:[grid-area:1/1/2/7] xl:[grid-area:1/1/2/5]",
       },
       {
-        title: "Curate",
-        copy: "highlight key sources, add notes, and pin the moments that matter before you move on.",
+        title: "View modes",
+        description: "tree, radial, or mindmap layouts for every research style.",
+        icon: "wand",
+        layout: "md:[grid-area:1/7/2/13] xl:[grid-area:2/1/3/5]",
       },
       {
-        title: "Resume",
-        copy: "open a trail later and you are back exactly where you left off, complete with context.",
+        title: "Layout blocks",
+        description: "resize panels, pin notes, and keep the essentials visible.",
+        icon: "layout",
+        layout: "md:[grid-area:2/1/3/7] xl:[grid-area:1/5/3/8]",
       },
       {
-        title: "Share",
-        copy: "send a trail to collaborators so they can jump into the same research path instantly.",
+        title: "Highlights & decisions",
+        description: "mark the moments that matter and keep stakeholders aligned.",
+        icon: "sparkles",
+        layout: "md:[grid-area:2/7/3/13] xl:[grid-area:1/8/2/13]",
+      },
+      {
+        title: "Shareable snapshots",
+        description: "publish a clean trail view without extra cleanup.",
+        icon: "share",
+        layout: "md:[grid-area:3/1/4/13] xl:[grid-area:2/8/3/13]",
+      },
+    ],
+    videos: {
+      left: [
+        {
+          title: "Theme picker",
+          description: "swap palettes in seconds.",
+          type: "image",
+          src:
+            "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=80",
+          alt: "Theme picker preview",
+        },
+        {
+          title: "Flexible layouts",
+          description: "rearrange panels to fit your flow.",
+          type: "image",
+          src:
+            "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?auto=format&fit=crop&w=1200&q=80",
+          alt: "Flexible layout preview",
+        },
+      ],
+      right: [
+        {
+          title: "Tree, radial, mindmap",
+          description: "switch views for every trail.",
+          type: "image",
+          src:
+            "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
+          alt: "Trail view preview",
+        },
+        {
+          title: "Trail highlights",
+          description: "pin the key moments for fast handoff.",
+          type: "image",
+          src:
+            "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+          alt: "Trail highlight preview",
+        },
+      ],
+    },
+  },
+  pricing: {
+    eyebrow: "pricing",
+    title: "plans that scale with your research",
+    description:
+      "start free, upgrade when you need sync and sharing.\nannual billing saves 20%.",
+    toggleLabel: "annual billing",
+    toggleNote: "save 20%",
+    billedMonthlyLabel: "billed monthly",
+    billedAnnuallyLabel: "billed annually",
+    popularBadge: "popular",
+    plans: [
+      {
+        name: "Free",
+        price: "0",
+        yearlyPrice: "0",
+        period: "per month",
+        features: [
+          "3 trees in history",
+          "no sync across devices",
+          "local-only data",
+          "no online features",
+        ],
+        description: "for personal trails and local-only research.",
+        buttonText: "Get started",
+        href: "/downloads",
+        isPopular: false,
+      },
+      {
+        name: "Pro",
+        price: "10",
+        yearlyPrice: "8",
+        period: "per month",
+        features: [
+          "unlimited trees in history",
+          "sync across devices",
+          "10 devices per account",
+          "online features",
+          "premium support",
+          "shareable trails",
+        ],
+        description: "for solo builders who need sync + sharing.",
+        buttonText: "Go Pro",
+        href: "/downloads",
+        isPopular: true,
+      },
+      {
+        name: "Team",
+        price: "20",
+        yearlyPrice: "16",
+        period: "per month",
+        features: [
+          "unlimited trees in history",
+          "sync across devices and teams",
+          "online features",
+          "shared workspaces",
+          "team analytics",
+          "admin controls",
+        ],
+        description: "for teams coordinating research at scale.",
+        buttonText: "Start Team",
+        href: "/downloads",
+        isPopular: false,
       },
     ],
   },
