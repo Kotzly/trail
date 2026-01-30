@@ -84,13 +84,6 @@
   pointer-events: none;
 }
 
-.theme-panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .theme-panel-title {
   font-size: 16px;
   font-weight: 700;

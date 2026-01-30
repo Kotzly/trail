@@ -181,20 +181,6 @@ export default function ThemePanel() {
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <div className="theme-panel-header">
-          <div>
-            <div className="theme-panel-title">Theme</div>
-            <div className="theme-panel-subtitle">Pick a palette for the whole UI.</div>
-          </div>
-          <button
-            className="theme-panel-close"
-            type="button"
-            onClick={handleClose}
-            aria-label="Close theme picker"
-          >
-            <Icons.X size={18} />
-          </button>
-        </div>
         <ThemePalette
           scheme={settings?.theme ?? 'system'}
           value={draftTheme}
