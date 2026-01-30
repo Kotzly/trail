@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { marketingCopy } from "@trail/content";
 import { TestimonialsColumn } from "../ui/testimonials-columns";
 
@@ -19,7 +20,7 @@ export function TestimonialsSection() {
   return (
     <section id="testimonials" className="px-6 py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="max-w-2xl">
+        <div className="max-w-2xl reveal">
           <span className="trail-eyebrow text-ink-subtle">
             {testimonialsSection.eyebrow}
           </span>
@@ -27,7 +28,10 @@ export function TestimonialsSection() {
           <p className="trail-copy mt-3">{testimonialsSection.summary}</p>
         </div>
 
-        <div className="mt-10 flex justify-center gap-6 [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_82%,transparent)] max-h-[740px] overflow-hidden">
+        <div
+          className="mt-10 flex justify-center gap-6 [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_82%,transparent)] max-h-[740px] overflow-hidden reveal"
+          style={{ "--reveal-delay": "0.1s" } as CSSProperties}
+        >
           <TestimonialsColumn testimonials={firstColumn} duration={16} />
           <TestimonialsColumn
             testimonials={secondColumn}

@@ -12,9 +12,9 @@ export default function FaqPage() {
   const { faq } = marketingCopy;
 
   return (
-    <div className="min-h-screen bg-base text-ink">
+    <div className="flex min-h-screen flex-col bg-base text-ink">
       <MarketingNav />
-      <main className="mx-auto max-w-5xl px-6 py-20">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-20">
         <div className="flex flex-col gap-4">
           <span className="trail-eyebrow text-ink-subtle">FAQ</span>
           <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">{faq.title}</h1>

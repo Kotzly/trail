@@ -47,7 +47,10 @@ ${keyframeStops}
         <div className="absolute bottom-8 left-1/2 h-52 w-52 -translate-x-1/2 rounded-full bg-ink/5 blur-3xl float-slower" />
       </div>
       <div className="mx-auto max-w-6xl text-center">
-        <div className="space-y-6">
+        <div
+          className="space-y-6 reveal"
+          style={{ "--reveal-delay": "0s" } as CSSProperties}
+        >
           <p className="trail-eyebrow text-ink-subtle">{hero.pill}</p>
           <h1 className="font-display text-4xl font-semibold leading-tight text-ink md:text-6xl">
             <span className="block text-ink-muted">{hero.lead}</span>
@@ -78,7 +81,10 @@ ${keyframeStops}
             </Link>
           </div>
         </div>
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-ink-subtle md:divide-x md:divide-stroke/40">
+        <div
+          className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-ink-subtle md:divide-x md:divide-stroke/40 reveal"
+          style={{ "--reveal-delay": "0.08s" } as CSSProperties}
+        >
           {marketingCopy.stats.map((stat) => (
             <div key={stat.label} className="flex items-baseline gap-2 px-4">
               <span className="text-lg font-semibold text-ink">{stat.value}</span>
@@ -87,7 +93,12 @@ ${keyframeStops}
           ))}
         </div>
         {marketingCopy.statsNote ? (
-          <p className="mt-3 text-xs text-ink-subtle">{marketingCopy.statsNote}</p>
+          <p
+            className="mt-3 text-xs text-ink-subtle reveal"
+            style={{ "--reveal-delay": "0.12s" } as CSSProperties}
+          >
+            {marketingCopy.statsNote}
+          </p>
         ) : null}
       </div>
     </section>

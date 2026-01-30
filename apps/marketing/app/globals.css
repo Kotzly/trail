@@ -223,6 +223,21 @@ a.cta-primary {
   }
 }
 
+@supports not (animation-timeline: view()) {
+  html[data-reveal-ready="true"] .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    transition-delay: var(--reveal-delay);
+    will-change: opacity, transform;
+  }
+
+  html[data-reveal-ready="true"] .reveal[data-reveal="true"] {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes float-slow {
   0%,
   100% {
@@ -260,6 +275,7 @@ a.cta-primary {
   .float-slower,
   .reveal {
     animation: none;
+    transition: none;
     opacity: 1;
     transform: none;
   }

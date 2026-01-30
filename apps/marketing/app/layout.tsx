@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { marketingCopy } from "@trail/content";
+import { RevealObserver } from "./components/RevealObserver";
 
 export const metadata: Metadata = {
   title: marketingCopy.meta.title,
@@ -19,9 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-theme="system">
+    <html lang="en" data-theme="system" data-reveal-ready="true">
       <body className="bg-bg text-ink">
         {children}
+        <RevealObserver />
       </body>
     </html>
   );

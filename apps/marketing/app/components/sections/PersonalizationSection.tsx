@@ -18,7 +18,7 @@ export function PersonalizationSection() {
   return (
     <section id="make-trail-yours" className="px-6 py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 reveal">
           <span className="trail-eyebrow text-ink-subtle">
             {personalization.eyebrow}
           </span>
@@ -45,8 +45,8 @@ function GlowingGrid({
   }>;
 }) {
   return (
-    <ul className="grid grid-cols-1 gap-4 md:grid-cols-12 md:grid-rows-3">
-      {cards.map((card) => {
+    <ul className="grid grid-cols-1 gap-4 md:grid-cols-12 md:grid-rows-3 xl:grid-rows-2">
+      {cards.map((card, index) => {
         const Icon = iconMap[card.icon] ?? Sparkles;
         return (
           <GridItem
@@ -55,6 +55,7 @@ function GlowingGrid({
             icon={<Icon className="h-4 w-4" />}
             title={card.title}
             description={card.description}
+            delay={index * 0.08}
           />
         );
       })}
@@ -123,11 +124,15 @@ interface GridItemProps {
   icon: ReactNode;
   title: string;
   description: ReactNode;
+  delay?: number;
 }
 
-const GridItem = ({ area, icon, title, description }: GridItemProps) => {
+const GridItem = ({ area, icon, title, description, delay = 0 }: GridItemProps) => {
   return (
-    <li className={cn("min-h-[13rem] list-none", area)}>
+    <li
+      className={cn("min-h-[13rem] list-none reveal", area)}
+      style={{ "--reveal-delay": `${delay}s` } as CSSProperties}
+    >
       <div className="relative h-full rounded-[1.25rem] border border-border/60 p-2 md:rounded-[1.5rem] md:p-3">
         <GlowingEffect
           spread={40}
