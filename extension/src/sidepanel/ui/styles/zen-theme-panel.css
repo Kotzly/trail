@@ -293,21 +293,30 @@
 .zen-theme-picker-pages {
   display: flex;
   align-items: center;
-  gap: 8px;
+}
+
+.zen-theme-picker-pages-viewport {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .zen-theme-picker-pages-track {
   display: flex;
-  flex: 1;
-  overflow: hidden;
+  align-items: flex-start;
   transition: transform 0.2s ease;
+  will-change: transform;
 }
 
 .zen-theme-picker-page {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: flex-start;
+  flex: 0 0 100%;
   min-width: 100%;
+  box-sizing: border-box;
   gap: 6px;
   padding: 0 4px;
 }

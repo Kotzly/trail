@@ -707,30 +707,32 @@ export default function ThemePalette({
         >
           <Icons.ChevronLeft size={14} />
         </button>
-        <div className="zen-theme-picker-pages-track" style={{ transform: `translateX(-${pageIndex * 100}%)` }}>
-          {PRESET_PAGES.map((page, index) => (
-            <div className="zen-theme-picker-page" key={`page-${index}`}>
-              {page.map((preset, presetIndex) => {
-                const style: Record<string, string> = {};
-                if (preset.preview) {
-                  style.background = `radial-gradient(circle at 0% 0%, ${preset.preview.c1}, transparent 100%), radial-gradient(circle at 100% 0%, ${preset.preview.c2}, transparent 100%), linear-gradient(to top, ${preset.preview.c3} 0%, transparent 60%)`;
-                } else if (preset.color) {
-                  style.background = preset.color;
-                }
-                return (
-                  <button
-                    key={`preset-${index}-${presetIndex}`}
-                    type="button"
-                    className="zen-theme-picker-preset"
-                    style={style}
-                    onClick={() => handlePreset(preset)}
-                    title="Preset"
-                    disabled={customMode}
-                  />
-                );
-              })}
-            </div>
-          ))}
+        <div className="zen-theme-picker-pages-viewport">
+          <div className="zen-theme-picker-pages-track" style={{ transform: `translateX(-${pageIndex * 100}%)` }}>
+            {PRESET_PAGES.map((page, index) => (
+              <div className="zen-theme-picker-page" key={`page-${index}`}>
+                {page.map((preset, presetIndex) => {
+                  const style: Record<string, string> = {};
+                  if (preset.preview) {
+                    style.background = `radial-gradient(circle at 0% 0%, ${preset.preview.c1}, transparent 100%), radial-gradient(circle at 100% 0%, ${preset.preview.c2}, transparent 100%), linear-gradient(to top, ${preset.preview.c3} 0%, transparent 60%)`;
+                  } else if (preset.color) {
+                    style.background = preset.color;
+                  }
+                  return (
+                    <button
+                      key={`preset-${index}-${presetIndex}`}
+                      type="button"
+                      className="zen-theme-picker-preset"
+                      style={style}
+                      onClick={() => handlePreset(preset)}
+                      title="Preset"
+                      disabled={customMode}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
         <button
           type="button"
