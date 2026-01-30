@@ -31,9 +31,9 @@
 .theme-panel {
   width: min(380px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
-  background: var(--md-glass-strong);
+  background: var(--md-glass);
   border-radius: 18px;
-  border: var(--md-glass-border);
+  /* border: var(--md-glass-border); */
   box-shadow: var(--md-glass-shadow);
   padding: 16px;
   display: flex;
@@ -135,7 +135,7 @@
   border-radius: 12px;
   padding: var(--zen-picker-padding);
   background: color-mix(in srgb, var(--md-on-surface) 4%, transparent);
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
+  /* border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent); */
 }
 
 .zen-theme-picker-pad {
@@ -175,7 +175,10 @@
   cursor: grab;
   z-index: 3;
   pointer-events: auto;
-  transition: transform 0.2s ease;
+  transition:
+    left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    top 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.2s ease;
 }
 
 .zen-theme-picker-pad.is-dragging .zen-theme-picker-dot {
