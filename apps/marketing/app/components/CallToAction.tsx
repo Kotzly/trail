@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { marketingCopy } from "@trail/content";
-import { InteractiveHoverButton } from "./ui/interactive-hover-button";
 
 export function CallToAction() {
   const { cta } = marketingCopy;
@@ -16,11 +15,12 @@ export function CallToAction() {
           {cta.subtitle}
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <InteractiveHoverButton
+          <a
             href="/downloads"
-            text={cta.primary}
-            className="bg-ink text-[color:rgb(var(--cta-fg))] hover:bg-ink-muted"
-          />
+            className="cta-primary inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold shadow-elev-1 transition hover:bg-ink-muted"
+          >
+            {cta.primary}
+          </a>
           <Link
             href="https://app.gettrail.net/auth/login"
             className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
