@@ -29,7 +29,7 @@ export function DashboardClient() {
   const displayName =
     me.data?.user?.name?.trim() ||
     me.data?.user?.email?.split("@")[0] ||
-    "trail member";
+    accountCopy.settings.profile.fallbackName;
 
   const statusLabel = health.data?.ok ? dashboard.status.online : dashboard.status.checking;
   const lastSync = health.data?.timestamp

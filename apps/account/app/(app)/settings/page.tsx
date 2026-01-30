@@ -12,7 +12,7 @@ export default async function SettingsPage() {
   }
 
   const user = session.user;
-  const initialsSource = user.name || user.email || "trail";
+  const initialsSource = user.name || user.email || settings.profile.fallbackName;
   const initials = initialsSource
     .split(" ")
     .filter(Boolean)
@@ -49,7 +49,7 @@ export default async function SettingsPage() {
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={user.picture}
-                  alt={user.name ?? "user avatar"}
+                  alt={user.name ?? settings.profile.avatarAlt}
                   className="h-full w-full object-cover"
                 />
               ) : (
