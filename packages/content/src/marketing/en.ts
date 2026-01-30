@@ -221,7 +221,7 @@ export const marketingCopy = {
   },
   personalization: {
     eyebrow: "make trail truly yours",
-    title: "make trail truly yours",
+    title: "personalization",
     summary:
       "dial in themes, views, and layouts so every trail matches the way you think.",
     cards: [

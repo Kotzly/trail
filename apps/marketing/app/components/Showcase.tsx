@@ -18,6 +18,8 @@ export function Showcase() {
           loop
           muted
           playsInline
+          preload="metadata"
+          poster="/assets/video-poster-white.jpg"
         >
           <source src="/assets/showcase.mp4" type="video/mp4" />
         </video>

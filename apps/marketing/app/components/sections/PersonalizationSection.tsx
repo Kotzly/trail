@@ -95,6 +95,8 @@ function VideoColumn({
                 loop
                 muted
                 playsInline
+                preload="metadata"
+                poster="/assets/video-poster-white.jpg"
               >
                 <source src={item.src} type="video/mp4" />
               </video>
