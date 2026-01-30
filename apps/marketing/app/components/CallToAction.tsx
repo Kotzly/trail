@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { marketingCopy } from "@trail/content";
+import { OpenExtensionButton } from "./OpenExtensionButton";
 
 export function CallToAction() {
   const { cta } = marketingCopy;
 
   return (
-    <section className="relative px-6 py-20 reveal">
+    <section className="relative px-6 py-20">
       <div className="absolute inset-0 -z-10 bg-surface/40" />
       <div className="mx-auto max-w-6xl text-center">
         <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
@@ -21,6 +22,7 @@ export function CallToAction() {
           >
             {cta.primary}
           </a>
+          <OpenExtensionButton />
           <Link
             href="https://app.gettrail.net/auth/login"
             className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"

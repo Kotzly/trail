@@ -13,6 +13,7 @@ export const MSG = {
     ACCEPT_TEMP_SELECTION: 'ACCEPT_TEMP_SELECTION',
     CANCEL_TEMP_SELECTION: 'CANCEL_TEMP_SELECTION',
     END_TEMP_SELECTION: 'END_TEMP_SELECTION',
+    OPEN_PANEL: 'OPEN_PANEL',
     UNDO: 'UNDO',
     REDO: 'REDO',
     COMMAND_STATE: 'COMMAND_STATE',
@@ -94,6 +95,7 @@ export type CancelTempSelectionMessage = RequestMessageBase<typeof MSG.CANCEL_TE
 export type EndTempSelectionMessage = RequestMessageBase<typeof MSG.END_TEMP_SELECTION, {
   sessionId: TempSelectionSessionId;
 }>;
+export type OpenPanelMessage = RequestMessageBase<typeof MSG.OPEN_PANEL>;
 
 export type UndoMessage = RequestMessageBase<typeof MSG.UNDO>
 export type RedoMessage = RequestMessageBase<typeof MSG.REDO>
@@ -159,7 +161,7 @@ export type BulkDeleteRecursiveMessage = RequestMessageBase<typeof MSG.BULK_DELE
 export type RequestMessage = NavigateToMessage |
     PreviewNodeMessage | SetCurrentMessage |
     BeginTempSelectionMessage | PreviewTempSelectionMessage | AcceptTempSelectionMessage |
-    CancelTempSelectionMessage | EndTempSelectionMessage |
+    CancelTempSelectionMessage | EndTempSelectionMessage | OpenPanelMessage |
     UndoMessage | RedoMessage |
     CommandStateMessage | GetTagDefsMessage | UpsertTagDefMessage | DeleteTagDefMessage |
     TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleOrFaviconChangedMessage |
@@ -197,6 +199,7 @@ export type ResponseDataByType = {
     [MSG.ACCEPT_TEMP_SELECTION]: void;
     [MSG.CANCEL_TEMP_SELECTION]: void;
     [MSG.END_TEMP_SELECTION]: void;
+    [MSG.OPEN_PANEL]: void;
     [MSG.UNDO]: CommandState;
     [MSG.REDO]: CommandState;
     [MSG.COMMAND_STATE]: CommandState;
@@ -264,6 +267,9 @@ export const msg = {
     },
     endTempSelection(payload: { sessionId: TempSelectionSessionId }): EndTempSelectionMessage {
         return { type: MSG.END_TEMP_SELECTION, ...payload };
+    },
+    openPanel(): OpenPanelMessage {
+        return { type: MSG.OPEN_PANEL };
     },
     getTagDefs(): GetTagDefsMessage { return { type: MSG.GET_TAG_DEFS }; },
     upsertTagDef(payload: { tagDef: TagDefinition }): UpsertTagDefMessage { return { type: MSG.UPSERT_TAG_DEF, ...payload }; },

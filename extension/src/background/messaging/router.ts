@@ -19,6 +19,7 @@ import { commandHandlers } from "./handlers/undo-handlers.js";
 import { pinHandlers } from "./handlers/pin-handlers.js";
 import { tagHandlers } from "./handlers/tag-handlers.js";
 import { tagDefHandlers } from "./handlers/tag-def-handlers.js";
+import { panelHandlers } from "./handlers/panel-handlers.js";
 
 type AnyResponse = ResponseMessage<RequestType>;
 type AnyHandler = (message: RequestMessage, sender: chrome.runtime.MessageSender) => Promise<AnyResponse> | AnyResponse;
@@ -110,5 +111,6 @@ export function initMessaging(): void {
     .merge(pinHandlers)
     .merge(tagHandlers)
     .merge(tagDefHandlers)
+    .merge(panelHandlers)
     .listen();
 }
