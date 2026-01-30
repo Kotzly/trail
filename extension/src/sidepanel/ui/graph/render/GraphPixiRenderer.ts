@@ -136,6 +136,7 @@ type NodeVisualState = {
   faviconKey: string;
   themeVersion: number;
   openProgress: number;
+  textResolution: number;
 };
 
 class NodeVisual {
@@ -165,6 +166,7 @@ class NodeVisual {
     faviconKey: '',
     themeVersion: 0,
     openProgress: 1,
+    textResolution: 1,
   };
   private readonly fonts: { base: string; weight: TextStyleFontWeight };
   private readonly invalidate: () => void;
@@ -197,8 +199,6 @@ class NodeVisual {
     this.collapseBadge.addChild(this.collapseIcon);
     this.container.addChild(this.tagDots);
 
-    this.titleText.resolution = 2;
-    this.urlText.resolution = 2;
     this.tabBadgeText.anchor.set(0.5, 0.5);
     this.pinIcon.pivot.set(ICON_VIEWBOX, 0);
     this.audioIcon.pivot.set(ICON_VIEWBOX, 0);
@@ -220,7 +220,8 @@ class NodeVisual {
     origin: { x: number; y: number },
     fontFamily: string,
     themeVersion: number,
-    detailMode: DetailMode
+    detailMode: DetailMode,
+    textResolution: number
   ) {
     this.fonts.base = fontFamily;
     const lod = resolveNodeLod(model, view, detailMode);
@@ -263,10 +264,16 @@ class NodeVisual {
     const needsStyleUpdate =
       themeChanged || this.state.styleKey !== nextStyleKey || this.state.lod !== lod || openProgressChanged;
     const needsTextUpdate =
-      themeChanged || this.state.textKey !== textKey || this.state.lod !== lod || openProgressChanged;
+      themeChanged || this.state.textKey !== textKey || this.state.lod !== lod || openProgressChanged || this.state.textResolution !== textResolution;
     const needsTagUpdate = themeChanged || this.state.tagKey !== tagKey || this.state.lod !== lod;
     const needsFaviconUpdate =
       themeChanged || this.state.faviconKey !== faviconKey || this.state.lod !== lod;
+
+    if (this.state.textResolution !== textResolution) {
+      this.titleText.resolution = textResolution;
+      this.urlText.resolution = textResolution;
+      this.tabBadgeText.resolution = textResolution;
+    }
 
     this.state = {
       lod,
@@ -276,6 +283,7 @@ class NodeVisual {
       faviconKey,
       themeVersion,
       openProgress,
+      textResolution,
     };
 
     this.container.visible = lod !== 'hidden';
@@ -647,11 +655,14 @@ export class GraphPixiRenderer {
   private themeVersion = 0;
   private fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
   private detailMode: DetailMode = 'full';
+  private textResolution = 1;
   private origin = { x: 0, y: 0 };
   private needsRender = false;
   private destroyed = false;
   private isReady = false;
   private canvas: HTMLCanvasElement | null = null;
+  private dppxMediaQuery: MediaQueryList | null = null;
+  private dppxMediaQueryListener: (() => void) | null = null;
   private initPromise: Promise<void> | null = null;
   private readonly requestRender = () => {
     if (this.destroyed) return;
@@ -691,6 +702,9 @@ export class GraphPixiRenderer {
       canvas.style.height = '100%';
       this.app.ticker?.stop();
       this.isReady = true;
+      this.syncResolution();
+      this.syncTextResolution();
+      this.watchDevicePixelRatio();
       this.updateOrigin();
       this.updateWorldTransform();
       this.refreshTheme();
@@ -701,6 +715,7 @@ export class GraphPixiRenderer {
 
   destroy() {
     this.destroyed = true;
+    this.unwatchDevicePixelRatio();
     this.nodeMap.forEach((visual) => visual.destroy());
     this.nodeMap.clear();
     this.nodeData.clear();
@@ -718,6 +733,44 @@ export class GraphPixiRenderer {
         }
       });
     }
+  }
+
+  private watchDevicePixelRatio() {
+    this.unwatchDevicePixelRatio();
+    if (typeof window === 'undefined' || !('matchMedia' in window)) return;
+    const ratio = Math.max(1, window.devicePixelRatio || 1);
+    this.dppxMediaQuery = window.matchMedia(`(resolution: ${ratio}dppx)`);
+    this.dppxMediaQueryListener = () => {
+      if (this.destroyed) return;
+      this.syncResolution();
+      this.watchDevicePixelRatio();
+    };
+    this.dppxMediaQuery.addEventListener('change', this.dppxMediaQueryListener);
+  }
+
+  private unwatchDevicePixelRatio() {
+    if (this.dppxMediaQuery && this.dppxMediaQueryListener) {
+      this.dppxMediaQuery.removeEventListener('change', this.dppxMediaQueryListener);
+    }
+    this.dppxMediaQuery = null;
+    this.dppxMediaQueryListener = null;
+  }
+
+  private syncResolution() {
+    if (!this.isReady) return;
+    const ratio = Math.max(1, window.devicePixelRatio || 1);
+    if (Math.abs(this.app.renderer.resolution - ratio) < 0.001) return;
+    this.app.renderer.resolution = ratio;
+    this.app.renderer.resize(this.host.clientWidth, this.host.clientHeight);
+    this.syncTextResolution();
+    this.invalidateAll();
+  }
+
+  private syncTextResolution() {
+    if (!this.isReady) return;
+    const target = this.view.scale * this.app.renderer.resolution;
+    const next = Math.max(1, Math.min(8, Math.ceil(target)));
+    this.textResolution = next;
   }
 
   refreshTheme() {
@@ -767,6 +820,7 @@ export class GraphPixiRenderer {
     if (!this.isReady) return;
     this.updateOrigin();
     this.updateWorldTransform();
+    this.syncTextResolution();
     this.invalidateVisible();
   }
 
@@ -907,7 +961,8 @@ export class GraphPixiRenderer {
         this.origin,
         this.fontFamily,
         this.themeVersion,
-        this.detailMode
+        this.detailMode,
+        this.textResolution
       );
     });
     for (const [id, visual] of this.nodeMap.entries()) {

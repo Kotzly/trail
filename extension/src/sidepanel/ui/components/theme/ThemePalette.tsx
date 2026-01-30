@@ -210,7 +210,7 @@ export default function ThemePalette({
 }: ThemePaletteProps) {
   const [draft, setDraft] = useState<CustomTheme>(() => normalizeTheme(value));
   const [pageIndex, setPageIndex] = useState(0);
-  const [customColor, setCustomColor] = useState('#6f7bf7');
+  const [customColor, setCustomColor] = useState('#484848');
   const [customOpacity, setCustomOpacity] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const gradientRef = useRef<HTMLDivElement | null>(null);
