@@ -364,8 +364,11 @@ export default function GraphCanvas({
   }, []);
 
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
-  const [previewSelection, setPreviewSelection] = useState<Set<NodeId>>(new Set());
   const previewSelectionRef = useRef<Set<NodeId>>(new Set());
+  const selectionWorldRectRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
+  const selectionComputeHandleRef = useRef<number | null>(null);
+  const selectionComputeVersionRef = useRef(0);
+  const positionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
   const [isDraggingNode, setIsDraggingNode] = useState(false);
   const [dragPreview, setDragPreview] = useState<LayoutUpdateMap | null>(null);
   const layoutSendRef = useRef<{
@@ -404,6 +407,54 @@ export default function GraphCanvas({
     nodeId: NodeId;
     view: { translateX: number; translateY: number; scale: number };
   } | null>(null);
+
+  const cancelSelectionCompute = useCallback(() => {
+    const handle = selectionComputeHandleRef.current;
+    if (handle === null) return;
+    window.cancelIdleCallback(handle);
+    selectionComputeHandleRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => cancelSelectionCompute();
+  }, [cancelSelectionCompute]);
+
+  const computeSelectionPreview = useCallback(() => {
+    if (!isSelectingRef.current) return;
+    const renderer = rendererRef.current;
+    const rect = selectionWorldRectRef.current;
+    if (!renderer || !rect) return;
+    const active = positionsRef.current;
+    const hits = renderer.queryNodesInWorldRect(rect);
+    const preview = new Set<NodeId>(baseSelectionRef.current);
+    if (selectionModeRef.current === 'remove') {
+      hits.forEach((id) => {
+        if (!active.has(id)) return;
+        preview.delete(id);
+      });
+    } else {
+      hits.forEach((id) => {
+        if (!active.has(id)) return;
+        preview.add(id);
+      });
+    }
+    previewSelectionRef.current = preview;
+    renderer.setSelectionOverride(preview);
+  }, []);
+
+  const scheduleSelectionPreview = useCallback(() => {
+    if (selectionComputeHandleRef.current !== null) return;
+    const run = () => {
+      selectionComputeHandleRef.current = null;
+      if (!isSelectingRef.current) return;
+      const version = selectionComputeVersionRef.current;
+      computeSelectionPreview();
+      if (selectionComputeVersionRef.current !== version) {
+        scheduleSelectionPreview();
+      }
+    };
+    selectionComputeHandleRef.current = window.requestIdleCallback(run, { timeout: 80 });
+  }, [computeSelectionPreview]);
 
   const scheduleGraphView = useCallback(
     (view: Partial<ViewState>) => {
@@ -464,6 +515,10 @@ export default function GraphCanvas({
       rendererRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    rendererRef.current?.setSelectedNodeIds(selectedNodeIds);
+  }, [selectedNodeIds]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -686,6 +741,7 @@ export default function GraphCanvas({
     });
     return next;
   }, [basePositions, dragPreview, layoutOptions.mode, nodeHeight, nodeWidth, root]);
+  positionsRef.current = positions;
 
   const spawnExitParticles = useCallback(
     (pos: NodePosition) => {
@@ -967,12 +1023,6 @@ export default function GraphCanvas({
     }
     return getCanvasBounds(positions, nodeWidth, nodeHeight);
   }, [layout, nodeHeight, nodeWidth, positions]);
-
-  const activeNodes = useMemo(() => {
-    const list = Array.from(positions.values());
-    if (layoutOptions.mode !== 'tree' || !root || !hideTreeRoot) return list;
-    return list.filter((pos) => pos.node.id !== root.id);
-  }, [hideTreeRoot, layoutOptions.mode, positions, root]);
 
   const displayNodes = useMemo(() => {
     const list = Array.from(positions.values());
@@ -1309,7 +1359,6 @@ export default function GraphCanvas({
 
   const renderNodes = useMemo<NodeRenderModel[]>(() => {
     const dimmedBySearch = searchActive;
-    const effectiveSelection = isSelectingRef.current ? previewSelection : selectedNodeIds;
     return visibleDisplayNodes.map((pos) => {
       const id = pos.node.id;
       const override = animatedPositionsRef.current.get(id);
@@ -1333,8 +1382,8 @@ export default function GraphCanvas({
         tabCount: nodeTabCounts[id] ?? 0,
         ...(tabState !== undefined ? { tabState } : {}),
         isCollapsed: collapsedNodeIds.has(id),
-        isSelected: effectiveSelection.has(id),
-        isPreview: previewSelection.has(id),
+        isSelected: false,
+        isPreview: false,
         isSearchMatch,
         isSearchFocused: focusedSearchId === id,
         isSearchDimmed: dimmedBySearch && !isSearchMatch,
@@ -1354,10 +1403,8 @@ export default function GraphCanvas({
     nodeTabCounts,
     nodeWidth,
     openNodeIds,
-    previewSelection,
     searchActive,
     searchSet,
-    selectedNodeIds,
     tabStates,
     tagDefs,
     visibleDisplayNodes,
@@ -1676,19 +1723,50 @@ export default function GraphCanvas({
 
   const finalizeSelection = () => {
     if (!isSelectingRef.current) return;
+    cancelSelectionCompute();
+    if (selectionDragRef.current && selectionWorldRectRef.current) {
+      const renderer = rendererRef.current;
+      const rect = selectionWorldRectRef.current;
+      if (renderer && rect) {
+        const active = positions;
+        const hits = renderer.queryNodesInWorldRect(rect);
+        const preview = new Set<NodeId>(baseSelectionRef.current);
+        if (selectionModeRef.current === 'remove') {
+          hits.forEach((id) => {
+            if (!active.has(id)) return;
+            preview.delete(id);
+          });
+        } else {
+          hits.forEach((id) => {
+            if (!active.has(id)) return;
+            preview.add(id);
+          });
+        }
+        previewSelectionRef.current = preview;
+      }
+    }
     isSelectingRef.current = false;
     const finalSelection = new Set(previewSelectionRef.current);
+    const renderer = rendererRef.current;
+    renderer?.setSelectionOverride(null);
+    renderer?.setSelectedNodeIds(finalSelection);
     onSelectedNodeIdsChange(finalSelection);
     setSelectionBox(null);
     previewSelectionRef.current = new Set();
-    setPreviewSelection(new Set());
+    selectionWorldRectRef.current = null;
   };
 
   const clearSelectionState = useCallback(() => {
+    cancelSelectionCompute();
+    isSelectingRef.current = false;
+    selectionDragRef.current = false;
+    previewSelectionRef.current = new Set();
+    selectionWorldRectRef.current = null;
+    rendererRef.current?.setSelectionOverride(null);
+    rendererRef.current?.setSelectedNodeIds(new Set());
     onClearSelection();
-    setPreviewSelection(new Set());
     setSelectionBox(null);
-  }, [onClearSelection]);
+  }, [cancelSelectionCompute, onClearSelection]);
 
   const releasePointerCapture = (target: HTMLDivElement | null, pointerId: number | null) => {
     if (!target || pointerId === null) return;
@@ -1766,6 +1844,9 @@ export default function GraphCanvas({
       panPointerStartRef.current = { x: event.clientX, y: event.clientY };
       panMovedRef.current = false;
     } else if (tool === 'select') {
+      cancelSelectionCompute();
+      selectionWorldRectRef.current = null;
+      rendererRef.current?.setSelectionOverride(null);
       const selectionMode = event.altKey ? 'remove' : event.shiftKey ? 'add' : 'replace';
       selectionModeRef.current = selectionMode;
       if (selectionMode === 'replace') {
@@ -1778,9 +1859,7 @@ export default function GraphCanvas({
       baseSelectionRef.current =
         selectionMode === 'replace' ? new Set() : new Set(selectedNodeIds);
       setSelectionBox({ left: startX, top: startY, width: 0, height: 0 });
-      const base = new Set(baseSelectionRef.current);
-      previewSelectionRef.current = base;
-      setPreviewSelection(base);
+      previewSelectionRef.current = new Set(baseSelectionRef.current);
     }
   };
 
@@ -1816,29 +1895,16 @@ export default function GraphCanvas({
         selectionDragRef.current = true;
         suppressClickRef.current = true;
       }
-
+      if (!selectionDragRef.current) return;
       const { translateX, translateY, scale } = viewRef.current;
-      const graphLeft = (left - translateX) / scale;
-      const graphTop = (top - translateY) / scale;
-      const graphRight = (left + width - translateX) / scale;
-      const graphBottom = (top + height - translateY) / scale;
-      const intersects = new Set<NodeId>();
-      activeNodes.forEach((pos) => {
-        const nodeLeft = pos.x;
-        const nodeRight = pos.x + nodeWidth;
-        const nodeTop = pos.y;
-        const nodeBottom = pos.y + nodeHeight;
-        const hit = !(nodeRight < graphLeft || nodeLeft > graphRight || nodeBottom < graphTop || nodeTop > graphBottom);
-        if (hit) intersects.add(pos.node.id);
-      });
-      const preview = new Set<NodeId>(baseSelectionRef.current);
-      if (selectionModeRef.current === 'remove') {
-        intersects.forEach((id) => preview.delete(id));
-      } else {
-        intersects.forEach((id) => preview.add(id));
-      }
-      previewSelectionRef.current = preview;
-      setPreviewSelection(preview);
+      selectionWorldRectRef.current = {
+        minX: (left - translateX) / scale,
+        minY: (top - translateY) / scale,
+        maxX: (left + width - translateX) / scale,
+        maxY: (top + height - translateY) / scale,
+      };
+      selectionComputeVersionRef.current += 1;
+      scheduleSelectionPreview();
       return;
     }
     if (dragStateRef.current) return;

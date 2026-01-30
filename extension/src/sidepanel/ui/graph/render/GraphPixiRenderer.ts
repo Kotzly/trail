@@ -62,12 +62,13 @@ const lucideIcons: Record<string, LucideNode> = {
 function resolveNodeLod(
   model: NodeRenderModel,
   view: ViewState,
-  detailMode: DetailMode
+  detailMode: DetailMode,
+  isSelected: boolean
 ): LODLevel {
   const scale = view.scale;
   const pixelSize = Math.min(model.width, model.height) * scale;
   const forceDetail =
-    model.isCurrent || model.isSelected || model.isSearchFocused || model.isHoverFocused;
+    model.isCurrent || isSelected || model.isSearchFocused || model.isHoverFocused;
   let lod: LODLevel = 'full';
   if (!forceDetail && pixelSize < LOD_HIDE_PX) lod = 'hidden';
   else if (!forceDetail && pixelSize < LOD_DOT_PX) lod = 'dot';
@@ -221,10 +222,12 @@ class NodeVisual {
     fontFamily: string,
     themeVersion: number,
     detailMode: DetailMode,
-    textResolution: number
+    textResolution: number,
+    isSelected: boolean,
+    isPreview: boolean
   ) {
     this.fonts.base = fontFamily;
-    const lod = resolveNodeLod(model, view, detailMode);
+    const lod = resolveNodeLod(model, view, detailMode, isSelected);
 
     const rawOpenProgress = model.display.dimClosedNodes
       ? model.openProgress
@@ -234,8 +237,8 @@ class NodeVisual {
     const nextStyleKey = [
       model.isCurrent ? 'c' : 'n',
       model.isOpen ? 'o' : 'x',
-      model.isSelected ? 's' : 'n',
-      model.isPreview ? 'p' : 'n',
+      isSelected ? 's' : 'n',
+      isPreview ? 'p' : 'n',
       model.isSearchMatch ? 'm' : 'n',
       model.isSearchFocused ? 'f' : 'n',
       model.isHoverFocused ? 'h' : 'n',
@@ -291,10 +294,10 @@ class NodeVisual {
 
     this.container.alpha = model.isSearchDimmed ? 0.3 : 1;
     this.container.position.set(model.x - origin.x, model.y - origin.y);
-    this.container.zIndex = computeZIndex(model);
+    this.container.zIndex = computeZIndex(model, isSelected);
 
     if (needsStyleUpdate) {
-      this.drawBackground(model, theme, lod);
+      this.drawBackground(model, theme, lod, isSelected, isPreview);
     }
 
     if (needsTextUpdate) {
@@ -315,10 +318,12 @@ class NodeVisual {
   private drawBackground(
     model: NodeRenderModel,
     theme: ReturnType<typeof readGraphTheme>,
-    lod: LODLevel
+    lod: LODLevel,
+    isSelected: boolean,
+    isPreview: boolean
   ) {
-    const isSelected = model.isSelected || model.isSearchMatch || model.isSearchFocused;
-    const isPreview = model.isPreview && !model.isSelected;
+    const selected = isSelected || model.isSearchMatch || model.isSearchFocused;
+    const preview = isPreview && !isSelected;
     const isHover = model.isHoverFocused;
     const isMuted = model.tabState?.sound.muted ?? false;
     const rawOpenProgress = model.display.dimClosedNodes ? model.openProgress : 1;
@@ -339,12 +344,12 @@ class NodeVisual {
       }
       let borderColor = closed ? theme.closed.border : isActive ? theme.active.border : theme.outline;
       let borderWidth = isActive ? 2 : 1;
-      const useDashedBorder = closed && !(isSelected || isHover || isPreview || isMuted);
+      const useDashedBorder = closed && !(selected || isHover || preview || isMuted);
 
       if (isMuted) {
         borderColor = 0xdc3545;
         borderWidth = 2;
-      } else if (isSelected || isHover || isPreview) {
+      } else if (selected || isHover || preview) {
         borderColor = theme.primary;
         borderWidth = 2;
       }
@@ -379,7 +384,7 @@ class NodeVisual {
       this.background.stroke();
     }
 
-    if (isPreview) {
+    if (preview) {
       this.background.setStrokeStyle({ width: 2, color: borderColor, alignment: 0.5 });
       this.background.beginPath();
       drawDashedRoundedRect(this.background, 0, 0, model.width, model.height, NODE_RADIUS, 6, 4);
@@ -656,6 +661,8 @@ export class GraphPixiRenderer {
   private fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
   private detailMode: DetailMode = 'full';
   private textResolution = 1;
+  private selectedNodeIds: Set<NodeId> = new Set();
+  private selectionOverride: Set<NodeId> | null = null;
   private origin = { x: 0, y: 0 };
   private needsRender = false;
   private destroyed = false;
@@ -788,6 +795,24 @@ export class GraphPixiRenderer {
     this.invalidateAll();
   }
 
+  setSelectedNodeIds(ids: Set<NodeId>) {
+    if (this.selectedNodeIds === ids) return;
+    this.selectedNodeIds = ids;
+    if (!this.isReady || this.selectionOverride) return;
+    this.invalidateVisible();
+  }
+
+  setSelectionOverride(ids: Set<NodeId> | null) {
+    if (this.selectionOverride === ids) return;
+    this.selectionOverride = ids;
+    if (!this.isReady) return;
+    this.invalidateVisible();
+  }
+
+  queryNodesInWorldRect(rect: { minX: number; minY: number; maxX: number; maxY: number }): Set<NodeId> {
+    return this.index.query(rect);
+  }
+
   setData(data: RenderData) {
     this.data = data;
     this.particles = data.particles ?? [];
@@ -866,6 +891,7 @@ export class GraphPixiRenderer {
       maxY: worldY,
     });
     if (candidates.size === 0) return null;
+    const selection = this.selectionOverride ?? this.selectedNodeIds;
     let topId: NodeId | null = null;
     let topZ = -Infinity;
     candidates.forEach((id) => {
@@ -877,7 +903,7 @@ export class GraphPixiRenderer {
         worldY >= node.y &&
         worldY <= node.y + node.height
       ) {
-        const z = computeZIndex(node);
+        const z = computeZIndex(node, selection.has(id));
         if (z >= topZ) {
           topZ = z;
           topId = id;
@@ -889,7 +915,8 @@ export class GraphPixiRenderer {
 
   private isCollapseBadgeVisible(model: NodeRenderModel): boolean {
     if (!model.isCollapsed) return false;
-    const lod = resolveNodeLod(model, this.view, this.detailMode);
+    const selection = this.selectionOverride ?? this.selectedNodeIds;
+    const lod = resolveNodeLod(model, this.view, this.detailMode, selection.has(model.id));
     return lod === 'full' || lod === 'low';
   }
 
@@ -944,6 +971,7 @@ export class GraphPixiRenderer {
       maxX: viewRect.maxX + padding,
       maxY: viewRect.maxY + padding,
     };
+    const selection = this.selectionOverride ?? this.selectedNodeIds;
     const visibleIds = this.index.query(paddedRect);
     visibleIds.forEach((id) => {
       const node = this.nodeData.get(id);
@@ -962,7 +990,9 @@ export class GraphPixiRenderer {
         this.fontFamily,
         this.themeVersion,
         this.detailMode,
-        this.textResolution
+        this.textResolution,
+        selection.has(id),
+        node.isPreview
       );
     });
     for (const [id, visual] of this.nodeMap.entries()) {
@@ -1180,9 +1210,9 @@ function isSafeFavicon(url: FaviconUrl): boolean {
   return false;
 }
 
-function computeZIndex(model: NodeRenderModel): number {
+function computeZIndex(model: NodeRenderModel, isSelected: boolean): number {
   if (model.isSearchFocused) return 40;
-  if (model.isSelected) return 30;
+  if (isSelected) return 30;
   if (model.isSearchMatch) return 25;
   if (model.isHoverFocused) return 20;
   if (model.isCurrent) return 15;
