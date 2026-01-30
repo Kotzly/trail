@@ -2,6 +2,14 @@
 
 Documentation is organized by **scope** and **feature**. Each file is under 500 lines and written for AI-agent ingestion: interfaces, design patterns, file maps, and concise notes.
 
+## PRDs
+
+| Doc | Scope |
+|-----|--------|
+| [prd/landing.md](prd/landing.md) | gettrail.net: hero, downloads, support, legal |
+| [prd/dashboard.md](prd/dashboard.md) | app.gettrail.net: dashboard, settings, billing, extension |
+| [prd/extension-cloud-features.md](prd/extension-cloud-features.md) | Extension ↔ cloud: auth, code exchange, token |
+
 ## Scopes
 
 | Scope | Path | Description |
