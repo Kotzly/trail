@@ -1,19 +1,19 @@
 # Repository Guidelines
 
 ## Agent Guidelines
-Внимательно проверяй, что ты не нарушаешь какие-либо ограничения или правила, которые могут привести к ошибкам или проблемам.
-если ты что-то менял, перед завершением работы проверяй, что всё успешно скомпилировалось и работает.
-Пиши без костылей. 
-Если пользователь пишет по поводу какой-то ошибки, смотри в корень проблемы, а не решай для конкретного случая.
-Если пользователь не сказал иначе - Legacy код убирай.
-Используй уместные паттерны проектирования.
-- Always use the latest version of the code.
-- Always use the latest version of the dependencies.
-- Always use the latest version of the tools.
-- Always use the latest version of the libraries.
-- Always use the latest version of the frameworks.
-- Always use the latest version of the languages.
-Use Context7 MCP for frameworks and libraries.
+- Внимательно проверяй, что ты не нарушаешь ограничения/правила проекта.
+- Если ты что-то менял — перед завершением работы проверь, что всё успешно собирается/тайпчекается и работает.
+- Пиши без костылей.
+- Если пользователь пишет про ошибку — смотри в корень проблемы, а не делай фикс под частный кейс.
+- Если пользователь не сказал иначе — legacy код убирай.
+- Используй уместные паттерны проектирования.
+
+### Autonomous work (orchestrated)
+- **По умолчанию** автономная работа делается через **git worktree** (1 задача = 1 worktree) + отдельная ветка.
+- Не мешай незакоммиченные изменения: если дерево грязное — работай в worktree.
+- Трекер задач: `docs/dev/backlog.md`.
+- Merge/push в `origin/main` — только по явной команде Ивана (исключения тоже должны быть явно проговорены).
+- Playbook: `docs/dev/orchestration.md`.
 
 ## Project Structure & Module Organization
 - `apps/marketing/` — Next.js marketing site (gettrail.net).
