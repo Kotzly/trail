@@ -53,3 +53,4 @@ out/
 ignored/
 pens/
 .pnpm-store/
+.worktrees/
