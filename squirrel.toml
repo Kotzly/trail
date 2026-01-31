@@ -1,6 +1,6 @@
 [project]
 domains = []
-name = "trail-local"
+name = "trail"
 
 [crawler]
 max_pages = 100
