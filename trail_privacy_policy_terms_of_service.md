@@ -74,6 +74,15 @@ We use reasonable safeguards appropriate to the type of data processed. No syste
 ## 10. Contact
 For privacy questions or requests, contact: **support@gettrail.net**
 
+## 11. Your Choices
+You can control or remove local data by deleting trees from the extension UI, clearing extension storage/site data, disabling the extension, or uninstalling it.
+
+## 12. Children’s Privacy
+The Service is not intended for children under the age of 13, and we do not knowingly collect personal information from children.
+
+## 13. Changes to This Policy
+We may update this Privacy Policy from time to time. Changes will be posted with an updated “Last updated” date.
+
 ---
 
 # Terms of Service
