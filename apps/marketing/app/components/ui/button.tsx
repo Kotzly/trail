@@ -4,12 +4,12 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@trail/ui";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium ring-offset-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium ring-offset-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "bg-ink text-[color:rgb(var(--cta-fg))] hover:bg-ink-muted",
+          "bg-cta text-cta-fg hover:bg-cta-hover",
         destructive:
           "bg-red-500 text-white hover:bg-red-500/90",
         outline:
@@ -35,22 +35,43 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
-}
+    VariantProps<typeof buttonVariants> {}
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
+type ButtonComponent = React.ForwardRefExoticComponent<
+  ButtonProps & React.RefAttributes<HTMLButtonElement>
+> & {
+  AsChild: React.ForwardRefExoticComponent<
+    ButtonProps & React.RefAttributes<HTMLElement>
+  >;
+};
+
+const getButtonClasses = ({ className, variant, size }: ButtonProps) =>
+  cn(buttonVariants({ variant, size, className }));
+
+const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, ...props }, ref) => (
+    <button
+      ref={ref}
+      className={getButtonClasses({ className, variant, size })}
+      {...props}
+    />
+  )
 );
+
+const ButtonAsChild = React.forwardRef<HTMLElement, ButtonProps>(
+  ({ className, variant, size, ...props }, ref) => (
+    <Slot
+      ref={ref}
+      className={getButtonClasses({ className, variant, size })}
+      {...props}
+    />
+  )
+);
+
+const Button = Object.assign(ButtonRoot, {
+  AsChild: ButtonAsChild
+}) as ButtonComponent;
 Button.displayName = "Button";
+Button.AsChild.displayName = "Button.AsChild";
 
 export { Button, buttonVariants };

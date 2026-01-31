@@ -41,13 +41,13 @@ export default function BillingPage() {
               key={plan.id}
               className={cn(
                 "flex h-full flex-col rounded-2xl border border-border/60 bg-surface/70 p-4",
-                isHighlighted && "border-ink/30"
+                isHighlighted && "border-accent/40"
               )}
             >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold lowercase text-ink">{plan.name}</p>
                 {isHighlighted ? (
-                  <Badge className="bg-ink text-xs font-semibold text-surface">
+                  <Badge className="bg-cta text-xs font-semibold text-cta-fg">
                     {billing.planHighlight}
                   </Badge>
                 ) : (

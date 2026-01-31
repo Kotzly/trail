@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { ensureUser, type Auth0User } from "@/src/server/user";
 import { requireInternalKey } from "@/src/server/internal-auth";
+import { jsonNoStore } from "@/src/server/response";
 
 export const runtime = "nodejs";
 
@@ -14,9 +14,9 @@ export async function POST(request: Request) {
   const authUser = body?.user as Auth0User | undefined;
 
   if (!authUser) {
-    return NextResponse.json({ user: null });
+    return jsonNoStore({ user: null });
   }
 
   const user = await ensureUser(authUser);
-  return NextResponse.json({ user });
+  return jsonNoStore({ user });
 }

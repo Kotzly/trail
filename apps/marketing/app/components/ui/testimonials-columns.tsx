@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@trail/ui";
 
@@ -42,22 +43,21 @@ export const TestimonialsColumn = ({
         {[...new Array(rows).fill(0)].map((_, index) => (
           <React.Fragment key={index}>
             {testimonials.map(({ text, image, name, role }, i) => (
-              <div
-                className={cn(
-                  "max-w-xs rounded-3xl border border-border/60 bg-surface/80 p-6 shadow-elev-1 backdrop-blur"
-                )}
-                key={`${name}-${i}`}
-              >
+                <div
+                  className={cn(
+                  "max-w-xs rounded-3xl border border-border/60 bg-surface p-6"
+                  )}
+                  key={`${name}-${i}`}
+                >
                 <p className="text-sm text-ink">{text}</p>
                 <div className="mt-5 flex items-center gap-3">
-                  <img
+                  <Image
                     width={40}
                     height={40}
                     src={image}
                     alt={name}
                     className="h-10 w-10 rounded-full object-cover"
-                    loading="lazy"
-                    decoding="async"
+                    sizes="40px"
                   />
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold text-ink">{name}</span>

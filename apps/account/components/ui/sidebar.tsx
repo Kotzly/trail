@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import Link, { type LinkProps } from "next/link";
 import React, { createContext, useContext, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
 interface Links {
@@ -40,12 +40,14 @@ export const SidebarProvider = ({
   animate?: boolean;
 }) => {
   const [openState, setOpenState] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   const open = openProp !== undefined ? openProp : openState;
   const setOpen = setOpenProp !== undefined ? setOpenProp : setOpenState;
+  const resolvedAnimate = animate && !prefersReducedMotion;
 
   return (
-    <SidebarContext.Provider value={{ open, setOpen, animate }}>
+    <SidebarContext.Provider value={{ open, setOpen, animate: resolvedAnimate }}>
       {children}
     </SidebarContext.Provider>
   );
@@ -99,6 +101,12 @@ export const DesktopSidebar = ({
       }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
+      onFocusCapture={() => setOpen(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
       {...props}
     >
       {children}
@@ -112,6 +120,12 @@ export const MobileSidebar = ({
   ...props
 }: React.ComponentProps<"div">) => {
   const { open, setOpen } = useSidebar();
+  const prefersReducedMotion = useReducedMotion();
+  const openEase: [number, number, number, number] = [0.16, 1, 0.3, 1];
+  const transition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.3, ease: openEase };
+  const panelId = "mobile-sidebar-panel";
   return (
     <>
       <div
@@ -122,10 +136,16 @@ export const MobileSidebar = ({
         {...props}
       >
         <div className="flex w-full justify-end">
-          <Menu
-            className="h-5 w-5 cursor-pointer text-ink"
+          <button
+            type="button"
             onClick={() => setOpen(!open)}
-          />
+            aria-expanded={open}
+            aria-controls={panelId}
+            aria-label={open ? "Close menu" : "Open menu"}
+            className="rounded-full p-2 text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          </button>
         </div>
         <AnimatePresence>
           {open ? (
@@ -133,15 +153,20 @@ export const MobileSidebar = ({
               initial={{ x: "-100%", opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: "-100%", opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed inset-0 z-[100] flex h-full flex-col justify-between bg-bg/95 p-8 backdrop-blur-lg"
+              transition={transition}
+              id={panelId}
+              role="dialog"
+              aria-modal="true"
+              className="fixed inset-0 z-[100] flex h-full flex-col justify-between bg-bg/95 p-8"
             >
-              <div
-                className="absolute right-8 top-8 z-50 cursor-pointer text-ink"
-                onClick={() => setOpen(!open)}
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close menu"
+                className="absolute right-8 top-8 z-50 rounded-full p-2 text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
               >
-                <X />
-              </div>
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
               {children}
             </motion.div>
           ) : null}
@@ -165,9 +190,10 @@ export const SidebarLink = ({
     <Link
       href={link.href}
       className={cn(
-        "group/sidebar flex items-center justify-start gap-2 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted transition hover:bg-surface-high hover:text-ink",
+        "group/sidebar flex items-center justify-start gap-2 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted transition hover:bg-surface-high hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         className
       )}
+      aria-label={link.label}
       {...props}
     >
       {link.icon}

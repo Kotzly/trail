@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+import Image, { type ImageLoaderProps } from "next/image";
 import { accountCopy } from "@trail/content";
 import { Button } from "@trail/ui";
 import { getAuthSession } from "@/src/lib/auth0";
+
+const avatarLoader = ({ src }: ImageLoaderProps) => src;
 
 export default async function SettingsPage() {
   const { settings } = accountCopy;
@@ -46,10 +49,14 @@ export default async function SettingsPage() {
           <div className="mt-4 flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-surface text-sm font-semibold text-ink">
               {user.picture ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
+                <Image
+                  loader={avatarLoader}
+                  unoptimized
                   src={user.picture}
                   alt={user.name ?? settings.profile.avatarAlt}
+                  width={48}
+                  height={48}
+                  sizes="48px"
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -66,14 +73,14 @@ export default async function SettingsPage() {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button asChild size="sm" variant="outline">
+            <Button.AsChild size="sm" variant="outline">
               <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
                 {settings.profile.manageCta}
               </a>
-            </Button>
-            <Button asChild size="sm" variant="ghost">
+            </Button.AsChild>
+            <Button.AsChild size="sm" variant="ghost">
               <a href="/auth/logout">{settings.profile.signOutCta}</a>
-            </Button>
+            </Button.AsChild>
           </div>
         </div>
 
