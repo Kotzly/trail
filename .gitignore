@@ -42,6 +42,7 @@ out/
 .cache/
 .tmp/
 .temp/
+*.tsbuildinfo
 
 # OS / Editor
 .DS_Store
