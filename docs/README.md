@@ -20,6 +20,14 @@ Documentation is organized by **scope** and **feature**. Each file is under 500 
 | **apps/api** | `docs/apps/api/` | api.gettrail.net: internal API, tRPC |
 | **packages** | `docs/packages/` | Shared: db, trpc, content, ui |
 
+## Dev (`docs/dev/`)
+
+| Doc | Topic |
+|-----|-------|
+| [dev/orchestration.md](dev/orchestration.md) | Autonomous dev playbook (worktrees, checks) |
+| [dev/release-checklist.md](dev/release-checklist.md) | Release steps (including DB/Prisma) |
+| [dev/backlog.md](dev/backlog.md) | Agent backlog |
+
 ## Extension (`docs/extension/`)
 
 | Doc | Feature |

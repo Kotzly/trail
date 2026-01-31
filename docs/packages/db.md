@@ -52,7 +52,9 @@ model ExtensionLoginCode {
    Import PrismaClient from packages/db; instantiate once (singleton or per-request in serverless). Do not edit generated files.
 
 2. **Migrations**  
-   `pnpm db:migrate` (or `npx prisma migrate deploy`); migrations live in prisma/migrations.
+   - Dev (create/apply): `pnpm db:migrate` (`prisma migrate dev`)
+   - Prod (apply only): `pnpm --filter @trail/db prisma migrate deploy`
+   - Migrations are committed under `packages/db/prisma/migrations/` (see README there).
 
 3. **Extensions**  
    Login codes: create with userId, code, expiresAt; mark used by setting usedAt when exchanged.
@@ -63,4 +65,4 @@ model ExtensionLoginCode {
 
 - New model: add to schema, run migrate, use generated types.  
 - Relation: ExtensionLoginCode.userId → User.id; cascade delete optional (e.g. on User delete).  
-- Env: datasource url from env (e.g. DATABASE_URL); see .env.example.
+- Env: Prisma datasource uses `DATABASE_URL` (and `packages/db/prisma.config.ts` also accepts `POSTGRES_PRISMA_URL` / `POSTGRES_URL` and maps it to `DATABASE_URL`). See `.env.example`.
