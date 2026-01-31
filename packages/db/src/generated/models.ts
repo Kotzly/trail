@@ -10,4 +10,6 @@
  */
 export type * from './models/User'
 export type * from './models/ExtensionLoginCode'
+export type * from './models/UserSubscription'
+export type * from './models/PolarWebhookEvent'
 export type * from './commonInputTypes'

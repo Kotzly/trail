@@ -20,7 +20,7 @@ const config: runtime.GetPrismaClientConfig = {
   "clientVersion": "7.3.0",
   "engineVersion": "9d6ad21cbbceab97458517b147a6a09ff43aa735",
   "activeProvider": "postgresql",
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel User {\n  id         String               @id @default(cuid())\n  auth0Id    String               @unique\n  email      String?\n  name       String?\n  imageUrl   String?\n  createdAt  DateTime             @default(now())\n  updatedAt  DateTime             @updatedAt\n  loginCodes ExtensionLoginCode[]\n}\n\nmodel ExtensionLoginCode {\n  id        String    @id @default(cuid())\n  code      String    @unique\n  userId    String\n  user      User      @relation(fields: [userId], references: [id])\n  createdAt DateTime  @default(now())\n  expiresAt DateTime\n  usedAt    DateTime?\n}\n",
+  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel User {\n  id         String               @id @default(cuid())\n  auth0Id    String               @unique\n  email      String?\n  name       String?\n  imageUrl   String?\n  createdAt  DateTime             @default(now())\n  updatedAt  DateTime             @updatedAt\n  loginCodes ExtensionLoginCode[]\n\n  subscription UserSubscription?\n}\n\nmodel ExtensionLoginCode {\n  id        String    @id @default(cuid())\n  code      String    @unique\n  userId    String\n  user      User      @relation(fields: [userId], references: [id])\n  createdAt DateTime  @default(now())\n  expiresAt DateTime\n  usedAt    DateTime?\n}\n\nenum SubscriptionPlan {\n  FREE\n  PRO\n}\n\nenum SubscriptionStatus {\n  ACTIVE\n  TRIALING\n  PAST_DUE\n  CANCELED\n  UNPAID\n  INCOMPLETE\n  UNKNOWN\n}\n\nenum PolarWebhookEventStatus {\n  PENDING\n  PROCESSING\n  PROCESSED\n  FAILED\n}\n\nmodel UserSubscription {\n  id                  String             @id @default(cuid())\n  userId              String             @unique\n  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)\n  plan                SubscriptionPlan   @default(FREE)\n  status              SubscriptionStatus @default(UNKNOWN)\n  polarCustomerId     String?            @unique\n  polarSubscriptionId String?            @unique\n  currentPeriodEnd    DateTime?\n  createdAt           DateTime           @default(now())\n  updatedAt           DateTime           @updatedAt\n}\n\nmodel PolarWebhookEvent {\n  id          String                  @id\n  type        String\n  payload     Json\n  status      PolarWebhookEventStatus @default(PENDING)\n  receivedAt  DateTime                @default(now())\n  processedAt DateTime?\n  error       String?\n  updatedAt   DateTime                @updatedAt\n}\n",
   "runtimeDataModel": {
     "models": {},
     "enums": {},
@@ -28,7 +28,7 @@ const config: runtime.GetPrismaClientConfig = {
   }
 }
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"auth0Id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"imageUrl\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"loginCodes\",\"kind\":\"object\",\"type\":\"ExtensionLoginCode\",\"relationName\":\"ExtensionLoginCodeToUser\"}],\"dbName\":null},\"ExtensionLoginCode\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"ExtensionLoginCodeToUser\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"expiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"usedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"auth0Id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"imageUrl\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"loginCodes\",\"kind\":\"object\",\"type\":\"ExtensionLoginCode\",\"relationName\":\"ExtensionLoginCodeToUser\"},{\"name\":\"subscription\",\"kind\":\"object\",\"type\":\"UserSubscription\",\"relationName\":\"UserToUserSubscription\"}],\"dbName\":null},\"ExtensionLoginCode\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"ExtensionLoginCodeToUser\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"expiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"usedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"UserSubscription\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"UserToUserSubscription\"},{\"name\":\"plan\",\"kind\":\"enum\",\"type\":\"SubscriptionPlan\"},{\"name\":\"status\",\"kind\":\"enum\",\"type\":\"SubscriptionStatus\"},{\"name\":\"polarCustomerId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"polarSubscriptionId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"currentPeriodEnd\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"PolarWebhookEvent\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"status\",\"kind\":\"enum\",\"type\":\"PolarWebhookEventStatus\"},{\"name\":\"receivedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"processedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"error\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 
 async function decodeBase64AsWasm(wasmBase64: string): Promise<WebAssembly.Module> {
   const { Buffer } = await import('node:buffer')
@@ -195,6 +195,26 @@ export interface PrismaClient<
     * ```
     */
   get extensionLoginCode(): Prisma.ExtensionLoginCodeDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.userSubscription`: Exposes CRUD operations for the **UserSubscription** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UserSubscriptions
+    * const userSubscriptions = await prisma.userSubscription.findMany()
+    * ```
+    */
+  get userSubscription(): Prisma.UserSubscriptionDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.polarWebhookEvent`: Exposes CRUD operations for the **PolarWebhookEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PolarWebhookEvents
+    * const polarWebhookEvents = await prisma.polarWebhookEvent.findMany()
+    * ```
+    */
+  get polarWebhookEvent(): Prisma.PolarWebhookEventDelegate<ExtArgs, { omit: OmitOpts }>;
 }
 
 export function getPrismaClientClass(): PrismaClientConstructor {

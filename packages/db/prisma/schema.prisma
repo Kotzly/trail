@@ -8,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id        String               @id @default(cuid())
-  auth0Id   String               @unique
-  email     String?
-  name      String?
-  imageUrl  String?
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
+  id         String               @id @default(cuid())
+  auth0Id    String               @unique
+  email      String?
+  name       String?
+  imageUrl   String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
   loginCodes ExtensionLoginCode[]
+
+  subscription UserSubscription?
 }
 
 model ExtensionLoginCode {
@@ -26,4 +28,50 @@ model ExtensionLoginCode {
   createdAt DateTime @default(now())
   expiresAt DateTime
   usedAt    DateTime?
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  UNKNOWN
+}
+
+enum PolarWebhookEventStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+model UserSubscription {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan               SubscriptionPlan   @default(FREE)
+  status             SubscriptionStatus @default(UNKNOWN)
+  polarCustomerId    String?            @unique
+  polarSubscriptionId String?           @unique
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model PolarWebhookEvent {
+  id         String                  @id
+  type       String
+  payload    Json
+  status     PolarWebhookEventStatus @default(PENDING)
+  receivedAt DateTime                @default(now())
+  processedAt DateTime?
+  error      String?
+  updatedAt  DateTime                @updatedAt
 }

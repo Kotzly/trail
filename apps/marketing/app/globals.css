@@ -184,7 +184,8 @@ a.cta-primary {
 
 .word-rotator {
   display: inline-flex;
-  height: 1.1em;
+  height: 1.25em;
+  line-height: 1.25em;
   overflow: hidden;
   vertical-align: bottom;
 }
@@ -199,8 +200,8 @@ a.cta-primary {
 }
 
 .word-rotator-track span {
-  height: 1.1em;
-  line-height: 1.1em;
+  height: 1.25em;
+  line-height: 1.25em;
 }
 
 .float-slow {
