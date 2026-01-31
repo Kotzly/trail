@@ -11,12 +11,54 @@ export function MarketingFooter() {
           {footer.copyright} © {new Date().getFullYear()}
         </span>
         <div className="flex flex-wrap gap-4">
-          <Link href="/faq">{footer.links.faq}</Link>
-          <Link href="/support">{footer.links.support}</Link>
-          <Link href="/privacy">{footer.links.privacy}</Link>
-          <Link href="/terms">{footer.links.terms}</Link>
-          <a href="https://app.gettrail.net/auth/login">{footer.links.signIn}</a>
-          <a href={`mailto:${footer.links.email}`}>{footer.links.email}</a>
+          <Link
+            href="/faq"
+            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          >
+            {footer.links.faq}
+          </Link>
+          <Link
+            href="/support"
+            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          >
+            {footer.links.support}
+          </Link>
+          <Link
+            href="/about"
+            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          >
+            {footer.links.about}
+          </Link>
+          <Link
+            href="/contact"
+            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          >
+            {footer.links.contact}
+          </Link>
+          <Link
+            href="/privacy"
+            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          >
+            {footer.links.privacy}
+          </Link>
+          <Link
+            href="/terms"
+            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          >
+            {footer.links.terms}
+          </Link>
+          <a
+            href="https://app.gettrail.net"
+            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          >
+            {footer.links.signIn}
+          </a>
+          <a
+            href={`mailto:${footer.links.email}`}
+            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          >
+            {footer.links.email}
+          </a>
         </div>
       </div>
     </footer>

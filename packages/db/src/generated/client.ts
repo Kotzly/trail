@@ -49,3 +49,13 @@ export type User = Prisma.UserModel
  * 
  */
 export type ExtensionLoginCode = Prisma.ExtensionLoginCodeModel
+/**
+ * Model UserSubscription
+ * 
+ */
+export type UserSubscription = Prisma.UserSubscriptionModel
+/**
+ * Model PolarWebhookEvent
+ * 
+ */
+export type PolarWebhookEvent = Prisma.PolarWebhookEventModel

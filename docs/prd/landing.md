@@ -40,7 +40,7 @@
 
 ### 2.4 Visitor → Sign in (from marketing)
 
-1. Nav: **“Sign in”** → `https://app.gettrail.net/auth/login` (or equivalent).
+1. Nav: **“Sign in”** → `https://app.gettrail.net` (or equivalent).
 2. Leaves marketing domain; auth on account app.
 
 ---

@@ -9,7 +9,32 @@
 * 🟢 You can import this file directly.
 */
 
+export const SubscriptionPlan = {
+  FREE: 'FREE',
+  PRO: 'PRO'
+} as const
+
+export type SubscriptionPlan = (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const SubscriptionStatus = {
+  ACTIVE: 'ACTIVE',
+  TRIALING: 'TRIALING',
+  PAST_DUE: 'PAST_DUE',
+  CANCELED: 'CANCELED',
+  UNPAID: 'UNPAID',
+  INCOMPLETE: 'INCOMPLETE',
+  UNKNOWN: 'UNKNOWN'
+} as const
+
+export type SubscriptionStatus = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus]
+
+
+export const PolarWebhookEventStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  PROCESSED: 'PROCESSED',
+  FAILED: 'FAILED'
+} as const
+
+export type PolarWebhookEventStatus = (typeof PolarWebhookEventStatus)[keyof typeof PolarWebhookEventStatus]

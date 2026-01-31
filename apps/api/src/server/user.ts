@@ -8,6 +8,14 @@ type Auth0User = {
   picture?: string;
 };
 
+type UserSummary = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  imageUrl: string | null;
+  createdAt: Date;
+};
+
 export async function ensureUser(authUser: Auth0User): Promise<AppUser | null> {
   if (!authUser.sub) {
     return null;
@@ -25,6 +33,12 @@ export async function ensureUser(authUser: Auth0User): Promise<AppUser | null> {
       email: authUser.email ?? null,
       name: authUser.name ?? null,
       imageUrl: authUser.picture ?? null
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      imageUrl: true
     }
   });
 
@@ -36,8 +50,17 @@ export async function ensureUser(authUser: Auth0User): Promise<AppUser | null> {
   };
 }
 
-export async function getUserById(userId: string) {
-  return db.user.findUnique({ where: { id: userId } });
+export async function getUserById(userId: string): Promise<UserSummary | null> {
+  return db.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      imageUrl: true,
+      createdAt: true
+    }
+  });
 }
 
 export type { Auth0User };

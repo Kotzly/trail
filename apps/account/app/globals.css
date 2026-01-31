@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap");
-
 @config "../tailwind.config.ts";
 @import "tailwindcss";
 @source "../../../packages/ui/src";
@@ -11,31 +9,146 @@
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --base: var(--trail-bg);
-  --surface: var(--trail-surface);
-  --surface-strong: var(--trail-surface-high);
-  --stroke: var(--trail-border);
-  --ink: var(--trail-ink);
-  --ink-muted: var(--trail-ink-muted);
-  --ink-subtle: var(--trail-ink-muted);
-  --accent: var(--trail-accent);
-  --accent-soft: var(--trail-highlight);
+  --base: 246 242 234;
+  --surface: 255 255 255;
+  --surface-strong: 241 233 222;
+  --stroke: 216 207 194;
+  --ink: 28 34 48;
+  --ink-muted: 74 85 99;
+  --ink-subtle: 122 129 140;
+  --cta: 201 162 39;
+  --cta-hover: 177 138 46;
+  --cta-fg: 27 31 40;
+  --accent: 201 162 39;
+  --accent-soft: 233 215 170;
   --font-display: var(--font-sans);
+
+  --trail-bg: var(--base);
+  --trail-surface: var(--surface);
+  --trail-surface-high: var(--surface-strong);
+  --trail-surface-low: 248 254 252;
+  --trail-border: var(--stroke);
+  --trail-ink: var(--ink);
+  --trail-ink-muted: var(--ink-muted);
+  --trail-accent: var(--accent);
+  --trail-accent-contrast: var(--cta-fg);
+  --trail-highlight: 239 227 208;
+  --trail-glass: var(--surface);
+  --trail-glass-strong: var(--surface-strong);
+  --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-elev-2: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-elev-3: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-ring: var(--accent);
+  --trail-gradient-1: none;
+  --trail-gradient-2: none;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
+  --base: 12 16 23;
+  --surface: 20 26 36;
+  --surface-strong: 29 37 51;
+  --stroke: 44 53 69;
+  --ink: 244 239 230;
+  --ink-muted: 199 191 174;
+  --ink-subtle: 155 148 133;
+  --cta: 210 177 94;
+  --cta-hover: 189 152 70;
+  --cta-fg: 12 16 23;
+  --accent: 210 177 94;
+  --accent-soft: 74 58 30;
+
+  --trail-bg: var(--base);
+  --trail-surface: var(--surface);
+  --trail-surface-high: var(--surface-strong);
+  --trail-surface-low: 7 28 25;
+  --trail-border: var(--stroke);
+  --trail-ink: var(--ink);
+  --trail-ink-muted: var(--ink-muted);
+  --trail-accent: var(--accent);
+  --trail-accent-contrast: var(--cta-fg);
+  --trail-highlight: 44 53 69;
+  --trail-glass: var(--surface);
+  --trail-glass-strong: var(--surface-strong);
+  --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-elev-2: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-elev-3: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-ring: var(--accent);
+  --trail-gradient-1: none;
+  --trail-gradient-2: none;
 }
 
 @media (prefers-color-scheme: dark) {
   [data-theme="system"] {
     color-scheme: dark;
+    --base: 12 16 23;
+    --surface: 20 26 36;
+    --surface-strong: 29 37 51;
+    --stroke: 44 53 69;
+    --ink: 244 239 230;
+    --ink-muted: 199 191 174;
+    --ink-subtle: 155 148 133;
+    --cta: 210 177 94;
+    --cta-hover: 189 152 70;
+    --cta-fg: 12 16 23;
+    --accent: 210 177 94;
+    --accent-soft: 74 58 30;
+
+    --trail-bg: var(--base);
+    --trail-surface: var(--surface);
+    --trail-surface-high: var(--surface-strong);
+    --trail-surface-low: 7 28 25;
+    --trail-border: var(--stroke);
+    --trail-ink: var(--ink);
+    --trail-ink-muted: var(--ink-muted);
+    --trail-accent: var(--accent);
+    --trail-accent-contrast: var(--cta-fg);
+    --trail-highlight: 44 53 69;
+    --trail-glass: var(--surface);
+    --trail-glass-strong: var(--surface-strong);
+    --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-elev-2: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-elev-3: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-ring: var(--accent);
+    --trail-gradient-1: none;
+    --trail-gradient-2: none;
   }
 }
 
 @media (prefers-color-scheme: light) {
   [data-theme="system"] {
     color-scheme: light;
+    --base: 246 242 234;
+    --surface: 255 255 255;
+    --surface-strong: 241 233 222;
+    --stroke: 216 207 194;
+    --ink: 28 34 48;
+    --ink-muted: 74 85 99;
+    --ink-subtle: 122 129 140;
+    --cta: 201 162 39;
+    --cta-hover: 177 138 46;
+    --cta-fg: 27 31 40;
+    --accent: 201 162 39;
+    --accent-soft: 233 215 170;
+
+    --trail-bg: var(--base);
+    --trail-surface: var(--surface);
+    --trail-surface-high: var(--surface-strong);
+    --trail-surface-low: 248 254 252;
+    --trail-border: var(--stroke);
+    --trail-ink: var(--ink);
+    --trail-ink-muted: var(--ink-muted);
+    --trail-accent: var(--accent);
+    --trail-accent-contrast: var(--cta-fg);
+    --trail-highlight: 239 227 208;
+    --trail-glass: var(--surface);
+    --trail-glass-strong: var(--surface-strong);
+    --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-elev-2: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-elev-3: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-ring: var(--accent);
+    --trail-gradient-1: none;
+    --trail-gradient-2: none;
   }
 }
 

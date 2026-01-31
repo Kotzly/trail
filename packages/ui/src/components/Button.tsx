@@ -3,9 +3,16 @@ import { Slot } from "@radix-ui/react-slot";
 import { cn } from "../utils/cn";
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  asChild?: boolean;
   variant?: "primary" | "outline" | "ghost";
   size?: "sm" | "md" | "lg";
+};
+
+type ButtonComponent = React.ForwardRefExoticComponent<
+  ButtonProps & React.RefAttributes<HTMLButtonElement>
+> & {
+  AsChild: React.ForwardRefExoticComponent<
+    ButtonProps & React.RefAttributes<HTMLElement>
+  >;
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -23,25 +30,43 @@ const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
     "bg-transparent text-ink hover:bg-surface-high focus-visible:ring-2 focus-visible:ring-ink"
 };
 
-export function Button({
+function getButtonClasses({
   className,
-  asChild,
   variant = "primary",
-  size = "md",
-  ...props
+  size = "md"
 }: ButtonProps) {
-  const Comp = asChild ? Slot : "button";
-
-  return (
-    <Comp
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full font-medium transition disabled:pointer-events-none disabled:opacity-60",
-        "focus-visible:outline-none",
-        sizeClasses[size],
-        variantClasses[variant],
-        className
-      )}
-      {...props}
-    />
+  return cn(
+    "inline-flex items-center justify-center gap-2 rounded-full font-medium transition disabled:pointer-events-none disabled:opacity-60",
+    "focus-visible:outline-none",
+    sizeClasses[size],
+    variantClasses[variant],
+    className
   );
 }
+
+const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, ...props }, ref) => (
+    <button
+      ref={ref}
+      className={getButtonClasses({ className, variant, size })}
+      {...props}
+    />
+  )
+);
+
+const ButtonAsChild = React.forwardRef<HTMLElement, ButtonProps>(
+  ({ className, variant, size, ...props }, ref) => (
+    <Slot
+      ref={ref}
+      className={getButtonClasses({ className, variant, size })}
+      {...props}
+    />
+  )
+);
+
+export const Button = Object.assign(ButtonRoot, {
+  AsChild: ButtonAsChild
+}) as ButtonComponent;
+
+Button.displayName = "Button";
+Button.AsChild.displayName = "Button.AsChild";

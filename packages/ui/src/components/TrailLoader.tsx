@@ -9,7 +9,7 @@ export type TrailLoaderProps = {
 export function TrailLoader({ className, label }: TrailLoaderProps) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-3", className)}>
-      <TrailLogo animated className="trail-logo--md" />
+      <TrailLogo.Animated className="trail-logo--md" />
       {label ? (
         <span className="text-xs font-semibold lowercase text-ink-muted">
           {label}

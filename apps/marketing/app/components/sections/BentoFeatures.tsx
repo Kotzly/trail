@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import {
   Grid3X3,
   Search,
@@ -17,73 +18,61 @@ const iconMap = {
   polish: Sparkles
 };
 
-const backgrounds: Record<string, ReactNode> = {
-  capture: (
-    <>
-      <img
-        className="absolute inset-0 h-full w-full object-cover opacity-40"
-        src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=900&q=80"
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-black/10 via-black/0 to-black/40" />
-    </>
-  ),
-  views: (
-    <>
-      <img
-        className="absolute inset-0 h-full w-full object-cover opacity-35"
-        src="https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=900&q=80"
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-black/0 via-black/5 to-black/35" />
-    </>
-  ),
-  search: (
-    <>
-      <img
-        className="absolute inset-0 h-full w-full object-cover opacity-35"
-        src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80"
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-black/10 via-black/0 to-black/40" />
-    </>
-  ),
-  share: (
-    <>
-      <img
-        className="absolute inset-0 h-full w-full object-cover opacity-35"
-        src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=80"
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-black/5 via-black/0 to-black/35" />
-    </>
-  ),
-  polish: (
-    <>
-      <img
-        className="absolute inset-0 h-full w-full object-cover opacity-35"
-        src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=900&q=80"
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-black/10 via-black/0 to-black/45" />
-    </>
-  )
+const backgroundAssets: Record<
+  string,
+  {
+    src: string;
+    alt: string;
+    priority?: boolean;
+  }
+> = {
+  capture: {
+    src: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=420&q=60",
+    alt: "Developer workstation with code on screen",
+    priority: true
+  },
+  views: {
+    src: "https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=420&q=60",
+    alt: "Notebook with charts and organized notes",
+    priority: true
+  },
+  search: {
+    src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=420&q=60",
+    alt: "Desk setup with laptop and focused workspace",
+    priority: true
+  },
+  share: {
+    src: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=420&q=60",
+    alt: "Team collaboration around shared work"
+  },
+  polish: {
+    src: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=420&q=60",
+    alt: "Meeting table prepared for strategy session"
+  }
 };
+
+const imageBaseProps = {
+  width: 720,
+  height: 720,
+  quality: 60,
+  sizes: "(min-width: 1024px) 420px, (min-width: 640px) 50vw, 100vw"
+} as const;
+
+const backgrounds: Record<string, ReactNode> = Object.fromEntries(
+  Object.entries(backgroundAssets).map(([key, value]) => [
+    key,
+    (
+      <Image
+        className="absolute inset-0 h-full w-full object-cover opacity-35"
+        src={value.src}
+        alt={value.alt}
+        priority={value.priority}
+        fetchPriority={value.priority ? "high" : "auto"}
+        {...imageBaseProps}
+      />
+    )
+  ])
+) as Record<string, ReactNode>;
 
 export function BentoFeatures() {
   const { features } = marketingCopy;
