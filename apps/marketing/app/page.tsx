@@ -5,8 +5,17 @@ import { MarketingFooter } from "./components/MarketingFooter";
 import { MarketingHero } from "./components/MarketingHero";
 import { MarketingNav } from "./components/MarketingNav";
 import { Showcase } from "./components/Showcase";
+import { BentoFeatures } from "./components/sections/BentoFeatures";
 import { PersonalizationSection } from "./components/sections/PersonalizationSection";
 import { TestimonialsSection } from "./components/sections/TestimonialsSection";
+import { buildMetadata } from "../lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Trail — Privacy-first research trails",
+  description:
+    "Capture sources, notes, and decisions as you browse. Trail turns tab chaos into organized research trails you can share without storing page content.",
+  path: "/"
+});
 
 export default function HomePage() {
   return (
@@ -17,6 +26,7 @@ export default function HomePage() {
         <div className="relative">
           <MarketingHero />
           <Showcase />
+          <BentoFeatures />
           <PersonalizationSection />
           <TestimonialsSection />
           <CallToAction />

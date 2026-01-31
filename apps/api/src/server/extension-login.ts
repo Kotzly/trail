@@ -9,7 +9,8 @@ function createCode() {
 }
 
 export async function createExtensionLoginCode(userId: string, preferredCode?: string) {
-  const expiresAt = new Date(Date.now() + CODE_TTL_MINUTES * 60 * 1000);
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + CODE_TTL_MINUTES * 60 * 1000);
 
   if (preferredCode) {
     const existing = await db.extensionLoginCode.findUnique({ where: { code: preferredCode } });
@@ -18,7 +19,7 @@ export async function createExtensionLoginCode(userId: string, preferredCode?: s
         throw new Error("Extension login code collision.");
       }
 
-      if (existing.usedAt || existing.expiresAt < new Date()) {
+      if (existing.usedAt || existing.expiresAt < now) {
         await db.extensionLoginCode.update({
           where: { id: existing.id },
           data: { usedAt: null, expiresAt }

@@ -72,14 +72,14 @@ export function DashboardClient() {
             icon={<BackpackIcon className="h-5 w-5" />}
             items={dashboard.empty.items}
             action={
-              <Button asChild size="sm">
+              <Button.AsChild size="sm">
                 <Link href="/extension">{dashboard.empty.cta}</Link>
-              </Button>
+              </Button.AsChild>
             }
             secondaryAction={
-              <Button asChild size="sm" variant="outline">
+              <Button.AsChild size="sm" variant="outline">
                 <Link href="/settings">{dashboard.empty.secondaryCta}</Link>
-              </Button>
+              </Button.AsChild>
             }
           />
         )}

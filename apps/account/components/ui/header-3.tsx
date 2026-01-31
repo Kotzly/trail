@@ -27,6 +27,7 @@ import {
   User
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useReducedMotion } from "framer-motion";
 
 type LinkItem = {
   title: string;
@@ -73,6 +74,7 @@ export function Header() {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const scrolled = useScroll(10);
+  const prefersReducedMotion = useReducedMotion();
   const health = trpc.health.useQuery(undefined, { refetchInterval: 30000 });
   const me = trpc.me.useQuery();
 
@@ -154,15 +156,14 @@ export function Header() {
     <header
       className={cn(
         "sticky top-0 z-50 w-full border-b border-transparent transition",
-        scrolled &&
-          "border-border/60 bg-bg/95 backdrop-blur supports-[backdrop-filter]:bg-bg/80"
+        scrolled && "border-border/60 bg-bg/95"
       )}
     >
       <nav className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 rounded-full border border-transparent px-2 py-1 transition hover:bg-surface-high"
+            className="flex items-center gap-2 rounded-full border border-transparent px-2 py-1 transition hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
           >
             <TrailLogo className="h-6 w-6" />
             <span className="sr-only">{accountCopy.meta.title}</span>
@@ -170,11 +171,11 @@ export function Header() {
           <NavigationMenu className="hidden lg:flex">
             <NavigationMenuList>
               <NavigationMenuItem>
-                <NavigationMenuTrigger className="bg-transparent">
+                <NavigationMenuTrigger className="bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
                   {accountCopy.header.navLabel}
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="bg-bg/95 p-1.5">
-                  <ul className="grid w-[460px] grid-cols-2 gap-2 rounded-2xl border border-border/60 bg-surface/95 p-2 shadow-elev-2">
+                <NavigationMenuContent className="bg-bg p-1.5">
+                  <ul className="grid w-[460px] grid-cols-2 gap-2 rounded-2xl border border-border/60 bg-surface p-2 shadow-elev-2">
                     {navLinks.map((item) => (
                       <li key={item.href}>
                         <ListItem {...item} />
@@ -206,9 +207,9 @@ export function Header() {
             <span>{statusLabel}</span>
           </div>
           {active.cta ? (
-            <Button asChild size="sm" variant="outline">
+            <Button.AsChild size="sm" variant="outline">
               <Link href={active.cta.href}>{active.cta.label}</Link>
-            </Button>
+            </Button.AsChild>
           ) : null}
           <NavigationMenu>
             <NavigationMenuList>
@@ -218,8 +219,8 @@ export function Header() {
                     {initials}
                   </span>
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="bg-bg/95 p-1.5">
-                  <ul className="w-[240px] space-y-1 rounded-2xl border border-border/60 bg-surface/95 p-2 shadow-elev-2">
+                <NavigationMenuContent className="bg-bg p-1.5">
+                  <ul className="w-[240px] space-y-1 rounded-2xl border border-border/60 bg-surface p-2 shadow-elev-2">
                     {userLinks.map((item) => (
                       <li key={item.href}>
                         <ListItem {...item} className="rounded-xl" />
@@ -241,7 +242,7 @@ export function Header() {
           aria-controls="mobile-menu"
           aria-label={accountCopy.header.mobileToggleLabel}
         >
-          <MenuToggleIcon open={open} className="size-5" duration={300} />
+          <MenuToggleIcon open={open} className="size-5" duration={prefersReducedMotion ? 0 : 300} />
         </Button>
       </nav>
 
@@ -258,16 +259,16 @@ export function Header() {
         </div>
         <div className="flex flex-col gap-3">
           {active.cta ? (
-            <Button asChild size="sm" className="w-full">
+            <Button.AsChild size="sm" className="w-full">
               <Link href={active.cta.href}>{active.cta.label}</Link>
-            </Button>
+            </Button.AsChild>
           ) : null}
-          <Button asChild size="sm" variant="outline" className="w-full">
+          <Button.AsChild size="sm" variant="outline" className="w-full">
             <Link href="/settings">{accountCopy.header.userMenu.settings}</Link>
-          </Button>
-          <Button asChild size="sm" variant="ghost" className="w-full">
+          </Button.AsChild>
+          <Button.AsChild size="sm" variant="ghost" className="w-full">
             <Link href="/auth/logout">{accountCopy.header.userMenu.signOut}</Link>
-          </Button>
+          </Button.AsChild>
         </div>
       </MobileMenu>
     </header>
@@ -285,13 +286,13 @@ function MobileMenu({ open, children, className, ...props }: MobileMenuProps) {
     <div
       id="mobile-menu"
       className={cn(
-        "fixed inset-0 z-[60] flex flex-col border-y border-border/60 bg-bg/95 backdrop-blur-lg lg:hidden"
+        "fixed inset-0 z-[60] flex flex-col border-y border-border/60 bg-bg/95 lg:hidden"
       )}
     >
       <div
         data-slot={open ? "open" : "closed"}
         className={cn(
-          "size-full p-6 data-[slot=open]:animate-in data-[slot=open]:zoom-in-95",
+          "size-full p-6 data-[slot=open]:animate-in data-[slot=open]:zoom-in-95 motion-reduce:animate-none motion-reduce:transform-none",
           className
         )}
         {...props}
@@ -314,7 +315,7 @@ function ListItem({
   return (
     <NavigationMenuLink
       className={cn(
-        "flex w-full gap-3 rounded-xl p-2 transition hover:bg-surface-high",
+        "flex w-full gap-3 rounded-xl p-2 transition hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         className
       )}
       {...props}
@@ -346,7 +347,7 @@ function MobileLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 rounded-2xl border border-border/60 bg-surface/90 p-3 transition hover:bg-surface-high"
+      className="flex items-center gap-3 rounded-2xl border border-border/60 bg-surface/90 p-3 transition hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
     >
       <div className="flex size-10 items-center justify-center rounded-xl border border-border/60 bg-bg">
         <Icon className="size-5 text-ink" />

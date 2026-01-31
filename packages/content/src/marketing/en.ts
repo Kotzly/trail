@@ -2,7 +2,7 @@ export const marketingCopy = {
   meta: {
     title: "trail",
     description:
-      "trail turns messy tab sessions into structured trails. keep every decision, source, and next step in one place.",
+      "turn messy tab sessions into structured research paths. keep every decision, source, and next step in one place.",
   },
   nav: {
     features: "features",
@@ -10,13 +10,15 @@ export const marketingCopy = {
     faq: "faq",
     support: "support",
     signIn: "sign in",
-    getStarted: "get the extension",
+    getStarted: "get the app",
   },
   footer: {
     copyright: "trail",
     links: {
       faq: "FAQ",
       support: "Support",
+      about: "About",
+      contact: "Contact",
       privacy: "Privacy Policy",
       terms: "Terms of Service",
       signIn: "Sign in",
@@ -26,20 +28,20 @@ export const marketingCopy = {
   support: {
     meta: {
       title: "support · trail",
-      description: "get help with Trail, the browser extension, and your account.",
+      description: "get help with the Trail app and your account.",
     },
     eyebrow: "support",
     title: "get help, stay in flow.",
     subtitle:
-      "Email us or skim the quick checks below. A couple details help us help you faster.",
+      "Email us or skim the quick checks below. A couple details help us respond faster.",
     email: "support@gettrail.net",
     actions: {
       email: "email support",
       featureRequest: "request a feature",
       faq: "open the FAQ",
-      downloads: "extension downloads",
+      downloads: "app downloads",
       signIn: "sign in",
-      signInHref: "https://app.gettrail.net/auth/login",
+      signInHref: "https://app.gettrail.net",
     },
     featureRequest: {
       title: "Feature requests",
@@ -57,67 +59,67 @@ export const marketingCopy = {
     includeTitle: "Include this in your message",
     include: [
       "Your account email (or the email you tried).",
-      "Browser + version (Chrome / Brave / Edge).",
-      "Extension version (from chrome://extensions).",
+      "Version (Chrome / Brave / Edge).",
+      "Add-on version (from chrome://extensions).",
       "What you expected vs. what happened.",
       "Steps to reproduce (what you clicked).",
     ],
     quickChecksTitle: "Quick checks",
     quickChecks: [
       "Refresh the page and try again (hard refresh if sign-in looks stuck).",
-      "Make sure the extension is enabled and up to date.",
-      "Try an incognito window to rule out extension conflicts.",
+      "Make sure the add-on is enabled and up to date.",
+      "Try an incognito window to rule out add-on conflicts.",
     ],
     faqTitle: "Common questions",
     faqNote: "More answers live in the full FAQ.",
     faqCta: "Read the full FAQ",
   },
   hero: {
-    pill: "Browser extension · free beta",
+    pill: "Browser app · free beta",
     lead: "turn browsing into",
     words: [
-      "shareable research trails",
+      "shareable research paths",
       "clear decisions",
       "team-ready context",
       "repeatable workflows",
       "lightweight summaries",
-      "a calm trail",
+      "a calm research path",
     ],
     summary:
-      "capture every meaningful step, add notes when it matters, and share a trail instead of a tab dump.",
+      "capture every meaningful step, add notes when it matters, and share a clean research path instead of a tab dump.",
     ctaPrimary: "get started",
     ctaSecondary: "see the 60s demo",
   },
   stats: [
     { label: "hours captured (30 days)", value: "300+" },
-    { label: "trails created", value: "2,300+" },
+    { label: "paths created", value: "2,300+" },
     { label: "links shared", value: "4,800+" },
     { label: "avg. session length", value: "42 min" },
   ],
   statsNote: "Based on internal usage from the last 30 days.",
   showcase: {
-    title: "see trail in action",
+    title: "see it in action",
     subtitle: "a quick tour of capture → curate → share in under a minute.",
   },
   testimonialsSection: {
     eyebrow: "testimonials",
-    title: "real teams, calmer trails.",
+    title: "real teams, calmer workflows.",
     summary:
-      "researchers, designers, and PMs use trail to keep decisions, sources, and context together.",
+      "researchers, designers, and PMs use Trail to keep decisions, sources, and context together.",
   },
   testimonials: [
     {
       name: "Maya C.",
       role: "Research Lead, Fintech Studio",
       quote:
-        "Trail removed the tab chaos. We stop losing decisions even when research runs for weeks.",
+        "The app removed the tab chaos. We stop losing decisions even when research runs for weeks.",
       image: "/assets/people/maya.jpg",
     },
     {
       name: "Sofia P.",
       role: "UX Researcher",
       quote:
-        "Trail stays out of the way. Collecting sources and notes feels fast and clean.",
+        "It stays out of the way. Collecting sources and notes feels fast and clean.",
       image: "/assets/people/sofia.jpg",
     },
     {
@@ -129,7 +131,7 @@ export const marketingCopy = {
     {
       name: "Daniel R.",
       role: "Product Manager, AI Team",
-      quote: "Trail saves hours. Open a trail and continue exactly where you left off.",
+      quote: "It saves hours. Open a path and continue exactly where you left off.",
       image: "/assets/people/daniel.jpg",
     },
     {
@@ -141,20 +143,20 @@ export const marketingCopy = {
     {
       name: "Alex B.",
       role: "Data Scientist",
-      quote: "Returning to a topic no longer takes hours. Trail preserves the path.",
+      quote: "Returning to a topic no longer takes hours. It preserves the path.",
       image: "/assets/people/alex.jpg",
     },
     {
       name: "Priya S.",
       role: "Strategy Lead",
-      quote: "Stakeholders finally see the full trail, not just a summary slide.",
+      quote: "Stakeholders finally see the full path, not just a summary slide.",
       image:
         "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=200&q=80",
     },
     {
       name: "Lucas M.",
       role: "Security Researcher",
-      quote: "Trail keeps an audit-friendly record of every source we used.",
+      quote: "The app keeps an audit-friendly record of every source we used.",
       image:
         "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80",
     },
@@ -170,13 +172,13 @@ export const marketingCopy = {
     eyebrow: "features",
     title: "everything you need to stay in flow.",
     summary:
-      "trail stays out of the way while you browse, then turns your history into a clean, shareable trail.",
+      "the workspace stays out of the way while you browse, then turns your history into a clean, shareable path.",
     items: [
       {
         id: "capture",
         name: "always-on capture",
         description:
-          "trail logs searches, sources, and decisions while you work—no manual cleanup.",
+          "the app logs searches, sources, and decisions while you work—no manual cleanup.",
         href: "/#showcase",
         cta: "see capture",
         className: "lg:row-start-1 lg:row-end-4 lg:col-start-2 lg:col-end-3",
@@ -201,7 +203,7 @@ export const marketingCopy = {
       },
       {
         id: "share",
-        name: "shareable trails",
+        name: "shareable paths",
         description:
           "send a single link that preserves sources, notes, and decisions.",
         href: "/#pricing",
@@ -220,14 +222,14 @@ export const marketingCopy = {
     ],
   },
   personalization: {
-    eyebrow: "make trail truly yours",
+    eyebrow: "make it truly yours",
     title: "personalization",
     summary:
-      "dial in themes, views, and layouts so every trail matches the way you think.",
+      "dial in themes, views, and layouts so every workspace matches the way you think.",
     cards: [
       {
         title: "Theme picker",
-        description: "match trail to your workspace with quick palette swaps.",
+        description: "match the workspace to your screens with quick palette swaps.",
         icon: "palette",
         layout: "md:[grid-area:1/1/2/7] xl:[grid-area:1/1/2/5]",
       },
@@ -251,7 +253,7 @@ export const marketingCopy = {
       },
       {
         title: "Shareable snapshots",
-        description: "publish a clean trail view without extra cleanup.",
+        description: "publish a clean capture view without extra cleanup.",
         icon: "share",
         layout: "md:[grid-area:3/1/4/13] xl:[grid-area:2/8/3/13]",
       },
@@ -263,7 +265,7 @@ export const marketingCopy = {
           description: "swap palettes in seconds.",
           type: "image",
           src:
-            "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=720&q=60",
           alt: "Theme picker preview",
         },
         {
@@ -271,26 +273,26 @@ export const marketingCopy = {
           description: "rearrange panels to fit your flow.",
           type: "image",
           src:
-            "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?auto=format&fit=crop&w=720&q=60",
           alt: "Flexible layout preview",
         },
       ],
       right: [
         {
           title: "Tree, radial, mindmap",
-          description: "switch views for every trail.",
+          description: "switch views for every research path.",
           type: "image",
           src:
-            "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
-          alt: "Trail view preview",
+            "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=720&q=60",
+          alt: "Path view preview",
         },
         {
-          title: "Trail highlights",
+          title: "Highlight moments",
           description: "pin the key moments for fast handoff.",
           type: "image",
           src:
-            "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
-          alt: "Trail highlight preview",
+            "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=720&q=60",
+          alt: "Highlights preview",
         },
       ],
     },
@@ -317,7 +319,7 @@ export const marketingCopy = {
           "local-only data",
           "no online features",
         ],
-        description: "for personal trails and local-only research.",
+        description: "for personal paths and local-only research.",
         buttonText: "Get started",
         href: "/downloads",
         isPopular: false,
@@ -333,7 +335,7 @@ export const marketingCopy = {
           "10 devices per account",
           "online features",
           "premium support",
-          "shareable trails",
+          "shareable paths",
         ],
         description: "for solo builders who need sync + sharing.",
         buttonText: "Go Pro",
@@ -363,23 +365,23 @@ export const marketingCopy = {
   downloads: {
     meta: {
       title: "downloads · trail",
-    description:
-      "get the trail browser extension. download links open in waves, with more platforms on the way.",
+      description:
+        "get the Trail app. install links open in waves, with more platforms on the way.",
     },
     eyebrow: "downloads",
-    title: "install trail where you work",
+    title: "install the app where you work",
     subtitle:
-      "downloads are opening in waves. join the list and we will email you as soon as your browser build is ready.",
+      "downloads are opening in waves. join the list and we will email you as soon as the build is ready.",
     primaryCta: "join the waitlist",
     secondaryCta: "sign in",
     cards: [
       {
-        title: "Chrome extension",
+        title: "Chrome add-on",
         status: "waitlist",
-        copy: "optimized for chrome and chromium browsers with the full sidepanel experience.",
+        copy: "optimized for chrome and chromium builds with the full sidepanel experience.",
       },
       {
-        title: "Firefox extension",
+        title: "Firefox add-on",
         status: "in progress",
         copy: "the same capture flow and sync, tailored for firefox.",
       },
@@ -387,26 +389,26 @@ export const marketingCopy = {
     stepsTitle: "what happens next",
     steps: [
       {
-        title: "install the extension",
-        copy: "we will email you the install link when your browser build is ready.",
+        title: "install the add-on",
+        copy: "we will email you the install link when the build is ready.",
       },
       {
-        title: "sign in to trail",
-        copy: "one account keeps your extension and dashboard in sync.",
+        title: "sign in to the account",
+        copy: "one account keeps the app and dashboard in sync.",
       },
       {
-        title: "capture your flow",
-        copy: "every search, tab, and decision snaps into a shareable trail.",
+        title: "capture the flow",
+        copy: "every search, tab, and decision snaps into a shareable research path.",
       },
     ],
     noteTitle: "already installed?",
-    noteCopy: "open the extension to sign in and start capturing trails immediately.",
-    noteCta: "sign in to trail",
-    noteCtaHref: "https://app.gettrail.net/auth/login",
+    noteCopy: "open the app to sign in and start capturing immediately.",
+    noteCta: "sign in to the account",
+    noteCtaHref: "https://app.gettrail.net",
   },
   cta: {
     title: "ready to map your browsing?",
-    subtitle: "install the extension, then sign in to sync and collaborate.",
+    subtitle: "install the app, then sign in to sync and collaborate.",
     primary: "open downloads",
     secondary: "sign in",
     note: "Free plan available · 30-second install · Privacy-first",
@@ -415,33 +417,33 @@ export const marketingCopy = {
     title: "frequently asked questions",
     items: [
       {
-        question: "what does trail capture?",
+        question: "what does the app capture?",
         answer:
-          "trail records URLs, titles, timestamps, and your notes. it does not read page content.",
+          "the app records URLs, titles, timestamps, and your notes. it does not read page content.",
       },
       {
         question: "is my data private?",
         answer:
-          "you control what gets synced and shared. trails are private by default until you share them.",
+          "you control what gets synced and shared. saved paths are private by default until you share them.",
       },
       {
-        question: "can i share or export trails?",
+        question: "can i share or export my paths?",
         answer:
-          "yes. share a trail link with collaborators and export highlights for reports or docs.",
+          "yes. share a link with collaborators and export highlights for reports or docs.",
       },
       {
-        question: "does trail work for teams?",
+        question: "does it work for teams?",
         answer:
-          "yes. sharing trails keeps teammates aligned on sources, decisions, and context.",
+          "yes. shared paths keep teammates aligned on sources, decisions, and context.",
       },
       {
-        question: "does trail work offline?",
+        question: "does it work offline?",
         answer:
           "you can keep browsing offline, but syncing and sharing require a connection.",
       },
       {
         question: "which browsers are supported?",
-        answer: "trail supports chromium-based browsers including Chrome, Brave, Edge, and more.",
+        answer: "the app supports chromium-based browsers including Chrome, Brave, Edge, and more.",
       },
     ],
   },

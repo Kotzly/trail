@@ -1,17 +1,19 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Badge, Button, Card } from "@trail/ui";
 import { LegalPageShell } from "../LegalPageShell";
 import { MarkdownBlocks } from "../MarkdownBlocks";
 import { getLegalDoc } from "../legal-source";
+import { buildMetadata } from "../../../lib/seo";
 
 export const dynamic = "force-static";
 
-export const metadata: Metadata = {
-  title: "privacy policy · trail",
-  description: "How trail collects, uses, and protects your data.",
-};
+export const metadata = buildMetadata({
+  title: "Trail Privacy Policy — Data use and control",
+  description:
+    "Learn what data is collected, how it is stored, and the choices you have to control sharing, retention, exports, and deletion requests.",
+  path: "/privacy"
+});
 
 export default async function PrivacyPage() {
   const doc = await getLegalDoc("Privacy Policy");
@@ -30,12 +32,12 @@ export default async function PrivacyPage() {
             <p className="mt-3 text-sm text-ink-subtle">Last updated: {doc.lastUpdated}</p>
           ) : null}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Button asChild variant="outline" size="sm">
+            <Button.AsChild variant="outline" size="sm">
               <Link href="/terms">Terms of Service</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
+            </Button.AsChild>
+            <Button.AsChild variant="ghost" size="sm">
               <a href="mailto:support@gettrail.net">support@gettrail.net</a>
-            </Button>
+            </Button.AsChild>
           </div>
         </div>
 
@@ -56,4 +58,3 @@ export default async function PrivacyPage() {
     </LegalPageShell>
   );
 }
-

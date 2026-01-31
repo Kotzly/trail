@@ -42,27 +42,27 @@ const BentoCard = ({
   <div
     key={name}
     className={cn(
-      "group relative col-span-1 flex flex-col justify-between overflow-hidden rounded-3xl border border-border/60 bg-surface/70 shadow-elev-1",
-      "transition hover:-translate-y-1 hover:shadow-elev-2",
+      "group relative col-span-1 flex flex-col justify-between overflow-hidden rounded-3xl border border-border/60 bg-surface/70 transition-colors",
+      "hover:border-accent/40 hover:bg-surface-strong/70",
       className
     )}
   >
     <div className="absolute inset-0">{background}</div>
-    <div className="pointer-events-none relative z-10 flex transform-gpu flex-col gap-2 p-6 transition-all duration-300 group-hover:-translate-y-10">
-      <Icon className="h-10 w-10 origin-left transform-gpu text-ink transition-all duration-300 ease-in-out group-hover:scale-90" />
+    <div className="pointer-events-none relative z-10 flex flex-col gap-2 p-6 transition-colors duration-300">
+      <Icon className="h-10 w-10 text-ink" />
       <h3 className="text-xl font-semibold text-ink">{name}</h3>
       <p className="max-w-lg text-sm text-ink-muted">{description}</p>
     </div>
 
-    <div className="pointer-events-none absolute bottom-0 z-10 flex w-full translate-y-10 transform-gpu flex-row items-center p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-      <Button variant="ghost" asChild size="sm" className="pointer-events-auto">
+    <div className="pointer-events-none absolute bottom-0 z-10 flex w-full flex-row items-center p-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+      <Button.AsChild variant="ghost" size="sm" className="pointer-events-auto">
         <a href={href}>
           {cta}
           <ArrowRightIcon className="ml-2 h-4 w-4" />
         </a>
-      </Button>
+      </Button.AsChild>
     </div>
-    <div className="pointer-events-none absolute inset-0 transform-gpu transition-all duration-300 group-hover:bg-ink/5" />
+    <div className="pointer-events-none absolute inset-0 transition-colors duration-300 group-hover:bg-accent/5" />
   </div>
 );
 

@@ -6,7 +6,7 @@ export function CallToAction() {
 
   return (
     <section className="relative px-6 py-20">
-      <div className="absolute inset-0 -z-10 bg-surface/40" />
+      <div className="absolute inset-0 -z-10 bg-surface" />
       <div className="mx-auto max-w-6xl text-center">
         <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
           {cta.title}
@@ -15,15 +15,15 @@ export function CallToAction() {
           {cta.subtitle}
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <a
+          <Link
             href="/downloads"
-            className="cta-primary inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold shadow-elev-1 transition hover:bg-ink-muted"
+            className="cta-primary inline-flex items-center gap-2 rounded-full bg-cta px-6 py-3 text-sm font-semibold text-cta-fg transition hover:bg-cta-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
           >
             {cta.primary}
-          </a>
+          </Link>
           <Link
-            href="https://app.gettrail.net/auth/login"
-            className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
+            href="https://app.gettrail.net"
+            className="inline-flex items-center gap-2 rounded-full border border-stroke/70 px-6 py-3 text-sm font-semibold text-ink transition hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
           >
             {cta.secondary}
           </Link>

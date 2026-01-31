@@ -19,11 +19,14 @@ const config: Config = {
         surface: "rgb(var(--surface) / <alpha-value>)",
         "surface-strong": "rgb(var(--surface-strong) / <alpha-value>)",
         stroke: "rgb(var(--stroke) / <alpha-value>)",
+        cta: "rgb(var(--cta) / <alpha-value>)",
+        "cta-hover": "rgb(var(--cta-hover) / <alpha-value>)",
+        "cta-fg": "rgb(var(--cta-fg) / <alpha-value>)",
         accent: "rgb(var(--accent) / <alpha-value>)",
         "accent-soft": "rgb(var(--accent-soft) / <alpha-value>)"
       },
       fontFamily: {
-        display: ["var(--font-display)", "Space Grotesk", "system-ui", "sans-serif"]
+        display: ["var(--font-display)", "Plus Jakarta Sans", "system-ui", "sans-serif"]
       },
       boxShadow: {
         glow: "var(--trail-elev-2)",

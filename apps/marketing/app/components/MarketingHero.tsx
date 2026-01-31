@@ -41,11 +41,6 @@ ${keyframeStops}
 
   return (
     <section className="relative overflow-hidden px-6 pb-12 pt-24">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-20 top-16 h-48 w-48 rounded-full bg-ink/5 blur-3xl" />
-        <div className="absolute -right-12 top-32 h-64 w-64 rounded-full bg-ink/10 blur-3xl float-slow" />
-        <div className="absolute bottom-8 left-1/2 h-52 w-52 -translate-x-1/2 rounded-full bg-ink/5 blur-3xl float-slower" />
-      </div>
       <div className="mx-auto max-w-6xl text-center">
         <div
           className="space-y-6 reveal"
@@ -67,15 +62,15 @@ ${keyframeStops}
           <style dangerouslySetInnerHTML={{ __html: keyframes }} />
           <p className="mx-auto max-w-2xl text-[1rem] text-ink-muted">{hero.summary}</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a
+            <Link
               href="/downloads"
-              className="cta-primary inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold shadow-elev-1 transition hover:bg-ink-muted"
+              className="cta-primary inline-flex items-center gap-2 rounded-full bg-cta px-6 py-3 text-sm font-semibold text-cta-fg transition hover:bg-cta-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
             >
               {hero.ctaPrimary}
-            </a>
+            </Link>
             <Link
               href="/#showcase"
-              className="inline-flex items-center gap-2 rounded-full border border-stroke/60 px-6 py-3 text-sm font-semibold text-ink transition hover:border-stroke"
+              className="inline-flex items-center gap-2 rounded-full border border-stroke/70 px-6 py-3 text-sm font-semibold text-ink transition hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
             >
               {hero.ctaSecondary}
             </Link>

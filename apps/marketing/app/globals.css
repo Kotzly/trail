@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap");
-
 @config "../tailwind.config.ts";
 @import "tailwindcss";
 @source "../../../packages/ui/src";
@@ -11,159 +9,170 @@
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --base: 236 238 244;
-  --surface: 252 252 255;
-  --surface-strong: 245 247 250;
-  --stroke: 202 206 216;
-  --ink: 14 16 20;
-  --ink-muted: 40 44 52;
-  --ink-subtle: 92 98 112;
-  --cta-fg: 255 255 255;
-  --accent: 14 16 20;
-  --accent-soft: 226 229 238;
-  --glow: 248 248 252;
-  --glow-strong: 226 229 238;
-  --grid-line: rgb(14 16 20 / 0.08);
-  --grid-size: 120px;
-
-  --trail-bg: var(--base);
-  --trail-surface: var(--surface);
-  --trail-surface-high: var(--surface-strong);
-  --trail-surface-low: var(--surface);
-  --trail-border: var(--stroke);
-  --trail-ink: var(--ink);
-  --trail-ink-muted: var(--ink-muted);
-  --trail-accent: var(--accent);
-  --trail-accent-contrast: var(--surface);
-  --trail-highlight: var(--accent-soft);
-  --trail-glass: var(--surface);
-  --trail-glass-strong: var(--surface-strong);
-  --trail-ring: var(--accent);
-
-  --font-sans: "Work Sans", system-ui, sans-serif;
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-}
-
-[data-theme="dark"] {
-  color-scheme: dark;
-  --base: 13 13 16;
-  --surface: 24 24 29;
-  --surface-strong: 24 24 29;
-  --stroke: 111 111 111;
-  --ink: 242 242 242;
-  --ink-muted: 197 197 213;
-  --ink-subtle: 146 152 168;
-  --cta-fg: 13 13 16;
-  --accent: 242 242 242;
-  --accent-soft: 52 55 66;
-  --glow: 197 197 213;
-  --glow-strong: 111 111 111;
-  --grid-line: rgb(255 255 255 / 0.06);
+  --base: 246 242 234;
+  --surface: 255 255 255;
+  --surface-strong: 241 233 222;
+  --stroke: 216 207 194;
+  --ink: 28 34 48;
+  --ink-muted: 74 85 99;
+  --ink-subtle: 122 129 140;
+  --cta: 201 162 39;
+  --cta-hover: 177 138 46;
+  --cta-fg: 27 31 40;
+  --accent: 201 162 39;
+  --accent-soft: 233 215 170;
+  --glow: 246 242 234;
+  --glow-strong: 241 233 222;
+  --grid-line: rgb(28 34 48 / 0.08);
   --grid-size: 140px;
 
   --trail-bg: var(--base);
   --trail-surface: var(--surface);
   --trail-surface-high: var(--surface-strong);
-  --trail-surface-low: var(--surface);
+  --trail-surface-low: 248 254 252;
   --trail-border: var(--stroke);
   --trail-ink: var(--ink);
   --trail-ink-muted: var(--ink-muted);
   --trail-accent: var(--accent);
-  --trail-accent-contrast: var(--surface);
-  --trail-highlight: var(--accent-soft);
+  --trail-accent-contrast: var(--cta-fg);
+  --trail-highlight: 239 227 208;
   --trail-glass: var(--surface);
   --trail-glass-strong: var(--surface-strong);
+  --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-elev-2: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-elev-3: 0 0 0 rgba(0, 0, 0, 0);
   --trail-ring: var(--accent);
+  --trail-gradient-1: none;
+  --trail-gradient-2: none;
+
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-display: var(--font-sans);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --base: 12 16 23;
+  --surface: 20 26 36;
+  --surface-strong: 29 37 51;
+  --stroke: 44 53 69;
+  --ink: 244 239 230;
+  --ink-muted: 199 191 174;
+  --ink-subtle: 155 148 133;
+  --cta: 210 177 94;
+  --cta-hover: 189 152 70;
+  --cta-fg: 12 16 23;
+  --accent: 210 177 94;
+  --accent-soft: 74 58 30;
+  --glow: 12 16 23;
+  --glow-strong: 29 37 51;
+  --grid-line: rgb(244 239 230 / 0.08);
+  --grid-size: 160px;
+
+  --trail-bg: var(--base);
+  --trail-surface: var(--surface);
+  --trail-surface-high: var(--surface-strong);
+  --trail-surface-low: 7 28 25;
+  --trail-border: var(--stroke);
+  --trail-ink: var(--ink);
+  --trail-ink-muted: var(--ink-muted);
+  --trail-accent: var(--accent);
+  --trail-accent-contrast: var(--cta-fg);
+  --trail-highlight: 44 53 69;
+  --trail-glass: var(--surface);
+  --trail-glass-strong: var(--surface-strong);
+  --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-elev-2: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-elev-3: 0 0 0 rgba(0, 0, 0, 0);
+  --trail-ring: var(--accent);
+  --trail-gradient-1: none;
+  --trail-gradient-2: none;
 }
 
 @media (prefers-color-scheme: dark) {
   [data-theme="system"] {
     color-scheme: dark;
-    --base: 13 13 16;
-    --surface: 24 24 29;
-    --surface-strong: 24 24 29;
-    --stroke: 111 111 111;
-    --ink: 242 242 242;
-    --ink-muted: 197 197 213;
-    --ink-subtle: 146 152 168;
-    --cta-fg: 13 13 16;
-    --accent: 242 242 242;
-    --accent-soft: 52 55 66;
-    --glow: 197 197 213;
-    --glow-strong: 111 111 111;
-    --grid-line: rgb(255 255 255 / 0.06);
-    --grid-size: 140px;
+    --base: 12 16 23;
+    --surface: 20 26 36;
+    --surface-strong: 29 37 51;
+    --stroke: 44 53 69;
+    --ink: 244 239 230;
+    --ink-muted: 199 191 174;
+    --ink-subtle: 155 148 133;
+    --cta: 210 177 94;
+    --cta-hover: 189 152 70;
+    --cta-fg: 12 16 23;
+    --accent: 210 177 94;
+    --accent-soft: 74 58 30;
+    --glow: 12 16 23;
+    --glow-strong: 29 37 51;
+    --grid-line: rgb(244 239 230 / 0.08);
+    --grid-size: 160px;
 
     --trail-bg: var(--base);
     --trail-surface: var(--surface);
     --trail-surface-high: var(--surface-strong);
-    --trail-surface-low: var(--surface);
+    --trail-surface-low: 7 28 25;
     --trail-border: var(--stroke);
     --trail-ink: var(--ink);
     --trail-ink-muted: var(--ink-muted);
     --trail-accent: var(--accent);
-    --trail-accent-contrast: var(--surface);
-    --trail-highlight: var(--accent-soft);
+    --trail-accent-contrast: var(--cta-fg);
+    --trail-highlight: 44 53 69;
     --trail-glass: var(--surface);
     --trail-glass-strong: var(--surface-strong);
+    --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-elev-2: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-elev-3: 0 0 0 rgba(0, 0, 0, 0);
     --trail-ring: var(--accent);
+    --trail-gradient-1: none;
+    --trail-gradient-2: none;
   }
 }
 
 @media (prefers-color-scheme: light) {
   [data-theme="system"] {
     color-scheme: light;
-    --base: 236 238 244;
-    --surface: 252 252 255;
-    --surface-strong: 245 247 250;
-    --stroke: 202 206 216;
-    --ink: 14 16 20;
-    --ink-muted: 40 44 52;
-    --ink-subtle: 92 98 112;
-    --cta-fg: 255 255 255;
-    --accent: 14 16 20;
-    --accent-soft: 226 229 238;
-    --glow: 248 248 252;
-    --glow-strong: 226 229 238;
-    --grid-line: rgb(14 16 20 / 0.08);
-    --grid-size: 120px;
+    --base: 246 242 234;
+    --surface: 255 255 255;
+    --surface-strong: 241 233 222;
+    --stroke: 216 207 194;
+    --ink: 28 34 48;
+    --ink-muted: 74 85 99;
+    --ink-subtle: 122 129 140;
+    --cta: 201 162 39;
+    --cta-hover: 177 138 46;
+    --cta-fg: 27 31 40;
+    --accent: 201 162 39;
+    --accent-soft: 233 215 170;
+    --glow: 246 242 234;
+    --glow-strong: 241 233 222;
+    --grid-line: rgb(28 34 48 / 0.08);
+    --grid-size: 140px;
 
     --trail-bg: var(--base);
     --trail-surface: var(--surface);
     --trail-surface-high: var(--surface-strong);
-    --trail-surface-low: var(--surface);
+    --trail-surface-low: 248 254 252;
     --trail-border: var(--stroke);
     --trail-ink: var(--ink);
     --trail-ink-muted: var(--ink-muted);
     --trail-accent: var(--accent);
-    --trail-accent-contrast: var(--surface);
-    --trail-highlight: var(--accent-soft);
+    --trail-accent-contrast: var(--cta-fg);
+    --trail-highlight: 239 227 208;
     --trail-glass: var(--surface);
     --trail-glass-strong: var(--surface-strong);
+    --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-elev-2: 0 0 0 rgba(0, 0, 0, 0);
+    --trail-elev-3: 0 0 0 rgba(0, 0, 0, 0);
     --trail-ring: var(--accent);
+    --trail-gradient-1: none;
+    --trail-gradient-2: none;
   }
 }
 
 body {
   font-family: var(--font-sans);
-  background:
-    radial-gradient(circle at top, rgb(var(--glow) / 0.35), transparent 60%),
-    radial-gradient(circle at 20% 10%, rgb(var(--glow-strong) / 0.22), transparent 45%),
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px),
-    rgb(var(--base));
-  background-size:
-    160% 160%,
-    140% 140%,
-    var(--grid-size) var(--grid-size),
-    var(--grid-size) var(--grid-size),
-    auto;
-  background-position:
-    top left,
-    top right,
-    0 0,
-    0 0,
-    0 0;
+  background: rgb(var(--base));
   color: rgb(var(--ink));
   min-height: 100vh;
 }

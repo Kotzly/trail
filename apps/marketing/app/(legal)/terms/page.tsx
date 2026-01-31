@@ -1,17 +1,19 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Badge, Button, Card } from "@trail/ui";
 import { LegalPageShell } from "../LegalPageShell";
 import { MarkdownBlocks } from "../MarkdownBlocks";
 import { getLegalDoc } from "../legal-source";
+import { buildMetadata } from "../../../lib/seo";
 
 export const dynamic = "force-static";
 
-export const metadata: Metadata = {
-  title: "terms of service · trail",
-  description: "The terms for using trail and our services.",
-};
+export const metadata = buildMetadata({
+  title: "Trail Terms — Accounts, acceptable use, and access",
+  description:
+    "Review responsibilities, acceptable use, billing, and how the product is provided, including updates, suspension, and termination.",
+  path: "/terms"
+});
 
 export default async function TermsPage() {
   const doc = await getLegalDoc("Terms of Service");
@@ -30,12 +32,12 @@ export default async function TermsPage() {
             <p className="mt-3 text-sm text-ink-subtle">Last updated: {doc.lastUpdated}</p>
           ) : null}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Button asChild variant="outline" size="sm">
+            <Button.AsChild variant="outline" size="sm">
               <Link href="/privacy">Privacy Policy</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
+            </Button.AsChild>
+            <Button.AsChild variant="ghost" size="sm">
               <a href="mailto:support@gettrail.net">support@gettrail.net</a>
-            </Button>
+            </Button.AsChild>
           </div>
         </div>
 
@@ -56,4 +58,3 @@ export default async function TermsPage() {
     </LegalPageShell>
   );
 }
-
