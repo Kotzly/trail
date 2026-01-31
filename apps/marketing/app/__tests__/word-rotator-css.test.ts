@@ -10,9 +10,9 @@ describe("word rotator styles", () => {
 
     expect(rotatorBlock).not.toBeNull();
     expect(trackSpanBlock).not.toBeNull();
-    expect(rotatorBlock?.[0]).toMatch(/height:\s*1\.25em/);
-    expect(rotatorBlock?.[0]).toMatch(/line-height:\s*1\.25em/);
-    expect(trackSpanBlock?.[0]).toMatch(/height:\s*1\.25em/);
-    expect(trackSpanBlock?.[0]).toMatch(/line-height:\s*1\.25em/);
+    expect(rotatorBlock?.[0]).toMatch(/height:\s*1\.35em/);
+    expect(rotatorBlock?.[0]).toMatch(/line-height:\s*1\.35em/);
+    expect(trackSpanBlock?.[0]).toMatch(/height:\s*1\.35em/);
+    expect(trackSpanBlock?.[0]).toMatch(/line-height:\s*1\.35em/);
   });
 });
