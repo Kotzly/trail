@@ -1,8 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
 import { LayoutGrid, Palette, Share2, Sparkles, Wand2 } from "lucide-react";
 import { marketingCopy } from "@trail/content";
 import { cn } from "@trail/ui";
-import { GlowingEffect } from "../ui/glowing-effect";
 
 const iconMap = {
   palette: Palette,
@@ -82,7 +82,7 @@ function VideoColumn({
         <figure
           key={item.title}
           className={cn(
-            "overflow-hidden rounded-3xl border border-border/60 bg-surface/70 shadow-elev-1 backdrop-blur-sm reveal",
+            "overflow-hidden rounded-3xl border border-border/60 bg-surface reveal",
             align === "right" && "lg:ml-auto"
           )}
           style={{ "--reveal-delay": `${index * 0.08}s` } as CSSProperties}
@@ -97,19 +97,19 @@ function VideoColumn({
                 preload="metadata"
                 poster="/assets/video-poster-white.jpg"
                 data-play-on-view="true"
+                aria-label={item.title}
               >
                 <source src={item.src} type="video/mp4" />
               </video>
             ) : (
-              <img
+              <Image
                 src={item.src}
                 alt={item.alt}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
+                fill
+                sizes="(min-width: 1024px) 420px, 100vw"
+                className="object-cover"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-black/0" />
           </div>
           <figcaption className="space-y-1 p-4">
             <p className="text-sm font-semibold text-ink">{item.title}</p>
@@ -136,15 +136,7 @@ const GridItem = ({ area, icon, title, description, delay = 0 }: GridItemProps) 
       style={{ "--reveal-delay": `${delay}s` } as CSSProperties}
     >
       <div className="relative h-full rounded-[1.25rem] border border-border/60 p-2 md:rounded-[1.5rem] md:p-3">
-        <GlowingEffect
-          spread={40}
-          glow
-          disabled={false}
-          proximity={64}
-          inactiveZone={0.01}
-          borderWidth={3}
-        />
-        <div className="relative flex h-full flex-col justify-between gap-6 overflow-hidden rounded-xl border border-border/60 bg-surface/80 p-6 shadow-elev-1">
+        <div className="relative flex h-full flex-col justify-between gap-6 overflow-hidden rounded-xl border border-border/60 bg-surface p-6">
           <div className="relative flex flex-1 flex-col justify-between gap-3">
             <div className="w-fit rounded-lg border border-border/60 bg-surface-high p-2 text-ink">
               {icon}

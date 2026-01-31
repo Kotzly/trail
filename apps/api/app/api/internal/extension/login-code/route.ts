@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
 import { requireInternalKey } from "@/src/server/internal-auth";
+import { jsonNoStore } from "@/src/server/response";
 
 export const runtime = "nodejs";
 
@@ -15,9 +15,9 @@ export async function POST(request: Request) {
   const preferredCode = body?.preferredCode as string | undefined;
 
   if (!userId) {
-    return NextResponse.json({ error: "user_id_required" }, { status: 400 });
+    return jsonNoStore({ error: "user_id_required" }, { status: 400 });
   }
 
   const code = await createExtensionLoginCode(userId, preferredCode);
-  return NextResponse.json({ code });
+  return jsonNoStore({ code });
 }

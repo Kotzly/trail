@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { db } from "@trail/db";
 import { requireInternalKey } from "@/src/server/internal-auth";
+import { jsonNoStore } from "@/src/server/response";
 
 export const runtime = "nodejs";
 
@@ -12,30 +12,45 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { id: sessionId } = await params;
   if (!sessionId) {
-    return NextResponse.json({ status: "expired" });
+    return jsonNoStore({ status: "expired" });
   }
 
-  const record = await db.extensionLoginCode.findUnique({ where: { code: sessionId } });
+  const record = await db.extensionLoginCode.findUnique({
+    where: { code: sessionId },
+    select: {
+      id: true,
+      expiresAt: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          imageUrl: true,
+          createdAt: true
+        }
+      }
+    }
+  });
   if (!record) {
-    return NextResponse.json({ status: "pending" });
+    return jsonNoStore({ status: "pending" });
   }
 
   const now = new Date();
   if (record.expiresAt < now) {
-    return NextResponse.json({ status: "expired" });
+    return jsonNoStore({ status: "expired" });
   }
 
-  const user = await db.user.findUnique({ where: { id: record.userId } });
+  const user = record.user;
   if (!user) {
-    return NextResponse.json({ status: "expired" });
+    return jsonNoStore({ status: "expired" });
   }
 
   await db.extensionLoginCode.update({
     where: { id: record.id },
-    data: { usedAt: new Date() }
+    data: { usedAt: now }
   });
 
-  return NextResponse.json({
+  return jsonNoStore({
     status: "approved",
     user: {
       id: user.id,

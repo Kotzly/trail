@@ -42,6 +42,7 @@ out/
 .cache/
 .tmp/
 .temp/
+*.tsbuildinfo
 
 # OS / Editor
 .DS_Store
@@ -51,3 +52,5 @@ out/
 
 ignored/
 pens/
+.pnpm-store/
+.worktrees/

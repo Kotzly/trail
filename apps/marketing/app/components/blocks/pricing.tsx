@@ -8,8 +8,6 @@ import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { cn } from "@trail/ui";
 import { buttonVariants } from "../ui/button";
-import { Label } from "../ui/label";
-import { Switch } from "../ui/switch";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 
 interface PricingPlan {
@@ -29,6 +27,7 @@ interface PricingProps {
   title?: string;
   description?: string;
   eyebrow?: string;
+  titleAs?: "h1" | "h2";
   toggleLabel?: string;
   toggleNote?: string;
   billedMonthlyLabel?: string;
@@ -41,6 +40,7 @@ export function Pricing({
   title = "Simple, Transparent Pricing",
   description = "Choose the plan that works for you.",
   eyebrow,
+  titleAs = "h2",
   toggleLabel = "Annual billing",
   toggleNote = "Save 20%",
   billedMonthlyLabel = "billed monthly",
@@ -50,33 +50,32 @@ export function Pricing({
   const [isMonthly, setIsMonthly] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const switchRef = useRef<HTMLButtonElement>(null);
+  const TitleTag = titleAs;
+  const handleToggle = () => {
+    setIsMonthly((prev) => {
+      const nextIsMonthly = !prev;
+      if (!nextIsMonthly && switchRef.current) {
+        const rect = switchRef.current.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
 
-  const handleToggle = (checked: boolean) => {
-    setIsMonthly(!checked);
-    if (checked && switchRef.current) {
-      const rect = switchRef.current.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: {
-          x: x / window.innerWidth,
-          y: y / window.innerHeight
-        },
-        colors: [
-          "hsl(var(--trail-ink))",
-          "hsl(var(--trail-ink-muted))",
-          "hsl(var(--trail-accent))"
-        ],
-        ticks: 200,
-        gravity: 1.2,
-        decay: 0.94,
-        startVelocity: 30,
-        shapes: ["circle"]
-      });
-    }
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: {
+            x: x / window.innerWidth,
+            y: y / window.innerHeight
+          },
+          colors: ["#F97316", "#0D9488", "#14B8A6"],
+          ticks: 200,
+          gravity: 1.2,
+          decay: 0.94,
+          startVelocity: 30,
+          shapes: ["circle"]
+        });
+      }
+      return nextIsMonthly;
+    });
   };
 
   return (
@@ -86,25 +85,34 @@ export function Pricing({
           {eyebrow ? (
             <p className="trail-eyebrow text-ink-subtle">{eyebrow}</p>
           ) : null}
-          <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
+          <TitleTag className="font-display text-3xl font-semibold text-ink sm:text-4xl">
             {title}
-          </h2>
+          </TitleTag>
           <p className="mx-auto max-w-2xl text-sm text-ink-muted whitespace-pre-line">
             {description}
           </p>
         </div>
 
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6 mb-10">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <Label>
-              <Switch
-                ref={switchRef}
-                checked={!isMonthly}
-                onCheckedChange={handleToggle}
-                className="relative"
-              />
-            </Label>
-          </label>
+          <button
+            type="button"
+            ref={switchRef}
+            role="switch"
+            aria-checked={!isMonthly}
+            aria-label="Toggle annual billing"
+            onClick={handleToggle}
+            className={cn(
+              "relative inline-flex h-6 w-11 items-center rounded-full border border-border/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base",
+              !isMonthly ? "bg-accent" : "bg-surface-high"
+            )}
+          >
+            <span
+              className={cn(
+                "inline-block h-5 w-5 rounded-full bg-surface shadow-lg transition-transform",
+                !isMonthly ? "translate-x-5" : "translate-x-0"
+              )}
+            />
+          </button>
           <span className="text-sm font-semibold text-ink">
             {toggleLabel}{" "}
             <span className="text-ink-muted">({toggleNote})</span>
@@ -129,14 +137,14 @@ export function Pricing({
               }}
               className={cn(
                 "relative rounded-3xl border p-6 text-center lg:flex lg:flex-col lg:justify-between",
-                "bg-surface/80 shadow-elev-1 backdrop-blur",
+                "bg-surface",
                 plan.isPopular
-                  ? "border-ink/70 bg-surface-high"
+                  ? "border-accent/60 bg-surface-high"
                   : "border-border/60"
               )}
             >
               {plan.isPopular && (
-                <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-ink/40 bg-ink px-2 py-1 text-xs font-semibold text-[color:rgb(var(--cta-fg))]">
+                <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-accent/40 bg-cta px-2 py-1 text-xs font-semibold text-cta-fg">
                   <Star className="h-3.5 w-3.5 fill-current" />
                   {popularBadge}
                 </div>
@@ -193,7 +201,7 @@ export function Pricing({
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "group relative w-full gap-2 overflow-hidden text-sm font-semibold",
-                  "transition-all duration-300 ease-out hover:bg-ink hover:text-[color:rgb(var(--cta-fg))]"
+                  "transition-all duration-300 ease-out hover:bg-cta hover:text-cta-fg"
                 )}
               >
                 {plan.buttonText}

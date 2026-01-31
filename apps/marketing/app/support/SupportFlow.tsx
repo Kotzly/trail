@@ -17,13 +17,13 @@ const QUICK_CHECKS_BUG = [
   },
   {
     id: "enabled",
-    label: "Make sure the extension is enabled",
-    hint: "Open chrome://extensions and toggle Trail on.",
+    label: "Make sure the add-on is enabled",
+    hint: "Open chrome://extensions and toggle the add-on on.",
   },
   {
     id: "incognito",
     label: "Try an incognito window",
-    hint: "Rules out cookie / extension conflicts.",
+    hint: "Rules out cookie / add-on conflicts.",
   },
 ] as const;
 
@@ -128,16 +128,16 @@ function formatDiagnostics(input: {
   return [
     "Trail diagnostics",
     `Account email: ${input.accountEmail?.trim() || "(not provided)"}`,
-    `Browser: ${input.browser || "(unknown)"}`,
+    `Client: ${input.browser || "(unknown)"}`,
     `OS: ${input.os || "(unknown)"}`,
-    `Extension version: ${input.extensionVersion?.trim() || "(not provided)"}`,
+    `Add-on version: ${input.extensionVersion?.trim() || "(not provided)"}`,
   ].join("\n");
 }
 
 function StepBadge({ step, label }: { step: number; label: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-sm font-semibold text-surface">
+      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-semibold text-cta-fg">
         {step}
       </span>
       <p className="font-display text-base font-semibold text-ink">{label}</p>
@@ -163,11 +163,11 @@ function TriageCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative w-full rounded-3xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30",
+        "group relative w-full rounded-3xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
         tone === "default" ? "bg-surface/70" : "bg-surface/50",
         selected
-          ? "border-ink/25 shadow-elev-1"
-          : "border-stroke/40 hover:border-ink/20 hover:bg-surface/70"
+          ? "border-accent/40 shadow-elev-1"
+          : "border-stroke/40 hover:border-accent/30 hover:bg-surface/70"
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -388,9 +388,9 @@ export function SupportFlow() {
     <section className="relative mx-auto max-w-6xl px-6 pb-14 pt-10">
       <div className="mx-auto max-w-3xl text-center">
         <p className="trail-eyebrow text-ink-subtle">{support.eyebrow}</p>
-        <h1 className="mt-5 font-display text-4xl font-semibold leading-tight text-ink md:text-5xl">
+        <h2 className="mt-5 font-display text-4xl font-semibold leading-tight text-ink md:text-5xl">
           {support.title}
-        </h1>
+        </h2>
         <p className="mt-4 text-[1rem] text-ink-muted">
           {support.subtitle}
         </p>
@@ -402,7 +402,7 @@ export function SupportFlow() {
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <TriageCard
               title="Something's broken"
-              description="Extension issues, capture problems, sharing bugs."
+              description="Add-on issues, capture problems, sharing bugs."
               selected={path === "bug"}
               tone="default"
               onClick={() => setPath("bug")}
@@ -422,7 +422,7 @@ export function SupportFlow() {
               onClick={() => setPath("feature")}
             />
             <TriageCard
-              title="FAQ / privacy / browsers"
+              title="FAQ / privacy / platforms"
               description="Quick answers and common fixes."
               selected={path === "faq"}
               tone="muted"
@@ -527,7 +527,7 @@ export function SupportFlow() {
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="space-y-3">
                       <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                        Browser
+                        Client
                       </label>
                       <input
                         value={browserLabel}
@@ -549,7 +549,7 @@ export function SupportFlow() {
 
                   <div className="mt-4 grid gap-3">
                     <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                      Extension version (optional)
+                      Add-on version (optional)
                     </label>
                     <input
                       value={extensionVersion}
@@ -587,7 +587,7 @@ export function SupportFlow() {
                         onChange={(event) => setWhatHappened(event.target.value)}
                         rows={3}
                         placeholder="Describe what you see (error, loop, missing capture, etc.)"
-                        className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                        className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                       />
                     </div>
 
@@ -612,7 +612,7 @@ export function SupportFlow() {
                         onChange={(event) => setStepsToReproduce(event.target.value)}
                         rows={3}
                         placeholder="1) Open… 2) Click… 3) See…"
-                        className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                        className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                       />
                     </div>
                   </div>
@@ -627,7 +627,7 @@ export function SupportFlow() {
                     <ul className="mt-4 space-y-2 text-sm text-ink-muted">
                       {support.include.map((item) => (
                         <li key={item} className="flex items-start gap-3">
-                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-ink/60" />
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-accent/60" />
                           <span>{item}</span>
                         </li>
                       ))}
@@ -666,7 +666,7 @@ export function SupportFlow() {
                   onChange={(event) => setFeatureGoal(event.target.value)}
                   rows={3}
                   placeholder="Describe your goal (the job you are trying to get done)."
-                  className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                  className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
               </div>
               <div className="space-y-2">
@@ -678,7 +678,7 @@ export function SupportFlow() {
                   onChange={(event) => setFeatureBlocker(event.target.value)}
                   rows={3}
                   placeholder="What is missing or painful right now?"
-                  className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                  className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -689,7 +689,7 @@ export function SupportFlow() {
                   <select
                     value={featureFrequency}
                     onChange={(event) => setFeatureFrequency(event.target.value)}
-                    className="h-11 w-full rounded-full border border-stroke/60 bg-surface px-4 text-sm text-ink shadow-inner focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                    className="h-11 w-full rounded-full border border-stroke/60 bg-surface px-4 text-sm text-ink shadow-inner focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                   >
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
@@ -707,7 +707,7 @@ export function SupportFlow() {
                     onChange={(event) => setFeatureMore(event.target.value)}
                     rows={4}
                     placeholder="Links, screenshots, examples, rough mockups…"
-                    className="mt-3 w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30"
+                    className="mt-3 w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                   />
                 </details>
               </div>
@@ -732,7 +732,7 @@ export function SupportFlow() {
           <Card className="trail-panel p-7 reveal">
             <StepBadge step={2} label="Search the FAQ" />
             <p className="mt-3 text-sm text-ink-muted">
-              Try keywords like "privacy", "browser", "sync", "account".
+              Try keywords like "privacy", "platform", "sync", "account".
             </p>
 
             <div className="mt-5">
@@ -755,9 +755,9 @@ export function SupportFlow() {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Button asChild variant="outline" size="lg">
+              <Button.AsChild variant="outline" size="lg">
                 <a href="/faq">{support.faqCta}</a>
-              </Button>
+              </Button.AsChild>
               <Button type="button" variant="ghost" size="lg" onClick={() => setPath("bug")}>
                 Still stuck? Start quick checks
               </Button>

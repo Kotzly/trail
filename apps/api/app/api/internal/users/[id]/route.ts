@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { getUserById } from "@/src/server/user";
 import { requireInternalKey } from "@/src/server/internal-auth";
+import { jsonNoStore } from "@/src/server/response";
 
 export const runtime = "nodejs";
 
@@ -12,15 +12,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   if (!id) {
-    return NextResponse.json({ user: null }, { status: 400 });
+    return jsonNoStore({ user: null }, { status: 400 });
   }
 
   const user = await getUserById(id);
   if (!user) {
-    return NextResponse.json({ user: null });
+    return jsonNoStore({ user: null });
   }
 
-  return NextResponse.json({
+  return jsonNoStore({
     user: {
       id: user.id,
       email: user.email,
