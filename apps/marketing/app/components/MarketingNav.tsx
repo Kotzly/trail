@@ -30,7 +30,7 @@ export function MarketingNav() {
           <Link href="/#features" className="transition hover:text-ink">
             {nav.features}
           </Link>
-          <Link href="/#pricing" className="transition hover:text-ink">
+          <Link href="/pricing" className="transition hover:text-ink">
             {nav.pricing}
           </Link>
           <Link href="/faq" className="transition hover:text-ink">
@@ -84,7 +84,7 @@ export function MarketingNav() {
           <Link href="/#features" onClick={closeMenu} tabIndex={linkTabIndex}>
             {nav.features}
           </Link>
-          <Link href="/#pricing" onClick={closeMenu} tabIndex={linkTabIndex}>
+          <Link href="/pricing" onClick={closeMenu} tabIndex={linkTabIndex}>
             {nav.pricing}
           </Link>
           <Link href="/faq" onClick={closeMenu} tabIndex={linkTabIndex}>
