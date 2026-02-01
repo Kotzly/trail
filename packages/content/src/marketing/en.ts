@@ -1,19 +1,19 @@
 export const marketingCopy = {
   meta: {
-    title: "trail",
+    title: "Trail — Privacy-first research trails",
     description:
-      "turn messy tab sessions into structured research paths. keep every decision, source, and next step in one place.",
+      "Capture sources, notes, and decisions as you browse. Trail turns tab chaos into organized research trails you can share without storing page content.",
   },
   nav: {
-    features: "features",
-    pricing: "pricing",
-    faq: "faq",
-    support: "support",
-    signIn: "sign in",
-    getStarted: "get the app",
+    features: "Features",
+    pricing: "Pricing",
+    faq: "FAQ",
+    support: "Support",
+    signIn: "Sign in",
+    getStarted: "Get the extension",
   },
   footer: {
-    copyright: "trail",
+    copyright: "Trail",
     links: {
       faq: "FAQ",
       support: "Support",
@@ -27,20 +27,20 @@ export const marketingCopy = {
   },
   support: {
     meta: {
-      title: "support · trail",
-      description: "get help with the Trail app and your account.",
+      title: "Support · Trail",
+      description: "Get help with the Trail app and your account.",
     },
     eyebrow: "support",
-    title: "get help, stay in flow.",
+    title: "Get help, stay in flow.",
     subtitle:
       "Email us or skim the quick checks below. A couple details help us respond faster.",
     email: "support@gettrail.net",
     actions: {
-      email: "email support",
-      featureRequest: "request a feature",
-      faq: "open the FAQ",
-      downloads: "app downloads",
-      signIn: "sign in",
+      email: "Email support",
+      featureRequest: "Request a feature",
+      faq: "Open the FAQ",
+      downloads: "App downloads",
+      signIn: "Sign in",
       signInHref: "https://app.gettrail.net",
     },
     featureRequest: {
@@ -76,7 +76,7 @@ export const marketingCopy = {
   },
   hero: {
     pill: "Browser app · free beta",
-    lead: "turn browsing into",
+    lead: "Turn browsing into",
     words: [
       "shareable research paths",
       "clear decisions",
@@ -86,9 +86,9 @@ export const marketingCopy = {
       "a calm research path",
     ],
     summary:
-      "capture every meaningful step, add notes when it matters, and share a clean research path instead of a tab dump.",
-    ctaPrimary: "get started",
-    ctaSecondary: "see the 60s demo",
+      "Capture every meaningful step, add notes when it matters, and share a clean research path instead of a tab dump.",
+    ctaPrimary: "Get the extension",
+    ctaSecondary: "See the 60s demo",
   },
   stats: [
     { label: "hours captured (30 days)", value: "300+" },
@@ -98,14 +98,14 @@ export const marketingCopy = {
   ],
   statsNote: "Based on internal usage from the last 30 days.",
   showcase: {
-    title: "see it in action",
-    subtitle: "a quick tour of capture → curate → share in under a minute.",
+    title: "See it in action",
+    subtitle: "A quick tour of capture → curate → share in under a minute.",
   },
   testimonialsSection: {
-    eyebrow: "testimonials",
-    title: "real teams, calmer workflows.",
+    eyebrow: "Loved by researchers",
+    title: "Real teams, calmer workflows.",
     summary:
-      "researchers, designers, and PMs use Trail to keep decisions, sources, and context together.",
+      "Researchers, designers, and PMs use Trail to keep decisions, sources, and context together.",
   },
   testimonials: [
     {
@@ -169,91 +169,91 @@ export const marketingCopy = {
     },
   ],
   features: {
-    eyebrow: "features",
-    title: "everything you need to stay in flow.",
+    eyebrow: "Features",
+    title: "Everything you need to stay in flow.",
     summary:
-      "the workspace stays out of the way while you browse, then turns your history into a clean, shareable path.",
+      "The workspace stays out of the way while you browse, then turns your history into a clean, shareable path.",
     items: [
       {
         id: "capture",
-        name: "always-on capture",
+        name: "Always-on capture",
         description:
-          "the app logs searches, sources, and decisions while you work—no manual cleanup.",
+          "The app logs searches, sources, and decisions while you work—no manual cleanup.",
         href: "/#showcase",
-        cta: "see capture",
+        cta: "See capture",
         className: "lg:row-start-1 lg:row-end-4 lg:col-start-2 lg:col-end-3",
       },
       {
         id: "search",
-        name: "instant rewind search",
+        name: "Instant rewind search",
         description:
-          "jump back to any page or query without hunting through tabs or history.",
+          "Jump back to any page or query without hunting through tabs or history.",
         href: "/#showcase",
-        cta: "jump back",
+        cta: "Jump back",
         className: "lg:col-start-1 lg:col-end-2 lg:row-start-1 lg:row-end-3",
       },
       {
         id: "views",
-        name: "multi-view maps",
+        name: "Multi-view maps",
         description:
-          "switch between tree, radial, and mindmap views to match how you think.",
+          "Switch between tree, radial, and mindmap views to match how you think.",
         href: "/#make-trail-yours",
-        cta: "explore views",
+        cta: "Explore views",
         className: "lg:col-start-1 lg:col-end-2 lg:row-start-3 lg:row-end-4",
       },
       {
         id: "share",
-        name: "shareable paths",
+        name: "Shareable paths",
         description:
-          "send a single link that preserves sources, notes, and decisions.",
+          "Send a single link that preserves sources, notes, and decisions.",
         href: "/#pricing",
-        cta: "share context",
+        cta: "Share context",
         className: "lg:col-start-3 lg:col-end-4 lg:row-start-1 lg:row-end-3",
       },
       {
         id: "polish",
-        name: "export-ready summaries",
+        name: "Export-ready summaries",
         description:
-          "export highlights with built-in structure for briefs and reports.",
+          "Export highlights with built-in structure for briefs and reports.",
         href: "/#pricing",
-        cta: "ship the recap",
+        cta: "Ship the recap",
         className: "lg:col-start-3 lg:col-end-4 lg:row-start-3 lg:row-end-4",
       },
     ],
   },
   personalization: {
-    eyebrow: "make it truly yours",
-    title: "personalization",
+    eyebrow: "Make it truly yours",
+    title: "Personalization",
     summary:
-      "dial in themes, views, and layouts so every workspace matches the way you think.",
+      "Dial in themes, views, and layouts so every workspace matches the way you think.",
     cards: [
       {
         title: "Theme picker",
-        description: "match the workspace to your screens with quick palette swaps.",
+        description: "Match the workspace to your screens with quick palette swaps.",
         icon: "palette",
         layout: "md:[grid-area:1/1/2/7] xl:[grid-area:1/1/2/5]",
       },
       {
         title: "View modes",
-        description: "tree, radial, or mindmap layouts for every research style.",
+        description: "Tree, radial, or mindmap layouts for every research style.",
         icon: "wand",
         layout: "md:[grid-area:1/7/2/13] xl:[grid-area:2/1/3/5]",
       },
       {
         title: "Layout blocks",
-        description: "resize panels, pin notes, and keep the essentials visible.",
+        description: "Resize panels, pin notes, and keep the essentials visible.",
         icon: "layout",
         layout: "md:[grid-area:2/1/3/7] xl:[grid-area:1/5/3/8]",
       },
       {
         title: "Highlights & decisions",
-        description: "mark the moments that matter and keep stakeholders aligned.",
+        description: "Mark the moments that matter and keep stakeholders aligned.",
         icon: "sparkles",
         layout: "md:[grid-area:2/7/3/13] xl:[grid-area:1/8/2/13]",
       },
       {
         title: "Shareable snapshots",
-        description: "publish a clean capture view without extra cleanup.",
+        description: "Publish a clean capture view without extra cleanup.",
         icon: "share",
         layout: "md:[grid-area:3/1/4/13] xl:[grid-area:2/8/3/13]",
       },
@@ -262,51 +262,51 @@ export const marketingCopy = {
       left: [
         {
           title: "Theme picker",
-          description: "swap palettes in seconds.",
+          description: "Swap palettes in seconds.",
           type: "image",
           src:
-            "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=720&q=60",
+            "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=720&q=60",
           alt: "Theme picker preview",
         },
         {
           title: "Flexible layouts",
-          description: "rearrange panels to fit your flow.",
+          description: "Rearrange panels to fit your flow.",
           type: "image",
           src:
-            "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?auto=format&fit=crop&w=720&q=60",
+            "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=720&q=60",
           alt: "Flexible layout preview",
         },
       ],
       right: [
         {
           title: "Tree, radial, mindmap",
-          description: "switch views for every research path.",
+          description: "Switch views for every research path.",
           type: "image",
           src:
-            "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=720&q=60",
+            "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=720&q=60",
           alt: "Path view preview",
         },
         {
           title: "Highlight moments",
-          description: "pin the key moments for fast handoff.",
+          description: "Pin the key moments for fast handoff.",
           type: "image",
           src:
-            "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=720&q=60",
+            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=720&q=60",
           alt: "Highlights preview",
         },
       ],
     },
   },
   pricing: {
-    eyebrow: "pricing",
-    title: "plans that scale with your research",
+    eyebrow: "Pricing",
+    title: "Plans that scale with your research",
     description:
-      "start free, upgrade when you need sync and sharing.\nannual billing saves 20%.",
-    toggleLabel: "annual billing",
-    toggleNote: "save 20%",
-    billedMonthlyLabel: "billed monthly",
-    billedAnnuallyLabel: "billed annually",
-    popularBadge: "popular",
+      "Start free, upgrade when you need sync and sharing.\nAnnual billing saves 20%.",
+    toggleLabel: "Annual billing",
+    toggleNote: "Save 20%",
+    billedMonthlyLabel: "Billed monthly",
+    billedAnnuallyLabel: "Billed annually",
+    popularBadge: "Popular",
     plans: [
       {
         name: "Free",
@@ -315,11 +315,11 @@ export const marketingCopy = {
         period: "per month",
         features: [
           "3 trees in history",
-          "no sync across devices",
-          "local-only data",
-          "no online features",
+          "No sync across devices",
+          "Local-only data",
+          "No online features",
         ],
-        description: "for personal paths and local-only research.",
+        description: "For personal paths and local-only research.",
         buttonText: "Get started",
         href: "/downloads",
         isPopular: false,
@@ -330,14 +330,14 @@ export const marketingCopy = {
         yearlyPrice: "8",
         period: "per month",
         features: [
-          "unlimited trees in history",
-          "sync across devices",
+          "Unlimited trees in history",
+          "Sync across devices",
           "10 devices per account",
-          "online features",
-          "premium support",
-          "shareable paths",
+          "Online features",
+          "Premium support",
+          "Shareable paths",
         ],
-        description: "for solo builders who need sync + sharing.",
+        description: "For solo builders who need sync + sharing.",
         buttonText: "Go Pro",
         href: "/downloads",
         isPopular: true,
@@ -348,14 +348,14 @@ export const marketingCopy = {
         yearlyPrice: "16",
         period: "per month",
         features: [
-          "unlimited trees in history",
-          "sync across devices and teams",
-          "online features",
-          "shared workspaces",
-          "team analytics",
-          "admin controls",
+          "Unlimited trees in history",
+          "Sync across devices and teams",
+          "Online features",
+          "Shared workspaces",
+          "Team analytics",
+          "Admin controls",
         ],
-        description: "for teams coordinating research at scale.",
+        description: "For teams coordinating research at scale.",
         buttonText: "Start Team",
         href: "/downloads",
         isPopular: false,
@@ -364,86 +364,98 @@ export const marketingCopy = {
   },
   downloads: {
     meta: {
-      title: "downloads · trail",
+      title: "Downloads · Trail",
       description:
-        "get the Trail app. install links open in waves, with more platforms on the way.",
+        "Get the Trail app. Install links open in waves, with more platforms on the way.",
     },
-    eyebrow: "downloads",
-    title: "install the app where you work",
+    eyebrow: "Downloads",
+    title: "Install the app where you work",
     subtitle:
-      "downloads are opening in waves. join the list and we will email you as soon as the build is ready.",
-    primaryCta: "join the waitlist",
-    secondaryCta: "sign in",
+      "Downloads are opening in waves. Join the list and we will email you as soon as the build is ready.",
+    primaryCta: "Join the waitlist",
+    secondaryCta: "Sign in",
     cards: [
       {
         title: "Chrome add-on",
         status: "waitlist",
-        copy: "optimized for chrome and chromium builds with the full sidepanel experience.",
+        copy: "Optimized for Chrome and Chromium builds with the full sidepanel experience.",
       },
       {
         title: "Firefox add-on",
         status: "in progress",
-        copy: "the same capture flow and sync, tailored for firefox.",
+        copy: "The same capture flow and sync, tailored for Firefox.",
       },
     ],
-    stepsTitle: "what happens next",
+    stepsTitle: "What happens next",
     steps: [
       {
-        title: "install the add-on",
-        copy: "we will email you the install link when the build is ready.",
+        title: "Install the add-on",
+        copy: "We will email you the install link when the build is ready.",
       },
       {
-        title: "sign in to the account",
-        copy: "one account keeps the app and dashboard in sync.",
+        title: "Sign in to the account",
+        copy: "One account keeps the app and dashboard in sync.",
       },
       {
-        title: "capture the flow",
-        copy: "every search, tab, and decision snaps into a shareable research path.",
+        title: "Capture the flow",
+        copy: "Every search, tab, and decision snaps into a shareable research path.",
       },
     ],
-    noteTitle: "already installed?",
-    noteCopy: "open the app to sign in and start capturing immediately.",
-    noteCta: "sign in to the account",
+    noteTitle: "Already installed?",
+    noteCopy: "Open the app to sign in and start capturing immediately.",
+    noteCta: "Sign in to the account",
     noteCtaHref: "https://app.gettrail.net",
   },
   cta: {
-    title: "ready to map your browsing?",
-    subtitle: "install the app, then sign in to sync and collaborate.",
-    primary: "open downloads",
-    secondary: "sign in",
+    title: "Ready to map your browsing?",
+    subtitle: "Install the app, then sign in to sync and collaborate.",
+    primary: "Get the extension",
+    secondary: "Sign in",
     note: "Free plan available · 30-second install · Privacy-first",
   },
   faq: {
-    title: "frequently asked questions",
+    eyebrow: "FAQ",
+    title: "Frequently asked questions",
     items: [
       {
-        question: "what does the app capture?",
+        question: "What does the app capture?",
         answer:
-          "the app records URLs, titles, timestamps, and your notes. it does not read page content.",
+          "Trail records URLs, page titles, timestamps, and your notes. It does not read or store page content, passwords, or form data. Your research context stays private.",
       },
       {
-        question: "is my data private?",
+        question: "Is my data private?",
         answer:
-          "you control what gets synced and shared. saved paths are private by default until you share them.",
+          "Absolutely. You control what gets synced and shared. Saved paths are private by default until you explicitly share them. We use encryption in transit and at rest.",
       },
       {
-        question: "can i share or export my paths?",
+        question: "Can I share or export my paths?",
         answer:
-          "yes. share a link with collaborators and export highlights for reports or docs.",
+          "Yes. Share a link with collaborators that preserves all sources, notes, and decisions. Export highlights as structured data for reports or documentation.",
       },
       {
-        question: "does it work for teams?",
+        question: "Does it work for teams?",
         answer:
-          "yes. shared paths keep teammates aligned on sources, decisions, and context.",
+          "Yes. Shared paths keep teammates aligned on sources, decisions, and context. Team plans include shared workspaces and admin controls.",
       },
       {
-        question: "does it work offline?",
+        question: "Does it work offline?",
         answer:
-          "you can keep browsing offline, but syncing and sharing require a connection.",
+          "You can continue browsing and capturing offline. Your data syncs automatically when you reconnect. Some features like sharing require a connection.",
       },
       {
-        question: "which browsers are supported?",
-        answer: "the app supports chromium-based browsers including Chrome, Brave, Edge, and more.",
+        question: "Which browsers are supported?",
+        answer:
+          "Trail supports Chromium-based browsers including Chrome, Brave, Edge, and Arc. Firefox support is coming soon.",
+      },
+      {
+        question: "How is this different from browser history?",
+        answer:
+          "Unlike browser history, Trail organizes your journey into meaningful paths with notes, decisions, and context. You can group related tabs, add annotations, and share complete research narratives—not just a list of URLs.",
+      },
+      {
+        question: "Can I import my existing bookmarks?",
+        answer:
+          "Yes. Import bookmarks from Chrome, Firefox, or Safari to seed your initial trails. The app will organize them by topic and date for you.",
       },
     ],
   },
