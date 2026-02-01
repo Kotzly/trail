@@ -1,241 +1,382 @@
-import { headers } from "next/headers";
+"use client";
+
+import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { 
+  Chrome, 
+  Globe, 
+  Apple, 
+  Download, 
+  CheckCircle2, 
+  Clock,
+  Mail,
+  ArrowRight,
+  Sparkles
+} from "lucide-react";
 import { marketingCopy } from "@trail/content";
-import { BackgroundArt, Badge, Button, Card, WaitlistDialog, cn } from "@trail/ui";
+import { BackgroundArt, Button, Card } from "@trail/ui";
 import { MarketingFooter } from "../components/MarketingFooter";
 import { MarketingNav } from "../components/MarketingNav";
-import { buildMetadata } from "../../lib/seo";
+import { GlowingEffect } from "../components/ui/glowing-effect";
+import { InteractiveButton } from "../components/ui/interactive-button";
+import { DownloadsLoading } from "../components/page-wrapper";
 
-export const metadata = buildMetadata({
-  title: "Trail Downloads — Browser installs and waitlist",
-  description:
-    "Join the waitlist for Chrome, Brave, Edge, and Firefox builds. We will email the right installer and help you sign in quickly.",
-  path: "/downloads"
-});
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+  },
+};
 
-type BrowserTarget = "chrome" | "firefox" | "edge" | "safari" | "unknown";
-type PlatformTarget = "macos" | "windows" | "linux" | "unknown";
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const },
+  },
+};
 
-function detectBrowser(userAgent: string): BrowserTarget {
-  const ua = userAgent.toLowerCase();
-  if (ua.includes("firefox")) {
-    return "firefox";
-  }
-  if (ua.includes("edg/")) {
-    return "edge";
-  }
-  if (ua.includes("chrome") || ua.includes("chromium")) {
-    return "chrome";
-  }
-  if (ua.includes("safari")) {
-    return "safari";
-  }
-  return "unknown";
-}
+const browsers = [
+  { id: "chrome", name: "Chrome", icon: Chrome, status: "available", color: "#4285F4" },
+  { id: "edge", name: "Edge", icon: Globe, status: "available", color: "#0078D4" },
+  { id: "firefox", name: "Firefox", icon: Globe, status: "waitlist", color: "#FF7139" },
+  { id: "safari", name: "Safari", icon: Apple, status: "coming", color: "#006CFF" },
+];
 
-function detectPlatform(userAgent: string): PlatformTarget {
-  const ua = userAgent.toLowerCase();
-  if (ua.includes("macintosh") || ua.includes("mac os x")) {
-    return "macos";
-  }
-  if (ua.includes("windows nt")) {
-    return "windows";
-  }
-  if (ua.includes("linux")) {
-    return "linux";
-  }
-  return "unknown";
-}
+const steps = [
+  {
+    icon: Download,
+    title: "Install the extension",
+    description: "One-click install from the Chrome Web Store or Edge Add-ons.",
+  },
+  {
+    icon: CheckCircle2,
+    title: "Grant permissions",
+    description: "Allow Trail to capture your browsing journey. Privacy-first, always.",
+  },
+  {
+    icon: Sparkles,
+    title: "Start capturing",
+    description: "Begin researching. Trail automatically organizes your path.",
+  },
+];
 
-export default async function DownloadsPage() {
-  const { downloads } = marketingCopy;
-  const headersList = await headers();
-  const userAgent = headersList.get("user-agent") ?? "";
-  const browser = detectBrowser(userAgent);
-  const platform = detectPlatform(userAgent);
-  const isChromium = browser === "chrome" || browser === "edge";
-  const platformLabel =
-    platform === "macos" ? "macOS" : platform === "windows" ? "Windows" : platform === "linux" ? "Linux" : null;
-  const platformSuffix = platformLabel ? ` for ${platformLabel}` : "";
-  const primaryCta =
-    browser === "firefox"
-      ? `join the firefox waitlist${platformSuffix}`
-      : isChromium
-        ? `join the chrome waitlist${platformSuffix}`
-        : downloads.primaryCta;
-  const browserLabel =
-    browser === "firefox"
-      ? "Firefox"
-      : isChromium
-        ? "Chrome / Chromium"
-        : browser === "safari"
-          ? "Safari"
-          : null;
-  const recommendedCard =
-    browser === "firefox" ? "Firefox add-on" : isChromium ? "Chrome add-on" : null;
-  const detectionNote = browserLabel && platformLabel
-    ? `${browserLabel} on ${platformLabel}`
-    : browserLabel ?? platformLabel;
-  const supportedBrowsers = [
-    { label: "Chrome / Brave", status: "waitlist", active: isChromium },
-    { label: "Edge", status: "waitlist", active: browser === "edge" },
-    { label: "Firefox", status: "in progress", active: browser === "firefox" },
-    { label: "Safari", status: "not available yet", active: browser === "safari" }
-  ];
+function DownloadsContent() {
+  const [detectedBrowser, setDetectedBrowser] = useState<string>("chrome");
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes("firefox")) setDetectedBrowser("firefox");
+    else if (ua.includes("edg/")) setDetectedBrowser("edge");
+    else if (ua.includes("chrome")) setDetectedBrowser("chrome");
+    else if (ua.includes("safari")) setDetectedBrowser("safari");
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+  };
 
   return (
     <div className="min-h-screen bg-base text-ink">
       <MarketingNav />
       <main className="relative overflow-hidden">
-        <BackgroundArt variant="graph" />
-        <section className="relative mx-auto max-w-6xl px-6 pb-20 pt-16">
-          <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="space-y-8">
-              <Badge className="trail-eyebrow border border-stroke/40 bg-surface/70">
-                {downloads.eyebrow}
-              </Badge>
-              <div className="space-y-4">
-                <h1 className="font-display text-4xl font-semibold leading-tight text-ink md:text-5xl">
-                  {downloads.title}
-                </h1>
-                <p className="max-w-2xl text-[1rem] text-ink-muted">{downloads.subtitle}</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <WaitlistDialog
-                  triggerLabel={primaryCta}
-                  title="Get the download link"
-                  description="Share an email and we will send the install link as soon as the build is ready."
-                  successTitle="You are on the list"
-                  successDescription="We will email you the moment downloads open for the platform."
-                  successCtaLabel="Back to downloads"
-                  source={`downloads-${browser}-${platform}`}
-                  buttonSize="lg"
-                />
-                <Button.AsChild variant="outline" size="lg">
-                  <a href="https://app.gettrail.net">{downloads.secondaryCta}</a>
-                </Button.AsChild>
-              </div>
-              {detectionNote ? (
-                <p className="text-xs text-ink-subtle">
-                  Detected: {detectionNote}. We will email the right build when it is ready.
-                </p>
-              ) : null}
-              <div>
-                <p className="trail-eyebrow">Supported platforms</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {supportedBrowsers.map((item) => (
-                    <span
-                      key={item.label}
-                      className={cn(
-                        "rounded-full border border-stroke/50 bg-surface/70 px-3 py-1 text-[11px] font-semibold text-ink-subtle",
-                        item.active ? "border-accent/40 text-ink shadow-elev-1" : null
-                      )}
-                    >
-                      {item.label} · {item.status}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-2xl border border-stroke/40 bg-surface/70 p-4 text-sm text-ink-muted">
-                <p>
-                  Builds roll out in waves so we can keep performance stable and respond
-                  quickly to platform updates. Joining the list makes sure you receive the
-                  right installer the moment the build is ready.
-                </p>
-                <p className="mt-3">
-                  You will get a single email with the install link and a quick checklist
-                  to verify permissions. If a team needs a guided rollout, let us know
-                  and we can share onboarding steps.
-                </p>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {downloads.cards.map((card) => (
-                  <Card
-                    key={card.title}
-                    className={cn(
-                      "trail-card p-5",
-                      recommendedCard === card.title ? "border-accent/40 shadow-elev-1" : null
-                    )}
+        <BackgroundArt variant="grid" className="opacity-50" />
+        
+        {/* Hero */}
+        <section className="relative px-6 pt-20 pb-16">
+          <div className="mx-auto max-w-6xl">
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="text-center"
+            >
+              <motion.span
+                variants={itemVariants}
+                className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-accent"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Get Started
+              </motion.span>
+              
+              <motion.h1
+                variants={itemVariants}
+                className="mt-6 font-display text-4xl font-semibold leading-[1.15] tracking-tight text-ink md:text-5xl lg:text-6xl"
+              >
+                Install Trail in seconds
+              </motion.h1>
+              
+              <motion.p
+                variants={itemVariants}
+                className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted"
+              >
+                Available for Chrome and Edge. Join the waitlist for Firefox and Safari.
+              </motion.p>
+            </motion.div>
+
+            {/* Browser Cards */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            >
+              {browsers.map((browser) => {
+                const Icon = browser.icon;
+                const isDetected = detectedBrowser === browser.id;
+                const isAvailable = browser.status === "available";
+                
+                return (
+                  <motion.div
+                    key={browser.id}
+                    variants={itemVariants}
+                    className={`group relative rounded-3xl border p-6 transition-all duration-300 ${
+                      isDetected
+                        ? "border-accent/50 bg-surface/80 shadow-lg shadow-accent/10"
+                        : "border-stroke/40 bg-surface/50 hover:border-accent/30 hover:bg-surface/70"
+                    }`}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="trail-eyebrow">{card.title}</p>
-                      <span className="trail-status">
-                        {card.status}
-                      </span>
+                    {isDetected && (
+                      <GlowingEffect
+                        spread={30}
+                        glow={true}
+                        disabled={false}
+                        proximity={40}
+                        inactiveZone={0.01}
+                        borderWidth={2}
+                      />
+                    )}
+                    
+                    <div className="relative">
+                      <div
+                        className="flex h-14 w-14 items-center justify-center rounded-2xl"
+                        style={{ backgroundColor: `${browser.color}15` }}
+                      >
+                        <Icon
+                          className="h-7 w-7"
+                          style={{ color: browser.color }}
+                        />
+                      </div>
+                      
+                      <h3 className="mt-4 text-lg font-semibold text-ink">
+                        {browser.name}
+                      </h3>
+                      
+                      <div className="mt-2 flex items-center gap-2">
+                        <span
+                          className={`inline-flex h-2 w-2 rounded-full ${
+                            isAvailable
+                              ? "bg-green-500"
+                              : browser.status === "waitlist"
+                              ? "bg-amber-500"
+                              : "bg-slate-400"
+                          }`}
+                        />
+                        <span className="text-xs text-ink-subtle capitalize">
+                          {browser.status === "available" ? "Available now" : browser.status}
+                        </span>
+                      </div>
+
+                      {isDetected && (
+                        <span className="absolute -right-2 -top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-cta-fg">
+                          Detected
+                        </span>
+                      )}
+
+                      <div className="mt-4">
+                        {isAvailable ? (
+                          <Button className="w-full">
+                            Install Now
+                          </Button>
+                        ) : (
+                          <Button variant="outline" className="w-full">
+                            Join Waitlist
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <p className="trail-copy mt-3">{card.copy}</p>
-                  </Card>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-6">
-              <Card className="trail-panel p-7">
-                <p className="trail-eyebrow">{downloads.stepsTitle}</p>
-                <div className="mt-5 space-y-4">
-                  {downloads.steps.map((step, index) => (
-                    <div
-                      key={step.title}
-                      className="trail-step flex items-start gap-4"
-                    >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-cta-fg">
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="relative px-6 py-16">
+          <div className="mx-auto max-w-6xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center"
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider text-accent">
+                How it works
+              </span>
+              <h2 className="mt-4 text-2xl font-semibold text-ink md:text-3xl">
+                Three steps to better research
+              </h2>
+            </motion.div>
+
+            <div className="mt-12 grid gap-6 md:grid-cols-3">
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+                return (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="relative rounded-3xl border border-stroke/40 bg-surface/50 p-6"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10">
+                      <Icon className="h-6 w-6 text-accent" />
+                    </div>
+                    <div className="mt-4 flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-semibold text-accent">
                         {index + 1}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-ink">{step.title}</p>
-                        <p className="trail-copy mt-1 text-xs">{step.copy}</p>
-                      </div>
+                      </span>
+                      <h3 className="font-semibold text-ink">{step.title}</h3>
                     </div>
-                  ))}
-                </div>
-              </Card>
-              <Card className="trail-card-neutral p-6">
-                <p className="trail-eyebrow">{downloads.noteTitle}</p>
-                <p className="trail-copy mt-2">{downloads.noteCopy}</p>
-                {downloads.noteCta && downloads.noteCtaHref ? (
-                  <Button.AsChild variant="outline" size="sm" className="mt-4">
-                    <a href={downloads.noteCtaHref}>{downloads.noteCta}</a>
-                  </Button.AsChild>
-                ) : null}
-              </Card>
-              <Card className="trail-card-neutral p-6">
-                <p className="trail-eyebrow">installation checklist</p>
-                <div className="mt-3 space-y-3 text-sm text-ink-muted">
-                  <p>
-                    The app installs like any standard add-on. Once it is
-                    pinned, you can start a research path from any tab and add notes as you go.
-                  </p>
-                  <p>
-                    After installation, sign in to enable syncing across devices and
-                    to share paths with teammates. If you prefer to keep work local,
-                    you can skip syncing and still export whenever you need to.
-                  </p>
-                  <p>
-                    We recommend starting a dedicated path for each project or client
-                    so that timelines stay clean and decisions stay easy to trace. You
-                    can rename, archive, or export any path later without losing the
-                    underlying sources.
-                  </p>
-                </div>
-                <ul className="mt-4 space-y-2 text-sm text-ink">
-                  <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-2">
-                    Pin the app so it is always visible in the toolbar.
-                  </li>
-                  <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-2">
-                    Start a path before deep research sessions to keep context.
-                  </li>
-                  <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-2">
-                    Use exports to share paths with stakeholders or clients.
-                  </li>
-                </ul>
-                <p className="mt-4 text-sm text-ink-muted">
-                  Need help installing? Visit Support and we can walk you through
-                  permissions, syncing, or sign-in steps for the platform.
-                </p>
-              </Card>
+                    <p className="mt-2 text-sm text-ink-muted">
+                      {step.description}
+                    </p>
+                  </motion.div>
+                );
+              })}
             </div>
+          </div>
+        </section>
+
+        {/* Waitlist CTA */}
+        <section className="relative px-6 py-16">
+          <div className="mx-auto max-w-4xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="relative overflow-hidden rounded-3xl border border-stroke/40 bg-surface/70 p-8 md:p-12"
+            >
+              <GlowingEffect
+                spread={60}
+                glow={true}
+                disabled={false}
+                proximity={80}
+                inactiveZone={0.01}
+                borderWidth={2}
+              />
+              
+              <div className="relative text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
+                  <Mail className="h-7 w-7 text-accent" />
+                </div>
+                
+                <h2 className="mt-6 text-2xl font-semibold text-ink md:text-3xl">
+                  Firefox or Safari user?
+                </h2>
+                <p className="mx-auto mt-3 max-w-lg text-ink-muted">
+                  We&apos;re working on support for your browser. Join the waitlist and be the first to know when it&apos;s ready.
+                </p>
+
+                {!submitted ? (
+                  <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      className="h-12 rounded-full border border-stroke/60 bg-surface px-6 text-sm text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      required
+                    />
+                    <InteractiveButton
+                      text="Join Waitlist"
+                      variant="primary"
+                      className="h-12"
+                    />
+                  </form>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mt-6 rounded-2xl border border-green-500/30 bg-green-500/10 p-4"
+                  >
+                    <div className="flex items-center justify-center gap-2 text-green-600">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="font-medium">You&apos;re on the list! We&apos;ll email you soon.</span>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* System Requirements */}
+        <section className="relative px-6 py-16">
+          <div className="mx-auto max-w-6xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="grid gap-8 lg:grid-cols-2"
+            >
+              <div className="rounded-3xl border border-stroke/40 bg-surface/50 p-6">
+                <h3 className="text-lg font-semibold text-ink">System Requirements</h3>
+                <ul className="mt-4 space-y-3">
+                  {[
+                    "Chrome 90+ or Edge 90+",
+                    "macOS 10.15+, Windows 10+, or Linux",
+                    "2GB RAM minimum",
+                    "Active internet connection for sync",
+                  ].map((req, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm text-ink-muted">
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-accent" />
+                      {req}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-3xl border border-stroke/40 bg-surface/50 p-6">
+                <h3 className="text-lg font-semibold text-ink">What&apos;s Included</h3>
+                <ul className="mt-4 space-y-3">
+                  {[
+                    "Automatic path capture",
+                    "Notes and highlights",
+                    "Export to Markdown/PDF",
+                    "7-day history (Free plan)",
+                  ].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm text-ink-muted">
+                      <Sparkles className="h-4 w-4 flex-shrink-0 text-accent" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </motion.div>
           </div>
         </section>
       </main>
       <MarketingFooter />
     </div>
+  );
+}
+
+export default function DownloadsPage() {
+  return (
+    <Suspense fallback={<DownloadsLoading />}>
+      <DownloadsContent />
+    </Suspense>
   );
 }
