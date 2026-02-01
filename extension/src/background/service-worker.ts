@@ -13,6 +13,12 @@ initTabsLifecycle();
 void syncOpenTabs();
 void CommandManager.init();
 
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+const sidePanel = chrome?.sidePanel;
+
+if (sidePanel?.setPanelBehavior) {
+  sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err) => {
+    console.warn('Failed to set side panel behavior', err);
+  });
+}
 
 console.log('Trail service worker initialized');
