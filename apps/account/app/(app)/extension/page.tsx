@@ -10,6 +10,7 @@ import { accountCopy } from "@trail/content";
 import { getAuthSession, isAuthBypassed } from "@/src/lib/auth0";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
+import { ExtensionConnectionGuideClient } from "./ExtensionConnectionGuideClient";
 
 export const runtime = "nodejs";
 
@@ -136,6 +137,9 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
           </div>
         </div>
       </div>
+
+      {/* Extension Connection Guide - only show when not connected */}
+      {!connectionReady && <ExtensionConnectionGuideClient />}
 
       <div className="rounded-2xl border border-border/60 bg-surface/70 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

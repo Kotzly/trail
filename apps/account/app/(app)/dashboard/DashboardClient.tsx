@@ -9,9 +9,10 @@ import {
   LightningBoltIcon,
   RocketIcon
 } from "@radix-ui/react-icons";
-import { Button, EmptyState, StatCard } from "@trail/ui";
+import { Button, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { trpc } from "@/src/trpc/client";
+import { NoTrailsEmptyState } from "@/app/components/onboarding/EmptyState";
 
 export function DashboardClient() {
   const { dashboard } = accountCopy;
@@ -66,11 +67,7 @@ export function DashboardClient() {
             ))}
           </div>
         ) : (
-          <EmptyState
-            title={dashboard.empty.title}
-            description={dashboard.empty.description}
-            icon={<BackpackIcon className="h-5 w-5" />}
-            items={dashboard.empty.items}
+          <NoTrailsEmptyState
             action={
               <Button.AsChild size="sm">
                 <Link href="/extension">{dashboard.empty.cta}</Link>
