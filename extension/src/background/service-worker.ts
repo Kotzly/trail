@@ -13,23 +13,12 @@ initTabsLifecycle();
 void syncOpenTabs();
 void CommandManager.init();
 
-// Side panel behavior is only available in Chromium versions that support the Side Panel API.
-// Guard this to avoid runtime errors on older browsers / restricted environments.
-const sidePanel = (chrome as any).sidePanel as { setPanelBehavior?: (opts: { openPanelOnActionClick: boolean }) => unknown } | undefined;
+const sidePanel = chrome?.sidePanel;
+
 if (sidePanel?.setPanelBehavior) {
-  try {
-    const maybePromise = sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-    // setPanelBehavior returns a Promise in modern MV3; keep compatibility with callback-style implementations.
-    if (maybePromise && typeof (maybePromise as unknown as Promise<unknown>).catch === 'function') {
-      void (maybePromise as unknown as Promise<unknown>).catch((err) => {
-        console.warn('Failed to set side panel behavior', err);
-      });
-    }
-  } catch (err) {
+  sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err) => {
     console.warn('Failed to set side panel behavior', err);
-  }
-} else {
-  console.warn('chrome.sidePanel.setPanelBehavior is not available in this browser');
+  });
 }
 
 console.log('Trail service worker initialized');
