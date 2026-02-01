@@ -85,7 +85,7 @@ if (!databaseUrl) {
 
 if (!databaseUrl) {
   throw new Error(
-    "Missing database connection string. Set DATABASE_URL (or POSTGRES_PRISMA_URL / SUPABASE_DB_URL)."
+    "Missing database connection string. Set DATABASE_URL (or POSTGRES_PRISMA_URL / POSTGRES_URL / SUPABASE_DB_URL)."
   );
 }
 
