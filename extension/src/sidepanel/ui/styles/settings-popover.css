@@ -131,6 +131,10 @@
   gap: 8px;
 }
 
+.settings-sidebar-nav[data-open='false'] {
+  align-items: center;
+}
+
 .settings-nav-item {
   position: relative;
   display: flex;
@@ -201,22 +205,36 @@
 }
 
 .settings-sidebar-nav[data-open='false'] .settings-nav-item {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 999px;
   justify-content: center;
-  padding: 10px;
 }
 
 .settings-sidebar-nav[data-open='false'] .settings-nav-text {
   display: none;
 }
 
+.settings-sidebar-nav[data-open='false'] .settings-nav-icon {
+  background: transparent;
+  border-color: transparent;
+}
+
 .settings-nav-title {
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .settings-nav-subtitle {
   font-size: 10px;
   color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .settings-panel {
