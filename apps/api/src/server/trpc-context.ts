@@ -1,6 +1,8 @@
 import { db } from "@trail/db";
 import type { AppContext, AppSession, AppUser } from "@trail/trpc";
-import { ensureUser, type Auth0User } from "@/src/server/user";
+import { getBearerToken } from "@/src/server/auth/headers";
+import { verifyUserToken } from "@/src/server/auth/user-auth";
+import { ensureUser } from "@/src/server/user";
 
 function getInternalAuthKey(headers: Headers): string | null {
   const expectedKey = process.env.TRAIL_INTERNAL_API_KEY;
@@ -34,24 +36,6 @@ function parseAppUser(rawUser: string): AppUser | null {
   }
 }
 
-function parseAuth0User(rawUser: string): Auth0User | null {
-  try {
-    const parsed = JSON.parse(rawUser) as Partial<Auth0User> | null;
-    if (!parsed || typeof parsed.sub !== "string") {
-      return null;
-    }
-
-    return {
-      sub: parsed.sub,
-      email: typeof parsed.email === "string" ? parsed.email : undefined,
-      name: typeof parsed.name === "string" ? parsed.name : undefined,
-      picture: typeof parsed.picture === "string" ? parsed.picture : undefined
-    };
-  } catch {
-    return null;
-  }
-}
-
 async function getInternalSession(headers: Headers): Promise<AppSession> {
   if (!getInternalAuthKey(headers)) {
     return null;
@@ -63,17 +47,17 @@ async function getInternalSession(headers: Headers): Promise<AppSession> {
     return user ? { user } : null;
   }
 
-  const rawAuth0User = headers.get("x-trail-auth0-user");
-  if (!rawAuth0User) {
+  const token = getBearerToken(headers);
+  if (!token) {
     return null;
   }
 
-  const auth0User = parseAuth0User(rawAuth0User);
-  if (!auth0User) {
+  const authUser = await verifyUserToken(token);
+  if (!authUser) {
     return null;
   }
 
-  const user = await ensureUser(auth0User);
+  const user = await ensureUser(authUser);
   return user ? { user } : null;
 }
 

@@ -492,7 +492,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Auth0 access token
+      description: Better Auth access token
     extensionAuth:
       type: http
       scheme: bearer

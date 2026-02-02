@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { emailOTP, jwt } from "better-auth/plugins";
+import { emailOTP } from "better-auth/plugins/email-otp";
+import { jwt } from "better-auth/plugins/jwt";
 import { db } from "@trail/db";
 import { mailgunProvider } from "./email/mailgun";
 
