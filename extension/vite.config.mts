@@ -8,6 +8,11 @@ const uiRoot = resolve(rootDir, 'src/sidepanel/ui');
 
 export default defineConfig({
   root: uiRoot,
+  resolve: {
+    alias: {
+      '@': uiRoot,
+    },
+  },
   plugins: [react()],
   base: '',
   build: {
