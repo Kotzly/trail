@@ -200,6 +200,15 @@
   min-width: 0;
 }
 
+.settings-sidebar-nav[data-open='false'] .settings-nav-item {
+  justify-content: center;
+  padding: 10px;
+}
+
+.settings-sidebar-nav[data-open='false'] .settings-nav-text {
+  display: none;
+}
+
 .settings-nav-title {
   font-size: 12px;
   font-weight: 600;
