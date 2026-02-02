@@ -26,6 +26,7 @@ import GraphZoomControls from './GraphZoomControls.js';
 import { buildConnections, getPathToNode } from './graph-utils.js';
 import { GraphPixiRenderer } from '../../graph/render/GraphPixiRenderer.js';
 import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
+import { computeGraphGridTransform } from './grid-transform.js';
 import React from 'react';
 
 type GraphTool = 'hand' | 'select';
@@ -246,6 +247,12 @@ export default function GraphCanvas({
   const didInitView = useRef(false);
   const pendingViewRef = useRef<Partial<ViewState> | null>(null);
   const viewRafRef = useRef<number | null>(null);
+  const gridVarsRef = useRef({
+    size: '',
+    dotSize: '',
+    offsetX: '',
+    offsetY: '',
+  });
   const emptyPositionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
   const animationStatesRef = useRef<Map<NodeId, NodeAnimationState>>(new Map());
   const openAnimationStatesRef = useRef<Map<NodeId, OpenAnimationState>>(new Map());
@@ -456,6 +463,35 @@ export default function GraphCanvas({
     selectionComputeHandleRef.current = window.requestIdleCallback(run, { timeout: 80 });
   }, [computeSelectionPreview]);
 
+  const applyGridTransform = useCallback((view: ViewState) => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const grid = computeGraphGridTransform(view);
+    const sizeValue = `${grid.size.toFixed(3)}px`;
+    const dotValue = `${grid.dotSize.toFixed(3)}px`;
+    const offsetXValue = `${grid.offsetX.toFixed(3)}px`;
+    const offsetYValue = `${grid.offsetY.toFixed(3)}px`;
+    const prev = gridVarsRef.current;
+    if (
+      prev.size === sizeValue &&
+      prev.dotSize === dotValue &&
+      prev.offsetX === offsetXValue &&
+      prev.offsetY === offsetYValue
+    ) {
+      return;
+    }
+    wrapper.style.setProperty('--graph-grid-size', sizeValue);
+    wrapper.style.setProperty('--graph-grid-dot-size', dotValue);
+    wrapper.style.setProperty('--graph-grid-offset-x', offsetXValue);
+    wrapper.style.setProperty('--graph-grid-offset-y', offsetYValue);
+    gridVarsRef.current = {
+      size: sizeValue,
+      dotSize: dotValue,
+      offsetX: offsetXValue,
+      offsetY: offsetYValue,
+    };
+  }, []);
+
   const scheduleGraphView = useCallback(
     (view: Partial<ViewState>) => {
       viewRef.current = { ...viewRef.current, ...view };
@@ -468,10 +504,11 @@ export default function GraphCanvas({
         if (next) {
           onGraphViewChange(next);
           rendererRef.current?.setView(viewRef.current);
+          applyGridTransform(viewRef.current);
         }
       });
     },
-    [onGraphViewChange],
+    [applyGridTransform, onGraphViewChange],
   );
 
   useEffect(() => {
@@ -501,7 +538,8 @@ export default function GraphCanvas({
   useEffect(() => {
     viewRef.current = graphView;
     rendererRef.current?.setView(graphView);
-  }, [graphView]);
+    applyGridTransform(graphView);
+  }, [applyGridTransform, graphView]);
 
   useEffect(() => {
     const host = pixiHostRef.current;
@@ -510,11 +548,12 @@ export default function GraphCanvas({
     rendererRef.current = renderer;
     renderer.setView(viewRef.current);
     renderer.setDetailMode(detailMode);
+    applyGridTransform(viewRef.current);
     return () => {
       renderer.destroy();
       rendererRef.current = null;
     };
-  }, []);
+  }, [applyGridTransform]);
 
   useEffect(() => {
     rendererRef.current?.setSelectedNodeIds(selectedNodeIds);
@@ -525,10 +564,11 @@ export default function GraphCanvas({
     if (!wrapper) return;
     const resizeObserver = new ResizeObserver(() => {
       rendererRef.current?.setView(viewRef.current);
+      applyGridTransform(viewRef.current);
     });
     resizeObserver.observe(wrapper);
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [applyGridTransform]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => rendererRef.current?.refreshTheme());
@@ -624,6 +664,7 @@ export default function GraphCanvas({
         viewRef.current = next;
         onGraphViewChange(next);
         rendererRef.current?.setView(next);
+        applyGridTransform(next);
         if (!progress.done) {
           viewAnimationRef.current = window.requestAnimationFrame(animate);
         } else {
@@ -632,7 +673,7 @@ export default function GraphCanvas({
       };
       viewAnimationRef.current = window.requestAnimationFrame(animate);
     },
-    [cancelViewAnimation, onGraphViewChange],
+    [applyGridTransform, cancelViewAnimation, onGraphViewChange],
   );
 
   const layout = useMemo(() => {
@@ -1516,6 +1557,7 @@ export default function GraphCanvas({
       viewRef.current = fitView;
       onGraphViewChange(fitView);
       rendererRef.current?.setView(fitView);
+      applyGridTransform(fitView);
     }
   };
 
@@ -1556,6 +1598,7 @@ export default function GraphCanvas({
       viewRef.current = nextView;
       onGraphViewChange(nextView);
       rendererRef.current?.setView(nextView);
+      applyGridTransform(nextView);
     }
     return true;
   };
@@ -1703,6 +1746,7 @@ export default function GraphCanvas({
       viewRef.current = nextView;
       onGraphViewChange(nextView);
       rendererRef.current?.setView(nextView);
+      applyGridTransform(nextView);
     }
     resetStepRef.current = { nodeId, view: nextView };
   };
