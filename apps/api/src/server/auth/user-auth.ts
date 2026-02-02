@@ -1,7 +1,7 @@
 import { jwtVerify } from "jose";
 import { getRemoteJwks } from "./jwks";
 
-export type Auth0TokenPayload = {
+export type UserTokenPayload = {
   sub: string;
   email?: string;
   name?: string;
@@ -24,7 +24,7 @@ function normalizeBaseUrl(value: string): string | null {
 export async function verifyUserToken(
   token: string | null,
   options: VerifyOptions = {}
-): Promise<Auth0TokenPayload | null> {
+): Promise<UserTokenPayload | null> {
   if (!token) {
     return null;
   }
@@ -38,7 +38,7 @@ export async function verifyUserToken(
 
   try {
     const jwks = getRemoteJwks(`${issuer}/api/auth/jwks`);
-    const { payload } = await jwtVerify<Auth0TokenPayload>(token, jwks, {
+    const { payload } = await jwtVerify<UserTokenPayload>(token, jwks, {
       issuer
     });
 

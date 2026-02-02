@@ -1,11 +1,12 @@
 import { db } from "@trail/db";
 import type { AppUser } from "@trail/trpc";
 
-type Auth0User = {
+type AuthUser = {
   sub?: string;
   email?: string;
   name?: string;
   picture?: string;
+  image?: string;
 };
 
 type UserSummary = {
@@ -16,51 +17,62 @@ type UserSummary = {
   createdAt: Date;
 };
 
-export async function ensureUser(authUser: Auth0User): Promise<AppUser | null> {
+function resolveImageUrl(image?: string | null, imageUrl?: string | null) {
+  return image ?? imageUrl ?? null;
+}
+
+export async function ensureUser(authUser: AuthUser): Promise<AppUser | null> {
   if (!authUser.sub) {
     return null;
   }
 
-  const record = await db.user.upsert({
-    where: { auth0Id: authUser.sub },
-    update: {
-      email: authUser.email ?? null,
-      name: authUser.name ?? null,
-      imageUrl: authUser.picture ?? null
-    },
-    create: {
-      auth0Id: authUser.sub,
-      email: authUser.email ?? null,
-      name: authUser.name ?? null,
-      imageUrl: authUser.picture ?? null
-    },
+  const record = await db.user.findUnique({
+    where: { id: authUser.sub },
     select: {
       id: true,
       email: true,
       name: true,
+      image: true,
       imageUrl: true
     }
   });
+
+  if (!record) {
+    return null;
+  }
 
   return {
     id: record.id,
     email: record.email,
     name: record.name,
-    imageUrl: record.imageUrl
+    imageUrl: resolveImageUrl(record.image, record.imageUrl)
   };
 }
 
 export async function getUserById(userId: string): Promise<UserSummary | null> {
-  return db.user.findUnique({
+  const record = await db.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
       email: true,
       name: true,
+      image: true,
       imageUrl: true,
       createdAt: true
     }
   });
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    email: record.email,
+    name: record.name,
+    imageUrl: resolveImageUrl(record.image, record.imageUrl),
+    createdAt: record.createdAt
+  };
 }
 
-export type { Auth0User };
+export type { AuthUser };

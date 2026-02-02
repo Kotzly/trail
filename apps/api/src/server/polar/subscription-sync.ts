@@ -96,7 +96,7 @@ function readMetadata(obj: unknown): Record<string, unknown> {
 function resolveUserIdFromMetadata(params: {
   customer: Record<string, unknown> | null;
   subscription: Record<string, unknown> | null;
-}): { userId?: string; auth0Id?: string } {
+}): { userId?: string } {
   const customerMetadata = readMetadata(params.customer);
   const subscriptionMetadata = readMetadata(params.subscription);
 
@@ -111,20 +111,8 @@ function resolveUserIdFromMetadata(params: {
     subscriptionMetadata.user_id
   );
 
-  const auth0Id = pickFirstString(
-    customerMetadata.auth0Id,
-    customerMetadata.auth0_id,
-    customerMetadata.auth0Sub,
-    customerMetadata.auth0_sub,
-    subscriptionMetadata.auth0Id,
-    subscriptionMetadata.auth0_id,
-    subscriptionMetadata.auth0Sub,
-    subscriptionMetadata.auth0_sub
-  );
-
   return {
-    ...(userId ? { userId } : {}),
-    ...(auth0Id ? { auth0Id } : {})
+    ...(userId ? { userId } : {})
   };
 }
 
@@ -180,28 +168,10 @@ export async function syncSubscriptionFromPolarWebhook(params: {
   // Resolve Trail user mapping.
   // Priority:
   // 1) explicit Trail user id in metadata
-  // 2) Auth0 subject in metadata → upsert user
-  // 3) existing UserSubscription lookup by polarCustomerId
+  // 2) existing UserSubscription lookup by polarCustomerId
   const metadataMapping = resolveUserIdFromMetadata({ customer, subscription });
 
   let userId: string | null = metadataMapping.userId ?? null;
-
-  if (!userId && metadataMapping.auth0Id) {
-    const user = await db.user.upsert({
-      where: { auth0Id: metadataMapping.auth0Id },
-      update: {
-        email: typeof customer?.email === "string" ? customer.email : undefined,
-        name: typeof customer?.name === "string" ? customer.name : undefined
-      },
-      create: {
-        auth0Id: metadataMapping.auth0Id,
-        email: typeof customer?.email === "string" ? customer.email : undefined,
-        name: typeof customer?.name === "string" ? customer.name : undefined
-      }
-    });
-
-    userId = user.id;
-  }
 
   if (!userId && polarCustomerId) {
     const existing = await db.userSubscription.findUnique({
