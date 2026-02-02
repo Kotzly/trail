@@ -58,6 +58,7 @@ export const ModelName = {
   Device: 'Device',
   DeviceSession: 'DeviceSession',
   AccountSettings: 'AccountSettings',
+  PortalSession: 'PortalSession',
   Trail: 'Trail'
 } as const
 
@@ -182,6 +183,23 @@ export const AccountSettingsScalarFieldEnum = {
 } as const
 
 export type AccountSettingsScalarFieldEnum = (typeof AccountSettingsScalarFieldEnum)[keyof typeof AccountSettingsScalarFieldEnum]
+
+
+export const PortalSessionScalarFieldEnum = {
+  id: 'id',
+  source: 'source',
+  locale: 'locale',
+  returnUrl: 'returnUrl',
+  userId: 'userId',
+  extensionToken: 'extensionToken',
+  extensionTokenExpiresAt: 'extensionTokenExpiresAt',
+  approvedAt: 'approvedAt',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PortalSessionScalarFieldEnum = (typeof PortalSessionScalarFieldEnum)[keyof typeof PortalSessionScalarFieldEnum]
 
 
 export const TrailScalarFieldEnum = {

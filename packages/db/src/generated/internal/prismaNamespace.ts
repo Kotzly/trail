@@ -391,6 +391,7 @@ export const ModelName = {
   Device: 'Device',
   DeviceSession: 'DeviceSession',
   AccountSettings: 'AccountSettings',
+  PortalSession: 'PortalSession',
   Trail: 'Trail'
 } as const
 
@@ -407,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userSubscription" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "trail"
+    modelProps: "user" | "userSubscription" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "portalSession" | "trail"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -929,6 +930,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PortalSession: {
+      payload: Prisma.$PortalSessionPayload<ExtArgs>
+      fields: Prisma.PortalSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PortalSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PortalSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.PortalSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PortalSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
+        }
+        findMany: {
+          args: Prisma.PortalSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>[]
+        }
+        create: {
+          args: Prisma.PortalSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
+        }
+        createMany: {
+          args: Prisma.PortalSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PortalSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.PortalSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
+        }
+        update: {
+          args: Prisma.PortalSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.PortalSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PortalSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PortalSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.PortalSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.PortalSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePortalSession>
+        }
+        groupBy: {
+          args: Prisma.PortalSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PortalSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PortalSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PortalSessionCountAggregateOutputType> | number
+        }
+      }
+    }
     Trail: {
       payload: Prisma.$TrailPayload<ExtArgs>
       fields: Prisma.TrailFieldRefs
@@ -1147,6 +1222,23 @@ export const AccountSettingsScalarFieldEnum = {
 } as const
 
 export type AccountSettingsScalarFieldEnum = (typeof AccountSettingsScalarFieldEnum)[keyof typeof AccountSettingsScalarFieldEnum]
+
+
+export const PortalSessionScalarFieldEnum = {
+  id: 'id',
+  source: 'source',
+  locale: 'locale',
+  returnUrl: 'returnUrl',
+  userId: 'userId',
+  extensionToken: 'extensionToken',
+  extensionTokenExpiresAt: 'extensionTokenExpiresAt',
+  approvedAt: 'approvedAt',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PortalSessionScalarFieldEnum = (typeof PortalSessionScalarFieldEnum)[keyof typeof PortalSessionScalarFieldEnum]
 
 
 export const TrailScalarFieldEnum = {
@@ -1485,6 +1577,7 @@ export type GlobalOmitConfig = {
   device?: Prisma.DeviceOmit
   deviceSession?: Prisma.DeviceSessionOmit
   accountSettings?: Prisma.AccountSettingsOmit
+  portalSession?: Prisma.PortalSessionOmit
   trail?: Prisma.TrailOmit
 }
 
