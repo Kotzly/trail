@@ -1,0 +1,1134 @@
+openapi: 3.1.0
+info:
+  title: Trail API
+  version: 0.1.0
+  description: |
+    Public API for Trail clients (extension, dashboard, marketing).
+    All endpoints are served from the API app and versioned under /v1.
+servers:
+  - url: https://api.gettrail.net/v1
+  - url: http://localhost:3002/v1
+security: []
+
+paths:
+  /wishlist:
+    post:
+      summary: Create or update a wishlist lead
+      description: |
+        Public endpoint. If the email already exists, the lead is updated and
+        sources are merged.
+      tags: [wishlist]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistLeadInput"
+      responses:
+        "201":
+          description: Lead created or updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistLead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/portal:
+    post:
+      summary: Start extension sign-in portal flow
+      description: |
+        Returns a short-lived session id and a URL for user confirmation on the
+        account site. Used by the extension.
+      tags: [auth]
+      security: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthPortalRequest"
+      responses:
+        "200":
+          description: Portal session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthPortalSession"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/portal/{id}:
+    get:
+      summary: Check portal session status
+      description: Polled by the extension until approved or expired.
+      tags: [auth]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/PortalId"
+      responses:
+        "200":
+          description: Portal status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthPortalStatus"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /auth/portal/{id}/approve:
+    post:
+      summary: Approve portal sign-in
+      description: |
+        Called from the account site after user confirmation.
+      tags: [auth]
+      security:
+        - userAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PortalId"
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalApproval"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /extension/connect:
+    post:
+      summary: Start dashboard → extension connect flow
+      tags: [extension]
+      security:
+        - userAuth: []
+      responses:
+        "200":
+          description: Connect session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExtensionConnectSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /extension/connect/{id}:
+    get:
+      summary: Check connect session status
+      tags: [extension]
+      security:
+        - userAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConnectId"
+      responses:
+        "200":
+          description: Connect status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExtensionConnectStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /extension/connect/{id}/approve:
+    post:
+      summary: Approve connect session from extension
+      tags: [extension]
+      security:
+        - extensionAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConnectId"
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExtensionConnectApproval"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /devices/claim:
+    post:
+      summary: Claim or create a device identity
+      description: |
+        Extension-only. If a stored deviceId exists, the server tries to
+        attach it to the authenticated user; otherwise creates a new device.
+      tags: [devices]
+      security:
+        - extensionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceClaimRequest"
+      responses:
+        "200":
+          description: Device claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceClaimResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /devices:
+    get:
+      summary: List devices and sessions
+      tags: [devices]
+      security:
+        - userAuth: []
+      responses:
+        "200":
+          description: Device list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceWithSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /devices/{id}/revoke:
+    post:
+      summary: Revoke a device session
+      tags: [devices]
+      security:
+        - userAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /account/settings:
+    get:
+      summary: Get account settings
+      tags: [account]
+      security:
+        - userAuth: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSettings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      summary: Update account settings
+      tags: [account]
+      security:
+        - userAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountSettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSettings"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /trails:
+    get:
+      summary: List trails
+      tags: [trails]
+      security:
+        - userAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: includeDeleted
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Trails list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TrailSummary"
+                  nextCursor:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /trails/sync:
+    post:
+      summary: Full sync trails (push + pull)
+      description: |
+        Extension sends full list (active + deleted). Server responds with
+        updated trails since clientSyncAt.
+      tags: [trails]
+      security:
+        - extensionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrailSyncRequest"
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrailSyncResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /trails/{id}:
+    patch:
+      summary: Update trail metadata
+      tags: [trails]
+      security:
+        - userAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TrailId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrailUpdate"
+      responses:
+        "200":
+          description: Updated trail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrailRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Soft delete trail
+      tags: [trails]
+      security:
+        - userAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TrailId"
+      responses:
+        "200":
+          description: Deleted (tombstone)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrailRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /trails/{id}/restore:
+    post:
+      summary: Restore a deleted trail
+      tags: [trails]
+      security:
+        - userAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TrailId"
+      responses:
+        "200":
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrailRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /account:
+    get:
+      summary: Get account snapshot
+      tags: [account]
+      security:
+        - extensionAuth: []
+      responses:
+        "200":
+          description: Account snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSnapshot"
+
+  /plans:
+    get:
+      summary: List plans
+      tags: [billing]
+      security: []
+      responses:
+        "200":
+          description: Plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
+
+  /subscription:
+    get:
+      summary: Get subscription
+      tags: [billing]
+      security:
+        - extensionAuth: []
+      responses:
+        "200":
+          description: Subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  /billing:
+    get:
+      summary: Get billing status
+      tags: [billing]
+      security:
+        - extensionAuth: []
+      responses:
+        "200":
+          description: Billing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingStatus"
+
+  /subscription/checkout:
+    post:
+      summary: Start checkout
+      tags: [billing]
+      security:
+        - extensionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutInput"
+      responses:
+        "200":
+          description: Checkout link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalLink"
+
+  /billing/portal:
+    post:
+      summary: Create billing portal link
+      tags: [billing]
+      security:
+        - extensionAuth: []
+      responses:
+        "200":
+          description: Portal link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalLink"
+
+components:
+  securitySchemes:
+    userAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Auth0 access token
+    extensionAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Trail extension access token
+
+  parameters:
+    PortalId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    ConnectId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    DeviceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    TrailId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+        details:
+          type: string
+
+    WishlistSource:
+      type: string
+      enum: [marketing, account, extension]
+
+    WishlistLeadInput:
+      type: object
+      required: [email, source]
+      properties:
+        email:
+          type: string
+          format: email
+        source:
+          $ref: "#/components/schemas/WishlistSource"
+        utmSource:
+          type: string
+          nullable: true
+        utmMedium:
+          type: string
+          nullable: true
+        utmCampaign:
+          type: string
+          nullable: true
+        utmContent:
+          type: string
+          nullable: true
+        utmTerm:
+          type: string
+          nullable: true
+        referrer:
+          type: string
+          nullable: true
+        pagePath:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        ip:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+
+    WishlistLead:
+      type: object
+      required: [id, email, sources, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        userId:
+          type: string
+          nullable: true
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/WishlistSource"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuthPortalRequest:
+      type: object
+      properties:
+        source:
+          type: string
+        locale:
+          type: string
+        returnUrl:
+          type: string
+          format: uri
+
+    AuthPortalSession:
+      type: object
+      required: [id, url, expiresAt]
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+        pollIntervalMs:
+          type: integer
+          nullable: true
+
+    AuthPortalStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, approved, expired]
+        snapshot:
+          $ref: "#/components/schemas/AccountSnapshot"
+
+    PortalApproval:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [approved]
+        approvedAt:
+          type: string
+          format: date-time
+
+    ExtensionConnectSession:
+      type: object
+      required: [id, expiresAt]
+      properties:
+        id:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        pollIntervalMs:
+          type: integer
+          nullable: true
+
+    ExtensionConnectStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, approved, expired]
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ExtensionConnectApproval:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [approved]
+        approvedAt:
+          type: string
+          format: date-time
+
+    DeviceStatus:
+      type: string
+      enum: [active, revoked]
+
+    Device:
+      type: object
+      required: [id, userId, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        status:
+          $ref: "#/components/schemas/DeviceStatus"
+        deviceName:
+          type: string
+          nullable: true
+        os:
+          type: string
+          nullable: true
+        locale:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+          nullable: true
+        browserName:
+          type: string
+          nullable: true
+        browserVersion:
+          type: string
+          nullable: true
+        extensionVersion:
+          type: string
+          nullable: true
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DeviceSession:
+      type: object
+      required: [id, deviceId, userId, createdAt, updatedAt, expiresAt]
+      properties:
+        id:
+          type: string
+        deviceId:
+          type: string
+        userId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    DeviceWithSession:
+      allOf:
+        - $ref: "#/components/schemas/Device"
+        - type: object
+          properties:
+            session:
+              $ref: "#/components/schemas/DeviceSession"
+
+    DeviceClaimRequest:
+      type: object
+      required: [metadata]
+      properties:
+        deviceId:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          required: [os]
+          properties:
+            deviceName:
+              type: string
+              nullable: true
+            os:
+              type: string
+            locale:
+              type: string
+              nullable: true
+            timezone:
+              type: string
+              nullable: true
+            browserName:
+              type: string
+              nullable: true
+            browserVersion:
+              type: string
+              nullable: true
+            extensionVersion:
+              type: string
+              nullable: true
+
+    DeviceClaimResponse:
+      type: object
+      required: [device, session]
+      properties:
+        device:
+          $ref: "#/components/schemas/Device"
+        session:
+          $ref: "#/components/schemas/DeviceSession"
+        sessionTtlDays:
+          type: integer
+          nullable: true
+
+    AccountSettings:
+      type: object
+      required: [deviceSessionTtlDays]
+      properties:
+        deviceSessionTtlDays:
+          type: integer
+          enum: [7, 30, 90, 180, 365]
+
+    AccountSettingsUpdate:
+      type: object
+      properties:
+        deviceSessionTtlDays:
+          type: integer
+          enum: [7, 30, 90, 180, 365]
+
+    TrailLabelSource:
+      type: string
+      enum: [user, auto, system]
+
+    TrailSummary:
+      type: object
+      required: [id, userId, deviceId, createdAt, updatedAt, savedAt, label, labelSource, labelUpdatedAt, nodeCount]
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        deviceId:
+          type: string
+        label:
+          type: string
+        labelSource:
+          $ref: "#/components/schemas/TrailLabelSource"
+        labelUpdatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        savedAt:
+          type: string
+          format: date-time
+        nodeCount:
+          type: integer
+        rootUrl:
+          type: string
+          nullable: true
+        rootTitle:
+          type: string
+          nullable: true
+        rootFavicon:
+          type: string
+          nullable: true
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    TrailPayload:
+      type: object
+      additionalProperties: true
+
+    TrailRecord:
+      allOf:
+        - $ref: "#/components/schemas/TrailSummary"
+        - type: object
+          required: [payload]
+          properties:
+            payload:
+              $ref: "#/components/schemas/TrailPayload"
+
+    TrailSyncItem:
+      allOf:
+        - $ref: "#/components/schemas/TrailRecord"
+
+    TrailSyncRequest:
+      type: object
+      required: [deviceId, clientSyncAt, trails]
+      properties:
+        deviceId:
+          type: string
+        clientSyncAt:
+          type: string
+          format: date-time
+        trails:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrailSyncItem"
+
+    TrailSyncResponse:
+      type: object
+      required: [serverSyncAt, updates]
+      properties:
+        serverSyncAt:
+          type: string
+          format: date-time
+        updates:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrailSyncItem"
+
+    TrailUpdate:
+      type: object
+      properties:
+        label:
+          type: string
+        labelSource:
+          $ref: "#/components/schemas/TrailLabelSource"
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Plan:
+      type: object
+      required: [id, name, tier, priceMonthly, priceYearly, currency, features]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tier:
+          type: string
+        priceMonthly:
+          type: number
+        priceYearly:
+          type: number
+        currency:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        limits:
+          type: object
+          additionalProperties: true
+        highlight:
+          type: boolean
+          nullable: true
+        rank:
+          type: integer
+          nullable: true
+
+    Subscription:
+      type: object
+      required: [id, planId, status, interval, currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd]
+      properties:
+        id:
+          type: string
+        planId:
+          type: string
+        status:
+          type: string
+        interval:
+          type: string
+        currentPeriodStart:
+          type: string
+          format: date-time
+        currentPeriodEnd:
+          type: string
+          format: date-time
+        cancelAtPeriodEnd:
+          type: boolean
+        trialEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        canceledAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    BillingStatus:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+        lastChargeAt:
+          type: string
+          format: date-time
+          nullable: true
+        nextChargeAt:
+          type: string
+          format: date-time
+          nullable: true
+        graceEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        paymentMethod:
+          type: object
+          nullable: true
+          properties:
+            brand:
+              type: string
+            last4:
+              type: string
+            expMonth:
+              type: integer
+            expYear:
+              type: integer
+        failureReason:
+          type: string
+          nullable: true
+
+    User:
+      type: object
+      required: [id, email, displayName, createdAt]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthSession:
+      oneOf:
+        - type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [guest]
+        - type: object
+          required: [status, accessToken]
+          properties:
+            status:
+              type: string
+              enum: [authenticated]
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+              nullable: true
+            expiresAt:
+              type: string
+              format: date-time
+              nullable: true
+
+    AccountSnapshot:
+      type: object
+      required: [session, user, subscription, billing, plans]
+      properties:
+        session:
+          $ref: "#/components/schemas/AuthSession"
+        user:
+          $ref: "#/components/schemas/User"
+        subscription:
+          $ref: "#/components/schemas/Subscription"
+          nullable: true
+        billing:
+          $ref: "#/components/schemas/BillingStatus"
+        plans:
+          type: array
+          items:
+            $ref: "#/components/schemas/Plan"
+
+    CheckoutInput:
+      type: object
+      required: [planId, interval]
+      properties:
+        planId:
+          type: string
+        interval:
+          type: string
+        successUrl:
+          type: string
+          format: uri
+          nullable: true
+        cancelUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    PortalLink:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
