@@ -38,3 +38,40 @@ export const PolarWebhookEventStatus = {
 } as const
 
 export type PolarWebhookEventStatus = (typeof PolarWebhookEventStatus)[keyof typeof PolarWebhookEventStatus]
+
+
+export const WishlistLeadSource = {
+  MARKETING: 'MARKETING',
+  ACCOUNT: 'ACCOUNT',
+  EXTENSION: 'EXTENSION'
+} as const
+
+export type WishlistLeadSource = (typeof WishlistLeadSource)[keyof typeof WishlistLeadSource]
+
+
+export const DeviceStatus = {
+  ACTIVE: 'ACTIVE',
+  REVOKED: 'REVOKED'
+} as const
+
+export type DeviceStatus = (typeof DeviceStatus)[keyof typeof DeviceStatus]
+
+
+export const DeviceSessionTtlDays = {
+  DAYS_7: 'DAYS_7',
+  DAYS_30: 'DAYS_30',
+  DAYS_90: 'DAYS_90',
+  DAYS_180: 'DAYS_180',
+  DAYS_365: 'DAYS_365'
+} as const
+
+export type DeviceSessionTtlDays = (typeof DeviceSessionTtlDays)[keyof typeof DeviceSessionTtlDays]
+
+
+export const TrailLabelSource = {
+  USER: 'USER',
+  AUTO: 'AUTO',
+  SYSTEM: 'SYSTEM'
+} as const
+
+export type TrailLabelSource = (typeof TrailLabelSource)[keyof typeof TrailLabelSource]

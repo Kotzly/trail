@@ -45,11 +45,6 @@ export { Prisma }
  */
 export type User = Prisma.UserModel
 /**
- * Model ExtensionLoginCode
- * 
- */
-export type ExtensionLoginCode = Prisma.ExtensionLoginCodeModel
-/**
  * Model UserSubscription
  * 
  */
@@ -59,3 +54,28 @@ export type UserSubscription = Prisma.UserSubscriptionModel
  * 
  */
 export type PolarWebhookEvent = Prisma.PolarWebhookEventModel
+/**
+ * Model WishlistLead
+ * 
+ */
+export type WishlistLead = Prisma.WishlistLeadModel
+/**
+ * Model Device
+ * 
+ */
+export type Device = Prisma.DeviceModel
+/**
+ * Model DeviceSession
+ * 
+ */
+export type DeviceSession = Prisma.DeviceSessionModel
+/**
+ * Model AccountSettings
+ * 
+ */
+export type AccountSettings = Prisma.AccountSettingsModel
+/**
+ * Model Trail
+ * 
+ */
+export type Trail = Prisma.TrailModel

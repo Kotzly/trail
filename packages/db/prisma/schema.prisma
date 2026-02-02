@@ -8,26 +8,19 @@ datasource db {
 }
 
 model User {
-  id         String               @id @default(cuid())
-  auth0Id    String               @unique
-  email      String?
-  name       String?
-  imageUrl   String?
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime             @updatedAt
-  loginCodes ExtensionLoginCode[]
-
-  subscription UserSubscription?
-}
-
-model ExtensionLoginCode {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-  usedAt    DateTime?
+  id              String            @id @default(cuid())
+  auth0Id         String            @unique
+  email           String?
+  name            String?
+  imageUrl        String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  subscription    UserSubscription?
+  wishlistLeads   WishlistLead[]
+  devices         Device[]
+  deviceSessions  DeviceSession[]
+  accountSettings AccountSettings?
+  trails          Trail[]
 }
 
 enum SubscriptionPlan {
@@ -52,6 +45,31 @@ enum PolarWebhookEventStatus {
   FAILED
 }
 
+enum WishlistLeadSource {
+  MARKETING
+  ACCOUNT
+  EXTENSION
+}
+
+enum DeviceStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum DeviceSessionTtlDays {
+  DAYS_7
+  DAYS_30
+  DAYS_90
+  DAYS_180
+  DAYS_365
+}
+
+enum TrailLabelSource {
+  USER
+  AUTO
+  SYSTEM
+}
+
 model UserSubscription {
   id                 String             @id @default(cuid())
   userId             String             @unique
@@ -74,4 +92,84 @@ model PolarWebhookEvent {
   processedAt DateTime?
   error      String?
   updatedAt  DateTime                @updatedAt
+}
+
+model WishlistLead {
+  id          String              @id @default(cuid())
+  email       String              @unique
+  userId      String?
+  user        User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sources     WishlistLeadSource[]
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+  referrer    String?
+  pagePath    String?
+  userAgent   String?
+  ip          String?
+  country     String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model Device {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           DeviceStatus   @default(ACTIVE)
+  deviceName       String?
+  os               String?
+  locale           String?
+  timezone         String?
+  browserName      String?
+  browserVersion   String?
+  extensionVersion String?
+  lastSeenAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  sessions         DeviceSession[]
+  trails           Trail[]
+}
+
+model DeviceSession {
+  id         String   @id @default(cuid())
+  deviceId   String
+  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  expiresAt  DateTime
+  lastSeenAt DateTime?
+  revokedAt  DateTime?
+}
+
+model AccountSettings {
+  userId                String               @id
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceSessionTtlDays  DeviceSessionTtlDays @default(DAYS_30)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+}
+
+model Trail {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId       String
+  device         Device           @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  label          String
+  labelSource    TrailLabelSource @default(USER)
+  labelUpdatedAt DateTime
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  savedAt        DateTime
+  nodeCount      Int
+  rootUrl        String?
+  rootTitle      String?
+  rootFavicon    String?
+  payload        Json
+  deletedAt      DateTime?
 }
