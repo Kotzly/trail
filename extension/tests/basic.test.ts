@@ -14,6 +14,7 @@ import {
   getCanvasBounds,
 } from '../src/sidepanel/ui/graph/layout/calculator.js';
 import { computeGraphGridTransform } from '../src/sidepanel/ui/components/graph/grid-transform.js';
+import { getSidebarLabelState, getSidebarWidth } from '../src/sidepanel/ui/components/ui/sidebar-utils.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -183,8 +184,28 @@ function testGraphGridTransform(): void {
 
   const tinyView: ViewState = { translateX: 0, translateY: 0, scale: 0.2 };
   const tiny = computeGraphGridTransform(tinyView);
-  assert.equal(tiny.size, 4);
-  assert.equal(tiny.dotSize, 0.75);
+  assert.equal(tiny.size, 16);
+  assert.equal(tiny.dotSize, 1);
+}
+
+function testSidebarLabelState(): void {
+  const openState = getSidebarLabelState(true, true);
+  assert.equal(openState.display, 'inline-block');
+  assert.equal(openState.opacity, 1);
+
+  const closedState = getSidebarLabelState(false, true);
+  assert.equal(closedState.display, 'none');
+  assert.equal(closedState.opacity, 0);
+
+  const staticState = getSidebarLabelState(false, false);
+  assert.equal(staticState.display, 'inline-block');
+  assert.equal(staticState.opacity, 1);
+}
+
+function testSidebarWidth(): void {
+  assert.equal(getSidebarWidth(true, true), '300px');
+  assert.equal(getSidebarWidth(false, true), '60px');
+  assert.equal(getSidebarWidth(false, false), '300px');
 }
 
 try {
@@ -194,6 +215,8 @@ try {
   testNavigationTreeSearchIndex();
   testGraphLayouts();
   testGraphGridTransform();
+  testSidebarLabelState();
+  testSidebarWidth();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);
