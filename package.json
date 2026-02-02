@@ -7,6 +7,7 @@
     "dev:marketing": "pnpm --filter @trail/marketing dev",
     "dev:account": "pnpm --filter @trail/account dev",
     "dev:api": "pnpm --filter @trail/api dev",
+    "dev:auth": "pnpm --filter @trail/auth dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
