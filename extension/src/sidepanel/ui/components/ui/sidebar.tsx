@@ -86,17 +86,20 @@ export const Sidebar = ({
 
 type SidebarBodyProps = Omit<React.ComponentProps<typeof motion.div>, 'children'> & {
   children?: React.ReactNode;
+  showMobile?: boolean;
+  forceDesktop?: boolean;
 };
 
 export const SidebarBody = (props: SidebarBodyProps) => {
-  const { className, children, ...rest } = props;
+  const { className, children, showMobile = true, forceDesktop = false, ...rest } = props;
+  const desktopClassName = cn(forceDesktop ? 'flex flex-col' : undefined, className);
 
   return (
     <>
-      <DesktopSidebar className={className} {...rest}>
+      <DesktopSidebar className={desktopClassName} {...rest}>
         {children}
       </DesktopSidebar>
-      <MobileSidebar className={className}>{children}</MobileSidebar>
+      {showMobile ? <MobileSidebar className={className}>{children}</MobileSidebar> : null}
     </>
   );
 };

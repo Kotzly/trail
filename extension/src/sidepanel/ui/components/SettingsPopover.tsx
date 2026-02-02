@@ -19,7 +19,7 @@ import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
-import { Sidebar, SidebarBody } from './ui/sidebar';
+import { Sidebar, SidebarBody, useSidebar } from './ui/sidebar';
 import { useAuthPortalFlow } from '../hooks/useAuthPortalFlow.js';
 import { createPortal } from 'react-dom';
 import React from 'react';
@@ -252,6 +252,41 @@ function formatTimestamp(value?: string | null): string {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date);
+}
+
+type SettingsSidebarNavProps = {
+  activeSection: SettingsSectionId;
+  onSelectSection: (section: SettingsSectionId) => void;
+};
+
+function SettingsSidebarNav({ activeSection, onSelectSection }: SettingsSidebarNavProps) {
+  const { open } = useSidebar();
+
+  return (
+    <nav className="settings-sidebar-nav" aria-label="Settings sections" data-open={open}>
+      {SETTINGS_SECTIONS.map((section) => {
+        const Icon = section.icon;
+        const active = section.id === activeSection;
+        return (
+          <button
+            key={section.id}
+            type="button"
+            className={`settings-nav-item ${active ? 'active' : ''}`}
+            onClick={() => onSelectSection(section.id)}
+            aria-current={active ? 'page' : undefined}
+          >
+            <span className="settings-nav-icon">
+              <Icon size={16} />
+            </span>
+            <span className="settings-nav-text">
+              <span className="settings-nav-title">{section.label}</span>
+              <span className="settings-nav-subtitle">{section.description}</span>
+            </span>
+          </button>
+        );
+      })}
+    </nav>
+  );
 }
 
 export default function SettingsPopover() {
@@ -1118,34 +1153,15 @@ export default function SettingsPopover() {
         </div>
 
         <div className="settings-modal-body">
-          <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} animate={false}>
-            <SidebarBody className="settings-sidebar">
-              <nav className="settings-sidebar-nav" aria-label="Settings sections">
-                {SETTINGS_SECTIONS.map((section) => {
-                  const Icon = section.icon;
-                  const active = section.id === activeSection;
-                  return (
-                    <button
-                      key={section.id}
-                      type="button"
-                      className={`settings-nav-item ${active ? 'active' : ''}`}
-                      onClick={() => {
-                        setActiveSection(section.id);
-                        setSidebarOpen(false);
-                      }}
-                      aria-current={active ? 'page' : undefined}
-                    >
-                      <span className="settings-nav-icon">
-                        <Icon size={16} />
-                      </span>
-                      <span className="settings-nav-text">
-                        <span className="settings-nav-title">{section.label}</span>
-                        <span className="settings-nav-subtitle">{section.description}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </nav>
+          <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
+            <SidebarBody className="settings-sidebar" showMobile={false} forceDesktop>
+              <SettingsSidebarNav
+                activeSection={activeSection}
+                onSelectSection={(section) => {
+                  setActiveSection(section);
+                  setSidebarOpen(false);
+                }}
+              />
             </SidebarBody>
           </Sidebar>
           <div className="settings-panel">{renderPanel()}</div>
