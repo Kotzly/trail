@@ -20,6 +20,7 @@ model User {
   devices         Device[]
   deviceSessions  DeviceSession[]
   accountSettings AccountSettings?
+  portalSessions  PortalSession[]
   trails          Trail[]
 }
 
@@ -152,6 +153,23 @@ model AccountSettings {
   deviceSessionTtlDays  DeviceSessionTtlDays @default(DAYS_30)
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
+}
+
+model PortalSession {
+  id                       String   @id @default(cuid())
+  source                   String?
+  locale                   String?
+  returnUrl                String?
+  userId                   String?
+  user                     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  extensionToken           String?
+  extensionTokenExpiresAt  DateTime?
+  approvedAt               DateTime?
+  expiresAt                DateTime
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([expiresAt])
 }
 
 model Trail {

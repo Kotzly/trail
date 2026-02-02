@@ -75,6 +75,11 @@ export type DeviceSession = Prisma.DeviceSessionModel
  */
 export type AccountSettings = Prisma.AccountSettingsModel
 /**
+ * Model PortalSession
+ * 
+ */
+export type PortalSession = Prisma.PortalSessionModel
+/**
  * Model Trail
  * 
  */
