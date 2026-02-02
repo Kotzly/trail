@@ -397,6 +397,7 @@ export const ModelName = {
   DeviceSession: 'DeviceSession',
   AccountSettings: 'AccountSettings',
   PortalSession: 'PortalSession',
+  ExtensionConnectSession: 'ExtensionConnectSession',
   Trail: 'Trail'
 } as const
 
@@ -413,7 +414,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jwks" | "authBridgeCode" | "userSubscription" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "portalSession" | "trail"
+    modelProps: "user" | "session" | "account" | "verification" | "jwks" | "authBridgeCode" | "userSubscription" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "portalSession" | "extensionConnectSession" | "trail"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1379,6 +1380,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ExtensionConnectSession: {
+      payload: Prisma.$ExtensionConnectSessionPayload<ExtArgs>
+      fields: Prisma.ExtensionConnectSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ExtensionConnectSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ExtensionConnectSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.ExtensionConnectSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ExtensionConnectSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
+        }
+        findMany: {
+          args: Prisma.ExtensionConnectSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>[]
+        }
+        create: {
+          args: Prisma.ExtensionConnectSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
+        }
+        createMany: {
+          args: Prisma.ExtensionConnectSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ExtensionConnectSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.ExtensionConnectSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
+        }
+        update: {
+          args: Prisma.ExtensionConnectSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.ExtensionConnectSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ExtensionConnectSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ExtensionConnectSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.ExtensionConnectSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.ExtensionConnectSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateExtensionConnectSession>
+        }
+        groupBy: {
+          args: Prisma.ExtensionConnectSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExtensionConnectSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ExtensionConnectSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExtensionConnectSessionCountAggregateOutputType> | number
+        }
+      }
+    }
     Trail: {
       payload: Prisma.$TrailPayload<ExtArgs>
       fields: Prisma.TrailFieldRefs
@@ -1684,6 +1759,18 @@ export const PortalSessionScalarFieldEnum = {
 } as const
 
 export type PortalSessionScalarFieldEnum = (typeof PortalSessionScalarFieldEnum)[keyof typeof PortalSessionScalarFieldEnum]
+
+
+export const ExtensionConnectSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  approvedAt: 'approvedAt',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExtensionConnectSessionScalarFieldEnum = (typeof ExtensionConnectSessionScalarFieldEnum)[keyof typeof ExtensionConnectSessionScalarFieldEnum]
 
 
 export const TrailScalarFieldEnum = {
@@ -2035,6 +2122,7 @@ export type GlobalOmitConfig = {
   deviceSession?: Prisma.DeviceSessionOmit
   accountSettings?: Prisma.AccountSettingsOmit
   portalSession?: Prisma.PortalSessionOmit
+  extensionConnectSession?: Prisma.ExtensionConnectSessionOmit
   trail?: Prisma.TrailOmit
 }
 
