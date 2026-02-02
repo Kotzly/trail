@@ -563,6 +563,7 @@ export default function GraphCanvas({
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     const resizeObserver = new ResizeObserver(() => {
+      rendererRef.current?.resizeToHost();
       rendererRef.current?.setView(viewRef.current);
       applyGridTransform(viewRef.current);
     });
