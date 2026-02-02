@@ -13,8 +13,11 @@ type VerifyOptions = {
   issuer?: string;
 };
 
-function normalizeIssuer(value: string): string {
-  const trimmed = value.replace(/\/+$/, "");
+function normalizeIssuer(value: string): string | null {
+  const trimmed = value.trim().replace(/\/+$/, "");
+  if (!trimmed) {
+    return null;
+  }
   return `${trimmed}/`;
 }
 
@@ -39,7 +42,7 @@ export async function verifyUserToken(
     return null;
   }
 
-  const issuer = options.issuer ? normalizeIssuer(options.issuer) : getAuth0Issuer();
+  const issuer = (options.issuer ? normalizeIssuer(options.issuer) : null) ?? getAuth0Issuer();
   if (!issuer) {
     return null;
   }
