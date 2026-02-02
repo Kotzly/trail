@@ -567,23 +567,6 @@ export default function SettingsPopover() {
                       <div className="settings-section-hint">Choose a mode, then fine tune colors.</div>
                     </div>
                     <div className="popover-section">
-                      <div className="popover-label-small">Color scheme</div>
-                      <div className="popover-segment">
-                        {THEME_OPTIONS.map((option) => {
-                          const Icon = option.icon;
-                          return (
-                            <button
-                              key={option.id}
-                              type="button"
-                              className={`popover-segment-btn wide ${settings?.theme === option.id ? 'active' : ''}`}
-                              onClick={() => updateSettings({ theme: option.id })}
-                            >
-                              <Icon size={14} />
-                              {option.label}
-                            </button>
-                          );
-                        })}
-                      </div>
                       <div className="settings-row">
                         <span className="popover-hint">
                           Open Theme Studio for custom palettes and textures.
