@@ -440,6 +440,10 @@ export type EnumSubscriptionStatusFieldUpdateOperationsInput = {
   set?: $Enums.SubscriptionStatus
 }
 
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
 export type UserSubscriptionCreateWithoutUserInput = {
   id?: string
   plan?: $Enums.SubscriptionPlan

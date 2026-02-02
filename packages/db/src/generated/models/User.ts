@@ -198,8 +198,12 @@ export type UserWhereInput = {
   imageUrl?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeListRelationFilter
   subscription?: Prisma.XOR<Prisma.UserSubscriptionNullableScalarRelationFilter, Prisma.UserSubscriptionWhereInput> | null
+  wishlistLeads?: Prisma.WishlistLeadListRelationFilter
+  devices?: Prisma.DeviceListRelationFilter
+  deviceSessions?: Prisma.DeviceSessionListRelationFilter
+  accountSettings?: Prisma.XOR<Prisma.AccountSettingsNullableScalarRelationFilter, Prisma.AccountSettingsWhereInput> | null
+  trails?: Prisma.TrailListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -210,8 +214,12 @@ export type UserOrderByWithRelationInput = {
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  loginCodes?: Prisma.ExtensionLoginCodeOrderByRelationAggregateInput
   subscription?: Prisma.UserSubscriptionOrderByWithRelationInput
+  wishlistLeads?: Prisma.WishlistLeadOrderByRelationAggregateInput
+  devices?: Prisma.DeviceOrderByRelationAggregateInput
+  deviceSessions?: Prisma.DeviceSessionOrderByRelationAggregateInput
+  accountSettings?: Prisma.AccountSettingsOrderByWithRelationInput
+  trails?: Prisma.TrailOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -225,8 +233,12 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   imageUrl?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeListRelationFilter
   subscription?: Prisma.XOR<Prisma.UserSubscriptionNullableScalarRelationFilter, Prisma.UserSubscriptionWhereInput> | null
+  wishlistLeads?: Prisma.WishlistLeadListRelationFilter
+  devices?: Prisma.DeviceListRelationFilter
+  deviceSessions?: Prisma.DeviceSessionListRelationFilter
+  accountSettings?: Prisma.XOR<Prisma.AccountSettingsNullableScalarRelationFilter, Prisma.AccountSettingsWhereInput> | null
+  trails?: Prisma.TrailListRelationFilter
 }, "id" | "auth0Id">
 
 export type UserOrderByWithAggregationInput = {
@@ -263,8 +275,12 @@ export type UserCreateInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -275,8 +291,12 @@ export type UserUncheckedCreateInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -287,8 +307,12 @@ export type UserUpdateInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -299,8 +323,12 @@ export type UserUncheckedUpdateInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -368,6 +396,11 @@ export type UserScalarRelationFilter = {
   isNot?: Prisma.UserWhereInput
 }
 
+export type UserNullableScalarRelationFilter = {
+  is?: Prisma.UserWhereInput | null
+  isNot?: Prisma.UserWhereInput | null
+}
+
 export type StringFieldUpdateOperationsInput = {
   set?: string
 }
@@ -378,20 +411,6 @@ export type NullableStringFieldUpdateOperationsInput = {
 
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
-}
-
-export type UserCreateNestedOneWithoutLoginCodesInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutLoginCodesInput, Prisma.UserUncheckedCreateWithoutLoginCodesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutLoginCodesInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneRequiredWithoutLoginCodesNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutLoginCodesInput, Prisma.UserUncheckedCreateWithoutLoginCodesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutLoginCodesInput
-  upsert?: Prisma.UserUpsertWithoutLoginCodesInput
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutLoginCodesInput, Prisma.UserUpdateWithoutLoginCodesInput>, Prisma.UserUncheckedUpdateWithoutLoginCodesInput>
 }
 
 export type UserCreateNestedOneWithoutSubscriptionInput = {
@@ -408,64 +427,76 @@ export type UserUpdateOneRequiredWithoutSubscriptionNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSubscriptionInput, Prisma.UserUpdateWithoutSubscriptionInput>, Prisma.UserUncheckedUpdateWithoutSubscriptionInput>
 }
 
-export type UserCreateWithoutLoginCodesInput = {
-  id?: string
-  auth0Id: string
-  email?: string | null
-  name?: string | null
-  imageUrl?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+export type UserCreateNestedOneWithoutWishlistLeadsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutWishlistLeadsInput, Prisma.UserUncheckedCreateWithoutWishlistLeadsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutWishlistLeadsInput
+  connect?: Prisma.UserWhereUniqueInput
 }
 
-export type UserUncheckedCreateWithoutLoginCodesInput = {
-  id?: string
-  auth0Id: string
-  email?: string | null
-  name?: string | null
-  imageUrl?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+export type UserUpdateOneWithoutWishlistLeadsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutWishlistLeadsInput, Prisma.UserUncheckedCreateWithoutWishlistLeadsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutWishlistLeadsInput
+  upsert?: Prisma.UserUpsertWithoutWishlistLeadsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutWishlistLeadsInput, Prisma.UserUpdateWithoutWishlistLeadsInput>, Prisma.UserUncheckedUpdateWithoutWishlistLeadsInput>
 }
 
-export type UserCreateOrConnectWithoutLoginCodesInput = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutLoginCodesInput, Prisma.UserUncheckedCreateWithoutLoginCodesInput>
+export type UserCreateNestedOneWithoutDevicesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDevicesInput, Prisma.UserUncheckedCreateWithoutDevicesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDevicesInput
+  connect?: Prisma.UserWhereUniqueInput
 }
 
-export type UserUpsertWithoutLoginCodesInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutLoginCodesInput, Prisma.UserUncheckedUpdateWithoutLoginCodesInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutLoginCodesInput, Prisma.UserUncheckedCreateWithoutLoginCodesInput>
-  where?: Prisma.UserWhereInput
+export type UserUpdateOneRequiredWithoutDevicesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDevicesInput, Prisma.UserUncheckedCreateWithoutDevicesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDevicesInput
+  upsert?: Prisma.UserUpsertWithoutDevicesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDevicesInput, Prisma.UserUpdateWithoutDevicesInput>, Prisma.UserUncheckedUpdateWithoutDevicesInput>
 }
 
-export type UserUpdateToOneWithWhereWithoutLoginCodesInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutLoginCodesInput, Prisma.UserUncheckedUpdateWithoutLoginCodesInput>
+export type UserCreateNestedOneWithoutDeviceSessionsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDeviceSessionsInput, Prisma.UserUncheckedCreateWithoutDeviceSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDeviceSessionsInput
+  connect?: Prisma.UserWhereUniqueInput
 }
 
-export type UserUpdateWithoutLoginCodesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+export type UserUpdateOneRequiredWithoutDeviceSessionsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDeviceSessionsInput, Prisma.UserUncheckedCreateWithoutDeviceSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDeviceSessionsInput
+  upsert?: Prisma.UserUpsertWithoutDeviceSessionsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDeviceSessionsInput, Prisma.UserUpdateWithoutDeviceSessionsInput>, Prisma.UserUncheckedUpdateWithoutDeviceSessionsInput>
 }
 
-export type UserUncheckedUpdateWithoutLoginCodesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+export type UserCreateNestedOneWithoutAccountSettingsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAccountSettingsInput, Prisma.UserUncheckedCreateWithoutAccountSettingsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAccountSettingsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutAccountSettingsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAccountSettingsInput, Prisma.UserUncheckedCreateWithoutAccountSettingsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAccountSettingsInput
+  upsert?: Prisma.UserUpsertWithoutAccountSettingsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAccountSettingsInput, Prisma.UserUpdateWithoutAccountSettingsInput>, Prisma.UserUncheckedUpdateWithoutAccountSettingsInput>
+}
+
+export type UserCreateNestedOneWithoutTrailsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTrailsInput, Prisma.UserUncheckedCreateWithoutTrailsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTrailsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutTrailsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTrailsInput, Prisma.UserUncheckedCreateWithoutTrailsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTrailsInput
+  upsert?: Prisma.UserUpsertWithoutTrailsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTrailsInput, Prisma.UserUpdateWithoutTrailsInput>, Prisma.UserUncheckedUpdateWithoutTrailsInput>
 }
 
 export type UserCreateWithoutSubscriptionInput = {
@@ -476,7 +507,11 @@ export type UserCreateWithoutSubscriptionInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSubscriptionInput = {
@@ -487,7 +522,11 @@ export type UserUncheckedCreateWithoutSubscriptionInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSubscriptionInput = {
@@ -514,7 +553,11 @@ export type UserUpdateWithoutSubscriptionInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSubscriptionInput = {
@@ -525,7 +568,391 @@ export type UserUncheckedUpdateWithoutSubscriptionInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  loginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutWishlistLeadsInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutWishlistLeadsInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutWishlistLeadsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutWishlistLeadsInput, Prisma.UserUncheckedCreateWithoutWishlistLeadsInput>
+}
+
+export type UserUpsertWithoutWishlistLeadsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutWishlistLeadsInput, Prisma.UserUncheckedUpdateWithoutWishlistLeadsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutWishlistLeadsInput, Prisma.UserUncheckedCreateWithoutWishlistLeadsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutWishlistLeadsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutWishlistLeadsInput, Prisma.UserUncheckedUpdateWithoutWishlistLeadsInput>
+}
+
+export type UserUpdateWithoutWishlistLeadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutWishlistLeadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutDevicesInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutDevicesInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutDevicesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDevicesInput, Prisma.UserUncheckedCreateWithoutDevicesInput>
+}
+
+export type UserUpsertWithoutDevicesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDevicesInput, Prisma.UserUncheckedUpdateWithoutDevicesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDevicesInput, Prisma.UserUncheckedCreateWithoutDevicesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDevicesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDevicesInput, Prisma.UserUncheckedUpdateWithoutDevicesInput>
+}
+
+export type UserUpdateWithoutDevicesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDevicesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutDeviceSessionsInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutDeviceSessionsInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
+  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutDeviceSessionsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDeviceSessionsInput, Prisma.UserUncheckedCreateWithoutDeviceSessionsInput>
+}
+
+export type UserUpsertWithoutDeviceSessionsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDeviceSessionsInput, Prisma.UserUncheckedUpdateWithoutDeviceSessionsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDeviceSessionsInput, Prisma.UserUncheckedCreateWithoutDeviceSessionsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDeviceSessionsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDeviceSessionsInput, Prisma.UserUncheckedUpdateWithoutDeviceSessionsInput>
+}
+
+export type UserUpdateWithoutDeviceSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDeviceSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
+  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutAccountSettingsInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
+  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutAccountSettingsInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutAccountSettingsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAccountSettingsInput, Prisma.UserUncheckedCreateWithoutAccountSettingsInput>
+}
+
+export type UserUpsertWithoutAccountSettingsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAccountSettingsInput, Prisma.UserUncheckedUpdateWithoutAccountSettingsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAccountSettingsInput, Prisma.UserUncheckedCreateWithoutAccountSettingsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAccountSettingsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAccountSettingsInput, Prisma.UserUncheckedUpdateWithoutAccountSettingsInput>
+}
+
+export type UserUpdateWithoutAccountSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
+  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAccountSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutTrailsInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutTrailsInput = {
+  id?: string
+  auth0Id: string
+  email?: string | null
+  name?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutTrailsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutTrailsInput, Prisma.UserUncheckedCreateWithoutTrailsInput>
+}
+
+export type UserUpsertWithoutTrailsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutTrailsInput, Prisma.UserUncheckedUpdateWithoutTrailsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutTrailsInput, Prisma.UserUncheckedCreateWithoutTrailsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutTrailsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutTrailsInput, Prisma.UserUncheckedUpdateWithoutTrailsInput>
+}
+
+export type UserUpdateWithoutTrailsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutTrailsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  auth0Id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
 }
 
 
@@ -534,11 +961,17 @@ export type UserUncheckedUpdateWithoutSubscriptionInput = {
  */
 
 export type UserCountOutputType = {
-  loginCodes: number
+  wishlistLeads: number
+  devices: number
+  deviceSessions: number
+  trails: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  loginCodes?: boolean | UserCountOutputTypeCountLoginCodesArgs
+  wishlistLeads?: boolean | UserCountOutputTypeCountWishlistLeadsArgs
+  devices?: boolean | UserCountOutputTypeCountDevicesArgs
+  deviceSessions?: boolean | UserCountOutputTypeCountDeviceSessionsArgs
+  trails?: boolean | UserCountOutputTypeCountTrailsArgs
 }
 
 /**
@@ -554,8 +987,29 @@ export type UserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountLoginCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ExtensionLoginCodeWhereInput
+export type UserCountOutputTypeCountWishlistLeadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.WishlistLeadWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDevicesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DeviceWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDeviceSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DeviceSessionWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountTrailsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TrailWhereInput
 }
 
 
@@ -567,8 +1021,12 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   imageUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  loginCodes?: boolean | Prisma.User$loginCodesArgs<ExtArgs>
   subscription?: boolean | Prisma.User$subscriptionArgs<ExtArgs>
+  wishlistLeads?: boolean | Prisma.User$wishlistLeadsArgs<ExtArgs>
+  devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
+  deviceSessions?: boolean | Prisma.User$deviceSessionsArgs<ExtArgs>
+  accountSettings?: boolean | Prisma.User$accountSettingsArgs<ExtArgs>
+  trails?: boolean | Prisma.User$trailsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -604,8 +1062,12 @@ export type UserSelectScalar = {
 
 export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "auth0Id" | "email" | "name" | "imageUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  loginCodes?: boolean | Prisma.User$loginCodesArgs<ExtArgs>
   subscription?: boolean | Prisma.User$subscriptionArgs<ExtArgs>
+  wishlistLeads?: boolean | Prisma.User$wishlistLeadsArgs<ExtArgs>
+  devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
+  deviceSessions?: boolean | Prisma.User$deviceSessionsArgs<ExtArgs>
+  accountSettings?: boolean | Prisma.User$accountSettingsArgs<ExtArgs>
+  trails?: boolean | Prisma.User$trailsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -614,8 +1076,12 @@ export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
-    loginCodes: Prisma.$ExtensionLoginCodePayload<ExtArgs>[]
     subscription: Prisma.$UserSubscriptionPayload<ExtArgs> | null
+    wishlistLeads: Prisma.$WishlistLeadPayload<ExtArgs>[]
+    devices: Prisma.$DevicePayload<ExtArgs>[]
+    deviceSessions: Prisma.$DeviceSessionPayload<ExtArgs>[]
+    accountSettings: Prisma.$AccountSettingsPayload<ExtArgs> | null
+    trails: Prisma.$TrailPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1019,8 +1485,12 @@ readonly fields: UserFieldRefs;
  */
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  loginCodes<T extends Prisma.User$loginCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$loginCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExtensionLoginCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   subscription<T extends Prisma.User$subscriptionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$subscriptionArgs<ExtArgs>>): Prisma.Prisma__UserSubscriptionClient<runtime.Types.Result.GetResult<Prisma.$UserSubscriptionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  wishlistLeads<T extends Prisma.User$wishlistLeadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$wishlistLeadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WishlistLeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  devices<T extends Prisma.User$devicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$devicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  deviceSessions<T extends Prisma.User$deviceSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$deviceSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DeviceSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  accountSettings<T extends Prisma.User$accountSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$accountSettingsArgs<ExtArgs>>): Prisma.Prisma__AccountSettingsClient<runtime.Types.Result.GetResult<Prisma.$AccountSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  trails<T extends Prisma.User$trailsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$trailsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TrailPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1445,30 +1915,6 @@ export type UserDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 /**
- * User.loginCodes
- */
-export type User$loginCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the ExtensionLoginCode
-   */
-  select?: Prisma.ExtensionLoginCodeSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the ExtensionLoginCode
-   */
-  omit?: Prisma.ExtensionLoginCodeOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ExtensionLoginCodeInclude<ExtArgs> | null
-  where?: Prisma.ExtensionLoginCodeWhereInput
-  orderBy?: Prisma.ExtensionLoginCodeOrderByWithRelationInput | Prisma.ExtensionLoginCodeOrderByWithRelationInput[]
-  cursor?: Prisma.ExtensionLoginCodeWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.ExtensionLoginCodeScalarFieldEnum | Prisma.ExtensionLoginCodeScalarFieldEnum[]
-}
-
-/**
  * User.subscription
  */
 export type User$subscriptionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1485,6 +1931,121 @@ export type User$subscriptionArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   include?: Prisma.UserSubscriptionInclude<ExtArgs> | null
   where?: Prisma.UserSubscriptionWhereInput
+}
+
+/**
+ * User.wishlistLeads
+ */
+export type User$wishlistLeadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the WishlistLead
+   */
+  select?: Prisma.WishlistLeadSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the WishlistLead
+   */
+  omit?: Prisma.WishlistLeadOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WishlistLeadInclude<ExtArgs> | null
+  where?: Prisma.WishlistLeadWhereInput
+  orderBy?: Prisma.WishlistLeadOrderByWithRelationInput | Prisma.WishlistLeadOrderByWithRelationInput[]
+  cursor?: Prisma.WishlistLeadWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.WishlistLeadScalarFieldEnum | Prisma.WishlistLeadScalarFieldEnum[]
+}
+
+/**
+ * User.devices
+ */
+export type User$devicesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Device
+   */
+  select?: Prisma.DeviceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Device
+   */
+  omit?: Prisma.DeviceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
+  where?: Prisma.DeviceWhereInput
+  orderBy?: Prisma.DeviceOrderByWithRelationInput | Prisma.DeviceOrderByWithRelationInput[]
+  cursor?: Prisma.DeviceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DeviceScalarFieldEnum | Prisma.DeviceScalarFieldEnum[]
+}
+
+/**
+ * User.deviceSessions
+ */
+export type User$deviceSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DeviceSession
+   */
+  select?: Prisma.DeviceSessionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DeviceSession
+   */
+  omit?: Prisma.DeviceSessionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceSessionInclude<ExtArgs> | null
+  where?: Prisma.DeviceSessionWhereInput
+  orderBy?: Prisma.DeviceSessionOrderByWithRelationInput | Prisma.DeviceSessionOrderByWithRelationInput[]
+  cursor?: Prisma.DeviceSessionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DeviceSessionScalarFieldEnum | Prisma.DeviceSessionScalarFieldEnum[]
+}
+
+/**
+ * User.accountSettings
+ */
+export type User$accountSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AccountSettings
+   */
+  select?: Prisma.AccountSettingsSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AccountSettings
+   */
+  omit?: Prisma.AccountSettingsOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AccountSettingsInclude<ExtArgs> | null
+  where?: Prisma.AccountSettingsWhereInput
+}
+
+/**
+ * User.trails
+ */
+export type User$trailsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Trail
+   */
+  select?: Prisma.TrailSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Trail
+   */
+  omit?: Prisma.TrailOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TrailInclude<ExtArgs> | null
+  where?: Prisma.TrailWhereInput
+  orderBy?: Prisma.TrailOrderByWithRelationInput | Prisma.TrailOrderByWithRelationInput[]
+  cursor?: Prisma.TrailWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TrailScalarFieldEnum | Prisma.TrailScalarFieldEnum[]
 }
 
 /**

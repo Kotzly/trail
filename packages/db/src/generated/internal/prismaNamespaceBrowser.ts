@@ -52,9 +52,13 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  ExtensionLoginCode: 'ExtensionLoginCode',
   UserSubscription: 'UserSubscription',
-  PolarWebhookEvent: 'PolarWebhookEvent'
+  PolarWebhookEvent: 'PolarWebhookEvent',
+  WishlistLead: 'WishlistLead',
+  Device: 'Device',
+  DeviceSession: 'DeviceSession',
+  AccountSettings: 'AccountSettings',
+  Trail: 'Trail'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -86,18 +90,6 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
-export const ExtensionLoginCodeScalarFieldEnum = {
-  id: 'id',
-  code: 'code',
-  userId: 'userId',
-  createdAt: 'createdAt',
-  expiresAt: 'expiresAt',
-  usedAt: 'usedAt'
-} as const
-
-export type ExtensionLoginCodeScalarFieldEnum = (typeof ExtensionLoginCodeScalarFieldEnum)[keyof typeof ExtensionLoginCodeScalarFieldEnum]
-
-
 export const UserSubscriptionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -125,6 +117,92 @@ export const PolarWebhookEventScalarFieldEnum = {
 } as const
 
 export type PolarWebhookEventScalarFieldEnum = (typeof PolarWebhookEventScalarFieldEnum)[keyof typeof PolarWebhookEventScalarFieldEnum]
+
+
+export const WishlistLeadScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  userId: 'userId',
+  sources: 'sources',
+  utmSource: 'utmSource',
+  utmMedium: 'utmMedium',
+  utmCampaign: 'utmCampaign',
+  utmContent: 'utmContent',
+  utmTerm: 'utmTerm',
+  referrer: 'referrer',
+  pagePath: 'pagePath',
+  userAgent: 'userAgent',
+  ip: 'ip',
+  country: 'country',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WishlistLeadScalarFieldEnum = (typeof WishlistLeadScalarFieldEnum)[keyof typeof WishlistLeadScalarFieldEnum]
+
+
+export const DeviceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  status: 'status',
+  deviceName: 'deviceName',
+  os: 'os',
+  locale: 'locale',
+  timezone: 'timezone',
+  browserName: 'browserName',
+  browserVersion: 'browserVersion',
+  extensionVersion: 'extensionVersion',
+  lastSeenAt: 'lastSeenAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DeviceScalarFieldEnum = (typeof DeviceScalarFieldEnum)[keyof typeof DeviceScalarFieldEnum]
+
+
+export const DeviceSessionScalarFieldEnum = {
+  id: 'id',
+  deviceId: 'deviceId',
+  userId: 'userId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  expiresAt: 'expiresAt',
+  lastSeenAt: 'lastSeenAt',
+  revokedAt: 'revokedAt'
+} as const
+
+export type DeviceSessionScalarFieldEnum = (typeof DeviceSessionScalarFieldEnum)[keyof typeof DeviceSessionScalarFieldEnum]
+
+
+export const AccountSettingsScalarFieldEnum = {
+  userId: 'userId',
+  deviceSessionTtlDays: 'deviceSessionTtlDays',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AccountSettingsScalarFieldEnum = (typeof AccountSettingsScalarFieldEnum)[keyof typeof AccountSettingsScalarFieldEnum]
+
+
+export const TrailScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  deviceId: 'deviceId',
+  label: 'label',
+  labelSource: 'labelSource',
+  labelUpdatedAt: 'labelUpdatedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  savedAt: 'savedAt',
+  nodeCount: 'nodeCount',
+  rootUrl: 'rootUrl',
+  rootTitle: 'rootTitle',
+  rootFavicon: 'rootFavicon',
+  payload: 'payload',
+  deletedAt: 'deletedAt'
+} as const
+
+export type TrailScalarFieldEnum = (typeof TrailScalarFieldEnum)[keyof typeof TrailScalarFieldEnum]
 
 
 export const SortOrder = {

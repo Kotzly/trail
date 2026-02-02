@@ -9,7 +9,11 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/User'
-export type * from './models/ExtensionLoginCode'
 export type * from './models/UserSubscription'
 export type * from './models/PolarWebhookEvent'
+export type * from './models/WishlistLead'
+export type * from './models/Device'
+export type * from './models/DeviceSession'
+export type * from './models/AccountSettings'
+export type * from './models/Trail'
 export type * from './commonInputTypes'
