@@ -111,16 +111,6 @@ export const DesktopSidebar = ({
 }: React.ComponentProps<typeof motion.div>) => {
   const { open, setOpen, animate } = useSidebar();
   const width = getSidebarWidth(open, animate);
-  const openDelayRef = React.useRef<number | null>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (openDelayRef.current !== null) {
-        window.clearTimeout(openDelayRef.current);
-        openDelayRef.current = null;
-      }
-    };
-  }, []);
 
   return (
     <motion.div
@@ -131,21 +121,7 @@ export const DesktopSidebar = ({
       animate={{
         width
       }}
-      onMouseEnter={() => {
-        if (open) return;
-        if (openDelayRef.current !== null) return;
-        openDelayRef.current = window.setTimeout(() => {
-          openDelayRef.current = null;
-          setOpen(true);
-        }, 500);
-      }}
-      onMouseLeave={() => {
-        if (openDelayRef.current !== null) {
-          window.clearTimeout(openDelayRef.current);
-          openDelayRef.current = null;
-        }
-        setOpen(false);
-      }}
+      onMouseLeave={() => setOpen(false)}
       {...props}
     >
       {children}

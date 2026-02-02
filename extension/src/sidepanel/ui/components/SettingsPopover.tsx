@@ -260,7 +260,7 @@ type SettingsSidebarNavProps = {
 };
 
 function SettingsSidebarNav({ activeSection, onSelectSection }: SettingsSidebarNavProps) {
-  const { open } = useSidebar();
+  const { open, setOpen } = useSidebar();
 
   return (
     <nav className="settings-sidebar-nav" aria-label="Settings sections" data-open={open}>
@@ -272,6 +272,11 @@ function SettingsSidebarNav({ activeSection, onSelectSection }: SettingsSidebarN
             key={section.id}
             type="button"
             className={`settings-nav-item ${active ? 'active' : ''}`}
+            onMouseEnter={() => {
+              if (!open) {
+                setOpen(true);
+              }
+            }}
             onClick={() => onSelectSection(section.id)}
             aria-current={active ? 'page' : undefined}
           >
