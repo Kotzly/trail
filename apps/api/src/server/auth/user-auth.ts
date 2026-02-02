@@ -13,12 +13,18 @@ type VerifyOptions = {
   issuer?: string;
 };
 
+function normalizeIssuer(value: string): string {
+  const trimmed = value.replace(/\/+$/, "");
+  return `${trimmed}/`;
+}
+
 function getAuth0Issuer(): string | null {
   const domain = process.env.AUTH0_DOMAIN;
   if (!domain) {
     return null;
   }
-  return domain.startsWith("http") ? domain : `https://${domain}`;
+  const resolved = domain.startsWith("http") ? domain : `https://${domain}`;
+  return normalizeIssuer(resolved);
 }
 
 function getAuth0Audience(): string | null {
@@ -33,7 +39,7 @@ export async function verifyUserToken(
     return null;
   }
 
-  const issuer = options.issuer ?? getAuth0Issuer();
+  const issuer = options.issuer ? normalizeIssuer(options.issuer) : getAuth0Issuer();
   if (!issuer) {
     return null;
   }
