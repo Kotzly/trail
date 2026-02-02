@@ -25,6 +25,7 @@ model User {
   accountSettings AccountSettings?
   portalSessions  PortalSession[]
   authBridgeCodes AuthBridgeCode[]
+  extensionConnectSessions ExtensionConnectSession[]
   trails          Trail[]
 
   @@unique([email])
@@ -242,6 +243,19 @@ model PortalSession {
   updatedAt                DateTime @updatedAt
 
   @@index([expiresAt])
+}
+
+model ExtensionConnectSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@index([userId])
 }
 
 model Trail {

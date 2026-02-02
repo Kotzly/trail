@@ -105,6 +105,11 @@ export type AccountSettings = Prisma.AccountSettingsModel
  */
 export type PortalSession = Prisma.PortalSessionModel
 /**
+ * Model ExtensionConnectSession
+ * 
+ */
+export type ExtensionConnectSession = Prisma.ExtensionConnectSessionModel
+/**
  * Model Trail
  * 
  */
