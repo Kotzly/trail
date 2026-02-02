@@ -1,37 +1,24 @@
 import { jwtVerify } from "jose";
-import { getAuth0Jwks } from "./jwks";
+import { getRemoteJwks } from "./jwks";
 
 export type Auth0TokenPayload = {
   sub: string;
   email?: string;
   name?: string;
   picture?: string;
+  image?: string;
 };
 
 type VerifyOptions = {
-  audience?: string;
   issuer?: string;
 };
 
-function normalizeIssuer(value: string): string | null {
+function normalizeBaseUrl(value: string): string | null {
   const trimmed = value.trim().replace(/\/+$/, "");
   if (!trimmed) {
     return null;
   }
-  return `${trimmed}/`;
-}
-
-function getAuth0Issuer(): string | null {
-  const domain = process.env.AUTH0_DOMAIN;
-  if (!domain) {
-    return null;
-  }
-  const resolved = domain.startsWith("http") ? domain : `https://${domain}`;
-  return normalizeIssuer(resolved);
-}
-
-function getAuth0Audience(): string | null {
-  return process.env.AUTH0_AUDIENCE ?? null;
+  return trimmed;
 }
 
 export async function verifyUserToken(
@@ -42,21 +29,17 @@ export async function verifyUserToken(
     return null;
   }
 
-  const issuer = (options.issuer ? normalizeIssuer(options.issuer) : null) ?? getAuth0Issuer();
+  const issuer =
+    (options.issuer ? normalizeBaseUrl(options.issuer) : null) ??
+    normalizeBaseUrl(process.env.BETTER_AUTH_URL ?? "");
   if (!issuer) {
     return null;
   }
 
-  const audience = options.audience ?? getAuth0Audience();
-  if (!audience) {
-    return null;
-  }
-
   try {
-    const jwks = getAuth0Jwks(issuer);
+    const jwks = getRemoteJwks(`${issuer}/api/auth/jwks`);
     const { payload } = await jwtVerify<Auth0TokenPayload>(token, jwks, {
-      issuer,
-      audience
+      issuer
     });
 
     if (!payload?.sub) {
@@ -67,7 +50,7 @@ export async function verifyUserToken(
       sub: payload.sub,
       email: payload.email,
       name: payload.name,
-      picture: payload.picture
+      picture: payload.picture ?? payload.image
     };
   } catch {
     return null;
