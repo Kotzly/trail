@@ -212,11 +212,20 @@
   justify-content: center;
 }
 
+.settings-sidebar-nav[data-open='false'] .settings-nav-item::before {
+  opacity: 0;
+}
+
 .settings-sidebar-nav[data-open='false'] .settings-nav-text {
   display: none;
 }
 
 .settings-sidebar-nav[data-open='false'] .settings-nav-icon {
+  background: transparent;
+  border-color: transparent;
+}
+
+.settings-sidebar-nav[data-open='true'] .settings-nav-icon {
   background: transparent;
   border-color: transparent;
 }
