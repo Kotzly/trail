@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, HelpCircle, MessageCircle, ArrowRight } from "lucide-react";
 import { marketingCopy } from "@trail/content";
@@ -51,18 +51,38 @@ const additionalFaqs = [
   },
 ];
 
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(id);
+  }, [value, delayMs]);
+
+  return debounced;
+}
+
+
 function FAQContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
 
+  const debouncedQuery = useDebouncedValue(searchQuery, 300);
+
   const allFaqs = [...marketingCopy.faq.items, ...additionalFaqs];
 
   const filteredFaqs = allFaqs.filter((faq) => {
+    const q = debouncedQuery.trim().toLowerCase();
+  
     const matchesSearch =
-      faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+      q.length === 0 ||
+      faq.question.toLowerCase().includes(q)
+  
+    const matchesCategory =
+      activeCategory === "all" || faq.category === activeCategory;
+  
+    return matchesSearch && matchesCategory;
+  });  
 
   return (
     <div className="min-h-screen bg-base text-ink">
@@ -145,17 +165,18 @@ function FAQContent() {
         {/* FAQ List */}
         <section className="relative px-6 py-12">
           <div className="mx-auto max-w-3xl">
-            <Accordion type="single" collapsible className="space-y-3">
-              <AnimatePresence mode="popLayout">
-                {filteredFaqs.map((item, index) => (
-                  <motion.div
-                    key={item.question}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                  >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`${activeCategory}:${debouncedQuery}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+              >
+                <Accordion type="single" collapsible className="space-y-3">
+                  {filteredFaqs.map((item) => (
                     <AccordionItem
+                      key={item.question}
                       value={item.question}
                       className="rounded-2xl border border-stroke/40 bg-surface/50 px-6 transition-all hover:border-accent/30 hover:bg-surface/70"
                     >
@@ -166,34 +187,10 @@ function FAQContent() {
                         {item.answer}
                       </AccordionContent>
                     </AccordionItem>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </Accordion>
-
-            {filteredFaqs.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="rounded-2xl border border-dashed border-stroke/40 bg-surface/30 p-12 text-center"
-              >
-                <HelpCircle className="mx-auto h-12 w-12 text-ink-subtle/50" />
-                <h3 className="mt-4 text-lg font-medium text-ink">No results found</h3>
-                <p className="mt-2 text-sm text-ink-muted">
-                  Try adjusting your search or browse all categories.
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setActiveCategory("all");
-                  }}
-                >
-                  Clear filters
-                </Button>
+                  ))}
+                </Accordion>
               </motion.div>
-            )}
+            </AnimatePresence>
           </div>
         </section>
 
