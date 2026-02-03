@@ -88,7 +88,7 @@ function SupportContent() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
-                    className="group rounded-3xl border border-stroke/40 bg-surface/50 p-6 transition-all hover:border-accent/30 hover:bg-surface/70 hover:shadow-lg"
+                    className="group rounded-3xl border border-stroke/40 bg-surface/50 p-6 hover:border-accent/30 hover:bg-surface/70 hover:shadow-lg"
                   >
                     <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
                       option.primary ? "bg-accent/10 text-accent" : "bg-surface-strong text-ink-muted"
@@ -121,14 +121,7 @@ function SupportContent() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="rounded-3xl border border-stroke/40 bg-surface/50 p-8"
             >
-              <div className="mb-8 text-center">
-                <h2 className="text-2xl font-semibold text-ink">Troubleshooting Wizard</h2>
-                <p className="mt-2 text-ink-muted">
-                  Answer a few questions and we&apos;ll guide you to the right solution.
-                </p>
-              </div>
               <SupportFlow />
             </motion.div>
           </div>

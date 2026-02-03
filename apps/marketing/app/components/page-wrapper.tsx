@@ -235,3 +235,34 @@ export function ContactLoading() {
     </div>
   );
 }
+
+export function WaitlistLoading() {
+  return (
+    <div className="min-h-screen bg-base">
+      <div className="h-16 border-b border-stroke/40 bg-base/80" />
+      
+      <div className="px-6 pt-16 pb-8">
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="mx-auto h-8 w-32 rounded-full bg-surface-strong/60" />
+          <div className="mx-auto mt-6 h-12 w-64 rounded-full bg-surface-strong/60" />
+          <div className="mx-auto mt-4 h-6 w-96 max-w-full rounded-full bg-surface-strong/60" />
+        </div>
+      </div>
+
+      <div className="px-6 py-8">
+        <div className="mx-auto max-w-md">
+          <div className="rounded-3xl bg-surface-strong/60 p-8">
+            <div className="space-y-6">
+              <div className="h-6 w-32 rounded-full bg-surface/50" />
+              <div className="h-12 w-full rounded-xl bg-surface/50" />
+              <div className="h-12 w-full rounded-full bg-surface/50" />
+              <div className="mx-auto h-4 w-48 rounded-full bg-surface/50" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="h-20 border-t border-stroke/40 bg-base/80" />
+    </div>
+  );
+}
