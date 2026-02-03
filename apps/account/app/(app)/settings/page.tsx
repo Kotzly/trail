@@ -2,19 +2,36 @@ import { redirect } from "next/navigation";
 import Image, { type ImageLoaderProps } from "next/image";
 import { accountCopy } from "@trail/content";
 import { Button } from "@trail/ui";
-import { getAuthSession } from "@/src/lib/auth0";
+import {
+  getAuthTokenFromCookies,
+  getAuthUserFromToken,
+  getDevUser,
+  isAuthBypassed
+} from "@/src/lib/auth";
 
 const avatarLoader = ({ src }: ImageLoaderProps) => src;
 
+async function getAccountUser() {
+  if (isAuthBypassed()) {
+    return getDevUser();
+  }
+
+  const token = await getAuthTokenFromCookies();
+  if (!token) {
+    return null;
+  }
+
+  return getAuthUserFromToken(token);
+}
+
 export default async function SettingsPage() {
   const { settings } = accountCopy;
-  const session = await getAuthSession();
+  const user = await getAccountUser();
 
-  if (!session?.user) {
+  if (!user) {
     redirect("/auth/login");
   }
 
-  const user = session.user;
   const initialsSource = user.name || user.email || settings.profile.fallbackName;
   const initials = initialsSource
     .split(" ")
@@ -23,10 +40,7 @@ export default async function SettingsPage() {
     .map((chunk) => chunk[0]?.toLowerCase())
     .join("");
 
-  const auth0Domain = process.env.AUTH0_DOMAIN
-    ? `https://${process.env.AUTH0_DOMAIN}`
-    : null;
-  const auth0ProfileUrl = auth0Domain ? `${auth0Domain}/u/me` : "https://auth0.com/";
+  const authPortalUrl = "https://auth.gettrail.net";
 
   const sessions = [
     {
@@ -48,11 +62,11 @@ export default async function SettingsPage() {
           </div>
           <div className="mt-4 flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-surface text-sm font-semibold text-ink">
-              {user.picture ? (
+              {user.imageUrl ? (
                 <Image
                   loader={avatarLoader}
                   unoptimized
-                  src={user.picture}
+                  src={user.imageUrl}
                   alt={user.name ?? settings.profile.avatarAlt}
                   width={48}
                   height={48}
@@ -74,7 +88,7 @@ export default async function SettingsPage() {
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button.AsChild size="sm" variant="outline">
-              <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
+              <a href={authPortalUrl} target="_blank" rel="noreferrer">
                 {settings.profile.manageCta}
               </a>
             </Button.AsChild>
@@ -105,7 +119,7 @@ export default async function SettingsPage() {
             ))}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-ink-muted">
-            <a href={auth0ProfileUrl} target="_blank" rel="noreferrer" className="text-ink">
+            <a href={authPortalUrl} target="_blank" rel="noreferrer" className="text-ink">
               {settings.security.changePasswordCta}
             </a>
             <span>•</span>

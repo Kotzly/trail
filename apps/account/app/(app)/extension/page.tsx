@@ -7,7 +7,12 @@ import {
 } from "@radix-ui/react-icons";
 import { EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import { getAuthSession, isAuthBypassed } from "@/src/lib/auth0";
+import {
+  getAuthTokenFromCookies,
+  getAuthUserFromToken,
+  getDevUser,
+  isAuthBypassed
+} from "@/src/lib/auth";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
 import { ExtensionConnectionGuideClient } from "./ExtensionConnectionGuideClient";
@@ -35,12 +40,18 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
   const returnTo = queryCode ? `/extension?code=${queryCode}` : "/extension";
   const authBypassed = isAuthBypassed();
 
-  const session = await getAuthSession();
-  if (!session?.user && !authBypassed) {
+  const token = authBypassed ? null : await getAuthTokenFromCookies();
+  const authUser = authBypassed
+    ? getDevUser()
+    : token
+      ? await getAuthUserFromToken(token)
+      : null;
+
+  if (!authUser && !authBypassed) {
     redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
   }
 
-  const user = session?.user ? await ensureUser(session.user) : null;
+  const user = authUser ? await ensureUser(authUser) : null;
   if (!user && !authBypassed) {
     redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
   }
