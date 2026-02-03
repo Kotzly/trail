@@ -1,73 +1,65 @@
 "use client";
 
-import * as React from "react";
+import React from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
-import { cn } from "@trail/ui";
 
 export interface Testimonial {
-  text: string;
+  quote: string;
   image: string;
   name: string;
   role: string;
+  link?: string;
 }
 
-export const TestimonialsColumn = ({
-  className,
-  testimonials,
-  duration = 12
-}: {
+export const TestimonialsColumn = (props: {
   className?: string;
   testimonials: Testimonial[];
   duration?: number;
 }) => {
-  const reduceMotion = useReducedMotion();
-  const rows = reduceMotion ? 1 : 2;
-
   return (
-    <div className={className}>
+    <div className={props.className}>
       <motion.div
-        animate={reduceMotion ? undefined : { translateY: "-50%" }}
-        transition={
-          reduceMotion
-            ? undefined
-            : {
-                duration,
-                repeat: Infinity,
-                ease: "linear",
-                repeatType: "loop"
-              }
-        }
-        className="flex flex-col gap-6 pb-6"
+        animate={{
+          translateY: "-50%",
+        }}
+        transition={{
+          duration: props.duration || 10,
+          repeat: Infinity,
+          ease: "linear",
+          repeatType: "loop",
+        }}
+        className="flex flex-col gap-4 pb-4"
       >
-        {[...new Array(rows).fill(0)].map((_, index) => (
-          <React.Fragment key={index}>
-            {testimonials.map(({ text, image, name, role }, i) => (
-                <div
-                  className={cn(
-                  "max-w-xs rounded-3xl border border-border/60 bg-surface p-6"
-                  )}
-                  key={`${name}-${i}`}
+        {[
+          ...new Array(2).fill(0).map((_, index) => (
+            <React.Fragment key={index}>
+              {props.testimonials.map(({ quote, image, name, role }, i) => (
+                <div 
+                  className="p-6 rounded-2xl border border-stroke/40 bg-surface/80 shadow-lg shadow-accent/5 max-w-xs w-full" 
+                  key={i}
                 >
-                <p className="text-sm text-ink">{text}</p>
-                <div className="mt-5 flex items-center gap-3">
-                  <Image
-                    width={40}
-                    height={40}
-                    src={image}
-                    alt={name}
-                    className="h-10 w-10 rounded-full object-cover"
-                    sizes="40px"
-                  />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-ink">{name}</span>
-                    <span className="text-xs text-ink-subtle">{role}</span>
+                  <div className="text-sm text-ink leading-relaxed">&ldquo;{quote}&rdquo;</div>
+                  <div className="flex items-center gap-3 mt-4">
+                    <div className="relative h-10 w-10 rounded-full overflow-hidden ring-2 ring-stroke/30">
+                      <Image
+                        width={40}
+                        height={40}
+                        src={image}
+                        alt={name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="font-semibold text-sm text-ink leading-5">{name}</div>
+                      <div className="text-xs text-ink-muted leading-5">{role}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </React.Fragment>
-        ))}
+              ))}
+            </React.Fragment>
+          )),
+        ]}
       </motion.div>
     </div>
   );

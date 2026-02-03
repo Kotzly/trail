@@ -231,8 +231,8 @@ export const accountCopy = {
     profile: {
       eyebrow: "profile",
       title: "profile",
-      subtitle: "name, email, and avatar are managed through your trail account.",
-      manageCta: "manage account",
+      subtitle: "open up here",
+      manageCta: "open account settings",
       signOutCta: "sign out",
       avatarAlt: "user avatar",
       fallbackName: "trail member",

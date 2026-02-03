@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { marketingCopy } from "@trail/content";
+import { GlowingShadow } from "./ui/glowing-shadow";
 
 export function Showcase() {
   const { showcase } = marketingCopy;
@@ -43,33 +44,37 @@ export function Showcase() {
         {showcase.subtitle}
       </motion.p>
 
-      <motion.figure
+      <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6, delay: 0.3 }}
-        className="mt-12 w-full max-w-5xl overflow-hidden rounded-[2rem] border border-stroke/40 bg-surface shadow-2xl shadow-accent/5"
+        className="mt-12 w-full max-w-5xl"
       >
-        <video
-          className="h-auto w-full object-cover"
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          poster={posterSrc}
-          data-play-on-view="true"
-          aria-label="Trail product demo"
-        >
-          <source src={videoSrc} type="video/mp4" />
-          <track
-            kind="captions"
-            srcLang="en"
-            src={captionsSrc}
-            label="English captions"
-            default
-          />
-        </video>
-      </motion.figure>
+        <GlowingShadow className="w-full aspect-video">
+          <div className="relative w-full h-full overflow-hidden rounded-[1.35rem] bg-surface">
+            <video
+              className="h-full w-full object-cover"
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              poster={posterSrc}
+              data-play-on-view="true"
+              aria-label="Trail product demo"
+            >
+              <source src={videoSrc} type="video/mp4" />
+              <track
+                kind="captions"
+                srcLang="en"
+                src={captionsSrc}
+                label="English captions"
+                default
+              />
+            </video>
+          </div>
+        </GlowingShadow>
+      </motion.div>
     </section>
   );
 }
