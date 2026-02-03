@@ -11,6 +11,7 @@ import { PricingSection } from "./components/sections/PricingSection";
 import { TestimonialsSection } from "./components/sections/TestimonialsSection";
 import { HeroWithVideo } from "./components/ui/hero-with-video";
 import { CallToAction } from "./components/CallToAction";
+import { CTASection } from "./components/ui/hero-dithering-card";
 import { HomeLoading } from "./components/page-wrapper";
 import { buildMetadata } from "../lib/seo";
 
@@ -47,7 +48,7 @@ export default function HomePage() {
             <TestimonialsSection />
             <PricingSection />
             <FAQSection />
-            <CallToAction />
+            <CTASection />
           </div>
         </main>
         <MarketingFooter />

@@ -1115,6 +1115,15 @@ packages:
       react: ^18 || ^19
       react-dom: ^18 || ^19
 
+<<<<<<< HEAD
+=======
+  '@panva/hkdf@1.2.1':
+    resolution: {integrity: sha512-6oclG6Y3PiDFcoyk8srjLfVKyMfVCKJ27JwNPViuXziFpmdz+MZnZN/aKY0JGXgYuO/VghU0jcOAZgWXZ1Dmrw==}
+
+  '@pixi/colord@2.9.6':
+    resolution: {integrity: sha512-nezytU2pw587fQstUu1AsJZDVEynjskwOL+kibwcdxsMBFqPsFFNA7xl0ii/gXuDi6M0xj3mfRJj8pBSc2jCfA==}
+
+>>>>>>> 5edc09f6 (Complete marketing site redesign)
   '@paper-design/shaders-react@0.0.71':
     resolution: {integrity: sha512-kTqjIlyZcpkwqJie+3ldEDscTtx1oOi8eRBD5QgWKI21GaNn/SSg26092M5zzqr3e8dVANv0ktS2ICSjbMFKbw==}
     peerDependencies:
@@ -5346,6 +5355,8 @@ snapshots:
       '@types/react': 19.2.10
 
   '@paper-design/shaders@0.0.71': {}
+
+  '@pixi/colord@2.9.6': {}
 
   '@prisma/adapter-pg@7.3.0':
     dependencies:
