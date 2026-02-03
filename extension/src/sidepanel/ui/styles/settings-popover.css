@@ -204,6 +204,16 @@
   min-width: 0;
 }
 
+.settings-sidebar-nav[data-open='true'] .settings-nav-item {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.settings-sidebar-nav[data-open='true'] .settings-nav-subtitle {
+  display: none;
+}
+
 .settings-sidebar-nav[data-open='false'] .settings-nav-item {
   width: 44px;
   height: 44px;
