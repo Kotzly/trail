@@ -430,41 +430,49 @@ export const marketingCopy = {
         question: "What does the app capture?",
         answer:
           "Trail records URLs, page titles, timestamps, and your notes. It does not read or store page content, passwords, or form data. Your research context stays private.",
+        category: "privacy",
       },
       {
         question: "Is my data private?",
         answer:
           "Absolutely. You control what gets synced and shared. Saved paths are private by default until you explicitly share them. We use encryption in transit and at rest.",
+        category: "privacy",
       },
       {
         question: "Can I share or export my paths?",
         answer:
           "Yes. Share a link with collaborators that preserves all sources, notes, and decisions. Export highlights as structured data for reports or documentation.",
+        category: "features",
       },
       {
         question: "Does it work for teams?",
         answer:
           "Yes. Shared paths keep teammates aligned on sources, decisions, and context. Team plans include shared workspaces and admin controls.",
+        category: "features",
       },
       {
         question: "Does it work offline?",
         answer:
           "You can continue browsing and capturing offline. Your data syncs automatically when you reconnect. Some features like sharing require a connection.",
+        category: "technical",
       },
       {
         question: "Which browsers are supported?",
         answer:
           "Trail supports Chromium-based browsers including Chrome, Brave, Edge, and Arc. Firefox support is coming soon.",
+        category: "technical",
       },
       {
         question: "How is this different from browser history?",
         answer:
           "Unlike browser history, Trail organizes your journey into meaningful paths with notes, decisions, and context. You can group related tabs, add annotations, and share complete research narratives—not just a list of URLs.",
+        category: "features",
       },
       {
         question: "Can I import my existing bookmarks?",
         answer:
           "Yes. Import bookmarks from Chrome, Firefox, or Safari to seed your initial trails. The app will organize them by topic and date for you.",
+        category: "features",
       },
     ],
   },
