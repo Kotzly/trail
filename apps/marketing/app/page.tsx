@@ -8,19 +8,10 @@ import { BentoFeatures } from "./components/sections/BentoFeatures";
 import { FAQSection } from "./components/sections/FAQSection";
 import { PersonalizationSection } from "./components/sections/PersonalizationSection";
 import { PricingSection } from "./components/sections/PricingSection";
-import { TestimonialsSection } from "./components/sections/TestimonialsSection";
+import Testimonials from "./components/sections/TestimonialsSection";
 import { HeroWithVideo } from "./components/ui/hero-with-video";
-import { CallToAction } from "./components/CallToAction";
 import { CTASection } from "./components/ui/hero-dithering-card";
 import { HomeLoading } from "./components/page-wrapper";
-import { buildMetadata } from "../lib/seo";
-
-export const metadata = buildMetadata({
-  title: "Trail — Privacy-first research trails",
-  description:
-    "Capture sources, notes, and decisions as you browse. Trail turns tab chaos into organized research trails you can share without storing page content.",
-  path: "/",
-});
 
 export default function HomePage() {
   return (
@@ -45,7 +36,7 @@ export default function HomePage() {
             <TrustedBy />
             <BentoFeatures />
             <PersonalizationSection />
-            <TestimonialsSection />
+            <Testimonials />
             <PricingSection />
             <FAQSection />
             <CTASection />

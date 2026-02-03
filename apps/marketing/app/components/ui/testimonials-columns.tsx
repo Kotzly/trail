@@ -1,20 +1,12 @@
 "use client";
-
 import React from "react";
-import { motion } from "framer-motion";
-import Image from "next/image";
+import { motion } from "motion/react";
+import { testimonials } from "../../data/testimonials";
 
-export interface Testimonial {
-  quote: string;
-  image: string;
-  name: string;
-  role: string;
-  link?: string;
-}
 
 export const TestimonialsColumn = (props: {
   className?: string;
-  testimonials: Testimonial[];
+  testimonials: typeof testimonials;
   duration?: number;
 }) => {
   return (
@@ -29,30 +21,25 @@ export const TestimonialsColumn = (props: {
           ease: "linear",
           repeatType: "loop",
         }}
-        className="flex flex-col gap-4 pb-4"
+        className="flex flex-col gap-6 pb-6"
       >
         {[
           ...new Array(2).fill(0).map((_, index) => (
             <React.Fragment key={index}>
-              {props.testimonials.map(({ quote, image, name, role }, i) => (
-                <div 
-                  className="p-6 rounded-2xl border border-stroke/40 bg-surface/80 shadow-lg shadow-accent/5 max-w-xs w-full" 
-                  key={i}
-                >
-                  <div className="text-sm text-ink leading-relaxed">&ldquo;{quote}&rdquo;</div>
-                  <div className="flex items-center gap-3 mt-4">
-                    <div className="relative h-10 w-10 rounded-full overflow-hidden ring-2 ring-stroke/30">
-                      <Image
-                        width={40}
-                        height={40}
-                        src={image}
-                        alt={name}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
+              {props.testimonials.map(({ text, image, name, role }, i) => (
+                <div className="p-6 rounded-2xl border border-stroke/40 bg-surface/80 shadow-lg shadow-accent/5 max-w-xs w-full" key={i}>
+                  <div>{text}</div>
+                  <div className="flex items-center gap-2 mt-5">
+                    <img
+                      width={40}
+                      height={40}
+                      src={image}
+                      alt={name}
+                      className="h-10 w-10 rounded-full object-cover object-center bg-surface/60 ring-1 ring-stroke/40"
+                    />
                     <div className="flex flex-col">
-                      <div className="font-semibold text-sm text-ink leading-5">{name}</div>
-                      <div className="text-xs text-ink-muted leading-5">{role}</div>
+                      <div className="font-medium tracking-tight leading-5">{name}</div>
+                      <div className="leading-5 opacity-60 tracking-tight">{role}</div>
                     </div>
                   </div>
                 </div>
@@ -64,3 +51,5 @@ export const TestimonialsColumn = (props: {
     </div>
   );
 };
+
+;
