@@ -33,10 +33,10 @@ const plans: Plan[] = [
       "7 days of trail history",
       "Up to 50 paths per month",
       "Basic export (Markdown)",
-      "Local storage only",
+      "Local storage",
       "Community support",
     ],
-    cta: "Get Started Free",
+    cta: "Get started",
     icon: <Sparkles className="h-5 w-5" />,
   },
   {
@@ -51,24 +51,25 @@ const plans: Plan[] = [
       "Advanced exports (PDF, JSON)",
       "Priority support",
       "Custom tags and filters",
+      "More features coming soon"
     ],
     cta: "Start Pro Trial",
     popular: true,
     icon: <Zap className="h-5 w-5" />,
   },
   {
-    name: "Team",
+    name: "Teams",
     description: "For teams collaborating on research together.",
     monthlyPrice: 20,
     yearlyPrice: 16,
     features: [
       "Everything in Pro",
       "Shared team workspaces",
-      "Collaborative trails",
       "Admin controls",
       "SSO integration",
       "Dedicated support",
       "Custom integrations",
+      "Collaborative trails soon",
     ],
     cta: "Contact Sales",
     icon: <Building2 className="h-5 w-5" />,
@@ -78,7 +79,7 @@ const plans: Plan[] = [
 const faqs = [
   {
     question: "Can I switch plans anytime?",
-    answer: "Yes, you can upgrade or downgrade at any time. Changes take effect immediately.",
+    answer: "Yes, you can switch plans at any time. You'll keep your data and continue using Trail until the end of your current billing period.",
   },
   {
     question: "What happens to my data if I cancel?",
@@ -158,7 +159,7 @@ function PricingContent() {
         {/* Plans */}
         <section className="relative px-6 py-12">
           <div className="mx-auto max-w-6xl">
-            <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+            <div className="grid gap-6 lg:grid-cols-3 items-stretch">
               {plans.map((plan, index) => {
                 const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
                 const isPopular = plan.popular;
@@ -174,9 +175,9 @@ function PricingContent() {
                       ease: [0.16, 1, 0.3, 1] as const,
                     }}
                     whileHover={isPopular ? { y: -8 } : { y: -4 }}
-                    className={`relative rounded-3xl border bg-surface/70 p-6 backdrop-blur-sm transition-all duration-300 ${
+                    className={`relative flex h-full flex-col rounded-3xl border bg-surface/70 p-6 backdrop-blur-sm ${
                       isPopular
-                        ? "border-accent/50 shadow-xl shadow-accent/10 lg:scale-105 lg:-mt-4"
+                        ? "border-accent/50 shadow-xl shadow-accent/10 lg:-mt-4"
                         : "border-stroke/40 hover:border-accent/30 hover:shadow-lg"
                     }`}
                   >
@@ -199,7 +200,7 @@ function PricingContent() {
                       </>
                     )}
 
-                    <div className="relative">
+                    <div className="relative flex h-full flex-col">
                       <div className="flex items-center gap-3">
                         <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
                           isPopular ? "bg-accent/10 text-accent" : "bg-surface-strong text-ink-muted"
@@ -217,16 +218,11 @@ function PricingContent() {
                           <span className="text-4xl font-bold tracking-tight text-ink">
                             ${price}
                           </span>
-                          <span className="text-sm text-ink-subtle">/month</span>
+                          {price > 0 && <span className="text-sm text-ink-subtle">/month{ plan.name === "Teams" ? " per user" : ""}, {isYearly ? "billed annually" : "billed monthly"}</span>}
                         </div>
-                        {isYearly && price > 0 && (
-                          <p className="mt-1 text-xs text-green-600">
-                            ${plan.monthlyPrice - price} savings per month
-                          </p>
-                        )}
                       </div>
 
-                      <ul className="mt-6 space-y-3">
+                      <ul className="mt-6 flex-1 space-y-3 pb-6">
                         {plan.features.map((feature, i) => (
                           <li key={i} className="flex items-start gap-3 text-sm text-ink-muted">
                             <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" />
@@ -236,8 +232,8 @@ function PricingContent() {
                       </ul>
 
                       <Link
-                        href={plan.name === "Team" ? "/contact" : "/downloads"}
-                        className={`mt-6 block w-full rounded-full px-4 py-3 text-center text-sm font-semibold transition-all duration-200 ${
+                        href={plan.name === "Teams" ? "/contact" : "/downloads"}
+                        className={`mt-auto block w-full rounded-full px-4 py-3 text-center text-sm font-semibold transition-all duration-200 ${
                           isPopular
                             ? "bg-cta text-cta-fg hover:bg-cta-hover hover:shadow-lg hover:shadow-cta/25"
                             : "border border-stroke/60 bg-surface text-ink hover:border-accent hover:bg-surface-strong"
@@ -272,7 +268,7 @@ function PricingContent() {
                       <th className="pb-4 font-medium text-ink-subtle">Feature</th>
                       <th className="pb-4 text-center font-medium text-ink">Free</th>
                       <th className="pb-4 text-center font-medium text-accent">Pro</th>
-                      <th className="pb-4 text-center font-medium text-ink">Team</th>
+                      <th className="pb-4 text-center font-medium text-ink">Teams</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stroke/30">

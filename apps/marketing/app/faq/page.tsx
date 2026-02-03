@@ -37,7 +37,7 @@ const additionalFaqs = [
   {
     category: "billing",
     question: "Do you offer refunds?",
-    answer: "Yes, we offer a 14-day money-back guarantee for all paid plans. No questions asked.",
+    answer: "Yes, we offer a 7-day money-back guarantee for all paid plans. No questions asked.",
   },
   {
     category: "technical",
