@@ -62,7 +62,7 @@ export function FeaturesGrid() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group rounded-3xl border border-stroke/40 bg-surface/50 p-6 transition-all hover:border-accent/30 hover:bg-surface/70 hover:shadow-lg"
+                className="group rounded-3xl border border-stroke/40 bg-surface/50 p-6 hover:border-accent/30 hover:bg-surface/70 hover:shadow-lg"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent transition-transform group-hover:scale-110">
                   <Icon className="h-6 w-6" />

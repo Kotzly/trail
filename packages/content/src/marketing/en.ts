@@ -181,7 +181,7 @@ export const marketingCopy = {
           "The app logs searches, sources, and decisions while you work—no manual cleanup.",
         href: "/#showcase",
         cta: "See capture",
-        className: "lg:row-start-1 lg:row-end-4 lg:col-start-2 lg:col-end-3",
+        className: "lg:row-start-1 lg:row-end-2 lg:col-start-2 lg:col-end-3",
       },
       {
         id: "search",
@@ -219,84 +219,93 @@ export const marketingCopy = {
         cta: "Ship the recap",
         className: "lg:col-start-3 lg:col-end-4 lg:row-start-3 lg:row-end-4",
       },
-    ],
-  },
-  personalization: {
-    eyebrow: "Make it truly yours",
-    title: "Personalization",
-    summary:
-      "Dial in themes, views, and layouts so every workspace matches the way you think.",
-    cards: [
       {
-        title: "Theme picker",
-        description: "Match the workspace to your screens with quick palette swaps.",
-        icon: "palette",
-        layout: "md:[grid-area:1/1/2/7] xl:[grid-area:1/1/2/5]",
-      },
-      {
-        title: "View modes",
-        description: "Tree, radial, or mindmap layouts for every research style.",
-        icon: "wand",
-        layout: "md:[grid-area:1/7/2/13] xl:[grid-area:2/1/3/5]",
-      },
-      {
-        title: "Layout blocks",
-        description: "Resize panels, pin notes, and keep the essentials visible.",
-        icon: "layout",
-        layout: "md:[grid-area:2/1/3/7] xl:[grid-area:1/5/3/8]",
-      },
-      {
-        title: "Highlights & decisions",
-        description: "Mark the moments that matter and keep stakeholders aligned.",
-        icon: "sparkles",
-        layout: "md:[grid-area:2/7/3/13] xl:[grid-area:1/8/2/13]",
-      },
-      {
-        title: "Shareable snapshots",
-        description: "Publish a clean capture view without extra cleanup.",
-        icon: "share",
-        layout: "md:[grid-area:3/1/4/13] xl:[grid-area:2/8/3/13]",
+        id: "customization",
+        name: "Customizable views",
+        description:
+          "Customize the app to your workflow with themes, views, and layouts.",
+        href: "/#videos",
+        cta: "See customizable views",
+        className: "lg:col-start-2 lg:row-start-2 lg:row-end-4",
       },
     ],
-    videos: {
-      left: [
-        {
-          title: "Theme picker",
-          description: "Swap palettes in seconds.",
-          type: "image",
-          src:
-            "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=720&q=60",
-          alt: "Theme picker preview",
-        },
-        {
-          title: "Flexible layouts",
-          description: "Rearrange panels to fit your flow.",
-          type: "image",
-          src:
-            "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=720&q=60",
-          alt: "Flexible layout preview",
-        },
-      ],
-      right: [
-        {
-          title: "Tree, radial, mindmap",
-          description: "Switch views for every research path.",
-          type: "image",
-          src:
-            "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=720&q=60",
-          alt: "Path view preview",
-        },
-        {
-          title: "Highlight moments",
-          description: "Pin the key moments for fast handoff.",
-          type: "image",
-          src:
-            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=720&q=60",
-          alt: "Highlights preview",
-        },
-      ],
-    },
   },
+  // personalization: {
+  //   eyebrow: "Make it truly yours",
+  //   title: "Personalization",
+  //   summary:
+  //     "Dial in themes, views, and layouts so every workspace matches the way you think.",
+  //   cards: [
+  //     {
+  //       title: "Theme picker",
+  //       description: "Match the workspace to your screens with quick palette swaps.",
+  //       icon: "palette",
+  //       layout: "md:[grid-area:1/1/2/7] xl:[grid-area:1/1/2/5]",
+  //     },
+  //     {
+  //       title: "View modes",
+  //       description: "Tree, radial, or mindmap layouts for every research style.",
+  //       icon: "wand",
+  //       layout: "md:[grid-area:1/7/2/13] xl:[grid-area:2/1/3/5]",
+  //     },
+  //     {
+  //       title: "Layout blocks",
+  //       description: "Resize panels, pin notes, and keep the essentials visible.",
+  //       icon: "layout",
+  //       layout: "md:[grid-area:2/1/3/7] xl:[grid-area:1/5/3/8]",
+  //     },
+  //     {
+  //       title: "Highlights & decisions",
+  //       description: "Mark the moments that matter and keep stakeholders aligned.",
+  //       icon: "sparkles",
+  //       layout: "md:[grid-area:2/7/3/13] xl:[grid-area:1/8/2/13]",
+  //     },
+  //     {
+  //       title: "Shareable snapshots",
+  //       description: "Publish a clean capture view without extra cleanup.",
+  //       icon: "share",
+  //       layout: "md:[grid-area:3/1/4/13] xl:[grid-area:2/8/3/13]",
+  //     },
+  //   ],
+  //   videos: {
+  //     left: [
+  //       {
+  //         title: "Theme picker",
+  //         description: "Swap palettes in seconds.",
+  //         type: "image",
+  //         src:
+  //           "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=720&q=60",
+  //         alt: "Theme picker preview",
+  //       },
+  //       {
+  //         title: "Flexible layouts",
+  //         description: "Rearrange panels to fit your flow.",
+  //         type: "image",
+  //         src:
+  //           "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=720&q=60",
+  //         alt: "Flexible layout preview",
+  //       },
+  //     ],
+  //     right: [
+  //       {
+  //         title: "Tree, radial, mindmap",
+  //         description: "Switch views for every research path.",
+  //         type: "image",
+  //         src:
+  //           "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=720&q=60",
+  //         alt: "Path view preview",
+  //       },
+  //       {
+  //         title: "Highlight moments",
+  //         description: "Pin the key moments for fast handoff.",
+  //         type: "image",
+  //         src:
+  //           "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=720&q=60",
+  //         alt: "Highlights preview",
+  //       },
+  //     ],
+  //   },
+  // },
   pricing: {
     eyebrow: "Pricing",
     title: "Plans that scale with your research",
@@ -343,7 +352,7 @@ export const marketingCopy = {
         isPopular: true,
       },
       {
-        name: "Team",
+        name: "Teams",
         price: "20",
         yearlyPrice: "16",
         period: "per month",
