@@ -4,17 +4,16 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Chrome, 
-  Globe, 
-  Apple, 
   Download, 
   CheckCircle2, 
-  Clock,
   Mail,
   ArrowRight,
   Sparkles,
   Loader2
 } from "lucide-react";
+
+import { FaChrome, FaEdge, FaFirefoxBrowser, FaSafari } from "react-icons/fa";
+import { FaBrave } from "react-icons/fa6";
 
 import { BackgroundArt, Button, WaitlistSuccessDialog } from "@trail/ui";
 import { MarketingFooter } from "../components/MarketingFooter";
@@ -40,10 +39,11 @@ const itemVariants = {
 };
 
 const browsers = [
-  { id: "chrome", name: "Chrome", icon: Chrome, status: "available", color: "#4285F4" },
-  { id: "edge", name: "Edge", icon: Globe, status: "available", color: "#0078D4" },
-  { id: "firefox", name: "Firefox", icon: Globe, status: "waitlist", color: "#FF7139" },
-  { id: "safari", name: "Safari", icon: Apple, status: "coming", color: "#006CFF" },
+  { id: "chrome", name: "Chrome", icon: FaChrome, status: "available", color: "#4285F4" },
+  { id: "brave", name: "Brave", icon: FaBrave, status: "available", color: "#FF4500" },
+  { id: "edge", name: "Edge", icon: FaEdge, status: "available", color: "#0078D4" },
+  { id: "firefox", name: "Firefox", icon: FaFirefoxBrowser, status: "waitlist", color: "#FF7139" },
+  { id: "safari", name: "Safari", icon: FaSafari, status: "waitlist", color: "#006CFF" },
 ];
 
 const steps = [
