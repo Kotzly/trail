@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { CheckIcon, Cross2Icon, EnvelopeClosedIcon, StarIcon } from "@radix-ui/react-icons";
 import { cn } from "../utils/cn";
 import { Button } from "./Button";
@@ -53,10 +54,16 @@ export function WaitlistSuccessDialog({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
-
   return (
-    <div className={cn("fixed inset-0 z-50 flex items-center justify-center px-6 py-10", className)}>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className={cn("fixed inset-0 z-50 flex items-center justify-center px-6 py-10", className)}
+        >
       {/* Backdrop */}
       <div
         aria-hidden="true"
@@ -65,13 +72,17 @@ export function WaitlistSuccessDialog({
       />
 
       {/* Dialog */}
-      <div
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         className="trail-modal relative w-full max-w-md overflow-hidden"
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event: React.MouseEvent) => event.stopPropagation()}
       >
         {/* Close button */}
         <button
@@ -157,7 +168,9 @@ export function WaitlistSuccessDialog({
             No spam. One email when your download is ready.
           </p>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
