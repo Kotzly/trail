@@ -3,13 +3,13 @@ import { Suspense } from "react";
 import { BackgroundArt } from "@trail/ui";
 import { MarketingFooter } from "./components/MarketingFooter";
 import { MarketingNav } from "./components/MarketingNav";
-import { Showcase } from "./components/Showcase";
+import { TrustedBy } from "./components/TrustedBy";
 import { BentoFeatures } from "./components/sections/BentoFeatures";
 import { FAQSection } from "./components/sections/FAQSection";
 import { PersonalizationSection } from "./components/sections/PersonalizationSection";
 import { PricingSection } from "./components/sections/PricingSection";
 import { TestimonialsSection } from "./components/sections/TestimonialsSection";
-import { HeroDitheringCard } from "./components/ui/hero-dithering-card";
+import { HeroWithVideo } from "./components/ui/hero-with-video";
 import { CallToAction } from "./components/CallToAction";
 import { HomeLoading } from "./components/page-wrapper";
 import { buildMetadata } from "../lib/seo";
@@ -29,7 +29,7 @@ export default function HomePage() {
         <main className="relative overflow-hidden">
           <BackgroundArt variant="grid" className="opacity-70" />
           <div className="relative">
-            <HeroDitheringCard
+            <HeroWithVideo
               eyebrow="Browser app · free beta"
               title="Turn browsing into"
               rotatingWords={["shareable paths", "clear decisions", "organized research", "team context", "calm workflows"]}
@@ -38,9 +38,10 @@ export default function HomePage() {
               ctaHref="/downloads"
               secondaryCtaText="See the 60s demo"
               secondaryCtaHref="/#showcase"
-              showStats={true}
+              posterUrl="/assets/video-poster-white.jpg"
+              videoUrl="https://www.gettrail.net/assets/showcase.mp4"
             />
-            <Showcase />
+            <TrustedBy />
             <BentoFeatures />
             <PersonalizationSection />
             <TestimonialsSection />

@@ -245,6 +245,9 @@ importers:
       '@trail/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@trigger.dev/companyicons':
+        specifier: ^1.5.44
+        version: 1.5.44(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@vercel/analytics':
         specifier: ^1.6.1
         version: 1.6.1(next@16.1.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
@@ -1827,6 +1830,12 @@ packages:
     engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
+
+  '@trigger.dev/companyicons@1.5.44':
+    resolution: {integrity: sha512-inGbf2R2ksyoz5xVOuRxv5oK8mnEBfpEyd8tKGRByyarZsrPqKwGZGho/CMiSt1GT7qICf/fxMmqcKE8Yc9ZxA==}
+    peerDependencies:
+      react: ^18.2.0
+      react-dom: 18.2.0
 
   '@trpc/client@11.9.0':
     resolution: {integrity: sha512-3r4RT/GbR263QO+2gCPyrs5fEYaXua3/AzCs+GbWC09X0F+mVkyBpO3GRSDObiNU/N1YB597U7WGW3WA1d1TVw==}
@@ -5957,6 +5966,11 @@ snapshots:
   '@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1)':
     dependencies:
       '@testing-library/dom': 10.4.1
+
+  '@trigger.dev/companyicons@1.5.44(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
 
   '@trpc/client@11.9.0(@trpc/server@11.9.0(typescript@5.9.3))(typescript@5.9.3)':
     dependencies:

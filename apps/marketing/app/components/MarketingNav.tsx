@@ -28,7 +28,7 @@ export function MarketingNav() {
         </Link>
         <nav className="hidden items-center gap-5 text-sm font-medium text-ink-subtle md:flex">
           <Link
-            href="/#features"
+            href="/features"
             className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
           >
             {nav.features}
@@ -94,7 +94,7 @@ export function MarketingNav() {
       >
         <nav className="flex flex-col gap-4 text-sm font-medium text-ink">
           <Link
-            href="/#features"
+            href="/features"
             onClick={closeMenu}
             tabIndex={linkTabIndex}
             className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"

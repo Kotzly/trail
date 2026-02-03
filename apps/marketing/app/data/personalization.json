@@ -1,0 +1,21 @@
+{
+  "eyebrow": "",
+  "title": "Do it all with Trail.",
+  "summary": "",
+  "sections": [
+    {
+      "eyebrow": "Capture & Organize",
+      "title": "Save every source,\nnever lose context",
+      "description": "Trail automatically captures URLs, titles, and timestamps as you browse. Add notes when it matters.",
+      "image": "/assets/personalization/capture.jpg",
+      "imageAlt": "Trail capture interface"
+    },
+    {
+      "eyebrow": "Visualize & Share",
+      "title": "See your research path,\nshare in one click",
+      "description": "Switch between tree, radial, and mindmap views. Share a single link with full context.",
+      "image": "/assets/personalization/visualize.jpg",
+      "imageAlt": "Trail visualization interface"
+    }
+  ]
+}

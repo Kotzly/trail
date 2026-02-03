@@ -6,118 +6,68 @@ import { motion } from "framer-motion";
 import { marketingCopy } from "@trail/content";
 import { GlowingEffect } from "../ui/glowing-effect";
 import { Button } from "../ui/button";
+import { 
+  MousePointerClick, 
+  Search, 
+  GitBranch, 
+  Share2, 
+  FileDown,
+  ArrowRight
+} from "lucide-react";
 
-// Feature preview components
+const featureIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  capture: MousePointerClick,
+  search: Search,
+  views: GitBranch,
+  share: Share2,
+  polish: FileDown,
+};
+
 const CapturePreview = () => (
   <div className="flex items-center justify-center gap-2">
-    <div className="preview-dot h-2 w-2 rounded-full bg-accent" />
-    <div className="preview-dot h-2 w-2 rounded-full bg-accent/70" />
-    <div className="preview-dot h-2 w-2 rounded-full bg-accent/50" />
-    <svg
-      className="ml-2 h-4 w-4 text-accent"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path
-        d="M5 12h14M12 5l7 7-7 7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="preview-dot h-2 w-2 rounded-full bg-accent animate-pulse" />
+    <div className="preview-dot h-2 w-2 rounded-full bg-accent/70" style={{ animationDelay: "0.1s" }} />
+    <div className="preview-dot h-2 w-2 rounded-full bg-accent/50" style={{ animationDelay: "0.2s" }} />
+    <ArrowRight className="ml-2 h-4 w-4 text-accent" />
   </div>
 );
 
 const SearchPreview = () => (
   <div className="flex items-center gap-2">
-    <div className="search-ring relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent/50">
-      <svg
-        className="h-4 w-4 text-accent"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <circle cx="11" cy="11" r="8" />
-        <path d="m21 21-4.35-4.35" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+    <div className="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent/50">
+      <Search className="h-4 w-4 text-accent" />
     </div>
     <div className="flex items-center text-xs text-ink-muted">
       <span>find anything</span>
-      <span className="search-cursor ml-0.5 inline-block h-3.5 w-0.5 bg-accent" />
+      <span className="ml-0.5 inline-block h-3.5 w-0.5 bg-accent animate-pulse" />
     </div>
   </div>
 );
 
 const ViewsPreview = () => (
   <div className="relative flex h-12 w-12 items-center justify-center">
-    <div
-      className="view-shape absolute h-3 w-3 rounded bg-accent/80"
-      style={{ top: "20%", left: "30%" }}
-    />
-    <div
-      className="view-shape absolute h-3 w-3 rounded bg-accent/60"
-      style={{ top: "50%", left: "60%" }}
-    />
-    <div
-      className="view-shape absolute h-3 w-3 rounded bg-accent/40"
-      style={{ top: "70%", left: "25%" }}
-    />
-    <svg
-      className="absolute inset-0 h-full w-full text-accent/30"
-      viewBox="0 0 48 48"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1"
-    >
+    <div className="absolute h-3 w-3 rounded bg-accent/80" style={{ top: "20%", left: "30%" }} />
+    <div className="absolute h-3 w-3 rounded bg-accent/60" style={{ top: "50%", left: "60%" }} />
+    <div className="absolute h-3 w-3 rounded bg-accent/40" style={{ top: "70%", left: "25%" }} />
+    <svg className="absolute inset-0 h-full w-full text-accent/30" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1">
       <circle cx="24" cy="24" r="16" strokeDasharray="4 4" />
     </svg>
   </div>
 );
 
 const SharePreview = () => (
-  <div className="share-pulse-ring relative flex h-10 w-10 items-center justify-center rounded-full">
-    <svg
-      className="share-icon-link h-5 w-5 text-accent"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path
-        d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+  <div className="relative flex h-10 w-10 items-center justify-center rounded-full">
+    <Share2 className="h-5 w-5 text-accent" />
   </div>
 );
 
 const ExportPreview = () => (
   <div className="flex flex-col items-center gap-1.5">
     <div className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-accent/50 bg-accent/10">
-      <svg
-        className="export-arrow h-4 w-4 text-accent"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path
-          d="M12 5v14M5 12l7 7 7-7"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <FileDown className="h-4 w-4 text-accent" />
     </div>
     <div className="h-1 w-16 overflow-hidden rounded-full bg-accent/20">
-      <div className="export-progress-bar h-full bg-accent/60" />
+      <div className="h-full w-2/3 bg-accent/60" />
     </div>
   </div>
 );
@@ -130,68 +80,18 @@ const featurePreviews: Record<string, ReactNode> = {
   polish: <ExportPreview />,
 };
 
-// Feature icons
-const CaptureIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <circle cx="12" cy="12" r="10" />
-    <circle cx="12" cy="12" r="3" fill="currentColor" />
-  </svg>
-);
-
-const SearchIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.35-4.35" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const ViewsIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
-  </svg>
-);
-
-const ShareIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <circle cx="18" cy="5" r="3" />
-    <circle cx="6" cy="12" r="3" />
-    <circle cx="18" cy="19" r="3" />
-    <path d="M8.59 13.51 15.42 17.49" strokeLinecap="round" />
-    <path d="M15.41 6.51 8.59 10.49" strokeLinecap="round" />
-  </svg>
-);
-
-const ExportIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const featureIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  capture: CaptureIcon,
-  search: SearchIcon,
-  views: ViewsIcon,
-  share: ShareIcon,
-  polish: ExportIcon,
-};
-
 interface BentoCardProps {
   name: string;
-  className: string;
   Icon: React.ComponentType<{ className?: string }>;
   description: string;
   href: string;
   cta: string;
   id?: string;
   index?: number;
+  className?: string;
 }
 
-function BentoCard({ name, className, Icon, description, href, cta, id = "", index = 0 }: BentoCardProps) {
+function BentoCard({ name, Icon, description, href, cta, id = "", index = 0, className = "" }: BentoCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -214,15 +114,14 @@ function BentoCard({ name, className, Icon, description, href, cta, id = "", ind
   }, []);
 
   const preview = id ? featurePreviews[id] : null;
-  const delay = index * 100;
 
   return (
     <motion.div
       ref={cardRef}
       initial={{ opacity: 0, y: 24 }}
       animate={isVisible ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay: delay / 1000, ease: [0.16, 1, 0.3, 1] }}
-      className={className}
+      transition={{ duration: 0.5, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      className={`h-full ${className}`}
     >
       <div className="group relative h-full overflow-hidden rounded-3xl border border-stroke/60 bg-surface/70 transition-all duration-300 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/5">
         <GlowingEffect
@@ -273,7 +172,6 @@ export function BentoFeatures() {
 
   return (
     <section id="features" className="relative px-6 py-24">
-      {/* Section header */}
       <div className="mx-auto max-w-6xl text-center">
         <motion.span
           initial={{ opacity: 0, y: 10 }}
@@ -304,7 +202,6 @@ export function BentoFeatures() {
         </motion.p>
       </div>
 
-      {/* Bento grid */}
       <div className="mx-auto mt-16 max-w-6xl">
         <div className="grid auto-rows-[200px] grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-3">
           {features.items.map((feature, index) => (
@@ -314,7 +211,7 @@ export function BentoFeatures() {
               description={feature.description}
               href={feature.href}
               cta={feature.cta}
-              Icon={featureIcons[feature.id] || CaptureIcon}
+              Icon={featureIcons[feature.id] || MousePointerClick}
               id={feature.id}
               index={index}
               className={feature.className}

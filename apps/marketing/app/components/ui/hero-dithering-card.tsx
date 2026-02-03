@@ -10,18 +10,6 @@ const Dithering = lazy(() =>
   import("@paper-design/shaders-react").then((mod) => ({ default: mod.Dithering }))
 );
 
-interface HeroDitheringCardProps {
-  eyebrow?: string;
-  title: string;
-  rotatingWords?: string[];
-  description: string;
-  ctaText: string;
-  ctaHref: string;
-  secondaryCtaText?: string;
-  secondaryCtaHref?: string;
-  showStats?: boolean;
-}
-
 export function HeroDitheringCard({
   eyebrow = "Browser app · free beta",
   title,
@@ -32,10 +20,19 @@ export function HeroDitheringCard({
   secondaryCtaText,
   secondaryCtaHref,
   showStats = true,
-}: HeroDitheringCardProps) {
+}: {
+  eyebrow?: string;
+  title: string;
+  rotatingWords?: string[];
+  description: string;
+  ctaText: string;
+  ctaHref: string;
+  secondaryCtaText?: string;
+  secondaryCtaHref?: string;
+  showStats?: boolean;
+}) {
   const [isHovered, setIsHovered] = useState(false);
   const [titleNumber, setTitleNumber] = useState(0);
-  
   const titles = useMemo(() => rotatingWords, [rotatingWords]);
 
   useEffect(() => {
@@ -62,12 +59,12 @@ export function HeroDitheringCard({
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="relative overflow-hidden rounded-[3rem] border border-stroke/40 bg-surface/70 shadow-2xl shadow-accent/10 min-h-[600px] md:min-h-[700px] lg:min-h-[750px] flex flex-col items-center justify-center transition-all duration-500 hover:border-accent/30">
-          {/* Dithering Background */}
+          {/* Dithering Background - Brighter in dark theme */}
           <Suspense fallback={<div className="absolute inset-0 bg-surface-strong/30" />}>
-            <div className="absolute inset-0 z-0 pointer-events-none opacity-35 dark:opacity-30 mix-blend-multiply dark:mix-blend-screen">
+            <div className="absolute inset-0 z-0 pointer-events-none opacity-40 dark:opacity-60 dark:brightness-150">
               <Dithering
                 colorBack="#00000000"
-                colorFront="rgb(201 162 39)"
+                colorFront="#0D9488"
                 shape="warp"
                 type="4x4"
                 speed={isHovered ? 0.8 : 0.25}
@@ -78,7 +75,7 @@ export function HeroDitheringCard({
           </Suspense>
 
           {/* Gradient Overlay */}
-          <div className="absolute inset-0 z-[1] bg-gradient-to-b from-base/60 via-transparent to-base/60 pointer-events-none" />
+          <div className="absolute inset-0 z-[1] bg-gradient-to-b from-base/80 via-base/40 to-base/80 pointer-events-none" />
 
           {/* Content */}
           <div className="relative z-10 px-6 md:px-12 max-w-4xl mx-auto text-center flex flex-col items-center">
@@ -109,28 +106,15 @@ export function HeroDitheringCard({
                   {titles.map((word, index) => (
                     <motion.span
                       key={index}
-                      className="absolute font-semibold bg-gradient-to-r from-ink via-ink to-accent bg-clip-text text-transparent"
+                      className="absolute font-semibold text-accent"
                       initial={{ opacity: 0, y: 100, scale: 0.8 }}
                       animate={
                         titleNumber === index
-                          ? {
-                              y: 0,
-                              opacity: 1,
-                              scale: 1,
-                            }
-                          : {
-                              y: titleNumber > index ? -100 : 100,
-                              opacity: 0,
-                              scale: 0.8,
-                            }
+                          ? { y: 0, opacity: 1, scale: 1 }
+                          : { y: titleNumber > index ? -100 : 100, opacity: 0, scale: 0.8 }
                       }
                       exit={{ opacity: 0, y: -100, scale: 0.8 }}
-                      transition={{ 
-                        type: "spring", 
-                        stiffness: 100, 
-                        damping: 20,
-                        opacity: { duration: 0.3 }
-                      }}
+                      transition={{ type: "spring", stiffness: 100, damping: 20 }}
                     >
                       {word}
                     </motion.span>
@@ -178,7 +162,7 @@ export function HeroDitheringCard({
         </div>
       </motion.div>
 
-      {/* Stats Row - Below Card */}
+      {/* Stats Row */}
       {showStats && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -188,25 +172,16 @@ export function HeroDitheringCard({
         >
           {stats.map((stat, index) => (
             <div key={stat.label} className="flex items-baseline gap-2 px-2">
-              <span className="text-2xl font-semibold tabular-nums text-ink">
-                {stat.value}
-              </span>
+              <span className="text-2xl font-semibold tabular-nums text-ink">{stat.value}</span>
               <span className="text-ink-subtle">{stat.label}</span>
-              {index < stats.length - 1 && (
-                <span className="hidden md:inline-block ml-6 h-4 w-px bg-stroke/60" />
-              )}
+              {index < stats.length - 1 && <span className="hidden md:inline-block ml-6 h-4 w-px bg-stroke/60" />}
             </div>
           ))}
         </motion.div>
       )}
       
       {showStats && statsNote && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-          className="mt-3 text-xs text-ink-subtle/70"
-        >
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.7 }} className="mt-3 text-xs text-ink-subtle/70">
           {statsNote}
         </motion.p>
       )}
@@ -214,7 +189,6 @@ export function HeroDitheringCard({
   );
 }
 
-// Demo component for standalone use
 export function CTASection() {
   return (
     <HeroDitheringCard
