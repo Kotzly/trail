@@ -298,13 +298,12 @@ function DownloadsContent() {
                         className="h-12 rounded-full border border-stroke/60 bg-surface px-6 text-sm text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                         required
                       />
-                      <Link
+                      <Button
                         className="inline-flex items-center gap-2 rounded-full bg-cta px-6 py-3 text-sm font-semibold text-cta-fg transition hover:bg-cta-hover"
-                        href="/waitlist"
                       >
                         Join Waitlist
                         <ArrowRight className="h-4 w-4" />
-                      </Link>                      
+                      </Button>                      
                     </form>
                   ) : (
                     <motion.div
