@@ -959,7 +959,7 @@
 
 @media (min-width: 768px) {
   .settings-sidebar {
-    width: 240px;
+    width: 180px;
     border-right: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
     background: color-mix(in srgb, var(--md-surface-container-low) 80%, transparent);
     display: flex;
