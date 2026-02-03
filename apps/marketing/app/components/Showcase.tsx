@@ -9,7 +9,6 @@ export function Showcase() {
   const mediaBase = "https://www.gettrail.net";
   const posterSrc = `${mediaBase}/assets/video-poster-white.jpg`;
   const videoSrc = `${mediaBase}/assets/showcase.mp4`;
-  const captionsSrc = `${mediaBase}/assets/showcase.vtt`;
 
   return (
     <section
@@ -64,13 +63,6 @@ export function Showcase() {
               aria-label="Trail product demo"
             >
               <source src={videoSrc} type="video/mp4" />
-              <track
-                kind="captions"
-                srcLang="en"
-                src={captionsSrc}
-                label="English captions"
-                default
-              />
             </video>
           </div>
         </GlowingShadow>

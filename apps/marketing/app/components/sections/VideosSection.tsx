@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import { motion } from "motion/react";
-import videosData from "../../data/videos.json";
+import { videos } from "../../data/videos";
 
 const VideoShowcases = () => {
-  const { title, sections } = videosData;
+  const { title, sections } = videos;
 
   return (
     <section id="make-trail-yours" className="px-6 py-24 lg:py-32 overflow-hidden">
@@ -43,8 +43,8 @@ interface Section {
   eyebrow: string;
   title: string;
   description: string;
-  image: string;
-  imageAlt: string;
+  video: string;
+  preview: string;
 }
 
 function FeatureBlock({
@@ -111,13 +111,18 @@ function FeatureBlock({
         <div className="relative aspect-square w-full max-w-lg mx-auto rounded-[2rem] overflow-hidden bg-gradient-to-br from-accent/20 via-surface to-cta/20 p-[1px] shadow-2xl shadow-accent/5">
           <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-accent/30 via-transparent to-cta/20 opacity-60" />
           <div className="relative w-full h-full rounded-[calc(2rem-1px)] overflow-hidden bg-surface">
-            <Image
-              src={section.image}
-              alt={section.imageAlt}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 512px"
-            />
+            <video
+                className="h-full w-full object-cover"
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                poster={section.preview}
+                data-play-on-view="true"
+                aria-label="Trail product demo"
+              > 
+                <source src={section.video} type="video/mp4" />
+              </video>
           </div>
         </div>
         {/* Decorative gradient blur */}
