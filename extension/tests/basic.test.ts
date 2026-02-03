@@ -203,9 +203,9 @@ function testSidebarLabelState(): void {
 }
 
 function testSidebarWidth(): void {
-  assert.equal(getSidebarWidth(true, true), '300px');
+  assert.equal(getSidebarWidth(true, true), '240px');
   assert.equal(getSidebarWidth(false, true), '60px');
-  assert.equal(getSidebarWidth(false, false), '300px');
+  assert.equal(getSidebarWidth(false, false), '240px');
 }
 
 try {

@@ -959,13 +959,20 @@
 
 @media (min-width: 768px) {
   .settings-sidebar {
-    width: 230px;
-    padding: 16px;
+    width: 240px;
     border-right: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
     background: color-mix(in srgb, var(--md-surface-container-low) 80%, transparent);
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+
+  .settings-sidebar.is-open {
+    padding: 16px;
+  }
+
+  .settings-sidebar.is-collapsed {
+    padding: 8px;
   }
 }
 
@@ -973,23 +980,6 @@
   .settings-modal {
     width: min(94vw, 940px);
     height: min(92vh, 860px);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 960px) {
-  .settings-sidebar {
-    width: 210px;
-  }
-}
-
-@media (max-width: 768px) {
-  .settings-modal {
-    width: min(96vw, 720px);
-    height: min(94vh, 900px);
-  }
-
-  .settings-modal-body {
-    flex-direction: column;
   }
 }
 

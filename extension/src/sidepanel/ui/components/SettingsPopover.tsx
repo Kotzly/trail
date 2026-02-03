@@ -259,6 +259,21 @@ type SettingsSidebarNavProps = {
   onSelectSection: (section: SettingsSectionId) => void;
 };
 
+type SettingsSidebarBodyProps = {
+  children: React.ReactNode;
+};
+
+function SettingsSidebarBody({ children }: SettingsSidebarBodyProps) {
+  const { open } = useSidebar();
+  const stateClass = open ? 'is-open' : 'is-collapsed';
+
+  return (
+    <SidebarBody className={`settings-sidebar ${stateClass}`} showMobile={false} forceDesktop>
+      {children}
+    </SidebarBody>
+  );
+}
+
 function SettingsSidebarNav({ activeSection, onSelectSection }: SettingsSidebarNavProps) {
   const { open, setOpen } = useSidebar();
 
@@ -1159,7 +1174,7 @@ export default function SettingsPopover() {
 
         <div className="settings-modal-body">
           <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
-            <SidebarBody className="settings-sidebar" showMobile={false} forceDesktop>
+            <SettingsSidebarBody>
               <SettingsSidebarNav
                 activeSection={activeSection}
                 onSelectSection={(section) => {
@@ -1167,7 +1182,7 @@ export default function SettingsPopover() {
                   setSidebarOpen(false);
                 }}
               />
-            </SidebarBody>
+            </SettingsSidebarBody>
           </Sidebar>
           <div className="settings-panel">{renderPanel()}</div>
         </div>
