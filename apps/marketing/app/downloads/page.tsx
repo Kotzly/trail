@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Chrome, 
   Globe, 
@@ -12,10 +12,11 @@ import {
   Clock,
   Mail,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Loader2
 } from "lucide-react";
 
-import { BackgroundArt, Button, Card } from "@trail/ui";
+import { BackgroundArt, Button, WaitlistSuccessDialog } from "@trail/ui";
 import { MarketingFooter } from "../components/MarketingFooter";
 import { MarketingNav } from "../components/MarketingNav";
 import { GlowingEffect } from "../components/ui/glowing-effect";
@@ -63,10 +64,14 @@ const steps = [
   },
 ];
 
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function DownloadsContent() {
   const [detectedBrowser, setDetectedBrowser] = useState<string>("chrome");
   const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
@@ -76,9 +81,51 @@ function DownloadsContent() {
     else if (ua.includes("safari")) setDetectedBrowser("safari");
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const trimmedEmail = email.trim();
+  const isEmailValid = emailPattern.test(trimmedEmail);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+
+    if (!isEmailValid) {
+      setError("Please enter a valid email address.");
+      setStatus("error");
+      return;
+    }
+
+    setStatus("submitting");
+    setError(null);
+
+    try {
+      // todo: move to proper api endpoint
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail, source: "downloads-page" }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          // Already on the list
+          setStatus("success");
+          setShowSuccessDialog(true);
+          return;
+        }
+        throw new Error("Failed to join waitlist");
+      }
+
+      setStatus("success");
+      setShowSuccessDialog(true);
+    } catch {
+      setStatus("error");
+      setError("Something went wrong. Please try again.");
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setShowSuccessDialog(false);
+    setEmail("");
+    setStatus("idle");
   };
 
   return (
@@ -194,7 +241,14 @@ function DownloadsContent() {
                             Install Now
                           </Button>
                         ) : (
-                          <Button variant="outline" className="w-full" onClick={() => window.location.href = "#waitlist"}>
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={() => {
+                              const element = document.getElementById("waitlist");
+                              element?.scrollIntoView({ behavior: "smooth" });
+                            }}
+                          >
                             Join Waitlist
                           </Button>
                         )}
@@ -288,35 +342,79 @@ function DownloadsContent() {
                     We&apos;re working on support for your browser. Join the waitlist and be the first to know when it&apos;s ready.
                   </p>
 
-                  {!submitted ? (
-                    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
-                        className="h-12 rounded-full border border-stroke/60 bg-surface px-6 text-sm text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
-                        required
-                      />
-                      <Button
-                        className="inline-flex items-center gap-2 rounded-full bg-cta px-6 py-3 text-sm font-semibold text-cta-fg transition hover:bg-cta-hover"
+                  <AnimatePresence mode="wait">
+                    {status === "success" ? (
+                      <motion.div
+                        key="success"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.3 }}
+                        className="mt-6 rounded-2xl border border-green-500/30 bg-green-500/10 p-4"
                       >
-                        Join Waitlist
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>                      
-                    </form>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="mt-6 rounded-2xl border border-green-500/30 bg-green-500/10 p-4"
-                    >
-                      <div className="flex items-center justify-center gap-2 text-green-600">
-                        <CheckCircle2 className="h-5 w-5" />
-                        <span className="font-medium">You&apos;re on the list! We&apos;ll email you soon.</span>
-                      </div>
-                    </motion.div>
-                  )}
+                        <div className="flex items-center justify-center gap-2 text-green-600">
+                          <CheckCircle2 className="h-5 w-5" />
+                          <span className="font-medium">You&apos;re on the list! Check your email.</span>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.form
+                        key="form"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        onSubmit={handleSubmit}
+                        className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center"
+                      >
+                        <div className="relative flex-1 max-w-sm">
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => {
+                              setEmail(e.target.value);
+                              if (status === "error") {
+                                setStatus("idle");
+                                setError(null);
+                              }
+                            }}
+                            placeholder="Enter your email"
+                            className="h-12 w-full rounded-full border border-stroke/60 bg-surface px-6 text-sm text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                            disabled={status === "submitting"}
+                          />
+                          <AnimatePresence>
+                            {error && (
+                              <motion.p
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="absolute -bottom-6 left-4 text-xs text-red-500"
+                              >
+                                {error}
+                              </motion.p>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                        <Button
+                          type="submit"
+                          disabled={status === "submitting" || !trimmedEmail}
+                          className="inline-flex items-center gap-2"
+                        >
+                          {status === "submitting" ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Joining...
+                            </>
+                          ) : (
+                            <>
+                              Join Waitlist
+                              <ArrowRight className="h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
                 </div>
               </section>
             </motion.div>
@@ -371,6 +469,13 @@ function DownloadsContent() {
         </section>
       </main>
       <MarketingFooter />
+
+      {/* Success Dialog */}
+      <WaitlistSuccessDialog
+        open={showSuccessDialog}
+        onClose={handleCloseDialog}
+        email={email}
+      />
     </div>
   );
 }
