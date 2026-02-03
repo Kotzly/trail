@@ -12,7 +12,11 @@ import {
   GitBranch, 
   Share2, 
   FileDown,
-  ArrowRight
+  ArrowRight,
+  Palette,
+  LucideCircleSlash,
+  ArrowLeft,
+  Brush
 } from "lucide-react";
 
 const featureIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -21,6 +25,7 @@ const featureIcons: Record<string, React.ComponentType<{ className?: string }>> 
   views: GitBranch,
   share: Share2,
   polish: FileDown,
+  customization: Palette,
 };
 
 const CapturePreview = () => (
@@ -72,12 +77,19 @@ const ExportPreview = () => (
   </div>
 );
 
+const CustomizationPreview = () => (
+  <div className="relative flex h-10 w-10 items-center justify-center rounded-full">
+    <Brush className="h-5 w-5 text-accent" />
+  </div>
+);
+
 const featurePreviews: Record<string, ReactNode> = {
   capture: <CapturePreview />,
   search: <SearchPreview />,
   views: <ViewsPreview />,
   share: <SharePreview />,
   polish: <ExportPreview />,
+  customization: <CustomizationPreview />,
 };
 
 interface BentoCardProps {

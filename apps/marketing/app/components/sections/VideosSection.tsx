@@ -101,11 +101,11 @@ function FeatureBlock({
 
       {/* Image - Square, Larger, Thinner Border */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 30 }}
-        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className={`relative ${reversed ? "lg:order-1" : "lg:order-2"}`}
+        className={`relative isolate ${reversed ? "lg:order-1" : "lg:order-2"}`}
       >
         {/* Larger square container with thin border */}
         <div className="relative aspect-square w-full max-w-lg mx-auto rounded-[2rem] overflow-hidden bg-gradient-to-br from-accent/20 via-surface to-cta/20 p-[1px] shadow-2xl shadow-accent/5">
@@ -121,7 +121,7 @@ function FeatureBlock({
           </div>
         </div>
         {/* Decorative gradient blur */}
-        <div className="absolute -inset-8 -z-10 bg-gradient-to-r from-accent/20 via-cta/10 to-transparent blur-3xl opacity-50" />
+        <div className={`absolute -inset-8 -z-10 ${reversed ? "bg-gradient-to-br" : "bg-gradient-to-bl"} from-accent/20 via-cta/10 to-transparent blur-3xl opacity-50`} />
       </motion.div>
     </motion.div>
   );

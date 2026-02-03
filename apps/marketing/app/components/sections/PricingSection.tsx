@@ -3,10 +3,11 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, Star } from "lucide-react";
+import { Check, Sparkles, Star } from "lucide-react";
 import { marketingCopy } from "@trail/content";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
+import { GlowingEffect } from "../ui/glowing-effect";
 
 interface PricingPlan {
   name: string;
@@ -41,19 +42,29 @@ function PricingCard({ plan, isMonthly, index }: PricingCardProps) {
         ease: [0.16, 1, 0.3, 1] as const,
       }}
       whileHover={isPopular ? { y: -8 } : { y: -4 }}
-      className={`relative rounded-3xl border bg-surface/70 p-6 backdrop-blur-sm transition-all duration-300 ${
+      className={`relative flex h-full flex-col rounded-3xl border bg-surface/70 p-6 backdrop-blur-sm ${
         isPopular
-          ? "border-accent/50 shadow-xl shadow-accent/10 lg:scale-105"
-          : "border-stroke/40 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5"
+          ? "border-accent/50 shadow-xl shadow-accent/10 lg:-mt-4"
+          : "border-stroke/40 hover:border-accent/30 hover:shadow-lg"
       }`}
     >
       {isPopular && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-cta-fg">
-            <Star className="h-3 w-3 fill-current" />
-            {marketingCopy.pricing.popularBadge}
-          </span>
-        </div>
+        <>
+          <GlowingEffect
+            spread={40}
+            glow={true}
+            disabled={false}
+            proximity={60}
+            inactiveZone={0.01}
+            borderWidth={2}
+          />
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-cta-fg">
+              <Sparkles className="h-3 w-3" />
+              Most Popular
+            </span>
+          </div>
+        </>
       )}
 
       <div className="text-center">
@@ -68,10 +79,11 @@ function PricingCard({ plan, isMonthly, index }: PricingCardProps) {
 
         <p className="mt-1 text-xs text-ink-subtle">
           {isMonthly ? marketingCopy.pricing.billedMonthlyLabel : marketingCopy.pricing.billedAnnuallyLabel}
+          {plan.name === "Teams" && <span className="text-sm text-ink-subtle">, per user</span>}
         </p>
       </div>
 
-      <ul className="mt-6 space-y-3">
+      <ul className="mt-6 flex-1 pb-6 space-y-3">
         {plan.features.map((feature, idx) => (
           <li key={idx} className="flex items-start gap-3">
             <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" />
@@ -81,8 +93,8 @@ function PricingCard({ plan, isMonthly, index }: PricingCardProps) {
       </ul>
 
       <Link
-        href={plan.href}
-        className={`mt-6 block w-full rounded-full px-4 py-3 text-center text-sm font-semibold transition-all duration-200 ${
+        href={plan.name === "Teams" ? "/contact" : "/downloads"}
+        className={`mt-auto block w-full rounded-full px-4 py-3 text-center text-sm font-semibold transition-all duration-200 ${
           isPopular
             ? "bg-cta text-cta-fg hover:bg-cta-hover hover:shadow-lg hover:shadow-cta/25"
             : "border border-stroke/60 bg-surface text-ink hover:border-accent hover:bg-surface-strong"
