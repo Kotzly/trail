@@ -132,7 +132,7 @@
 }
 
 .settings-sidebar-nav[data-open='false'] {
-  align-items: center;
+  align-items: flex-start;
 }
 
 .settings-nav-item {
