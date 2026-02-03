@@ -12,9 +12,9 @@ export function getSidebarLabelState(open: boolean, animate: boolean): SidebarLa
     : { display: 'none', opacity: 0 };
 }
 
-export function getSidebarWidth(open: boolean, animate: boolean): '300px' | '60px' {
+export function getSidebarWidth(open: boolean, animate: boolean): '240px' | '60px' {
   if (!animate) {
-    return '300px';
+    return '240px';
   }
-  return open ? '300px' : '60px';
+  return open ? '240px' : '60px';
 }
