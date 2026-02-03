@@ -2,8 +2,7 @@ import type { ViewState } from '../../graph/types.js';
 
 const GRID_BASE_SIZE = 20;
 const GRID_BASE_DOT_SIZE = 1.5;
-const GRID_MIN_DOT_SCALE = 0.5;
-
+const GRID_MIN_DOT_PX = 1;
 export type GraphGridTransform = {
   size: number;
   dotSize: number;
@@ -19,8 +18,13 @@ const normalizeModulo = (value: number, modulus: number) => {
 
 export function computeGraphGridTransform(view: ViewState): GraphGridTransform {
   const scale = view.scale;
-  const size = GRID_BASE_SIZE * scale;
-  const dotSize = GRID_BASE_DOT_SIZE * Math.max(scale, GRID_MIN_DOT_SCALE);
+  const band =
+    Number.isFinite(scale) && scale > 0 && scale < 1
+      ? Math.max(0, Math.floor(Math.log2(1 / scale)))
+      : 0;
+  const bandMultiplier = Math.pow(2, band);
+  const size = GRID_BASE_SIZE * scale * bandMultiplier;
+  const dotSize = Math.max(GRID_BASE_DOT_SIZE * scale, GRID_MIN_DOT_PX);
   return {
     size,
     dotSize,
