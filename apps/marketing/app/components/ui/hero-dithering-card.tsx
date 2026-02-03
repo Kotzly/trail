@@ -78,7 +78,7 @@ export function HeroDitheringCard({
           <div className="absolute inset-0 z-[1] bg-gradient-to-b from-base/80 via-base/40 to-base/80 pointer-events-none" />
 
           {/* Content */}
-          <div className="relative z-10 px-6 md:px-12 max-w-4xl mx-auto text-center flex flex-col items-center">
+          <div className="relative z-10 px-6 md:px-16 max-w-[72rem] mx-auto text-center flex flex-col items-center">
             {/* Eyebrow */}
             <motion.div 
               className="mb-8 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-accent backdrop-blur-sm"
@@ -93,20 +93,20 @@ export function HeroDitheringCard({
               {eyebrow}
             </motion.div>
 
-            {/* Headline with Rotating Words */}
-            <motion.div 
-              className="font-display text-5xl md:text-7xl lg:text-8xl font-semibold tracking-tight text-ink mb-6 leading-[1.05]"
+            {/* Title with Rotating Words */}
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-6 font-display font-semibold tracking-tight text-ink leading-[1.1] text-[clamp(2.5rem,6vw,4.5rem)] text-center w-full max-w-4xl mx-auto"
             >
-              <span className="block text-ink/70 mb-2">{title}</span>
-              <span className="relative flex w-full justify-center overflow-hidden h-[1.2em] md:h-[1.15em]">
+              <span className="block text-ink/70">{title}</span>
+              <span className="relative flex w-full justify-center overflow-hidden h-[1.4em] md:h-[1.3em] pb-[0.15em] mt-2">
                 <AnimatePresence mode="popLayout">
                   {titles.map((word, index) => (
                     <motion.span
                       key={index}
-                      className="absolute font-semibold text-accent"
+                      className="absolute font-semibold text-accent whitespace-nowrap text-[clamp(2.5rem,6vw,4.5rem)]"
                       initial={{ opacity: 0, y: 100, scale: 0.8 }}
                       animate={
                         titleNumber === index
@@ -122,7 +122,7 @@ export function HeroDitheringCard({
                 </AnimatePresence>
               </span>
             </motion.div>
-            
+
             {/* Description */}
             <motion.p 
               className="text-ink-muted text-lg md:text-xl max-w-2xl mb-12 leading-relaxed"

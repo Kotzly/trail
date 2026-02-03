@@ -27,7 +27,7 @@ export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
   title = "Turn browsing into",
   rotatingWords = ["shareable paths", "clear decisions", "organized research", "team context", "calm workflows"],
   description = "Capture every meaningful step, add notes when it matters, and share a clean research path instead of a tab dump.",
-  ctaText = "Get the extension",
+  ctaText = "Get Trail",
   ctaHref = "/downloads",
   secondaryCtaText = "See the 60s demo",
   secondaryCtaHref = "#showcase",
@@ -48,21 +48,6 @@ export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
     <section className="relative pt-24 pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Dithering Background - only within hero section */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <Suspense fallback={
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-base to-cta/10" />
-        }>
-          <div className="absolute inset-0 opacity-50 dark:opacity-70">
-            <Dithering
-              colorBack="#00000000"
-              colorFront="#14B8A6"
-              shape="warp"
-              type="4x4"
-              speed={0.25}
-              className="size-full"
-              minPixelRatio={1}
-            />
-          </div>
-        </Suspense>
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-base/70 via-base/40 to-base/70" />
       </div>
@@ -94,10 +79,10 @@ export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-6 font-display text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight text-ink leading-[1.15]"
+            className="mt-6 font-display text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight text-ink leading-[1.1]"
           >
             <span className="block text-ink/70">{title}</span>
-            <span className="relative flex w-full justify-center overflow-hidden h-[1.2em] md:h-[1.15em] mt-2">
+            <span className="relative flex w-full justify-center overflow-hidden h-[1.4em] md:h-[1.3em] pb-[0.15em] mt-2">
               <AnimatePresence mode="popLayout">
                 {titles.map((word, index) => (
                   <motion.span

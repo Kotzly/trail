@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
-import personalizationData from "../../data/personalization.json";
+import { motion } from "motion/react";
+import videosData from "../../data/videos.json";
 
-export function PersonalizationSection() {
-  const { title, sections } = personalizationData;
+const VideoShowcases = () => {
+  const { title, sections } = videosData;
 
   return (
     <section id="make-trail-yours" className="px-6 py-24 lg:py-32 overflow-hidden">
@@ -36,6 +36,8 @@ export function PersonalizationSection() {
     </section>
   );
 }
+
+export default VideoShowcases;
 
 interface Section {
   eyebrow: string;
