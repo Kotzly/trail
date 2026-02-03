@@ -30,7 +30,7 @@ export const marketingCopy = {
       title: "Support · Trail",
       description: "Get help with the Trail app and your account.",
     },
-    eyebrow: "support",
+    eyebrow: "troubleshoot",
     title: "Get help, stay in flow.",
     subtitle:
       "Email us or skim the quick checks below. A couple details help us respond faster.",
@@ -224,7 +224,7 @@ export const marketingCopy = {
         name: "Customizable views",
         description:
           "Customize the app to your workflow with themes, views, and layouts.",
-        href: "/#videos",
+        href: "/#make-trail-yours",
         cta: "See customizable views",
         className: "lg:col-start-2 lg:row-start-2 lg:row-end-4",
       },

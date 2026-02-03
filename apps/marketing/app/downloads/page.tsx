@@ -14,12 +14,11 @@ import {
   ArrowRight,
   Sparkles
 } from "lucide-react";
-import { marketingCopy } from "@trail/content";
+
 import { BackgroundArt, Button, Card } from "@trail/ui";
 import { MarketingFooter } from "../components/MarketingFooter";
 import { MarketingNav } from "../components/MarketingNav";
 import { GlowingEffect } from "../components/ui/glowing-effect";
-import { InteractiveButton } from "../components/ui/interactive-button";
 import { DownloadsLoading } from "../components/page-wrapper";
 
 const containerVariants = {
@@ -195,7 +194,7 @@ function DownloadsContent() {
                             Install Now
                           </Button>
                         ) : (
-                          <Button variant="outline" className="w-full">
+                          <Button variant="outline" className="w-full" onClick={() => window.location.href = "#waitlist"}>
                             Join Waitlist
                           </Button>
                         )}
@@ -276,47 +275,51 @@ function DownloadsContent() {
                 borderWidth={2}
               />
               
-              <div className="relative text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
-                  <Mail className="h-7 w-7 text-accent" />
-                </div>
-                
-                <h2 className="mt-6 text-2xl font-semibold text-ink md:text-3xl">
-                  Firefox or Safari user?
-                </h2>
-                <p className="mx-auto mt-3 max-w-lg text-ink-muted">
-                  We&apos;re working on support for your browser. Join the waitlist and be the first to know when it&apos;s ready.
-                </p>
+              <section id="waitlist">
+                <div className="relative text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
+                    <Mail className="h-7 w-7 text-accent" />
+                  </div>
+                  
+                  <h2 className="mt-6 text-2xl font-semibold text-ink md:text-3xl">
+                    Firefox or Safari user?
+                  </h2>
+                  <p className="mx-auto mt-3 max-w-lg text-ink-muted">
+                    We&apos;re working on support for your browser. Join the waitlist and be the first to know when it&apos;s ready.
+                  </p>
 
-                {!submitted ? (
-                  <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      className="h-12 rounded-full border border-stroke/60 bg-surface px-6 text-sm text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
-                      required
-                    />
-                    <InteractiveButton
-                      text="Join Waitlist"
-                      variant="primary"
-                      className="h-12"
-                    />
-                  </form>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="mt-6 rounded-2xl border border-green-500/30 bg-green-500/10 p-4"
-                  >
-                    <div className="flex items-center justify-center gap-2 text-green-600">
-                      <CheckCircle2 className="h-5 w-5" />
-                      <span className="font-medium">You&apos;re on the list! We&apos;ll email you soon.</span>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
+                  {!submitted ? (
+                    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
+                        className="h-12 rounded-full border border-stroke/60 bg-surface px-6 text-sm text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                        required
+                      />
+                      <Link
+                        className="inline-flex items-center gap-2 rounded-full bg-cta px-6 py-3 text-sm font-semibold text-cta-fg transition hover:bg-cta-hover"
+                        href="/waitlist"
+                      >
+                        Join Waitlist
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>                      
+                    </form>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="mt-6 rounded-2xl border border-green-500/30 bg-green-500/10 p-4"
+                    >
+                      <div className="flex items-center justify-center gap-2 text-green-600">
+                        <CheckCircle2 className="h-5 w-5" />
+                        <span className="font-medium">You&apos;re on the list! We&apos;ll email you soon.</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </section>
             </motion.div>
           </div>
         </section>
