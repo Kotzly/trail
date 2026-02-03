@@ -773,6 +773,15 @@ export class GraphPixiRenderer {
     this.invalidateAll();
   }
 
+  resizeToHost() {
+    if (!this.isReady) return;
+    this.app.renderer.resize(this.host.clientWidth, this.host.clientHeight);
+    this.updateOrigin();
+    this.updateWorldTransform();
+    this.syncTextResolution();
+    this.invalidateVisible();
+  }
+
   private syncTextResolution() {
     if (!this.isReady) return;
     const target = this.view.scale * this.app.renderer.resolution;

@@ -6,12 +6,15 @@ import type { NavigationTreeJSON } from '../src/shared/types/tree.js';
 import { NavigationTree } from '../src/background/state/nav-tree.js';
 import { CommandManager } from '../src/shared/lib/commands.js';
 import type { LayoutConfig, RadialLayoutConfig } from '../src/sidepanel/ui/graph/types.js';
+import type { ViewState } from '../src/sidepanel/ui/graph/types.js';
 import {
   calculateLayout,
   calculateMindmapLayout,
   calculateRadialLayout,
   getCanvasBounds,
 } from '../src/sidepanel/ui/graph/layout/calculator.js';
+import { computeGraphGridTransform } from '../src/sidepanel/ui/components/graph/grid-transform.js';
+import { getSidebarLabelState, getSidebarWidth } from '../src/sidepanel/ui/components/ui/sidebar-utils.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -164,12 +167,56 @@ function testGraphLayouts(): void {
   assert.ok(radialLayout.width > 0);
 }
 
+function testGraphGridTransform(): void {
+  const baseView: ViewState = { translateX: 0, translateY: 0, scale: 1 };
+  const base = computeGraphGridTransform(baseView);
+  assert.equal(base.size, 20);
+  assert.equal(base.dotSize, 1.5);
+  assert.equal(base.offsetX, 0);
+  assert.equal(base.offsetY, 0);
+
+  const movedView: ViewState = { translateX: 25, translateY: -5, scale: 2 };
+  const moved = computeGraphGridTransform(movedView);
+  assert.equal(moved.size, 40);
+  assert.equal(moved.dotSize, 3);
+  assert.equal(moved.offsetX, 25);
+  assert.equal(moved.offsetY, 35);
+
+  const tinyView: ViewState = { translateX: 0, translateY: 0, scale: 0.2 };
+  const tiny = computeGraphGridTransform(tinyView);
+  assert.equal(tiny.size, 16);
+  assert.equal(tiny.dotSize, 1);
+}
+
+function testSidebarLabelState(): void {
+  const openState = getSidebarLabelState(true, true);
+  assert.equal(openState.display, 'inline-block');
+  assert.equal(openState.opacity, 1);
+
+  const closedState = getSidebarLabelState(false, true);
+  assert.equal(closedState.display, 'none');
+  assert.equal(closedState.opacity, 0);
+
+  const staticState = getSidebarLabelState(false, false);
+  assert.equal(staticState.display, 'inline-block');
+  assert.equal(staticState.opacity, 1);
+}
+
+function testSidebarWidth(): void {
+  assert.equal(getSidebarWidth(true, true), '180px');
+  assert.equal(getSidebarWidth(false, true), '72px');
+  assert.equal(getSidebarWidth(false, false), '180px');
+}
+
 try {
   testNavigationTreeDeletion();
   testNavigationTreeSubtree();
   testCommandManagerUndoRedo();
   testNavigationTreeSearchIndex();
   testGraphLayouts();
+  testGraphGridTransform();
+  testSidebarLabelState();
+  testSidebarWidth();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);

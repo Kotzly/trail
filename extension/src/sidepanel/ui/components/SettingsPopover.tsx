@@ -19,6 +19,7 @@ import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
+import { Sidebar, SidebarBody, useSidebar } from './ui/sidebar';
 import { useAuthPortalFlow } from '../hooks/useAuthPortalFlow.js';
 import { createPortal } from 'react-dom';
 import React from 'react';
@@ -253,6 +254,61 @@ function formatTimestamp(value?: string | null): string {
   }).format(date);
 }
 
+type SettingsSidebarNavProps = {
+  activeSection: SettingsSectionId;
+  onSelectSection: (section: SettingsSectionId) => void;
+};
+
+type SettingsSidebarBodyProps = {
+  children: React.ReactNode;
+};
+
+function SettingsSidebarBody({ children }: SettingsSidebarBodyProps) {
+  const { open } = useSidebar();
+  const stateClass = open ? 'is-open' : 'is-collapsed';
+
+  return (
+    <SidebarBody className={`settings-sidebar ${stateClass}`} showMobile={false} forceDesktop>
+      {children}
+    </SidebarBody>
+  );
+}
+
+function SettingsSidebarNav({ activeSection, onSelectSection }: SettingsSidebarNavProps) {
+  const { open, setOpen } = useSidebar();
+
+  return (
+    <nav className="settings-sidebar-nav" aria-label="Settings sections" data-open={open}>
+      {SETTINGS_SECTIONS.map((section) => {
+        const Icon = section.icon;
+        const active = section.id === activeSection;
+        return (
+          <button
+            key={section.id}
+            type="button"
+            className={`settings-nav-item ${active ? 'active' : ''}`}
+            onMouseEnter={() => {
+              if (!open) {
+                setOpen(true);
+              }
+            }}
+            onClick={() => onSelectSection(section.id)}
+            aria-current={active ? 'page' : undefined}
+          >
+            <span className="settings-nav-icon">
+              <Icon size={16} />
+            </span>
+            <span className="settings-nav-text">
+              <span className="settings-nav-title">{section.label}</span>
+              <span className="settings-nav-subtitle">{section.description}</span>
+            </span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 export default function SettingsPopover() {
   const settingsOpen = useStore((state) => state.ui.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
@@ -268,6 +324,7 @@ export default function SettingsPopover() {
 
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('preferences');
   const [activePreferencesTab, setActivePreferencesTab] = useState<PreferencesTabId>('layout');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { busy: authFlowBusy, notice: authNotice, startAuthFlow, cancelAuthFlow, setNotice: setAuthNotice } =
     useAuthPortalFlow();
   const [authActionBusy, setAuthActionBusy] = useState(false);
@@ -567,23 +624,6 @@ export default function SettingsPopover() {
                       <div className="settings-section-hint">Choose a mode, then fine tune colors.</div>
                     </div>
                     <div className="popover-section">
-                      <div className="popover-label-small">Color scheme</div>
-                      <div className="popover-segment">
-                        {THEME_OPTIONS.map((option) => {
-                          const Icon = option.icon;
-                          return (
-                            <button
-                              key={option.id}
-                              type="button"
-                              className={`popover-segment-btn wide ${settings?.theme === option.id ? 'active' : ''}`}
-                              onClick={() => updateSettings({ theme: option.id })}
-                            >
-                              <Icon size={14} />
-                              {option.label}
-                            </button>
-                          );
-                        })}
-                      </div>
                       <div className="settings-row">
                         <span className="popover-hint">
                           Open Theme Studio for custom palettes and textures.
@@ -1133,29 +1173,16 @@ export default function SettingsPopover() {
         </div>
 
         <div className="settings-modal-body">
-          <nav className="settings-sidebar" aria-label="Settings sections">
-            {SETTINGS_SECTIONS.map((section) => {
-              const Icon = section.icon;
-              const active = section.id === activeSection;
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  className={`settings-nav-item ${active ? 'active' : ''}`}
-                  onClick={() => setActiveSection(section.id)}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <span className="settings-nav-icon">
-                    <Icon size={16} />
-                  </span>
-                  <span className="settings-nav-text">
-                    <span className="settings-nav-title">{section.label}</span>
-                    <span className="settings-nav-subtitle">{section.description}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
+          <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
+            <SettingsSidebarBody>
+            <SettingsSidebarNav
+              activeSection={activeSection}
+              onSelectSection={(section) => {
+                setActiveSection(section);
+              }}
+            />
+            </SettingsSidebarBody>
+          </Sidebar>
           <div className="settings-panel">{renderPanel()}</div>
         </div>
       </div>
