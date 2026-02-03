@@ -1175,13 +1175,12 @@ export default function SettingsPopover() {
         <div className="settings-modal-body">
           <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
             <SettingsSidebarBody>
-              <SettingsSidebarNav
-                activeSection={activeSection}
-                onSelectSection={(section) => {
-                  setActiveSection(section);
-                  setSidebarOpen(false);
-                }}
-              />
+            <SettingsSidebarNav
+              activeSection={activeSection}
+              onSelectSection={(section) => {
+                setActiveSection(section);
+              }}
+            />
             </SettingsSidebarBody>
           </Sidebar>
           <div className="settings-panel">{renderPanel()}</div>
