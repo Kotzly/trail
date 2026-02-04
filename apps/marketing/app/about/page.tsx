@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Suspense } from "react";
 import { Target, Heart, Shield, Zap, Users, Globe, ArrowRight } from "lucide-react";
 import { BackgroundArt, Button } from "@trail/ui";
