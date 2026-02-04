@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { Suspense } from "react";
 import { Target, Heart, Shield, Zap, Users, Globe, ArrowRight } from "lucide-react";
-import { BackgroundArt, Button } from "@trail/ui";
+import { Button } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { AboutLoading } from "../components/page-wrapper";
 import Link from "next/link";
@@ -42,7 +42,6 @@ function AboutContent() {
   return (
     <div className="min-h-screen bg-base text-ink">
       <main className="relative overflow-hidden">
-        <BackgroundArt variant="grid" className="opacity-50" />
         
         {/* Hero */}
         <section className="relative px-6 pt-20 pb-16">

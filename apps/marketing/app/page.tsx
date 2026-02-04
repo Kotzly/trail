@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { BackgroundArt } from "@trail/ui";
 import { TrustedBy } from "./components/TrustedBy";
 import { BentoFeatures } from "./components/sections/BentoFeatures";
 import { FAQSection } from "./components/sections/FAQSection";
@@ -15,7 +14,6 @@ export default function HomePage() {
     <Suspense fallback={<HomeLoading />}>
       <div className="min-h-screen bg-base text-ink">
         <main className="relative overflow-hidden">
-          <BackgroundArt variant="grid" className="opacity-70" />
           <div className="relative">
             <HeroWithVideo
               eyebrow="Browser app · free beta"
