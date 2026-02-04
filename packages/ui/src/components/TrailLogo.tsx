@@ -75,7 +75,12 @@ function TrailLogoBase({ className, variant = "static", label }: TrailLogoProps)
 
   return (
     <svg
-      className={cn("trail-logo", isAnimated && "trail-logo--loop", className)}
+      className={cn(
+        "trail-logo",
+        isAnimated && "trail-logo--loop",
+        !isAnimated && "trail-logo--hover",
+        className
+      )}
       viewBox="0 0 188.16 188.16"
       fill="none"
       focusable="false"
@@ -94,11 +99,11 @@ function TrailLogoBase({ className, variant = "static", label }: TrailLogoProps)
       </defs>
 
       <g
+        className="trail-logo__paths"
         stroke="var(--trail-logo-border)"
         strokeWidth="5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity="0.7"
       >
         {strokePaths.map((path) => (
           <path key={path} d={path} />

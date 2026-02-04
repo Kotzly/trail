@@ -1,5 +1,9 @@
 :root {
-  --trail-logo-border: rgb(var(--trail-border));
+  --trail-logo-border: color-mix(
+    in srgb,
+    rgb(var(--trail-border)) 70%,
+    rgb(var(--trail-accent)) 30%
+  );
   --trail-logo-accent: rgb(var(--trail-accent));
 }
 
@@ -15,6 +19,10 @@
 
 .trail-logo--md {
   --trail-logo-size: 48px;
+}
+
+.trail-logo--lg {
+  --trail-logo-size: 90px;
 }
 
 .trail-logo__sparkPath {
