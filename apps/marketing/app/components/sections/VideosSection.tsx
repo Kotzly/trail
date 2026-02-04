@@ -63,7 +63,7 @@ function FeatureBlock({
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.6 }}
       className={`grid gap-16 lg:gap-24 items-center ${
-        reversed ? "lg:grid-cols-[1fr_1.1fr]" : "lg:grid-cols-[1.1fr_1fr]"
+        reversed ? "lg:grid-cols-[1.25fr_0.85fr]" : "lg:grid-cols-[0.85fr_1.25fr]"
       }`}
     >
       {/* Text Content */}
@@ -83,7 +83,7 @@ function FeatureBlock({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-ink leading-[1.1] whitespace-pre-line"
+          className="text-3xl font-semibold text-ink leading-[1.1] whitespace-pre-line"
         >
           {section.title}
         </motion.h3>
@@ -93,7 +93,7 @@ function FeatureBlock({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-lg text-ink-muted leading-relaxed max-w-md"
+          className="text-md text-ink-muted leading-relaxed max-w-sm"
         >
           {section.description}
         </motion.p>
