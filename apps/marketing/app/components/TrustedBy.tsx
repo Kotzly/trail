@@ -5,14 +5,16 @@ import Link from "next/link";
 
 // Company data with URLs
 const companies = [
-  { name: "Microsoft", url: "https://microsoft.com" },
+  { name: "Google", url: "https://google.com" },
   { name: "Meta", url: "https://meta.com" },
-  { name: "Amazon", url: "https://amazon.com" },
   { name: "Uber", url: "https://uber.com" },
-  { name: "LinkedIn", url: "https://linkedin.com" },
   { name: "Shopify", url: "https://shopify.com" },
-  { name: "Deloitte", url: "https://deloitte.com" },
-  { name: "Morgan Stanley", url: "https://morganstanley.com" },
+  { name: "Stripe", url: "https://stripe.com" },
+  { name: "Netflix", url: "https://netflix.com" },
+  { name: "Airbnb", url: "https://airbnb.com" },
+  { name: "GitHub", url: "https://github.com" },
+  { name: "Vercel", url: "https://vercel.com" },
+  { name: "Notion", url: "https://notion.so" }
 ];
 
 export function TrustedBy() {
