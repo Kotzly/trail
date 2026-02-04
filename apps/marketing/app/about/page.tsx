@@ -6,6 +6,7 @@ import { Target, Heart, Shield, Zap, Users, Globe, ArrowRight } from "lucide-rea
 import { BackgroundArt, Button } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { AboutLoading } from "../components/page-wrapper";
+import Link from "next/link";
 
 const values = [
   {
@@ -220,12 +221,12 @@ function AboutContent() {
                   who care about research workflows.
                 </p>
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Button>
-                    <a href="/downloads" className="flex items-center">
+                  <Button.AsChild>
+                    <Link href="/downloads" className="flex items-center">
                       Try Trail Free
                       <ArrowRight className="ml-2 h-4 w-4" />
-                    </a>
-                  </Button>
+                    </Link>
+                  </Button.AsChild>
                   <Button variant="outline">
                     <a href="/contact">Get in Touch</a>
                   </Button>
