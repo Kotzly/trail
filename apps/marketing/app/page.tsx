@@ -1,8 +1,5 @@
-import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 import { BackgroundArt } from "@trail/ui";
-import { MarketingFooter } from "./components/MarketingFooter";
-import { MarketingNav } from "./components/MarketingNav";
 import { TrustedBy } from "./components/TrustedBy";
 import { BentoFeatures } from "./components/sections/BentoFeatures";
 import { FAQSection } from "./components/sections/FAQSection";
@@ -17,7 +14,6 @@ export default function HomePage() {
   return (
     <Suspense fallback={<HomeLoading />}>
       <div className="min-h-screen bg-base text-ink">
-        <MarketingNav />
         <main className="relative overflow-hidden">
           <BackgroundArt variant="grid" className="opacity-70" />
           <div className="relative">
@@ -42,8 +38,6 @@ export default function HomePage() {
             <CTASection />
           </div>
         </main>
-        <MarketingFooter />
-        <Analytics />
       </div>
     </Suspense>
   );

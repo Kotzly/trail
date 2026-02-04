@@ -4,9 +4,7 @@ import { useState, Suspense, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, HelpCircle, MessageCircle, ArrowRight } from "lucide-react";
 import { marketingCopy } from "@trail/content";
-import { BackgroundArt, Button } from "@trail/ui";
-import { MarketingFooter } from "../components/MarketingFooter";
-import { MarketingNav } from "../components/MarketingNav";
+import { Button } from "@trail/ui";
 import {
   Accordion,
   AccordionContent,
@@ -86,9 +84,7 @@ function FAQContent() {
 
   return (
     <div className="min-h-screen bg-base text-ink">
-      <MarketingNav />
       <main className="relative overflow-hidden">
-        <BackgroundArt variant="grid" className="opacity-50" />
         
         {/* Hero */}
         <section className="relative px-6 pt-20 pb-8">
@@ -232,7 +228,6 @@ function FAQContent() {
           </div>
         </section>
       </main>
-      <MarketingFooter />
     </div>
   );
 }

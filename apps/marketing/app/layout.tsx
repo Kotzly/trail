@@ -9,7 +9,10 @@ import {
   defaultTitle,
   metadataBase
 } from "../lib/seo";
-
+import { MarketingNav } from "./components/MarketingNav";
+import { MarketingFooter } from "./components/MarketingFooter";
+import { Analytics } from "@vercel/analytics/next";
+import { ThemeInit } from "./theme-init";
 const posterUrl = new URL("/assets/video-poster-white.jpg", metadataBase).toString();
 const videoUrl = new URL("/assets/showcase.mp4", metadataBase).toString();
 
@@ -73,17 +76,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-theme="system" data-reveal-ready="true" className={jakarta.variable}>
+    <html lang="en" suppressHydrationWarning className={jakarta.variable}>
       <head>
+        <ThemeInit />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }}
         />
       </head>
       <body className="bg-bg text-ink">
-        {children}
+        <div className="min-h-screen flex flex-col">
+          <MarketingNav />
+
+          <main className="flex-1">
+            {children}
+          </main>
+
+          <MarketingFooter />
+        </div>
         <RevealObserver />
         <VideoObserver />
+        <Analytics />
       </body>
     </html>
   );
