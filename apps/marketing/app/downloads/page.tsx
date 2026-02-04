@@ -15,7 +15,7 @@ import {
 import { FaChrome, FaEdge, FaFirefoxBrowser, FaSafari } from "react-icons/fa";
 import { FaBrave } from "react-icons/fa6";
 
-import { BackgroundArt, Button, WaitlistSuccessDialog } from "@trail/ui";
+import { Button, WaitlistSuccessDialog } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { DownloadsLoading } from "../components/page-wrapper";
 
@@ -129,7 +129,6 @@ function DownloadsContent() {
   return (
     <div className="min-h-screen bg-base text-ink">
       <main className="relative overflow-hidden">
-        <BackgroundArt variant="grid" className="opacity-50" />
         
         {/* Hero */}
         <section className="relative px-6 pt-20 pb-16">

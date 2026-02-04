@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Mail, MessageSquare, HelpCircle, ArrowRight, Send, CheckCircle2 } from "lucide-react";
-import { BackgroundArt, Button } from "@trail/ui";
+import { Button } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { ContactLoading } from "../components/page-wrapper";
 
@@ -45,7 +45,6 @@ function ContactContent() {
   return (
     <div className="min-h-screen bg-base text-ink">
       <main className="relative overflow-hidden">
-        <BackgroundArt variant="grid" className="opacity-50" />
         
         {/* Hero */}
         <section className="relative px-6 pt-20 pb-8">

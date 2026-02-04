@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { BackgroundArt, cn } from "@trail/ui";
+import { cn } from "@trail/ui";
 
 export function LegalPageShell({
   children,
@@ -12,7 +12,6 @@ export function LegalPageShell({
   return (
     <div className="min-h-screen bg-base text-ink">
       <main className={cn("relative overflow-hidden")}>
-        <BackgroundArt variant={variant} />
         {children}
       </main>
     </div>
