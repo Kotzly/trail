@@ -61,10 +61,10 @@ export function HeroDitheringCard({
         <div className="relative overflow-hidden rounded-[3rem] border border-stroke/40 bg-surface/70 shadow-2xl shadow-accent/10 min-h-[600px] md:min-h-[700px] lg:min-h-[750px] flex flex-col items-center justify-center transition-all duration-500 hover:border-accent/30">
           {/* Dithering Background - Brighter in dark theme */}
           <Suspense fallback={<div className="absolute inset-0 bg-surface-strong/30" />}>
-            <div className="absolute inset-0 z-0 pointer-events-none opacity-40 dark:opacity-60 dark:brightness-150">
+            <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
               <Dithering
                 colorBack="#00000000"
-                colorFront="#0D9488"
+                colorFront="#5e81ac"
                 shape="warp"
                 type="4x4"
                 speed={isHovered ? 0.8 : 0.25}

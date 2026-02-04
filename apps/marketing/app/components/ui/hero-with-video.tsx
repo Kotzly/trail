@@ -5,9 +5,6 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
-const Dithering = lazy(() => 
-  import("@paper-design/shaders-react").then((mod) => ({ default: mod.Dithering }))
-);
 
 interface HeroWithVideoProps {
   eyebrow?: string;
