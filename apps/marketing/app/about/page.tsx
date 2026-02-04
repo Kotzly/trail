@@ -4,8 +4,6 @@ import { motion } from "motion/react";
 import { Suspense } from "react";
 import { Target, Heart, Shield, Zap, Users, Globe, ArrowRight } from "lucide-react";
 import { BackgroundArt, Button } from "@trail/ui";
-import { MarketingFooter } from "../components/MarketingFooter";
-import { MarketingNav } from "../components/MarketingNav";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { AboutLoading } from "../components/page-wrapper";
 
@@ -42,7 +40,6 @@ const stats = [
 function AboutContent() {
   return (
     <div className="min-h-screen bg-base text-ink">
-      <MarketingNav />
       <main className="relative overflow-hidden">
         <BackgroundArt variant="grid" className="opacity-50" />
         
@@ -238,7 +235,6 @@ function AboutContent() {
           </div>
         </section>
       </main>
-      <MarketingFooter />
     </div>
   );
 }

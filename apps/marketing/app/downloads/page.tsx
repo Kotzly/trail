@@ -16,8 +16,6 @@ import { FaChrome, FaEdge, FaFirefoxBrowser, FaSafari } from "react-icons/fa";
 import { FaBrave } from "react-icons/fa6";
 
 import { BackgroundArt, Button, WaitlistSuccessDialog } from "@trail/ui";
-import { MarketingFooter } from "../components/MarketingFooter";
-import { MarketingNav } from "../components/MarketingNav";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { DownloadsLoading } from "../components/page-wrapper";
 
@@ -130,7 +128,6 @@ function DownloadsContent() {
 
   return (
     <div className="min-h-screen bg-base text-ink">
-      <MarketingNav />
       <main className="relative overflow-hidden">
         <BackgroundArt variant="grid" className="opacity-50" />
         
@@ -468,7 +465,6 @@ function DownloadsContent() {
           </div>
         </section>
       </main>
-      <MarketingFooter />
 
       {/* Success Dialog */}
       <WaitlistSuccessDialog

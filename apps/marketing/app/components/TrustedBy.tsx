@@ -13,7 +13,7 @@ const companies = [
   { name: "Netflix", url: "https://netflix.com" },
   { name: "Airbnb", url: "https://airbnb.com" },
   { name: "GitHub", url: "https://github.com" },
-  { name: "Vercel", url: "https://vercel.com" },
+  { name: "Figma", url: "https://figma.com" },
   { name: "Notion", url: "https://notion.so" }
 ];
 

@@ -1,7 +1,4 @@
 import { Metadata } from "next";
-import { BackgroundArt } from "@trail/ui";
-import { MarketingFooter } from "../components/MarketingFooter";
-import { MarketingNav } from "../components/MarketingNav";
 import { FeaturesHero } from "./FeaturesHero";
 import { FeaturesGrid } from "./FeaturesGrid";
 import { FeaturesTimeline } from "./FeaturesTimeline";
@@ -15,10 +12,7 @@ export const metadata: Metadata = {
 export default function FeaturesPage() {
   return (
     <div className="min-h-screen bg-base text-ink">
-      <MarketingNav />
       <main className="relative overflow-hidden">
-        <BackgroundArt variant="grid" className="opacity-50" />
-        
         <FeaturesHero />
         <FeaturesGrid />
         
@@ -54,7 +48,6 @@ export default function FeaturesPage() {
         <FeaturesTimeline />
         <FeaturesCTA />
       </main>
-      <MarketingFooter />
     </div>
   );
 }

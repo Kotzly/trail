@@ -3,9 +3,7 @@
 import { motion } from "framer-motion";
 import { Suspense } from "react";
 import { LifeBuoy, Clock, Mail, MessageSquare, ArrowRight } from "lucide-react";
-import { BackgroundArt, Button } from "@trail/ui";
-import { MarketingFooter } from "../components/MarketingFooter";
-import { MarketingNav } from "../components/MarketingNav";
+import { Button } from "@trail/ui";
 import { SupportFlow } from "./SupportFlow";
 import { SupportLoading } from "../components/page-wrapper";
 
@@ -39,10 +37,7 @@ const supportOptions = [
 function SupportContent() {
   return (
     <div className="min-h-screen bg-base text-ink">
-      <MarketingNav />
       <main className="relative overflow-hidden">
-        <BackgroundArt variant="grid" className="opacity-50" />
-        
         {/* Hero */}
         <section className="relative px-6 pt-20 pb-8">
           <div className="mx-auto max-w-4xl text-center">
@@ -156,7 +151,6 @@ function SupportContent() {
           </div>
         </section>
       </main>
-      <MarketingFooter />
     </div>
   );
 }
