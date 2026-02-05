@@ -52,7 +52,7 @@ export default async function AuthBridgePage({
 }: {
   searchParams: { returnTo?: string };
 }) {
-  const headerList = headers();
+  const headerList = await headers();
   const session = await auth.api.getSession({ headers: new Headers(headerList) });
 
   if (!session?.user?.id) {
