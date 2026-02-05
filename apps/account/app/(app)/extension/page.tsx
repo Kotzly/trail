@@ -4,8 +4,8 @@ import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@/app/components/PageHeader";
 import { getAuthSession } from "@/src/lib/auth";
+import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
-import { ExtensionConnectionGuideClient } from "./ExtensionConnectionGuideClient";
 
 export const runtime = "nodejs";
 
@@ -28,10 +28,16 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
   const queryCode =
     typeof resolvedSearchParams?.code === "string" ? resolvedSearchParams.code : null;
   const returnTo = queryCode ? `/extension?code=${queryCode}` : "/extension";
-  const session = getAuthSession();
+  const session = await getAuthSession();
 
+  if (!session?.user) {
+    redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
+  }
 
-  const user = session?.user;
+  const user = session.user ? await ensureUser(session.user) : null;
+  if (!user) {
+    redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
+  }
 
   let connectionReady = false;
 
@@ -94,8 +100,6 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
                 icon={<LaptopIcon className="h-5 w-5" />}
                 items={accountCopy.extension.empty.items}
                 className="rounded-none border-0 bg-transparent p-0"
-                // todo: make this work like this: opens the extension if it's there, and the extension prompts the user to connect to account <name>
-                // if the extension is not there, we should show a button that says "install extension" and opens the extension download page
                 action={
                   <Button.AsChild size="sm" className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover">
                     <a href={accountCopy.extension.empty.ctaHref}>
@@ -137,11 +141,8 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
         </div>
       </div>
 
-      {/* Extension Connection Guide - only show when not connected */}
-      {!connectionReady && <ExtensionConnectionGuideClient />}
-
-      <div className="rounded-2xl border border-border/60 bg-surface/70 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
               {accountCopy.extension.sessions.eyebrow}
