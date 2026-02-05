@@ -51,15 +51,29 @@ function appendBridgeCode(returnTo: string, code: string): string {
 export default async function AuthBridgePage({
   searchParams,
 }: {
-  searchParams: { returnTo?: string };
+  searchParams: Promise<{ returnTo?: string }>;
 }) {
+  const resolvedSearchParams = await searchParams;
+  const returnToParam = resolvedSearchParams.returnTo ?? null;
   const headerList = await headers();
+  const cookieHeader = headerList.get("cookie") ?? "";
+  const cookieNames = cookieHeader
+    ? cookieHeader.split("; ").map((cookie) => cookie.split("=")[0])
+    : [];
   const session = await auth.api.getSession({
     headers: new Headers(headerList),
   });
+  console.warn("[auth-bridge] cookies", {
+    count: cookieNames.length,
+    names: cookieNames,
+  });
+  console.warn("[auth-bridge] session", {
+    hasSession: Boolean(session?.user?.id),
+    userId: session?.user?.id ?? null,
+  });
 
   if (!session?.user?.id) {
-    const returnTo = sanitizeReturnTo(searchParams.returnTo ?? null);
+    const returnTo = sanitizeReturnTo(returnToParam);
     redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
@@ -67,9 +81,10 @@ export default async function AuthBridgePage({
     headers: new Headers(headerList),
   });
   const token = tokenResponse?.token;
+  console.warn("[auth-bridge] token", { present: Boolean(token) });
 
   if (!token) {
-    const returnTo = sanitizeReturnTo(searchParams.returnTo ?? null);
+    const returnTo = sanitizeReturnTo(returnToParam);
     redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
@@ -85,6 +100,6 @@ export default async function AuthBridgePage({
     },
   });
 
-  const returnTo = sanitizeReturnTo(searchParams.returnTo ?? null);
+  const returnTo = sanitizeReturnTo(returnToParam);
   redirect(appendBridgeCode(returnTo, code));
 }

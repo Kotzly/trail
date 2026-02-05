@@ -4,10 +4,10 @@ import {
   LaptopIcon,
   Link2Icon,
   LockClosedIcon,
-} from "@radix-ui/react-icons";
-import { Button, EmptyState, StatCard } from "@trail/ui";
+} from "@trail/ui/icons";
+import { Button, Card, EmptyState, SectionHeader, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import { PageHeader } from "@/app/components/PageHeader";
+import { PageHeader } from "@trail/ui";
 import { getAuthSession } from "@/src/lib/auth";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
@@ -75,18 +75,12 @@ export default async function ExtensionPage({
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {accountCopy.extension.status.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {accountCopy.extension.status.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {accountCopy.extension.status.subtitle}
-            </p>
-          </div>
+        <Card className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={accountCopy.extension.status.eyebrow}
+            title={accountCopy.extension.status.title}
+            subtitle={accountCopy.extension.status.subtitle}
+          />
           <div className="mt-4">
             {connectionReady ? (
               <div className="grid gap-3 md:grid-cols-2">
@@ -115,10 +109,7 @@ export default async function ExtensionPage({
                 // todo: make this work like this: opens the extension if it's there, and the extension prompts the user to connect to account <name>
                 // if the extension is not there, we should show a button that says "install extension" and opens the extension download page
                 action={
-                  <Button.AsChild
-                    size="sm"
-                    className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
-                  >
+                  <Button.AsChild size="sm">
                     <a href={accountCopy.extension.empty.ctaHref}>
                       {accountCopy.extension.empty.cta}
                     </a>
@@ -127,20 +118,14 @@ export default async function ExtensionPage({
               />
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {accountCopy.extension.device.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {accountCopy.extension.device.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {accountCopy.extension.device.subtitle}
-            </p>
-          </div>
+        <Card className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={accountCopy.extension.device.eyebrow}
+            title={accountCopy.extension.device.title}
+            subtitle={accountCopy.extension.device.subtitle}
+          />
           <div className="mt-4 grid gap-3">
             <StatCard
               label={accountCopy.extension.device.primaryDevice}
@@ -161,26 +146,20 @@ export default async function ExtensionPage({
               icon={<LaptopIcon className="h-4 w-4" />}
             />
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {accountCopy.extension.sessions.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {accountCopy.extension.sessions.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {accountCopy.extension.sessions.subtitle}
-            </p>
-          </div>
-          <span className="trail-status">
-            {accountCopy.extension.sessions.comingSoon}
-          </span>
-        </div>
+      <Card className="rounded-[26px] bg-surface/60">
+        <SectionHeader
+          eyebrow={accountCopy.extension.sessions.eyebrow}
+          title={accountCopy.extension.sessions.title}
+          subtitle={accountCopy.extension.sessions.subtitle}
+          actions={
+            <span className="trail-status">
+              {accountCopy.extension.sessions.comingSoon}
+            </span>
+          }
+        />
         {sessions.length ? (
           <div className="mt-4 divide-y divide-border/40">
             {sessions.map((item) => (
@@ -203,7 +182,7 @@ export default async function ExtensionPage({
             {accountCopy.extension.sessions.empty}
           </div>
         )}
-      </div>
+      </Card>
     </section>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { DesktopIcon, MoonIcon, SunIcon } from "@radix-ui/react-icons";
+import { Monitor, Moon, Sun } from "../icons";
 import { cn } from "../utils/cn";
 
 const themes = ["system", "light", "dark"] as const;
@@ -28,7 +28,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   };
 
   const icon =
-    theme === "light" ? <SunIcon /> : theme === "dark" ? <MoonIcon /> : <DesktopIcon />;
+    theme === "light" ? <Sun /> : theme === "dark" ? <Moon /> : <Monitor />;
 
   return (
     <button

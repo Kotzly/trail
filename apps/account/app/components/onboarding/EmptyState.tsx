@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import Link from "next/link";
 import {
   BackpackIcon,
@@ -19,7 +19,7 @@ import {
   TelescopeIcon,
   UsersIcon,
   ZapIcon,
-} from "lucide-react";
+} from "@trail/ui/icons";
 import { Button } from "@trail/ui";
 import { cn } from "@trail/ui";
 

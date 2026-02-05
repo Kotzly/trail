@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -11,7 +11,7 @@ import {
   ShareIcon,
   SparklesIcon,
   UserIcon,
-} from "lucide-react";
+} from "@trail/ui/icons";
 import { cn } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 

@@ -6,6 +6,7 @@ export type PageHeaderProps = React.HTMLAttributes<HTMLDivElement> & {
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  meta?: React.ReactNode;
 };
 
 export function PageHeader({
@@ -13,6 +14,7 @@ export function PageHeader({
   title,
   subtitle,
   actions,
+  meta,
   className,
   children,
   ...props
@@ -27,10 +29,16 @@ export function PageHeader({
     >
       <div className="space-y-2">
         {eyebrow ? <p className="trail-eyebrow">{eyebrow}</p> : null}
-        <h1 className="text-2xl font-semibold lowercase text-ink md:text-3xl">
-          {title}
-        </h1>
-        {subtitle ? <p className="trail-copy text-sm">{subtitle}</p> : null}
+        <h1 className="trail-title">{title}</h1>
+        {subtitle ? <p className="trail-copy max-w-2xl">{subtitle}</p> : null}
+        {meta ? (
+          <div
+            data-testid="page-header-meta"
+            className="flex flex-wrap items-center gap-2 text-xs text-ink-muted"
+          >
+            {meta}
+          </div>
+        ) : null}
         {children ? <div className="pt-2">{children}</div> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

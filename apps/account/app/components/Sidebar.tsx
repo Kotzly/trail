@@ -14,7 +14,7 @@ import {
   Plug,
   Settings,
   Shield,
-} from "lucide-react";
+} from "@trail/ui/icons";
 import { cn, TrailLogo } from "@trail/ui";
 
 const navLinks = [

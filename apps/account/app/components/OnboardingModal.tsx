@@ -10,7 +10,7 @@ import {
   Shield,
   Zap,
   Users,
-} from "lucide-react";
+} from "@trail/ui/icons";
 import { Button, cn } from "@trail/ui";
 
 // TODO: Fetch onboarding status from backend API
@@ -205,12 +205,9 @@ export function OnboardingModal() {
           </div>
 
           {/* Next button */}
-          <Button
-            onClick={handleNext}
-            className="rounded-full bg-cta px-6 text-cta-fg hover:bg-cta-hover lowercase"
-          >
-            {isLastStep ? "finish" : "next"}
-          </Button>
+        <Button onClick={handleNext} size="sm" className="px-6 lowercase">
+          {isLastStep ? "finish" : "next"}
+        </Button>
         </div>
 
         {/* Skip link */}

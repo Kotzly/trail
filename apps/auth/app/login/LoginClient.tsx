@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/src/auth-client";
+import { LoginView } from "@trail/ui/auth";
 
 const buildBridgeUrl = (returnTo: string) =>
   `/auth/bridge?returnTo=${encodeURIComponent(returnTo)}`;
@@ -45,18 +46,22 @@ export function LoginClient() {
   const bridgeUrl = useMemo(() => buildBridgeUrl(returnTo), [returnTo]);
 
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isPasswordSigningIn, setIsPasswordSigningIn] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(
     null,
   );
 
   const handleSendOtp = async () => {
     if (!email) {
-      setError("Введите email, чтобы получить код.");
+      setError("enter an email to receive code");
       return;
     }
 
@@ -76,12 +81,12 @@ export function LoginClient() {
       return;
     }
 
-    setStatus("Код отправлен. Проверьте почту.");
+    setStatus("code sent. check your email");
   };
 
   const handleSignIn = async () => {
     if (!email || !otp) {
-      setError("Введите email и код из письма.");
+      setError("enter email and code from email");
       return;
     }
 
@@ -97,7 +102,77 @@ export function LoginClient() {
     setIsSigningIn(false);
 
     if (signInError) {
+      console.warn("auth: sign-in email/password failed", {
+        email,
+        error: normalizeError(signInError),
+      });
       setError(normalizeError(signInError));
+      return;
+    }
+
+    router.push(bridgeUrl);
+  };
+
+  const handlePasswordSignIn = async () => {
+    if (!email || !password) {
+      setError("enter email and password");
+      return;
+    }
+
+    setError(null);
+    setStatus(null);
+    setIsPasswordSigningIn(true);
+
+    const { data, error: signInError } = await authClient.signIn.email({
+      email,
+      password,
+      callbackURL: bridgeUrl,
+    });
+
+    setIsPasswordSigningIn(false);
+
+    if (signInError) {
+      setError(normalizeError(signInError));
+      return;
+    }
+
+    const redirectUrl = resolveRedirectUrl(data);
+
+    if (redirectUrl) {
+      window.location.assign(redirectUrl);
+      return;
+    }
+
+    router.push(bridgeUrl);
+  };
+
+  const handleSignUp = async () => {
+    if (!name || !email || !password) {
+      setError("enter name, email and password to sign up");
+      return;
+    }
+
+    setError(null);
+    setStatus(null);
+    setIsSigningUp(true);
+
+    const { data, error: signUpError } = await authClient.signUp.email({
+      email,
+      name,
+      password,
+    });
+
+    setIsSigningUp(false);
+
+    if (signUpError) {
+      setError(normalizeError(signUpError));
+      return;
+    }
+
+    const redirectUrl = resolveRedirectUrl(data);
+
+    if (redirectUrl) {
+      window.location.assign(redirectUrl);
       return;
     }
 
@@ -132,143 +207,27 @@ export function LoginClient() {
   };
 
   return (
-    <main
-      style={{
-        margin: "0 auto",
-        maxWidth: "420px",
-        padding: "48px 24px",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
-      }}
-    >
-      <header style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <h1 style={{ margin: 0, fontSize: "28px" }}>Trail вход</h1>
-        <p style={{ margin: 0, color: "#4b5563" }}>
-          Получите одноразовый код или войдите через OAuth.
-        </p>
-      </header>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        Email
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@company.com"
-          autoComplete="email"
-          style={{
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-          }}
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={handleSendOtp}
-        disabled={isSending}
-        style={{
-          padding: "10px 12px",
-          borderRadius: "8px",
-          border: "1px solid #111827",
-          background: "#111827",
-          color: "#ffffff",
-          cursor: isSending ? "not-allowed" : "pointer",
-        }}
-      >
-        {isSending ? "Отправляем код..." : "Отправить код"}
-      </button>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        Код из письма
-        <input
-          type="text"
-          value={otp}
-          onChange={(event) => setOtp(event.target.value)}
-          placeholder="123456"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          style={{
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-          }}
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={handleSignIn}
-        disabled={isSigningIn}
-        style={{
-          padding: "10px 12px",
-          borderRadius: "8px",
-          border: "1px solid #111827",
-          background: "#ffffff",
-          color: "#111827",
-          cursor: isSigningIn ? "not-allowed" : "pointer",
-        }}
-      >
-        {isSigningIn ? "Входим..." : "Войти"}
-      </button>
-
-      <div
-        style={{
-          marginTop: "8px",
-          fontSize: "14px",
-          color: "#6b7280",
-        }}
-      >
-        Или продолжить через
-      </div>
-
-      <div style={{ display: "flex", gap: "12px" }}>
-        <button
-          type="button"
-          onClick={() => handleSocial("google")}
-          disabled={oauthLoading === "google"}
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            background: "#ffffff",
-            cursor: oauthLoading === "google" ? "not-allowed" : "pointer",
-          }}
-        >
-          {oauthLoading === "google" ? "Google..." : "Google"}
-        </button>
-        <button
-          type="button"
-          onClick={() => handleSocial("github")}
-          disabled={oauthLoading === "github"}
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            background: "#ffffff",
-            cursor: oauthLoading === "github" ? "not-allowed" : "pointer",
-          }}
-        >
-          {oauthLoading === "github" ? "GitHub..." : "GitHub"}
-        </button>
-      </div>
-
-      {status ? (
-        <p role="status" style={{ margin: 0, color: "#047857" }}>
-          {status}
-        </p>
-      ) : null}
-
-      {error ? (
-        <p role="alert" style={{ margin: 0, color: "#b91c1c" }}>
-          {error}
-        </p>
-      ) : null}
-    </main>
+    <LoginView
+      email={email}
+      name={name}
+      otp={otp}
+      password={password}
+      status={status}
+      error={error}
+      isSending={isSending}
+      isSigningIn={isSigningIn}
+      isPasswordSigningIn={isPasswordSigningIn}
+      isSigningUp={isSigningUp}
+      oauthLoading={oauthLoading}
+      onEmailChange={setEmail}
+      onNameChange={setName}
+      onOtpChange={setOtp}
+      onPasswordChange={setPassword}
+      onSendOtp={handleSendOtp}
+      onSignIn={handleSignIn}
+      onPasswordSignIn={handlePasswordSignIn}
+      onSignUp={handleSignUp}
+      onSocial={handleSocial}
+    />
   );
 }

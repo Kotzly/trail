@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CheckIcon } from "@radix-ui/react-icons";
-import { Badge, Button, cn } from "@trail/ui";
+import { CheckIcon } from "@trail/ui/icons";
+import { Badge, Button, PageHeader, cn } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import { PageHeader } from "@/app/components/PageHeader";
 
 // TODO: Move to shared backend API /api/plans
 // Same plans used in marketing and account
@@ -209,12 +208,8 @@ export default function BillingPage() {
               <div className="mt-6">
                 <Button
                   size="sm"
-                  className={cn(
-                    "w-full rounded-full lowercase",
-                    isPopular
-                      ? "bg-cta text-cta-fg hover:bg-cta-hover"
-                      : "border border-border/60 bg-surface text-ink hover:bg-surface-high",
-                  )}
+                  variant={isPopular ? "primary" : "outline"}
+                  className="w-full lowercase"
                 >
                   {plan.cta}
                 </Button>

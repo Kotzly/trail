@@ -12,6 +12,7 @@
     "format": "prettier --check ."
   },
   "dependencies": {
+    "@trail/ui": "workspace:*",
     "@trail/db": "workspace:*",
     "better-auth": "^1.0.0",
     "next": "^16.1.6",

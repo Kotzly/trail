@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
-import { Button } from "@/components/ui/button";
+import { Button } from "@trail/ui";
 import { MenuToggleIcon } from "@/components/ui/menu-toggle-icon";
 import {
   NavigationMenu,
@@ -19,15 +19,15 @@ import { accountCopy } from "@trail/content";
 import { TrailLogo } from "@trail/ui";
 import { trpc } from "@/src/trpc/client";
 import {
+  type LucideIcon,
   CreditCard,
   LayoutDashboard,
   LogOut,
   Plug,
   Settings,
   User,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { useReducedMotion } from "framer-motion";
+} from "@trail/ui/icons";
+import { useReducedMotion } from "motion/react";
 
 type LinkItem = {
   title: string;

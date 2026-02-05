@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -11,7 +11,7 @@ import {
   SparklesIcon,
   TargetIcon,
   XIcon,
-} from "lucide-react";
+} from "@trail/ui/icons";
 import { Button } from "@trail/ui";
 import { cn } from "@trail/ui";
 import Link from "next/link";

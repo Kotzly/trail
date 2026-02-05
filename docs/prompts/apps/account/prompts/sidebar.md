@@ -17,8 +17,8 @@ sidebar.tsx
 import { cn } from "@/lib/utils";
 import Link, { LinkProps } from "next/link";
 import React, { useState, createContext, useContext } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { AnimatePresence, motion } from "@motion/react";
+import { Menu, X } from "-ui/react-icons";
 
 interface Links {
   label: string;
@@ -206,9 +206,9 @@ demo.tsx
 "use client";
 import React, { useState } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import { LayoutDashboard, UserCog, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, UserCog, Settings, LogOut } from "-ui/react-icons";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from "@motion/react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -344,7 +344,7 @@ const Dashboard = () => {
 
 Install NPM dependencies:
 ```bash
-framer-motion
+@motion/react
 ```
 
 Implementation Guidelines
@@ -362,4 +362,4 @@ Steps to integrate
  0. Copy paste all the code above in the correct directories
  1. Install external dependencies
  2. Fill image assets with Unsplash stock images you know exist
- 3. Use lucide-react icons for svgs or logos if component requires them
+ 3. Use -ui/react-icons icons for svgs or logos if component requires them

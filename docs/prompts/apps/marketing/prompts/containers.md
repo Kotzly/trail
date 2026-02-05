@@ -207,7 +207,7 @@ export { GlowingEffect };
 demo.tsx
 "use client";
 
-import { Box, Lock, Search, Settings, Sparkles } from "lucide-react";
+import { Box, Lock, Search, Settings, Sparkles } from "-ui/react-icons";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { cn } from "@/lib/utils";
 
@@ -309,4 +309,4 @@ Steps to integrate
  0. Copy paste all the code above in the correct directories
  1. Install external dependencies
  2. Fill image assets with Unsplash stock images you know exist
- 3. Use lucide-react icons for svgs or logos if component requires them
+ 3. Use -ui/react-icons icons for svgs or logos if component requires them

@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Zap } from "lucide-react";
+import { motion } from "motion/react";
+import { Zap } from "@trail/ui/icons";
 
 export function FeaturesHero() {
   return (

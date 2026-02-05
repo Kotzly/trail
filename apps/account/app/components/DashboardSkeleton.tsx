@@ -1,4 +1,4 @@
-import { Skeleton } from "./ui/Skeleton";
+import { Skeleton } from "@trail/ui";
 
 export function DashboardSkeleton() {
   return (

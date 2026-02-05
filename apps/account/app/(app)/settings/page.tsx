@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import Image, { type ImageLoaderProps } from "next/image";
 import { accountCopy } from "@trail/content";
-import { Button } from "@trail/ui";
-import { PageHeader } from "@/app/components/PageHeader";
+import { Button, Card, PageHeader, SectionHeader } from "@trail/ui";
 import { getAuthSession } from "@/src/lib/auth";
 import { env } from "@/src/env";
 
@@ -46,11 +45,7 @@ export default async function SettingsPage() {
         title={settings.title}
         subtitle={settings.subtitle}
         actions={
-          <Button.AsChild
-            size="sm"
-            variant="outline"
-            className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
-          >
+          <Button.AsChild size="sm" variant="outline">
             <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
               {settings.profile.manageCta}
             </a>
@@ -59,21 +54,12 @@ export default async function SettingsPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <div
-          id="profile"
-          className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6"
-        >
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {settings.profile.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {settings.profile.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {settings.profile.subtitle}
-            </p>
-          </div>
+        <Card id="profile" className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={settings.profile.eyebrow}
+            title={settings.profile.title}
+            subtitle={settings.profile.subtitle}
+          />
           <div className="mt-5 flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-surface text-sm font-semibold text-ink">
               {user.imageUrl ? (
@@ -101,40 +87,23 @@ export default async function SettingsPage() {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button.AsChild
-              size="sm"
-              variant="outline"
-              className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
-            >
+            <Button.AsChild size="sm" variant="outline">
               <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
                 {settings.profile.manageCta}
               </a>
             </Button.AsChild>
-            <Button.AsChild
-              size="sm"
-              variant="outline"
-              className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
-            >
+            <Button.AsChild size="sm" variant="outline">
               <a href="/auth/logout">{settings.profile.signOutCta}</a>
             </Button.AsChild>
           </div>
-        </div>
+        </Card>
 
-        <div
-          id="security"
-          className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6"
-        >
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {settings.security.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {settings.security.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {settings.security.subtitle}
-            </p>
-          </div>
+        <Card id="security" className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={settings.security.eyebrow}
+            title={settings.security.title}
+            subtitle={settings.security.subtitle}
+          />
           <div className="mt-4 divide-y divide-border/40">
             {sessions.map((sessionItem) => (
               <div
@@ -154,11 +123,7 @@ export default async function SettingsPage() {
             ))}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button.AsChild
-              size="sm"
-              variant="outline"
-              className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
-            >
+            <Button.AsChild size="sm" variant="outline">
               <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
                 {settings.security.changePasswordCta}
               </a>
@@ -166,31 +131,21 @@ export default async function SettingsPage() {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
               disabled
             >
               {settings.security.signOutEverywhereCta}
             </Button>
           </div>
-        </div>
+        </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div
-          id="workspace"
-          className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6"
-        >
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {settings.workspace.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {settings.workspace.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {settings.workspace.subtitle}
-            </p>
-          </div>
+        <Card id="workspace" className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={settings.workspace.eyebrow}
+            title={settings.workspace.title}
+            subtitle={settings.workspace.subtitle}
+          />
           <div className="mt-4 divide-y divide-border/40">
             <div className="flex items-center justify-between gap-4 py-3">
               <div>
@@ -219,23 +174,14 @@ export default async function SettingsPage() {
               </span>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div
-          id="notifications"
-          className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6"
-        >
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {settings.notifications.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {settings.notifications.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {settings.notifications.subtitle}
-            </p>
-          </div>
+        <Card id="notifications" className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={settings.notifications.eyebrow}
+            title={settings.notifications.title}
+            subtitle={settings.notifications.subtitle}
+          />
           <div className="mt-4 divide-y divide-border/40 text-xs text-ink-muted">
             {settings.notifications.items.map((item) => (
               <div
@@ -249,24 +195,15 @@ export default async function SettingsPage() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div
-        id="data-privacy"
-        className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6"
-      >
-        <div>
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-            {settings.data.eyebrow}
-          </p>
-          <p className="mt-2 text-sm font-semibold text-ink">
-            {settings.data.title}
-          </p>
-          <p className="mt-1 text-xs text-ink-muted">
-            {settings.data.subtitle}
-          </p>
-        </div>
+      <Card id="data-privacy" className="rounded-[26px] bg-surface/60">
+        <SectionHeader
+          eyebrow={settings.data.eyebrow}
+          title={settings.data.title}
+          subtitle={settings.data.subtitle}
+        />
         <div className="mt-5 grid gap-6 md:grid-cols-2 md:divide-x md:divide-border/40">
           <div className="space-y-3 md:pr-6">
             <p className="text-sm font-semibold text-ink">
@@ -275,10 +212,7 @@ export default async function SettingsPage() {
             <p className="text-xs text-ink-muted">
               {settings.data.exportDescription}
             </p>
-            <Button.AsChild
-              size="sm"
-              className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
-            >
+            <Button.AsChild size="sm">
               <a href={settings.data.exportHref}>{settings.data.exportCta}</a>
             </Button.AsChild>
           </div>
@@ -289,26 +223,18 @@ export default async function SettingsPage() {
             <p className="text-xs text-ink-muted">
               {settings.data.deleteDescription}
             </p>
-            <Button.AsChild
-              size="sm"
-              variant="outline"
-              className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
-            >
+            <Button.AsChild size="sm" variant="outline">
               <a href={settings.data.deleteHref}>{settings.data.deleteCta}</a>
             </Button.AsChild>
           </div>
         </div>
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border/40 pt-4 text-xs text-ink-muted">
           <span>{settings.data.supportText}</span>
-          <Button.AsChild
-            size="sm"
-            variant="outline"
-            className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
-          >
+          <Button.AsChild size="sm" variant="outline">
             <a href="mailto:support@gettrail.net">{settings.data.supportCta}</a>
           </Button.AsChild>
         </div>
-      </div>
+      </Card>
     </section>
   );
 }
