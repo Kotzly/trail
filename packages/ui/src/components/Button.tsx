@@ -3,8 +3,8 @@ import { Slot } from "@radix-ui/react-slot";
 import { cn } from "../utils/cn";
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "outline" | "ghost";
-  size?: "sm" | "md" | "lg";
+  variant?: "primary" | "outline" | "ghost" | "subtle";
+  size?: "sm" | "md" | "lg" | "icon";
 };
 
 type ButtonComponent = React.ForwardRefExoticComponent<
@@ -16,18 +16,20 @@ type ButtonComponent = React.ForwardRefExoticComponent<
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
-  sm: "h-9 px-4 text-xs",
-  md: "h-11 px-5 text-sm",
-  lg: "h-12 px-6 text-[1rem]"
+  sm: "h-9 px-3 text-xs",
+  md: "h-10 px-4 text-sm",
+  lg: "h-12 px-6 text-base",
+  icon: "h-9 w-9"
 };
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-accent text-accent-contrast hover:bg-ink-muted focus-visible:ring-2 focus-visible:ring-ink",
+    "bg-cta text-cta-fg hover:bg-cta-hover",
   outline:
-    "border border-border bg-transparent text-ink hover:bg-surface-high focus-visible:ring-2 focus-visible:ring-ink",
+    "border border-border bg-transparent text-ink hover:bg-surface-high",
   ghost:
-    "bg-transparent text-ink hover:bg-surface-high focus-visible:ring-2 focus-visible:ring-ink"
+    "bg-transparent text-ink hover:bg-surface-high",
+  subtle: "bg-surface text-ink hover:bg-surface-high"
 };
 
 function getButtonClasses({
@@ -36,8 +38,9 @@ function getButtonClasses({
   size = "md"
 }: ButtonProps) {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-full font-medium transition disabled:pointer-events-none disabled:opacity-60",
-    "focus-visible:outline-none",
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+    "disabled:pointer-events-none disabled:opacity-50",
     sizeClasses[size],
     variantClasses[variant],
     className
