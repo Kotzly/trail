@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Check, Sparkles, Star } from "lucide-react";
 import { marketingCopy } from "@trail/content";
 import { Switch } from "../ui/switch";

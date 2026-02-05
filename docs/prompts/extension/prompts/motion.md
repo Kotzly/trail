@@ -22,7 +22,7 @@ import {
   useTransform,
   type SpringOptions,
   AnimatePresence,
-} from 'framer-motion';
+} from '@motion/react';
 import {
   Children,
   cloneElement,
@@ -321,7 +321,7 @@ export function AppleStyleDock() {
 
 Install NPM dependencies:
 ```bash
-framer-motion
+@motion/react
 ```
 
 Implementation Guidelines

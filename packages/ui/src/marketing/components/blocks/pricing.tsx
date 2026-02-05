@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Check, Star } from "lucide-react";
 import { cn } from "../../../utils/cn";
 import { buttonVariants } from "../ui/button";

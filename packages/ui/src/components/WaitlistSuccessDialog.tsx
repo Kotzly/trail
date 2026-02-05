@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { CheckIcon, Cross2Icon, EnvelopeClosedIcon, StarIcon } from "@radix-ui/react-icons";
 import { cn } from "../utils/cn";
 import { Button } from "./Button";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, HelpCircle, MessageCircle, Search } from "lucide-react";
 import { marketingCopy } from "@trail/content";
 import { Button } from "@trail/ui";

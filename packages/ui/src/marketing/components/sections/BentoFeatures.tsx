@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { ArrowRightIcon } from "@radix-ui/react-icons";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { marketingCopy } from "@trail/content";
 import { GlowingEffect } from "../ui/glowing-effect";
 import { Button } from "../ui/button";

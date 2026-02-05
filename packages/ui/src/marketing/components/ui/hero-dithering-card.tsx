@@ -2,7 +2,7 @@
 
 import { ArrowRight, MoveRight } from "lucide-react";
 import { useState, Suspense, lazy, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { marketingCopy } from "@trail/content";
 

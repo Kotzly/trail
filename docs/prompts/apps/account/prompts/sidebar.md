@@ -17,7 +17,7 @@ sidebar.tsx
 import { cn } from "@/lib/utils";
 import Link, { LinkProps } from "next/link";
 import React, { useState, createContext, useContext } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "@motion/react";
 import { Menu, X } from "lucide-react";
 
 interface Links {
@@ -208,7 +208,7 @@ import React, { useState } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { LayoutDashboard, UserCog, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from "@motion/react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -344,7 +344,7 @@ const Dashboard = () => {
 
 Install NPM dependencies:
 ```bash
-framer-motion
+@motion/react
 ```
 
 Implementation Guidelines

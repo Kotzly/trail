@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion } from "@motion/react";
 import { Check, Star } from "lucide-react";
 import Link from "next/link";
 import { useState, useRef } from "react";
@@ -436,7 +436,7 @@ export { Switch }
 
 Install NPM dependencies:
 ```bash
-lucide-react, framer-motion, canvas-confetti, @number-flow/react, @radix-ui/react-slot, class-variance-authority, @radix-ui/react-label, @radix-ui/react-switch
+lucide-react, @motion/react, canvas-confetti, @number-flow/react, @radix-ui/react-slot, class-variance-authority, @radix-ui/react-label, @radix-ui/react-switch
 ```
 
 Implementation Guidelines
