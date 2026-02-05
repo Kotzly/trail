@@ -38,10 +38,10 @@ export function DashboardClient() {
 
   return (
     <div className="space-y-8">
-      <section className="space-y-4">
+      <section className="trail-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs text-ink-muted">{dashboard.recent.eyebrow}</p>
+            <p className="trail-eyebrow">{dashboard.recent.eyebrow}</p>
             <p className="text-sm font-semibold text-ink">{dashboard.recent.title}</p>
             <p className="text-xs text-ink-muted">{dashboard.recent.subtitle}</p>
           </div>
@@ -51,12 +51,9 @@ export function DashboardClient() {
         </div>
 
         {hasTrails ? (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
             {recentTrails.map((trail) => (
-              <div
-                key={trail.id}
-                className="rounded-2xl border border-border/50 bg-surface/60 p-4"
-              >
+              <div key={trail.id} className="trail-card-compact p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-ink">{trail.title}</p>
                   <span className="trail-status">{trail.timestamp}</span>
@@ -66,33 +63,33 @@ export function DashboardClient() {
             ))}
           </div>
         ) : (
-          <EmptyState
-            title={dashboard.empty.title}
-            description={dashboard.empty.description}
-            icon={<BackpackIcon className="h-5 w-5" />}
-            items={dashboard.empty.items}
-            action={
-              <Button.AsChild size="sm">
-                <Link href="/extension">{dashboard.empty.cta}</Link>
-              </Button.AsChild>
-            }
-            secondaryAction={
-              <Button.AsChild size="sm" variant="outline">
-                <Link href="/settings">{dashboard.empty.secondaryCta}</Link>
-              </Button.AsChild>
-            }
-          />
+          <div className="mt-5">
+            <EmptyState
+              title={dashboard.empty.title}
+              description={dashboard.empty.description}
+              icon={<BackpackIcon className="h-5 w-5" />}
+              items={dashboard.empty.items}
+              action={
+                <Button.AsChild size="sm">
+                  <Link href="/extension">{dashboard.empty.cta}</Link>
+                </Button.AsChild>
+              }
+              secondaryAction={
+                <Button.AsChild size="sm" variant="outline">
+                  <Link href="/settings">{dashboard.empty.secondaryCta}</Link>
+                </Button.AsChild>
+              }
+            />
+          </div>
         )}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <div className="rounded-2xl border border-border/40 bg-surface/50 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-ink-muted">{dashboard.status.eyebrow}</p>
-              <p className="text-sm font-semibold text-ink">{dashboard.status.title}</p>
-              <p className="text-xs text-ink-muted">{dashboard.status.subtitle}</p>
-            </div>
+        <div className="trail-card p-5">
+          <div>
+            <p className="trail-eyebrow">{dashboard.status.eyebrow}</p>
+            <p className="text-sm font-semibold text-ink">{dashboard.status.title}</p>
+            <p className="text-xs text-ink-muted">{dashboard.status.subtitle}</p>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <StatCard
@@ -129,9 +126,9 @@ export function DashboardClient() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/40 bg-surface/50 p-4">
+        <div className="trail-card p-5">
           <div>
-            <p className="text-xs text-ink-muted">{dashboard.insights.eyebrow}</p>
+            <p className="trail-eyebrow">{dashboard.insights.eyebrow}</p>
             <p className="text-sm font-semibold text-ink">{dashboard.insights.title}</p>
             <p className="text-xs text-ink-muted">{dashboard.insights.subtitle}</p>
           </div>

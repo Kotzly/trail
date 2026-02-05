@@ -26,7 +26,8 @@ const config: Config = {
         "accent-soft": "rgb(var(--accent-soft) / <alpha-value>)"
       },
       fontFamily: {
-        display: ["var(--font-display)", "Plus Jakarta Sans", "system-ui", "sans-serif"]
+        sans: ["var(--font-sans)", "Instrument Sans", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Fraunces", "serif"]
       },
       boxShadow: {
         card: "var(--trail-elev-2)"

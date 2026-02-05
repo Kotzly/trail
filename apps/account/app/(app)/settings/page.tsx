@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Image, { type ImageLoaderProps } from "next/image";
 import { accountCopy } from "@trail/content";
 import { Button } from "@trail/ui";
+import { PageHeader } from "@/app/components/PageHeader";
 import { getAuthSession } from "@/src/lib/auth0";
 
 const avatarLoader = ({ src }: ImageLoaderProps) => src;
@@ -39,14 +40,29 @@ export default async function SettingsPage() {
 
   return (
     <section className="space-y-8">
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <div id="profile" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+      <PageHeader
+        eyebrow={accountCopy.nav.settings}
+        title={settings.title}
+        subtitle={settings.subtitle}
+        actions={
+          <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
+            <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
+              {settings.profile.manageCta}
+            </a>
+          </Button.AsChild>
+        }
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+        <div id="profile" className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
           <div>
-            <p className="text-xs text-ink-muted">{settings.profile.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">{settings.profile.title}</p>
-            <p className="text-xs text-ink-muted">{settings.profile.subtitle}</p>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {settings.profile.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">{settings.profile.title}</p>
+            <p className="mt-1 text-xs text-ink-muted">{settings.profile.subtitle}</p>
           </div>
-          <div className="mt-4 flex items-center gap-4">
+          <div className="mt-5 flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-surface text-sm font-semibold text-ink">
               {user.picture ? (
                 <Image
@@ -73,22 +89,24 @@ export default async function SettingsPage() {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button.AsChild size="sm" variant="outline">
+            <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
               <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
                 {settings.profile.manageCta}
               </a>
             </Button.AsChild>
-            <Button.AsChild size="sm" variant="ghost">
+            <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
               <a href="/auth/logout">{settings.profile.signOutCta}</a>
             </Button.AsChild>
           </div>
         </div>
 
-        <div id="security" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+        <div id="security" className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
           <div>
-            <p className="text-xs text-ink-muted">{settings.security.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">{settings.security.title}</p>
-            <p className="text-xs text-ink-muted">{settings.security.subtitle}</p>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {settings.security.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">{settings.security.title}</p>
+            <p className="mt-1 text-xs text-ink-muted">{settings.security.subtitle}</p>
           </div>
           <div className="mt-4 divide-y divide-border/40">
             {sessions.map((sessionItem) => (
@@ -104,22 +122,27 @@ export default async function SettingsPage() {
               </div>
             ))}
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-ink-muted">
-            <a href={auth0ProfileUrl} target="_blank" rel="noreferrer" className="text-ink">
-              {settings.security.changePasswordCta}
-            </a>
-            <span>•</span>
-            <span>{settings.security.signOutEverywhereCta}</span>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
+              <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
+                {settings.security.changePasswordCta}
+              </a>
+            </Button.AsChild>
+            <Button size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high" disabled>
+              {settings.security.signOutEverywhereCta}
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div id="workspace" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div id="workspace" className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
           <div>
-            <p className="text-xs text-ink-muted">{settings.workspace.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">{settings.workspace.title}</p>
-            <p className="text-xs text-ink-muted">{settings.workspace.subtitle}</p>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {settings.workspace.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">{settings.workspace.title}</p>
+            <p className="mt-1 text-xs text-ink-muted">{settings.workspace.subtitle}</p>
           </div>
           <div className="mt-4 divide-y divide-border/40">
             <div className="flex items-center justify-between gap-4 py-3">
@@ -141,18 +164,17 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <div id="notifications" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+        <div id="notifications" className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
           <div>
-            <p className="text-xs text-ink-muted">{settings.notifications.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">{settings.notifications.title}</p>
-            <p className="text-xs text-ink-muted">{settings.notifications.subtitle}</p>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {settings.notifications.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">{settings.notifications.title}</p>
+            <p className="mt-1 text-xs text-ink-muted">{settings.notifications.subtitle}</p>
           </div>
           <div className="mt-4 divide-y divide-border/40 text-xs text-ink-muted">
             {settings.notifications.items.map((item) => (
-              <div
-                key={item}
-                className="flex items-center justify-between gap-4 py-3"
-              >
+              <div key={item} className="flex items-center justify-between gap-4 py-3">
                 <span>{item}</span>
                 <span className="text-[0.7rem] font-semibold lowercase text-ink-muted">
                   {settings.notifications.status}
@@ -163,39 +185,41 @@ export default async function SettingsPage() {
         </div>
       </div>
 
-      <div id="data-privacy" className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+      <div id="data-privacy" className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
         <div>
-          <p className="text-xs text-ink-muted">{settings.data.eyebrow}</p>
-          <p className="text-sm font-semibold text-ink">{settings.data.title}</p>
-          <p className="text-xs text-ink-muted">{settings.data.subtitle}</p>
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+            {settings.data.eyebrow}
+          </p>
+          <p className="mt-2 text-sm font-semibold text-ink">{settings.data.title}</p>
+          <p className="mt-1 text-xs text-ink-muted">{settings.data.subtitle}</p>
         </div>
-        <div className="mt-4 grid gap-6 md:grid-cols-2 md:divide-x md:divide-border/40">
-          <div className="space-y-2 md:pr-6">
+        <div className="mt-5 grid gap-6 md:grid-cols-2 md:divide-x md:divide-border/40">
+          <div className="space-y-3 md:pr-6">
             <p className="text-sm font-semibold text-ink">{settings.data.exportTitle}</p>
             <p className="text-xs text-ink-muted">{settings.data.exportDescription}</p>
-            <a
-              href={settings.data.exportHref}
-              className="mt-3 inline-flex text-xs font-semibold text-ink"
-            >
-              {settings.data.exportCta}
-            </a>
+            <Button.AsChild size="sm" className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover">
+              <a href={settings.data.exportHref}>
+                {settings.data.exportCta}
+              </a>
+            </Button.AsChild>
           </div>
-          <div className="space-y-2 md:pl-6">
+          <div className="space-y-3 md:pl-6">
             <p className="text-sm font-semibold text-ink">{settings.data.deleteTitle}</p>
             <p className="text-xs text-ink-muted">{settings.data.deleteDescription}</p>
-            <a
-              href={settings.data.deleteHref}
-              className="mt-3 inline-flex text-xs font-semibold text-ink"
-            >
-              {settings.data.deleteCta}
-            </a>
+            <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
+              <a href={settings.data.deleteHref}>
+                {settings.data.deleteCta}
+              </a>
+            </Button.AsChild>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border/40 pt-4 text-xs text-ink-muted">
           <span>{settings.data.supportText}</span>
-          <a href="mailto:support@gettrail.net" className="text-ink">
-            {settings.data.supportCta}
-          </a>
+          <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
+            <a href="mailto:support@gettrail.net">
+              {settings.data.supportCta}
+            </a>
+          </Button.AsChild>
         </div>
       </div>
     </section>

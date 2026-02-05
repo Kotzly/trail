@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Fraunces, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { accountCopy } from "@trail/content";
 import { Providers } from "./providers";
 
-const jakarta = Plus_Jakarta_Sans({
+const display = Fraunces({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-display",
+  weight: ["400", "500", "600", "700"]
+});
+
+const sans = Instrument_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
-  weight: ["300", "400", "500", "600", "700"]
+  weight: ["400", "500", "600", "700"]
 });
 
 export const metadata: Metadata = {
@@ -28,7 +35,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-theme="system" suppressHydrationWarning className={jakarta.variable}>
+    <html
+      lang="en"
+      data-theme="system"
+      suppressHydrationWarning
+      className={`${display.variable} ${sans.variable}`}
+    >
       <body className="bg-bg text-ink">
         <Providers>{children}</Providers>
       </body>

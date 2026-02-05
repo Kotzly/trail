@@ -1,15 +1,19 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { accountCopy } from "@trail/content";
 import { TrailLogo, cn } from "@trail/ui";
-import { Sidebar as SidebarRoot, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import {
+  Activity,
+  Compass,
   CreditCard,
   LayoutDashboard,
   LogOut,
   Plug,
+  Shield,
   Settings
 } from "lucide-react";
 
@@ -17,69 +21,101 @@ const navLinks = [
   {
     label: accountCopy.nav.dashboard,
     href: "/dashboard",
-    icon: <LayoutDashboard className="h-5 w-5 text-ink" />
+    icon: <LayoutDashboard className="h-5 w-5 flex-shrink-0" />
+  },
+  {
+    label: accountCopy.nav.activity,
+    href: "/activity",
+    icon: <Activity className="h-5 w-5 flex-shrink-0" />
+  },
+  {
+    label: accountCopy.nav.gettingStarted,
+    href: "/getting-started",
+    icon: <Compass className="h-5 w-5 flex-shrink-0" />
+  },
+  {
+    label: accountCopy.nav.sessions,
+    href: "/sessions",
+    icon: <Shield className="h-5 w-5 flex-shrink-0" />
   },
   {
     label: accountCopy.nav.extension,
     href: "/extension",
-    icon: <Plug className="h-5 w-5 text-ink" />
+    icon: <Plug className="h-5 w-5 flex-shrink-0" />
   },
   {
     label: accountCopy.nav.settings,
     href: "/settings",
-    icon: <Settings className="h-5 w-5 text-ink" />
+    icon: <Settings className="h-5 w-5 flex-shrink-0" />
   },
   {
     label: accountCopy.nav.billing,
     href: "/billing",
-    icon: <CreditCard className="h-5 w-5 text-ink" />
+    icon: <CreditCard className="h-5 w-5 flex-shrink-0" />
   }
 ];
 
-export function Sidebar() {
+function Logo({ isOpen }: { isOpen: boolean }) {
+  return (
+    <Link
+      href="/dashboard"
+      className="font-normal flex items-center gap-2 text-sm text-ink py-1 relative z-20 h-10"
+    >
+      <div className="h-8 w-8 flex items-center justify-center border border-border/60 bg-surface rounded-xl flex-shrink-0">
+        <TrailLogo className="h-5 w-5" />
+      </div>
+      <span 
+        className={cn(
+          "font-medium text-ink whitespace-pre lowercase text-base transition-opacity duration-200",
+          isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
+        )}
+      >
+        {accountCopy.brand.name}
+      </span>
+    </Link>
+  );
+}
+
+export function AppSidebar() {
   const pathname = usePathname();
+  const [isHovered, setIsHovered] = React.useState(false);
 
   return (
-    <SidebarRoot animate={false}>
-      <SidebarBody showMobile={false} className="justify-between gap-10">
-        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 rounded-xl px-2 py-1 text-sm font-semibold lowercase text-ink transition hover:bg-surface-high"
-          >
-            <TrailLogo className="h-6 w-6" />
-            <span>{accountCopy.brand.name}</span>
-          </Link>
-          <div className="mt-6 flex flex-col gap-1">
-            {navLinks.map((link) => {
-              const isActive = pathname.startsWith(link.href);
-              return (
-                <SidebarLink
-                  key={link.href}
-                  link={link}
-                  className={cn(
-                    "rounded-xl",
-                    isActive
-                      ? "bg-surface-high text-ink"
-                      : "text-ink-muted hover:text-ink"
-                  )}
-                />
-              );
-            })}
+    <div 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <Sidebar open={isHovered} setOpen={setIsHovered}>
+        <SidebarBody className="justify-between gap-10">
+          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+            <Logo isOpen={isHovered} />
+            
+            <div className="mt-6 flex flex-col gap-1">
+              {navLinks.map((link) => {
+                const isActive = pathname.startsWith(link.href);
+                return (
+                  <SidebarLink
+                    key={link.href}
+                    link={link}
+                    className={cn(
+                      isActive && "bg-surface-high text-ink"
+                    )}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
-
-        <div className="border-t border-border/60 pt-3">
-          <SidebarLink
-            link={{
-              label: accountCopy.nav.signOut,
-              href: "/auth/logout",
-              icon: <LogOut className="h-5 w-5 text-ink" />
-            }}
-            className="rounded-xl text-ink-muted hover:text-ink"
-          />
-        </div>
-      </SidebarBody>
-    </SidebarRoot>
+          <div className="border-t border-border/60 pt-4">
+            <SidebarLink
+              link={{
+                label: accountCopy.nav.signOut,
+                href: "/auth/logout",
+                icon: <LogOut className="h-5 w-5 flex-shrink-0" />
+              }}
+            />
+          </div>
+        </SidebarBody>
+      </Sidebar>
+    </div>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import Link, { type LinkProps } from "next/link";
-import React, { createContext, useContext, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import Link, { LinkProps } from "next/link";
+import React, { useState, createContext, useContext } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
 interface Links {
@@ -40,14 +40,12 @@ export const SidebarProvider = ({
   animate?: boolean;
 }) => {
   const [openState, setOpenState] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
 
   const open = openProp !== undefined ? openProp : openState;
   const setOpen = setOpenProp !== undefined ? setOpenProp : setOpenState;
-  const resolvedAnimate = animate && !prefersReducedMotion;
 
   return (
-    <SidebarContext.Provider value={{ open, setOpen, animate: resolvedAnimate }}>
+    <SidebarContext.Provider value={{ open, setOpen, animate }}>
       {children}
     </SidebarContext.Provider>
   );
@@ -71,15 +69,11 @@ export const Sidebar = ({
   );
 };
 
-type SidebarBodyProps = React.ComponentProps<typeof motion.div> & {
-  showMobile?: boolean;
-};
-
-export const SidebarBody = ({ showMobile = true, ...props }: SidebarBodyProps) => {
+export const SidebarBody = (props: React.ComponentProps<typeof motion.div>) => {
   return (
     <>
       <DesktopSidebar {...props} />
-      {showMobile ? <MobileSidebar {...(props as React.ComponentProps<"div">)} /> : null}
+      <MobileSidebar {...(props as React.ComponentProps<"div">)} />
     </>
   );
 };
@@ -93,20 +87,16 @@ export const DesktopSidebar = ({
   return (
     <motion.div
       className={cn(
-        "hidden flex-shrink-0 border-r border-border/60 bg-surface/95 px-4 py-4 lg:flex lg:flex-col lg:sticky lg:top-0 lg:h-screen",
+        "h-screen sticky top-0 px-4 py-4 hidden md:flex md:flex-col bg-surface/95 border-r border-border/60 flex-shrink-0 overflow-hidden",
         className
       )}
+      initial={false}
       animate={{
-        width: animate ? (open ? "280px" : "72px") : "280px"
+        width: animate ? (open ? "240px" : "72px") : "240px"
       }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
-      onFocusCapture={() => setOpen(true)}
-      onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          setOpen(false);
-        }
-      }}
       {...props}
     >
       {children}
@@ -120,56 +110,44 @@ export const MobileSidebar = ({
   ...props
 }: React.ComponentProps<"div">) => {
   const { open, setOpen } = useSidebar();
-  const prefersReducedMotion = useReducedMotion();
-  const openEase: [number, number, number, number] = [0.16, 1, 0.3, 1];
-  const transition = prefersReducedMotion
-    ? { duration: 0 }
-    : { duration: 0.3, ease: openEase };
-  const panelId = "mobile-sidebar-panel";
   return (
     <>
       <div
         className={cn(
-          "flex h-12 w-full items-center justify-between border-b border-border/60 bg-bg/95 px-4 lg:hidden",
-          className
+          "h-12 px-4 py-2 flex flex-row md:hidden items-center justify-between bg-surface/95 border-b border-border/60 w-full"
         )}
         {...props}
       >
-        <div className="flex w-full justify-end">
-          <button
-            type="button"
+        <div className="flex justify-end z-20 w-full">
+          <Menu
+            className="text-ink cursor-pointer h-5 w-5"
             onClick={() => setOpen(!open)}
-            aria-expanded={open}
-            aria-controls={panelId}
-            aria-label={open ? "Close menu" : "Open menu"}
-            className="rounded-full p-2 text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-          >
-            <Menu className="h-5 w-5" aria-hidden="true" />
-          </button>
+          />
         </div>
         <AnimatePresence>
-          {open ? (
+          {open && (
             <motion.div
               initial={{ x: "-100%", opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: "-100%", opacity: 0 }}
-              transition={transition}
-              id={panelId}
-              role="dialog"
-              aria-modal="true"
-              className="fixed inset-0 z-[100] flex h-full flex-col justify-between bg-bg/95 p-8"
+              transition={{
+                duration: 0.3,
+                ease: "easeInOut"
+              }}
+              className={cn(
+                "fixed h-full w-full inset-0 bg-bg p-10 z-[100] flex flex-col justify-between",
+                className
+              )}
             >
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Close menu"
-                className="absolute right-8 top-8 z-50 rounded-full p-2 text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+              <div
+                className="absolute right-10 top-10 z-50 text-ink cursor-pointer"
+                onClick={() => setOpen(!open)}
               >
-                <X className="h-5 w-5" aria-hidden="true" />
-              </button>
+                <X className="h-5 w-5" />
+              </div>
               {children}
             </motion.div>
-          ) : null}
+          )}
         </AnimatePresence>
       </div>
     </>
@@ -190,22 +168,20 @@ export const SidebarLink = ({
     <Link
       href={link.href}
       className={cn(
-        "group/sidebar flex items-center justify-start gap-2 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted transition hover:bg-surface-high hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+        "flex items-center justify-start gap-3 group/sidebar py-2 px-2 rounded-xl transition hover:bg-surface-high",
         className
       )}
-      aria-label={link.label}
       {...props}
     >
       {link.icon}
-      <motion.span
-        animate={{
-          display: animate ? (open ? "inline-block" : "none") : "inline-block",
-          opacity: animate ? (open ? 1 : 0) : 1
-        }}
-        className="whitespace-pre text-sm transition duration-150 group-hover/sidebar:translate-x-1"
+      <span
+        className={cn(
+          "text-ink text-sm group-hover/sidebar:translate-x-1 transition-all duration-200 whitespace-pre inline-block !p-0 !m-0 lowercase",
+          animate && !open ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+        )}
       >
         {link.label}
-      </motion.span>
+      </span>
     </Link>
   );
 };

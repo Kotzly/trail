@@ -1,12 +1,8 @@
 import { redirect } from "next/navigation";
-import {
-  DesktopIcon,
-  LaptopIcon,
-  Link2Icon,
-  LockClosedIcon
-} from "@radix-ui/react-icons";
-import { EmptyState, StatCard } from "@trail/ui";
+import { DesktopIcon, LaptopIcon, Link2Icon, LockClosedIcon } from "@radix-ui/react-icons";
+import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
+import { PageHeader } from "@/app/components/PageHeader";
 import { getAuthSession, isAuthBypassed } from "@/src/lib/auth0";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
@@ -63,14 +59,22 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
 
   return (
     <section className="space-y-8">
-      <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-        <div className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+      <PageHeader
+        eyebrow={accountCopy.nav.extension}
+        title={accountCopy.extension.title}
+        subtitle={accountCopy.extension.subtitle}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
           <div>
-            <p className="text-xs text-ink-muted">{accountCopy.extension.status.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {accountCopy.extension.status.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">
               {accountCopy.extension.status.title}
             </p>
-            <p className="text-xs text-ink-muted">
+            <p className="mt-1 text-xs text-ink-muted">
               {accountCopy.extension.status.subtitle}
             </p>
           </div>
@@ -98,25 +102,26 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
                 items={accountCopy.extension.empty.items}
                 className="rounded-none border-0 bg-transparent p-0"
                 action={
-                  <a
-                    href={accountCopy.extension.empty.ctaHref}
-                    className="inline-flex items-center gap-2 rounded-full border border-border/60 px-4 py-2 text-xs font-semibold text-ink"
-                  >
-                    {accountCopy.extension.empty.cta}
-                  </a>
+                  <Button.AsChild size="sm" className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover">
+                    <a href={accountCopy.extension.empty.ctaHref}>
+                      {accountCopy.extension.empty.cta}
+                    </a>
+                  </Button.AsChild>
                 }
               />
             )}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
           <div>
-            <p className="text-xs text-ink-muted">{accountCopy.extension.device.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {accountCopy.extension.device.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">
               {accountCopy.extension.device.title}
             </p>
-            <p className="text-xs text-ink-muted">
+            <p className="mt-1 text-xs text-ink-muted">
               {accountCopy.extension.device.subtitle}
             </p>
           </div>
@@ -137,14 +142,16 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-surface/70 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs text-ink-muted">{accountCopy.extension.sessions.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {accountCopy.extension.sessions.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">
               {accountCopy.extension.sessions.title}
             </p>
-            <p className="text-xs text-ink-muted">
+            <p className="mt-1 text-xs text-ink-muted">
               {accountCopy.extension.sessions.subtitle}
             </p>
           </div>

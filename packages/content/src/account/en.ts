@@ -8,6 +8,9 @@ export const accountCopy = {
   },
   nav: {
     dashboard: "dashboard",
+    activity: "activity",
+    gettingStarted: "getting started",
+    sessions: "sessions",
     settings: "account",
     billing: "billing",
     extension: "extension",
@@ -31,6 +34,107 @@ export const accountCopy = {
       signOutDescription: "end your current session"
     },
     mobileToggleLabel: "toggle menu"
+  },
+  gettingStarted: {
+    title: "getting started",
+    subtitle: "complete the setup to unlock your first trails.",
+    cta: "connect extension",
+    stepsTitle: "setup checklist",
+    stepsSubtitle: "finish these steps to start syncing trails.",
+    progress: "0/3",
+    steps: [
+      {
+        title: "connect the extension",
+        description: "approve the connection from your browser."
+      },
+      {
+        title: "capture a trail",
+        description: "record a flow to populate the dashboard."
+      },
+      {
+        title: "review and share",
+        description: "organize trails and prepare to invite teammates."
+      }
+    ],
+    next: {
+      eyebrow: "what happens next",
+      title: "unlock activity and sessions",
+      subtitle: "once you sync, trails appear across activity and sessions.",
+      items: [
+        "activity timeline fills with new trails",
+        "sessions list tracks devices and last seen",
+        "coverage starts to appear automatically"
+      ]
+    },
+    support: {
+      eyebrow: "need help?",
+      title: "talk to us",
+      subtitle: "we are here to help you finish setup.",
+      cta: "contact support"
+    }
+  },
+  activity: {
+    title: "activity",
+    subtitle: "review recent trails, usage, and sync history.",
+    stream: {
+      eyebrow: "stream",
+      title: "recent trails",
+      subtitle: "activity appears after the first sync.",
+      filters: ["today", "this week", "all time"]
+    },
+    empty: {
+      title: "no activity yet",
+      description: "connect the extension to start capturing real workflows.",
+      items: [
+        "see synced trails in chronological order",
+        "filter by date or device",
+        "share when your team is ready"
+      ],
+      cta: "connect extension",
+      secondaryCta: "getting started"
+    },
+    next: {
+      eyebrow: "next sync",
+      title: "stay ready to capture",
+      subtitle: "the extension keeps your timeline fresh.",
+      cta: "open extension"
+    },
+    coverage: {
+      eyebrow: "coverage",
+      title: "coverage snapshot",
+      subtitle: "coverage appears after your first trail."
+    }
+  },
+  sessions: {
+    title: "sessions",
+    subtitle: "devices and access control in one place.",
+    list: {
+      eyebrow: "devices",
+      title: "active sessions",
+      subtitle: "review devices connected to your account.",
+      emptyTitle: "no sessions yet",
+      emptyDescription: "sessions appear once the extension connects.",
+      emptyItems: [
+        "see device name and last seen",
+        "revoke access instantly",
+        "confirm permission scopes"
+      ]
+    },
+    posture: {
+      eyebrow: "security",
+      title: "access posture",
+      subtitle: "we will flag unusual device changes.",
+      items: [
+        { label: "permissions", value: "approved" },
+        { label: "last review", value: "pending" },
+        { label: "alerts", value: "none" }
+      ]
+    },
+    guidance: {
+      title: "need to revoke access?",
+      description: "open the extension to sign out devices instantly.",
+      cta: "open extension"
+    }
   },
   dashboard: {
     title: "dashboard",
@@ -60,6 +164,12 @@ export const accountCopy = {
           description: "organize trails and prepare to invite teammates."
         }
       ]
+    },
+    nextAction: {
+      title: "next up",
+      description: "install the browser extension to start capturing trails.",
+      cta: "open extension",
+      href: "/extension"
     },
     recent: {
       eyebrow: "recent",

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Sidebar } from "./Sidebar";
+import { AppSidebar } from "./Sidebar";
 import { Footer } from "./Footer";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -11,17 +11,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         Skip to main content
       </a>
-      <div className="flex min-h-screen flex-col lg:flex-row">
-        <Sidebar />
-        <div className="flex min-h-screen flex-1 flex-col">
-          <main
-            id="main-content"
-            tabIndex={-1}
-            className="flex-1 overflow-y-auto px-4 py-6 focus-visible:outline-none lg:px-8"
-          >
-            {children}
-          </main>
-          <Footer />
+      <div data-noise="true" className="min-h-screen trail-app">
+        <div className="flex min-h-screen flex-col lg:flex-row">
+          <AppSidebar />
+          <div className="flex min-h-screen flex-1 flex-col">
+            <main
+              id="main-content"
+              role="main"
+              tabIndex={-1}
+              className="flex-1 px-4 py-6 focus-visible:outline-none lg:px-10 lg:py-8"
+            >
+              <div className="mx-auto w-full max-w-6xl">{children}</div>
+            </main>
+            <Footer />
+          </div>
         </div>
       </div>
     </div>
