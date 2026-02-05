@@ -13,7 +13,6 @@ import {
   FileDown,
   ArrowRight,
   Palette,
-  LucideCircleSlash,
   ArrowLeft,
   Brush,
 } from "../../../icons";
@@ -32,6 +31,7 @@ const featureIcons: Record<
 
 const CapturePreview = () => (
   <div className="flex items-center justify-center gap-2">
+    <ArrowLeft className="mr-2 h-4 w-4 text-accent" />
     <div className="preview-dot h-2 w-2 rounded-full bg-accent animate-pulse" />
     <div
       className="preview-dot h-2 w-2 rounded-full bg-accent/70"
