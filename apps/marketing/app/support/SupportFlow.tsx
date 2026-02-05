@@ -732,7 +732,8 @@ export function SupportFlow() {
           <Card className="trail-panel p-7 reveal">
             <StepBadge step={2} label="Search the FAQ" />
             <p className="mt-3 text-sm text-ink-muted">
-              Try keywords like "privacy", "platform", "sync", "account".
+              Try keywords like &quot;privacy&quot;, &quot;platform&quot;,
+              &quot;sync&quot;, &quot;account&quot;.
             </p>
 
             <div className="mt-5">
