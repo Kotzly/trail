@@ -4,8 +4,9 @@ import { emailOTP } from "better-auth/plugins/email-otp";
 import { jwt } from "better-auth/plugins/jwt";
 import { db } from "@trail/db";
 import { mailgunProvider } from "./email/mailgun";
+import { env } from "./env";
 
-const trustedOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "")
+const trustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
@@ -15,12 +16,12 @@ export const auth = betterAuth({
   trustedOrigins,
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
     },
     github: {
-      clientId: process.env.GITHUB_CLIENT_ID as string,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+      clientId: env.GITHUB_CLIENT_ID,
+      clientSecret: env.GITHUB_CLIENT_SECRET,
     },
   },
   plugins: [

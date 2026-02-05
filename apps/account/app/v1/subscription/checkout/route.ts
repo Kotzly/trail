@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
+import { env } from "@/src/env";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
   const successUrl =
     body?.successUrl && typeof body.successUrl === "string"
       ? body.successUrl
-      : "https://app.gettrail.net/billing";
+      : `${env.APP_BASE_URL.replace(/\/$/, "")}/billing`;
 
   return NextResponse.json({
     url: successUrl,

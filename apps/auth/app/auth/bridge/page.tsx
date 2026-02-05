@@ -2,12 +2,13 @@ import { randomUUID } from "crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/src/auth";
+import { env } from "@/src/env";
 import { db } from "@trail/db";
 
 const CODE_TTL_MINUTES = 10;
 
 function parseAllowedOrigins(): Set<string> {
-  const raw = process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "";
+  const raw = env.BETTER_AUTH_TRUSTED_ORIGINS;
   const entries = raw
     .split(",")
     .map((value) => value.trim())
@@ -16,9 +17,7 @@ function parseAllowedOrigins(): Set<string> {
 }
 
 function resolveDefaultReturnTo(): string {
-  return (
-    process.env.AUTH_BRIDGE_DEFAULT_RETURN_TO ?? "https://app.gettrail.net"
-  );
+  return env.AUTH_BRIDGE_DEFAULT_RETURN_TO;
 }
 
 function sanitizeReturnTo(raw: string | null): string {

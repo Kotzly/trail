@@ -34,5 +34,8 @@ extension:
 	cd extension && npm run build
 
 e2e: db-up
-	pnpm db:migrate
+	@set -a; \
+	if [ -f .env.e2e ]; then . ./.env.e2e; fi; \
+	set +a; \
+	pnpm db:migrate; \
 	pnpm dev

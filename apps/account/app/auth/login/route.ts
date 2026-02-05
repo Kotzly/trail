@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
+import { env } from "@/src/env";
 
 export const runtime = "nodejs";
-
-const TRAIL_AUTH_BASE_URL =
-  process.env.TRAIL_AUTH_BASE_URL ?? "https://auth.gettrail.net";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -14,7 +12,7 @@ export async function GET(request: Request) {
     callbackUrl.searchParams.set("next", next);
   }
 
-  const loginUrl = new URL("/login", TRAIL_AUTH_BASE_URL);
+  const loginUrl = new URL("/login", env.TRAIL_AUTH_BASE_URL);
   loginUrl.searchParams.set("returnTo", callbackUrl.toString());
 
   return NextResponse.redirect(loginUrl);

@@ -4,6 +4,7 @@ import {
   createPortalSession,
   PORTAL_POLL_INTERVAL_MS,
 } from "@/src/server/portal-sessions";
+import { env } from "@/src/env";
 
 export const runtime = "nodejs";
 
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const appBaseUrl = process.env.APP_BASE_URL ?? "https://app.gettrail.net";
+  const appBaseUrl = env.APP_BASE_URL;
   const confirmUrl = new URL("/extension/confirm", appBaseUrl);
   confirmUrl.searchParams.set("portal", session.id);
   if (returnUrl) {

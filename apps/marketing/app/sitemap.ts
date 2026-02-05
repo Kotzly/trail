@@ -1,11 +1,7 @@
 import type { MetadataRoute } from "next";
+import { publicEnv } from "@/lib/public-env";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ??
-  (process.env.NODE_ENV === "production"
-    ? "https://gettrail.net"
-    : "http://localhost:3000");
+const siteUrl = publicEnv.NEXT_PUBLIC_SITE_URL;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();

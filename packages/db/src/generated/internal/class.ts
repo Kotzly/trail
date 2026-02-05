@@ -240,51 +240,11 @@ export interface PrismaClient<
    * `prisma.extensionLoginCode`: Exposes CRUD operations for the **ExtensionLoginCode** model.
     * Example usage:
     * ```ts
-    * // Fetch zero or more Sessions
-    * const sessions = await prisma.session.findMany()
+    * // Fetch zero or more ExtensionLoginCodes
+    * const extensionLoginCodes = await prisma.extensionLoginCode.findMany()
     * ```
     */
-  get session(): Prisma.SessionDelegate<ExtArgs, { omit: OmitOpts }>;
-
-  /**
-   * `prisma.account`: Exposes CRUD operations for the **Account** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more Accounts
-    * const accounts = await prisma.account.findMany()
-    * ```
-    */
-  get account(): Prisma.AccountDelegate<ExtArgs, { omit: OmitOpts }>;
-
-  /**
-   * `prisma.verification`: Exposes CRUD operations for the **Verification** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more Verifications
-    * const verifications = await prisma.verification.findMany()
-    * ```
-    */
-  get verification(): Prisma.VerificationDelegate<ExtArgs, { omit: OmitOpts }>;
-
-  /**
-   * `prisma.jwks`: Exposes CRUD operations for the **Jwks** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more Jwks
-    * const jwks = await prisma.jwks.findMany()
-    * ```
-    */
-  get jwks(): Prisma.JwksDelegate<ExtArgs, { omit: OmitOpts }>;
-
-  /**
-   * `prisma.authBridgeCode`: Exposes CRUD operations for the **AuthBridgeCode** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more AuthBridgeCodes
-    * const authBridgeCodes = await prisma.authBridgeCode.findMany()
-    * ```
-    */
-  get authBridgeCode(): Prisma.AuthBridgeCodeDelegate<ExtArgs, { omit: OmitOpts }>;
+  get extensionLoginCode(): Prisma.ExtensionLoginCodeDelegate<ExtArgs, { omit: OmitOpts }>;
 
   /**
    * `prisma.userSubscription`: Exposes CRUD operations for the **UserSubscription** model.

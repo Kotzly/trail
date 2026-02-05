@@ -3,12 +3,10 @@ import type { AppContext, AppSession, AppUser } from "@trail/trpc";
 import { getBearerToken } from "@/src/server/auth/headers";
 import { verifyUserToken } from "@/src/server/auth/user-auth";
 import { ensureUser } from "@/src/server/user";
+import { env } from "@/src/env";
 
 function getInternalAuthKey(headers: Headers): string | null {
-  const expectedKey = process.env.TRAIL_INTERNAL_API_KEY;
-  if (!expectedKey) {
-    return null;
-  }
+  const expectedKey = env.TRAIL_INTERNAL_API_KEY;
 
   const providedKey = headers.get("x-trail-internal-key");
   if (!providedKey || providedKey !== expectedKey) {

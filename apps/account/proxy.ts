@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { env } from "@/src/env";
 
 const protectedPrefixes = ["/dashboard", "/settings", "/billing", "/extension"];
 const AUTH_COOKIE_NAME = "trail_auth_session";
-const AUTH_BYPASS = process.env.ACCOUNT_AUTH_BYPASS === "1";
 
 export async function proxy(request: NextRequest) {
-  if (AUTH_BYPASS) {
+  if (env.ACCOUNT_AUTH_BYPASS) {
     return NextResponse.next();
   }
 

@@ -1,5 +1,6 @@
 import { jwtVerify } from "jose";
 import { getRemoteJwks } from "./jwks";
+import { env } from "@/src/env";
 
 export type UserTokenPayload = {
   sub: string;
@@ -31,7 +32,7 @@ export async function verifyUserToken(
 
   const issuer =
     (options.issuer ? normalizeBaseUrl(options.issuer) : null) ??
-    normalizeBaseUrl(process.env.BETTER_AUTH_URL ?? "");
+    normalizeBaseUrl(env.BETTER_AUTH_URL);
   if (!issuer) {
     return null;
   }

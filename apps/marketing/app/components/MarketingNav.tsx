@@ -6,15 +6,17 @@ import { Menu, X } from "lucide-react";
 import { marketingCopy } from "@trail/content";
 import { ThemeToggle, TrailLogo } from "@trail/ui";
 import { motion } from "motion/react";
+import { publicEnv } from "@/lib/public-env";
 
 export function MarketingNav() {
   const { nav } = marketingCopy;
   const [isOpen, setIsOpen] = React.useState(false);
   const linkTabIndex = isOpen ? 0 : -1;
+  const appBaseUrl = publicEnv.NEXT_PUBLIC_APP_URL;
 
   const closeMenu = () => setIsOpen(false);
 
-  const niggas = [
+  const navItems = [
     {
       href: "/features",
       label: nav.features,
@@ -50,7 +52,7 @@ export function MarketingNav() {
           trail
         </motion.a>
         <nav className="hidden items-center gap-5 text-sm font-medium text-ink-subtle md:flex">
-          {niggas.map((item) => (
+          {navItems.map((item) => (
             <motion.a
               key={item.href}
               href={item.href}
@@ -66,7 +68,7 @@ export function MarketingNav() {
         <div className="flex items-center gap-3">
           <ThemeToggle className="border-stroke/50 bg-surface/70 text-ink hover:bg-surface-strong" />
           <a
-            href="https://app.gettrail.net"
+            href={appBaseUrl}
             className="hidden rounded-full border border-stroke/60 px-4 py-2 text-sm font-medium text-ink transition hover:border-stroke focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base md:inline-flex"
           >
             {nav.signIn}
@@ -135,7 +137,7 @@ export function MarketingNav() {
             },
           }}
         >
-          {niggas.map((item) => (
+          {navItems.map((item) => (
             <motion.a
               key={item.href}
               href={item.href}
@@ -162,7 +164,7 @@ export function MarketingNav() {
           transition={{ duration: 0.18, ease: "easeInOut" }}
         >
           <a
-            href="https://app.gettrail.net"
+            href={appBaseUrl}
             className="inline-flex items-center justify-center rounded-full bg-base border border-stroke/60 px-4 py-2 text-sm font-medium text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
             tabIndex={linkTabIndex}
           >

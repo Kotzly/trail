@@ -178,7 +178,7 @@ export const ExtensionLoginCodeScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type AuthBridgeCodeScalarFieldEnum = (typeof AuthBridgeCodeScalarFieldEnum)[keyof typeof AuthBridgeCodeScalarFieldEnum]
+export type ExtensionLoginCodeScalarFieldEnum = (typeof ExtensionLoginCodeScalarFieldEnum)[keyof typeof ExtensionLoginCodeScalarFieldEnum]
 
 
 export const UserSubscriptionScalarFieldEnum = {

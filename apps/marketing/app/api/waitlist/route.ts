@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
+import { env } from "@/lib/env";
 
 type WaitlistPayload = {
   email?: string;
   source?: string;
 };
 
-const endpoint = process.env.WAITLIST_PROVIDER_ENDPOINT;
-const token = process.env.WAITLIST_PROVIDER_TOKEN;
+const endpoint = env.WAITLIST_PROVIDER_ENDPOINT;
+const token = env.WAITLIST_PROVIDER_TOKEN;
 
 // todo: move to proper api endpoint
 export async function POST(request: Request) {

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { marketingCopy } from "@trail/content";
+import { publicEnv } from "@/lib/public-env";
 
 export function MarketingFooter() {
   const { footer } = marketingCopy;
+  const appBaseUrl = publicEnv.NEXT_PUBLIC_APP_URL;
 
   return (
     <footer className="border-t border-stroke/40 bg-base/80">
@@ -48,7 +50,7 @@ export function MarketingFooter() {
             {footer.links.terms}
           </Link>
           <a
-            href="https://app.gettrail.net"
+            href={appBaseUrl}
             className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
           >
             {footer.links.signIn}

@@ -6,17 +6,12 @@ import {
   WebhookVerificationError,
 } from "../../../../src/server/polar/standard-webhooks";
 import { syncSubscriptionFromPolarWebhook } from "../../../../src/server/polar/subscription-sync";
+import { env } from "@/src/env";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const secret = process.env.POLAR_WEBHOOK_SECRET;
-  if (!secret) {
-    return NextResponse.json(
-      { ok: false, error: "Missing POLAR_WEBHOOK_SECRET" },
-      { status: 500 },
-    );
-  }
+  const secret = env.POLAR_WEBHOOK_SECRET;
 
   const rawBody = await req.text();
 

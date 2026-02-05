@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
+import { env } from "@/src/env";
 
 export const runtime = "nodejs";
 
-const TRAIL_API_BASE_URL = process.env.TRAIL_API_BASE_URL;
 const DEFAULT_REDIRECT = "/dashboard";
 
 type ExchangeResponse = {
@@ -15,11 +15,7 @@ type ExchangeResponse = {
 };
 
 async function exchangeCode(code: string): Promise<string | null> {
-  if (!TRAIL_API_BASE_URL) {
-    return null;
-  }
-
-  const targetUrl = new URL("/v1/auth/bridge/exchange", TRAIL_API_BASE_URL);
+  const targetUrl = new URL("/v1/auth/bridge/exchange", env.TRAIL_API_BASE_URL);
   const response = await fetch(targetUrl, {
     method: "POST",
     headers: {
@@ -53,7 +49,7 @@ export async function GET(request: Request) {
   const nextParam = url.searchParams.get("next");
   const nextPath = resolveNextPath(nextParam);
 
-  if (!code || !TRAIL_API_BASE_URL) {
+  if (!code) {
     const loginUrl = new URL("/auth/login", url.origin);
     loginUrl.searchParams.set("next", nextPath);
     return NextResponse.redirect(loginUrl);

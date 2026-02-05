@@ -1,15 +1,10 @@
-const TRAIL_API_BASE_URL = process.env.TRAIL_API_BASE_URL;
-const TRAIL_INTERNAL_API_KEY = process.env.TRAIL_INTERNAL_API_KEY;
+import { env } from "@/src/env";
 
 function getInternalApiConfig() {
-  if (!TRAIL_API_BASE_URL) {
-    throw new Error("missing_TRAIL_API_BASE_URL");
-  }
-  if (!TRAIL_INTERNAL_API_KEY) {
-    throw new Error("missing_TRAIL_INTERNAL_API_KEY");
-  }
-
-  return { baseUrl: TRAIL_API_BASE_URL, internalKey: TRAIL_INTERNAL_API_KEY };
+  return {
+    baseUrl: env.TRAIL_API_BASE_URL,
+    internalKey: env.TRAIL_INTERNAL_API_KEY,
+  };
 }
 
 export async function internalApiFetch(path: string, init: RequestInit = {}) {

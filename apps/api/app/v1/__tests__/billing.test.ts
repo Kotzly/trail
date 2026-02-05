@@ -133,7 +133,8 @@ describe("v1 billing endpoints", () => {
 
     expect(response.status).toBe(200);
     const payload = await response.json();
-    expect(payload.url).toBe("https://app.gettrail.net/billing");
+    const baseUrl = process.env.APP_BASE_URL?.replace(/\/$/, "");
+    expect(payload.url).toBe(`${baseUrl}/billing`);
   });
 
   it("returns billing portal stub", async () => {
@@ -159,6 +160,7 @@ describe("v1 billing endpoints", () => {
 
     expect(response.status).toBe(200);
     const payload = await response.json();
-    expect(payload.url).toBe("https://app.gettrail.net/billing");
+    const baseUrl = process.env.APP_BASE_URL?.replace(/\/$/, "");
+    expect(payload.url).toBe(`${baseUrl}/billing`);
   });
 });

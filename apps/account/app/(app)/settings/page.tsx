@@ -4,6 +4,7 @@ import { accountCopy } from "@trail/content";
 import { Button } from "@trail/ui";
 import { PageHeader } from "@/app/components/PageHeader";
 import { getAuthSession } from "@/src/lib/auth";
+import { env } from "@/src/env";
 
 const avatarLoader = ({ src }: ImageLoaderProps) => src;
 
@@ -25,13 +26,10 @@ export default async function SettingsPage() {
     .map((chunk) => chunk[0]?.toLowerCase())
     .join("");
 
-  const auth0Domain = process.env.AUTH0_DOMAIN
-    ? `https://${process.env.AUTH0_DOMAIN}`
-    : null;
-  const auth0ProfileUrl = auth0Domain
-    ? `${auth0Domain}/u/me`
-    : "https://auth0.com/";
 
+    // todo: remove auth0
+  const auth0Domain = `https://${env.AUTH0_DOMAIN}`;
+  const auth0ProfileUrl = `${auth0Domain}/u/me`;
   const sessions = [
     {
       id: "current",

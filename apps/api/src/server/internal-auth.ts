@@ -1,6 +1,7 @@
 import { jsonNoStore } from "@/src/server/response";
+import { env } from "@/src/env";
 
-const INTERNAL_API_KEY = process.env.TRAIL_INTERNAL_API_KEY;
+const INTERNAL_API_KEY = env.TRAIL_INTERNAL_API_KEY;
 
 export function requireInternalKey(headers: Headers) {
   if (!INTERNAL_API_KEY) {

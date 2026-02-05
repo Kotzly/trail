@@ -1,14 +1,7 @@
 import type { EmailMessage, EmailProvider } from "./provider";
+import { env } from "../env";
 
 const MAILGUN_API_BASE_URL = "https://api.mailgun.net/v3";
-
-const requireEnv = (value: string | undefined, name: string): string => {
-  if (!value) {
-    throw new Error(`Missing ${name} environment variable`);
-  }
-
-  return value;
-};
 
 const buildAuthorizationHeader = (apiKey: string): string => {
   const token = Buffer.from(`api:${apiKey}`).toString("base64");
@@ -16,12 +9,9 @@ const buildAuthorizationHeader = (apiKey: string): string => {
 };
 
 export const mailgunProvider = (): EmailProvider => {
-  const apiKey = requireEnv(process.env.MAILGUN_API_KEY, "MAILGUN_API_KEY");
-  const domain = requireEnv(process.env.MAILGUN_DOMAIN, "MAILGUN_DOMAIN");
-  const fromEmail = requireEnv(
-    process.env.MAILGUN_FROM_EMAIL,
-    "MAILGUN_FROM_EMAIL",
-  );
+  const apiKey = env.MAILGUN_API_KEY;
+  const domain = env.MAILGUN_DOMAIN;
+  const fromEmail = env.MAILGUN_FROM_EMAIL;
 
   return {
     async send(message: EmailMessage) {

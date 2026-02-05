@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { internalApiJson } from "@/src/server/internal-api";
+import { env } from "@/src/env";
 
 export const runtime = "nodejs";
 
@@ -11,7 +12,7 @@ function createSessionId() {
 }
 
 export async function POST() {
-  const appBaseUrl = process.env.APP_BASE_URL ?? "https://app.gettrail.net";
+  const appBaseUrl = env.APP_BASE_URL;
 
   let sessionId = createSessionId();
   try {

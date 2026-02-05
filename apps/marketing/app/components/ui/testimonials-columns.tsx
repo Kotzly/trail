@@ -1,10 +1,7 @@
 "use client";
-import React from "react";
-import { motion } from "motion/react";
-import { testimonials } from "../../data/testimonials";
 
-import Image from "next/image";
 import React from "react";
+import Image from "next/image";
 import { motion } from "motion/react";
 import { testimonials } from "../../data/testimonials";
 
@@ -63,5 +60,3 @@ export const TestimonialsColumn = (props: {
     </div>
   );
 };
-
-;

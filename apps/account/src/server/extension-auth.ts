@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { env } from "@/src/env";
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 
@@ -28,18 +29,11 @@ function sign(data: string, secret: string): string {
   return base64Url(createHmac("sha256", secret).update(data).digest());
 }
 
-function getSecret(): string | null {
-  return process.env.TRAIL_EXTENSION_JWT_SECRET ?? null;
-}
-
 export function createExtensionAccessToken(
   userId: string,
   ttlSeconds: number = TOKEN_TTL_SECONDS,
 ): { token: string; expiresAt: string } {
-  const secret = getSecret();
-  if (!secret) {
-    throw new Error("missing_TRAIL_EXTENSION_JWT_SECRET");
-  }
+  const secret = env.TRAIL_EXTENSION_JWT_SECRET;
 
   const now = Math.floor(Date.now() / 1000);
   const payload: ExtensionTokenPayload = {
@@ -63,10 +57,7 @@ export function createExtensionAccessToken(
 export function verifyExtensionAccessToken(
   token: string,
 ): ExtensionTokenPayload | null {
-  const secret = getSecret();
-  if (!secret) {
-    return null;
-  }
+  const secret = env.TRAIL_EXTENSION_JWT_SECRET;
 
   const parts = token.split(".");
   if (parts.length !== 3) {

@@ -3,9 +3,9 @@ import "server-only";
 import { cookies } from "next/headers";
 import type { UUID } from "crypto";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { env } from "@/src/env";
 
 export const AUTH_COOKIE_NAME = "trail_auth_session";
-const AUTH_BYPASS = process.env.ACCOUNT_AUTH_BYPASS === ("1" as const);
 
 type AuthSession = {
   user: User;
@@ -52,7 +52,7 @@ export type User = CommonUserClaims & {
 };
 
 export function getAuthBypassState(): boolean {
-  return AUTH_BYPASS;
+  return env.ACCOUNT_AUTH_BYPASS;
 }
 
 export async function getAuthTokenFromCookies(): Promise<string | null> {
@@ -71,11 +71,7 @@ function normalizeBaseUrl(value: string): string | null {
 }
 
 function resolveAuthIssuer(): string | null {
-  return (
-    normalizeBaseUrl(process.env.TRAIL_AUTH_BASE_URL ?? "") ??
-    normalizeBaseUrl(process.env.BETTER_AUTH_URL ?? "") ??
-    null
-  );
+  return normalizeBaseUrl(env.TRAIL_AUTH_BASE_URL);
 }
 
 function getRemoteJwks(jwksUrl: string) {

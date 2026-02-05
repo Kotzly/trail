@@ -38,7 +38,6 @@ describe("auth portal flow", () => {
     portalMocks.approvePortalSession.mockReset();
     authMocks.verifyUserToken.mockReset();
     userMocks.ensureUser.mockReset();
-    process.env.APP_BASE_URL = "https://app.test";
   });
 
   it("starts a portal session", async () => {
@@ -57,9 +56,10 @@ describe("auth portal flow", () => {
 
     expect(response.status).toBe(200);
     const payload = await response.json();
+    const baseUrl = process.env.APP_BASE_URL?.replace(/\/$/, "");
     expect(payload.id).toBe("portal-1");
     expect(payload.url).toBe(
-      "https://app.test/extension/confirm?portal=portal-1&returnUrl=chrome-extension%3A%2F%2Ftrail",
+      `${baseUrl}/extension/confirm?portal=portal-1&returnUrl=chrome-extension%3A%2F%2Ftrail`,
     );
     expect(payload.pollIntervalMs).toBe(1500);
   });
