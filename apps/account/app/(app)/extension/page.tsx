@@ -6,6 +6,7 @@ import { PageHeader } from "@/app/components/PageHeader";
 import { getAuthSession, isAuthBypassed } from "@/src/lib/auth0";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
+import { ExtensionConnectionGuideClient } from "./ExtensionConnectionGuideClient";
 
 export const runtime = "nodejs";
 
@@ -142,8 +143,11 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
         </div>
       </div>
 
-      <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* Extension Connection Guide - only show when not connected */}
+      {!connectionReady && <ExtensionConnectionGuideClient />}
+
+      <div className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
               {accountCopy.extension.sessions.eyebrow}

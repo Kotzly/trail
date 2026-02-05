@@ -13,9 +13,11 @@ import {
   LayoutDashboard,
   LogOut,
   Plug,
+  Settings,
+  SparklesIcon,
   Shield,
-  Settings
 } from "lucide-react";
+import { ProgressIndicator } from "./onboarding/ProgressIndicator";
 
 const navLinks = [
   {

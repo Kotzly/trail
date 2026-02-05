@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ArrowRightIcon, LightningBoltIcon } from "@radix-ui/react-icons";
 import { Activity, Layers, Laptop } from "lucide-react";
-import { Button } from "@trail/ui";
+import { Button, PageHeader } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import { PageHeader } from "@/app/components/PageHeader";
+import { DashboardClient } from "./DashboardClient";
+import { OnboardingChecklist } from "@/app/components/onboarding/OnboardingChecklist";
+import { WelcomeModalWrapper } from "./WelcomeModalWrapper";
 
 export default function DashboardPage() {
   const { dashboard } = accountCopy;
