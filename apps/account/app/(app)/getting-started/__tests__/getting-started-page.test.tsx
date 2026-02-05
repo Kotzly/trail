@@ -8,8 +8,10 @@ describe("GettingStartedPage", () => {
     render(<GettingStartedPage />);
 
     expect(
-      screen.getByRole("heading", { name: accountCopy.gettingStarted.title })
+      screen.getByRole("heading", { name: accountCopy.gettingStarted.title }),
     ).toBeInTheDocument();
-    expect(screen.getByText(accountCopy.gettingStarted.stepsTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(accountCopy.gettingStarted.stepsTitle),
+    ).toBeInTheDocument();
   });
 });

@@ -2,7 +2,7 @@ import { AppShell } from "../components/AppShell";
 import { OnboardingModal } from "../components/OnboardingModal";
 
 export default function DashboardLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {

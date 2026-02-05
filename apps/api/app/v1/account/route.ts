@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
   const snapshot = buildAccountSnapshot({
     user,
-    accessToken: token
+    accessToken: token,
   });
 
   return jsonNoStore(snapshot);

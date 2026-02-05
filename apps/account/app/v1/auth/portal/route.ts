@@ -20,8 +20,8 @@ export async function POST() {
         "/api/internal/extension/code-exists",
         {
           method: "POST",
-          body: { code: sessionId }
-        }
+          body: { code: sessionId },
+        },
       );
       if (!exists) {
         break;
@@ -38,6 +38,6 @@ export async function POST() {
     id: sessionId,
     url: `${appBaseUrl.replace(/\/$/, "")}/extension?code=${sessionId}`,
     expiresAt: expiresAt.toISOString(),
-    pollIntervalMs: 1500
+    pollIntervalMs: 1500,
   });
 }

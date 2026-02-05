@@ -9,10 +9,7 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn(
-        "animate-pulse rounded-xl bg-surface-strong/60",
-        className
-      )}
+      className={cn("animate-pulse rounded-xl bg-surface-strong/60", className)}
     />
   );
 }
@@ -20,7 +17,12 @@ export function Skeleton({ className }: SkeletonProps) {
 // Pre-built skeleton patterns
 export function SkeletonCard({ className }: SkeletonProps) {
   return (
-    <div className={cn("rounded-3xl border border-stroke/40 bg-surface/50 p-6", className)}>
+    <div
+      className={cn(
+        "rounded-3xl border border-stroke/40 bg-surface/50 p-6",
+        className,
+      )}
+    >
       <Skeleton className="h-12 w-12 rounded-2xl" />
       <Skeleton className="mt-4 h-6 w-3/4" />
       <Skeleton className="mt-2 h-4 w-full" />
@@ -47,7 +49,10 @@ export function SkeletonStats() {
   return (
     <div className="mt-16 grid grid-cols-2 gap-6 md:grid-cols-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-2xl border border-stroke/40 bg-surface/50 p-6 text-center">
+        <div
+          key={i}
+          className="rounded-2xl border border-stroke/40 bg-surface/50 p-6 text-center"
+        >
           <Skeleton className="mx-auto h-10 w-20" />
           <Skeleton className="mx-auto mt-2 h-4 w-24" />
         </div>
@@ -108,7 +113,10 @@ export function SkeletonFAQ() {
   return (
     <div className="space-y-3">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="rounded-2xl border border-stroke/40 bg-surface/50 px-6 py-4">
+        <div
+          key={i}
+          className="rounded-2xl border border-stroke/40 bg-surface/50 px-6 py-4"
+        >
           <Skeleton className="h-6 w-full" />
         </div>
       ))}
@@ -118,7 +126,12 @@ export function SkeletonFAQ() {
 
 export function SkeletonImage({ className }: SkeletonProps) {
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl bg-surface-strong/60", className)}>
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-2xl bg-surface-strong/60",
+        className,
+      )}
+    >
       <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-surface/50 to-transparent skeleton-shimmer" />
     </div>
   );

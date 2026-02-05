@@ -11,13 +11,13 @@ export function VideoObserver() {
     if (typeof window === "undefined") return;
 
     const videos = Array.from(
-      document.querySelectorAll<HTMLVideoElement>(VIDEO_SELECTOR)
+      document.querySelectorAll<HTMLVideoElement>(VIDEO_SELECTOR),
     );
 
     if (videos.length === 0) return;
 
     const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
+      "(prefers-reduced-motion: reduce)",
     ).matches;
 
     if (prefersReducedMotion) {
@@ -45,7 +45,7 @@ export function VideoObserver() {
           if (!target.paused) target.pause();
         });
       },
-      { threshold: VIDEO_THRESHOLD, rootMargin: VIDEO_ROOT_MARGIN }
+      { threshold: VIDEO_THRESHOLD, rootMargin: VIDEO_ROOT_MARGIN },
     );
 
     videos.forEach((video) => observer.observe(video));

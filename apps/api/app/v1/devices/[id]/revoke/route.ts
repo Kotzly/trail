@@ -35,13 +35,13 @@ function mapDevice(device: {
     extensionVersion: device.extensionVersion ?? null,
     lastSeenAt: device.lastSeenAt ? device.lastSeenAt.toISOString() : null,
     createdAt: device.createdAt.toISOString(),
-    updatedAt: device.updatedAt.toISOString()
+    updatedAt: device.updatedAt.toISOString(),
   };
 }
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   if (!id) {
@@ -67,12 +67,12 @@ export async function POST(
   const now = new Date();
   const updated = await db.device.update({
     where: { id },
-    data: { status: "REVOKED" }
+    data: { status: "REVOKED" },
   });
 
   await db.deviceSession.updateMany({
     where: { deviceId: id, revokedAt: null },
-    data: { revokedAt: now }
+    data: { revokedAt: now },
   });
 
   return jsonNoStore(mapDevice(updated));

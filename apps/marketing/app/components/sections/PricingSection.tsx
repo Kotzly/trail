@@ -69,7 +69,7 @@ function PricingCard({ plan, isMonthly, index }: PricingCardProps) {
 
       <div className="text-center">
         <h3 className="text-lg font-semibold text-ink">{plan.name}</h3>
-        
+
         <div className="mt-4 flex items-baseline justify-center gap-1">
           <span className="text-4xl font-bold tracking-tight text-ink">
             ${price}
@@ -78,8 +78,12 @@ function PricingCard({ plan, isMonthly, index }: PricingCardProps) {
         </div>
 
         <p className="mt-1 text-xs text-ink-subtle">
-          {isMonthly ? marketingCopy.pricing.billedMonthlyLabel : marketingCopy.pricing.billedAnnuallyLabel}
-          {plan.name === "Teams" && <span className="text-sm text-ink-subtle">, per user</span>}
+          {isMonthly
+            ? marketingCopy.pricing.billedMonthlyLabel
+            : marketingCopy.pricing.billedAnnuallyLabel}
+          {plan.name === "Teams" && (
+            <span className="text-sm text-ink-subtle">, per user</span>
+          )}
         </p>
       </div>
 
@@ -119,7 +123,7 @@ export function PricingSection() {
     setIsMonthly(!checked);
   };
 
-  const plans: PricingPlan[] = pricing.plans.map(plan => ({
+  const plans: PricingPlan[] = pricing.plans.map((plan) => ({
     name: plan.name,
     price: plan.price,
     yearlyPrice: plan.yearlyPrice,
@@ -166,7 +170,9 @@ export function PricingSection() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mt-8 flex items-center justify-center gap-3"
         >
-          <span className={`text-sm ${isMonthly ? "text-ink" : "text-ink-subtle"}`}>
+          <span
+            className={`text-sm ${isMonthly ? "text-ink" : "text-ink-subtle"}`}
+          >
             {pricing.billedMonthlyLabel}
           </span>
           <Label className="relative inline-flex cursor-pointer items-center">
@@ -176,7 +182,9 @@ export function PricingSection() {
               onCheckedChange={handleToggle}
             />
           </Label>
-          <span className={`text-sm ${!isMonthly ? "text-ink" : "text-ink-subtle"}`}>
+          <span
+            className={`text-sm ${!isMonthly ? "text-ink" : "text-ink-subtle"}`}
+          >
             {pricing.billedAnnuallyLabel}
           </span>
           <span className="ml-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">

@@ -1,27 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
-  verifyExtensionToken: vi.fn()
+  verifyExtensionToken: vi.fn(),
 }));
 
 const userMocks = vi.hoisted(() => ({
-  getUserById: vi.fn()
+  getUserById: vi.fn(),
 }));
 
 const snapshotMocks = vi.hoisted(() => ({
-  buildAccountSnapshot: vi.fn()
+  buildAccountSnapshot: vi.fn(),
 }));
 
 vi.mock("@/src/server/auth/extension-auth", () => ({
-  ...authMocks
+  ...authMocks,
 }));
 
 vi.mock("@/src/server/user", () => ({
-  ...userMocks
+  ...userMocks,
 }));
 
 vi.mock("@/src/server/account-snapshot", () => ({
-  ...snapshotMocks
+  ...snapshotMocks,
 }));
 
 import { GET as getAccount } from "../account/route";
@@ -34,32 +34,40 @@ describe("v1 account snapshot", () => {
   });
 
   it("returns snapshot for extension user", async () => {
-    authMocks.verifyExtensionToken.mockReturnValue({ sub: "user-1", iat: 0, exp: 999999 });
+    authMocks.verifyExtensionToken.mockReturnValue({
+      sub: "user-1",
+      iat: 0,
+      exp: 999999,
+    });
     userMocks.getUserById.mockResolvedValue({
       id: "user-1",
       email: "user@test.com",
       name: "Test User",
       imageUrl: null,
-      createdAt: new Date("2026-02-01T00:00:00Z")
+      createdAt: new Date("2026-02-01T00:00:00Z"),
     });
     snapshotMocks.buildAccountSnapshot.mockReturnValue({
-      session: { status: "authenticated", accessToken: "token-1", expiresAt: null },
+      session: {
+        status: "authenticated",
+        accessToken: "token-1",
+        expiresAt: null,
+      },
       user: {
         id: "user-1",
         email: "user@test.com",
         displayName: "Test User",
         avatarUrl: null,
-        createdAt: "2026-02-01T00:00:00.000Z"
+        createdAt: "2026-02-01T00:00:00.000Z",
       },
       subscription: null,
       billing: { state: "none" },
-      plans: []
+      plans: [],
     });
 
     const response = await getAccount(
       new Request("http://localhost/v1/account", {
-        headers: { Authorization: "Bearer extension-token" }
-      })
+        headers: { Authorization: "Bearer extension-token" },
+      }),
     );
 
     expect(response.status).toBe(200);

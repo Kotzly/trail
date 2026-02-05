@@ -51,7 +51,7 @@ function mapDevice(device: {
     extensionVersion: device.extensionVersion ?? null,
     lastSeenAt: device.lastSeenAt ? device.lastSeenAt.toISOString() : null,
     createdAt: device.createdAt.toISOString(),
-    updatedAt: device.updatedAt.toISOString()
+    updatedAt: device.updatedAt.toISOString(),
   };
 }
 
@@ -73,7 +73,7 @@ function mapSession(session: {
     updatedAt: session.updatedAt.toISOString(),
     expiresAt: session.expiresAt.toISOString(),
     lastSeenAt: session.lastSeenAt ? session.lastSeenAt.toISOString() : null,
-    revokedAt: session.revokedAt ? session.revokedAt.toISOString() : null
+    revokedAt: session.revokedAt ? session.revokedAt.toISOString() : null,
   };
 }
 
@@ -92,7 +92,9 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const metadata = body?.metadata as DeviceMetadataInput | undefined;
   if (!metadata || typeof metadata !== "object") {
-    return jsonError("metadata_required", "Metadata is required.", { status: 400 });
+    return jsonError("metadata_required", "Metadata is required.", {
+      status: 400,
+    });
   }
 
   const os = typeof metadata.os === "string" ? metadata.os.trim() : "";
@@ -110,13 +112,13 @@ export async function POST(request: Request) {
       timezone: asNullableString(metadata.timezone),
       browserName: asNullableString(metadata.browserName),
       browserVersion: asNullableString(metadata.browserVersion),
-      extensionVersion: asNullableString(metadata.extensionVersion)
-    }
+      extensionVersion: asNullableString(metadata.extensionVersion),
+    },
   });
 
   return jsonNoStore({
     device: mapDevice(result.device),
     session: mapSession(result.session),
-    sessionTtlDays: result.sessionTtlDays ?? null
+    sessionTtlDays: result.sessionTtlDays ?? null,
   });
 }

@@ -15,8 +15,15 @@ export default function ActivityPage() {
         title={activity.title}
         subtitle={activity.subtitle}
         actions={
-          <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
-            <Link href="/getting-started" className="inline-flex items-center gap-2">
+          <Button.AsChild
+            size="sm"
+            variant="outline"
+            className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
+          >
+            <Link
+              href="/getting-started"
+              className="inline-flex items-center gap-2"
+            >
               {activity.empty.secondaryCta}
               <ArrowRightIcon className="h-3 w-3" />
             </Link>
@@ -31,8 +38,12 @@ export default function ActivityPage() {
               <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
                 {activity.stream.eyebrow}
               </p>
-              <p className="mt-2 text-sm font-semibold text-ink">{activity.stream.title}</p>
-              <p className="mt-1 text-xs text-ink-muted">{activity.stream.subtitle}</p>
+              <p className="mt-2 text-sm font-semibold text-ink">
+                {activity.stream.title}
+              </p>
+              <p className="mt-1 text-xs text-ink-muted">
+                {activity.stream.subtitle}
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {activity.stream.filters.map((filter) => (
@@ -44,22 +55,35 @@ export default function ActivityPage() {
           </div>
 
           {hasActivity ? (
-            <div className="mt-4 text-xs text-ink-muted">activity list goes here</div>
+            <div className="mt-4 text-xs text-ink-muted">
+              activity list goes here
+            </div>
           ) : (
             <div className="mt-5">
               <EmptyState
                 title={activity.empty.title}
                 description={activity.empty.description}
-                icon={<span className="h-5 w-5 rounded-full border border-border/60" />}
+                icon={
+                  <span className="h-5 w-5 rounded-full border border-border/60" />
+                }
                 items={activity.empty.items}
                 action={
-                  <Button.AsChild size="sm" className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover">
+                  <Button.AsChild
+                    size="sm"
+                    className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
+                  >
                     <Link href="/extension">{activity.empty.cta}</Link>
                   </Button.AsChild>
                 }
                 secondaryAction={
-                  <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
-                    <Link href="/getting-started">{activity.empty.secondaryCta}</Link>
+                  <Button.AsChild
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
+                  >
+                    <Link href="/getting-started">
+                      {activity.empty.secondaryCta}
+                    </Link>
                   </Button.AsChild>
                 }
               />
@@ -72,10 +96,18 @@ export default function ActivityPage() {
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
               {activity.next.eyebrow}
             </p>
-            <p className="mt-2 text-sm font-semibold text-ink">{activity.next.title}</p>
-            <p className="mt-1 text-xs text-ink-muted">{activity.next.subtitle}</p>
+            <p className="mt-2 text-sm font-semibold text-ink">
+              {activity.next.title}
+            </p>
+            <p className="mt-1 text-xs text-ink-muted">
+              {activity.next.subtitle}
+            </p>
             <div className="mt-4">
-              <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
+              <Button.AsChild
+                size="sm"
+                variant="outline"
+                className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
+              >
                 <Link href="/extension">{activity.next.cta}</Link>
               </Button.AsChild>
             </div>
@@ -85,8 +117,12 @@ export default function ActivityPage() {
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
               {activity.coverage.eyebrow}
             </p>
-            <p className="mt-2 text-sm font-semibold text-ink">{activity.coverage.title}</p>
-            <p className="mt-1 text-xs text-ink-muted">{activity.coverage.subtitle}</p>
+            <p className="mt-2 text-sm font-semibold text-ink">
+              {activity.coverage.title}
+            </p>
+            <p className="mt-1 text-xs text-ink-muted">
+              {activity.coverage.subtitle}
+            </p>
           </div>
         </div>
       </div>

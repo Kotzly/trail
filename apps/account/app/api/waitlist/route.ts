@@ -14,19 +14,25 @@ export async function POST(request: Request) {
   try {
     payload = await request.json();
   } catch (error) {
-    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "invalid_json" },
+      { status: 400 },
+    );
   }
 
   const email = payload.email?.trim();
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ ok: false, error: "invalid_email" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "invalid_email" },
+      { status: 400 },
+    );
   }
 
   const body = {
     email,
     source: payload.source ?? "account",
-    receivedAt: new Date().toISOString()
+    receivedAt: new Date().toISOString(),
   };
 
   if (endpoint) {
@@ -34,13 +40,16 @@ export async function POST(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
-      return NextResponse.json({ ok: false, error: "provider_error" }, { status: 502 });
+      return NextResponse.json(
+        { ok: false, error: "provider_error" },
+        { status: 502 },
+      );
     }
   }
 

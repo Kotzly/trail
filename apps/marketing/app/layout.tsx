@@ -4,16 +4,15 @@ import "./globals.css";
 import { marketingCopy } from "@trail/content";
 import { RevealObserver } from "./components/RevealObserver";
 import { VideoObserver } from "./components/VideoObserver";
-import {
-  defaultDescription,
-  defaultTitle,
-  metadataBase
-} from "../lib/seo";
+import { defaultDescription, defaultTitle, metadataBase } from "../lib/seo";
 import { MarketingNav } from "./components/MarketingNav";
 import { MarketingFooter } from "./components/MarketingFooter";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeInit } from "./theme-init";
-const posterUrl = new URL("/assets/video-poster-white.jpg", metadataBase).toString();
+const posterUrl = new URL(
+  "/assets/video-poster-white.jpg",
+  metadataBase,
+).toString();
 const videoUrl = new URL("/assets/showcase.mp4", metadataBase).toString();
 
 const videoSchema = {
@@ -24,14 +23,14 @@ const videoSchema = {
   thumbnailUrl: posterUrl,
   uploadDate: "2026-01-31T00:00:00Z",
   duration: "PT1M",
-  contentUrl: videoUrl
+  contentUrl: videoUrl,
 };
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
-  weight: ["300", "400", "500", "600", "700"]
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -39,7 +38,7 @@ export const metadata: Metadata = {
   title: defaultTitle,
   description: defaultDescription,
   alternates: {
-    canonical: "/"
+    canonical: "/",
   },
   openGraph: {
     title: defaultTitle,
@@ -52,26 +51,32 @@ export const metadata: Metadata = {
         url: "/assets/video-poster-white.jpg",
         width: 1200,
         height: 630,
-        alt: "Trail product overview"
-      }
-    ]
+        alt: "Trail product overview",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: defaultTitle,
     description: defaultDescription,
-    images: ["/assets/video-poster-white.jpg"]
+    images: ["/assets/video-poster-white.jpg"],
   },
   icons: {
     icon: [
-      { url: "/assets/brand/trail-fork-light.svg", media: "(prefers-color-scheme: light)" },
-      { url: "/assets/brand/trail-fork-dark.svg", media: "(prefers-color-scheme: dark)" }
-    ]
-  }
+      {
+        url: "/assets/brand/trail-fork-light.svg",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/assets/brand/trail-fork-dark.svg",
+        media: "(prefers-color-scheme: dark)",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {
@@ -88,9 +93,7 @@ export default function RootLayout({
         <div className="min-h-screen flex flex-col">
           <MarketingNav />
 
-          <main className="flex-1">
-            {children}
-          </main>
+          <main className="flex-1">{children}</main>
 
           <MarketingFooter />
         </div>

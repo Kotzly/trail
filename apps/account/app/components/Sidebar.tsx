@@ -21,38 +21,38 @@ const navLinks = [
   {
     label: accountCopy.nav.dashboard,
     href: "/dashboard",
-    icon: <LayoutDashboard className="h-5 w-5 flex-shrink-0" />
+    icon: <LayoutDashboard className="h-5 w-5 flex-shrink-0" />,
   },
   {
     label: accountCopy.nav.activity,
     href: "/activity",
-    icon: <Activity className="h-5 w-5 flex-shrink-0" />
+    icon: <Activity className="h-5 w-5 flex-shrink-0" />,
   },
   {
     label: accountCopy.nav.gettingStarted,
     href: "/getting-started",
-    icon: <Compass className="h-5 w-5 flex-shrink-0" />
+    icon: <Compass className="h-5 w-5 flex-shrink-0" />,
   },
   {
     label: accountCopy.nav.sessions,
     href: "/sessions",
-    icon: <Shield className="h-5 w-5 flex-shrink-0" />
+    icon: <Shield className="h-5 w-5 flex-shrink-0" />,
   },
   {
     label: accountCopy.nav.extension,
     href: "/extension",
-    icon: <Plug className="h-5 w-5 flex-shrink-0" />
+    icon: <Plug className="h-5 w-5 flex-shrink-0" />,
   },
   {
     label: accountCopy.nav.settings,
     href: "/settings",
-    icon: <Settings className="h-5 w-5 flex-shrink-0" />
+    icon: <Settings className="h-5 w-5 flex-shrink-0" />,
   },
   {
     label: accountCopy.nav.billing,
     href: "/billing",
-    icon: <CreditCard className="h-5 w-5 flex-shrink-0" />
-  }
+    icon: <CreditCard className="h-5 w-5 flex-shrink-0" />,
+  },
 ];
 
 function Logo({ isOpen }: { isOpen: boolean }) {
@@ -64,10 +64,10 @@ function Logo({ isOpen }: { isOpen: boolean }) {
       <div className="h-8 w-8 flex items-center justify-center border border-border/60 bg-surface rounded-xl flex-shrink-0">
         <TrailLogo className="h-5 w-5" />
       </div>
-      <span 
+      <span
         className={cn(
           "font-medium text-ink whitespace-pre lowercase text-base transition-opacity duration-200",
-          isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
+          isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
         )}
       >
         {accountCopy.brand.name}
@@ -81,7 +81,7 @@ export function AppSidebar() {
   const [isHovered, setIsHovered] = React.useState(false);
 
   return (
-    <div 
+    <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -89,7 +89,7 @@ export function AppSidebar() {
         <SidebarBody className="justify-between gap-10">
           <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
             <Logo isOpen={isHovered} />
-            
+
             <div className="mt-6 flex flex-col gap-1">
               {navLinks.map((link) => {
                 const isActive = pathname.startsWith(link.href);
@@ -97,9 +97,7 @@ export function AppSidebar() {
                   <SidebarLink
                     key={link.href}
                     link={link}
-                    className={cn(
-                      isActive && "bg-surface-high text-ink"
-                    )}
+                    className={cn(isActive && "bg-surface-high text-ink")}
                   />
                 );
               })}
@@ -110,7 +108,7 @@ export function AppSidebar() {
               link={{
                 label: accountCopy.nav.signOut,
                 href: "/auth/logout",
-                icon: <LogOut className="h-5 w-5 flex-shrink-0" />
+                icon: <LogOut className="h-5 w-5 flex-shrink-0" />,
               }}
             />
           </div>

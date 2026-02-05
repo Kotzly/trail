@@ -5,13 +5,13 @@ const dbMocks = vi.hoisted(() => ({
     deleteMany: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
-    create: vi.fn()
+    create: vi.fn(),
   },
-  $transaction: vi.fn()
+  $transaction: vi.fn(),
 }));
 
 vi.mock("@trail/db", () => ({
-  db: dbMocks
+  db: dbMocks,
 }));
 
 import { syncTrails } from "../trails-sync";
@@ -41,7 +41,7 @@ describe("syncTrails", () => {
       rootTitle: null,
       rootFavicon: null,
       payload: {},
-      deletedAt: null
+      deletedAt: null,
     };
 
     dbMocks.trail.deleteMany.mockResolvedValue({ count: 0 });
@@ -71,7 +71,7 @@ describe("syncTrails", () => {
           rootTitle: null,
           rootFavicon: null,
           payload: { v: 1 },
-          deletedAt: null
+          deletedAt: null,
         },
         {
           id: "trail-2",
@@ -87,14 +87,14 @@ describe("syncTrails", () => {
           rootTitle: null,
           rootFavicon: null,
           payload: { v: 2 },
-          deletedAt: null
-        }
-      ]
+          deletedAt: null,
+        },
+      ],
     });
 
     expect(dbMocks.$transaction).toHaveBeenCalledTimes(1);
     expect(dbMocks.$transaction).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.any(Promise), expect.any(Promise)])
+      expect.arrayContaining([expect.any(Promise), expect.any(Promise)]),
     );
   });
 });

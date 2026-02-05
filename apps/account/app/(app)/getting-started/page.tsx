@@ -14,7 +14,10 @@ export default function GettingStartedPage() {
         title={gettingStarted.title}
         subtitle={gettingStarted.subtitle}
         actions={
-          <Button.AsChild size="sm" className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover">
+          <Button.AsChild
+            size="sm"
+            className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
+          >
             <Link href="/extension" className="inline-flex items-center gap-2">
               {gettingStarted.cta}
               <ArrowRightIcon className="h-3 w-3" />
@@ -28,7 +31,9 @@ export default function GettingStartedPage() {
           <SectionHeader
             title={gettingStarted.stepsTitle}
             subtitle={gettingStarted.stepsSubtitle}
-            actions={<span className="trail-pill">{gettingStarted.progress}</span>}
+            actions={
+              <span className="trail-pill">{gettingStarted.progress}</span>
+            }
           />
           <StepList className="mt-4" steps={gettingStarted.steps} />
         </div>
@@ -37,8 +42,12 @@ export default function GettingStartedPage() {
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
             {gettingStarted.next.eyebrow}
           </p>
-          <p className="mt-2 text-sm font-semibold text-ink">{gettingStarted.next.title}</p>
-          <p className="mt-1 text-xs text-ink-muted">{gettingStarted.next.subtitle}</p>
+          <p className="mt-2 text-sm font-semibold text-ink">
+            {gettingStarted.next.title}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            {gettingStarted.next.subtitle}
+          </p>
           <ul className="mt-4 space-y-2 text-xs text-ink-muted">
             {gettingStarted.next.items.map((item) => (
               <li key={item} className="flex items-start gap-2">
@@ -56,10 +65,18 @@ export default function GettingStartedPage() {
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
               {gettingStarted.support.eyebrow}
             </p>
-            <p className="mt-2 text-sm font-semibold text-ink">{gettingStarted.support.title}</p>
-            <p className="mt-1 text-xs text-ink-muted">{gettingStarted.support.subtitle}</p>
+            <p className="mt-2 text-sm font-semibold text-ink">
+              {gettingStarted.support.title}
+            </p>
+            <p className="mt-1 text-xs text-ink-muted">
+              {gettingStarted.support.subtitle}
+            </p>
           </div>
-          <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
+          <Button.AsChild
+            size="sm"
+            variant="outline"
+            className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
+          >
             <a href={`mailto:${accountCopy.footer.supportEmail}`}>
               {gettingStarted.support.cta}
             </a>

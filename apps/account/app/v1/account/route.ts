@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   if (!payload) {
     return NextResponse.json(
       { code: "auth", message: "Unauthorized", retryable: false },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -36,7 +36,9 @@ export async function GET(request: Request) {
         imageUrl: string | null;
         createdAt: string;
       } | null;
-    }>(`/api/internal/users/${encodeURIComponent(payload.sub)}`, { method: "GET" });
+    }>(`/api/internal/users/${encodeURIComponent(payload.sub)}`, {
+      method: "GET",
+    });
 
     if (!user) {
       return NextResponse.json(buildAccountSnapshot({ user: null }));
@@ -46,14 +48,13 @@ export async function GET(request: Request) {
       buildAccountSnapshot({
         user: {
           ...user,
-          createdAt: new Date(user.createdAt)
+          createdAt: new Date(user.createdAt),
         },
         accessToken: token,
-        expiresAt: new Date(payload.exp * 1000).toISOString()
-      })
+        expiresAt: new Date(payload.exp * 1000).toISOString(),
+      }),
     );
   } catch (error) {
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
-
 }

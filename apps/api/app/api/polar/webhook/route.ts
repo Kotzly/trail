@@ -3,7 +3,7 @@ import { db } from "@trail/db";
 import {
   getStandardWebhookHeaders,
   verifyStandardWebhookSignature,
-  WebhookVerificationError
+  WebhookVerificationError,
 } from "../../../../src/server/polar/standard-webhooks";
 import { syncSubscriptionFromPolarWebhook } from "../../../../src/server/polar/subscription-sync";
 
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (!secret) {
     return NextResponse.json(
       { ok: false, error: "Missing POLAR_WEBHOOK_SECRET" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -25,7 +25,8 @@ export async function POST(req: Request) {
     headers = getStandardWebhookHeaders(req.headers);
     verifyStandardWebhookSignature({ headers, rawBody, secret });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Webhook verification failed";
+    const message =
+      err instanceof Error ? err.message : "Webhook verification failed";
     const status = err instanceof WebhookVerificationError ? 400 : 400;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
@@ -36,12 +37,14 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json(
       { ok: false, error: "Invalid JSON payload" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   const eventType =
-    typeof (payload as any)?.type === "string" ? (payload as any).type : "unknown";
+    typeof (payload as any)?.type === "string"
+      ? (payload as any).type
+      : "unknown";
 
   // Idempotency + retries:
   // - we store webhook-id as the primary key
@@ -51,30 +54,30 @@ export async function POST(req: Request) {
     where: { id: headers.id },
     update: {
       type: eventType,
-      payload: payload as any
+      payload: payload as any,
     },
     create: {
       id: headers.id,
       type: eventType,
-      payload: payload as any
-    }
+      payload: payload as any,
+    },
   });
 
   // Try to claim processing.
   const claimed = await db.polarWebhookEvent.updateMany({
     where: {
       id: headers.id,
-      status: { in: ["PENDING", "FAILED"] }
+      status: { in: ["PENDING", "FAILED"] },
     },
     data: {
       status: "PROCESSING",
-      error: null
-    }
+      error: null,
+    },
   });
 
   if (claimed.count === 0) {
     const existing = await db.polarWebhookEvent.findUnique({
-      where: { id: headers.id }
+      where: { id: headers.id },
     });
 
     if (existing?.status === "PROCESSED") {
@@ -86,15 +89,18 @@ export async function POST(req: Request) {
   }
 
   try {
-    const update = await syncSubscriptionFromPolarWebhook({ eventType, payload });
+    const update = await syncSubscriptionFromPolarWebhook({
+      eventType,
+      payload,
+    });
 
     await db.polarWebhookEvent.update({
       where: { id: headers.id },
       data: {
         status: "PROCESSED",
         processedAt: new Date(),
-        error: null
-      }
+        error: null,
+      },
     });
 
     return NextResponse.json({ ok: true, update });
@@ -105,8 +111,8 @@ export async function POST(req: Request) {
       where: { id: headers.id },
       data: {
         status: "FAILED",
-        error: message
-      }
+        error: message,
+      },
     });
 
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

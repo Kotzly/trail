@@ -8,8 +8,10 @@ describe("ActivityPage", () => {
     render(<ActivityPage />);
 
     expect(
-      screen.getByRole("heading", { name: accountCopy.activity.title })
+      screen.getByRole("heading", { name: accountCopy.activity.title }),
     ).toBeInTheDocument();
-    expect(screen.getByText(accountCopy.activity.empty.title)).toBeInTheDocument();
+    expect(
+      screen.getByText(accountCopy.activity.empty.title),
+    ).toBeInTheDocument();
   });
 });

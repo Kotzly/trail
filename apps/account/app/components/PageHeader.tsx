@@ -16,13 +16,13 @@ export function PageHeader({
   subtitle,
   actions,
   meta,
-  className
+  className,
 }: PageHeaderProps) {
   return (
     <div
       className={cn(
         "flex flex-wrap items-end justify-between gap-4 border-b border-border/60 pb-4",
-        className
+        className,
       )}
     >
       <div className="space-y-2">
@@ -35,7 +35,9 @@ export function PageHeader({
           </div>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+      ) : null}
     </div>
   );
 }

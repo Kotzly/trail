@@ -10,7 +10,9 @@ export async function proxy(request: NextRequest) {
   }
 
   const { pathname, search } = request.nextUrl;
-  const needsAuth = protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
+  const needsAuth = protectedPrefixes.some((prefix) =>
+    pathname.startsWith(prefix),
+  );
   if (!needsAuth) {
     return NextResponse.next();
   }
@@ -26,5 +28,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"]
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+  ],
 };

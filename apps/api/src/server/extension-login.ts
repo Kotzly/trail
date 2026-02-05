@@ -8,12 +8,17 @@ function createCode() {
   return randomBytes(CODE_BYTES).toString("hex");
 }
 
-export async function createExtensionLoginCode(userId: string, preferredCode?: string) {
+export async function createExtensionLoginCode(
+  userId: string,
+  preferredCode?: string,
+) {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + CODE_TTL_MINUTES * 60 * 1000);
 
   if (preferredCode) {
-    const existing = await db.extensionLoginCode.findUnique({ where: { code: preferredCode } });
+    const existing = await db.extensionLoginCode.findUnique({
+      where: { code: preferredCode },
+    });
     if (existing) {
       if (existing.userId !== userId) {
         throw new Error("Extension login code collision.");
@@ -22,7 +27,7 @@ export async function createExtensionLoginCode(userId: string, preferredCode?: s
       if (existing.usedAt || existing.expiresAt < now) {
         await db.extensionLoginCode.update({
           where: { id: existing.id },
-          data: { usedAt: null, expiresAt }
+          data: { usedAt: null, expiresAt },
         });
       }
 
@@ -33,8 +38,8 @@ export async function createExtensionLoginCode(userId: string, preferredCode?: s
       data: {
         code: preferredCode,
         userId,
-        expiresAt
-      }
+        expiresAt,
+      },
     });
     return preferredCode;
   }
@@ -46,8 +51,8 @@ export async function createExtensionLoginCode(userId: string, preferredCode?: s
         data: {
           code,
           userId,
-          expiresAt
-        }
+          expiresAt,
+        },
       });
       return record.code;
     } catch (error) {

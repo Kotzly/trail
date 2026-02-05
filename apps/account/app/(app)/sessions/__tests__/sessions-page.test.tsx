@@ -8,8 +8,10 @@ describe("SessionsPage", () => {
     render(<SessionsPage />);
 
     expect(
-      screen.getByRole("heading", { name: accountCopy.sessions.title })
+      screen.getByRole("heading", { name: accountCopy.sessions.title }),
     ).toBeInTheDocument();
-    expect(screen.getByText(accountCopy.sessions.list.emptyTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(accountCopy.sessions.list.emptyTitle),
+    ).toBeInTheDocument();
   });
 });

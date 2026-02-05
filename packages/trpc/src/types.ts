@@ -8,8 +8,15 @@ export type User = {
   imageUrl?: string;
 };
 
+export type AppUser = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  imageUrl: string | null;
+};
+
 export type AppSession = {
-  user: User;
+  user: AppUser;
 } | null;
 
 export type AppContext = {

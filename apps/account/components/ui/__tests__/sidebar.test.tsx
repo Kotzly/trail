@@ -10,11 +10,11 @@ describe("Sidebar", () => {
             link={{
               label: "dashboard",
               href: "/dashboard",
-              icon: <span>icon</span>
+              icon: <span>icon</span>,
             }}
           />
         </SidebarBody>
-      </Sidebar.Static>
+      </Sidebar.Static>,
     );
 
     expect(screen.getByText("dashboard")).toBeVisible();

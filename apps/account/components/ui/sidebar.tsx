@@ -20,7 +20,9 @@ interface SidebarContextProps {
 
 type SidebarVariant = "animated" | "static";
 
-const SidebarContext = createContext<SidebarContextProps | undefined>(undefined);
+const SidebarContext = createContext<SidebarContextProps | undefined>(
+  undefined,
+);
 
 export const useSidebar = () => {
   const context = useContext(SidebarContext);
@@ -34,7 +36,7 @@ export const SidebarProvider = ({
   children,
   open: openProp,
   setOpen: setOpenProp,
-  variant = "animated"
+  variant = "animated",
 }: {
   children: React.ReactNode;
   open?: boolean;
@@ -60,7 +62,11 @@ type SidebarShellProps = {
   setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-export const SidebarStatic = ({ children, open, setOpen }: SidebarShellProps) => {
+export const SidebarStatic = ({
+  children,
+  open,
+  setOpen,
+}: SidebarShellProps) => {
   return (
     <SidebarProvider open={open} setOpen={setOpen} variant="static">
       {children}
@@ -99,11 +105,11 @@ export const DesktopSidebar = ({
     <motion.div
       className={cn(
         "h-screen sticky top-0 px-4 py-4 hidden md:flex md:flex-col bg-surface/95 border-r border-border/60 flex-shrink-0 overflow-hidden",
-        className
+        className,
       )}
       initial={false}
       animate={{
-        width: animate ? (open ? "240px" : "72px") : "240px"
+        width: animate ? (open ? "240px" : "72px") : "240px",
       }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       onMouseEnter={() => setOpen(true)}
@@ -125,7 +131,7 @@ export const MobileSidebar = ({
     <>
       <div
         className={cn(
-          "h-12 px-4 py-2 flex flex-row md:hidden items-center justify-between bg-surface/95 border-b border-border/60 w-full"
+          "h-12 px-4 py-2 flex flex-row md:hidden items-center justify-between bg-surface/95 border-b border-border/60 w-full",
         )}
         {...props}
       >
@@ -143,11 +149,11 @@ export const MobileSidebar = ({
               exit={{ x: "-100%", opacity: 0 }}
               transition={{
                 duration: 0.3,
-                ease: "easeInOut"
+                ease: "easeInOut",
               }}
               className={cn(
                 "fixed h-full w-full inset-0 bg-bg p-10 z-[100] flex flex-col justify-between",
-                className
+                className,
               )}
             >
               <div
@@ -180,7 +186,7 @@ export const SidebarLink = ({
       href={link.href}
       className={cn(
         "flex items-center justify-start gap-3 group/sidebar py-2 px-2 rounded-xl transition hover:bg-surface-high",
-        className
+        className,
       )}
       {...props}
     >
@@ -188,7 +194,7 @@ export const SidebarLink = ({
       <span
         className={cn(
           "text-ink text-sm group-hover/sidebar:translate-x-1 transition-all duration-200 whitespace-pre inline-block !p-0 !m-0 lowercase",
-          animate && !open ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+          animate && !open ? "opacity-0 w-0 overflow-hidden" : "opacity-100",
         )}
       >
         {link.label}

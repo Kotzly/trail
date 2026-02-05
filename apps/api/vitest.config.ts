@@ -7,12 +7,12 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   resolve: {
     alias: {
-      "@": rootDir
-    }
+      "@": rootDir,
+    },
   },
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "app/**/*.test.ts"],
-    restoreMocks: true
-  }
+    restoreMocks: true,
+  },
 });

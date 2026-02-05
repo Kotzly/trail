@@ -5,7 +5,7 @@ import { AppSidebar } from "../Sidebar";
 
 // Мокаем usePathname
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/dashboard"
+  usePathname: () => "/dashboard",
 }));
 
 describe("AppSidebar", () => {

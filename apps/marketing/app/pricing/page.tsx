@@ -3,7 +3,14 @@
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, HelpCircle, ArrowRight, Sparkles, Zap, Building2 } from "lucide-react";
+import {
+  Check,
+  HelpCircle,
+  ArrowRight,
+  Sparkles,
+  Zap,
+  Building2,
+} from "lucide-react";
 import { Button } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { Switch } from "../components/ui/switch";
@@ -49,7 +56,7 @@ const plans: Plan[] = [
       "Advanced exports (PDF, JSON)",
       "Priority support",
       "Custom tags and filters",
-      "More features coming soon"
+      "More features coming soon",
     ],
     cta: "Start Pro Trial",
     popular: true,
@@ -77,15 +84,18 @@ const plans: Plan[] = [
 const faqs = [
   {
     question: "Can I switch plans anytime?",
-    answer: "Yes, you can switch plans at any time. You'll keep your data and continue using Trail until the end of your current billing period.",
+    answer:
+      "Yes, you can switch plans at any time. You'll keep your data and continue using Trail until the end of your current billing period.",
   },
   {
     question: "What happens to my data if I cancel?",
-    answer: "Your data remains accessible in read-only mode for 30 days. You can export everything before leaving.",
+    answer:
+      "Your data remains accessible in read-only mode for 30 days. You can export everything before leaving.",
   },
   {
     question: "Is there a discount for nonprofits?",
-    answer: "Yes, we offer 50% off for verified nonprofits and educational institutions. Contact us for details.",
+    answer:
+      "Yes, we offer 50% off for verified nonprofits and educational institutions. Contact us for details.",
   },
 ];
 
@@ -106,7 +116,7 @@ function PricingContent() {
             >
               Pricing
             </motion.span>
-            
+
             <motion.h1
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -115,7 +125,7 @@ function PricingContent() {
             >
               Simple, transparent pricing
             </motion.h1>
-            
+
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -132,16 +142,17 @@ function PricingContent() {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="mt-8 flex items-center justify-center gap-3"
             >
-              <span className={`text-sm ${!isYearly ? "text-ink" : "text-ink-subtle"}`}>
+              <span
+                className={`text-sm ${!isYearly ? "text-ink" : "text-ink-subtle"}`}
+              >
                 Monthly
               </span>
               <Label className="relative inline-flex cursor-pointer items-center">
-                <Switch
-                  checked={isYearly}
-                  onCheckedChange={setIsYearly}
-                />
+                <Switch checked={isYearly} onCheckedChange={setIsYearly} />
               </Label>
-              <span className={`text-sm ${isYearly ? "text-ink" : "text-ink-subtle"}`}>
+              <span
+                className={`text-sm ${isYearly ? "text-ink" : "text-ink-subtle"}`}
+              >
                 Yearly
               </span>
               <span className="ml-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600">
@@ -158,7 +169,7 @@ function PricingContent() {
               {plans.map((plan, index) => {
                 const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
                 const isPopular = plan.popular;
-                
+
                 return (
                   <motion.div
                     key={plan.name}
@@ -197,14 +208,22 @@ function PricingContent() {
 
                     <div className="relative flex h-full flex-col">
                       <div className="flex items-center gap-3">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                          isPopular ? "bg-accent/10 text-accent" : "bg-surface-strong text-ink-muted"
-                        }`}>
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                            isPopular
+                              ? "bg-accent/10 text-accent"
+                              : "bg-surface-strong text-ink-muted"
+                          }`}
+                        >
                           {plan.icon}
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-ink">{plan.name}</h3>
-                          <p className="text-xs text-ink-subtle">{plan.description}</p>
+                          <h3 className="text-lg font-semibold text-ink">
+                            {plan.name}
+                          </h3>
+                          <p className="text-xs text-ink-subtle">
+                            {plan.description}
+                          </p>
                         </div>
                       </div>
 
@@ -213,13 +232,21 @@ function PricingContent() {
                           <span className="text-4xl font-bold tracking-tight text-ink">
                             ${price}
                           </span>
-                          {price > 0 && <span className="text-sm text-ink-subtle">/month{ plan.name === "Teams" ? " per user" : ""}, {isYearly ? "billed annually" : "billed monthly"}</span>}
+                          {price > 0 && (
+                            <span className="text-sm text-ink-subtle">
+                              /month{plan.name === "Teams" ? " per user" : ""},{" "}
+                              {isYearly ? "billed annually" : "billed monthly"}
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       <ul className="mt-6 flex-1 space-y-3 pb-6">
                         {plan.features.map((feature, i) => (
-                          <li key={i} className="flex items-start gap-3 text-sm text-ink-muted">
+                          <li
+                            key={i}
+                            className="flex items-start gap-3 text-sm text-ink-muted"
+                          >
                             <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" />
                             {feature}
                           </li>
@@ -255,15 +282,23 @@ function PricingContent() {
               className="rounded-3xl border border-stroke/40 bg-surface/50 p-8"
             >
               <h2 className="text-xl font-semibold text-ink">Compare plans</h2>
-              
+
               <div className="mt-6 overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-stroke/40">
-                      <th className="pb-4 font-medium text-ink-subtle">Feature</th>
-                      <th className="pb-4 text-center font-medium text-ink">Free</th>
-                      <th className="pb-4 text-center font-medium text-accent">Pro</th>
-                      <th className="pb-4 text-center font-medium text-ink">Teams</th>
+                      <th className="pb-4 font-medium text-ink-subtle">
+                        Feature
+                      </th>
+                      <th className="pb-4 text-center font-medium text-ink">
+                        Free
+                      </th>
+                      <th className="pb-4 text-center font-medium text-accent">
+                        Pro
+                      </th>
+                      <th className="pb-4 text-center font-medium text-ink">
+                        Teams
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stroke/30">
@@ -271,15 +306,24 @@ function PricingContent() {
                       ["Trail history", "7 days", "Unlimited", "Unlimited"],
                       ["Paths per month", "50", "Unlimited", "Unlimited"],
                       ["Cloud sync", "—", "✓", "✓"],
-                      ["Export formats", "Markdown", "All formats", "All formats"],
+                      [
+                        "Export formats",
+                        "Markdown",
+                        "All formats",
+                        "All formats",
+                      ],
                       ["Collaboration", "—", "—", "✓"],
                       ["Support", "Community", "Priority", "Dedicated"],
                     ].map(([feature, free, pro, team], i) => (
                       <tr key={i}>
                         <td className="py-4 text-ink-muted">{feature}</td>
-                        <td className="py-4 text-center text-ink-subtle">{free}</td>
+                        <td className="py-4 text-center text-ink-subtle">
+                          {free}
+                        </td>
                         <td className="py-4 text-center text-accent">{pro}</td>
-                        <td className="py-4 text-center text-ink-subtle">{team}</td>
+                        <td className="py-4 text-center text-ink-subtle">
+                          {team}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -299,7 +343,9 @@ function PricingContent() {
               transition={{ duration: 0.6 }}
               className="text-center"
             >
-              <h2 className="text-2xl font-semibold text-ink">Frequently asked questions</h2>
+              <h2 className="text-2xl font-semibold text-ink">
+                Frequently asked questions
+              </h2>
             </motion.div>
 
             <div className="mt-8 space-y-4">
@@ -356,20 +402,25 @@ function PricingContent() {
                 inactiveZone={0.01}
                 borderWidth={2}
               />
-              
+
               <div className="relative">
                 <h2 className="text-2xl font-semibold text-ink md:text-3xl">
                   Ready to transform your research?
                 </h2>
                 <p className="mx-auto mt-3 max-w-lg text-ink-muted">
-                  Join thousands of researchers who trust Trail to organize their browsing.
+                  Join thousands of researchers who trust Trail to organize
+                  their browsing.
                 </p>
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Button size="lg" className="w-full sm:w-auto">
                     Start Free Trial
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full sm:w-auto"
+                  >
                     Talk to Sales
                   </Button>
                 </div>

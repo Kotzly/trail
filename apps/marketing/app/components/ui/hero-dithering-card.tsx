@@ -6,14 +6,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { marketingCopy } from "@trail/content";
 
-const Dithering = lazy(() => 
-  import("@paper-design/shaders-react").then((mod) => ({ default: mod.Dithering }))
+const Dithering = lazy(() =>
+  import("@paper-design/shaders-react").then((mod) => ({
+    default: mod.Dithering,
+  })),
 );
 
 export function HeroDitheringCard({
   eyebrow = "Browser app · free beta",
   title,
-  rotatingWords = ["shareable paths", "clear decisions", "organized research", "team context", "calm workflows"],
+  rotatingWords = [
+    "shareable paths",
+    "clear decisions",
+    "organized research",
+    "team context",
+    "calm workflows",
+  ],
   description,
   ctaText,
   ctaHref,
@@ -50,7 +58,7 @@ export function HeroDitheringCard({
 
   return (
     <section className="relative pt-24 pb-8 w-full flex flex-col items-center px-4 md:px-6">
-      <motion.div 
+      <motion.div
         className="w-full max-w-6xl relative"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -60,7 +68,9 @@ export function HeroDitheringCard({
       >
         <div className="relative overflow-hidden rounded-[3rem] border border-stroke/40 bg-surface/70 shadow-2xl shadow-accent/10 min-h-[600px] md:min-h-[700px] lg:min-h-[750px] flex flex-col items-center justify-center transition-all duration-500 hover:border-accent/30">
           {/* Dithering Background - Brighter in dark theme */}
-          <Suspense fallback={<div className="absolute inset-0 bg-surface-strong/30" />}>
+          <Suspense
+            fallback={<div className="absolute inset-0 bg-surface-strong/30" />}
+          >
             <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
               <Dithering
                 colorBack="#00000000"
@@ -80,7 +90,7 @@ export function HeroDitheringCard({
           {/* Content */}
           <div className="relative z-10 px-6 md:px-16 max-w-[72rem] mx-auto text-center flex flex-col items-center">
             {/* Eyebrow */}
-            <motion.div 
+            <motion.div
               className="mb-8 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-accent backdrop-blur-sm"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -111,10 +121,18 @@ export function HeroDitheringCard({
                       animate={
                         titleNumber === index
                           ? { y: 0, opacity: 1, scale: 1 }
-                          : { y: titleNumber > index ? -100 : 100, opacity: 0, scale: 0.8 }
+                          : {
+                              y: titleNumber > index ? -100 : 100,
+                              opacity: 0,
+                              scale: 0.8,
+                            }
                       }
                       exit={{ opacity: 0, y: -100, scale: 0.8 }}
-                      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 100,
+                        damping: 20,
+                      }}
                     >
                       {word}
                     </motion.span>
@@ -124,7 +142,7 @@ export function HeroDitheringCard({
             </motion.div>
 
             {/* Description */}
-            <motion.p 
+            <motion.p
               className="text-ink-muted text-lg md:text-xl max-w-2xl mb-12 leading-relaxed"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -134,7 +152,7 @@ export function HeroDitheringCard({
             </motion.p>
 
             {/* Buttons */}
-            <motion.div 
+            <motion.div
               className="flex flex-col sm:flex-row items-center gap-4"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -147,7 +165,7 @@ export function HeroDitheringCard({
                 <span>{ctaText}</span>
                 <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
-              
+
               {secondaryCtaText && secondaryCtaHref && (
                 <Link
                   href={secondaryCtaHref}
@@ -172,16 +190,25 @@ export function HeroDitheringCard({
         >
           {stats.map((stat, index) => (
             <div key={stat.label} className="flex items-baseline gap-2 px-2">
-              <span className="text-2xl font-semibold tabular-nums text-ink">{stat.value}</span>
+              <span className="text-2xl font-semibold tabular-nums text-ink">
+                {stat.value}
+              </span>
               <span className="text-ink-subtle">{stat.label}</span>
-              {index < stats.length - 1 && <span className="hidden md:inline-block ml-6 h-4 w-px bg-stroke/60" />}
+              {index < stats.length - 1 && (
+                <span className="hidden md:inline-block ml-6 h-4 w-px bg-stroke/60" />
+              )}
             </div>
           ))}
         </motion.div>
       )}
-      
+
       {showStats && statsNote && (
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.7 }} className="mt-3 text-xs text-ink-subtle/70">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+          className="mt-3 text-xs text-ink-subtle/70"
+        >
           {statsNote}
         </motion.p>
       )}
@@ -194,7 +221,11 @@ export function CTASection() {
     <HeroDitheringCard
       eyebrow="Ready to get started?"
       title="Transform your"
-      rotatingWords={["research workflow", "team productivity", "decision making"]}
+      rotatingWords={[
+        "research workflow",
+        "team productivity",
+        "decision making",
+      ]}
       description="Join thousands of researchers who use Trail to organize their browsing and share insights with their teams."
       ctaText="Get the extension"
       ctaHref="/downloads"

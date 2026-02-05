@@ -6,7 +6,7 @@ const variants = {
   hidden: {
     opacity: 0,
     y: 10,
-    scale: 0.98
+    scale: 0.98,
   },
   visible: {
     opacity: 1,
@@ -14,8 +14,8 @@ const variants = {
     scale: 1,
     transition: {
       duration: 0.35,
-      ease: [0.25, 0.46, 0.45, 0.94] as const
-    }
+      ease: [0.25, 0.46, 0.45, 0.94] as const,
+    },
   },
   exit: {
     opacity: 0,
@@ -23,9 +23,9 @@ const variants = {
     scale: 0.98,
     transition: {
       duration: 0.25,
-      ease: [0.25, 0.46, 0.45, 0.94] as const
-    }
-  }
+      ease: [0.25, 0.46, 0.45, 0.94] as const,
+    },
+  },
 };
 
 export function PageTransition({ children }: { children: React.ReactNode }) {

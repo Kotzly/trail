@@ -35,7 +35,11 @@ type PortalUser = {
 type PortalSessionStatus =
   | { status: "pending"; session: PortalSessionRecord }
   | { status: "expired"; session: PortalSessionRecord }
-  | { status: "approved"; session: PortalSessionRecord; user: PortalUser | null };
+  | {
+      status: "approved";
+      session: PortalSessionRecord;
+      user: PortalUser | null;
+    };
 
 type ApproveResult =
   | { ok: true; session: PortalSessionRecord }
@@ -64,14 +68,16 @@ export async function createPortalSession(input: PortalSessionInput) {
       source: input.source ?? null,
       locale: input.locale ?? null,
       returnUrl: input.returnUrl ?? null,
-      expiresAt
-    }
+      expiresAt,
+    },
   });
 
   return toRecord(session);
 }
 
-export async function getPortalSessionStatus(id: string): Promise<PortalSessionStatus | null> {
+export async function getPortalSessionStatus(
+  id: string,
+): Promise<PortalSessionStatus | null> {
   const session = await db.portalSession.findUnique({
     where: { id },
     include: {
@@ -81,10 +87,10 @@ export async function getPortalSessionStatus(id: string): Promise<PortalSessionS
           email: true,
           name: true,
           imageUrl: true,
-          createdAt: true
-        }
-      }
-    }
+          createdAt: true,
+        },
+      },
+    },
   });
 
   if (!session) {
@@ -103,7 +109,10 @@ export async function getPortalSessionStatus(id: string): Promise<PortalSessionS
   return { status: "pending", session: record };
 }
 
-export async function approvePortalSession(id: string, userId: string): Promise<ApproveResult> {
+export async function approvePortalSession(
+  id: string,
+  userId: string,
+): Promise<ApproveResult> {
   const session = await db.portalSession.findUnique({ where: { id } });
   if (!session) {
     return { ok: false, reason: "not_found" };
@@ -125,8 +134,8 @@ export async function approvePortalSession(id: string, userId: string): Promise<
       userId,
       approvedAt: now,
       extensionToken: token.token,
-      extensionTokenExpiresAt: new Date(token.expiresAt)
-    }
+      extensionTokenExpiresAt: new Date(token.expiresAt),
+    },
   });
 
   return { ok: true, session: toRecord(updated) };

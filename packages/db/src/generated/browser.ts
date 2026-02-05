@@ -48,6 +48,11 @@ export type Jwks = Prisma.JwksModel
  */
 export type AuthBridgeCode = Prisma.AuthBridgeCodeModel
 /**
+ * Model ExtensionLoginCode
+ * 
+ */
+export type ExtensionLoginCode = Prisma.ExtensionLoginCodeModel
+/**
  * Model UserSubscription
  * 
  */

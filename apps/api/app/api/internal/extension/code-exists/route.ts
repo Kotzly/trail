@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   const record = await db.extensionLoginCode.findUnique({
     where: { code },
-    select: { id: true }
+    select: { id: true },
   });
   return jsonNoStore({ exists: Boolean(record) });
 }

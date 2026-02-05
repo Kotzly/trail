@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
-  verifyExtensionToken: vi.fn()
+  verifyExtensionToken: vi.fn(),
 }));
 
 const trailMocks = vi.hoisted(() => ({
-  syncTrails: vi.fn()
+  syncTrails: vi.fn(),
 }));
 
 vi.mock("@/src/server/auth/extension-auth", () => ({
-  ...authMocks
+  ...authMocks,
 }));
 
 vi.mock("@/src/server/trails-sync", () => ({
-  ...trailMocks
+  ...trailMocks,
 }));
 
 import { POST as sync } from "../trails/sync/route";
@@ -25,7 +25,11 @@ describe("v1 trails sync", () => {
   });
 
   it("syncs trails for extension", async () => {
-    authMocks.verifyExtensionToken.mockReturnValue({ sub: "user-1", iat: 0, exp: 999999 });
+    authMocks.verifyExtensionToken.mockReturnValue({
+      sub: "user-1",
+      iat: 0,
+      exp: 999999,
+    });
     trailMocks.syncTrails.mockResolvedValue({
       serverSyncAt: new Date("2026-02-03T00:00:00Z"),
       updates: [
@@ -43,9 +47,9 @@ describe("v1 trails sync", () => {
           rootTitle: null,
           rootFavicon: null,
           payload: { a: 1 },
-          deletedAt: null
-        }
-      ]
+          deletedAt: null,
+        },
+      ],
     });
 
     const response = await sync(
@@ -70,11 +74,11 @@ describe("v1 trails sync", () => {
               rootTitle: null,
               rootFavicon: null,
               payload: { a: 1 },
-              deletedAt: null
-            }
-          ]
-        })
-      })
+              deletedAt: null,
+            },
+          ],
+        }),
+      }),
     );
 
     expect(response.status).toBe(200);

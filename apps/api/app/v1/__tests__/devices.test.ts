@@ -2,49 +2,49 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
   verifyUserToken: vi.fn(),
-  verifyExtensionToken: vi.fn()
+  verifyExtensionToken: vi.fn(),
 }));
 
 const userMocks = vi.hoisted(() => ({
   ensureUser: vi.fn(),
-  getUserById: vi.fn()
+  getUserById: vi.fn(),
 }));
 
 const deviceMocks = vi.hoisted(() => ({
   claimDevice: vi.fn(),
-  listDevices: vi.fn()
+  listDevices: vi.fn(),
 }));
 
 const dbMocks = vi.hoisted(() => ({
   db: {
     device: {
       findUnique: vi.fn(),
-      update: vi.fn()
+      update: vi.fn(),
     },
     deviceSession: {
-      updateMany: vi.fn()
-    }
-  }
+      updateMany: vi.fn(),
+    },
+  },
 }));
 
 vi.mock("@/src/server/auth/user-auth", () => ({
-  ...authMocks
+  ...authMocks,
 }));
 
 vi.mock("@/src/server/auth/extension-auth", () => ({
-  ...authMocks
+  ...authMocks,
 }));
 
 vi.mock("@/src/server/user", () => ({
-  ...userMocks
+  ...userMocks,
 }));
 
 vi.mock("@/src/server/devices", () => ({
-  ...deviceMocks
+  ...deviceMocks,
 }));
 
 vi.mock("@trail/db", () => ({
-  ...dbMocks
+  ...dbMocks,
 }));
 
 import { POST as claimDevice } from "../devices/claim/route";
@@ -65,13 +65,17 @@ describe("v1 devices endpoints", () => {
   });
 
   it("claims a device via extension auth", async () => {
-    authMocks.verifyExtensionToken.mockReturnValue({ sub: "user-1", iat: 0, exp: 999999 });
+    authMocks.verifyExtensionToken.mockReturnValue({
+      sub: "user-1",
+      iat: 0,
+      exp: 999999,
+    });
     userMocks.getUserById.mockResolvedValue({
       id: "user-1",
       email: "user@test.com",
       name: "Test User",
       imageUrl: null,
-      createdAt: new Date("2026-01-01T00:00:00Z")
+      createdAt: new Date("2026-01-01T00:00:00Z"),
     });
     deviceMocks.claimDevice.mockResolvedValue({
       device: {
@@ -87,7 +91,7 @@ describe("v1 devices endpoints", () => {
         extensionVersion: "1.0.0",
         lastSeenAt: new Date("2026-02-02T00:00:00Z"),
         createdAt: new Date("2026-02-01T00:00:00Z"),
-        updatedAt: new Date("2026-02-02T00:00:00Z")
+        updatedAt: new Date("2026-02-02T00:00:00Z"),
       },
       session: {
         id: "session-1",
@@ -97,9 +101,9 @@ describe("v1 devices endpoints", () => {
         updatedAt: new Date("2026-02-02T00:00:00Z"),
         expiresAt: new Date("2026-03-03T00:00:00Z"),
         lastSeenAt: new Date("2026-02-02T00:00:00Z"),
-        revokedAt: null
+        revokedAt: null,
       },
-      sessionTtlDays: 30
+      sessionTtlDays: 30,
     });
 
     const response = await claimDevice(
@@ -108,9 +112,9 @@ describe("v1 devices endpoints", () => {
         headers: { Authorization: "Bearer extension-token" },
         body: JSON.stringify({
           deviceId: "device-1",
-          metadata: { os: "macOS", deviceName: "MacBook" }
-        })
-      })
+          metadata: { os: "macOS", deviceName: "MacBook" },
+        }),
+      }),
     );
 
     expect(response.status).toBe(200);
@@ -147,16 +151,16 @@ describe("v1 devices endpoints", () => {
             updatedAt: new Date("2026-02-02T00:00:00Z"),
             expiresAt: new Date("2026-03-03T00:00:00Z"),
             lastSeenAt: null,
-            revokedAt: null
-          }
-        ]
-      }
+            revokedAt: null,
+          },
+        ],
+      },
     ]);
 
     const response = await listDevices(
       new Request("http://localhost/v1/devices", {
-        headers: { Authorization: "Bearer user-token" }
-      })
+        headers: { Authorization: "Bearer user-token" },
+      }),
     );
 
     expect(response.status).toBe(200);
@@ -181,7 +185,7 @@ describe("v1 devices endpoints", () => {
       extensionVersion: null,
       lastSeenAt: null,
       createdAt: new Date("2026-02-01T00:00:00Z"),
-      updatedAt: new Date("2026-02-02T00:00:00Z")
+      updatedAt: new Date("2026-02-02T00:00:00Z"),
     });
     dbMocks.db.device.update.mockResolvedValue({
       id: "device-1",
@@ -196,15 +200,15 @@ describe("v1 devices endpoints", () => {
       extensionVersion: null,
       lastSeenAt: null,
       createdAt: new Date("2026-02-01T00:00:00Z"),
-      updatedAt: new Date("2026-02-02T00:00:00Z")
+      updatedAt: new Date("2026-02-02T00:00:00Z"),
     });
 
     const response = await revokeDevice(
       new Request("http://localhost/v1/devices/device-1/revoke", {
         method: "POST",
-        headers: { Authorization: "Bearer user-token" }
+        headers: { Authorization: "Bearer user-token" },
       }),
-      { params: Promise.resolve({ id: "device-1" }) }
+      { params: Promise.resolve({ id: "device-1" }) },
     );
 
     expect(response.status).toBe(200);

@@ -39,8 +39,16 @@
   --trail-elev-2: 0 4px 18px rgba(20, 22, 26, 0.08);
   --trail-elev-3: 0 8px 28px rgba(20, 22, 26, 0.12);
   --trail-ring: var(--accent);
-  --trail-gradient-1: radial-gradient(60% 60% at 12% 8%, rgba(58, 129, 196, 0.18), transparent 70%);
-  --trail-gradient-2: radial-gradient(50% 50% at 88% 0%, rgba(27, 30, 36, 0.08), transparent 70%);
+  --trail-gradient-1: radial-gradient(
+    60% 60% at 12% 8%,
+    rgba(58, 129, 196, 0.18),
+    transparent 70%
+  );
+  --trail-gradient-2: radial-gradient(
+    50% 50% at 88% 0%,
+    rgba(27, 30, 36, 0.08),
+    transparent 70%
+  );
 }
 
 [data-theme="dark"] {
@@ -74,8 +82,16 @@
   --trail-elev-2: 0 6px 18px rgba(0, 0, 0, 0.4);
   --trail-elev-3: 0 10px 32px rgba(0, 0, 0, 0.5);
   --trail-ring: var(--accent);
-  --trail-gradient-1: radial-gradient(60% 60% at 15% 10%, rgba(58, 129, 196, 0.18), transparent 72%);
-  --trail-gradient-2: radial-gradient(50% 50% at 85% 0%, rgba(0, 0, 0, 0.35), transparent 70%);
+  --trail-gradient-1: radial-gradient(
+    60% 60% at 15% 10%,
+    rgba(58, 129, 196, 0.18),
+    transparent 72%
+  );
+  --trail-gradient-2: radial-gradient(
+    50% 50% at 85% 0%,
+    rgba(0, 0, 0, 0.35),
+    transparent 70%
+  );
 }
 
 @media (prefers-color-scheme: dark) {
@@ -110,8 +126,16 @@
     --trail-elev-2: 0 6px 18px rgba(0, 0, 0, 0.4);
     --trail-elev-3: 0 10px 32px rgba(0, 0, 0, 0.5);
     --trail-ring: var(--accent);
-    --trail-gradient-1: radial-gradient(60% 60% at 15% 10%, rgba(58, 129, 196, 0.18), transparent 72%);
-    --trail-gradient-2: radial-gradient(50% 50% at 85% 0%, rgba(0, 0, 0, 0.35), transparent 70%);
+    --trail-gradient-1: radial-gradient(
+      60% 60% at 15% 10%,
+      rgba(58, 129, 196, 0.18),
+      transparent 72%
+    );
+    --trail-gradient-2: radial-gradient(
+      50% 50% at 85% 0%,
+      rgba(0, 0, 0, 0.35),
+      transparent 70%
+    );
   }
 }
 
@@ -147,8 +171,16 @@
     --trail-elev-2: 0 4px 18px rgba(20, 22, 26, 0.08);
     --trail-elev-3: 0 8px 28px rgba(20, 22, 26, 0.12);
     --trail-ring: var(--accent);
-    --trail-gradient-1: radial-gradient(60% 60% at 12% 8%, rgba(58, 129, 196, 0.18), transparent 70%);
-    --trail-gradient-2: radial-gradient(50% 50% at 88% 0%, rgba(27, 30, 36, 0.08), transparent 70%);
+    --trail-gradient-1: radial-gradient(
+      60% 60% at 12% 8%,
+      rgba(58, 129, 196, 0.18),
+      transparent 70%
+    );
+    --trail-gradient-2: radial-gradient(
+      50% 50% at 88% 0%,
+      rgba(27, 30, 36, 0.08),
+      transparent 70%
+    );
   }
 }
 

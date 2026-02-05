@@ -390,6 +390,7 @@ export const ModelName = {
   Verification: 'Verification',
   Jwks: 'Jwks',
   AuthBridgeCode: 'AuthBridgeCode',
+  ExtensionLoginCode: 'ExtensionLoginCode',
   UserSubscription: 'UserSubscription',
   PolarWebhookEvent: 'PolarWebhookEvent',
   WishlistLead: 'WishlistLead',
@@ -414,7 +415,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jwks" | "authBridgeCode" | "userSubscription" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "portalSession" | "extensionConnectSession" | "trail"
+    modelProps: "user" | "session" | "account" | "verification" | "jwks" | "authBridgeCode" | "extensionLoginCode" | "userSubscription" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "portalSession" | "extensionConnectSession" | "trail"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -859,6 +860,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AuthBridgeCodeCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AuthBridgeCodeCountAggregateOutputType> | number
+        }
+      }
+    }
+    ExtensionLoginCode: {
+      payload: Prisma.$ExtensionLoginCodePayload<ExtArgs>
+      fields: Prisma.ExtensionLoginCodeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ExtensionLoginCodeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ExtensionLoginCodeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+        }
+        findFirst: {
+          args: Prisma.ExtensionLoginCodeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ExtensionLoginCodeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+        }
+        findMany: {
+          args: Prisma.ExtensionLoginCodeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>[]
+        }
+        create: {
+          args: Prisma.ExtensionLoginCodeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+        }
+        createMany: {
+          args: Prisma.ExtensionLoginCodeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ExtensionLoginCodeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>[]
+        }
+        delete: {
+          args: Prisma.ExtensionLoginCodeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+        }
+        update: {
+          args: Prisma.ExtensionLoginCodeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+        }
+        deleteMany: {
+          args: Prisma.ExtensionLoginCodeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ExtensionLoginCodeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ExtensionLoginCodeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>[]
+        }
+        upsert: {
+          args: Prisma.ExtensionLoginCodeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+        }
+        aggregate: {
+          args: Prisma.ExtensionLoginCodeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateExtensionLoginCode>
+        }
+        groupBy: {
+          args: Prisma.ExtensionLoginCodeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExtensionLoginCodeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ExtensionLoginCodeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExtensionLoginCodeCountAggregateOutputType> | number
         }
       }
     }
@@ -1650,6 +1725,19 @@ export const AuthBridgeCodeScalarFieldEnum = {
 export type AuthBridgeCodeScalarFieldEnum = (typeof AuthBridgeCodeScalarFieldEnum)[keyof typeof AuthBridgeCodeScalarFieldEnum]
 
 
+export const ExtensionLoginCodeScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  userId: 'userId',
+  expiresAt: 'expiresAt',
+  usedAt: 'usedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExtensionLoginCodeScalarFieldEnum = (typeof ExtensionLoginCodeScalarFieldEnum)[keyof typeof ExtensionLoginCodeScalarFieldEnum]
+
+
 export const UserSubscriptionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -2115,6 +2203,7 @@ export type GlobalOmitConfig = {
   verification?: Prisma.VerificationOmit
   jwks?: Prisma.JwksOmit
   authBridgeCode?: Prisma.AuthBridgeCodeOmit
+  extensionLoginCode?: Prisma.ExtensionLoginCodeOmit
   userSubscription?: Prisma.UserSubscriptionOmit
   polarWebhookEvent?: Prisma.PolarWebhookEventOmit
   wishlistLead?: Prisma.WishlistLeadOmit

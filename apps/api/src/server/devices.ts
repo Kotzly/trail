@@ -1,6 +1,11 @@
 import { db } from "@trail/db";
 
-type SessionTtlPreset = "DAYS_7" | "DAYS_30" | "DAYS_90" | "DAYS_180" | "DAYS_365";
+type SessionTtlPreset =
+  | "DAYS_7"
+  | "DAYS_30"
+  | "DAYS_90"
+  | "DAYS_180"
+  | "DAYS_365";
 
 type DeviceMetadata = {
   deviceName?: string | null;
@@ -23,29 +28,34 @@ const TTL_DAYS_BY_PRESET: Record<SessionTtlPreset, number> = {
   DAYS_30: 30,
   DAYS_90: 90,
   DAYS_180: 180,
-  DAYS_365: 365
+  DAYS_365: 365,
 };
 
 function resolveTtlDays(preset: SessionTtlPreset | null | undefined): number {
   return TTL_DAYS_BY_PRESET[preset ?? "DAYS_30"] ?? 30;
 }
 
-function buildMetadataUpdate(metadata: DeviceMetadata): Record<string, unknown> {
+function buildMetadataUpdate(
+  metadata: DeviceMetadata,
+): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   if (metadata.deviceName !== undefined) data.deviceName = metadata.deviceName;
   if (metadata.os !== undefined) data.os = metadata.os;
   if (metadata.locale !== undefined) data.locale = metadata.locale;
   if (metadata.timezone !== undefined) data.timezone = metadata.timezone;
-  if (metadata.browserName !== undefined) data.browserName = metadata.browserName;
-  if (metadata.browserVersion !== undefined) data.browserVersion = metadata.browserVersion;
-  if (metadata.extensionVersion !== undefined) data.extensionVersion = metadata.extensionVersion;
+  if (metadata.browserName !== undefined)
+    data.browserName = metadata.browserName;
+  if (metadata.browserVersion !== undefined)
+    data.browserVersion = metadata.browserVersion;
+  if (metadata.extensionVersion !== undefined)
+    data.extensionVersion = metadata.extensionVersion;
   return data;
 }
 
 async function getSessionTtlDays(userId: string): Promise<number> {
   const settings = await db.accountSettings.findUnique({
     where: { userId },
-    select: { deviceSessionTtlDays: true }
+    select: { deviceSessionTtlDays: true },
   });
   return resolveTtlDays(settings?.deviceSessionTtlDays ?? null);
 }
@@ -64,15 +74,15 @@ async function refreshSession(params: {
       deviceId,
       userId,
       revokedAt: null,
-      expiresAt: { gt: now }
+      expiresAt: { gt: now },
     },
-    orderBy: { expiresAt: "desc" }
+    orderBy: { expiresAt: "desc" },
   });
 
   if (existing) {
     return db.deviceSession.update({
       where: { id: existing.id },
-      data: { expiresAt, lastSeenAt: now }
+      data: { expiresAt, lastSeenAt: now },
     });
   }
 
@@ -81,8 +91,8 @@ async function refreshSession(params: {
       deviceId,
       userId,
       expiresAt,
-      lastSeenAt: now
-    }
+      lastSeenAt: now,
+    },
   });
 }
 
@@ -96,13 +106,17 @@ export async function claimDevice(input: DeviceClaimInput) {
 
   if (deviceId) {
     const existing = await db.device.findUnique({ where: { id: deviceId } });
-    if (existing && existing.userId === input.userId && existing.status !== "REVOKED") {
+    if (
+      existing &&
+      existing.userId === input.userId &&
+      existing.status !== "REVOKED"
+    ) {
       device = await db.device.update({
         where: { id: existing.id },
         data: {
           ...metadata,
-          lastSeenAt: now
-        }
+          lastSeenAt: now,
+        },
       });
     }
   }
@@ -112,8 +126,8 @@ export async function claimDevice(input: DeviceClaimInput) {
       data: {
         userId: input.userId,
         ...metadata,
-        lastSeenAt: now
-      }
+        lastSeenAt: now,
+      },
     });
   }
 
@@ -122,7 +136,7 @@ export async function claimDevice(input: DeviceClaimInput) {
     deviceId: device.id,
     userId: input.userId,
     ttlDays,
-    now
+    now,
   });
 
   return { device, session, sessionTtlDays: ttlDays };
@@ -136,9 +150,9 @@ export async function listDevices(userId: string) {
       sessions: {
         where: { revokedAt: null },
         orderBy: { expiresAt: "desc" },
-        take: 1
-      }
-    }
+        take: 1,
+      },
+    },
   });
 }
 

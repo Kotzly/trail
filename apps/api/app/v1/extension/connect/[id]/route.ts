@@ -9,11 +9,13 @@ export const runtime = "nodejs";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   if (!id) {
-    return jsonError("connect_not_found", "Connect session not found.", { status: 404 });
+    return jsonError("connect_not_found", "Connect session not found.", {
+      status: 404,
+    });
   }
 
   const token = getBearerToken(request.headers);
@@ -29,13 +31,15 @@ export async function GET(
 
   const result = await getConnectSessionStatus(id, user.id);
   if (!result) {
-    return jsonError("connect_not_found", "Connect session not found.", { status: 404 });
+    return jsonError("connect_not_found", "Connect session not found.", {
+      status: 404,
+    });
   }
 
   if (result.status === "approved") {
     return jsonNoStore({
       status: "approved",
-      approvedAt: result.session.approvedAt?.toISOString() ?? null
+      approvedAt: result.session.approvedAt?.toISOString() ?? null,
     });
   }
 

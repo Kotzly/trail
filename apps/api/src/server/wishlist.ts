@@ -18,7 +18,10 @@ type WishlistLeadInput = {
   country?: string | null;
 };
 
-function mergeSources(existing: WishlistSource[] | null | undefined, next: WishlistSource) {
+function mergeSources(
+  existing: WishlistSource[] | null | undefined,
+  next: WishlistSource,
+) {
   const list = existing ? [...existing] : [];
   if (!list.includes(next)) {
     list.push(next);
@@ -44,13 +47,13 @@ export async function upsertWishlistLead(input: WishlistLeadInput) {
         pagePath: input.pagePath ?? null,
         userAgent: input.userAgent ?? null,
         ip: input.ip ?? null,
-        country: input.country ?? null
-      }
+        country: input.country ?? null,
+      },
     });
   }
 
   const data: Record<string, unknown> = {
-    sources: mergeSources(existing.sources ?? [], input.source)
+    sources: mergeSources(existing.sources ?? [], input.source),
   };
 
   if (input.userId !== undefined) data.userId = input.userId;
@@ -67,7 +70,7 @@ export async function upsertWishlistLead(input: WishlistLeadInput) {
 
   return db.wishlistLead.update({
     where: { id: existing.id },
-    data
+    data,
   });
 }
 

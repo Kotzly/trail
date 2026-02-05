@@ -25,6 +25,7 @@ model User {
   accountSettings AccountSettings?
   portalSessions  PortalSession[]
   authBridgeCodes AuthBridgeCode[]
+  extensionLoginCodes ExtensionLoginCode[]
   extensionConnectSessions ExtensionConnectSession[]
   trails          Trail[]
 
@@ -95,6 +96,20 @@ model AuthBridgeCode {
   createdAt DateTime @default(now())
 
   @@index([expiresAt])
+}
+
+model ExtensionLoginCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@index([userId])
 }
 
 enum SubscriptionPlan {

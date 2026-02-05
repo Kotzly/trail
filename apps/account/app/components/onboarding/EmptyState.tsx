@@ -87,7 +87,8 @@ const variants: Record<
     title: "flying solo for now",
     description:
       "team features are coming soon. you'll be able to invite colleagues and share trails.",
-    personality: "good things come to those who wait. great things come to those who trail.",
+    personality:
+      "good things come to those who wait. great things come to those who trail.",
     features: [
       "collaborative workspaces",
       "role-based permissions",
@@ -99,19 +100,18 @@ const variants: Record<
     title: "quiet day?",
     description:
       "no recent activity to show. your latest actions will appear here.",
-    personality: "sometimes silence is golden. sometimes it means you need more coffee.",
+    personality:
+      "sometimes silence is golden. sometimes it means you need more coffee.",
     action: { label: "capture something", href: "/extension" },
-    features: [
-      "real-time sync status",
-      "session history",
-      "activity insights",
-    ],
+    features: ["real-time sync status", "session history", "activity insights"],
   },
   "no-search-results": {
     icon: <SearchIcon className="h-8 w-8" />,
     title: "no matches found",
-    description: "we couldn't find anything matching your search. try different keywords?",
-    personality: "even the best explorers get lost sometimes. try another path.",
+    description:
+      "we couldn't find anything matching your search. try different keywords?",
+    personality:
+      "even the best explorers get lost sometimes. try another path.",
     features: ["search by trail name", "filter by date", "filter by tags"],
   },
   "no-sessions": {
@@ -165,7 +165,7 @@ function IllustrationContainer({
     <div
       className={cn(
         "relative flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br text-accent",
-        colors[variant]
+        colors[variant],
       )}
     >
       <motion.div
@@ -220,7 +220,7 @@ export function EmptyState({
       transition={{ duration: 0.4, ease: "easeOut" }}
       className={cn(
         "relative overflow-hidden rounded-2xl border border-border/60 bg-surface/70 p-8 text-center",
-        className
+        className,
       )}
       role="region"
       aria-label={config.title}
@@ -247,14 +247,11 @@ export function EmptyState({
           <p className="trail-copy mx-auto max-w-sm">
             {customDescription || config.description}
           </p>
-          <p className="text-xs text-ink-subtle italic">
-            {config.personality}
-          </p>
+          <p className="text-xs text-ink-subtle italic">{config.personality}</p>
         </div>
 
         {/* Features */}
-        {config.features && <FeatureList features={config.features} />
-}
+        {config.features && <FeatureList features={config.features} />}
 
         {/* Actions */}
         {(action || secondaryAction || config.action) && (
@@ -285,9 +282,7 @@ export function NoTrailsEmptyState(props: Omit<EmptyStateProps, "variant">) {
   return <EmptyState variant="no-trails" {...props} />;
 }
 
-export function NoExtensionEmptyState(
-  props: Omit<EmptyStateProps, "variant">
-) {
+export function NoExtensionEmptyState(props: Omit<EmptyStateProps, "variant">) {
   return <EmptyState variant="no-extension" {...props} />;
 }
 

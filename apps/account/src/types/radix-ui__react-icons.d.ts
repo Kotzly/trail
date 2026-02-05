@@ -1,3 +1,3 @@
-declare module '@radix-ui/react-icons' {
-    export * from '@radix-ui/react-icons/dist/index';
+declare module "@radix-ui/react-icons" {
+  export * from "@radix-ui/react-icons/dist/index";
 }

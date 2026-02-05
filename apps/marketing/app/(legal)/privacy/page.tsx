@@ -12,7 +12,7 @@ export const metadata = buildMetadata({
   title: "Trail Privacy Policy — Data use and control",
   description:
     "Learn what data is collected, how it is stored, and the choices you have to control sharing, retention, exports, and deletion requests.",
-  path: "/privacy"
+  path: "/privacy",
 });
 
 export default async function PrivacyPage() {
@@ -29,7 +29,9 @@ export default async function PrivacyPage() {
             {doc.title}
           </h1>
           {doc.lastUpdated ? (
-            <p className="mt-3 text-sm text-ink-subtle">Last updated: {doc.lastUpdated}</p>
+            <p className="mt-3 text-sm text-ink-subtle">
+              Last updated: {doc.lastUpdated}
+            </p>
           ) : null}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button.AsChild variant="outline" size="sm">

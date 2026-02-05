@@ -13,7 +13,9 @@ describe("DashboardPage", () => {
     expect(screen.getByText("trails")).toBeInTheDocument();
 
     // Empty state
-    expect(screen.getByText(accountCopy.dashboard.empty.title)).toBeInTheDocument();
+    expect(
+      screen.getByText(accountCopy.dashboard.empty.title),
+    ).toBeInTheDocument();
 
     // Quick links
     expect(screen.getByText("extension")).toBeInTheDocument();

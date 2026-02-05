@@ -33,8 +33,8 @@ export async function ensureUser(authUser: AuthUser): Promise<AppUser | null> {
       email: true,
       name: true,
       image: true,
-      imageUrl: true
-    }
+      imageUrl: true,
+    },
   });
 
   if (!record) {
@@ -45,7 +45,7 @@ export async function ensureUser(authUser: AuthUser): Promise<AppUser | null> {
     id: record.id,
     email: record.email,
     name: record.name,
-    imageUrl: resolveImageUrl(record.image, record.imageUrl)
+    imageUrl: resolveImageUrl(record.image, record.imageUrl),
   };
 }
 
@@ -58,8 +58,8 @@ export async function getUserById(userId: string): Promise<UserSummary | null> {
       name: true,
       image: true,
       imageUrl: true,
-      createdAt: true
-    }
+      createdAt: true,
+    },
   });
 
   if (!record) {
@@ -71,7 +71,7 @@ export async function getUserById(userId: string): Promise<UserSummary | null> {
     email: record.email,
     name: record.name,
     imageUrl: resolveImageUrl(record.image, record.imageUrl),
-    createdAt: record.createdAt
+    createdAt: record.createdAt,
   };
 }
 

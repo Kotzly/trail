@@ -7,7 +7,7 @@ import {
   ClockIcon,
   DesktopIcon,
   LightningBoltIcon,
-  RocketIcon
+  RocketIcon,
 } from "@radix-ui/react-icons";
 import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
@@ -31,7 +31,9 @@ export function DashboardClient() {
     me.data?.user?.email?.split("@")[0] ||
     accountCopy.settings.profile.fallbackName;
 
-  const statusLabel = health.data?.ok ? dashboard.status.online : dashboard.status.checking;
+  const statusLabel = health.data?.ok
+    ? dashboard.status.online
+    : dashboard.status.checking;
   const lastSync = health.data?.timestamp
     ? new Date(health.data.timestamp).toLocaleString()
     : dashboard.status.lastSyncFallback;
@@ -42,11 +44,17 @@ export function DashboardClient() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="trail-eyebrow">{dashboard.recent.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">{dashboard.recent.title}</p>
-            <p className="text-xs text-ink-muted">{dashboard.recent.subtitle}</p>
+            <p className="text-sm font-semibold text-ink">
+              {dashboard.recent.title}
+            </p>
+            <p className="text-xs text-ink-muted">
+              {dashboard.recent.subtitle}
+            </p>
           </div>
           <span className="trail-status">
-            {hasTrails ? dashboard.recent.activeCount : dashboard.recent.emptyCount}
+            {hasTrails
+              ? dashboard.recent.activeCount
+              : dashboard.recent.emptyCount}
           </span>
         </div>
 
@@ -55,7 +63,9 @@ export function DashboardClient() {
             {recentTrails.map((trail) => (
               <div key={trail.id} className="trail-card-compact p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-ink">{trail.title}</p>
+                  <p className="text-sm font-semibold text-ink">
+                    {trail.title}
+                  </p>
                   <span className="trail-status">{trail.timestamp}</span>
                 </div>
                 <p className="mt-2 text-xs text-ink-muted">{trail.summary}</p>
@@ -88,8 +98,12 @@ export function DashboardClient() {
         <div className="trail-card p-5">
           <div>
             <p className="trail-eyebrow">{dashboard.status.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">{dashboard.status.title}</p>
-            <p className="text-xs text-ink-muted">{dashboard.status.subtitle}</p>
+            <p className="text-sm font-semibold text-ink">
+              {dashboard.status.title}
+            </p>
+            <p className="text-xs text-ink-muted">
+              {dashboard.status.subtitle}
+            </p>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <StatCard
@@ -112,15 +126,24 @@ export function DashboardClient() {
             />
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-ink-muted">
-            <Link href="/extension" className="text-ink transition hover:text-ink">
+            <Link
+              href="/extension"
+              className="text-ink transition hover:text-ink"
+            >
               {dashboard.status.actions.extension}
             </Link>
             <span>•</span>
-            <Link href="/settings" className="text-ink transition hover:text-ink">
+            <Link
+              href="/settings"
+              className="text-ink transition hover:text-ink"
+            >
               {dashboard.status.actions.settings}
             </Link>
             <span>•</span>
-            <Link href="/billing" className="text-ink transition hover:text-ink">
+            <Link
+              href="/billing"
+              className="text-ink transition hover:text-ink"
+            >
               {dashboard.status.actions.billing}
             </Link>
           </div>
@@ -129,8 +152,12 @@ export function DashboardClient() {
         <div className="trail-card p-5">
           <div>
             <p className="trail-eyebrow">{dashboard.insights.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">{dashboard.insights.title}</p>
-            <p className="text-xs text-ink-muted">{dashboard.insights.subtitle}</p>
+            <p className="text-sm font-semibold text-ink">
+              {dashboard.insights.title}
+            </p>
+            <p className="text-xs text-ink-muted">
+              {dashboard.insights.subtitle}
+            </p>
           </div>
           <div className="mt-4 grid gap-3">
             <StatCard

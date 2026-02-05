@@ -29,7 +29,7 @@ function parseAppUser(rawUser: string): AppUser | null {
       id: parsed.id,
       email: typeof parsed.email === "string" ? parsed.email : null,
       name: typeof parsed.name === "string" ? parsed.name : null,
-      imageUrl: typeof parsed.imageUrl === "string" ? parsed.imageUrl : null
+      imageUrl: typeof parsed.imageUrl === "string" ? parsed.imageUrl : null,
     };
   } catch {
     return null;
@@ -68,6 +68,6 @@ export async function createTRPCContext(req?: Request): Promise<AppContext> {
   return {
     db,
     session,
-    headers
+    headers,
   };
 }

@@ -14,13 +14,13 @@ type DbLabelSource = "USER" | "AUTO" | "SYSTEM";
 const LABEL_TO_API: Record<DbLabelSource, ApiLabelSource> = {
   USER: "user",
   AUTO: "auto",
-  SYSTEM: "system"
+  SYSTEM: "system",
 };
 
 const API_TO_LABEL: Record<ApiLabelSource, DbLabelSource> = {
   user: "USER",
   auto: "AUTO",
-  system: "SYSTEM"
+  system: "SYSTEM",
 };
 
 function toApiLabelSource(value: DbLabelSource): ApiLabelSource {
@@ -73,13 +73,13 @@ function toTrailRecord(trail: {
     rootTitle: trail.rootTitle ?? null,
     rootFavicon: trail.rootFavicon ?? null,
     payload: trail.payload,
-    deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null
+    deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null,
   };
 }
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   if (!id) {
@@ -103,7 +103,9 @@ export async function PATCH(
   const deletedAt = parseDeletedAt(body?.deletedAt);
 
   if (!label && !labelSource && deletedAt === undefined) {
-    return jsonError("invalid_payload", "Invalid update payload.", { status: 400 });
+    return jsonError("invalid_payload", "Invalid update payload.", {
+      status: 400,
+    });
   }
 
   const existing = await db.trail.findFirst({ where: { id, userId: user.id } });
@@ -128,15 +130,17 @@ export async function PATCH(
 
   const updated = await db.trail.update({
     where: { id },
-    data
+    data,
   });
 
-  return jsonNoStore(toTrailRecord(updated as typeof existing & { payload: unknown }));
+  return jsonNoStore(
+    toTrailRecord(updated as typeof existing & { payload: unknown }),
+  );
 }
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   if (!id) {
@@ -162,8 +166,10 @@ export async function DELETE(
   const now = new Date();
   const updated = await db.trail.update({
     where: { id },
-    data: { deletedAt: now, updatedAt: now }
+    data: { deletedAt: now, updatedAt: now },
   });
 
-  return jsonNoStore(toTrailRecord(updated as typeof existing & { payload: unknown }));
+  return jsonNoStore(
+    toTrailRecord(updated as typeof existing & { payload: unknown }),
+  );
 }

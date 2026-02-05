@@ -14,7 +14,7 @@ export async function ensureUser(user: User): Promise<User | undefined> {
   if (getAuthBypassState()) {
     return devUser;
   }
-  
+
   if (!user.id) {
     return undefined;
   }
@@ -23,15 +23,15 @@ export async function ensureUser(user: User): Promise<User | undefined> {
     sub: user.id,
     email: user.email,
     name: user.name,
-    imageUrl: user.imageUrl ?? undefined
+    imageUrl: user.imageUrl ?? undefined,
   };
 
   const { user: ensuredUser } = await internalApiJson<{ user: User }>(
     "/api/internal/users/ensure",
     {
       method: "POST",
-      body: { user: normalizedUser }
-    }
+      body: { user: normalizedUser },
+    },
   );
 
   return ensuredUser;

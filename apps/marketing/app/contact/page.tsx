@@ -2,7 +2,14 @@
 
 import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
-import { Mail, MessageSquare, HelpCircle, ArrowRight, Send, CheckCircle2 } from "lucide-react";
+import {
+  Mail,
+  MessageSquare,
+  HelpCircle,
+  ArrowRight,
+  Send,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { ContactLoading } from "../components/page-wrapper";
@@ -45,7 +52,6 @@ function ContactContent() {
   return (
     <div className="min-h-screen bg-base text-ink">
       <main className="relative overflow-hidden">
-        
         {/* Hero */}
         <section className="relative px-6 pt-20 pb-8">
           <div className="mx-auto max-w-4xl text-center">
@@ -74,7 +80,8 @@ function ContactContent() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted"
             >
-              Have a question, feedback, or just want to say hello? We&apos;d love to hear from you.
+              Have a question, feedback, or just want to say hello? We&apos;d
+              love to hear from you.
             </motion.p>
           </div>
         </section>
@@ -97,9 +104,15 @@ function ContactContent() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 transition-transform group-hover:scale-110">
                       <Icon className="h-6 w-6 text-accent" />
                     </div>
-                    <h3 className="mt-4 text-lg font-semibold text-ink">{method.title}</h3>
-                    <p className="mt-1 text-sm font-medium text-accent">{method.email}</p>
-                    <p className="mt-2 text-sm text-ink-muted">{method.description}</p>
+                    <h3 className="mt-4 text-lg font-semibold text-ink">
+                      {method.title}
+                    </h3>
+                    <p className="mt-1 text-sm font-medium text-accent">
+                      {method.email}
+                    </p>
+                    <p className="mt-2 text-sm text-ink-muted">
+                      {method.description}
+                    </p>
                   </motion.a>
                 );
               })}
@@ -129,31 +142,42 @@ function ContactContent() {
               {!submitted ? (
                 <form onSubmit={handleSubmit} className="relative space-y-6">
                   <div className="text-center">
-                    <h2 className="text-xl font-semibold text-ink">Send us a message</h2>
+                    <h2 className="text-xl font-semibold text-ink">
+                      Send us a message
+                    </h2>
                     <p className="mt-1 text-sm text-ink-muted">
-                      Fill out the form below and we&apos;ll get back to you within 24 hours.
+                      Fill out the form below and we&apos;ll get back to you
+                      within 24 hours.
                     </p>
                   </div>
 
                   <div className="grid gap-6 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-ink">Name</label>
+                      <label className="mb-2 block text-sm font-medium text-ink">
+                        Name
+                      </label>
                       <input
                         type="text"
                         required
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
                         className="h-12 w-full rounded-xl border border-stroke/60 bg-surface px-4 text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                         placeholder="Your name"
                       />
                     </div>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-ink">Email</label>
+                      <label className="mb-2 block text-sm font-medium text-ink">
+                        Email
+                      </label>
                       <input
                         type="email"
                         required
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         className="h-12 w-full rounded-xl border border-stroke/60 bg-surface px-4 text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                         placeholder="you@example.com"
                       />
@@ -161,11 +185,15 @@ function ContactContent() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-ink">Subject</label>
+                    <label className="mb-2 block text-sm font-medium text-ink">
+                      Subject
+                    </label>
                     <select
                       required
                       value={formData.subject}
-                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, subject: e.target.value })
+                      }
                       className="h-12 w-full rounded-xl border border-stroke/60 bg-surface px-4 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                     >
                       <option value="">Select a topic</option>
@@ -179,12 +207,16 @@ function ContactContent() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-ink">Message</label>
+                    <label className="mb-2 block text-sm font-medium text-ink">
+                      Message
+                    </label>
                     <textarea
                       required
                       rows={5}
                       value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, message: e.target.value })
+                      }
                       className="w-full rounded-xl border border-stroke/60 bg-surface px-4 py-3 text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                       placeholder="How can we help?"
                     />
@@ -204,9 +236,12 @@ function ContactContent() {
                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
                     <CheckCircle2 className="h-8 w-8 text-green-500" />
                   </div>
-                  <h3 className="mt-4 text-xl font-semibold text-ink">Message sent!</h3>
+                  <h3 className="mt-4 text-xl font-semibold text-ink">
+                    Message sent!
+                  </h3>
                   <p className="mt-2 text-ink-muted">
-                    Thanks for reaching out. We&apos;ll get back to you within 24 hours.
+                    Thanks for reaching out. We&apos;ll get back to you within
+                    24 hours.
                   </p>
                   <Button
                     variant="outline"

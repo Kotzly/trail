@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const dbMocks = vi.hoisted(() => ({
   accountSettings: { findUnique: vi.fn() },
   device: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
-  deviceSession: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() }
+  deviceSession: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
 }));
 
 vi.mock("@trail/db", () => ({
-  db: dbMocks
+  db: dbMocks,
 }));
 
 import { claimDevice } from "../devices";
@@ -54,10 +54,12 @@ describe("claimDevice", () => {
     await claimDevice({
       userId: "user-1",
       deviceId: "device-1",
-      metadata: {}
+      metadata: {},
     });
 
     expect(callOrder[0]).toBe("ttl");
-    expect(callOrder.indexOf("ttl")).toBeLessThan(callOrder.indexOf("device-find"));
+    expect(callOrder.indexOf("ttl")).toBeLessThan(
+      callOrder.indexOf("device-find"),
+    );
   });
 });

@@ -35,7 +35,7 @@ function mapDevice(device: {
     extensionVersion: device.extensionVersion ?? null,
     lastSeenAt: device.lastSeenAt ? device.lastSeenAt.toISOString() : null,
     createdAt: device.createdAt.toISOString(),
-    updatedAt: device.updatedAt.toISOString()
+    updatedAt: device.updatedAt.toISOString(),
   };
 }
 
@@ -57,7 +57,7 @@ function mapSession(session: {
     updatedAt: session.updatedAt.toISOString(),
     expiresAt: session.expiresAt.toISOString(),
     lastSeenAt: session.lastSeenAt ? session.lastSeenAt.toISOString() : null,
-    revokedAt: session.revokedAt ? session.revokedAt.toISOString() : null
+    revokedAt: session.revokedAt ? session.revokedAt.toISOString() : null,
   };
 }
 
@@ -80,8 +80,8 @@ export async function GET(request: Request) {
       const session = device.sessions[0];
       return {
         ...mapDevice(device),
-        ...(session ? { session: mapSession(session) } : {})
+        ...(session ? { session: mapSession(session) } : {}),
       };
-    })
+    }),
   });
 }

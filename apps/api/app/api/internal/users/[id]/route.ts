@@ -4,7 +4,10 @@ import { jsonNoStore } from "@/src/server/response";
 
 export const runtime = "nodejs";
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const unauthorized = requireInternalKey(request.headers);
   if (unauthorized) {
     return unauthorized;
@@ -26,7 +29,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       email: user.email,
       name: user.name,
       imageUrl: user.imageUrl,
-      createdAt: user.createdAt.toISOString()
-    }
+      createdAt: user.createdAt.toISOString(),
+    },
   });
 }

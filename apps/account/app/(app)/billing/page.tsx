@@ -32,9 +32,9 @@ const PLANS: Plan[] = [
       "up to 50 paths per month",
       "basic export (markdown)",
       "local storage only",
-      "community support"
+      "community support",
     ],
-    cta: "get started free"
+    cta: "get started free",
   },
   {
     id: "pro",
@@ -48,10 +48,10 @@ const PLANS: Plan[] = [
       "cloud sync across devices",
       "advanced exports (pdf, json)",
       "priority support",
-      "custom tags and filters"
+      "custom tags and filters",
     ],
     popular: true,
-    cta: "start pro trial"
+    cta: "start pro trial",
   },
   {
     id: "team",
@@ -66,10 +66,10 @@ const PLANS: Plan[] = [
       "admin controls",
       "sso integration",
       "dedicated support",
-      "custom integrations"
+      "custom integrations",
     ],
-    cta: "contact sales"
-  }
+    cta: "contact sales",
+  },
 ];
 
 export default function BillingPage() {
@@ -89,7 +89,9 @@ export default function BillingPage() {
 
   const getSavings = (plan: Plan) => {
     if (plan.monthlyPrice === 0) return null;
-    const savings = Math.round((1 - plan.yearlyPricePerMonth / plan.monthlyPrice) * 100);
+    const savings = Math.round(
+      (1 - plan.yearlyPricePerMonth / plan.monthlyPrice) * 100,
+    );
     return savings;
   };
 
@@ -120,7 +122,7 @@ export default function BillingPage() {
               "rounded-full px-4 py-2 text-sm lowercase transition",
               !isYearly
                 ? "bg-cta text-cta-fg"
-                : "text-ink-muted hover:text-ink"
+                : "text-ink-muted hover:text-ink",
             )}
           >
             monthly
@@ -129,9 +131,7 @@ export default function BillingPage() {
             onClick={() => setIsYearly(true)}
             className={cn(
               "rounded-full px-4 py-2 text-sm lowercase transition",
-              isYearly
-                ? "bg-cta text-cta-fg"
-                : "text-ink-muted hover:text-ink"
+              isYearly ? "bg-cta text-cta-fg" : "text-ink-muted hover:text-ink",
             )}
           >
             yearly
@@ -151,7 +151,7 @@ export default function BillingPage() {
                 "flex h-full flex-col rounded-[26px] border bg-surface/60 px-6 py-6",
                 isPopular
                   ? "border-accent/40 bg-surface/80"
-                  : "border-border/60"
+                  : "border-border/60",
               )}
             >
               {/* Header */}
@@ -213,7 +213,7 @@ export default function BillingPage() {
                     "w-full rounded-full lowercase",
                     isPopular
                       ? "bg-cta text-cta-fg hover:bg-cta-hover"
-                      : "border border-border/60 bg-surface text-ink hover:bg-surface-high"
+                      : "border border-border/60 bg-surface text-ink hover:bg-surface-high",
                   )}
                 >
                   {plan.cta}

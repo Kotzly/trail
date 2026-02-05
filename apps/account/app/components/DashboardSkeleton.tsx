@@ -13,7 +13,10 @@ export function DashboardSkeleton() {
       {/* Stats Row Skeleton */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="rounded-2xl border border-border/60 bg-surface/60 px-5 py-4">
+          <div
+            key={i}
+            className="rounded-2xl border border-border/60 bg-surface/60 px-5 py-4"
+          >
             <div className="flex items-center gap-3">
               <Skeleton className="h-10 w-10 rounded-xl" />
               <div className="space-y-1">
@@ -49,7 +52,10 @@ export function DashboardSkeleton() {
       {/* Quick Links Skeleton */}
       <div className="grid gap-4 sm:grid-cols-2">
         {[1, 2].map((i) => (
-          <div key={i} className="rounded-2xl border border-border/60 bg-surface/60 px-5 py-4">
+          <div
+            key={i}
+            className="rounded-2xl border border-border/60 bg-surface/60 px-5 py-4"
+          >
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Skeleton className="h-3 w-16" />

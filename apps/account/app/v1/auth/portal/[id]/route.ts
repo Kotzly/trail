@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: sessionId } = await params;
   if (!sessionId) {
@@ -28,7 +28,7 @@ export async function GET(
   try {
     response = await internalApiJson(
       `/api/internal/extension/portal/${encodeURIComponent(sessionId)}`,
-      { method: "GET" }
+      { method: "GET" },
     );
   } catch (error) {
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
@@ -49,10 +49,10 @@ export async function GET(
     snapshot: buildAccountSnapshot({
       user: {
         ...response.user,
-        createdAt: new Date(response.user.createdAt)
+        createdAt: new Date(response.user.createdAt),
       },
       accessToken: token.token,
-      expiresAt: token.expiresAt
-    })
+      expiresAt: token.expiresAt,
+    }),
   });
 }

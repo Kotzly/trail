@@ -28,7 +28,9 @@ async function readLegalMarkdown(): Promise<string> {
     }
   }
 
-  throw new Error(`missing_${"trail_privacy_policy_terms_of_service.md"}:${String(lastError)}`);
+  throw new Error(
+    `missing_${"trail_privacy_policy_terms_of_service.md"}:${String(lastError)}`,
+  );
 }
 
 function splitByH1(markdown: string): Record<string, string> {
@@ -61,7 +63,10 @@ function splitByH1(markdown: string): Record<string, string> {
   return sections;
 }
 
-function extractLastUpdated(markdown: string): { lastUpdated: string | null; markdown: string } {
+function extractLastUpdated(markdown: string): {
+  lastUpdated: string | null;
+  markdown: string;
+} {
   const lines = markdown.split(/\r?\n/);
   const output: string[] = [];
   let lastUpdated: string | null = null;
@@ -88,18 +93,20 @@ function extractLastUpdated(markdown: string): { lastUpdated: string | null; mar
   return { lastUpdated, markdown: cleanedLines.join("\n").trim() };
 }
 
-export const getLegalDoc = cache(async (title: "Privacy Policy" | "Terms of Service"): Promise<LegalDoc> => {
-  const markdown = await readLegalMarkdown();
-  const sections = splitByH1(markdown);
-  const section = sections[title];
-  if (!section) {
-    throw new Error(`missing_legal_section:${title}`);
-  }
+export const getLegalDoc = cache(
+  async (title: "Privacy Policy" | "Terms of Service"): Promise<LegalDoc> => {
+    const markdown = await readLegalMarkdown();
+    const sections = splitByH1(markdown);
+    const section = sections[title];
+    if (!section) {
+      throw new Error(`missing_legal_section:${title}`);
+    }
 
-  const extracted = extractLastUpdated(section);
-  return {
-    title,
-    lastUpdated: extracted.lastUpdated,
-    markdown: extracted.markdown,
-  };
-});
+    const extracted = extractLastUpdated(section);
+    return {
+      title,
+      lastUpdated: extracted.lastUpdated,
+      markdown: extracted.markdown,
+    };
+  },
+);

@@ -20,7 +20,13 @@ import { FaBrave } from "react-icons/fa6";
 import { Button } from "@trail/ui";
 import { cn } from "@trail/ui";
 
-export type BrowserType = "chrome" | "brave" | "edge" | "firefox" | "safari" | "other";
+export type BrowserType =
+  | "chrome"
+  | "brave"
+  | "edge"
+  | "firefox"
+  | "safari"
+  | "other";
 
 export type ExtensionConnectionGuideProps = {
   className?: string;
@@ -42,7 +48,7 @@ type GuideStep = {
 
 function detectBrowser(): BrowserType {
   if (typeof window === "undefined") return "other";
-  
+
   const ua = navigator.userAgent.toLowerCase();
   if (ua.includes("edg")) return "edge";
   if (ua.includes("brave")) return "brave";
@@ -93,7 +99,7 @@ function StepCard({
           ? "border-accent/40 bg-accent/5"
           : isActive
             ? "border-accent/60 bg-surface shadow-sm"
-            : "border-border/40 bg-surface/50 opacity-70"
+            : "border-border/40 bg-surface/50 opacity-70",
       )}
     >
       {/* Step number */}
@@ -104,7 +110,7 @@ function StepCard({
             ? "bg-accent text-accent-contrast"
             : isActive
               ? "bg-accent/20 text-accent animate-pulse"
-              : "bg-surface-high text-ink-muted"
+              : "bg-surface-high text-ink-muted",
         )}
       >
         {isCompleted ? <CheckIcon className="h-4 w-4" /> : index + 1}
@@ -112,12 +118,7 @@ function StepCard({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <h4
-          className={cn(
-            "text-sm font-medium",
-            isCompleted && "text-accent"
-          )}
-        >
+        <h4 className={cn("text-sm font-medium", isCompleted && "text-accent")}>
           {step.title}
         </h4>
         <p className="text-xs text-ink-muted mt-1">{step.description}</p>
@@ -152,7 +153,7 @@ function StepCard({
       <div
         className={cn(
           "shrink-0 text-ink-subtle",
-          (isCompleted || isActive) && "text-accent"
+          (isCompleted || isActive) && "text-accent",
         )}
       >
         {step.icon}
@@ -248,12 +249,11 @@ export function ExtensionConnectionGuide({
   browserType: propBrowserType,
   onConnectionComplete,
 }: ExtensionConnectionGuideProps) {
-  const [detectedBrowser, setDetectedBrowser] = React.useState<BrowserType>(
-    "chrome"
-  );
+  const [detectedBrowser, setDetectedBrowser] =
+    React.useState<BrowserType>("chrome");
   const [currentStep, setCurrentStep] = React.useState(0);
   const [completedSteps, setCompletedSteps] = React.useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   React.useEffect(() => {
@@ -283,13 +283,15 @@ export function ExtensionConnectionGuide({
     {
       id: "signin",
       title: "sign in",
-      description: "click the trail icon and sign in with your account to link your browser.",
+      description:
+        "click the trail icon and sign in with your account to link your browser.",
       icon: <LockIcon className="h-5 w-5" />,
     },
     {
       id: "test",
       title: "test the connection",
-      description: "capture your first trail to verify everything is working correctly.",
+      description:
+        "capture your first trail to verify everything is working correctly.",
       icon: <CheckIcon className="h-5 w-5" />,
       action: {
         label: "go to dashboard",

@@ -1,8 +1,11 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-  ?? (process.env.NODE_ENV === "production" ? "https://gettrail.net" : "http://localhost:3000");
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ??
+  (process.env.NODE_ENV === "production"
+    ? "https://gettrail.net"
+    : "http://localhost:3000");
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
@@ -15,13 +18,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/support",
     "/downloads",
     "/privacy",
-    "/terms"
+    "/terms",
   ];
 
   return routes.map((path) => ({
     url: `${siteUrl}${path}`,
     lastModified,
     changeFrequency: "monthly",
-    priority: path === "" ? 1 : 0.7
+    priority: path === "" ? 1 : 0.7,
   }));
 }

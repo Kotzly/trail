@@ -47,7 +47,9 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-xs text-ink-muted lowercase">sessions</p>
-              <p className="text-sm font-medium text-ink lowercase">{sessionCount} active</p>
+              <p className="text-sm font-medium text-ink lowercase">
+                {sessionCount} active
+              </p>
             </div>
           </div>
         </div>
@@ -60,7 +62,9 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-xs text-ink-muted lowercase">trails</p>
-              <p className="text-sm font-medium text-ink lowercase">{trailCount} captured</p>
+              <p className="text-sm font-medium text-ink lowercase">
+                {trailCount} captured
+              </p>
             </div>
           </div>
         </div>
@@ -96,16 +100,24 @@ export default function DashboardPage() {
 
           {/* CTA */}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Button.AsChild size="sm" className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover">
-              <Link href="/extension" className="inline-flex items-center gap-2">
+            <Button.AsChild
+              size="sm"
+              className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
+            >
+              <Link
+                href="/extension"
+                className="inline-flex items-center gap-2"
+              >
                 {dashboard.empty.cta}
                 <ArrowRightIcon className="h-3 w-3" />
               </Link>
             </Button.AsChild>
-            <Button.AsChild size="sm" variant="outline" className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high">
-              <Link href="/getting-started">
-                getting started
-              </Link>
+            <Button.AsChild
+              size="sm"
+              variant="outline"
+              className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
+            >
+              <Link href="/getting-started">getting started</Link>
             </Button.AsChild>
           </div>
         </div>

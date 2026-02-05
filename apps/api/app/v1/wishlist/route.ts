@@ -14,7 +14,7 @@ type WishlistSource = "MARKETING" | "ACCOUNT" | "EXTENSION";
 const sourceMap: Record<WishlistSourceInput, WishlistSource> = {
   marketing: "MARKETING",
   account: "ACCOUNT",
-  extension: "EXTENSION"
+  extension: "EXTENSION",
 };
 
 function normalizeSource(value: unknown): WishlistSource | null {
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
     pagePath: normalizeNullableString(body?.pagePath),
     userAgent: normalizeNullableString(body?.userAgent),
     ip: normalizeNullableString(body?.ip),
-    country: normalizeNullableString(body?.country)
+    country: normalizeNullableString(body?.country),
   });
 
   return jsonNoStore(
@@ -103,8 +103,8 @@ export async function POST(request: Request) {
       userId: lead.userId ?? null,
       sources: lead.sources.map(mapSourceOutput),
       createdAt: lead.createdAt,
-      updatedAt: lead.updatedAt
+      updatedAt: lead.updatedAt,
     },
-    { status: 201 }
+    { status: 201 },
   );
 }

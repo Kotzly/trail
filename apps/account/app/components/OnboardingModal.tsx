@@ -1,7 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { X, ChevronLeft, ChevronRight, CheckCircle2, Sparkles, Shield, Zap, Users } from "lucide-react";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  Sparkles,
+  Shield,
+  Zap,
+  Users,
+} from "lucide-react";
 import { Button, cn } from "@trail/ui";
 
 // TODO: Fetch onboarding status from backend API
@@ -24,8 +33,8 @@ const STEPS: OnboardingStep[] = [
     features: [
       "capture every path you take online",
       "search through your history instantly",
-      "export and share your trails"
-    ]
+      "export and share your trails",
+    ],
   },
   {
     id: "extension",
@@ -35,8 +44,8 @@ const STEPS: OnboardingStep[] = [
     features: [
       "one-click install from chrome store",
       "runs silently in the background",
-      "privacy-first: data stays yours"
-    ]
+      "privacy-first: data stays yours",
+    ],
   },
   {
     id: "account",
@@ -46,8 +55,8 @@ const STEPS: OnboardingStep[] = [
     features: [
       "sync trails across all devices",
       "end-to-end encryption",
-      "easy backup and export"
-    ]
+      "easy backup and export",
+    ],
   },
   {
     id: "team",
@@ -57,9 +66,9 @@ const STEPS: OnboardingStep[] = [
     features: [
       "shared workspaces",
       "real-time collaboration",
-      "team analytics and insights"
-    ]
-  }
+      "team analytics and insights",
+    ],
+  },
 ];
 
 export function OnboardingModal() {
@@ -152,7 +161,10 @@ export function OnboardingModal() {
           {/* Features */}
           <ul className="mt-6 space-y-3">
             {step.features.map((feature, idx) => (
-              <li key={idx} className="flex items-center gap-3 text-sm text-ink-muted">
+              <li
+                key={idx}
+                className="flex items-center gap-3 text-sm text-ink-muted"
+              >
                 <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-accent" />
                 <span className="lowercase">{feature}</span>
               </li>
@@ -170,7 +182,7 @@ export function OnboardingModal() {
               "flex h-10 w-10 items-center justify-center rounded-full border transition",
               currentStep === 0
                 ? "border-border/30 text-ink-muted/30 cursor-not-allowed"
-                : "border-border/60 text-ink hover:border-accent/60 hover:text-accent"
+                : "border-border/60 text-ink hover:border-accent/60 hover:text-accent",
             )}
           >
             <ChevronLeft className="h-5 w-5" />
@@ -186,7 +198,7 @@ export function OnboardingModal() {
                   "h-2 rounded-full transition-all",
                   idx === currentStep
                     ? "w-6 bg-accent"
-                    : "w-2 bg-border/60 hover:bg-border"
+                    : "w-2 bg-border/60 hover:bg-border",
                 )}
               />
             ))}

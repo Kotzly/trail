@@ -4,15 +4,22 @@ import { render, screen } from "@testing-library/react";
 import { AppShell } from "../AppShell";
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
+  default: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+  }) => (
     <a href={href} {...props}>
       {children}
     </a>
-  )
+  ),
 }));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/dashboard"
+  usePathname: () => "/dashboard",
 }));
 
 describe("AppShell", () => {
@@ -20,7 +27,7 @@ describe("AppShell", () => {
     render(
       <AppShell>
         <div>main content</div>
-      </AppShell>
+      </AppShell>,
     );
 
     expect(screen.getByText("Skip to main content")).toBeInTheDocument();

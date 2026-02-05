@@ -14,7 +14,7 @@ type DbLabelSource = "USER" | "AUTO" | "SYSTEM";
 const LABEL_TO_API: Record<DbLabelSource, ApiLabelSource> = {
   USER: "user",
   AUTO: "auto",
-  SYSTEM: "system"
+  SYSTEM: "system",
 };
 
 function toApiLabelSource(value: DbLabelSource): ApiLabelSource {
@@ -51,7 +51,7 @@ function toTrailSummary(trail: {
     rootUrl: trail.rootUrl ?? null,
     rootTitle: trail.rootTitle ?? null,
     rootFavicon: trail.rootFavicon ?? null,
-    deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null
+    deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null,
   };
 }
 
@@ -69,23 +69,27 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const limitRaw = Number(url.searchParams.get("limit"));
-  const limit = Number.isFinite(limitRaw) && limitRaw > 0 && limitRaw <= 200 ? limitRaw : 50;
+  const limit =
+    Number.isFinite(limitRaw) && limitRaw > 0 && limitRaw <= 200
+      ? limitRaw
+      : 50;
   const cursorRaw = url.searchParams.get("cursor");
   const includeDeleted = url.searchParams.get("includeDeleted") === "true";
 
   const cursorDate = cursorRaw ? new Date(cursorRaw) : null;
-  const cursorFilter = cursorDate && !Number.isNaN(cursorDate.getTime())
-    ? { updatedAt: { lt: cursorDate } }
-    : {};
+  const cursorFilter =
+    cursorDate && !Number.isNaN(cursorDate.getTime())
+      ? { updatedAt: { lt: cursorDate } }
+      : {};
 
   const trails = await db.trail.findMany({
     where: {
       userId: user.id,
       ...(includeDeleted ? {} : { deletedAt: null }),
-      ...cursorFilter
+      ...cursorFilter,
     },
     orderBy: { updatedAt: "desc" },
-    take: limit + 1
+    take: limit + 1,
   });
 
   const hasNext = trails.length > limit;
@@ -94,6 +98,6 @@ export async function GET(request: Request) {
 
   return jsonNoStore({
     items: items.map(toTrailSummary),
-    nextCursor
+    nextCursor,
   });
 }

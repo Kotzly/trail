@@ -5,20 +5,21 @@ import { accountCopy } from "@trail/content";
 import ExtensionPage from "../page";
 
 vi.mock("next/navigation", () => ({
-  redirect: vi.fn()
+  redirect: vi.fn(),
 }));
 
-vi.mock("@/src/lib/auth0", () => ({
-  getAuthSession: async () => ({ user: { name: "Alex Trail", email: "alex@trail.net" } }),
-  isAuthBypassed: () => false
+vi.mock("@/src/lib/auth", () => ({
+  getAuthSession: async () => ({
+    user: { name: "Alex Trail", email: "alex@trail.net" },
+  }),
 }));
 
 vi.mock("@/src/server/user", () => ({
-  ensureUser: async () => ({ id: "user_1" })
+  ensureUser: async () => ({ id: "user_1" }),
 }));
 
 vi.mock("@/src/server/extension-login", () => ({
-  createExtensionLoginCode: async () => "CODE123"
+  createExtensionLoginCode: async () => "CODE123",
 }));
 
 describe("ExtensionPage", () => {
@@ -27,8 +28,10 @@ describe("ExtensionPage", () => {
     render(node);
 
     expect(
-      screen.getByRole("heading", { name: accountCopy.extension.title })
+      screen.getByRole("heading", { name: accountCopy.extension.title }),
     ).toBeInTheDocument();
-    expect(screen.getByText(accountCopy.extension.status.title)).toBeInTheDocument();
+    expect(
+      screen.getByText(accountCopy.extension.status.title),
+    ).toBeInTheDocument();
   });
 });

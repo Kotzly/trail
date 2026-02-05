@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation";
-import { DesktopIcon, LaptopIcon, Link2Icon, LockClosedIcon } from "@radix-ui/react-icons";
+import {
+  DesktopIcon,
+  LaptopIcon,
+  Link2Icon,
+  LockClosedIcon,
+} from "@radix-ui/react-icons";
 import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@/app/components/PageHeader";
@@ -23,10 +28,14 @@ type ExtensionSession = {
   status: string;
 };
 
-export default async function ExtensionPage({ searchParams }: ExtensionPageProps) {
+export default async function ExtensionPage({
+  searchParams,
+}: ExtensionPageProps) {
   const resolvedSearchParams = await searchParams;
   const queryCode =
-    typeof resolvedSearchParams?.code === "string" ? resolvedSearchParams.code : null;
+    typeof resolvedSearchParams?.code === "string"
+      ? resolvedSearchParams.code
+      : null;
   const returnTo = queryCode ? `/extension?code=${queryCode}` : "/extension";
   const session = await getAuthSession();
 
@@ -89,7 +98,9 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
                 <StatCard
                   label={accountCopy.extension.connected.stats.permissions}
                   value={accountCopy.extension.connected.stats.permissionsValue}
-                  caption={accountCopy.extension.connected.stats.permissionsCaption}
+                  caption={
+                    accountCopy.extension.connected.stats.permissionsCaption
+                  }
                   icon={<LockClosedIcon className="h-4 w-4" />}
                 />
               </div>
@@ -101,7 +112,10 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
                 items={accountCopy.extension.empty.items}
                 className="rounded-none border-0 bg-transparent p-0"
                 action={
-                  <Button.AsChild size="sm" className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover">
+                  <Button.AsChild
+                    size="sm"
+                    className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
+                  >
                     <a href={accountCopy.extension.empty.ctaHref}>
                       {accountCopy.extension.empty.cta}
                     </a>
@@ -127,13 +141,19 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
           <div className="mt-4 grid gap-3">
             <StatCard
               label={accountCopy.extension.device.primaryDevice}
-              value={connectionReady ? accountCopy.extension.device.connected : "—"}
+              value={
+                connectionReady ? accountCopy.extension.device.connected : "—"
+              }
               caption={accountCopy.extension.device.primaryDeviceCaption}
               icon={<DesktopIcon className="h-4 w-4" />}
             />
             <StatCard
               label={accountCopy.extension.device.lastSeen}
-              value={connectionReady ? accountCopy.extension.device.lastSeenValue : "—"}
+              value={
+                connectionReady
+                  ? accountCopy.extension.device.lastSeenValue
+                  : "—"
+              }
               caption={accountCopy.extension.device.lastSeenCaption}
               icon={<LaptopIcon className="h-4 w-4" />}
             />
@@ -154,7 +174,9 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
               {accountCopy.extension.sessions.subtitle}
             </p>
           </div>
-          <span className="trail-status">{accountCopy.extension.sessions.comingSoon}</span>
+          <span className="trail-status">
+            {accountCopy.extension.sessions.comingSoon}
+          </span>
         </div>
         {sessions.length ? (
           <div className="mt-4 divide-y divide-border/40">
@@ -164,7 +186,9 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
                 className="flex flex-wrap items-center justify-between gap-4 py-3"
               >
                 <div>
-                  <p className="text-sm font-semibold text-ink">{item.device}</p>
+                  <p className="text-sm font-semibold text-ink">
+                    {item.device}
+                  </p>
                   <p className="text-xs text-ink-muted">{item.location}</p>
                 </div>
                 <span className="trail-status">{item.lastSeen}</span>

@@ -1,32 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
-  verifyUserToken: vi.fn()
+  verifyUserToken: vi.fn(),
 }));
 
 const userMocks = vi.hoisted(() => ({
-  ensureUser: vi.fn()
+  ensureUser: vi.fn(),
 }));
 
 const dbMocks = vi.hoisted(() => ({
   db: {
     accountSettings: {
       findUnique: vi.fn(),
-      upsert: vi.fn()
-    }
-  }
+      upsert: vi.fn(),
+    },
+  },
 }));
 
 vi.mock("@/src/server/auth/user-auth", () => ({
-  ...authMocks
+  ...authMocks,
 }));
 
 vi.mock("@/src/server/user", () => ({
-  ...userMocks
+  ...userMocks,
 }));
 
 vi.mock("@trail/db", () => ({
-  ...dbMocks
+  ...dbMocks,
 }));
 
 import { GET, PATCH } from "../account/settings/route";
@@ -46,8 +46,8 @@ describe("v1 account settings", () => {
 
     const response = await GET(
       new Request("http://localhost/v1/account/settings", {
-        headers: { Authorization: "Bearer user-token" }
-      })
+        headers: { Authorization: "Bearer user-token" },
+      }),
     );
 
     expect(response.status).toBe(200);
@@ -60,15 +60,15 @@ describe("v1 account settings", () => {
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
     dbMocks.db.accountSettings.upsert.mockResolvedValue({
       userId: "user-1",
-      deviceSessionTtlDays: "DAYS_90"
+      deviceSessionTtlDays: "DAYS_90",
     });
 
     const response = await PATCH(
       new Request("http://localhost/v1/account/settings", {
         method: "PATCH",
         headers: { Authorization: "Bearer user-token" },
-        body: JSON.stringify({ deviceSessionTtlDays: 90 })
-      })
+        body: JSON.stringify({ deviceSessionTtlDays: 90 }),
+      }),
     );
 
     expect(response.status).toBe(200);

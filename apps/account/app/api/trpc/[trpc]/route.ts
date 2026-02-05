@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getAuthTokenFromCookies, getAuthBypassState, devUser } from "@/src/lib/auth";
+import {
+  getAuthTokenFromCookies,
+  getAuthBypassState,
+  devUser,
+} from "@/src/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -8,11 +12,17 @@ const TRAIL_INTERNAL_API_KEY = process.env.TRAIL_INTERNAL_API_KEY;
 
 async function proxyToApi(request: Request): Promise<Response> {
   if (!TRAIL_API_BASE_URL) {
-    return NextResponse.json({ error: "missing_TRAIL_API_BASE_URL" }, { status: 500 });
+    return NextResponse.json(
+      { error: "missing_TRAIL_API_BASE_URL" },
+      { status: 500 },
+    );
   }
 
   if (!TRAIL_INTERNAL_API_KEY) {
-    return NextResponse.json({ error: "missing_TRAIL_INTERNAL_API_KEY" }, { status: 500 });
+    return NextResponse.json(
+      { error: "missing_TRAIL_INTERNAL_API_KEY" },
+      { status: 500 },
+    );
   }
 
   const authBypassed = getAuthBypassState();
@@ -38,19 +48,22 @@ async function proxyToApi(request: Request): Promise<Response> {
     headers.set("authorization", `Bearer ${token}`);
   }
 
-  const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
+  const body =
+    request.method === "GET" || request.method === "HEAD"
+      ? undefined
+      : await request.arrayBuffer();
 
   const res = await fetch(targetUrl, {
     method: request.method,
     headers,
     body,
     cache: "no-store",
-    redirect: "manual"
+    redirect: "manual",
   });
 
   return new Response(res.body, {
     status: res.status,
-    headers: res.headers
+    headers: res.headers,
   });
 }
 

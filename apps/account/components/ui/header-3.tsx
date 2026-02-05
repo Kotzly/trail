@@ -12,7 +12,7 @@ import {
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger
+  NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { accountCopy } from "@trail/content";
@@ -24,7 +24,7 @@ import {
   LogOut,
   Plug,
   Settings,
-  User
+  User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
@@ -44,30 +44,30 @@ const pageMeta: Array<{
     href: "/dashboard",
     meta: {
       title: accountCopy.dashboard.title,
-      cta: { label: accountCopy.dashboard.cta, href: "/extension" }
-    }
+      cta: { label: accountCopy.dashboard.cta, href: "/extension" },
+    },
   },
   {
     href: "/settings",
     meta: {
       title: accountCopy.settings.title,
-      cta: { label: accountCopy.settings.cta, href: "/settings#profile" }
-    }
+      cta: { label: accountCopy.settings.cta, href: "/settings#profile" },
+    },
   },
   {
     href: "/billing",
     meta: {
       title: accountCopy.billing.title,
-      cta: { label: accountCopy.billing.cta, href: "/billing" }
-    }
+      cta: { label: accountCopy.billing.cta, href: "/billing" },
+    },
   },
   {
     href: "/extension",
     meta: {
       title: accountCopy.extension.title,
-      cta: { label: accountCopy.extension.cta, href: "/extension" }
-    }
-  }
+      cta: { label: accountCopy.extension.cta, href: "/extension" },
+    },
+  },
 ];
 
 export function Header() {
@@ -78,10 +78,10 @@ export function Header() {
   const health = trpc.health.useQuery(undefined, { refetchInterval: 30000 });
   const me = trpc.me.useQuery();
 
-  const active =
-    pageMeta.find((item) => pathname.startsWith(item.href))?.meta ?? {
-      title: accountCopy.meta.title
-    };
+  const active = pageMeta.find((item) => pathname.startsWith(item.href))
+    ?.meta ?? {
+    title: accountCopy.meta.title,
+  };
 
   const displayName =
     me.data?.user?.name?.trim() ||
@@ -104,26 +104,26 @@ export function Header() {
       title: accountCopy.nav.dashboard,
       href: "/dashboard",
       description: accountCopy.header.navItems.dashboard,
-      icon: LayoutDashboard
+      icon: LayoutDashboard,
     },
     {
       title: accountCopy.nav.extension,
       href: "/extension",
       description: accountCopy.header.navItems.extension,
-      icon: Plug
+      icon: Plug,
     },
     {
       title: accountCopy.nav.settings,
       href: "/settings",
       description: accountCopy.header.navItems.settings,
-      icon: Settings
+      icon: Settings,
     },
     {
       title: accountCopy.nav.billing,
       href: "/billing",
       description: accountCopy.header.navItems.billing,
-      icon: CreditCard
-    }
+      icon: CreditCard,
+    },
   ];
 
   const userLinks: LinkItem[] = [
@@ -131,14 +131,14 @@ export function Header() {
       title: accountCopy.header.userMenu.settings,
       href: "/settings",
       description: accountCopy.header.userMenu.settingsDescription,
-      icon: User
+      icon: User,
     },
     {
       title: accountCopy.header.userMenu.signOut,
       href: "/auth/logout",
       description: accountCopy.header.userMenu.signOutDescription,
-      icon: LogOut
-    }
+      icon: LogOut,
+    },
   ];
 
   React.useEffect(() => {
@@ -156,7 +156,7 @@ export function Header() {
     <header
       className={cn(
         "sticky top-0 z-50 w-full border-b border-transparent transition",
-        scrolled && "border-border/60 bg-bg/95"
+        scrolled && "border-border/60 bg-bg/95",
       )}
     >
       <nav className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 lg:px-6">
@@ -242,7 +242,11 @@ export function Header() {
           aria-controls="mobile-menu"
           aria-label={accountCopy.header.mobileToggleLabel}
         >
-          <MenuToggleIcon open={open} className="size-5" duration={prefersReducedMotion ? 0 : 300} />
+          <MenuToggleIcon
+            open={open}
+            className="size-5"
+            duration={prefersReducedMotion ? 0 : 300}
+          />
         </Button>
       </nav>
 
@@ -253,7 +257,11 @@ export function Header() {
           </div>
           <div className="flex flex-col gap-2">
             {navLinks.map((item) => (
-              <MobileLink key={item.href} {...item} onClick={() => setOpen(false)} />
+              <MobileLink
+                key={item.href}
+                {...item}
+                onClick={() => setOpen(false)}
+              />
             ))}
           </div>
         </div>
@@ -267,7 +275,9 @@ export function Header() {
             <Link href="/settings">{accountCopy.header.userMenu.settings}</Link>
           </Button.AsChild>
           <Button.AsChild size="sm" variant="ghost" className="w-full">
-            <Link href="/auth/logout">{accountCopy.header.userMenu.signOut}</Link>
+            <Link href="/auth/logout">
+              {accountCopy.header.userMenu.signOut}
+            </Link>
           </Button.AsChild>
         </div>
       </MobileMenu>
@@ -286,21 +296,21 @@ function MobileMenu({ open, children, className, ...props }: MobileMenuProps) {
     <div
       id="mobile-menu"
       className={cn(
-        "fixed inset-0 z-[60] flex flex-col border-y border-border/60 bg-bg/95 lg:hidden"
+        "fixed inset-0 z-[60] flex flex-col border-y border-border/60 bg-bg/95 lg:hidden",
       )}
     >
       <div
         data-slot={open ? "open" : "closed"}
         className={cn(
           "size-full p-6 data-[slot=open]:animate-in data-[slot=open]:zoom-in-95 motion-reduce:animate-none motion-reduce:transform-none",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -316,7 +326,7 @@ function ListItem({
     <NavigationMenuLink
       className={cn(
         "flex w-full gap-3 rounded-xl p-2 transition hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-        className
+        className,
       )}
       {...props}
       asChild
@@ -326,7 +336,9 @@ function ListItem({
           <Icon className="size-5 text-ink" />
         </div>
         <div className="flex flex-col justify-center">
-          <span className="text-sm font-semibold lowercase text-ink">{title}</span>
+          <span className="text-sm font-semibold lowercase text-ink">
+            {title}
+          </span>
           {description ? (
             <span className="text-xs text-ink-muted">{description}</span>
           ) : null}
@@ -341,7 +353,7 @@ function MobileLink({
   description,
   icon: Icon,
   href,
-  onClick
+  onClick,
 }: LinkItem & { onClick?: () => void }) {
   return (
     <Link

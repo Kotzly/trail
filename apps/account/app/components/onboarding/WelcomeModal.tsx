@@ -91,7 +91,7 @@ function ProgressDots({
               ? "w-6 bg-accent"
               : index < current
                 ? "w-2 bg-accent/60"
-                : "w-2 bg-border hover:bg-border/80"
+                : "w-2 bg-border hover:bg-border/80",
           )}
           aria-label={`Go to step ${index + 1}`}
           aria-current={index === current ? "step" : undefined}
@@ -113,7 +113,7 @@ function StepIndicator({
     <div className="relative">
       {/* Progress bar background */}
       <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 bg-border/60" />
-      
+
       {/* Active progress */}
       <motion.div
         className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2 bg-accent"
@@ -131,13 +131,9 @@ function StepIndicator({
               "flex h-6 w-6 items-center justify-center rounded-full border-2 text-[10px] font-semibold transition-colors",
               index <= currentStep
                 ? "border-accent bg-accent text-accent-contrast"
-                : "border-border/60 bg-surface text-ink-muted"
+                : "border-border/60 bg-surface text-ink-muted",
             )}
-            animate={
-              index === currentStep
-                ? { scale: [1, 1.2, 1] }
-                : {}
-            }
+            animate={index === currentStep ? { scale: [1, 1.2, 1] } : {}}
             transition={{ duration: 0.3 }}
           >
             {index < currentStep ? (
@@ -305,10 +301,7 @@ export function WelcomeModal({
                   size="sm"
                   onClick={handleBack}
                   disabled={isFirstStep}
-                  className={cn(
-                    "text-ink-muted",
-                    isFirstStep && "invisible"
-                  )}
+                  className={cn("text-ink-muted", isFirstStep && "invisible")}
                 >
                   back
                 </Button>

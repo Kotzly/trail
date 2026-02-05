@@ -27,7 +27,9 @@ function createRequestId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function openTrailPanel(options?: OpenTrailPanelOptions): Promise<OpenTrailPanelResult> {
+export function openTrailPanel(
+  options?: OpenTrailPanelOptions,
+): Promise<OpenTrailPanelResult> {
   if (typeof window === "undefined") {
     return Promise.resolve({ ok: false, error: "window is not available" });
   }
@@ -62,7 +64,7 @@ export function openTrailPanel(options?: OpenTrailPanelOptions): Promise<OpenTra
     window.addEventListener("message", onMessage);
     window.postMessage(
       { source: SITE_MESSAGE_SOURCE, type: OPEN_TRAIL_PANEL, requestId },
-      window.location.origin
+      window.location.origin,
     );
   });
 }

@@ -11,9 +11,7 @@ export function LegalPageShell({
 }) {
   return (
     <div className="min-h-screen bg-base text-ink">
-      <main className={cn("relative overflow-hidden")}>
-        {children}
-      </main>
+      <main className={cn("relative overflow-hidden")}>{children}</main>
     </div>
   );
 }

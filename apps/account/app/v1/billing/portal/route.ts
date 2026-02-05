@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   if (!token || !verifyExtensionAccessToken(token)) {
     return NextResponse.json(
       { code: "auth", message: "Unauthorized", retryable: false },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -28,6 +28,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     url: returnUrl,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   });
 }

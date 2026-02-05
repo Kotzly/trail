@@ -43,14 +43,18 @@ export const TestimonialsColumn = (props: {
                       className="h-10 w-10 rounded-full object-cover object-center bg-surface/60 ring-1 ring-stroke/40"
                     />
                     <div className="flex flex-col">
-                      <div className="font-medium tracking-tight leading-5">{name}</div>
-                      <div className="leading-5 opacity-60 tracking-tight">{role}</div>
+                      <div className="font-medium tracking-tight leading-5">
+                        {name}
+                      </div>
+                      <div className="leading-5 opacity-60 tracking-tight">
+                        {role}
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </React.Fragment>
-          ))
+          )),
         ]}
       </motion.div>
     </div>

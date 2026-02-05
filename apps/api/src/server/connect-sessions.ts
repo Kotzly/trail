@@ -37,8 +37,8 @@ export async function createConnectSession(userId: string) {
   const session = await db.extensionConnectSession.create({
     data: {
       userId,
-      expiresAt
-    }
+      expiresAt,
+    },
   });
 
   return toRecord(session);
@@ -46,9 +46,11 @@ export async function createConnectSession(userId: string) {
 
 export async function getConnectSessionStatus(
   id: string,
-  userId: string
+  userId: string,
 ): Promise<ConnectStatus | null> {
-  const session = await db.extensionConnectSession.findUnique({ where: { id } });
+  const session = await db.extensionConnectSession.findUnique({
+    where: { id },
+  });
   if (!session || session.userId !== userId) {
     return null;
   }
@@ -67,9 +69,11 @@ export async function getConnectSessionStatus(
 
 export async function approveConnectSession(
   id: string,
-  userId: string
+  userId: string,
 ): Promise<ApproveResult> {
-  const session = await db.extensionConnectSession.findUnique({ where: { id } });
+  const session = await db.extensionConnectSession.findUnique({
+    where: { id },
+  });
   if (!session || session.userId !== userId) {
     return { ok: false, reason: "not_found" };
   }
@@ -85,7 +89,7 @@ export async function approveConnectSession(
 
   const updated = await db.extensionConnectSession.update({
     where: { id },
-    data: { approvedAt: now }
+    data: { approvedAt: now },
   });
 
   return { ok: true, session: toRecord(updated) };

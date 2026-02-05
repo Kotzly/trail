@@ -16,7 +16,7 @@ const TTL_TO_DB: Record<DeviceSessionTtlDays, DbTtl> = {
   30: "DAYS_30",
   90: "DAYS_90",
   180: "DAYS_180",
-  365: "DAYS_365"
+  365: "DAYS_365",
 };
 
 const DB_TO_TTL: Record<DbTtl, DeviceSessionTtlDays> = {
@@ -24,7 +24,7 @@ const DB_TO_TTL: Record<DbTtl, DeviceSessionTtlDays> = {
   DAYS_30: 30,
   DAYS_90: 90,
   DAYS_180: 180,
-  DAYS_365: 365
+  DAYS_365: 365,
 };
 
 function toApiTtl(value: DbTtl | null | undefined): DeviceSessionTtlDays {
@@ -49,11 +49,11 @@ export async function GET(request: Request) {
   }
 
   const settings = await db.accountSettings.findUnique({
-    where: { userId: user.id }
+    where: { userId: user.id },
   });
 
   return jsonNoStore({
-    deviceSessionTtlDays: toApiTtl(settings?.deviceSessionTtlDays ?? null)
+    deviceSessionTtlDays: toApiTtl(settings?.deviceSessionTtlDays ?? null),
   });
 }
 
@@ -72,16 +72,20 @@ export async function PATCH(request: Request) {
   const body = await request.json().catch(() => null);
   const ttl = toDbTtl(body?.deviceSessionTtlDays);
   if (!ttl) {
-    return jsonError("invalid_device_session_ttl", "Invalid device session TTL.", { status: 400 });
+    return jsonError(
+      "invalid_device_session_ttl",
+      "Invalid device session TTL.",
+      { status: 400 },
+    );
   }
 
   const settings = await db.accountSettings.upsert({
     where: { userId: user.id },
     update: { deviceSessionTtlDays: ttl },
-    create: { userId: user.id, deviceSessionTtlDays: ttl }
+    create: { userId: user.id, deviceSessionTtlDays: ttl },
   });
 
   return jsonNoStore({
-    deviceSessionTtlDays: toApiTtl(settings.deviceSessionTtlDays as DbTtl)
+    deviceSessionTtlDays: toApiTtl(settings.deviceSessionTtlDays as DbTtl),
   });
 }

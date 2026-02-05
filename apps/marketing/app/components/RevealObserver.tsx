@@ -11,7 +11,7 @@ export function RevealObserver() {
     if (typeof window === "undefined") return;
 
     const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
+      "(prefers-reduced-motion: reduce)",
     ).matches;
 
     const revealAll = () => {
@@ -35,7 +35,7 @@ export function RevealObserver() {
     if (supportsViewTimeline) return;
 
     const elements = Array.from(
-      document.querySelectorAll<HTMLElement>(REVEAL_SELECTOR)
+      document.querySelectorAll<HTMLElement>(REVEAL_SELECTOR),
     );
 
     if (elements.length === 0) return;
@@ -49,7 +49,7 @@ export function RevealObserver() {
           observer.unobserve(target);
         });
       },
-      { threshold: REVEAL_THRESHOLD, rootMargin: REVEAL_ROOT_MARGIN }
+      { threshold: REVEAL_THRESHOLD, rootMargin: REVEAL_ROOT_MARGIN },
     );
 
     elements.forEach((element) => observer.observe(element));

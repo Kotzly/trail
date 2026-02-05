@@ -34,7 +34,7 @@ function StepIcon({ status }: { status: StepStatus }) {
 export function ProgressIndicator({
   steps,
   className,
-  orientation = "horizontal"
+  orientation = "horizontal",
 }: ProgressIndicatorProps) {
   const completedCount = steps.filter((s) => s.status === "completed").length;
   const progress = (completedCount / steps.length) * 100;
@@ -47,19 +47,26 @@ export function ProgressIndicator({
             <div
               className={cn(
                 "flex h-6 w-6 items-center justify-center rounded-full border text-xs font-medium",
-                step.status === "completed" && "border-accent bg-accent text-white",
-                step.status === "current" && "border-accent bg-accent/10 text-accent",
-                step.status === "pending" && "border-border/60 bg-surface text-ink-muted"
+                step.status === "completed" &&
+                  "border-accent bg-accent text-white",
+                step.status === "current" &&
+                  "border-accent bg-accent/10 text-accent",
+                step.status === "pending" &&
+                  "border-border/60 bg-surface text-ink-muted",
               )}
             >
-              {step.status === "pending" ? index + 1 : <StepIcon status={step.status} />}
+              {step.status === "pending" ? (
+                index + 1
+              ) : (
+                <StepIcon status={step.status} />
+              )}
             </div>
             <span
               className={cn(
                 "text-sm",
                 step.status === "completed" && "text-accent",
                 step.status === "current" && "text-ink font-medium",
-                step.status === "pending" && "text-ink-muted"
+                step.status === "pending" && "text-ink-muted",
               )}
             >
               {step.label}

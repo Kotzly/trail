@@ -11,7 +11,8 @@ const supportOptions = [
   {
     icon: MessageSquare,
     title: "Contact Support",
-    description: "Get help from our team via email. We typically respond within 24 hours.",
+    description:
+      "Get help from our team via email. We typically respond within 24 hours.",
     action: "Email Us",
     href: "mailto:support@gettrail.net",
     primary: true,
@@ -27,7 +28,8 @@ const supportOptions = [
   {
     icon: Mail,
     title: "Feature Requests",
-    description: "Have an idea? We'd love to hear it. Submit your feature request.",
+    description:
+      "Have an idea? We'd love to hear it. Submit your feature request.",
     action: "Submit Idea",
     href: "mailto:hello@gettrail.net?subject=Feature%20Request",
     primary: false,
@@ -66,7 +68,8 @@ function SupportContent() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted"
             >
-              Get unstuck with our support tools, troubleshooting guides, and direct help from our team.
+              Get unstuck with our support tools, troubleshooting guides, and
+              direct help from our team.
             </motion.p>
           </div>
         </section>
@@ -85,18 +88,29 @@ function SupportContent() {
                     transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
                     className="group rounded-3xl border border-stroke/40 bg-surface/50 p-6 hover:border-accent/30 hover:bg-surface/70 hover:shadow-lg"
                   >
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
-                      option.primary ? "bg-accent/10 text-accent" : "bg-surface-strong text-ink-muted"
-                    }`}>
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                        option.primary
+                          ? "bg-accent/10 text-accent"
+                          : "bg-surface-strong text-ink-muted"
+                      }`}
+                    >
                       <Icon className="h-6 w-6" />
                     </div>
-                    <h3 className="mt-4 text-lg font-semibold text-ink">{option.title}</h3>
-                    <p className="mt-2 text-sm text-ink-muted">{option.description}</p>
+                    <h3 className="mt-4 text-lg font-semibold text-ink">
+                      {option.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-ink-muted">
+                      {option.description}
+                    </p>
                     <Button
                       variant={option.primary ? "primary" : "outline"}
                       className="mt-4 w-full"
                     >
-                      <a href={option.href} className="flex items-center justify-center">
+                      <a
+                        href={option.href}
+                        className="flex items-center justify-center"
+                      >
                         {option.action}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </a>
@@ -133,17 +147,35 @@ function SupportContent() {
               className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
             >
               {[
-                { title: "Getting Started", desc: "Installation and setup guides", href: "/downloads" },
-                { title: "Billing", desc: "Manage your subscription", href: "/pricing" },
-                { title: "Privacy", desc: "How we handle your data", href: "/faq" },
-                { title: "Contact", desc: "Reach our team directly", href: "/contact" },
+                {
+                  title: "Getting Started",
+                  desc: "Installation and setup guides",
+                  href: "/downloads",
+                },
+                {
+                  title: "Billing",
+                  desc: "Manage your subscription",
+                  href: "/pricing",
+                },
+                {
+                  title: "Privacy",
+                  desc: "How we handle your data",
+                  href: "/faq",
+                },
+                {
+                  title: "Contact",
+                  desc: "Reach our team directly",
+                  href: "/contact",
+                },
               ].map((link) => (
                 <a
                   key={link.title}
                   href={link.href}
                   className="group rounded-2xl border border-stroke/40 bg-surface/30 p-5 transition-all hover:border-accent/30 hover:bg-surface/50"
                 >
-                  <h3 className="font-medium text-ink group-hover:text-accent">{link.title}</h3>
+                  <h3 className="font-medium text-ink group-hover:text-accent">
+                    {link.title}
+                  </h3>
                   <p className="mt-1 text-sm text-ink-subtle">{link.desc}</p>
                 </a>
               ))}

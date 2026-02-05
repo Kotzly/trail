@@ -1,11 +1,11 @@
 import "server-only";
 
-import { jwtDecode } from "jwt-decode";
 import { cookies } from "next/headers";
 import type { UUID } from "crypto";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 export const AUTH_COOKIE_NAME = "trail_auth_session";
-const AUTH_BYPASS = process.env.ACCOUNT_AUTH_BYPASS === "1" as const;
+const AUTH_BYPASS = process.env.ACCOUNT_AUTH_BYPASS === ("1" as const);
 
 type AuthSession = {
   user: User;
@@ -21,14 +21,13 @@ export async function getAuthSession(): Promise<AuthSession | null> {
     return null;
   }
 
-  const user = getUserFromToken(token);
+  const user = await getUserFromToken(token);
   return user ? { user } : null;
 }
 
 export function isAuthBypassed() {
   return getAuthBypassState();
 }
-
 
 export const devUser: User = {
   id: "uuiddev1-2345-6789-0123-456789012345",
@@ -40,16 +39,17 @@ type CommonUserClaims = {
   email: string;
   name: string;
   imageUrl?: string;
-}
+};
 
 type UserClaims = CommonUserClaims & {
   sub: UUID;
   exp: number;
-}
+  picture?: string;
+};
 
 export type User = CommonUserClaims & {
   id: UUID;
-}
+};
 
 export function getAuthBypassState(): boolean {
   return AUTH_BYPASS;
@@ -60,15 +60,52 @@ export async function getAuthTokenFromCookies(): Promise<string | null> {
   return cookieStore.get(AUTH_COOKIE_NAME)?.value ?? null;
 }
 
-export function getUserFromToken(token: string): User | undefined {
+const JWKS_CACHE = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
+
+function normalizeBaseUrl(value: string): string | null {
+  const trimmed = value.trim().replace(/\/+$/, "");
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed;
+}
+
+function resolveAuthIssuer(): string | null {
+  return (
+    normalizeBaseUrl(process.env.TRAIL_AUTH_BASE_URL ?? "") ??
+    normalizeBaseUrl(process.env.BETTER_AUTH_URL ?? "") ??
+    null
+  );
+}
+
+function getRemoteJwks(jwksUrl: string) {
+  const normalized = jwksUrl.trim().replace(/\/$/, "");
+  const cached = JWKS_CACHE.get(normalized);
+  if (cached) {
+    return cached;
+  }
+  const jwks = createRemoteJWKSet(new URL(normalized));
+  JWKS_CACHE.set(normalized, jwks);
+  return jwks;
+}
+
+export async function getUserFromToken(
+  token: string,
+): Promise<User | undefined> {
   if (!token) {
     return undefined;
   }
 
-  try {
-    const payload = jwtDecode(token) as UserClaims;
+  const issuer = resolveAuthIssuer();
+  if (!issuer) {
+    return undefined;
+  }
 
-    if (payload.exp * 1000 < Date.now()) {
+  try {
+    const jwks = getRemoteJwks(`${issuer}/api/auth/jwks`);
+    const { payload } = await jwtVerify<UserClaims>(token, jwks, { issuer });
+
+    if (!payload?.sub) {
       return undefined;
     }
 
@@ -76,9 +113,9 @@ export function getUserFromToken(token: string): User | undefined {
       id: payload.sub,
       email: payload.email,
       name: payload.name,
-      imageUrl: payload.imageUrl
+      imageUrl: payload.imageUrl ?? payload.picture,
     };
   } catch {
     return undefined;
-  } 
+  }
 }

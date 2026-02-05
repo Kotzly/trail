@@ -1,6 +1,9 @@
 import { getBearerToken } from "@/src/server/auth/headers";
 import { verifyUserToken } from "@/src/server/auth/user-auth";
-import { createConnectSession, CONNECT_POLL_INTERVAL_MS } from "@/src/server/connect-sessions";
+import {
+  createConnectSession,
+  CONNECT_POLL_INTERVAL_MS,
+} from "@/src/server/connect-sessions";
 import { jsonError } from "@/src/server/error-response";
 import { jsonNoStore } from "@/src/server/response";
 import { ensureUser } from "@/src/server/user";
@@ -24,6 +27,6 @@ export async function POST(request: Request) {
   return jsonNoStore({
     id: session.id,
     expiresAt: session.expiresAt.toISOString(),
-    pollIntervalMs: CONNECT_POLL_INTERVAL_MS
+    pollIntervalMs: CONNECT_POLL_INTERVAL_MS,
   });
 }
