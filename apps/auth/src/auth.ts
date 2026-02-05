@@ -14,6 +14,10 @@ const trustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: "postgresql" }),
   trustedOrigins,
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: false,
+  },
   socialProviders: {
     google: {
       clientId: env.GOOGLE_CLIENT_ID,

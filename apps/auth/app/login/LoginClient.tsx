@@ -45,18 +45,22 @@ export function LoginClient() {
   const bridgeUrl = useMemo(() => buildBridgeUrl(returnTo), [returnTo]);
 
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isPasswordSigningIn, setIsPasswordSigningIn] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(
     null,
   );
 
   const handleSendOtp = async () => {
     if (!email) {
-      setError("Введите email, чтобы получить код.");
+      setError("enter an email to receive code");
       return;
     }
 
@@ -76,12 +80,12 @@ export function LoginClient() {
       return;
     }
 
-    setStatus("Код отправлен. Проверьте почту.");
+    setStatus("code sent. check your email");
   };
 
   const handleSignIn = async () => {
     if (!email || !otp) {
-      setError("Введите email и код из письма.");
+      setError("enter email and code from email");
       return;
     }
 
@@ -97,7 +101,77 @@ export function LoginClient() {
     setIsSigningIn(false);
 
     if (signInError) {
+      console.warn("auth: sign-in email/password failed", {
+        email,
+        error: normalizeError(signInError),
+      });
       setError(normalizeError(signInError));
+      return;
+    }
+
+    router.push(bridgeUrl);
+  };
+
+  const handlePasswordSignIn = async () => {
+    if (!email || !password) {
+      setError("enter email and password");
+      return;
+    }
+
+    setError(null);
+    setStatus(null);
+    setIsPasswordSigningIn(true);
+
+    const { data, error: signInError } = await authClient.signIn.email({
+      email,
+      password,
+      callbackURL: bridgeUrl,
+    });
+
+    setIsPasswordSigningIn(false);
+
+    if (signInError) {
+      setError(normalizeError(signInError));
+      return;
+    }
+
+    const redirectUrl = resolveRedirectUrl(data);
+
+    if (redirectUrl) {
+      window.location.assign(redirectUrl);
+      return;
+    }
+
+    router.push(bridgeUrl);
+  };
+
+  const handleSignUp = async () => {
+    if (!name || !email || !password) {
+      setError("enter name, email and password to sign up");
+      return;
+    }
+
+    setError(null);
+    setStatus(null);
+    setIsSigningUp(true);
+
+    const { data, error: signUpError } = await authClient.signUp.email({
+      email,
+      name,
+      password,
+    });
+
+    setIsSigningUp(false);
+
+    if (signUpError) {
+      setError(normalizeError(signUpError));
+      return;
+    }
+
+    const redirectUrl = resolveRedirectUrl(data);
+
+    if (redirectUrl) {
+      window.location.assign(redirectUrl);
       return;
     }
 
@@ -146,7 +220,7 @@ export function LoginClient() {
       <header style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <h1 style={{ margin: 0, fontSize: "28px" }}>Trail вход</h1>
         <p style={{ margin: 0, color: "#4b5563" }}>
-          Получите одноразовый код или войдите через OAuth.
+          Получите одноразовый код, войдите по паролю или через OAuth.
         </p>
       </header>
 
@@ -158,6 +232,22 @@ export function LoginClient() {
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@company.com"
           autoComplete="email"
+          style={{
+            padding: "10px 12px",
+            borderRadius: "8px",
+            border: "1px solid #d1d5db",
+          }}
+        />
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        Имя
+        <input
+          type="text"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Имя"
+          autoComplete="name"
           style={{
             padding: "10px 12px",
             borderRadius: "8px",
@@ -212,7 +302,55 @@ export function LoginClient() {
           cursor: isSigningIn ? "not-allowed" : "pointer",
         }}
       >
-        {isSigningIn ? "Входим..." : "Войти"}
+        {isSigningIn ? "Входим по коду..." : "Войти по коду"}
+      </button>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        Пароль
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          placeholder="Введите пароль"
+          autoComplete="current-password"
+          style={{
+            padding: "10px 12px",
+            borderRadius: "8px",
+            border: "1px solid #d1d5db",
+          }}
+        />
+      </label>
+
+      <button
+        type="button"
+        onClick={handlePasswordSignIn}
+        disabled={isPasswordSigningIn}
+        style={{
+          padding: "10px 12px",
+          borderRadius: "8px",
+          border: "1px solid #111827",
+          background: "#ffffff",
+          color: "#111827",
+          cursor: isPasswordSigningIn ? "not-allowed" : "pointer",
+        }}
+      >
+        {isPasswordSigningIn ? "Входим по паролю..." : "Войти по паролю"}
+      </button>
+
+      <button
+        type="button"
+        onClick={handleSignUp}
+        disabled={isSigningUp}
+        style={{
+          padding: "10px 12px",
+          borderRadius: "8px",
+          border: "1px solid #111827",
+          background: "#111827",
+          color: "#ffffff",
+          cursor: isSigningUp ? "not-allowed" : "pointer",
+        }}
+      >
+        {isSigningUp ? "Регистрируем..." : "Зарегистрироваться"}
       </button>
 
       <div
