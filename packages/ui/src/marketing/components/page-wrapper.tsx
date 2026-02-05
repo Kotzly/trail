@@ -73,6 +73,16 @@ export function HomeLoading() {
         </div>
       </div>
 
+      <div className="px-6 py-16">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid gap-6 md:grid-cols-2">
+            {[...Array(2)].map((_, i) => (
+              <SkeletonTestimonial key={i} />
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* CTA Skeleton */}
       <div className="px-6 py-16">
         <div className="mx-auto max-w-4xl rounded-3xl bg-surface-strong/60 p-12" />
