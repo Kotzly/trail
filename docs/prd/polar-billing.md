@@ -39,10 +39,10 @@
   - `apps/account/app/v1/billing/route.ts`, `portal/route.ts`
   - `apps/account/app/v1/subscription/route.ts`, `checkout/route.ts`
   - `apps/account/app/v1/plans/route.ts`
-- Auth: account app uses Auth0; API app upserts user.
+- Auth: account app uses Better Auth; API app upserts user.
 - Extension access is JWT-based from `apps/account/src/server/extension-auth.ts`.
 
-Implication: Polar customer identity must map to the Auth0 user (and Trail user id) deterministically.
+Implication: Polar customer identity must map to the Better Auth user (and Trail user id) deterministically.
 
 ---
 
@@ -140,7 +140,7 @@ Ref (custom): https://polar.sh/docs/features/benefits/custom
 ## 7. Technical constraints
 
 - **Secrets:** Polar access token + webhook secret must live server-side (Node runtime).
-- **Auth mapping:** Polar customer must be linked to Trail user (Auth0 subject). Use metadata where supported; otherwise store mapping on first purchase.
+- **Auth mapping:** Polar customer must be linked to Trail user (Better Auth subject). Use metadata where supported; otherwise store mapping on first purchase.
 - **Webhooks:** must be verified and idempotent; handle retries.
 - **Multi-app:** checkout/portal creation can live in account app, but canonical subscription state should live in API app.
 

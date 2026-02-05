@@ -33,11 +33,11 @@ export type AppRouter = typeof appRouter;
 ```
 
 - **publicProcedure** — no auth.  
-- **protectedProcedure** — requires valid session (e.g. from Auth0 or JWT in context); ctx.session.user available.
+- **protectedProcedure** — requires valid session (e.g. from Better Auth or JWT in context); ctx.session.user available.
 
 ### Context (API app)
 
-- Built in trpc-context: session from cookie/header (e.g. getSession from Auth0), db client if needed.  
+- Built in trpc-context: session from cookie/header (e.g. getSession from Better Auth), db client if needed.  
 - Passed to procedures as `ctx`.
 
 ---

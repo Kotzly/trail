@@ -9,7 +9,6 @@ process.env.TRAIL_AUTH_BASE_URL =
   process.env.TRAIL_AUTH_BASE_URL ?? "http://localhost:3003";
 process.env.TRAIL_EXTENSION_JWT_SECRET =
   process.env.TRAIL_EXTENSION_JWT_SECRET ?? "test-extension-secret";
-process.env.AUTH0_DOMAIN = process.env.AUTH0_DOMAIN ?? "auth0.test";
 process.env.WAITLIST_PROVIDER_ENDPOINT =
   process.env.WAITLIST_PROVIDER_ENDPOINT ?? "http://localhost:3999/waitlist";
 process.env.WAITLIST_PROVIDER_TOKEN =

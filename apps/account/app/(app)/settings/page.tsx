@@ -25,10 +25,10 @@ export default async function SettingsPage() {
     .map((chunk) => chunk[0]?.toLowerCase())
     .join("");
 
-
-    // todo: remove auth0
-  const auth0Domain = `https://${env.AUTH0_DOMAIN}`;
-  const auth0ProfileUrl = `${auth0Domain}/u/me`;
+  const betterAuthAccountUrl = new URL(
+    "/account",
+    env.TRAIL_AUTH_BASE_URL,
+  ).toString();
   const sessions = [
     {
       id: "current",
@@ -46,7 +46,7 @@ export default async function SettingsPage() {
         subtitle={settings.subtitle}
         actions={
           <Button.AsChild size="sm" variant="outline">
-            <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
+            <a href={betterAuthAccountUrl} target="_blank" rel="noreferrer">
               {settings.profile.manageCta}
             </a>
           </Button.AsChild>
@@ -88,7 +88,7 @@ export default async function SettingsPage() {
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button.AsChild size="sm" variant="outline">
-              <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
+              <a href={betterAuthAccountUrl} target="_blank" rel="noreferrer">
                 {settings.profile.manageCta}
               </a>
             </Button.AsChild>
@@ -124,7 +124,7 @@ export default async function SettingsPage() {
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button.AsChild size="sm" variant="outline">
-              <a href={auth0ProfileUrl} target="_blank" rel="noreferrer">
+              <a href={betterAuthAccountUrl} target="_blank" rel="noreferrer">
                 {settings.security.changePasswordCta}
               </a>
             </Button.AsChild>

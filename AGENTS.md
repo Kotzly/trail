@@ -17,7 +17,7 @@
 
 ## Project Structure & Module Organization
 - `apps/marketing/` — Next.js marketing site (gettrail.net).
-- `apps/account/` — Next.js account app (app.gettrail.net) with Auth0 + tRPC.
+- `apps/account/` — Next.js account app (app.gettrail.net) with Better Auth + tRPC.
 - `apps/api/` — Next.js API app (api.gettrail.net) exposing tRPC.
 - `packages/ui/` — shared UI components, Tailwind preset, tokens.
 - `packages/content/` — copy strings (English only).
@@ -54,5 +54,5 @@
   - Account: https://app.gettrail.net
   - API: https://api.gettrail.net
 - The extension is not yet deployed.
-- The auth is handled by Auth0.
+- The auth is handled by Better Auth.
 - The database is handled by Supabase.

@@ -125,7 +125,7 @@ describe("v1 devices endpoints", () => {
   });
 
   it("lists devices with latest session", async () => {
-    authMocks.verifyUserToken.mockResolvedValue({ sub: "auth0|1" });
+    authMocks.verifyUserToken.mockResolvedValue({ sub: "user-1" });
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
     deviceMocks.listDevices.mockResolvedValue([
       {
@@ -170,7 +170,7 @@ describe("v1 devices endpoints", () => {
   });
 
   it("revokes a device and its active sessions", async () => {
-    authMocks.verifyUserToken.mockResolvedValue({ sub: "auth0|1" });
+    authMocks.verifyUserToken.mockResolvedValue({ sub: "user-1" });
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
     dbMocks.db.device.findUnique.mockResolvedValue({
       id: "device-1",

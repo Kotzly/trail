@@ -26,7 +26,7 @@
    Form(s) for profile (name, email, image) and app preferences; submit to tRPC or v1 API; success toast or redirect.
 
 3. **v1 routes**  
-   REST-style routes under `/v1/` for billing (portal redirect, plans list, subscription create); may use Auth0 session or API key.
+   REST-style routes under `/v1/` for billing (portal redirect, plans list, subscription create); may use Better Auth session or API key.
 
 ---
 
@@ -34,4 +34,4 @@
 
 - Stripe: portal session creation requires Stripe secret; redirect URL back to app.gettrail.net/billing.  
 - Plans/subscription: if using tRPC, add procedures in packages/trpc and call from billing page; otherwise v1 routes are the contract.  
-- Settings: user update may go through tRPC me mutation or PATCH /v1/account; Auth0 profile update may require Auth0 API.
+- Settings: user update may go through tRPC me mutation or PATCH /v1/account; Better Auth profile update may require Better Auth API.

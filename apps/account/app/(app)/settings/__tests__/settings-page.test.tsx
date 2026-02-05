@@ -26,4 +26,25 @@ describe("SettingsPage", () => {
       screen.getAllByText(accountCopy.settings.profile.title)[0],
     ).toBeInTheDocument();
   });
+
+  it("uses better auth account settings links", async () => {
+    const node = await SettingsPage();
+    render(node);
+
+    const expectedHref = `${process.env.TRAIL_AUTH_BASE_URL}/account`;
+    const manageLinks = screen.getAllByRole("link", {
+      name: accountCopy.settings.profile.manageCta,
+    });
+
+    expect(manageLinks.length).toBeGreaterThan(0);
+    for (const link of manageLinks) {
+      expect(link).toHaveAttribute("href", expectedHref);
+    }
+
+    expect(
+      screen.getByRole("link", {
+        name: accountCopy.settings.security.changePasswordCta,
+      }),
+    ).toHaveAttribute("href", expectedHref);
+  });
 });

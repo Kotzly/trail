@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
-    "auth0Id" TEXT NOT NULL,
+    "legacyAuthId" TEXT NOT NULL,
     "email" TEXT,
     "name" TEXT,
     "imageUrl" TEXT,
@@ -24,7 +24,7 @@ CREATE TABLE "ExtensionLoginCode" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_auth0Id_key" ON "User"("auth0Id");
+CREATE UNIQUE INDEX "User_legacyAuthId_key" ON "User"("legacyAuthId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ExtensionLoginCode_code_key" ON "ExtensionLoginCode"("code");

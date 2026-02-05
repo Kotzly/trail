@@ -53,7 +53,7 @@ Documentation is organized by **scope** and **feature**. Each file is under 500 
 
 | Doc | Feature |
 |-----|---------|
-| [auth-and-extension.md](apps/account/auth-and-extension.md) | Auth0, extension JWT, login code, exchange |
+| [auth-and-extension.md](apps/account/auth-and-extension.md) | Better Auth, extension JWT, login code, exchange |
 | [dashboard.md](apps/account/dashboard.md) | Dashboard, app shell |
 | [billing-and-settings.md](apps/account/billing-and-settings.md) | Billing, settings, v1 routes |
 

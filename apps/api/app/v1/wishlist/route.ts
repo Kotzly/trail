@@ -68,9 +68,9 @@ export async function POST(request: Request) {
   let userId: string | null | undefined = undefined;
 
   if (token) {
-    const auth0 = await verifyUserToken(token);
-    if (auth0) {
-      const user = await ensureUser(auth0);
+    const authUser = await verifyUserToken(token);
+    if (authUser) {
+      const user = await ensureUser(authUser);
       userId = user?.id ?? null;
     } else {
       const extension = verifyExtensionToken(token);

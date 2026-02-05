@@ -6,7 +6,6 @@ type RequiredEnvKey =
   | "TRAIL_INTERNAL_API_KEY"
   | "TRAIL_AUTH_BASE_URL"
   | "TRAIL_EXTENSION_JWT_SECRET"
-  | "AUTH0_DOMAIN"
   | "WAITLIST_PROVIDER_ENDPOINT"
   | "WAITLIST_PROVIDER_TOKEN";
 
@@ -33,7 +32,6 @@ const requiredEnvVars: RequiredEnvKey[] = [
   "TRAIL_INTERNAL_API_KEY",
   "TRAIL_AUTH_BASE_URL",
   "TRAIL_EXTENSION_JWT_SECRET",
-  "AUTH0_DOMAIN",
   "WAITLIST_PROVIDER_ENDPOINT",
   "WAITLIST_PROVIDER_TOKEN",
 ];
@@ -44,4 +42,3 @@ export const env = {
   ...resolved,
   ACCOUNT_AUTH_BYPASS: process.env.ACCOUNT_AUTH_BYPASS === "1",
 };
-

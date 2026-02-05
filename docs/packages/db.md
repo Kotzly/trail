@@ -24,13 +24,13 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  auth0Id   String   @unique
-  email     String?
-  name      String?
+  email     String   @unique
+  name      String
+  image     String?
   imageUrl  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  loginCodes ExtensionLoginCode[]
+  extensionLoginCodes ExtensionLoginCode[]
 }
 
 model ExtensionLoginCode {
@@ -38,9 +38,10 @@ model ExtensionLoginCode {
   code      String   @unique
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
   expiresAt DateTime
   usedAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 ```
 

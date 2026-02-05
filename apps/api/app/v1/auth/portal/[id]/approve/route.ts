@@ -19,12 +19,12 @@ export async function POST(
   }
 
   const token = getBearerToken(request.headers);
-  const auth0User = await verifyUserToken(token);
-  if (!auth0User) {
+  const authUser = await verifyUserToken(token);
+  if (!authUser) {
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const user = await ensureUser(auth0User);
+  const user = await ensureUser(authUser);
   if (!user) {
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }

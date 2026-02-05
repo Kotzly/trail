@@ -1,8 +1,8 @@
 -- DropIndex
-DROP INDEX "User_auth0Id_key";
+DROP INDEX "User_legacyAuthId_key";
 
 -- AlterTable
-ALTER TABLE "User" DROP COLUMN "auth0Id",
+ALTER TABLE "User" DROP COLUMN "legacyAuthId",
 ADD COLUMN     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "image" TEXT,
 ALTER COLUMN "email" SET NOT NULL,

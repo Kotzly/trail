@@ -34,7 +34,7 @@
 ### 2.3 Signed-in user → Extension page (link browser)
 
 1. Nav or dashboard CTA: **“Extension”** → `/extension`.
-2. If not signed in → redirect to Auth0 login with `returnTo=/extension`.
+2. If not signed in → redirect to Better Auth login with `returnTo=/extension`.
 3. Signed in: **“Status”** section — if no code in URL: empty state “Connect your browser”, CTA to start connection flow.
 4. With `?code=...` in URL (from extension): server creates/uses login code for this user, shows “Connected” state.
 5. Device section: primary device “Connected” / “—”, last seen “—” (or value when backend supports it).
@@ -43,7 +43,7 @@
 ### 2.4 Signed-in user → Settings
 
 1. **Settings** → `/settings`.
-2. Profile: name, email, avatar (Auth0); “Manage in Auth0” link; “Sign out”.
+2. Profile: name, email, avatar (Better Auth); “Manage in Better Auth” link; “Sign out”.
 3. Security: change password, sessions (current session noted; “Sign out everywhere” coming soon).
 4. No Trail-specific profile fields required for MVP.
 
@@ -55,7 +55,7 @@
 
 ### 2.6 Sign-out
 
-1. Settings or nav: **“Sign out”** → Auth0 logout + redirect to marketing or account landing.
+1. Settings or nav: **“Sign out”** → Better Auth logout + redirect to marketing or account landing.
 2. Session cleared; next visit requires login.
 
 ---
@@ -68,9 +68,9 @@
 | **Session expired mid-flow** | API/tRPC returns 401; show “Session expired” and redirect to login. |
 | **tRPC/API down** | Dashboard: health check fails; show “checking” or error state; do not block render of static copy. |
 | **Extension page with invalid or expired ?code=** | Create new code and redirect to `/extension?code=<newCode>` so extension can retry; or show “Link expired” and prompt to start again. |
-| **User has no DB record (first Auth0 login)** | ensureUser creates User; then extension code can be created. |
+| **User has no DB record (first Better Auth login)** | ensureUser creates User; then extension code can be created. |
 | **Billing portal redirect fails or user closes** | User remains on /billing; can retry “Manage billing”. |
-| **Auth0 bypass (e.g. dev)** | isAuthBypassed() allows access without session; extension page can still show; document only for dev. |
+| **Better Auth bypass (e.g. dev)** | isAuthBypassed() allows access without session; extension page can still show; document only for dev. |
 | **Empty “Recent trails” forever** | Copy explains “connect extension”; no dead-end. Stats (sessions, trails) show 0 or placeholder until backend provides. |
 | **Very long display name** | Truncate or allow wrap in header/dashboard; fallback “trail member”. |
 
@@ -78,8 +78,8 @@
 
 ## 4. Technical Constraints
 
-- **Stack:** Next.js (App Router), Auth0, tRPC client to api.gettrail.net, `@trail/ui`, `@trail/content`. Vercel.
-- **Auth:** Auth0 SDK; session in cookie. Protected routes: (app) layout checks session; redirect to login when missing.
+- **Stack:** Next.js (App Router), Better Auth, tRPC client to api.gettrail.net, `@trail/ui`, `@trail/content`. Vercel.
+- **Auth:** Better Auth SDK; session in cookie. Protected routes: (app) layout checks session; redirect to login when missing.
 - **Data:** tRPC `health`, `me`; dashboard stats (sessions, trails) from API when implemented. No direct DB access from app.
 - **Extension codes:** Created via internal API (account → api.gettrail.net); account app calls POST internal/extension/login-code with userId.
 - **Billing:** Stripe; portal session created server-side (v1 or tRPC); redirect to Stripe, return URL to /billing.

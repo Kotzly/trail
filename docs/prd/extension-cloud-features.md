@@ -23,7 +23,7 @@
 3. Extension calls backend to **start auth portal**: POST (account app or API) with `source=extension`, `locale`, `returnUrl`.
 4. Backend creates portal session (id, url, expiresAt, pollIntervalMs); returns url.
 5. Extension opens `portalSession.url` in a new tab (e.g. `chrome.tabs.create`).
-6. User lands on account app (or Auth0) and signs in; after auth, account app shows “Connected” or redirects to extension page with code.
+6. User lands on account app (or Better Auth) and signs in; after auth, account app shows “Connected” or redirects to extension page with code.
 7. Extension **polls** `checkAuthPortal(portalSession.id)` until:
    - **approved:** backend returns snapshot (or extension fetches snapshot); extension stores token from snapshot or from exchange step.
    - **expired:** extension shows “Sign-in link expired. Please try again.”; user can start again.
@@ -71,7 +71,7 @@
 | **Exchange: code expired** | Same as above; clear message “Code expired”. |
 | **Token expired while using extension** | API returns 401; extension clears token and shows “Sign in” again. |
 | **Multiple tabs/windows:** same extension, same token | Token in chrome.storage.local is shared; all tabs see same account state. |
-| **User signs in on different Auth0 identity** | New userId; new code/token; old token (old userId) still valid until exp. No automatic revoke of old token. |
+| **User signs in on different Better Auth identity** | New userId; new code/token; old token (old userId) still valid until exp. No automatic revoke of old token. |
 | **Internal API (login-code) unavailable** | Account app cannot create code; show error on /extension; extension cannot complete code flow. |
 | **CORS / extension origin** | Exchange and portal endpoints must allow extension origin or be called from account app only (exchange from extension may use fetch to account app with credentials/cookie if same domain, or proxy). Document: if extension calls account app directly, account app must allow extension’s origin. |
 
@@ -80,7 +80,7 @@
 ## 4. Technical Constraints
 
 - **Extension:** Chrome/Brave (Chromium); messaging via chrome.runtime; storage chrome.storage.local for token. No cookie access to app.gettrail.net unless same-site.
-- **Auth portal:** Implemented on account app (or API); returns URL that leads to Auth0 login then back to account app; portal session stored server-side with short TTL (e.g. 5–10 min).
+- **Auth portal:** Implemented on account app (or API); returns URL that leads to Better Auth login then back to account app; portal session stored server-side with short TTL (e.g. 5–10 min).
 - **Login codes:** Stored in DB (ExtensionLoginCode); unique code; userId; expiresAt; usedAt. Created via internal API (account → API). Single use.
 - **JWT:** HS256; secret in env (TRAIL_EXTENSION_JWT_SECRET); payload sub=userId, iat, exp. TTL e.g. 30 days. Extension does not decode; sends as Bearer.
 - **API:** Protected routes require Authorization: Bearer <token>; verifyExtensionAccessToken on API or account app. API does not create tokens; account app creates and returns token after exchange.

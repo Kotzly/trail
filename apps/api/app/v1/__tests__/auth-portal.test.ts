@@ -79,7 +79,7 @@ describe("auth portal flow", () => {
   });
 
   it("approves a portal session", async () => {
-    authMocks.verifyUserToken.mockResolvedValue({ sub: "auth0|1" });
+    authMocks.verifyUserToken.mockResolvedValue({ sub: "user-1" });
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
     portalMocks.approvePortalSession.mockResolvedValue({
       ok: true,

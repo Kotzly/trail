@@ -1,7 +1,7 @@
 # Account App: Auth and Extension Login
 
 **Scope:** `apps/account/` — app.gettrail.net  
-**Purpose:** Auth0 SSO; extension login via one-time codes and token exchange; internal API calls from account to API app.
+**Purpose:** Better Auth SSO; extension login via one-time codes and token exchange; internal API calls from account to API app.
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Role | Path |
 |------|------|
-| Auth0 config | `apps/account/src/lib/auth0.ts` |
+| Auth session helper | `apps/account/src/lib/auth.ts` |
 | Extension auth (JWT create/verify) | `apps/account/src/server/extension-auth.ts` |
 | Extension login (code create, exchange) | `apps/account/src/server/extension-login.ts` |
 | Internal API client | `apps/account/src/server/internal-api.ts` |
@@ -41,7 +41,7 @@ verifyExtensionAccessToken(token: string): ExtensionTokenPayload | null
 
 ### Exchange flow
 
-1. User signs in on app.gettrail.net (Auth0).  
+1. User signs in on app.gettrail.net (Better Auth).  
 2. User opens extension “link account” flow; extension shows code input or QR/link.  
 3. User goes to account app extension page; enters code (or app generates code for user to type in extension).  
 4. Account app calls internal API to create/validate code and associate with user.  
@@ -58,14 +58,14 @@ verifyExtensionAccessToken(token: string): ExtensionTokenPayload | null
 2. **Exchange route**  
    POST `/api/extension/exchange`: body has code (and maybe client_id); verify code via API or local DB, create JWT with createExtensionAccessToken, return { token, expiresAt }.
 
-3. **Auth0**  
-   Session from Auth0; user id (auth0Id) mapped to DB User; extension token sub = userId (cuid).
+3. **Better Auth**  
+   Session from Better Auth; user id is mapped to DB User; extension token sub = userId (cuid).
 
 ---
 
 ## Env
 
-- Account: Auth0 vars; `TRAIL_EXTENSION_JWT_SECRET` for signing.  
+- Account: Better Auth vars; `TRAIL_EXTENSION_JWT_SECRET` for signing.  
 - API: internal key for account→API calls; extension login code creation.
 
 ---

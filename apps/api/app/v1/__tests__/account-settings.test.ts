@@ -40,7 +40,7 @@ describe("v1 account settings", () => {
   });
 
   it("returns default TTL when settings are missing", async () => {
-    authMocks.verifyUserToken.mockResolvedValue({ sub: "auth0|1" });
+    authMocks.verifyUserToken.mockResolvedValue({ sub: "user-1" });
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
     dbMocks.db.accountSettings.findUnique.mockResolvedValue(null);
 
@@ -56,7 +56,7 @@ describe("v1 account settings", () => {
   });
 
   it("updates device session TTL", async () => {
-    authMocks.verifyUserToken.mockResolvedValue({ sub: "auth0|1" });
+    authMocks.verifyUserToken.mockResolvedValue({ sub: "user-1" });
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
     dbMocks.db.accountSettings.upsert.mockResolvedValue({
       userId: "user-1",

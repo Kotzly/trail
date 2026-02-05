@@ -123,7 +123,7 @@ export function OnboardingModal() {
   if (isLoading || !isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-lg">
       <div className="relative w-full max-w-lg rounded-[28px] border border-border/60 bg-surface p-8 shadow-2xl">
         {/* Close button */}
         <button

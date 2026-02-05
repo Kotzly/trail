@@ -41,7 +41,7 @@
 ### Users
 
 - **POST /api/internal/users/ensure**  
-  Body: auth0 or identity payload; ensure User exists (by auth0Id); return user id or user object. Used after Auth0 login.
+  Body: identity payload; ensure User exists by `id`; return user id or user object. Used after Better Auth login.
 
 - **GET /api/internal/users/[id]**  
   Return user by id; internal only.
@@ -57,7 +57,7 @@
    Stored in Prisma ExtensionLoginCode; code = random string; userId links to User; expiresAt; usedAt set when code is exchanged.
 
 3. **Idempotent ensure**  
-   ensure user: find by auth0Id; if not found, create; return user.
+   ensure user: find by user id; if not found, create; return user.
 
 ---
 
