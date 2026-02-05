@@ -1,6 +1,5 @@
 import { createAuthClient } from "better-auth/client";
-import { emailOTPClient } from "better-auth/client/plugins/email-otp";
-import { jwtClient } from "better-auth/client/plugins/jwt";
+import { emailOTPClient, jwtClient } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
   plugins: [emailOTPClient(), jwtClient()]
