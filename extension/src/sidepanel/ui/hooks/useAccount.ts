@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { getAccountSnapshot, normalizeAccountError } from '../../api/account.js';
 import { useStore } from '../state/store.js';
 
+
 export function useAccount(): void {
-  const setAccount = useStore((state) => state.setAccount);
-  const setAccountSnapshot = useStore((state) => state.setAccountSnapshot);
+  // todo: fix this shit
+  const setAccount = useStore((state: any) => state.setAccount);
+  const setAccountSnapshot = useStore((state: any) => state.setAccountSnapshot);
 
   useEffect(() => {
     let mounted = true;
@@ -16,7 +18,7 @@ export function useAccount(): void {
     const handleOnline = () => updateNetwork(true);
     const handleOffline = () => updateNetwork(false);
 
-    if (typeof window !== 'undefined') {
+    if (window) {
       window.addEventListener('online', handleOnline);
       window.addEventListener('offline', handleOffline);
       updateNetwork(navigator.onLine);
@@ -43,7 +45,7 @@ export function useAccount(): void {
 
     return () => {
       mounted = false;
-      if (typeof window !== 'undefined') {
+      if (window) {
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
       }

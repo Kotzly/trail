@@ -1,9 +1,7 @@
 import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 import { BackgroundArt } from "@trail/ui";
-import { CallToAction } from "./components/CallToAction";
 import { MarketingFooter } from "./components/MarketingFooter";
-import { MarketingHero } from "./components/MarketingHero";
 import { MarketingNav } from "./components/MarketingNav";
 import { Showcase } from "./components/Showcase";
 import { BentoFeatures } from "./components/sections/BentoFeatures";
@@ -11,6 +9,8 @@ import { FAQSection } from "./components/sections/FAQSection";
 import { PersonalizationSection } from "./components/sections/PersonalizationSection";
 import { PricingSection } from "./components/sections/PricingSection";
 import { TestimonialsSection } from "./components/sections/TestimonialsSection";
+import { HeroDitheringCard } from "./components/ui/hero-dithering-card";
+import { CallToAction } from "./components/CallToAction";
 import { HomeLoading } from "./components/page-wrapper";
 import { buildMetadata } from "../lib/seo";
 
@@ -29,7 +29,17 @@ export default function HomePage() {
         <main className="relative overflow-hidden">
           <BackgroundArt variant="grid" className="opacity-70" />
           <div className="relative">
-            <MarketingHero />
+            <HeroDitheringCard
+              eyebrow="Browser app · free beta"
+              title="Turn browsing into"
+              rotatingWords={["shareable paths", "clear decisions", "organized research", "team context", "calm workflows"]}
+              description="Capture every meaningful step, add notes when it matters, and share a clean research path instead of a tab dump."
+              ctaText="Get the extension"
+              ctaHref="/downloads"
+              secondaryCtaText="See the 60s demo"
+              secondaryCtaHref="/#showcase"
+              showStats={true}
+            />
             <Showcase />
             <BentoFeatures />
             <PersonalizationSection />
