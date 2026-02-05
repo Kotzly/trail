@@ -27,7 +27,7 @@ const getFormValue = (formData: FormData, key: string): string => {
 
 const normalizeError = (error: unknown): string => {
   if (!error) {
-    return "Не удалось обновить профиль.";
+    return "failed to update profile";
   }
 
   if (typeof error === "string") {
@@ -38,11 +38,11 @@ const normalizeError = (error: unknown): string => {
     return error.message;
   }
 
-  if (typeof error === "object" && error && "message" in error) {
+  if (typeof error === "object" && "message" in error) {
     return String((error as { message?: unknown }).message ?? error);
   }
 
-  return "Не удалось обновить профиль.";
+  return "failed to update profile";
 };
 
 export async function updateAccountAction(
@@ -57,7 +57,7 @@ export async function updateAccountAction(
   if (!session?.user?.id) {
     return {
       status: "error",
-      message: "Сессия истекла. Войдите снова.",
+      message: "session expired. please login again",
     };
   }
 
@@ -72,14 +72,14 @@ export async function updateAccountAction(
   if (!name) {
     return {
       status: "error",
-      message: "Укажите имя и фамилию.",
+      message: "please enter your name and last name",
     };
   }
 
   if (!email || !EMAIL_PATTERN.test(email)) {
     return {
       status: "error",
-      message: "Введите корректный email.",
+      message: "please enter a valid email",
     };
   }
 
@@ -116,13 +116,13 @@ export async function updateAccountAction(
       return {
         status: "success",
         message:
-          "Профиль обновлён. Подтвердите новый email через письмо, если это потребуется.",
+          "profile updated. please confirm your new email via email, if required",
       };
     }
 
     return {
       status: "success",
-      message: "Профиль обновлён.",
+      message: "profile updated successfully",
     };
   } catch (error) {
     return {
