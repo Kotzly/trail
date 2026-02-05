@@ -18,6 +18,22 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
   },
+  emailVerification: {
+    async sendVerificationEmail({ user, url }) {
+      const provider = mailgunProvider();
+      await provider.send({
+        to: user.email,
+        subject: "Verify your Trail email",
+        text: `Open this link to verify your Trail email: ${url}`,
+      });
+    },
+  },
+  user: {
+    changeEmail: {
+      enabled: true,
+      updateEmailWithoutVerification: true,
+    },
+  },
   socialProviders: {
     google: {
       clientId: env.GOOGLE_CLIENT_ID,

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/src/auth-client";
+import { LoginView } from "@trail/ui/auth";
 
 const buildBridgeUrl = (returnTo: string) =>
   `/auth/bridge?returnTo=${encodeURIComponent(returnTo)}`;
@@ -206,207 +207,27 @@ export function LoginClient() {
   };
 
   return (
-    <main
-      style={{
-        margin: "0 auto",
-        maxWidth: "420px",
-        padding: "48px 24px",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
-      }}
-    >
-      <header style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <h1 style={{ margin: 0, fontSize: "28px" }}>Trail вход</h1>
-        <p style={{ margin: 0, color: "#4b5563" }}>
-          Получите одноразовый код, войдите по паролю или через OAuth.
-        </p>
-      </header>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        Email
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@company.com"
-          autoComplete="email"
-          style={{
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-          }}
-        />
-      </label>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        Имя
-        <input
-          type="text"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Имя"
-          autoComplete="name"
-          style={{
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-          }}
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={handleSendOtp}
-        disabled={isSending}
-        style={{
-          padding: "10px 12px",
-          borderRadius: "8px",
-          border: "1px solid #111827",
-          background: "#111827",
-          color: "#ffffff",
-          cursor: isSending ? "not-allowed" : "pointer",
-        }}
-      >
-        {isSending ? "Отправляем код..." : "Отправить код"}
-      </button>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        Код из письма
-        <input
-          type="text"
-          value={otp}
-          onChange={(event) => setOtp(event.target.value)}
-          placeholder="123456"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          style={{
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-          }}
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={handleSignIn}
-        disabled={isSigningIn}
-        style={{
-          padding: "10px 12px",
-          borderRadius: "8px",
-          border: "1px solid #111827",
-          background: "#ffffff",
-          color: "#111827",
-          cursor: isSigningIn ? "not-allowed" : "pointer",
-        }}
-      >
-        {isSigningIn ? "Входим по коду..." : "Войти по коду"}
-      </button>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        Пароль
-        <input
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="Введите пароль"
-          autoComplete="current-password"
-          style={{
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-          }}
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={handlePasswordSignIn}
-        disabled={isPasswordSigningIn}
-        style={{
-          padding: "10px 12px",
-          borderRadius: "8px",
-          border: "1px solid #111827",
-          background: "#ffffff",
-          color: "#111827",
-          cursor: isPasswordSigningIn ? "not-allowed" : "pointer",
-        }}
-      >
-        {isPasswordSigningIn ? "Входим по паролю..." : "Войти по паролю"}
-      </button>
-
-      <button
-        type="button"
-        onClick={handleSignUp}
-        disabled={isSigningUp}
-        style={{
-          padding: "10px 12px",
-          borderRadius: "8px",
-          border: "1px solid #111827",
-          background: "#111827",
-          color: "#ffffff",
-          cursor: isSigningUp ? "not-allowed" : "pointer",
-        }}
-      >
-        {isSigningUp ? "Регистрируем..." : "Зарегистрироваться"}
-      </button>
-
-      <div
-        style={{
-          marginTop: "8px",
-          fontSize: "14px",
-          color: "#6b7280",
-        }}
-      >
-        Или продолжить через
-      </div>
-
-      <div style={{ display: "flex", gap: "12px" }}>
-        <button
-          type="button"
-          onClick={() => handleSocial("google")}
-          disabled={oauthLoading === "google"}
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            background: "#ffffff",
-            cursor: oauthLoading === "google" ? "not-allowed" : "pointer",
-          }}
-        >
-          {oauthLoading === "google" ? "Google..." : "Google"}
-        </button>
-        <button
-          type="button"
-          onClick={() => handleSocial("github")}
-          disabled={oauthLoading === "github"}
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            background: "#ffffff",
-            cursor: oauthLoading === "github" ? "not-allowed" : "pointer",
-          }}
-        >
-          {oauthLoading === "github" ? "GitHub..." : "GitHub"}
-        </button>
-      </div>
-
-      {status ? (
-        <p role="status" style={{ margin: 0, color: "#047857" }}>
-          {status}
-        </p>
-      ) : null}
-
-      {error ? (
-        <p role="alert" style={{ margin: 0, color: "#b91c1c" }}>
-          {error}
-        </p>
-      ) : null}
-    </main>
+    <LoginView
+      email={email}
+      name={name}
+      otp={otp}
+      password={password}
+      status={status}
+      error={error}
+      isSending={isSending}
+      isSigningIn={isSigningIn}
+      isPasswordSigningIn={isPasswordSigningIn}
+      isSigningUp={isSigningUp}
+      oauthLoading={oauthLoading}
+      onEmailChange={setEmail}
+      onNameChange={setName}
+      onOtpChange={setOtp}
+      onPasswordChange={setPassword}
+      onSendOtp={handleSendOtp}
+      onSignIn={handleSignIn}
+      onPasswordSignIn={handlePasswordSignIn}
+      onSignUp={handleSignUp}
+      onSocial={handleSocial}
+    />
   );
 }

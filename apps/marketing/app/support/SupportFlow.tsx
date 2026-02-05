@@ -3,7 +3,19 @@
 import * as React from "react";
 
 import { marketingCopy } from "@trail/content";
-import { Button, Card, cn } from "@trail/ui";
+import { Button, cn } from "@trail/ui";
+import styles from "./SupportFlow.module.css";
+import {
+  DetailsPanel,
+  FaqItem,
+  PanelCard,
+  SelectField,
+  StatusNote,
+  StepBadge,
+  TextAreaField,
+  TextInputField,
+  TriageCard,
+} from "./primitives";
 
 type SupportPath = "bug" | "account" | "feature" | "faq";
 
@@ -44,6 +56,13 @@ const QUICK_CHECKS_ACCOUNT = [
     hint: "If it loops, hard refresh first.",
   },
 ] as const;
+
+const FEATURE_FREQUENCY_OPTIONS = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "sometimes", label: "Sometimes" },
+  { value: "rarely", label: "Rarely" },
+];
 
 function encodeMailto(email: string, subject: string, body: string) {
   const params = new URLSearchParams({ subject, body });
@@ -142,105 +161,6 @@ function formatDiagnostics(input: {
     `OS: ${input.os || "(unknown)"}`,
     `Add-on version: ${input.extensionVersion?.trim() || "(not provided)"}`,
   ].join("\n");
-}
-
-function StepBadge({ step, label }: { step: number; label: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-semibold text-cta-fg">
-        {step}
-      </span>
-      <p className="font-display text-base font-semibold text-ink">{label}</p>
-    </div>
-  );
-}
-
-function TriageCard({
-  title,
-  description,
-  selected,
-  onClick,
-  tone = "default",
-}: {
-  title: string;
-  description: string;
-  selected: boolean;
-  onClick: () => void;
-  tone?: "default" | "muted";
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "group relative w-full rounded-3xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
-        tone === "default" ? "bg-surface/70" : "bg-surface/50",
-        selected
-          ? "border-accent/40 shadow-elev-1"
-          : "border-stroke/40 hover:border-accent/30 hover:bg-surface/70",
-      )}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="font-display text-lg font-semibold tracking-tight text-ink">
-            {title}
-          </p>
-          <p className="mt-2 text-sm text-ink-subtle">{description}</p>
-        </div>
-        <span
-          aria-hidden="true"
-          className={cn(
-            "mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-stroke/60 bg-surface/70 text-ink/70 transition",
-            selected
-              ? "border-ink/25 text-ink"
-              : "group-hover:border-ink/25 group-hover:text-ink",
-          )}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path
-              d="M9 18l6-6-6-6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function FaqItem({ question, answer }: { question: string; answer: string }) {
-  return (
-    <details className="group rounded-2xl border border-stroke/50 bg-surface/70 px-5 py-4 transition hover:border-ink/20">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-        <span className="font-display text-sm font-semibold text-ink">
-          {question}
-        </span>
-        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-stroke/60 bg-surface/70 text-ink/70 transition group-hover:border-ink/25 group-hover:text-ink group-open:rotate-180">
-          <svg
-            viewBox="0 0 24 24"
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path
-              d="M6 9l6 6 6-6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-      </summary>
-      <p className="mt-3 text-sm text-ink-subtle">{answer}</p>
-    </details>
-  );
 }
 
 export function SupportFlow() {
@@ -433,19 +353,17 @@ export function SupportFlow() {
   }, [faq.items, faqQuery]);
 
   return (
-    <section className="relative mx-auto max-w-6xl px-6 pb-14 pt-10">
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="trail-eyebrow text-ink-subtle">{support.eyebrow}</p>
-        <h2 className="mt-5 font-display text-4xl font-semibold leading-tight text-ink md:text-5xl">
-          {support.title}
-        </h2>
-        <p className="mt-4 text-[1rem] text-ink-muted">{support.subtitle}</p>
+    <section className={styles.section}>
+      <div className={styles.head}>
+        <p className={cn("trail-eyebrow")}>{support.eyebrow}</p>
+        <h2 className={styles.title}>{support.title}</h2>
+        <p className={styles.subtitle}>{support.subtitle}</p>
       </div>
 
-      <div className="mx-auto mt-8 max-w-5xl space-y-6">
-        <Card className="trail-panel p-6 reveal">
+      <div className={styles.topStack}>
+        <PanelCard>
           <StepBadge step={1} label="Choose a topic" />
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className={styles.triageGrid}>
             <TriageCard
               title="Something's broken"
               description="Add-on issues, capture problems, sharing bugs."
@@ -475,16 +393,13 @@ export function SupportFlow() {
               onClick={() => setPath("faq")}
             />
           </div>
-        </Card>
+        </PanelCard>
 
         {path ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-ink-subtle">
+          <div className={styles.pathRow}>
             <span>
               Need human help? Email{" "}
-              <a
-                className="font-semibold text-ink underline underline-offset-4"
-                href={`mailto:${support.email}`}
-              >
+              <a className={styles.supportMail} href={`mailto:${support.email}`}>
                 {support.email}
               </a>
               .
@@ -492,7 +407,7 @@ export function SupportFlow() {
             <button
               type="button"
               onClick={() => setPath(null)}
-              className="rounded-full border border-stroke/60 bg-surface/60 px-4 py-2 text-xs font-semibold text-ink-subtle transition hover:border-ink/20 hover:text-ink"
+              className={styles.backButton}
             >
               back
             </button>
@@ -500,10 +415,10 @@ export function SupportFlow() {
         ) : null}
       </div>
 
-      <div ref={detailsRef} className="mx-auto mt-10 max-w-5xl space-y-6">
+      <div ref={detailsRef} className={styles.detailsStack}>
         {path === "bug" || path === "account" ? (
           <>
-            <Card className="trail-panel p-6 reveal">
+            <PanelCard>
               <StepBadge
                 step={2}
                 label={
@@ -512,22 +427,22 @@ export function SupportFlow() {
                     : "Quick checks for bugs"
                 }
               />
-              <div className="mt-4 flex items-center justify-between gap-3 text-xs text-ink-subtle">
+              <div className={styles.progressRow}>
                 <span>
                   {checksDoneCount}/{checksTotal} done
                 </span>
                 <span>takes ~30s</span>
               </div>
 
-              <div className="mt-5 space-y-3">
+              <div className={styles.checkList}>
                 {activeChecks.map((item) => {
                   const checked = Boolean(checks[item.id]);
                   return (
                     <label
                       key={item.id}
                       className={cn(
-                        "flex cursor-pointer items-start gap-3 rounded-2xl border border-stroke/50 bg-surface/70 px-4 py-3 transition hover:border-ink/20",
-                        checked ? "border-ink/20" : null,
+                        styles.checkItem,
+                        checked ? styles.checkItemChecked : null,
                       )}
                     >
                       <input
@@ -539,86 +454,60 @@ export function SupportFlow() {
                             [item.id]: event.target.checked,
                           }));
                         }}
-                        className="mt-1 h-4 w-4"
+                        className={styles.checkInput}
                       />
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-ink">
-                          {item.label}
-                        </span>
-                        <span className="mt-1 block text-xs text-ink-subtle">
-                          {item.hint}
-                        </span>
+                      <span>
+                        <span className={styles.checkLabel}>{item.label}</span>
+                        <span className={styles.checkHint}>{item.hint}</span>
                       </span>
                     </label>
                   );
                 })}
               </div>
 
-              <p className="mt-5 text-xs text-ink-subtle">
+              <p className={styles.caption}>
                 Still stuck? Finish the checklist to unlock the email button.
               </p>
-            </Card>
+            </PanelCard>
 
             {checksComplete ? (
               <div ref={stepThreeRef}>
-                <Card className="trail-panel p-6 reveal">
+                <PanelCard>
                   <StepBadge step={3} label="Send to support" />
-                  <p className="mt-3 text-sm text-ink-muted">
+                  <p className={styles.subtitle}>
                     Copy diagnostics, describe the issue, then email us.
                     Screenshots help.
                   </p>
 
-                  <div className="mt-5 grid gap-3">
-                    <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                      Account email (optional)
-                    </label>
-                    <input
+                  <div className={styles.formGroup}>
+                    <TextInputField
+                      label="Account email (optional)"
                       value={accountEmail}
                       onChange={(event) => setAccountEmail(event.target.value)}
                       placeholder="you@company.com"
                       autoComplete="email"
-                      className="trail-input"
                     />
                   </div>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-3">
-                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                        Client
-                      </label>
-                      <input
-                        value={browserLabel}
-                        readOnly
-                        className="trail-input cursor-default opacity-90"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                        OS
-                      </label>
-                      <input
-                        value={os}
-                        readOnly
-                        className="trail-input cursor-default opacity-90"
-                      />
-                    </div>
+                  <div className={styles.twoCols}>
+                    <TextInputField
+                      label="Client"
+                      value={browserLabel}
+                      readOnly
+                    />
+                    <TextInputField label="OS" value={os} readOnly />
                   </div>
 
-                  <div className="mt-4 grid gap-3">
-                    <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                      Add-on version (optional)
-                    </label>
-                    <input
+                  <div className={styles.formGroup}>
+                    <TextInputField
+                      label="Add-on version (optional)"
                       value={extensionVersion}
-                      onChange={(event) =>
-                        setExtensionVersion(event.target.value)
-                      }
+                      onChange={(event) => setExtensionVersion(event.target.value)}
                       placeholder="Find it in chrome://extensions"
-                      className="trail-input"
                     />
                   </div>
 
-                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <div className={styles.copyRow}>
                     <Button
                       type="button"
                       variant="outline"
@@ -631,73 +520,48 @@ export function SupportFlow() {
                           ? "Copy failed"
                           : "Copy diagnostic info"}
                     </Button>
-                    <span className="text-xs text-ink-subtle">
-                      Paste into your email if you prefer.
-                    </span>
+                    <StatusNote>Paste into your email if you prefer.</StatusNote>
                   </div>
 
-                  <div className="mt-6 grid gap-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                        What happened?
-                      </label>
-                      <textarea
-                        value={whatHappened}
-                        onChange={(event) =>
-                          setWhatHappened(event.target.value)
-                        }
-                        rows={3}
-                        placeholder="Describe what you see (error, loop, missing capture, etc.)"
-                        className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
-                      />
-                    </div>
+                  <div className={styles.textGrid}>
+                    <TextAreaField
+                      label="What happened?"
+                      value={whatHappened}
+                      onChange={(event) => setWhatHappened(event.target.value)}
+                      rows={3}
+                      placeholder="Describe what you see (error, loop, missing capture, etc.)"
+                    />
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                        What you expected
-                      </label>
-                      <input
-                        value={expected}
-                        onChange={(event) => setExpected(event.target.value)}
-                        placeholder="One sentence is enough"
-                        className="trail-input"
-                      />
-                    </div>
+                    <TextInputField
+                      label="What you expected"
+                      value={expected}
+                      onChange={(event) => setExpected(event.target.value)}
+                      placeholder="One sentence is enough"
+                    />
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                        Steps to reproduce
-                      </label>
-                      <textarea
-                        value={stepsToReproduce}
-                        onChange={(event) =>
-                          setStepsToReproduce(event.target.value)
-                        }
-                        rows={3}
-                        placeholder="1) Open… 2) Click… 3) See…"
-                        className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
-                      />
-                    </div>
+                    <TextAreaField
+                      label="Steps to reproduce"
+                      value={stepsToReproduce}
+                      onChange={(event) =>
+                        setStepsToReproduce(event.target.value)
+                      }
+                      rows={3}
+                      placeholder="1) Open… 2) Click… 3) See…"
+                    />
                   </div>
 
-                  <details className="mt-5 rounded-3xl border border-stroke/50 bg-surface/70 px-5 py-4">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                      <span className="text-sm font-semibold text-ink">
-                        What we love to see (optional)
-                      </span>
-                      <span className="text-xs text-ink-subtle">expand</span>
-                    </summary>
-                    <ul className="mt-4 space-y-2 text-sm text-ink-muted">
+                  <DetailsPanel title="What we love to see (optional)">
+                    <ul className={styles.detailsList}>
                       {support.include.map((item) => (
-                        <li key={item} className="flex items-start gap-3">
-                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-accent/60" />
+                        <li key={item} className={styles.detailsItem}>
+                          <span className={styles.detailsDot} />
                           <span>{item}</span>
                         </li>
                       ))}
                     </ul>
-                  </details>
+                  </DetailsPanel>
 
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <div className={styles.buttonRow}>
                     <Button
                       type="button"
                       size="lg"
@@ -707,10 +571,10 @@ export function SupportFlow() {
                       Email support
                     </Button>
                   </div>
-                </Card>
+                </PanelCard>
               </div>
             ) : (
-              <div className="rounded-3xl border border-dashed border-stroke/40 bg-surface/50 px-6 py-5 text-sm text-ink-subtle">
+              <div className={styles.lockedNotice}>
                 Complete the checklist above to unlock Step 3.
               </div>
             )}
@@ -718,75 +582,50 @@ export function SupportFlow() {
         ) : null}
 
         {path === "feature" ? (
-          <Card className="trail-panel p-7 reveal">
+          <PanelCard size="lg">
             <StepBadge step={2} label="Request a feature" />
-            <p className="mt-3 text-sm text-ink-muted">
+            <p className={styles.subtitle}>
               Tell us the outcome you want, what blocks you, and how often you
               hit this.
             </p>
 
-            <div className="mt-6 grid gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                  What are you trying to do?
-                </label>
-                <textarea
-                  value={featureGoal}
-                  onChange={(event) => setFeatureGoal(event.target.value)}
-                  rows={3}
-                  placeholder="Describe your goal (the job you are trying to get done)."
-                  className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+            <div className={styles.textGrid}>
+              <TextAreaField
+                label="What are you trying to do?"
+                value={featureGoal}
+                onChange={(event) => setFeatureGoal(event.target.value)}
+                rows={3}
+                placeholder="Describe your goal (the job you are trying to get done)."
+              />
+
+              <TextAreaField
+                label="What blocks you today?"
+                value={featureBlocker}
+                onChange={(event) => setFeatureBlocker(event.target.value)}
+                rows={3}
+                placeholder="What is missing or painful right now?"
+              />
+
+              <div className={styles.twoCols}>
+                <SelectField
+                  label="How often do you need this?"
+                  value={featureFrequency}
+                  onChange={(event) => setFeatureFrequency(event.target.value)}
+                  options={FEATURE_FREQUENCY_OPTIONS}
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                  What blocks you today?
-                </label>
-                <textarea
-                  value={featureBlocker}
-                  onChange={(event) => setFeatureBlocker(event.target.value)}
-                  rows={3}
-                  placeholder="What is missing or painful right now?"
-                  className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold tracking-[0.12em] text-ink-subtle">
-                    How often do you need this?
-                  </label>
-                  <select
-                    value={featureFrequency}
-                    onChange={(event) =>
-                      setFeatureFrequency(event.target.value)
-                    }
-                    className="h-11 w-full rounded-full border border-stroke/60 bg-surface px-4 text-sm text-ink shadow-inner focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
-                  >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="sometimes">Sometimes</option>
-                    <option value="rarely">Rarely</option>
-                  </select>
-                </div>
-                <details className="rounded-3xl border border-stroke/50 bg-surface/70 px-5 py-4">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                    <span className="text-sm font-semibold text-ink">
-                      More context (optional)
-                    </span>
-                    <span className="text-xs text-ink-subtle">expand</span>
-                  </summary>
+                <DetailsPanel title="More context (optional)">
                   <textarea
                     value={featureMore}
                     onChange={(event) => setFeatureMore(event.target.value)}
                     rows={4}
                     placeholder="Links, screenshots, examples, rough mockups…"
-                    className="mt-3 w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className={cn(styles.textarea, styles.detailsTextarea)}
                   />
-                </details>
+                </DetailsPanel>
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
+            <div className={styles.buttonRow}>
               <Button
                 type="button"
                 size="lg"
@@ -808,18 +647,18 @@ export function SupportFlow() {
                     : "Copy as text"}
               </Button>
             </div>
-          </Card>
+          </PanelCard>
         ) : null}
 
         {path === "faq" ? (
-          <Card className="trail-panel p-7 reveal">
+          <PanelCard size="lg">
             <StepBadge step={2} label="Search the FAQ" />
-            <p className="mt-3 text-sm text-ink-muted">
+            <p className={styles.subtitle}>
               Try keywords like &quot;privacy&quot;, &quot;platform&quot;,
               &quot;sync&quot;, &quot;account&quot;.
             </p>
 
-            <div className="mt-5">
+            <div className={styles.faqSearch}>
               <input
                 value={faqQuery}
                 onChange={(event) => setFaqQuery(event.target.value)}
@@ -828,11 +667,9 @@ export function SupportFlow() {
               />
             </div>
 
-            <div className="mt-6 space-y-3">
+            <div className={styles.faqList}>
               {filteredFaq.length === 0 ? (
-                <p className="text-sm text-ink-subtle">
-                  No matches. Try another keyword.
-                </p>
+                <p className={styles.faqEmpty}>No matches. Try another keyword.</p>
               ) : (
                 filteredFaq
                   .slice(0, 6)
@@ -846,7 +683,7 @@ export function SupportFlow() {
               )}
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
+            <div className={styles.buttonRow}>
               <Button.AsChild variant="outline" size="lg">
                 <a href="/faq">{support.faqCta}</a>
               </Button.AsChild>
@@ -859,7 +696,7 @@ export function SupportFlow() {
                 Still stuck? Start quick checks
               </Button>
             </div>
-          </Card>
+          </PanelCard>
         ) : null}
       </div>
     </section>
