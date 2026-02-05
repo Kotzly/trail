@@ -857,7 +857,19 @@ components:
 
     TrailSummary:
       type: object
-      required: [id, userId, deviceId, createdAt, updatedAt, savedAt, label, labelSource, labelUpdatedAt, nodeCount]
+      required:
+        [
+          id,
+          userId,
+          deviceId,
+          createdAt,
+          updatedAt,
+          savedAt,
+          label,
+          labelSource,
+          labelUpdatedAt,
+          nodeCount,
+        ]
       properties:
         id:
           type: string
@@ -984,7 +996,16 @@ components:
 
     Subscription:
       type: object
-      required: [id, planId, status, interval, currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd]
+      required:
+        [
+          id,
+          planId,
+          status,
+          interval,
+          currentPeriodStart,
+          currentPeriodEnd,
+          cancelAtPeriodEnd,
+        ]
       properties:
         id:
           type: string

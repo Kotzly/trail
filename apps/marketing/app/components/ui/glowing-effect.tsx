@@ -29,7 +29,7 @@ const GlowingEffect = memo(
     className,
     movementDuration = 2,
     borderWidth = 1,
-    disabled = true
+    disabled = true,
   }: GlowingEffectProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const lastPosition = useRef({ x: 0, y: 0 });
@@ -58,7 +58,7 @@ const GlowingEffect = memo(
           const center = [left + width * 0.5, top + height * 0.5];
           const distanceFromCenter = Math.hypot(
             mouseX - center[0],
-            mouseY - center[1]
+            mouseY - center[1],
           );
           const inactiveRadius = 0.5 * Math.min(width, height) * inactiveZone;
 
@@ -92,11 +92,11 @@ const GlowingEffect = memo(
             ease: [0.16, 1, 0.3, 1],
             onUpdate: (value) => {
               element.style.setProperty("--start", String(value));
-            }
+            },
           });
         });
       },
-      [inactiveZone, proximity, movementDuration]
+      [inactiveZone, proximity, movementDuration],
     );
 
     useEffect(() => {
@@ -107,7 +107,7 @@ const GlowingEffect = memo(
 
       window.addEventListener("scroll", handleScroll, { passive: true });
       document.body.addEventListener("pointermove", handlePointerMove, {
-        passive: true
+        passive: true,
       });
 
       return () => {
@@ -126,7 +126,7 @@ const GlowingEffect = memo(
             "pointer-events-none absolute -inset-px hidden rounded-[inherit] border opacity-0 transition-opacity",
             glow && "opacity-100",
             variant === "white" && "border-white",
-            disabled && "!block"
+            disabled && "!block",
           )}
         />
         <div
@@ -157,7 +157,7 @@ const GlowingEffect = memo(
                   #5a922c calc(50% / var(--repeating-conic-gradient-times)), 
                   #4c7894 calc(75% / var(--repeating-conic-gradient-times)),
                   #dd7bbb calc(100% / var(--repeating-conic-gradient-times))
-                )`
+                )`,
             } as CSSProperties
           }
           className={cn(
@@ -165,7 +165,7 @@ const GlowingEffect = memo(
             glow && "opacity-100",
             blur > 0 && "blur-[var(--blur)]",
             className,
-            disabled && "!hidden"
+            disabled && "!hidden",
           )}
         >
           <div
@@ -177,13 +177,13 @@ const GlowingEffect = memo(
               "after:opacity-[var(--active)] after:transition-opacity after:duration-300",
               "after:[mask-clip:padding-box,border-box]",
               "after:[mask-composite:intersect]",
-              "after:[mask-image:linear-gradient(#0000,#0000),conic-gradient(from_calc((var(--start)-var(--spread))*1deg),#00000000_0deg,#fff,#00000000_calc(var(--spread)*2deg))]"
+              "after:[mask-image:linear-gradient(#0000,#0000),conic-gradient(from_calc((var(--start)-var(--spread))*1deg),#00000000_0deg,#fff,#00000000_calc(var(--spread)*2deg))]",
             )}
           />
         </div>
       </>
     );
-  }
+  },
 );
 
 GlowingEffect.displayName = "GlowingEffect";

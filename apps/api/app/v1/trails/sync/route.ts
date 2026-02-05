@@ -2,6 +2,7 @@ import { getBearerToken } from "@/src/server/auth/headers";
 import { verifyExtensionToken } from "@/src/server/auth/extension-auth";
 import { jsonError } from "@/src/server/error-response";
 import { jsonNoStore } from "@/src/server/response";
+import { isJsonValue, type JsonValue } from "@/src/server/json";
 import { syncTrails } from "@/src/server/trails-sync";
 
 export const runtime = "nodejs";
@@ -13,13 +14,13 @@ type DbLabelSource = "USER" | "AUTO" | "SYSTEM";
 const API_TO_LABEL: Record<ApiLabelSource, DbLabelSource> = {
   user: "USER",
   auto: "AUTO",
-  system: "SYSTEM"
+  system: "SYSTEM",
 };
 
 const LABEL_TO_API: Record<DbLabelSource, ApiLabelSource> = {
   USER: "user",
   AUTO: "auto",
-  SYSTEM: "system"
+  SYSTEM: "system",
 };
 
 function toDbLabelSource(value: unknown): DbLabelSource | null {
@@ -58,15 +59,21 @@ export async function POST(request: Request) {
   const trails = Array.isArray(body?.trails) ? body.trails : null;
 
   if (!deviceId) {
-    return jsonError("device_id_required", "Device id is required.", { status: 400 });
+    return jsonError("device_id_required", "Device id is required.", {
+      status: 400,
+    });
   }
 
   if (!clientSyncAt) {
-    return jsonError("client_sync_at_required", "clientSyncAt is required.", { status: 400 });
+    return jsonError("client_sync_at_required", "clientSyncAt is required.", {
+      status: 400,
+    });
   }
 
   if (!trails) {
-    return jsonError("trails_required", "Trails payload is required.", { status: 400 });
+    return jsonError("trails_required", "Trails payload is required.", {
+      status: 400,
+    });
   }
 
   const normalized = [] as Array<{
@@ -82,13 +89,15 @@ export async function POST(request: Request) {
     rootUrl?: string | null;
     rootTitle?: string | null;
     rootFavicon?: string | null;
-    payload: unknown;
+    payload: JsonValue;
     deletedAt?: Date | null;
   }>;
 
   for (const trail of trails) {
     if (!trail || typeof trail !== "object") {
-      return jsonError("invalid_trail", "Invalid trail payload.", { status: 400 });
+      return jsonError("invalid_trail", "Invalid trail payload.", {
+        status: 400,
+      });
     }
 
     const id = typeof trail.id === "string" ? trail.id : "";
@@ -98,15 +107,36 @@ export async function POST(request: Request) {
     const createdAt = parseDate(trail.createdAt);
     const updatedAt = parseDate(trail.updatedAt);
     const savedAt = parseDate(trail.savedAt);
-    const nodeCount = typeof trail.nodeCount === "number" ? trail.nodeCount : null;
+    const nodeCount =
+      typeof trail.nodeCount === "number" ? trail.nodeCount : null;
 
-    if (!id || !label || !labelSource || !labelUpdatedAt || !createdAt || !updatedAt || !savedAt || nodeCount === null) {
-      return jsonError("invalid_trail", "Invalid trail payload.", { status: 400 });
+    if (
+      !id ||
+      !label ||
+      !labelSource ||
+      !labelUpdatedAt ||
+      !createdAt ||
+      !updatedAt ||
+      !savedAt ||
+      nodeCount === null
+    ) {
+      return jsonError("invalid_trail", "Invalid trail payload.", {
+        status: 400,
+      });
     }
 
     const deletedAt = parseNullableDate(trail.deletedAt);
     if (deletedAt === undefined) {
-      return jsonError("invalid_trail", "Invalid trail payload.", { status: 400 });
+      return jsonError("invalid_trail", "Invalid trail payload.", {
+        status: 400,
+      });
+    }
+
+    const payload = trail.payload ?? null;
+    if (!isJsonValue(payload)) {
+      return jsonError("invalid_trail", "Invalid trail payload.", {
+        status: 400,
+      });
     }
 
     normalized.push({
@@ -121,9 +151,10 @@ export async function POST(request: Request) {
       nodeCount,
       rootUrl: typeof trail.rootUrl === "string" ? trail.rootUrl : null,
       rootTitle: typeof trail.rootTitle === "string" ? trail.rootTitle : null,
-      rootFavicon: typeof trail.rootFavicon === "string" ? trail.rootFavicon : null,
-      payload: trail.payload ?? null,
-      deletedAt
+      rootFavicon:
+        typeof trail.rootFavicon === "string" ? trail.rootFavicon : null,
+      payload,
+      deletedAt,
     });
   }
 
@@ -131,7 +162,7 @@ export async function POST(request: Request) {
     userId: extension.sub,
     deviceId,
     clientSyncAt,
-    trails: normalized
+    trails: normalized,
   });
 
   return jsonNoStore({
@@ -150,7 +181,7 @@ export async function POST(request: Request) {
       rootTitle: trail.rootTitle ?? null,
       rootFavicon: trail.rootFavicon ?? null,
       payload: trail.payload,
-      deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null
-    }))
+      deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null,
+    })),
   });
 }

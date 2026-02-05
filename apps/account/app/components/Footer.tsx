@@ -5,7 +5,7 @@ export function Footer() {
   const { footer } = accountCopy;
 
   return (
-    <footer className="shrink-0 border-t border-border/60 bg-bg px-4 py-3 text-xs text-ink-muted lg:px-6">
+    <footer className="border-t border-border/60 bg-bg/70 px-4 py-4 text-xs text-ink-muted backdrop-blur lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <a

@@ -6,12 +6,12 @@ describe("mergeTrailUpdates", () => {
     const server = {
       id: "t1",
       updatedAt: new Date("2026-01-01T00:00:00Z"),
-      deletedAt: new Date("2026-01-02T00:00:00Z")
+      deletedAt: new Date("2026-01-02T00:00:00Z"),
     };
     const client = {
       id: "t1",
       updatedAt: new Date("2026-01-01T12:00:00Z"),
-      deletedAt: null
+      deletedAt: null,
     };
 
     const result = mergeTrailUpdates(server, client);

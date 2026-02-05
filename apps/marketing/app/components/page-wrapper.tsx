@@ -2,7 +2,15 @@
 
 import { Suspense, ReactNode } from "react";
 import { motion } from "framer-motion";
-import { SkeletonHero, SkeletonCard, SkeletonStats, SkeletonPricingCard, SkeletonBentoGrid, SkeletonTestimonial, SkeletonFAQ } from "./ui/skeleton";
+import {
+  SkeletonHero,
+  SkeletonCard,
+  SkeletonStats,
+  SkeletonPricingCard,
+  SkeletonBentoGrid,
+  SkeletonTestimonial,
+  SkeletonFAQ,
+} from "./ui/skeleton";
 
 interface PageWrapperProps {
   children: ReactNode;
@@ -40,7 +48,7 @@ export function HomeLoading() {
   return (
     <div className="min-h-screen bg-base">
       <div className="h-16 border-b border-stroke/40 bg-base/80" />
-      
+
       {/* Hero Skeleton */}
       <div className="px-6 pt-20 pb-16">
         <SkeletonHero />
@@ -79,7 +87,7 @@ export function PricingLoading() {
   return (
     <div className="min-h-screen bg-base">
       <div className="h-16 border-b border-stroke/40 bg-base/80" />
-      
+
       <div className="px-6 pt-20 pb-8">
         <SkeletonHero />
       </div>
@@ -103,10 +111,10 @@ export function DownloadsLoading() {
   return (
     <div className="min-h-screen bg-base">
       <div className="h-16 border-b border-stroke/40 bg-base/80" />
-      
+
       <div className="px-6 pt-20 pb-16">
         <SkeletonHero />
-        
+
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <SkeletonCard key={i} />
@@ -129,7 +137,7 @@ export function FAQLoading() {
   return (
     <div className="min-h-screen bg-base">
       <div className="h-16 border-b border-stroke/40 bg-base/80" />
-      
+
       <div className="px-6 pt-20 pb-8">
         <SkeletonHero />
       </div>
@@ -149,7 +157,7 @@ export function SupportLoading() {
   return (
     <div className="min-h-screen bg-base">
       <div className="h-16 border-b border-stroke/40 bg-base/80" />
-      
+
       <div className="px-6 pt-20 pb-8">
         <SkeletonHero />
       </div>
@@ -177,7 +185,7 @@ export function AboutLoading() {
   return (
     <div className="min-h-screen bg-base">
       <div className="h-16 border-b border-stroke/40 bg-base/80" />
-      
+
       <div className="px-6 pt-20 pb-16">
         <SkeletonHero />
         <SkeletonStats />
@@ -202,7 +210,7 @@ export function ContactLoading() {
   return (
     <div className="min-h-screen bg-base">
       <div className="h-16 border-b border-stroke/40 bg-base/80" />
-      
+
       <div className="px-6 pt-20 pb-8">
         <SkeletonHero />
       </div>
@@ -235,5 +243,3 @@ export function ContactLoading() {
     </div>
   );
 }
-
-

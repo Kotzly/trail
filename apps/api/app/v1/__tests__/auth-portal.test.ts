@@ -3,28 +3,28 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const portalMocks = vi.hoisted(() => ({
   createPortalSession: vi.fn(),
   getPortalSessionStatus: vi.fn(),
-  approvePortalSession: vi.fn()
+  approvePortalSession: vi.fn(),
 }));
 
 const authMocks = vi.hoisted(() => ({
-  verifyUserToken: vi.fn()
+  verifyUserToken: vi.fn(),
 }));
 
 const userMocks = vi.hoisted(() => ({
-  ensureUser: vi.fn()
+  ensureUser: vi.fn(),
 }));
 
 vi.mock("@/src/server/portal-sessions", () => ({
   ...portalMocks,
-  PORTAL_POLL_INTERVAL_MS: 1500
+  PORTAL_POLL_INTERVAL_MS: 1500,
 }));
 
 vi.mock("@/src/server/auth/user-auth", () => ({
-  ...authMocks
+  ...authMocks,
 }));
 
 vi.mock("@/src/server/user", () => ({
-  ...userMocks
+  ...userMocks,
 }));
 
 import { POST as startPortal } from "../auth/portal/route";
@@ -45,21 +45,21 @@ describe("auth portal flow", () => {
     portalMocks.createPortalSession.mockResolvedValue({
       id: "portal-1",
       expiresAt: new Date("2026-02-02T00:00:00Z"),
-      returnUrl: "chrome-extension://trail"
+      returnUrl: "chrome-extension://trail",
     });
 
     const response = await startPortal(
       new Request("http://localhost/v1/auth/portal", {
         method: "POST",
-        body: JSON.stringify({ returnUrl: "chrome-extension://trail" })
-      })
+        body: JSON.stringify({ returnUrl: "chrome-extension://trail" }),
+      }),
     );
 
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.id).toBe("portal-1");
     expect(payload.url).toBe(
-      "https://app.test/extension/confirm?portal=portal-1&returnUrl=chrome-extension%3A%2F%2Ftrail"
+      "https://app.test/extension/confirm?portal=portal-1&returnUrl=chrome-extension%3A%2F%2Ftrail",
     );
     expect(payload.pollIntervalMs).toBe(1500);
   });
@@ -67,11 +67,11 @@ describe("auth portal flow", () => {
   it("returns pending status", async () => {
     portalMocks.getPortalSessionStatus.mockResolvedValue({
       status: "pending",
-      session: { id: "portal-1" }
+      session: { id: "portal-1" },
     });
 
     const response = await getPortalStatus(new Request("http://localhost"), {
-      params: Promise.resolve({ id: "portal-1" })
+      params: Promise.resolve({ id: "portal-1" }),
     });
 
     const payload = await response.json();
@@ -83,15 +83,15 @@ describe("auth portal flow", () => {
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
     portalMocks.approvePortalSession.mockResolvedValue({
       ok: true,
-      session: { approvedAt: new Date("2026-02-02T01:00:00Z") }
+      session: { approvedAt: new Date("2026-02-02T01:00:00Z") },
     });
 
     const response = await approvePortal(
       new Request("http://localhost", {
         method: "POST",
-        headers: { Authorization: "Bearer test-token" }
+        headers: { Authorization: "Bearer test-token" },
       }),
-      { params: Promise.resolve({ id: "portal-1" }) }
+      { params: Promise.resolve({ id: "portal-1" }) },
     );
 
     const payload = await response.json();
@@ -105,19 +105,19 @@ describe("auth portal flow", () => {
       session: {
         id: "portal-1",
         extensionToken: "token-1",
-        extensionTokenExpiresAt: new Date("2026-03-01T00:00:00Z")
+        extensionTokenExpiresAt: new Date("2026-03-01T00:00:00Z"),
       },
       user: {
         id: "user-1",
         email: "user@test.com",
         name: "Test User",
         imageUrl: null,
-        createdAt: new Date("2026-01-01T00:00:00Z")
-      }
+        createdAt: new Date("2026-01-01T00:00:00Z"),
+      },
     });
 
     const response = await getPortalStatus(new Request("http://localhost"), {
-      params: Promise.resolve({ id: "portal-1" })
+      params: Promise.resolve({ id: "portal-1" }),
     });
 
     const payload = await response.json();

@@ -31,7 +31,7 @@ export function MarketingNav() {
       href: "/support",
       label: nav.support,
     },
-  ]
+  ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-stroke/40 bg-base/80 backdrop-blur">
@@ -57,7 +57,7 @@ export function MarketingNav() {
               className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}              
+              transition={{ duration: 0.3, ease: "easeInOut" }}
             >
               {item.label}
             </motion.a>
@@ -130,7 +130,9 @@ export function MarketingNav() {
           className="pt-4 flex flex-col items-center justify-center gap-4 text-sm font-medium text-ink"
           variants={{
             open: { transition: { staggerChildren: 0.04 } },
-            closed: { transition: { staggerChildren: 0.02, staggerDirection: -1 } },
+            closed: {
+              transition: { staggerChildren: 0.02, staggerDirection: -1 },
+            },
           }}
         >
           {niggas.map((item) => (

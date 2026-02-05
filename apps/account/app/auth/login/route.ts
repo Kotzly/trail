@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const TRAIL_AUTH_BASE_URL = process.env.TRAIL_AUTH_BASE_URL ?? "https://auth.gettrail.net";
+const TRAIL_AUTH_BASE_URL =
+  process.env.TRAIL_AUTH_BASE_URL ?? "https://auth.gettrail.net";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);

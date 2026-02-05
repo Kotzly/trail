@@ -14,24 +14,25 @@ const buttonVariants = cva(
         outline:
           "border border-border bg-transparent text-ink hover:bg-surface-high",
         ghost: "bg-transparent text-ink hover:bg-surface-high",
-        subtle: "bg-surface text-ink hover:bg-surface-high"
+        subtle: "bg-surface text-ink hover:bg-surface-high",
       },
       size: {
         default: "h-10 px-4",
         sm: "h-9 px-3 text-xs",
         lg: "h-11 px-6 text-base",
-        icon: "h-9 w-9"
-      }
+        icon: "h-9 w-9",
+      },
     },
     defaultVariants: {
       variant: "default",
-      size: "default"
-    }
-  }
+      size: "default",
+    },
+  },
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {}
 
 type ButtonComponent = React.ForwardRefExoticComponent<
@@ -52,8 +53,9 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonProps>(
       className={getButtonClasses({ className, variant, size })}
       {...props}
     />
-  )
+  ),
 );
+ButtonRoot.displayName = "ButtonRoot";
 
 const ButtonAsChild = React.forwardRef<HTMLElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => (
@@ -62,11 +64,12 @@ const ButtonAsChild = React.forwardRef<HTMLElement, ButtonProps>(
       className={getButtonClasses({ className, variant, size })}
       {...props}
     />
-  )
+  ),
 );
+ButtonAsChild.displayName = "ButtonAsChild";
 
 export const Button = Object.assign(ButtonRoot, {
-  AsChild: ButtonAsChild
+  AsChild: ButtonAsChild,
 }) as ButtonComponent;
 Button.displayName = "Button";
 Button.AsChild.displayName = "Button.AsChild";

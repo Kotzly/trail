@@ -1,5 +1,7 @@
 type TrailLabelSource = "USER" | "AUTO" | "SYSTEM";
 
+import { type JsonValue, toPrismaJsonInput } from "./json";
+
 type TrailSyncRecord = {
   id: string;
   deviceId?: string | null;
@@ -13,7 +15,7 @@ type TrailSyncRecord = {
   rootUrl?: string | null;
   rootTitle?: string | null;
   rootFavicon?: string | null;
-  payload: unknown;
+  payload: JsonValue;
   deletedAt?: Date | null;
 };
 
@@ -43,13 +45,18 @@ function isStaleAfterTombstone(params: {
 
 export function mergeTrailUpdates(
   server: { updatedAt: Date; deletedAt?: Date | null } | null,
-  client: { updatedAt: Date; deletedAt?: Date | null }
+  client: { updatedAt: Date; deletedAt?: Date | null },
 ): { applied: boolean } {
   if (!server) {
     return { applied: true };
   }
 
-  if (isStaleAfterTombstone({ serverDeletedAt: server.deletedAt, clientUpdatedAt: client.updatedAt })) {
+  if (
+    isStaleAfterTombstone({
+      serverDeletedAt: server.deletedAt,
+      clientUpdatedAt: client.updatedAt,
+    })
+  ) {
     return { applied: false };
   }
 
@@ -94,8 +101,8 @@ function toDbData(params: {
     rootUrl: trail.rootUrl ?? null,
     rootTitle: trail.rootTitle ?? null,
     rootFavicon: trail.rootFavicon ?? null,
-    payload: trail.payload,
-    deletedAt: trail.deletedAt ?? null
+    payload: toPrismaJsonInput(trail.payload),
+    deletedAt: trail.deletedAt ?? null,
   };
 
   if (!includeCreatedAt) {
@@ -104,11 +111,13 @@ function toDbData(params: {
 
   return {
     ...baseData,
-    createdAt: trail.createdAt
+    createdAt: trail.createdAt,
   };
 }
 
-export async function syncTrails(input: TrailSyncInput): Promise<TrailSyncOutput> {
+export async function syncTrails(
+  input: TrailSyncInput,
+): Promise<TrailSyncOutput> {
   const { db } = await import("@trail/db");
   const now = new Date();
   const cleanupBefore = new Date(now.getTime() - TOMBSTONE_RETENTION_MS);
@@ -116,8 +125,8 @@ export async function syncTrails(input: TrailSyncInput): Promise<TrailSyncOutput
   await db.trail.deleteMany({
     where: {
       userId: input.userId,
-      deletedAt: { lt: cleanupBefore }
-    }
+      deletedAt: { lt: cleanupBefore },
+    },
   });
 
   const clientTrails = normalizeClientTrails(input.trails);
@@ -127,12 +136,13 @@ export async function syncTrails(input: TrailSyncInput): Promise<TrailSyncOutput
     ? await db.trail.findMany({
         where: {
           userId: input.userId,
-          id: { in: ids }
-        }
+          id: { in: ids },
+        },
       })
     : [];
 
   const existingMap = new Map(existing.map((trail) => [trail.id, trail]));
+  const operations: Array<ReturnType<typeof db.trail.update>> = [];
 
   for (const trail of clientTrails) {
     const serverTrail = existingMap.get(trail.id) ?? null;
@@ -142,22 +152,40 @@ export async function syncTrails(input: TrailSyncInput): Promise<TrailSyncOutput
     }
 
     if (serverTrail) {
-      await db.trail.update({
-        where: { id: serverTrail.id },
-        data: toDbData({ trail, userId: input.userId, deviceId: input.deviceId, includeCreatedAt: false })
-      });
+      operations.push(
+        db.trail.update({
+          where: { id: serverTrail.id },
+          data: toDbData({
+            trail,
+            userId: input.userId,
+            deviceId: input.deviceId,
+            includeCreatedAt: false,
+          }),
+        }),
+      );
     } else {
-      await db.trail.create({
-        data: toDbData({ trail, userId: input.userId, deviceId: input.deviceId, includeCreatedAt: true })
-      });
+      operations.push(
+        db.trail.create({
+          data: toDbData({
+            trail,
+            userId: input.userId,
+            deviceId: input.deviceId,
+            includeCreatedAt: true,
+          }),
+        }),
+      );
     }
+  }
+
+  if (operations.length) {
+    await db.$transaction(operations);
   }
 
   const updates = await db.trail.findMany({
     where: {
       userId: input.userId,
-      updatedAt: { gt: input.clientSyncAt }
-    }
+      updatedAt: { gt: input.clientSyncAt },
+    },
   });
 
   return {
@@ -176,9 +204,14 @@ export async function syncTrails(input: TrailSyncInput): Promise<TrailSyncOutput
       rootTitle: trail.rootTitle ?? null,
       rootFavicon: trail.rootFavicon ?? null,
       payload: trail.payload,
-      deletedAt: trail.deletedAt ?? null
-    }))
+      deletedAt: trail.deletedAt ?? null,
+    })),
   };
 }
 
-export type { TrailSyncInput, TrailSyncOutput, TrailSyncRecord, TrailLabelSource };
+export type {
+  TrailSyncInput,
+  TrailSyncOutput,
+  TrailSyncRecord,
+  TrailLabelSource,
+};

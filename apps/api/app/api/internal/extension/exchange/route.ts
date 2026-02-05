@@ -27,10 +27,10 @@ export async function POST(request: Request) {
         select: {
           id: true,
           email: true,
-          name: true
-        }
-      }
-    }
+          name: true,
+        },
+      },
+    },
   });
 
   if (!record) {
@@ -48,15 +48,15 @@ export async function POST(request: Request) {
 
   await db.extensionLoginCode.update({
     where: { id: record.id },
-    data: { usedAt: now }
+    data: { usedAt: now },
   });
 
   return jsonNoStore({
     user: {
       id: record.user.id,
       email: record.user.email,
-      name: record.user.name
+      name: record.user.name,
     },
-    message: "Exchange stub. Token issuance will be added with extension API."
+    message: "Exchange stub. Token issuance will be added with extension API.",
   });
 }

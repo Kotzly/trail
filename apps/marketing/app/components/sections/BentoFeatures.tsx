@@ -6,20 +6,23 @@ import { motion } from "framer-motion";
 import { marketingCopy } from "@trail/content";
 import { GlowingEffect } from "../ui/glowing-effect";
 import { Button } from "../ui/button";
-import { 
-  MousePointerClick, 
-  Search, 
-  GitBranch, 
-  Share2, 
+import {
+  MousePointerClick,
+  Search,
+  GitBranch,
+  Share2,
   FileDown,
   ArrowRight,
   Palette,
   LucideCircleSlash,
   ArrowLeft,
-  Brush
+  Brush,
 } from "lucide-react";
 
-const featureIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const featureIcons: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   capture: MousePointerClick,
   search: Search,
   views: GitBranch,
@@ -31,8 +34,14 @@ const featureIcons: Record<string, React.ComponentType<{ className?: string }>> 
 const CapturePreview = () => (
   <div className="flex items-center justify-center gap-2">
     <div className="preview-dot h-2 w-2 rounded-full bg-accent animate-pulse" />
-    <div className="preview-dot h-2 w-2 rounded-full bg-accent/70" style={{ animationDelay: "0.1s" }} />
-    <div className="preview-dot h-2 w-2 rounded-full bg-accent/50" style={{ animationDelay: "0.2s" }} />
+    <div
+      className="preview-dot h-2 w-2 rounded-full bg-accent/70"
+      style={{ animationDelay: "0.1s" }}
+    />
+    <div
+      className="preview-dot h-2 w-2 rounded-full bg-accent/50"
+      style={{ animationDelay: "0.2s" }}
+    />
     <ArrowRight className="ml-2 h-4 w-4 text-accent" />
   </div>
 );
@@ -51,10 +60,25 @@ const SearchPreview = () => (
 
 const ViewsPreview = () => (
   <div className="relative flex h-12 w-12 items-center justify-center">
-    <div className="absolute h-3 w-3 rounded bg-accent/80" style={{ top: "20%", left: "30%" }} />
-    <div className="absolute h-3 w-3 rounded bg-accent/60" style={{ top: "50%", left: "60%" }} />
-    <div className="absolute h-3 w-3 rounded bg-accent/40" style={{ top: "70%", left: "25%" }} />
-    <svg className="absolute inset-0 h-full w-full text-accent/30" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1">
+    <div
+      className="absolute h-3 w-3 rounded bg-accent/80"
+      style={{ top: "20%", left: "30%" }}
+    />
+    <div
+      className="absolute h-3 w-3 rounded bg-accent/60"
+      style={{ top: "50%", left: "60%" }}
+    />
+    <div
+      className="absolute h-3 w-3 rounded bg-accent/40"
+      style={{ top: "70%", left: "25%" }}
+    />
+    <svg
+      className="absolute inset-0 h-full w-full text-accent/30"
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1"
+    >
       <circle cx="24" cy="24" r="16" strokeDasharray="4 4" />
     </svg>
   </div>
@@ -103,7 +127,16 @@ interface BentoCardProps {
   className?: string;
 }
 
-function BentoCard({ name, Icon, description, href, cta, id = "", index = 0, className = "" }: BentoCardProps) {
+function BentoCard({
+  name,
+  Icon,
+  description,
+  href,
+  cta,
+  id = "",
+  index = 0,
+  className = "",
+}: BentoCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -115,7 +148,7 @@ function BentoCard({ name, Icon, description, href, cta, id = "", index = 0, cla
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.15, rootMargin: "0px 0px -50px 0px" }
+      { threshold: 0.15, rootMargin: "0px 0px -50px 0px" },
     );
 
     if (cardRef.current) {
@@ -132,7 +165,11 @@ function BentoCard({ name, Icon, description, href, cta, id = "", index = 0, cla
       ref={cardRef}
       initial={{ opacity: 0, y: 24 }}
       animate={isVisible ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      transition={{
+        duration: 0.5,
+        delay: index * 0.1,
+        ease: [0.16, 1, 0.3, 1],
+      }}
       className={`h-full ${className}`}
     >
       <div className="group relative h-full overflow-hidden rounded-3xl border border-stroke/60 bg-surface/70 transition-all duration-300 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/5">
@@ -144,21 +181,21 @@ function BentoCard({ name, Icon, description, href, cta, id = "", index = 0, cla
           inactiveZone={0.01}
           borderWidth={2}
         />
-        
+
         <div className="relative flex h-full flex-col justify-between p-6">
           <div className="space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-stroke/60 bg-surface-strong/50 transition-colors group-hover:border-accent/30 group-hover:bg-accent/5">
                 <Icon className="h-6 w-6 text-ink transition-colors group-hover:text-accent" />
               </div>
-              
+
               {preview && (
                 <div className="opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                   {preview}
                 </div>
               )}
             </div>
-            
+
             <div>
               <h3 className="text-xl font-semibold text-ink">{name}</h3>
               <p className="mt-2 max-w-[280px] text-sm leading-relaxed text-ink-muted">
@@ -167,7 +204,11 @@ function BentoCard({ name, Icon, description, href, cta, id = "", index = 0, cla
             </div>
           </div>
 
-          <Button.AsChild variant="ghost" size="sm" className="mt-4 w-fit opacity-0 transition-all duration-300 group-hover:opacity-100">
+          <Button.AsChild
+            variant="ghost"
+            size="sm"
+            className="mt-4 w-fit opacity-0 transition-all duration-300 group-hover:opacity-100"
+          >
             <a href={href} className="flex items-center gap-1 text-accent">
               {cta}
               <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />

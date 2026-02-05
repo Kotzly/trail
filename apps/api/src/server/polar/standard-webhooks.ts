@@ -11,7 +11,7 @@ type StandardWebhookHeaders = {
 };
 
 export function getStandardWebhookHeaders(
-  headers: Headers
+  headers: Headers,
 ): StandardWebhookHeaders {
   const id = headers.get("webhook-id");
   const timestamp = headers.get("webhook-timestamp");
@@ -19,7 +19,7 @@ export function getStandardWebhookHeaders(
 
   if (!id || !timestamp || !signature) {
     throw new WebhookVerificationError(
-      "Missing Standard Webhooks headers (webhook-id / webhook-timestamp / webhook-signature)."
+      "Missing Standard Webhooks headers (webhook-id / webhook-timestamp / webhook-signature).",
     );
   }
 
@@ -65,7 +65,10 @@ export function verifyStandardWebhookSignature(params: {
 
   const msg = `${headers.id}.${headers.timestamp}.${rawBody}`;
   const key = decodeStandardWebhookSecret(secret);
-  const expected = crypto.createHmac("sha256", key).update(msg).digest("base64");
+  const expected = crypto
+    .createHmac("sha256", key)
+    .update(msg)
+    .digest("base64");
 
   // Signature header is a space-delimited list of signatures.
   // Each signature is `v1,<base64>` (symmetric) or `v1a,<base64>` (asymmetric).

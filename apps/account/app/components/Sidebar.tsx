@@ -1,137 +1,119 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { accountCopy } from "@trail/content";
-import { TrailLogo, cn } from "@trail/ui";
-import { Sidebar as SidebarRoot, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import {
+  Activity,
+  Compass,
   CreditCard,
   LayoutDashboard,
   LogOut,
   Plug,
   Settings,
-  SparklesIcon,
+  Shield,
 } from "lucide-react";
-import { ProgressIndicator } from "./onboarding/ProgressIndicator";
+import { cn, TrailLogo } from "@trail/ui";
 
 const navLinks = [
   {
     label: accountCopy.nav.dashboard,
     href: "/dashboard",
-    icon: <LayoutDashboard className="h-5 w-5 text-ink" />
+    icon: <LayoutDashboard className="h-5 w-5 flex-shrink-0" />,
+  },
+  {
+    label: accountCopy.nav.activity,
+    href: "/activity",
+    icon: <Activity className="h-5 w-5 flex-shrink-0" />,
+  },
+  {
+    label: accountCopy.nav.gettingStarted,
+    href: "/getting-started",
+    icon: <Compass className="h-5 w-5 flex-shrink-0" />,
+  },
+  {
+    label: accountCopy.nav.sessions,
+    href: "/sessions",
+    icon: <Shield className="h-5 w-5 flex-shrink-0" />,
   },
   {
     label: accountCopy.nav.extension,
     href: "/extension",
-    icon: <Plug className="h-5 w-5 text-ink" />
+    icon: <Plug className="h-5 w-5 flex-shrink-0" />,
   },
   {
     label: accountCopy.nav.settings,
     href: "/settings",
-    icon: <Settings className="h-5 w-5 text-ink" />
+    icon: <Settings className="h-5 w-5 flex-shrink-0" />,
   },
   {
     label: accountCopy.nav.billing,
     href: "/billing",
-    icon: <CreditCard className="h-5 w-5 text-ink" />
-  }
+    icon: <CreditCard className="h-5 w-5 flex-shrink-0" />,
+  },
 ];
 
-// Example onboarding progress - this would come from your backend
-const onboardingProgressSteps = [
-  { id: "1", label: "install", status: "completed" as const },
-  { id: "2", label: "connect", status: "current" as const },
-  { id: "3", label: "capture", status: "pending" as const },
-  { id: "4", label: "share", status: "pending" as const },
-];
-
-function OnboardingMiniProgress() {
-  const completedCount = onboardingProgressSteps.filter(s => s.status === "completed").length;
-  const progress = (completedCount / onboardingProgressSteps.length) * 100;
-
-  if (completedCount === onboardingProgressSteps.length) {
-    return null; // Don't show if all completed
-  }
-
+function Logo({ isOpen }: { isOpen: boolean }) {
   return (
     <Link
       href="/dashboard"
-      className="group mx-2 rounded-xl border border-border/60 bg-surface/70 p-3 transition-all hover:border-accent/50 hover:bg-surface-high"
-      aria-label="Continue your onboarding"
+      className="font-normal flex items-center gap-2 text-sm text-ink py-1 relative z-20 h-10"
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
-          <SparklesIcon className="h-3.5 w-3.5 text-accent" />
-          <span className="text-xs font-medium text-ink">setup progress</span>
-        </div>
-        <span className="text-[0.65rem] text-ink-subtle">
-          {completedCount}/{onboardingProgressSteps.length}
-        </span>
+      <div className="h-8 w-8 flex items-center justify-center border border-border/60 bg-surface rounded-xl flex-shrink-0">
+        <TrailLogo className="h-5 w-5" />
       </div>
-      <div className="relative h-1.5 overflow-hidden rounded-full bg-surface-high">
-        <div
-          className="absolute inset-y-0 left-0 rounded-full bg-accent transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <p className="mt-2 text-[0.65rem] text-ink-subtle">
-        click to continue
-      </p>
+      <span
+        className={cn(
+          "font-medium text-ink whitespace-pre lowercase text-base transition-opacity duration-200",
+          isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+        )}
+      >
+        {accountCopy.brand.name}
+      </span>
     </Link>
   );
 }
 
-export function Sidebar() {
+export function AppSidebar() {
   const pathname = usePathname();
+  const [isHovered, setIsHovered] = React.useState(false);
 
   return (
-    <SidebarRoot animate={false}>
-      <SidebarBody showMobile={false} className="justify-between gap-10">
-        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 rounded-xl px-2 py-1 text-sm font-semibold lowercase text-ink transition hover:bg-surface-high"
-          >
-            <TrailLogo className="h-6 w-6" />
-            <span>{accountCopy.brand.name}</span>
-          </Link>
-          
-          <div className="mt-6 flex flex-col gap-1">
-            {navLinks.map((link) => {
-              const isActive = pathname.startsWith(link.href);
-              return (
-                <SidebarLink
-                  key={link.href}
-                  link={link}
-                  className={cn(
-                    "rounded-xl",
-                    isActive
-                      ? "bg-surface-high text-ink"
-                      : "text-ink-muted hover:text-ink"
-                  )}
-                />
-              );
-            })}
-          </div>
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <Sidebar open={isHovered} setOpen={setIsHovered}>
+        <SidebarBody className="justify-between gap-10">
+          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+            <Logo isOpen={isHovered} />
 
-          {/* Mini Onboarding Progress */}
-          <div className="mt-6">
-            <OnboardingMiniProgress />
+            <div className="mt-6 flex flex-col gap-1">
+              {navLinks.map((link) => {
+                const isActive = pathname.startsWith(link.href);
+                return (
+                  <SidebarLink
+                    key={link.href}
+                    link={link}
+                    className={cn(isActive && "bg-surface-high text-ink")}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
-
-        <div className="border-t border-border/60 pt-3">
-          <SidebarLink
-            link={{
-              label: accountCopy.nav.signOut,
-              href: "/auth/logout",
-              icon: <LogOut className="h-5 w-5 text-ink" />
-            }}
-            className="rounded-xl text-ink-muted hover:text-ink"
-          />
-        </div>
-      </SidebarBody>
-    </SidebarRoot>
+          <div className="border-t border-border/60 pt-4">
+            <SidebarLink
+              link={{
+                label: accountCopy.nav.signOut,
+                href: "/auth/logout",
+                icon: <LogOut className="h-5 w-5 flex-shrink-0" />,
+              }}
+            />
+          </div>
+        </SidebarBody>
+      </Sidebar>
+    </div>
   );
 }

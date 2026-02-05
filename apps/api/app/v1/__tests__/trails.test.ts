@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
-  verifyUserToken: vi.fn()
+  verifyUserToken: vi.fn(),
 }));
 
 const userMocks = vi.hoisted(() => ({
-  ensureUser: vi.fn()
+  ensureUser: vi.fn(),
 }));
 
 const dbMocks = vi.hoisted(() => ({
@@ -13,25 +13,28 @@ const dbMocks = vi.hoisted(() => ({
     trail: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
-      update: vi.fn()
-    }
-  }
+      update: vi.fn(),
+    },
+  },
 }));
 
 vi.mock("@/src/server/auth/user-auth", () => ({
-  ...authMocks
+  ...authMocks,
 }));
 
 vi.mock("@/src/server/user", () => ({
-  ...userMocks
+  ...userMocks,
 }));
 
 vi.mock("@trail/db", () => ({
-  ...dbMocks
+  ...dbMocks,
 }));
 
 import { GET as listTrails } from "../trails/route";
-import { PATCH as updateTrail, DELETE as deleteTrail } from "../trails/[id]/route";
+import {
+  PATCH as updateTrail,
+  DELETE as deleteTrail,
+} from "../trails/[id]/route";
 import { POST as restoreTrail } from "../trails/[id]/restore/route";
 
 describe("v1 trails endpoints", () => {
@@ -61,7 +64,7 @@ describe("v1 trails endpoints", () => {
         rootUrl: null,
         rootTitle: null,
         rootFavicon: null,
-        deletedAt: null
+        deletedAt: null,
       },
       {
         id: "trail-2",
@@ -77,14 +80,14 @@ describe("v1 trails endpoints", () => {
         rootUrl: null,
         rootTitle: null,
         rootFavicon: null,
-        deletedAt: null
-      }
+        deletedAt: null,
+      },
     ]);
 
     const response = await listTrails(
       new Request("http://localhost/v1/trails?limit=1", {
-        headers: { Authorization: "Bearer user-token" }
-      })
+        headers: { Authorization: "Bearer user-token" },
+      }),
     );
 
     expect(response.status).toBe(200);
@@ -96,7 +99,10 @@ describe("v1 trails endpoints", () => {
   it("updates trail metadata", async () => {
     authMocks.verifyUserToken.mockResolvedValue({ sub: "auth0|1" });
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
-    dbMocks.db.trail.findFirst.mockResolvedValue({ id: "trail-1", userId: "user-1" });
+    dbMocks.db.trail.findFirst.mockResolvedValue({
+      id: "trail-1",
+      userId: "user-1",
+    });
     dbMocks.db.trail.update.mockResolvedValue({
       id: "trail-1",
       userId: "user-1",
@@ -112,16 +118,16 @@ describe("v1 trails endpoints", () => {
       rootTitle: null,
       rootFavicon: null,
       payload: { a: 1 },
-      deletedAt: null
+      deletedAt: null,
     });
 
     const response = await updateTrail(
       new Request("http://localhost/v1/trails/trail-1", {
         method: "PATCH",
         headers: { Authorization: "Bearer user-token" },
-        body: JSON.stringify({ label: "Updated", labelSource: "user" })
+        body: JSON.stringify({ label: "Updated", labelSource: "user" }),
       }),
-      { params: Promise.resolve({ id: "trail-1" }) }
+      { params: Promise.resolve({ id: "trail-1" }) },
     );
 
     expect(response.status).toBe(200);
@@ -133,7 +139,10 @@ describe("v1 trails endpoints", () => {
   it("soft deletes a trail", async () => {
     authMocks.verifyUserToken.mockResolvedValue({ sub: "auth0|1" });
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
-    dbMocks.db.trail.findFirst.mockResolvedValue({ id: "trail-1", userId: "user-1" });
+    dbMocks.db.trail.findFirst.mockResolvedValue({
+      id: "trail-1",
+      userId: "user-1",
+    });
     dbMocks.db.trail.update.mockResolvedValue({
       id: "trail-1",
       userId: "user-1",
@@ -149,15 +158,15 @@ describe("v1 trails endpoints", () => {
       rootTitle: null,
       rootFavicon: null,
       payload: { a: 1 },
-      deletedAt: new Date("2026-02-02T00:00:00Z")
+      deletedAt: new Date("2026-02-02T00:00:00Z"),
     });
 
     const response = await deleteTrail(
       new Request("http://localhost/v1/trails/trail-1", {
         method: "DELETE",
-        headers: { Authorization: "Bearer user-token" }
+        headers: { Authorization: "Bearer user-token" },
       }),
-      { params: Promise.resolve({ id: "trail-1" }) }
+      { params: Promise.resolve({ id: "trail-1" }) },
     );
 
     expect(response.status).toBe(200);
@@ -168,7 +177,10 @@ describe("v1 trails endpoints", () => {
   it("restores a trail", async () => {
     authMocks.verifyUserToken.mockResolvedValue({ sub: "auth0|1" });
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
-    dbMocks.db.trail.findFirst.mockResolvedValue({ id: "trail-1", userId: "user-1" });
+    dbMocks.db.trail.findFirst.mockResolvedValue({
+      id: "trail-1",
+      userId: "user-1",
+    });
     dbMocks.db.trail.update.mockResolvedValue({
       id: "trail-1",
       userId: "user-1",
@@ -184,15 +196,15 @@ describe("v1 trails endpoints", () => {
       rootTitle: null,
       rootFavicon: null,
       payload: { a: 1 },
-      deletedAt: null
+      deletedAt: null,
     });
 
     const response = await restoreTrail(
       new Request("http://localhost/v1/trails/trail-1/restore", {
         method: "POST",
-        headers: { Authorization: "Bearer user-token" }
+        headers: { Authorization: "Bearer user-token" },
       }),
-      { params: Promise.resolve({ id: "trail-1" }) }
+      { params: Promise.resolve({ id: "trail-1" }) },
     );
 
     expect(response.status).toBe(200);

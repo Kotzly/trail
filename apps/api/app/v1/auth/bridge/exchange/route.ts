@@ -15,15 +15,17 @@ export async function POST(request: Request) {
 
   const result = await exchangeAuthBridgeCode(code);
   if (!result.ok) {
-    const errorCode = result.reason === "expired" ? "code_expired" : "code_invalid";
-    const message = result.reason === "expired" ? "Code expired." : "Code is invalid.";
+    const errorCode =
+      result.reason === "expired" ? "code_expired" : "code_invalid";
+    const message =
+      result.reason === "expired" ? "Code expired." : "Code is invalid.";
     return jsonError(errorCode, message, { status: 404 });
   }
 
   const snapshot = buildAccountSnapshot({
     user: result.user,
     accessToken: result.jwt,
-    expiresAt: result.jwtExpiresAt ? result.jwtExpiresAt.toISOString() : null
+    expiresAt: result.jwtExpiresAt ? result.jwtExpiresAt.toISOString() : null,
   });
 
   return jsonNoStore({ snapshot });

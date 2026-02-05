@@ -5,7 +5,7 @@ import roadmapData from "../data/roadmap.json";
 
 export function FeaturesTimeline() {
   const items = roadmapData.items as unknown as TimelineItem[];
-  
+
   return (
     <section className="relative px-6 py-24">
       <div className="mx-auto max-w-6xl">

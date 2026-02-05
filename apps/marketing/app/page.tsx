@@ -18,7 +18,13 @@ export default function HomePage() {
             <HeroWithVideo
               eyebrow="Browser app · free beta"
               title="Turn browsing into"
-              rotatingWords={["shareable paths", "clear decisions", "organized research", "team context", "calm workflows"]}
+              rotatingWords={[
+                "shareable paths",
+                "clear decisions",
+                "organized research",
+                "team context",
+                "calm workflows",
+              ]}
               description="Capture every meaningful step, add notes when it matters, and share a clean research path instead of a tab dump."
               ctaText="Get Trail"
               ctaHref="/downloads"

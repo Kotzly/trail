@@ -2,13 +2,13 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Download, 
-  CheckCircle2, 
+import {
+  Download,
+  CheckCircle2,
   Mail,
   ArrowRight,
   Sparkles,
-  Loader2
+  Loader2,
 } from "lucide-react";
 
 import { FaChrome, FaEdge, FaFirefoxBrowser, FaSafari } from "react-icons/fa";
@@ -36,11 +36,41 @@ const itemVariants = {
 };
 
 const browsers = [
-  { id: "chrome", name: "Chrome", icon: FaChrome, status: "available", color: "#4285F4" },
-  { id: "brave", name: "Brave", icon: FaBrave, status: "available", color: "#FF4500" },
-  { id: "edge", name: "Edge", icon: FaEdge, status: "available", color: "#0078D4" },
-  { id: "firefox", name: "Firefox", icon: FaFirefoxBrowser, status: "waitlist", color: "#FF7139" },
-  { id: "safari", name: "Safari", icon: FaSafari, status: "waitlist", color: "#006CFF" },
+  {
+    id: "chrome",
+    name: "Chrome",
+    icon: FaChrome,
+    status: "available",
+    color: "#4285F4",
+  },
+  {
+    id: "brave",
+    name: "Brave",
+    icon: FaBrave,
+    status: "available",
+    color: "#FF4500",
+  },
+  {
+    id: "edge",
+    name: "Edge",
+    icon: FaEdge,
+    status: "available",
+    color: "#0078D4",
+  },
+  {
+    id: "firefox",
+    name: "Firefox",
+    icon: FaFirefoxBrowser,
+    status: "waitlist",
+    color: "#FF7139",
+  },
+  {
+    id: "safari",
+    name: "Safari",
+    icon: FaSafari,
+    status: "waitlist",
+    color: "#006CFF",
+  },
 ];
 
 const steps = [
@@ -52,7 +82,8 @@ const steps = [
   {
     icon: CheckCircle2,
     title: "Grant permissions",
-    description: "Allow Trail to capture your browsing journey. Privacy-first, always.",
+    description:
+      "Allow Trail to capture your browsing journey. Privacy-first, always.",
   },
   {
     icon: Sparkles,
@@ -66,7 +97,9 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function DownloadsContent() {
   const [detectedBrowser, setDetectedBrowser] = useState<string>("chrome");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
   const [error, setError] = useState<string | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
@@ -128,7 +161,6 @@ function DownloadsContent() {
   return (
     <div className="min-h-screen bg-base text-ink">
       <main className="relative overflow-hidden">
-        
         {/* Hero */}
         <section className="relative px-6 pt-20 pb-16">
           <div className="mx-auto max-w-6xl">
@@ -145,19 +177,20 @@ function DownloadsContent() {
                 <Download className="h-3.5 w-3.5" />
                 Get Started
               </motion.span>
-              
+
               <motion.h1
                 variants={itemVariants}
                 className="mt-6 font-display text-4xl font-semibold leading-[1.15] tracking-tight text-ink md:text-5xl lg:text-6xl"
               >
                 Install Trail in seconds
               </motion.h1>
-              
+
               <motion.p
                 variants={itemVariants}
                 className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted"
               >
-                Available for Chrome and Edge. Join the waitlist for Firefox and Safari.
+                Available for Chrome and Edge. Join the waitlist for Firefox and
+                Safari.
               </motion.p>
             </motion.div>
 
@@ -172,7 +205,7 @@ function DownloadsContent() {
                 const Icon = browser.icon;
                 const isDetected = detectedBrowser === browser.id;
                 const isAvailable = browser.status === "available";
-                
+
                 return (
                   <motion.div
                     key={browser.id}
@@ -193,7 +226,7 @@ function DownloadsContent() {
                         borderWidth={2}
                       />
                     )}
-                    
+
                     <div className="relative">
                       <div
                         className="flex h-14 w-14 items-center justify-center rounded-2xl"
@@ -204,23 +237,25 @@ function DownloadsContent() {
                           style={{ color: browser.color }}
                         />
                       </div>
-                      
+
                       <h3 className="mt-4 text-lg font-semibold text-ink">
                         {browser.name}
                       </h3>
-                      
+
                       <div className="mt-2 flex items-center gap-2">
                         <span
                           className={`inline-flex h-2 w-2 rounded-full ${
                             isAvailable
                               ? "bg-green-500"
                               : browser.status === "waitlist"
-                              ? "bg-amber-500"
-                              : "bg-slate-400"
+                                ? "bg-amber-500"
+                                : "bg-slate-400"
                           }`}
                         />
                         <span className="text-xs text-ink-subtle capitalize">
-                          {browser.status === "available" ? "Available now" : browser.status}
+                          {browser.status === "available"
+                            ? "Available now"
+                            : browser.status}
                         </span>
                       </div>
 
@@ -232,15 +267,14 @@ function DownloadsContent() {
 
                       <div className="mt-4">
                         {isAvailable ? (
-                          <Button className="w-full">
-                            Install Now
-                          </Button>
+                          <Button className="w-full">Install Now</Button>
                         ) : (
-                          <Button 
-                            variant="outline" 
-                            className="w-full" 
+                          <Button
+                            variant="outline"
+                            className="w-full"
                             onClick={() => {
-                              const element = document.getElementById("waitlist");
+                              const element =
+                                document.getElementById("waitlist");
                               element?.scrollIntoView({ behavior: "smooth" });
                             }}
                           >
@@ -323,18 +357,19 @@ function DownloadsContent() {
                 inactiveZone={0.01}
                 borderWidth={2}
               />
-              
+
               <section id="waitlist">
                 <div className="relative text-center">
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
                     <Mail className="h-7 w-7 text-accent" />
                   </div>
-                  
+
                   <h2 className="mt-6 text-2xl font-semibold text-ink md:text-3xl">
                     Firefox or Safari user?
                   </h2>
                   <p className="mx-auto mt-3 max-w-lg text-ink-muted">
-                    We&apos;re working on support for your browser. Join the waitlist and be the first to know when it&apos;s ready.
+                    We&apos;re working on support for your browser. Join the
+                    waitlist and be the first to know when it&apos;s ready.
                   </p>
 
                   <AnimatePresence mode="wait">
@@ -349,7 +384,9 @@ function DownloadsContent() {
                       >
                         <div className="flex items-center justify-center gap-2 text-green-600">
                           <CheckCircle2 className="h-5 w-5" />
-                          <span className="font-medium">You&apos;re on the list! Check your email.</span>
+                          <span className="font-medium">
+                            You&apos;re on the list! Check your email.
+                          </span>
                         </div>
                       </motion.div>
                     ) : (
@@ -427,7 +464,9 @@ function DownloadsContent() {
               className="grid gap-8 lg:grid-cols-2"
             >
               <div className="rounded-3xl border border-stroke/40 bg-surface/50 p-6">
-                <h3 className="text-lg font-semibold text-ink">System Requirements</h3>
+                <h3 className="text-lg font-semibold text-ink">
+                  System Requirements
+                </h3>
                 <ul className="mt-4 space-y-3">
                   {[
                     "Chrome 90+ or Edge 90+",
@@ -435,7 +474,10 @@ function DownloadsContent() {
                     "2GB RAM minimum",
                     "Active internet connection for sync",
                   ].map((req, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm text-ink-muted">
+                    <li
+                      key={i}
+                      className="flex items-center gap-3 text-sm text-ink-muted"
+                    >
                       <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-accent" />
                       {req}
                     </li>
@@ -444,7 +486,9 @@ function DownloadsContent() {
               </div>
 
               <div className="rounded-3xl border border-stroke/40 bg-surface/50 p-6">
-                <h3 className="text-lg font-semibold text-ink">What&apos;s Included</h3>
+                <h3 className="text-lg font-semibold text-ink">
+                  What&apos;s Included
+                </h3>
                 <ul className="mt-4 space-y-3">
                   {[
                     "Automatic path capture",
@@ -452,7 +496,10 @@ function DownloadsContent() {
                     "Export to Markdown/PDF",
                     "7-day history (Free plan)",
                   ].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm text-ink-muted">
+                    <li
+                      key={i}
+                      className="flex items-center gap-3 text-sm text-ink-muted"
+                    >
                       <Sparkles className="h-4 w-4 flex-shrink-0 text-accent" />
                       {feature}
                     </li>

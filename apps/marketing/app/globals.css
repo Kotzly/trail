@@ -148,7 +148,7 @@
     --glow-strong: 241 245 249;
     --grid-line: rgba(93, 137, 239, 0.08);
     --grid-size: 70px;
-  
+
     --trail-bg: var(--base);
     --trail-surface: var(--surface);
     --trail-surface-high: var(--surface-strong);
@@ -167,7 +167,7 @@
     --trail-ring: var(--accent);
     --trail-gradient-1: none;
     --trail-gradient-2: none;
-  
+
     --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
     --font-display: var(--font-sans);
   }
@@ -240,7 +240,9 @@ a.cta-primary {
   html[data-reveal-ready="true"] .reveal {
     opacity: 0;
     transform: translateY(12px);
-    transition: opacity 0.8s ease, transform 0.8s ease;
+    transition:
+      opacity 0.8s ease,
+      transform 0.8s ease;
     transition-delay: var(--reveal-delay);
     will-change: opacity, transform;
   }
@@ -288,7 +290,8 @@ a.cta-primary {
 
 /* Icon bounce animation */
 @keyframes icon-bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1) rotate(0deg);
   }
   25% {
@@ -320,7 +323,8 @@ a.cta-primary {
 
 /* Search feature - typing cursor */
 @keyframes search-typing {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -329,7 +333,8 @@ a.cta-primary {
 }
 
 @keyframes search-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.5;
   }
@@ -341,7 +346,8 @@ a.cta-primary {
 
 /* Views feature - layout morphing */
 @keyframes views-morph {
-  0%, 100% {
+  0%,
+  100% {
     border-radius: 4px;
     transform: rotate(0deg);
   }
@@ -356,7 +362,8 @@ a.cta-primary {
 }
 
 @keyframes views-float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) translateX(0);
   }
   25% {
@@ -372,7 +379,8 @@ a.cta-primary {
 
 /* Share feature - link animation */
 @keyframes share-link {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
     opacity: 1;
   }
@@ -383,7 +391,8 @@ a.cta-primary {
 }
 
 @keyframes share-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(var(--accent), 0.4);
   }
   50% {
@@ -434,7 +443,8 @@ a.cta-primary {
 
 /* Border glow effect */
 @keyframes border-glow {
-  0%, 100% {
+  0%,
+  100% {
     border-color: rgba(var(--accent), 0.4);
     box-shadow: 0 0 20px rgba(var(--accent), 0.1);
   }
@@ -451,9 +461,10 @@ a.cta-primary {
 /* Base bento card with enhanced hover */
 .bento-card {
   --card-delay: 0ms;
-  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, border-color, box-shadow;
 }
 
@@ -540,8 +551,9 @@ a.cta-primary {
   max-height: 0;
   opacity: 0;
   overflow: hidden;
-  transition: max-height 300ms cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    max-height 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .bento-card:hover .bento-description {
@@ -572,21 +584,21 @@ a.cta-primary {
     animation: none !important;
     transition: none !important;
   }
-  
+
   .bento-card:hover {
     transform: none;
   }
-  
+
   .bento-card[data-visible="false"] {
     opacity: 1;
     transform: none;
   }
-  
+
   .bento-card:hover .bento-description {
     max-height: 200px;
     opacity: 1;
   }
-  
+
   .bento-card:hover .feature-preview {
     opacity: 1;
   }
@@ -648,7 +660,8 @@ html {
    ======================================== */
 
 @keyframes button-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(var(--accent), 0.4);
   }
   50% {
@@ -674,7 +687,9 @@ html {
    ======================================== */
 
 .testimonial-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .testimonial-card:hover {
@@ -686,7 +701,7 @@ html {
    ======================================== */
 
 .showcase-video {
-  box-shadow: 
+  box-shadow:
     0 25px 50px -12px rgba(var(--ink), 0.15),
     0 0 0 1px rgba(var(--stroke), 0.3);
 }
@@ -696,7 +711,9 @@ html {
    ======================================== */
 
 header.sticky {
-  transition: backdrop-filter 0.3s ease, background-color 0.3s ease;
+  transition:
+    backdrop-filter 0.3s ease,
+    background-color 0.3s ease;
 }
 
 /* ========================================
@@ -712,7 +729,8 @@ header.sticky {
    ======================================== */
 
 @keyframes gradient-shift {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) rotate(0deg);
   }
   50% {

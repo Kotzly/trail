@@ -20,7 +20,7 @@ export async function internalApiFetch(path: string, init: RequestInit = {}) {
   return fetch(new URL(path, baseUrl), {
     ...init,
     headers,
-    cache: "no-store"
+    cache: "no-store",
   });
 }
 
@@ -42,7 +42,7 @@ export async function internalApiJson<T>(path: string, init: JsonInit = {}) {
   const response = await internalApiFetch(path, {
     ...init,
     headers,
-    body
+    body,
   });
 
   const payload = await response.json().catch(() => null);

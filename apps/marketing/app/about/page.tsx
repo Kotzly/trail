@@ -2,7 +2,15 @@
 
 import { motion } from "motion/react";
 import { Suspense } from "react";
-import { Target, Heart, Shield, Zap, Users, Globe, ArrowRight } from "lucide-react";
+import {
+  Target,
+  Heart,
+  Shield,
+  Zap,
+  Users,
+  Globe,
+  ArrowRight,
+} from "lucide-react";
 import { Button } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { AboutLoading } from "../components/page-wrapper";
@@ -12,22 +20,26 @@ const values = [
   {
     icon: Shield,
     title: "Privacy First",
-    description: "Your data belongs to you. We capture only what's necessary and never sell your information.",
+    description:
+      "Your data belongs to you. We capture only what's necessary and never sell your information.",
   },
   {
     icon: Zap,
     title: "Speed Matters",
-    description: "Research tools should be fast. Trail stays out of your way and captures without slowing you down.",
+    description:
+      "Research tools should be fast. Trail stays out of your way and captures without slowing you down.",
   },
   {
     icon: Users,
     title: "Built for Teams",
-    description: "Research is collaborative. Trail makes sharing context as easy as sharing a link.",
+    description:
+      "Research is collaborative. Trail makes sharing context as easy as sharing a link.",
   },
   {
     icon: Heart,
     title: "User Obsessed",
-    description: "We use Trail every day. Every feature is built to solve real problems we face ourselves.",
+    description:
+      "We use Trail every day. Every feature is built to solve real problems we face ourselves.",
   },
 ];
 
@@ -42,7 +54,6 @@ function AboutContent() {
   return (
     <div className="min-h-screen bg-base text-ink">
       <main className="relative overflow-hidden">
-        
         {/* Hero */}
         <section className="relative px-6 pt-20 pb-16">
           <div className="mx-auto max-w-6xl">
@@ -56,11 +67,13 @@ function AboutContent() {
                 About Us
               </span>
               <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.15] tracking-tight text-ink md:text-5xl lg:text-6xl">
-                Built for researchers,<br />by researchers
+                Built for researchers,
+                <br />
+                by researchers
               </h1>
               <p className="mx-auto mt-6 max-w-2xl text-lg text-ink-muted">
-                Trail started with a simple idea: research should be organized, not chaotic. 
-                We&apos;re building the tool we wished we had.
+                Trail started with a simple idea: research should be organized,
+                not chaotic. We&apos;re building the tool we wished we had.
               </p>
             </motion.div>
 
@@ -76,8 +89,12 @@ function AboutContent() {
                   key={stat.label}
                   className="rounded-2xl border border-stroke/40 bg-surface/50 p-6 text-center"
                 >
-                  <div className="text-3xl font-bold text-ink md:text-4xl">{stat.value}</div>
-                  <div className="mt-1 text-sm text-ink-subtle">{stat.label}</div>
+                  <div className="text-3xl font-bold text-ink md:text-4xl">
+                    {stat.value}
+                  </div>
+                  <div className="mt-1 text-sm text-ink-subtle">
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </motion.div>
@@ -102,7 +119,7 @@ function AboutContent() {
                 inactiveZone={0.01}
                 borderWidth={2}
               />
-              
+
               <div className="relative text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
                   <Target className="h-7 w-7 text-accent" />
@@ -111,8 +128,9 @@ function AboutContent() {
                   Our Mission
                 </h2>
                 <p className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted">
-                  To make research transparent, reproducible, and collaborative. 
-                  We believe the best decisions are made when everyone can see the path that led there.
+                  To make research transparent, reproducible, and collaborative.
+                  We believe the best decisions are made when everyone can see
+                  the path that led there.
                 </p>
               </div>
             </motion.div>
@@ -129,7 +147,9 @@ function AboutContent() {
               transition={{ duration: 0.6 }}
               className="text-center"
             >
-              <h2 className="text-2xl font-semibold text-ink md:text-3xl">What we believe</h2>
+              <h2 className="text-2xl font-semibold text-ink md:text-3xl">
+                What we believe
+              </h2>
             </motion.div>
 
             <div className="mt-12 grid gap-6 md:grid-cols-2">
@@ -147,8 +167,12 @@ function AboutContent() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 transition-transform group-hover:scale-110">
                       <Icon className="h-6 w-6 text-accent" />
                     </div>
-                    <h3 className="mt-4 text-lg font-semibold text-ink">{value.title}</h3>
-                    <p className="mt-2 text-sm text-ink-muted">{value.description}</p>
+                    <h3 className="mt-4 text-lg font-semibold text-ink">
+                      {value.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-ink-muted">
+                      {value.description}
+                    </p>
                   </motion.div>
                 );
               })}
@@ -169,20 +193,24 @@ function AboutContent() {
               <h2 className="text-2xl font-semibold text-ink">Our Story</h2>
               <div className="mt-6 space-y-4 text-ink-muted">
                 <p>
-                  Trail was born from frustration. As researchers and product managers, we were 
-                  tired of losing track of sources, repeating searches, and struggling to share 
-                  context with teammates. Browser history was a mess, bookmarks were insufficient, 
-                  and screenshots lacked the narrative that explained why a source mattered.
+                  Trail was born from frustration. As researchers and product
+                  managers, we were tired of losing track of sources, repeating
+                  searches, and struggling to share context with teammates.
+                  Browser history was a mess, bookmarks were insufficient, and
+                  screenshots lacked the narrative that explained why a source
+                  mattered.
                 </p>
                 <p>
-                  We built Trail to solve our own problem. The first version was a simple browser 
-                  extension that captured our paths as we researched. It quickly became indispensable 
-                  — we couldn&apos;t imagine going back to the chaos of tabs and lost sources.
+                  We built Trail to solve our own problem. The first version was
+                  a simple browser extension that captured our paths as we
+                  researched. It quickly became indispensable — we couldn&apos;t
+                  imagine going back to the chaos of tabs and lost sources.
                 </p>
                 <p>
-                  Today, Trail is used by thousands of researchers, analysts, and teams who value 
-                  organized thinking. We&apos;re still a small team, still focused on the core problem, 
-                  and still building the tool we want to use every day.
+                  Today, Trail is used by thousands of researchers, analysts,
+                  and teams who value organized thinking. We&apos;re still a
+                  small team, still focused on the core problem, and still
+                  building the tool we want to use every day.
                 </p>
               </div>
             </motion.div>
@@ -207,7 +235,7 @@ function AboutContent() {
                 inactiveZone={0.01}
                 borderWidth={2}
               />
-              
+
               <div className="relative">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
                   <Globe className="h-7 w-7 text-accent" />
@@ -216,8 +244,8 @@ function AboutContent() {
                   Join our journey
                 </h2>
                 <p className="mx-auto mt-3 max-w-lg text-ink-muted">
-                  We&apos;re always looking for feedback, partnerships, and talented people 
-                  who care about research workflows.
+                  We&apos;re always looking for feedback, partnerships, and
+                  talented people who care about research workflows.
                 </p>
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Button.AsChild>

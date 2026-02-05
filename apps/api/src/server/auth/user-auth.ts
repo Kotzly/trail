@@ -23,7 +23,7 @@ function normalizeBaseUrl(value: string): string | null {
 
 export async function verifyUserToken(
   token: string | null,
-  options: VerifyOptions = {}
+  options: VerifyOptions = {},
 ): Promise<UserTokenPayload | null> {
   if (!token) {
     return null;
@@ -39,7 +39,7 @@ export async function verifyUserToken(
   try {
     const jwks = getRemoteJwks(`${issuer}/api/auth/jwks`);
     const { payload } = await jwtVerify<UserTokenPayload>(token, jwks, {
-      issuer
+      issuer,
     });
 
     if (!payload?.sub) {
@@ -50,7 +50,7 @@ export async function verifyUserToken(
       sub: payload.sub,
       email: payload.email,
       name: payload.name,
-      picture: payload.picture ?? payload.image
+      picture: payload.picture ?? payload.image,
     };
   } catch {
     return null;

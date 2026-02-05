@@ -25,27 +25,32 @@ const additionalFaqs = [
   {
     category: "privacy",
     question: "Does Trail read my page content?",
-    answer: "No. Trail only captures URLs, page titles, and your notes. We never read or store page content, cookies, or form data.",
+    answer:
+      "No. Trail only captures URLs, page titles, and your notes. We never read or store page content, cookies, or form data.",
   },
   {
     category: "features",
     question: "Can I export my trails?",
-    answer: "Yes! You can export your trails as Markdown, PDF, or JSON. Pro and Team plans include additional export formats.",
+    answer:
+      "Yes! You can export your trails as Markdown, PDF, or JSON. Pro and Team plans include additional export formats.",
   },
   {
     category: "billing",
     question: "Do you offer refunds?",
-    answer: "Yes, we offer a 7-day money-back guarantee for all paid plans. No questions asked.",
+    answer:
+      "Yes, we offer a 7-day money-back guarantee for all paid plans. No questions asked.",
   },
   {
     category: "technical",
     question: "Does Trail work offline?",
-    answer: "Trail captures locally first and syncs when you're back online. Your research never gets lost.",
+    answer:
+      "Trail captures locally first and syncs when you're back online. Your research never gets lost.",
   },
   {
     category: "features",
     question: "Can I share trails with non-users?",
-    answer: "Yes, you can generate shareable links that anyone can view, even without a Trail account.",
+    answer:
+      "Yes, you can generate shareable links that anyone can view, even without a Trail account.",
   },
 ];
 
@@ -60,7 +65,6 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   return debounced;
 }
 
-
 function FAQContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -71,21 +75,19 @@ function FAQContent() {
 
   const filteredFaqs = allFaqs.filter((faq) => {
     const q = debouncedQuery.trim().toLowerCase();
-  
+
     const matchesSearch =
-      q.length === 0 ||
-      faq.question.toLowerCase().includes(q)
-  
+      q.length === 0 || faq.question.toLowerCase().includes(q);
+
     const matchesCategory =
       activeCategory === "all" || faq.category === activeCategory;
-  
+
     return matchesSearch && matchesCategory;
-  });  
+  });
 
   return (
     <div className="min-h-screen bg-base text-ink">
       <main className="relative overflow-hidden">
-        
         {/* Hero */}
         <section className="relative px-6 pt-20 pb-8">
           <div className="mx-auto max-w-4xl text-center">
@@ -114,7 +116,8 @@ function FAQContent() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted"
             >
-              Everything you need to know about Trail. Can&apos;t find what you&apos;re looking for? Reach out to our support team.
+              Everything you need to know about Trail. Can&apos;t find what
+              you&apos;re looking for? Reach out to our support team.
             </motion.p>
 
             {/* Search */}
@@ -209,12 +212,16 @@ function FAQContent() {
                     Still have questions?
                   </h2>
                   <p className="mt-2 text-ink-muted">
-                    Our support team is here to help. Reach out and we&apos;ll get back to you within 24 hours.
+                    Our support team is here to help. Reach out and we&apos;ll
+                    get back to you within 24 hours.
                   </p>
                 </div>
                 <div className="mt-6 flex flex-col gap-3 md:mt-0 md:ml-8">
                   <Button>
-                    <a href="mailto:support@gettrail.net" className="flex items-center">
+                    <a
+                      href="mailto:support@gettrail.net"
+                      className="flex items-center"
+                    >
                       Email Support
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </a>

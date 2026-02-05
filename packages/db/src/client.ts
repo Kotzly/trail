@@ -1,4 +1,5 @@
 import { PrismaClient } from "./generated/client";
+export { Prisma } from "./generated/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import fs from "node:fs";

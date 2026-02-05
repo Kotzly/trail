@@ -108,11 +108,11 @@ function resolveUserIdFromMetadata(params: {
     subscriptionMetadata.trailUserId,
     subscriptionMetadata.trail_user_id,
     subscriptionMetadata.userId,
-    subscriptionMetadata.user_id
+    subscriptionMetadata.user_id,
   );
 
   return {
-    ...(userId ? { userId } : {})
+    ...(userId ? { userId } : {}),
   };
 }
 
@@ -125,18 +125,20 @@ export async function syncSubscriptionFromPolarWebhook(params: {
   // Polar webhooks follow Standard Webhooks, so payload is typically:
   // { type: string; timestamp: string; data: {...} }
   // But we defensively handle other shapes.
-  const root = (payload && typeof payload === "object" ? (payload as any) : {}) as any;
+  const root = (
+    payload && typeof payload === "object" ? (payload as any) : {}
+  ) as any;
   const data = (root.data ?? root) as any;
 
   const subscription = pickFirstObject(
     data.subscription,
     data.order?.subscription,
-    data
+    data,
   );
   const customer = pickFirstObject(
     data.customer,
     subscription?.customer,
-    data.order?.customer
+    data.order?.customer,
   );
 
   const polarCustomerId = pickFirstString(
@@ -144,7 +146,7 @@ export async function syncSubscriptionFromPolarWebhook(params: {
     subscription?.customer_id,
     subscription?.customerId,
     data.customer_id,
-    data.customerId
+    data.customerId,
   );
 
   const polarSubscriptionId = pickFirstString(
@@ -152,7 +154,7 @@ export async function syncSubscriptionFromPolarWebhook(params: {
     subscription?.subscription_id,
     subscription?.subscriptionId,
     data.subscription_id,
-    data.subscriptionId
+    data.subscriptionId,
   );
 
   const statusRaw = pickFirstString(subscription?.status, data.status);
@@ -162,7 +164,7 @@ export async function syncSubscriptionFromPolarWebhook(params: {
     subscription?.currentPeriodEnd,
     subscription?.currentPeriodEndAt,
     data.current_period_end,
-    data.currentPeriodEnd
+    data.currentPeriodEnd,
   );
 
   // Resolve Trail user mapping.
@@ -175,14 +177,14 @@ export async function syncSubscriptionFromPolarWebhook(params: {
 
   if (!userId && polarCustomerId) {
     const existing = await db.userSubscription.findUnique({
-      where: { polarCustomerId }
+      where: { polarCustomerId },
     });
     userId = existing?.userId ?? null;
   }
 
   if (!userId) {
     throw new Error(
-      `Unable to resolve Trail user for Polar webhook (polarCustomerId=${polarCustomerId ?? "null"}).`
+      `Unable to resolve Trail user for Polar webhook (polarCustomerId=${polarCustomerId ?? "null"}).`,
     );
   }
 
@@ -198,7 +200,7 @@ export async function syncSubscriptionFromPolarWebhook(params: {
       status,
       polarCustomerId,
       polarSubscriptionId,
-      currentPeriodEnd
+      currentPeriodEnd,
     },
     create: {
       userId,
@@ -206,8 +208,8 @@ export async function syncSubscriptionFromPolarWebhook(params: {
       status,
       polarCustomerId,
       polarSubscriptionId,
-      currentPeriodEnd
-    }
+      currentPeriodEnd,
+    },
   });
 
   return {
@@ -216,6 +218,6 @@ export async function syncSubscriptionFromPolarWebhook(params: {
     status: record.status,
     polarCustomerId: record.polarCustomerId,
     polarSubscriptionId: record.polarSubscriptionId,
-    currentPeriodEnd: record.currentPeriodEnd
+    currentPeriodEnd: record.currentPeriodEnd,
   };
 }

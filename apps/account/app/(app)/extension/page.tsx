@@ -3,16 +3,12 @@ import {
   DesktopIcon,
   LaptopIcon,
   Link2Icon,
-  LockClosedIcon
+  LockClosedIcon,
 } from "@radix-ui/react-icons";
-import { EmptyState, StatCard } from "@trail/ui";
+import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import {
-  getAuthTokenFromCookies,
-  getAuthUserFromToken,
-  getDevUser,
-  isAuthBypassed
-} from "@/src/lib/auth";
+import { PageHeader } from "@/app/components/PageHeader";
+import { getAuthSession } from "@/src/lib/auth";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
 import { ExtensionConnectionGuideClient } from "./ExtensionConnectionGuideClient";
@@ -33,32 +29,29 @@ type ExtensionSession = {
   status: string;
 };
 
-export default async function ExtensionPage({ searchParams }: ExtensionPageProps) {
+export default async function ExtensionPage({
+  searchParams,
+}: ExtensionPageProps) {
   const resolvedSearchParams = await searchParams;
   const queryCode =
-    typeof resolvedSearchParams?.code === "string" ? resolvedSearchParams.code : null;
-  const returnTo = queryCode ? `/extension?code=${queryCode}` : "/extension";
-  const authBypassed = isAuthBypassed();
-
-  const token = authBypassed ? null : await getAuthTokenFromCookies();
-  const authUser = authBypassed
-    ? getDevUser()
-    : token
-      ? await getAuthUserFromToken(token)
+    typeof resolvedSearchParams?.code === "string"
+      ? resolvedSearchParams.code
       : null;
+  const returnTo = queryCode ? `/extension?code=${queryCode}` : "/extension";
+  const session = await getAuthSession();
 
-  if (!authUser && !authBypassed) {
+  if (!session?.user) {
     redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
   }
 
-  const user = authUser ? await ensureUser(authUser) : null;
-  if (!user && !authBypassed) {
+  const user = session.user ? await ensureUser(session.user) : null;
+  if (!user) {
     redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
   }
 
   let connectionReady = false;
 
-  if (queryCode && user && !authBypassed) {
+  if (queryCode && user) {
     try {
       const stored = await createExtensionLoginCode(user.id, queryCode);
       if (stored !== queryCode) {
@@ -75,14 +68,22 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
 
   return (
     <section className="space-y-8">
-      <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-        <div className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+      <PageHeader
+        eyebrow={accountCopy.nav.extension}
+        title={accountCopy.extension.title}
+        subtitle={accountCopy.extension.subtitle}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
           <div>
-            <p className="text-xs text-ink-muted">{accountCopy.extension.status.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {accountCopy.extension.status.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">
               {accountCopy.extension.status.title}
             </p>
-            <p className="text-xs text-ink-muted">
+            <p className="mt-1 text-xs text-ink-muted">
               {accountCopy.extension.status.subtitle}
             </p>
           </div>
@@ -98,7 +99,9 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
                 <StatCard
                   label={accountCopy.extension.connected.stats.permissions}
                   value={accountCopy.extension.connected.stats.permissionsValue}
-                  caption={accountCopy.extension.connected.stats.permissionsCaption}
+                  caption={
+                    accountCopy.extension.connected.stats.permissionsCaption
+                  }
                   icon={<LockClosedIcon className="h-4 w-4" />}
                 />
               </div>
@@ -112,38 +115,48 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
                 // todo: make this work like this: opens the extension if it's there, and the extension prompts the user to connect to account <name>
                 // if the extension is not there, we should show a button that says "install extension" and opens the extension download page
                 action={
-                  <a
-                    href={accountCopy.extension.empty.ctaHref}
-                    className="inline-flex items-center gap-2 rounded-full border border-border/60 px-4 py-2 text-xs font-semibold text-ink"
+                  <Button.AsChild
+                    size="sm"
+                    className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
                   >
-                    {accountCopy.extension.empty.cta}
-                  </a>
+                    <a href={accountCopy.extension.empty.ctaHref}>
+                      {accountCopy.extension.empty.cta}
+                    </a>
+                  </Button.AsChild>
                 }
               />
             )}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-surface/70 p-4">
+        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
           <div>
-            <p className="text-xs text-ink-muted">{accountCopy.extension.device.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {accountCopy.extension.device.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">
               {accountCopy.extension.device.title}
             </p>
-            <p className="text-xs text-ink-muted">
+            <p className="mt-1 text-xs text-ink-muted">
               {accountCopy.extension.device.subtitle}
             </p>
           </div>
           <div className="mt-4 grid gap-3">
             <StatCard
               label={accountCopy.extension.device.primaryDevice}
-              value={connectionReady ? accountCopy.extension.device.connected : "—"}
+              value={
+                connectionReady ? accountCopy.extension.device.connected : "—"
+              }
               caption={accountCopy.extension.device.primaryDeviceCaption}
               icon={<DesktopIcon className="h-4 w-4" />}
             />
             <StatCard
               label={accountCopy.extension.device.lastSeen}
-              value={connectionReady ? accountCopy.extension.device.lastSeenValue : "—"}
+              value={
+                connectionReady
+                  ? accountCopy.extension.device.lastSeenValue
+                  : "—"
+              }
               caption={accountCopy.extension.device.lastSeenCaption}
               icon={<LaptopIcon className="h-4 w-4" />}
             />
@@ -151,21 +164,22 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
         </div>
       </div>
 
-      {/* Extension Connection Guide - only show when not connected */}
-      {!connectionReady && <ExtensionConnectionGuideClient />}
-
-      <div className="rounded-2xl border border-border/60 bg-surface/70 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs text-ink-muted">{accountCopy.extension.sessions.eyebrow}</p>
-            <p className="text-sm font-semibold text-ink">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
+              {accountCopy.extension.sessions.eyebrow}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-ink">
               {accountCopy.extension.sessions.title}
             </p>
-            <p className="text-xs text-ink-muted">
+            <p className="mt-1 text-xs text-ink-muted">
               {accountCopy.extension.sessions.subtitle}
             </p>
           </div>
-          <span className="trail-status">{accountCopy.extension.sessions.comingSoon}</span>
+          <span className="trail-status">
+            {accountCopy.extension.sessions.comingSoon}
+          </span>
         </div>
         {sessions.length ? (
           <div className="mt-4 divide-y divide-border/40">
@@ -175,7 +189,9 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
                 className="flex flex-wrap items-center justify-between gap-4 py-3"
               >
                 <div>
-                  <p className="text-sm font-semibold text-ink">{item.device}</p>
+                  <p className="text-sm font-semibold text-ink">
+                    {item.device}
+                  </p>
                   <p className="text-xs text-ink-muted">{item.location}</p>
                 </div>
                 <span className="trail-status">{item.lastSeen}</span>

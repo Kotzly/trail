@@ -14,7 +14,7 @@ type DbLabelSource = "USER" | "AUTO" | "SYSTEM";
 const LABEL_TO_API: Record<DbLabelSource, ApiLabelSource> = {
   USER: "user",
   AUTO: "auto",
-  SYSTEM: "system"
+  SYSTEM: "system",
 };
 
 function toApiLabelSource(value: DbLabelSource): ApiLabelSource {
@@ -53,13 +53,13 @@ function toTrailRecord(trail: {
     rootTitle: trail.rootTitle ?? null,
     rootFavicon: trail.rootFavicon ?? null,
     payload: trail.payload,
-    deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null
+    deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null,
   };
 }
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   if (!id) {
@@ -85,8 +85,10 @@ export async function POST(
   const now = new Date();
   const updated = await db.trail.update({
     where: { id },
-    data: { deletedAt: null, updatedAt: now }
+    data: { deletedAt: null, updatedAt: now },
   });
 
-  return jsonNoStore(toTrailRecord(updated as typeof existing & { payload: unknown }));
+  return jsonNoStore(
+    toTrailRecord(updated as typeof existing & { payload: unknown }),
+  );
 }

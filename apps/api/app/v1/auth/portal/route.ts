@@ -1,6 +1,9 @@
 import { jsonError } from "@/src/server/error-response";
 import { jsonNoStore } from "@/src/server/response";
-import { createPortalSession, PORTAL_POLL_INTERVAL_MS } from "@/src/server/portal-sessions";
+import {
+  createPortalSession,
+  PORTAL_POLL_INTERVAL_MS,
+} from "@/src/server/portal-sessions";
 
 export const runtime = "nodejs";
 
@@ -18,10 +21,14 @@ export async function POST(request: Request) {
   try {
     session = await createPortalSession({ source, locale, returnUrl });
   } catch (error) {
-    return jsonError("portal_create_failed", "Could not create portal session.", {
-      status: 500,
-      retryable: true
-    });
+    return jsonError(
+      "portal_create_failed",
+      "Could not create portal session.",
+      {
+        status: 500,
+        retryable: true,
+      },
+    );
   }
 
   const appBaseUrl = process.env.APP_BASE_URL ?? "https://app.gettrail.net";
@@ -35,6 +42,6 @@ export async function POST(request: Request) {
     id: session.id,
     url: confirmUrl.toString(),
     expiresAt: session.expiresAt.toISOString(),
-    pollIntervalMs: PORTAL_POLL_INTERVAL_MS
+    pollIntervalMs: PORTAL_POLL_INTERVAL_MS,
   });
 }

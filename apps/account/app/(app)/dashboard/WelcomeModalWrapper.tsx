@@ -1,6 +1,9 @@
 "use client";
 
-import { WelcomeModal, useWelcomeModal } from "@/app/components/onboarding/WelcomeModal";
+import {
+  WelcomeModal,
+  useWelcomeModal,
+} from "@/app/components/onboarding/WelcomeModal";
 
 export function WelcomeModalWrapper() {
   const { isOpen, close, markAsShown } = useWelcomeModal();

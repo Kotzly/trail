@@ -8,7 +8,10 @@ const VideoShowcases = () => {
   const { title, sections } = videos;
 
   return (
-    <section id="make-trail-yours" className="px-6 py-24 lg:py-32 overflow-hidden">
+    <section
+      id="make-trail-yours"
+      className="px-6 py-24 lg:py-32 overflow-hidden"
+    >
       <div className="mx-auto max-w-6xl">
         {/* Section Title */}
         <motion.h2
@@ -35,7 +38,7 @@ const VideoShowcases = () => {
       </div>
     </section>
   );
-}
+};
 
 export default VideoShowcases;
 
@@ -63,12 +66,14 @@ function FeatureBlock({
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.6 }}
       className={`grid gap-16 lg:gap-24 items-center ${
-        reversed ? "lg:grid-cols-[1.25fr_0.85fr]" : "lg:grid-cols-[0.85fr_1.25fr]"
+        reversed
+          ? "lg:grid-cols-[1.25fr_0.85fr]"
+          : "lg:grid-cols-[0.85fr_1.25fr]"
       }`}
     >
       {/* Text Content */}
       <div className={`space-y-6 ${reversed ? "lg:order-2" : "lg:order-1"}`}>
-        <motion.span 
+        <motion.span
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -77,8 +82,8 @@ function FeatureBlock({
         >
           {section.eyebrow}
         </motion.span>
-        
-        <motion.h3 
+
+        <motion.h3
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -87,8 +92,8 @@ function FeatureBlock({
         >
           {section.title}
         </motion.h3>
-        
-        <motion.p 
+
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -100,7 +105,7 @@ function FeatureBlock({
       </div>
 
       {/* Video - 4:3 Aspect Ratio and Fill Container */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
@@ -127,7 +132,9 @@ function FeatureBlock({
           </div>
         </div>
         {/* Decorative gradient blur */}
-        <div className={`absolute -inset-8 -z-10 ${reversed ? "bg-gradient-to-br" : "bg-gradient-to-bl"} from-accent/20 via-cta/10 to-transparent blur-3xl opacity-50`} />
+        <div
+          className={`absolute -inset-8 -z-10 ${reversed ? "bg-gradient-to-br" : "bg-gradient-to-bl"} from-accent/20 via-cta/10 to-transparent blur-3xl opacity-50`}
+        />
       </motion.div>
     </motion.div>
   );

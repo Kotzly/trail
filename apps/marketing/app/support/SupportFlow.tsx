@@ -91,7 +91,10 @@ function detectPlatform(userAgent: string): string {
   return "Unknown";
 }
 
-function detectBrowser(userAgent: string): { name: string; version: string | null } {
+function detectBrowser(userAgent: string): {
+  name: string;
+  version: string | null;
+} {
   const ua = userAgent;
   const lower = ua.toLowerCase();
 
@@ -109,10 +112,17 @@ function detectBrowser(userAgent: string): { name: string; version: string | nul
   }
 
   if (lower.includes("chrome/") || lower.includes("chromium/")) {
-    return { name: "Chrome", version: matchVersion(/Chrom(?:e|ium)\/([0-9.]+)/) };
+    return {
+      name: "Chrome",
+      version: matchVersion(/Chrom(?:e|ium)\/([0-9.]+)/),
+    };
   }
 
-  if (lower.includes("safari") && lower.includes("version/") && !lower.includes("chrome")) {
+  if (
+    lower.includes("safari") &&
+    lower.includes("version/") &&
+    !lower.includes("chrome")
+  ) {
     return { name: "Safari", version: matchVersion(/Version\/([0-9.]+)/) };
   }
 
@@ -167,7 +177,7 @@ function TriageCard({
         tone === "default" ? "bg-surface/70" : "bg-surface/50",
         selected
           ? "border-accent/40 shadow-elev-1"
-          : "border-stroke/40 hover:border-accent/30 hover:bg-surface/70"
+          : "border-stroke/40 hover:border-accent/30 hover:bg-surface/70",
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -175,19 +185,29 @@ function TriageCard({
           <p className="font-display text-lg font-semibold tracking-tight text-ink">
             {title}
           </p>
-          <p className="mt-2 text-sm text-ink-subtle">
-            {description}
-          </p>
+          <p className="mt-2 text-sm text-ink-subtle">{description}</p>
         </div>
         <span
           aria-hidden="true"
           className={cn(
             "mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-stroke/60 bg-surface/70 text-ink/70 transition",
-            selected ? "border-ink/25 text-ink" : "group-hover:border-ink/25 group-hover:text-ink"
+            selected
+              ? "border-ink/25 text-ink"
+              : "group-hover:border-ink/25 group-hover:text-ink",
           )}
         >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              d="M9 18l6-6-6-6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </span>
       </div>
@@ -195,20 +215,26 @@ function TriageCard({
   );
 }
 
-function FaqItem({
-  question,
-  answer,
-}: {
-  question: string;
-  answer: string;
-}) {
+function FaqItem({ question, answer }: { question: string; answer: string }) {
   return (
     <details className="group rounded-2xl border border-stroke/50 bg-surface/70 px-5 py-4 transition hover:border-ink/20">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-        <span className="font-display text-sm font-semibold text-ink">{question}</span>
+        <span className="font-display text-sm font-semibold text-ink">
+          {question}
+        </span>
         <span className="flex h-8 w-8 items-center justify-center rounded-full border border-stroke/60 bg-surface/70 text-ink/70 transition group-hover:border-ink/25 group-hover:text-ink group-open:rotate-180">
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              d="M6 9l6 6 6-6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </span>
       </summary>
@@ -235,8 +261,10 @@ export function SupportFlow() {
   const [featureMore, setFeatureMore] = React.useState("");
 
   const [faqQuery, setFaqQuery] = React.useState("");
-  const [copyDiagStatus, setCopyDiagStatus] = React.useState<CopyStatus>("idle");
-  const [copyFeatureStatus, setCopyFeatureStatus] = React.useState<CopyStatus>("idle");
+  const [copyDiagStatus, setCopyDiagStatus] =
+    React.useState<CopyStatus>("idle");
+  const [copyFeatureStatus, setCopyFeatureStatus] =
+    React.useState<CopyStatus>("idle");
 
   const [ua, setUa] = React.useState("");
   React.useEffect(() => {
@@ -246,10 +274,13 @@ export function SupportFlow() {
   const browser = React.useMemo(() => detectBrowser(ua), [ua]);
   const os = React.useMemo(() => detectPlatform(ua), [ua]);
   const browserLabel = React.useMemo(() => {
-    return browser.version ? `${browser.name} ${browser.version}` : browser.name;
+    return browser.version
+      ? `${browser.name} ${browser.version}`
+      : browser.name;
   }, [browser]);
 
-  const activeChecks = path === "account" ? QUICK_CHECKS_ACCOUNT : QUICK_CHECKS_BUG;
+  const activeChecks =
+    path === "account" ? QUICK_CHECKS_ACCOUNT : QUICK_CHECKS_BUG;
   const [checks, setChecks] = React.useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
@@ -259,7 +290,9 @@ export function SupportFlow() {
 
     const defaults =
       path === "account"
-        ? Object.fromEntries(QUICK_CHECKS_ACCOUNT.map((item) => [item.id, false]))
+        ? Object.fromEntries(
+            QUICK_CHECKS_ACCOUNT.map((item) => [item.id, false]),
+          )
         : Object.fromEntries(QUICK_CHECKS_BUG.map((item) => [item.id, false]));
 
     setChecks(defaults);
@@ -271,7 +304,10 @@ export function SupportFlow() {
       return;
     }
     window.requestAnimationFrame(() => {
-      detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      detailsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     });
   }, [path]);
 
@@ -281,14 +317,18 @@ export function SupportFlow() {
 
   const checksTotal = activeChecks.length;
   const checksComplete = checksTotal > 0 && checksDoneCount === checksTotal;
-  const canContactSupport = (path === "bug" || path === "account") ? checksComplete : false;
+  const canContactSupport =
+    path === "bug" || path === "account" ? checksComplete : false;
 
   React.useEffect(() => {
     if (!checksComplete || (path !== "bug" && path !== "account")) {
       return;
     }
     window.requestAnimationFrame(() => {
-      stepThreeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      stepThreeRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     });
   }, [checksComplete, path]);
 
@@ -361,14 +401,22 @@ export function SupportFlow() {
     if (!canContactSupport) {
       return;
     }
-    window.location.href = encodeMailto(support.email, "Trail support", supportEmailBody);
+    window.location.href = encodeMailto(
+      support.email,
+      "Trail support",
+      supportEmailBody,
+    );
   };
 
   const onSendFeatureRequest = () => {
     if (!featureGoal.trim() || !featureBlocker.trim()) {
       return;
     }
-    window.location.href = encodeMailto(support.email, "Trail feature request", featureEmailBody);
+    window.location.href = encodeMailto(
+      support.email,
+      "Trail feature request",
+      featureEmailBody,
+    );
   };
 
   const filteredFaq = React.useMemo(() => {
@@ -391,9 +439,7 @@ export function SupportFlow() {
         <h2 className="mt-5 font-display text-4xl font-semibold leading-tight text-ink md:text-5xl">
           {support.title}
         </h2>
-        <p className="mt-4 text-[1rem] text-ink-muted">
-          {support.subtitle}
-        </p>
+        <p className="mt-4 text-[1rem] text-ink-muted">{support.subtitle}</p>
       </div>
 
       <div className="mx-auto mt-8 max-w-5xl space-y-6">
@@ -435,7 +481,10 @@ export function SupportFlow() {
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-ink-subtle">
             <span>
               Need human help? Email{" "}
-              <a className="font-semibold text-ink underline underline-offset-4" href={`mailto:${support.email}`}>
+              <a
+                className="font-semibold text-ink underline underline-offset-4"
+                href={`mailto:${support.email}`}
+              >
                 {support.email}
               </a>
               .
@@ -457,7 +506,11 @@ export function SupportFlow() {
             <Card className="trail-panel p-6 reveal">
               <StepBadge
                 step={2}
-                label={path === "account" ? "Quick checks for account issues" : "Quick checks for bugs"}
+                label={
+                  path === "account"
+                    ? "Quick checks for account issues"
+                    : "Quick checks for bugs"
+                }
               />
               <div className="mt-4 flex items-center justify-between gap-3 text-xs text-ink-subtle">
                 <span>
@@ -474,14 +527,17 @@ export function SupportFlow() {
                       key={item.id}
                       className={cn(
                         "flex cursor-pointer items-start gap-3 rounded-2xl border border-stroke/50 bg-surface/70 px-4 py-3 transition hover:border-ink/20",
-                        checked ? "border-ink/20" : null
+                        checked ? "border-ink/20" : null,
                       )}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={(event) => {
-                          setChecks((prev) => ({ ...prev, [item.id]: event.target.checked }));
+                          setChecks((prev) => ({
+                            ...prev,
+                            [item.id]: event.target.checked,
+                          }));
                         }}
                         className="mt-1 h-4 w-4"
                       />
@@ -508,7 +564,8 @@ export function SupportFlow() {
                 <Card className="trail-panel p-6 reveal">
                   <StepBadge step={3} label="Send to support" />
                   <p className="mt-3 text-sm text-ink-muted">
-                    Copy diagnostics, describe the issue, then email us. Screenshots help.
+                    Copy diagnostics, describe the issue, then email us.
+                    Screenshots help.
                   </p>
 
                   <div className="mt-5 grid gap-3">
@@ -553,7 +610,9 @@ export function SupportFlow() {
                     </label>
                     <input
                       value={extensionVersion}
-                      onChange={(event) => setExtensionVersion(event.target.value)}
+                      onChange={(event) =>
+                        setExtensionVersion(event.target.value)
+                      }
                       placeholder="Find it in chrome://extensions"
                       className="trail-input"
                     />
@@ -584,7 +643,9 @@ export function SupportFlow() {
                       </label>
                       <textarea
                         value={whatHappened}
-                        onChange={(event) => setWhatHappened(event.target.value)}
+                        onChange={(event) =>
+                          setWhatHappened(event.target.value)
+                        }
                         rows={3}
                         placeholder="Describe what you see (error, loop, missing capture, etc.)"
                         className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
@@ -609,7 +670,9 @@ export function SupportFlow() {
                       </label>
                       <textarea
                         value={stepsToReproduce}
-                        onChange={(event) => setStepsToReproduce(event.target.value)}
+                        onChange={(event) =>
+                          setStepsToReproduce(event.target.value)
+                        }
                         rows={3}
                         placeholder="1) Open… 2) Click… 3) See…"
                         className="w-full rounded-3xl border border-stroke/60 bg-surface/80 px-4 py-3 text-sm text-ink shadow-inner placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
@@ -635,7 +698,12 @@ export function SupportFlow() {
                   </details>
 
                   <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <Button type="button" size="lg" onClick={onContactSupport} disabled={!canContactSupport}>
+                    <Button
+                      type="button"
+                      size="lg"
+                      onClick={onContactSupport}
+                      disabled={!canContactSupport}
+                    >
                       Email support
                     </Button>
                   </div>
@@ -653,7 +721,8 @@ export function SupportFlow() {
           <Card className="trail-panel p-7 reveal">
             <StepBadge step={2} label="Request a feature" />
             <p className="mt-3 text-sm text-ink-muted">
-              Tell us the outcome you want, what blocks you, and how often you hit this.
+              Tell us the outcome you want, what blocks you, and how often you
+              hit this.
             </p>
 
             <div className="mt-6 grid gap-4">
@@ -688,7 +757,9 @@ export function SupportFlow() {
                   </label>
                   <select
                     value={featureFrequency}
-                    onChange={(event) => setFeatureFrequency(event.target.value)}
+                    onChange={(event) =>
+                      setFeatureFrequency(event.target.value)
+                    }
                     className="h-11 w-full rounded-full border border-stroke/60 bg-surface px-4 text-sm text-ink shadow-inner focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                   >
                     <option value="daily">Daily</option>
@@ -699,7 +770,9 @@ export function SupportFlow() {
                 </div>
                 <details className="rounded-3xl border border-stroke/50 bg-surface/70 px-5 py-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                    <span className="text-sm font-semibold text-ink">More context (optional)</span>
+                    <span className="text-sm font-semibold text-ink">
+                      More context (optional)
+                    </span>
                     <span className="text-xs text-ink-subtle">expand</span>
                   </summary>
                   <textarea
@@ -714,10 +787,20 @@ export function SupportFlow() {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Button type="button" size="lg" onClick={onSendFeatureRequest} disabled={!featureGoal.trim() || !featureBlocker.trim()}>
+              <Button
+                type="button"
+                size="lg"
+                onClick={onSendFeatureRequest}
+                disabled={!featureGoal.trim() || !featureBlocker.trim()}
+              >
                 Email feature request
               </Button>
-              <Button type="button" variant="outline" size="lg" onClick={onCopyFeature}>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={onCopyFeature}
+              >
                 {copyFeatureStatus === "copied"
                   ? "Copied"
                   : copyFeatureStatus === "error"
@@ -732,7 +815,8 @@ export function SupportFlow() {
           <Card className="trail-panel p-7 reveal">
             <StepBadge step={2} label="Search the FAQ" />
             <p className="mt-3 text-sm text-ink-muted">
-              Try keywords like "privacy", "platform", "sync", "account".
+              Try keywords like &quot;privacy&quot;, &quot;platform&quot;,
+              &quot;sync&quot;, &quot;account&quot;.
             </p>
 
             <div className="mt-5">
@@ -746,11 +830,19 @@ export function SupportFlow() {
 
             <div className="mt-6 space-y-3">
               {filteredFaq.length === 0 ? (
-                <p className="text-sm text-ink-subtle">No matches. Try another keyword.</p>
+                <p className="text-sm text-ink-subtle">
+                  No matches. Try another keyword.
+                </p>
               ) : (
-                filteredFaq.slice(0, 6).map((item) => (
-                  <FaqItem key={item.question} question={item.question} answer={item.answer} />
-                ))
+                filteredFaq
+                  .slice(0, 6)
+                  .map((item) => (
+                    <FaqItem
+                      key={item.question}
+                      question={item.question}
+                      answer={item.answer}
+                    />
+                  ))
               )}
             </div>
 
@@ -758,7 +850,12 @@ export function SupportFlow() {
               <Button.AsChild variant="outline" size="lg">
                 <a href="/faq">{support.faqCta}</a>
               </Button.AsChild>
-              <Button type="button" variant="ghost" size="lg" onClick={() => setPath("bug")}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                onClick={() => setPath("bug")}
+              >
                 Still stuck? Start quick checks
               </Button>
             </div>

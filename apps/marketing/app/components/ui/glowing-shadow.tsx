@@ -1,13 +1,16 @@
-"use client"
+"use client";
 
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 
 interface GlowingShadowProps {
-  children: ReactNode
-  className?: string
+  children: ReactNode;
+  className?: string;
 }
 
-export function GlowingShadow({ children, className = "" }: GlowingShadowProps) {
+export function GlowingShadow({
+  children,
+  className = "",
+}: GlowingShadowProps) {
   return (
     <div className={`glow-container ${className}`}>
       <span className="glow"></span>
@@ -65,18 +68,22 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
           position: absolute;
           inset: 0;
           border-radius: calc(var(--card-radius) * 0.9);
-          box-shadow: 0 0 20px rgba(0,0,0,0.3);
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
           mix-blend-mode: color-burn;
           z-index: -1;
           background: radial-gradient(
             30% 30% at calc(var(--bg-x, 0) * 1%) calc(var(--bg-y, 0) * 1%),
-            hsl(calc(var(--hue, 170) * var(--hue-speed, 1) * 1deg) 80% 70%) calc(0% * var(--bg-size, 1)),
-            hsl(calc(var(--hue, 170) * var(--hue-speed, 1) * 1deg) 80% 60%) calc(20% * var(--bg-size, 1)),
-            hsl(calc(var(--hue, 170) * var(--hue-speed, 1) * 1deg) 80% 50%) calc(40% * var(--bg-size, 1)),
+            hsl(calc(var(--hue, 170) * var(--hue-speed, 1) * 1deg) 80% 70%)
+              calc(0% * var(--bg-size, 1)),
+            hsl(calc(var(--hue, 170) * var(--hue-speed, 1) * 1deg) 80% 60%)
+              calc(20% * var(--bg-size, 1)),
+            hsl(calc(var(--hue, 170) * var(--hue-speed, 1) * 1deg) 80% 50%)
+              calc(40% * var(--bg-size, 1)),
             transparent 100%
           );
-          animation: hue-animation 4s linear infinite,
-                     rotate-bg 4s linear infinite;
+          animation:
+            hue-animation 4s linear infinite,
+            rotate-bg 4s linear infinite;
           transition: opacity 0.55s ease;
         }
 
@@ -105,9 +112,11 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
           position: relative;
           border-radius: 100vw;
           animation: hue-animation 4s linear infinite;
-          transform: scaleY(calc(var(--glow-scale, 1.5) * var(--scale-factor, 1) / 1.1))
-                     scaleX(calc(var(--glow-scale, 1.5) * var(--scale-factor, 1) * 1.2))
-                     translateY(calc(var(--glow-translate-y, 0) * 1%));
+          transform: scaleY(
+              calc(var(--glow-scale, 1.5) * var(--scale-factor, 1) / 1.1)
+            )
+            scaleX(calc(var(--glow-scale, 1.5) * var(--scale-factor, 1) * 1.2))
+            translateY(calc(var(--glow-translate-y, 0) * 1%));
           opacity: var(--glow-opacity, 1);
         }
 
@@ -127,27 +136,48 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
 
         .glow-container:hover .glow:after {
           animation-play-state: paused;
-          transition: filter 0.05s ease, opacity 0.05s ease, transform 0.05s ease;
+          transition:
+            filter 0.05s ease,
+            opacity 0.05s ease,
+            transform 0.05s ease;
         }
 
         @keyframes rotate-bg {
-          0% { background-position: 0% 0%; }
-          25% { background-position: 100% 0%; }
-          50% { background-position: 100% 100%; }
-          75% { background-position: 0% 100%; }
-          100% { background-position: 0% 0%; }
+          0% {
+            background-position: 0% 0%;
+          }
+          25% {
+            background-position: 100% 0%;
+          }
+          50% {
+            background-position: 100% 100%;
+          }
+          75% {
+            background-position: 0% 100%;
+          }
+          100% {
+            background-position: 0% 0%;
+          }
         }
 
         @keyframes rotate {
-          from { transform: rotateZ(-70deg) translateY(-65%); }
-          to { transform: rotateZ(290deg) translateY(-65%); }
+          from {
+            transform: rotateZ(-70deg) translateY(-65%);
+          }
+          to {
+            transform: rotateZ(290deg) translateY(-65%);
+          }
         }
 
         @keyframes hue-animation {
-          0% { filter: hue-rotate(0deg); }
-          100% { filter: hue-rotate(360deg); }
+          0% {
+            filter: hue-rotate(0deg);
+          }
+          100% {
+            filter: hue-rotate(360deg);
+          }
         }
       `}</style>
     </div>
-  )
+  );
 }

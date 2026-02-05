@@ -20,7 +20,9 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   if (!body?.planId || !body?.interval) {
-    return jsonError("invalid_checkout", "Invalid checkout input.", { status: 400 });
+    return jsonError("invalid_checkout", "Invalid checkout input.", {
+      status: 400,
+    });
   }
 
   return jsonNoStore({ url: "https://app.gettrail.net/billing" });

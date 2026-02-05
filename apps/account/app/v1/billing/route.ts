@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   if (!token || !verifyExtensionAccessToken(token)) {
     return NextResponse.json(
       { code: "auth", message: "Unauthorized", retryable: false },
-      { status: 401 }
+      { status: 401 },
     );
   }
 

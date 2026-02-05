@@ -8,7 +8,9 @@ export const runtime = "nodejs";
 
 function buildSubscriptionStub(createdAt: Date) {
   const start = createdAt.toISOString();
-  const end = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const end = new Date(
+    createdAt.getTime() + 30 * 24 * 60 * 60 * 1000,
+  ).toISOString();
   return {
     id: "sub_free",
     planId: "free",
@@ -18,7 +20,7 @@ function buildSubscriptionStub(createdAt: Date) {
     currentPeriodEnd: end,
     cancelAtPeriodEnd: false,
     trialEndsAt: null,
-    canceledAt: null
+    canceledAt: null,
   };
 }
 

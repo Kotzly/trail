@@ -1,46 +1,58 @@
 import "server-only";
 
-import { decodeJwt } from "jose";
 import { cookies } from "next/headers";
-import type { AppUser } from "@trail/trpc";
+import type { UUID } from "crypto";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
-const AUTH_COOKIE_NAME = "trail_auth_session";
-const AUTH_BYPASS = process.env.ACCOUNT_AUTH_BYPASS === "1";
+export const AUTH_COOKIE_NAME = "trail_auth_session";
+const AUTH_BYPASS = process.env.ACCOUNT_AUTH_BYPASS === ("1" as const);
 
-const devUser: AppUser = {
-  id: "dev-local",
-  email: "dev@gettrail.local",
-  name: "Local Dev",
-  imageUrl: null
+type AuthSession = {
+  user: User;
 };
 
-type AuthTokenClaims = {
-  sub?: string;
-  email?: string;
-  name?: string;
-  picture?: string;
-  image?: string;
-};
+export async function getAuthSession(): Promise<AuthSession | null> {
+  if (getAuthBypassState()) {
+    return { user: devUser };
+  }
 
-export type AuthUser = {
-  id?: string;
-  sub?: string;
-  email?: string;
-  name?: string;
-  imageUrl?: string | null;
-  picture?: string | null;
-};
+  const token = await getAuthTokenFromCookies();
+  if (!token) {
+    return null;
+  }
 
-export function getAuthCookieName() {
-  return AUTH_COOKIE_NAME;
+  const user = await getUserFromToken(token);
+  return user ? { user } : null;
 }
 
 export function isAuthBypassed() {
-  return AUTH_BYPASS;
+  return getAuthBypassState();
 }
 
-export function getDevUser() {
-  return devUser;
+export const devUser: User = {
+  id: "uuiddev1-2345-6789-0123-456789012345",
+  email: "dev@gettrail.local",
+  name: "Local Dev",
+};
+
+type CommonUserClaims = {
+  email: string;
+  name: string;
+  imageUrl?: string;
+};
+
+type UserClaims = CommonUserClaims & {
+  sub: UUID;
+  exp: number;
+  picture?: string;
+};
+
+export type User = CommonUserClaims & {
+  id: UUID;
+};
+
+export function getAuthBypassState(): boolean {
+  return AUTH_BYPASS;
 }
 
 export async function getAuthTokenFromCookies(): Promise<string | null> {
@@ -48,36 +60,62 @@ export async function getAuthTokenFromCookies(): Promise<string | null> {
   return cookieStore.get(AUTH_COOKIE_NAME)?.value ?? null;
 }
 
-export function getAuthUserFromToken(token: string): AuthUser | null {
-  if (!token) {
+const JWKS_CACHE = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
+
+function normalizeBaseUrl(value: string): string | null {
+  const trimmed = value.trim().replace(/\/+$/, "");
+  if (!trimmed) {
     return null;
+  }
+  return trimmed;
+}
+
+function resolveAuthIssuer(): string | null {
+  return (
+    normalizeBaseUrl(process.env.TRAIL_AUTH_BASE_URL ?? "") ??
+    normalizeBaseUrl(process.env.BETTER_AUTH_URL ?? "") ??
+    null
+  );
+}
+
+function getRemoteJwks(jwksUrl: string) {
+  const normalized = jwksUrl.trim().replace(/\/$/, "");
+  const cached = JWKS_CACHE.get(normalized);
+  if (cached) {
+    return cached;
+  }
+  const jwks = createRemoteJWKSet(new URL(normalized));
+  JWKS_CACHE.set(normalized, jwks);
+  return jwks;
+}
+
+export async function getUserFromToken(
+  token: string,
+): Promise<User | undefined> {
+  if (!token) {
+    return undefined;
+  }
+
+  const issuer = resolveAuthIssuer();
+  if (!issuer) {
+    return undefined;
   }
 
   try {
-    const payload = decodeJwt(token) as AuthTokenClaims;
-    const sub = typeof payload.sub === "string" ? payload.sub : undefined;
-    const email = typeof payload.email === "string" ? payload.email : undefined;
-    const name = typeof payload.name === "string" ? payload.name : undefined;
-    const image =
-      typeof payload.picture === "string"
-        ? payload.picture
-        : typeof payload.image === "string"
-          ? payload.image
-          : undefined;
+    const jwks = getRemoteJwks(`${issuer}/api/auth/jwks`);
+    const { payload } = await jwtVerify<UserClaims>(token, jwks, { issuer });
 
-    if (!sub && !email && !name && !image) {
-      return null;
+    if (!payload?.sub) {
+      return undefined;
     }
 
     return {
-      id: sub,
-      sub,
-      email,
-      name,
-      imageUrl: image ?? null,
-      picture: image ?? null
+      id: payload.sub,
+      email: payload.email,
+      name: payload.name,
+      imageUrl: payload.imageUrl ?? payload.picture,
     };
   } catch {
-    return null;
+    return undefined;
   }
 }

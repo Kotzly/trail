@@ -5,7 +5,6 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
-
 interface HeroWithVideoProps {
   eyebrow?: string;
   title?: string;
@@ -22,7 +21,13 @@ interface HeroWithVideoProps {
 export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
   eyebrow = "Browser app · free beta",
   title = "Turn browsing into",
-  rotatingWords = ["shareable paths", "clear decisions", "organized research", "team context", "calm workflows"],
+  rotatingWords = [
+    "shareable paths",
+    "clear decisions",
+    "organized research",
+    "team context",
+    "calm workflows",
+  ],
   description = "Capture every meaningful step, add notes when it matters, and share a clean research path instead of a tab dump.",
   ctaText = "Get Trail",
   ctaHref = "/downloads",
@@ -89,7 +94,11 @@ export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
                     animate={
                       titleNumber === index
                         ? { y: 0, opacity: 1, scale: 1 }
-                        : { y: titleNumber > index ? -100 : 100, opacity: 0, scale: 0.8 }
+                        : {
+                            y: titleNumber > index ? -100 : 100,
+                            opacity: 0,
+                            scale: 0.8,
+                          }
                     }
                     exit={{ opacity: 0, y: -100, scale: 0.8 }}
                     transition={{ type: "spring", stiffness: 100, damping: 20 }}

@@ -1,5 +1,6 @@
 export function getBearerToken(headers: Headers): string | null {
-  const authHeader = headers.get("authorization") ?? headers.get("Authorization");
+  const authHeader =
+    headers.get("authorization") ?? headers.get("Authorization");
   if (!authHeader) {
     return null;
   }

@@ -8,7 +8,7 @@ const DEFAULT_PLANS = [
     currency: "USD",
     features: ["Basic navigation history", "Up to 3 trees", "Local-only data"],
     limits: { maxTrees: 3, maxDevices: 1, maxHistoryDays: 7 },
-    rank: 0
+    rank: 0,
   },
   {
     id: "pro",
@@ -20,7 +20,7 @@ const DEFAULT_PLANS = [
     features: ["Unlimited trees", "Sync across devices", "Priority rendering"],
     limits: { maxTrees: 999, maxDevices: 5, maxHistoryDays: 90 },
     highlight: true,
-    rank: 1
+    rank: 1,
   },
   {
     id: "team",
@@ -31,8 +31,8 @@ const DEFAULT_PLANS = [
     currency: "USD",
     features: ["Shared workspaces", "Team analytics", "Admin controls"],
     limits: { maxTrees: 999, maxDevices: 15, maxHistoryDays: 180 },
-    rank: 2
-  }
+    rank: 2,
+  },
 ] as const;
 
 type AccountUser = {
@@ -77,14 +77,14 @@ function toAccountUser(user: DbUser): AccountUser {
     email: user.email ?? "",
     displayName,
     avatarUrl: user.imageUrl ?? null,
-    createdAt: user.createdAt.toISOString()
+    createdAt: user.createdAt.toISOString(),
   };
 }
 
 export function buildAccountSnapshot({
   user,
   accessToken,
-  expiresAt
+  expiresAt,
 }: {
   user: DbUser | null;
   accessToken?: string | null;
@@ -96,16 +96,20 @@ export function buildAccountSnapshot({
       user: null,
       subscription: null,
       billing: { state: "none" },
-      plans: DEFAULT_PLANS
+      plans: DEFAULT_PLANS,
     };
   }
 
   return {
-    session: { status: "authenticated", accessToken, expiresAt: expiresAt ?? null },
+    session: {
+      status: "authenticated",
+      accessToken,
+      expiresAt: expiresAt ?? null,
+    },
     user: toAccountUser(user),
     subscription: null,
     billing: { state: "none" },
-    plans: DEFAULT_PLANS
+    plans: DEFAULT_PLANS,
   };
 }
 

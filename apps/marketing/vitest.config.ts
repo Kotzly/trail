@@ -7,11 +7,11 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: "./vitest.setup.ts",
-    globals: true
+    globals: true,
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, ".")
-    }
-  }
+      "@": path.resolve(__dirname, "."),
+    },
+  },
 });

@@ -7,7 +7,7 @@ const config: Config = {
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
     "../../packages/ui/src/**/*.{ts,tsx}",
-    "../../packages/content/src/**/*.{ts,tsx}"
+    "../../packages/content/src/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
@@ -23,31 +23,36 @@ const config: Config = {
         "cta-hover": "rgb(var(--cta-hover) / <alpha-value>)",
         "cta-fg": "rgb(var(--cta-fg) / <alpha-value>)",
         accent: "rgb(var(--accent) / <alpha-value>)",
-        "accent-soft": "rgb(var(--accent-soft) / <alpha-value>)"
+        "accent-soft": "rgb(var(--accent-soft) / <alpha-value>)",
       },
       fontFamily: {
-        display: ["var(--font-display)", "Plus Jakarta Sans", "system-ui", "sans-serif"]
+        display: [
+          "var(--font-display)",
+          "Plus Jakarta Sans",
+          "system-ui",
+          "sans-serif",
+        ],
       },
       boxShadow: {
         glow: "var(--trail-elev-2)",
-        card: "var(--trail-elev-1)"
+        card: "var(--trail-elev-1)",
       },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" }
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" }
-        }
+          to: { height: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out"
-      }
-    }
-  }
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
 };
 
 export default config;

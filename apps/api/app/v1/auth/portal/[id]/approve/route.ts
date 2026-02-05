@@ -9,11 +9,13 @@ export const runtime = "nodejs";
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   if (!id) {
-    return jsonError("portal_not_found", "Portal session not found.", { status: 404 });
+    return jsonError("portal_not_found", "Portal session not found.", {
+      status: 404,
+    });
   }
 
   const token = getBearerToken(request.headers);
@@ -29,7 +31,8 @@ export async function POST(
 
   const result = await approvePortalSession(id, user.id);
   if (!result.ok) {
-    const code = result.reason === "expired" ? "portal_expired" : "portal_not_found";
+    const code =
+      result.reason === "expired" ? "portal_expired" : "portal_not_found";
     const message =
       result.reason === "expired"
         ? "Portal session expired."
@@ -40,6 +43,6 @@ export async function POST(
   const approvedAt = result.session.approvedAt ?? new Date();
   return jsonNoStore({
     status: "approved",
-    approvedAt: approvedAt.toISOString()
+    approvedAt: approvedAt.toISOString(),
   });
 }

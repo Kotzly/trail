@@ -45,7 +45,7 @@ export function Pricing({
   toggleNote = "Save 20%",
   billedMonthlyLabel = "billed monthly",
   billedAnnuallyLabel = "billed annually",
-  popularBadge = "Popular"
+  popularBadge = "Popular",
 }: PricingProps) {
   const [isMonthly, setIsMonthly] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -64,14 +64,14 @@ export function Pricing({
           spread: 60,
           origin: {
             x: x / window.innerWidth,
-            y: y / window.innerHeight
+            y: y / window.innerHeight,
           },
           colors: ["#F97316", "#22D3EE", "#2DD4BF"],
           ticks: 200,
           gravity: 1.2,
           decay: 0.94,
           startVelocity: 30,
-          shapes: ["circle"]
+          shapes: ["circle"],
         });
       }
       return nextIsMonthly;
@@ -103,19 +103,18 @@ export function Pricing({
             onClick={handleToggle}
             className={cn(
               "relative inline-flex h-6 w-11 items-center rounded-full border border-border/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base",
-              !isMonthly ? "bg-accent" : "bg-surface-high"
+              !isMonthly ? "bg-accent" : "bg-surface-high",
             )}
           >
             <span
               className={cn(
                 "inline-block h-5 w-5 rounded-full bg-surface shadow-lg transition-transform",
-                !isMonthly ? "translate-x-5" : "translate-x-0"
+                !isMonthly ? "translate-x-5" : "translate-x-0",
               )}
             />
           </button>
           <span className="text-sm font-semibold text-ink">
-            {toggleLabel}{" "}
-            <span className="text-ink-muted">({toggleNote})</span>
+            {toggleLabel} <span className="text-ink-muted">({toggleNote})</span>
           </span>
         </div>
 
@@ -127,20 +126,20 @@ export function Pricing({
               whileInView={{
                 y: 0,
                 opacity: 1,
-                scale: plan.isPopular && isDesktop ? 1.04 : 1
+                scale: plan.isPopular && isDesktop ? 1.04 : 1,
               }}
               viewport={{ once: true }}
               transition={{
                 duration: 0.8,
                 ease: [0.16, 1, 0.3, 1],
-                delay: index * 0.1
+                delay: index * 0.1,
               }}
               className={cn(
                 "relative rounded-3xl border p-6 text-center lg:flex lg:flex-col lg:justify-between",
                 "bg-surface",
                 plan.isPopular
                   ? "border-accent/60 bg-surface-high"
-                  : "border-border/60"
+                  : "border-border/60",
               )}
             >
               {plan.isPopular && (
@@ -157,17 +156,19 @@ export function Pricing({
                   <span className="text-5xl font-semibold tracking-tight text-ink">
                     <NumberFlow
                       value={
-                        isMonthly ? Number(plan.price) : Number(plan.yearlyPrice)
+                        isMonthly
+                          ? Number(plan.price)
+                          : Number(plan.yearlyPrice)
                       }
                       format={{
                         style: "currency",
                         currency: "USD",
                         minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
+                        maximumFractionDigits: 0,
                       }}
                       transformTiming={{
                         duration: 500,
-                        easing: "ease-out"
+                        easing: "ease-out",
                       }}
                       willChange
                       className="tabular-nums"
@@ -201,7 +202,7 @@ export function Pricing({
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "group relative w-full gap-2 overflow-hidden text-sm font-semibold",
-                  "transition-all duration-300 ease-out hover:bg-cta hover:text-cta-fg"
+                  "transition-all duration-300 ease-out hover:bg-cta hover:text-cta-fg",
                 )}
               >
                 {plan.buttonText}

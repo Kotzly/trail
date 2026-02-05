@@ -23,7 +23,8 @@ export function FeaturesHero() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mt-6 font-display text-4xl font-semibold leading-[1.15] tracking-tight text-ink md:text-5xl lg:text-6xl"
         >
-          Everything you need for<br />
+          Everything you need for
+          <br />
           <span className="text-accent">better research</span>
         </motion.h1>
 
@@ -33,8 +34,8 @@ export function FeaturesHero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted"
         >
-          Trail combines powerful features with a simple interface. 
-          No learning curve, no setup required.
+          Trail combines powerful features with a simple interface. No learning
+          curve, no setup required.
         </motion.p>
       </div>
     </section>

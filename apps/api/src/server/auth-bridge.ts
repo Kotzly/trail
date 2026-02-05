@@ -22,7 +22,9 @@ type ExchangeFailure = {
 
 type ExchangeResult = ExchangeSuccess | ExchangeFailure;
 
-export async function exchangeAuthBridgeCode(code: string): Promise<ExchangeResult> {
+export async function exchangeAuthBridgeCode(
+  code: string,
+): Promise<ExchangeResult> {
   const record = await db.authBridgeCode.findUnique({
     where: { code },
     include: {
@@ -32,10 +34,10 @@ export async function exchangeAuthBridgeCode(code: string): Promise<ExchangeResu
           email: true,
           name: true,
           imageUrl: true,
-          createdAt: true
-        }
-      }
-    }
+          createdAt: true,
+        },
+      },
+    },
   });
 
   if (!record) {
@@ -52,14 +54,14 @@ export async function exchangeAuthBridgeCode(code: string): Promise<ExchangeResu
 
   const updated = await db.authBridgeCode.update({
     where: { id: record.id },
-    data: { usedAt: new Date() }
+    data: { usedAt: new Date() },
   });
 
   return {
     ok: true,
     user: record.user,
     jwt: updated.jwt,
-    jwtExpiresAt: null
+    jwtExpiresAt: null,
   };
 }
 

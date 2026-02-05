@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3003",
-    "build": "pnpm --filter @trail/db prisma generate && next build",
+    "build": "next build",
     "start": "next start -p 3003",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",

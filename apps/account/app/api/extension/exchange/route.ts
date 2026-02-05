@@ -12,15 +12,18 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response = await internalApiFetch("/api/internal/extension/exchange", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code })
-    });
+    const response = await internalApiFetch(
+      "/api/internal/extension/exchange",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      },
+    );
 
     return new Response(response.body, {
       status: response.status,
-      headers: response.headers
+      headers: response.headers,
     });
   } catch (error) {
     if (error instanceof Error) {

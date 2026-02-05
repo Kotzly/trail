@@ -100,7 +100,7 @@ function StepItem({
         "group relative flex items-start gap-3 rounded-xl border p-3 transition-colors",
         step.completed
           ? "border-border/40 bg-surface/50"
-          : "border-border/60 bg-surface cursor-pointer hover:border-accent/50 hover:bg-surface-high"
+          : "border-border/60 bg-surface cursor-pointer hover:border-accent/50 hover:bg-surface-high",
       )}
       onClick={onClick}
       onMouseEnter={() => setShowTooltip(true)}
@@ -117,7 +117,7 @@ function StepItem({
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold transition-all",
           step.completed
             ? "border-ink bg-ink text-surface"
-            : "border-accent/60 bg-accent/10 text-accent animate-pulse"
+            : "border-accent/60 bg-accent/10 text-accent animate-pulse",
         )}
       >
         <AnimatePresence mode="wait">
@@ -150,7 +150,7 @@ function StepItem({
           <span
             className={cn(
               "text-sm font-medium",
-              step.completed ? "text-ink-muted line-through" : "text-ink"
+              step.completed ? "text-ink-muted line-through" : "text-ink",
             )}
           >
             {step.title}
@@ -164,7 +164,7 @@ function StepItem({
         <p
           className={cn(
             "text-xs mt-0.5",
-            step.completed ? "text-ink-subtle" : "text-ink-muted"
+            step.completed ? "text-ink-subtle" : "text-ink-muted",
           )}
         >
           {step.description}
@@ -175,7 +175,7 @@ function StepItem({
       <div
         className={cn(
           "shrink-0 text-ink-subtle",
-          step.completed && "opacity-50"
+          step.completed && "opacity-50",
         )}
       >
         {step.icon}
@@ -342,7 +342,7 @@ export function OnboardingChecklist({
 }
 
 export function useOnboardingSteps(
-  userProgress: Partial<Record<string, boolean>> = {}
+  userProgress: Partial<Record<string, boolean>> = {},
 ): OnboardingStep[] {
   return React.useMemo(
     () => [
@@ -387,6 +387,6 @@ export function useOnboardingSteps(
         estimatedMinutes: 2,
       },
     ],
-    [userProgress]
+    [userProgress],
   );
 }

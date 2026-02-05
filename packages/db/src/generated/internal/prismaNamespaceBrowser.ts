@@ -57,6 +57,7 @@ export const ModelName = {
   Verification: 'Verification',
   Jwks: 'Jwks',
   AuthBridgeCode: 'AuthBridgeCode',
+  ExtensionLoginCode: 'ExtensionLoginCode',
   UserSubscription: 'UserSubscription',
   PolarWebhookEvent: 'PolarWebhookEvent',
   WishlistLead: 'WishlistLead',
@@ -162,6 +163,19 @@ export const AuthBridgeCodeScalarFieldEnum = {
   expiresAt: 'expiresAt',
   usedAt: 'usedAt',
   createdAt: 'createdAt'
+} as const
+
+export type AuthBridgeCodeScalarFieldEnum = (typeof AuthBridgeCodeScalarFieldEnum)[keyof typeof AuthBridgeCodeScalarFieldEnum]
+
+
+export const ExtensionLoginCodeScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  userId: 'userId',
+  expiresAt: 'expiresAt',
+  usedAt: 'usedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type AuthBridgeCodeScalarFieldEnum = (typeof AuthBridgeCodeScalarFieldEnum)[keyof typeof AuthBridgeCodeScalarFieldEnum]

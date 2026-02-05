@@ -17,7 +17,10 @@ function base64Url(input: Buffer | string): string {
 }
 
 function fromBase64Url(input: string): string {
-  const padded = input.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(input.length / 4) * 4, "=");
+  const padded = input
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(input.length / 4) * 4, "=");
   return Buffer.from(padded, "base64").toString("utf8");
 }
 
@@ -31,7 +34,7 @@ function getSecret(): string | null {
 
 export function createExtensionAccessToken(
   userId: string,
-  ttlSeconds: number = TOKEN_TTL_SECONDS
+  ttlSeconds: number = TOKEN_TTL_SECONDS,
 ): { token: string; expiresAt: string } {
   const secret = getSecret();
   if (!secret) {
@@ -42,7 +45,7 @@ export function createExtensionAccessToken(
   const payload: ExtensionTokenPayload = {
     sub: userId,
     iat: now,
-    exp: now + ttlSeconds
+    exp: now + ttlSeconds,
   };
 
   const header = { alg: "HS256", typ: "JWT" };
@@ -51,10 +54,15 @@ export function createExtensionAccessToken(
   const data = `${headerPart}.${payloadPart}`;
   const signature = sign(data, secret);
 
-  return { token: `${data}.${signature}`, expiresAt: new Date(payload.exp * 1000).toISOString() };
+  return {
+    token: `${data}.${signature}`,
+    expiresAt: new Date(payload.exp * 1000).toISOString(),
+  };
 }
 
-export function verifyExtensionAccessToken(token: string): ExtensionTokenPayload | null {
+export function verifyExtensionAccessToken(
+  token: string,
+): ExtensionTokenPayload | null {
   const secret = getSecret();
   if (!secret) {
     return null;
@@ -73,7 +81,10 @@ export function verifyExtensionAccessToken(token: string): ExtensionTokenPayload
   }
 
   try {
-    const match = timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    const match = timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expected),
+    );
     if (!match) {
       return null;
     }
@@ -82,7 +93,9 @@ export function verifyExtensionAccessToken(token: string): ExtensionTokenPayload
   }
 
   try {
-    const payload = JSON.parse(fromBase64Url(payloadPart)) as ExtensionTokenPayload;
+    const payload = JSON.parse(
+      fromBase64Url(payloadPart),
+    ) as ExtensionTokenPayload;
     if (!payload?.sub || typeof payload.sub !== "string") {
       return null;
     }

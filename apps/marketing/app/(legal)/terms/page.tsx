@@ -12,7 +12,7 @@ export const metadata = buildMetadata({
   title: "Trail Terms — Accounts, acceptable use, and access",
   description:
     "Review responsibilities, acceptable use, billing, and how the product is provided, including updates, suspension, and termination.",
-  path: "/terms"
+  path: "/terms",
 });
 
 export default async function TermsPage() {
@@ -29,7 +29,9 @@ export default async function TermsPage() {
             {doc.title}
           </h1>
           {doc.lastUpdated ? (
-            <p className="mt-3 text-sm text-ink-subtle">Last updated: {doc.lastUpdated}</p>
+            <p className="mt-3 text-sm text-ink-subtle">
+              Last updated: {doc.lastUpdated}
+            </p>
           ) : null}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button.AsChild variant="outline" size="sm">

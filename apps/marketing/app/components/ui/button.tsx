@@ -8,33 +8,31 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-cta text-cta-fg hover:bg-cta-hover",
-        destructive:
-          "bg-red-500 text-white hover:bg-red-500/90",
+        default: "bg-cta text-cta-fg hover:bg-cta-hover",
+        destructive: "bg-red-500 text-white hover:bg-red-500/90",
         outline:
           "border border-border bg-surface text-ink hover:bg-surface-high",
-        secondary:
-          "bg-surface-high text-ink hover:bg-surface",
+        secondary: "bg-surface-high text-ink hover:bg-surface",
         ghost: "text-ink hover:bg-surface-high",
-        link: "text-ink underline-offset-4 hover:underline"
+        link: "text-ink underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-full px-3",
         lg: "h-11 rounded-full px-8",
-        icon: "h-10 w-10"
-      }
+        icon: "h-10 w-10",
+      },
     },
     defaultVariants: {
       variant: "default",
-      size: "default"
-    }
-  }
+      size: "default",
+    },
+  },
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {}
 
 type ButtonComponent = React.ForwardRefExoticComponent<
@@ -55,8 +53,9 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonProps>(
       className={getButtonClasses({ className, variant, size })}
       {...props}
     />
-  )
+  ),
 );
+ButtonRoot.displayName = "ButtonRoot";
 
 const ButtonAsChild = React.forwardRef<HTMLElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => (
@@ -65,11 +64,12 @@ const ButtonAsChild = React.forwardRef<HTMLElement, ButtonProps>(
       className={getButtonClasses({ className, variant, size })}
       {...props}
     />
-  )
+  ),
 );
+ButtonAsChild.displayName = "ButtonAsChild";
 
 const Button = Object.assign(ButtonRoot, {
-  AsChild: ButtonAsChild
+  AsChild: ButtonAsChild,
 }) as ButtonComponent;
 Button.displayName = "Button";
 Button.AsChild.displayName = "Button.AsChild";

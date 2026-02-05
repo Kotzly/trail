@@ -9,19 +9,23 @@ type MarkdownBlock =
 
 const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 
-function renderEmailNodes(text: string, opts: { strong?: boolean }): React.ReactNode[] {
+function renderEmailNodes(
+  text: string,
+  opts: { strong?: boolean },
+): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   const pattern = new RegExp(emailPattern.source, "gi");
 
-  // eslint-disable-next-line no-cond-assign
   while ((match = pattern.exec(text))) {
     const start = match.index;
     const email = match[0];
     if (start > lastIndex) {
       const chunk = text.slice(lastIndex, start);
-      nodes.push(opts.strong ? <strong key={`${start}-t`}>{chunk}</strong> : chunk);
+      nodes.push(
+        opts.strong ? <strong key={`${start}-t`}>{chunk}</strong> : chunk,
+      );
     }
 
     nodes.push(
@@ -31,14 +35,16 @@ function renderEmailNodes(text: string, opts: { strong?: boolean }): React.React
         className="font-semibold text-ink underline underline-offset-4"
       >
         {opts.strong ? <strong>{email}</strong> : email}
-      </a>
+      </a>,
     );
     lastIndex = start + email.length;
   }
 
   if (lastIndex < text.length) {
     const tail = text.slice(lastIndex);
-    nodes.push(opts.strong ? <strong key={`${lastIndex}-t`}>{tail}</strong> : tail);
+    nodes.push(
+      opts.strong ? <strong key={`${lastIndex}-t`}>{tail}</strong> : tail,
+    );
   }
 
   return nodes;
@@ -179,10 +185,7 @@ export function MarkdownBlocks({ markdown }: { markdown: string }) {
         }
 
         return (
-          <p
-            key={`p-${index}`}
-            className="text-sm leading-7 text-ink-muted"
-          >
+          <p key={`p-${index}`} className="text-sm leading-7 text-ink-muted">
             {renderInline(block.text)}
           </p>
         );

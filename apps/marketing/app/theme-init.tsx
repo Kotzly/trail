@@ -1,6 +1,6 @@
 // app/theme-init.tsx
 export function ThemeInit() {
-    const code = `(function () {
+  const code = `(function () {
       try {
         var key = 'trail-theme';
         var stored = localStorage.getItem(key);
@@ -19,7 +19,6 @@ export function ThemeInit() {
         root.style.colorScheme = resolved;
       } catch (e) {}
     })();`;
-  
-    return <script dangerouslySetInnerHTML={{ __html: code }} />;
-  }
-  
+
+  return <script dangerouslySetInnerHTML={{ __html: code }} />;
+}

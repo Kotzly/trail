@@ -9,7 +9,7 @@ const config: Config = {
     "./src/**/*.{ts,tsx}",
     "../../packages/ui/src/**/*.{ts,tsx}",
     "../../packages/content/src/**/*.{ts,tsx}",
-    "../../packages/trpc/src/**/*.{ts,tsx}"
+    "../../packages/trpc/src/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
@@ -23,16 +23,22 @@ const config: Config = {
         "cta-hover": "rgb(var(--cta-hover) / <alpha-value>)",
         "cta-fg": "rgb(var(--cta-fg) / <alpha-value>)",
         accent: "rgb(var(--accent) / <alpha-value>)",
-        "accent-soft": "rgb(var(--accent-soft) / <alpha-value>)"
+        "accent-soft": "rgb(var(--accent-soft) / <alpha-value>)",
       },
       fontFamily: {
-        display: ["var(--font-display)", "Plus Jakarta Sans", "system-ui", "sans-serif"]
+        sans: [
+          "var(--font-sans)",
+          "Instrument Sans",
+          "system-ui",
+          "sans-serif",
+        ],
+        display: ["var(--font-display)", "Fraunces", "serif"],
       },
       boxShadow: {
-        card: "var(--trail-elev-2)"
-      }
-    }
-  }
+        card: "var(--trail-elev-2)",
+      },
+    },
+  },
 };
 
 export default config;
