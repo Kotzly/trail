@@ -1,27 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { auth0, getAuthSession, isAuthBypassed } from "@/src/lib/auth0";
 
 const protectedPrefixes = ["/dashboard", "/settings", "/billing", "/extension"];
+const AUTH_COOKIE_NAME = "trail_auth_session";
+const AUTH_BYPASS = process.env.ACCOUNT_AUTH_BYPASS === "1";
 
 export async function proxy(request: NextRequest) {
-  if (isAuthBypassed()) {
+  if (AUTH_BYPASS) {
     return NextResponse.next();
   }
 
-  const authRes = await auth0.middleware(request);
-  const { pathname } = request.nextUrl;
-
+  const { pathname, search } = request.nextUrl;
   const needsAuth = protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
   if (!needsAuth) {
-    return authRes;
+    return NextResponse.next();
   }
 
-  const session = await getAuthSession(request);
-  if (!session) {
-    return NextResponse.redirect(new URL("/auth/login", request.nextUrl.origin));
+  const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+  if (!token) {
+    const loginUrl = new URL("/auth/login", request.nextUrl.origin);
+    loginUrl.searchParams.set("next", `${pathname}${search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
-  return authRes;
+  return NextResponse.next();
 }
 
 export const config = {

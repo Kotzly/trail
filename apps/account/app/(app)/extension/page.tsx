@@ -3,8 +3,7 @@ import { DesktopIcon, LaptopIcon, Link2Icon, LockClosedIcon } from "@radix-ui/re
 import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@/app/components/PageHeader";
-import { getAuthSession, isAuthBypassed } from "@/src/lib/auth0";
-import { ensureUser } from "@/src/server/user";
+import { getAuthSession } from "@/src/lib/auth";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
 import { ExtensionConnectionGuideClient } from "./ExtensionConnectionGuideClient";
 
@@ -29,21 +28,14 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
   const queryCode =
     typeof resolvedSearchParams?.code === "string" ? resolvedSearchParams.code : null;
   const returnTo = queryCode ? `/extension?code=${queryCode}` : "/extension";
-  const authBypassed = isAuthBypassed();
+  const session = getAuthSession();
 
-  const session = await getAuthSession();
-  if (!session?.user && !authBypassed) {
-    redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
-  }
 
-  const user = session?.user ? await ensureUser(session.user) : null;
-  if (!user && !authBypassed) {
-    redirect(`/auth/login?${new URLSearchParams({ returnTo })}`);
-  }
+  const user = session?.user;
 
   let connectionReady = false;
 
-  if (queryCode && user && !authBypassed) {
+  if (queryCode && user) {
     try {
       const stored = await createExtensionLoginCode(user.id, queryCode);
       if (stored !== queryCode) {
