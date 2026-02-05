@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate dev-marketing dev-account dev-api lint typecheck test extension
+.PHONY: dev db-up db-down db-migrate dev-marketing dev-account dev-api lint typecheck test extension e2e
 
 db-up:
 	docker compose up -d postgres
@@ -32,3 +32,7 @@ test:
 
 extension:
 	cd extension && npm run build
+
+e2e: db-up
+	pnpm db:migrate
+	pnpm dev
