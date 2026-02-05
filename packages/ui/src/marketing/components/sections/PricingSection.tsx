@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Check, Sparkles, Star } from "../../../icons";
+import { Check, Sparkles } from "../../../icons";
 import { marketingCopy } from "@trail/content";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
