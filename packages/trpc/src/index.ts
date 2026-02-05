@@ -1,4 +1,4 @@
 export { appRouter } from "./router";
 export type { AppRouter } from "./router";
 export { router, publicProcedure, protectedProcedure } from "./trpc";
-export type { AppContext, AppSession, AppUser } from "./types";
+export type { AppContext, AppSession, User } from "./types";

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthTokenFromCookies, getDevUser, isAuthBypassed } from "@/src/lib/auth";
+import { getAuthTokenFromCookies, getAuthBypassState, devUser } from "@/src/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -15,7 +15,7 @@ async function proxyToApi(request: Request): Promise<Response> {
     return NextResponse.json({ error: "missing_TRAIL_INTERNAL_API_KEY" }, { status: 500 });
   }
 
-  const authBypassed = isAuthBypassed();
+  const authBypassed = getAuthBypassState();
   const token = authBypassed ? null : await getAuthTokenFromCookies();
 
   const url = new URL(request.url);
@@ -33,7 +33,7 @@ async function proxyToApi(request: Request): Promise<Response> {
 
   headers.set("x-trail-internal-key", TRAIL_INTERNAL_API_KEY);
   if (authBypassed) {
-    headers.set("x-trail-user", JSON.stringify(getDevUser()));
+    headers.set("x-trail-user", JSON.stringify(devUser));
   } else if (token) {
     headers.set("authorization", `Bearer ${token}`);
   }

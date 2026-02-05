@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthCookieName } from "@/src/lib/auth";
+import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const response = NextResponse.redirect(new URL("/", url.origin));
 
-  response.cookies.set(getAuthCookieName(), "", {
+  response.cookies.set(AUTH_COOKIE_NAME, "", {
     httpOnly: true,
     path: "/",
     sameSite: "lax",

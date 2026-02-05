@@ -2,8 +2,9 @@ import "server-only";
 
 import { jwtDecode } from "jwt-decode";
 import { cookies } from "next/headers";
+import type { UUID } from "crypto";
 
-const AUTH_COOKIE_NAME = "trail_auth_session";
+export const AUTH_COOKIE_NAME = "trail_auth_session";
 const AUTH_BYPASS = process.env.ACCOUNT_AUTH_BYPASS === "1" as const;
 
 type AuthSession = {
@@ -30,7 +31,7 @@ export function isAuthBypassed() {
 
 
 export const devUser: User = {
-  id: "dev-local",
+  id: "uuiddev1-2345-6789-0123-456789012345",
   email: "dev@gettrail.local",
   name: "Local Dev",
 };
@@ -42,12 +43,12 @@ type CommonUserClaims = {
 }
 
 type UserClaims = CommonUserClaims & {
-  sub: string;
+  sub: UUID;
   exp: number;
 }
 
 export type User = CommonUserClaims & {
-  id: string;
+  id: UUID;
 }
 
 export function getAuthBypassState(): boolean {
