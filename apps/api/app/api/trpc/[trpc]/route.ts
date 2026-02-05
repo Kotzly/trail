@@ -1,5 +1,5 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { appRouter } from "@trail/trpc";
+import { appRouter } from "@trail/trpc/src/router";
 import { createTRPCContext } from "@/src/server/trpc-context";
 
 export const runtime = "nodejs";

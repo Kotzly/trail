@@ -133,6 +133,7 @@ export async function syncTrails(input: TrailSyncInput): Promise<TrailSyncOutput
     : [];
 
   const existingMap = new Map(existing.map((trail) => [trail.id, trail]));
+  const operations: Array<ReturnType<typeof db.trail.update>> = [];
 
   for (const trail of clientTrails) {
     const serverTrail = existingMap.get(trail.id) ?? null;
@@ -142,15 +143,23 @@ export async function syncTrails(input: TrailSyncInput): Promise<TrailSyncOutput
     }
 
     if (serverTrail) {
-      await db.trail.update({
-        where: { id: serverTrail.id },
-        data: toDbData({ trail, userId: input.userId, deviceId: input.deviceId, includeCreatedAt: false })
-      });
+      operations.push(
+        db.trail.update({
+          where: { id: serverTrail.id },
+          data: toDbData({ trail, userId: input.userId, deviceId: input.deviceId, includeCreatedAt: false })
+        })
+      );
     } else {
-      await db.trail.create({
-        data: toDbData({ trail, userId: input.userId, deviceId: input.deviceId, includeCreatedAt: true })
-      });
+      operations.push(
+        db.trail.create({
+          data: toDbData({ trail, userId: input.userId, deviceId: input.deviceId, includeCreatedAt: true })
+        })
+      );
     }
+  }
+
+  if (operations.length) {
+    await db.$transaction(operations);
   }
 
   const updates = await db.trail.findMany({

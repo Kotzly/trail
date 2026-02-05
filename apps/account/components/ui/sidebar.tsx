@@ -18,6 +18,8 @@ interface SidebarContextProps {
   animate: boolean;
 }
 
+type SidebarVariant = "animated" | "static";
+
 const SidebarContext = createContext<SidebarContextProps | undefined>(undefined);
 
 export const useSidebar = () => {
@@ -32,17 +34,18 @@ export const SidebarProvider = ({
   children,
   open: openProp,
   setOpen: setOpenProp,
-  animate = true
+  variant = "animated"
 }: {
   children: React.ReactNode;
   open?: boolean;
   setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
-  animate?: boolean;
+  variant?: SidebarVariant;
 }) => {
   const [openState, setOpenState] = useState(false);
 
   const open = openProp !== undefined ? openProp : openState;
   const setOpen = setOpenProp !== undefined ? setOpenProp : setOpenState;
+  const animate = variant === "animated";
 
   return (
     <SidebarContext.Provider value={{ open, setOpen, animate }}>
@@ -51,23 +54,31 @@ export const SidebarProvider = ({
   );
 };
 
-export const Sidebar = ({
-  children,
-  open,
-  setOpen,
-  animate
-}: {
+type SidebarShellProps = {
   children: React.ReactNode;
   open?: boolean;
   setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
-  animate?: boolean;
-}) => {
+};
+
+export const SidebarStatic = ({ children, open, setOpen }: SidebarShellProps) => {
   return (
-    <SidebarProvider open={open} setOpen={setOpen} animate={animate}>
+    <SidebarProvider open={open} setOpen={setOpen} variant="static">
       {children}
     </SidebarProvider>
   );
 };
+
+type SidebarComponent = React.FC<SidebarShellProps> & {
+  Static: typeof SidebarStatic;
+};
+
+export const Sidebar = (({ children, open, setOpen }: SidebarShellProps) => (
+  <SidebarProvider open={open} setOpen={setOpen} variant="animated">
+    {children}
+  </SidebarProvider>
+)) as SidebarComponent;
+
+Sidebar.Static = SidebarStatic;
 
 export const SidebarBody = (props: React.ComponentProps<typeof motion.div>) => {
   return (

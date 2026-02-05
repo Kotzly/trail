@@ -90,6 +90,7 @@ export async function claimDevice(input: DeviceClaimInput) {
   const now = new Date();
   const metadata = buildMetadataUpdate(input.metadata);
   const deviceId = input.deviceId?.trim() || null;
+  const ttlDaysPromise = getSessionTtlDays(input.userId);
 
   let device = null as null | Awaited<ReturnType<typeof db.device.findUnique>>;
 
@@ -116,7 +117,7 @@ export async function claimDevice(input: DeviceClaimInput) {
     });
   }
 
-  const ttlDays = await getSessionTtlDays(input.userId);
+  const ttlDays = await ttlDaysPromise;
   const session = await refreshSession({
     deviceId: device.id,
     userId: input.userId,
