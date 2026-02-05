@@ -20,6 +20,7 @@
     "db:studio": "pnpm --filter @trail/db prisma studio"
   },
   "devDependencies": {
-    "cypress": "^15.9.0"
+    "cypress": "^15.9.0",
+    "next": "16.1.6"
   }
 }
