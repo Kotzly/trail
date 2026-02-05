@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { accountCopy } from "@trail/content";
-import { TrailLogo, cn } from "@trail/ui";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import {
   Activity,
@@ -16,6 +15,7 @@ import {
   Settings,
   Shield,
 } from "lucide-react";
+import { cn, TrailLogo } from "@trail/ui";
 
 const navLinks = [
   {
