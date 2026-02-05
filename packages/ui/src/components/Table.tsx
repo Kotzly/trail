@@ -71,5 +71,3 @@ export const Table = Object.assign(TableRoot, {
   Cell: TableCell,
   HeaderCell: TableHeaderCell,
 }) as TableComponent;
-
-Table.displayName = "Table";

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowRightIcon } from "@radix-ui/react-icons";
-import { Button, EmptyState } from "@trail/ui";
+import { Button, Card, EmptyState, SectionHeader } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import { PageHeader } from "@/app/components/PageHeader";
+import { PageHeader } from "@trail/ui";
 
 export default function ActivityPage() {
   const { activity } = accountCopy;
@@ -32,27 +32,21 @@ export default function ActivityPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-                {activity.stream.eyebrow}
-              </p>
-              <p className="mt-2 text-sm font-semibold text-ink">
-                {activity.stream.title}
-              </p>
-              <p className="mt-1 text-xs text-ink-muted">
-                {activity.stream.subtitle}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {activity.stream.filters.map((filter) => (
-                <span key={filter} className="trail-pill">
-                  {filter}
-                </span>
-              ))}
-            </div>
-          </div>
+        <Card className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={activity.stream.eyebrow}
+            title={activity.stream.title}
+            subtitle={activity.stream.subtitle}
+            actions={
+              <div className="flex flex-wrap items-center gap-2">
+                {activity.stream.filters.map((filter) => (
+                  <span key={filter} className="trail-pill">
+                    {filter}
+                  </span>
+                ))}
+              </div>
+            }
+          />
 
           {hasActivity ? (
             <div className="mt-4 text-xs text-ink-muted">
@@ -68,19 +62,12 @@ export default function ActivityPage() {
                 }
                 items={activity.empty.items}
                 action={
-                  <Button.AsChild
-                    size="sm"
-                    className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
-                  >
+                  <Button.AsChild size="sm">
                     <Link href="/extension">{activity.empty.cta}</Link>
                   </Button.AsChild>
                 }
                 secondaryAction={
-                  <Button.AsChild
-                    size="sm"
-                    variant="outline"
-                    className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
-                  >
+                  <Button.AsChild size="sm" variant="outline">
                     <Link href="/getting-started">
                       {activity.empty.secondaryCta}
                     </Link>
@@ -89,41 +76,29 @@ export default function ActivityPage() {
               />
             </div>
           )}
-        </div>
+        </Card>
 
         <div className="space-y-6">
-          <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {activity.next.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {activity.next.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {activity.next.subtitle}
-            </p>
+          <Card className="rounded-[26px] bg-surface/60">
+            <SectionHeader
+              eyebrow={activity.next.eyebrow}
+              title={activity.next.title}
+              subtitle={activity.next.subtitle}
+            />
             <div className="mt-4">
-              <Button.AsChild
-                size="sm"
-                variant="outline"
-                className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
-              >
+              <Button.AsChild size="sm" variant="outline">
                 <Link href="/extension">{activity.next.cta}</Link>
               </Button.AsChild>
             </div>
-          </div>
+          </Card>
 
-          <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {activity.coverage.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {activity.coverage.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {activity.coverage.subtitle}
-            </p>
-          </div>
+          <Card className="rounded-[26px] bg-surface/60">
+            <SectionHeader
+              eyebrow={activity.coverage.eyebrow}
+              title={activity.coverage.title}
+              subtitle={activity.coverage.subtitle}
+            />
+          </Card>
         </div>
       </div>
     </section>

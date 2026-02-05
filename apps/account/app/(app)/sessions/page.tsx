@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowRightIcon } from "@radix-ui/react-icons";
-import { Button, EmptyState } from "@trail/ui";
+import { Button, Card, EmptyState, SectionHeader } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import { PageHeader } from "@/app/components/PageHeader";
+import { PageHeader } from "@trail/ui";
 
 export default function SessionsPage() {
   const { sessions } = accountCopy;
@@ -15,10 +15,7 @@ export default function SessionsPage() {
         title={sessions.title}
         subtitle={sessions.subtitle}
         actions={
-          <Button.AsChild
-            size="sm"
-            className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
-          >
+          <Button.AsChild size="sm">
             <Link href="/extension" className="inline-flex items-center gap-2">
               {sessions.guidance.cta}
               <ArrowRightIcon className="h-3 w-3" />
@@ -28,18 +25,12 @@ export default function SessionsPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {sessions.list.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {sessions.list.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {sessions.list.subtitle}
-            </p>
-          </div>
+        <Card className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={sessions.list.eyebrow}
+            title={sessions.list.title}
+            subtitle={sessions.list.subtitle}
+          />
 
           {hasSessions ? (
             <div className="mt-4 text-xs text-ink-muted">
@@ -55,30 +46,21 @@ export default function SessionsPage() {
                 }
                 items={sessions.list.emptyItems}
                 action={
-                  <Button.AsChild
-                    size="sm"
-                    className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
-                  >
+                  <Button.AsChild size="sm">
                     <Link href="/extension">{sessions.guidance.cta}</Link>
                   </Button.AsChild>
                 }
               />
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-              {sessions.posture.eyebrow}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {sessions.posture.title}
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {sessions.posture.subtitle}
-            </p>
-          </div>
+        <Card className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={sessions.posture.eyebrow}
+            title={sessions.posture.title}
+            subtitle={sessions.posture.subtitle}
+          />
           <div className="mt-4 grid gap-3">
             {sessions.posture.items.map((item) => (
               <div
@@ -90,10 +72,10 @@ export default function SessionsPage() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-5">
+      <Card className="rounded-[26px] bg-surface/60 px-6 py-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-ink">
@@ -106,12 +88,11 @@ export default function SessionsPage() {
           <Button.AsChild
             size="sm"
             variant="outline"
-            className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
           >
             <Link href="/extension">{sessions.guidance.cta}</Link>
           </Button.AsChild>
         </div>
-      </div>
+      </Card>
     </section>
   );
 }

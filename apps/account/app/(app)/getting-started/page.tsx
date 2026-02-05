@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowRightIcon } from "@radix-ui/react-icons";
-import { Button, SectionHeader, StepList } from "@trail/ui";
+import { Button, Card, SectionHeader, StepList } from "@trail/ui";
 import { accountCopy } from "@trail/content";
-import { PageHeader } from "@/app/components/PageHeader";
+import { PageHeader } from "@trail/ui";
 
 export default function GettingStartedPage() {
   const { gettingStarted } = accountCopy;
@@ -14,10 +14,7 @@ export default function GettingStartedPage() {
         title={gettingStarted.title}
         subtitle={gettingStarted.subtitle}
         actions={
-          <Button.AsChild
-            size="sm"
-            className="rounded-full bg-cta text-cta-fg hover:bg-cta-hover"
-          >
+          <Button.AsChild size="sm">
             <Link href="/extension" className="inline-flex items-center gap-2">
               {gettingStarted.cta}
               <ArrowRightIcon className="h-3 w-3" />
@@ -27,7 +24,7 @@ export default function GettingStartedPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
+        <Card className="rounded-[26px] bg-surface/60">
           <SectionHeader
             title={gettingStarted.stepsTitle}
             subtitle={gettingStarted.stepsSubtitle}
@@ -36,18 +33,14 @@ export default function GettingStartedPage() {
             }
           />
           <StepList className="mt-4" steps={gettingStarted.steps} />
-        </div>
+        </Card>
 
-        <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-6">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
-            {gettingStarted.next.eyebrow}
-          </p>
-          <p className="mt-2 text-sm font-semibold text-ink">
-            {gettingStarted.next.title}
-          </p>
-          <p className="mt-1 text-xs text-ink-muted">
-            {gettingStarted.next.subtitle}
-          </p>
+        <Card className="rounded-[26px] bg-surface/60">
+          <SectionHeader
+            eyebrow={gettingStarted.next.eyebrow}
+            title={gettingStarted.next.title}
+            subtitle={gettingStarted.next.subtitle}
+          />
           <ul className="mt-4 space-y-2 text-xs text-ink-muted">
             {gettingStarted.next.items.map((item) => (
               <li key={item} className="flex items-start gap-2">
@@ -56,10 +49,10 @@ export default function GettingStartedPage() {
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       </div>
 
-      <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-5">
+      <Card className="rounded-[26px] bg-surface/60 px-6 py-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-subtle">
@@ -72,17 +65,13 @@ export default function GettingStartedPage() {
               {gettingStarted.support.subtitle}
             </p>
           </div>
-          <Button.AsChild
-            size="sm"
-            variant="outline"
-            className="rounded-full border-border/60 bg-surface text-ink hover:bg-surface-high"
-          >
+          <Button.AsChild size="sm" variant="outline">
             <a href={`mailto:${accountCopy.footer.supportEmail}`}>
               {gettingStarted.support.cta}
             </a>
           </Button.AsChild>
         </div>
-      </div>
+      </Card>
     </section>
   );
 }
