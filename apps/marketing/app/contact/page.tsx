@@ -1,149 +1,271 @@
-import Link from "next/link";
-import { BackgroundArt, Button } from "@trail/ui";
-import { MarketingFooter } from "../components/MarketingFooter";
-import { MarketingNav } from "../components/MarketingNav";
-import { buildMetadata } from "../../lib/seo";
+"use client";
 
-export const metadata = buildMetadata({
-  title: "Contact Trail — Support and partnerships",
-  description:
-    "Reach Trail support, share feedback, or discuss partnerships. We respond within one business day with clear next steps for every request.",
-  path: "/contact"
-});
+import { useState, Suspense } from "react";
+import { motion } from "framer-motion";
+import { Mail, MessageSquare, HelpCircle, ArrowRight, Send, CheckCircle2 } from "lucide-react";
+import { Button } from "@trail/ui";
+import { GlowingEffect } from "../components/ui/glowing-effect";
+import { ContactLoading } from "../components/page-wrapper";
 
-export const dynamic = "force-static";
+const contactMethods = [
+  {
+    icon: Mail,
+    title: "General Inquiries",
+    email: "hello@gettrail.net",
+    description: "For partnerships, press, and general questions.",
+  },
+  {
+    icon: HelpCircle,
+    title: "Support",
+    email: "support@gettrail.net",
+    description: "Get help with technical issues or account questions.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Feedback",
+    email: "feedback@gettrail.net",
+    description: "Share your thoughts and feature requests.",
+  },
+];
 
-export default function ContactPage() {
+function ContactContent() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+  };
+
   return (
     <div className="min-h-screen bg-base text-ink">
-      <MarketingNav />
       <main className="relative overflow-hidden">
-        <BackgroundArt variant="topography" />
-        <section className="mx-auto max-w-5xl px-6 pb-16 pt-16">
-          <div className="max-w-3xl">
-            <p className="trail-eyebrow text-ink-subtle">Contact</p>
-            <h1 className="mt-4 font-display text-4xl font-semibold text-ink md:text-5xl">
-              Talk to the team
-            </h1>
-            <p className="mt-4 text-sm text-ink-muted">
-              Send product feedback, request onboarding help, or ask about partnerships.
-              We typically respond within one business day.
-            </p>
-            <p className="mt-4 text-sm text-ink-muted">
-              The more context you can share, the better. We read every message and
-              route it to the right owner so you get a clear, actionable next step.
-            </p>
-          </div>
+        
+        {/* Hero */}
+        <section className="relative px-6 pt-20 pb-8">
+          <div className="mx-auto max-w-4xl text-center">
+            <motion.span
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-accent"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Contact
+            </motion.span>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
-            <div className="rounded-3xl border border-stroke/40 bg-surface/70 p-6">
-              <h2 className="text-xl font-semibold text-ink">Support</h2>
-              <p className="mt-3 text-sm text-ink-muted">
-                For troubleshooting or account issues, email us and include a short
-                summary plus any relevant screenshots.
-              </p>
-              <Button.AsChild variant="outline" size="sm" className="mt-4">
-                <a href="mailto:support@gettrail.net">support@gettrail.net</a>
-              </Button.AsChild>
-            </div>
-            <div className="rounded-3xl border border-stroke/40 bg-surface/70 p-6">
-              <h2 className="text-xl font-semibold text-ink">Sales & partnerships</h2>
-              <p className="mt-3 text-sm text-ink-muted">
-                For team rollouts, pilots, or partnerships, share a few details about
-                your timeline and goals so we can respond quickly.
-              </p>
-              <Button.AsChild variant="outline" size="sm" className="mt-4">
-                <a href="mailto:hello@gettrail.net">hello@gettrail.net</a>
-              </Button.AsChild>
-            </div>
-          </div>
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="mt-6 font-display text-4xl font-semibold leading-[1.15] tracking-tight text-ink md:text-5xl"
+            >
+              Get in touch
+            </motion.h1>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
-            <div className="rounded-3xl border border-stroke/40 bg-surface/70 p-6">
-              <h2 className="text-xl font-semibold text-ink">Security & privacy</h2>
-              <p className="mt-3 text-sm text-ink-muted">
-                If you need a security review, data handling details, or privacy
-                documentation, send us a note and we will share the latest materials
-                and answer any vendor questions. We can also complete standard
-                security questionnaires on request.
-              </p>
-              <Button.AsChild variant="outline" size="sm" className="mt-4">
-                <a href="mailto:security@gettrail.net">security@gettrail.net</a>
-              </Button.AsChild>
-            </div>
-            <div className="rounded-3xl border border-stroke/40 bg-surface/70 p-6">
-              <h2 className="text-xl font-semibold text-ink">Press & media</h2>
-              <p className="mt-3 text-sm text-ink-muted">
-                For media inquiries, brand assets, or founder interviews, include your
-                publication and deadline so we can respond with the right materials.
-                We can provide screenshots, product notes, and founder bios.
-              </p>
-              <Button.AsChild variant="outline" size="sm" className="mt-4">
-                <a href="mailto:press@gettrail.net">press@gettrail.net</a>
-              </Button.AsChild>
-            </div>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted"
+            >
+              Have a question, feedback, or just want to say hello? We&apos;d love to hear from you.
+            </motion.p>
           </div>
+        </section>
 
-          <div className="mt-10 rounded-3xl border border-stroke/40 bg-surface/70 p-6">
-            <h2 className="text-xl font-semibold text-ink">What to include</h2>
-            <p className="mt-3 text-sm text-ink-muted">
-              Clear context helps us respond faster. If you can, include the basics
-              below so we can route your request to the right person.
-            </p>
-            <ul className="mt-4 grid gap-3 text-sm text-ink-muted md:grid-cols-2">
-              <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-                The account email tied to your workspace.
-              </li>
-              <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-                A short description of the task or workflow you are trying to complete.
-              </li>
-              <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-                Any relevant screenshots, recordings, or examples.
-              </li>
-              <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-                Your preferred timeline and any deadlines to consider.
-              </li>
-            </ul>
-          </div>
-
-          <div className="mt-10 rounded-3xl border border-stroke/40 bg-surface/70 p-6">
-            <h2 className="text-xl font-semibold text-ink">Response times</h2>
-            <p className="mt-3 text-sm text-ink-muted">
-              We typically respond within one business day, Monday through Friday.
-              Urgent requests should be marked clearly in the subject line so we can
-              prioritize them appropriately.
-            </p>
-            <p className="mt-3 text-sm text-ink-muted">
-              For planned rollouts or procurement cycles, send a note early so we can
-              align on timelines and share any documentation you need.
-            </p>
-            <p className="mt-3 text-sm text-ink-muted">
-              If you are blocked in a live session, mention the urgency in the subject
-              line and we will do our best to accelerate the response.
-            </p>
-          </div>
-
-          <div className="mt-10 rounded-3xl border border-stroke/40 bg-surface/70 p-6">
-            <h2 className="text-xl font-semibold text-ink">Helpful links</h2>
-            <p className="mt-3 text-sm text-ink-muted">
-              Looking for documentation or quick answers? Start with the FAQ and support
-              pages for walkthroughs and common troubleshooting steps.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button.AsChild variant="outline" size="sm">
-                <Link href="/faq">FAQ</Link>
-              </Button.AsChild>
-              <Button.AsChild variant="outline" size="sm">
-                <Link href="/support">Support</Link>
-              </Button.AsChild>
-              <Button.AsChild variant="outline" size="sm">
-                <Link href="/downloads">Downloads</Link>
-              </Button.AsChild>
+        {/* Contact Methods */}
+        <section className="relative px-6 py-8">
+          <div className="mx-auto max-w-6xl">
+            <div className="grid gap-6 md:grid-cols-3">
+              {contactMethods.map((method, index) => {
+                const Icon = method.icon;
+                return (
+                  <motion.a
+                    key={method.title}
+                    href={`mailto:${method.email}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
+                    className="group rounded-3xl border border-stroke/40 bg-surface/50 p-6 transition-all hover:border-accent/30 hover:bg-surface/70 hover:shadow-lg"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 transition-transform group-hover:scale-110">
+                      <Icon className="h-6 w-6 text-accent" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-semibold text-ink">{method.title}</h3>
+                    <p className="mt-1 text-sm font-medium text-accent">{method.email}</p>
+                    <p className="mt-2 text-sm text-ink-muted">{method.description}</p>
+                  </motion.a>
+                );
+              })}
             </div>
           </div>
         </section>
+
+        {/* Contact Form */}
+        <section className="relative px-6 py-12">
+          <div className="mx-auto max-w-2xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="relative overflow-hidden rounded-3xl border border-stroke/40 bg-surface/70 p-8"
+            >
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={60}
+                inactiveZone={0.01}
+                borderWidth={2}
+              />
+
+              {!submitted ? (
+                <form onSubmit={handleSubmit} className="relative space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-xl font-semibold text-ink">Send us a message</h2>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      Fill out the form below and we&apos;ll get back to you within 24 hours.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-ink">Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="h-12 w-full rounded-xl border border-stroke/60 bg-surface px-4 text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                        placeholder="Your name"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-ink">Email</label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="h-12 w-full rounded-xl border border-stroke/60 bg-surface px-4 text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                        placeholder="you@example.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-ink">Subject</label>
+                    <select
+                      required
+                      value={formData.subject}
+                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                      className="h-12 w-full rounded-xl border border-stroke/60 bg-surface px-4 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    >
+                      <option value="">Select a topic</option>
+                      <option value="general">General Inquiry</option>
+                      <option value="support">Technical Support</option>
+                      <option value="sales">Sales / Enterprise</option>
+                      <option value="partnership">Partnership</option>
+                      <option value="press">Press / Media</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-ink">Message</label>
+                    <textarea
+                      required
+                      rows={5}
+                      value={formData.message}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      className="w-full rounded-xl border border-stroke/60 bg-surface px-4 py-3 text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      placeholder="How can we help?"
+                    />
+                  </div>
+
+                  <Button type="submit" size="lg" className="w-full">
+                    <Send className="mr-2 h-4 w-4" />
+                    Send Message
+                  </Button>
+                </form>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative py-12 text-center"
+                >
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
+                    <CheckCircle2 className="h-8 w-8 text-green-500" />
+                  </div>
+                  <h3 className="mt-4 text-xl font-semibold text-ink">Message sent!</h3>
+                  <p className="mt-2 text-ink-muted">
+                    Thanks for reaching out. We&apos;ll get back to you within 24 hours.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-6"
+                    onClick={() => setSubmitted(false)}
+                  >
+                    Send another message
+                  </Button>
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Quick Links */}
+        <section className="relative px-6 py-12">
+          <div className="mx-auto max-w-4xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="rounded-3xl border border-stroke/40 bg-surface/50 p-8"
+            >
+              <h2 className="text-center text-lg font-semibold text-ink">
+                Looking for something else?
+              </h2>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <Button variant="outline">
+                  <a href="/faq" className="flex items-center">
+                    Visit FAQ
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+                <Button variant="outline">
+                  <a href="/support" className="flex items-center">
+                    Support Center
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+                <Button variant="outline">
+                  <a href="/about" className="flex items-center">
+                    About Us
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        </section>
       </main>
-      <MarketingFooter />
     </div>
+  );
+}
+
+export default function ContactPage() {
+  return (
+    <Suspense fallback={<ContactLoading />}>
+      <ContactContent />
+    </Suspense>
   );
 }

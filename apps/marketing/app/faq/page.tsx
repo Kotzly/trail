@@ -1,132 +1,241 @@
+"use client";
+
+import { useState, Suspense, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, HelpCircle, MessageCircle, ArrowRight } from "lucide-react";
 import { marketingCopy } from "@trail/content";
-import { MarketingFooter } from "../components/MarketingFooter";
-import { MarketingNav } from "../components/MarketingNav";
+import { Button } from "@trail/ui";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger
+  AccordionTrigger,
 } from "../components/ui/accordion";
-import { buildMetadata } from "../../lib/seo";
+import { FAQLoading } from "../components/page-wrapper";
 
-export const metadata = buildMetadata({
-  title: "Trail FAQ — Privacy, data, and sharing",
-  description:
-    "Answers about what data is saved, how sharing works, supported browsers, and how to keep work private while you research.",
-  path: "/faq"
-});
+const categories = [
+  { id: "all", label: "All Questions" },
+  { id: "privacy", label: "Privacy & Security" },
+  { id: "features", label: "Features" },
+  { id: "billing", label: "Billing" },
+  { id: "technical", label: "Technical" },
+];
 
-export default function FaqPage() {
-  const { faq } = marketingCopy;
+const additionalFaqs = [
+  {
+    category: "privacy",
+    question: "Does Trail read my page content?",
+    answer: "No. Trail only captures URLs, page titles, and your notes. We never read or store page content, cookies, or form data.",
+  },
+  {
+    category: "features",
+    question: "Can I export my trails?",
+    answer: "Yes! You can export your trails as Markdown, PDF, or JSON. Pro and Team plans include additional export formats.",
+  },
+  {
+    category: "billing",
+    question: "Do you offer refunds?",
+    answer: "Yes, we offer a 7-day money-back guarantee for all paid plans. No questions asked.",
+  },
+  {
+    category: "technical",
+    question: "Does Trail work offline?",
+    answer: "Trail captures locally first and syncs when you're back online. Your research never gets lost.",
+  },
+  {
+    category: "features",
+    question: "Can I share trails with non-users?",
+    answer: "Yes, you can generate shareable links that anyone can view, even without a Trail account.",
+  },
+];
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(id);
+  }, [value, delayMs]);
+
+  return debounced;
+}
+
+
+function FAQContent() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
+
+  const debouncedQuery = useDebouncedValue(searchQuery, 300);
+
+  const allFaqs = [...marketingCopy.faq.items, ...additionalFaqs];
+
+  const filteredFaqs = allFaqs.filter((faq) => {
+    const q = debouncedQuery.trim().toLowerCase();
+  
+    const matchesSearch =
+      q.length === 0 ||
+      faq.question.toLowerCase().includes(q)
+  
+    const matchesCategory =
+      activeCategory === "all" || faq.category === activeCategory;
+  
+    return matchesSearch && matchesCategory;
+  });  
 
   return (
-    <div className="flex min-h-screen flex-col bg-base text-ink">
-      <MarketingNav />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-20">
-        <div className="flex flex-col gap-4">
-          <span className="trail-eyebrow text-ink-subtle">FAQ</span>
-          <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">{faq.title}</h1>
-          <p className="text-sm text-ink-subtle">Everything you need to know about Trail today.</p>
-        </div>
-        <div className="mt-12">
-          <h2 className="sr-only">Frequently asked questions</h2>
-          <Accordion type="single" collapsible className="space-y-3">
-            {faq.items.map((item) => (
-              <AccordionItem
-                key={item.question}
-                value={item.question}
-                className="rounded-3xl border border-stroke/40 bg-surface px-6 py-2"
-              >
-                <AccordionTrigger className="text-base text-ink">
-                  {item.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-ink-subtle">
-                  {item.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-        <section className="mt-16 rounded-3xl border border-stroke/40 bg-surface/70 p-8">
-          <h2 className="text-2xl font-semibold text-ink">How Trail handles your data</h2>
-          <div className="mt-4 space-y-4 text-sm text-ink-muted">
-            <p>
-              This product is designed for teams who need trustworthy source tracking without
-              sacrificing privacy. Each saved path keeps a clean record of where a decision
-              came from, while staying lightweight enough for daily research and writing
-              sessions.
-            </p>
-            <p>
-              We only store the basics required to rebuild a path: URLs, page titles,
-              timestamps, and the notes you write. We do not capture page content,
-              cookies, or form inputs. Saved paths stay private by default and can be shared
-              only when you decide to invite a teammate or generate a link.
-            </p>
-            <p>
-              Syncing is opt-in and transparent. You can keep personal paths local,
-              switch off sync at any time, and export your data when you need to move
-              it elsewhere. If you ever have a question, support can walk you through
-              what is stored and how to delete it.
-            </p>
-            <p>
-              For teams, the workspace keeps collaboration predictable. Shared paths show who
-              added a source, when it was captured, and which notes or decisions were
-              attached. When you export, you get a clean timeline that works for
-              reports, docs, and research briefs without any extra cleanup.
-            </p>
+    <div className="min-h-screen bg-base text-ink">
+      <main className="relative overflow-hidden">
+        
+        {/* Hero */}
+        <section className="relative px-6 pt-20 pb-8">
+          <div className="mx-auto max-w-4xl text-center">
+            <motion.span
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-accent"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              Help Center
+            </motion.span>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="mt-6 font-display text-4xl font-semibold leading-[1.15] tracking-tight text-ink md:text-5xl"
+            >
+              Frequently asked questions
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted"
+            >
+              Everything you need to know about Trail. Can&apos;t find what you&apos;re looking for? Reach out to our support team.
+            </motion.p>
+
+            {/* Search */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="relative mx-auto mt-8 max-w-xl"
+            >
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-subtle" />
+              <input
+                type="text"
+                placeholder="Search questions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-14 w-full rounded-full border border-stroke/60 bg-surface pl-12 pr-4 text-ink placeholder:text-ink-subtle shadow-lg shadow-accent/5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+              />
+            </motion.div>
+
+            {/* Categories */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mt-6 flex flex-wrap items-center justify-center gap-2"
+            >
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveCategory(category.id)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                    activeCategory === category.id
+                      ? "bg-accent text-cta-fg"
+                      : "border border-stroke/40 bg-surface/50 text-ink-subtle hover:border-accent/30 hover:text-ink"
+                  }`}
+                >
+                  {category.label}
+                </button>
+              ))}
+            </motion.div>
           </div>
-          <ul className="mt-6 grid gap-3 text-sm text-ink">
-            <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-              Private by default: sharing requires an explicit action.
-            </li>
-            <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-              Capture the path, not the page content or cookies.
-            </li>
-            <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-              Exports include titles, URLs, timestamps, and your notes.
-            </li>
-            <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-              Browser support focuses on Chromium builds today, with more coming.
-            </li>
-          </ul>
-          <p className="mt-6 text-sm text-ink-muted">
-            If you need a deeper security or compliance review, reach out to support
-            and we will share the latest documentation, data handling details, and
-            roadmap notes relevant to your team.
-          </p>
         </section>
-        <section className="mt-16 rounded-3xl border border-stroke/40 bg-surface/70 p-8">
-          <h2 className="text-2xl font-semibold text-ink">Tips for getting the most out of capture</h2>
-          <div className="mt-4 space-y-4 text-sm text-ink-muted">
-            <p>
-              Start a new path when you shift topics. Keeping a single focus per path
-              makes exports clearer and makes it easier for teammates to follow your
-              reasoning later.
-            </p>
-            <p>
-              If you are working in short bursts, use quick notes to mark decisions or
-              next steps. Notes are searchable and travel with your shared link.
-            </p>
-            <p>
-              When you share, add a short context block at the top of the export. It
-              helps readers understand the scope of the research before they dive into
-              the sources.
-            </p>
+
+        {/* FAQ List */}
+        <section className="relative px-6 py-12">
+          <div className="mx-auto max-w-3xl">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`${activeCategory}:${debouncedQuery}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+              >
+                <Accordion type="single" collapsible className="space-y-3">
+                  {filteredFaqs.map((item) => (
+                    <AccordionItem
+                      key={item.question}
+                      value={item.question}
+                      className="rounded-2xl border border-stroke/40 bg-surface/50 px-6 transition-all hover:border-accent/30 hover:bg-surface/70"
+                    >
+                      <AccordionTrigger className="text-left text-base font-medium text-ink hover:text-accent [&[data-state=open]>svg]:rotate-180">
+                        {item.question}
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 text-sm leading-relaxed text-ink-muted">
+                        {item.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </motion.div>
+            </AnimatePresence>
           </div>
-          <ul className="mt-6 grid gap-3 text-sm text-ink">
-            <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-              Create separate paths for each client or project.
-            </li>
-            <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-              Use tags or short labels to make search results easier to scan.
-            </li>
-            <li className="rounded-2xl border border-stroke/40 bg-base/70 px-4 py-3">
-              Export after each milestone so summaries stay lightweight.
-            </li>
-          </ul>
+        </section>
+
+        {/* Still have questions */}
+        <section className="relative px-6 py-16">
+          <div className="mx-auto max-w-4xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="relative overflow-hidden rounded-3xl border border-stroke/40 bg-surface/70 p-8 md:p-12"
+            >
+              <div className="relative flex flex-col items-center text-center md:flex-row md:text-left">
+                <div className="flex-1">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
+                    <MessageCircle className="h-7 w-7 text-accent" />
+                  </div>
+                  <h2 className="mt-4 text-2xl font-semibold text-ink">
+                    Still have questions?
+                  </h2>
+                  <p className="mt-2 text-ink-muted">
+                    Our support team is here to help. Reach out and we&apos;ll get back to you within 24 hours.
+                  </p>
+                </div>
+                <div className="mt-6 flex flex-col gap-3 md:mt-0 md:ml-8">
+                  <Button>
+                    <a href="mailto:support@gettrail.net" className="flex items-center">
+                      Email Support
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </a>
+                  </Button>
+                  <Button variant="outline">
+                    <a href="/support">Visit Help Center</a>
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </section>
       </main>
-      <MarketingFooter />
     </div>
+  );
+}
+
+export default function FAQPage() {
+  return (
+    <Suspense fallback={<FAQLoading />}>
+      <FAQContent />
+    </Suspense>
   );
 }

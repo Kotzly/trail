@@ -1,74 +1,55 @@
 "use client";
+import React from "react";
+import { motion } from "motion/react";
+import { testimonials } from "../../data/testimonials";
 
-import * as React from "react";
-import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
-import { cn } from "@trail/ui";
 
-export interface Testimonial {
-  text: string;
-  image: string;
-  name: string;
-  role: string;
-}
-
-export const TestimonialsColumn = ({
-  className,
-  testimonials,
-  duration = 12
-}: {
+export const TestimonialsColumn = (props: {
   className?: string;
-  testimonials: Testimonial[];
+  testimonials: typeof testimonials;
   duration?: number;
 }) => {
-  const reduceMotion = useReducedMotion();
-  const rows = reduceMotion ? 1 : 2;
-
   return (
-    <div className={className}>
+    <div className={props.className}>
       <motion.div
-        animate={reduceMotion ? undefined : { translateY: "-50%" }}
-        transition={
-          reduceMotion
-            ? undefined
-            : {
-                duration,
-                repeat: Infinity,
-                ease: "linear",
-                repeatType: "loop"
-              }
-        }
+        animate={{
+          translateY: "-50%",
+        }}
+        transition={{
+          duration: props.duration || 10,
+          repeat: Infinity,
+          ease: "linear",
+          repeatType: "loop",
+        }}
         className="flex flex-col gap-6 pb-6"
       >
-        {[...new Array(rows).fill(0)].map((_, index) => (
-          <React.Fragment key={index}>
-            {testimonials.map(({ text, image, name, role }, i) => (
-                <div
-                  className={cn(
-                  "max-w-xs rounded-3xl border border-border/60 bg-surface p-6"
-                  )}
-                  key={`${name}-${i}`}
-                >
-                <p className="text-sm text-ink">{text}</p>
-                <div className="mt-5 flex items-center gap-3">
-                  <Image
-                    width={40}
-                    height={40}
-                    src={image}
-                    alt={name}
-                    className="h-10 w-10 rounded-full object-cover"
-                    sizes="40px"
-                  />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-ink">{name}</span>
-                    <span className="text-xs text-ink-subtle">{role}</span>
+        {[
+          ...new Array(2).fill(0).map((_, index) => (
+            <React.Fragment key={index}>
+              {props.testimonials.map(({ text, image, name, role }, i) => (
+                <div className="p-6 rounded-2xl border border-stroke/40 bg-surface/80 shadow-lg shadow-accent/5 max-w-xs w-full" key={i}>
+                  <div>{text}</div>
+                  <div className="flex items-center gap-2 mt-5">
+                    <img
+                      width={40}
+                      height={40}
+                      src={image}
+                      alt={name}
+                      className="h-10 w-10 rounded-full object-cover object-center bg-surface/60 ring-1 ring-stroke/40"
+                    />
+                    <div className="flex flex-col">
+                      <div className="font-medium tracking-tight leading-5">{name}</div>
+                      <div className="leading-5 opacity-60 tracking-tight">{role}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </React.Fragment>
-        ))}
+              ))}
+            </React.Fragment>
+          )),
+        ]}
       </motion.div>
     </div>
   );
 };
+
+;

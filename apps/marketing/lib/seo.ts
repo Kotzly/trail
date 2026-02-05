@@ -6,7 +6,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : defaultSiteUrl);
 const ogImage = "/assets/video-poster-white.jpg";
 
-export const defaultTitle = "Trail — Privacy-first research trails";
+export const defaultTitle = "Trail – Visualized Browsing";
 export const defaultDescription =
   "Capture sources, notes, and decisions as you browse. Trail turns tab chaos into organized research trails you can share without storing page content.";
 

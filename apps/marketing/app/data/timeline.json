@@ -1,0 +1,64 @@
+{
+  "title": "Trail Journey",
+  "subtitle": "From idea to production. Here's how Trail evolved over time.",
+  "items": [
+    {
+      "title": "2023",
+      "heading": "The Spark",
+      "description": "Researching dozens of tabs, losing context between sessions, and sharing tab dumps with teammates. We knew there had to be a better way.",
+      "highlights": [
+        "Identified the chaos of modern research workflows",
+        "Interviewed 50+ researchers, PMs, and analysts",
+        "Defined core principles: privacy-first, lightweight, shareable"
+      ],
+      "image": "/assets/timeline/spark.jpg"
+    },
+    {
+      "title": "Early 2024",
+      "heading": "First Prototype",
+      "description": "Built the initial browser extension with basic capture and tree visualization. Tested with a small group of beta users.",
+      "highlights": [
+        "Basic URL capture and tree view",
+        "Local-only storage for privacy",
+        "First 100 beta users joined"
+      ],
+      "image": "/assets/timeline/prototype.jpg"
+    },
+    {
+      "title": "Mid 2024",
+      "heading": "Sync & Share",
+      "description": "Added cloud sync and sharing capabilities. Users could now collaborate on research paths and share insights with their teams.",
+      "highlights": [
+        "End-to-end encrypted sync",
+        "Shareable links with full context",
+        "Team workspaces launched",
+        "1,000+ active users"
+      ],
+      "image": "/assets/timeline/sync.jpg"
+    },
+    {
+      "title": "Late 2024",
+      "heading": "Polish & Scale",
+      "description": "Refined the UI, added export options, and improved performance. Trail became production-ready for teams of all sizes.",
+      "highlights": [
+        "PDF and Markdown export",
+        "Advanced search and filtering",
+        "Browser history import",
+        "5,000+ research paths created"
+      ],
+      "image": "/assets/timeline/polish.jpg"
+    },
+    {
+      "title": "2025",
+      "heading": "Public Launch",
+      "description": "Trail is now available for everyone. We're excited to help teams organize their research and make better decisions.",
+      "highlights": [
+        "Free tier for individuals",
+        "Pro and Team plans",
+        "Chrome and Edge support",
+        "Firefox coming soon"
+      ],
+      "image": "/assets/timeline/launch.jpg"
+    }
+  ]
+}

@@ -9,18 +9,18 @@
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --base: 246 242 234;
+  --base: 248 250 252;
   --surface: 255 255 255;
-  --surface-strong: 241 233 222;
-  --stroke: 216 207 194;
-  --ink: 28 34 48;
-  --ink-muted: 74 85 99;
-  --ink-subtle: 122 129 140;
-  --cta: 201 162 39;
-  --cta-hover: 177 138 46;
-  --cta-fg: 27 31 40;
-  --accent: 201 162 39;
-  --accent-soft: 233 215 170;
+  --surface-strong: 241 245 249;
+  --stroke: 203 213 225;
+  --ink: 15 23 42;
+  --ink-muted: 71 85 105;
+  --ink-subtle: 100 116 139;
+  --cta: 13 148 136;
+  --cta-hover: 15 118 110;
+  --cta-fg: 255 255 255;
+  --accent: 8 145 178;
+  --accent-soft: 207 250 254;
   --font-display: var(--font-sans);
 
   --trail-bg: var(--base);
@@ -32,7 +32,7 @@
   --trail-ink-muted: var(--ink-muted);
   --trail-accent: var(--accent);
   --trail-accent-contrast: var(--cta-fg);
-  --trail-highlight: 239 227 208;
+  --trail-highlight: 207 250 254;
   --trail-glass: var(--surface);
   --trail-glass-strong: var(--surface-strong);
   --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
@@ -45,18 +45,18 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --base: 12 16 23;
-  --surface: 20 26 36;
-  --surface-strong: 29 37 51;
-  --stroke: 44 53 69;
-  --ink: 244 239 230;
-  --ink-muted: 199 191 174;
-  --ink-subtle: 155 148 133;
-  --cta: 210 177 94;
-  --cta-hover: 189 152 70;
-  --cta-fg: 12 16 23;
-  --accent: 210 177 94;
-  --accent-soft: 74 58 30;
+  --base: 2 6 23;
+  --surface: 15 23 42;
+  --surface-strong: 30 41 59;
+  --stroke: 51 65 85;
+  --ink: 248 250 252;
+  --ink-muted: 148 163 184;
+  --ink-subtle: 100 116 139;
+  --cta: 20 184 166;
+  --cta-hover: 45 212 191;
+  --cta-fg: 2 6 23;
+  --accent: 34 211 238;
+  --accent-soft: 22 78 99;
 
   --trail-bg: var(--base);
   --trail-surface: var(--surface);
@@ -67,7 +67,7 @@
   --trail-ink-muted: var(--ink-muted);
   --trail-accent: var(--accent);
   --trail-accent-contrast: var(--cta-fg);
-  --trail-highlight: 44 53 69;
+  --trail-highlight: 30 41 59;
   --trail-glass: var(--surface);
   --trail-glass-strong: var(--surface-strong);
   --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
@@ -81,18 +81,18 @@
 @media (prefers-color-scheme: dark) {
   [data-theme="system"] {
     color-scheme: dark;
-    --base: 12 16 23;
-    --surface: 20 26 36;
-    --surface-strong: 29 37 51;
-    --stroke: 44 53 69;
-    --ink: 244 239 230;
-    --ink-muted: 199 191 174;
-    --ink-subtle: 155 148 133;
-    --cta: 210 177 94;
-    --cta-hover: 189 152 70;
-    --cta-fg: 12 16 23;
-    --accent: 210 177 94;
-    --accent-soft: 74 58 30;
+    --base: 2 6 23;
+    --surface: 15 23 42;
+    --surface-strong: 30 41 59;
+    --stroke: 51 65 85;
+    --ink: 248 250 252;
+    --ink-muted: 148 163 184;
+    --ink-subtle: 100 116 139;
+    --cta: 20 184 166;
+    --cta-hover: 45 212 191;
+    --cta-fg: 2 6 23;
+    --accent: 34 211 238;
+    --accent-soft: 22 78 99;
 
     --trail-bg: var(--base);
     --trail-surface: var(--surface);
@@ -103,7 +103,7 @@
     --trail-ink-muted: var(--ink-muted);
     --trail-accent: var(--accent);
     --trail-accent-contrast: var(--cta-fg);
-    --trail-highlight: 44 53 69;
+    --trail-highlight: 30 41 59;
     --trail-glass: var(--surface);
     --trail-glass-strong: var(--surface-strong);
     --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);
@@ -118,18 +118,18 @@
 @media (prefers-color-scheme: light) {
   [data-theme="system"] {
     color-scheme: light;
-    --base: 246 242 234;
+    --base: 248 250 252;
     --surface: 255 255 255;
-    --surface-strong: 241 233 222;
-    --stroke: 216 207 194;
-    --ink: 28 34 48;
-    --ink-muted: 74 85 99;
-    --ink-subtle: 122 129 140;
-    --cta: 201 162 39;
-    --cta-hover: 177 138 46;
-    --cta-fg: 27 31 40;
-    --accent: 201 162 39;
-    --accent-soft: 233 215 170;
+    --surface-strong: 241 245 249;
+    --stroke: 203 213 225;
+    --ink: 15 23 42;
+    --ink-muted: 71 85 105;
+    --ink-subtle: 100 116 139;
+    --cta: 13 148 136;
+    --cta-hover: 15 118 110;
+    --cta-fg: 255 255 255;
+    --accent: 8 145 178;
+    --accent-soft: 207 250 254;
 
     --trail-bg: var(--base);
     --trail-surface: var(--surface);
@@ -140,7 +140,7 @@
     --trail-ink-muted: var(--ink-muted);
     --trail-accent: var(--accent);
     --trail-accent-contrast: var(--cta-fg);
-    --trail-highlight: 239 227 208;
+    --trail-highlight: 207 250 254;
     --trail-glass: var(--surface);
     --trail-glass-strong: var(--surface-strong);
     --trail-elev-1: 0 0 0 rgba(0, 0, 0, 0);

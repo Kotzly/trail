@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { marketingCopy } from "@trail/content";
 
 export function CallToAction() {
@@ -14,18 +15,13 @@ export function CallToAction() {
         <p className="mx-auto mt-4 max-w-2xl text-[1rem] text-ink-muted">
           {cta.subtitle}
         </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <div className="mt-8">
           <Link
             href="/downloads"
-            className="cta-primary inline-flex items-center gap-2 rounded-full bg-cta px-6 py-3 text-sm font-semibold text-cta-fg transition hover:bg-cta-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+            className="inline-flex items-center gap-2 rounded-full bg-cta px-6 py-3 text-sm font-semibold text-cta-fg transition hover:bg-cta-hover"
           >
             {cta.primary}
-          </Link>
-          <Link
-            href="https://app.gettrail.net"
-            className="inline-flex items-center gap-2 rounded-full border border-stroke/70 px-6 py-3 text-sm font-semibold text-ink transition hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-          >
-            {cta.secondary}
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
         {cta.note ? (

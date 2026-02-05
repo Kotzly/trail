@@ -12,6 +12,7 @@ export { InfoBanner } from "./components/InfoBanner";
 export { ThemeToggle } from "./components/ThemeToggle";
 export { BackgroundArt } from "./components/BackgroundArt";
 export { WaitlistDialog } from "./components/WaitlistDialog";
+export { WaitlistSuccessDialog } from "./components/WaitlistSuccessDialog";
 export { TrailLogo } from "./components/TrailLogo";
 export { TrailLoader } from "./components/TrailLoader";
 export { cn } from "./utils/cn";

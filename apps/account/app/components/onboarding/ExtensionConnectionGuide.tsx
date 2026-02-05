@@ -7,8 +7,6 @@ import {
   AlertCircleIcon,
   ArrowRightIcon,
   CheckIcon,
-  ChromeIcon,
-  CopyIcon,
   ExternalLinkIcon,
   HelpCircleIcon,
   LockIcon,
@@ -16,10 +14,13 @@ import {
   RefreshCwIcon,
   ShieldIcon,
 } from "lucide-react";
+
+import { FaChrome, FaEdge, FaFirefoxBrowser, FaSafari } from "react-icons/fa";
+import { FaBrave } from "react-icons/fa6";
 import { Button } from "@trail/ui";
 import { cn } from "@trail/ui";
 
-export type BrowserType = "chrome" | "brave" | "edge" | "firefox" | "other";
+export type BrowserType = "chrome" | "brave" | "edge" | "firefox" | "safari" | "other";
 
 export type ExtensionConnectionGuideProps = {
   className?: string;
@@ -55,14 +56,16 @@ const browserNames: Record<BrowserType, string> = {
   brave: "brave",
   edge: "edge",
   firefox: "firefox",
+  safari: "safari",
   other: "your browser",
 };
 
 const browserIcons: Record<BrowserType, React.ReactNode> = {
-  chrome: <ChromeIcon className="h-5 w-5" />,
-  brave: <ShieldIcon className="h-5 w-5" />,
-  edge: <ChromeIcon className="h-5 w-5" />,
-  firefox: <PuzzleIcon className="h-5 w-5" />,
+  chrome: <FaChrome className="h-5 w-5" />,
+  brave: <FaBrave className="h-5 w-5" />,
+  edge: <FaEdge className="h-5 w-5" />,
+  firefox: <FaFirefoxBrowser className="h-5 w-5" />,
+  safari: <FaSafari className="h-5 w-5" />,
   other: <PuzzleIcon className="h-5 w-5" />,
 };
 

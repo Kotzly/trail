@@ -8,6 +8,7 @@ type WaitlistPayload = {
 const endpoint = process.env.WAITLIST_PROVIDER_ENDPOINT;
 const token = process.env.WAITLIST_PROVIDER_TOKEN;
 
+// todo: move to proper api endpoint
 export async function POST(request: Request) {
   let payload: WaitlistPayload;
 

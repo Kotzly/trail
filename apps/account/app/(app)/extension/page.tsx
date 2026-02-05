@@ -109,6 +109,8 @@ export default async function ExtensionPage({ searchParams }: ExtensionPageProps
                 icon={<LaptopIcon className="h-5 w-5" />}
                 items={accountCopy.extension.empty.items}
                 className="rounded-none border-0 bg-transparent p-0"
+                // todo: make this work like this: opens the extension if it's there, and the extension prompts the user to connect to account <name>
+                // if the extension is not there, we should show a button that says "install extension" and opens the extension download page
                 action={
                   <a
                     href={accountCopy.extension.empty.ctaHref}
