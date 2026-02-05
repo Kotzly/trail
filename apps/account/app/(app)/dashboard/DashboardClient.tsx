@@ -9,10 +9,9 @@ import {
   LightningBoltIcon,
   RocketIcon,
 } from "@radix-ui/react-icons";
-import { Button, StatCard } from "@trail/ui";
+import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { trpc } from "@/src/trpc/client";
-import { NoTrailsEmptyState } from "@/app/components/onboarding/EmptyState";
 
 export function DashboardClient() {
   const { dashboard } = accountCopy;

@@ -54,3 +54,6 @@ ignored/
 pens/
 .pnpm-store/
 .worktrees/
+.codex/
+.claude/
+.cursor/

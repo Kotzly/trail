@@ -7,28 +7,15 @@ import { getAuthSession } from "@/src/lib/auth";
 
 const avatarLoader = ({ src }: ImageLoaderProps) => src;
 
-async function getAccountUser() {
-  if (isAuthBypassed()) {
-    return getDevUser();
-  }
-
-  const token = await getAuthTokenFromCookies();
-  if (!token) {
-    return null;
-  }
-
-  return getAuthUserFromToken(token);
-}
-
 export default async function SettingsPage() {
   const { settings } = accountCopy;
-  const user = await getAccountUser();
+  const session = await getAuthSession();
+  const user = session?.user;
 
   if (!user) {
     redirect("/auth/login");
   }
 
-  const user = session.user;
   const initialsSource =
     user.name || user.email || settings.profile.fallbackName;
   const initials = initialsSource
