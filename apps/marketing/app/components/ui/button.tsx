@@ -57,6 +57,7 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonProps>(
     />
   )
 );
+ButtonRoot.displayName = "ButtonRoot";
 
 const ButtonAsChild = React.forwardRef<HTMLElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => (
@@ -67,6 +68,7 @@ const ButtonAsChild = React.forwardRef<HTMLElement, ButtonProps>(
     />
   )
 );
+ButtonAsChild.displayName = "ButtonAsChild";
 
 const Button = Object.assign(ButtonRoot, {
   AsChild: ButtonAsChild

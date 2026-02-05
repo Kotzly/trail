@@ -15,7 +15,6 @@ function renderEmailNodes(text: string, opts: { strong?: boolean }): React.React
   let match: RegExpExecArray | null;
   const pattern = new RegExp(emailPattern.source, "gi");
 
-  // eslint-disable-next-line no-cond-assign
   while ((match = pattern.exec(text))) {
     const start = match.index;
     const email = match[0];
