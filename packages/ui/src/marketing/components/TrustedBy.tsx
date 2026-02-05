@@ -3,33 +3,75 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 
+const BASE_LOGO_HEIGHT = 20;
+const MIN_VISUAL_LOGO_WIDTH = 60;
+const MAX_AUTO_UPSCALE = 2;
+
+type Company = {
+  name: string;
+  url: string;
+  file: string;
+  logoSize: {
+    width: number;
+    height: number;
+  };
+};
+
 // Company data with URLs
-const companies = [
+const companies: Company[] = [
   {
     name: "Amazon",
     url: "https://amazon.com",
     file: "/assets/brands/amazon.svg",
+    logoSize: { width: 603, height: 182 },
   },
   {
     name: "Google",
     url: "https://google.com",
     file: "/assets/brands/google.svg",
+    logoSize: { width: 272, height: 92 },
   },
-  { name: "Meta", url: "https://meta.com", file: "/assets/brands/meta.svg" },
+  {
+    name: "Meta",
+    url: "https://meta.com",
+    file: "/assets/brands/meta.svg",
+    logoSize: { width: 948, height: 191 },
+  },
   {
     name: "Netflix",
     url: "https://netflix.com",
     file: "/assets/brands/netflix.svg",
+    logoSize: { width: 1024, height: 276.742 },
   },
   {
     name: "LinkedIn",
     url: "https://linkedin.com",
     file: "/assets/brands/linkedin.svg",
+    logoSize: { width: 291, height: 79.46 },
   },
   {
     name: "GitHub",
     url: "https://github.com",
     file: "/assets/brands/github.svg",
+    logoSize: { width: 1351, height: 291 },
+  },
+  {
+    name: "Yandex",
+    url: "https://yandex.com",
+    file: "/assets/brands/yandex.svg",
+    logoSize: { width: 68.8841, height: 38.04 },
+  },
+  {
+    name: "WildBerries",
+    url: "https://wildberries.ru",
+    file: "/assets/brands/wb.svg",
+    logoSize: { width: 500, height: 75.1 },
+  },
+  {
+    name: "Ozon",
+    url: "https://ozon.ru",
+    file: "/assets/brands/ozon.svg",
+    logoSize: { width: 485, height: 106 },
   },
 ];
 
@@ -49,6 +91,16 @@ function BrandMark({ src, className }: { src: string; className?: string }) {
       }}
     />
   );
+}
+
+function getAutoLogoScale(logoSize: Company["logoSize"]) {
+  const naturalWidth = (logoSize.width / logoSize.height) * BASE_LOGO_HEIGHT;
+
+  if (naturalWidth >= MIN_VISUAL_LOGO_WIDTH) {
+    return 1;
+  }
+
+  return Math.min(MAX_AUTO_UPSCALE, MIN_VISUAL_LOGO_WIDTH / naturalWidth);
 }
 
 export function TrustedBy() {
@@ -85,10 +137,15 @@ export function TrustedBy() {
                 rel="noopener noreferrer"
                 className="group/brand flex items-center justify-center w-[140px] h-6 shrink-0 text-ink-subtle/70 hover:text-accent transition-colors duration-300 overflow-visible"
                 aria-label={company.name}
+                style={
+                  {
+                    "--logo-scale": getAutoLogoScale(company.logoSize),
+                  } as Record<string, string | number>
+                }
               >
                 <BrandMark
                   src={company.file}
-                  className="h-5 w-full transition-transform duration-300 group-hover/brand:scale-110 overflow-visible"
+                  className="h-5 w-full overflow-visible transition-transform duration-300 [transform:scale(var(--logo-scale))] group-hover/brand:[transform:scale(calc(var(--logo-scale)*1.1))]"
                 />
               </Link>
             ))}
