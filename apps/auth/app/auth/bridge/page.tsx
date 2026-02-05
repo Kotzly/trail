@@ -16,7 +16,9 @@ function parseAllowedOrigins(): Set<string> {
 }
 
 function resolveDefaultReturnTo(): string {
-  return process.env.AUTH_BRIDGE_DEFAULT_RETURN_TO ?? "https://app.gettrail.net";
+  return (
+    process.env.AUTH_BRIDGE_DEFAULT_RETURN_TO ?? "https://app.gettrail.net"
+  );
 }
 
 function sanitizeReturnTo(raw: string | null): string {
@@ -48,19 +50,23 @@ function appendBridgeCode(returnTo: string, code: string): string {
 }
 
 export default async function AuthBridgePage({
-  searchParams
+  searchParams,
 }: {
   searchParams: { returnTo?: string };
 }) {
   const headerList = await headers();
-  const session = await auth.api.getSession({ headers: new Headers(headerList) });
+  const session = await auth.api.getSession({
+    headers: new Headers(headerList),
+  });
 
   if (!session?.user?.id) {
     const returnTo = sanitizeReturnTo(searchParams.returnTo ?? null);
     redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
-  const tokenResponse = await auth.api.getToken({ headers: new Headers(headerList) });
+  const tokenResponse = await auth.api.getToken({
+    headers: new Headers(headerList),
+  });
   const token = tokenResponse?.token;
 
   if (!token) {
@@ -76,8 +82,8 @@ export default async function AuthBridgePage({
       code,
       userId: session.user.id,
       jwt: token,
-      expiresAt
-    }
+      expiresAt,
+    },
   });
 
   const returnTo = sanitizeReturnTo(searchParams.returnTo ?? null);

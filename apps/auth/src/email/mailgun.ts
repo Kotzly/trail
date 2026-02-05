@@ -20,7 +20,7 @@ export const mailgunProvider = (): EmailProvider => {
   const domain = requireEnv(process.env.MAILGUN_DOMAIN, "MAILGUN_DOMAIN");
   const fromEmail = requireEnv(
     process.env.MAILGUN_FROM_EMAIL,
-    "MAILGUN_FROM_EMAIL"
+    "MAILGUN_FROM_EMAIL",
   );
 
   return {
@@ -29,7 +29,7 @@ export const mailgunProvider = (): EmailProvider => {
         from: fromEmail,
         to: message.to,
         subject: message.subject,
-        text: message.text
+        text: message.text,
       });
 
       const response = await fetch(
@@ -38,19 +38,19 @@ export const mailgunProvider = (): EmailProvider => {
           method: "POST",
           headers: {
             Authorization: buildAuthorizationHeader(apiKey),
-            "Content-Type": "application/x-www-form-urlencoded"
+            "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: body.toString()
-        }
+          body: body.toString(),
+        },
       );
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
         const messageSuffix = errorText ? `: ${errorText}` : "";
         throw new Error(
-          `Mailgun request failed (${response.status})${messageSuffix}`
+          `Mailgun request failed (${response.status})${messageSuffix}`,
         );
       }
-    }
+    },
   };
 };

@@ -50,9 +50,9 @@ export function LoginClient() {
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<
-    "google" | "github" | null
-  >(null);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(
+    null,
+  );
 
   const handleSendOtp = async () => {
     if (!email) {
@@ -66,7 +66,7 @@ export function LoginClient() {
 
     const { error: sendError } = await authClient.emailOtp.sendVerificationOtp({
       email,
-      type: "sign-in"
+      type: "sign-in",
     });
 
     setIsSending(false);
@@ -91,7 +91,7 @@ export function LoginClient() {
 
     const { error: signInError } = await authClient.signIn.emailOtp({
       email,
-      otp
+      otp,
     });
 
     setIsSigningIn(false);
@@ -111,7 +111,7 @@ export function LoginClient() {
 
     const { data, error: socialError } = await authClient.signIn.social({
       provider,
-      callbackURL: bridgeUrl
+      callbackURL: bridgeUrl,
     });
 
     setOauthLoading(null);
@@ -140,7 +140,7 @@ export function LoginClient() {
         fontFamily: "system-ui, -apple-system, sans-serif",
         display: "flex",
         flexDirection: "column",
-        gap: "16px"
+        gap: "16px",
       }}
     >
       <header style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -161,7 +161,7 @@ export function LoginClient() {
           style={{
             padding: "10px 12px",
             borderRadius: "8px",
-            border: "1px solid #d1d5db"
+            border: "1px solid #d1d5db",
           }}
         />
       </label>
@@ -176,7 +176,7 @@ export function LoginClient() {
           border: "1px solid #111827",
           background: "#111827",
           color: "#ffffff",
-          cursor: isSending ? "not-allowed" : "pointer"
+          cursor: isSending ? "not-allowed" : "pointer",
         }}
       >
         {isSending ? "Отправляем код..." : "Отправить код"}
@@ -194,7 +194,7 @@ export function LoginClient() {
           style={{
             padding: "10px 12px",
             borderRadius: "8px",
-            border: "1px solid #d1d5db"
+            border: "1px solid #d1d5db",
           }}
         />
       </label>
@@ -209,7 +209,7 @@ export function LoginClient() {
           border: "1px solid #111827",
           background: "#ffffff",
           color: "#111827",
-          cursor: isSigningIn ? "not-allowed" : "pointer"
+          cursor: isSigningIn ? "not-allowed" : "pointer",
         }}
       >
         {isSigningIn ? "Входим..." : "Войти"}
@@ -219,7 +219,7 @@ export function LoginClient() {
         style={{
           marginTop: "8px",
           fontSize: "14px",
-          color: "#6b7280"
+          color: "#6b7280",
         }}
       >
         Или продолжить через
@@ -236,7 +236,7 @@ export function LoginClient() {
             borderRadius: "8px",
             border: "1px solid #d1d5db",
             background: "#ffffff",
-            cursor: oauthLoading === "google" ? "not-allowed" : "pointer"
+            cursor: oauthLoading === "google" ? "not-allowed" : "pointer",
           }}
         >
           {oauthLoading === "google" ? "Google..." : "Google"}
@@ -251,7 +251,7 @@ export function LoginClient() {
             borderRadius: "8px",
             border: "1px solid #d1d5db",
             background: "#ffffff",
-            cursor: oauthLoading === "github" ? "not-allowed" : "pointer"
+            cursor: oauthLoading === "github" ? "not-allowed" : "pointer",
           }}
         >
           {oauthLoading === "github" ? "GitHub..." : "GitHub"}
