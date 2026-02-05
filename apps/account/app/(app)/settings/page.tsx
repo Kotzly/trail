@@ -3,7 +3,7 @@ import Image, { type ImageLoaderProps } from "next/image";
 import { accountCopy } from "@trail/content";
 import { Button } from "@trail/ui";
 import { PageHeader } from "@/app/components/PageHeader";
-import { getAuthSession } from "@/src/lib/auth0";
+import { getAuthSession } from "@/src/lib/auth";
 
 const avatarLoader = ({ src }: ImageLoaderProps) => src;
 
@@ -64,11 +64,11 @@ export default async function SettingsPage() {
           </div>
           <div className="mt-5 flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-surface text-sm font-semibold text-ink">
-              {user.picture ? (
+              {user.imageUrl ? (
                 <Image
                   loader={avatarLoader}
                   unoptimized
-                  src={user.picture}
+                  src={user.imageUrl}
                   alt={user.name ?? settings.profile.avatarAlt}
                   width={48}
                   height={48}
