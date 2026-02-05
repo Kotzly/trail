@@ -12,6 +12,8 @@ export { Textarea } from "./components/Textarea";
 export { SectionHeader } from "./components/SectionHeader";
 export { PageHeader } from "./components/PageHeader";
 export { EmptyState } from "./components/EmptyState";
+export { Callout } from "./components/Callout";
+export { Skeleton } from "./components/Skeleton";
 export { StatCard } from "./components/StatCard";
 export { StepList } from "./components/StepList";
 export { InfoBanner } from "./components/InfoBanner";
