@@ -45,7 +45,7 @@ export function useAuthPortalFlow(): AuthFlowState {
       await chrome.tabs.create({ url, active: true });
     } catch (err) {
       console.error('Failed to open external link:', err);
-      if (typeof window !== 'undefined') {
+      if (window) {
         window.open(url, '_blank');
       }
     }

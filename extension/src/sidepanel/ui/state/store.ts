@@ -60,7 +60,7 @@ type OverlayEffectsState = {
 type AccountStatus = 'idle' | 'loading' | 'ready' | 'error';
 type NetworkStatus = 'online' | 'offline' | 'degraded';
 
-type AccountState = {
+export type AccountState = {
   status: AccountStatus;
   network: NetworkStatus;
   session: AuthSession;

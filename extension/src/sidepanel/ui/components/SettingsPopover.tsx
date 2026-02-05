@@ -505,9 +505,7 @@ export default function SettingsPopover() {
       await chrome.tabs.create({ url, active: true });
     } catch (error) {
       console.error('Failed to open external link:', error);
-      if (typeof window !== 'undefined') {
-        window.open(url, '_blank');
-      }
+      window?.open(url, '_blank');
     }
   };
 
