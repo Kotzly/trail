@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRightIcon } from "@radix-ui/react-icons";
+import { ArrowRight } from "@trail/ui/icons";
 import { Button, Card, EmptyState, SectionHeader } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@trail/ui";
@@ -25,7 +25,7 @@ export default function ActivityPage() {
               className="inline-flex items-center gap-2"
             >
               {activity.empty.secondaryCta}
-              <ArrowRightIcon className="h-3 w-3" />
+              <ArrowRight className="h-3 w-3" />
             </Link>
           </Button.AsChild>
         }

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Sparkles, Check, ArrowRight } from "lucide-react";
+import { Sparkles, Check, ArrowRight } from "@trail/ui/icons";
 import Link from "next/link";
 
 const plans = [

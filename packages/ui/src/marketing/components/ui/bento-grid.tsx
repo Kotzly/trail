@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { ArrowRightIcon } from "@radix-ui/react-icons";
+import { ArrowRight } from "../../../icons";
 import { cn } from "../../../utils/cn";
 import { Button } from "./button";
 
@@ -252,7 +252,7 @@ const BentoCard = ({
         >
           <a href={href} className="flex items-center gap-1">
             {cta}
-            <ArrowRightIcon className="ml-1 h-4 w-4 transition-transform duration-200 group-hover/btn:translate-x-1" />
+            <ArrowRight className="ml-1 h-4 w-4 transition-transform duration-200 group-hover/btn:translate-x-1" />
           </a>
         </Button.AsChild>
       </div>

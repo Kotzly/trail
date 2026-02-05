@@ -11,7 +11,7 @@ import {
   ShareIcon,
   SparklesIcon,
   UserIcon,
-} from "lucide-react";
+} from "@trail/ui/icons";
 import { cn } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 

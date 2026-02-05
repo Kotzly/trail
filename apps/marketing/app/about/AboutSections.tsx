@@ -10,7 +10,7 @@ import {
   Target,
   Users,
   Zap,
-} from "lucide-react";
+} from "@trail/ui/icons";
 import { Button } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import {

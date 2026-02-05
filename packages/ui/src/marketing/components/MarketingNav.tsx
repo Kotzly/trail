@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, X } from "../../icons";
 import { marketingCopy } from "@trail/content";
 import { motion } from "motion/react";
 import { ThemeToggle } from "../../components/ThemeToggle";

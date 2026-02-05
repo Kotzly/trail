@@ -1,7 +1,6 @@
 "use client";
 
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { ArrowRightIcon } from "@radix-ui/react-icons";
 import { motion } from "motion/react";
 import { marketingCopy } from "@trail/content";
 import { GlowingEffect } from "../ui/glowing-effect";
@@ -17,7 +16,7 @@ import {
   LucideCircleSlash,
   ArrowLeft,
   Brush,
-} from "lucide-react";
+} from "../../../icons";
 
 const featureIcons: Record<
   string,
@@ -211,7 +210,7 @@ function BentoCard({
           >
             <a href={href} className="flex items-center gap-1 text-accent">
               {cta}
-              <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
           </Button.AsChild>
         </div>

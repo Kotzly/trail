@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDownIcon } from "@radix-ui/react-icons";
+import { ChevronDown } from "@trail/ui/icons";
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -52,7 +52,7 @@ const NavigationMenuTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <ChevronDownIcon
+    <ChevronDown
       className="relative ml-1 h-3 w-3 transition duration-300 group-data-[state=open]:rotate-180"
       aria-hidden="true"
     />

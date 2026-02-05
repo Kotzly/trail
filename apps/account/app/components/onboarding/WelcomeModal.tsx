@@ -11,7 +11,7 @@ import {
   SparklesIcon,
   TargetIcon,
   XIcon,
-} from "lucide-react";
+} from "@trail/ui/icons";
 import { Button } from "@trail/ui";
 import { cn } from "@trail/ui";
 import Link from "next/link";

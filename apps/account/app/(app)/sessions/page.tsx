@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRightIcon } from "@radix-ui/react-icons";
+import { ArrowRightIcon } from "@trail/ui/icons";
 import { Button, Card, EmptyState, SectionHeader } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@trail/ui";

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { CheckIcon, Cross2Icon, EnvelopeClosedIcon, StarIcon } from "@radix-ui/react-icons";
+import { Check, Mail, Star, X } from "../icons";
 import { cn } from "../utils/cn";
 import { Button } from "./Button";
 
@@ -91,19 +91,19 @@ export function WaitlistSuccessDialog({
           className="absolute right-4 top-4 rounded-full p-2 text-ink-subtle transition hover:bg-surface-high hover:text-ink"
           aria-label="Close"
         >
-          <Cross2Icon className="h-4 w-4" />
+          <X className="h-4 w-4" />
         </button>
 
         {/* Content */}
         <div className="p-8 text-center">
           {/* Success Icon */}
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
-            <CheckIcon className="h-8 w-8 text-green-600" />
+            <Check className="h-8 w-8 text-green-600" />
           </div>
 
           {/* Badge */}
           <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
-            <StarIcon className="h-3 w-3" />
+            <Star className="h-3 w-3" />
             Early Access
           </div>
 
@@ -126,7 +126,7 @@ export function WaitlistSuccessDialog({
           {/* Email confirmation */}
           {email && (
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-stroke/40 bg-surface/50 px-4 py-2 text-sm text-ink">
-              <EnvelopeClosedIcon className="h-4 w-4 text-ink-subtle" />
+              <Mail className="h-4 w-4 text-ink-subtle" />
               {email}
             </div>
           )}

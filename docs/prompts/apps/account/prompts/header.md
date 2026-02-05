@@ -26,7 +26,7 @@ import {
 	NavigationMenuList,
 	NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon } from '-ui/react-icons';
 import {
 	CodeIcon,
 	GlobeIcon,
@@ -42,7 +42,7 @@ import {
 	HelpCircle,
 	BarChart,
 	PlugIcon,
-} from 'lucide-react';
+} from '-ui/react-icons';
 
 type LinkItem = {
 	title: string;
@@ -638,7 +638,7 @@ export function MenuToggleIcon({
 
 Install NPM dependencies:
 ```bash
-lucide-react, @radix-ui/react-slot, class-variance-authority, @radix-ui/react-icons, @radix-ui/react-navigation-menu
+-ui/react-icons, @radix-ui/react-slot, class-variance-authority, @radix-ui/react-icons, @radix-ui/react-navigation-menu
 ```
 
 Implementation Guidelines
@@ -656,4 +656,4 @@ Steps to integrate
  0. Copy paste all the code above in the correct directories
  1. Install external dependencies
  2. Fill image assets with Unsplash stock images you know exist
- 3. Use lucide-react icons for svgs or logos if component requires them
+ 3. Use -ui/react-icons icons for svgs or logos if component requires them

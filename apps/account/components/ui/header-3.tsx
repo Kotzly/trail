@@ -19,14 +19,14 @@ import { accountCopy } from "@trail/content";
 import { TrailLogo } from "@trail/ui";
 import { trpc } from "@/src/trpc/client";
 import {
+  type LucideIcon,
   CreditCard,
   LayoutDashboard,
   LogOut,
   Plug,
   Settings,
   User,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+} from "@trail/ui/icons";
 import { useReducedMotion } from "motion/react";
 
 type LinkItem = {

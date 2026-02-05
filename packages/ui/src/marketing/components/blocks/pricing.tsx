@@ -5,7 +5,7 @@ import Link from "next/link";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
 import { motion } from "motion/react";
-import { Check, Star } from "lucide-react";
+import { Check, Star } from "../../../icons";
 import { cn } from "../../../utils/cn";
 import { buttonVariants } from "../ui/button";
 import { useMediaQuery } from "../../hooks/use-media-query";

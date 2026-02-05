@@ -4,7 +4,7 @@ import {
   LaptopIcon,
   Link2Icon,
   LockClosedIcon,
-} from "@radix-ui/react-icons";
+} from "@trail/ui/icons";
 import { Button, Card, EmptyState, SectionHeader, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@trail/ui";

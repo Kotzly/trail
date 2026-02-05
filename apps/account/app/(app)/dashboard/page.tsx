@@ -1,6 +1,11 @@
 import Link from "next/link";
-import { ArrowRightIcon, LightningBoltIcon } from "@radix-ui/react-icons";
-import { Activity, Layers, Laptop } from "lucide-react";
+import {
+  Activity,
+  ArrowRightIcon,
+  Laptop,
+  Layers,
+  LightningBoltIcon,
+} from "@trail/ui/icons";
 import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@trail/ui";

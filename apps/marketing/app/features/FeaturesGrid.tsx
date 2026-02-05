@@ -8,7 +8,7 @@ import {
   Share2,
   FileDown,
   Shield,
-} from "lucide-react";
+} from "@trail/ui/icons";
 
 const features = [
   {

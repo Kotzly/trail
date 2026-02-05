@@ -8,7 +8,7 @@ import {
   DesktopIcon,
   LightningBoltIcon,
   RocketIcon,
-} from "@radix-ui/react-icons";
+} from "@trail/ui/icons";
 import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { trpc } from "@/src/trpc/client";

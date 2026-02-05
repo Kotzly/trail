@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckIcon } from "@radix-ui/react-icons";
+import { CheckIcon } from "@trail/ui/icons";
 import { Badge, Button, PageHeader, cn } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 

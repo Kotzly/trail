@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
-import { CheckIcon, Loader2Icon } from "lucide-react";
+import { CheckIcon, Loader2Icon } from "@trail/ui/icons";
 import { cn } from "@trail/ui";
 
 export type StepStatus = "pending" | "current" | "completed" | "error";

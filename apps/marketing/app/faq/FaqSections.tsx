@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, HelpCircle, MessageCircle, Search } from "lucide-react";
+import { ArrowRight, HelpCircle, MessageCircle, Search } from "@trail/ui/icons";
 import { marketingCopy } from "@trail/content";
 import { Button } from "@trail/ui";
 import {

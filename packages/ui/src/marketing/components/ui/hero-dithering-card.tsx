@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, MoveRight } from "lucide-react";
+import { ArrowRight, MoveRight } from "../../../icons";
 import { useState, Suspense, lazy, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";

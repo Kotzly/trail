@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { ArrowRight, Clock, LifeBuoy, Mail, MessageSquare } from "lucide-react";
+import { ArrowRight, Clock, LifeBuoy, Mail, MessageSquare } from "@trail/ui/icons";
 import { Button } from "@trail/ui";
 import { SupportFlow } from "./SupportFlow";
 import {

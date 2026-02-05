@@ -243,7 +243,7 @@ import {
   Package,
   ScrollText,
   SunMoon,
-} from 'lucide-react';
+} from '-ui/react-icons';
 
 import { Dock, DockIcon, DockItem, DockLabel } from '@/components/ui/dock';
 
@@ -339,4 +339,4 @@ Steps to integrate
  0. Copy paste all the code above in the correct directories
  1. Install external dependencies
  2. Fill image assets with Unsplash stock images you know exist
- 3. Use lucide-react icons for svgs or logos if component requires them
+ 3. Use -ui/react-icons icons for svgs or logos if component requires them

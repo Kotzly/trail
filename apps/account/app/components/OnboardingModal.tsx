@@ -10,7 +10,7 @@ import {
   Shield,
   Zap,
   Users,
-} from "lucide-react";
+} from "@trail/ui/icons";
 import { Button, cn } from "@trail/ui";
 
 // TODO: Fetch onboarding status from backend API

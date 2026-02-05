@@ -13,7 +13,7 @@ Copy-paste this component to /components/ui folder:
 ```tsx
 interactive-hover-button.tsx
 import React from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "-ui/react-icons";
 import { cn } from "@/lib/utils";
 
 interface InteractiveHoverButtonProps
@@ -68,7 +68,7 @@ export { InteractiveHoverButtonDemo };
 
 Install NPM dependencies:
 ```bash
-lucide-react
+-ui/react-icons
 ```
 
 Implementation Guidelines
@@ -86,4 +86,4 @@ Steps to integrate
  0. Copy paste all the code above in the correct directories
  1. Install external dependencies
  2. Fill image assets with Unsplash stock images you know exist
- 3. Use lucide-react icons for svgs or logos if component requires them
+ 3. Use -ui/react-icons icons for svgs or logos if component requires them

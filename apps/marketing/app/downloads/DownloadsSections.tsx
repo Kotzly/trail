@@ -6,12 +6,15 @@ import {
   ArrowRight,
   CheckCircle2,
   Download,
+  FaBrave,
+  FaChrome,
+  FaEdge,
+  FaFirefoxBrowser,
+  FaSafari,
   Loader2,
   Mail,
   Sparkles,
-} from "lucide-react";
-import { FaBrave } from "react-icons/fa6";
-import { FaChrome, FaEdge, FaFirefoxBrowser, FaSafari } from "react-icons/fa";
+} from "@trail/ui/icons";
 import { Button, WaitlistSuccessDialog } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import {

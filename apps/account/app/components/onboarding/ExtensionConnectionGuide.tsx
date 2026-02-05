@@ -8,15 +8,17 @@ import {
   ArrowRightIcon,
   CheckIcon,
   ExternalLinkIcon,
+  FaBrave,
+  FaChrome,
+  FaEdge,
+  FaFirefoxBrowser,
+  FaSafari,
   HelpCircleIcon,
   LockIcon,
   PuzzleIcon,
   RefreshCwIcon,
   ShieldIcon,
-} from "lucide-react";
-
-import { FaChrome, FaEdge, FaFirefoxBrowser, FaSafari } from "react-icons/fa";
-import { FaBrave } from "react-icons/fa6";
+} from "@trail/ui/icons";
 import { Button } from "@trail/ui";
 import { cn } from "@trail/ui";
 
