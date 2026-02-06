@@ -8,6 +8,7 @@ export const Activity: IconComponent = RadixIcons.ActivityLogIcon;
 export const AlertCircleIcon: IconComponent = RadixIcons.ExclamationTriangleIcon;
 export const ArrowLeft: IconComponent = RadixIcons.ArrowLeftIcon;
 export const ArrowRight: IconComponent = RadixIcons.ArrowRightIcon;
+export const ArrowDown: IconComponent = RadixIcons.ArrowDownIcon;
 export const ArrowRightIcon: IconComponent = RadixIcons.ArrowRightIcon;
 export const BackpackIcon: IconComponent = RadixIcons.BackpackIcon;
 export const Brush: IconComponent = RadixIcons.Pencil2Icon;

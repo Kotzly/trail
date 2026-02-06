@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  ArrowDown,
   ArrowRight,
   CheckCircle2,
   Download,
@@ -190,7 +191,7 @@ function BrowserCard({
                   });
                 }}
               >
-                Join Waitlist
+                Join <ArrowDown className="h-4 w-4" />
               </Button>
             )}
           </div>
@@ -240,71 +241,55 @@ function WaitlistCard({
         </p>
 
         <AnimatePresence mode="wait">
-          {status === "success" ? (
-            <motion.div
-              key="success"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3 }}
-              className="mt-6 rounded-2xl border border-green-500/30 bg-green-500/10 p-4"
+          <motion.form
+            key="form"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={onSubmit}
+            className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center"
+          >
+            <div className="relative w-full max-w-sm">
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => onEmailChange(event.target.value)}
+                placeholder="Enter your email"
+                className="h-12 w-full rounded-full border border-stroke/60 bg-surface px-6 text-sm text-ink placeholder:text-ink-subtle transition-all focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                disabled={status === "submitting"}
+              />
+              <AnimatePresence>
+                {error ? (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute -bottom-6 left-4 text-xs text-red-500"
+                  >
+                    {error}
+                  </motion.p>
+                ) : null}
+              </AnimatePresence>
+            </div>
+            <Button
+              type="submit"
+              disabled={status === "submitting" || !trimmedEmail}
+              className="inline-flex items-center gap-2"
             >
-              <div className="flex items-center justify-center gap-2 text-green-600">
-                <CheckCircle2 className="h-5 w-5" />
-                <span className="font-medium">You&apos;re on the list!</span>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.form
-              key="form"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onSubmit={onSubmit}
-              className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center"
-            >
-              <div className="relative w-full max-w-sm">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => onEmailChange(event.target.value)}
-                  placeholder="Enter your email"
-                  className="h-12 w-full rounded-full border border-stroke/60 bg-surface px-6 text-sm text-ink placeholder:text-ink-subtle transition-all focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
-                  disabled={status === "submitting"}
-                />
-                <AnimatePresence>
-                  {error ? (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute -bottom-6 left-4 text-xs text-red-500"
-                    >
-                      {error}
-                    </motion.p>
-                  ) : null}
-                </AnimatePresence>
-              </div>
-              <Button
-                type="submit"
-                disabled={status === "submitting" || !trimmedEmail}
-                className="inline-flex items-center gap-2"
-              >
-                {status === "submitting" ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Joining...
-                  </>
-                ) : (
-                  <>
-                    Join Waitlist
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </motion.form>
-          )}
+              {status === "submitting" ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Joining...
+                </>
+              ) : (
+                <>
+                  Join Waitlist
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </motion.form>
         </AnimatePresence>
       </section>
     </SurfaceCard>

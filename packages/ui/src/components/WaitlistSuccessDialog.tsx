@@ -67,7 +67,7 @@ export function WaitlistSuccessDialog({
       {/* Backdrop */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-ink/70 backdrop-blur-sm"
+        className="absolute inset-0 backdrop-blur-md"
         onClick={onClose}
       />
 

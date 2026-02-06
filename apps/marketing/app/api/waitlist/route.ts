@@ -6,6 +6,24 @@ type WaitlistPayload = {
   source?: string;
 };
 
+type WaitlistSource = "marketing" | "account" | "extension";
+
+const sourceAliases: Record<string, WaitlistSource> = {
+  marketing: "marketing",
+  account: "account",
+  extension: "extension",
+  "downloads-page": "marketing",
+};
+
+function normalizeSource(source: unknown): WaitlistSource {
+  if (typeof source !== "string") {
+    return "marketing";
+  }
+
+  const normalized = source.trim().toLowerCase();
+  return sourceAliases[normalized] ?? "marketing";
+}
+
 const endpoint = env.WAITLIST_PROVIDER_ENDPOINT;
 const token = env.WAITLIST_PROVIDER_TOKEN;
 
@@ -33,7 +51,7 @@ export async function POST(request: Request) {
 
   const body = {
     email,
-    source: payload.source ?? "marketing",
+    source: normalizeSource(payload.source),
     receivedAt: new Date().toISOString(),
   };
 
