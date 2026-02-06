@@ -4,6 +4,7 @@ import { initWebNavigation } from './navigation/webnavigation.js';
 import { initTabsLifecycle } from './tabs/lifecycle.js';
 import { syncOpenTabs } from './tabs/sync-open-tabs.js';
 import { CommandManager } from '../shared/lib/commands.js';
+import { cloudSync } from './services/cloud-sync.js';
 
 
 // Initialize all modules
@@ -12,6 +13,7 @@ initWebNavigation();
 initTabsLifecycle();
 void syncOpenTabs();
 void CommandManager.init();
+cloudSync.init();
 
 const sidePanel = chrome?.sidePanel;
 

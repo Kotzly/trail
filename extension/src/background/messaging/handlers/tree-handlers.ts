@@ -11,6 +11,7 @@ import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } fr
 import { normalizeFaviconUrl, shouldTrackUrl } from '../../utils/url-utils.js';
 import { settingsManager } from '../../services/settings.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
+import { cloudSync } from '../../services/cloud-sync.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
 
 function getDeleteFocusView(
@@ -236,8 +237,13 @@ export const treeHandlers = defineHandlers({
   async [MSG.DELETE_ARCHIVED_TREE](message) {
     const active = await treeStorage.getActiveMeta();
     if (active.id === message.treeId) return err('Cannot delete active tree');
+    const archives = await treeStorage.getArchives();
+    const archivedRecord = archives.find((entry) => entry.id === message.treeId) ?? null;
     const removed = await treeStorage.deleteArchivedTree(message.treeId);
     if (!removed) return err('Tree not found');
+    if (archivedRecord) {
+      await cloudSync.recordArchiveDeletion(archivedRecord);
+    }
     await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
   },

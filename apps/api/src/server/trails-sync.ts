@@ -110,6 +110,7 @@ function toDbData(params: {
   }
 
   return {
+    id: trail.id,
     ...baseData,
     createdAt: trail.createdAt,
   };

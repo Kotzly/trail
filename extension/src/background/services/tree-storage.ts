@@ -6,6 +6,7 @@ import { settingsManager } from './settings.js';
 const TREE_KEY = 'trail_tree' as const;
 const TREE_META_KEY = 'trail_tree_meta' as const;
 const TREE_ARCHIVES_KEY = 'trail_tree_archives' as const;
+const TREE_SAVED_AT_KEY = 'trail_tree_saved_at' as const;
 const treeArea = chrome.storage.local;
 const DEFAULT_LABEL = 'Unnamed Tree';
 const LABEL_MAX = 80;
@@ -86,6 +87,8 @@ class TreeStorageService {
   private loading: Promise<NavigationTree> | undefined = undefined;
   private metaLoading: Promise<TreeMeta> | undefined = undefined;
   private archivesLoading: Promise<TreeRecord[]> | undefined = undefined;
+  private cachedSavedAt: number | null = null;
+  private savedAtLoading: Promise<number> | undefined = undefined;
   private dirty = false;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly saveDebounceMs = 1500;
@@ -186,6 +189,7 @@ class TreeStorageService {
     this.dirty = true;
     this.scheduleSave();
     await this.setActiveMeta(meta);
+    await this.setActiveSavedAt(Date.now());
   }
 
   async archiveActiveTree(): Promise<TreeRecord | null> {
@@ -239,6 +243,15 @@ class TreeStorageService {
       if (typeof record.rootFavicon === 'string') summary.rootFavicon = record.rootFavicon;
       return summary;
     });
+  }
+
+  async setArchives(records: TreeRecord[]): Promise<void> {
+    this.cachedArchives = records;
+    try {
+      await treeArea.set({ [TREE_ARCHIVES_KEY]: records });
+    } catch (error) {
+      console.error('TreeStorageService.setArchives: Error saving archives:', error);
+    }
   }
 
   async renameTree(treeId: string, label: string): Promise<void> {
@@ -320,6 +333,37 @@ class TreeStorageService {
     return this.archivesLoading;
   }
 
+  async getActiveSavedAt(): Promise<number> {
+    if (this.cachedSavedAt !== null) return this.cachedSavedAt;
+    if (this.savedAtLoading) return this.savedAtLoading;
+
+    this.savedAtLoading = (async () => {
+      try {
+        const result = await treeArea.get(TREE_SAVED_AT_KEY);
+        const raw = result[TREE_SAVED_AT_KEY];
+        if (Number.isFinite(raw)) {
+          this.cachedSavedAt = raw as number;
+          return this.cachedSavedAt;
+        }
+      } catch (error) {
+        console.error('TreeStorageService.getActiveSavedAt: Error loading savedAt:', error);
+      }
+
+      const now = Date.now();
+      this.cachedSavedAt = now;
+      try {
+        await treeArea.set({ [TREE_SAVED_AT_KEY]: now });
+      } catch (error) {
+        console.error('TreeStorageService.getActiveSavedAt: Error saving default savedAt:', error);
+      }
+      return now;
+    })();
+
+    return this.savedAtLoading.finally(() => {
+      this.savedAtLoading = undefined;
+    });
+  }
+
   async flushSaveNow(): Promise<void> {
     if (this.saveTimer) {
       clearTimeout(this.saveTimer);
@@ -330,6 +374,7 @@ class TreeStorageService {
     this.dirty = false;
     try {
       await this.saveTreeToChrome(tree);
+      await this.setActiveSavedAt(Date.now());
     } catch (error) {
       console.error('TreeStorageService.flushSaveNow: Error saving tree:', error);
       this.dirty = true;
@@ -345,6 +390,15 @@ class TreeStorageService {
       this.saveTimer = null;
       void this.flushSaveNow();
     }, this.saveDebounceMs);
+  }
+
+  private async setActiveSavedAt(savedAt: number): Promise<void> {
+    this.cachedSavedAt = savedAt;
+    try {
+      await treeArea.set({ [TREE_SAVED_AT_KEY]: savedAt });
+    } catch (error) {
+      console.error('TreeStorageService.setActiveSavedAt: Error saving savedAt:', error);
+    }
   }
 }
 

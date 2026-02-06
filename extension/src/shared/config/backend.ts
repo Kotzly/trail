@@ -15,6 +15,7 @@ export const BACKEND_CONFIG = {
     billing: '/billing',
     checkout: '/subscription/checkout',
     billingPortal: '/billing/portal',
+    trailsSync: '/trails/sync',
   },
   openApiPath: 'api/openapi.yml',
 } as const;

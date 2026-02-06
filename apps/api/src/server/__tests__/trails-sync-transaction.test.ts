@@ -97,4 +97,61 @@ describe("syncTrails", () => {
       expect.arrayContaining([expect.any(Promise), expect.any(Promise)]),
     );
   });
+
+  it("creates new trails with client-provided id", async () => {
+    dbMocks.trail.deleteMany.mockResolvedValue({ count: 0 });
+    dbMocks.trail.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    dbMocks.trail.create.mockResolvedValue({
+      id: "trail-client-id",
+      userId: "user-1",
+      deviceId: "device-1",
+      label: "New",
+      labelSource: "USER",
+      labelUpdatedAt: new Date("2026-02-01T00:00:00Z"),
+      createdAt: new Date("2026-02-01T00:00:00Z"),
+      updatedAt: new Date("2026-02-01T00:00:00Z"),
+      savedAt: new Date("2026-02-01T00:00:00Z"),
+      nodeCount: 1,
+      rootUrl: null,
+      rootTitle: null,
+      rootFavicon: null,
+      payload: { v: 1 },
+      deletedAt: null,
+    });
+    dbMocks.$transaction.mockImplementation(async (ops) => Promise.all(ops));
+
+    await syncTrails({
+      userId: "user-1",
+      deviceId: "device-1",
+      clientSyncAt: new Date("2026-02-01T00:00:00Z"),
+      trails: [
+        {
+          id: "trail-client-id",
+          deviceId: "device-1",
+          label: "New",
+          labelSource: "USER",
+          labelUpdatedAt: new Date("2026-02-01T00:00:00Z"),
+          createdAt: new Date("2026-02-01T00:00:00Z"),
+          updatedAt: new Date("2026-02-01T00:00:00Z"),
+          savedAt: new Date("2026-02-01T00:00:00Z"),
+          nodeCount: 1,
+          rootUrl: null,
+          rootTitle: null,
+          rootFavicon: null,
+          payload: { v: 1 },
+          deletedAt: null,
+        },
+      ],
+    });
+
+    expect(dbMocks.trail.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: "trail-client-id",
+        }),
+      }),
+    );
+  });
 });

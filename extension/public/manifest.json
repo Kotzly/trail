@@ -14,7 +14,8 @@
     "storage",
     "tabs",
     "webNavigation",
-    "favicon"
+    "favicon",
+    "alarms"
   ],
   "host_permissions": [
     "<all_urls>"

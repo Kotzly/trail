@@ -1,6 +1,7 @@
 import { db } from "@trail/db";
 import { requireInternalKey } from "@/src/server/internal-auth";
 import { jsonNoStore } from "@/src/server/response";
+import { createExtensionToken } from "@/src/server/auth/extension-auth";
 
 export const runtime = "nodejs";
 
@@ -51,12 +52,15 @@ export async function POST(request: Request) {
     data: { usedAt: now },
   });
 
+  const token = createExtensionToken(record.user.id);
+
   return jsonNoStore({
     user: {
       id: record.user.id,
       email: record.user.email,
       name: record.user.name,
     },
-    message: "Exchange stub. Token issuance will be added with extension API.",
+    token: token.token,
+    expiresAt: token.expiresAt,
   });
 }
