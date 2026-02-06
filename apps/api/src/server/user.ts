@@ -75,4 +75,39 @@ export async function getUserById(userId: string): Promise<UserSummary | null> {
   };
 }
 
+export async function getUserOnboardingSeen(
+  userId: string,
+): Promise<boolean | null> {
+  const rows = await db.$queryRaw<Array<{ seenAt: Date | null }>>`
+    SELECT "onboardingSeenAt" as "seenAt"
+    FROM "User"
+    WHERE "id" = ${userId}
+    LIMIT 1
+  `;
+
+  const record = rows[0];
+  if (!record) {
+    return null;
+  }
+
+  return record.seenAt !== null;
+}
+
+export async function markUserOnboardingSeen(
+  userId: string,
+): Promise<boolean | null> {
+  const updatedRows = await db.$executeRaw`
+    UPDATE "User"
+    SET "onboardingSeenAt" = COALESCE("onboardingSeenAt", NOW()),
+        "updatedAt" = NOW()
+    WHERE "id" = ${userId}
+  `;
+
+  if (updatedRows === 0) {
+    return null;
+  }
+
+  return true;
+}
+
 export type { AuthUser };

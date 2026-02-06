@@ -13,9 +13,6 @@ import {
 } from "@trail/ui/icons";
 import { Button, cn } from "@trail/ui";
 
-// TODO: Fetch onboarding status from backend API
-// GET /api/user/onboarding-status
-
 type OnboardingStep = {
   id: string;
   title: string;
@@ -75,13 +72,18 @@ export function OnboardingModal() {
   const [isOpen, setIsOpen] = React.useState(false);
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
+  const isMarkingSeenRef = React.useRef(false);
 
   React.useEffect(() => {
-    // TODO: Replace with actual API call
     const checkOnboarding = async () => {
       try {
-        const hasSeenOnboarding = localStorage.getItem("onboarding-seen");
-        if (!hasSeenOnboarding) {
+        const response = await fetch("/api/onboarding", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { seen?: boolean };
+        if (!payload.seen) {
           setIsOpen(true);
         }
       } finally {
@@ -92,10 +94,26 @@ export function OnboardingModal() {
     checkOnboarding();
   }, []);
 
+  const markOnboardingSeen = React.useCallback(async () => {
+    if (isMarkingSeenRef.current) {
+      return;
+    }
+
+    isMarkingSeenRef.current = true;
+
+    try {
+      await fetch("/api/onboarding", {
+        method: "POST",
+        cache: "no-store",
+      });
+    } finally {
+      isMarkingSeenRef.current = false;
+    }
+  }, []);
+
   const handleClose = () => {
     setIsOpen(false);
-    localStorage.setItem("onboarding-seen", "true");
-    // TODO: POST /api/user/onboarding-seen
+    void markOnboardingSeen();
   };
 
   const handleNext = () => {
@@ -205,9 +223,9 @@ export function OnboardingModal() {
           </div>
 
           {/* Next button */}
-        <Button onClick={handleNext} size="sm" className="px-6 lowercase">
-          {isLastStep ? "finish" : "next"}
-        </Button>
+          <Button onClick={handleNext} size="sm" className="px-6 lowercase">
+            {isLastStep ? "finish" : "next"}
+          </Button>
         </div>
 
         {/* Skip link */}
