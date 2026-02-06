@@ -397,6 +397,12 @@ class CloudSyncService {
     }
 
     if (!response.ok) {
+      if (response.status === 402) {
+        const payload = await response.json().catch(() => null) as { code?: unknown } | null;
+        if (payload?.code === 'feature_locked') {
+          return;
+        }
+      }
       if (response.status !== 401 && response.status !== 403) {
         this.scheduleSync(5000);
       }

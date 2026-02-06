@@ -1,5 +1,6 @@
 import type { ExtensionConfigMap } from "@/src/server/extension-config";
 import { getExtensionConfig } from "@/src/server/extension-config";
+import type { SubscriptionSnapshot } from "@/src/server/subscription-access";
 
 const DEFAULT_PLANS = [
   {
@@ -26,9 +27,9 @@ const DEFAULT_PLANS = [
     rank: 1,
   },
   {
-    id: "team",
-    name: "Team",
-    tier: "team",
+    id: "teams",
+    name: "Teams",
+    tier: "teams",
     priceMonthly: 16,
     priceYearly: 144,
     currency: "USD",
@@ -60,7 +61,7 @@ type AuthSessionAuthenticated = {
 type AccountSnapshot = {
   session: AuthSessionGuest | AuthSessionAuthenticated;
   user: AccountUser | null;
-  subscription: null;
+  subscription: SubscriptionSnapshot | null;
   billing: { state: "none" };
   plans: typeof DEFAULT_PLANS;
   config: ExtensionConfigMap;
@@ -89,10 +90,12 @@ export function buildAccountSnapshot({
   user,
   accessToken,
   expiresAt,
+  subscription = null,
 }: {
   user: DbUser | null;
   accessToken?: string | null;
   expiresAt?: string | null;
+  subscription?: SubscriptionSnapshot | null;
 }): AccountSnapshot {
   const { config } = getExtensionConfig();
   if (!user || !accessToken) {
@@ -113,7 +116,7 @@ export function buildAccountSnapshot({
       expiresAt: expiresAt ?? null,
     },
     user: toAccountUser(user),
-    subscription: null,
+    subscription,
     billing: { state: "none" },
     plans: DEFAULT_PLANS,
     config,

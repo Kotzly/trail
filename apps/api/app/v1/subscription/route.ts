@@ -3,26 +3,9 @@ import { verifyExtensionToken } from "@/src/server/auth/extension-auth";
 import { jsonError } from "@/src/server/error-response";
 import { jsonNoStore } from "@/src/server/response";
 import { getUserById } from "@/src/server/user";
+import { getSubscriptionSnapshotForUser } from "@/src/server/subscription-access";
 
 export const runtime = "nodejs";
-
-function buildSubscriptionStub(createdAt: Date) {
-  const start = createdAt.toISOString();
-  const end = new Date(
-    createdAt.getTime() + 30 * 24 * 60 * 60 * 1000,
-  ).toISOString();
-  return {
-    id: "sub_free",
-    planId: "free",
-    status: "active",
-    interval: "month",
-    currentPeriodStart: start,
-    currentPeriodEnd: end,
-    cancelAtPeriodEnd: false,
-    trialEndsAt: null,
-    canceledAt: null,
-  };
-}
 
 export async function GET(request: Request) {
   const token = getBearerToken(request.headers);
@@ -36,5 +19,10 @@ export async function GET(request: Request) {
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  return jsonNoStore(buildSubscriptionStub(user.createdAt));
+  const subscription = await getSubscriptionSnapshotForUser({
+    userId: extension.sub,
+    fallbackCreatedAt: user.createdAt,
+  });
+
+  return jsonNoStore(subscription);
 }

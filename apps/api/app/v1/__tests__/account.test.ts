@@ -12,6 +12,10 @@ const snapshotMocks = vi.hoisted(() => ({
   buildAccountSnapshot: vi.fn(),
 }));
 
+const accessMocks = vi.hoisted(() => ({
+  getSubscriptionSnapshotForUser: vi.fn(),
+}));
+
 vi.mock("@/src/server/auth/extension-auth", () => ({
   ...authMocks,
 }));
@@ -24,6 +28,10 @@ vi.mock("@/src/server/account-snapshot", () => ({
   ...snapshotMocks,
 }));
 
+vi.mock("@/src/server/subscription-access", () => ({
+  ...accessMocks,
+}));
+
 import { GET as getAccount } from "../account/route";
 
 describe("v1 account snapshot", () => {
@@ -31,6 +39,8 @@ describe("v1 account snapshot", () => {
     authMocks.verifyExtensionToken.mockReset();
     userMocks.getUserById.mockReset();
     snapshotMocks.buildAccountSnapshot.mockReset();
+    accessMocks.getSubscriptionSnapshotForUser.mockReset();
+    accessMocks.getSubscriptionSnapshotForUser.mockResolvedValue(null);
   });
 
   it("returns snapshot for extension user", async () => {

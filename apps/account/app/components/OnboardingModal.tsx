@@ -56,7 +56,7 @@ const STEPS: OnboardingStep[] = [
     ],
   },
   {
-    id: "team",
+    id: "teams",
     title: "collaborate with team",
     description: "share trails and work together with your team.",
     icon: <Users className="h-6 w-6" />,

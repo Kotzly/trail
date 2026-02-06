@@ -4,6 +4,8 @@ import { jsonError } from "@/src/server/error-response";
 import { jsonNoStore } from "@/src/server/response";
 import { isJsonValue, type JsonValue } from "@/src/server/json";
 import { syncTrails } from "@/src/server/trails-sync";
+import { getExtensionConfig } from "@/src/server/extension-config";
+import { getFeatureAccessForUser } from "@/src/server/subscription-access";
 
 export const runtime = "nodejs";
 
@@ -51,6 +53,25 @@ export async function POST(request: Request) {
   const extension = token ? verifyExtensionToken(token) : null;
   if (!extension?.sub) {
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+  }
+
+  const { config } = getExtensionConfig();
+  const access = await getFeatureAccessForUser({
+    userId: extension.sub,
+    config,
+    featureKey: "trailsSync",
+    fallbackMinTier: "free",
+  });
+  if (!access.allowed) {
+    return jsonError(
+      "feature_locked",
+      `Trails sync requires ${access.requiredTier} plan.`,
+      {
+        status: 402,
+        retryable: false,
+        details: `feature=trailsSync requiredTier=${access.requiredTier} currentTier=${access.currentTier}`,
+      },
+    );
   }
 
   const body = await request.json().catch(() => null);

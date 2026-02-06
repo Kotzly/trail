@@ -46,6 +46,23 @@ export async function GET(request: Request) {
       return NextResponse.json(buildAccountSnapshot({ user: null, config }));
     }
 
+    const subscription = await internalApiJson<{
+      id: string;
+      planId: "free" | "pro";
+      status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired";
+      interval: "month";
+      currentPeriodStart: string;
+      currentPeriodEnd: string;
+      cancelAtPeriodEnd: boolean;
+      trialEndsAt: string | null;
+      canceledAt: string | null;
+    } | null>("/v1/subscription", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }).catch(() => null);
+
     return NextResponse.json(
       buildAccountSnapshot({
         user: {
@@ -55,6 +72,7 @@ export async function GET(request: Request) {
         accessToken: token,
         expiresAt: new Date(payload.exp * 1000).toISOString(),
         config,
+        subscription,
       }),
     );
   } catch (error) {

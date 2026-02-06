@@ -20,6 +20,7 @@ import {
   resolveBackendConfig,
   resolvePresetOverride,
 } from '../src/shared/config/backend.js';
+import { getFeatureAccess } from '../src/shared/lib/entitlements.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -240,6 +241,48 @@ function testBackendUnknownPresetOverride(): void {
   assert.equal(override, null);
 }
 
+function testEntitlements(): void {
+  const proAccess = getFeatureAccess({
+    config: { 'feature.trailsSync.minTier': 'pro' },
+    subscription: {
+      id: 'sub_1',
+      planId: 'pro',
+      status: 'active',
+      interval: 'month',
+      currentPeriodStart: '2026-02-01T00:00:00.000Z',
+      currentPeriodEnd: '2026-03-01T00:00:00.000Z',
+      cancelAtPeriodEnd: false,
+      trialEndsAt: null,
+      canceledAt: null,
+    },
+    featureKey: 'trailsSync',
+  });
+
+  assert.equal(proAccess.allowed, true);
+  assert.equal(proAccess.currentTier, 'pro');
+  assert.equal(proAccess.requiredTier, 'pro');
+
+  const teamAccess = getFeatureAccess({
+    config: { 'feature.trailsSync.minTier': 'teams' },
+    subscription: {
+      id: 'sub_2',
+      planId: 'pro',
+      status: 'active',
+      interval: 'month',
+      currentPeriodStart: '2026-02-01T00:00:00.000Z',
+      currentPeriodEnd: '2026-03-01T00:00:00.000Z',
+      cancelAtPeriodEnd: false,
+      trialEndsAt: null,
+      canceledAt: null,
+    },
+    featureKey: 'trailsSync',
+  });
+
+  assert.equal(teamAccess.allowed, false);
+  assert.equal(teamAccess.currentTier, 'pro');
+  assert.equal(teamAccess.requiredTier, 'teams');
+}
+
 try {
   testNavigationTreeDeletion();
   testNavigationTreeSubtree();
@@ -252,6 +295,7 @@ try {
   testBackendConfigOverride();
   testBackendLocalPresetOverride();
   testBackendUnknownPresetOverride();
+  testEntitlements();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);

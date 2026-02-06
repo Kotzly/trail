@@ -43,9 +43,9 @@ const plans: Plan[] = [
     rank: 1,
   },
   {
-    id: 'team',
-    name: 'Team',
-    tier: 'team',
+    id: 'teams',
+    name: 'Teams',
+    tier: 'teams',
     priceMonthly: 16,
     priceYearly: 144,
     currency: 'USD',

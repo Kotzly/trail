@@ -53,8 +53,8 @@ const PLANS: Plan[] = [
     cta: "start pro trial",
   },
   {
-    id: "team",
-    name: "team",
+    id: "teams",
+    name: "teams",
     description: "for teams collaborating on research together.",
     monthlyPrice: 20,
     yearlyPricePerMonth: 16,

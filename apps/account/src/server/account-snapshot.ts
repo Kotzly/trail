@@ -25,9 +25,9 @@ const DEFAULT_PLANS = [
     rank: 1,
   },
   {
-    id: "team",
-    name: "Team",
-    tier: "team",
+    id: "teams",
+    name: "Teams",
+    tier: "teams",
     priceMonthly: 16,
     priceYearly: 144,
     currency: "USD",
@@ -56,10 +56,22 @@ type AuthSessionAuthenticated = {
   expiresAt?: string | null;
 };
 
+type AccountSubscription = {
+  id: string;
+  planId: "free" | "pro";
+  status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired";
+  interval: "month";
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  trialEndsAt: string | null;
+  canceledAt: string | null;
+};
+
 type AccountSnapshot = {
   session: AuthSessionGuest | AuthSessionAuthenticated;
   user: AccountUser | null;
-  subscription: null;
+  subscription: AccountSubscription | null;
   billing: { state: "none" };
   plans: typeof DEFAULT_PLANS;
   config: AccountConfig;
@@ -89,11 +101,13 @@ export function buildAccountSnapshot({
   accessToken,
   expiresAt,
   config = {},
+  subscription = null,
 }: {
   user: DbUser | null;
   accessToken?: string | null;
   expiresAt?: string | null;
   config?: AccountConfig;
+  subscription?: AccountSubscription | null;
 }): AccountSnapshot {
   if (!user || !accessToken) {
     return {
@@ -113,7 +127,7 @@ export function buildAccountSnapshot({
       expiresAt: expiresAt ?? null,
     },
     user: toAccountUser(user),
-    subscription: null,
+    subscription,
     billing: { state: "none" },
     plans: DEFAULT_PLANS,
     config,

@@ -8,6 +8,22 @@ const trailMocks = vi.hoisted(() => ({
   syncTrails: vi.fn(),
 }));
 
+const configMocks = vi.hoisted(() => ({
+  getExtensionConfig: vi.fn(() => ({
+    config: {
+      "feature.trailsSync.minTier": "free",
+    },
+  })),
+}));
+
+const accessMocks = vi.hoisted(() => ({
+  getFeatureAccessForUser: vi.fn(async () => ({
+    allowed: true,
+    currentTier: "free",
+    requiredTier: "free",
+  })),
+}));
+
 vi.mock("@/src/server/auth/extension-auth", () => ({
   ...authMocks,
 }));
@@ -16,12 +32,27 @@ vi.mock("@/src/server/trails-sync", () => ({
   ...trailMocks,
 }));
 
+vi.mock("@/src/server/extension-config", () => ({
+  ...configMocks,
+}));
+
+vi.mock("@/src/server/subscription-access", () => ({
+  ...accessMocks,
+}));
+
 import { POST as sync } from "../trails/sync/route";
 
 describe("v1 trails sync", () => {
   beforeEach(() => {
     authMocks.verifyExtensionToken.mockReset();
     trailMocks.syncTrails.mockReset();
+    configMocks.getExtensionConfig.mockClear();
+    accessMocks.getFeatureAccessForUser.mockClear();
+    accessMocks.getFeatureAccessForUser.mockResolvedValue({
+      allowed: true,
+      currentTier: "free",
+      requiredTier: "free",
+    });
   });
 
   it("syncs trails for extension", async () => {
@@ -85,5 +116,42 @@ describe("v1 trails sync", () => {
     const payload = await response.json();
     expect(payload.serverSyncAt).toBe("2026-02-03T00:00:00.000Z");
     expect(payload.updates[0].labelSource).toBe("user");
+    expect(accessMocks.getFeatureAccessForUser).toHaveBeenCalledWith({
+      userId: "user-1",
+      config: { "feature.trailsSync.minTier": "free" },
+      featureKey: "trailsSync",
+      fallbackMinTier: "free",
+    });
+  });
+
+  it("returns 402 when trails sync is not allowed for current plan", async () => {
+    authMocks.verifyExtensionToken.mockReturnValue({
+      sub: "user-1",
+      iat: 0,
+      exp: 999999,
+    });
+    accessMocks.getFeatureAccessForUser.mockResolvedValue({
+      allowed: false,
+      currentTier: "free",
+      requiredTier: "pro",
+    });
+
+    const response = await sync(
+      new Request("http://localhost/v1/trails/sync", {
+        method: "POST",
+        headers: { Authorization: "Bearer extension-token" },
+        body: JSON.stringify({
+          deviceId: "device-1",
+          clientSyncAt: "2026-02-01T00:00:00Z",
+          trails: [],
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(402);
+    const payload = await response.json();
+    expect(payload.code).toBe("feature_locked");
+    expect(payload.retryable).toBe(false);
+    expect(trailMocks.syncTrails).not.toHaveBeenCalled();
   });
 });

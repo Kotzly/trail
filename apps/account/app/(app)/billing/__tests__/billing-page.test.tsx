@@ -8,7 +8,7 @@ describe("BillingPage", () => {
 
     expect(screen.getAllByText("free").length).toBeGreaterThan(0);
     expect(screen.getByText("pro")).toBeInTheDocument();
-    expect(screen.getByText("team")).toBeInTheDocument();
+    expect(screen.getByText("teams")).toBeInTheDocument();
     expect(screen.getByText("monthly")).toBeInTheDocument();
     expect(screen.getByText("yearly")).toBeInTheDocument();
   });

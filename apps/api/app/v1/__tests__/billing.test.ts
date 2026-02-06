@@ -13,6 +13,10 @@ const snapshotMocks = vi.hoisted(() => ({
   buildAccountSnapshot: vi.fn(),
 }));
 
+const accessMocks = vi.hoisted(() => ({
+  getSubscriptionSnapshotForUser: vi.fn(),
+}));
+
 vi.mock("@/src/server/auth/extension-auth", () => ({
   ...authMocks,
 }));
@@ -23,6 +27,10 @@ vi.mock("@/src/server/user", () => ({
 
 vi.mock("@/src/server/account-snapshot", () => ({
   ...snapshotMocks,
+}));
+
+vi.mock("@/src/server/subscription-access", () => ({
+  ...accessMocks,
 }));
 
 import { GET as getPlans } from "../plans/route";
@@ -37,6 +45,18 @@ describe("v1 billing endpoints", () => {
     userMocks.getUserById.mockReset();
     snapshotMocks.listPlans.mockReset();
     snapshotMocks.buildAccountSnapshot.mockReset();
+    accessMocks.getSubscriptionSnapshotForUser.mockReset();
+    accessMocks.getSubscriptionSnapshotForUser.mockResolvedValue({
+      id: "sub_free",
+      planId: "free",
+      status: "active",
+      interval: "month",
+      currentPeriodStart: "2026-02-01T00:00:00.000Z",
+      currentPeriodEnd: "2026-03-03T00:00:00.000Z",
+      cancelAtPeriodEnd: false,
+      trialEndsAt: null,
+      canceledAt: null,
+    });
   });
 
   it("returns plans without auth", async () => {
@@ -59,7 +79,7 @@ describe("v1 billing endpoints", () => {
     expect(payload[0].id).toBe("free");
   });
 
-  it("returns subscription stub", async () => {
+  it("returns subscription snapshot", async () => {
     authMocks.verifyExtensionToken.mockReturnValue({
       sub: "user-1",
       iat: 0,

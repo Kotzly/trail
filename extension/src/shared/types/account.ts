@@ -1,7 +1,7 @@
 import type { Url } from './ids.js';
 
 export type PlanInterval = 'month' | 'year';
-export type PlanTier = 'free' | 'pro' | 'team' | 'enterprise';
+export type PlanTier = 'free' | 'pro' | 'teams' | 'enterprise';
 
 export type PlanLimits = {
   maxTrees?: number;
