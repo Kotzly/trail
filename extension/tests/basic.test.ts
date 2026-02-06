@@ -15,7 +15,11 @@ import {
 } from '../src/sidepanel/ui/graph/layout/calculator.js';
 import { computeGraphGridTransform } from '../src/sidepanel/ui/components/graph/grid-transform.js';
 import { getSidebarLabelState, getSidebarWidth } from '../src/sidepanel/ui/components/ui/sidebar-utils.js';
-import { DEFAULT_BACKEND_CONFIG, resolveBackendConfig } from '../src/shared/config/backend.js';
+import {
+  DEFAULT_BACKEND_CONFIG,
+  resolveBackendConfig,
+  resolvePresetOverride,
+} from '../src/shared/config/backend.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -222,6 +226,20 @@ function testBackendConfigOverride(): void {
   assert.equal(resolved.mode, 'remote');
 }
 
+function testBackendLocalPresetOverride(): void {
+  const override = resolvePresetOverride('local');
+  assert.ok(override);
+  assert.equal(override.baseUrl, 'http://localhost:3001');
+  assert.equal(override.portalUrl, 'http://localhost:3001/extension');
+  assert.equal(override.mode, 'remote');
+  assert.equal(override.env, 'local');
+}
+
+function testBackendUnknownPresetOverride(): void {
+  const override = resolvePresetOverride('unknown');
+  assert.equal(override, null);
+}
+
 try {
   testNavigationTreeDeletion();
   testNavigationTreeSubtree();
@@ -232,6 +250,8 @@ try {
   testSidebarLabelState();
   testSidebarWidth();
   testBackendConfigOverride();
+  testBackendLocalPresetOverride();
+  testBackendUnknownPresetOverride();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);

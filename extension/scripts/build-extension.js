@@ -5,6 +5,7 @@ const path = require('path');
 
 const distDir = path.join(__dirname, '..', 'dist');
 const publicDir = path.join(__dirname, '..', 'public');
+const backendPresetTag = process.env.TRAIL_EXTENSION_BACKEND_TAG === 'local' ? 'local' : 'production';
 
 // Ensure dist directory exists
 if (!fs.existsSync(distDir)) {
@@ -63,3 +64,11 @@ iconFiles.forEach(file => {
 
 console.log('Build extension assets complete!');
 console.log('Extension ready to load from dist/ directory.');
+
+const backendPresetPath = path.join(distDir, 'backend-preset.json');
+fs.writeFileSync(
+  backendPresetPath,
+  JSON.stringify({ tag: backendPresetTag }, null, 2),
+  'utf8'
+);
+console.log(`Wrote backend preset: ${backendPresetTag}`);

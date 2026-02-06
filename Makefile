@@ -37,5 +37,6 @@ e2e: db-up
 	@set -a; \
 	if [ -f .env.e2e ]; then . ./.env.e2e; fi; \
 	set +a; \
+	pnpm --dir extension run build:local; \
 	pnpm db:migrate; \
 	pnpm dev

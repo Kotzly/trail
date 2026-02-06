@@ -1,5 +1,6 @@
 export type BackendEnvironment = 'production' | 'staging' | 'local';
 export type BackendMode = 'remote' | 'mock';
+export type BackendPresetTag = 'production' | 'local';
 
 export type BackendEndpoints = {
   authPortal: string;
@@ -29,8 +30,10 @@ export type BackendConfigOverride = Partial<
 >;
 
 const BACKEND_CONFIG_STORAGE_KEY = 'trail_backend_config';
+const BACKEND_PRESET_CONFIG_PATH = 'backend-preset.json';
 const VALID_ENVS = new Set<BackendEnvironment>(['production', 'staging', 'local']);
 const VALID_MODES = new Set<BackendMode>(['remote', 'mock']);
+const VALID_PRESETS = new Set<BackendPresetTag>(['production', 'local']);
 
 export const DEFAULT_BACKEND_CONFIG: BackendConfig = {
   env: 'production',
@@ -103,6 +106,11 @@ function normalizeMode(value: unknown, fallback: BackendMode): BackendMode {
   return VALID_MODES.has(value as BackendMode) ? (value as BackendMode) : fallback;
 }
 
+function normalizePresetTag(value: unknown): BackendPresetTag | null {
+  if (typeof value !== 'string') return null;
+  return VALID_PRESETS.has(value as BackendPresetTag) ? (value as BackendPresetTag) : null;
+}
+
 export function resolveBackendConfig(override?: BackendConfigOverride | null): BackendConfig {
   const base = DEFAULT_BACKEND_CONFIG;
   if (!override) {
@@ -138,6 +146,55 @@ export function resolveBackendConfig(override?: BackendConfigOverride | null): B
   };
 }
 
+export function resolvePresetOverride(tag: string | null | undefined): BackendConfigOverride | null {
+  const normalized = normalizePresetTag(tag);
+  if (normalized === 'local') {
+    return {
+      env: 'local',
+      mode: 'remote',
+      baseUrl: 'http://localhost:3001',
+      portalUrl: 'http://localhost:3001/extension',
+    };
+  }
+  return null;
+}
+
+function mergeOverrides(
+  base?: BackendConfigOverride | null,
+  patch?: BackendConfigOverride | null,
+): BackendConfigOverride | null {
+  if (!base && !patch) return null;
+  const baseEndpoints = isRecord(base?.endpoints)
+    ? (base?.endpoints as Partial<BackendEndpoints>)
+    : undefined;
+  const patchEndpoints = isRecord(patch?.endpoints)
+    ? (patch?.endpoints as Partial<BackendEndpoints>)
+    : undefined;
+  const merged: BackendConfigOverride = {};
+  const env = patch?.env ?? base?.env;
+  const mode = patch?.mode ?? base?.mode;
+  const baseUrl = patch?.baseUrl ?? base?.baseUrl;
+  const basePath = patch?.basePath ?? base?.basePath;
+  const portalUrl = patch?.portalUrl ?? base?.portalUrl;
+  const timeoutMs = patch?.timeoutMs ?? base?.timeoutMs;
+  const openApiPath = patch?.openApiPath ?? base?.openApiPath;
+
+  if (env !== undefined) merged.env = env;
+  if (mode !== undefined) merged.mode = mode;
+  if (baseUrl !== undefined) merged.baseUrl = baseUrl;
+  if (basePath !== undefined) merged.basePath = basePath;
+  if (portalUrl !== undefined) merged.portalUrl = portalUrl;
+  if (timeoutMs !== undefined) merged.timeoutMs = timeoutMs;
+  if (openApiPath !== undefined) merged.openApiPath = openApiPath;
+  if (baseEndpoints || patchEndpoints) {
+    merged.endpoints = {
+      ...(baseEndpoints ?? {}),
+      ...(patchEndpoints ?? {}),
+    };
+  }
+  return merged;
+}
+
 function applyBackendConfig(next: BackendConfig): BackendConfig {
   BACKEND_CONFIG.env = next.env;
   BACKEND_CONFIG.mode = next.mode;
@@ -157,13 +214,29 @@ async function readStoredOverride(): Promise<BackendConfigOverride | null> {
   return isRecord(candidate) ? (candidate as BackendConfigOverride) : null;
 }
 
+async function readBuildPresetOverride(): Promise<BackendConfigOverride | null> {
+  if (typeof fetch !== 'function') return null;
+  if (typeof chrome === 'undefined' || !chrome.runtime?.getURL) return null;
+  try {
+    const response = await fetch(chrome.runtime.getURL(BACKEND_PRESET_CONFIG_PATH), {
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { tag?: unknown };
+    return resolvePresetOverride(payload?.tag as string | null | undefined);
+  } catch {
+    return null;
+  }
+}
+
 export async function initBackendConfig(): Promise<BackendConfig> {
   if (initialized) return BACKEND_CONFIG;
   if (!initPromise) {
     initPromise = (async () => {
       try {
+        const buildPresetOverride = await readBuildPresetOverride();
         const override = await readStoredOverride();
-        return applyBackendConfig(resolveBackendConfig(override));
+        return applyBackendConfig(resolveBackendConfig(mergeOverrides(buildPresetOverride, override)));
       } catch (error) {
         console.warn('Failed to load backend config override, using defaults', error);
         return applyBackendConfig(resolveBackendConfig());

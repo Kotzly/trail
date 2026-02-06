@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.app.json --noEmit && vite build && node scripts/build-extension.js",
+    "build:local": "TRAIL_EXTENSION_BACKEND_TAG=local pnpm run build",
     "watch": "tsc -p tsconfig.json --watch",
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck:ui": "tsc -p tsconfig.app.json --noEmit",
