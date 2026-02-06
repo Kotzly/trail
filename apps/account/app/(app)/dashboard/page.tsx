@@ -10,14 +10,7 @@ import { Button, EmptyState, StatCard } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@trail/ui";
 import { getAccountUsageSnapshot } from "@/src/server/account-usage";
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleString();
-}
+import { formatDateTime } from "@/src/server/device-presentation";
 
 export default async function DashboardPage() {
   const { dashboard } = accountCopy;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
-import { env } from "@/src/env";
+import { internalApiFetch } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
 
@@ -21,14 +21,34 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json().catch(() => null);
-  const returnUrl =
-    body?.returnUrl && typeof body.returnUrl === "string"
-      ? body.returnUrl
-      : `${env.APP_BASE_URL.replace(/\/$/, "")}/billing`;
+  const contentType = request.headers.get("content-type") ?? "application/json";
+  const body = await request.text().catch(() => "");
 
-  return NextResponse.json({
-    url: returnUrl,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  let upstream: Response;
+  try {
+    upstream = await internalApiFetch("/v1/billing/portal", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": contentType,
+      },
+      body: body || undefined,
+    });
+  } catch {
+    return NextResponse.json(
+      { code: "network", message: "Upstream unavailable", retryable: true },
+      { status: 503 },
+    );
+  }
+
+  const text = await upstream.text();
+  const upstreamContentType = upstream.headers.get("content-type") ?? "application/json";
+
+  return new NextResponse(text, {
+    status: upstream.status,
+    headers: {
+      "content-type": upstreamContentType,
+      "cache-control": "no-store",
+    },
   });
 }

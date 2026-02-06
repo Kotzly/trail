@@ -4,6 +4,10 @@ import { render, screen } from "@testing-library/react";
 import { accountCopy } from "@trail/content";
 import SettingsPage from "../page";
 
+const usageMocks = vi.hoisted(() => ({
+  getAccountUsageSnapshot: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
@@ -14,8 +18,19 @@ vi.mock("@/src/lib/auth", () => ({
   }),
 }));
 
+vi.mock("@/src/server/account-usage", () => ({
+  ...usageMocks,
+}));
+
 describe("SettingsPage", () => {
   it("renders the settings headers", async () => {
+    usageMocks.getAccountUsageSnapshot.mockResolvedValue({
+      trailCount: 0,
+      activeSessionCount: 0,
+      recentTrails: [],
+      devices: [],
+    });
+
     const node = await SettingsPage();
     render(node);
 
@@ -28,6 +43,13 @@ describe("SettingsPage", () => {
   });
 
   it("uses better auth account settings links", async () => {
+    usageMocks.getAccountUsageSnapshot.mockResolvedValue({
+      trailCount: 0,
+      activeSessionCount: 0,
+      recentTrails: [],
+      devices: [],
+    });
+
     const node = await SettingsPage();
     render(node);
 
@@ -46,5 +68,31 @@ describe("SettingsPage", () => {
         name: accountCopy.settings.security.changePasswordCta,
       }),
     ).toHaveAttribute("href", expectedHref);
+  });
+
+  it("renders active extension sessions when present", async () => {
+    usageMocks.getAccountUsageSnapshot.mockResolvedValue({
+      trailCount: 0,
+      activeSessionCount: 1,
+      recentTrails: [],
+      devices: [
+        {
+          id: "device-1",
+          status: "ACTIVE",
+          deviceName: "MacBook Pro",
+          browserName: "Chrome",
+          os: "macOS",
+          lastSeenAt: "2026-02-06T22:45:53.094Z",
+          updatedAt: "2026-02-06T22:45:53.094Z",
+          session: null,
+        },
+      ],
+    });
+
+    const node = await SettingsPage();
+    render(node);
+
+    expect(screen.getByText("MacBook Pro")).toBeInTheDocument();
+    expect(screen.getByText("Chrome on macOS")).toBeInTheDocument();
   });
 });

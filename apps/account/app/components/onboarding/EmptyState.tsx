@@ -86,7 +86,7 @@ const variants: Record<
     icon: <UsersIcon className="h-8 w-8" />,
     title: "flying solo for now",
     description:
-      "team features are coming soon. you'll be able to invite colleagues and share trails.",
+      "upgrade to teams to invite colleagues and share trails across workspaces.",
     personality:
       "good things come to those who wait. great things come to those who trail.",
     features: [

@@ -1,7 +1,7 @@
 import type { BillingProviderName } from "@/src/env";
 import { env } from "@/src/env";
 import { createNowPaymentsBillingProvider } from "@/src/server/billing/providers/nowpayments";
-import { createStubBillingProvider } from "@/src/server/billing/providers/stub";
+import { createManualBillingProvider } from "@/src/server/billing/providers/manual";
 
 export type BillingStatus = {
   state: "none" | "trialing" | "ok" | "past_due" | "unpaid" | "grace" | "canceled";
@@ -67,7 +67,7 @@ export class BillingProviderError extends Error {
 }
 
 const providerFactories: Record<BillingProviderName, () => BillingProvider> = {
-  stub: createStubBillingProvider,
+  manual: createManualBillingProvider,
   nowpayments: createNowPaymentsBillingProvider,
 };
 

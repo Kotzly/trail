@@ -3,10 +3,13 @@ import { ArrowRight } from "@trail/ui/icons";
 import { Button, Card, EmptyState, SectionHeader } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@trail/ui";
+import { getAccountUsageSnapshot } from "@/src/server/account-usage";
+import { formatDateTime } from "@/src/server/device-presentation";
 
-export default function ActivityPage() {
+export default async function ActivityPage() {
   const { activity } = accountCopy;
-  const hasActivity = false;
+  const usage = await getAccountUsageSnapshot();
+  const hasActivity = usage.recentTrails.length > 0;
 
   return (
     <section className="space-y-8">
@@ -49,8 +52,26 @@ export default function ActivityPage() {
           />
 
           {hasActivity ? (
-            <div className="mt-4 text-xs text-ink-muted">
-              activity list goes here
+            <div className="mt-4 divide-y divide-border/40">
+              {usage.recentTrails.map((trail) => (
+                <div
+                  key={trail.id}
+                  className="flex flex-wrap items-start justify-between gap-3 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-ink">
+                      {trail.label}
+                    </p>
+                    <p className="text-xs text-ink-muted">
+                      {trail.rootTitle ?? "Untitled root"} • {trail.nodeCount}{" "}
+                      nodes
+                    </p>
+                  </div>
+                  <span className="trail-status">
+                    {formatDateTime(trail.savedAt)}
+                  </span>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="mt-5">

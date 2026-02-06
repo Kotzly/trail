@@ -11,7 +11,12 @@ import { PageHeader } from "@trail/ui";
 import { getAuthSession } from "@/src/lib/auth";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
-import { ExtensionConnectionGuideClient } from "./ExtensionConnectionGuideClient";
+import { getAccountUsageSnapshot } from "@/src/server/account-usage";
+import {
+  formatDeviceLastSeen,
+  formatDeviceLocation,
+  formatDeviceName,
+} from "@/src/server/device-presentation";
 
 export const runtime = "nodejs";
 
@@ -19,14 +24,6 @@ type ExtensionPageProps = {
   searchParams: Promise<{
     code?: string;
   }>;
-};
-
-type ExtensionSession = {
-  id: string;
-  device: string;
-  location: string;
-  lastSeen: string;
-  status: string;
 };
 
 export default async function ExtensionPage({
@@ -64,7 +61,11 @@ export default async function ExtensionPage({
     }
   }
 
-  const sessions: ExtensionSession[] = [];
+  const usage = await getAccountUsageSnapshot();
+  const sessions = usage.devices;
+  const activeSessions = sessions.filter((item) => item.status === "ACTIVE");
+  const primaryDevice = activeSessions[0] ?? sessions[0] ?? null;
+  const isConnected = connectionReady || sessions.length > 0;
 
   return (
     <section className="space-y-8">
@@ -82,7 +83,7 @@ export default async function ExtensionPage({
             subtitle={accountCopy.extension.status.subtitle}
           />
           <div className="mt-4">
-            {connectionReady ? (
+            {isConnected ? (
               <div className="grid gap-3 md:grid-cols-2">
                 <StatCard
                   label={accountCopy.extension.connected.stats.status}
@@ -130,17 +131,23 @@ export default async function ExtensionPage({
             <StatCard
               label={accountCopy.extension.device.primaryDevice}
               value={
-                connectionReady ? accountCopy.extension.device.connected : "—"
+                primaryDevice
+                  ? formatDeviceName(primaryDevice)
+                  : "—"
               }
-              caption={accountCopy.extension.device.primaryDeviceCaption}
+              caption={
+                primaryDevice
+                  ? formatDeviceLocation(primaryDevice)
+                  : accountCopy.extension.device.primaryDeviceCaption
+              }
               icon={<DesktopIcon className="h-4 w-4" />}
             />
             <StatCard
               label={accountCopy.extension.device.lastSeen}
               value={
-                connectionReady
-                  ? accountCopy.extension.device.lastSeenValue
-                  : "—"
+                primaryDevice
+                  ? formatDeviceLastSeen(primaryDevice)
+                  : accountCopy.extension.device.lastSeenValue
               }
               caption={accountCopy.extension.device.lastSeenCaption}
               icon={<LaptopIcon className="h-4 w-4" />}
@@ -154,11 +161,7 @@ export default async function ExtensionPage({
           eyebrow={accountCopy.extension.sessions.eyebrow}
           title={accountCopy.extension.sessions.title}
           subtitle={accountCopy.extension.sessions.subtitle}
-          actions={
-            <span className="trail-status">
-              {accountCopy.extension.sessions.comingSoon}
-            </span>
-          }
+          actions={<span className="trail-status">{sessions.length}</span>}
         />
         {sessions.length ? (
           <div className="mt-4 divide-y divide-border/40">
@@ -169,11 +172,18 @@ export default async function ExtensionPage({
               >
                 <div>
                   <p className="text-sm font-semibold text-ink">
-                    {item.device}
+                    {formatDeviceName(item)}
                   </p>
-                  <p className="text-xs text-ink-muted">{item.location}</p>
+                  <p className="text-xs text-ink-muted">
+                    {formatDeviceLocation(item)}
+                  </p>
                 </div>
-                <span className="trail-status">{item.lastSeen}</span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="trail-status">{item.status.toLowerCase()}</span>
+                  <span className="text-xs text-ink-muted">
+                    {formatDeviceLastSeen(item)}
+                  </span>
+                </div>
               </div>
             ))}
           </div>

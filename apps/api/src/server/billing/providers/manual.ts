@@ -2,10 +2,10 @@ import { env } from "@/src/env";
 import type {
   BillingProvider,
   BillingPortalLink,
-  BillingStatus,
   CheckoutSessionInput,
   BillingUserContext,
 } from "@/src/server/billing/provider";
+import { getBillingStatusFromSubscription } from "@/src/server/billing/subscription-status";
 
 function billingUrl(): string {
   return `${env.APP_BASE_URL.replace(/\/$/, "")}/billing`;
@@ -15,14 +15,10 @@ function link(): BillingPortalLink {
   return { url: billingUrl(), expiresAt: null };
 }
 
-function status(): BillingStatus {
-  return { state: "none" };
-}
-
-export function createStubBillingProvider(): BillingProvider {
+export function createManualBillingProvider(): BillingProvider {
   return {
-    async getBillingStatus(_input: BillingUserContext): Promise<BillingStatus> {
-      return status();
+    async getBillingStatus(input: BillingUserContext) {
+      return getBillingStatusFromSubscription(input.userId);
     },
     async createCheckoutSession(
       _input: CheckoutSessionInput,

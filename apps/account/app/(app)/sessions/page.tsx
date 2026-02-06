@@ -3,38 +3,12 @@ import { ArrowRightIcon } from "@trail/ui/icons";
 import { Button, Card, EmptyState, SectionHeader } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@trail/ui";
-import { getAccountUsageSnapshot, type AccountDeviceSummary } from "@/src/server/account-usage";
-
-function formatDeviceName(device: AccountDeviceSummary): string {
-  if (device.deviceName) {
-    return device.deviceName;
-  }
-
-  const fallback = [device.browserName, device.os].filter(Boolean).join(" • ");
-  return fallback || "Unknown device";
-}
-
-function formatLocation(device: AccountDeviceSummary): string {
-  if (device.os && device.browserName) {
-    return `${device.browserName} on ${device.os}`;
-  }
-  if (device.browserName) {
-    return device.browserName;
-  }
-  if (device.os) {
-    return device.os;
-  }
-  return "Location unavailable";
-}
-
-function formatLastSeen(device: AccountDeviceSummary): string {
-  const value = device.session?.lastSeenAt ?? device.lastSeenAt ?? device.updatedAt;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleString();
-}
+import { getAccountUsageSnapshot } from "@/src/server/account-usage";
+import {
+  formatDeviceLastSeen,
+  formatDeviceLocation,
+  formatDeviceName,
+} from "@/src/server/device-presentation";
 
 export default async function SessionsPage() {
   const { sessions } = accountCopy;
@@ -77,11 +51,15 @@ export default async function SessionsPage() {
                     <p className="text-sm font-semibold text-ink">
                       {formatDeviceName(device)}
                     </p>
-                    <p className="text-xs text-ink-muted">{formatLocation(device)}</p>
+                    <p className="text-xs text-ink-muted">
+                      {formatDeviceLocation(device)}
+                    </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className="trail-status">{device.status.toLowerCase()}</span>
-                    <span className="text-xs text-ink-muted">{formatLastSeen(device)}</span>
+                    <span className="text-xs text-ink-muted">
+                      {formatDeviceLastSeen(device)}
+                    </span>
                   </div>
                 </div>
               ))}

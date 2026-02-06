@@ -243,7 +243,7 @@ export const accountCopy = {
       title: "security",
       subtitle: "review active sessions and update your password.",
       changePasswordCta: "change password",
-      signOutEverywhereCta: "coming soon",
+      signOutEverywhereCta: "sign out everywhere",
       currentSession: "current session",
       currentLocation: "this device",
       currentActivity: "active now"
@@ -251,13 +251,13 @@ export const accountCopy = {
     workspace: {
       eyebrow: "workspace",
       title: "workspace",
-      subtitle: "solo today, team workspaces soon.",
+      subtitle: "manage personal and shared workspaces.",
       soloTitle: "solo workspace",
       soloDescription: "single member, private trails",
       soloBadge: "active",
       teamTitle: "team workspace",
       teamDescription: "shared trails, roles, and analytics",
-      comingSoon: "coming soon"
+      comingSoon: "teams plan"
     },
     notifications: {
       eyebrow: "notifications",
@@ -294,7 +294,7 @@ export const accountCopy = {
     planHighlight: "most popular",
     planFree: "free",
     planPerMonth: "per month",
-    planCta: "coming soon"
+    planCta: "choose plan"
   },
   extension: {
     title: "extension",
@@ -341,8 +341,8 @@ export const accountCopy = {
       eyebrow: "sessions",
       title: "session manager",
       subtitle: "revoke access by device once sessions are available.",
-      comingSoon: "coming soon",
-      empty: "sessions are coming soon. connect the extension to populate this list."
+      comingSoon: "no sessions yet",
+      empty: "no extension sessions yet. connect the extension to populate this list."
     }
   },
   footer: {

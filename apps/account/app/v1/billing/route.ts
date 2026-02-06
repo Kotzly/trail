@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
+import { internalApiFetch } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
 
@@ -20,5 +21,29 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.json({ state: "none" });
+  let upstream: Response;
+  try {
+    upstream = await internalApiFetch("/v1/billing", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      { code: "network", message: "Upstream unavailable", retryable: true },
+      { status: 503 },
+    );
+  }
+
+  const text = await upstream.text();
+  const contentType = upstream.headers.get("content-type") ?? "application/json";
+
+  return new NextResponse(text, {
+    status: upstream.status,
+    headers: {
+      "content-type": contentType,
+      "cache-control": "no-store",
+    },
+  });
 }

@@ -4,6 +4,12 @@ import { accountCopy } from "@trail/content";
 import { Button, Card, PageHeader, SectionHeader } from "@trail/ui";
 import { getAuthSession } from "@/src/lib/auth";
 import { env } from "@/src/env";
+import { getAccountUsageSnapshot } from "@/src/server/account-usage";
+import {
+  formatDeviceLastSeen,
+  formatDeviceLocation,
+  formatDeviceName,
+} from "@/src/server/device-presentation";
 
 const avatarLoader = ({ src }: ImageLoaderProps) => src;
 
@@ -29,14 +35,23 @@ export default async function SettingsPage() {
     "/account",
     env.TRAIL_AUTH_BASE_URL,
   ).toString();
-  const sessions = [
-    {
-      id: "current",
-      device: settings.security.currentSession,
-      location: settings.security.currentLocation,
-      lastSeen: settings.security.currentActivity,
-    },
-  ];
+  const usage = await getAccountUsageSnapshot();
+  const sessions =
+    usage.devices.length > 0
+      ? usage.devices.map((device) => ({
+          id: device.id,
+          device: formatDeviceName(device),
+          location: formatDeviceLocation(device),
+          lastSeen: formatDeviceLastSeen(device),
+        }))
+      : [
+          {
+            id: "current",
+            device: settings.security.currentSession,
+            location: settings.security.currentLocation,
+            lastSeen: settings.security.currentActivity,
+          },
+        ];
 
   return (
     <section className="space-y-8">
@@ -128,13 +143,6 @@ export default async function SettingsPage() {
                 {settings.security.changePasswordCta}
               </a>
             </Button.AsChild>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled
-            >
-              {settings.security.signOutEverywhereCta}
-            </Button>
           </div>
         </Card>
       </div>

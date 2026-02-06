@@ -70,7 +70,7 @@ vi.mock("@/src/env", () => ({
     BETTER_AUTH_URL: "http://localhost:3003",
     TRAIL_INTERNAL_API_KEY: "test-internal-key",
     TRAIL_EXTENSION_JWT_SECRET: "test-extension-secret",
-    BILLING_PROVIDER: "stub",
+    BILLING_PROVIDER: "manual",
     NOWPAYMENTS_API_KEY: null,
     NOWPAYMENTS_IPN_SECRET: null,
     NOWPAYMENTS_API_BASE_URL: null,
@@ -196,7 +196,7 @@ describe("v1 billing endpoints", () => {
     });
   });
 
-  it("returns checkout link stub", async () => {
+  it("returns checkout link", async () => {
     authMocks.verifyExtensionToken.mockReturnValue({
       sub: "user-1",
       iat: 0,
@@ -231,7 +231,7 @@ describe("v1 billing endpoints", () => {
     });
   });
 
-  it("returns billing portal stub", async () => {
+  it("returns billing portal link", async () => {
     authMocks.verifyExtensionToken.mockReturnValue({
       sub: "user-1",
       iat: 0,

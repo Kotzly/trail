@@ -6,7 +6,7 @@ type RequiredEnvKey =
   | "TRAIL_INTERNAL_API_KEY"
   | "TRAIL_EXTENSION_JWT_SECRET";
 
-export type BillingProviderName = "stub" | "nowpayments";
+export type BillingProviderName = "manual" | "nowpayments";
 
 const requiredEnvVars: RequiredEnvKey[] = [
   "APP_BASE_URL",
@@ -34,13 +34,17 @@ function requireEnv(keys: RequiredEnvKey[]): Record<RequiredEnvKey, string> {
 
 function normalizeBillingProvider(value: unknown): BillingProviderName {
   if (typeof value !== "string") {
-    return "stub";
+    return "manual";
   }
   const normalized = value.trim().toLowerCase();
-  if (normalized === "stub" || normalized === "nowpayments") {
+  if (normalized === "manual" || normalized === "nowpayments") {
     return normalized;
   }
-  return "stub";
+  // Backward-compatible alias for previous provider key.
+  if (normalized === "stub") {
+    return "manual";
+  }
+  return "manual";
 }
 
 function readOptionalEnv(value: unknown): string | null {
