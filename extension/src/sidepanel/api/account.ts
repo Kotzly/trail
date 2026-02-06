@@ -11,7 +11,7 @@ import type {
   Subscription,
   User,
 } from '../../shared/types/account.js';
-import { BACKEND_CONFIG } from '../../shared/config/backend.js';
+import { BACKEND_CONFIG, initBackendConfig } from '../../shared/config/backend.js';
 import { createMockAccountClient } from './account/mock.js';
 import { createRemoteAccountClient } from './account/remote.js';
 
@@ -28,57 +28,71 @@ export type AccountClient = {
   createBillingPortalLink: () => Promise<PortalLink>;
 };
 
-const defaultClient =
-  BACKEND_CONFIG.env === 'local' ? createMockAccountClient() : createRemoteAccountClient();
+function createDefaultClient(): AccountClient {
+  return BACKEND_CONFIG.mode === 'mock' ? createMockAccountClient() : createRemoteAccountClient();
+}
 
-let accountClient: AccountClient = defaultClient;
+let accountClient: AccountClient = createDefaultClient();
+let hasCustomClient = false;
+let lastDefaultMode = BACKEND_CONFIG.mode;
 
 export function setAccountClient(client: AccountClient): void {
   accountClient = client;
+  hasCustomClient = true;
 }
 
 export function getAccountClient(): AccountClient {
   return accountClient;
 }
 
+async function getActiveAccountClient(): Promise<AccountClient> {
+  if (hasCustomClient) return accountClient;
+  await initBackendConfig();
+  if (lastDefaultMode !== BACKEND_CONFIG.mode) {
+    accountClient = createDefaultClient();
+    lastDefaultMode = BACKEND_CONFIG.mode;
+  }
+  return accountClient;
+}
+
 export async function getAccountSnapshot(): Promise<AccountSnapshot> {
-  return accountClient.getSnapshot();
+  return (await getActiveAccountClient()).getSnapshot();
 }
 
 export async function startAuthPortal(input?: AuthPortalRequest): Promise<AuthPortalSession> {
-  return accountClient.startAuthPortal(input);
+  return (await getActiveAccountClient()).startAuthPortal(input);
 }
 
 export async function checkAuthPortal(sessionId: string): Promise<AuthPortalStatus> {
-  return accountClient.checkAuthPortal(sessionId);
+  return (await getActiveAccountClient()).checkAuthPortal(sessionId);
 }
 
 export async function logout(): Promise<void> {
-  return accountClient.logout();
+  return (await getActiveAccountClient()).logout();
 }
 
 export async function getProfile(): Promise<User | null> {
-  return accountClient.getProfile();
+  return (await getActiveAccountClient()).getProfile();
 }
 
 export async function getSubscription(): Promise<Subscription | null> {
-  return accountClient.getSubscription();
+  return (await getActiveAccountClient()).getSubscription();
 }
 
 export async function listPlans(): Promise<Plan[]> {
-  return accountClient.listPlans();
+  return (await getActiveAccountClient()).listPlans();
 }
 
 export async function getBillingStatus(): Promise<BillingStatus | null> {
-  return accountClient.getBillingStatus();
+  return (await getActiveAccountClient()).getBillingStatus();
 }
 
 export async function startCheckout(input: CheckoutInput): Promise<PortalLink> {
-  return accountClient.startCheckout(input);
+  return (await getActiveAccountClient()).startCheckout(input);
 }
 
 export async function createBillingPortalLink(): Promise<PortalLink> {
-  return accountClient.createBillingPortalLink();
+  return (await getActiveAccountClient()).createBillingPortalLink();
 }
 
 export function normalizeAccountError(error: unknown): AccountError {

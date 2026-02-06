@@ -13,7 +13,11 @@ import type {
   Subscription,
   User,
 } from '../../../shared/types/account.js';
-import { BACKEND_CONFIG, buildBackendUrl } from '../../../shared/config/backend.js';
+import {
+  BACKEND_CONFIG,
+  buildBackendUrl,
+  initBackendConfig,
+} from '../../../shared/config/backend.js';
 import type { AccountClient } from '../account.js';
 
 type StoredAuthSession = {
@@ -136,6 +140,7 @@ async function requestJson<T>(
   init: RequestInit = {},
   options: { auth?: boolean } = {},
 ): Promise<T> {
+  await initBackendConfig();
   const controller = new AbortController();
   const timeout = globalThis.setTimeout(() => controller.abort(), BACKEND_CONFIG.timeoutMs);
   const headers = new Headers(init.headers ?? {});

@@ -9,7 +9,7 @@ import type {
   TreeLayoutSettings,
 } from '../../../shared/types/settings.js';
 import type { Url } from '../../../shared/types/ids.js';
-import { BACKEND_CONFIG } from '../../../shared/config/backend.js';
+import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
 import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
 import { getAccountSnapshot, logout, normalizeAccountError } from '../../api/account.js';
 import { saveSettings } from '../../api/settings.js';
@@ -546,7 +546,8 @@ export default function SettingsPopover() {
     if (portalBusy) return;
     setPortalBusy(true);
     try {
-      await openExternalLink(BACKEND_CONFIG.portalUrl as Url);
+      await initBackendConfig();
+      await openExternalLink(getBackendConfig().portalUrl as Url);
     } finally {
       setPortalBusy(false);
     }

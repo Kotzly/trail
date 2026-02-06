@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Url } from '../../../shared/types/ids.js';
 import type { AccountError } from '../../../shared/types/account.js';
+import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
 import {
-  BACKEND_CONFIG,
   checkAuthPortal,
   getAccountSnapshot,
   normalizeAccountError,
@@ -67,10 +67,12 @@ export function useAuthPortalFlow(): AuthFlowState {
       flowRef.current += 1;
       const flowId = flowRef.current;
       try {
+        await initBackendConfig();
+        const backendConfig = getBackendConfig();
         const portalSession = await startAuthPortal({
           source: options?.source ?? 'extension',
           locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
-          returnUrl: options?.returnUrl ?? (BACKEND_CONFIG.portalUrl as Url),
+          returnUrl: options?.returnUrl ?? (backendConfig.portalUrl as Url),
         });
         await openExternalLink(portalSession.url);
         setNotice('Complete sign-in in the opened tab. Waiting for confirmation…');

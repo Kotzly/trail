@@ -5,9 +5,11 @@ import { initTabsLifecycle } from './tabs/lifecycle.js';
 import { syncOpenTabs } from './tabs/sync-open-tabs.js';
 import { CommandManager } from '../shared/lib/commands.js';
 import { cloudSync } from './services/cloud-sync.js';
+import { initBackendConfig } from '../shared/config/backend.js';
 
 
 // Initialize all modules
+void initBackendConfig();
 initMessaging();
 initWebNavigation();
 initTabsLifecycle();

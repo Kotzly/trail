@@ -1,4 +1,4 @@
-import { buildBackendUrl, BACKEND_CONFIG } from '../../shared/config/backend.js';
+import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from '../../shared/config/backend.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary } from '../../shared/types/tree.js';
 import type { FaviconUrl, Title, Url } from '../../shared/types/ids.js';
@@ -358,6 +358,7 @@ class CloudSyncService {
   }
 
   private async performSync(): Promise<void> {
+    await initBackendConfig();
     const token = await this.getAccessToken();
     if (!token) return;
 

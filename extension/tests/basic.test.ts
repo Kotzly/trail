@@ -15,6 +15,7 @@ import {
 } from '../src/sidepanel/ui/graph/layout/calculator.js';
 import { computeGraphGridTransform } from '../src/sidepanel/ui/components/graph/grid-transform.js';
 import { getSidebarLabelState, getSidebarWidth } from '../src/sidepanel/ui/components/ui/sidebar-utils.js';
+import { DEFAULT_BACKEND_CONFIG, resolveBackendConfig } from '../src/shared/config/backend.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -208,6 +209,19 @@ function testSidebarWidth(): void {
   assert.equal(getSidebarWidth(false, false), '180px');
 }
 
+function testBackendConfigOverride(): void {
+  const resolved = resolveBackendConfig({
+    baseUrl: 'http://localhost:3001',
+    portalUrl: 'http://localhost:3001/extension',
+    mode: 'remote',
+  });
+
+  assert.equal(DEFAULT_BACKEND_CONFIG.baseUrl, 'https://app.gettrail.net');
+  assert.equal(resolved.baseUrl, 'http://localhost:3001');
+  assert.equal(resolved.portalUrl, 'http://localhost:3001/extension');
+  assert.equal(resolved.mode, 'remote');
+}
+
 try {
   testNavigationTreeDeletion();
   testNavigationTreeSubtree();
@@ -217,6 +231,7 @@ try {
   testGraphGridTransform();
   testSidebarLabelState();
   testSidebarWidth();
+  testBackendConfigOverride();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);
