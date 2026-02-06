@@ -62,6 +62,7 @@ describe("v1 account snapshot", () => {
       subscription: null,
       billing: { state: "none" },
       plans: [],
+      config: {},
     });
 
     const response = await getAccount(

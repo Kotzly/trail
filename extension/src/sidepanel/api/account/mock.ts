@@ -118,6 +118,9 @@ function snapshot(): AccountSnapshot {
     subscription: state.subscription,
     billing: state.billing,
     plans: [...plans],
+    config: {
+      payments: true,
+    },
   };
 }
 

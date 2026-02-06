@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildAccountSnapshot } from "@/src/server/account-snapshot";
 import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
+import { getExtensionConfig } from "@/src/server/extension-config";
 import { internalApiJson } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
@@ -14,9 +15,10 @@ function getBearerToken(headers: Headers): string | null {
 }
 
 export async function GET(request: Request) {
+  const config = await getExtensionConfig();
   const token = getBearerToken(request.headers);
   if (!token) {
-    return NextResponse.json(buildAccountSnapshot({ user: null }));
+    return NextResponse.json(buildAccountSnapshot({ user: null, config }));
   }
 
   const payload = verifyExtensionAccessToken(token);
@@ -41,7 +43,7 @@ export async function GET(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.json(buildAccountSnapshot({ user: null }));
+      return NextResponse.json(buildAccountSnapshot({ user: null, config }));
     }
 
     return NextResponse.json(
@@ -52,6 +54,7 @@ export async function GET(request: Request) {
         },
         accessToken: token,
         expiresAt: new Date(payload.exp * 1000).toISOString(),
+        config,
       }),
     );
   } catch (error) {

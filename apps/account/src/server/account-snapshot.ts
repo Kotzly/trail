@@ -1,3 +1,5 @@
+import type { AccountConfig } from "@/src/server/extension-config";
+
 const DEFAULT_PLANS = [
   {
     id: "free",
@@ -60,6 +62,7 @@ type AccountSnapshot = {
   subscription: null;
   billing: { state: "none" };
   plans: typeof DEFAULT_PLANS;
+  config: AccountConfig;
 };
 
 type DbUser = {
@@ -85,10 +88,12 @@ export function buildAccountSnapshot({
   user,
   accessToken,
   expiresAt,
+  config = {},
 }: {
   user: DbUser | null;
   accessToken?: string | null;
   expiresAt?: string | null;
+  config?: AccountConfig;
 }): AccountSnapshot {
   if (!user || !accessToken) {
     return {
@@ -97,6 +102,7 @@ export function buildAccountSnapshot({
       subscription: null,
       billing: { state: "none" },
       plans: DEFAULT_PLANS,
+      config,
     };
   }
 
@@ -110,6 +116,7 @@ export function buildAccountSnapshot({
     subscription: null,
     billing: { state: "none" },
     plans: DEFAULT_PLANS,
+    config,
   };
 }
 

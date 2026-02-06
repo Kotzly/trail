@@ -1,3 +1,6 @@
+import type { ExtensionConfigMap } from "@/src/server/extension-config";
+import { getExtensionConfig } from "@/src/server/extension-config";
+
 const DEFAULT_PLANS = [
   {
     id: "free",
@@ -60,6 +63,7 @@ type AccountSnapshot = {
   subscription: null;
   billing: { state: "none" };
   plans: typeof DEFAULT_PLANS;
+  config: ExtensionConfigMap;
 };
 
 type DbUser = {
@@ -90,6 +94,7 @@ export function buildAccountSnapshot({
   accessToken?: string | null;
   expiresAt?: string | null;
 }): AccountSnapshot {
+  const { config } = getExtensionConfig();
   if (!user || !accessToken) {
     return {
       session: { status: "guest" },
@@ -97,6 +102,7 @@ export function buildAccountSnapshot({
       subscription: null,
       billing: { state: "none" },
       plans: DEFAULT_PLANS,
+      config,
     };
   }
 
@@ -110,6 +116,7 @@ export function buildAccountSnapshot({
     subscription: null,
     billing: { state: "none" },
     plans: DEFAULT_PLANS,
+    config,
   };
 }
 

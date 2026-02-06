@@ -12,6 +12,7 @@ import type { TreeMeta, TreeSummary } from '../../../shared/types/tree.js';
 import { getCollapsedAncestorIds } from '../graph/collapse-utils.js';
 import type {
   AccountError,
+  AccountConfig,
   AccountSnapshot,
   AuthSession,
   BillingStatus,
@@ -64,6 +65,7 @@ export type AccountState = {
   status: AccountStatus;
   network: NetworkStatus;
   session: AuthSession;
+  config: AccountConfig;
   user: User | null;
   subscription: Subscription | null;
   billing: BillingStatus | null;
@@ -215,6 +217,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     status: 'idle',
     network: 'online',
     session: { status: 'guest' },
+    config: {},
     user: null,
     subscription: null,
     billing: { state: 'none' },
@@ -570,6 +573,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       account: {
         ...state.account,
         ...snapshot,
+        config: snapshot.config ?? state.account.config,
         status: 'ready',
         network: 'online',
         error: null,
@@ -582,6 +586,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         status: 'idle',
         network: 'online',
         session: { status: 'guest' },
+        config: {},
         user: null,
         subscription: null,
         billing: { state: 'none' },

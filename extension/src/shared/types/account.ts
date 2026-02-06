@@ -83,12 +83,16 @@ export type AuthSession = {
   expiresAt?: string | null;
 };
 
+export type AccountConfigValue = boolean | number | string | null;
+export type AccountConfig = Record<string, AccountConfigValue>;
+
 export type AccountSnapshot = {
   session: AuthSession;
   user: User | null;
   subscription: Subscription | null;
   billing: BillingStatus | null;
   plans: Plan[];
+  config: AccountConfig;
 };
 
 export type AuthPortalRequest = {

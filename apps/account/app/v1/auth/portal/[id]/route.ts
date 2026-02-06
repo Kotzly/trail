@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildAccountSnapshot } from "@/src/server/account-snapshot";
 import { createExtensionAccessToken } from "@/src/server/extension-auth";
+import { getExtensionConfig } from "@/src/server/extension-config";
 import { internalApiJson } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
@@ -43,6 +44,7 @@ export async function GET(
   }
 
   const token = createExtensionAccessToken(response.user.id);
+  const config = await getExtensionConfig();
 
   return NextResponse.json({
     status: "approved",
@@ -53,6 +55,7 @@ export async function GET(
       },
       accessToken: token.token,
       expiresAt: token.expiresAt,
+      config,
     }),
   });
 }
