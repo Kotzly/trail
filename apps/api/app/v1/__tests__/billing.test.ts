@@ -17,6 +17,37 @@ const accessMocks = vi.hoisted(() => ({
   getSubscriptionSnapshotForUser: vi.fn(),
 }));
 
+const billingProviderMocks = vi.hoisted(() => {
+  const provider = {
+    getBillingStatus: vi.fn(),
+    createCheckoutSession: vi.fn(),
+    createBillingPortalSession: vi.fn(),
+  };
+  class BillingProviderError extends Error {
+    code: string;
+    status: number;
+    retryable?: boolean;
+    details?: string;
+
+    constructor(
+      code: string,
+      message: string,
+      options: { status?: number; retryable?: boolean; details?: string } = {},
+    ) {
+      super(message);
+      this.code = code;
+      this.status = options.status ?? 500;
+      this.retryable = options.retryable;
+      this.details = options.details;
+    }
+  }
+  return {
+    getBillingProvider: vi.fn(() => provider),
+    provider,
+    BillingProviderError,
+  };
+});
+
 vi.mock("@/src/server/auth/extension-auth", () => ({
   ...authMocks,
 }));
@@ -33,6 +64,23 @@ vi.mock("@/src/server/subscription-access", () => ({
   ...accessMocks,
 }));
 
+vi.mock("@/src/env", () => ({
+  env: {
+    APP_BASE_URL: "http://localhost:3001",
+    BETTER_AUTH_URL: "http://localhost:3003",
+    TRAIL_INTERNAL_API_KEY: "test-internal-key",
+    TRAIL_EXTENSION_JWT_SECRET: "test-extension-secret",
+    BILLING_PROVIDER: "stub",
+    NOWPAYMENTS_API_KEY: null,
+    NOWPAYMENTS_IPN_SECRET: null,
+    NOWPAYMENTS_API_BASE_URL: null,
+  },
+}));
+
+vi.mock("@/src/server/billing/provider", () => ({
+  ...billingProviderMocks,
+}));
+
 import { GET as getPlans } from "../plans/route";
 import { GET as getSubscription } from "../subscription/route";
 import { GET as getBilling } from "../billing/route";
@@ -46,6 +94,10 @@ describe("v1 billing endpoints", () => {
     snapshotMocks.listPlans.mockReset();
     snapshotMocks.buildAccountSnapshot.mockReset();
     accessMocks.getSubscriptionSnapshotForUser.mockReset();
+    billingProviderMocks.getBillingProvider.mockClear();
+    billingProviderMocks.provider.getBillingStatus.mockReset();
+    billingProviderMocks.provider.createCheckoutSession.mockReset();
+    billingProviderMocks.provider.createBillingPortalSession.mockReset();
     accessMocks.getSubscriptionSnapshotForUser.mockResolvedValue({
       id: "sub_free",
       planId: "free",
@@ -56,6 +108,17 @@ describe("v1 billing endpoints", () => {
       cancelAtPeriodEnd: false,
       trialEndsAt: null,
       canceledAt: null,
+    });
+    billingProviderMocks.provider.getBillingStatus.mockResolvedValue({
+      state: "none",
+    });
+    billingProviderMocks.provider.createCheckoutSession.mockResolvedValue({
+      url: "https://billing.example.test/checkout",
+      expiresAt: null,
+    });
+    billingProviderMocks.provider.createBillingPortalSession.mockResolvedValue({
+      url: "https://billing.example.test/portal",
+      expiresAt: null,
     });
   });
 
@@ -127,6 +190,10 @@ describe("v1 billing endpoints", () => {
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.state).toBe("none");
+    expect(billingProviderMocks.provider.getBillingStatus).toHaveBeenCalledWith({
+      userId: "user-1",
+      userEmail: "user@test.com",
+    });
   });
 
   it("returns checkout link stub", async () => {
@@ -153,8 +220,15 @@ describe("v1 billing endpoints", () => {
 
     expect(response.status).toBe(200);
     const payload = await response.json();
-    const baseUrl = process.env.APP_BASE_URL?.replace(/\/$/, "");
-    expect(payload.url).toBe(`${baseUrl}/billing`);
+    expect(payload.url).toBe("https://billing.example.test/checkout");
+    expect(billingProviderMocks.provider.createCheckoutSession).toHaveBeenCalledWith({
+      userId: "user-1",
+      userEmail: "user@test.com",
+      planId: "pro",
+      interval: "month",
+      successUrl: undefined,
+      cancelUrl: undefined,
+    });
   });
 
   it("returns billing portal stub", async () => {
@@ -180,7 +254,12 @@ describe("v1 billing endpoints", () => {
 
     expect(response.status).toBe(200);
     const payload = await response.json();
-    const baseUrl = process.env.APP_BASE_URL?.replace(/\/$/, "");
-    expect(payload.url).toBe(`${baseUrl}/billing`);
+    expect(payload.url).toBe("https://billing.example.test/portal");
+    expect(
+      billingProviderMocks.provider.createBillingPortalSession,
+    ).toHaveBeenCalledWith({
+      userId: "user-1",
+      userEmail: "user@test.com",
+    });
   });
 });

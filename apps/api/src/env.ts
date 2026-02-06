@@ -4,15 +4,15 @@ type RequiredEnvKey =
   | "APP_BASE_URL"
   | "BETTER_AUTH_URL"
   | "TRAIL_INTERNAL_API_KEY"
-  | "TRAIL_EXTENSION_JWT_SECRET"
-  | "POLAR_WEBHOOK_SECRET";
+  | "TRAIL_EXTENSION_JWT_SECRET";
+
+export type BillingProviderName = "stub" | "nowpayments";
 
 const requiredEnvVars: RequiredEnvKey[] = [
   "APP_BASE_URL",
   "BETTER_AUTH_URL",
   "TRAIL_INTERNAL_API_KEY",
   "TRAIL_EXTENSION_JWT_SECRET",
-  "POLAR_WEBHOOK_SECRET",
 ];
 
 function requireEnv(keys: RequiredEnvKey[]): Record<RequiredEnvKey, string> {
@@ -32,4 +32,29 @@ function requireEnv(keys: RequiredEnvKey[]): Record<RequiredEnvKey, string> {
   return values;
 }
 
-export const env = requireEnv(requiredEnvVars);
+function normalizeBillingProvider(value: unknown): BillingProviderName {
+  if (typeof value !== "string") {
+    return "stub";
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "stub" || normalized === "nowpayments") {
+    return normalized;
+  }
+  return "stub";
+}
+
+function readOptionalEnv(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+export const env = {
+  ...requireEnv(requiredEnvVars),
+  BILLING_PROVIDER: normalizeBillingProvider(process.env.BILLING_PROVIDER),
+  NOWPAYMENTS_API_KEY: readOptionalEnv(process.env.NOWPAYMENTS_API_KEY),
+  NOWPAYMENTS_IPN_SECRET: readOptionalEnv(process.env.NOWPAYMENTS_IPN_SECRET),
+  NOWPAYMENTS_API_BASE_URL: readOptionalEnv(process.env.NOWPAYMENTS_API_BASE_URL),
+};

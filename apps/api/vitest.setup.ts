@@ -5,5 +5,4 @@ process.env.TRAIL_INTERNAL_API_KEY =
   process.env.TRAIL_INTERNAL_API_KEY ?? "test-internal-key";
 process.env.TRAIL_EXTENSION_JWT_SECRET =
   process.env.TRAIL_EXTENSION_JWT_SECRET ?? "test-extension-secret";
-process.env.POLAR_WEBHOOK_SECRET =
-  process.env.POLAR_WEBHOOK_SECRET ?? "test-polar-secret";
+process.env.BILLING_PROVIDER = process.env.BILLING_PROVIDER ?? "stub";
