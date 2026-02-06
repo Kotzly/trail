@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dbMocks = vi.hoisted(() => ({
+  device: {
+    findMany: vi.fn(),
+    createMany: vi.fn(),
+    update: vi.fn(),
+  },
   trail: {
     deleteMany: vi.fn(),
     findMany: vi.fn(),
@@ -18,6 +23,9 @@ import { syncTrails } from "../trails-sync";
 
 describe("syncTrails", () => {
   beforeEach(() => {
+    dbMocks.device.findMany.mockReset();
+    dbMocks.device.createMany.mockReset();
+    dbMocks.device.update.mockReset();
     dbMocks.trail.deleteMany.mockReset();
     dbMocks.trail.findMany.mockReset();
     dbMocks.trail.update.mockReset();
@@ -44,6 +52,15 @@ describe("syncTrails", () => {
       deletedAt: null,
     };
 
+    dbMocks.device.findMany.mockResolvedValue([
+      { id: "device-1", userId: "user-1", status: "ACTIVE" },
+    ]);
+    dbMocks.device.createMany.mockResolvedValue({ count: 0 });
+    dbMocks.device.update.mockResolvedValue({
+      id: "device-1",
+      userId: "user-1",
+      status: "ACTIVE",
+    });
     dbMocks.trail.deleteMany.mockResolvedValue({ count: 0 });
     dbMocks.trail.findMany
       .mockResolvedValueOnce([existingTrail])
@@ -99,6 +116,15 @@ describe("syncTrails", () => {
   });
 
   it("creates new trails with client-provided id", async () => {
+    dbMocks.device.findMany.mockResolvedValue([
+      { id: "device-1", userId: "user-1", status: "ACTIVE" },
+    ]);
+    dbMocks.device.createMany.mockResolvedValue({ count: 0 });
+    dbMocks.device.update.mockResolvedValue({
+      id: "device-1",
+      userId: "user-1",
+      status: "ACTIVE",
+    });
     dbMocks.trail.deleteMany.mockResolvedValue({ count: 0 });
     dbMocks.trail.findMany
       .mockResolvedValueOnce([])
@@ -150,6 +176,78 @@ describe("syncTrails", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           id: "trail-client-id",
+        }),
+      }),
+    );
+  });
+
+  it("creates missing device before trail writes", async () => {
+    dbMocks.device.findMany.mockResolvedValue([]);
+    dbMocks.device.createMany.mockResolvedValue({ count: 1 });
+    dbMocks.device.update.mockResolvedValue({
+      id: "device-new",
+      userId: "user-1",
+      status: "ACTIVE",
+    });
+    dbMocks.trail.deleteMany.mockResolvedValue({ count: 0 });
+    dbMocks.trail.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    dbMocks.trail.create.mockResolvedValue({
+      id: "trail-new",
+      userId: "user-1",
+      deviceId: "device-new",
+      label: "New",
+      labelSource: "USER",
+      labelUpdatedAt: new Date("2026-02-01T00:00:00Z"),
+      createdAt: new Date("2026-02-01T00:00:00Z"),
+      updatedAt: new Date("2026-02-01T00:00:00Z"),
+      savedAt: new Date("2026-02-01T00:00:00Z"),
+      nodeCount: 1,
+      rootUrl: null,
+      rootTitle: null,
+      rootFavicon: null,
+      payload: { v: 1 },
+      deletedAt: null,
+    });
+    dbMocks.$transaction.mockImplementation(async (ops) => Promise.all(ops));
+
+    await syncTrails({
+      userId: "user-1",
+      deviceId: "device-new",
+      clientSyncAt: new Date("2026-02-01T00:00:00Z"),
+      trails: [
+        {
+          id: "trail-new",
+          deviceId: "device-new",
+          label: "New",
+          labelSource: "USER",
+          labelUpdatedAt: new Date("2026-02-01T00:00:00Z"),
+          createdAt: new Date("2026-02-01T00:00:00Z"),
+          updatedAt: new Date("2026-02-01T00:00:00Z"),
+          savedAt: new Date("2026-02-01T00:00:00Z"),
+          nodeCount: 1,
+          rootUrl: null,
+          rootTitle: null,
+          rootFavicon: null,
+          payload: { v: 1 },
+          deletedAt: null,
+        },
+      ],
+    });
+
+    expect(dbMocks.device.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            id: "device-new",
+            userId: "user-1",
+          }),
+        ]),
+      }),
+    );
+    expect(dbMocks.trail.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          deviceId: "device-new",
         }),
       }),
     );

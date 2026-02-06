@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const deviceId = typeof body?.deviceId === "string" ? body.deviceId : "";
+  const deviceId = typeof body?.deviceId === "string" ? body.deviceId.trim() : "";
   const clientSyncAt = parseDate(body?.clientSyncAt);
   const trails = Array.isArray(body?.trails) ? body.trails : null;
 
@@ -141,7 +141,8 @@ export async function POST(request: Request) {
 
     normalized.push({
       id,
-      deviceId: typeof trail.deviceId === "string" ? trail.deviceId : null,
+      deviceId:
+        typeof trail.deviceId === "string" ? trail.deviceId.trim() || null : null,
       label,
       labelSource,
       labelUpdatedAt,

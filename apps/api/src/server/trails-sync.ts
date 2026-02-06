@@ -80,6 +80,72 @@ function normalizeClientTrails(trails: TrailSyncRecord[]): TrailSyncRecord[] {
   return Array.from(map.values());
 }
 
+function normalizeDeviceId(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const normalized = value.trim();
+  return normalized.length ? normalized : null;
+}
+
+async function ensureSyncDevices(params: {
+  db: Awaited<typeof import("@trail/db")>["db"];
+  userId: string;
+  primaryDeviceId: string;
+  trails: TrailSyncRecord[];
+  now: Date;
+}) {
+  const { db, userId, primaryDeviceId, trails, now } = params;
+  const ids = new Set<string>();
+  ids.add(primaryDeviceId);
+
+  for (const trail of trails) {
+    const deviceId = normalizeDeviceId(trail.deviceId);
+    if (deviceId) {
+      ids.add(deviceId);
+    }
+  }
+
+  const deviceIds = Array.from(ids);
+  const existing = await db.device.findMany({
+    where: {
+      id: { in: deviceIds },
+    },
+    select: {
+      id: true,
+      userId: true,
+    },
+  });
+
+  const existingById = new Map(existing.map((device) => [device.id, device]));
+  const missing: string[] = [];
+
+  for (const deviceId of deviceIds) {
+    const device = existingById.get(deviceId);
+    if (!device) {
+      missing.push(deviceId);
+      continue;
+    }
+    if (device.userId !== userId) {
+      throw new Error(`device_conflict:${deviceId}`);
+    }
+  }
+
+  if (missing.length) {
+    await db.device.createMany({
+      data: missing.map((deviceId) => ({
+        id: deviceId,
+        userId,
+        lastSeenAt: deviceId === primaryDeviceId ? now : null,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  await db.device.update({
+    where: { id: primaryDeviceId },
+    data: { lastSeenAt: now },
+  });
+}
+
 function toDbData(params: {
   trail: TrailSyncRecord;
   userId: string;
@@ -87,7 +153,7 @@ function toDbData(params: {
   includeCreatedAt: boolean;
 }) {
   const { trail, userId, deviceId, includeCreatedAt } = params;
-  const resolvedDeviceId = trail.deviceId ?? deviceId;
+  const resolvedDeviceId = normalizeDeviceId(trail.deviceId) ?? deviceId;
 
   const baseData = {
     userId,
@@ -120,8 +186,20 @@ export async function syncTrails(
   input: TrailSyncInput,
 ): Promise<TrailSyncOutput> {
   const { db } = await import("@trail/db");
+  const primaryDeviceId = normalizeDeviceId(input.deviceId);
+  if (!primaryDeviceId) {
+    throw new Error("device_id_required");
+  }
   const now = new Date();
   const cleanupBefore = new Date(now.getTime() - TOMBSTONE_RETENTION_MS);
+
+  await ensureSyncDevices({
+    db,
+    userId: input.userId,
+    primaryDeviceId,
+    trails: input.trails,
+    now,
+  });
 
   await db.trail.deleteMany({
     where: {
@@ -159,7 +237,7 @@ export async function syncTrails(
           data: toDbData({
             trail,
             userId: input.userId,
-            deviceId: input.deviceId,
+            deviceId: primaryDeviceId,
             includeCreatedAt: false,
           }),
         }),
@@ -170,7 +248,7 @@ export async function syncTrails(
           data: toDbData({
             trail,
             userId: input.userId,
-            deviceId: input.deviceId,
+            deviceId: primaryDeviceId,
             includeCreatedAt: true,
           }),
         }),
