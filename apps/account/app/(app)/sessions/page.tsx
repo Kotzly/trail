@@ -3,10 +3,44 @@ import { ArrowRightIcon } from "@trail/ui/icons";
 import { Button, Card, EmptyState, SectionHeader } from "@trail/ui";
 import { accountCopy } from "@trail/content";
 import { PageHeader } from "@trail/ui";
+import { getAccountUsageSnapshot, type AccountDeviceSummary } from "@/src/server/account-usage";
 
-export default function SessionsPage() {
+function formatDeviceName(device: AccountDeviceSummary): string {
+  if (device.deviceName) {
+    return device.deviceName;
+  }
+
+  const fallback = [device.browserName, device.os].filter(Boolean).join(" • ");
+  return fallback || "Unknown device";
+}
+
+function formatLocation(device: AccountDeviceSummary): string {
+  if (device.os && device.browserName) {
+    return `${device.browserName} on ${device.os}`;
+  }
+  if (device.browserName) {
+    return device.browserName;
+  }
+  if (device.os) {
+    return device.os;
+  }
+  return "Location unavailable";
+}
+
+function formatLastSeen(device: AccountDeviceSummary): string {
+  const value = device.session?.lastSeenAt ?? device.lastSeenAt ?? device.updatedAt;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString();
+}
+
+export default async function SessionsPage() {
   const { sessions } = accountCopy;
-  const hasSessions = false;
+  const usage = await getAccountUsageSnapshot();
+  const connectedDevices = usage.devices;
+  const hasSessions = connectedDevices.length > 0;
 
   return (
     <section className="space-y-8">
@@ -33,8 +67,24 @@ export default function SessionsPage() {
           />
 
           {hasSessions ? (
-            <div className="mt-4 text-xs text-ink-muted">
-              sessions list goes here
+            <div className="mt-4 divide-y divide-border/40">
+              {connectedDevices.map((device) => (
+                <div
+                  key={device.id}
+                  className="flex flex-wrap items-center justify-between gap-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-ink">
+                      {formatDeviceName(device)}
+                    </p>
+                    <p className="text-xs text-ink-muted">{formatLocation(device)}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="trail-status">{device.status.toLowerCase()}</span>
+                    <span className="text-xs text-ink-muted">{formatLastSeen(device)}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="mt-5">
@@ -85,10 +135,7 @@ export default function SessionsPage() {
               {sessions.guidance.description}
             </p>
           </div>
-          <Button.AsChild
-            size="sm"
-            variant="outline"
-          >
+          <Button.AsChild size="sm" variant="outline">
             <Link href="/extension">{sessions.guidance.cta}</Link>
           </Button.AsChild>
         </div>

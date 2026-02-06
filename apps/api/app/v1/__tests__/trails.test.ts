@@ -11,6 +11,7 @@ const userMocks = vi.hoisted(() => ({
 const dbMocks = vi.hoisted(() => ({
   db: {
     trail: {
+      count: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
@@ -41,6 +42,7 @@ describe("v1 trails endpoints", () => {
   beforeEach(() => {
     authMocks.verifyUserToken.mockReset();
     userMocks.ensureUser.mockReset();
+    dbMocks.db.trail.count.mockReset();
     dbMocks.db.trail.findMany.mockReset();
     dbMocks.db.trail.findFirst.mockReset();
     dbMocks.db.trail.update.mockReset();
@@ -49,6 +51,7 @@ describe("v1 trails endpoints", () => {
   it("lists trails with pagination", async () => {
     authMocks.verifyUserToken.mockResolvedValue({ sub: "user-1" });
     userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
+    dbMocks.db.trail.count.mockResolvedValue(2);
     dbMocks.db.trail.findMany.mockResolvedValue([
       {
         id: "trail-1",
@@ -94,6 +97,7 @@ describe("v1 trails endpoints", () => {
     const payload = await response.json();
     expect(payload.items).toHaveLength(1);
     expect(payload.nextCursor).toBe("2026-02-01T00:00:00.000Z");
+    expect(payload.totalCount).toBe(2);
   });
 
   it("updates trail metadata", async () => {

@@ -82,15 +82,22 @@ export async function GET(request: Request) {
       ? { updatedAt: { lt: cursorDate } }
       : {};
 
-  const trails = await db.trail.findMany({
-    where: {
-      userId: user.id,
-      ...(includeDeleted ? {} : { deletedAt: null }),
-      ...cursorFilter,
-    },
-    orderBy: { updatedAt: "desc" },
-    take: limit + 1,
-  });
+  const baseWhere = {
+    userId: user.id,
+    ...(includeDeleted ? {} : { deletedAt: null }),
+  };
+
+  const [trails, totalCount] = await Promise.all([
+    db.trail.findMany({
+      where: {
+        ...baseWhere,
+        ...cursorFilter,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: limit + 1,
+    }),
+    db.trail.count({ where: baseWhere }),
+  ]);
 
   const hasNext = trails.length > limit;
   const items = hasNext ? trails.slice(0, limit) : trails;
@@ -99,5 +106,6 @@ export async function GET(request: Request) {
   return jsonNoStore({
     items: items.map(toTrailSummary),
     nextCursor,
+    totalCount,
   });
 }
