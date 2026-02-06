@@ -11,6 +11,30 @@ servers:
 security: []
 
 paths:
+  /waitlist:
+    post:
+      summary: Create or update a waitlist lead
+      description: |
+        Alias for /wishlist. If the email already exists, the lead is updated and
+        sources are merged.
+      tags: [wishlist]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistLeadInput"
+      responses:
+        "201":
+          description: Lead created or updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistLead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
   /wishlist:
     post:
       summary: Create or update a wishlist lead
