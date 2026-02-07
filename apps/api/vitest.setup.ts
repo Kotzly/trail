@@ -1,3 +1,7 @@
+import { vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
 process.env.APP_BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3001";
 process.env.BETTER_AUTH_URL =
   process.env.BETTER_AUTH_URL ?? "http://localhost:3003";

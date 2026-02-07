@@ -33,6 +33,7 @@ export type UserMinAggregateOutputType = {
   imageUrl: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  onboardingSeenAt: Date | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -44,6 +45,7 @@ export type UserMaxAggregateOutputType = {
   imageUrl: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  onboardingSeenAt: Date | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -55,6 +57,7 @@ export type UserCountAggregateOutputType = {
   imageUrl: number
   createdAt: number
   updatedAt: number
+  onboardingSeenAt: number
   _all: number
 }
 
@@ -68,6 +71,7 @@ export type UserMinAggregateInputType = {
   imageUrl?: true
   createdAt?: true
   updatedAt?: true
+  onboardingSeenAt?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -79,6 +83,7 @@ export type UserMaxAggregateInputType = {
   imageUrl?: true
   createdAt?: true
   updatedAt?: true
+  onboardingSeenAt?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -90,6 +95,7 @@ export type UserCountAggregateInputType = {
   imageUrl?: true
   createdAt?: true
   updatedAt?: true
+  onboardingSeenAt?: true
   _all?: true
 }
 
@@ -174,6 +180,7 @@ export type UserGroupByOutputType = {
   imageUrl: string | null
   createdAt: Date
   updatedAt: Date
+  onboardingSeenAt: Date | null
   _count: UserCountAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
@@ -206,9 +213,11 @@ export type UserWhereInput = {
   imageUrl?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  onboardingSeenAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   sessions?: Prisma.SessionListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   subscription?: Prisma.XOR<Prisma.UserSubscriptionNullableScalarRelationFilter, Prisma.UserSubscriptionWhereInput> | null
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionListRelationFilter
   wishlistLeads?: Prisma.WishlistLeadListRelationFilter
   devices?: Prisma.DeviceListRelationFilter
   deviceSessions?: Prisma.DeviceSessionListRelationFilter
@@ -229,9 +238,11 @@ export type UserOrderByWithRelationInput = {
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  onboardingSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
   sessions?: Prisma.SessionOrderByRelationAggregateInput
   accounts?: Prisma.AccountOrderByRelationAggregateInput
   subscription?: Prisma.UserSubscriptionOrderByWithRelationInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionOrderByRelationAggregateInput
   wishlistLeads?: Prisma.WishlistLeadOrderByRelationAggregateInput
   devices?: Prisma.DeviceOrderByRelationAggregateInput
   deviceSessions?: Prisma.DeviceSessionOrderByRelationAggregateInput
@@ -255,9 +266,11 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   imageUrl?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  onboardingSeenAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   sessions?: Prisma.SessionListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   subscription?: Prisma.XOR<Prisma.UserSubscriptionNullableScalarRelationFilter, Prisma.UserSubscriptionWhereInput> | null
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionListRelationFilter
   wishlistLeads?: Prisma.WishlistLeadListRelationFilter
   devices?: Prisma.DeviceListRelationFilter
   deviceSessions?: Prisma.DeviceSessionListRelationFilter
@@ -278,6 +291,7 @@ export type UserOrderByWithAggregationInput = {
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  onboardingSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
@@ -295,6 +309,7 @@ export type UserScalarWhereWithAggregatesInput = {
   imageUrl?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  onboardingSeenAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
 }
 
 export type UserCreateInput = {
@@ -306,9 +321,11 @@ export type UserCreateInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -329,9 +346,11 @@ export type UserUncheckedCreateInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -352,9 +371,11 @@ export type UserUpdateInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -375,9 +396,11 @@ export type UserUncheckedUpdateInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -398,6 +421,7 @@ export type UserCreateManyInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -409,6 +433,7 @@ export type UserUpdateManyMutationInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -420,6 +445,7 @@ export type UserUncheckedUpdateManyInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -431,6 +457,7 @@ export type UserCountOrderByAggregateInput = {
   imageUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  onboardingSeenAt?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -442,6 +469,7 @@ export type UserMaxOrderByAggregateInput = {
   imageUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  onboardingSeenAt?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -453,6 +481,7 @@ export type UserMinOrderByAggregateInput = {
   imageUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  onboardingSeenAt?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -479,6 +508,10 @@ export type NullableStringFieldUpdateOperationsInput = {
 
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 export type UserCreateNestedOneWithoutSessionsInput = {
@@ -549,6 +582,20 @@ export type UserUpdateOneRequiredWithoutSubscriptionNestedInput = {
   upsert?: Prisma.UserUpsertWithoutSubscriptionInput
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSubscriptionInput, Prisma.UserUpdateWithoutSubscriptionInput>, Prisma.UserUncheckedUpdateWithoutSubscriptionInput>
+}
+
+export type UserCreateNestedOneWithoutBillingCheckoutSessionsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBillingCheckoutSessionsInput, Prisma.UserUncheckedCreateWithoutBillingCheckoutSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBillingCheckoutSessionsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutBillingCheckoutSessionsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBillingCheckoutSessionsInput, Prisma.UserUncheckedCreateWithoutBillingCheckoutSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBillingCheckoutSessionsInput
+  upsert?: Prisma.UserUpsertWithoutBillingCheckoutSessionsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutBillingCheckoutSessionsInput, Prisma.UserUpdateWithoutBillingCheckoutSessionsInput>, Prisma.UserUncheckedUpdateWithoutBillingCheckoutSessionsInput>
 }
 
 export type UserCreateNestedOneWithoutWishlistLeadsInput = {
@@ -662,8 +709,10 @@ export type UserCreateWithoutSessionsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -684,8 +733,10 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -722,8 +773,10 @@ export type UserUpdateWithoutSessionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -744,8 +797,10 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -766,8 +821,10 @@ export type UserCreateWithoutAccountsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -788,8 +845,10 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -826,8 +885,10 @@ export type UserUpdateWithoutAccountsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -848,8 +909,10 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -870,9 +933,11 @@ export type UserCreateWithoutAuthBridgeCodesInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -892,9 +957,11 @@ export type UserUncheckedCreateWithoutAuthBridgeCodesInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -930,9 +997,11 @@ export type UserUpdateWithoutAuthBridgeCodesInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -952,9 +1021,11 @@ export type UserUncheckedUpdateWithoutAuthBridgeCodesInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -974,9 +1045,11 @@ export type UserCreateWithoutExtensionLoginCodesInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -996,9 +1069,11 @@ export type UserUncheckedCreateWithoutExtensionLoginCodesInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -1034,9 +1109,11 @@ export type UserUpdateWithoutExtensionLoginCodesInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -1056,9 +1133,11 @@ export type UserUncheckedUpdateWithoutExtensionLoginCodesInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1078,8 +1157,10 @@ export type UserCreateWithoutSubscriptionInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -1100,8 +1181,10 @@ export type UserUncheckedCreateWithoutSubscriptionInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -1138,8 +1221,10 @@ export type UserUpdateWithoutSubscriptionInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -1160,8 +1245,122 @@ export type UserUncheckedUpdateWithoutSubscriptionInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
+  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
+  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
+  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
+  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutBillingCheckoutSessionsInput = {
+  id?: string
+  email: string
+  name: string
+  emailVerified?: boolean
+  image?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
+  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
+  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
+  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
+  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutBillingCheckoutSessionsInput = {
+  id?: string
+  email: string
+  name: string
+  emailVerified?: boolean
+  image?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
+  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
+  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
+  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
+  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutBillingCheckoutSessionsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutBillingCheckoutSessionsInput, Prisma.UserUncheckedCreateWithoutBillingCheckoutSessionsInput>
+}
+
+export type UserUpsertWithoutBillingCheckoutSessionsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutBillingCheckoutSessionsInput, Prisma.UserUncheckedUpdateWithoutBillingCheckoutSessionsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutBillingCheckoutSessionsInput, Prisma.UserUncheckedCreateWithoutBillingCheckoutSessionsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutBillingCheckoutSessionsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutBillingCheckoutSessionsInput, Prisma.UserUncheckedUpdateWithoutBillingCheckoutSessionsInput>
+}
+
+export type UserUpdateWithoutBillingCheckoutSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
+  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
+  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
+  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
+  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutBillingCheckoutSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1182,9 +1381,11 @@ export type UserCreateWithoutWishlistLeadsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
@@ -1204,9 +1405,11 @@ export type UserUncheckedCreateWithoutWishlistLeadsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
@@ -1242,9 +1445,11 @@ export type UserUpdateWithoutWishlistLeadsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
@@ -1264,9 +1469,11 @@ export type UserUncheckedUpdateWithoutWishlistLeadsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
@@ -1286,9 +1493,11 @@ export type UserCreateWithoutDevicesInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
@@ -1308,9 +1517,11 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
@@ -1346,9 +1557,11 @@ export type UserUpdateWithoutDevicesInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
@@ -1368,9 +1581,11 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
@@ -1390,9 +1605,11 @@ export type UserCreateWithoutDeviceSessionsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
@@ -1412,9 +1629,11 @@ export type UserUncheckedCreateWithoutDeviceSessionsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
@@ -1450,9 +1669,11 @@ export type UserUpdateWithoutDeviceSessionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
@@ -1472,9 +1693,11 @@ export type UserUncheckedUpdateWithoutDeviceSessionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
@@ -1494,9 +1717,11 @@ export type UserCreateWithoutAccountSettingsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -1516,9 +1741,11 @@ export type UserUncheckedCreateWithoutAccountSettingsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -1554,9 +1781,11 @@ export type UserUpdateWithoutAccountSettingsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -1576,9 +1805,11 @@ export type UserUncheckedUpdateWithoutAccountSettingsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1598,9 +1829,11 @@ export type UserCreateWithoutPortalSessionsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -1620,9 +1853,11 @@ export type UserUncheckedCreateWithoutPortalSessionsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -1658,9 +1893,11 @@ export type UserUpdateWithoutPortalSessionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -1680,9 +1917,11 @@ export type UserUncheckedUpdateWithoutPortalSessionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1702,9 +1941,11 @@ export type UserCreateWithoutExtensionConnectSessionsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -1724,9 +1965,11 @@ export type UserUncheckedCreateWithoutExtensionConnectSessionsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -1762,9 +2005,11 @@ export type UserUpdateWithoutExtensionConnectSessionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -1784,9 +2029,11 @@ export type UserUncheckedUpdateWithoutExtensionConnectSessionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1806,9 +2053,11 @@ export type UserCreateWithoutTrailsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
@@ -1828,9 +2077,11 @@ export type UserUncheckedCreateWithoutTrailsInput = {
   imageUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
@@ -1866,9 +2117,11 @@ export type UserUpdateWithoutTrailsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
@@ -1888,9 +2141,11 @@ export type UserUncheckedUpdateWithoutTrailsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1909,6 +2164,7 @@ export type UserUncheckedUpdateWithoutTrailsInput = {
 export type UserCountOutputType = {
   sessions: number
   accounts: number
+  billingCheckoutSessions: number
   wishlistLeads: number
   devices: number
   deviceSessions: number
@@ -1922,6 +2178,7 @@ export type UserCountOutputType = {
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | UserCountOutputTypeCountSessionsArgs
   accounts?: boolean | UserCountOutputTypeCountAccountsArgs
+  billingCheckoutSessions?: boolean | UserCountOutputTypeCountBillingCheckoutSessionsArgs
   wishlistLeads?: boolean | UserCountOutputTypeCountWishlistLeadsArgs
   devices?: boolean | UserCountOutputTypeCountDevicesArgs
   deviceSessions?: boolean | UserCountOutputTypeCountDeviceSessionsArgs
@@ -1954,6 +2211,13 @@ export type UserCountOutputTypeCountSessionsArgs<ExtArgs extends runtime.Types.E
  */
 export type UserCountOutputTypeCountAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AccountWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountBillingCheckoutSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BillingCheckoutSessionWhereInput
 }
 
 /**
@@ -2022,9 +2286,11 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   imageUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  onboardingSeenAt?: boolean
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   subscription?: boolean | Prisma.User$subscriptionArgs<ExtArgs>
+  billingCheckoutSessions?: boolean | Prisma.User$billingCheckoutSessionsArgs<ExtArgs>
   wishlistLeads?: boolean | Prisma.User$wishlistLeadsArgs<ExtArgs>
   devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
   deviceSessions?: boolean | Prisma.User$deviceSessionsArgs<ExtArgs>
@@ -2046,6 +2312,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   imageUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  onboardingSeenAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -2057,6 +2324,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   imageUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  onboardingSeenAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -2068,13 +2336,15 @@ export type UserSelectScalar = {
   imageUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  onboardingSeenAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "emailVerified" | "image" | "imageUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "emailVerified" | "image" | "imageUrl" | "createdAt" | "updatedAt" | "onboardingSeenAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   subscription?: boolean | Prisma.User$subscriptionArgs<ExtArgs>
+  billingCheckoutSessions?: boolean | Prisma.User$billingCheckoutSessionsArgs<ExtArgs>
   wishlistLeads?: boolean | Prisma.User$wishlistLeadsArgs<ExtArgs>
   devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
   deviceSessions?: boolean | Prisma.User$deviceSessionsArgs<ExtArgs>
@@ -2095,6 +2365,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     sessions: Prisma.$SessionPayload<ExtArgs>[]
     accounts: Prisma.$AccountPayload<ExtArgs>[]
     subscription: Prisma.$UserSubscriptionPayload<ExtArgs> | null
+    billingCheckoutSessions: Prisma.$BillingCheckoutSessionPayload<ExtArgs>[]
     wishlistLeads: Prisma.$WishlistLeadPayload<ExtArgs>[]
     devices: Prisma.$DevicePayload<ExtArgs>[]
     deviceSessions: Prisma.$DeviceSessionPayload<ExtArgs>[]
@@ -2114,6 +2385,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     imageUrl: string | null
     createdAt: Date
     updatedAt: Date
+    onboardingSeenAt: Date | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -2511,6 +2783,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   sessions<T extends Prisma.User$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   accounts<T extends Prisma.User$accountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$accountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   subscription<T extends Prisma.User$subscriptionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$subscriptionArgs<ExtArgs>>): Prisma.Prisma__UserSubscriptionClient<runtime.Types.Result.GetResult<Prisma.$UserSubscriptionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  billingCheckoutSessions<T extends Prisma.User$billingCheckoutSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$billingCheckoutSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BillingCheckoutSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   wishlistLeads<T extends Prisma.User$wishlistLeadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$wishlistLeadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WishlistLeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   devices<T extends Prisma.User$devicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$devicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   deviceSessions<T extends Prisma.User$deviceSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$deviceSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DeviceSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2557,6 +2830,7 @@ export interface UserFieldRefs {
   readonly imageUrl: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly onboardingSeenAt: Prisma.FieldRef<"User", 'DateTime'>
 }
     
 
@@ -3009,6 +3283,30 @@ export type User$subscriptionArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   include?: Prisma.UserSubscriptionInclude<ExtArgs> | null
   where?: Prisma.UserSubscriptionWhereInput
+}
+
+/**
+ * User.billingCheckoutSessions
+ */
+export type User$billingCheckoutSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BillingCheckoutSession
+   */
+  select?: Prisma.BillingCheckoutSessionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BillingCheckoutSession
+   */
+  omit?: Prisma.BillingCheckoutSessionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BillingCheckoutSessionInclude<ExtArgs> | null
+  where?: Prisma.BillingCheckoutSessionWhereInput
+  orderBy?: Prisma.BillingCheckoutSessionOrderByWithRelationInput | Prisma.BillingCheckoutSessionOrderByWithRelationInput[]
+  cursor?: Prisma.BillingCheckoutSessionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BillingCheckoutSessionScalarFieldEnum | Prisma.BillingCheckoutSessionScalarFieldEnum[]
 }
 
 /**

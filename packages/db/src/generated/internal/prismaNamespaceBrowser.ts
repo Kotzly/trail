@@ -59,6 +59,7 @@ export const ModelName = {
   AuthBridgeCode: 'AuthBridgeCode',
   ExtensionLoginCode: 'ExtensionLoginCode',
   UserSubscription: 'UserSubscription',
+  BillingCheckoutSession: 'BillingCheckoutSession',
   PolarWebhookEvent: 'PolarWebhookEvent',
   WishlistLead: 'WishlistLead',
   Device: 'Device',
@@ -93,7 +94,8 @@ export const UserScalarFieldEnum = {
   image: 'image',
   imageUrl: 'imageUrl',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  onboardingSeenAt: 'onboardingSeenAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -194,6 +196,27 @@ export const UserSubscriptionScalarFieldEnum = {
 } as const
 
 export type UserSubscriptionScalarFieldEnum = (typeof UserSubscriptionScalarFieldEnum)[keyof typeof UserSubscriptionScalarFieldEnum]
+
+
+export const BillingCheckoutSessionScalarFieldEnum = {
+  id: 'id',
+  provider: 'provider',
+  orderId: 'orderId',
+  userId: 'userId',
+  planId: 'planId',
+  interval: 'interval',
+  currency: 'currency',
+  amountCents: 'amountCents',
+  status: 'status',
+  paymentStatus: 'paymentStatus',
+  nowpaymentsInvoiceUrl: 'nowpaymentsInvoiceUrl',
+  nowpaymentsPaymentId: 'nowpaymentsPaymentId',
+  lastPayload: 'lastPayload',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingCheckoutSessionScalarFieldEnum = (typeof BillingCheckoutSessionScalarFieldEnum)[keyof typeof BillingCheckoutSessionScalarFieldEnum]
 
 
 export const PolarWebhookEventScalarFieldEnum = {
@@ -331,6 +354,14 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const JsonNullValueInput = {

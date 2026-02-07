@@ -75,3 +75,11 @@ export const TrailLabelSource = {
 } as const
 
 export type TrailLabelSource = (typeof TrailLabelSource)[keyof typeof TrailLabelSource]
+
+
+export const BillingProvider = {
+  MANUAL: 'MANUAL',
+  NOWPAYMENTS: 'NOWPAYMENTS'
+} as const
+
+export type BillingProvider = (typeof BillingProvider)[keyof typeof BillingProvider]

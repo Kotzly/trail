@@ -665,14 +665,6 @@ export type EnumTrailLabelSourceFieldUpdateOperationsInput = {
   set?: $Enums.TrailLabelSource
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type TrailCreateWithoutUserInput = {
   id?: string
   label: string
