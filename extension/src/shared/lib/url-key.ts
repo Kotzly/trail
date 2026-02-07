@@ -28,7 +28,11 @@ function stripTrailingSlash(path: string): string {
 }
 
 function buildQueryKey(searchParams: URLSearchParams): string {
-  const entries = [...searchParams.entries()].filter(([key]) => !shouldDropParam(key));
+  const entries: Array<[string, string]> = [];
+  searchParams.forEach((value, key) => {
+    if (shouldDropParam(key)) return;
+    entries.push([key, value]);
+  });
   if (entries.length === 0) return '';
   entries.sort((a, b) => {
     if (a[0] !== b[0]) return a[0].localeCompare(b[0]);
@@ -55,7 +59,7 @@ export function createUrlKey(raw: Url | string | null | undefined): string {
     const search = query ? `?${query}` : '';
     return `${url.protocol}//${host}${pathname}${search}`;
   } catch {
-    const noHash = candidate.split('#')[0];
+    const noHash = candidate.split('#')[0] ?? '';
     const stripped = noHash.endsWith('/') ? noHash.replace(/\/+$/, '') : noHash;
     const normalized = stripped || '/';
     return normalized.toLowerCase();
