@@ -56,7 +56,6 @@ const config: Config = {
           "system-ui",
           "sans-serif",
         ],
-        display: ["var(--font-display)", "Fraunces", "serif"],
       },
       boxShadow: {
         card: "var(--trail-elev-2)",
