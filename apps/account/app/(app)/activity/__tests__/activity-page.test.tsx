@@ -6,6 +6,6 @@ describe("ActivityPage", () => {
   it("redirects to trails", async () => {
     const { redirect } = await import("next/navigation");
     ActivityPage();
-    expect(redirect).toHaveBeenCalledWith("/dashboard");
+    expect(redirect).toHaveBeenCalledWith("/trails");
   });
 });

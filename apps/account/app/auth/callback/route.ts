@@ -4,7 +4,7 @@ import { env } from "@/src/env";
 
 export const runtime = "nodejs";
 
-const DEFAULT_REDIRECT = "/dashboard";
+const DEFAULT_REDIRECT = "/trails";
 
 type ExchangeResponse = {
   snapshot?: {

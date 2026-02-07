@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/src/env";
 
-const protectedPrefixes = ["/dashboard", "/settings", "/extension"];
+const protectedPrefixes = ["/trails", "/dashboard", "/settings", "/extension"];
 const AUTH_COOKIE_NAME = "trail_auth_session";
 
 export async function proxy(request: NextRequest) {
