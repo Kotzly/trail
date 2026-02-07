@@ -55,6 +55,9 @@ export const auth = betterAuth({
         });
       },
     }),
-    jwt(),
+    // The Account app stores the JWT in an httpOnly cookie and uses it as the
+    // bearer token for API calls. Default 15m expiry causes users to hit
+    // Unauthorized mid-session (e.g. billing checkout). Keep it long-lived.
+    jwt({ jwt: { expirationTime: "30d" } }),
   ],
 });
