@@ -4,7 +4,10 @@ import { TreeNode } from "./tree-node.js";
 import { DefaultNavigationOptions, type NavigationOptions } from "../../shared/types/tree.js";
 import { EvictionPolicy, LRUEvictionPolicy, Owner } from "../../shared/lib/eviction.js";
 import { NodeData, NavigationNode, updateNodeMeta } from "../../shared/types/node.js";
+import { createUrlKey } from "../../shared/lib/url-key.js";
 
+export type NodeRedirect = { from: NodeId; to: NodeId };
+export type DeleteNodeResult = { removed: NavigationNode[]; redirects: NodeRedirect[] };
 
 function epForTree(tree: NavigationTree, capacity: number): EvictionPolicy {
     return new LRUEvictionPolicy(tree, capacity); // use LRU eviction policy for now.
@@ -109,6 +112,61 @@ export class NavigationTree implements Owner {
     
     // todo: implement setRoot logic
 
+    private isSameUrl(a: Url, b: Url): boolean {
+        return createUrlKey(a) === createUrlKey(b);
+    }
+
+    private mergeNodeData(base: NodeData, incoming: NodeData): NodeData {
+        const tags = Array.from(new Set([...(base.tags ?? []), ...(incoming.tags ?? [])]));
+        const title = incoming.title ? incoming.title : base.title;
+        const favicon = incoming.favicon !== undefined ? incoming.favicon : base.favicon;
+        const layout = base.layout ?? incoming.layout;
+        return {
+            ...base,
+            url: base.url,
+            title,
+            favicon,
+            pinned: Boolean(base.pinned || incoming.pinned),
+            tags,
+            ...(layout ? { layout } : {}),
+        } as NodeData;
+    }
+
+    private mergeDuplicateChildren(parent: NavigationNode): NodeRedirect[] {
+        const redirects: NodeRedirect[] = [];
+        const seen = new Map<string, NavigationNode>();
+
+        // Iterate over a copy since we may detach nodes during merging.
+        const children = [...parent.getChildren()];
+        for (const child of children) {
+            const key = createUrlKey(child.data.url);
+            const existing = seen.get(key);
+            if (!existing) {
+                seen.set(key, child);
+                continue;
+            }
+
+            existing.data = this.mergeNodeData(existing.data, child.data);
+            this.updateSearchEntry(existing);
+
+            child.transferChildrenTo(existing);
+            child.detach();
+
+            this.nodeMap.delete(child.id);
+            this.removeSearchEntry(child.id);
+            this.nodeCount = Math.max(0, this.nodeCount - 1);
+
+            if (this.current && this.current.id === child.id) {
+                this.current = existing;
+            }
+
+            redirects.push({ from: child.id, to: existing.id });
+            redirects.push(...this.mergeDuplicateChildren(existing));
+        }
+
+        return redirects;
+    }
+
     navigate(data: NodeData, options: NavigationOptions = DefaultNavigationOptions): NavigationNode {
         // no root ==> create it
         if (!this.root) {
@@ -122,15 +180,18 @@ export class NavigationTree implements Owner {
             this.current = this.root;
         }
 
+        const targetKey = createUrlKey(data.url);
+        const currentKey = createUrlKey(this.current.data.url);
+
         // same url as current ==> update metadata
-        if (this.current.data.url === data.url) {
+        if (currentKey === targetKey) {
             this.current.data = updateNodeMeta(this.current.data, data);
             this.updateSearchEntry(this.current);
             return this.current;
         } 
 
         // if current has a child with the same url ==> update metadata
-        const existingChild = this.current.getChildren().find(c => c.data.url === data.url);
+        const existingChild = this.current.getChildren().find(c => createUrlKey(c.data.url) === targetKey);
         if (existingChild) {
             existingChild.data = updateNodeMeta(existingChild.data, data);
             this.updateSearchEntry(existingChild);
@@ -142,7 +203,7 @@ export class NavigationTree implements Owner {
         if (options.backOnRevisit ?? DefaultNavigationOptions.backOnRevisit) {
             let ancestor = this.current.getParent();
             while (ancestor) {
-                if (ancestor.data.url === data.url) {
+                if (createUrlKey(ancestor.data.url) === targetKey) {
                     ancestor.data = updateNodeMeta(ancestor.data, data);
                     this.updateSearchEntry(ancestor);
                     this.current = ancestor;
@@ -182,12 +243,13 @@ export class NavigationTree implements Owner {
     }
 
     // todo: remove this functionality of deleting nodes
-    deleteNode(nodeId: NodeId): NavigationNode[] {
+    deleteNode(nodeId: NodeId): DeleteNodeResult {
         const node = this.findNodeById(nodeId);
-        if (!node || node.isRoot()) return [];
+        if (!node || node.isRoot()) return { removed: [], redirects: [] };
 
         const parent = node.getParent();
-        const removed = [node];
+        const removed: NavigationNode[] = [node];
+        let redirects: NodeRedirect[] = [];
 
         node.remove();
         this.nodeMap.delete(node.id);
@@ -199,7 +261,11 @@ export class NavigationTree implements Owner {
             else this.current = this.root;
         }
 
-        return removed;
+        if (parent) {
+            redirects = this.mergeDuplicateChildren(parent);
+        }
+
+        return { removed, redirects };
     }
 
     deleteChildren(nodeId: NodeId): NavigationNode[] {

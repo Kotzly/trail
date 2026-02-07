@@ -39,6 +39,42 @@ export class TreeNode<T> implements Element {
         return child;
     }
 
+    // Attach an existing node as a child of this node.
+    // Detaches the node from its previous parent if needed.
+    attachChild(child: TreeNode<T>, options?: { index?: number }): void {
+        if (child === this) {
+            throw new Error("Cannot attach node to itself");
+        }
+
+        // Detach from previous parent, if any.
+        if (child.parent) {
+            const prev = child.parent;
+            const prevIndex = prev.children.indexOf(child);
+            if (prevIndex !== -1) {
+                prev.children.splice(prevIndex, 1);
+            }
+        }
+
+        child.setParent(this);
+        const idx = options?.index;
+        if (typeof idx === "number" && idx >= 0 && idx <= this.children.length) {
+            this.children.splice(idx, 0, child);
+        } else {
+            this.children.push(child);
+        }
+    }
+
+    // Move all children from this node to the target node (preserves order).
+    transferChildrenTo(target: TreeNode<T>): void {
+        if (target === this) return;
+        const kids = this.children;
+        this.children = [];
+        for (const child of kids) {
+            child.setParent(target);
+            target.children.push(child);
+        }
+    }
+
     getParent(): TreeNode<T> | null {
         return this.parent;
     }

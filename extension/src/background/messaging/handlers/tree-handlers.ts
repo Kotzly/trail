@@ -14,6 +14,16 @@ import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { cloudSync } from '../../services/cloud-sync.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
 
+function reassignTabsForRedirects(redirects: Array<{ from: NodeId; to: NodeId }>): void {
+  for (const redirect of redirects) {
+    if (redirect.from === redirect.to) continue;
+    const tabs = [...tabManager.tabsByNode(redirect.from)];
+    for (const tabId of tabs) {
+      tabManager.register(redirect.to, tabId as TabId, { touch: true });
+    }
+  }
+}
+
 function getDeleteFocusView(
   tree: NavigationTree,
   prevCurrentId: NodeId | null
@@ -253,9 +263,10 @@ export const treeHandlers = defineHandlers({
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete node');
-    const removed = tree.deleteNode(message.nodeId);
-    if (removed.length === 0) return err('Node not found');
-    await closeTabsForNodes(removed.map(node => node.id));
+    const result = tree.deleteNode(message.nodeId);
+    if (result.removed.length === 0) return err('Node not found');
+    await closeTabsForNodes(result.removed.map(node => node.id));
+    reassignTabsForRedirects(result.redirects);
     treeStorage.cacheTree(tree);
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
@@ -315,8 +326,9 @@ export const treeHandlers = defineHandlers({
     const removedIds: NodeId[] = [];
 
     for (const id of message.nodeIds) {
-      const removed = tree.deleteNode(id);
-      removedIds.push(...removed.map(node => node.id));
+      const result = tree.deleteNode(id);
+      removedIds.push(...result.removed.map(node => node.id));
+      reassignTabsForRedirects(result.redirects);
     }
 
     await closeTabsForNodes(removedIds);
