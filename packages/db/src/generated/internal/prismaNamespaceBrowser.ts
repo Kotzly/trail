@@ -188,9 +188,14 @@ export const UserSubscriptionScalarFieldEnum = {
   userId: 'userId',
   plan: 'plan',
   status: 'status',
+  interval: 'interval',
+  pendingInterval: 'pendingInterval',
   polarCustomerId: 'polarCustomerId',
   polarSubscriptionId: 'polarSubscriptionId',
+  currentPeriodStart: 'currentPeriodStart',
   currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  canceledAt: 'canceledAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -205,6 +210,7 @@ export const BillingCheckoutSessionScalarFieldEnum = {
   userId: 'userId',
   planId: 'planId',
   interval: 'interval',
+  requestedInterval: 'requestedInterval',
   currency: 'currency',
   amountCents: 'amountCents',
   status: 'status',

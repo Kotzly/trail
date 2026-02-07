@@ -120,6 +120,11 @@ enum SubscriptionPlan {
   TEAMS
 }
 
+enum SubscriptionInterval {
+  MONTH
+  YEAR
+}
+
 enum SubscriptionStatus {
   ACTIVE
   TRIALING
@@ -173,9 +178,14 @@ model UserSubscription {
   user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan                SubscriptionPlan   @default(FREE)
   status              SubscriptionStatus @default(UNKNOWN)
+  interval            SubscriptionInterval @default(MONTH)
+  pendingInterval     SubscriptionInterval?
   polarCustomerId     String?            @unique
   polarSubscriptionId String?            @unique
+  currentPeriodStart  DateTime?
   currentPeriodEnd    DateTime?
+  cancelAtPeriodEnd   Boolean            @default(false)
+  canceledAt          DateTime?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 }
@@ -188,6 +198,7 @@ model BillingCheckoutSession {
   user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   planId                String
   interval              String
+  requestedInterval     String?
   currency              String
   amountCents           Int
   status                String          @default("CREATED")

@@ -21,7 +21,11 @@ export async function POST(request: Request) {
   });
 
   // No subscription to cancel: treat as free.
-  if (!existing || existing.plan === "FREE") {
+  if (
+    !existing ||
+    existing.plan === "FREE" ||
+    (existing.currentPeriodEnd && existing.currentPeriodEnd.getTime() <= Date.now())
+  ) {
     const snapshot = await getSubscriptionSnapshotForUser({
       userId: user.id,
       fallbackCreatedAt: user.createdAt,
@@ -36,8 +40,12 @@ export async function POST(request: Request) {
       where: { userId: user.id },
       data: {
         plan: "FREE",
-        status: "CANCELED",
+        status: "UNKNOWN",
+        cancelAtPeriodEnd: false,
+        canceledAt: new Date(),
+        pendingInterval: null,
         currentPeriodEnd: new Date(),
+        currentPeriodStart: new Date(),
       },
     });
 
@@ -52,8 +60,9 @@ export async function POST(request: Request) {
   await db.userSubscription.update({
     where: { userId: user.id },
     data: {
-      status: "CANCELED",
-      // Leave `plan` and `currentPeriodEnd` intact so the user keeps access until expiry.
+      cancelAtPeriodEnd: true,
+      canceledAt: new Date(),
+      // Leave `plan`/`interval` and period boundaries intact so the user keeps access until expiry.
     },
   });
 

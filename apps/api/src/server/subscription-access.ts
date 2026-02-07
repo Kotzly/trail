@@ -1,5 +1,6 @@
 import { db } from "@trail/db";
 import type { ExtensionConfigMap } from "@/src/server/extension-config";
+import { addInterval, toApiInterval } from "@/src/server/subscription/period";
 
 export type PlanTier = "free" | "pro" | "teams" | "enterprise";
 
@@ -8,16 +9,16 @@ export type ApiSubscriptionStatus =
   | "active"
   | "past_due"
   | "paused"
-  | "canceled"
   | "expired";
 
 export type SubscriptionSnapshot = {
   id: string;
   planId: "free" | "pro" | "teams";
   status: ApiSubscriptionStatus;
-  interval: "month";
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
+  interval: "month" | "year" | null;
+  pendingInterval: "month" | "year" | null;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   trialEndsAt: string | null;
   canceledAt: string | null;
@@ -37,19 +38,15 @@ function toIso(date: Date): string {
   return date.toISOString();
 }
 
-function addDays(value: Date, days: number): Date {
-  return new Date(value.getTime() + days * 24 * 60 * 60 * 1000);
-}
-
-function buildFreeSubscription(createdAt: Date): SubscriptionSnapshot {
-  const periodEnd = addDays(createdAt, 30);
+function buildFreeSubscription(_createdAt: Date): SubscriptionSnapshot {
   return {
     id: "sub_free",
     planId: "free",
     status: "active",
-    interval: "month",
-    currentPeriodStart: toIso(createdAt),
-    currentPeriodEnd: toIso(periodEnd),
+    interval: null,
+    pendingInterval: null,
+    currentPeriodStart: null,
+    currentPeriodEnd: null,
     cancelAtPeriodEnd: false,
     trialEndsAt: null,
     canceledAt: null,
@@ -103,7 +100,9 @@ function mapDbStatusToApiStatus(
     case "UNPAID":
       return "past_due";
     case "CANCELED":
-      return "canceled";
+      // Historical rows used CANCELED to represent "non-renewing" subscriptions.
+      // The source of truth is now `cancelAtPeriodEnd`, not `status`.
+      return "active";
     case "INCOMPLETE":
     case "UNKNOWN":
     default:
@@ -183,6 +182,11 @@ export async function getSubscriptionSnapshotForUser(
       plan: true,
       status: true,
       createdAt: true,
+      interval: true,
+      pendingInterval: true,
+      cancelAtPeriodEnd: true,
+      canceledAt: true,
+      currentPeriodStart: true,
       currentPeriodEnd: true,
     },
   });
@@ -191,23 +195,33 @@ export async function getSubscriptionSnapshotForUser(
     return fallbackCreatedAt ? buildFreeSubscription(fallbackCreatedAt) : null;
   }
 
-  const currentPeriodStart = subscription.createdAt;
+  const currentPeriodStart =
+    subscription.currentPeriodStart ?? subscription.createdAt;
+  const interval = toApiInterval(subscription.interval);
   const currentPeriodEnd =
-    subscription.currentPeriodEnd ?? addDays(currentPeriodStart, 30);
+    subscription.currentPeriodEnd ?? addInterval(currentPeriodStart, interval);
 
   const isExpired = currentPeriodEnd.getTime() <= Date.now();
   const status = isExpired ? "expired" : mapDbStatusToApiStatus(subscription.status);
   const planId = isExpired ? "free" : mapDbPlanToPlanId(subscription.plan);
+  const effectiveInterval = isExpired || planId === "free" ? null : interval;
+  const pendingInterval =
+    isExpired || planId === "free"
+      ? null
+      : subscription.pendingInterval
+        ? toApiInterval(subscription.pendingInterval)
+        : null;
 
   return {
     id: subscription.id,
     planId,
     status,
-    interval: "month",
-    currentPeriodStart: toIso(currentPeriodStart),
-    currentPeriodEnd: toIso(currentPeriodEnd),
-    cancelAtPeriodEnd: status === "canceled",
+    interval: effectiveInterval,
+    pendingInterval,
+    currentPeriodStart: planId === "free" ? null : toIso(currentPeriodStart),
+    currentPeriodEnd: planId === "free" ? null : toIso(currentPeriodEnd),
+    cancelAtPeriodEnd: isExpired ? false : Boolean(subscription.cancelAtPeriodEnd),
     trialEndsAt: status === "trialing" ? toIso(currentPeriodEnd) : null,
-    canceledAt: null,
+    canceledAt: subscription.canceledAt ? toIso(subscription.canceledAt) : null,
   };
 }

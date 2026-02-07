@@ -21,11 +21,11 @@ type CheckoutResponse = {
 };
 
 type CancelResponse =
-  | { planId: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string }
+  | { planId: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string | null }
   | { message?: string; redirectUrl?: string };
 
 type ResumeResponse =
-  | { planId: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string }
+  | { planId: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string | null }
   | { message?: string; redirectUrl?: string };
 
 export function navigateTo(url: string): void {
@@ -55,44 +55,25 @@ function getTierRank(planId: string): number {
   return TIER_ORDER[planId] ?? Number.MAX_SAFE_INTEGER;
 }
 
-function getCta(planId: string, currentPlanId: string): string {
-  if (planId === currentPlanId) {
-    return "current plan";
-  }
-
-  const planRank = getTierRank(planId);
-  const currentRank = getTierRank(currentPlanId);
-  if (planRank < currentRank) {
-    return `downgrade to ${planId}`;
-  }
-
-  switch (planId) {
-    case "pro":
-      return "upgrade to pro";
-    case "teams":
-      return "upgrade to teams";
-    case "free":
-      return "downgrade to free";
-    default:
-      return "choose plan";
-  }
-}
-
 export function BillingPlansClient({
   plans,
   currentPlanId = "free",
+  currentInterval = null,
+  pendingInterval = null,
   cancelAtPeriodEnd = false,
   currentPeriodEnd,
   onNavigate = navigateTo,
 }: {
   plans: BillingPlanView[];
   currentPlanId?: string;
+  currentInterval?: "month" | "year" | null;
+  pendingInterval?: "month" | "year" | null;
   cancelAtPeriodEnd?: boolean;
   currentPeriodEnd?: string | null;
   onNavigate?: (url: string) => void;
 }) {
   const { billing } = accountCopy;
-  const [isYearly, setIsYearly] = useState(true);
+  const [isYearly, setIsYearly] = useState(currentInterval ? currentInterval === "year" : true);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -195,7 +176,7 @@ export function BillingPlansClient({
       }
 
       setNotice(
-        "Downgrade scheduled. You'll keep access until the end of the current period.",
+        "Auto-renew turned off. You'll keep access until the end of the current period.",
       );
       window.location.reload();
     } catch (cancelError) {
@@ -251,6 +232,17 @@ export function BillingPlansClient({
 
   return (
     <>
+      {currentPlanId !== "free" && currentPeriodEnd ? (
+        <div className="text-center text-xs text-ink-muted lowercase">
+          {cancelAtPeriodEnd
+            ? `expires on ${new Date(currentPeriodEnd).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}`
+            : `renews on ${new Date(currentPeriodEnd).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}`}
+          {pendingInterval
+            ? ` (will switch to ${pendingInterval} on renewal)`
+            : ""}
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-center">
         <div className="inline-flex items-center rounded-full border border-border/60 bg-surface/60 p-1">
           <button
@@ -343,35 +335,34 @@ export function BillingPlansClient({
                   variant={plan.popular ? "primary" : "outline"}
                   className="w-full lowercase"
                   disabled={
-                    (plan.id === currentPlanId && !cancelAtPeriodEnd) ||
                     pendingPlanId === plan.id ||
-                    (getTierRank(plan.id) < getTierRank(currentPlanId) &&
-                      cancelAtPeriodEnd)
+                    (plan.id === "free" && currentPlanId !== "free") ||
+                    getTierRank(plan.id) < getTierRank(currentPlanId)
                   }
                   onClick={() => {
                     if (plan.id === currentPlanId) {
+                      if (plan.id === "free") return;
                       if (cancelAtPeriodEnd) {
                         void resumeSubscription();
+                      } else {
+                        void cancelSubscription("free");
                       }
                       return;
                     }
 
-                    if (plan.id !== currentPlanId) {
-                      const isDowngrade =
-                        getTierRank(plan.id) < getTierRank(currentPlanId);
-                      if (isDowngrade) {
-                        void cancelSubscription(plan.id);
-                      } else {
-                        void startCheckout(plan.id);
-                      }
-                    }
+                    // Upgrades only (downgrades are not supported).
+                    void startCheckout(plan.id);
                   }}
                 >
                   {pendingPlanId === plan.id || pendingPlanId === "resume"
                     ? "processing..."
-                    : cancelAtPeriodEnd && plan.id === currentPlanId
-                      ? "resume subscription"
-                      : getCta(plan.id, currentPlanId)}
+                    : plan.id === currentPlanId && plan.id !== "free"
+                      ? cancelAtPeriodEnd
+                        ? "resume auto-renew"
+                        : "cancel subscription"
+                      : plan.id === "free"
+                        ? "free"
+                        : `upgrade to ${plan.id}`}
                 </Button>
               </div>
             </div>

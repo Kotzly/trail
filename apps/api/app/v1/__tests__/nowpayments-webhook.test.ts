@@ -8,7 +8,9 @@ const dbMocks = vi.hoisted(() => ({
       update: vi.fn(),
     },
     userSubscription: {
+      findUnique: vi.fn(),
       upsert: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -57,7 +59,9 @@ describe("nowpayments webhook", () => {
   beforeEach(() => {
     dbMocks.db.billingCheckoutSession.findUnique.mockReset();
     dbMocks.db.billingCheckoutSession.update.mockReset();
+    dbMocks.db.userSubscription.findUnique.mockReset();
     dbMocks.db.userSubscription.upsert.mockReset();
+    dbMocks.db.userSubscription.update.mockReset();
   });
 
   it("rejects invalid signature", async () => {
@@ -109,8 +113,10 @@ describe("nowpayments webhook", () => {
       userId: "user-1",
       planId: "pro",
       interval: "year",
+      requestedInterval: "year",
     });
     dbMocks.db.billingCheckoutSession.update.mockResolvedValue({});
+    dbMocks.db.userSubscription.findUnique.mockResolvedValue(null);
     dbMocks.db.userSubscription.upsert.mockResolvedValue({});
 
     const response = await POST(
@@ -141,4 +147,3 @@ describe("nowpayments webhook", () => {
     );
   });
 });
-

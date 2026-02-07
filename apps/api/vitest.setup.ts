@@ -10,3 +10,6 @@ process.env.TRAIL_INTERNAL_API_KEY =
 process.env.TRAIL_EXTENSION_JWT_SECRET =
   process.env.TRAIL_EXTENSION_JWT_SECRET ?? "test-extension-secret";
 process.env.BILLING_PROVIDER = process.env.BILLING_PROVIDER ?? "manual";
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL ??
+  "postgresql://postgres:postgres@localhost:5432/trail?schema=public";

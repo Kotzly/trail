@@ -8,10 +8,7 @@ import type {
 import { BillingProviderError } from "@/src/server/billing/provider";
 import { getBillingStatusFromSubscription } from "@/src/server/billing/subscription-status";
 import { db } from "@trail/db";
-
-function addDays(value: Date, days: number): Date {
-  return new Date(value.getTime() + days * 24 * 60 * 60 * 1000);
-}
+import { addInterval } from "@/src/server/subscription/period";
 
 function billingUrl(): string {
   return `${env.APP_BASE_URL.replace(/\/$/, "")}/billing`;
@@ -29,7 +26,10 @@ async function activateTestSubscription(input: CheckoutSessionInput): Promise<vo
     });
   }
 
-  const currentPeriodEnd = addDays(new Date(), input.interval === "year" ? 365 : 30);
+  const now = new Date();
+  const interval = input.interval;
+  const currentPeriodStart = now;
+  const currentPeriodEnd = addInterval(now, interval);
   const plan = input.planId === "teams" ? "TEAMS" : "PRO";
 
   await db.userSubscription.upsert({
@@ -38,12 +38,22 @@ async function activateTestSubscription(input: CheckoutSessionInput): Promise<vo
       userId: input.userId,
       plan,
       status: "ACTIVE",
+      interval: interval === "year" ? "YEAR" : "MONTH",
+      currentPeriodStart,
       currentPeriodEnd,
+      cancelAtPeriodEnd: false,
+      canceledAt: null,
+      pendingInterval: null,
     },
     update: {
       plan,
       status: "ACTIVE",
+      interval: interval === "year" ? "YEAR" : "MONTH",
+      currentPeriodStart,
       currentPeriodEnd,
+      cancelAtPeriodEnd: false,
+      canceledAt: null,
+      pendingInterval: null,
     },
   });
 }

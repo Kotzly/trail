@@ -19,6 +19,16 @@
     "db:migrate": "pnpm --filter @trail/db prisma migrate dev",
     "db:studio": "pnpm --filter @trail/db prisma studio"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "cypress",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
   "devDependencies": {
     "cypress": "^15.9.0",
     "next": "16.1.6"
