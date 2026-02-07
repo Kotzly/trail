@@ -120,28 +120,20 @@ function FeatureBlock({
         className={`relative isolate ${reversed ? "lg:order-1" : "lg:order-2"}`}
       >
         {/* 4:3 aspect-ratio container */}
-        <div className="relative aspect-[4/3] w-full h-full rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-accent/20 via-surface to-cta/20 p-[2px] shadow-2xl shadow-accent/5">
-          <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-br from-accent/30 via-transparent to-cta/20 opacity-60" />
-          <div className="relative w-full h-full rounded-[calc(2.5rem-2px)] overflow-hidden bg-surface">
-            <video
-              className="absolute top-0 left-0 w-full h-full object-cover"
-              style={{ aspectRatio: "4/3" }}
-              loop
-              muted
-              playsInline
-              preload="metadata"
-              poster={section.preview}
-              data-play-on-view="true"
-              aria-label="Trail product demo"
-            >
-              <source src={section.video} type="video/mp4" />
-            </video>
-          </div>
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-stroke/40 bg-surface shadow-[var(--trail-elev-3)]">
+          <video
+            className="h-full w-full object-cover"
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            poster={section.preview}
+            data-play-on-view="true"
+            aria-label="Trail product demo"
+          >
+            <source src={section.video} type="video/mp4" />
+          </video>
         </div>
-        {/* Decorative gradient blur */}
-        <div
-          className={`absolute -inset-8 -z-10 ${reversed ? "bg-gradient-to-br" : "bg-gradient-to-bl"} from-accent/20 via-cta/10 to-transparent blur-3xl opacity-50`}
-        />
       </motion.div>
     </motion.div>
   );

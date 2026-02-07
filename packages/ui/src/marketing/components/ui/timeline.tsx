@@ -84,7 +84,7 @@ export const Timeline = ({ items }: TimelineProps) => {
                   {item.title}
                 </h3>
                 <div className="space-y-4">
-                  <p className="text-ink-muted text-sm md:text-base leading-relaxed">
+                  <p className="text-ink-muted text-sm md:leading-relaxed">
                     {item.description}
                   </p>
                   <div className="space-y-2">

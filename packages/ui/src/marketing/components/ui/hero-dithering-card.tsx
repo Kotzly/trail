@@ -160,7 +160,7 @@ export function HeroDitheringCard({
             >
               <Link
                 href={ctaHref}
-                className="group relative inline-flex h-14 items-center justify-center gap-2 overflow-hidden rounded-full bg-cta px-8 text-base font-semibold text-cta-fg transition-all duration-300 hover:bg-cta-hover hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-cta/25"
+                className="group relative inline-flex h-14 items-center justify-center gap-2 overflow-hidden rounded-full bg-cta px-8 font-semibold text-cta-fg transition-all duration-300 hover:bg-cta-hover hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-cta/25"
               >
                 <span>{ctaText}</span>
                 <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -169,7 +169,7 @@ export function HeroDitheringCard({
               {secondaryCtaText && secondaryCtaHref && (
                 <Link
                   href={secondaryCtaHref}
-                  className="group inline-flex h-14 items-center justify-center gap-2 rounded-full border border-stroke/60 bg-surface/50 px-8 text-base font-medium text-ink transition-all duration-300 hover:border-accent hover:bg-surface"
+                  className="group inline-flex h-14 items-center justify-center gap-2 rounded-full border border-stroke/60 bg-surface/50 px-8 font-medium text-ink transition-all duration-300 hover:border-accent hover:bg-surface"
                 >
                   {secondaryCtaText}
                   <MoveRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5" />

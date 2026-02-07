@@ -1,195 +1,234 @@
 @config "../tailwind.config.ts";
 @import "tailwindcss";
-@source "../../../packages/ui/src";
 @source "../../../packages/content/src";
-@import "@trail/ui/styles/tokens.css";
-@import "@trail/ui/styles/base.css";
-@import "@trail/ui/styles/animations.css";
 
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --base: 248 250 252;
-  --surface: 255 255 255;
-  --surface-strong: 241 245 249;
-  --stroke: 203 213 225;
-  --ink: 15 23 42;
-  --ink-muted: 71 85 105;
-  --ink-subtle: 100 116 139;
-  --cta: 13 148 136;
-  --cta-hover: 15 118 110;
-  --cta-fg: 255 255 255;
-  --accent: 8 145 178;
-  --accent-soft: 207 250 254;
-  --font-display: var(--font-sans);
+  --radius: 0.5rem;
 
-  --trail-bg: var(--base);
-  --trail-surface: var(--surface);
-  --trail-surface-high: var(--surface-strong);
-  --trail-surface-low: 247 245 240;
-  --trail-border: var(--stroke);
-  --trail-ink: var(--ink);
-  --trail-ink-muted: var(--ink-muted);
-  --trail-accent: var(--accent);
-  --trail-accent-contrast: var(--cta-fg);
-  --trail-highlight: 207 250 254;
-  --trail-glass: var(--surface);
-  --trail-glass-strong: var(--surface-strong);
-  --trail-elev-1: 0 1px 0 rgba(20, 22, 26, 0.06);
-  --trail-elev-2: 0 4px 18px rgba(20, 22, 26, 0.08);
-  --trail-elev-3: 0 8px 28px rgba(20, 22, 26, 0.12);
-  --trail-ring: var(--accent);
-  --trail-gradient-1: radial-gradient(
-    60% 60% at 12% 8%,
-    rgba(58, 129, 196, 0.18),
-    transparent 70%
-  );
-  --trail-gradient-2: radial-gradient(
-    50% 50% at 88% 0%,
-    rgba(27, 30, 36, 0.08),
-    transparent 70%
-  );
+  /* shadcn-style semantic tokens (rgb) */
+  --background: 255 255 255;
+  --foreground: 15 23 42;
+  --card: 255 255 255;
+  --card-foreground: 15 23 42;
+  --popover: 255 255 255;
+  --popover-foreground: 15 23 42;
+  --primary: 15 23 42;
+  --primary-foreground: 248 250 252;
+  --secondary: 241 245 249;
+  --secondary-foreground: 15 23 42;
+  --muted: 241 245 249;
+  --muted-foreground: 71 85 105;
+  --accent: 241 245 249;
+  --accent-foreground: 15 23 42;
+  --destructive: 239 68 68;
+  --destructive-foreground: 248 250 252;
+  --border: 226 232 240;
+  --input: 226 232 240;
+  --ring: 15 23 42;
+
+  /* legacy palette aliases (kept so older shared styles don't break) */
+  --base: var(--background);
+  --surface: var(--card);
+  --surface-strong: var(--secondary);
+  --stroke: var(--border);
+  --ink: var(--foreground);
+  --ink-muted: var(--muted-foreground);
+  --ink-subtle: 100 116 139;
+  --cta: var(--primary);
+  --cta-hover: 30 41 59;
+  --cta-fg: var(--primary-foreground);
+  --accent-soft: var(--secondary);
+
+  /* Tailwind preset expects these */
+  --trail-bg: var(--background);
+  --trail-surface: var(--card);
+  --trail-surface-high: var(--secondary);
+  --trail-surface-low: var(--secondary);
+  --trail-border: var(--border);
+  --trail-ink: var(--foreground);
+  --trail-ink-muted: var(--muted-foreground);
+  --trail-accent: var(--primary);
+  --trail-accent-contrast: var(--primary-foreground);
+  --trail-highlight: var(--secondary);
+  --trail-glass: var(--card);
+  --trail-glass-strong: var(--secondary);
+  --trail-elev-1: 0 1px 0 rgba(0, 0, 0, 0.06);
+  --trail-elev-2: 0 4px 18px rgba(0, 0, 0, 0.08);
+  --trail-elev-3: 0 8px 28px rgba(0, 0, 0, 0.12);
+  --trail-ring: var(--ring);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --base: 2 6 23;
-  --surface: 15 23 42;
-  --surface-strong: 30 41 59;
-  --stroke: 51 65 85;
-  --ink: 248 250 252;
-  --ink-muted: 148 163 184;
-  --ink-subtle: 100 116 139;
-  --cta: 20 184 166;
-  --cta-hover: 45 212 191;
-  --cta-fg: 2 6 23;
-  --accent: 34 211 238;
-  --accent-soft: 22 78 99;
+  --radius: 0.5rem;
 
-  --trail-bg: var(--base);
-  --trail-surface: var(--surface);
-  --trail-surface-high: var(--surface-strong);
-  --trail-surface-low: 16 20 28;
-  --trail-border: var(--stroke);
-  --trail-ink: var(--ink);
-  --trail-ink-muted: var(--ink-muted);
-  --trail-accent: var(--accent);
-  --trail-accent-contrast: var(--cta-fg);
-  --trail-highlight: 30 41 59;
-  --trail-glass: var(--surface);
-  --trail-glass-strong: var(--surface-strong);
+  --background: 9 9 11;
+  --foreground: 250 250 250;
+  --card: 9 9 11;
+  --card-foreground: 250 250 250;
+  --popover: 9 9 11;
+  --popover-foreground: 250 250 250;
+  --primary: 250 250 250;
+  --primary-foreground: 9 9 11;
+  --secondary: 39 39 42;
+  --secondary-foreground: 250 250 250;
+  --muted: 39 39 42;
+  --muted-foreground: 161 161 170;
+  --accent: 39 39 42;
+  --accent-foreground: 250 250 250;
+  --destructive: 239 68 68;
+  --destructive-foreground: 250 250 250;
+  --border: 39 39 42;
+  --input: 39 39 42;
+  --ring: 214 214 214;
+
+  --base: var(--background);
+  --surface: var(--card);
+  --surface-strong: var(--secondary);
+  --stroke: var(--border);
+  --ink: var(--foreground);
+  --ink-muted: var(--muted-foreground);
+  --ink-subtle: 113 113 122;
+  --cta: var(--primary);
+  --cta-hover: 212 212 216;
+  --cta-fg: var(--primary-foreground);
+  --accent-soft: var(--secondary);
+
+  --trail-bg: var(--background);
+  --trail-surface: var(--card);
+  --trail-surface-high: var(--secondary);
+  --trail-surface-low: var(--secondary);
+  --trail-border: var(--border);
+  --trail-ink: var(--foreground);
+  --trail-ink-muted: var(--muted-foreground);
+  --trail-accent: var(--primary);
+  --trail-accent-contrast: var(--primary-foreground);
+  --trail-highlight: var(--secondary);
+  --trail-glass: var(--card);
+  --trail-glass-strong: var(--secondary);
   --trail-elev-1: 0 1px 0 rgba(0, 0, 0, 0.4);
   --trail-elev-2: 0 6px 18px rgba(0, 0, 0, 0.4);
   --trail-elev-3: 0 10px 32px rgba(0, 0, 0, 0.5);
-  --trail-ring: var(--accent);
-  --trail-gradient-1: radial-gradient(
-    60% 60% at 15% 10%,
-    rgba(58, 129, 196, 0.18),
-    transparent 72%
-  );
-  --trail-gradient-2: radial-gradient(
-    50% 50% at 85% 0%,
-    rgba(0, 0, 0, 0.35),
-    transparent 70%
-  );
+  --trail-ring: var(--ring);
 }
 
 @media (prefers-color-scheme: dark) {
   [data-theme="system"] {
     color-scheme: dark;
-    --base: 2 6 23;
-    --surface: 15 23 42;
-    --surface-strong: 30 41 59;
-    --stroke: 51 65 85;
-    --ink: 248 250 252;
-    --ink-muted: 148 163 184;
-    --ink-subtle: 100 116 139;
-    --cta: 20 184 166;
-    --cta-hover: 45 212 191;
-    --cta-fg: 2 6 23;
-    --accent: 34 211 238;
-    --accent-soft: 22 78 99;
+    --radius: 0.5rem;
+    --background: 9 9 11;
+    --foreground: 250 250 250;
+    --card: 9 9 11;
+    --card-foreground: 250 250 250;
+    --popover: 9 9 11;
+    --popover-foreground: 250 250 250;
+    --primary: 250 250 250;
+    --primary-foreground: 9 9 11;
+    --secondary: 39 39 42;
+    --secondary-foreground: 250 250 250;
+    --muted: 39 39 42;
+    --muted-foreground: 161 161 170;
+    --accent: 39 39 42;
+    --accent-foreground: 250 250 250;
+    --destructive: 239 68 68;
+    --destructive-foreground: 250 250 250;
+    --border: 39 39 42;
+    --input: 39 39 42;
+    --ring: 214 214 214;
 
-    --trail-bg: var(--base);
-    --trail-surface: var(--surface);
-    --trail-surface-high: var(--surface-strong);
-    --trail-surface-low: 16 20 28;
-    --trail-border: var(--stroke);
-    --trail-ink: var(--ink);
-    --trail-ink-muted: var(--ink-muted);
-    --trail-accent: var(--accent);
-    --trail-accent-contrast: var(--cta-fg);
-    --trail-highlight: 30 41 59;
-    --trail-glass: var(--surface);
-    --trail-glass-strong: var(--surface-strong);
+    --base: var(--background);
+    --surface: var(--card);
+    --surface-strong: var(--secondary);
+    --stroke: var(--border);
+    --ink: var(--foreground);
+    --ink-muted: var(--muted-foreground);
+    --ink-subtle: 113 113 122;
+    --cta: var(--primary);
+    --cta-hover: 212 212 216;
+    --cta-fg: var(--primary-foreground);
+    --accent-soft: var(--secondary);
+
+    --trail-bg: var(--background);
+    --trail-surface: var(--card);
+    --trail-surface-high: var(--secondary);
+    --trail-surface-low: var(--secondary);
+    --trail-border: var(--border);
+    --trail-ink: var(--foreground);
+    --trail-ink-muted: var(--muted-foreground);
+    --trail-accent: var(--primary);
+    --trail-accent-contrast: var(--primary-foreground);
+    --trail-highlight: var(--secondary);
+    --trail-glass: var(--card);
+    --trail-glass-strong: var(--secondary);
     --trail-elev-1: 0 1px 0 rgba(0, 0, 0, 0.4);
     --trail-elev-2: 0 6px 18px rgba(0, 0, 0, 0.4);
     --trail-elev-3: 0 10px 32px rgba(0, 0, 0, 0.5);
-    --trail-ring: var(--accent);
-    --trail-gradient-1: radial-gradient(
-      60% 60% at 15% 10%,
-      rgba(58, 129, 196, 0.18),
-      transparent 72%
-    );
-    --trail-gradient-2: radial-gradient(
-      50% 50% at 85% 0%,
-      rgba(0, 0, 0, 0.35),
-      transparent 70%
-    );
+    --trail-ring: var(--ring);
   }
 }
 
 @media (prefers-color-scheme: light) {
   [data-theme="system"] {
     color-scheme: light;
-    --base: 248 250 252;
-    --surface: 255 255 255;
-    --surface-strong: 241 245 249;
-    --stroke: 203 213 225;
-    --ink: 15 23 42;
-    --ink-muted: 71 85 105;
-    --ink-subtle: 100 116 139;
-    --cta: 13 148 136;
-    --cta-hover: 15 118 110;
-    --cta-fg: 255 255 255;
-    --accent: 8 145 178;
-    --accent-soft: 207 250 254;
+    --radius: 0.5rem;
+    --background: 255 255 255;
+    --foreground: 15 23 42;
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
+    --primary: 15 23 42;
+    --primary-foreground: 248 250 252;
+    --secondary: 241 245 249;
+    --secondary-foreground: 15 23 42;
+    --muted: 241 245 249;
+    --muted-foreground: 71 85 105;
+    --accent: 241 245 249;
+    --accent-foreground: 15 23 42;
+    --destructive: 239 68 68;
+    --destructive-foreground: 248 250 252;
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 15 23 42;
 
-    --trail-bg: var(--base);
-    --trail-surface: var(--surface);
-    --trail-surface-high: var(--surface-strong);
-    --trail-surface-low: 247 245 240;
-    --trail-border: var(--stroke);
-    --trail-ink: var(--ink);
-    --trail-ink-muted: var(--ink-muted);
-    --trail-accent: var(--accent);
-    --trail-accent-contrast: var(--cta-fg);
-    --trail-highlight: 207 250 254;
-    --trail-glass: var(--surface);
-    --trail-glass-strong: var(--surface-strong);
-    --trail-elev-1: 0 1px 0 rgba(20, 22, 26, 0.06);
-    --trail-elev-2: 0 4px 18px rgba(20, 22, 26, 0.08);
-    --trail-elev-3: 0 8px 28px rgba(20, 22, 26, 0.12);
-    --trail-ring: var(--accent);
-    --trail-gradient-1: radial-gradient(
-      60% 60% at 12% 8%,
-      rgba(58, 129, 196, 0.18),
-      transparent 70%
-    );
-    --trail-gradient-2: radial-gradient(
-      50% 50% at 88% 0%,
-      rgba(27, 30, 36, 0.08),
-      transparent 70%
-    );
+    --base: var(--background);
+    --surface: var(--card);
+    --surface-strong: var(--secondary);
+    --stroke: var(--border);
+    --ink: var(--foreground);
+    --ink-muted: var(--muted-foreground);
+    --ink-subtle: 100 116 139;
+    --cta: var(--primary);
+    --cta-hover: 30 41 59;
+    --cta-fg: var(--primary-foreground);
+    --accent-soft: var(--secondary);
+
+    --trail-bg: var(--background);
+    --trail-surface: var(--card);
+    --trail-surface-high: var(--secondary);
+    --trail-surface-low: var(--secondary);
+    --trail-border: var(--border);
+    --trail-ink: var(--foreground);
+    --trail-ink-muted: var(--muted-foreground);
+    --trail-accent: var(--primary);
+    --trail-accent-contrast: var(--primary-foreground);
+    --trail-highlight: var(--secondary);
+    --trail-glass: var(--card);
+    --trail-glass-strong: var(--secondary);
+    --trail-elev-1: 0 1px 0 rgba(0, 0, 0, 0.06);
+    --trail-elev-2: 0 4px 18px rgba(0, 0, 0, 0.08);
+    --trail-elev-3: 0 8px 28px rgba(0, 0, 0, 0.12);
+    --trail-ring: var(--ring);
   }
 }
 
-.trail-app {
-  background-image: var(--trail-gradient-1), var(--trail-gradient-2);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-
-.app-shell {
-  min-height: 100vh;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

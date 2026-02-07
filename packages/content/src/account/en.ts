@@ -7,7 +7,7 @@ export const accountCopy = {
     name: "trail"
   },
   nav: {
-    dashboard: "dashboard",
+    dashboard: "trails",
     activity: "activity",
     gettingStarted: "getting started",
     sessions: "sessions",
@@ -18,11 +18,11 @@ export const accountCopy = {
     signOut: "sign out"
   },
   header: {
-    searchPlaceholder: "search trails, settings, or billing",
+    searchPlaceholder: "search trails or settings",
     searchHint: "⌘k",
     navLabel: "navigate",
     navItems: {
-      dashboard: "status, sessions, and trails",
+      dashboard: "saved trails and sync status",
       extension: "connect and manage your browser",
       settings: "profile, security, and access",
       billing: "plan, usage, and invoices"
@@ -49,7 +49,7 @@ export const accountCopy = {
       },
       {
         title: "capture a trail",
-        description: "record a flow to populate the dashboard."
+        description: "record a flow to populate your trails."
       },
       {
         title: "review and share",
@@ -137,8 +137,8 @@ export const accountCopy = {
     }
   },
   dashboard: {
-    title: "dashboard",
-    subtitle: "see what is live, what is next, and your sync status at a glance.",
+    title: "trails",
+    subtitle: "saved trails captured by your extension.",
     cta: "connect extension",
     activation: {
       eyebrow: "do this now",
@@ -157,7 +157,7 @@ export const accountCopy = {
         },
         {
           title: "capture a trail",
-          description: "record a flow to populate the dashboard."
+          description: "record a flow to populate your trails."
         },
         {
           title: "review and share",
@@ -184,7 +184,7 @@ export const accountCopy = {
       items: [
         "capture trails from every active tab",
         "auto-organize sessions and timestamps",
-        "review and share from the dashboard"
+        "review and share from the app"
       ],
       cta: "connect extension",
       secondaryCta: "account settings"

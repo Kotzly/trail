@@ -150,7 +150,7 @@ export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
           initial={{ opacity: 0, y: 20, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="relative w-full aspect-video rounded-3xl overflow-hidden border border-stroke/40 shadow-2xl shadow-accent/5 bg-surface"
+          className="relative w-full aspect-video rounded-3xl overflow-hidden border border-stroke/40 shadow-[var(--trail-elev-3)] bg-surface"
         >
           <video
             src={videoUrl}

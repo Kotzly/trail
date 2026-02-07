@@ -41,7 +41,7 @@ export function FeaturesCTA() {
             <div className="mt-8">
               <Link
                 href="/downloads"
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-cta px-8 text-base font-semibold text-cta-fg transition-all hover:bg-cta-hover hover:scale-105"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-cta px-8 font-semibold text-cta-fg transition-all hover:bg-cta-hover hover:scale-105"
               >
                 Get started free
                 <ArrowRight className="h-5 w-5" />

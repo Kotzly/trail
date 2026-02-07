@@ -2,19 +2,23 @@
  * @vitest-environment node
  */
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
-import type { getUserFromToken as GetUserFromToken } from "../auth";
+
+vi.mock("@/src/env", () => ({
+  env: {
+    TRAIL_AUTH_BASE_URL: "https://auth.example.com",
+    ACCOUNT_AUTH_BYPASS: false,
+  },
+}));
+
+const issuer = "https://auth.example.com";
+
+import { getUserFromToken } from "../auth";
 
 describe("getUserFromToken", () => {
-  const issuer = "https://auth.example.com";
-  const originalAuthBase = process.env.TRAIL_AUTH_BASE_URL;
   let privateKey: CryptoKey;
   let publicJwk: Awaited<ReturnType<typeof exportJWK>>;
-  let getUserFromToken: typeof GetUserFromToken;
 
   beforeAll(async () => {
-    process.env.TRAIL_AUTH_BASE_URL = issuer;
-    vi.resetModules();
-    ({ getUserFromToken } = await import("../auth"));
     const { publicKey, privateKey: generatedPrivate } =
       await generateKeyPair("RS256");
     privateKey = generatedPrivate;
@@ -35,11 +39,6 @@ describe("getUserFromToken", () => {
   });
 
   afterAll(() => {
-    if (originalAuthBase === undefined) {
-      delete process.env.TRAIL_AUTH_BASE_URL;
-    } else {
-      process.env.TRAIL_AUTH_BASE_URL = originalAuthBase;
-    }
     vi.unstubAllGlobals();
   });
 

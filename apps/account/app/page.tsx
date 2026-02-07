@@ -4,7 +4,7 @@ import { getAuthSession } from "@/src/lib/auth";
 export default async function AccountHome() {
   const session = await getAuthSession();
   if (session?.user) {
-    redirect("/dashboard");
+    redirect("/trails");
   }
 
   redirect("/auth/login");
