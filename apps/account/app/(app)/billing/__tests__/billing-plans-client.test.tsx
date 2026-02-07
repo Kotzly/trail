@@ -122,11 +122,11 @@ describe("BillingPlansClient", () => {
     );
   });
 
-  it("shows current plan CTA for active pro subscription", () => {
+  it("shows cancel CTA for active paid subscription", () => {
     render(<BillingPlansClient plans={plans} currentPlanId="pro" />);
 
-    expect(screen.getByRole("button", { name: "current plan" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "current plan" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "cancel subscription" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "cancel subscription" })).not.toBeDisabled();
   });
 
   it("redirects to auth refresh when checkout returns 401 with redirectUrl", async () => {
@@ -155,7 +155,7 @@ describe("BillingPlansClient", () => {
     });
   });
 
-  it("cancels subscription when downgrading from pro to free", async () => {
+  it("cancels auto-renew when cancel subscription is clicked", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(
       new Response(
@@ -171,7 +171,7 @@ describe("BillingPlansClient", () => {
     const user = userEvent.setup();
     render(<BillingPlansClient plans={plans} currentPlanId="pro" />);
 
-    await user.click(screen.getByRole("button", { name: "downgrade to free" }));
+    await user.click(screen.getByRole("button", { name: "cancel subscription" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -182,7 +182,7 @@ describe("BillingPlansClient", () => {
     expect(locationReload).toHaveBeenCalled();
   });
 
-  it("resumes subscription when current plan is canceled", async () => {
+  it("resumes auto-renew when current plan is canceled", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(
       new Response(
@@ -205,7 +205,7 @@ describe("BillingPlansClient", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "resume subscription" }));
+    await user.click(screen.getByRole("button", { name: "resume auto-renew" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(

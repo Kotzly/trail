@@ -41,6 +41,7 @@ export type BillingCheckoutSessionMinAggregateOutputType = {
   userId: string | null
   planId: string | null
   interval: string | null
+  requestedInterval: string | null
   currency: string | null
   amountCents: number | null
   status: string | null
@@ -58,6 +59,7 @@ export type BillingCheckoutSessionMaxAggregateOutputType = {
   userId: string | null
   planId: string | null
   interval: string | null
+  requestedInterval: string | null
   currency: string | null
   amountCents: number | null
   status: string | null
@@ -75,6 +77,7 @@ export type BillingCheckoutSessionCountAggregateOutputType = {
   userId: number
   planId: number
   interval: number
+  requestedInterval: number
   currency: number
   amountCents: number
   status: number
@@ -103,6 +106,7 @@ export type BillingCheckoutSessionMinAggregateInputType = {
   userId?: true
   planId?: true
   interval?: true
+  requestedInterval?: true
   currency?: true
   amountCents?: true
   status?: true
@@ -120,6 +124,7 @@ export type BillingCheckoutSessionMaxAggregateInputType = {
   userId?: true
   planId?: true
   interval?: true
+  requestedInterval?: true
   currency?: true
   amountCents?: true
   status?: true
@@ -137,6 +142,7 @@ export type BillingCheckoutSessionCountAggregateInputType = {
   userId?: true
   planId?: true
   interval?: true
+  requestedInterval?: true
   currency?: true
   amountCents?: true
   status?: true
@@ -242,6 +248,7 @@ export type BillingCheckoutSessionGroupByOutputType = {
   userId: string
   planId: string
   interval: string
+  requestedInterval: string | null
   currency: string
   amountCents: number
   status: string
@@ -283,6 +290,7 @@ export type BillingCheckoutSessionWhereInput = {
   userId?: Prisma.StringFilter<"BillingCheckoutSession"> | string
   planId?: Prisma.StringFilter<"BillingCheckoutSession"> | string
   interval?: Prisma.StringFilter<"BillingCheckoutSession"> | string
+  requestedInterval?: Prisma.StringNullableFilter<"BillingCheckoutSession"> | string | null
   currency?: Prisma.StringFilter<"BillingCheckoutSession"> | string
   amountCents?: Prisma.IntFilter<"BillingCheckoutSession"> | number
   status?: Prisma.StringFilter<"BillingCheckoutSession"> | string
@@ -302,6 +310,7 @@ export type BillingCheckoutSessionOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   planId?: Prisma.SortOrder
   interval?: Prisma.SortOrder
+  requestedInterval?: Prisma.SortOrderInput | Prisma.SortOrder
   currency?: Prisma.SortOrder
   amountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -324,6 +333,7 @@ export type BillingCheckoutSessionWhereUniqueInput = Prisma.AtLeast<{
   userId?: Prisma.StringFilter<"BillingCheckoutSession"> | string
   planId?: Prisma.StringFilter<"BillingCheckoutSession"> | string
   interval?: Prisma.StringFilter<"BillingCheckoutSession"> | string
+  requestedInterval?: Prisma.StringNullableFilter<"BillingCheckoutSession"> | string | null
   currency?: Prisma.StringFilter<"BillingCheckoutSession"> | string
   amountCents?: Prisma.IntFilter<"BillingCheckoutSession"> | number
   status?: Prisma.StringFilter<"BillingCheckoutSession"> | string
@@ -343,6 +353,7 @@ export type BillingCheckoutSessionOrderByWithAggregationInput = {
   userId?: Prisma.SortOrder
   planId?: Prisma.SortOrder
   interval?: Prisma.SortOrder
+  requestedInterval?: Prisma.SortOrderInput | Prisma.SortOrder
   currency?: Prisma.SortOrder
   amountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -369,6 +380,7 @@ export type BillingCheckoutSessionScalarWhereWithAggregatesInput = {
   userId?: Prisma.StringWithAggregatesFilter<"BillingCheckoutSession"> | string
   planId?: Prisma.StringWithAggregatesFilter<"BillingCheckoutSession"> | string
   interval?: Prisma.StringWithAggregatesFilter<"BillingCheckoutSession"> | string
+  requestedInterval?: Prisma.StringNullableWithAggregatesFilter<"BillingCheckoutSession"> | string | null
   currency?: Prisma.StringWithAggregatesFilter<"BillingCheckoutSession"> | string
   amountCents?: Prisma.IntWithAggregatesFilter<"BillingCheckoutSession"> | number
   status?: Prisma.StringWithAggregatesFilter<"BillingCheckoutSession"> | string
@@ -386,6 +398,7 @@ export type BillingCheckoutSessionCreateInput = {
   orderId: string
   planId: string
   interval: string
+  requestedInterval?: string | null
   currency: string
   amountCents: number
   status?: string
@@ -405,6 +418,7 @@ export type BillingCheckoutSessionUncheckedCreateInput = {
   userId: string
   planId: string
   interval: string
+  requestedInterval?: string | null
   currency: string
   amountCents: number
   status?: string
@@ -422,6 +436,7 @@ export type BillingCheckoutSessionUpdateInput = {
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   planId?: Prisma.StringFieldUpdateOperationsInput | string
   interval?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedInterval?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   amountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -441,6 +456,7 @@ export type BillingCheckoutSessionUncheckedUpdateInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   planId?: Prisma.StringFieldUpdateOperationsInput | string
   interval?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedInterval?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   amountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -459,6 +475,7 @@ export type BillingCheckoutSessionCreateManyInput = {
   userId: string
   planId: string
   interval: string
+  requestedInterval?: string | null
   currency: string
   amountCents: number
   status?: string
@@ -476,6 +493,7 @@ export type BillingCheckoutSessionUpdateManyMutationInput = {
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   planId?: Prisma.StringFieldUpdateOperationsInput | string
   interval?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedInterval?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   amountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -494,6 +512,7 @@ export type BillingCheckoutSessionUncheckedUpdateManyInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   planId?: Prisma.StringFieldUpdateOperationsInput | string
   interval?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedInterval?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   amountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -522,6 +541,7 @@ export type BillingCheckoutSessionCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   planId?: Prisma.SortOrder
   interval?: Prisma.SortOrder
+  requestedInterval?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   amountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -544,6 +564,7 @@ export type BillingCheckoutSessionMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   planId?: Prisma.SortOrder
   interval?: Prisma.SortOrder
+  requestedInterval?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   amountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -561,6 +582,7 @@ export type BillingCheckoutSessionMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   planId?: Prisma.SortOrder
   interval?: Prisma.SortOrder
+  requestedInterval?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   amountCents?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -635,6 +657,7 @@ export type BillingCheckoutSessionCreateWithoutUserInput = {
   orderId: string
   planId: string
   interval: string
+  requestedInterval?: string | null
   currency: string
   amountCents: number
   status?: string
@@ -652,6 +675,7 @@ export type BillingCheckoutSessionUncheckedCreateWithoutUserInput = {
   orderId: string
   planId: string
   interval: string
+  requestedInterval?: string | null
   currency: string
   amountCents: number
   status?: string
@@ -699,6 +723,7 @@ export type BillingCheckoutSessionScalarWhereInput = {
   userId?: Prisma.StringFilter<"BillingCheckoutSession"> | string
   planId?: Prisma.StringFilter<"BillingCheckoutSession"> | string
   interval?: Prisma.StringFilter<"BillingCheckoutSession"> | string
+  requestedInterval?: Prisma.StringNullableFilter<"BillingCheckoutSession"> | string | null
   currency?: Prisma.StringFilter<"BillingCheckoutSession"> | string
   amountCents?: Prisma.IntFilter<"BillingCheckoutSession"> | number
   status?: Prisma.StringFilter<"BillingCheckoutSession"> | string
@@ -716,6 +741,7 @@ export type BillingCheckoutSessionCreateManyUserInput = {
   orderId: string
   planId: string
   interval: string
+  requestedInterval?: string | null
   currency: string
   amountCents: number
   status?: string
@@ -733,6 +759,7 @@ export type BillingCheckoutSessionUpdateWithoutUserInput = {
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   planId?: Prisma.StringFieldUpdateOperationsInput | string
   interval?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedInterval?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   amountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -750,6 +777,7 @@ export type BillingCheckoutSessionUncheckedUpdateWithoutUserInput = {
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   planId?: Prisma.StringFieldUpdateOperationsInput | string
   interval?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedInterval?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   amountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -767,6 +795,7 @@ export type BillingCheckoutSessionUncheckedUpdateManyWithoutUserInput = {
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   planId?: Prisma.StringFieldUpdateOperationsInput | string
   interval?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedInterval?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   amountCents?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -787,6 +816,7 @@ export type BillingCheckoutSessionSelect<ExtArgs extends runtime.Types.Extension
   userId?: boolean
   planId?: boolean
   interval?: boolean
+  requestedInterval?: boolean
   currency?: boolean
   amountCents?: boolean
   status?: boolean
@@ -806,6 +836,7 @@ export type BillingCheckoutSessionSelectCreateManyAndReturn<ExtArgs extends runt
   userId?: boolean
   planId?: boolean
   interval?: boolean
+  requestedInterval?: boolean
   currency?: boolean
   amountCents?: boolean
   status?: boolean
@@ -825,6 +856,7 @@ export type BillingCheckoutSessionSelectUpdateManyAndReturn<ExtArgs extends runt
   userId?: boolean
   planId?: boolean
   interval?: boolean
+  requestedInterval?: boolean
   currency?: boolean
   amountCents?: boolean
   status?: boolean
@@ -844,6 +876,7 @@ export type BillingCheckoutSessionSelectScalar = {
   userId?: boolean
   planId?: boolean
   interval?: boolean
+  requestedInterval?: boolean
   currency?: boolean
   amountCents?: boolean
   status?: boolean
@@ -855,7 +888,7 @@ export type BillingCheckoutSessionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type BillingCheckoutSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "provider" | "orderId" | "userId" | "planId" | "interval" | "currency" | "amountCents" | "status" | "paymentStatus" | "nowpaymentsInvoiceUrl" | "nowpaymentsPaymentId" | "lastPayload" | "createdAt" | "updatedAt", ExtArgs["result"]["billingCheckoutSession"]>
+export type BillingCheckoutSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "provider" | "orderId" | "userId" | "planId" | "interval" | "requestedInterval" | "currency" | "amountCents" | "status" | "paymentStatus" | "nowpaymentsInvoiceUrl" | "nowpaymentsPaymentId" | "lastPayload" | "createdAt" | "updatedAt", ExtArgs["result"]["billingCheckoutSession"]>
 export type BillingCheckoutSessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -878,6 +911,7 @@ export type $BillingCheckoutSessionPayload<ExtArgs extends runtime.Types.Extensi
     userId: string
     planId: string
     interval: string
+    requestedInterval: string | null
     currency: string
     amountCents: number
     status: string
@@ -1317,6 +1351,7 @@ export interface BillingCheckoutSessionFieldRefs {
   readonly userId: Prisma.FieldRef<"BillingCheckoutSession", 'String'>
   readonly planId: Prisma.FieldRef<"BillingCheckoutSession", 'String'>
   readonly interval: Prisma.FieldRef<"BillingCheckoutSession", 'String'>
+  readonly requestedInterval: Prisma.FieldRef<"BillingCheckoutSession", 'String'>
   readonly currency: Prisma.FieldRef<"BillingCheckoutSession", 'String'>
   readonly amountCents: Prisma.FieldRef<"BillingCheckoutSession", 'Int'>
   readonly status: Prisma.FieldRef<"BillingCheckoutSession", 'String'>

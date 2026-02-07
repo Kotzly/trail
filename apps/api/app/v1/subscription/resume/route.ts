@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   const existing = await db.userSubscription.findUnique({
     where: { userId: user.id },
-    select: { plan: true, currentPeriodEnd: true },
+    select: { plan: true, currentPeriodEnd: true, cancelAtPeriodEnd: true, status: true },
   });
 
   if (!existing || existing.plan === "FREE") {
@@ -38,7 +38,11 @@ export async function POST(request: Request) {
 
   await db.userSubscription.update({
     where: { userId: user.id },
-    data: { status: "ACTIVE" },
+    data: {
+      cancelAtPeriodEnd: false,
+      canceledAt: null,
+      ...(existing.status === "CANCELED" ? { status: "ACTIVE" } : {}),
+    },
   });
 
   const snapshot = await getSubscriptionSnapshotForUser({
@@ -48,4 +52,3 @@ export async function POST(request: Request) {
 
   return jsonNoStore(snapshot);
 }
-

@@ -13,6 +13,7 @@ export async function getBillingStatusFromSubscription(
     select: {
       plan: true,
       status: true,
+      cancelAtPeriodEnd: true,
       currentPeriodEnd: true,
       updatedAt: true,
     },
@@ -29,6 +30,10 @@ export async function getBillingStatusFromSubscription(
 
   const nextChargeAt = toIso(subscription.currentPeriodEnd);
   const lastChargeAt = toIso(subscription.updatedAt);
+
+  if (subscription.cancelAtPeriodEnd) {
+    return { state: "canceled", nextChargeAt, lastChargeAt };
+  }
 
   switch (subscription.status) {
     case "ACTIVE":

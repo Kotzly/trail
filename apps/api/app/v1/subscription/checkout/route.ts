@@ -14,6 +14,10 @@ function isInterval(value: unknown): value is CheckoutInterval {
   return value === "month" || value === "year";
 }
 
+function isPlanId(value: unknown): value is "pro" | "teams" {
+  return value === "pro" || value === "teams";
+}
+
 function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string";
 }
@@ -27,8 +31,7 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   if (
-    typeof body?.planId !== "string" ||
-    !body.planId.trim() ||
+    !isPlanId(body?.planId) ||
     !isInterval(body.interval) ||
     !isOptionalString(body.successUrl) ||
     !isOptionalString(body.cancelUrl)

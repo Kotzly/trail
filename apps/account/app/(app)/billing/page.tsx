@@ -24,8 +24,10 @@ type ApiPlan = {
 type ApiSubscription = {
   planId: "free" | "pro" | "teams";
   status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired";
+  interval: "month" | "year" | null;
+  pendingInterval: "month" | "year" | null;
   cancelAtPeriodEnd: boolean;
-  currentPeriodEnd: string;
+  currentPeriodEnd: string | null;
 };
 
 async function getBillingPlans(): Promise<BillingPlanView[]> {
@@ -62,6 +64,8 @@ export default async function BillingPage() {
   const currentPlanId = subscription?.planId ?? "free";
   const cancelAtPeriodEnd = subscription?.cancelAtPeriodEnd ?? false;
   const currentPeriodEnd = subscription?.currentPeriodEnd ?? null;
+  const currentInterval = subscription?.interval ?? null;
+  const pendingInterval = subscription?.pendingInterval ?? null;
 
   return (
     <section className="space-y-8">
@@ -84,6 +88,8 @@ export default async function BillingPage() {
       <BillingPlansClient
         plans={plans}
         currentPlanId={currentPlanId}
+        currentInterval={currentInterval}
+        pendingInterval={pendingInterval}
         cancelAtPeriodEnd={cancelAtPeriodEnd}
         currentPeriodEnd={currentPeriodEnd}
       />

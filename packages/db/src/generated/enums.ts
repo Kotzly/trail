@@ -18,6 +18,14 @@ export const SubscriptionPlan = {
 export type SubscriptionPlan = (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan]
 
 
+export const SubscriptionInterval = {
+  MONTH: 'MONTH',
+  YEAR: 'YEAR'
+} as const
+
+export type SubscriptionInterval = (typeof SubscriptionInterval)[keyof typeof SubscriptionInterval]
+
+
 export const SubscriptionStatus = {
   ACTIVE: 'ACTIVE',
   TRIALING: 'TRIALING',
