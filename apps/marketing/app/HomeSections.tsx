@@ -33,8 +33,8 @@ export function HomeContent() {
         <TrustedBy />
         <BentoFeatures />
         <VideoShowcases />
-        <Testimonials />
-        <PricingSection />
+        {/* <Testimonials /> */}
+        {/* <PricingSection /> */}
         <FAQSection />
         <CTASection />
       </div>

@@ -13,11 +13,6 @@ const globalForPrisma = globalThis as {
 
 const envCandidates = [
   "DATABASE_URL",
-  "POSTGRES_PRISMA_URL",
-  "POSTGRES_URL",
-  "SUPABASE_DATABASE_URL",
-  "SUPABASE_DB_URL",
-  "SUPABASE_POOLER_URL"
 ];
 
 const isValidDatabaseUrl = (value: string | undefined | null) => {
@@ -41,10 +36,7 @@ const resolveDatabaseUrl = () => {
 };
 
 const resolveCaCert = () => {
-  const candidate =
-    process.env.SUPABASE_CA_CERT ??
-    process.env.DATABASE_CA_CERT ??
-    process.env.POSTGRES_CA_CERT;
+  const candidate = process.env.DATABASE_CA_CERT
   if (!candidate) return null;
   const trimmed = candidate.trim();
   if (!trimmed) return null;
@@ -60,6 +52,7 @@ const resolveCaCert = () => {
 
 let databaseUrl = resolveDatabaseUrl();
 
+// todo: remove file env checks
 if (!databaseUrl) {
   const candidates = [
     ".env.local",
