@@ -73,6 +73,11 @@ const parseColor = (value: string | null | undefined, fallback: number): number 
 
 export function readGraphTheme(source: ThemeSource): GraphTheme {
   const style = getComputedStyle(source.host);
+  // Single connection color for all edge types. Default to `--md-primary` so it tracks theme changes.
+  const connectionColor = parseColor(
+    style.getPropertyValue('--graph-connection'),
+    parseColor(style.getPropertyValue('--md-primary'), DEFAULT_THEME.connection.path),
+  );
   const theme: GraphTheme = {
     surface: parseColor(style.getPropertyValue('--md-surface'), DEFAULT_THEME.surface),
     surfaceContainer: parseColor(
@@ -129,8 +134,8 @@ export function readGraphTheme(source: ThemeSource): GraphTheme {
       ),
     },
     connection: {
-      base: parseColor(style.getPropertyValue('--md-outline-variant'), DEFAULT_THEME.connection.base),
-      path: parseColor(style.getPropertyValue('--md-on-surface'), DEFAULT_THEME.connection.path),
+      base: connectionColor,
+      path: connectionColor,
     },
   };
   return theme;

@@ -41,7 +41,7 @@ function testNavigationTreeDeletion(): void {
   const grand = tree.navigate(data('https://grand.test' as Url));
 
   const removed = tree.deleteNode(child.id);
-  assert.equal(removed.length, 1);
+  assert.equal(removed.removed.length, 1);
   assert.equal(tree.findNodeById(child.id), null);
   assert.equal(tree.findNodeById(grand.id)?.getParent()?.id, root.id);
 
@@ -50,6 +50,32 @@ function testNavigationTreeDeletion(): void {
   assert.equal(tree.findNodeById(sibling.id), null);
   assert.equal(tree.findNodeById(grand.id), null);
   assert.equal(tree.size(), 1);
+}
+
+function testNavigationTreeDeleteMergesDuplicateReparentedNodes(): void {
+  const tree = new NavigationTree(100);
+  const root = tree.navigate(data('https://root.test' as Url));
+  const link1 = tree.navigate(data('https://example.com/auth' as Url));
+  const link2a = tree.navigate(data('https://example.com/account/' as Url));
+
+  tree.setCurrent(root);
+  const link2b = tree.navigate(data('https://example.com/account' as Url));
+
+  // Sanity: link2a is under link1, link2b is direct child of root.
+  assert.equal(link2a.getParent()?.id, link1.id);
+  assert.equal(link2b.getParent()?.id, root.id);
+
+  const result = tree.deleteNode(link1.id);
+  assert.equal(result.removed.length, 1);
+
+  const directAccountChildren = root
+    .getChildren()
+    .filter((node) => node.data.url.toString().includes('example.com/account'));
+
+  assert.equal(directAccountChildren.length, 1);
+
+  // The reparented duplicate should have been merged away.
+  assert.equal(tree.findNodeById(link2a.id), null);
 }
 
 function testNavigationTreeSubtree(): void {
@@ -285,6 +311,7 @@ function testEntitlements(): void {
 
 try {
   testNavigationTreeDeletion();
+  testNavigationTreeDeleteMergesDuplicateReparentedNodes();
   testNavigationTreeSubtree();
   testCommandManagerUndoRedo();
   testNavigationTreeSearchIndex();

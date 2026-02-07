@@ -1017,12 +1017,11 @@ export class GraphPixiRenderer {
     this.connectionLayer.clear();
     this.pathLayer.clear();
     if (!this.data.showConnections || this.detailMode !== 'full') return;
-    const baseColor = this.theme.connection.base;
-    const pathColor = this.theme.connection.path;
-    const baseWidth = 2 / this.view.scale;
-    const pathWidth = 2.5 / this.view.scale;
-    this.connectionLayer.setStrokeStyle({ width: baseWidth, color: baseColor, alpha: 0.6 });
-    this.pathLayer.setStrokeStyle({ width: pathWidth, color: pathColor, alpha: 1 });
+    const color = this.theme.connection.path;
+    const width = 2 / this.view.scale;
+    const alpha = 0.42;
+    this.connectionLayer.setStrokeStyle({ width, color, alpha });
+    this.pathLayer.setStrokeStyle({ width, color, alpha });
 
     this.connections.forEach((conn) => {
       if (!intersects(conn.bounds, viewRect)) return;
