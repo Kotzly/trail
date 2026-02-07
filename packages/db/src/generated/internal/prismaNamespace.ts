@@ -392,6 +392,7 @@ export const ModelName = {
   AuthBridgeCode: 'AuthBridgeCode',
   ExtensionLoginCode: 'ExtensionLoginCode',
   UserSubscription: 'UserSubscription',
+  BillingCheckoutSession: 'BillingCheckoutSession',
   PolarWebhookEvent: 'PolarWebhookEvent',
   WishlistLead: 'WishlistLead',
   Device: 'Device',
@@ -415,7 +416,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jwks" | "authBridgeCode" | "extensionLoginCode" | "userSubscription" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "portalSession" | "extensionConnectSession" | "trail"
+    modelProps: "user" | "session" | "account" | "verification" | "jwks" | "authBridgeCode" | "extensionLoginCode" | "userSubscription" | "billingCheckoutSession" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "portalSession" | "extensionConnectSession" | "trail"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1008,6 +1009,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserSubscriptionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserSubscriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    BillingCheckoutSession: {
+      payload: Prisma.$BillingCheckoutSessionPayload<ExtArgs>
+      fields: Prisma.BillingCheckoutSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BillingCheckoutSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BillingCheckoutSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.BillingCheckoutSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BillingCheckoutSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload>
+        }
+        findMany: {
+          args: Prisma.BillingCheckoutSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload>[]
+        }
+        create: {
+          args: Prisma.BillingCheckoutSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload>
+        }
+        createMany: {
+          args: Prisma.BillingCheckoutSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BillingCheckoutSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.BillingCheckoutSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload>
+        }
+        update: {
+          args: Prisma.BillingCheckoutSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.BillingCheckoutSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BillingCheckoutSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BillingCheckoutSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.BillingCheckoutSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingCheckoutSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.BillingCheckoutSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBillingCheckoutSession>
+        }
+        groupBy: {
+          args: Prisma.BillingCheckoutSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BillingCheckoutSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BillingCheckoutSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BillingCheckoutSessionCountAggregateOutputType> | number
         }
       }
     }
@@ -1650,7 +1725,8 @@ export const UserScalarFieldEnum = {
   image: 'image',
   imageUrl: 'imageUrl',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  onboardingSeenAt: 'onboardingSeenAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -1751,6 +1827,27 @@ export const UserSubscriptionScalarFieldEnum = {
 } as const
 
 export type UserSubscriptionScalarFieldEnum = (typeof UserSubscriptionScalarFieldEnum)[keyof typeof UserSubscriptionScalarFieldEnum]
+
+
+export const BillingCheckoutSessionScalarFieldEnum = {
+  id: 'id',
+  provider: 'provider',
+  orderId: 'orderId',
+  userId: 'userId',
+  planId: 'planId',
+  interval: 'interval',
+  currency: 'currency',
+  amountCents: 'amountCents',
+  status: 'status',
+  paymentStatus: 'paymentStatus',
+  nowpaymentsInvoiceUrl: 'nowpaymentsInvoiceUrl',
+  nowpaymentsPaymentId: 'nowpaymentsPaymentId',
+  lastPayload: 'lastPayload',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingCheckoutSessionScalarFieldEnum = (typeof BillingCheckoutSessionScalarFieldEnum)[keyof typeof BillingCheckoutSessionScalarFieldEnum]
 
 
 export const PolarWebhookEventScalarFieldEnum = {
@@ -1890,6 +1987,14 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
 export const JsonNullValueInput = {
   JsonNull: JsonNull
 } as const
@@ -1992,6 +2097,34 @@ export type ListEnumSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'BillingProvider'
+ */
+export type EnumBillingProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BillingProvider'>
+    
+
+
+/**
+ * Reference to a field of type 'BillingProvider[]'
+ */
+export type ListEnumBillingProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BillingProvider[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
  * Reference to a field of type 'Json'
  */
 export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -2072,20 +2205,6 @@ export type EnumTrailLabelSourceFieldRefInput<$PrismaModel> = FieldRefInputType<
  * Reference to a field of type 'TrailLabelSource[]'
  */
 export type ListEnumTrailLabelSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TrailLabelSource[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -2205,6 +2324,7 @@ export type GlobalOmitConfig = {
   authBridgeCode?: Prisma.AuthBridgeCodeOmit
   extensionLoginCode?: Prisma.ExtensionLoginCodeOmit
   userSubscription?: Prisma.UserSubscriptionOmit
+  billingCheckoutSession?: Prisma.BillingCheckoutSessionOmit
   polarWebhookEvent?: Prisma.PolarWebhookEventOmit
   wishlistLead?: Prisma.WishlistLeadOmit
   device?: Prisma.DeviceOmit

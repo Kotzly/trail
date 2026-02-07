@@ -4,6 +4,10 @@ const authMocks = vi.hoisted(() => ({
   verifyExtensionToken: vi.fn(),
 }));
 
+const userAuthMocks = vi.hoisted(() => ({
+  verifyUserToken: vi.fn(),
+}));
+
 const userMocks = vi.hoisted(() => ({
   getUserById: vi.fn(),
 }));
@@ -52,6 +56,10 @@ vi.mock("@/src/server/auth/extension-auth", () => ({
   ...authMocks,
 }));
 
+vi.mock("@/src/server/auth/user-auth", () => ({
+  ...userAuthMocks,
+}));
+
 vi.mock("@/src/server/user", () => ({
   ...userMocks,
 }));
@@ -90,6 +98,7 @@ import { POST as portal } from "../billing/portal/route";
 describe("v1 billing endpoints", () => {
   beforeEach(() => {
     authMocks.verifyExtensionToken.mockReset();
+    userAuthMocks.verifyUserToken.mockReset();
     userMocks.getUserById.mockReset();
     snapshotMocks.listPlans.mockReset();
     snapshotMocks.buildAccountSnapshot.mockReset();
@@ -260,6 +269,36 @@ describe("v1 billing endpoints", () => {
     ).toHaveBeenCalledWith({
       userId: "user-1",
       userEmail: "user@test.com",
+    });
+  });
+
+  it("accepts user tokens for checkout", async () => {
+    authMocks.verifyExtensionToken.mockReturnValue(null);
+    userAuthMocks.verifyUserToken.mockResolvedValue({ sub: "user-1" });
+    userMocks.getUserById.mockResolvedValue({
+      id: "user-1",
+      email: "user@test.com",
+      name: "Test User",
+      imageUrl: null,
+      createdAt: new Date("2026-02-01T00:00:00Z"),
+    });
+
+    const response = await checkout(
+      new Request("http://localhost/v1/subscription/checkout", {
+        method: "POST",
+        headers: { Authorization: "Bearer user-token" },
+        body: JSON.stringify({ planId: "pro", interval: "month" }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(billingProviderMocks.provider.createCheckoutSession).toHaveBeenCalledWith({
+      userId: "user-1",
+      userEmail: "user@test.com",
+      planId: "pro",
+      interval: "month",
+      successUrl: undefined,
+      cancelUrl: undefined,
     });
   });
 });

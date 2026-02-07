@@ -58,6 +58,11 @@ export type ExtensionLoginCode = Prisma.ExtensionLoginCodeModel
  */
 export type UserSubscription = Prisma.UserSubscriptionModel
 /**
+ * Model BillingCheckoutSession
+ * 
+ */
+export type BillingCheckoutSession = Prisma.BillingCheckoutSessionModel
+/**
  * Model PolarWebhookEvent
  * 
  */

@@ -1,26 +1,20 @@
 import { getBearerToken } from "@/src/server/auth/headers";
-import { verifyExtensionToken } from "@/src/server/auth/extension-auth";
+import { getUserFromBillingBearerToken } from "@/src/server/auth/billing-user";
 import { jsonError } from "@/src/server/error-response";
 import { jsonNoStore } from "@/src/server/response";
-import { getUserById } from "@/src/server/user";
 import { getSubscriptionSnapshotForUser } from "@/src/server/subscription-access";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const token = getBearerToken(request.headers);
-  const extension = token ? verifyExtensionToken(token) : null;
-  if (!extension?.sub) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
-  }
-
-  const user = await getUserById(extension.sub);
+  const user = await getUserFromBillingBearerToken(token);
   if (!user) {
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
   const subscription = await getSubscriptionSnapshotForUser({
-    userId: extension.sub,
+    userId: user.id,
     fallbackCreatedAt: user.createdAt,
   });
 

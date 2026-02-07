@@ -8,27 +8,28 @@ datasource db {
 }
 
 model User {
-  id              String            @id @default(cuid())
-  email           String
-  name            String
-  emailVerified   Boolean           @default(false)
-  image           String?
-  imageUrl        String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  onboardingSeenAt DateTime?
-  sessions        Session[]
-  accounts        Account[]
-  subscription    UserSubscription?
-  wishlistLeads   WishlistLead[]
-  devices         Device[]
-  deviceSessions  DeviceSession[]
-  accountSettings AccountSettings?
-  portalSessions  PortalSession[]
-  authBridgeCodes AuthBridgeCode[]
-  extensionLoginCodes ExtensionLoginCode[]
+  id                       String                    @id @default(cuid())
+  email                    String
+  name                     String
+  emailVerified            Boolean                   @default(false)
+  image                    String?
+  imageUrl                 String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  onboardingSeenAt         DateTime?
+  sessions                 Session[]
+  accounts                 Account[]
+  subscription             UserSubscription?
+  billingCheckoutSessions  BillingCheckoutSession[]
+  wishlistLeads            WishlistLead[]
+  devices                  Device[]
+  deviceSessions           DeviceSession[]
+  accountSettings          AccountSettings?
+  portalSessions           PortalSession[]
+  authBridgeCodes          AuthBridgeCode[]
+  extensionLoginCodes      ExtensionLoginCode[]
   extensionConnectSessions ExtensionConnectSession[]
-  trails          Trail[]
+  trails                   Trail[]
 
   @@unique([email])
 }
@@ -49,11 +50,11 @@ model Session {
 }
 
 model Account {
-  id                    String   @id
+  id                    String    @id
   accountId             String
   providerId            String
   userId                String
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -61,8 +62,8 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   password              String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@index([userId])
 }
@@ -87,27 +88,27 @@ model Jwks {
 }
 
 model AuthBridgeCode {
-  id        String   @id @default(cuid())
-  code      String   @unique
+  id        String    @id @default(cuid())
+  code      String    @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   jwt       String
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([expiresAt])
 }
 
 model ExtensionLoginCode {
-  id        String   @id @default(cuid())
-  code      String   @unique
+  id        String    @id @default(cuid())
+  code      String    @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([expiresAt])
   @@index([userId])
@@ -160,35 +161,61 @@ enum TrailLabelSource {
   SYSTEM
 }
 
+enum BillingProvider {
+  MANUAL
+  NOWPAYMENTS
+}
+
 model UserSubscription {
-  id                 String             @id @default(cuid())
-  userId             String             @unique
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan               SubscriptionPlan   @default(FREE)
-  status             SubscriptionStatus @default(UNKNOWN)
-  polarCustomerId    String?            @unique
-  polarSubscriptionId String?           @unique
-  currentPeriodEnd   DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                SubscriptionPlan   @default(FREE)
+  status              SubscriptionStatus @default(UNKNOWN)
+  polarCustomerId     String?            @unique
+  polarSubscriptionId String?            @unique
+  currentPeriodEnd    DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+model BillingCheckoutSession {
+  id                    String          @id @default(cuid())
+  provider              BillingProvider
+  orderId               String          @unique
+  userId                String
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId                String
+  interval              String
+  currency              String
+  amountCents           Int
+  status                String          @default("CREATED")
+  paymentStatus         String?
+  nowpaymentsInvoiceUrl String?
+  nowpaymentsPaymentId  String?
+  lastPayload           Json?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([userId])
 }
 
 model PolarWebhookEvent {
-  id         String                  @id
-  type       String
-  payload    Json
-  status     PolarWebhookEventStatus @default(PENDING)
-  receivedAt DateTime                @default(now())
+  id          String                  @id
+  type        String
+  payload     Json
+  status      PolarWebhookEventStatus @default(PENDING)
+  receivedAt  DateTime                @default(now())
   processedAt DateTime?
-  error      String?
-  updatedAt  DateTime                @updatedAt
+  error       String?
+  updatedAt   DateTime                @updatedAt
 }
 
 model WishlistLead {
-  id          String              @id @default(cuid())
-  email       String              @unique
+  id          String               @id @default(cuid())
+  email       String               @unique
   userId      String?
-  user        User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user        User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
   sources     WishlistLeadSource[]
   utmSource   String?
   utmMedium   String?
@@ -200,15 +227,15 @@ model WishlistLead {
   userAgent   String?
   ip          String?
   country     String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 }
 
 model Device {
-  id               String         @id @default(cuid())
+  id               String          @id @default(cuid())
   userId           String
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status           DeviceStatus   @default(ACTIVE)
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           DeviceStatus    @default(ACTIVE)
   deviceName       String?
   os               String?
   locale           String?
@@ -217,58 +244,58 @@ model Device {
   browserVersion   String?
   extensionVersion String?
   lastSeenAt       DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   sessions         DeviceSession[]
   trails           Trail[]
 }
 
 model DeviceSession {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   deviceId   String
-  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  device     Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   expiresAt  DateTime
   lastSeenAt DateTime?
   revokedAt  DateTime?
 }
 
 model AccountSettings {
-  userId                String               @id
-  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deviceSessionTtlDays  DeviceSessionTtlDays @default(DAYS_30)
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
+  userId               String               @id
+  user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceSessionTtlDays DeviceSessionTtlDays @default(DAYS_30)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 }
 
 model PortalSession {
-  id                       String   @id @default(cuid())
-  source                   String?
-  locale                   String?
-  returnUrl                String?
-  userId                   String?
-  user                     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  extensionToken           String?
-  extensionTokenExpiresAt  DateTime?
-  approvedAt               DateTime?
-  expiresAt                DateTime
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  id                      String    @id @default(cuid())
+  source                  String?
+  locale                  String?
+  returnUrl               String?
+  userId                  String?
+  user                    User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  extensionToken          String?
+  extensionTokenExpiresAt DateTime?
+  approvedAt              DateTime?
+  expiresAt               DateTime
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   @@index([expiresAt])
 }
 
 model ExtensionConnectSession {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   approvedAt DateTime?
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([expiresAt])
   @@index([userId])

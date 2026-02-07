@@ -1,4 +1,7 @@
+import { randomUUID } from "crypto";
 import { env } from "@/src/env";
+import { db } from "@trail/db";
+import type { Prisma } from "@trail/db";
 import {
   BillingProviderError,
   type BillingProvider,
@@ -21,6 +24,13 @@ function assertNowPaymentsConfig(): void {
     throw new BillingProviderError(
       "nowpayments_config_missing",
       "NOWPayments API key is missing.",
+      { status: 500 },
+    );
+  }
+  if (!env.NOWPAYMENTS_IPN_SECRET) {
+    throw new BillingProviderError(
+      "nowpayments_config_missing",
+      "NOWPayments IPN secret is missing.",
       { status: 500 },
     );
   }
@@ -98,11 +108,26 @@ async function createNowPaymentsInvoice(
   const { amount, currency, planName } = getPriceForCheckout(input);
   const successUrl = input.successUrl?.trim() || billingUrl();
   const cancelUrl = input.cancelUrl?.trim() || billingUrl();
+  const orderId = randomUUID();
+  const amountCents = Math.round(amount * 100);
+
+  await db.billingCheckoutSession.create({
+    data: {
+      provider: "NOWPAYMENTS",
+      orderId,
+      userId: input.userId,
+      planId: input.planId,
+      interval: input.interval,
+      currency: currency.toUpperCase(),
+      amountCents,
+      status: "CREATED",
+    },
+  });
 
   const body = {
     price_amount: amount,
     price_currency: currency,
-    order_id: `trail-${input.userId}-${Date.now()}`,
+    order_id: orderId,
     order_description: `Trail ${planName} (${input.interval})`,
     success_url: successUrl,
     cancel_url: cancelUrl,
@@ -136,6 +161,16 @@ async function createNowPaymentsInvoice(
     | null;
 
   if (!response.ok) {
+    await db.billingCheckoutSession
+      .update({
+        where: { orderId },
+        data: {
+          status: "FAILED",
+          paymentStatus: null,
+          lastPayload: payload ? (payload as Prisma.InputJsonValue) : undefined,
+        },
+      })
+      .catch(() => null);
     throw new BillingProviderError(
       "checkout_failed",
       "Failed to create checkout session.",
@@ -149,6 +184,16 @@ async function createNowPaymentsInvoice(
 
   const url = resolveNowPaymentsUrl(payload);
   if (!url) {
+    await db.billingCheckoutSession
+      .update({
+        where: { orderId },
+        data: {
+          status: "FAILED",
+          paymentStatus: null,
+          lastPayload: payload ? (payload as Prisma.InputJsonValue) : undefined,
+        },
+      })
+      .catch(() => null);
     throw new BillingProviderError(
       "checkout_failed",
       "Billing provider did not return a checkout url.",
@@ -158,6 +203,17 @@ async function createNowPaymentsInvoice(
       },
     );
   }
+
+  await db.billingCheckoutSession
+    .update({
+      where: { orderId },
+      data: {
+        status: "REDIRECTED",
+        nowpaymentsInvoiceUrl: url,
+        lastPayload: payload ? (payload as Prisma.InputJsonValue) : undefined,
+      },
+    })
+    .catch(() => null);
 
   return { url, expiresAt: null };
 }
