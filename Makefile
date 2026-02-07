@@ -31,12 +31,14 @@ test:
 	pnpm test
 
 extension:
-	cd extension && npm run build
+	pnpm --dir extension install --ignore-workspace --frozen-lockfile
+	pnpm --dir extension run build
 
 e2e: db-up
 	@set -a; \
 	if [ -f .env.e2e ]; then . ./.env.e2e; fi; \
 	set +a; \
+	pnpm --dir extension install --ignore-workspace --frozen-lockfile; \
 	pnpm --dir extension run build:local; \
 	pnpm db:migrate; \
 	pnpm dev
