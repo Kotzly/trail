@@ -146,6 +146,22 @@ async function ensureSyncDevices(params: {
   });
 }
 
+async function ensureUserExists(params: {
+  db: Awaited<typeof import("@trail/db")>["db"];
+  userId: string;
+}) {
+  const { db, userId } = params;
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!user) {
+    // Most commonly happens in dev/e2e when the DB was reset but the client
+    // still holds a previously issued extension JWT for a now-missing user.
+    throw new Error("user_not_found");
+  }
+}
+
 function toDbData(params: {
   trail: TrailSyncRecord;
   userId: string;
@@ -192,6 +208,8 @@ export async function syncTrails(
   }
   const now = new Date();
   const cleanupBefore = new Date(now.getTime() - TOMBSTONE_RETENTION_MS);
+
+  await ensureUserExists({ db, userId: input.userId });
 
   await ensureSyncDevices({
     db,

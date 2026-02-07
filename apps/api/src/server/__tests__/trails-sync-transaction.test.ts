@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dbMocks = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+  },
   device: {
     findMany: vi.fn(),
     createMany: vi.fn(),
@@ -23,6 +26,7 @@ import { syncTrails } from "../trails-sync";
 
 describe("syncTrails", () => {
   beforeEach(() => {
+    dbMocks.user.findUnique.mockReset();
     dbMocks.device.findMany.mockReset();
     dbMocks.device.createMany.mockReset();
     dbMocks.device.update.mockReset();
@@ -34,6 +38,7 @@ describe("syncTrails", () => {
   });
 
   it("batches trail writes in a transaction", async () => {
+    dbMocks.user.findUnique.mockResolvedValue({ id: "user-1" });
     const existingTrail = {
       id: "trail-1",
       userId: "user-1",
@@ -116,6 +121,7 @@ describe("syncTrails", () => {
   });
 
   it("creates new trails with client-provided id", async () => {
+    dbMocks.user.findUnique.mockResolvedValue({ id: "user-1" });
     dbMocks.device.findMany.mockResolvedValue([
       { id: "device-1", userId: "user-1", status: "ACTIVE" },
     ]);
@@ -182,6 +188,7 @@ describe("syncTrails", () => {
   });
 
   it("creates missing device before trail writes", async () => {
+    dbMocks.user.findUnique.mockResolvedValue({ id: "user-1" });
     dbMocks.device.findMany.mockResolvedValue([]);
     dbMocks.device.createMany.mockResolvedValue({ count: 1 });
     dbMocks.device.update.mockResolvedValue({
@@ -251,5 +258,21 @@ describe("syncTrails", () => {
         }),
       }),
     );
+  });
+
+  it("throws user_not_found when user does not exist", async () => {
+    dbMocks.user.findUnique.mockResolvedValue(null);
+
+    await expect(
+      syncTrails({
+        userId: "user-missing",
+        deviceId: "device-1",
+        clientSyncAt: new Date("2026-02-01T00:00:00Z"),
+        trails: [],
+      }),
+    ).rejects.toThrowError("user_not_found");
+
+    expect(dbMocks.device.findMany).not.toHaveBeenCalled();
+    expect(dbMocks.trail.deleteMany).not.toHaveBeenCalled();
   });
 });

@@ -180,12 +180,47 @@ export async function POST(request: Request) {
     });
   }
 
-  const result = await syncTrails({
-    userId: extension.sub,
-    deviceId,
-    clientSyncAt,
-    trails: normalized,
-  });
+  let result: Awaited<ReturnType<typeof syncTrails>>;
+  try {
+    result = await syncTrails({
+      userId: extension.sub,
+      deviceId,
+      clientSyncAt,
+      trails: normalized,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+
+    // Token is valid but user no longer exists (e.g. local DB reset).
+    if (message === "user_not_found") {
+      return jsonError("unauthorized", "Unauthorized.", {
+        status: 401,
+        retryable: false,
+        details: "reason=user_not_found",
+      });
+    }
+
+    // Client tried to sync using a device id belonging to a different user.
+    if (message.startsWith("device_conflict:")) {
+      const deviceId = message.slice("device_conflict:".length);
+      return jsonError("device_conflict", "Device belongs to another user.", {
+        status: 409,
+        retryable: false,
+        details: `deviceId=${deviceId}`,
+      });
+    }
+
+    if (message === "device_id_required") {
+      return jsonError("device_id_required", "Device id is required.", {
+        status: 400,
+      });
+    }
+
+    return jsonError("internal_error", "Internal error.", {
+      status: 500,
+      retryable: true,
+    });
+  }
 
   return jsonNoStore({
     serverSyncAt: result.serverSyncAt.toISOString(),

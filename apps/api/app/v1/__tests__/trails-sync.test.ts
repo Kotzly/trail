@@ -154,4 +154,30 @@ describe("v1 trails sync", () => {
     expect(payload.retryable).toBe(false);
     expect(trailMocks.syncTrails).not.toHaveBeenCalled();
   });
+
+  it("returns 401 when token subject user does not exist", async () => {
+    authMocks.verifyExtensionToken.mockReturnValue({
+      sub: "user-missing",
+      iat: 0,
+      exp: 999999,
+    });
+    trailMocks.syncTrails.mockRejectedValue(new Error("user_not_found"));
+
+    const response = await sync(
+      new Request("http://localhost/v1/trails/sync", {
+        method: "POST",
+        headers: { Authorization: "Bearer extension-token" },
+        body: JSON.stringify({
+          deviceId: "device-1",
+          clientSyncAt: "2026-02-01T00:00:00Z",
+          trails: [],
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    const payload = await response.json();
+    expect(payload.code).toBe("unauthorized");
+    expect(payload.retryable).toBe(false);
+  });
 });
