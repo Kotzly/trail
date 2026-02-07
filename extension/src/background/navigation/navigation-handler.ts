@@ -9,6 +9,7 @@ import { handleNewTabTab } from '../utils/new-tab.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { notifyUi } from '../messaging/ui-notifications.js';
 import { enforceTabLimit } from '../tabs/tab-limit.js';
+import { createUrlKey } from '../../shared/lib/url-key.js';
 
 /**
  * Handle navigation events and add to tree.
@@ -92,7 +93,7 @@ export async function handleNavigation(
     if (existingNodeId !== undefined) {
       // Tab already has a node
       const node = tree.findNodeById(existingNodeId);
-      if (node && node.data.url !== url) {
+      if (node && createUrlKey(node.data.url) !== createUrlKey(url as Url)) {
         // Different URL
         const nodeUrl = node.data.url as Url;
         if (!shouldTrackUrl(nodeUrl)) {

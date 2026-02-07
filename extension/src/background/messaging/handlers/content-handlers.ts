@@ -6,6 +6,7 @@ import { notifyTreeUpdate } from "../notifications.js";
 import { MSG, defineHandlers } from "../../../shared/types/messages.js";
 import { ok, err } from "../../../shared/types/messages.js";
 import type { FaviconUrl, TabId, Title, Url } from "../../../shared/types/ids.js";
+import { createUrlKey } from "../../../shared/lib/url-key.js";
 
 function getSenderTabId(sender: chrome.runtime.MessageSender): TabId | null {
   const id = sender.tab?.id;
@@ -34,7 +35,7 @@ export const contentHandlers = defineHandlers({
       if (!favicon) return err("no favicon");
       if (favicon === node.data.favicon) return ok();
       if (!shouldTrackUrl(url as Url)) return err("URL is not trackable");
-      if (node.data.url !== url) return err("URL mismatch");
+      if (createUrlKey(node.data.url) !== createUrlKey(url)) return err("URL mismatch");
       node.data.favicon = favicon;
       tree.refreshSearchEntry(node.id);
       treeStorage.cacheTree(tree);
@@ -47,7 +48,7 @@ export const contentHandlers = defineHandlers({
       if (!title) return err("no title");
       if (title === node.data.title) return ok();
       if (!shouldTrackUrl(url as Url)) return err("URL is not trackable");
-      if (node.data.url !== url) return err("URL mismatch");
+      if (createUrlKey(node.data.url) !== createUrlKey(url)) return err("URL mismatch");
       node.data.title = title;
       tree.refreshSearchEntry(node.id);
       treeStorage.cacheTree(tree);

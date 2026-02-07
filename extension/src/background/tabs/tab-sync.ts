@@ -4,6 +4,7 @@ import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { resolveTabUrl } from '../utils/tab-utils.js';
+import { createUrlKey } from '../../shared/lib/url-key.js';
 
 /**
  * Sync tab title and favicon changes to node.
@@ -25,7 +26,7 @@ export async function syncTabTitleFavicon(
 
   const tabUrl = resolveTabUrl(tab);
   if (!tabUrl || !shouldTrackUrl(tabUrl as Url)) return;
-  if (node.data.url !== tabUrl) return;
+  if (createUrlKey(node.data.url) !== createUrlKey(tabUrl)) return;
 
   if (changeInfo.title) {
     node.data.title = changeInfo.title as Title;

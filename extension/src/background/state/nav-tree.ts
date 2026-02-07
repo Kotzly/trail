@@ -362,8 +362,9 @@ export class NavigationTree implements Owner {
     }
 
     findByUrl(url: Url): NavigationNode | null {
+        const targetKey = createUrlKey(url);
         for (const node of this.iter() ?? []) {
-            if (node.data.url === url) {
+            if (createUrlKey(node.data.url) === targetKey) {
                 return node;
             }
         }
