@@ -10,6 +10,7 @@ export default defineConfig({
     globals: true,
   },
   resolve: {
+    dedupe: ["react", "react-dom"],
     alias: {
       "@": path.resolve(__dirname, "."),
       "server-only": path.resolve(__dirname, "vitest.server-only.ts"),
