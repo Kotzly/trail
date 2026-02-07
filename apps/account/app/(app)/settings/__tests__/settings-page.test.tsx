@@ -1,7 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
-import { accountCopy } from "@trail/content";
 import SettingsPage from "../page";
 
 const usageMocks = vi.hoisted(() => ({
@@ -35,11 +34,9 @@ describe("SettingsPage", () => {
     render(node);
 
     expect(
-      screen.getByRole("heading", { name: accountCopy.settings.title }),
+      screen.getByRole("heading", { name: "settings" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getAllByText(accountCopy.settings.profile.title)[0],
-    ).toBeInTheDocument();
+    expect(screen.getByText("account")).toBeInTheDocument();
   });
 
   it("uses better auth account settings links", async () => {
@@ -54,20 +51,10 @@ describe("SettingsPage", () => {
     render(node);
 
     const expectedHref = `${process.env.TRAIL_AUTH_BASE_URL}/account`;
-    const manageLinks = screen.getAllByRole("link", {
-      name: accountCopy.settings.profile.manageCta,
-    });
-
-    expect(manageLinks.length).toBeGreaterThan(0);
-    for (const link of manageLinks) {
-      expect(link).toHaveAttribute("href", expectedHref);
-    }
-
-    expect(
-      screen.getByRole("link", {
-        name: accountCopy.settings.security.changePasswordCta,
-      }),
-    ).toHaveAttribute("href", expectedHref);
+    expect(screen.getByRole("link", { name: "manage" })).toHaveAttribute(
+      "href",
+      expectedHref,
+    );
   });
 
   it("renders active extension sessions when present", async () => {

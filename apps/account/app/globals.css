@@ -1,10 +1,6 @@
 @config "../tailwind.config.ts";
 @import "tailwindcss";
-@source "../../../packages/ui/src";
 @source "../../../packages/content/src";
-@import "@trail/ui/styles/tokens.css";
-@import "@trail/ui/styles/base.css";
-@import "@trail/ui/styles/animations.css";
 
 :root,
 [data-theme="light"] {
@@ -21,7 +17,26 @@
   --cta-fg: 255 255 255;
   --accent: 8 145 178;
   --accent-soft: 207 250 254;
-  --font-display: var(--font-sans);
+  --radius: 0.5rem;
+
+  /* shadcn-style semantic tokens (rgb) */
+  --background: var(--base);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--cta);
+  --primary-foreground: var(--cta-fg);
+  --secondary: var(--surface-strong);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-strong);
+  --muted-foreground: var(--ink-muted);
+  --accent-foreground: var(--ink);
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  --input: var(--stroke);
+  --ring: var(--accent);
 
   --trail-bg: var(--base);
   --trail-surface: var(--surface);
@@ -39,16 +54,6 @@
   --trail-elev-2: 0 4px 18px rgba(20, 22, 26, 0.08);
   --trail-elev-3: 0 8px 28px rgba(20, 22, 26, 0.12);
   --trail-ring: var(--accent);
-  --trail-gradient-1: radial-gradient(
-    60% 60% at 12% 8%,
-    rgba(58, 129, 196, 0.18),
-    transparent 70%
-  );
-  --trail-gradient-2: radial-gradient(
-    50% 50% at 88% 0%,
-    rgba(27, 30, 36, 0.08),
-    transparent 70%
-  );
 }
 
 [data-theme="dark"] {
@@ -66,6 +71,24 @@
   --accent: 34 211 238;
   --accent-soft: 22 78 99;
 
+  --background: var(--base);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--cta);
+  --primary-foreground: var(--cta-fg);
+  --secondary: var(--surface-strong);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-strong);
+  --muted-foreground: var(--ink-muted);
+  --accent-foreground: var(--ink);
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  --input: var(--stroke);
+  --ring: var(--accent);
+
   --trail-bg: var(--base);
   --trail-surface: var(--surface);
   --trail-surface-high: var(--surface-strong);
@@ -82,16 +105,6 @@
   --trail-elev-2: 0 6px 18px rgba(0, 0, 0, 0.4);
   --trail-elev-3: 0 10px 32px rgba(0, 0, 0, 0.5);
   --trail-ring: var(--accent);
-  --trail-gradient-1: radial-gradient(
-    60% 60% at 15% 10%,
-    rgba(58, 129, 196, 0.18),
-    transparent 72%
-  );
-  --trail-gradient-2: radial-gradient(
-    50% 50% at 85% 0%,
-    rgba(0, 0, 0, 0.35),
-    transparent 70%
-  );
 }
 
 @media (prefers-color-scheme: dark) {
@@ -126,16 +139,23 @@
     --trail-elev-2: 0 6px 18px rgba(0, 0, 0, 0.4);
     --trail-elev-3: 0 10px 32px rgba(0, 0, 0, 0.5);
     --trail-ring: var(--accent);
-    --trail-gradient-1: radial-gradient(
-      60% 60% at 15% 10%,
-      rgba(58, 129, 196, 0.18),
-      transparent 72%
-    );
-    --trail-gradient-2: radial-gradient(
-      50% 50% at 85% 0%,
-      rgba(0, 0, 0, 0.35),
-      transparent 70%
-    );
+    --background: var(--base);
+    --foreground: var(--ink);
+    --card: var(--surface);
+    --card-foreground: var(--ink);
+    --popover: var(--surface);
+    --popover-foreground: var(--ink);
+    --primary: var(--cta);
+    --primary-foreground: var(--cta-fg);
+    --secondary: var(--surface-strong);
+    --secondary-foreground: var(--ink);
+    --muted: var(--surface-strong);
+    --muted-foreground: var(--ink-muted);
+    --accent-foreground: var(--ink);
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+    --input: var(--stroke);
+    --ring: var(--accent);
   }
 }
 
@@ -171,25 +191,31 @@
     --trail-elev-2: 0 4px 18px rgba(20, 22, 26, 0.08);
     --trail-elev-3: 0 8px 28px rgba(20, 22, 26, 0.12);
     --trail-ring: var(--accent);
-    --trail-gradient-1: radial-gradient(
-      60% 60% at 12% 8%,
-      rgba(58, 129, 196, 0.18),
-      transparent 70%
-    );
-    --trail-gradient-2: radial-gradient(
-      50% 50% at 88% 0%,
-      rgba(27, 30, 36, 0.08),
-      transparent 70%
-    );
+    --background: var(--base);
+    --foreground: var(--ink);
+    --card: var(--surface);
+    --card-foreground: var(--ink);
+    --popover: var(--surface);
+    --popover-foreground: var(--ink);
+    --primary: var(--cta);
+    --primary-foreground: var(--cta-fg);
+    --secondary: var(--surface-strong);
+    --secondary-foreground: var(--ink);
+    --muted: var(--surface-strong);
+    --muted-foreground: var(--ink-muted);
+    --accent-foreground: var(--ink);
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+    --input: var(--stroke);
+    --ring: var(--accent);
   }
 }
 
-.trail-app {
-  background-image: var(--trail-gradient-1), var(--trail-gradient-2);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-
-.app-shell {
-  min-height: 100vh;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

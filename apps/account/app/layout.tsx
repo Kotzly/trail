@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
-import { Fraunces, Instrument_Sans } from "next/font/google";
+import { Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { accountCopy } from "@trail/content";
 import { Providers } from "./providers";
-
-const display = Fraunces({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-display",
-  weight: ["400", "500", "600", "700"],
-});
 
 const sans = Instrument_Sans({
   subsets: ["latin"],
@@ -45,9 +38,9 @@ export default function RootLayout({
       lang="en"
       data-theme="system"
       suppressHydrationWarning
-      className={`${display.variable} ${sans.variable}`}
+      className={sans.variable}
     >
-      <body className="bg-bg text-ink">
+      <body className="min-h-screen bg-background text-foreground">
         <Providers>{children}</Providers>
       </body>
     </html>

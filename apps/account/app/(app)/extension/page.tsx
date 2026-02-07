@@ -1,13 +1,20 @@
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
-  DesktopIcon,
-  LaptopIcon,
-  Link2Icon,
-  LockClosedIcon,
-} from "@trail/ui/icons";
-import { Button, Card, EmptyState, SectionHeader, StatCard } from "@trail/ui";
-import { accountCopy } from "@trail/content";
-import { PageHeader } from "@trail/ui";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { getAuthSession } from "@/src/lib/auth";
 import { ensureUser } from "@/src/server/user";
 import { createExtensionLoginCode } from "@/src/server/extension-login";
@@ -63,135 +70,83 @@ export default async function ExtensionPage({
 
   const usage = await getAccountUsageSnapshot();
   const sessions = usage.devices;
-  const activeSessions = sessions.filter((item) => item.status === "ACTIVE");
-  const primaryDevice = activeSessions[0] ?? sessions[0] ?? null;
   const isConnected = connectionReady || sessions.length > 0;
 
   return (
-    <section className="space-y-8">
-      <PageHeader
-        eyebrow={accountCopy.nav.extension}
-        title={accountCopy.extension.title}
-        subtitle={accountCopy.extension.subtitle}
-      />
-
-      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <Card className="rounded-[26px] bg-surface/60">
-          <SectionHeader
-            eyebrow={accountCopy.extension.status.eyebrow}
-            title={accountCopy.extension.status.title}
-            subtitle={accountCopy.extension.status.subtitle}
-          />
-          <div className="mt-4">
-            {isConnected ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                <StatCard
-                  label={accountCopy.extension.connected.stats.status}
-                  value={accountCopy.extension.connected.stats.value}
-                  caption={accountCopy.extension.connected.stats.caption}
-                  icon={<Link2Icon className="h-4 w-4" />}
-                />
-                <StatCard
-                  label={accountCopy.extension.connected.stats.permissions}
-                  value={accountCopy.extension.connected.stats.permissionsValue}
-                  caption={
-                    accountCopy.extension.connected.stats.permissionsCaption
-                  }
-                  icon={<LockClosedIcon className="h-4 w-4" />}
-                />
-              </div>
-            ) : (
-              <EmptyState
-                title={accountCopy.extension.empty.title}
-                description={accountCopy.extension.empty.description}
-                icon={<LaptopIcon className="h-5 w-5" />}
-                items={accountCopy.extension.empty.items}
-                className="rounded-none border-0 bg-transparent p-0"
-                // todo: make this work like this: opens the extension if it's there, and the extension prompts the user to connect to account <name>
-                // if the extension is not there, we should show a button that says "install extension" and opens the extension download page
-                action={
-                  <Button.AsChild size="sm">
-                    <a href={accountCopy.extension.empty.ctaHref}>
-                      {accountCopy.extension.empty.cta}
-                    </a>
-                  </Button.AsChild>
-                }
-              />
-            )}
-          </div>
-        </Card>
-
-        <Card className="rounded-[26px] bg-surface/60">
-          <SectionHeader
-            eyebrow={accountCopy.extension.device.eyebrow}
-            title={accountCopy.extension.device.title}
-            subtitle={accountCopy.extension.device.subtitle}
-          />
-          <div className="mt-4 grid gap-3">
-            <StatCard
-              label={accountCopy.extension.device.primaryDevice}
-              value={
-                primaryDevice
-                  ? formatDeviceName(primaryDevice)
-                  : "—"
-              }
-              caption={
-                primaryDevice
-                  ? formatDeviceLocation(primaryDevice)
-                  : accountCopy.extension.device.primaryDeviceCaption
-              }
-              icon={<DesktopIcon className="h-4 w-4" />}
-            />
-            <StatCard
-              label={accountCopy.extension.device.lastSeen}
-              value={
-                primaryDevice
-                  ? formatDeviceLastSeen(primaryDevice)
-                  : accountCopy.extension.device.lastSeenValue
-              }
-              caption={accountCopy.extension.device.lastSeenCaption}
-              icon={<LaptopIcon className="h-4 w-4" />}
-            />
-          </div>
-        </Card>
+    <section className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-xl font-semibold">extension</h1>
+        <p className="text-sm text-muted-foreground">
+          connect your browser to sync trails.
+        </p>
       </div>
 
-      <Card className="rounded-[26px] bg-surface/60">
-        <SectionHeader
-          eyebrow={accountCopy.extension.sessions.eyebrow}
-          title={accountCopy.extension.sessions.title}
-          subtitle={accountCopy.extension.sessions.subtitle}
-          actions={<span className="trail-status">{sessions.length}</span>}
-        />
-        {sessions.length ? (
-          <div className="mt-4 divide-y divide-border/40">
-            {sessions.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-wrap items-center justify-between gap-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-ink">
-                    {formatDeviceName(item)}
-                  </p>
-                  <p className="text-xs text-ink-muted">
-                    {formatDeviceLocation(item)}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="trail-status">{item.status.toLowerCase()}</span>
-                  <span className="text-xs text-ink-muted">
-                    {formatDeviceLastSeen(item)}
-                  </span>
-                </div>
-              </div>
-            ))}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle>status</CardTitle>
+          <CardDescription>
+            {isConnected ? "connected" : "not connected"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-4">
+          <div className="text-sm text-muted-foreground">
+            {isConnected
+              ? `${sessions.length} device${sessions.length === 1 ? "" : "s"}`
+              : "install the extension to start capturing trails."}
           </div>
-        ) : (
-          <div className="mt-4 border-t border-border/40 pt-3 text-xs text-ink-muted">
-            {accountCopy.extension.sessions.empty}
-          </div>
-        )}
+          <Button asChild size="sm" variant={isConnected ? "outline" : "default"}>
+            <a
+              href="https://chrome.google.com/webstore"
+              target="_blank"
+              rel="noreferrer"
+            >
+              chrome web store
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle>devices</CardTitle>
+          <CardDescription>
+            sessions currently linked to your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {sessions.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>device</TableHead>
+                  <TableHead>location</TableHead>
+                  <TableHead className="text-right">status</TableHead>
+                  <TableHead className="text-right">last seen</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sessions.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">
+                      {formatDeviceName(item)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDeviceLocation(item)}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {item.status.toLowerCase()}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatDeviceLastSeen(item)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground">no connected devices.</p>
+          )}
+        </CardContent>
       </Card>
     </section>
   );

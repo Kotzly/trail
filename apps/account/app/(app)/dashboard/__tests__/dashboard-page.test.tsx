@@ -1,6 +1,5 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { accountCopy } from "@trail/content";
 
 const usageMocks = vi.hoisted(() => ({
   getAccountUsageSnapshot: vi.fn(),
@@ -13,7 +12,7 @@ vi.mock("@/src/server/account-usage", () => ({
 import DashboardPage from "../page";
 
 describe("DashboardPage", () => {
-  it("renders dashboard with synced stats", async () => {
+  it("renders recent trails table", async () => {
     usageMocks.getAccountUsageSnapshot.mockResolvedValue({
       trailCount: 9,
       activeSessionCount: 1,
@@ -41,18 +40,14 @@ describe("DashboardPage", () => {
 
     render(await DashboardPage());
 
-    // Stats
-    expect(screen.getByText("sync")).toBeInTheDocument();
-    expect(screen.getByText("sessions")).toBeInTheDocument();
-    expect(screen.getByText("trails")).toBeInTheDocument();
-    expect(screen.getByText("online")).toBeInTheDocument();
-    expect(screen.getByText("1 active")).toBeInTheDocument();
-    expect(screen.getAllByText("9 captured").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "trails" })).toBeInTheDocument();
+    expect(screen.getByText("recent")).toBeInTheDocument();
+    expect(screen.getByText("name")).toBeInTheDocument();
+    expect(screen.getByText("root")).toBeInTheDocument();
+    expect(screen.getByText("nodes")).toBeInTheDocument();
+    expect(screen.getByText("saved")).toBeInTheDocument();
     expect(screen.getByText("testing tree")).toBeInTheDocument();
-
-    expect(
-      screen.queryByText(accountCopy.dashboard.empty.title),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("New Tab")).toBeInTheDocument();
   });
 
   it("renders empty state when no trails exist", async () => {
@@ -65,13 +60,8 @@ describe("DashboardPage", () => {
 
     render(await DashboardPage());
 
-    expect(screen.getByText("offline")).toBeInTheDocument();
-    expect(screen.getByText("0 active")).toBeInTheDocument();
-    expect(screen.getByText("0 captured")).toBeInTheDocument();
-    expect(screen.getByText(accountCopy.dashboard.empty.title)).toBeInTheDocument();
-
-    // Quick links
-    expect(screen.getByText("extension")).toBeInTheDocument();
-    expect(screen.getByText("account")).toBeInTheDocument();
+    expect(screen.getByText("no trails yet")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "connect extension" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "account" })).toBeInTheDocument();
   });
 });

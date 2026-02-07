@@ -1,17 +1,11 @@
-import React from "react";
-import { render, screen } from "@testing-library/react";
-import { accountCopy } from "@trail/content";
 import GettingStartedPage from "../page";
 
-describe("GettingStartedPage", () => {
-  it("renders the checklist and header", () => {
-    render(<GettingStartedPage />);
+vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
-    expect(
-      screen.getByRole("heading", { name: accountCopy.gettingStarted.title }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(accountCopy.gettingStarted.stepsTitle),
-    ).toBeInTheDocument();
+describe("GettingStartedPage", () => {
+  it("redirects to extension", async () => {
+    const { redirect } = await import("next/navigation");
+    GettingStartedPage();
+    expect(redirect).toHaveBeenCalledWith("/extension");
   });
 });

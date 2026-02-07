@@ -1,7 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
-import { accountCopy } from "@trail/content";
 import ExtensionPage from "../page";
 
 const usageMocks = vi.hoisted(() => ({
@@ -43,11 +42,9 @@ describe("ExtensionPage", () => {
     render(node);
 
     expect(
-      screen.getByRole("heading", { name: accountCopy.extension.title }),
+      screen.getByRole("heading", { name: "extension" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(accountCopy.extension.status.title),
-    ).toBeInTheDocument();
+    expect(screen.getByText("status")).toBeInTheDocument();
   });
 
   it("renders connected device sessions", async () => {
@@ -74,8 +71,6 @@ describe("ExtensionPage", () => {
 
     expect(screen.getAllByText("MacBook Pro").length).toBeGreaterThan(0);
     expect(screen.getAllByText("active").length).toBeGreaterThan(0);
-    expect(
-      screen.queryByText(accountCopy.extension.empty.title),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("devices")).toBeInTheDocument();
   });
 });
