@@ -1,10 +1,13 @@
 import { accountCopy } from "@trail/content";
 import { Badge, PageHeader } from "@trail/ui";
 import { internalApiJson } from "@/src/server/internal-api";
+import { getAuthTokenFromCookies } from "@/src/lib/auth";
 import {
   BillingPlansClient,
   type BillingPlanView,
 } from "./BillingPlansClient";
+
+export const dynamic = "force-dynamic";
 
 type ApiPlan = {
   id: string;
@@ -16,6 +19,11 @@ type ApiPlan = {
   features: string[];
   highlight?: boolean;
   rank?: number;
+};
+
+type ApiSubscription = {
+  planId: "free" | "pro";
+  status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired";
 };
 
 async function getBillingPlans(): Promise<BillingPlanView[]> {
@@ -40,6 +48,16 @@ async function getBillingPlans(): Promise<BillingPlanView[]> {
 export default async function BillingPage() {
   const { billing } = accountCopy;
   const plans = await getBillingPlans();
+  const token = await getAuthTokenFromCookies();
+  const subscription = token
+    ? await internalApiJson<ApiSubscription>("/v1/subscription", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch(() => null)
+    : null;
+  const currentPlanId = subscription?.planId ?? "free";
 
   return (
     <section className="space-y-8">
@@ -59,7 +77,7 @@ export default async function BillingPage() {
         }
       />
 
-      <BillingPlansClient plans={plans} />
+      <BillingPlansClient plans={plans} currentPlanId={currentPlanId} />
     </section>
   );
 }

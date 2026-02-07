@@ -37,14 +37,18 @@ function yearlyPricePerMonth(plan: BillingPlanView): number {
   return plan.yearlyPrice / 12;
 }
 
-function getCta(planId: string): string {
+function getCta(planId: string, currentPlanId: string): string {
+  if (planId === currentPlanId) {
+    return "current plan";
+  }
+
   switch (planId) {
-    case "free":
-      return "current plan";
     case "pro":
       return "upgrade to pro";
     case "teams":
       return "contact sales";
+    case "free":
+      return "switch to free";
     default:
       return "choose plan";
   }
@@ -52,9 +56,11 @@ function getCta(planId: string): string {
 
 export function BillingPlansClient({
   plans,
+  currentPlanId = "free",
   onNavigate = navigateTo,
 }: {
   plans: BillingPlanView[];
+  currentPlanId?: string;
   onNavigate?: (url: string) => void;
 }) {
   const { billing } = accountCopy;
@@ -216,21 +222,21 @@ export function BillingPlansClient({
                     variant={plan.popular ? "primary" : "outline"}
                     className="w-full lowercase"
                   >
-                    <a href="mailto:sales@gettrail.net">{getCta(plan.id)}</a>
+                    <a href="mailto:sales@gettrail.net">{getCta(plan.id, currentPlanId)}</a>
                   </Button.AsChild>
                 ) : (
                   <Button
                     size="sm"
                     variant={plan.popular ? "primary" : "outline"}
                     className="w-full lowercase"
-                    disabled={plan.id === "free" || pendingPlanId === plan.id}
+                    disabled={plan.id === currentPlanId || pendingPlanId === plan.id}
                     onClick={() => {
-                      if (plan.id !== "free") {
+                      if (plan.id !== currentPlanId) {
                         void startCheckout(plan.id);
                       }
                     }}
                   >
-                    {pendingPlanId === plan.id ? "processing..." : getCta(plan.id)}
+                    {pendingPlanId === plan.id ? "processing..." : getCta(plan.id, currentPlanId)}
                   </Button>
                 )}
               </div>

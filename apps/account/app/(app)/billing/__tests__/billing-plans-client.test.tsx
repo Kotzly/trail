@@ -49,7 +49,13 @@ describe("BillingPlansClient", () => {
     );
 
     const user = userEvent.setup();
-    render(<BillingPlansClient plans={plans} onNavigate={navigateSpy} />);
+    render(
+      <BillingPlansClient
+        plans={plans}
+        currentPlanId="free"
+        onNavigate={navigateSpy}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "upgrade to pro" }));
 
@@ -84,7 +90,13 @@ describe("BillingPlansClient", () => {
     );
 
     const user = userEvent.setup();
-    render(<BillingPlansClient plans={plans} onNavigate={navigateSpy} />);
+    render(
+      <BillingPlansClient
+        plans={plans}
+        currentPlanId="free"
+        onNavigate={navigateSpy}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "monthly" }));
     await user.click(screen.getByRole("button", { name: "upgrade to pro" }));
@@ -102,5 +114,12 @@ describe("BillingPlansClient", () => {
     expect(navigateSpy).toHaveBeenCalledWith(
       "https://checkout.example.test/month",
     );
+  });
+
+  it("shows current plan CTA for active pro subscription", () => {
+    render(<BillingPlansClient plans={plans} currentPlanId="pro" />);
+
+    expect(screen.getByRole("button", { name: "current plan" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "current plan" })).toBeDisabled();
   });
 });
