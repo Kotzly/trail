@@ -37,18 +37,34 @@ function yearlyPricePerMonth(plan: BillingPlanView): number {
   return plan.yearlyPrice / 12;
 }
 
+const TIER_ORDER: Record<string, number> = {
+  free: 0,
+  pro: 1,
+  teams: 2,
+};
+
+function getTierRank(planId: string): number {
+  return TIER_ORDER[planId] ?? Number.MAX_SAFE_INTEGER;
+}
+
 function getCta(planId: string, currentPlanId: string): string {
   if (planId === currentPlanId) {
     return "current plan";
+  }
+
+  const planRank = getTierRank(planId);
+  const currentRank = getTierRank(currentPlanId);
+  if (planRank < currentRank) {
+    return `downgrade to ${planId}`;
   }
 
   switch (planId) {
     case "pro":
       return "upgrade to pro";
     case "teams":
-      return "contact sales";
+      return "upgrade to teams";
     case "free":
-      return "switch to free";
+      return "downgrade to free";
     default:
       return "choose plan";
   }
@@ -68,12 +84,10 @@ export function BillingPlansClient({
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const sortedPlans = useMemo(
-    () => [...plans].sort((a, b) => Number(b.popular) - Number(a.popular)),
-    [plans],
-  );
+  // Preserve server-provided ordering (Free, Pro, Teams).
+  const orderedPlans = useMemo(() => plans, [plans]);
 
-  if (sortedPlans.length === 0) {
+  if (orderedPlans.length === 0) {
     return (
       <div className="rounded-[26px] border border-border/60 bg-surface/60 px-6 py-8 text-sm text-ink-muted">
         Plans are temporarily unavailable. Please try again in a moment.
@@ -104,8 +118,16 @@ export function BillingPlansClient({
 
       const payload = (await response.json().catch(() => null)) as
         | CheckoutResponse
-        | { message?: string }
+        | { message?: string; redirectUrl?: string }
         | null;
+
+      if (response.status === 401 && payload && typeof payload === "object" && "redirectUrl" in payload) {
+        const redirectUrl = payload.redirectUrl;
+        if (typeof redirectUrl === "string" && redirectUrl) {
+          onNavigate(redirectUrl);
+          return;
+        }
+      }
 
       if (!response.ok || !payload || typeof (payload as CheckoutResponse).url !== "string") {
         const message =
@@ -153,7 +175,7 @@ export function BillingPlansClient({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {sortedPlans.map((plan) => {
+        {orderedPlans.map((plan) => {
           const monthly = plan.monthlyPrice;
           const yearlyMonthly = yearlyPricePerMonth(plan);
           const selectedPrice = isYearly ? yearlyMonthly : monthly;
@@ -216,29 +238,19 @@ export function BillingPlansClient({
               </ul>
 
               <div className="mt-6">
-                {plan.id === "teams" ? (
-                  <Button.AsChild
-                    size="sm"
-                    variant={plan.popular ? "primary" : "outline"}
-                    className="w-full lowercase"
-                  >
-                    <a href="mailto:sales@gettrail.net">{getCta(plan.id, currentPlanId)}</a>
-                  </Button.AsChild>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant={plan.popular ? "primary" : "outline"}
-                    className="w-full lowercase"
-                    disabled={plan.id === currentPlanId || pendingPlanId === plan.id}
-                    onClick={() => {
-                      if (plan.id !== currentPlanId) {
-                        void startCheckout(plan.id);
-                      }
-                    }}
-                  >
-                    {pendingPlanId === plan.id ? "processing..." : getCta(plan.id, currentPlanId)}
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant={plan.popular ? "primary" : "outline"}
+                  className="w-full lowercase"
+                  disabled={plan.id === currentPlanId || pendingPlanId === plan.id}
+                  onClick={() => {
+                    if (plan.id !== currentPlanId) {
+                      void startCheckout(plan.id);
+                    }
+                  }}
+                >
+                  {pendingPlanId === plan.id ? "processing..." : getCta(plan.id, currentPlanId)}
+                </Button>
               </div>
             </div>
           );

@@ -67,7 +67,7 @@ const plans: Plan[] = [
       "Custom tags and filters",
       "More features coming soon",
     ],
-    cta: "Start Pro Trial",
+    cta: "Upgrade to Pro",
     popular: true,
     icon: Zap,
   },
@@ -85,7 +85,7 @@ const plans: Plan[] = [
       "Custom integrations",
       "Collaborative trails soon",
     ],
-    cta: "Contact Sales",
+    cta: "Upgrade to Teams",
     icon: Building2,
   },
 ];
@@ -181,7 +181,9 @@ function PlanCard({
   index: number;
 }) {
   const Icon = plan.icon;
-  const ctaHref = plan.name === "Teams" ? "/contact" : "/downloads";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const billingHref = appUrl ? `${appUrl.replace(/\/+$/, "")}/billing` : "/downloads";
+  const ctaHref = plan.name === "Free" ? "/downloads" : billingHref;
 
   return (
     <motion.div

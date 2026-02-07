@@ -33,6 +33,10 @@ describe("account api billing checkout route", () => {
     );
 
     expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "auth",
+      redirectUrl: expect.any(String),
+    });
     expect(internalApiMocks.internalApiFetch).not.toHaveBeenCalled();
   });
 

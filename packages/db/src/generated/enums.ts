@@ -11,7 +11,8 @@
 
 export const SubscriptionPlan = {
   FREE: 'FREE',
-  PRO: 'PRO'
+  PRO: 'PRO',
+  TEAMS: 'TEAMS'
 } as const
 
 export type SubscriptionPlan = (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan]

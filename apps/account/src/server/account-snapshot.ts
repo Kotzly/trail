@@ -58,7 +58,7 @@ type AuthSessionAuthenticated = {
 
 type AccountSubscription = {
   id: string;
-  planId: "free" | "pro";
+  planId: "free" | "pro" | "teams";
   status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired";
   interval: "month";
   currentPeriodStart: string;

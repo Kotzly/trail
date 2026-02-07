@@ -22,7 +22,7 @@ function link(): BillingPortalLink {
 }
 
 async function activateTestSubscription(input: CheckoutSessionInput): Promise<void> {
-  if (input.planId !== "pro") {
+  if (input.planId !== "pro" && input.planId !== "teams") {
     throw new BillingProviderError("invalid_plan", "Plan is not available.", {
       status: 400,
       retryable: false,
@@ -30,17 +30,18 @@ async function activateTestSubscription(input: CheckoutSessionInput): Promise<vo
   }
 
   const currentPeriodEnd = addDays(new Date(), input.interval === "year" ? 365 : 30);
+  const plan = input.planId === "teams" ? "TEAMS" : "PRO";
 
   await db.userSubscription.upsert({
     where: { userId: input.userId },
     create: {
       userId: input.userId,
-      plan: "PRO",
+      plan,
       status: "ACTIVE",
       currentPeriodEnd,
     },
     update: {
-      plan: "PRO",
+      plan,
       status: "ACTIVE",
       currentPeriodEnd,
     },

@@ -13,7 +13,7 @@ export type ApiSubscriptionStatus =
 
 export type SubscriptionSnapshot = {
   id: string;
-  planId: "free" | "pro";
+  planId: "free" | "pro" | "teams";
   status: ApiSubscriptionStatus;
   interval: "month";
   currentPeriodStart: string;
@@ -56,12 +56,30 @@ function buildFreeSubscription(createdAt: Date): SubscriptionSnapshot {
   };
 }
 
-function mapDbPlanToTier(plan: "FREE" | "PRO" | null | undefined): PlanTier {
-  return plan === "PRO" ? "pro" : "free";
+function mapDbPlanToTier(plan: "FREE" | "PRO" | "TEAMS" | null | undefined): PlanTier {
+  switch (plan) {
+    case "PRO":
+      return "pro";
+    case "TEAMS":
+      return "teams";
+    case "FREE":
+    default:
+      return "free";
+  }
 }
 
-function mapDbPlanToPlanId(plan: "FREE" | "PRO" | null | undefined): "free" | "pro" {
-  return plan === "PRO" ? "pro" : "free";
+function mapDbPlanToPlanId(
+  plan: "FREE" | "PRO" | "TEAMS" | null | undefined,
+): "free" | "pro" | "teams" {
+  switch (plan) {
+    case "PRO":
+      return "pro";
+    case "TEAMS":
+      return "teams";
+    case "FREE":
+    default:
+      return "free";
+  }
 }
 
 function mapDbStatusToApiStatus(

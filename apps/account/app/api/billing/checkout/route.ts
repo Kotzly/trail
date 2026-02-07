@@ -18,7 +18,12 @@ export async function POST(request: Request) {
   const token = await getAuthTokenFromCookies();
   if (!token) {
     return NextResponse.json(
-      { code: "auth", message: "Unauthorized", retryable: false },
+      {
+        code: "auth",
+        message: "Unauthorized",
+        retryable: false,
+        redirectUrl: "/auth/login?next=/billing",
+      },
       { status: 401 },
     );
   }
@@ -61,6 +66,18 @@ export async function POST(request: Request) {
 
   const text = await upstream.text();
   const contentType = upstream.headers.get("content-type") ?? "application/json";
+
+  if (upstream.status === 401) {
+    return NextResponse.json(
+      {
+        code: "auth",
+        message: "Session expired. Please refresh.",
+        retryable: false,
+        redirectUrl: "/auth/refresh?next=/billing",
+      },
+      { status: 401 },
+    );
+  }
 
   return new NextResponse(text, {
     status: upstream.status,

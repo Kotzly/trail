@@ -161,20 +161,20 @@ export async function POST(request: Request) {
   const now = new Date();
 
   if (mapped.state === "succeeded") {
-    if (session.planId === "pro") {
-      const currentPeriodEnd =
-        session.interval === "year" ? addDays(now, 365) : addDays(now, 30);
+    const currentPeriodEnd =
+      session.interval === "year" ? addDays(now, 365) : addDays(now, 30);
 
+    if (session.planId === "pro" || session.planId === "teams") {
       await db.userSubscription.upsert({
         where: { userId: session.userId },
         create: {
           userId: session.userId,
-          plan: "PRO",
+          plan: session.planId === "teams" ? "TEAMS" : "PRO",
           status: "ACTIVE",
           currentPeriodEnd,
         },
         update: {
-          plan: "PRO",
+          plan: session.planId === "teams" ? "TEAMS" : "PRO",
           status: "ACTIVE",
           currentPeriodEnd,
         },

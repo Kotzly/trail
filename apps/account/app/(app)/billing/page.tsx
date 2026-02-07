@@ -22,7 +22,7 @@ type ApiPlan = {
 };
 
 type ApiSubscription = {
-  planId: "free" | "pro";
+  planId: "free" | "pro" | "teams";
   status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired";
 };
 

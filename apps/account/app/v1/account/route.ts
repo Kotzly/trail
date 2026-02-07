@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 
     const subscription = await internalApiJson<{
       id: string;
-      planId: "free" | "pro";
+      planId: "free" | "pro" | "teams";
       status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired";
       interval: "month";
       currentPeriodStart: string;
