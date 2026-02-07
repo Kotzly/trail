@@ -27,6 +27,8 @@
 
 .graph-wrapper {
   --graph-grid-dot: var(--trail-grid-dot, color-mix(in srgb, var(--md-outline-variant) 60%, transparent));
+  /* Edge/path color. Keep a single hue for connections and derive it from the active theme. */
+  --graph-connection: var(--md-primary);
   --graph-grid-size: 20px;
   --graph-grid-dot-size: 1.5px;
   --graph-grid-offset-x: 0px;
