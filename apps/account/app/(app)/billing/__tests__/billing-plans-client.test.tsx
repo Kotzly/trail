@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { BillingPlansClient } from "../BillingPlansClient";
 import type { BillingPlanView } from "../BillingPlansClient";
 
+const locationReload = vi.fn();
+
 const plans: BillingPlanView[] = [
   {
     id: "free",
@@ -29,6 +31,10 @@ describe("BillingPlansClient", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.stubGlobal("fetch", vi.fn());
+    Object.defineProperty(window, "location", {
+      value: { ...window.location, reload: locationReload, assign: vi.fn() },
+      writable: true,
+    });
   });
 
   afterEach(() => {
@@ -147,5 +153,32 @@ describe("BillingPlansClient", () => {
     await waitFor(() => {
       expect(navigateSpy).toHaveBeenCalledWith("/auth/refresh?next=/billing");
     });
+  });
+
+  it("cancels subscription when downgrading from pro to free", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          planId: "pro",
+          cancelAtPeriodEnd: true,
+          currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const user = userEvent.setup();
+    render(<BillingPlansClient plans={plans} currentPlanId="pro" />);
+
+    await user.click(screen.getByRole("button", { name: "downgrade to free" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/billing/cancel",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+    expect(locationReload).toHaveBeenCalled();
   });
 });

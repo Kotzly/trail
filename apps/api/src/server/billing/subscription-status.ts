@@ -18,7 +18,12 @@ export async function getBillingStatusFromSubscription(
     },
   });
 
-  if (!subscription || subscription.plan === "FREE") {
+  if (
+    !subscription ||
+    subscription.plan === "FREE" ||
+    (subscription.currentPeriodEnd &&
+      subscription.currentPeriodEnd.getTime() <= Date.now())
+  ) {
     return { state: "none" };
   }
 

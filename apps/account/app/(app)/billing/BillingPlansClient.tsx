@@ -20,6 +20,10 @@ type CheckoutResponse = {
   expiresAt: string | null;
 };
 
+type CancelResponse =
+  | { planId: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string }
+  | { message?: string; redirectUrl?: string };
+
 export function navigateTo(url: string): void {
   window.location.assign(url);
 }
@@ -73,16 +77,21 @@ function getCta(planId: string, currentPlanId: string): string {
 export function BillingPlansClient({
   plans,
   currentPlanId = "free",
+  cancelAtPeriodEnd = false,
+  currentPeriodEnd,
   onNavigate = navigateTo,
 }: {
   plans: BillingPlanView[];
   currentPlanId?: string;
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: string | null;
   onNavigate?: (url: string) => void;
 }) {
   const { billing } = accountCopy;
   const [isYearly, setIsYearly] = useState(true);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Preserve server-provided ordering (Free, Pro, Teams).
   const orderedPlans = useMemo(() => plans, [plans]);
@@ -100,6 +109,7 @@ export function BillingPlansClient({
 
     setPendingPlanId(planId);
     setError(null);
+    setNotice(null);
 
     try {
       const origin = window.location.origin.replace(/\/$/, "");
@@ -143,6 +153,50 @@ export function BillingPlansClient({
         checkoutError instanceof Error
           ? checkoutError.message
           : "Could not start checkout.";
+      setError(message);
+    } finally {
+      setPendingPlanId(null);
+    }
+  }
+
+  async function cancelSubscription(targetPlanId: string): Promise<void> {
+    setPendingPlanId(targetPlanId);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const response = await fetch("/api/billing/cancel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const payload = (await response.json().catch(() => null)) as CancelResponse | null;
+
+      if (response.status === 401 && payload && typeof payload === "object" && "redirectUrl" in payload) {
+        const redirectUrl = payload.redirectUrl;
+        if (typeof redirectUrl === "string" && redirectUrl) {
+          onNavigate(redirectUrl);
+          return;
+        }
+      }
+
+      if (!response.ok) {
+        const message =
+          payload && typeof payload === "object" && "message" in payload
+            ? (payload.message ?? "Could not cancel subscription.")
+            : "Could not cancel subscription.";
+        throw new Error(message);
+      }
+
+      setNotice(
+        "Downgrade scheduled. You'll keep access until the end of the current period.",
+      );
+      window.location.reload();
+    } catch (cancelError) {
+      const message =
+        cancelError instanceof Error ? cancelError.message : "Could not cancel subscription.";
       setError(message);
     } finally {
       setPendingPlanId(null);
@@ -242,10 +296,21 @@ export function BillingPlansClient({
                   size="sm"
                   variant={plan.popular ? "primary" : "outline"}
                   className="w-full lowercase"
-                  disabled={plan.id === currentPlanId || pendingPlanId === plan.id}
+                  disabled={
+                    plan.id === currentPlanId ||
+                    pendingPlanId === plan.id ||
+                    (getTierRank(plan.id) < getTierRank(currentPlanId) &&
+                      cancelAtPeriodEnd)
+                  }
                   onClick={() => {
                     if (plan.id !== currentPlanId) {
-                      void startCheckout(plan.id);
+                      const isDowngrade =
+                        getTierRank(plan.id) < getTierRank(currentPlanId);
+                      if (isDowngrade) {
+                        void cancelSubscription(plan.id);
+                      } else {
+                        void startCheckout(plan.id);
+                      }
                     }
                   }}
                 >
@@ -259,6 +324,10 @@ export function BillingPlansClient({
 
       {error ? (
         <p className="text-center text-xs text-red-500">{error}</p>
+      ) : null}
+
+      {notice ? (
+        <p className="text-center text-xs text-ink-muted">{notice}</p>
       ) : null}
 
       <div className="text-center text-xs text-ink-muted lowercase">

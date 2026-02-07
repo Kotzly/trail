@@ -144,8 +144,11 @@ export function getFeatureMinTier(
 export async function getUserPlanTier(userId: string): Promise<PlanTier> {
   const subscription = await db.userSubscription.findUnique({
     where: { userId },
-    select: { plan: true },
+    select: { plan: true, currentPeriodEnd: true },
   });
+  if (subscription?.currentPeriodEnd && subscription.currentPeriodEnd.getTime() <= Date.now()) {
+    return "free";
+  }
   return mapDbPlanToTier(subscription?.plan);
 }
 
@@ -188,13 +191,17 @@ export async function getSubscriptionSnapshotForUser(
     return fallbackCreatedAt ? buildFreeSubscription(fallbackCreatedAt) : null;
   }
 
-  const status = mapDbStatusToApiStatus(subscription.status);
   const currentPeriodStart = subscription.createdAt;
-  const currentPeriodEnd = subscription.currentPeriodEnd ?? addDays(currentPeriodStart, 30);
+  const currentPeriodEnd =
+    subscription.currentPeriodEnd ?? addDays(currentPeriodStart, 30);
+
+  const isExpired = currentPeriodEnd.getTime() <= Date.now();
+  const status = isExpired ? "expired" : mapDbStatusToApiStatus(subscription.status);
+  const planId = isExpired ? "free" : mapDbPlanToPlanId(subscription.plan);
 
   return {
     id: subscription.id,
-    planId: mapDbPlanToPlanId(subscription.plan),
+    planId,
     status,
     interval: "month",
     currentPeriodStart: toIso(currentPeriodStart),
