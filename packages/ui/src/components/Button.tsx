@@ -18,7 +18,7 @@ type ButtonComponent = React.ForwardRefExoticComponent<
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
   sm: "h-9 px-3 text-xs",
   md: "h-10 px-4 text-sm",
-  lg: "h-12 px-6 text-base",
+  lg: "h-12 px-6",
   icon: "h-9 w-9"
 };
 

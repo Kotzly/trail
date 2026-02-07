@@ -200,7 +200,7 @@ export function FAQContent() {
                     value={item.question}
                     className="rounded-2xl border border-stroke/40 bg-surface/50 px-6 transition-all hover:border-accent/30 hover:bg-surface/70"
                   >
-                    <AccordionTrigger className="text-left text-base font-medium text-ink hover:text-accent [&[data-state=open]>svg]:rotate-180">
+                    <AccordionTrigger className="text-left font-medium text-ink hover:text-accent [&[data-state=open]>svg]:rotate-180">
                       {item.question}
                     </AccordionTrigger>
                     <AccordionContent className="pb-4 text-sm leading-relaxed text-ink-muted">

@@ -164,7 +164,7 @@ export function MarkdownBlocks({ markdown }: { markdown: string }) {
           return (
             <h3
               key={`h3-${index}`}
-              className="font-display text-base font-semibold tracking-tight text-ink md:text-lg"
+              className="font-display font-semibold tracking-tight md:text-lg"
             >
               {renderInline(block.text)}
             </h3>

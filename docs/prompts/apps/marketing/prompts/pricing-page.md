@@ -155,7 +155,7 @@ All plans include access to our platform, lead generation tools, and dedicated s
               </div>
             )}
             <div className="flex-1 flex flex-col">
-              <p className="text-base font-semibold text-muted-foreground">
+              <p className="font-semibold text-muted-foreground">
                 {plan.name}
               </p>
               <div className="mt-6 flex items-center justify-center gap-x-2">
