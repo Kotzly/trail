@@ -1,8 +1,22 @@
 import type { ExtensionConfigMap } from "@/src/server/extension-config";
 import { getExtensionConfig } from "@/src/server/extension-config";
 import type { SubscriptionSnapshot } from "@/src/server/subscription-access";
+import { env } from "@/src/env";
 
-const DEFAULT_PLANS = [
+export type PlanDefinition = {
+  id: string;
+  name: string;
+  tier: string;
+  priceMonthly: number;
+  priceYearly: number;
+  currency: string;
+  features: string[];
+  limits: { maxTrees: number; maxDevices: number; maxHistoryDays: number };
+  highlight?: boolean;
+  rank?: number;
+};
+
+const DEFAULT_PLANS: readonly PlanDefinition[] = [
   {
     id: "free",
     name: "Free",
@@ -37,7 +51,7 @@ const DEFAULT_PLANS = [
     limits: { maxTrees: 999, maxDevices: 15, maxHistoryDays: 180 },
     rank: 2,
   },
-] as const;
+];
 
 type AccountUser = {
   id: string;
@@ -63,7 +77,7 @@ type AccountSnapshot = {
   user: AccountUser | null;
   subscription: SubscriptionSnapshot | null;
   billing: { state: "none" };
-  plans: typeof DEFAULT_PLANS;
+  plans: readonly PlanDefinition[];
   config: ExtensionConfigMap;
 };
 
@@ -124,5 +138,18 @@ export function buildAccountSnapshot({
 }
 
 export function listPlans() {
-  return DEFAULT_PLANS;
+  if (!env.BILLING_TEST_MODE) {
+    return DEFAULT_PLANS;
+  }
+
+  return DEFAULT_PLANS.map((plan) => {
+    if (plan.id === "free") {
+      return plan;
+    }
+    return {
+      ...plan,
+      priceMonthly: 0,
+      priceYearly: 0,
+    };
+  });
 }

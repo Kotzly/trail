@@ -74,7 +74,7 @@ const providerFactories: Record<BillingProviderName, () => BillingProvider> = {
 const providers: Partial<Record<BillingProviderName, BillingProvider>> = {};
 
 export function getBillingProvider(): BillingProvider {
-  const providerName = env.BILLING_PROVIDER;
+  const providerName = env.BILLING_TEST_MODE ? "manual" : env.BILLING_PROVIDER;
   const existing = providers[providerName];
   if (existing) {
     return existing;

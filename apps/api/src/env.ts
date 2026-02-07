@@ -55,8 +55,17 @@ function readOptionalEnv(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+function readBooleanEnv(value: unknown): boolean {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const normalized = value.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes";
+}
+
 export const env = {
   ...requireEnv(requiredEnvVars),
+  BILLING_TEST_MODE: readBooleanEnv(process.env.BILLING_TEST_MODE),
   BILLING_PROVIDER: normalizeBillingProvider(process.env.BILLING_PROVIDER),
   NOWPAYMENTS_API_KEY: readOptionalEnv(process.env.NOWPAYMENTS_API_KEY),
   NOWPAYMENTS_IPN_SECRET: readOptionalEnv(process.env.NOWPAYMENTS_IPN_SECRET),
