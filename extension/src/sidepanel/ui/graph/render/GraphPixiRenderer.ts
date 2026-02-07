@@ -1017,11 +1017,16 @@ export class GraphPixiRenderer {
     this.connectionLayer.clear();
     this.pathLayer.clear();
     if (!this.data.showConnections || this.detailMode !== 'full') return;
-    const color = this.theme.connection.path;
-    const width = 2 / this.view.scale;
-    const alpha = 0.42;
-    this.connectionLayer.setStrokeStyle({ width, color, alpha });
-    this.pathLayer.setStrokeStyle({ width, color, alpha });
+    // Base connections and "active path" connections can share the same hue (theme-driven),
+    // but must be visually distinct so the root -> current path reads as highlighted.
+    const baseColor = this.theme.connection.base;
+    const pathColor = this.theme.connection.path;
+    const baseWidth = 2 / this.view.scale;
+    const pathWidth = 2.8 / this.view.scale;
+    const baseAlpha = 0.22;
+    const pathAlpha = 0.85;
+    this.connectionLayer.setStrokeStyle({ width: baseWidth, color: baseColor, alpha: baseAlpha });
+    this.pathLayer.setStrokeStyle({ width: pathWidth, color: pathColor, alpha: pathAlpha });
 
     this.connections.forEach((conn) => {
       if (!intersects(conn.bounds, viewRect)) return;
