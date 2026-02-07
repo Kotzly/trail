@@ -181,4 +181,38 @@ describe("BillingPlansClient", () => {
     });
     expect(locationReload).toHaveBeenCalled();
   });
+
+  it("resumes subscription when current plan is canceled", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          planId: "pro",
+          cancelAtPeriodEnd: false,
+          currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const user = userEvent.setup();
+    render(
+      <BillingPlansClient
+        plans={plans}
+        currentPlanId="pro"
+        cancelAtPeriodEnd={true}
+        currentPeriodEnd={new Date(Date.now() + 1000 * 60 * 60).toISOString()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "resume subscription" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/billing/resume",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+    expect(locationReload).toHaveBeenCalled();
+  });
 });

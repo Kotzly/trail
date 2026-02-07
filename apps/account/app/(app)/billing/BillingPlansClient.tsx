@@ -24,6 +24,10 @@ type CancelResponse =
   | { planId: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string }
   | { message?: string; redirectUrl?: string };
 
+type ResumeResponse =
+  | { planId: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string }
+  | { message?: string; redirectUrl?: string };
+
 export function navigateTo(url: string): void {
   window.location.assign(url);
 }
@@ -203,6 +207,48 @@ export function BillingPlansClient({
     }
   }
 
+  async function resumeSubscription(): Promise<void> {
+    setPendingPlanId("resume");
+    setError(null);
+    setNotice(null);
+
+    try {
+      const response = await fetch("/api/billing/resume", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const payload = (await response.json().catch(() => null)) as ResumeResponse | null;
+
+      if (response.status === 401 && payload && typeof payload === "object" && "redirectUrl" in payload) {
+        const redirectUrl = payload.redirectUrl;
+        if (typeof redirectUrl === "string" && redirectUrl) {
+          onNavigate(redirectUrl);
+          return;
+        }
+      }
+
+      if (!response.ok) {
+        const message =
+          payload && typeof payload === "object" && "message" in payload
+            ? (payload.message ?? "Could not resume subscription.")
+            : "Could not resume subscription.";
+        throw new Error(message);
+      }
+
+      setNotice("Downgrade cancelled. Your subscription is active.");
+      window.location.reload();
+    } catch (resumeError) {
+      const message =
+        resumeError instanceof Error ? resumeError.message : "Could not resume subscription.";
+      setError(message);
+    } finally {
+      setPendingPlanId(null);
+    }
+  }
+
   return (
     <>
       <div className="flex items-center justify-center">
@@ -297,12 +343,19 @@ export function BillingPlansClient({
                   variant={plan.popular ? "primary" : "outline"}
                   className="w-full lowercase"
                   disabled={
-                    plan.id === currentPlanId ||
+                    (plan.id === currentPlanId && !cancelAtPeriodEnd) ||
                     pendingPlanId === plan.id ||
                     (getTierRank(plan.id) < getTierRank(currentPlanId) &&
                       cancelAtPeriodEnd)
                   }
                   onClick={() => {
+                    if (plan.id === currentPlanId) {
+                      if (cancelAtPeriodEnd) {
+                        void resumeSubscription();
+                      }
+                      return;
+                    }
+
                     if (plan.id !== currentPlanId) {
                       const isDowngrade =
                         getTierRank(plan.id) < getTierRank(currentPlanId);
@@ -314,7 +367,11 @@ export function BillingPlansClient({
                     }
                   }}
                 >
-                  {pendingPlanId === plan.id ? "processing..." : getCta(plan.id, currentPlanId)}
+                  {pendingPlanId === plan.id || pendingPlanId === "resume"
+                    ? "processing..."
+                    : cancelAtPeriodEnd && plan.id === currentPlanId
+                      ? "resume subscription"
+                      : getCta(plan.id, currentPlanId)}
                 </Button>
               </div>
             </div>

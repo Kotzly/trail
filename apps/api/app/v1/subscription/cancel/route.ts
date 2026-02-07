@@ -1,6 +1,7 @@
 import { db } from "@trail/db";
 import { getBearerToken } from "@/src/server/auth/headers";
 import { getUserFromBillingBearerToken } from "@/src/server/auth/billing-user";
+import { env } from "@/src/env";
 import { jsonError } from "@/src/server/error-response";
 import { jsonNoStore } from "@/src/server/response";
 import { getSubscriptionSnapshotForUser } from "@/src/server/subscription-access";
@@ -28,6 +29,26 @@ export async function POST(request: Request) {
     return jsonNoStore(snapshot);
   }
 
+  if (env.BILLING_TEST_MODE) {
+    // In test mode we want to validate the full upgrade/downgrade loop without
+    // waiting for period end or external provider actions.
+    await db.userSubscription.update({
+      where: { userId: user.id },
+      data: {
+        plan: "FREE",
+        status: "CANCELED",
+        currentPeriodEnd: new Date(),
+      },
+    });
+
+    const snapshot = await getSubscriptionSnapshotForUser({
+      userId: user.id,
+      fallbackCreatedAt: user.createdAt,
+    });
+
+    return jsonNoStore(snapshot);
+  }
+
   await db.userSubscription.update({
     where: { userId: user.id },
     data: {
@@ -43,4 +64,3 @@ export async function POST(request: Request) {
 
   return jsonNoStore(snapshot);
 }
-
