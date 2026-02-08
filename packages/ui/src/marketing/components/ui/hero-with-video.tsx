@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { ArrowRight } from "../../../icons";
-import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
+import { GetTrailButton } from "../GetTrailButton";
 
 interface HeroWithVideoProps {
   eyebrow?: string;
@@ -12,8 +11,6 @@ interface HeroWithVideoProps {
   description?: string;
   ctaText?: string;
   ctaHref?: string;
-  secondaryCtaText?: string;
-  secondaryCtaHref?: string;
   videoUrl?: string;
   posterUrl?: string;
 }
@@ -31,8 +28,6 @@ export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
   description = "Capture every meaningful step, add notes when it matters, and share a clean research path instead of a tab dump.",
   ctaText = "Get Trail",
   ctaHref = "/downloads",
-  secondaryCtaText = "See the 60s demo",
-  secondaryCtaHref = "#showcase",
   videoUrl = "https://www.gettrail.net/assets/showcase.mp4",
   posterUrl = "/assets/video-poster-white.jpg",
 }) => {
@@ -120,28 +115,16 @@ export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
             {description}
           </motion.p>
 
-          {/* CTA Buttons */}
+          {/* CTA */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-8 flex items-center justify-center gap-4 flex-wrap"
+            className="mt-8 flex items-center justify-center"
           >
-            <Link
-              href={ctaHref}
-              className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-cta px-6 text-sm font-semibold text-cta-fg transition-all hover:bg-cta-hover hover:scale-105"
-            >
+            <GetTrailButton href={ctaHref} className="h-12 px-7">
               {ctaText}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-            {secondaryCtaText && (
-              <Link
-                href={secondaryCtaHref}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-stroke/60 bg-surface/50 px-6 text-sm font-medium text-ink transition-all hover:border-accent hover:bg-surface"
-              >
-                {secondaryCtaText}
-              </Link>
-            )}
+            </GetTrailButton>
           </motion.div>
         </motion.div>
 
@@ -160,6 +143,9 @@ export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
             muted
             loop
             playsInline
+            preload="metadata"
+            data-play-on-view="true"
+            aria-label="Trail product demo"
           />
         </motion.div>
       </div>

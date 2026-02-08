@@ -25,10 +25,8 @@ export function HomeContent() {
           description="Capture every meaningful step, add notes when it matters, and share a clean research path instead of a tab dump."
           ctaText="Get Trail"
           ctaHref="/downloads"
-          secondaryCtaText="See the 60s demo"
-          secondaryCtaHref="/#showcase"
-          posterUrl="/assets/video-poster-white.jpg"
           videoUrl="https://www.gettrail.net/assets/showcase.mp4"
+          posterUrl="/assets/video-poster-white.jpg"
         />
         <TrustedBy />
         <BentoFeatures />

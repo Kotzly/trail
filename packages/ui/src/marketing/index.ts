@@ -1,10 +1,11 @@
 export { CallToAction } from "./components/CallToAction";
+export { GetTrailButton } from "./components/GetTrailButton";
 export { MarketingFooter } from "./components/MarketingFooter";
 export { MarketingNav } from "./components/MarketingNav";
 export { RevealObserver } from "./components/RevealObserver";
+export { VideoObserver } from "./components/VideoObserver";
 export { Showcase } from "./components/Showcase";
 export { TrustedBy } from "./components/TrustedBy";
-export { VideoObserver } from "./components/VideoObserver";
 export { Pricing } from "./components/blocks/pricing";
 export {
   PageWrapper,
