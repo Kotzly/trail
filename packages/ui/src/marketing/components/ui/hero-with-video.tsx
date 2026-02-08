@@ -42,7 +42,10 @@ export const HeroWithVideo: React.FC<HeroWithVideoProps> = ({
   }, [titleNumber, titles]);
 
   return (
-    <section className="relative pt-24 pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
+    <section
+      data-marketing-hero
+      className="relative overflow-hidden px-4 pt-24 pb-16 sm:px-6 lg:px-8"
+    >
       {/* Dithering Background - only within hero section */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         {/* Gradient Overlay */}

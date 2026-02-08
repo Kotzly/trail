@@ -18,66 +18,100 @@ const navItems = [
 ];
 
 export function MarketingNav() {
-  const headerRef = React.useRef<HTMLElement | null>(null);
-  const [isHeaderVisible, setIsHeaderVisible] = React.useState(true);
+  const [isPastHero, setIsPastHero] = React.useState(false);
 
   React.useEffect(() => {
-    const headerEl = headerRef.current;
-    if (!headerEl || typeof IntersectionObserver === "undefined") return;
+    if (
+      typeof IntersectionObserver === "undefined" ||
+      typeof MutationObserver === "undefined"
+    ) {
+      return;
+    }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsHeaderVisible(entry.isIntersecting);
-      },
-      { threshold: 0.01 },
-    );
+    let heroEl: HTMLElement | null = null;
+    let heroObserver: IntersectionObserver | null = null;
 
-    observer.observe(headerEl);
+    const disconnectHeroObserver = () => {
+      heroObserver?.disconnect();
+      heroObserver = null;
+    };
 
-    return () => observer.disconnect();
+    const observeHero = () => {
+      const nextHeroEl = document.querySelector<HTMLElement>("[data-marketing-hero]");
+      if (nextHeroEl === heroEl) return;
+
+      disconnectHeroObserver();
+      heroEl = nextHeroEl;
+
+      if (!heroEl) {
+        setIsPastHero(false);
+        return;
+      }
+
+      heroObserver = new IntersectionObserver(
+        ([entry]) => {
+          setIsPastHero(entry.boundingClientRect.bottom <= 0);
+        },
+        { threshold: 0 },
+      );
+
+      heroObserver.observe(heroEl);
+    };
+
+    observeHero();
+
+    const domObserver = new MutationObserver(() => {
+      observeHero();
+    });
+    domObserver.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      domObserver.disconnect();
+      disconnectHeroObserver();
+    };
   }, []);
 
   return (
     <>
-      <header ref={headerRef} className="relative z-30">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <motion.a
-            href="/"
-            className="flex items-center gap-2.5 rounded-full text-lg font-display font-semibold tracking-tight text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            <TrailLogo className="trail-logo--md" />
-            Trail
-          </motion.a>
+      <header className="relative z-30">
+        <div className="mx-auto flex max-w-6xl items-center px-6 py-4">
+          <div className="flex items-center gap-6 sm:gap-8">
+            <motion.a
+              href="/"
+              className="flex items-center gap-2.5 rounded-full text-lg font-display font-semibold tracking-tight text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <TrailLogo className="trail-logo--md" />
+              Trail
+            </motion.a>
 
-          <nav className="flex items-center gap-4 text-sm font-medium text-ink-subtle sm:gap-6">
-            {navItems.map((item) => (
-              <motion.a
-                key={item.href}
-                href={item.href}
-                className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-              >
-                {item.label}
-              </motion.a>
-            ))}
-          </nav>
+            <nav className="flex items-center gap-4 text-sm font-medium text-ink-subtle sm:gap-6">
+              {navItems.map((item) => (
+                <motion.a
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  {item.label}
+                </motion.a>
+              ))}
+            </nav>
+          </div>
         </div>
       </header>
 
       <motion.div
-        aria-hidden={isHeaderVisible}
+        aria-hidden={!isPastHero}
         className="fixed right-4 top-4 z-50"
         initial={{ opacity: 0, y: -12 }}
-        animate={
-          isHeaderVisible ? { opacity: 0, y: -12 } : { opacity: 1, y: 0 }
-        }
+        animate={isPastHero ? { opacity: 1, y: 0 } : { opacity: 0, y: -12 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        style={{ pointerEvents: isHeaderVisible ? "none" : "auto" }}
+        style={{ pointerEvents: isPastHero ? "auto" : "none" }}
       >
         <GetTrailButton
           href="/downloads"
