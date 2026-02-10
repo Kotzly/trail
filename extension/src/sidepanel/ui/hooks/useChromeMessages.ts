@@ -9,6 +9,7 @@ import { Icons } from '../components/Icon.js';
 export function useChromeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
   const setCommandState = useStore((state) => state.setCommandState);
+  const setEditorMode = useStore((state) => state.setEditorMode);
   const setTagDefs = useStore((state) => state.setTagDefs);
   const setTrees = useStore((state) => state.setTrees);
 
@@ -16,6 +17,16 @@ export function useChromeMessages(): void {
     const handler = (message: RequestMessage) => {
       if (message.type === MSG.TREE_UPDATED) {
         applyTreeState(message);
+
+        // Sync editor mode state from tree update reason
+        if (message.reason === 'editor-enter') {
+          // The treeId is conveyed by the background; for now derive from the
+          // current tree's root or leave as null until a direct update.
+          setEditorMode({ active: true, treeId: null });
+        } else if (message.reason === 'editor-exit') {
+          setEditorMode({ active: false, treeId: null });
+        }
+
         getCommandState()
           .then((state) => setCommandState(state))
           .catch((error) => console.error('Failed to fetch command state:', error));
@@ -47,5 +58,5 @@ export function useChromeMessages(): void {
     return () => {
       chrome.runtime.onMessage.removeListener(handler);
     };
-  }, [applyTreeState, setCommandState, setTagDefs, setTrees]);
+  }, [applyTreeState, setCommandState, setEditorMode, setTagDefs, setTrees]);
 }

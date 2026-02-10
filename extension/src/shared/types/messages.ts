@@ -52,6 +52,10 @@ export const MSG = {
     BULK_DELETE_RECURSIVE: 'BULK_DELETE_RECURSIVE',
     SET_NODE_LAYOUT: 'SET_NODE_LAYOUT',
     RESET_NODE_LAYOUTS: 'RESET_NODE_LAYOUTS',
+    ENTER_EDITOR_MODE: 'ENTER_EDITOR_MODE',
+    EXIT_EDITOR_MODE: 'EXIT_EDITOR_MODE',
+    REPARENT_NODE: 'REPARENT_NODE',
+    DUPLICATE_SUBTREE: 'DUPLICATE_SUBTREE',
     SITE_MESSAGE_FORWARD: 'SITE_MESSAGE_FORWARD',
 } as const;
 
@@ -159,6 +163,21 @@ export type BulkDeleteMessage = RequestMessageBase<typeof MSG.BULK_DELETE, BulkN
 export type BulkDeleteNodesMessage = RequestMessageBase<typeof MSG.BULK_DELETE_NODES, BulkNodeIdsInput>;
 export type BulkDeleteRecursiveMessage = RequestMessageBase<typeof MSG.BULK_DELETE_RECURSIVE, BulkNodeIdsInput>;
 
+export type EnterEditorModeMessage = RequestMessageBase<typeof MSG.ENTER_EDITOR_MODE, { treeId: string }>;
+export type ExitEditorModeMessage = RequestMessageBase<typeof MSG.EXIT_EDITOR_MODE>;
+export type ReparentNodeMessage = RequestMessageBase<typeof MSG.REPARENT_NODE, {
+  nodeId: NodeId;
+  newParentId: NodeId;
+}>;
+export type DuplicateSubtreeMessage = RequestMessageBase<typeof MSG.DUPLICATE_SUBTREE, {
+  nodeId: NodeId;
+}>;
+
+export type EditorModeState = {
+  active: boolean;
+  treeId: string | null;
+};
+
 export type SiteMessageForwardPayload = {
     siteMessageType: string;
     payload: Record<string, unknown>;
@@ -186,6 +205,8 @@ export type RequestMessage = NavigateToMessage |
     DeleteNodeMessage | DeleteChildrenMessage | DeleteWithChildrenMessage |
     BulkDeleteMessage | BulkDeleteNodesMessage | BulkDeleteRecursiveMessage |
     SetNodeLayoutMessage | ResetNodeLayoutsMessage |
+    EnterEditorModeMessage | ExitEditorModeMessage |
+    ReparentNodeMessage | DuplicateSubtreeMessage |
     SiteMessageForwardMessage;
 
 
@@ -251,6 +272,10 @@ export type ResponseDataByType = {
     [MSG.BULK_DELETE_RECURSIVE]: void;
     [MSG.SET_NODE_LAYOUT]: void;
     [MSG.RESET_NODE_LAYOUTS]: void;
+    [MSG.ENTER_EDITOR_MODE]: EditorModeState;
+    [MSG.EXIT_EDITOR_MODE]: EditorModeState;
+    [MSG.REPARENT_NODE]: void;
+    [MSG.DUPLICATE_SUBTREE]: void;
     [MSG.SITE_MESSAGE_FORWARD]: SiteMessageForwardResponse;
 }
 
@@ -336,6 +361,18 @@ export const msg = {
     resetNodeLayouts(): ResetNodeLayoutsMessage {
         return { type: MSG.RESET_NODE_LAYOUTS };
     },
+    enterEditorMode(payload: { treeId: string }): EnterEditorModeMessage {
+        return { type: MSG.ENTER_EDITOR_MODE, ...payload };
+    },
+    exitEditorMode(): ExitEditorModeMessage {
+        return { type: MSG.EXIT_EDITOR_MODE };
+    },
+    reparentNode(payload: { nodeId: NodeId; newParentId: NodeId }): ReparentNodeMessage {
+        return { type: MSG.REPARENT_NODE, ...payload };
+    },
+    duplicateSubtree(payload: { nodeId: NodeId }): DuplicateSubtreeMessage {
+        return { type: MSG.DUPLICATE_SUBTREE, ...payload };
+    },
 }
 
 // ==== message handler ====
@@ -401,7 +438,11 @@ export type TreeUpdateReason =
     | 'tags'
     | 'tabs'
     | 'temp-selection'
-    | 'sync';
+    | 'sync'
+    | 'reparent'
+    | 'duplicate'
+    | 'editor-enter'
+    | 'editor-exit';
 
 export type TreeViewIntentMode = 'force' | 'soft';
 

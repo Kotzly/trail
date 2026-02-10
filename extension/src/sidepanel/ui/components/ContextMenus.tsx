@@ -590,6 +590,18 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         </div>
       )}
 
+      {!isRoot && (
+        <div
+          className="graph-context-menu-item"
+          onClick={() => {
+            fireAndForget(msg.duplicateSubtree({ nodeId }));
+            closeContextMenu();
+          }}
+        >
+          Duplicate subtree
+        </div>
+      )}
+
       <div className="graph-context-menu-divider" />
 
       {!isRoot && (

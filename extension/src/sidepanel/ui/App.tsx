@@ -6,6 +6,7 @@ import ThemePanel from './components/theme/ThemePanel.js';
 import ContextMenus from './components/ContextMenus.js';
 import DeleteTreeConfirmModal from './components/DeleteTreeConfirmModal.js';
 import AuthGate from './components/AuthGate.js';
+import EditorToolbar from './components/EditorToolbar.js';
 import NotificationsHost from './components/NotificationsHost.js';
 import { useBootstrap } from './hooks/useBootstrap.js';
 import { useAccount } from './hooks/useAccount.js';
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <div className="container">
       {!bootstrapped ? <TrailLoader /> : null}
+      <EditorToolbar />
       <FloatingControls searchInputRef={searchInputRef} />
       <NotificationsHost />
       <GraphArea />

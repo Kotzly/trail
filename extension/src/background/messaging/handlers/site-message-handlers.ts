@@ -7,6 +7,7 @@
  */
 import {
   MSG,
+  msg,
   type SiteMessageForwardResponse,
   type ResponseMessage,
   ok,
@@ -14,6 +15,7 @@ import {
 } from "../../../shared/types/messages.js";
 import { defineHandlers } from "../../../shared/types/messages.js";
 import type { SiteMessageForwardMessage } from "../../../shared/types/messages.js";
+import { getEditorState, enterEditorMode, exitEditorMode } from "./editor-handlers.js";
 
 // ---------------------------------------------------------------------------
 // Auth state helpers (reads from chrome.storage, same key as cloud-sync)
@@ -59,13 +61,14 @@ const innerHandlers: Record<string, InnerHandler> = {
    */
   PING: async (_payload, _requestId) => {
     const authed = await isAuthenticated();
+    const editor = getEditorState();
     return {
       responsePayload: {
         source: "trail-extension",
         type: "PONG",
         version: chrome.runtime.getManifest().version,
         authenticated: authed,
-        editorMode: false, // TODO(phase3): read from editor mode store
+        editorMode: editor.active,
       },
     };
   },
@@ -78,6 +81,37 @@ const innerHandlers: Record<string, InnerHandler> = {
     console.debug("[site-message] AUTH_REVOKED received — clearing tokens");
     await clearAuthSession();
     return {};
+  },
+
+  ENTER_EDITOR_MODE: async (payload, _requestId) => {
+    const treeId = typeof payload.treeId === "string" ? payload.treeId : "";
+    if (!treeId) {
+      return { responsePayload: { error: "Missing treeId" } };
+    }
+
+    const result = await enterEditorMode(treeId);
+    if (typeof result === "string") {
+      return { responsePayload: { error: result } };
+    }
+
+    return {
+      responsePayload: {
+        source: "trail-extension",
+        type: "EDITOR_MODE_ENTERED",
+        treeId: result.treeId,
+      },
+    };
+  },
+
+  EXIT_EDITOR_MODE: async (_payload, _requestId) => {
+    const result = await exitEditorMode();
+    return {
+      responsePayload: {
+        source: "trail-extension",
+        type: "EDITOR_MODE_EXITED",
+        editorMode: result.active,
+      },
+    };
   },
 };
 
@@ -93,7 +127,6 @@ export const siteMessageHandlers = defineHandlers({
     const handler = innerHandlers[siteMessageType];
 
     if (!handler) {
-      // Phase 3–4 message types are not yet implemented.
       return err(`Site message type not yet handled: ${siteMessageType}`);
     }
 

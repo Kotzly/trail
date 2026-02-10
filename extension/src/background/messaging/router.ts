@@ -21,6 +21,7 @@ import { tagHandlers } from "./handlers/tag-handlers.js";
 import { tagDefHandlers } from "./handlers/tag-def-handlers.js";
 import { panelHandlers } from "./handlers/panel-handlers.js";
 import { siteMessageHandlers } from "./handlers/site-message-handlers.js";
+import { editorHandlers } from "./handlers/editor-handlers.js";
 
 type AnyResponse = ResponseMessage<RequestType>;
 type AnyHandler = (message: RequestMessage, sender: chrome.runtime.MessageSender) => Promise<AnyResponse> | AnyResponse;
@@ -114,5 +115,6 @@ export function initMessaging(): void {
     .merge(tagDefHandlers)
     .merge(panelHandlers)
     .merge(siteMessageHandlers)
+    .merge(editorHandlers)
     .listen();
 }
