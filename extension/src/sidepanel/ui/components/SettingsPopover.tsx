@@ -547,7 +547,8 @@ export default function SettingsPopover() {
     setPortalBusy(true);
     try {
       await initBackendConfig();
-      await openExternalLink(getBackendConfig().portalUrl as Url);
+      const baseUrl = getBackendConfig().baseUrl;
+      await openExternalLink(`${baseUrl}/settings` as Url);
     } finally {
       setPortalBusy(false);
     }
@@ -1060,11 +1061,7 @@ export default function SettingsPopover() {
         </div>
 
         <div className="settings-row">
-          {isAuthenticated ? (
-            <button className="settings-secondary-btn" type="button" onClick={handleLogout} disabled={authBusy}>
-              {authBusy ? 'Signing out…' : 'Sign out'}
-            </button>
-          ) : (
+          {!isAuthenticated && (
             <button className="settings-primary-btn" type="button" onClick={() => void handleSignIn()} disabled={authBusy}>
               {authBusy ? 'Opening…' : 'Sign in'}
             </button>
@@ -1078,6 +1075,11 @@ export default function SettingsPopover() {
             {portalBusy ? 'Refreshing…' : 'Refresh'}
           </button>
         </div>
+        {isAuthenticated && (
+          <div className="settings-card-hint">
+            To sign out, go to Account Settings on the web.
+          </div>
+        )}
         {authNotice ? <div className="settings-card-hint">{authNotice}</div> : null}
       </div>
 
