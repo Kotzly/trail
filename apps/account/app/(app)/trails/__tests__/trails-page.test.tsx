@@ -1,61 +1,66 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
-const usageMocks = vi.hoisted(() => ({
-  getAccountUsageSnapshot: vi.fn(),
+const authMocks = vi.hoisted(() => ({
+  getAuthSession: vi.fn(),
 }));
 
-vi.mock("@/src/server/account-usage", () => ({
-  ...usageMocks,
+const trailsMocks = vi.hoisted(() => ({
+  getTrailsList: vi.fn(),
+}));
+
+vi.mock("@/src/lib/auth", () => authMocks);
+vi.mock("@/src/server/trails", () => trailsMocks);
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn(),
 }));
 
 import TrailsPage from "../page";
 
 describe("TrailsPage", () => {
-  it("renders recent trails table", async () => {
-    usageMocks.getAccountUsageSnapshot.mockResolvedValue({
-      trailCount: 9,
-      activeSessionCount: 1,
-      devices: [
-        {
-          id: "device-1",
-          status: "ACTIVE",
-          deviceName: "MacBook Pro",
-          browserName: "Chrome",
-          os: "macOS",
-          lastSeenAt: "2026-02-06T22:45:53.094Z",
-          session: null,
-        },
-      ],
-      recentTrails: [
+  beforeEach(() => {
+    authMocks.getAuthSession.mockResolvedValue({
+      user: { id: "u1", email: "a@b.c", name: "Test" },
+    });
+  });
+
+  it("renders trail cards when trails exist", async () => {
+    trailsMocks.getTrailsList.mockResolvedValue({
+      items: [
         {
           id: "trail-1",
           label: "testing tree",
+          labelSource: "auto",
           rootTitle: "New Tab",
+          rootUrl: "https://example.com",
+          rootFavicon: null,
           savedAt: "2026-02-06T22:42:51.989Z",
           nodeCount: 1367,
+          createdAt: "2026-02-06T22:40:00.000Z",
+          updatedAt: "2026-02-06T22:42:51.989Z",
+          deviceId: "d1",
         },
       ],
+      nextCursor: null,
+      totalCount: 1,
     });
 
     render(await TrailsPage());
 
-    expect(screen.getByRole("heading", { name: "trails" })).toBeInTheDocument();
-    expect(screen.getByText("recent")).toBeInTheDocument();
-    expect(screen.getByText("name")).toBeInTheDocument();
-    expect(screen.getByText("root")).toBeInTheDocument();
-    expect(screen.getByText("nodes")).toBeInTheDocument();
-    expect(screen.getByText("saved")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "trails" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1 saved trail")).toBeInTheDocument();
     expect(screen.getByText("testing tree")).toBeInTheDocument();
     expect(screen.getByText("New Tab")).toBeInTheDocument();
+    expect(screen.getByText("1367 nodes")).toBeInTheDocument();
   });
 
   it("renders empty state when no trails exist", async () => {
-    usageMocks.getAccountUsageSnapshot.mockResolvedValue({
-      trailCount: 0,
-      activeSessionCount: 0,
-      devices: [],
-      recentTrails: [],
+    trailsMocks.getTrailsList.mockResolvedValue({
+      items: [],
+      nextCursor: null,
+      totalCount: 0,
     });
 
     render(await TrailsPage());
@@ -64,7 +69,5 @@ describe("TrailsPage", () => {
     expect(
       screen.getByRole("link", { name: "connect extension" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "account" })).toBeInTheDocument();
   });
 });
-

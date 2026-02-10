@@ -7,6 +7,10 @@ import { db } from "@trail/db";
 
 export const runtime = "nodejs";
 
+/* ------------------------------------------------------------------ */
+/*  Shared helpers                                                     */
+/* ------------------------------------------------------------------ */
+
 type ApiLabelSource = "user" | "auto" | "system";
 
 type DbLabelSource = "USER" | "AUTO" | "SYSTEM";
@@ -76,6 +80,44 @@ function toTrailRecord(trail: {
     deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null,
   };
 }
+
+/* ------------------------------------------------------------------ */
+/*  GET /api/v1/trails/:id                                             */
+/* ------------------------------------------------------------------ */
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  if (!id) {
+    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+  }
+
+  const token = getBearerToken(request.headers);
+  const authUser = await verifyUserToken(token);
+  if (!authUser) {
+    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+  }
+
+  const user = await ensureUser(authUser);
+  if (!user) {
+    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+  }
+
+  const trail = await db.trail.findFirst({
+    where: { id, userId: user.id, deletedAt: null },
+  });
+  if (!trail) {
+    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+  }
+
+  return jsonNoStore(toTrailRecord(trail as typeof trail & { payload: unknown }));
+}
+
+/* ------------------------------------------------------------------ */
+/*  PATCH /api/v1/trails/:id                                           */
+/* ------------------------------------------------------------------ */
 
 export async function PATCH(
   request: Request,
