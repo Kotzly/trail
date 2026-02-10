@@ -31,6 +31,7 @@ export default function GraphArea() {
       resetVersion: state.graph.resetVersion,
       viewIntent: state.graph.viewIntent,
       tagDefs: state.tagDefs,
+      editorActive: state.editorMode.active,
     }),
     shallow,
   );

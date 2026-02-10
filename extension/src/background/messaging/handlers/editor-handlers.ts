@@ -99,16 +99,25 @@ function registerCloneInTree(_tree: NavigationTree, _node: NavigationNode): void
 /* ------------------------------------------------------------------ */
 
 export async function enterEditorMode(treeId: string): Promise<EditorModeState | string> {
-  // Try to load the tree: LRU cache → local archives
+  // Try to load the tree: active tree → LRU cache → local archives
   let treeJSON: import('../../../shared/types/tree.js').NavigationTreeJSON | null = null;
 
-  // 1. Check LRU cache
-  const cached = await getCachedTree(treeId);
-  if (cached) {
-    treeJSON = cached.tree;
+  // 1. Check if it's the currently active tree
+  const activeMeta = await treeStorage.getActiveMeta();
+  if (activeMeta.id === treeId) {
+    const activeTree = await treeStorage.getOrCreateTree();
+    treeJSON = NavigationTreeMapper.toJSON(activeTree);
   }
 
-  // 2. Fall back to local archives
+  // 2. Check LRU cache
+  if (!treeJSON) {
+    const cached = await getCachedTree(treeId);
+    if (cached) {
+      treeJSON = cached.tree;
+    }
+  }
+
+  // 3. Fall back to local archives
   if (!treeJSON) {
     const archives = await treeStorage.getArchives();
     const record = archives.find((entry) => entry.id === treeId);
@@ -123,7 +132,7 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
     return 'Tree not found in local archives or cache';
   }
 
-  // Load the archived tree as the active tree for editing
+  // Load the tree for editing
   const tree = NavigationTreeMapper.fromJSON(treeJSON);
 
   // Save snapshot before entering editor mode

@@ -50,7 +50,6 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
     checkExtension();
   }, [checkExtension]);
 
-  // Listen for EDITOR_MODE_EXITED to update status
   useEffect(() => {
     return onExtensionEvent((event) => {
       if (event.type === "EDITOR_MODE_EXITED") {
@@ -74,103 +73,98 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
     setStatus("editing");
   };
 
-  const handleRetry = () => {
-    checkExtension();
-  };
+  if (status === "checking") {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <SpinnerIcon className="h-3 w-3" />
+      </div>
+    );
+  }
 
-  return (
-    <div className="flex flex-col gap-2">
-      {status === "checking" && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <SpinnerIcon />
-          Checking extension...
-        </div>
-      )}
+  if (status === "not-found") {
+    return (
+      <a
+        href="https://gettrail.net"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+      >
+        Get Trail
+        <ExternalIcon className="h-3 w-3 text-muted-foreground" />
+      </a>
+    );
+  }
 
-      {status === "not-found" && (
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Extension not detected.{" "}
-            <a
-              href="https://gettrail.net"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-2 hover:text-foreground"
-            >
-              Install Trail extension
-            </a>{" "}
-            to edit.
-          </p>
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+  if (status === "not-authenticated") {
+    return (
+      <span className="text-xs text-muted-foreground">
+        Sign in to extension to edit
+      </span>
+    );
+  }
 
-      {status === "not-authenticated" && (
-        <p className="text-sm text-muted-foreground">
-          Sign in to the extension first to enable editing.
-        </p>
-      )}
+  if (status === "entering") {
+    return (
+      <button
+        type="button"
+        disabled
+        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground opacity-70"
+      >
+        <SpinnerIcon className="h-3.5 w-3.5" />
+        Opening…
+      </button>
+    );
+  }
 
-      {status === "ready" && (
+  if (status === "editing") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-green-500/10 px-3 py-1.5 text-sm font-medium text-green-600 dark:text-green-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+        Editing
+      </span>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-red-500">
+          {errorMsg ?? "Failed"}
+        </span>
         <button
           type="button"
-          onClick={handleEdit}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          onClick={checkExtension}
+          className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
         >
-          <PencilIcon />
-          Edit in Extension
+          Retry
         </button>
-      )}
+      </div>
+    );
+  }
 
-      {status === "entering" && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <SpinnerIcon />
-          Opening editor...
-        </div>
-      )}
-
-      {status === "editing" && (
-        <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/5 px-4 py-2 text-sm text-green-600 dark:text-green-400">
-          <CheckIcon />
-          Editing in extension
-        </div>
-      )}
-
-      {status === "error" && (
-        <div className="space-y-2">
-          <p className="text-sm text-red-500">
-            {errorMsg ?? "Failed to enter editor mode."}
-          </p>
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-    </div>
+  // status === "ready"
+  return (
+    <button
+      type="button"
+      onClick={handleEdit}
+      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+    >
+      <PencilIcon className="h-3.5 w-3.5" />
+      Edit in Extension
+    </button>
   );
 }
 
-function PencilIcon() {
+function PencilIcon({ className }: { className?: string }) {
   return (
     <svg
-      width="14"
-      height="14"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      className={className}
     >
       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
       <path d="m15 5 4 4" />
@@ -178,37 +172,36 @@ function PencilIcon() {
   );
 }
 
-function SpinnerIcon() {
+function SpinnerIcon({ className }: { className?: string }) {
   return (
     <svg
-      width="14"
-      height="14"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="animate-spin"
+      className={`animate-spin ${className ?? ""}`}
     >
       <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
   );
 }
 
-function CheckIcon() {
+function ExternalIcon({ className }: { className?: string }) {
   return (
     <svg
-      width="14"
-      height="14"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      className={className}
     >
-      <polyline points="20 6 9 17 4 12" />
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
     </svg>
   );
 }

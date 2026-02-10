@@ -124,3 +124,9 @@ export async function resetNodeLayouts(): Promise<void> {
     if (!res.success) throw new Error(res.error);
     return res.data;
 }
+
+export async function reparentNode(nodeId: NodeId, newParentId: NodeId): Promise<void> {
+    const res = await sendMessage(msg.reparentNode({ nodeId, newParentId }));
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}

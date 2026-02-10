@@ -331,16 +331,8 @@ function handleSiteMessage(event: MessageEvent): void {
     payload[key] = value;
   }
 
-  // #region agent log
-  const _csT0 = Date.now();
-  fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'content-script.ts:handleSiteMessage',message:'forwarding to background',data:{type,requestId},timestamp:Date.now(),hypothesisId:'H1,H3'})}).catch(()=>{});
-  // #endregion
-
   sendMessage(msgBuilder.siteMessageForward(type, payload, requestId))
     .then((response) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'content-script.ts:handleSiteMessage',message:'background response received',data:{type,requestId,success:response.success,hasPayload:Boolean(response.success && response.data?.responsePayload),elapsed:Date.now()-_csT0},timestamp:Date.now(),hypothesisId:'H1,H2,H3'})}).catch(()=>{});
-      // #endregion
       if (response.success && response.data?.responsePayload) {
         postExtensionMessage(
           { ...response.data.responsePayload, requestId },
@@ -349,9 +341,6 @@ function handleSiteMessage(event: MessageEvent): void {
       }
     })
     .catch((error) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'content-script.ts:handleSiteMessage',message:'background forward FAILED',data:{type,requestId,error:error instanceof Error?error.message:String(error),elapsed:Date.now()-_csT0},timestamp:Date.now(),hypothesisId:'H1,H3'})}).catch(()=>{});
-      // #endregion
       if (shouldIgnoreRuntimeError(error)) return;
       console.debug("Failed to forward site message:", type, error);
     });

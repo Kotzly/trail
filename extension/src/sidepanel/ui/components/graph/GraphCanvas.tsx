@@ -11,7 +11,7 @@ import type { TabState } from '../../../../shared/types/tabs.js';
 import type { TreeUpdatedInput } from '../../../../shared/types/messages.js';
 import type { TagDefinition } from '../../../../shared/types/tags.js';
 import type { NavigationTree } from '../../../../background/state/nav-tree.js';
-import { navigateTo, setNodeLayout } from '../../../api/tree.js';
+import { navigateTo, setNodeLayout, reparentNode } from '../../../api/tree.js';
 import { PADDING } from '../../graph/layout/config.js';
 import {
   calculateLayout,
@@ -109,6 +109,7 @@ type GraphCanvasProps = {
   onOpenContextMenu: (menu: ContextMenuState) => void;
   onClearViewIntent: () => void;
   onExpandNodes: (nodeIds: NodeId[]) => void;
+  editorActive: boolean;
 };
 
 type SelectionBox = {
@@ -234,6 +235,7 @@ export default function GraphCanvas({
   onOpenContextMenu,
   onClearViewIntent,
   onExpandNodes,
+  editorActive,
 }: GraphCanvasProps) {
   const searchActive = search.active;
   const searchNavStep = search.navStep;
@@ -1326,7 +1328,7 @@ export default function GraphCanvas({
       }
     };
 
-    const handleUp = async () => {
+    const handleUp = async (upEvent: PointerEvent) => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
       window.removeEventListener('pointercancel', handleUp);
@@ -1350,6 +1352,37 @@ export default function GraphCanvas({
         setDragPreview(null);
         return;
       }
+
+      // Editor mode: check if node was dropped onto another node for reparenting
+      if (editorActive && state.nodes.length === 1) {
+        const wrapper = wrapperRef.current;
+        const renderer = rendererRef.current;
+        if (wrapper && renderer) {
+          const rect = wrapper.getBoundingClientRect();
+          const pointerX = upEvent.clientX - rect.left;
+          const pointerY = upEvent.clientY - rect.top;
+          const dropTargetId = renderer.hitTestScreen(pointerX, pointerY);
+          const draggedId = state.nodes[0]!.nodeId;
+          if (dropTargetId && dropTargetId !== draggedId) {
+            // Cancel any pending throttled layout updates
+            const sendState = layoutSendRef.current;
+            if (sendState.timer !== null) {
+              window.clearTimeout(sendState.timer);
+              sendState.timer = null;
+            }
+            sendState.pending = null;
+            setDragPreview(null);
+            dragMovedRef.current = false;
+            try {
+              await reparentNode(draggedId, dropTargetId);
+            } catch (error) {
+              console.error('Reparent failed:', error);
+            }
+            return;
+          }
+        }
+      }
+
       const latestLayouts = state.latestLayouts;
       if (latestLayouts.size > 0) {
         const sendState = layoutSendRef.current;
@@ -1368,7 +1401,7 @@ export default function GraphCanvas({
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleUp, { once: true });
     window.addEventListener('pointercancel', handleUp, { once: true });
-  }, [basePositions, flushLayoutUpdates, layoutOptions.mode, nodeHeight, nodeWidth, positions, queueLayoutUpdates, root, tree]);
+  }, [basePositions, editorActive, flushLayoutUpdates, layoutOptions.mode, nodeHeight, nodeWidth, positions, queueLayoutUpdates, root, tree]);
 
   const handleNodeContextMenu = useCallback(
     (node: NavigationNode, clientX: number, clientY: number) => {
