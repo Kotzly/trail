@@ -104,7 +104,8 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
 
   // 1. Check if it's the currently active tree
   const activeMeta = await treeStorage.getActiveMeta();
-  if (activeMeta.id === treeId) {
+  const isActiveTree = activeMeta.id === treeId;
+  if (isActiveTree) {
     const activeTree = await treeStorage.getOrCreateTree();
     treeJSON = NavigationTreeMapper.toJSON(activeTree);
   }
@@ -145,7 +146,13 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
   // Start tracking sync for this editor session
   editorSyncStart(treeId);
 
-  // Cache the editor tree (but don't switch — keep original active)
+  // Tell tree-storage to guard against persisting editor tree to TREE_KEY
+  // when we are editing a non-active (archived) tree.
+  if (!isActiveTree) {
+    treeStorage.setEditingNonActiveTree(true);
+  }
+
+  // Cache the editor tree so all handlers operate on it in memory.
   treeStorage.cacheTree(tree);
 
   await notifyTreeUpdate(tree, 'editor-enter', {
@@ -161,15 +168,23 @@ export async function exitEditorMode(): Promise<EditorModeState> {
     return editorState;
   }
 
-  // Flush any pending sync before exiting
+  // Flush any pending cloud sync before exiting
   await editorSyncFlush();
   editorSyncStop();
 
-  editorState = { active: false, treeId: null };
+  const wasEditingNonActive = treeStorage.isEditingNonActiveTree;
 
-  // Restore the active tree
-  const tree = await treeStorage.getOrCreateTree();
+  // Restore the real active tree from chrome.storage if we were editing
+  // a non-active (archived) tree so the UI sees the correct tree.
+  if (wasEditingNonActive) {
+    await treeStorage.restoreActiveTreeFromStorage();
+    treeStorage.setEditingNonActiveTree(false);
+  }
+
+  editorState = { active: false, treeId: null };
   CommandManager.clearHistory();
+
+  const tree = await treeStorage.getOrCreateTree();
 
   await notifyTreeUpdate(tree, 'editor-exit', {
     fitToView: true,

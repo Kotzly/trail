@@ -6,6 +6,8 @@ import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { tabManager } from '../../state/tab-manager.js';
 import type { NavigationTree } from '../../state/nav-tree.js';
 import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
+import { getEditorState } from './editor-handlers.js';
+import { editorSyncMarkDirty } from '../../services/editor-sync.js';
 
 
 async function applyTree(json: ReturnType<typeof NavigationTreeMapper.toJSON>): Promise<void> {
@@ -13,6 +15,13 @@ async function applyTree(json: ReturnType<typeof NavigationTreeMapper.toJSON>): 
   await syncOpenTabs();
   treeStorage.cacheTree(tree);
   await notifyTreeUpdate(tree, 'undo');
+
+  // In editor mode, mark cloud sync dirty so the change is PATCHed.
+  // flushSaveNow() still runs but is a no-op for non-active trees (guard).
+  if (getEditorState().active) {
+    editorSyncMarkDirty();
+  }
+
   await treeStorage.flushSaveNow();
 }
 

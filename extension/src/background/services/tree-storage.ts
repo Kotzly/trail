@@ -93,6 +93,21 @@ class TreeStorageService {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly saveDebounceMs = 1500;
 
+  /**
+   * When true, the cached tree is an editor tree for a non-active (archived)
+   * tree.  flushSaveNow() will skip persisting to TREE_KEY so the real active
+   * tree in chrome.storage is never overwritten.
+   */
+  private _editingNonActiveTree = false;
+
+  get isEditingNonActiveTree(): boolean {
+    return this._editingNonActiveTree;
+  }
+
+  setEditingNonActiveTree(value: boolean): void {
+    this._editingNonActiveTree = value;
+  }
+
   constructor() {}
 
   async getOrCreateTree(): Promise<NavigationTree> {
@@ -370,6 +385,14 @@ class TreeStorageService {
       this.saveTimer = null;
     }
     if (!this.dirty || !this.cachedTree) return;
+
+    // Guard: never persist the editor tree to TREE_KEY when editing
+    // a non-active (archived) tree — cloud sync handles persistence.
+    if (this._editingNonActiveTree) {
+      this.dirty = false;
+      return;
+    }
+
     const tree = this.cachedTree;
     this.dirty = false;
     try {
@@ -380,6 +403,25 @@ class TreeStorageService {
       this.dirty = true;
       this.scheduleSave();
     }
+  }
+
+  /**
+   * Reload the active tree from chrome.storage, discarding the in-memory
+   * cached (editor) tree.  Called when exiting editor mode so the UI gets
+   * the real active tree back.
+   */
+  async restoreActiveTreeFromStorage(): Promise<NavigationTree> {
+    // Cancel any pending save of the editor tree
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    this.dirty = false;
+
+    // Force a fresh load from chrome.storage
+    this.cachedTree = null;
+    this.loading = undefined;
+    return this.getOrCreateTree();
   }
 
   private scheduleSave(): void {

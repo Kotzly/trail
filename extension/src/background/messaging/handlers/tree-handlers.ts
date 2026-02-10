@@ -13,7 +13,13 @@ import { normalizeFaviconUrl, shouldTrackUrl } from '../../utils/url-utils.js';
 import { settingsManager } from '../../services/settings.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { cloudSync } from '../../services/cloud-sync.js';
+import { editorSyncMarkDirty } from '../../services/editor-sync.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
+
+/** Mark editor sync dirty if currently in editor mode. */
+function maybeEditorDirty(): void {
+  if (getEditorState().active) editorSyncMarkDirty();
+}
 
 function reassignTabsForRedirects(redirects: Array<{ from: NodeId; to: NodeId }>): void {
   for (const redirect of redirects) {
@@ -274,6 +280,7 @@ export const treeHandlers = defineHandlers({
     await closeTabsForNodes(result.removed.map(node => node.id));
     reassignTabsForRedirects(result.redirects);
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
@@ -288,6 +295,7 @@ export const treeHandlers = defineHandlers({
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
@@ -302,6 +310,7 @@ export const treeHandlers = defineHandlers({
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
@@ -320,6 +329,7 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
@@ -339,6 +349,7 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
@@ -360,6 +371,7 @@ export const treeHandlers = defineHandlers({
         removedIds.push(...removed.map(n => n.id));
         await closeTabsForNodes(removedIds);
         treeStorage.cacheTree(tree);
+        maybeEditorDirty();
         const view = getDeleteFocusView(tree, prevCurrentId);
         await notifyTreeUpdate(tree, 'delete', view);
         return ok();
@@ -390,6 +402,7 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
