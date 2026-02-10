@@ -32,6 +32,7 @@ export default function GraphArea() {
       viewIntent: state.graph.viewIntent,
       tagDefs: state.tagDefs,
       editorActive: state.editorMode.active,
+      pickTarget: state.pickTarget,
     }),
     shallow,
   );
@@ -46,6 +47,7 @@ export default function GraphArea() {
       onOpenContextMenu: state.openContextMenu,
       onClearViewIntent: state.clearViewIntent,
       onExpandNodes: state.expandNodes,
+      onPickTargetComplete: state.clearPickTarget,
     }),
     shallow,
   );

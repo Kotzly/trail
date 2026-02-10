@@ -12,6 +12,8 @@ import type { TreeUpdatedInput } from '../../../../shared/types/messages.js';
 import type { TagDefinition } from '../../../../shared/types/tags.js';
 import type { NavigationTree } from '../../../../background/state/nav-tree.js';
 import { navigateTo, setNodeLayout, reparentNode } from '../../../api/tree.js';
+import { msg } from '../../../../shared/types/messages.js';
+import { fireAndForget } from '../../../api/background.js';
 import { PADDING } from '../../graph/layout/config.js';
 import {
   calculateLayout,
@@ -110,6 +112,8 @@ type GraphCanvasProps = {
   onClearViewIntent: () => void;
   onExpandNodes: (nodeIds: NodeId[]) => void;
   editorActive: boolean;
+  pickTarget: { type: 'duplicate'; sourceNodeId: NodeId } | null;
+  onPickTargetComplete: () => void;
 };
 
 type SelectionBox = {
@@ -236,6 +240,8 @@ export default function GraphCanvas({
   onClearViewIntent,
   onExpandNodes,
   editorActive,
+  pickTarget,
+  onPickTargetComplete,
 }: GraphCanvasProps) {
   const searchActive = search.active;
   const searchNavStep = search.navStep;
@@ -1178,6 +1184,19 @@ export default function GraphCanvas({
       dragMovedRef.current = false;
       return;
     }
+
+    // Pick-target mode: clicking a node completes the operation
+    if (pickTarget) {
+      if (pickTarget.type === 'duplicate') {
+        fireAndForget(msg.duplicateSubtree({
+          nodeId: pickTarget.sourceNodeId,
+          targetParentId: node.id,
+        }));
+      }
+      onPickTargetComplete();
+      return;
+    }
+
     onClearSelection();
     if (tool !== 'select') return;
     try {
@@ -2153,6 +2172,10 @@ export default function GraphCanvas({
       clearSelectionState();
     } else if (key === 'Escape') {
       event.preventDefault();
+      if (pickTarget) {
+        onPickTargetComplete();
+        return;
+      }
       clearSelectionState();
     }
   };
@@ -2165,6 +2188,10 @@ export default function GraphCanvas({
     if (getPointerNodeId(event)) return;
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
+      return;
+    }
+    if (pickTarget) {
+      onPickTargetComplete();
       return;
     }
     clearSelectionState();
@@ -2201,8 +2228,9 @@ export default function GraphCanvas({
         }}
         onClick={handleBackgroundClick}
         style={{
-          cursor:
-            tool === 'hand'
+          cursor: pickTarget
+            ? 'crosshair'
+            : tool === 'hand'
               ? isPanning
                 ? 'grabbing'
                 : 'grab'
@@ -2231,6 +2259,12 @@ export default function GraphCanvas({
           }}
           onZoom={(direction) => zoom(direction, true)}
         />
+        {pickTarget && (
+          <div className="graph-pick-hint" data-graph-ui="true">
+            <span>Click a node to duplicate to</span>
+            <button type="button" onClick={onPickTargetComplete}>Cancel</button>
+          </div>
+        )}
       </div>
     </div>
   );

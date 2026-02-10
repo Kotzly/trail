@@ -415,8 +415,11 @@ export const treeHandlers = defineHandlers({
       typeof message.radial !== 'undefined';
     if (!hasChanges) return ok();
     node.data = updateNodeData(node.data, { layout: nextLayout });
+    // Save silently — the sidepanel already has the correct position via
+    // dragPreview / local state.  Sending TREE_UPDATED here would cause a
+    // full re-render and stale intermediate positions arriving after drag
+    // ends produce a visible double-move glitch.
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'layout');
     return ok();
   },
 

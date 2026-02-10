@@ -134,6 +134,7 @@ type StoreState = {
   editorMode: EditorModeState;
   syncStatus: SyncStatus;
   contextMenu: ContextMenuState;
+  pickTarget: { type: 'duplicate'; sourceNodeId: NodeId } | null;
   metaKey: MetaKeyPair | null;
   isMac: boolean;
 };
@@ -180,6 +181,8 @@ type StoreActions = {
   closeContextMenu: () => void;
   clearViewIntent: () => void;
   setEditorMode: (state: EditorModeState) => void;
+  setPickTarget: (target: StoreState['pickTarget']) => void;
+  clearPickTarget: () => void;
   setSyncStatus: (status: SyncStatus) => void;
   addNotification: (notification: NotificationItem) => void;
   removeNotification: (id: string) => void;
@@ -287,6 +290,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   editorMode: { active: false, treeId: null },
   syncStatus: 'idle' as SyncStatus,
   contextMenu: null,
+  pickTarget: null,
   metaKey: null,
   isMac: false,
 
@@ -671,6 +675,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       graph: { ...state.graph, viewIntent: null },
     })),
   setEditorMode: (editorMode) => set({ editorMode }),
+  setPickTarget: (pickTarget) => set({ pickTarget }),
+  clearPickTarget: () => set({ pickTarget: null }),
   setSyncStatus: (syncStatus) => set({ syncStatus }),
   addNotification: (notification) =>
     set((state) => ({

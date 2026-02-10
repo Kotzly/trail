@@ -198,6 +198,7 @@ type NodeMenuProps = {
 function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
+  const setPickTarget = useStore((state) => state.setPickTarget);
   const tree = useStore((state) => state.tree);
   const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const tagDefsList = useStore((state) => state.tagDefsList);
@@ -594,11 +595,11 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         <div
           className="graph-context-menu-item"
           onClick={() => {
-            fireAndForget(msg.duplicateSubtree({ nodeId }));
+            setPickTarget({ type: 'duplicate', sourceNodeId: nodeId });
             closeContextMenu();
           }}
         >
-          Duplicate subtree
+          Duplicate at…
         </div>
       )}
 

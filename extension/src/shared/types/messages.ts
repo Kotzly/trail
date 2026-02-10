@@ -173,6 +173,7 @@ export type ReparentNodeMessage = RequestMessageBase<typeof MSG.REPARENT_NODE, {
 }>;
 export type DuplicateSubtreeMessage = RequestMessageBase<typeof MSG.DUPLICATE_SUBTREE, {
   nodeId: NodeId;
+  targetParentId: NodeId;
 }>;
 
 export type EditorModeState = {
@@ -381,7 +382,7 @@ export const msg = {
     reparentNode(payload: { nodeId: NodeId; newParentId: NodeId }): ReparentNodeMessage {
         return { type: MSG.REPARENT_NODE, ...payload };
     },
-    duplicateSubtree(payload: { nodeId: NodeId }): DuplicateSubtreeMessage {
+    duplicateSubtree(payload: { nodeId: NodeId; targetParentId: NodeId }): DuplicateSubtreeMessage {
         return { type: MSG.DUPLICATE_SUBTREE, ...payload };
     },
     syncStatusUpdated(payload: SyncStatusInput): SyncStatusUpdatedMessage {

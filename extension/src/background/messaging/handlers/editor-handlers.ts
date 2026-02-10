@@ -229,13 +229,23 @@ export const editorHandlers = defineHandlers({
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
 
-    const parent = node.getParent();
-    if (!parent) return err('Cannot duplicate root node');
+    const targetParent = tree.findNodeById(message.targetParentId);
+    if (!targetParent) return err('Target parent not found');
+
+    // Prevent duplicating to the same parent (creates identical siblings)
+    const currentParent = node.getParent();
+    if (currentParent?.id === message.targetParentId) {
+      return err('Cannot duplicate to the same parent');
+    }
+
+    // Prevent duplicating into own subtree (would create a cycle)
+    if (message.nodeId === message.targetParentId || isDescendant(tree, message.nodeId, message.targetParentId)) {
+      return err('Cannot duplicate into own subtree');
+    }
 
     snapshot(tree, 'Duplicate subtree');
 
-    // Clone the subtree as a sibling
-    cloneSubtree(node, parent, tree);
+    cloneSubtree(node, targetParent, tree);
 
     // Force re-serialize to register all new nodes
     const json = NavigationTreeMapper.toJSON(tree);
@@ -246,7 +256,7 @@ export const editorHandlers = defineHandlers({
     if (editorState.active) editorSyncMarkDirty();
 
     await notifyTreeUpdate(refreshed, 'duplicate', {
-      focusNodeId: message.nodeId,
+      focusNodeId: message.targetParentId,
       mode: 'soft',
     });
 
