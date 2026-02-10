@@ -19,8 +19,6 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   const setCommandState = useStore((state) => state.setCommandState);
   const settingsOpen = useStore((state) => state.ui.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
-  const themePickerOpen = useStore((state) => state.ui.themePickerOpen);
-  const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [controlsCompact, setControlsCompact] = useState(false);
   const controlsCompactRef = useRef(false);
@@ -136,16 +134,6 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       <div ref={rightRef} className="floating-controls-right">
         <FloatingSearch inputRef={searchInputRef} onExpandedChange={setSearchExpanded} />
         <div className="floating-island">
-          <button
-            id="themePickerBtn"
-            className="matte-circle-btn orb-button"
-            type="button"
-            aria-label="Theme"
-            data-tooltip="Theme"
-            onClick={() => setThemePickerOpen(!themePickerOpen)}
-          >
-            <Icons.Palette size={18} />
-          </button>
           <button
             id="settingsBtn"
             className="matte-circle-btn orb-button"
