@@ -12,6 +12,7 @@ import type { Url } from '../../../shared/types/ids.js';
 import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
 import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
 import { getAccountSnapshot, logout, normalizeAccountError } from '../../api/account.js';
+import { clearCachedSnapshot, saveCachedSnapshot } from '../../api/account/cache.js';
 import { saveSettings } from '../../api/settings.js';
 import { getRangePercent } from '../shared/range.js';
 import { resetNodeLayouts } from '../../api/tree.js';
@@ -498,6 +499,7 @@ export default function SettingsPopover() {
     setAccount({ status: 'loading', error: null });
     const snapshot = await getAccountSnapshot();
     setAccountSnapshot(snapshot);
+    void saveCachedSnapshot(snapshot);
   }, [setAccount, setAccountSnapshot]);
 
   const openExternalLink = async (url: Url) => {
@@ -520,6 +522,7 @@ export default function SettingsPopover() {
     setAuthNotice(null);
     setAccount({ status: 'loading', error: null });
     try {
+      await clearCachedSnapshot();
       await logout();
       await syncAccountSnapshot();
     } catch (error) {

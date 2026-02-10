@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { getAccountSnapshot, normalizeAccountError } from '../../api/account.js';
+import { loadCachedSnapshot, saveCachedSnapshot } from '../../api/account/cache.js';
 import { useStore } from '../state/store.js';
 
 
 export function useAccount(): void {
-  // todo: fix this shit
   const setAccount = useStore((state: any) => state.setAccount);
   const setAccountSnapshot = useStore((state: any) => state.setAccountSnapshot);
 
@@ -26,10 +26,20 @@ export function useAccount(): void {
 
     const sync = async () => {
       setAccount({ status: 'loading', error: null });
+
+      // Restore from cache — avoids network round-trip on every sidepanel open.
+      const cached = await loadCachedSnapshot();
+      if (cached && mounted) {
+        setAccountSnapshot(cached);
+        return;
+      }
+
+      // No cache — first launch or after clear; fetch from network.
       try {
         const snapshot = await getAccountSnapshot();
         if (!mounted) return;
         setAccountSnapshot(snapshot);
+        void saveCachedSnapshot(snapshot);
       } catch (error) {
         if (!mounted) return;
         const normalized = normalizeAccountError(error);

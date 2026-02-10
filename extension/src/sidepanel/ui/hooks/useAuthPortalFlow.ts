@@ -8,6 +8,7 @@ import {
   normalizeAccountError,
   startAuthPortal,
 } from '../../api/account.js';
+import { saveCachedSnapshot } from '../../api/account/cache.js';
 import { useStore } from '../state/store.js';
 
 const sleep = (ms: number) => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
@@ -55,6 +56,7 @@ export function useAuthPortalFlow(): AuthFlowState {
     setAccount({ status: 'loading', error: null });
     const snapshot = await getAccountSnapshot();
     setAccountSnapshot(snapshot);
+    void saveCachedSnapshot(snapshot);
   }, [setAccount, setAccountSnapshot]);
 
   const startAuthFlow = useCallback(
@@ -90,6 +92,7 @@ export function useAuthPortalFlow(): AuthFlowState {
           if (status.status === 'approved') {
             if (status.snapshot) {
               setAccountSnapshot(status.snapshot);
+              void saveCachedSnapshot(status.snapshot);
             } else {
               await syncAccountSnapshot();
             }
