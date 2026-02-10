@@ -1,4 +1,5 @@
 import { MSG, defineHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot, type TreeViewIntent } from '../../../shared/types/messages.js';
+import { getEditorState } from './editor-handlers.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from '../notifications.js';
 import { tabManager } from '../../state/tab-manager.js';
@@ -65,13 +66,18 @@ async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
 }
 
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
-  return {
+  const editorMode = getEditorState();
+  const snapshot: TreeUpdatedInput = {
     tree: NavigationTreeMapper.toJSON(await treeStorage.getOrCreateTree()),
     openNodeIds: Array.from(tabManager.openNodes()),
     tabStates: await getTabStates(),
     nodeTabCounts: Object.fromEntries(Array.from(tabManager.openNodes()).map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)])),
     reason: 'sync',
   };
+  if (editorMode.active) {
+    snapshot.editorMode = editorMode;
+  }
+  return snapshot;
 }
 
 async function buildTreesSnapshot(): Promise<TreesSnapshot> {

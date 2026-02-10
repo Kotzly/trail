@@ -10,6 +10,7 @@ import { applyTheme } from '../shared/apply-theme.js';
 export function useBootstrap(): void {
   const bootstrap = useStore((state) => state.bootstrap);
   const setCommandState = useStore((state) => state.setCommandState);
+  const setEditorMode = useStore((state) => state.setEditorMode);
   const setSettings = useStore((state) => state.setSettings);
   const setTagDefs = useStore((state) => state.setTagDefs);
   const setTrees = useStore((state) => state.setTrees);
@@ -31,6 +32,12 @@ export function useBootstrap(): void {
         setSettings(settings);
         setTagDefs(tagDefs);
         setTrees(treesSnapshot);
+
+        // Restore editor mode if it was active before the sidepanel was closed
+        if (treeState.editorMode?.active) {
+          setEditorMode(treeState.editorMode);
+        }
+
         applyTheme(settings.theme, settings.customTheme);
         const commandState = await getCommandState();
         if (mounted) setCommandState(commandState);
@@ -41,5 +48,5 @@ export function useBootstrap(): void {
     return () => {
       mounted = false;
     };
-  }, [bootstrap, setCommandState, setSettings, setTagDefs, setTrees]);
+  }, [bootstrap, setCommandState, setEditorMode, setSettings, setTagDefs, setTrees]);
 }

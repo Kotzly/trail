@@ -477,6 +477,7 @@ export type TreeUpdatedInput = {
     nodeTabCounts: Record<NodeId, number>,
     reason: TreeUpdateReason,
     view?: TreeViewIntent,
+    editorMode?: EditorModeState,
 }
 
 export type TreesSnapshot = {
