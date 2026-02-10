@@ -6,22 +6,65 @@ import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
 import { saveSettings } from '../../api/settings.js';
 import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
+import { useOverlayEffects } from '../state/overlay-effects.js';
+import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
+import { cn } from '@/lib/utils';
 import React from 'react';
 
 type LayoutMode = Settings['layout']['mode'];
 
-export default function SettingsPage() {
+function Seg<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: readonly T[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="settings-seg">
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          className={cn('settings-seg-btn', value === opt && 'active')}
+          onClick={() => onChange(opt)}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function SettingsDropdown() {
+  const settingsOpen = useStore((state) => state.ui.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
   const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
   const settings = useStore((state) => state.settings);
   const setSettings = useStore((state) => state.setSettings);
+  const metaKey = useStore((state) => state.metaKey);
 
   const saveTimerRef = useRef<number | null>(null);
   const pendingSaveRef = useRef<Settings | null>(null);
   const [dashboardBusy, setDashboardBusy] = useState(false);
 
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  useOverlayEffects(settingsOpen, { kind: 'dropdown' });
+  useAnchoredDropdown({ open: settingsOpen, dropdownRef });
+
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
+
+  const settingsShortcut = metaKey ? `${metaKey.short}+,` : 'Ctrl+,';
+  const tooltipsShortcut = metaKey ? `${metaKey.short}+/` : 'Ctrl+/';
+  const settingsLabel = `Settings (${settingsShortcut})`;
+  const settingsTooltip = `Settings (${settingsShortcut}) • Tooltips (${tooltipsShortcut})`;
+
+  // ── Persist settings ──
 
   const flushPendingSave = useCallback(async () => {
     if (saveTimerRef.current !== null) {
@@ -48,23 +91,45 @@ export default function SettingsPage() {
         void flushPendingSave();
       }, 400);
     },
-    [flushPendingSave]
+    [flushPendingSave],
   );
 
-  useEffect(() => () => {
-    void flushPendingSave();
-  }, [flushPendingSave]);
+  useEffect(
+    () => () => {
+      void flushPendingSave();
+    },
+    [flushPendingSave],
+  );
+
+  // ── Keyboard + click-outside ──
 
   useEffect(() => {
+    if (!settingsOpen) return;
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         setSettingsOpen(false);
       }
     };
+
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (dropdownRef.current?.contains(target)) return;
+      if (triggerRef.current?.contains(target)) return;
+      setSettingsOpen(false);
+    };
+
     document.addEventListener('keydown', onKeyDown, true);
-    return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [setSettingsOpen]);
+    document.addEventListener('mousedown', onMouseDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('mousedown', onMouseDown, true);
+    };
+  }, [settingsOpen, setSettingsOpen]);
+
+  // ── Helpers ──
 
   const updateSettings = (partial: Partial<Settings>) => {
     if (!settings) return;
@@ -96,107 +161,90 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="sp">
-      <div className="sp-scroll">
+    <div className="settings-dropdown-wrapper">
+      <button
+        ref={triggerRef}
+        id="settingsBtn"
+        className="matte-circle-btn orb-button"
+        type="button"
+        aria-label={settingsLabel}
+        data-tooltip={settingsTooltip}
+        onClick={() => setSettingsOpen(!settingsOpen)}
+      >
+        <Icons.Settings size={18} />
+      </button>
+
+      <div
+        ref={dropdownRef}
+        className={`settings-dropdown${settingsOpen ? '' : ' hidden'}`}
+        aria-hidden={!settingsOpen}
+      >
         {/* header */}
-        <header className="sp-header">
+        <div className="settings-dropdown-header">
+          <span className="settings-dropdown-title">settings</span>
           <button
-            className="sp-back"
+            className="dropdown-close-btn"
             type="button"
+            aria-label="Close settings"
             onClick={() => setSettingsOpen(false)}
-            aria-label="Back to graph"
           >
-            <Icons.ChevronLeft size={16} />
+            <Icons.X size={14} />
           </button>
-          <div>
-            <h1 className="sp-title">settings</h1>
-            <p className="sp-subtitle">extension preferences.</p>
-          </div>
-        </header>
+        </div>
 
-        {/* all settings in one card, separated by dividers */}
-        <div className="sp-card">
-          {/* row: layout mode */}
-          <div className="sp-row">
-            <div className="sp-row-head">
-              <span className="sp-label">layout mode</span>
-              <span className="sp-hint">how your tree is arranged.</span>
-            </div>
-            <div className="sp-segment">
-              {(['mindmap', 'tree', 'radial'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`sp-seg-btn${layout.mode === mode ? ' active' : ''}`}
-                  onClick={() => updateLayoutMode(mode)}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
+        {/* body */}
+        <div className="settings-dropdown-body">
+          {/* layout mode */}
+          <div className="settings-section">
+            <div className="settings-label">layout mode</div>
+            <Seg
+              value={layout.mode}
+              options={['mindmap', 'tree', 'radial'] as const}
+              onChange={updateLayoutMode}
+            />
           </div>
 
-          <div className="sp-divider" />
+          <hr className="settings-hr" />
 
-          {/* row: title truncation */}
-          <div className="sp-row">
-            <div className="sp-row-head">
-              <span className="sp-label">title truncation</span>
-              <span className="sp-hint">where long titles are shortened.</span>
-            </div>
-            <div className="sp-segment">
-              {(['start', 'middle', 'end'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`sp-seg-btn${settings?.titleTruncation === mode ? ' active' : ''}`}
-                  onClick={() => updateSettings({ titleTruncation: mode })}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
+          {/* truncation */}
+          <div className="settings-section">
+            <div className="settings-label">title truncation</div>
+            <Seg
+              value={settings?.titleTruncation ?? 'middle'}
+              options={['start', 'middle', 'end'] as const}
+              onChange={(v) => updateSettings({ titleTruncation: v })}
+            />
           </div>
 
-          <div className="sp-divider" />
+          <hr className="settings-hr" />
 
-          {/* row: appearance */}
-          <div className="sp-row">
-            <div className="sp-row-inline">
-              <div>
-                <span className="sp-label">appearance</span>
-                <span className="sp-hint">colors, textures, palettes.</span>
-              </div>
-              <button
-                className="sp-btn"
-                type="button"
-                onClick={() => setThemePickerOpen(true)}
-              >
-                theme studio
-                <Icons.ChevronRight size={14} />
-              </button>
-            </div>
+          {/* appearance */}
+          <div className="settings-section settings-row">
+            <div className="settings-label">appearance</div>
+            <button
+              className="settings-action"
+              type="button"
+              onClick={() => setThemePickerOpen(true)}
+            >
+              theme studio
+              <Icons.ChevronRight size={14} />
+            </button>
           </div>
 
-          <div className="sp-divider" />
+          <hr className="settings-hr" />
 
-          {/* row: dashboard */}
-          <div className="sp-row">
-            <div className="sp-row-inline">
-              <div>
-                <span className="sp-label">dashboard</span>
-                <span className="sp-hint">account, privacy, billing.</span>
-              </div>
-              <button
-                className="sp-btn"
-                type="button"
-                onClick={() => void handleOpenDashboard()}
-                disabled={dashboardBusy}
-              >
-                {dashboardBusy ? 'opening…' : 'open'}
-                <Icons.ExternalLink size={13} />
-              </button>
-            </div>
+          {/* dashboard */}
+          <div className="settings-section settings-row">
+            <div className="settings-label">dashboard</div>
+            <button
+              className="settings-action"
+              type="button"
+              onClick={() => void handleOpenDashboard()}
+              disabled={dashboardBusy}
+            >
+              {dashboardBusy ? 'opening…' : 'open'}
+              <Icons.ExternalLink size={13} />
+            </button>
           </div>
         </div>
       </div>

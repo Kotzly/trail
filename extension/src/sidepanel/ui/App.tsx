@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import FloatingControls from './components/FloatingControls.js';
 import GraphArea from './components/graph/GraphArea.js';
-import SettingsPage from './components/SettingsPopover.js';
 import ThemePanel from './components/theme/ThemePanel.js';
 import ContextMenus from './components/ContextMenus.js';
 import DeleteTreeConfirmModal from './components/DeleteTreeConfirmModal.js';
@@ -20,7 +19,6 @@ export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const account = useStore((state) => state.account);
   const editorActive = useStore((state) => state.editorMode.active);
-  const settingsOpen = useStore((state) => state.ui.settingsOpen);
 
   useBootstrap();
   useAccount();
@@ -39,16 +37,6 @@ export default function App() {
     return (
       <div className={containerClass}>
         <AuthGate />
-      </div>
-    );
-  }
-
-  // Settings replaces the graph — full-page swap, not an overlay.
-  if (settingsOpen) {
-    return (
-      <div className={containerClass}>
-        <SettingsPage />
-        <ThemePanel />
       </div>
     );
   }
