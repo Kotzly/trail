@@ -95,3 +95,55 @@
   opacity: 1;
   background: rgba(255, 255, 255, 0.08);
 }
+
+/* Sync status indicators */
+.editor-toolbar__sync {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.editor-toolbar__sync--saving {
+  opacity: 0.6;
+}
+
+.editor-toolbar__sync--saved {
+  opacity: 0.5;
+  animation: editor-toolbar-fade 0.3s ease-in;
+}
+
+.editor-toolbar__sync--error {
+  color: var(--status-error, #ef4444);
+  opacity: 0.9;
+}
+
+.editor-toolbar__retry {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.editor-toolbar__retry:hover {
+  opacity: 0.8;
+}
+
+@keyframes editor-toolbar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.editor-toolbar__spin {
+  animation: editor-toolbar-spin 1s linear infinite;
+}
+
+@keyframes editor-toolbar-fade {
+  from { opacity: 0; }
+  to { opacity: 0.5; }
+}

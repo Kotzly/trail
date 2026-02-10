@@ -56,6 +56,8 @@ export const MSG = {
     EXIT_EDITOR_MODE: 'EXIT_EDITOR_MODE',
     REPARENT_NODE: 'REPARENT_NODE',
     DUPLICATE_SUBTREE: 'DUPLICATE_SUBTREE',
+    SYNC_STATUS_UPDATED: 'SYNC_STATUS_UPDATED',
+    EDITOR_SYNC_RETRY: 'EDITOR_SYNC_RETRY',
     SITE_MESSAGE_FORWARD: 'SITE_MESSAGE_FORWARD',
 } as const;
 
@@ -178,6 +180,12 @@ export type EditorModeState = {
   treeId: string | null;
 };
 
+export type SyncStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+export type SyncStatusInput = { status: SyncStatus };
+export type SyncStatusUpdatedMessage = RequestMessageBase<typeof MSG.SYNC_STATUS_UPDATED, SyncStatusInput>;
+export type EditorSyncRetryMessage = RequestMessageBase<typeof MSG.EDITOR_SYNC_RETRY>;
+
 export type SiteMessageForwardPayload = {
     siteMessageType: string;
     payload: Record<string, unknown>;
@@ -207,6 +215,7 @@ export type RequestMessage = NavigateToMessage |
     SetNodeLayoutMessage | ResetNodeLayoutsMessage |
     EnterEditorModeMessage | ExitEditorModeMessage |
     ReparentNodeMessage | DuplicateSubtreeMessage |
+    SyncStatusUpdatedMessage | EditorSyncRetryMessage |
     SiteMessageForwardMessage;
 
 
@@ -276,6 +285,8 @@ export type ResponseDataByType = {
     [MSG.EXIT_EDITOR_MODE]: EditorModeState;
     [MSG.REPARENT_NODE]: void;
     [MSG.DUPLICATE_SUBTREE]: void;
+    [MSG.SYNC_STATUS_UPDATED]: void;
+    [MSG.EDITOR_SYNC_RETRY]: void;
     [MSG.SITE_MESSAGE_FORWARD]: SiteMessageForwardResponse;
 }
 
@@ -372,6 +383,12 @@ export const msg = {
     },
     duplicateSubtree(payload: { nodeId: NodeId }): DuplicateSubtreeMessage {
         return { type: MSG.DUPLICATE_SUBTREE, ...payload };
+    },
+    syncStatusUpdated(payload: SyncStatusInput): SyncStatusUpdatedMessage {
+        return { type: MSG.SYNC_STATUS_UPDATED, ...payload };
+    },
+    editorSyncRetry(): EditorSyncRetryMessage {
+        return { type: MSG.EDITOR_SYNC_RETRY };
     },
 }
 

@@ -10,6 +10,7 @@ export function useChromeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
   const setCommandState = useStore((state) => state.setCommandState);
   const setEditorMode = useStore((state) => state.setEditorMode);
+  const setSyncStatus = useStore((state) => state.setSyncStatus);
   const setTagDefs = useStore((state) => state.setTagDefs);
   const setTrees = useStore((state) => state.setTrees);
 
@@ -40,6 +41,10 @@ export function useChromeMessages(): void {
         setTrees({ active: message.active, archived: message.archived });
         return;
       }
+      if (message.type === MSG.SYNC_STATUS_UPDATED) {
+        setSyncStatus(message.status);
+        return;
+      }
       if (message.type === MSG.NOTIFY) {
         const { message: text, icon, durationMs } = message.notification;
         const input: NotificationInput = { message: text };
@@ -58,5 +63,5 @@ export function useChromeMessages(): void {
     return () => {
       chrome.runtime.onMessage.removeListener(handler);
     };
-  }, [applyTreeState, setCommandState, setEditorMode, setTagDefs, setTrees]);
+  }, [applyTreeState, setCommandState, setEditorMode, setSyncStatus, setTagDefs, setTrees]);
 }

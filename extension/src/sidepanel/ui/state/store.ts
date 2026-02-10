@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { NodeId, Tag } from '../../../shared/types/ids.js';
 import type { Settings } from '../../../shared/types/settings.js';
 import type { TabState } from '../../../shared/types/tabs.js';
-import type { CommandState, EditorModeState, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '../../../shared/types/messages.js';
+import type { CommandState, EditorModeState, SyncStatus, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '../../../shared/types/messages.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { PinnedManager } from '../../../background/state/pinned.js';
@@ -132,6 +132,7 @@ type StoreState = {
     collapseAction: { kind: 'collapse' | 'expand'; nodeIds: Set<NodeId> } | null;
   };
   editorMode: EditorModeState;
+  syncStatus: SyncStatus;
   contextMenu: ContextMenuState;
   metaKey: MetaKeyPair | null;
   isMac: boolean;
@@ -179,6 +180,7 @@ type StoreActions = {
   closeContextMenu: () => void;
   clearViewIntent: () => void;
   setEditorMode: (state: EditorModeState) => void;
+  setSyncStatus: (status: SyncStatus) => void;
   addNotification: (notification: NotificationItem) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
@@ -283,6 +285,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     collapseAction: null,
   },
   editorMode: { active: false, treeId: null },
+  syncStatus: 'idle' as SyncStatus,
   contextMenu: null,
   metaKey: null,
   isMac: false,
@@ -668,6 +671,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       graph: { ...state.graph, viewIntent: null },
     })),
   setEditorMode: (editorMode) => set({ editorMode }),
+  setSyncStatus: (syncStatus) => set({ syncStatus }),
   addNotification: (notification) =>
     set((state) => ({
       notifications: [notification, ...state.notifications],

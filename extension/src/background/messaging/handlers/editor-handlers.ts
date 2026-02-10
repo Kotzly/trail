@@ -13,6 +13,13 @@ import type { Description, NodeId } from '../../../shared/types/ids.js';
 import type { NavigationTree } from '../../state/nav-tree.js';
 import type { NavigationNode } from '../../../shared/types/node.js';
 import { TreeNode } from '../../state/tree-node.js';
+import { getCachedTree, setCachedTree } from '../../services/tree-cache.js';
+import {
+  editorSyncStart,
+  editorSyncMarkDirty,
+  editorSyncFlush,
+  editorSyncStop,
+} from '../../services/editor-sync.js';
 
 /* ------------------------------------------------------------------ */
 /*  Editor mode tracking (in-memory, background service worker)        */
@@ -92,16 +99,32 @@ function registerCloneInTree(_tree: NavigationTree, _node: NavigationNode): void
 /* ------------------------------------------------------------------ */
 
 export async function enterEditorMode(treeId: string): Promise<EditorModeState | string> {
-  // Try to load the tree from local archives first
-  const archives = await treeStorage.getArchives();
-  const record = archives.find((entry) => entry.id === treeId);
+  // Try to load the tree: LRU cache → local archives
+  let treeJSON: import('../../../shared/types/tree.js').NavigationTreeJSON | null = null;
 
-  if (!record) {
-    return 'Tree not found in local archives';
+  // 1. Check LRU cache
+  const cached = await getCachedTree(treeId);
+  if (cached) {
+    treeJSON = cached.tree;
+  }
+
+  // 2. Fall back to local archives
+  if (!treeJSON) {
+    const archives = await treeStorage.getArchives();
+    const record = archives.find((entry) => entry.id === treeId);
+    if (record) {
+      treeJSON = record.tree;
+      // Populate LRU cache for next time
+      await setCachedTree(treeId, record.tree, Date.now());
+    }
+  }
+
+  if (!treeJSON) {
+    return 'Tree not found in local archives or cache';
   }
 
   // Load the archived tree as the active tree for editing
-  const tree = NavigationTreeMapper.fromJSON(record.tree);
+  const tree = NavigationTreeMapper.fromJSON(treeJSON);
 
   // Save snapshot before entering editor mode
   const currentTree = await treeStorage.getOrCreateTree();
@@ -109,6 +132,9 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
 
   CommandManager.clearHistory();
   editorState = { active: true, treeId };
+
+  // Start tracking sync for this editor session
+  editorSyncStart(treeId);
 
   // Cache the editor tree (but don't switch — keep original active)
   treeStorage.cacheTree(tree);
@@ -125,6 +151,10 @@ export async function exitEditorMode(): Promise<EditorModeState> {
   if (!editorState.active) {
     return editorState;
   }
+
+  // Flush any pending sync before exiting
+  await editorSyncFlush();
+  editorSyncStop();
 
   editorState = { active: false, treeId: null };
 
@@ -174,6 +204,9 @@ export const editorHandlers = defineHandlers({
     newParent.attachChild(node);
     treeStorage.cacheTree(tree);
 
+    // Mark dirty for debounced sync
+    if (editorState.active) editorSyncMarkDirty();
+
     await notifyTreeUpdate(tree, 'reparent', {
       focusNodeId: message.nodeId,
       mode: 'soft',
@@ -200,11 +233,20 @@ export const editorHandlers = defineHandlers({
     const refreshed = NavigationTreeMapper.fromJSON(json);
     treeStorage.cacheTree(refreshed);
 
+    // Mark dirty for debounced sync
+    if (editorState.active) editorSyncMarkDirty();
+
     await notifyTreeUpdate(refreshed, 'duplicate', {
       focusNodeId: message.nodeId,
       mode: 'soft',
     });
 
+    return ok();
+  },
+
+  async [MSG.EDITOR_SYNC_RETRY]() {
+    const { editorSyncRetry } = await import('../../services/editor-sync.js');
+    editorSyncRetry();
     return ok();
   },
 });
