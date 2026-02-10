@@ -68,9 +68,42 @@ export default async function ExtensionPage({
     }
   }
 
+  // Portal flow just completed — show a simple success message.
+  // The extension is polling and will pick up the approved status automatically.
+  if (connectionReady) {
+    return (
+      <section className="flex flex-col items-center gap-6 py-12 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10 text-green-500">
+          <svg
+            className="h-6 w-6"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+
+        <div className="space-y-2">
+          <h1 className="text-xl font-semibold tracking-tight">
+            You&apos;re all set
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            You can close this tab and return to the extension.
+            <br />
+            Trail will sync automatically.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   const usage = await getAccountUsageSnapshot();
   const sessions = usage.devices;
-  const isConnected = connectionReady || sessions.length > 0;
+  const isConnected = sessions.length > 0;
 
   return (
     <section className="space-y-6">

@@ -8,11 +8,20 @@ import { getAuthSession } from "@/src/lib/auth";
  * Minimal: Trail logo, headline, "Continue with Google" button.
  * If already authenticated, redirect to /trails.
  */
-export default async function AuthPage() {
+type AuthPageProps = {
+  searchParams: Promise<{ next?: string }>;
+};
+
+export default async function AuthPage({ searchParams }: AuthPageProps) {
+  const { next } = await searchParams;
   const session = await getAuthSession();
   if (session?.user) {
-    redirect("/trails");
+    redirect(next?.startsWith("/") ? next : "/trails");
   }
+
+  const loginHref = next
+    ? `/auth/login?${new URLSearchParams({ next })}`
+    : "/auth/login";
 
   return (
     <div className="flex flex-col items-center gap-6 py-12 text-center">
@@ -58,7 +67,7 @@ export default async function AuthPage() {
       </div>
 
       <Link
-        href="/auth/login"
+        href={loginHref}
         className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
       >
         <GoogleIcon />

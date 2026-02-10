@@ -5,7 +5,6 @@ import { env } from "@/src/env";
 export const runtime = "nodejs";
 
 const DEFAULT_REDIRECT = "/trails";
-const PORTAL_SUCCESS_REDIRECT = "/auth/success";
 
 type ExchangeResponse = {
   snapshot?: {
@@ -63,12 +62,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If the callback came from an extension portal flow (next starts with /extension),
-  // redirect to a "You're all set" page instead of the normal destination.
-  const isPortalOrigin = nextPath.startsWith("/extension");
-  const redirectPath = isPortalOrigin ? PORTAL_SUCCESS_REDIRECT : nextPath;
-
-  const response = NextResponse.redirect(new URL(redirectPath, url.origin));
+  const response = NextResponse.redirect(new URL(nextPath, url.origin));
   response.cookies.set(AUTH_COOKIE_NAME, accessToken, {
     httpOnly: true,
     path: "/",
