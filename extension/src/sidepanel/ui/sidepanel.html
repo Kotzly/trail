@@ -1,12 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="system">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
     <title>trail</title>
+    <style>
+      html, body { margin: 0; background: #f8f9fb; }
+      @media (prefers-color-scheme: dark) {
+        html, body { background: #111218; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      chrome.storage.local.get('trail_settings').then(function (r) {
+        var t = r.trail_settings && r.trail_settings.theme;
+        if (t) {
+          document.documentElement.setAttribute('data-theme', t);
+          if (t === 'dark') document.body.style.background = '#111218';
+          else if (t === 'light') document.body.style.background = '#f8f9fb';
+        } else {
+          document.documentElement.setAttribute('data-theme', 'system');
+        }
+      });
+    </script>
     <script type="module" src="/main.tsx"></script>
   </body>
 </html>
