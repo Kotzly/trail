@@ -1412,6 +1412,33 @@ export default function GraphCanvas({
         sendState.pending = null;
         sendState.lastSent = performance.now();
         await flushLayoutUpdates(latestLayouts);
+
+        // Apply the flushed layout values directly to the sidepanel tree's
+        // node data so positions stay correct when dragPreview is cleared.
+        // SET_NODE_LAYOUT only updates the background tree silently; without
+        // this the sidepanel tree retains stale offsets and nodes snap back.
+        if (tree) {
+          latestLayouts.forEach((layout, nodeId) => {
+            const treeNode = tree.findNodeById(nodeId);
+            if (!treeNode) return;
+            const prev = treeNode.data.layout;
+            const prevOffsetX = prev?.offsetX ?? 0;
+            const prevOffsetY = prev?.offsetY ?? 0;
+            treeNode.data = {
+              ...treeNode.data,
+              layout: {
+                offsetX: typeof layout.offsetX === 'number' ? layout.offsetX : prevOffsetX,
+                offsetY: typeof layout.offsetY === 'number' ? layout.offsetY : prevOffsetY,
+                ...(layout.radial
+                  ? { radial: layout.radial }
+                  : prev?.radial
+                    ? { radial: prev.radial }
+                    : {}),
+              },
+            };
+          });
+        }
+
       }
       setDragPreview(null);
       dragMovedRef.current = false;
@@ -2036,6 +2063,12 @@ export default function GraphCanvas({
       if (nodeDragJustEndedRef.current) {
         nodeDragJustEndedRef.current = false;
         dragMovedRef.current = false;
+        return;
+      }
+      // If a node drag is still in progress (handleUp on window hasn't
+      // processed the drag end yet), defer cleanup to handleUp so it can
+      // read dragMovedRef correctly and run the full layout-commit path.
+      if (dragStateRef.current && dragMovedRef.current) {
         return;
       }
       if (!dragMovedRef.current) {
