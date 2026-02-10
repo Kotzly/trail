@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { LucideIcon } from 'lucide-react';
 import type { Settings } from '../../../shared/types/settings.js';
 import type { Url } from '../../../shared/types/ids.js';
 import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
@@ -11,27 +10,6 @@ import { Icons } from './Icon.js';
 import React from 'react';
 
 type LayoutMode = Settings['layout']['mode'];
-
-const LAYOUT_OPTIONS: Array<{ id: LayoutMode; label: string; description: string; icon: LucideIcon }> = [
-  {
-    id: 'mindmap',
-    label: 'Mindmap',
-    description: 'Best for exploratory branches.',
-    icon: Icons.BrainCircuit,
-  },
-  {
-    id: 'tree',
-    label: 'Tree',
-    description: 'Best for long journeys.',
-    icon: Icons.Network,
-  },
-  {
-    id: 'radial',
-    label: 'Radial',
-    description: 'Best for dense clusters.',
-    icon: Icons.Radius,
-  },
-];
 
 export default function SettingsPage() {
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
@@ -73,12 +51,10 @@ export default function SettingsPage() {
     [flushPendingSave]
   );
 
-  // Flush on unmount
   useEffect(() => () => {
     void flushPendingSave();
   }, [flushPendingSave]);
 
-  // Escape to close
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -101,11 +77,7 @@ export default function SettingsPage() {
   };
 
   const updateLayoutMode = (mode: LayoutMode) => {
-    const next = {
-      ...layout,
-      mode,
-    };
-    void updateSettings({ layout: next });
+    void updateSettings({ layout: { ...layout, mode } });
   };
 
   const handleOpenDashboard = async () => {
@@ -124,106 +96,108 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="settings-page">
-      <div className="settings-page-scroll">
-        <div className="settings-page-head">
+    <div className="sp">
+      <div className="sp-scroll">
+        {/* header */}
+        <header className="sp-header">
           <button
-            className="settings-back-btn"
+            className="sp-back"
             type="button"
             onClick={() => setSettingsOpen(false)}
             aria-label="Back to graph"
           >
-            <Icons.ChevronLeft size={18} />
+            <Icons.ChevronLeft size={16} />
           </button>
           <div>
-            <div className="settings-page-title">Settings</div>
-            <div className="settings-page-subtitle">Personalize your Trail workspace.</div>
+            <h1 className="sp-title">settings</h1>
+            <p className="sp-subtitle">extension preferences.</p>
           </div>
-        </div>
+        </header>
 
-        <div className="settings-card">
-          <div className="settings-card-title">Layout mode</div>
-          <div className="settings-card-hint">Pick a structure that matches how you browse.</div>
-          <div className="settings-choice-grid">
-            {LAYOUT_OPTIONS.map((option) => {
-              const Icon = option.icon;
-              const active = layout.mode === option.id;
-              return (
+        {/* all settings in one card, separated by dividers */}
+        <div className="sp-card">
+          {/* row: layout mode */}
+          <div className="sp-row">
+            <div className="sp-row-head">
+              <span className="sp-label">layout mode</span>
+              <span className="sp-hint">how your tree is arranged.</span>
+            </div>
+            <div className="sp-segment">
+              {(['mindmap', 'tree', 'radial'] as const).map((mode) => (
                 <button
-                  key={option.id}
+                  key={mode}
                   type="button"
-                  className={`settings-choice ${active ? 'active' : ''}`}
-                  aria-pressed={active}
-                  onClick={() => updateLayoutMode(option.id)}
+                  className={`sp-seg-btn${layout.mode === mode ? ' active' : ''}`}
+                  onClick={() => updateLayoutMode(mode)}
                 >
-                  <span className="settings-choice-icon">
-                    <Icon size={16} />
-                  </span>
-                  <span className="settings-choice-text">
-                    <span className="settings-choice-title">{option.label}</span>
-                    <span className="settings-choice-hint">{option.description}</span>
-                  </span>
+                  {mode}
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="settings-card">
-          <div className="settings-card-title">Appearance</div>
-          <div className="settings-card-hint">
-            Customize colors, textures, and palettes.
-          </div>
-          <button
-            className="settings-secondary-btn"
-            type="button"
-            onClick={() => setThemePickerOpen(true)}
-          >
-            Open Theme Studio
-          </button>
-        </div>
+          <div className="sp-divider" />
 
-        <div className="settings-card">
-          <div className="settings-card-title">Title truncation</div>
-          <div className="settings-card-hint">Where long titles are shortened.</div>
-          <div className="popover-segment">
-            <button
-              type="button"
-              className={`popover-segment-btn wide ${settings?.titleTruncation === 'start' ? 'active' : ''}`}
-              onClick={() => updateSettings({ titleTruncation: 'start' })}
-            >
-              Start
-            </button>
-            <button
-              type="button"
-              className={`popover-segment-btn wide ${settings?.titleTruncation === 'middle' ? 'active' : ''}`}
-              onClick={() => updateSettings({ titleTruncation: 'middle' })}
-            >
-              Middle
-            </button>
-            <button
-              type="button"
-              className={`popover-segment-btn wide ${settings?.titleTruncation === 'end' ? 'active' : ''}`}
-              onClick={() => updateSettings({ titleTruncation: 'end' })}
-            >
-              End
-            </button>
+          {/* row: title truncation */}
+          <div className="sp-row">
+            <div className="sp-row-head">
+              <span className="sp-label">title truncation</span>
+              <span className="sp-hint">where long titles are shortened.</span>
+            </div>
+            <div className="sp-segment">
+              {(['start', 'middle', 'end'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`sp-seg-btn${settings?.titleTruncation === mode ? ' active' : ''}`}
+                  onClick={() => updateSettings({ titleTruncation: mode })}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="settings-card subtle">
-          <div className="settings-card-title">Dashboard</div>
-          <div className="settings-card-hint">
-            Account, privacy, and subscriptions are managed on the web.
+          <div className="sp-divider" />
+
+          {/* row: appearance */}
+          <div className="sp-row">
+            <div className="sp-row-inline">
+              <div>
+                <span className="sp-label">appearance</span>
+                <span className="sp-hint">colors, textures, palettes.</span>
+              </div>
+              <button
+                className="sp-btn"
+                type="button"
+                onClick={() => setThemePickerOpen(true)}
+              >
+                theme studio
+                <Icons.ChevronRight size={14} />
+              </button>
+            </div>
           </div>
-          <button
-            className="settings-primary-btn"
-            type="button"
-            onClick={() => void handleOpenDashboard()}
-            disabled={dashboardBusy}
-          >
-            {dashboardBusy ? 'Opening…' : 'Open Dashboard'}
-          </button>
+
+          <div className="sp-divider" />
+
+          {/* row: dashboard */}
+          <div className="sp-row">
+            <div className="sp-row-inline">
+              <div>
+                <span className="sp-label">dashboard</span>
+                <span className="sp-hint">account, privacy, billing.</span>
+              </div>
+              <button
+                className="sp-btn"
+                type="button"
+                onClick={() => void handleOpenDashboard()}
+                disabled={dashboardBusy}
+              >
+                {dashboardBusy ? 'opening…' : 'open'}
+                <Icons.ExternalLink size={13} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
