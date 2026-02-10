@@ -20,9 +20,11 @@ type RenderData = {
 type LODLevel = 'hidden' | 'dot' | 'low' | 'full';
 type DetailMode = 'full' | 'low' | 'dot';
 
-const LOD_HIDE_PX = 6;
-const LOD_DOT_PX = 14;
-const LOD_LOW_PX = 28;
+const LOD_HIDE_PX = -1;
+const LOD_DOT_PX = 12;
+const LOD_LOW_PX = 32;
+/** Paths/connections are not drawn when typical node size on screen is below this (must be < LOD_HIDE_PX). */
+const LOD_CONN_HIDE_PX = 4;
 
 const NODE_RADIUS = 22;
 const NODE_PADDING_X = 12;
@@ -1017,6 +1019,10 @@ export class GraphPixiRenderer {
     this.connectionLayer.clear();
     this.pathLayer.clear();
     if (!this.data.showConnections || this.detailMode !== 'full') return;
+
+    const representativePx = Math.min(this.data.nodeWidth, this.data.nodeHeight) * this.view.scale;
+    if (representativePx < LOD_CONN_HIDE_PX) return;
+
     // Base connections and "active path" connections can share the same hue (theme-driven),
     // but must be visually distinct so the root -> current path reads as highlighted.
     const baseColor = this.theme.connection.base;

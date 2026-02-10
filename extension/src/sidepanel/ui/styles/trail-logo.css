@@ -48,35 +48,6 @@
   animation-delay: var(--trail-logo-delay, 0ms);
 }
 
-.trail-loader {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: var(--trail-app-bg-color, var(--md-surface));
-  z-index: 3;
-}
-
-.trail-loader__content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.trail-loader__label {
-  font-size: 10px;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--md-on-surface-variant);
-  font-weight: 600;
-}
-
-.trail-loader .trail-logo {
-  width: 56px;
-  height: 56px;
-}
-
 @keyframes trailLogoSpark {
   0% {
     opacity: 0;

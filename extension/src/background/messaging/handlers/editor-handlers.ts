@@ -175,10 +175,14 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
   // Cache the editor tree so all handlers operate on it in memory.
   treeStorage.cacheTree(tree);
 
-  await notifyTreeUpdate(tree, 'editor-enter', {
-    fitToView: true,
-    mode: 'force',
-  });
+  if (isActiveTree) {
+    await notifyTreeUpdate(tree, 'editor-enter');
+  } else {
+    await notifyTreeUpdate(tree, 'editor-enter', {
+      fitToView: true,
+      mode: 'force',
+    });
+  }
 
   return editorState;
 }
@@ -206,10 +210,14 @@ export async function exitEditorMode(): Promise<EditorModeState> {
 
   const tree = await treeStorage.getOrCreateTree();
 
-  await notifyTreeUpdate(tree, 'editor-exit', {
-    fitToView: true,
-    mode: 'force',
-  });
+  if (wasEditingNonActive) {
+    await notifyTreeUpdate(tree, 'editor-exit', {
+      fitToView: true,
+      mode: 'force',
+    });
+  } else {
+    await notifyTreeUpdate(tree, 'editor-exit');
+  }
 
   // Notify any open site tabs so they can update their UI
   void broadcastEditorExitToSite();

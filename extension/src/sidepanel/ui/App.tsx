@@ -14,15 +14,12 @@ import { useShortcuts } from './hooks/useShortcuts.js';
 import TooltipLayer from './components/TooltipLayer.js';
 import React from 'react';
 import { listenSystemTheme } from './hooks/listenSystemTheme.js';
-import TrailLoader from './components/TrailLoader.js';
 import { useStore } from './state/store.js';
 
 export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const settings = useStore((state) => state.settings);
   const account = useStore((state) => state.account);
   const editorActive = useStore((state) => state.editorMode.active);
-  const bootstrapped = Boolean(settings);
 
   useBootstrap();
   useAccount();
@@ -40,14 +37,13 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <div className={containerClass}>
-        {!bootstrapped ? <TrailLoader /> : <AuthGate />}
+        <AuthGate />
       </div>
     );
   }
 
   return (
     <div className={containerClass}>
-      {!bootstrapped ? <TrailLoader /> : null}
       <FloatingControls searchInputRef={searchInputRef} />
       <NotificationsHost />
       <GraphArea />
