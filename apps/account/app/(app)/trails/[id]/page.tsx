@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAuthSession } from "@/src/lib/auth";
 import { getTrailById } from "@/src/server/trails";
-import { Button } from "@/components/ui/button";
+import EditInExtensionButton from "./EditInExtensionButton";
+import NodeInspector from "./NodeInspector";
 
 export default async function TrailDetailPage({
   params,
@@ -65,29 +66,9 @@ export default async function TrailDetailPage({
           )}
         </div>
 
-        <Button
-          asChild
-          size="sm"
-          className="shrink-0"
-        >
-          <Link href={`/trails/${trail.id}/edit`}>
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="mr-1.5"
-            >
-              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-              <path d="m15 5 4 4" />
-            </svg>
-            Edit in Extension
-          </Link>
-        </Button>
+        <div className="shrink-0">
+          <EditInExtensionButton trailId={trail.id} />
+        </div>
       </div>
 
       {/* Metadata grid */}
@@ -101,11 +82,11 @@ export default async function TrailDetailPage({
         <MetaCard label="Saved" value={formatFull(savedDate)} />
         <MetaCard label="Created" value={formatFull(createdDate)} />
         <MetaCard label="Last updated" value={formatFull(updatedDate)} />
-        <MetaCard
-          label="Label source"
-          value={trail.labelSource}
-        />
+        <MetaCard label="Label source" value={trail.labelSource} />
       </div>
+
+      {/* Node Inspector — shown when a node is selected in the extension */}
+      <NodeInspector />
     </section>
   );
 }
