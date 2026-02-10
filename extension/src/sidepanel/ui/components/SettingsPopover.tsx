@@ -57,6 +57,17 @@ export default function SettingsDropdown() {
   useOverlayEffects(settingsOpen, { kind: 'dropdown' });
   useAnchoredDropdown({ open: settingsOpen, dropdownRef });
 
+  // Use `inert` instead of `aria-hidden` so focus is never trapped inside a hidden ancestor.
+  useEffect(() => {
+    const el = dropdownRef.current;
+    if (!el) return;
+    if (settingsOpen) {
+      el.removeAttribute('inert');
+    } else {
+      el.setAttribute('inert', '');
+    }
+  }, [settingsOpen]);
+
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
 
   const settingsShortcut = metaKey ? `${metaKey.short}+,` : 'Ctrl+,';
@@ -177,7 +188,6 @@ export default function SettingsDropdown() {
       <div
         ref={dropdownRef}
         className={`settings-dropdown${settingsOpen ? '' : ' hidden'}`}
-        aria-hidden={!settingsOpen}
       >
         {/* header */}
         <div className="settings-dropdown-header">
@@ -203,6 +213,33 @@ export default function SettingsDropdown() {
               onChange={updateLayoutMode}
             />
           </div>
+
+          {/* hide root (tree only) */}
+          {layout.mode === 'tree' && (
+            <>
+              <hr className="settings-hr" />
+              <label className="settings-section settings-row" htmlFor="hide-root-toggle">
+                <div className="settings-label">hide root</div>
+                <div className="settings-toggle-switch">
+                  <input
+                    id="hide-root-toggle"
+                    className="settings-toggle-input"
+                    type="checkbox"
+                    checked={layout.tree.hideRoot}
+                    onChange={(e) =>
+                      updateSettings({
+                        layout: {
+                          ...layout,
+                          tree: { ...layout.tree, hideRoot: e.target.checked },
+                        },
+                      })
+                    }
+                  />
+                  <span className="settings-toggle-control" aria-hidden="true" />
+                </div>
+              </label>
+            </>
+          )}
 
           <hr className="settings-hr" />
 
