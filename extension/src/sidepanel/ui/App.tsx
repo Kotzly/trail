@@ -6,7 +6,6 @@ import ThemePanel from './components/theme/ThemePanel.js';
 import ContextMenus from './components/ContextMenus.js';
 import DeleteTreeConfirmModal from './components/DeleteTreeConfirmModal.js';
 import AuthGate from './components/AuthGate.js';
-import EditorToolbar from './components/EditorToolbar.js';
 import NotificationsHost from './components/NotificationsHost.js';
 import { useBootstrap } from './hooks/useBootstrap.js';
 import { useAccount } from './hooks/useAccount.js';
@@ -22,6 +21,7 @@ export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const settings = useStore((state) => state.settings);
   const account = useStore((state) => state.account);
+  const editorActive = useStore((state) => state.editorMode.active);
   const bootstrapped = Boolean(settings);
 
   useBootstrap();
@@ -33,20 +33,21 @@ export default function App() {
   const isAuthenticated =
     account.session.status === 'authenticated' && Boolean(account.user);
 
+  const containerClass = `container${editorActive ? ' container--editor' : ''}`;
+
   // Auth gate: block everything until authenticated.
   // Graph components are NOT mounted — conditional render, not overlay.
   if (!isAuthenticated) {
     return (
-      <div className="container">
+      <div className={containerClass}>
         {!bootstrapped ? <TrailLoader /> : <AuthGate />}
       </div>
     );
   }
 
   return (
-    <div className="container">
+    <div className={containerClass}>
       {!bootstrapped ? <TrailLoader /> : null}
-      <EditorToolbar />
       <FloatingControls searchInputRef={searchInputRef} />
       <NotificationsHost />
       <GraphArea />

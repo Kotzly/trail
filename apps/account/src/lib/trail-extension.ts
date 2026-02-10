@@ -152,11 +152,6 @@ async function sendWithRetry<T extends Record<string, unknown>>(
   expectedAckType: string,
   ackTimeoutMs = DEFAULT_ACK_TIMEOUT_MS,
 ): Promise<SendResult<T>> {
-  // #region agent log
-  const _t0 = Date.now();
-  fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'trail-extension.ts:sendWithRetry',message:'sendWithRetry START',data:{type,expectedAckType,ackTimeoutMs},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
-  // #endregion
-
   // First attempt
   let result = await sendAndWaitForAck<T>(
     type,
@@ -164,13 +159,9 @@ async function sendWithRetry<T extends Record<string, unknown>>(
     expectedAckType,
     ackTimeoutMs,
   );
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'trail-extension.ts:sendWithRetry',message:'attempt 0 result',data:{type,ok:result.ok,error:result.ok?undefined:(result as any).error,elapsed:Date.now()-_t0},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
-  // #endregion
   if (result.ok) return result;
 
   // Retries
-  let attempt = 1;
   for (const backoff of RETRY_BACKOFFS) {
     await sleep(backoff);
     result = await sendAndWaitForAck<T>(
@@ -179,16 +170,9 @@ async function sendWithRetry<T extends Record<string, unknown>>(
       expectedAckType,
       ackTimeoutMs,
     );
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'trail-extension.ts:sendWithRetry',message:`attempt ${attempt} result`,data:{type,ok:result.ok,error:result.ok?undefined:(result as any).error,elapsed:Date.now()-_t0,backoff},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
-    // #endregion
-    attempt++;
     if (result.ok) return result;
   }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'trail-extension.ts:sendWithRetry',message:'ALL RETRIES EXHAUSTED',data:{type,totalElapsed:Date.now()-_t0},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
-  // #endregion
   return {
     ok: false,
     error:
@@ -235,10 +219,20 @@ export function openTrailPanel(): Promise<
   return sendWithRetry("OPEN_TRAIL_PANEL", {}, "OPEN_TRAIL_PANEL_ACK");
 }
 
+/**
+ * Ensure the extension side panel is open before sending a command that
+ * requires it.  Silently ignores errors (panel may already be open).
+ */
+async function ensurePanelOpen(): Promise<void> {
+  await openTrailPanel().catch(() => {});
+}
+
 /** Tell the extension to enter editor mode for a specific tree. */
 export async function enterEditorMode(
   treeId: string,
 ): Promise<SendResult<EditorModeEnteredPayload>> {
+  await ensurePanelOpen();
+
   const result = await sendWithRetry<
     EditorModeEnteredPayload & Record<string, unknown>
   >("ENTER_EDITOR_MODE", { treeId }, "EDITOR_MODE_ENTERED");
@@ -265,9 +259,11 @@ export function exitEditorMode(): Promise<SendResult<Record<string, unknown>>> {
 }
 
 /** Select a node in the extension graph. */
-export function selectNode(
+export async function selectNode(
   nodeId: string,
 ): Promise<SendResult<NodeSelectedPayload>> {
+  await ensurePanelOpen();
+
   return sendWithRetry<NodeSelectedPayload & Record<string, unknown>>(
     "SELECT_NODE",
     { nodeId },

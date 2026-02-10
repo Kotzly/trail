@@ -90,9 +90,29 @@ function registerCloneInTree(_tree: NavigationTree, _node: NavigationNode): void
   // which causes the sidepanel to rebuild from JSON (all nodes get registered).
 }
 
-/* ------------------------------------------------------------------ */
-/*  Handlers                                                           */
-/* ------------------------------------------------------------------ */
+/**
+ * Broadcast EDITOR_MODE_EXITED to all tabs so the web app (if open) can
+ * update its UI reactively, even when the user exits from the sidepanel
+ * rather than from the site.  Uses the content script's RELAY_TO_SITE
+ * handler which is already present in every injected tab.
+ */
+async function broadcastEditorExitToSite(): Promise<void> {
+  try {
+    const tabs = await chrome.tabs.query({});
+    const payload = {
+      source: 'trail-extension',
+      type: 'EDITOR_MODE_EXITED',
+      editorMode: false,
+    };
+    for (const tab of tabs) {
+      if (tab.id === undefined) continue;
+      chrome.tabs.sendMessage(tab.id, {
+        type: 'RELAY_TO_SITE',
+        payload,
+      }).catch(() => { /* tab has no content script — ignore */ });
+    }
+  } catch { /* ignore */ }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Exported logic (reusable from site-message-handlers)               */
@@ -190,6 +210,9 @@ export async function exitEditorMode(): Promise<EditorModeState> {
     fitToView: true,
     mode: 'force',
   });
+
+  // Notify any open site tabs so they can update their UI
+  void broadcastEditorExitToSite();
 
   return editorState;
 }

@@ -74,6 +74,16 @@ body {
   z-index: 1;
 }
 
+.container--editor::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 3px solid rgba(59, 130, 246, 0.45);
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 9999;
+}
+
 button,
 input,
 select,

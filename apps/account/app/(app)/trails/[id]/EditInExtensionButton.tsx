@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ping,
   enterEditorMode,
+  exitEditorMode,
   onExtensionEvent,
   type SendResult,
   type PongPayload,
@@ -16,11 +17,18 @@ type ExtensionStatus =
   | "ready"
   | "entering"
   | "editing"
+  | "exiting"
   | "error";
 
 export default function EditInExtensionButton({ trailId }: { trailId: string }) {
   const [status, setStatus] = useState<ExtensionStatus>("checking");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const statusRef = useRef(status);
+  statusRef.current = status;
+
+  // -------------------------------------------------------------------
+  // Ping the extension to determine current state
+  // -------------------------------------------------------------------
 
   const checkExtension = useCallback(async () => {
     setStatus("checking");
@@ -50,6 +58,10 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
     checkExtension();
   }, [checkExtension]);
 
+  // -------------------------------------------------------------------
+  // Listen for proactive EDITOR_MODE_EXITED events from the extension
+  // -------------------------------------------------------------------
+
   useEffect(() => {
     return onExtensionEvent((event) => {
       if (event.type === "EDITOR_MODE_EXITED") {
@@ -57,6 +69,70 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
       }
     });
   }, []);
+
+  // -------------------------------------------------------------------
+  // Re-ping on window focus / visibility change (catches SW restart)
+  // -------------------------------------------------------------------
+
+  useEffect(() => {
+    if (status !== "editing") return;
+
+    const handleFocus = async () => {
+      const result = await ping();
+      if (result.ok && !result.data.editorMode) {
+        setStatus("ready");
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        handleFocus();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [status]);
+
+  // -------------------------------------------------------------------
+  // beforeunload warning while editing
+  // -------------------------------------------------------------------
+
+  useEffect(() => {
+    if (status !== "editing") return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [status]);
+
+  // -------------------------------------------------------------------
+  // Auto-exit on component unmount (client-side navigation away)
+  // -------------------------------------------------------------------
+
+  useEffect(() => {
+    if (status !== "editing") return;
+
+    return () => {
+      // Fire-and-forget: attempt to exit editor mode when navigating away.
+      // The page may already be tearing down, but this gives the extension a
+      // chance to clean up.
+      if (statusRef.current === "editing") {
+        exitEditorMode().catch(() => {});
+      }
+    };
+  }, [status]);
+
+  // -------------------------------------------------------------------
+  // Actions
+  // -------------------------------------------------------------------
 
   const handleEdit = async () => {
     setStatus("entering");
@@ -72,6 +148,21 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
 
     setStatus("editing");
   };
+
+  const handleExit = async () => {
+    setStatus("exiting");
+    const result = await exitEditorMode();
+    if (result.ok) {
+      setStatus("ready");
+    } else {
+      // Even if the exit message failed, try to re-check real state
+      await checkExtension();
+    }
+  };
+
+  // -------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------
 
   if (status === "checking") {
     return (
@@ -116,12 +207,32 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
     );
   }
 
-  if (status === "editing") {
+  if (status === "editing" || status === "exiting") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-green-500/10 px-3 py-1.5 text-sm font-medium text-green-600 dark:text-green-400">
-        <span className="h-1.5 w-1.5 rounded-full bg-current" />
-        Editing
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+          Editing
+        </span>
+        <button
+          type="button"
+          onClick={handleExit}
+          disabled={status === "exiting"}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+        >
+          {status === "exiting" ? (
+            <>
+              <SpinnerIcon className="h-3.5 w-3.5" />
+              Saving…
+            </>
+          ) : (
+            <>
+              <CheckIcon className="h-3.5 w-3.5" />
+              Done
+            </>
+          )}
+        </button>
+      </div>
     );
   }
 
@@ -155,6 +266,10 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
   );
 }
 
+// -------------------------------------------------------------------
+// Icons
+// -------------------------------------------------------------------
+
 function PencilIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -168,6 +283,22 @@ function PencilIcon({ className }: { className?: string }) {
     >
       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
       <path d="m15 5 4 4" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }
