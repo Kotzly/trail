@@ -82,6 +82,29 @@ type DragNodeState = {
 
 const LAYOUT_UPDATE_MS = 80;
 
+/** Distance (in world pixels) from the dragged node center to a candidate
+ *  parent center at which the snap preview activates. */
+const SNAP_RADIUS = 250;
+
+function collectSubtreeIds(node: NavigationNode): Set<NodeId> {
+  const ids = new Set<NodeId>();
+  const walk = (n: NavigationNode) => {
+    ids.add(n.id);
+    for (const child of n.getChildren()) walk(child);
+  };
+  walk(node);
+  return ids;
+}
+
+type DragReparentPreview = {
+  draggedId: NodeId;
+  originalParentId: NodeId;
+  /** The node we'd reparent to on drop — null when detached but not near any target. */
+  targetId: NodeId | null;
+  /** IDs of the dragged subtree (used to exclude from snap candidates). */
+  subtreeIds: Set<NodeId>;
+};
+
 type GraphCanvasProps = {
   tree: NavigationTree | null;
   treeUpdate: { reason: TreeUpdatedInput['reason']; at: number } | null;
@@ -404,6 +427,12 @@ export default function GraphCanvas({
   } | null>(null);
   const dragMovedRef = useRef(false);
   const nodeDragJustEndedRef = useRef(false);
+  const dragReparentRef = useRef<DragReparentPreview | null>(null);
+  const [dragReparentTarget, setDragReparentTarget] = useState<{
+    draggedId: NodeId;
+    originalParentId: NodeId;
+    targetId: NodeId | null;
+  } | null>(null);
   const isSelectingRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0 });
   const panPointerStartRef = useRef({ x: 0, y: 0 });
@@ -1299,6 +1328,20 @@ export default function GraphCanvas({
       latestLayouts: new Map(),
     };
 
+    // Initialise reparent preview for single-node editor drags
+    if (editorActive && nodes.length === 1) {
+      const draggedNode = tree?.findNodeById(nodes[0]!.nodeId);
+      const originalParent = draggedNode?.getParent?.();
+      if (draggedNode && originalParent) {
+        dragReparentRef.current = {
+          draggedId: draggedNode.id,
+          originalParentId: originalParent.id,
+          targetId: null,
+          subtreeIds: collectSubtreeIds(draggedNode),
+        };
+      }
+    }
+
     const handleMove = (moveEvent: PointerEvent) => {
       const state = dragStateRef.current;
       if (!state) return;
@@ -1345,6 +1388,34 @@ export default function GraphCanvas({
           queueLayoutUpdates(layouts);
         }
       }
+
+      // --- Snap-to-parent proximity detection (editor mode) ---
+      const rp = dragReparentRef.current;
+      if (rp) {
+        const entry = state.nodes[0]!;
+        const dragCenterX = entry.startNodeX + deltaX + nodeWidth / 2;
+        const dragCenterY = entry.startNodeY + deltaY + nodeHeight / 2;
+        let bestId: NodeId | null = null;
+        let bestDist = SNAP_RADIUS;
+        positionsRef.current.forEach((pos, id) => {
+          if (rp.subtreeIds.has(id)) return; // skip self & descendants
+          const cx = pos.x + nodeWidth / 2;
+          const cy = pos.y + nodeHeight / 2;
+          const dist = Math.hypot(dragCenterX - cx, dragCenterY - cy);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestId = id;
+          }
+        });
+        if (rp.targetId !== bestId) {
+          rp.targetId = bestId;
+          setDragReparentTarget({
+            draggedId: rp.draggedId,
+            originalParentId: rp.originalParentId,
+            targetId: bestId,
+          });
+        }
+      }
     };
 
     const handleUp = async (upEvent: PointerEvent) => {
@@ -1365,40 +1436,60 @@ export default function GraphCanvas({
       if (!state) {
         dragMovedRef.current = false;
         setDragPreview(null);
+        dragReparentRef.current = null;
+        setDragReparentTarget(null);
         return;
       }
       if (!didDrag) {
         setDragPreview(null);
+        dragReparentRef.current = null;
+        setDragReparentTarget(null);
         return;
       }
 
-      // Editor mode: check if node was dropped onto another node for reparenting
-      if (editorActive && state.nodes.length === 1) {
-        const wrapper = wrapperRef.current;
-        const renderer = rendererRef.current;
-        if (wrapper && renderer) {
-          const rect = wrapper.getBoundingClientRect();
-          const pointerX = upEvent.clientX - rect.left;
-          const pointerY = upEvent.clientY - rect.top;
-          const dropTargetId = renderer.hitTestScreen(pointerX, pointerY);
-          const draggedId = state.nodes[0]!.nodeId;
-          if (dropTargetId && dropTargetId !== draggedId) {
-            // Cancel any pending throttled layout updates
-            const sendState = layoutSendRef.current;
-            if (sendState.timer !== null) {
-              window.clearTimeout(sendState.timer);
-              sendState.timer = null;
-            }
-            sendState.pending = null;
-            setDragPreview(null);
-            dragMovedRef.current = false;
-            try {
-              await reparentNode(draggedId, dropTargetId);
-            } catch (error) {
-              console.error('Reparent failed:', error);
-            }
-            return;
+      // Editor mode: use snap-based reparent preview
+      const rp = dragReparentRef.current;
+      dragReparentRef.current = null;
+      setDragReparentTarget(null);
+
+      if (rp) {
+        // Cancel any pending throttled layout updates
+        const sendState = layoutSendRef.current;
+        if (sendState.timer !== null) {
+          window.clearTimeout(sendState.timer);
+          sendState.timer = null;
+        }
+        sendState.pending = null;
+
+        if (rp.targetId) {
+          // Drop onto snap target → reparent
+          setDragPreview(null);
+          dragMovedRef.current = false;
+
+          // Clear stale layout offsets on the local tree
+          if (tree) {
+            const clearLayout = (n: NavigationNode) => {
+              if (n.data.layout) {
+                const { layout: _, ...rest } = n.data;
+                n.data = rest as typeof n.data;
+              }
+              for (const child of n.getChildren()) clearLayout(child);
+            };
+            const draggedNode = tree.findNodeById(rp.draggedId);
+            if (draggedNode) clearLayout(draggedNode);
           }
+
+          try {
+            await reparentNode(rp.draggedId, rp.targetId);
+          } catch (error) {
+            console.error('Reparent failed:', error);
+          }
+          return;
+        } else {
+          // No snap target → cancel drag, snap back to original position
+          setDragPreview(null);
+          dragMovedRef.current = false;
+          return;
         }
       }
 
@@ -1564,7 +1655,7 @@ export default function GraphCanvas({
     return next;
   }, [animationVersion, pendingEnterIds, positions]);
 
-  const connections = useMemo(
+  const baseConnections = useMemo(
     () =>
       effectiveShowConnections
         ? buildConnections(
@@ -1588,6 +1679,68 @@ export default function GraphCanvas({
       root,
     ],
   );
+
+  // During an editor drag-reparent preview, hide the old parent→dragged
+  // connection and show a preview connection from the snap target.
+  const connections = useMemo(() => {
+    if (!dragReparentTarget) return baseConnections;
+    const { draggedId, originalParentId, targetId } = dragReparentTarget;
+    const excludeKey = `${originalParentId}-${draggedId}`;
+    const filtered = baseConnections.filter((c) => c.id !== excludeKey);
+    if (targetId) {
+      const parentPos = connectionPositions.get(targetId);
+      const childPos = connectionPositions.get(draggedId);
+      if (parentPos && childPos) {
+        let startX: number, startY: number, endX: number, endY: number;
+        if (layoutOptions.mode === 'tree') {
+          startX = parentPos.x + nodeWidth / 2;
+          startY = parentPos.y + nodeHeight;
+          endX = childPos.x + nodeWidth / 2;
+          endY = childPos.y;
+        } else if (layoutOptions.mode === 'mindmap') {
+          const childOnRight = childPos.x >= parentPos.x;
+          startX = parentPos.x + (childOnRight ? nodeWidth : 0);
+          startY = parentPos.y + nodeHeight / 2;
+          endX = childPos.x + (childOnRight ? 0 : nodeWidth);
+          endY = childPos.y + nodeHeight / 2;
+        } else {
+          startX = parentPos.x + nodeWidth / 2;
+          startY = parentPos.y + nodeHeight / 2;
+          endX = childPos.x + nodeWidth / 2;
+          endY = childPos.y + nodeHeight / 2;
+        }
+        const midX = (startX + endX) / 2;
+        const midY = (startY + endY) / 2;
+        let cp1: { x: number; y: number };
+        let cp2: { x: number; y: number };
+        if (layoutOptions.mode === 'tree') {
+          cp1 = { x: startX, y: midY };
+          cp2 = { x: endX, y: midY };
+        } else if (layoutOptions.mode === 'mindmap') {
+          cp1 = { x: midX, y: startY };
+          cp2 = { x: midX, y: endY };
+        } else {
+          cp1 = { x: midX, y: startY };
+          cp2 = { x: midX, y: endY };
+        }
+        filtered.push({
+          id: `preview-${targetId}-${draggedId}`,
+          start: { x: startX, y: startY },
+          cp1,
+          cp2,
+          end: { x: endX, y: endY },
+          onPath: true, // highlight style for preview
+          bounds: {
+            minX: Math.min(startX, endX, cp1.x, cp2.x),
+            minY: Math.min(startY, endY, cp1.y, cp2.y),
+            maxX: Math.max(startX, endX, cp1.x, cp2.x),
+            maxY: Math.max(startY, endY, cp1.y, cp2.y),
+          },
+        });
+      }
+    }
+    return filtered;
+  }, [baseConnections, connectionPositions, dragReparentTarget, layoutOptions.mode, nodeHeight, nodeWidth]);
 
   useEffect(() => {
     rendererRef.current?.setData({

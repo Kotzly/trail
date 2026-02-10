@@ -11,7 +11,7 @@ import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
 import type { Description, NodeId } from '../../../shared/types/ids.js';
 import type { NavigationTree } from '../../state/nav-tree.js';
-import type { NavigationNode } from '../../../shared/types/node.js';
+import type { NavigationNode, NodeData } from '../../../shared/types/node.js';
 import { TreeNode } from '../../state/tree-node.js';
 import { getCachedTree, setCachedTree } from '../../services/tree-cache.js';
 import {
@@ -257,6 +257,20 @@ export const editorHandlers = defineHandlers({
 
     // attachChild handles detach from old parent + attach to new parent
     newParent.attachChild(node);
+
+    // Reset layout offsets for the reparented subtree — offsets are relative
+    // to the old parent's position and meaningless under the new parent.
+    const resetLayout = (n: TreeNode<NodeData>) => {
+      if (n.data.layout) {
+        const { layout: _, ...rest } = n.data;
+        n.data = rest as NodeData;
+      }
+      for (const child of n.getChildren()) {
+        resetLayout(child);
+      }
+    };
+    resetLayout(node);
+
     treeStorage.cacheTree(tree);
 
     // Mark dirty for debounced sync

@@ -244,7 +244,7 @@ model WishlistLead {
 }
 
 model Device {
-  id               String          @id @default(cuid())
+  id               String          @id @default(uuid())
   userId           String
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   status           DeviceStatus    @default(ACTIVE)
@@ -314,7 +314,7 @@ model ExtensionConnectSession {
 }
 
 model Trail {
-  id             String           @id @default(cuid())
+  id             String           @id @default(uuid())
   userId         String
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   deviceId       String

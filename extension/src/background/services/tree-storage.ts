@@ -1,6 +1,7 @@
 import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary } from '../../shared/types/tree.js';
 import { NavigationTree } from '../state/nav-tree.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
+import { uuidv7 } from '../../shared/lib/uuid.js';
 import { settingsManager } from './settings.js';
 
 const TREE_KEY = 'trail_tree' as const;
@@ -20,12 +21,6 @@ function normalizeLabel(raw: unknown): string {
 function normalizeLabelSource(raw: unknown): TreeLabelSource {
   if (raw === 'user' || raw === 'auto' || raw === 'system') return raw;
   return 'system';
-}
-
-function makeTreeId(): string {
-  const stamp = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `tree_${stamp}_${rand}`;
 }
 
 function normalizeMeta(raw: unknown): TreeMeta | null {
@@ -159,7 +154,7 @@ class TreeStorageService {
 
       const createdAt = Date.now();
       const meta: TreeMeta = {
-        id: makeTreeId(),
+        id: uuidv7(),
         label: DEFAULT_LABEL,
         labelSource: 'system',
         labelUpdatedAt: createdAt,
@@ -182,7 +177,7 @@ class TreeStorageService {
   createMeta(label: string, source: TreeLabelSource = 'user'): TreeMeta {
     const now = Date.now();
     return {
-      id: makeTreeId(),
+      id: uuidv7(),
       label: normalizeLabel(label),
       labelSource: source,
       labelUpdatedAt: now,

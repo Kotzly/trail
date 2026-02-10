@@ -1,5 +1,6 @@
 import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from '../../shared/config/backend.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
+import { uuidv7 } from '../../shared/lib/uuid.js';
 import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary } from '../../shared/types/tree.js';
 import type { FaviconUrl, Title, Url } from '../../shared/types/ids.js';
 import { notifyTreesUpdate } from '../messaging/notifications.js';
@@ -647,10 +648,7 @@ class CloudSyncService {
     const existing = result[SYNC_DEVICE_ID_KEY];
     if (typeof existing === 'string' && existing) return existing;
 
-    const generated =
-      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : `device_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const generated = uuidv7();
     await chrome.storage.local.set({ [SYNC_DEVICE_ID_KEY]: generated });
     return generated;
   }

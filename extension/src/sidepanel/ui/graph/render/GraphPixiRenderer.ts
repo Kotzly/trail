@@ -860,9 +860,9 @@ export class GraphPixiRenderer {
     this.invalidateVisible();
   }
 
-  hitTestScreen(screenX: number, screenY: number): NodeId | null {
+  hitTestScreen(screenX: number, screenY: number, excludeIds?: Set<NodeId>): NodeId | null {
     const world = this.screenToWorld(screenX, screenY);
-    return this.hitTestWorld(world.x, world.y);
+    return this.hitTestWorld(world.x, world.y, excludeIds);
   }
 
   hitTestTargetScreen(
@@ -894,7 +894,7 @@ export class GraphPixiRenderer {
     };
   }
 
-  private hitTestWorld(worldX: number, worldY: number): NodeId | null {
+  private hitTestWorld(worldX: number, worldY: number, excludeIds?: Set<NodeId>): NodeId | null {
     const candidates = this.index.query({
       minX: worldX,
       maxX: worldX,
@@ -906,6 +906,7 @@ export class GraphPixiRenderer {
     let topId: NodeId | null = null;
     let topZ = -Infinity;
     candidates.forEach((id) => {
+      if (excludeIds?.has(id)) return;
       const node = this.nodeData.get(id);
       if (!node) return;
       if (
