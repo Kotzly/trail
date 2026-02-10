@@ -27,7 +27,7 @@ vi.mock("@/src/server/user", () => ({
   ensureUser: vi.fn(async () => ({ id: "user-1" })),
 }));
 
-import { POST } from "../../../app/v1/wishlist/route";
+import { POST } from "../../../app/api/v1/wishlist/route";
 
 describe("POST /v1/wishlist", () => {
   it("returns 400 when email is missing", async () => {

@@ -15,7 +15,7 @@ type ExchangeResponse = {
 };
 
 async function exchangeCode(code: string): Promise<string | null> {
-  const targetUrl = new URL("/v1/auth/bridge/exchange", env.TRAIL_API_BASE_URL);
+  const targetUrl = new URL("/api/v1/auth/bridge/exchange", env.TRAIL_API_BASE_URL);
   const response = await fetch(targetUrl, {
     method: "POST",
     headers: {

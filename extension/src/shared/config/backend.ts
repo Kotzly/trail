@@ -39,7 +39,7 @@ export const DEFAULT_BACKEND_CONFIG: BackendConfig = {
   env: 'production',
   mode: 'remote',
   baseUrl: 'https://app.gettrail.net',
-  basePath: '/v1',
+  basePath: '/api/v1',
   portalUrl: 'https://app.gettrail.net/extension',
   timeoutMs: 10000,
   endpoints: {

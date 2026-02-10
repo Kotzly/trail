@@ -52,6 +52,7 @@ export const MSG = {
     BULK_DELETE_RECURSIVE: 'BULK_DELETE_RECURSIVE',
     SET_NODE_LAYOUT: 'SET_NODE_LAYOUT',
     RESET_NODE_LAYOUTS: 'RESET_NODE_LAYOUTS',
+    SITE_MESSAGE_FORWARD: 'SITE_MESSAGE_FORWARD',
 } as const;
 
 export type RequestType = typeof MSG[keyof typeof MSG];
@@ -158,6 +159,17 @@ export type BulkDeleteMessage = RequestMessageBase<typeof MSG.BULK_DELETE, BulkN
 export type BulkDeleteNodesMessage = RequestMessageBase<typeof MSG.BULK_DELETE_NODES, BulkNodeIdsInput>;
 export type BulkDeleteRecursiveMessage = RequestMessageBase<typeof MSG.BULK_DELETE_RECURSIVE, BulkNodeIdsInput>;
 
+export type SiteMessageForwardPayload = {
+    siteMessageType: string;
+    payload: Record<string, unknown>;
+    requestId: string;
+};
+export type SiteMessageForwardMessage = RequestMessageBase<typeof MSG.SITE_MESSAGE_FORWARD, SiteMessageForwardPayload>;
+
+export type SiteMessageForwardResponse = {
+    responsePayload?: Record<string, unknown>;
+};
+
 export type RequestMessage = NavigateToMessage |
     PreviewNodeMessage | SetCurrentMessage |
     BeginTempSelectionMessage | PreviewTempSelectionMessage | AcceptTempSelectionMessage |
@@ -173,7 +185,8 @@ export type RequestMessage = NavigateToMessage |
     AddTagMessage | RemoveTagMessage |
     DeleteNodeMessage | DeleteChildrenMessage | DeleteWithChildrenMessage |
     BulkDeleteMessage | BulkDeleteNodesMessage | BulkDeleteRecursiveMessage |
-    SetNodeLayoutMessage | ResetNodeLayoutsMessage;
+    SetNodeLayoutMessage | ResetNodeLayoutsMessage |
+    SiteMessageForwardMessage;
 
 
 // ==== Responses ====
@@ -238,6 +251,7 @@ export type ResponseDataByType = {
     [MSG.BULK_DELETE_RECURSIVE]: void;
     [MSG.SET_NODE_LAYOUT]: void;
     [MSG.RESET_NODE_LAYOUTS]: void;
+    [MSG.SITE_MESSAGE_FORWARD]: SiteMessageForwardResponse;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;

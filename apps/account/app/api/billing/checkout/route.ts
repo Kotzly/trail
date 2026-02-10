@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
   let upstream: Response;
   try {
-    upstream = await internalApiFetch("/v1/subscription/checkout", {
+    upstream = await internalApiFetch("/api/v1/subscription/checkout", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

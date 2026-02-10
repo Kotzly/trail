@@ -27,7 +27,7 @@ vi.mock("@/src/server/user", () => ({
   ensureUser: vi.fn(async () => ({ id: "user-1" })),
 }));
 
-import { POST } from "../../../app/v1/waitlist/route";
+import { POST } from "../../../app/api/v1/waitlist/route";
 
 describe("POST /v1/waitlist", () => {
   it("creates or updates a lead", async () => {

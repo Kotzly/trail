@@ -1,0 +1,337 @@
+/**
+ * Trail extension postMessage bridge for the account site.
+ *
+ * Sends messages from the site to the extension content script via
+ * window.postMessage and listens for ACK responses.
+ *
+ * Security: every message includes a UUID requestId and ms-precision
+ * timestamp so the content script can enforce TTL and nonce checks.
+ */
+
+// ---------------------------------------------------------------------------
+// Constants (must match extension/src/content/content-script.ts)
+// ---------------------------------------------------------------------------
+
+const SITE_SOURCE = "trail-site" as const;
+const EXTENSION_SOURCE = "trail-extension" as const;
+
+/** Retry backoffs (ms) for ACK-required messages: 1s, 2s, 4s */
+const RETRY_BACKOFFS = [1_000, 2_000, 4_000] as const;
+
+/** Default timeout waiting for an ACK (ms). */
+const DEFAULT_ACK_TIMEOUT_MS = 3_000;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type SiteMessageType =
+  | "PING"
+  | "OPEN_TRAIL_PANEL"
+  | "ENTER_EDITOR_MODE"
+  | "EXIT_EDITOR_MODE"
+  | "SELECT_NODE"
+  | "UPDATE_NODE_METADATA"
+  | "AUTH_REVOKED";
+
+export type ExtensionMessageType =
+  | "PONG"
+  | "OPEN_TRAIL_PANEL_ACK"
+  | "EDITOR_MODE_ENTERED"
+  | "EDITOR_MODE_EXITED"
+  | "NODE_SELECTED"
+  | "NODE_METADATA_UPDATED"
+  | "TREE_UPDATED";
+
+export type PongPayload = {
+  version: string;
+  authenticated: boolean;
+  editorMode: boolean;
+};
+
+export type EditorModeEnteredPayload = {
+  treeId: string;
+  treeState: unknown;
+};
+
+export type NodeSelectedPayload = {
+  nodeId: string;
+  nodeData: unknown;
+};
+
+export type SendResult<T = Record<string, unknown>> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function createRequestId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function buildMessage(
+  type: SiteMessageType,
+  payload: Record<string, unknown> = {},
+) {
+  return {
+    source: SITE_SOURCE,
+    type,
+    requestId: createRequestId(),
+    timestamp: Date.now(),
+    ...payload,
+  };
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Core send-and-wait
+// ---------------------------------------------------------------------------
+
+/**
+ * Send a message and wait for an ACK response from the extension.
+ * Returns the ACK payload or an error.
+ */
+function sendAndWaitForAck<T extends Record<string, unknown>>(
+  type: SiteMessageType,
+  payload: Record<string, unknown>,
+  expectedAckType: string,
+  timeoutMs = DEFAULT_ACK_TIMEOUT_MS,
+): Promise<SendResult<T>> {
+  if (typeof window === "undefined") {
+    return Promise.resolve({ ok: false, error: "Not in browser" });
+  }
+
+  const message = buildMessage(type, payload);
+  const { requestId } = message;
+
+  return new Promise((resolve) => {
+    let finished = false;
+
+    const finish = (result: SendResult<T>) => {
+      if (finished) return;
+      finished = true;
+      window.removeEventListener("message", onMessage);
+      clearTimeout(timer);
+      resolve(result);
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window) return;
+      const data = event.data;
+      if (!data || typeof data !== "object") return;
+      if (data.source !== EXTENSION_SOURCE) return;
+      if (data.type !== expectedAckType) return;
+      if (data.requestId !== requestId) return;
+      finish({ ok: true, data: data as T });
+    };
+
+    const timer = setTimeout(() => {
+      finish({ ok: false, error: "timeout" });
+    }, timeoutMs);
+
+    window.addEventListener("message", onMessage);
+    window.postMessage(message, window.location.origin);
+  });
+}
+
+/**
+ * Send with automatic retry on timeout (ACK-required messages).
+ * Uses backoffs defined in RETRY_BACKOFFS.
+ */
+async function sendWithRetry<T extends Record<string, unknown>>(
+  type: SiteMessageType,
+  payload: Record<string, unknown>,
+  expectedAckType: string,
+  ackTimeoutMs = DEFAULT_ACK_TIMEOUT_MS,
+): Promise<SendResult<T>> {
+  // First attempt
+  let result = await sendAndWaitForAck<T>(
+    type,
+    payload,
+    expectedAckType,
+    ackTimeoutMs,
+  );
+  if (result.ok) return result;
+
+  // Retries
+  for (const backoff of RETRY_BACKOFFS) {
+    await sleep(backoff);
+    result = await sendAndWaitForAck<T>(
+      type,
+      payload,
+      expectedAckType,
+      ackTimeoutMs,
+    );
+    if (result.ok) return result;
+  }
+
+  return {
+    ok: false,
+    error:
+      "Extension not responding. Try reopening the side panel.",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Fire-and-forget
+// ---------------------------------------------------------------------------
+
+function sendFireAndForget(
+  type: SiteMessageType,
+  payload: Record<string, unknown> = {},
+): void {
+  if (typeof window === "undefined") return;
+  window.postMessage(
+    buildMessage(type, payload),
+    window.location.origin,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/** Ping the extension to check presence and auth state. */
+export function ping(): Promise<SendResult<PongPayload>> {
+  return sendWithRetry<PongPayload & Record<string, unknown>>(
+    "PING",
+    {},
+    "PONG",
+  ) as Promise<SendResult<PongPayload>>;
+}
+
+/** Request the extension to open its side panel. */
+export function openTrailPanel(): Promise<
+  SendResult<{ ok: boolean; error?: string }>
+> {
+  return sendWithRetry("OPEN_TRAIL_PANEL", {}, "OPEN_TRAIL_PANEL_ACK");
+}
+
+/** Tell the extension to enter editor mode for a specific tree. */
+export function enterEditorMode(
+  treeId: string,
+): Promise<SendResult<EditorModeEnteredPayload>> {
+  return sendWithRetry<EditorModeEnteredPayload & Record<string, unknown>>(
+    "ENTER_EDITOR_MODE",
+    { treeId },
+    "EDITOR_MODE_ENTERED",
+  ) as Promise<SendResult<EditorModeEnteredPayload>>;
+}
+
+/** Tell the extension to exit editor mode. */
+export function exitEditorMode(): Promise<SendResult<Record<string, unknown>>> {
+  return sendWithRetry(
+    "EXIT_EDITOR_MODE",
+    {},
+    "EDITOR_MODE_EXITED",
+  );
+}
+
+/** Select a node in the extension graph. */
+export function selectNode(
+  nodeId: string,
+): Promise<SendResult<NodeSelectedPayload>> {
+  return sendWithRetry<NodeSelectedPayload & Record<string, unknown>>(
+    "SELECT_NODE",
+    { nodeId },
+    "NODE_SELECTED",
+  ) as Promise<SendResult<NodeSelectedPayload>>;
+}
+
+/** Update metadata of a node (title, notes, tags). */
+export function updateNodeMetadata(params: {
+  nodeId: string;
+  title?: string;
+  notes?: string;
+  tags?: string[];
+}): Promise<SendResult<{ nodeId: string }>> {
+  return sendWithRetry<{ nodeId: string } & Record<string, unknown>>(
+    "UPDATE_NODE_METADATA",
+    params,
+    "NODE_METADATA_UPDATED",
+  ) as Promise<SendResult<{ nodeId: string }>>;
+}
+
+/** Notify the extension that the site user logged out. Fire-and-forget. */
+export function sendAuthRevoked(): void {
+  sendFireAndForget("AUTH_REVOKED");
+}
+
+// ---------------------------------------------------------------------------
+// Inbound listener: extension → site
+// ---------------------------------------------------------------------------
+
+export type ExtensionEvent =
+  | { type: "NODE_SELECTED"; nodeId: string; nodeData: unknown }
+  | { type: "TREE_UPDATED"; treeId: string; patch: unknown }
+  | { type: "EDITOR_MODE_EXITED" };
+
+type ExtensionEventListener = (event: ExtensionEvent) => void;
+
+const listeners = new Set<ExtensionEventListener>();
+
+function handleExtensionMessage(event: MessageEvent): void {
+  if (event.source !== window) return;
+  const data = event.data;
+  if (!data || typeof data !== "object") return;
+  if (data.source !== EXTENSION_SOURCE) return;
+
+  let parsed: ExtensionEvent | null = null;
+
+  switch (data.type) {
+    case "NODE_SELECTED":
+      if (typeof data.nodeId === "string") {
+        parsed = {
+          type: "NODE_SELECTED",
+          nodeId: data.nodeId,
+          nodeData: data.nodeData,
+        };
+      }
+      break;
+    case "TREE_UPDATED":
+      if (typeof data.treeId === "string") {
+        parsed = {
+          type: "TREE_UPDATED",
+          treeId: data.treeId,
+          patch: data.patch,
+        };
+      }
+      break;
+    case "EDITOR_MODE_EXITED":
+      parsed = { type: "EDITOR_MODE_EXITED" };
+      break;
+  }
+
+  if (!parsed) return;
+  for (const listener of listeners) {
+    try {
+      listener(parsed);
+    } catch (e) {
+      console.error("[trail-extension] listener error:", e);
+    }
+  }
+}
+
+/** Subscribe to events pushed by the extension. Returns unsubscribe fn. */
+export function onExtensionEvent(
+  listener: ExtensionEventListener,
+): () => void {
+  if (listeners.size === 0 && typeof window !== "undefined") {
+    window.addEventListener("message", handleExtensionMessage);
+  }
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0 && typeof window !== "undefined") {
+      window.removeEventListener("message", handleExtensionMessage);
+    }
+  };
+}

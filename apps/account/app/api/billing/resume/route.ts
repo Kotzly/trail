@@ -20,7 +20,7 @@ export async function POST() {
 
   let upstream: Response;
   try {
-    upstream = await internalApiFetch("/v1/subscription/resume", {
+    upstream = await internalApiFetch("/api/v1/subscription/resume", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

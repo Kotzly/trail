@@ -85,7 +85,7 @@ describe("account api billing checkout route", () => {
 
     expect(response.status).toBe(200);
     expect(internalApiMocks.internalApiFetch).toHaveBeenCalledWith(
-      "/v1/subscription/checkout",
+      "/api/v1/subscription/checkout",
       {
         method: "POST",
         headers: {

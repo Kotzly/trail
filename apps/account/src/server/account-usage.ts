@@ -123,11 +123,11 @@ export async function getAccountUsageSnapshot(): Promise<AccountUsageSnapshot> {
   };
 
   const [trailsResponse, devicesResponse] = await Promise.all([
-    internalApiJson<ApiTrailsResponse>("/v1/trails?limit=5", {
+    internalApiJson<ApiTrailsResponse>("/api/v1/trails?limit=5", {
       method: "GET",
       headers: authHeaders,
     }).catch(() => null),
-    internalApiJson<ApiDevicesResponse>("/v1/devices", {
+    internalApiJson<ApiDevicesResponse>("/api/v1/devices", {
       method: "GET",
       headers: authHeaders,
     }).catch(() => null),
