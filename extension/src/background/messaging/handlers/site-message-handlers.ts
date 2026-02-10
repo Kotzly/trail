@@ -60,8 +60,15 @@ const innerHandlers: Record<string, InnerHandler> = {
    * Used by the site to check if extension is present and authenticated.
    */
   PING: async (_payload, _requestId) => {
+    // #region agent log
+    const _pt0 = Date.now();
+    fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'site-message-handlers.ts:PING',message:'PING handler invoked',timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
     const authed = await isAuthenticated();
     const editor = getEditorState();
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'site-message-handlers.ts:PING',message:'PING handler done',data:{authed,editorActive:editor.active,elapsed:Date.now()-_pt0},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+    // #endregion
     return {
       responsePayload: {
         source: "trail-extension",
@@ -84,14 +91,33 @@ const innerHandlers: Record<string, InnerHandler> = {
   },
 
   ENTER_EDITOR_MODE: async (payload, _requestId) => {
+    // #region agent log
+    const _et0 = Date.now();
+    fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'site-message-handlers.ts:ENTER_EDITOR_MODE',message:'handler invoked',data:{treeId:payload.treeId,requestId:_requestId},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
     const treeId = typeof payload.treeId === "string" ? payload.treeId : "";
     if (!treeId) {
-      return { responsePayload: { error: "Missing treeId" } };
+      return {
+        responsePayload: {
+          source: "trail-extension",
+          type: "EDITOR_MODE_ENTERED",
+          error: "Missing treeId",
+        },
+      };
     }
 
     const result = await enterEditorMode(treeId);
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'site-message-handlers.ts:ENTER_EDITOR_MODE',message:'handler done',data:{treeId,isError:typeof result==='string',result:typeof result==='string'?result:result.treeId,elapsed:Date.now()-_et0},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
     if (typeof result === "string") {
-      return { responsePayload: { error: result } };
+      return {
+        responsePayload: {
+          source: "trail-extension",
+          type: "EDITOR_MODE_ENTERED",
+          error: result,
+        },
+      };
     }
 
     return {

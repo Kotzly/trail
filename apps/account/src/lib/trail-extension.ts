@@ -152,6 +152,11 @@ async function sendWithRetry<T extends Record<string, unknown>>(
   expectedAckType: string,
   ackTimeoutMs = DEFAULT_ACK_TIMEOUT_MS,
 ): Promise<SendResult<T>> {
+  // #region agent log
+  const _t0 = Date.now();
+  fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'trail-extension.ts:sendWithRetry',message:'sendWithRetry START',data:{type,expectedAckType,ackTimeoutMs},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
+  // #endregion
+
   // First attempt
   let result = await sendAndWaitForAck<T>(
     type,
@@ -159,9 +164,13 @@ async function sendWithRetry<T extends Record<string, unknown>>(
     expectedAckType,
     ackTimeoutMs,
   );
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'trail-extension.ts:sendWithRetry',message:'attempt 0 result',data:{type,ok:result.ok,error:result.ok?undefined:(result as any).error,elapsed:Date.now()-_t0},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
+  // #endregion
   if (result.ok) return result;
 
   // Retries
+  let attempt = 1;
   for (const backoff of RETRY_BACKOFFS) {
     await sleep(backoff);
     result = await sendAndWaitForAck<T>(
@@ -170,9 +179,16 @@ async function sendWithRetry<T extends Record<string, unknown>>(
       expectedAckType,
       ackTimeoutMs,
     );
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'trail-extension.ts:sendWithRetry',message:`attempt ${attempt} result`,data:{type,ok:result.ok,error:result.ok?undefined:(result as any).error,elapsed:Date.now()-_t0,backoff},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
+    // #endregion
+    attempt++;
     if (result.ok) return result;
   }
 
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/937115ee-9cd6-4fc0-9921-cf0a6510eab8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'trail-extension.ts:sendWithRetry',message:'ALL RETRIES EXHAUSTED',data:{type,totalElapsed:Date.now()-_t0},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
+  // #endregion
   return {
     ok: false,
     error:
@@ -200,12 +216,16 @@ function sendFireAndForget(
 // ---------------------------------------------------------------------------
 
 /** Ping the extension to check presence and auth state. */
-export function ping(): Promise<SendResult<PongPayload>> {
-  return sendWithRetry<PongPayload & Record<string, unknown>>(
+export async function ping(): Promise<SendResult<PongPayload>> {
+  // Для ping нам не нужны долгие ретраи — хотим быстро понять, установлен ли
+  // вообще контент-скрипт/расширение. Используем один короткий запрос.
+  const result = await sendAndWaitForAck<PongPayload & Record<string, unknown>>(
     "PING",
     {},
     "PONG",
-  ) as Promise<SendResult<PongPayload>>;
+    700,
+  );
+  return result as SendResult<PongPayload>;
 }
 
 /** Request the extension to open its side panel. */
@@ -216,14 +236,23 @@ export function openTrailPanel(): Promise<
 }
 
 /** Tell the extension to enter editor mode for a specific tree. */
-export function enterEditorMode(
+export async function enterEditorMode(
   treeId: string,
 ): Promise<SendResult<EditorModeEnteredPayload>> {
-  return sendWithRetry<EditorModeEnteredPayload & Record<string, unknown>>(
-    "ENTER_EDITOR_MODE",
-    { treeId },
-    "EDITOR_MODE_ENTERED",
-  ) as Promise<SendResult<EditorModeEnteredPayload>>;
+  const result = await sendWithRetry<
+    EditorModeEnteredPayload & Record<string, unknown>
+  >("ENTER_EDITOR_MODE", { treeId }, "EDITOR_MODE_ENTERED");
+
+  if (!result.ok) {
+    return result;
+  }
+
+  const data = result.data as Record<string, unknown>;
+  if (typeof data.error === "string") {
+    return { ok: false, error: data.error };
+  }
+
+  return { ok: true, data: result.data as EditorModeEnteredPayload };
 }
 
 /** Tell the extension to exit editor mode. */
