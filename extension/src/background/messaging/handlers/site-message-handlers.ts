@@ -16,6 +16,34 @@ import { defineHandlers } from "../../../shared/types/messages.js";
 import type { SiteMessageForwardMessage } from "../../../shared/types/messages.js";
 
 // ---------------------------------------------------------------------------
+// Auth state helpers (reads from chrome.storage, same key as cloud-sync)
+// ---------------------------------------------------------------------------
+
+const AUTH_STORAGE_KEY = "trail_auth_session";
+
+type StoredAuthSession = {
+  accessToken?: string;
+};
+
+async function isAuthenticated(): Promise<boolean> {
+  try {
+    const data = await chrome.storage.local.get(AUTH_STORAGE_KEY);
+    const session = data[AUTH_STORAGE_KEY] as StoredAuthSession | undefined;
+    return Boolean(session?.accessToken);
+  } catch {
+    return false;
+  }
+}
+
+async function clearAuthSession(): Promise<void> {
+  try {
+    await chrome.storage.local.remove(AUTH_STORAGE_KEY);
+  } catch (e) {
+    console.error("[site-message] failed to clear auth session:", e);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Inner dispatch: site message type → response payload
 // ---------------------------------------------------------------------------
 
@@ -29,15 +57,15 @@ const innerHandlers: Record<string, InnerHandler> = {
    * PING — returns PONG with extension state.
    * Used by the site to check if extension is present and authenticated.
    */
-  PING: (_payload, _requestId) => {
-    // TODO(phase1): read real auth state and editor mode from stores
+  PING: async (_payload, _requestId) => {
+    const authed = await isAuthenticated();
     return {
       responsePayload: {
         source: "trail-extension",
         type: "PONG",
         version: chrome.runtime.getManifest().version,
-        authenticated: false,
-        editorMode: false,
+        authenticated: authed,
+        editorMode: false, // TODO(phase3): read from editor mode store
       },
     };
   },
@@ -46,9 +74,9 @@ const innerHandlers: Record<string, InnerHandler> = {
    * AUTH_REVOKED — site logout propagation.
    * Extension should clear tokens and show auth gate.
    */
-  AUTH_REVOKED: (_payload, _requestId) => {
-    // TODO(phase1): clear stored tokens, trigger auth gate
-    console.debug("[site-message] AUTH_REVOKED received — will clear tokens");
+  AUTH_REVOKED: async (_payload, _requestId) => {
+    console.debug("[site-message] AUTH_REVOKED received — clearing tokens");
+    await clearAuthSession();
     return {};
   },
 };
