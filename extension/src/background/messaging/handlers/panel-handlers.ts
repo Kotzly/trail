@@ -1,7 +1,27 @@
 import { MSG, defineHandlers, err, ok } from "../../../shared/types/messages.js";
 
 const SIDE_PANEL_PATH = "sidepanel/sidepanel.html";
- 
+
+/* ------------------------------------------------------------------ */
+/*  Sidepanel liveness tracking via persistent Port                    */
+/* ------------------------------------------------------------------ */
+
+let sidepanelPort: chrome.runtime.Port | null = null;
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== "sidepanel") return;
+  sidepanelPort = port;
+  port.onDisconnect.addListener(() => {
+    sidepanelPort = null;
+  });
+});
+
+/** True when the sidepanel JS context is alive (port connected). */
+export function isSidepanelAlive(): boolean {
+  return sidepanelPort !== null;
+}
+
+/* ------------------------------------------------------------------ */
 
 function promisifyChromeCall<T>(fn: (cb: (result?: T) => void) => void): Promise<T | void> {
   return new Promise((resolve, reject) => {
@@ -60,6 +80,10 @@ async function enableAndOpenSidePanel(tabId: number): Promise<void> {
 
 export const panelHandlers = defineHandlers({
   async [MSG.OPEN_PANEL](_message, sender) {
+    // If the sidepanel is already alive, skip setOptions/open calls that could
+    // trigger a reload and cause a theme/layout flash.
+    if (isSidepanelAlive()) return ok();
+
     const tabId = sender.tab?.id;
     if (!tabId) return err("No tab ID");
 
