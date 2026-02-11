@@ -3,6 +3,7 @@ import { NavigationTree } from '../state/nav-tree.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { uuidv7 } from '../../shared/lib/uuid.js';
 import { settingsManager } from './settings.js';
+import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 
 const TREE_KEY = 'trail_tree' as const;
 const TREE_META_KEY = 'trail_tree_meta' as const;
@@ -41,13 +42,14 @@ function normalizeMeta(raw: unknown): TreeMeta | null {
 function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): TreeSummary {
   const root = tree.getRoot();
   const rootData = root?.data;
+  const treeJSON = NavigationTreeMapper.toJSON(tree);
   return {
     ...meta,
     nodeCount: tree.size(),
     savedAt,
     rootUrl: rootData?.url,
     rootTitle: rootData?.title,
-    rootFavicon: rootData?.favicon,
+    rootFavicon: findBestTrailFavicon(treeJSON) ?? rootData?.favicon,
   } as TreeSummary;
 }
 
@@ -307,6 +309,47 @@ class TreeStorageService {
       console.error('TreeStorageService.deleteArchivedTree: Error saving archive:', error);
     }
     return true;
+  }
+
+  /**
+   * Update an archived tree record with the current cached tree.
+   * Used after successful cloud sync to keep archives in sync.
+   */
+  async updateArchivedTree(treeId: string, tree: NavigationTree, savedAt: number): Promise<void> {
+    const archives = await this.getArchives();
+    const existingIndex = archives.findIndex((entry) => entry.id === treeId);
+    
+    if (existingIndex < 0) {
+      // Tree not in archives, nothing to update
+      return;
+    }
+
+    const existing = archives[existingIndex]!;
+    const treeJSON = NavigationTreeMapper.toJSON(tree);
+    const root = tree.getRoot();
+    const favicon = findBestTrailFavicon(treeJSON) ?? root?.data.favicon;
+    
+    const updated: TreeRecord = {
+      id: existing.id,
+      label: existing.label,
+      labelSource: existing.labelSource,
+      labelUpdatedAt: existing.labelUpdatedAt,
+      createdAt: existing.createdAt,
+      nodeCount: tree.size(),
+      savedAt,
+      tree: treeJSON,
+      ...(root?.data.url && { rootUrl: root.data.url }),
+      ...(root?.data.title && { rootTitle: root.data.title }),
+      ...(favicon && { rootFavicon: favicon }),
+    };
+
+    archives[existingIndex] = updated;
+    this.cachedArchives = archives;
+    try {
+      await treeArea.set({ [TREE_ARCHIVES_KEY]: archives });
+    } catch (error) {
+      console.error('TreeStorageService.updateArchivedTree: Error saving archive:', error);
+    }
   }
 
   cacheTree(tree: NavigationTree): void {

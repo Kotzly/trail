@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ping,
   enterEditorMode,
@@ -21,6 +22,7 @@ type ExtensionStatus =
   | "error";
 
 export default function EditInExtensionButton({ trailId }: { trailId: string }) {
+  const router = useRouter();
   const [status, setStatus] = useState<ExtensionStatus>("checking");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const statusRef = useRef(status);
@@ -66,9 +68,11 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
     return onExtensionEvent((event) => {
       if (event.type === "EDITOR_MODE_EXITED") {
         setStatus("ready");
+        // Refresh server data so the page reflects changes made in the editor
+        router.refresh();
       }
     });
-  }, []);
+  }, [router]);
 
   // -------------------------------------------------------------------
   // Re-ping on window focus / visibility change (catches SW restart)
@@ -154,6 +158,8 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
     const result = await exitEditorMode();
     if (result.ok) {
       setStatus("ready");
+      // Refresh server data so the page reflects changes made in the editor
+      router.refresh();
     } else {
       // Even if the exit message failed, try to re-check real state
       await checkExtension();

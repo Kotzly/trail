@@ -4,6 +4,7 @@ import { treeStorage } from './tree-storage.js';
 import { setCachedTree } from './tree-cache.js';
 import { sendRuntimeMessage } from '../messaging/send-message.js';
 import { msg, type SyncStatus } from '../../shared/types/messages.js';
+import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 
 /* ------------------------------------------------------------------ */
 /*  Editor Sync Service                                                */
@@ -67,6 +68,8 @@ async function patchTree(treeId: string): Promise<boolean> {
   const tree = await treeStorage.getOrCreateTree();
   const json = NavigationTreeMapper.toJSON(tree);
   const root = tree.getRoot();
+  const savedAt = Date.now();
+  const savedAtIso = new Date(savedAt).toISOString();
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), BACKEND_CONFIG.timeoutMs);
@@ -84,8 +87,8 @@ async function patchTree(treeId: string): Promise<boolean> {
         nodeCount: tree.size(),
         rootUrl: root?.data.url ?? null,
         rootTitle: root?.data.title ?? null,
-        rootFavicon: root?.data.favicon ?? null,
-        savedAt: new Date().toISOString(),
+        rootFavicon: findBestTrailFavicon(json) ?? root?.data.favicon ?? null,
+        savedAt: savedAtIso,
       }),
       signal: controller.signal,
     });
@@ -96,7 +99,13 @@ async function patchTree(treeId: string): Promise<boolean> {
     }
 
     // Update the LRU cache with the freshly synced data
-    await setCachedTree(treeId, json, Date.now());
+    await setCachedTree(treeId, json, savedAt);
+
+    // Update archives if we're editing a non-active tree
+    if (treeStorage.isEditingNonActiveTree) {
+      await treeStorage.updateArchivedTree(treeId, tree, savedAt);
+    }
+
     return true;
   } catch (error) {
     console.warn('EditorSync: network error during PATCH', error);

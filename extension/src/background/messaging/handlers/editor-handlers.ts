@@ -20,6 +20,10 @@ import {
   editorSyncFlush,
   editorSyncStop,
 } from '../../services/editor-sync.js';
+import { buildBackendUrl, initBackendConfig, BACKEND_CONFIG } from '../../../shared/config/backend.js';
+import { isNavigationTreeJSON } from '../../services/cloud-sync.js';
+import type { TreeRecord, TreeLabelSource, NavigationTreeJSON } from '../../../shared/types/tree.js';
+import type { Url, Title, FaviconUrl } from '../../../shared/types/ids.js';
 
 /* ------------------------------------------------------------------ */
 /*  Editor mode tracking (in-memory, background service worker)        */
@@ -34,6 +38,119 @@ export function getEditorState(): EditorModeState {
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
+
+const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
+
+async function getAccessToken(): Promise<string | null> {
+  const result = await chrome.storage.local.get(AUTH_STORAGE_KEY);
+  const raw = result[AUTH_STORAGE_KEY] as { accessToken?: string } | undefined;
+  if (!raw || typeof raw !== 'object') return null;
+  return typeof raw.accessToken === 'string' && raw.accessToken ? raw.accessToken : null;
+}
+
+function normalizeLabelSource(value: unknown): TreeLabelSource {
+  if (value === 'user' || value === 'auto' || value === 'system') return value;
+  return 'system';
+}
+
+function parseIsoTimestamp(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value !== 'string') return Date.now();
+  const ts = Date.parse(value);
+  return Number.isFinite(ts) ? ts : Date.now();
+}
+
+/**
+ * Fetch a tree from the API by ID.
+ * Returns null if the tree is not found, deleted, or if there's an error.
+ */
+async function fetchTreeFromApi(treeId: string): Promise<TreeRecord | null> {
+  try {
+    await initBackendConfig();
+    const token = await getAccessToken();
+    if (!token) {
+      console.warn(`EditorHandlers: No access token available to fetch tree ${treeId}`);
+      return null;
+    }
+
+    const url = buildBackendUrl(`/trails/${treeId}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), BACKEND_CONFIG.timeoutMs);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+        signal: controller.signal,
+      });
+    } catch (error) {
+      console.warn(`EditorHandlers: Network error fetching tree ${treeId}:`, error);
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`EditorHandlers: Tree ${treeId} not found in API`);
+      } else if (response.status === 401 || response.status === 403) {
+        console.warn(`EditorHandlers: Unauthorized to fetch tree ${treeId}`);
+      } else {
+        console.warn(`EditorHandlers: Failed to fetch tree ${treeId}: ${response.status}`);
+      }
+      return null;
+    }
+
+    const data = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!data) {
+      console.warn(`EditorHandlers: Invalid JSON response for tree ${treeId}`);
+      return null;
+    }
+
+    const payload = (data as any).payload;
+    if (!isNavigationTreeJSON(payload)) {
+      console.warn(`EditorHandlers: API payload is not a valid NavigationTreeJSON for tree ${treeId}`);
+      return null;
+    }
+
+    // Normalize payload: ensure capacity is a number (default to Infinity if missing/null)
+    const normalizedPayload: NavigationTreeJSON = {
+      ...payload,
+      capacity: typeof payload.capacity === 'number' && Number.isFinite(payload.capacity)
+        ? payload.capacity
+        : Infinity,
+    };
+
+    const record: TreeRecord = {
+      id: typeof data.id === 'string' ? (data.id as string) : treeId,
+      label: typeof data.label === 'string' ? (data.label as string) : '',
+      labelSource: normalizeLabelSource((data as any).labelSource),
+      labelUpdatedAt: parseIsoTimestamp((data as any).labelUpdatedAt),
+      createdAt: parseIsoTimestamp((data as any).createdAt),
+      nodeCount: typeof (data as any).nodeCount === 'number' ? ((data as any).nodeCount as number) : normalizedPayload.nodeCount ?? 0,
+      savedAt: parseIsoTimestamp((data as any).savedAt),
+      tree: normalizedPayload,
+    };
+
+    if (typeof (data as any).rootUrl === 'string') {
+      record.rootUrl = (data as any).rootUrl as Url;
+    }
+    if (typeof (data as any).rootTitle === 'string') {
+      record.rootTitle = (data as any).rootTitle as Title;
+    }
+    if (typeof (data as any).rootFavicon === 'string') {
+      record.rootFavicon = (data as any).rootFavicon as FaviconUrl;
+    }
+
+    return record;
+  } catch (error) {
+    console.error(`EditorHandlers: Unexpected error fetching tree ${treeId}:`, error);
+    return null;
+  }
+}
 
 function snapshot(tree: NavigationTree, description: string): void {
   CommandManager.saveSnapshot(
@@ -149,8 +266,22 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
     }
   }
 
+  // 4. Try to fetch from API if not found locally
   if (!treeJSON) {
-    return 'Tree not found in local archives or cache';
+    const apiRecord = await fetchTreeFromApi(treeId);
+    if (apiRecord) {
+      treeJSON = apiRecord.tree;
+      // Save to archives
+      const archives = await treeStorage.getArchives();
+      const updatedArchives = [apiRecord, ...archives.filter((a) => a.id !== treeId)];
+      await treeStorage.setArchives(updatedArchives);
+      // Save to LRU cache
+      await setCachedTree(treeId, apiRecord.tree, Date.now());
+    }
+  }
+
+  if (!treeJSON) {
+    return 'Tree not found in local archives, cache, or API';
   }
 
   // Load the tree for editing

@@ -5,6 +5,7 @@ import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSum
 import type { FaviconUrl, Title, Url } from '../../shared/types/ids.js';
 import { notifyTreesUpdate } from '../messaging/notifications.js';
 import { treeStorage } from './tree-storage.js';
+import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 
 const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
 const SYNC_DEVICE_ID_KEY = 'trail_sync_device_id' as const;
@@ -97,15 +98,18 @@ function normalizeLabelSource(value: unknown): TreeLabelSource {
   return 'system';
 }
 
-function isNavigationTreeJSON(value: unknown): value is NavigationTreeJSON {
+export function isNavigationTreeJSON(value: unknown): value is NavigationTreeJSON {
   if (!isObject(value)) return false;
   if (!('root' in value)) return false;
   const currentNodeId = value.currentNodeId;
   const capacity = value.capacity;
   const nodeCount = value.nodeCount;
-  if (!(currentNodeId === null || typeof currentNodeId === 'string')) return false;
-  if (!Number.isFinite(capacity)) return false;
+  // currentNodeId is NodeId (branded number) or null, not string
+  if (!(currentNodeId === null || typeof currentNodeId === 'number')) return false;
+  // capacity can be missing/null in old data, but nodeCount is required
   if (!Number.isFinite(nodeCount)) return false;
+  // If capacity is missing or null, we'll normalize it later; for now just check it's a number if present
+  if (capacity !== undefined && capacity !== null && !Number.isFinite(capacity)) return false;
   return true;
 }
 
@@ -134,7 +138,7 @@ function toArchiveSummary(record: TreeRecord): TreeSummary {
   return summary;
 }
 
-function toTreeRecordFromRemote(remote: ParsedRemoteTrail): TreeRecord {
+export function toTreeRecordFromRemote(remote: ParsedRemoteTrail): TreeRecord {
   const record: TreeRecord = {
     id: remote.id,
     label: remote.label,
@@ -157,7 +161,7 @@ function toTreeRecordFromRemote(remote: ParsedRemoteTrail): TreeRecord {
   return record;
 }
 
-function parseRemoteTrail(value: unknown): ParsedRemoteTrail | null {
+export function parseRemoteTrail(value: unknown): ParsedRemoteTrail | null {
   if (!isObject(value)) return null;
   const id = typeof value.id === 'string' ? value.id : '';
   const deviceId = typeof value.deviceId === 'string' ? value.deviceId : '';
@@ -477,7 +481,10 @@ class CloudSyncService {
       nodeCount: tree.size(),
       rootUrl: root?.data.url ?? null,
       rootTitle: root?.data.title ?? null,
-      rootFavicon: root?.data.favicon ?? null,
+      rootFavicon: (() => {
+        const treeJSON = NavigationTreeMapper.toJSON(tree);
+        return findBestTrailFavicon(treeJSON) ?? root?.data.favicon ?? null;
+      })(),
       payload: NavigationTreeMapper.toJSON(tree),
       deletedAt: null,
     };
