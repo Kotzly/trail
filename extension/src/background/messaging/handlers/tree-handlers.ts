@@ -1,4 +1,4 @@
-import { MSG, defineHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot, type TreeViewIntent } from '../../../shared/types/messages.js';
+import { RPC_METHOD, defineRpcHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot, type TreeViewIntent } from '../../../shared/rpc/contracts.js';
 import { getEditorState } from './editor-handlers.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from '../notifications.js';
@@ -191,18 +191,18 @@ async function switchTree(
   await notifyTreesUpdate(await buildTreesSnapshot());
 }
 
-export const treeHandlers = defineHandlers({
-  async [MSG.GET_TREE]() {
+export const treeHandlers = defineRpcHandlers({
+  async [RPC_METHOD.GET_TREE]() {
     const snapshot = await buildTreeSnapshot();
     return ok(snapshot);
   },
 
-  async [MSG.GET_TREES]() {
+  async [RPC_METHOD.GET_TREES]() {
     const snapshot = await buildTreesSnapshot();
     return ok(snapshot);
   },
 
-  async [MSG.CLEAR_TREE]() {
+  async [RPC_METHOD.CLEAR_TREE]() {
     const tree = await treeStorage.getOrCreateTree();
     if (tree.getRoot()) {
       snapshot(tree, 'Clear history');
@@ -216,7 +216,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.NEW_TREE](message) {
+  async [RPC_METHOD.NEW_TREE](message) {
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
       snapshot(current, 'New tree');
@@ -228,7 +228,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.OPEN_TREE](message) {
+  async [RPC_METHOD.OPEN_TREE](message) {
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
       snapshot(current, 'Open tree');
@@ -249,13 +249,13 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.RENAME_TREE](message) {
+  async [RPC_METHOD.RENAME_TREE](message) {
     await treeStorage.renameTree(message.treeId, message.label);
     await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
   },
 
-  async [MSG.DELETE_ARCHIVED_TREE](message) {
+  async [RPC_METHOD.DELETE_ARCHIVED_TREE](message) {
     const active = await treeStorage.getActiveMeta();
     if (active.id === message.treeId) return err('Cannot delete active tree');
     const archives = await treeStorage.getArchives();
@@ -269,7 +269,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.DELETE_NODE](message) {
+  async [RPC_METHOD.DELETE_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
     const prevCurrentId = tree.getCurrentId();
@@ -285,7 +285,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.DELETE_CHILDREN](message) {
+  async [RPC_METHOD.DELETE_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
     const prevCurrentId = tree.getCurrentId();
@@ -300,7 +300,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.DELETE_WITH_CHILDREN](message) {
+  async [RPC_METHOD.DELETE_WITH_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
     const prevCurrentId = tree.getCurrentId();
@@ -315,7 +315,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.BULK_DELETE](message) {
+  async [RPC_METHOD.BULK_DELETE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete selection');
@@ -334,7 +334,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.BULK_DELETE_NODES](message) {
+  async [RPC_METHOD.BULK_DELETE_NODES](message) {
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete selected nodes');
@@ -354,7 +354,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.BULK_DELETE_RECURSIVE](message) {
+  async [RPC_METHOD.BULK_DELETE_RECURSIVE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete selected nodes recursively');
@@ -407,7 +407,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.SET_NODE_LAYOUT](message) {
+  async [RPC_METHOD.SET_NODE_LAYOUT](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
@@ -436,7 +436,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.SET_NODE_LAYOUT_BATCH](message) {
+  async [RPC_METHOD.SET_NODE_LAYOUT_BATCH](message) {
     const tree = await treeStorage.getOrCreateTree();
     let changed = false;
 
@@ -479,7 +479,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.RESET_NODE_LAYOUTS]() {
+  async [RPC_METHOD.RESET_NODE_LAYOUTS]() {
     const tree = await treeStorage.getOrCreateTree();
     let changed = false;
     for (const node of tree.iter() ?? []) {

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { RefObject } from 'react';
 import type { NodeId } from '../../../shared/types/ids.js';
 import type { LayoutMode } from '../../../shared/types/settings.js';
-import { msg } from '../../../shared/types/messages.js';
+import { rpc } from '../../../shared/rpc/contracts.js';
 import { redo, undo } from '../../api/commands.js';
 import { fireAndForget } from '../../api/background.js';
 import { navigateTo, setCurrentNode } from '../../api/tree.js';
@@ -108,7 +108,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
 
       const openNodesInNewTabs = (nodeIds: NodeId[]) => {
         nodeIds.forEach((nodeId) => {
-          fireAndForget(msg.openInNewTab({ nodeId }));
+          fireAndForget(rpc.openInNewTab({ nodeId }));
         });
       };
 
@@ -118,7 +118,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
         if (nodeIds.length === 1) {
           const [nodeId] = nodeIds;
           if (!nodeId) return;
-          fireAndForget(msg.togglePin({ nodeId }));
+          fireAndForget(rpc.togglePin({ nodeId }));
           return;
         }
         const nodes = nodeIds
@@ -127,7 +127,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
         if (nodes.length === 0) return;
         const allPinned = nodes.every((node) => node?.data.pinned);
         fireAndForget(
-          allPinned ? msg.bulkUnpin({ nodeIds }) : msg.bulkPin({ nodeIds }),
+          allPinned ? rpc.bulkUnpin({ nodeIds }) : rpc.bulkPin({ nodeIds }),
         );
       };
 
@@ -143,14 +143,14 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
           if (!nodeId) return;
           fireAndForget(
             recursive
-              ? msg.deleteWithChildren({ nodeId })
-              : msg.deleteNode({ nodeId }),
+              ? rpc.deleteWithChildren({ nodeId })
+              : rpc.deleteNode({ nodeId }),
           );
         } else {
           fireAndForget(
             recursive
-              ? msg.bulkDeleteRecursive({ nodeIds })
-              : msg.bulkDeleteNodes({ nodeIds }),
+              ? rpc.bulkDeleteRecursive({ nodeIds })
+              : rpc.bulkDeleteNodes({ nodeIds }),
           );
         }
         state.clearSelection();

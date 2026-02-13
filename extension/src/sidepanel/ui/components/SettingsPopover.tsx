@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Settings } from '../../../shared/types/settings.js';
 import type { Url } from '../../../shared/types/ids.js';
 import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
+import { OPTIONAL_HOST_MATCH_PATTERNS } from '../../../shared/config/site-origins.js';
 import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
 import { saveSettings } from '../../api/settings.js';
 import { applyTheme } from '../shared/apply-theme.js';
@@ -9,10 +10,12 @@ import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
-import { cn } from '@/lib/utils';
+import { cn } from '../lib/utils.js';
 import React from 'react';
 
 type LayoutMode = Settings['layout']['mode'];
+type SiteAccessState = 'loading' | 'granted' | 'not-granted';
+const OPTIONAL_HOST_ORIGINS = [...OPTIONAL_HOST_MATCH_PATTERNS] as string[];
 
 function Seg<T extends string>({
   value,
@@ -50,6 +53,9 @@ export default function SettingsDropdown() {
   const saveTimerRef = useRef<number | null>(null);
   const pendingSaveRef = useRef<Settings | null>(null);
   const [dashboardBusy, setDashboardBusy] = useState(false);
+  const [siteAccessState, setSiteAccessState] = useState<SiteAccessState>('loading');
+  const [siteAccessBusy, setSiteAccessBusy] = useState(false);
+  const [siteAccessError, setSiteAccessError] = useState<string | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -171,6 +177,67 @@ export default function SettingsDropdown() {
     }
   };
 
+  const refreshSiteAccessState = useCallback(async () => {
+    if (!chrome.permissions?.contains) {
+      setSiteAccessState('not-granted');
+      return;
+    }
+    try {
+      const granted = await chrome.permissions.contains({
+        origins: OPTIONAL_HOST_ORIGINS,
+      });
+      setSiteAccessState(granted ? 'granted' : 'not-granted');
+    } catch (error) {
+      console.error('Failed to check optional host permissions:', error);
+      setSiteAccessState('not-granted');
+    }
+  }, []);
+
+  const grantSiteAccess = useCallback(async () => {
+    if (siteAccessBusy || !chrome.permissions?.request) return;
+    setSiteAccessBusy(true);
+    setSiteAccessError(null);
+    try {
+      const granted = await chrome.permissions.request({
+        origins: OPTIONAL_HOST_ORIGINS,
+      });
+      if (!granted) {
+        setSiteAccessError('Access request denied.');
+        setSiteAccessState('not-granted');
+        return;
+      }
+      setSiteAccessState('granted');
+    } catch (error) {
+      console.error('Failed to request optional host permissions:', error);
+      setSiteAccessError('Could not request access.');
+      setSiteAccessState('not-granted');
+    } finally {
+      setSiteAccessBusy(false);
+    }
+  }, [siteAccessBusy]);
+
+  const revokeSiteAccess = useCallback(async () => {
+    if (siteAccessBusy || !chrome.permissions?.remove) return;
+    setSiteAccessBusy(true);
+    setSiteAccessError(null);
+    try {
+      await chrome.permissions.remove({
+        origins: OPTIONAL_HOST_ORIGINS,
+      });
+      setSiteAccessState('not-granted');
+    } catch (error) {
+      console.error('Failed to revoke optional host permissions:', error);
+      setSiteAccessError('Could not revoke access.');
+    } finally {
+      setSiteAccessBusy(false);
+    }
+  }, [siteAccessBusy]);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    void refreshSiteAccessState();
+  }, [refreshSiteAccessState, settingsOpen]);
+
   return (
     <div className="settings-dropdown-wrapper">
       <button
@@ -282,6 +349,43 @@ export default function SettingsDropdown() {
               theme studio
               <Icons.ChevronRight size={14} />
             </button>
+          </div>
+
+          <hr className="settings-hr" />
+
+          {/* optional host permissions */}
+          <div className="settings-section">
+            <div className="settings-row settings-row-top">
+              <div className="settings-label">site access</div>
+              <div className="settings-actions-inline">
+                <button
+                  className="settings-action"
+                  type="button"
+                  onClick={() => void grantSiteAccess()}
+                  disabled={siteAccessBusy || siteAccessState === 'granted'}
+                >
+                  grant
+                </button>
+                <button
+                  className="settings-action"
+                  type="button"
+                  onClick={() => void revokeSiteAccess()}
+                  disabled={siteAccessBusy || siteAccessState !== 'granted'}
+                >
+                  revoke
+                </button>
+              </div>
+            </div>
+            <div className="settings-note">
+              {siteAccessState === 'loading'
+                ? 'Checking current permission state…'
+                : siteAccessState === 'granted'
+                  ? 'Granted: Trail can be injected on all sites when needed.'
+                  : 'Not granted: Trail will use only trusted site origins.'}
+            </div>
+            {siteAccessError ? (
+              <div className="settings-note settings-note-error">{siteAccessError}</div>
+            ) : null}
           </div>
 
           <hr className="settings-hr" />

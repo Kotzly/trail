@@ -57,3 +57,5 @@ pens/
 .codex/
 .claude/
 .cursor/
+extension/public/backend-preset.json
+.output/

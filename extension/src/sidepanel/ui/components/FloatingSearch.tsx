@@ -107,7 +107,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
         }
       }}
     >
-      <div className="floating-search-panel" data-notify-anchor={hasQuery ? 'true' : undefined}>
+      <div className="floating-search-panel">
         <div className="floating-search-input">
           <input
             ref={inputRef}

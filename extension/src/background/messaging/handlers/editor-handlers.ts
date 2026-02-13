@@ -1,10 +1,10 @@
 import {
-  MSG,
-  defineHandlers,
+  RPC_METHOD,
+  defineRpcHandlers,
   ok,
   err,
   type EditorModeState,
-} from '../../../shared/types/messages.js';
+} from '../../../shared/rpc/contracts.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
@@ -433,24 +433,13 @@ export async function cancelEditorMode(): Promise<EditorModeActionResult> {
   }
 }
 
-/**
- * @deprecated Prefer saveEditorMode/cancelEditorMode.
- */
-export async function exitEditorMode(): Promise<EditorModeState> {
-  const result = await saveEditorMode();
-  if (!result.ok) {
-    console.warn('[editor] exitEditorMode failed:', result.error);
-  }
-  return editorState;
-}
-
-export const editorHandlers = defineHandlers({
-  async [MSG.ENTER_EDITOR_MODE](message) {
+export const editorHandlers = defineRpcHandlers({
+  async [RPC_METHOD.ENTER_EDITOR_MODE](message) {
     const result = await enterEditorMode(message.treeId);
     return typeof result === 'string' ? err(result) : ok(result);
   },
 
-  async [MSG.EXIT_EDITOR_MODE]() {
+  async [RPC_METHOD.EXIT_EDITOR_MODE]() {
     const result = await saveEditorMode();
     if (!result.ok) {
       return err(result.error);
@@ -458,7 +447,7 @@ export const editorHandlers = defineHandlers({
     return ok(editorState);
   },
 
-  async [MSG.REPARENT_NODE](message) {
+  async [RPC_METHOD.REPARENT_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
@@ -507,7 +496,7 @@ export const editorHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.DUPLICATE_SUBTREE](message) {
+  async [RPC_METHOD.DUPLICATE_SUBTREE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
@@ -546,7 +535,7 @@ export const editorHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.EDITOR_SYNC_RETRY]() {
+  async [RPC_METHOD.EDITOR_SYNC_RETRY]() {
     const { editorSyncRetry } = await import('../../services/editor-sync.js');
     editorSyncRetry();
     return ok();

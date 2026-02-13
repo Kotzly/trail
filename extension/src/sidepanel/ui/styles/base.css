@@ -74,6 +74,11 @@ body {
   z-index: 1;
 }
 
+/* Keep Sonner toasts above every in-panel overlay, including auth gate. */
+[data-sonner-toaster] {
+  z-index: 2147483647 !important;
+}
+
 .container--editor::after {
   content: "";
   position: absolute;
@@ -94,7 +99,6 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .confirm-overlay,
   .confirm-dialog,
-  .notification-card,
   .settings-popover,
   .popover-segment-btn,
   .popover-range,
@@ -112,9 +116,5 @@ textarea {
   .tag-filter-dropdown {
     animation: none;
     transition: none;
-  }
-
-  .notification-progress::after {
-    animation: none;
   }
 }

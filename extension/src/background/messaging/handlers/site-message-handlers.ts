@@ -6,15 +6,15 @@
  * inner `siteMessageType`.
  */
 import {
-  MSG,
-  msg,
+  RPC_METHOD,
+  rpc,
   type SiteMessageForwardResponse,
   type ResponseMessage,
   ok,
   err,
-} from "../../../shared/types/messages.js";
-import { defineHandlers } from "../../../shared/types/messages.js";
-import type { SiteMessageForwardMessage } from "../../../shared/types/messages.js";
+} from "../../../shared/rpc/contracts.js";
+import { defineRpcHandlers } from "../../../shared/rpc/contracts.js";
+import type { SiteMessageForwardMessage } from "../../../shared/rpc/contracts.js";
 import {
   getEditorState,
   enterEditorMode,
@@ -172,10 +172,10 @@ const innerHandlers: Record<string, InnerHandler> = {
 // Exported handler map
 // ---------------------------------------------------------------------------
 
-export const siteMessageHandlers = defineHandlers({
-  [MSG.SITE_MESSAGE_FORWARD]: async (
+export const siteMessageHandlers = defineRpcHandlers({
+  [RPC_METHOD.SITE_MESSAGE_FORWARD]: async (
     message: SiteMessageForwardMessage,
-  ): Promise<ResponseMessage<typeof MSG.SITE_MESSAGE_FORWARD>> => {
+  ): Promise<ResponseMessage<typeof RPC_METHOD.SITE_MESSAGE_FORWARD>> => {
     const { siteMessageType, payload, requestId } = message;
     const handler = innerHandlers[siteMessageType];
 

@@ -1,15 +1,22 @@
 
 // messaging/router.ts
 import {
-  MSG,
+  RPC_METHOD,
   type HandlerMap,
   type RequestMessage,
   type Err,
   type MessageHandler,
   type RequestType,
   type ResponseMessage,
-} from "../../shared/types/messages.js";
-import { defineHandlers } from "../../shared/types/messages.js";
+} from "../../shared/rpc/contracts.js";
+import { defineRpcHandlers } from "../../shared/rpc/contracts.js";
+import type { RpcRequestEnvelope, RpcResponseEnvelope } from "../../shared/rpc/schema.js";
+import {
+  createRpcErrorEnvelope,
+  parseRpcRequestEnvelope,
+  toRequestMessage,
+  toRpcResponseEnvelope,
+} from "./rpc-router.js";
 import { navigationHandlers } from "./handlers/navigation-handlers.js";
 import { tabHandlers } from "./handlers/tab-handlers.js";
 import { settingsHandlers } from "./handlers/settings-handlers.js";
@@ -24,34 +31,27 @@ import { siteMessageHandlers } from "./handlers/site-message-handlers.js";
 import { editorHandlers } from "./handlers/editor-handlers.js";
 
 type AnyResponse = ResponseMessage<RequestType>;
-type AnyHandler = (message: RequestMessage, sender: chrome.runtime.MessageSender) => Promise<AnyResponse> | AnyResponse;
+type AnyHandler = (
+  message: RequestMessage,
+  sender: chrome.runtime.MessageSender,
+) => Promise<AnyResponse> | AnyResponse;
 
 function err(error: string): Err {
   return { success: false, error };
 }
 
-function isObject(x: unknown): x is Record<string, unknown> {
-  return typeof x === "object" && x !== null;
-}
+const TYPED_TYPES = new Set<string>(Object.values(RPC_METHOD));
 
-const TYPED_TYPES = new Set<string>(Object.values(MSG));
-
-function isRequestMessage(x: unknown): x is RequestMessage {
-  if (!isObject(x)) return false;
-  const t = x["type"];
-  return typeof t === "string" && TYPED_TYPES.has(t);
-}
-
-const outboundOnlyHandlers = defineHandlers({
-  [MSG.TREE_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TREE_UPDATED>> =>
+const outboundOnlyHandlers = defineRpcHandlers({
+  [RPC_METHOD.TREE_UPDATED]: async (): Promise<ResponseMessage<typeof RPC_METHOD.TREE_UPDATED>> =>
     err("TREE_UPDATED is outbound-only"),
-  [MSG.TREES_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TREES_UPDATED>> =>
+  [RPC_METHOD.TREES_UPDATED]: async (): Promise<ResponseMessage<typeof RPC_METHOD.TREES_UPDATED>> =>
     err("TREES_UPDATED is outbound-only"),
-  [MSG.TAGS_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.TAGS_UPDATED>> =>
+  [RPC_METHOD.TAGS_UPDATED]: async (): Promise<ResponseMessage<typeof RPC_METHOD.TAGS_UPDATED>> =>
     err("TAGS_UPDATED is outbound-only"),
-  [MSG.NOTIFY]: async (): Promise<ResponseMessage<typeof MSG.NOTIFY>> =>
+  [RPC_METHOD.NOTIFY]: async (): Promise<ResponseMessage<typeof RPC_METHOD.NOTIFY>> =>
     err("NOTIFY is outbound-only"),
-  [MSG.SYNC_STATUS_UPDATED]: async (): Promise<ResponseMessage<typeof MSG.SYNC_STATUS_UPDATED>> =>
+  [RPC_METHOD.SYNC_STATUS_UPDATED]: async (): Promise<ResponseMessage<typeof RPC_METHOD.SYNC_STATUS_UPDATED>> =>
     err("SYNC_STATUS_UPDATED is outbound-only"),
 } satisfies HandlerMap);
 
@@ -67,12 +67,12 @@ function createMessageRouter() {
     return handlers[type] as MessageHandler<T> | undefined;
   }
 
-  async function dispatch(message: unknown, sender: chrome.runtime.MessageSender): Promise<AnyResponse> {
-    if (!isRequestMessage(message)) {
-      if (isObject(message) && typeof message.type === "string") {
-        return err(`Unknown message type: ${message.type}`);
-      }
-      return err("Invalid message");
+  async function dispatch(
+    message: RequestMessage,
+    sender: chrome.runtime.MessageSender,
+  ): Promise<AnyResponse> {
+    if (!TYPED_TYPES.has(message.type)) {
+      return err(`Unknown message type: ${message.type}`);
     }
 
     const fn = getHandler(message.type);
@@ -86,10 +86,34 @@ function createMessageRouter() {
     }
   }
 
+  async function dispatchRpcEnvelope(
+    rawMessage: unknown,
+    sender: chrome.runtime.MessageSender,
+  ): Promise<RpcResponseEnvelope> {
+    const request = parseRpcRequestEnvelope(rawMessage);
+    if (!request) {
+      return createRpcErrorEnvelope(
+        { id: "invalid", method: "invalid" },
+        "Invalid RPC request envelope",
+      );
+    }
+
+    const requestMessage = toRequestMessage(request);
+    if (!TYPED_TYPES.has(requestMessage.type)) {
+      return createRpcErrorEnvelope(
+        { id: request.id, method: request.method },
+        `Unknown message type: ${requestMessage.type}`,
+      );
+    }
+
+    const response = await dispatch(requestMessage, sender);
+    return toRpcResponseEnvelope(request, response);
+  }
+
   function listen() {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (async () => {
-        const res = await dispatch(message, sender);
+        const res = await dispatchRpcEnvelope(message, sender);
         sendResponse(res);
       })();
       return true; // Keep channel open for async response

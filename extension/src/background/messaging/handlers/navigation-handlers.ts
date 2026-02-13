@@ -1,9 +1,9 @@
 import type { TabId } from '../../../shared/types/ids.js';
-import { MSG, defineHandlers } from '../../../shared/types/messages.js';
+import { RPC_METHOD, defineRpcHandlers } from '../../../shared/rpc/contracts.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
-import { ok, err } from '../../../shared/types/messages.js';
+import { ok, err } from '../../../shared/rpc/contracts.js';
 import { getActiveTab } from '../../tabs/lifecycle.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
@@ -22,8 +22,8 @@ async function focusTab(tabId: TabId): Promise<boolean> {
   }
 }
 
-export const navigationHandlers = defineHandlers({
-  async [MSG.NAVIGATE_TO](message) {
+export const navigationHandlers = defineRpcHandlers({
+  async [RPC_METHOD.NAVIGATE_TO](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
@@ -95,7 +95,7 @@ export const navigationHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.PREVIEW_NODE](message) {
+  async [RPC_METHOD.PREVIEW_NODE](message) {
     if (getEditorState().active) {
       return ok();
     }
@@ -119,7 +119,7 @@ export const navigationHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.BEGIN_TEMP_SELECTION](message) {
+  async [RPC_METHOD.BEGIN_TEMP_SELECTION](message) {
     try {
       const sessionId = await tempSelectionManager.begin(
         message.baseNodeId ?? null,
@@ -131,7 +131,7 @@ export const navigationHandlers = defineHandlers({
     }
   },
 
-  async [MSG.PREVIEW_TEMP_SELECTION](message) {
+  async [RPC_METHOD.PREVIEW_TEMP_SELECTION](message) {
     try {
       const result = await tempSelectionManager.preview(
         message.sessionId,
@@ -144,7 +144,7 @@ export const navigationHandlers = defineHandlers({
     }
   },
 
-  async [MSG.ACCEPT_TEMP_SELECTION](message) {
+  async [RPC_METHOD.ACCEPT_TEMP_SELECTION](message) {
     try {
       await tempSelectionManager.accept(message.sessionId, message.nodeId);
       return ok();
@@ -153,7 +153,7 @@ export const navigationHandlers = defineHandlers({
     }
   },
 
-  async [MSG.CANCEL_TEMP_SELECTION](message) {
+  async [RPC_METHOD.CANCEL_TEMP_SELECTION](message) {
     try {
       await tempSelectionManager.cancel(message.sessionId, { keepSession: message.keepSession } as { keepSession?: boolean });
       return ok();
@@ -162,12 +162,12 @@ export const navigationHandlers = defineHandlers({
     }
   },
 
-  async [MSG.END_TEMP_SELECTION](message) {
+  async [RPC_METHOD.END_TEMP_SELECTION](message) {
     tempSelectionManager.end(message.sessionId);
     return ok();
   },
 
-  async [MSG.SET_CURRENT](message) {
+  async [RPC_METHOD.SET_CURRENT](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
@@ -218,7 +218,7 @@ export const navigationHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.OPEN_IN_NEW_TAB](message) {
+  async [RPC_METHOD.OPEN_IN_NEW_TAB](message) {
     if (getEditorState().active) {
       return ok();
     }

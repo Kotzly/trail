@@ -3,7 +3,9 @@
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "dev": "sh -c 'pnpm -r --parallel dev & pnpm --dir extension dev:local; wait'",
+    "dev:web": "pnpm -r --parallel dev",
+    "dev:extension": "pnpm --dir extension dev:local",
     "dev:marketing": "pnpm --filter @trail/marketing dev",
     "dev:account": "pnpm --filter @trail/account dev",
     "dev:api": "pnpm --filter @trail/api dev",

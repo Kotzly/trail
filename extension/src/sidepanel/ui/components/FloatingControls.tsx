@@ -92,7 +92,6 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       ref={controlsRef}
       className={`floating-controls${controlsCompact ? ' is-compact' : ''}`}
       data-search-expanded={searchExpanded ? 'true' : 'false'}
-      data-notify-anchor="true"
     >
       <div ref={leftRef} className="floating-controls-left">
         <div className="floating-island">

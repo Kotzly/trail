@@ -1,5 +1,5 @@
 import type { Description, JSONString } from "../types/ids.js";
-import type { CommandState } from "../types/messages.js";
+import type { CommandState } from "../rpc/contracts.js";
 import { NavigationTreeJSON } from "../types/tree.js";
 
 // max history stack size (todo: make this configurable by the user)

@@ -1,15 +1,15 @@
-import { MSG, defineHandlers, err, ok } from '../../../shared/types/messages.js';
+import { RPC_METHOD, defineRpcHandlers, err, ok } from '../../../shared/rpc/contracts.js';
 import type { Tag } from '../../../shared/types/ids.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
 import { tagStorage } from '../../services/tag-storage.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
-import { msg } from '../../../shared/types/messages.js';
+import { rpc } from '../../../shared/rpc/contracts.js';
 import { sendRuntimeMessage } from '../send-message.js';
 
 async function broadcastTagDefs(defs?: TagDefinition[]): Promise<void> {
   const tagDefs = defs ?? (await tagStorage.getAll());
-  sendRuntimeMessage(msg.tagsUpdated({ tagDefs }));
+  sendRuntimeMessage(rpc.tagsUpdated({ tagDefs }));
 }
 
 async function removeTagFromTree(tagId: Tag): Promise<boolean> {
@@ -27,13 +27,13 @@ async function removeTagFromTree(tagId: Tag): Promise<boolean> {
   return changed;
 }
 
-export const tagDefHandlers = defineHandlers({
-  async [MSG.GET_TAG_DEFS]() {
+export const tagDefHandlers = defineRpcHandlers({
+  async [RPC_METHOD.GET_TAG_DEFS]() {
     const defs = await tagStorage.getAll();
     return ok(defs);
   },
 
-  async [MSG.UPSERT_TAG_DEF](message) {
+  async [RPC_METHOD.UPSERT_TAG_DEF](message) {
     const tagDef = message.tagDef as TagDefinition;
     if (!tagDef?.id) return err('Tag id is required');
     if (!tagDef.label || tagDef.label.trim().length === 0) return err('Tag label is required');
@@ -43,7 +43,7 @@ export const tagDefHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.DELETE_TAG_DEF](message) {
+  async [RPC_METHOD.DELETE_TAG_DEF](message) {
     await tagStorage.delete(message.tagId as Tag);
     await removeTagFromTree(message.tagId as Tag);
     await broadcastTagDefs();

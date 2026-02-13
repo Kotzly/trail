@@ -1,17 +1,4 @@
-
-// content script doesn't work with imports
-const ALLOWED_SITE_ORIGINS = new Set<string>([
-  'https://gettrail.net',
-  'https://app.gettrail.net',
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
-]);
-
-const isAllowedSiteOrigin = (origin: string): boolean => {
-  return ALLOWED_SITE_ORIGINS.has(origin);
-}
+import { isAllowedSiteOrigin } from '../shared/config/site-origins.js';
 
 
 /**
@@ -23,7 +10,7 @@ const isAllowedSiteOrigin = (origin: string): boolean => {
  *    background, enforcing the security layer (origin, schema, TTL, nonce).
  *
  * ⚠ No heavy dependencies here (no Zod, no large libs) — this script is
- * injected on every page the user visits.
+ * injected only on trusted Trail site origins.
  */
 
 // ---------------------------------------------------------------------------
@@ -41,19 +28,19 @@ type FaviconUrl = Brand<string, "FaviconUrl">;
 // ---------------------------------------------------------------------------
 
 type TitleOrFaviconChangedMessage = {
-  type: typeof MSG.TITLE_OR_FAVICON_CHANGED;
+  type: typeof RPC_METHOD.TITLE_OR_FAVICON_CHANGED;
   url: Url;
   title?: Title;
   favicon?: FaviconUrl;
 };
 
 type OpenPanelMessage = {
-  type: typeof MSG.OPEN_PANEL;
+  type: typeof RPC_METHOD.OPEN_PANEL;
 };
 
 /** Messages forwarded from site → background via content script. */
 type SiteForwardMessage = {
-  type: typeof MSG.SITE_MESSAGE_FORWARD;
+  type: typeof RPC_METHOD.SITE_MESSAGE_FORWARD;
   siteMessageType: string;
   payload: Record<string, unknown>;
   requestId: string;
@@ -73,36 +60,36 @@ type Err = { success: false; error: string };
 type MessageResponse<T = void> = Ok<T> | Err;
 
 type ResponseDataByType = {
-  [MSG.TITLE_OR_FAVICON_CHANGED]: void;
-  [MSG.OPEN_PANEL]: void;
-  [MSG.SITE_MESSAGE_FORWARD]: { responsePayload?: Record<string, unknown> };
+  [RPC_METHOD.TITLE_OR_FAVICON_CHANGED]: void;
+  [RPC_METHOD.OPEN_PANEL]: void;
+  [RPC_METHOD.SITE_MESSAGE_FORWARD]: { responsePayload?: Record<string, unknown> };
 };
 
 type ResponseMessage<T extends RequestType> = MessageResponse<ResponseDataByType[T]>;
 
-const MSG = {
+const RPC_METHOD = {
   TITLE_OR_FAVICON_CHANGED: "TITLE_OR_FAVICON_CHANGED",
   OPEN_PANEL: "OPEN_PANEL",
   SITE_MESSAGE_FORWARD: "SITE_MESSAGE_FORWARD",
 } as const;
 
-const msgBuilder = {
+const rpc = {
   titleOrFaviconChanged(payload: {
     url: Url;
     title?: Title;
     favicon?: FaviconUrl;
   }): TitleOrFaviconChangedMessage {
-    return { type: MSG.TITLE_OR_FAVICON_CHANGED, ...payload };
+    return { type: RPC_METHOD.TITLE_OR_FAVICON_CHANGED, ...payload };
   },
   openPanel(): OpenPanelMessage {
-    return { type: MSG.OPEN_PANEL };
+    return { type: RPC_METHOD.OPEN_PANEL };
   },
   siteMessageForward(
     siteMessageType: string,
     payload: Record<string, unknown>,
     requestId: string,
   ): SiteForwardMessage {
-    return { type: MSG.SITE_MESSAGE_FORWARD, siteMessageType, payload, requestId };
+    return { type: RPC_METHOD.SITE_MESSAGE_FORWARD, siteMessageType, payload, requestId };
   },
 };
 
@@ -210,6 +197,7 @@ const IGNORED_ERROR_FRAGMENTS = [
   "Extension context invalidated",
   "Receiving end does not exist",
 ];
+const RPC_VERSION = 2 as const;
 
 function shouldIgnoreRuntimeError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -218,18 +206,66 @@ function shouldIgnoreRuntimeError(error: unknown): boolean {
   );
 }
 
+function createRpcId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function toRpcRequestEnvelope<T extends RequestType>(message: MessageByType<T>) {
+  const { type, ...input } = message as Record<string, unknown>;
+  return {
+    v: RPC_VERSION,
+    kind: "rpc-request" as const,
+    id: createRpcId(),
+    method: type as T,
+    input,
+  };
+}
+
+function toResponseMessage<T extends RequestType>(
+  request: ReturnType<typeof toRpcRequestEnvelope<T>>,
+  rawResponse: unknown,
+): ResponseMessage<T> {
+  if (!isRecord(rawResponse)) {
+    return { success: false, error: "Invalid RPC response envelope" };
+  }
+
+  if (
+    rawResponse.v !== RPC_VERSION ||
+    rawResponse.kind !== "rpc-response" ||
+    rawResponse.id !== request.id ||
+    rawResponse.method !== request.method
+  ) {
+    return { success: false, error: "Mismatched RPC response envelope" };
+  }
+
+  if (rawResponse.success === true) {
+    return {
+      success: true,
+      data: (rawResponse.data ?? undefined) as ResponseDataByType[T],
+    };
+  }
+  if (rawResponse.success === false && typeof rawResponse.error === "string") {
+    return { success: false, error: rawResponse.error };
+  }
+  return { success: false, error: "Invalid RPC response envelope" };
+}
+
 function sendMessage<T extends RequestType>(
   message: MessageByType<T>,
 ): Promise<ResponseMessage<T>> {
+  const request = toRpcRequestEnvelope(message);
   return new Promise((resolve, reject) => {
     if (!chrome?.runtime?.id) {
       return reject(new Error("Extension context invalidated"));
     }
     try {
-      chrome.runtime.sendMessage(message, (response: ResponseMessage<T>) => {
+      chrome.runtime.sendMessage(request, (response: unknown) => {
         const err = chrome.runtime.lastError;
         if (err) return reject(err);
-        resolve(response);
+        resolve(toResponseMessage(request, response));
       });
     } catch (error) {
       reject(error);
@@ -251,7 +287,7 @@ function notifyTitleOrFaviconChange(payload: {
   title?: Title;
   favicon?: FaviconUrl;
 }): void {
-  fireAndForget(msgBuilder.titleOrFaviconChanged(payload));
+  fireAndForget(rpc.titleOrFaviconChanged(payload));
 }
 
 // ---------------------------------------------------------------------------
@@ -282,23 +318,23 @@ function handleSiteMessage(event: MessageEvent): void {
   if (!isAllowedSiteOrigin(event.origin)) return;
 
   // Lightweight structural validation.
-  const msg = validateSiteMessage(event.data);
-  if (!msg) return;
+  const siteMessage = validateSiteMessage(event.data);
+  if (!siteMessage) return;
 
   // TTL check — reject stale messages.
-  const age = Date.now() - msg.timestamp;
+  const age = Date.now() - siteMessage.timestamp;
   if (age > MESSAGE_TTL_MS || age < -MESSAGE_TTL_MS) return;
 
   // Nonce anti-replay — reject duplicates.
-  if (hasSeenNonce(msg.requestId)) return;
-  recordNonce(msg.requestId);
+  if (hasSeenNonce(siteMessage.requestId)) return;
+  recordNonce(siteMessage.requestId);
 
-  const { requestId, type } = msg;
+  const { requestId, type } = siteMessage;
   const origin = event.origin;
 
   // Legacy OPEN_TRAIL_PANEL — keep backward compat with existing handler.
   if (type === "OPEN_TRAIL_PANEL") {
-    sendMessage(msgBuilder.openPanel())
+    sendMessage(rpc.openPanel())
       .then((response) => {
         postExtensionMessage(
           {
@@ -324,19 +360,19 @@ function handleSiteMessage(event: MessageEvent): void {
   // AUTH_REVOKED — fire-and-forget, no ACK.
   if (type === "AUTH_REVOKED") {
     fireAndForget(
-      msgBuilder.siteMessageForward("AUTH_REVOKED", {}, requestId),
+      rpc.siteMessageForward("AUTH_REVOKED", {}, requestId),
     );
     return;
   }
 
   // All other messages — forward to background and relay ACK back.
   const payload: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(msg)) {
+  for (const [key, value] of Object.entries(siteMessage)) {
     if (key === "source" || key === "type" || key === "requestId" || key === "timestamp") continue;
     payload[key] = value;
   }
 
-  sendMessage(msgBuilder.siteMessageForward(type, payload, requestId))
+  sendMessage(rpc.siteMessageForward(type, payload, requestId))
     .then((response) => {
       if (response.success && response.data?.responsePayload) {
         postExtensionMessage(

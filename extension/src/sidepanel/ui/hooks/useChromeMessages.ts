@@ -1,10 +1,8 @@
 import { useEffect } from 'react';
-import { MSG, type RequestMessage } from '../../../shared/types/messages.js';
+import { RPC_METHOD, type RequestMessage } from '../../../shared/rpc/contracts.js';
 import { getCommandState } from '../../api/commands.js';
 import { useStore } from '../state/store.js';
-import { notificationCenter } from '../notifications/notification-center.js';
-import type { NotificationDurationMs, NotificationInput } from '../notifications/types.js';
-import { Icons } from '../components/Icon.js';
+import { showUiToast } from '../notifications/sonner-adapter.js';
 
 export function useChromeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
@@ -16,7 +14,7 @@ export function useChromeMessages(): void {
 
   useEffect(() => {
     const handler = (message: RequestMessage) => {
-      if (message.type === MSG.TREE_UPDATED) {
+      if (message.type === RPC_METHOD.TREE_UPDATED) {
         applyTreeState(message);
 
         // Sync editor mode state from tree update reason
@@ -33,29 +31,27 @@ export function useChromeMessages(): void {
           .catch((error) => console.error('Failed to fetch command state:', error));
         return;
       }
-      if (message.type === MSG.TAGS_UPDATED) {
+      if (message.type === RPC_METHOD.TAGS_UPDATED) {
         setTagDefs(message.tagDefs);
         return;
       }
-      if (message.type === MSG.TREES_UPDATED) {
+      if (message.type === RPC_METHOD.TREES_UPDATED) {
         setTrees({ active: message.active, archived: message.archived });
         return;
       }
-      if (message.type === MSG.SYNC_STATUS_UPDATED) {
+      if (message.type === RPC_METHOD.SYNC_STATUS_UPDATED) {
         setSyncStatus(message.status);
+        if (message.status === 'error') {
+          showUiToast({
+            message: 'Sync failed. Check your connection and try again.',
+            icon: 'AlertTriangle',
+            durationMs: 5000,
+          });
+        }
         return;
       }
-      if (message.type === MSG.NOTIFY) {
-        const { message: text, icon, durationMs } = message.notification;
-        const input: NotificationInput = { message: text };
-        if (icon && icon in Icons) {
-          input.icon = icon as Exclude<NotificationInput['icon'], undefined>;
-        }
-        const allowedDurations: NotificationDurationMs[] = [1000, 3000, 5000, 10000, 15000];
-        if (durationMs && allowedDurations.includes(durationMs as NotificationDurationMs)) {
-          input.durationMs = durationMs as NotificationDurationMs;
-        }
-        notificationCenter.notify(input);
+      if (message.type === RPC_METHOD.NOTIFY) {
+        showUiToast(message.notification);
       }
     };
 

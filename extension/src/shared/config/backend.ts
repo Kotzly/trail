@@ -1,6 +1,7 @@
 export type BackendEnvironment = 'production' | 'staging' | 'local';
 export type BackendMode = 'remote' | 'mock';
-export type BackendPresetTag = 'production' | 'local';
+export type BackendPresetTag = 'production' | 'gettrail' | 'local';
+export type BackendServerPreset = 'gettrail' | 'local';
 
 export type BackendEndpoints = {
   authPortal: string;
@@ -33,7 +34,7 @@ const BACKEND_CONFIG_STORAGE_KEY = 'trail_backend_config';
 const BACKEND_PRESET_CONFIG_PATH = 'backend-preset.json';
 const VALID_ENVS = new Set<BackendEnvironment>(['production', 'staging', 'local']);
 const VALID_MODES = new Set<BackendMode>(['remote', 'mock']);
-const VALID_PRESETS = new Set<BackendPresetTag>(['production', 'local']);
+const VALID_PRESETS = new Set<BackendPresetTag>(['production', 'gettrail', 'local']);
 
 export const DEFAULT_BACKEND_CONFIG: BackendConfig = {
   env: 'production',
@@ -157,6 +158,26 @@ export function resolvePresetOverride(tag: string | null | undefined): BackendCo
     };
   }
   return null;
+}
+
+function isLocalHostName(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
+function hasLocalBaseUrl(config: BackendConfig): boolean {
+  try {
+    const parsed = new URL(config.baseUrl);
+    return isLocalHostName(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function getBackendServerPreset(config: BackendConfig = BACKEND_CONFIG): BackendServerPreset {
+  if (config.env === 'local' || hasLocalBaseUrl(config)) {
+    return 'local';
+  }
+  return 'gettrail';
 }
 
 function mergeOverrides(

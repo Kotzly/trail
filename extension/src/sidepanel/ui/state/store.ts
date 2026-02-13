@@ -2,12 +2,11 @@ import { create } from 'zustand';
 import type { NodeId, Tag } from '../../../shared/types/ids.js';
 import type { Settings } from '../../../shared/types/settings.js';
 import type { TabState } from '../../../shared/types/tabs.js';
-import type { CommandState, EditorModeState, SyncStatus, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '../../../shared/types/messages.js';
+import type { CommandState, EditorModeState, SyncStatus, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '../../../shared/rpc/contracts.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { PinnedManager } from '../../../background/state/pinned.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
-import type { NotificationItem } from '../notifications/types.js';
 import type { TreeMeta, TreeSummary } from '../../../shared/types/tree.js';
 import { getCollapsedAncestorIds } from '../graph/collapse-utils.js';
 import type {
@@ -98,7 +97,6 @@ type StoreState = {
   tagFilter: {
     selected: Set<Tag>;
   };
-  notifications: NotificationItem[];
   search: {
     query: string;
     results: NodeId[];
@@ -184,9 +182,6 @@ type StoreActions = {
   setPickTarget: (target: StoreState['pickTarget']) => void;
   clearPickTarget: () => void;
   setSyncStatus: (status: SyncStatus) => void;
-  addNotification: (notification: NotificationItem) => void;
-  removeNotification: (id: string) => void;
-  clearNotifications: () => void;
 };
 
 type PopupKey = keyof StoreState['ui'];
@@ -250,7 +245,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   tagFilter: {
     selected: new Set<Tag>(),
   },
-  notifications: [],
   search: {
     query: '',
     results: [],
@@ -678,13 +672,4 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setPickTarget: (pickTarget) => set({ pickTarget }),
   clearPickTarget: () => set({ pickTarget: null }),
   setSyncStatus: (syncStatus) => set({ syncStatus }),
-  addNotification: (notification) =>
-    set((state) => ({
-      notifications: [notification, ...state.notifications],
-    })),
-  removeNotification: (id) =>
-    set((state) => ({
-      notifications: state.notifications.filter((item) => item.id !== id),
-    })),
-  clearNotifications: () => set({ notifications: [] }),
 }));

@@ -94,10 +94,36 @@
   justify-content: space-between;
 }
 
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-row-top {
+  align-items: flex-start;
+}
+
+.settings-actions-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .settings-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--md-on-surface);
+}
+
+.settings-note {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--md-on-surface-variant);
+}
+
+.settings-note-error {
+  color: #f87171;
 }
 
 .settings-hr {

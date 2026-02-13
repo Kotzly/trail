@@ -1,5 +1,5 @@
 import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '../../shared/types/ids.js';
-import type { TreeViewIntent } from '../../shared/types/messages.js';
+import type { TreeViewIntent } from '../../shared/rpc/contracts.js';
 import { NodeMetaPatch, updateNodeMeta, type NodeData } from '../../shared/types/node.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';

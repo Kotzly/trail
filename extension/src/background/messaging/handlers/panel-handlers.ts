@@ -1,6 +1,6 @@
-import { MSG, defineHandlers, err, ok } from "../../../shared/types/messages.js";
+import { RPC_METHOD, defineRpcHandlers, err, ok } from "../../../shared/rpc/contracts.js";
 
-const SIDE_PANEL_PATH = "sidepanel/sidepanel.html";
+const SIDE_PANEL_PATH = "sidepanel/index.html";
 
 /* ------------------------------------------------------------------ */
 /*  Sidepanel liveness tracking via persistent Port                    */
@@ -78,8 +78,8 @@ async function enableAndOpenSidePanel(tabId: number): Promise<void> {
   }
 }
 
-export const panelHandlers = defineHandlers({
-  async [MSG.OPEN_PANEL](_message, sender) {
+export const panelHandlers = defineRpcHandlers({
+  async [RPC_METHOD.OPEN_PANEL](_message, sender) {
     const tabId = sender.tab?.id;
     if (!tabId) return err("No tab ID");
 

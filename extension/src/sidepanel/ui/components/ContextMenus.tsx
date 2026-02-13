@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { RefObject } from 'react';
 import type { NodeId, TabId, Tag } from '../../../shared/types/ids.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
-import { msg } from '../../../shared/types/messages.js';
+import { rpc } from '../../../shared/rpc/contracts.js';
 import { fireAndForget } from '../../api/background.js';
 import { navigateTo, setCurrentNode } from '../../api/tree.js';
 import { getTabsForNodeMessage } from '../../api/tabs.js';
@@ -133,7 +133,7 @@ export default function ContextMenus() {
               updatedAt: Date.now(),
             };
             await upsertTagDef(tagDef);
-            fireAndForget(msg.addTag({ nodeId: tagEditorState.nodeId, tagId: id }));
+            fireAndForget(rpc.addTag({ nodeId: tagEditorState.nodeId, tagId: id }));
           }
         } catch (error) {
           console.error('Failed to save tag:', error);
@@ -338,7 +338,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
               <div
                 className="graph-context-menu-item"
                 onClick={() => {
-                  fireAndForget(msg.openInNewTab({ nodeId }));
+                  fireAndForget(rpc.openInNewTab({ nodeId }));
                   closeContextMenu();
                 }}
               >
@@ -405,7 +405,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                               event.stopPropagation();
                               if (!tab.id) return;
                               fireAndForget(
-                                msg.toggleMute({ nodeId, tabId: tab.id as TabId }),
+                                rpc.toggleMute({ nodeId, tabId: tab.id as TabId }),
                               );
                               setTabs((prev) =>
                                 prev.map((item) =>
@@ -431,7 +431,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                             onClick={(event) => {
                               event.stopPropagation();
                               if (!tab.id) return;
-                              fireAndForget(msg.closeTab({ nodeId, tabId: tab.id as TabId }));
+                              fireAndForget(rpc.closeTab({ nodeId, tabId: tab.id as TabId }));
                               setTabs((prev) => prev.filter((item) => item.id !== tab.id));
                             }}
                           >
@@ -445,10 +445,10 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                     className="graph-context-menu-item"
                     onClick={() => {
                       if (tabs.length === 1 && tabs[0]?.id) {
-                        fireAndForget(msg.closeTab({ nodeId, tabId: tabs[0].id as TabId }));
+                        fireAndForget(rpc.closeTab({ nodeId, tabId: tabs[0].id as TabId }));
                         setTabs([]);
                       } else if (tabs.length > 1) {
-                        fireAndForget(msg.bulkCloseTabs({ nodeIds: [nodeId] }));
+                        fireAndForget(rpc.bulkCloseTabs({ nodeIds: [nodeId] }));
                         setTabs([]);
                       }
                     }}
@@ -465,7 +465,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       <div
         className="graph-context-menu-item"
         onClick={() => {
-          fireAndForget(msg.togglePin({ nodeId }));
+          fireAndForget(rpc.togglePin({ nodeId }));
           closeContextMenu();
         }}
       >
@@ -512,9 +512,9 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                 onClick={(event) => {
                   event.stopPropagation();
                   if (hasTag) {
-                    fireAndForget(msg.removeTag({ nodeId, tagId: tag.id as Tag }));
+                    fireAndForget(rpc.removeTag({ nodeId, tagId: tag.id as Tag }));
                   } else {
-                    fireAndForget(msg.addTag({ nodeId, tagId: tag.id as Tag }));
+                    fireAndForget(rpc.addTag({ nodeId, tagId: tag.id as Tag }));
                   }
                   closeContextMenu();
                 }}
@@ -615,7 +615,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         <div
           className="graph-context-menu-item danger"
           onClick={() => {
-            fireAndForget(msg.deleteNode({ nodeId }));
+            fireAndForget(rpc.deleteNode({ nodeId }));
             closeContextMenu();
           }}
         >
@@ -626,7 +626,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         <div
           className="graph-context-menu-item danger"
           onClick={() => {
-            fireAndForget(msg.deleteChildren({ nodeId }));
+            fireAndForget(rpc.deleteChildren({ nodeId }));
             closeContextMenu();
           }}
         >
@@ -640,7 +640,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
             openDeleteTreeConfirm(nodeId);
             return;
           }
-          fireAndForget(msg.deleteWithChildren({ nodeId }));
+          fireAndForget(rpc.deleteWithChildren({ nodeId }));
           closeContextMenu();
         }}
       >
@@ -710,9 +710,9 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
     selectedNodes.forEach((node) => {
       const hasTag = node.data.tags?.includes(tagId);
       if (shouldRemove && hasTag) {
-        fireAndForget(msg.removeTag({ nodeId: node.id, tagId }));
+        fireAndForget(rpc.removeTag({ nodeId: node.id, tagId }));
       } else if (!shouldRemove && !hasTag) {
-        fireAndForget(msg.addTag({ nodeId: node.id, tagId }));
+        fireAndForget(rpc.addTag({ nodeId: node.id, tagId }));
       }
     });
     clearSelection();
@@ -735,7 +735,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       <div
         className="graph-context-menu-item"
         onClick={() => {
-          fireAndForget(msg.bulkPin({ nodeIds }));
+          fireAndForget(rpc.bulkPin({ nodeIds }));
           clearSelection();
           closeContextMenu();
         }}
@@ -745,7 +745,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       <div
         className="graph-context-menu-item"
         onClick={() => {
-          fireAndForget(msg.bulkUnpin({ nodeIds }));
+          fireAndForget(rpc.bulkUnpin({ nodeIds }));
           clearSelection();
           closeContextMenu();
         }}
@@ -812,7 +812,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         <div
           className="graph-context-menu-item"
           onClick={() => {
-            fireAndForget(msg.bulkCloseTabs({ nodeIds }));
+            fireAndForget(rpc.bulkCloseTabs({ nodeIds }));
             clearSelection();
             closeContextMenu();
           }}
@@ -824,7 +824,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       <div
         className="graph-context-menu-item danger"
         onClick={() => {
-          fireAndForget(msg.bulkDeleteNodes({ nodeIds }));
+          fireAndForget(rpc.bulkDeleteNodes({ nodeIds }));
           clearSelection();
           closeContextMenu();
         }}
@@ -839,7 +839,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
             openDeleteTreeConfirm(rootId);
             return;
           }
-          fireAndForget(msg.bulkDeleteRecursive({ nodeIds }));
+          fireAndForget(rpc.bulkDeleteRecursive({ nodeIds }));
           clearSelection();
           closeContextMenu();
         }}

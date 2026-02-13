@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Url } from '../../../shared/types/ids.js';
 import type { AccountError } from '../../../shared/types/account.js';
 import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
 import {
-  checkAuthPortal,
   getAccountSnapshot,
   normalizeAccountError,
-  startAuthPortal,
 } from '../../api/account.js';
-import { saveCachedSnapshot } from '../../api/account/cache.js';
 import { useStore } from '../state/store.js';
+import { accountKeys } from '../query/account-keys.js';
+import { useAuthMutations } from '../query/useAuthMutations.js';
+import { showUiToast } from '../notifications/sonner-adapter.js';
 
 const sleep = (ms: number) => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 
@@ -34,8 +35,10 @@ type AuthFlowState = {
 };
 
 export function useAuthPortalFlow(): AuthFlowState {
+  const queryClient = useQueryClient();
   const setAccount = useStore((state) => state.setAccount);
   const setAccountSnapshot = useStore((state) => state.setAccountSnapshot);
+  const { startAuthPortalMutation, checkAuthPortalMutation } = useAuthMutations();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<AccountError | null>(null);
@@ -54,10 +57,12 @@ export function useAuthPortalFlow(): AuthFlowState {
 
   const syncAccountSnapshot = useCallback(async () => {
     setAccount({ status: 'loading', error: null });
-    const snapshot = await getAccountSnapshot();
+    const snapshot = await queryClient.fetchQuery({
+      queryKey: accountKeys.snapshot(),
+      queryFn: getAccountSnapshot,
+    });
     setAccountSnapshot(snapshot);
-    void saveCachedSnapshot(snapshot);
-  }, [setAccount, setAccountSnapshot]);
+  }, [queryClient, setAccount, setAccountSnapshot]);
 
   const startAuthFlow = useCallback(
     async (options?: AuthFlowOptions) => {
@@ -71,7 +76,7 @@ export function useAuthPortalFlow(): AuthFlowState {
       try {
         await initBackendConfig();
         const backendConfig = getBackendConfig();
-        const portalSession = await startAuthPortal({
+        const portalSession = await startAuthPortalMutation.mutateAsync({
           source: options?.source ?? 'extension',
           locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
           returnUrl: options?.returnUrl ?? (backendConfig.portalUrl as Url),
@@ -87,15 +92,16 @@ export function useAuthPortalFlow(): AuthFlowState {
             break;
           }
           await sleep(pollInterval);
-          const status = await checkAuthPortal(portalSession.id);
+          const status = await checkAuthPortalMutation.mutateAsync(portalSession.id);
           if (flowRef.current !== flowId) return;
           if (status.status === 'approved') {
             if (status.snapshot) {
+              queryClient.setQueryData(accountKeys.snapshot(), status.snapshot);
               setAccountSnapshot(status.snapshot);
-              void saveCachedSnapshot(status.snapshot);
             } else {
               await syncAccountSnapshot();
             }
+            void queryClient.invalidateQueries({ queryKey: accountKeys.snapshot() });
             setNotice(null);
             return;
           }
@@ -107,6 +113,11 @@ export function useAuthPortalFlow(): AuthFlowState {
         }
       } catch (err) {
         const normalized = normalizeAccountError(err);
+        showUiToast({
+          message: normalized.message,
+          icon: 'AlertTriangle',
+          durationMs: 5000,
+        });
         setError(normalized);
         setAccount({
           status: 'error',
@@ -117,7 +128,7 @@ export function useAuthPortalFlow(): AuthFlowState {
         setBusy(false);
       }
     },
-    [busy, openExternalLink, setAccount, setAccountSnapshot, syncAccountSnapshot],
+    [busy, checkAuthPortalMutation, openExternalLink, queryClient, setAccount, setAccountSnapshot, startAuthPortalMutation, syncAccountSnapshot],
   );
 
   const cancelAuthFlow = useCallback(() => {

@@ -3,7 +3,7 @@ import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { treeStorage } from './tree-storage.js';
 import { setCachedTree } from './tree-cache.js';
 import { sendRuntimeMessage } from '../messaging/send-message.js';
-import { msg, type SyncStatus } from '../../shared/types/messages.js';
+import { rpc, type SyncStatus } from '../../shared/rpc/contracts.js';
 import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 
 /* ------------------------------------------------------------------ */
@@ -46,7 +46,7 @@ const state: SyncState = {
 
 function broadcastStatus(status: SyncStatus): void {
   state.status = status;
-  sendRuntimeMessage(msg.syncStatusUpdated({ status }));
+  sendRuntimeMessage(rpc.syncStatusUpdated({ status }));
 }
 
 /* ------------------------------------------------------------------ */

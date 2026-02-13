@@ -17,6 +17,7 @@ import { computeGraphGridTransform } from '../src/sidepanel/ui/components/graph/
 import { getSidebarLabelState, getSidebarWidth } from '../src/sidepanel/ui/components/ui/sidebar-utils.js';
 import {
   DEFAULT_BACKEND_CONFIG,
+  getBackendServerPreset,
   resolveBackendConfig,
   resolvePresetOverride,
 } from '../src/shared/config/backend.js';
@@ -26,7 +27,7 @@ import {
   updateQualityPolicy,
 } from '../src/sidepanel/ui/graph/render/quality-policy.js';
 import { decideViewInvalidation } from '../src/sidepanel/ui/graph/render/view-invalidation.js';
-import { MSG, msg } from '../src/shared/types/messages.js';
+import { RPC_METHOD, rpc } from '../src/shared/rpc/contracts.js';
 import { ExtensionMessage, SiteMessage } from '../src/shared/schemas/site-messages.js';
 import { isAllowedSiteOrigin } from '../src/shared/config/site-origins.js';
 import {
@@ -34,6 +35,7 @@ import {
   diffSelection,
   shouldEmitPreview,
 } from '../src/sidepanel/ui/components/graph/selection-utils.js';
+import { runNotificationsSonnerAdapterTests } from './notifications-sonner-adapter.test.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -285,6 +287,22 @@ function testBackendUnknownPresetOverride(): void {
   assert.equal(override, null);
 }
 
+function testBackendServerPresetResolution(): void {
+  const defaultPreset = getBackendServerPreset(DEFAULT_BACKEND_CONFIG);
+  assert.equal(defaultPreset, 'gettrail');
+
+  const localOverride = resolvePresetOverride('local');
+  assert.ok(localOverride);
+  const localConfig = resolveBackendConfig(localOverride);
+  assert.equal(getBackendServerPreset(localConfig), 'local');
+
+  const localhostConfig = resolveBackendConfig({
+    baseUrl: 'http://localhost:3001',
+    portalUrl: 'http://localhost:3001/extension',
+  });
+  assert.equal(getBackendServerPreset(localhostConfig), 'local');
+}
+
 function testEntitlements(): void {
   const proAccess = getFeatureAccess({
     config: { 'feature.trailsSync.minTier': 'pro' },
@@ -403,14 +421,14 @@ function testViewInvalidationDecisions(): void {
 }
 
 function testSetNodeLayoutBatchMessage(): void {
-  const request = msg.setNodeLayoutBatch({
+  const request = rpc.setNodeLayoutBatch({
     layouts: [
       { nodeId: 1 as NodeId, offsetX: 10, offsetY: -5 },
       { nodeId: 2 as NodeId, radial: { angleDelta: 0.5, radiusDelta: 20 } },
     ],
   });
 
-  assert.equal(request.type, MSG.SET_NODE_LAYOUT_BATCH);
+  assert.equal(request.type, RPC_METHOD.SET_NODE_LAYOUT_BATCH);
   assert.equal(request.layouts.length, 2);
 }
 
@@ -508,6 +526,7 @@ try {
   testBackendConfigOverride();
   testBackendLocalPresetOverride();
   testBackendUnknownPresetOverride();
+  testBackendServerPresetResolution();
   testEntitlements();
   testQualityPolicyTransitions();
   testViewInvalidationDecisions();
@@ -517,6 +536,7 @@ try {
   testSelectionUtilsBuildPreviewSelection();
   testSelectionUtilsDiffSelection();
   testSelectionUtilsShouldEmitPreview();
+  runNotificationsSonnerAdapterTests();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);
