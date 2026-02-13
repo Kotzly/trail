@@ -147,10 +147,13 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
       // Fire-and-forget: attempt to exit editor mode when navigating away.
       // The page may already be tearing down, but this gives the extension a
       // chance to clean up.
+      // Note: Do NOT trigger exit when status is "cancelling" – the in-flight
+      // cancelEditorMode() handles cleanup, and exitEditorMode() routes to
+      // saveEditorMode() which would race and potentially persist edits that
+      // the cancel is rolling back.
       if (
         statusRef.current === "editing" ||
-        statusRef.current === "saving" ||
-        statusRef.current === "cancelling"
+        statusRef.current === "saving"
       ) {
         exitEditorMode().catch(() => {});
       }
