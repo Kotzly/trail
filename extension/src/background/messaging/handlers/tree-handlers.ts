@@ -492,6 +492,7 @@ export const treeHandlers = defineHandlers({
     }
     if (!changed) return ok();
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     await notifyTreeUpdate(tree, 'layout');
     return ok();
   },

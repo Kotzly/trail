@@ -401,6 +401,11 @@ export async function cancelEditorMode(): Promise<EditorModeActionResult> {
   }
 
   try {
+    // Save the current edited tree before applying the snapshot so we can
+    // restore it if sync fails.
+    const currentTree = await treeStorage.getOrCreateTree();
+    const currentTreeJSON = NavigationTreeMapper.toJSON(currentTree);
+
     const snapshotTree = NavigationTreeMapper.fromJSON(editorSessionSnapshot.tree);
     treeStorage.cacheTree(snapshotTree);
 
@@ -408,6 +413,9 @@ export async function cancelEditorMode(): Promise<EditorModeActionResult> {
     editorSyncMarkDirty();
     const result = await editorSyncFlush();
     if (!result.ok) {
+      // Restore the edited tree so the user doesn't lose their edits.
+      const restoredTree = NavigationTreeMapper.fromJSON(currentTreeJSON);
+      treeStorage.cacheTree(restoredTree);
       return { ok: false, error: result.error };
     }
 
