@@ -18,7 +18,6 @@ import type { SiteMessageForwardMessage } from "../../../shared/types/messages.j
 import {
   getEditorState,
   enterEditorMode,
-  exitEditorMode,
   saveEditorMode,
   cancelEditorMode,
 } from "./editor-handlers.js";
@@ -122,12 +121,24 @@ const innerHandlers: Record<string, InnerHandler> = {
   },
 
   EXIT_EDITOR_MODE: async (_payload, _requestId) => {
-    const result = await exitEditorMode();
+    const result = await saveEditorMode();
+    if (!result.ok) {
+      return {
+        responsePayload: {
+          source: "trail-extension",
+          type: "EDITOR_MODE_EXITED",
+          ok: false,
+          error: result.error,
+          editorMode: true,
+        },
+      };
+    }
     return {
       responsePayload: {
         source: "trail-extension",
         type: "EDITOR_MODE_EXITED",
-        editorMode: result.active,
+        ok: true,
+        editorMode: false,
       },
     };
   },
