@@ -12,6 +12,7 @@ import {
   worldRectFromView,
   type WorldRect,
 } from './view-invalidation.js';
+import { diffSelection, shouldEmitPreview } from '../../components/graph/selection-utils.js';
 
 type RenderData = {
   nodes: NodeRenderModel[];
@@ -33,6 +34,9 @@ export type GraphRenderMetrics = {
   renderMs: number;
   visibleNodes: number;
   visibleConnections: number;
+  selectionQueryMs: number;
+  selectionPatchMs: number;
+  selectionChangedCount: number;
 };
 
 const LOD_HIDE_PX = -1; // disabled
@@ -702,7 +706,9 @@ export class GraphPixiRenderer {
   private connectionQuality: ConnectionQuality = 'full';
   private textResolution = 1;
   private selectedNodeIds: Set<NodeId> = new Set();
-  private selectionOverride: Set<NodeId> | null = null;
+  private selectionPreviewIds: Set<NodeId> | null = null;
+  private lastSelectionPreviewIds: Set<NodeId> | null = null;
+  private visibleIdsCache: Set<NodeId> = new Set();
   private origin = { x: 0, y: 0 };
   private cachedCullingRect: WorldRect | null = null;
   private needsRender = false;
@@ -718,6 +724,9 @@ export class GraphPixiRenderer {
     renderMs: 0,
     visibleNodes: 0,
     visibleConnections: 0,
+    selectionQueryMs: 0,
+    selectionPatchMs: 0,
+    selectionChangedCount: 0,
   };
   private metricsListener: ((metrics: GraphRenderMetrics) => void) | null = null;
   private readonly requestRender = () => {
@@ -866,19 +875,96 @@ export class GraphPixiRenderer {
   setSelectedNodeIds(ids: Set<NodeId>) {
     if (this.selectedNodeIds === ids) return;
     this.selectedNodeIds = ids;
-    if (!this.isReady || this.selectionOverride) return;
+    if (!this.isReady || this.selectionPreviewIds) return;
     this.invalidateVisible();
   }
 
-  setSelectionOverride(ids: Set<NodeId> | null) {
-    if (this.selectionOverride === ids) return;
-    this.selectionOverride = ids;
+  setSelectionPreview(ids: Set<NodeId> | null) {
+    const prev = this.selectionPreviewIds ?? new Set<NodeId>();
+    const next = ids ?? new Set<NodeId>();
+    if (!shouldEmitPreview(prev, next)) return;
+    this.lastSelectionPreviewIds = this.selectionPreviewIds;
+    this.selectionPreviewIds = ids ? new Set(ids) : null;
     if (!this.isReady) return;
-    this.invalidateVisible();
+    this.patchSelectionVisuals(prev, next);
+  }
+
+  clearSelectionPreview() {
+    this.setSelectionPreview(null);
   }
 
   queryNodesInWorldRect(rect: { minX: number; minY: number; maxX: number; maxY: number }): Set<NodeId> {
-    return this.index.query(rect);
+    const started = performance.now();
+    const hits = this.index.query(rect);
+    this.metrics.selectionQueryMs = performance.now() - started;
+    return hits;
+  }
+
+  queryVisibleNodesInWorldRect(rect: { minX: number; minY: number; maxX: number; maxY: number }): Set<NodeId> {
+    const started = performance.now();
+    const hits = new Set<NodeId>();
+    this.visibleIdsCache.forEach((id) => {
+      const node = this.nodeData.get(id);
+      if (!node) return;
+      if (
+        node.x <= rect.maxX &&
+        node.x + node.width >= rect.minX &&
+        node.y <= rect.maxY &&
+        node.y + node.height >= rect.minY
+      ) {
+        hits.add(id);
+      }
+    });
+    this.metrics.selectionQueryMs = performance.now() - started;
+    return hits;
+  }
+
+  private getEffectiveSelection(): Set<NodeId> {
+    return this.selectionPreviewIds ?? this.selectedNodeIds;
+  }
+
+  private patchSelectionVisuals(prevSelection: ReadonlySet<NodeId>, nextSelection: ReadonlySet<NodeId>) {
+    const started = performance.now();
+    const { added, removed, changedCount } = diffSelection(prevSelection, nextSelection);
+    this.metrics.selectionChangedCount = changedCount;
+    if (changedCount === 0) {
+      this.metrics.selectionPatchMs = performance.now() - started;
+      return;
+    }
+
+    const changed = new Set<NodeId>([...added, ...removed]);
+    let patchedAny = false;
+    changed.forEach((id) => {
+      if (!this.visibleIdsCache.has(id)) return;
+      const node = this.nodeData.get(id);
+      if (!node) return;
+      let visual = this.nodeMap.get(id);
+      if (!visual) {
+        visual = new NodeVisual(id, this.fontFamily, this.requestRender);
+        this.nodeMap.set(id, visual);
+        this.nodeLayer.addChild(visual.container);
+      }
+      visual.update(
+        node,
+        this.view,
+        this.theme,
+        this.origin,
+        this.fontFamily,
+        this.themeVersion,
+        this.detailMode,
+        this.textResolution,
+        nextSelection.has(id),
+        node.isPreview,
+      );
+      patchedAny = true;
+    });
+
+    if (patchedAny) {
+      this.nodeLayer.sortDirty = true;
+      this.needsRender = true;
+      this.render();
+    }
+    this.metrics.selectionPatchMs = performance.now() - started;
   }
 
   setData(data: RenderData) {
@@ -886,6 +972,7 @@ export class GraphPixiRenderer {
     this.particles = data.particles ?? [];
     this.connections = data.connections;
     this.cachedCullingRect = null;
+    this.visibleIdsCache = new Set();
     this.nodeData.clear();
     this.index = new SpatialIndex<NodeId>(Math.max(data.nodeWidth, data.nodeHeight) * 3);
     const ids = new Set<NodeId>();
@@ -978,7 +1065,7 @@ export class GraphPixiRenderer {
       maxY: worldY,
     });
     if (candidates.size === 0) return null;
-    const selection = this.selectionOverride ?? this.selectedNodeIds;
+    const selection = this.getEffectiveSelection();
     let topId: NodeId | null = null;
     let topZ = -Infinity;
     candidates.forEach((id) => {
@@ -1003,7 +1090,7 @@ export class GraphPixiRenderer {
 
   private isCollapseBadgeVisible(model: NodeRenderModel): boolean {
     if (!model.isCollapsed) return false;
-    const selection = this.selectionOverride ?? this.selectedNodeIds;
+    const selection = this.getEffectiveSelection();
     const lod = resolveNodeLod(model, this.view, this.detailMode, selection.has(model.id));
     return lod === 'full' || lod === 'low';
   }
@@ -1078,8 +1165,9 @@ export class GraphPixiRenderer {
       };
     this.cachedCullingRect = paddedRect;
 
-    const selection = this.selectionOverride ?? this.selectedNodeIds;
+    const selection = this.getEffectiveSelection();
     const visibleIds = this.index.query(paddedRect);
+    this.visibleIdsCache = visibleIds;
     visibleIds.forEach((id) => {
       const node = this.nodeData.get(id);
       if (!node) return;

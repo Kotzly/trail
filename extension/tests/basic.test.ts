@@ -28,6 +28,12 @@ import {
 import { decideViewInvalidation } from '../src/sidepanel/ui/graph/render/view-invalidation.js';
 import { MSG, msg } from '../src/shared/types/messages.js';
 import { ExtensionMessage, SiteMessage } from '../src/shared/schemas/site-messages.js';
+import { isAllowedSiteOrigin } from '../src/shared/config/site-origins.js';
+import {
+  buildPreviewSelection,
+  diffSelection,
+  shouldEmitPreview,
+} from '../src/sidepanel/ui/components/graph/selection-utils.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -447,6 +453,47 @@ function testSaveCancelProtocolSchemas(): void {
   assert.equal(cancelAck.ok, true);
 }
 
+function testAllowedSiteOrigins(): void {
+  assert.equal(isAllowedSiteOrigin('https://gettrail.net'), true);
+  assert.equal(isAllowedSiteOrigin('https://app.gettrail.net'), true);
+  assert.equal(isAllowedSiteOrigin('http://localhost:3000'), true);
+  assert.equal(isAllowedSiteOrigin('https://evil.com'), false);
+}
+
+function testSelectionUtilsBuildPreviewSelection(): void {
+  const base = new Set<NodeId>([1 as NodeId, 2 as NodeId]);
+  const hits = new Set<NodeId>([2 as NodeId, 3 as NodeId, 4 as NodeId]);
+  const active = new Set<NodeId>([2 as NodeId, 3 as NodeId]);
+
+  const add = buildPreviewSelection(base, hits, 'add', active);
+  assert.deepEqual(Array.from(add).sort((a, b) => a - b), [1, 2, 3]);
+
+  const remove = buildPreviewSelection(base, hits, 'remove', active);
+  assert.deepEqual(Array.from(remove).sort((a, b) => a - b), [1]);
+
+  const replace = buildPreviewSelection(base, hits, 'replace', active);
+  assert.deepEqual(Array.from(replace).sort((a, b) => a - b), [2, 3]);
+}
+
+function testSelectionUtilsDiffSelection(): void {
+  const prev = new Set<NodeId>([1 as NodeId, 2 as NodeId, 3 as NodeId]);
+  const next = new Set<NodeId>([2 as NodeId, 3 as NodeId, 4 as NodeId]);
+
+  const diff = diffSelection(prev, next);
+  assert.deepEqual(Array.from(diff.added), [4]);
+  assert.deepEqual(Array.from(diff.removed), [1]);
+  assert.equal(diff.changedCount, 2);
+}
+
+function testSelectionUtilsShouldEmitPreview(): void {
+  const a = new Set<NodeId>([1 as NodeId, 2 as NodeId]);
+  const b = new Set<NodeId>([2 as NodeId, 1 as NodeId]);
+  const c = new Set<NodeId>([1 as NodeId, 3 as NodeId]);
+
+  assert.equal(shouldEmitPreview(a, b), false);
+  assert.equal(shouldEmitPreview(a, c), true);
+}
+
 try {
   testNavigationTreeDeletion();
   testNavigationTreeDeleteMergesDuplicateReparentedNodes();
@@ -466,6 +513,10 @@ try {
   testViewInvalidationDecisions();
   testSetNodeLayoutBatchMessage();
   testSaveCancelProtocolSchemas();
+  testAllowedSiteOrigins();
+  testSelectionUtilsBuildPreviewSelection();
+  testSelectionUtilsDiffSelection();
+  testSelectionUtilsShouldEmitPreview();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);

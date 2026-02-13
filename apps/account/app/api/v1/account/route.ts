@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
 import { buildAccountSnapshot } from "@/src/server/account-snapshot";
+import { getBearerToken } from "@/src/server/auth-headers";
 import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
 import { getExtensionConfig } from "@/src/server/extension-config";
 import { internalApiJson } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
-
-function getBearerToken(headers: Headers): string | null {
-  const auth = headers.get("authorization") ?? headers.get("Authorization");
-  if (!auth) return null;
-  const [scheme, token] = auth.split(" ");
-  if (scheme !== "Bearer" || !token) return null;
-  return token;
-}
 
 export async function GET(request: Request) {
   const config = await getExtensionConfig();

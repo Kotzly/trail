@@ -63,10 +63,24 @@ function readBooleanEnv(value: unknown): boolean {
   return normalized === "1" || normalized === "true" || normalized === "yes";
 }
 
+function readStringListEnv(value: unknown): string[] {
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
 export const env = {
   ...requireEnv(requiredEnvVars),
   BILLING_TEST_MODE: readBooleanEnv(process.env.BILLING_TEST_MODE),
   BILLING_PROVIDER: normalizeBillingProvider(process.env.BILLING_PROVIDER),
+  BETTER_AUTH_ALLOWED_ISSUERS: readStringListEnv(
+    process.env.BETTER_AUTH_ALLOWED_ISSUERS,
+  ),
   NOWPAYMENTS_API_KEY: readOptionalEnv(process.env.NOWPAYMENTS_API_KEY),
   NOWPAYMENTS_IPN_SECRET: readOptionalEnv(process.env.NOWPAYMENTS_IPN_SECRET),
   NOWPAYMENTS_API_BASE_URL: readOptionalEnv(process.env.NOWPAYMENTS_API_BASE_URL),

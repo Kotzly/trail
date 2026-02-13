@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
+import { getBearerToken } from "@/src/server/auth-headers";
 import { internalApiFetch } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
-
-function getBearerToken(headers: Headers): string | null {
-  const auth = headers.get("authorization") ?? headers.get("Authorization");
-  if (!auth) return null;
-  const [scheme, token] = auth.split(" ");
-  if (scheme !== "Bearer" || !token) return null;
-  return token;
-}
 
 export async function POST(request: Request) {
   const token = getBearerToken(request.headers);

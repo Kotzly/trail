@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
 import { env } from "@/src/env";
+import { resolveSafeNextPath } from "@/src/server/auth-redirect";
 
 export const runtime = "nodejs";
 
@@ -35,19 +36,11 @@ async function exchangeCode(code: string): Promise<string | null> {
   return data?.snapshot?.session?.accessToken ?? null;
 }
 
-function resolveNextPath(nextParam: string | null): string {
-  if (!nextParam) {
-    return DEFAULT_REDIRECT;
-  }
-
-  return nextParam.startsWith("/") ? nextParam : DEFAULT_REDIRECT;
-}
-
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code") ?? "";
   const nextParam = url.searchParams.get("next");
-  const nextPath = resolveNextPath(nextParam);
+  const nextPath = resolveSafeNextPath(nextParam, DEFAULT_REDIRECT);
 
   if (!code) {
     const loginUrl = new URL("/auth/login", url.origin);

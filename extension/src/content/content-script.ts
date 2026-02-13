@@ -1,3 +1,19 @@
+
+// content script doesn't work with imports
+const ALLOWED_SITE_ORIGINS = new Set<string>([
+  'https://gettrail.net',
+  'https://app.gettrail.net',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+]);
+
+const isAllowedSiteOrigin = (origin: string): boolean => {
+  return ALLOWED_SITE_ORIGINS.has(origin);
+}
+
+
 /**
  * Content script for Trail.
  *
@@ -96,19 +112,6 @@ const msgBuilder = {
 
 const SITE_SOURCE = "trail-site" as const;
 const EXTENSION_SOURCE = "trail-extension" as const;
-
-/**
- * Strict origin whitelist.
- * No broad hostname fallback — only explicit entries.
- */
-const ALLOWED_ORIGINS = new Set<string>([
-  "https://gettrail.net",
-  "https://app.gettrail.net",
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001",
-]);
 
 /** Known site → extension message types. */
 const KNOWN_SITE_TYPES = new Set<string>([
@@ -276,7 +279,7 @@ function handleSiteMessage(event: MessageEvent): void {
   if (event.source !== window) return;
 
   // Strict origin check — no hostname fallback.
-  if (!ALLOWED_ORIGINS.has(event.origin)) return;
+  if (!isAllowedSiteOrigin(event.origin)) return;
 
   // Lightweight structural validation.
   const msg = validateSiteMessage(event.data);
@@ -367,7 +370,13 @@ function handleBackgroundRelay(): void {
       const payload = message.payload as Record<string, unknown> | undefined;
       if (!payload) return false;
 
-      postExtensionMessage(payload, window.location.origin);
+      const targetOrigin = window.location.origin;
+      if (!isAllowedSiteOrigin(targetOrigin)) {
+        sendResponse({ success: false, error: "origin_not_allowed" });
+        return false;
+      }
+
+      postExtensionMessage(payload, targetOrigin);
       sendResponse({ success: true });
       return false;
     },

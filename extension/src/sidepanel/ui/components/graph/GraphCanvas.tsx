@@ -33,6 +33,10 @@ import {
 } from '../../graph/render/GraphPixiRenderer.js';
 import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
 import { computeGraphGridTransform } from './grid-transform.js';
+import {
+  buildPreviewSelection,
+  shouldEmitPreview,
+} from './selection-utils.js';
 import React from 'react';
 
 type GraphTool = 'hand' | 'select';
@@ -85,6 +89,7 @@ type DragNodeState = {
 };
 
 const LAYOUT_UPDATE_MS = 80;
+const SELECTION_PREVIEW_MS = 40;
 
 /** Distance (in world pixels) from the dragged node center to a candidate
  *  parent center at which the snap preview activates. */
@@ -409,11 +414,12 @@ export default function GraphCanvas({
     };
   }, []);
 
-  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
+  const selectionBoxRef = useRef<HTMLDivElement | null>(null);
   const previewSelectionRef = useRef<Set<NodeId>>(new Set());
   const selectionWorldRectRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
   const selectionComputeHandleRef = useRef<number | null>(null);
-  const selectionComputeVersionRef = useRef(0);
+  const selectionComputeDirtyRef = useRef(false);
+  const selectionPreviewLastRunRef = useRef(0);
   const positionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
   const [isDraggingNode, setIsDraggingNode] = useState(false);
   const [dragPreview, setDragPreview] = useState<LayoutUpdateMap | null>(null);
@@ -463,49 +469,70 @@ export default function GraphCanvas({
   const cancelSelectionCompute = useCallback(() => {
     const handle = selectionComputeHandleRef.current;
     if (handle === null) return;
-    window.cancelIdleCallback(handle);
+    window.clearTimeout(handle);
     selectionComputeHandleRef.current = null;
+    selectionComputeDirtyRef.current = false;
   }, []);
 
   useEffect(() => {
     return () => cancelSelectionCompute();
   }, [cancelSelectionCompute]);
 
+  const hideSelectionBox = useCallback(() => {
+    const box = selectionBoxRef.current;
+    if (!box) return;
+    box.style.opacity = '0';
+    box.style.width = '0px';
+    box.style.height = '0px';
+  }, []);
+
+  const updateSelectionBox = useCallback((boxState: SelectionBox) => {
+    const box = selectionBoxRef.current;
+    if (!box) return;
+    box.style.opacity = '1';
+    box.style.left = `${boxState.left}px`;
+    box.style.top = `${boxState.top}px`;
+    box.style.width = `${boxState.width}px`;
+    box.style.height = `${boxState.height}px`;
+  }, []);
+
   const computeSelectionPreview = useCallback(() => {
     if (!isSelectingRef.current) return;
     const renderer = rendererRef.current;
     const rect = selectionWorldRectRef.current;
     if (!renderer || !rect) return;
-    const active = positionsRef.current;
-    const hits = renderer.queryNodesInWorldRect(rect);
-    const preview = new Set<NodeId>(baseSelectionRef.current);
-    if (selectionModeRef.current === 'remove') {
-      hits.forEach((id) => {
-        if (!active.has(id)) return;
-        preview.delete(id);
-      });
-    } else {
-      hits.forEach((id) => {
-        if (!active.has(id)) return;
-        preview.add(id);
-      });
+    const hits = renderer.queryVisibleNodesInWorldRect(rect);
+    const preview = buildPreviewSelection(
+      baseSelectionRef.current,
+      hits,
+      selectionModeRef.current,
+      positionsRef.current,
+    );
+    if (shouldEmitPreview(previewSelectionRef.current, preview)) {
+      previewSelectionRef.current = preview;
+      renderer.setSelectionPreview(preview);
     }
-    previewSelectionRef.current = preview;
-    renderer.setSelectionOverride(preview);
   }, []);
 
   const scheduleSelectionPreview = useCallback(() => {
-    if (selectionComputeHandleRef.current !== null) return;
+    if (selectionComputeHandleRef.current !== null) {
+      selectionComputeDirtyRef.current = true;
+      return;
+    }
+    const now = performance.now();
+    const elapsed = now - selectionPreviewLastRunRef.current;
+    const delay = Math.max(0, SELECTION_PREVIEW_MS - elapsed);
     const run = () => {
       selectionComputeHandleRef.current = null;
       if (!isSelectingRef.current) return;
-      const version = selectionComputeVersionRef.current;
+      selectionPreviewLastRunRef.current = performance.now();
       computeSelectionPreview();
-      if (selectionComputeVersionRef.current !== version) {
+      if (selectionComputeDirtyRef.current) {
+        selectionComputeDirtyRef.current = false;
         scheduleSelectionPreview();
       }
     };
-    selectionComputeHandleRef.current = window.requestIdleCallback(run, { timeout: 80 });
+    selectionComputeHandleRef.current = window.setTimeout(run, delay);
   }, [computeSelectionPreview]);
 
   const applyGridTransform = useCallback((view: ViewState) => {
@@ -2035,30 +2062,23 @@ export default function GraphCanvas({
       const renderer = rendererRef.current;
       const rect = selectionWorldRectRef.current;
       if (renderer && rect) {
-        const active = positions;
         const hits = renderer.queryNodesInWorldRect(rect);
-        const preview = new Set<NodeId>(baseSelectionRef.current);
-        if (selectionModeRef.current === 'remove') {
-          hits.forEach((id) => {
-            if (!active.has(id)) return;
-            preview.delete(id);
-          });
-        } else {
-          hits.forEach((id) => {
-            if (!active.has(id)) return;
-            preview.add(id);
-          });
-        }
+        const preview = buildPreviewSelection(
+          baseSelectionRef.current,
+          hits,
+          selectionModeRef.current,
+          positionsRef.current,
+        );
         previewSelectionRef.current = preview;
       }
     }
     isSelectingRef.current = false;
     const finalSelection = new Set(previewSelectionRef.current);
     const renderer = rendererRef.current;
-    renderer?.setSelectionOverride(null);
+    renderer?.clearSelectionPreview();
     renderer?.setSelectedNodeIds(finalSelection);
     onSelectedNodeIdsChange(finalSelection);
-    setSelectionBox(null);
+    hideSelectionBox();
     previewSelectionRef.current = new Set();
     selectionWorldRectRef.current = null;
   };
@@ -2069,11 +2089,11 @@ export default function GraphCanvas({
     selectionDragRef.current = false;
     previewSelectionRef.current = new Set();
     selectionWorldRectRef.current = null;
-    rendererRef.current?.setSelectionOverride(null);
+    rendererRef.current?.clearSelectionPreview();
     rendererRef.current?.setSelectedNodeIds(new Set());
     onClearSelection();
-    setSelectionBox(null);
-  }, [cancelSelectionCompute, onClearSelection]);
+    hideSelectionBox();
+  }, [cancelSelectionCompute, hideSelectionBox, onClearSelection]);
 
   const releasePointerCapture = (target: HTMLDivElement | null, pointerId: number | null) => {
     if (!target || pointerId === null) return;
@@ -2153,7 +2173,7 @@ export default function GraphCanvas({
     } else if (tool === 'select') {
       cancelSelectionCompute();
       selectionWorldRectRef.current = null;
-      rendererRef.current?.setSelectionOverride(null);
+      rendererRef.current?.clearSelectionPreview();
       const selectionMode = event.altKey ? 'remove' : event.shiftKey ? 'add' : 'replace';
       selectionModeRef.current = selectionMode;
       if (selectionMode === 'replace') {
@@ -2165,7 +2185,7 @@ export default function GraphCanvas({
       selectionStartRef.current = { x: startX, y: startY };
       baseSelectionRef.current =
         selectionMode === 'replace' ? new Set() : new Set(selectedNodeIds);
-      setSelectionBox({ left: startX, top: startY, width: 0, height: 0 });
+      updateSelectionBox({ left: startX, top: startY, width: 0, height: 0 });
       previewSelectionRef.current = new Set(baseSelectionRef.current);
     }
   };
@@ -2197,7 +2217,7 @@ export default function GraphCanvas({
       const top = Math.min(selectionStartRef.current.y, y);
       const width = Math.abs(x - selectionStartRef.current.x);
       const height = Math.abs(y - selectionStartRef.current.y);
-      setSelectionBox({ left, top, width, height });
+      updateSelectionBox({ left, top, width, height });
       if (!selectionDragRef.current && (width > 3 || height > 3)) {
         selectionDragRef.current = true;
         suppressClickRef.current = true;
@@ -2210,7 +2230,6 @@ export default function GraphCanvas({
         maxX: (left + width - translateX) / scale,
         maxY: (top + height - translateY) / scale,
       };
-      selectionComputeVersionRef.current += 1;
       scheduleSelectionPreview();
       return;
     }
@@ -2456,17 +2475,11 @@ export default function GraphCanvas({
         }}
       >
         <div className="graph-canvas" ref={pixiHostRef} />
-        {selectionBox && (
-          <div
-            className="graph-selection-box"
-            style={{
-              left: `${selectionBox.left}px`,
-              top: `${selectionBox.top}px`,
-              width: `${selectionBox.width}px`,
-              height: `${selectionBox.height}px`,
-            }}
-          />
-        )}
+        <div
+          ref={selectionBoxRef}
+          className="graph-selection-box"
+          style={{ opacity: 0, width: '0px', height: '0px' }}
+        />
         <GraphZoomControls
           tool={tool}
           onToolChange={(nextTool) => {

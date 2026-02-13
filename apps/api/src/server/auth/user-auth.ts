@@ -22,6 +22,38 @@ function normalizeBaseUrl(value: string): string | null {
   return trimmed;
 }
 
+function decodeIssuerClaim(token: string): string | null {
+  const parts = token.split(".");
+  const payloadPart = parts[1];
+  if (!payloadPart) {
+    return null;
+  }
+
+  try {
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(
+      Math.ceil(normalized.length / 4) * 4,
+      "=",
+    );
+    const decoded = Buffer.from(padded, "base64").toString("utf8");
+    const payload = JSON.parse(decoded) as { iss?: unknown };
+    return typeof payload.iss === "string" ? normalizeBaseUrl(payload.iss) : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveAllowedIssuers(primaryIssuer: string): string[] {
+  const issuers = new Set<string>([primaryIssuer]);
+  for (const candidate of env.BETTER_AUTH_ALLOWED_ISSUERS) {
+    const normalized = normalizeBaseUrl(candidate);
+    if (normalized) {
+      issuers.add(normalized);
+    }
+  }
+  return Array.from(issuers);
+}
+
 export async function verifyUserToken(
   token: string | null,
   options: VerifyOptions = {},
@@ -30,17 +62,25 @@ export async function verifyUserToken(
     return null;
   }
 
-  const issuer =
+  const primaryIssuer =
     (options.issuer ? normalizeBaseUrl(options.issuer) : null) ??
     normalizeBaseUrl(env.BETTER_AUTH_URL);
-  if (!issuer) {
+  if (!primaryIssuer) {
     return null;
   }
 
+  const allowedIssuers = resolveAllowedIssuers(primaryIssuer);
+  const allowedIssuerSet = new Set(allowedIssuers);
+  const tokenIssuer = decodeIssuerClaim(token);
+  const jwksIssuer =
+    tokenIssuer && allowedIssuerSet.has(tokenIssuer)
+      ? tokenIssuer
+      : primaryIssuer;
+
   try {
-    const jwks = getRemoteJwks(`${issuer}/api/auth/jwks`);
+    const jwks = getRemoteJwks(`${jwksIssuer}/api/auth/jwks`);
     const { payload } = await jwtVerify<UserTokenPayload>(token, jwks, {
-      issuer,
+      issuer: allowedIssuers,
     });
 
     if (!payload?.sub) {

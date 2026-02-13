@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/src/lib/auth";
+import { resolveSafeNextPath } from "@/src/server/auth-redirect";
 
 /**
  * /auth — login page.
@@ -14,14 +15,16 @@ type AuthPageProps = {
 
 export default async function AuthPage({ searchParams }: AuthPageProps) {
   const { next } = await searchParams;
+  const safeNextPath = resolveSafeNextPath(next);
   const session = await getAuthSession();
   if (session?.user) {
-    redirect(next?.startsWith("/") ? next : "/trails");
+    redirect(safeNextPath);
   }
 
-  const loginHref = next
-    ? `/auth/login?${new URLSearchParams({ next })}`
-    : "/auth/login";
+  const loginHref =
+    safeNextPath === "/trails"
+      ? "/auth/login"
+      : `/auth/login?${new URLSearchParams({ next: safeNextPath })}`;
 
   return (
     <div className="flex flex-col items-center gap-6 py-12 text-center">

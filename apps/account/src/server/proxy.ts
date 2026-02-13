@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthTokenFromCookies } from "@/src/lib/auth";
+import { getBearerToken } from "@/src/server/auth-headers";
 import { internalApiFetch } from "@/src/server/internal-api";
 
 /**
@@ -7,12 +8,9 @@ import { internalApiFetch } from "@/src/server/internal-api";
  * or the httpOnly cookie (site).
  */
 async function resolveAuthToken(request: Request): Promise<string | null> {
-  const auth =
-    request.headers.get("authorization") ??
-    request.headers.get("Authorization");
-  if (auth) {
-    const [scheme, token] = auth.split(" ");
-    if (scheme === "Bearer" && token) return token;
+  const token = getBearerToken(request.headers);
+  if (token) {
+    return token;
   }
 
   return getAuthTokenFromCookies();

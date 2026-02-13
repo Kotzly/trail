@@ -21,6 +21,7 @@ import {
   editorSyncStop,
 } from '../../services/editor-sync.js';
 import { buildBackendUrl, initBackendConfig, BACKEND_CONFIG } from '../../../shared/config/backend.js';
+import { isAllowedSiteOrigin } from '../../../shared/config/site-origins.js';
 import { isNavigationTreeJSON } from '../../services/cloud-sync.js';
 import type { TreeRecord, TreeLabelSource, NavigationTreeJSON } from '../../../shared/types/tree.js';
 import type { Url, Title, FaviconUrl } from '../../../shared/types/ids.js';
@@ -216,7 +217,7 @@ function registerCloneInTree(_tree: NavigationTree, _node: NavigationNode): void
 }
 
 /**
- * Broadcast EDITOR_MODE_EXITED to all tabs so the web app (if open) can
+ * Broadcast EDITOR_MODE_EXITED to allowed site tabs so the web app (if open) can
  * update its UI reactively, even when the user exits from the sidepanel
  * rather than from the site.  Uses the content script's RELAY_TO_SITE
  * handler which is already present in every injected tab.
@@ -230,7 +231,16 @@ async function broadcastEditorExitToSite(): Promise<void> {
       editorMode: false,
     };
     for (const tab of tabs) {
-      if (tab.id === undefined) continue;
+      if (tab.id === undefined || !tab.url) continue;
+
+      let origin: string;
+      try {
+        origin = new URL(tab.url).origin;
+      } catch {
+        continue;
+      }
+      if (!isAllowedSiteOrigin(origin)) continue;
+
       chrome.tabs.sendMessage(tab.id, {
         type: 'RELAY_TO_SITE',
         payload,
