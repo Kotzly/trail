@@ -31,10 +31,7 @@ export type SiteMessageType =
   | "ENTER_EDITOR_MODE"
   | "EXIT_EDITOR_MODE"
   | "SAVE_EDITOR_MODE"
-  | "CANCEL_EDITOR_MODE"
-  | "SELECT_NODE"
-  | "UPDATE_NODE_METADATA"
-  | "AUTH_REVOKED";
+  | "CANCEL_EDITOR_MODE";
 
 export type ExtensionMessageType =
   | "PONG"
@@ -43,8 +40,6 @@ export type ExtensionMessageType =
   | "EDITOR_MODE_EXITED"
   | "EDITOR_MODE_SAVED"
   | "EDITOR_MODE_CANCELLED"
-  | "NODE_SELECTED"
-  | "NODE_METADATA_UPDATED"
   | "TREE_UPDATED";
 
 export type PongPayload = {
@@ -56,11 +51,6 @@ export type PongPayload = {
 export type EditorModeEnteredPayload = {
   treeId: string;
   treeState: unknown;
-};
-
-export type NodeSelectedPayload = {
-  nodeId: string;
-  nodeData: unknown;
 };
 
 export type EditorModeActionAck = {
@@ -216,21 +206,6 @@ function parseEditorModeActionResult(
 }
 
 // ---------------------------------------------------------------------------
-// Fire-and-forget
-// ---------------------------------------------------------------------------
-
-function sendFireAndForget(
-  type: SiteMessageType,
-  payload: Record<string, unknown> = {},
-): void {
-  if (typeof window === "undefined") return;
-  window.postMessage(
-    buildMessage(type, payload),
-    window.location.origin,
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -314,38 +289,6 @@ export async function cancelEditorMode(): Promise<SendResult<EditorModeActionAck
     "EDITOR_MODE_CANCELLED",
   );
   return parseEditorModeActionResult(result, "Failed to cancel editor session");
-}
-
-/** Select a node in the extension graph. */
-export async function selectNode(
-  nodeId: string,
-): Promise<SendResult<NodeSelectedPayload>> {
-  await ensurePanelOpen();
-
-  return sendWithRetry<NodeSelectedPayload & Record<string, unknown>>(
-    "SELECT_NODE",
-    { nodeId },
-    "NODE_SELECTED",
-  ) as Promise<SendResult<NodeSelectedPayload>>;
-}
-
-/** Update metadata of a node (title, notes, tags). */
-export function updateNodeMetadata(params: {
-  nodeId: string;
-  title?: string;
-  notes?: string;
-  tags?: string[];
-}): Promise<SendResult<{ nodeId: string }>> {
-  return sendWithRetry<{ nodeId: string } & Record<string, unknown>>(
-    "UPDATE_NODE_METADATA",
-    params,
-    "NODE_METADATA_UPDATED",
-  ) as Promise<SendResult<{ nodeId: string }>>;
-}
-
-/** Notify the extension that the site user logged out. Fire-and-forget. */
-export function sendAuthRevoked(): void {
-  sendFireAndForget("AUTH_REVOKED");
 }
 
 // ---------------------------------------------------------------------------
