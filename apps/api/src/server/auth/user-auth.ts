@@ -39,15 +39,9 @@ export async function verifyUserToken(
 
   try {
     const jwks = getRemoteJwks(`${issuer}/api/auth/jwks`);
-    // In some deployments (especially behind proxies), the `iss` claim might not
-    // exactly match the base URL used for JWKS discovery. Prefer strict issuer
-    // validation, but fall back to signature verification against our JWKS.
-    let payload: UserTokenPayload;
-    try {
-      ({ payload } = await jwtVerify<UserTokenPayload>(token, jwks, { issuer }));
-    } catch {
-      ({ payload } = await jwtVerify<UserTokenPayload>(token, jwks));
-    }
+    const { payload } = await jwtVerify<UserTokenPayload>(token, jwks, {
+      issuer,
+    });
 
     if (!payload?.sub) {
       return null;

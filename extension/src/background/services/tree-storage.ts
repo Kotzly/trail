@@ -2,7 +2,6 @@ import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSum
 import { NavigationTree } from '../state/nav-tree.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { uuidv7 } from '../../shared/lib/uuid.js';
-import { settingsManager } from './settings.js';
 import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 
 const TREE_KEY = 'trail_tree' as const;
@@ -117,7 +116,7 @@ class TreeStorageService {
       const json = result[TREE_KEY] as NavigationTreeJSON | undefined;
       
       if (!json || !json.root) {
-        const tree = new NavigationTree(settingsManager.get().capacity);
+        const tree = new NavigationTree();
         this.cachedTree = tree;
         return tree;
       }
@@ -126,8 +125,7 @@ class TreeStorageService {
       return this.cachedTree;
     } catch (error) {
       console.error('TreeStorageService.getTree: Error loading tree:', error);
-      const capacity = settingsManager.get().capacity;
-      const tree = new NavigationTree(capacity);
+      const tree = new NavigationTree();
       this.cachedTree = tree;
       return tree;
     } finally {

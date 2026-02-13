@@ -11,6 +11,7 @@
     "format": "prettier --check ."
   },
   "dependencies": {
+    "@trail/content": "workspace:*",
     "@trail/db": "workspace:*",
     "@trail/trpc": "workspace:*",
     "@trpc/server": "^11.9.0",

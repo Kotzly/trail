@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import Image from "next/image";
 import {
   initialUpdateAccountActionState,
   updateAccountAction,
@@ -66,11 +67,12 @@ export function AccountSettingsForm({
       </header>
 
       {initialPhotoUrl ? (
-        <img
+        <Image
           src={initialPhotoUrl}
           alt="Фото профиля"
           width={72}
           height={72}
+          unoptimized
           style={{
             width: "72px",
             height: "72px",

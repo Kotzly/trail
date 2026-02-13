@@ -12,7 +12,6 @@ export const DefaultNavigationOptions: NavigationOptions = {
 export interface NavigationTreeJSON {
     root: NavigationNodeJSON | null;
     currentNodeId: NodeId | null;
-    capacity: number;
     nodeCount: number;
 }
 

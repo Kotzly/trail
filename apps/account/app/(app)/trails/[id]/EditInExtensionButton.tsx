@@ -28,17 +28,17 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
   const router = useRouter();
   const [status, setStatus] = useState<ExtensionStatus>("checking");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const statusRef = useRef(status);
-  statusRef.current = status;
+  const statusRef = useRef<ExtensionStatus>("checking");
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   // -------------------------------------------------------------------
   // Ping the extension to determine current state
   // -------------------------------------------------------------------
 
   const checkExtension = useCallback(async () => {
-    setStatus("checking");
-    setErrorMsg(null);
-
     const result: SendResult<PongPayload> = await ping();
 
     if (!result.ok) {
@@ -60,7 +60,13 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
   }, []);
 
   useEffect(() => {
-    checkExtension();
+    const timerId = window.setTimeout(() => {
+      void checkExtension();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
   }, [checkExtension]);
 
   // -------------------------------------------------------------------
@@ -320,7 +326,11 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
         </span>
         <button
           type="button"
-          onClick={checkExtension}
+          onClick={() => {
+            setStatus("checking");
+            setErrorMsg(null);
+            void checkExtension();
+          }}
           className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
         >
           Retry

@@ -2,56 +2,9 @@ import type { ExtensionConfigMap } from "@/src/server/extension-config";
 import { getExtensionConfig } from "@/src/server/extension-config";
 import type { SubscriptionSnapshot } from "@/src/server/subscription-access";
 import { env } from "@/src/env";
+import { trailPlans, type TrailPlanDefinition } from "@trail/content";
 
-export type PlanDefinition = {
-  id: string;
-  name: string;
-  tier: string;
-  priceMonthly: number;
-  priceYearly: number;
-  currency: string;
-  features: string[];
-  limits: { maxTrees: number; maxDevices: number; maxHistoryDays: number };
-  highlight?: boolean;
-  rank?: number;
-};
-
-const DEFAULT_PLANS: readonly PlanDefinition[] = [
-  {
-    id: "free",
-    name: "Free",
-    tier: "free",
-    priceMonthly: 0,
-    priceYearly: 0,
-    currency: "USD",
-    features: ["Basic navigation history", "Up to 3 trees", "Local-only data"],
-    limits: { maxTrees: 3, maxDevices: 1, maxHistoryDays: 7 },
-    rank: 0,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    tier: "pro",
-    priceMonthly: 8,
-    priceYearly: 72,
-    currency: "USD",
-    features: ["Unlimited trees", "Sync across devices", "Priority rendering"],
-    limits: { maxTrees: 999, maxDevices: 5, maxHistoryDays: 90 },
-    highlight: true,
-    rank: 1,
-  },
-  {
-    id: "teams",
-    name: "Teams",
-    tier: "teams",
-    priceMonthly: 16,
-    priceYearly: 144,
-    currency: "USD",
-    features: ["Shared workspaces", "Team analytics", "Admin controls"],
-    limits: { maxTrees: 999, maxDevices: 15, maxHistoryDays: 180 },
-    rank: 2,
-  },
-];
+export type PlanDefinition = TrailPlanDefinition;
 
 type AccountUser = {
   id: string;
@@ -118,7 +71,7 @@ export function buildAccountSnapshot({
       user: null,
       subscription: null,
       billing: { state: "none" },
-      plans: DEFAULT_PLANS,
+      plans: trailPlans,
       config,
     };
   }
@@ -132,17 +85,17 @@ export function buildAccountSnapshot({
     user: toAccountUser(user),
     subscription,
     billing: { state: "none" },
-    plans: DEFAULT_PLANS,
+    plans: trailPlans,
     config,
   };
 }
 
 export function listPlans() {
   if (!env.BILLING_TEST_MODE) {
-    return DEFAULT_PLANS;
+    return trailPlans;
   }
 
-  return DEFAULT_PLANS.map((plan) => {
+  return trailPlans.map((plan) => {
     if (plan.id === "free") {
       return plan;
     }

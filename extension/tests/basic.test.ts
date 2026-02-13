@@ -39,7 +39,7 @@ function data(url: Url, title?: Title): NodeData {
 }
 
 function testNavigationTreeDeletion(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://root.test' as Url));
   const child = tree.navigate(data('https://child.test' as Url));
   tree.setCurrent(root);
@@ -60,7 +60,7 @@ function testNavigationTreeDeletion(): void {
 }
 
 function testNavigationTreeDeleteMergesDuplicateReparentedNodes(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://root.test' as Url));
   const link1 = tree.navigate(data('https://example.com/auth' as Url));
   const link2a = tree.navigate(data('https://example.com/account/' as Url));
@@ -86,7 +86,7 @@ function testNavigationTreeDeleteMergesDuplicateReparentedNodes(): void {
 }
 
 function testNavigationTreeSubtree(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://root.test' as Url));
   const child = tree.navigate(data('https://child.test' as Url));
   const grand = tree.navigate(data('https://grand.test' as Url));
@@ -112,7 +112,6 @@ function testCommandManagerUndoRedo(): void {
   const snapshot1: NavigationTreeJSON = {
     root: rootNode,
     currentNodeId: rootNode.id,
-    capacity: 100,
     nodeCount: 1,
   };
 
@@ -129,7 +128,6 @@ function testCommandManagerUndoRedo(): void {
       children: [childNode],
     },
     currentNodeId: childNode.id,
-    capacity: 100,
     nodeCount: 2,
   };
 
@@ -147,7 +145,7 @@ function testCommandManagerUndoRedo(): void {
 }
 
 function testNavigationTreeSearchIndex(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://example.com/root' as Url, 'Root Page' as Title));
   const child = tree.navigate(data('https://docs.example.com/guide' as Url, 'Guide' as Title));
   tree.setCurrent(root);
@@ -169,8 +167,15 @@ function testNavigationTreeSearchIndex(): void {
   assert.ok(renameMatches.includes(updated.id));
 }
 
+function testNavigationTreeHasNoCapacityApi(): void {
+  const tree = new NavigationTree();
+  const treeWithLegacyApi = tree as unknown as { getCapacity?: unknown; setCapacity?: unknown };
+  assert.equal(typeof treeWithLegacyApi.getCapacity, 'undefined');
+  assert.equal(typeof treeWithLegacyApi.setCapacity, 'undefined');
+}
+
 function testGraphLayouts(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://root.test'));
   const child = tree.navigate(data('https://child.test'));
   tree.setCurrent(root);
@@ -448,6 +453,7 @@ try {
   testNavigationTreeSubtree();
   testCommandManagerUndoRedo();
   testNavigationTreeSearchIndex();
+  testNavigationTreeHasNoCapacityApi();
   testGraphLayouts();
   testGraphGridTransform();
   testSidebarLabelState();

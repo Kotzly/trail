@@ -72,8 +72,6 @@ function normalizeCustomTheme(raw: unknown): CustomTheme {
 }
 
 export const defaultSettings: Settings = {
-    maxOpenTabs: 100,
-    capacity: Infinity,
     theme: THEME_IDS.SYSTEM,
     customTheme: { ...DEFAULT_CUSTOM_THEME },
     layout: {
@@ -111,14 +109,9 @@ function mergeDefaults(raw: unknown): Settings {
     const { adaptiveMode: _adaptiveMode, adaptiveModeLayouts: _adaptiveModeLayouts, ...rest } = partial;
     const sanitized = rest as Partial<Settings>;
     const layout = sanitized.layout ?? DEFAULT_LAYOUT_SETTINGS;
-    const rawCapacity =
-        typeof sanitized.capacity === 'number' ? sanitized.capacity : defaultSettings.capacity;
-    const capacity =
-        Number.isFinite(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
     return {
         ...defaultSettings,
         ...sanitized,
-        capacity,
         customTheme: normalizeCustomTheme(sanitized.customTheme),
         layout: {
             mode: layout.mode ?? DEFAULT_LAYOUT_SETTINGS.mode,

@@ -96,8 +96,44 @@ describe("v1 trails endpoints", () => {
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.items).toHaveLength(1);
-    expect(payload.nextCursor).toBe("2026-02-01T00:00:00.000Z");
+    expect(payload.nextCursor).toBe("2026-02-02T00:00:00.000Z|trail-1");
     expect(payload.totalCount).toBe(2);
+    expect(dbMocks.db.trail.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      }),
+    );
+  });
+
+  it("applies composite cursor filtering", async () => {
+    authMocks.verifyUserToken.mockResolvedValue({ sub: "user-1" });
+    userMocks.ensureUser.mockResolvedValue({ id: "user-1" });
+    dbMocks.db.trail.count.mockResolvedValue(0);
+    dbMocks.db.trail.findMany.mockResolvedValue([]);
+
+    const response = await listTrails(
+      new Request(
+        "http://localhost/api/v1/trails?cursor=2026-02-01T00:00:00.000Z|trail-2",
+        {
+          headers: { Authorization: "Bearer user-token" },
+        },
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(dbMocks.db.trail.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { updatedAt: { lt: new Date("2026-02-01T00:00:00.000Z") } },
+            {
+              updatedAt: new Date("2026-02-01T00:00:00.000Z"),
+              id: { lt: "trail-2" },
+            },
+          ],
+        }),
+      }),
+    );
   });
 
   it("updates trail metadata", async () => {

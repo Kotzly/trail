@@ -48,6 +48,10 @@ jobs:
       # API app auth + billing placeholders for build-time env checks.
       BETTER_AUTH_URL: http://localhost:3003
       BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef
+      BETTER_AUTH_TRUSTED_ORIGINS: http://localhost:3001,http://localhost:3003
+      AUTH_BRIDGE_DEFAULT_RETURN_TO: http://localhost:3001
+      GOOGLE_CLIENT_ID: test-google-client-id
+      GOOGLE_CLIENT_SECRET: test-google-client-secret
       POLAR_WEBHOOK_SECRET: test-polar-secret
       APP_BASE_URL: http://localhost:3001
 
@@ -60,7 +64,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.15.0
+          version: 10.28.2
 
       - uses: actions/setup-node@v4
         with:
@@ -70,8 +74,8 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck (marketing/account/api)
-        run: pnpm --filter @trail/marketing --filter @trail/account --filter @trail/api typecheck
+      - name: Typecheck (marketing/account/api/auth)
+        run: pnpm --filter @trail/marketing --filter @trail/account --filter @trail/api --filter @trail/auth typecheck
 
       - name: Build (marketing)
         run: pnpm --filter @trail/marketing build
@@ -81,3 +85,6 @@ jobs:
 
       - name: Build (api)
         run: pnpm --filter @trail/api build
+
+      - name: Build (auth)
+        run: pnpm --filter @trail/auth build

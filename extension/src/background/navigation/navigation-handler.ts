@@ -7,8 +7,6 @@ import { redirectDetector } from './redirect-detection.js';
 import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { handleNewTabTab } from '../utils/new-tab.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { notifyUi } from '../messaging/ui-notifications.js';
-import { enforceTabLimit } from '../tabs/tab-limit.js';
 import { createUrlKey } from '../../shared/lib/url-key.js';
 
 /**
@@ -180,20 +178,9 @@ export async function handleNavigation(
 
     }
 
-    const evicted = tree.consumeEvictedCount();
-    if (didMutate || didUpdateCurrent || evicted > 0) {
+    if (didMutate || didUpdateCurrent) {
       treeStorage.cacheTree(tree);
     }
-    if (evicted > 0) {
-      notifyUi({
-        message: `Evicted ${evicted} node${evicted === 1 ? '' : 's'} due to capacity`,
-        icon: 'AlertTriangle',
-        durationMs: 5000,
-      });
-    }
-    await enforceTabLimit(tree, {
-      activeTabId: isActiveTab ? (tabId as TabId) : null,
-    });
     
     // Only notify if tab is active OR if we created a new node (not just reused existing)
     // This prevents unnecessary UI updates for programmatic tab creation

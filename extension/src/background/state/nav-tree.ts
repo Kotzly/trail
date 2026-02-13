@@ -2,19 +2,13 @@ import type { NodeId, Title, Url } from "../../shared/types/ids.js";
 import MiniSearch from "../../shared/vendor/minisearch.js";
 import { TreeNode } from "./tree-node.js";
 import { DefaultNavigationOptions, type NavigationOptions } from "../../shared/types/tree.js";
-import { EvictionPolicy, LRUEvictionPolicy, Owner } from "../../shared/lib/eviction.js";
 import { NodeData, NavigationNode, updateNodeMeta } from "../../shared/types/node.js";
 import { createUrlKey } from "../../shared/lib/url-key.js";
 
 export type NodeRedirect = { from: NodeId; to: NodeId };
 export type DeleteNodeResult = { removed: NavigationNode[]; redirects: NodeRedirect[] };
 
-function epForTree(tree: NavigationTree, capacity: number): EvictionPolicy {
-    return new LRUEvictionPolicy(tree, capacity); // use LRU eviction policy for now.
-}
-
-
-export class NavigationTree implements Owner {
+export class NavigationTree {
     private root: NavigationNode | null = null;
     private current: NavigationNode | null = null;
     private nodeCount: number = 0;
@@ -22,11 +16,7 @@ export class NavigationTree implements Owner {
     private searchIndex: MiniSearch;
     private searchDocs: Map<NodeId, SearchDoc> = new Map<NodeId, SearchDoc>();
 
-    private evictionPolicy: EvictionPolicy;
-    private lastEvictedCount = 0;
-
-    constructor(capacity: number, root?: NavigationNode) {
-        this.evictionPolicy = epForTree(this, capacity);
+    constructor(root?: NavigationNode) {
         this.searchIndex = NavigationTree.createSearchIndex();
         this.nodeCount = 0;
         if (root) {
@@ -51,23 +41,6 @@ export class NavigationTree implements Owner {
         }
 
         this.nodeCount = count;
-        const evicted = this.evictionPolicy.enforce();
-        this.lastEvictedCount += evicted;
-    }
-
-    // remove is called by the eviction policy to remove nodes that are no longer needed.
-    remove(node: NavigationNode): void {
-        if (!this.canRemove(node)) {
-            throw new Error("Node cannot be removed");
-        }
-        this.removeNode(node);
-    }
-
-    private removeNode(node: NavigationNode): void {
-        this.nodeCount--;
-        this.nodeMap.delete(node.id);
-        this.removeSearchEntry(node.id);
-        node.remove();
     }
 
     size(): number {
@@ -86,24 +59,6 @@ export class NavigationTree implements Owner {
         this.current = node;
     }
 
-    getCapacity(): number {
-        return this.evictionPolicy.getCapacity();
-    }
-
-    setCapacity(capacity: number): number {
-        const next = Number.isFinite(capacity) && capacity > 0 ? capacity : Infinity;
-        this.evictionPolicy.updateCapacity(next);
-        const evicted = this.evictionPolicy.enforce();
-        this.lastEvictedCount += evicted;
-        return evicted;
-    }
-
-    consumeEvictedCount(): number {
-        const count = this.lastEvictedCount;
-        this.lastEvictedCount = 0;
-        return count;
-    }
-
     *iter(): IterableIterator<NavigationNode> {
         if (this.root) {
             yield* this.root.iter();
@@ -111,10 +66,6 @@ export class NavigationTree implements Owner {
     }
     
     // todo: implement setRoot logic
-
-    private isSameUrl(a: Url, b: Url): boolean {
-        return createUrlKey(a) === createUrlKey(b);
-    }
 
     private mergeNodeData(base: NodeData, incoming: NodeData): NodeData {
         const tags = Array.from(new Set([...(base.tags ?? []), ...(incoming.tags ?? [])]));
@@ -224,8 +175,6 @@ export class NavigationTree implements Owner {
         this.nodeMap.set(child.id, child);
         this.updateSearchEntry(child);
         this.nodeCount++;
-        const evicted = this.evictionPolicy.enforce();
-        this.lastEvictedCount += evicted;
         return child;
     }
 
@@ -332,7 +281,6 @@ export class NavigationTree implements Owner {
         this.searchIndex = NavigationTree.createSearchIndex();
         this.searchDocs.clear();
         this.nodeCount = 0;
-        this.lastEvictedCount = 0;
     }
     
     collectPinned(root: NavigationNode | null = this.root): Set<NavigationNode> {
@@ -379,10 +327,6 @@ export class NavigationTree implements Owner {
 
     getCurrentId(): NodeId | null {
         return this.current?.id ?? null;
-    }
-
-    canRemove(node: NavigationNode): boolean {
-        return !node.isRoot() && !node.data.pinned;
     }
 
     clearCurrent(): void {

@@ -1,4 +1,3 @@
-import type { Element } from "../../shared/lib/eviction.js";
 import { NodeId, now, Timestamp } from "../../shared/types/ids.js";
 let nodeIdCounter = 0 as NodeId;
 
@@ -10,7 +9,7 @@ type iter = 'dfs' | 'bfs';
 const defaultIter: iter = 'dfs';
 
 
-export class TreeNode<T> implements Element {
+export class TreeNode<T> implements Timestamped {
     readonly id: NodeId;
     readonly timestamp: Timestamp;
     data: T;
@@ -151,3 +150,6 @@ export class TreeNode<T> implements Element {
     }
 
 }
+type Timestamped = {
+    timestamp: Timestamp;
+};

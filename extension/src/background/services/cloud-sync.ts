@@ -102,14 +102,10 @@ export function isNavigationTreeJSON(value: unknown): value is NavigationTreeJSO
   if (!isObject(value)) return false;
   if (!('root' in value)) return false;
   const currentNodeId = value.currentNodeId;
-  const capacity = value.capacity;
   const nodeCount = value.nodeCount;
   // currentNodeId is NodeId (branded number) or null, not string
   if (!(currentNodeId === null || typeof currentNodeId === 'number')) return false;
-  // capacity can be missing/null in old data, but nodeCount is required
   if (!Number.isFinite(nodeCount)) return false;
-  // If capacity is missing or null, we'll normalize it later; for now just check it's a number if present
-  if (capacity !== undefined && capacity !== null && !Number.isFinite(capacity)) return false;
   return true;
 }
 

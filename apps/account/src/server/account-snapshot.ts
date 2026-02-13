@@ -1,41 +1,5 @@
 import type { AccountConfig } from "@/src/server/extension-config";
-
-const DEFAULT_PLANS = [
-  {
-    id: "free",
-    name: "Free",
-    tier: "free",
-    priceMonthly: 0,
-    priceYearly: 0,
-    currency: "USD",
-    features: ["Basic navigation history", "Up to 3 trees", "Local-only data"],
-    limits: { maxTrees: 3, maxDevices: 1, maxHistoryDays: 7 },
-    rank: 0,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    tier: "pro",
-    priceMonthly: 8,
-    priceYearly: 72,
-    currency: "USD",
-    features: ["Unlimited trees", "Sync across devices", "Priority rendering"],
-    limits: { maxTrees: 999, maxDevices: 5, maxHistoryDays: 90 },
-    highlight: true,
-    rank: 1,
-  },
-  {
-    id: "teams",
-    name: "Teams",
-    tier: "teams",
-    priceMonthly: 16,
-    priceYearly: 144,
-    currency: "USD",
-    features: ["Shared workspaces", "Team analytics", "Admin controls"],
-    limits: { maxTrees: 999, maxDevices: 15, maxHistoryDays: 180 },
-    rank: 2,
-  },
-] as const;
+import { trailPlans, type TrailPlanDefinition } from "@trail/content";
 
 type AccountUser = {
   id: string;
@@ -73,7 +37,7 @@ type AccountSnapshot = {
   user: AccountUser | null;
   subscription: AccountSubscription | null;
   billing: { state: "none" };
-  plans: typeof DEFAULT_PLANS;
+  plans: readonly TrailPlanDefinition[];
   config: AccountConfig;
 };
 
@@ -115,7 +79,7 @@ export function buildAccountSnapshot({
       user: null,
       subscription: null,
       billing: { state: "none" },
-      plans: DEFAULT_PLANS,
+      plans: trailPlans,
       config,
     };
   }
@@ -129,11 +93,11 @@ export function buildAccountSnapshot({
     user: toAccountUser(user),
     subscription,
     billing: { state: "none" },
-    plans: DEFAULT_PLANS,
+    plans: trailPlans,
     config,
   };
 }
 
 export function listPlans() {
-  return DEFAULT_PLANS;
+  return trailPlans;
 }

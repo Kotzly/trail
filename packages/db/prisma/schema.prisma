@@ -331,4 +331,7 @@ model Trail {
   rootFavicon    String?
   payload        Json
   deletedAt      DateTime?
+
+  @@index([userId, deletedAt, updatedAt, id])
+  @@index([userId, updatedAt])
 }

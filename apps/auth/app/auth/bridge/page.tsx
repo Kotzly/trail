@@ -7,13 +7,34 @@ import { db } from "@trail/db";
 
 const CODE_TTL_MINUTES = 10;
 
+function toOrigin(value: string): string | null {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
 function parseAllowedOrigins(): Set<string> {
   const raw = env.BETTER_AUTH_TRUSTED_ORIGINS;
-  const entries = raw
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-  return new Set(entries);
+  const origins = new Set<string>();
+
+  for (const entry of raw.split(",").map((value) => value.trim())) {
+    if (!entry) {
+      continue;
+    }
+    const origin = toOrigin(entry);
+    if (origin) {
+      origins.add(origin);
+    }
+  }
+
+  const defaultOrigin = toOrigin(resolveDefaultReturnTo());
+  if (defaultOrigin) {
+    origins.add(defaultOrigin);
+  }
+
+  return origins;
 }
 
 function resolveDefaultReturnTo(): string {
@@ -32,7 +53,7 @@ function sanitizeReturnTo(raw: string | null): string {
   try {
     const url = new URL(raw);
     const allowedOrigins = parseAllowedOrigins();
-    if (allowedOrigins.size === 0 || allowedOrigins.has(url.origin)) {
+    if (allowedOrigins.has(url.origin)) {
       return url.toString();
     }
   } catch {
@@ -56,20 +77,8 @@ export default async function AuthBridgePage({
   const resolvedSearchParams = await searchParams;
   const returnToParam = resolvedSearchParams.returnTo ?? null;
   const headerList = await headers();
-  const cookieHeader = headerList.get("cookie") ?? "";
-  const cookieNames = cookieHeader
-    ? cookieHeader.split("; ").map((cookie) => cookie.split("=")[0])
-    : [];
   const session = await auth.api.getSession({
     headers: new Headers(headerList),
-  });
-  console.warn("[auth-bridge] cookies", {
-    count: cookieNames.length,
-    names: cookieNames,
-  });
-  console.warn("[auth-bridge] session", {
-    hasSession: Boolean(session?.user?.id),
-    userId: session?.user?.id ?? null,
   });
 
   if (!session?.user?.id) {
@@ -81,7 +90,6 @@ export default async function AuthBridgePage({
     headers: new Headers(headerList),
   });
   const token = tokenResponse?.token;
-  console.warn("[auth-bridge] token", { present: Boolean(token) });
 
   if (!token) {
     const returnTo = sanitizeReturnTo(returnToParam);

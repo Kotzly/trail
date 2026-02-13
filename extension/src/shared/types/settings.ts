@@ -61,8 +61,6 @@ export type TitleTruncation = 'start' | 'middle' | 'end';
 export type GraphDensity = 'compact' | 'comfortable' | 'spacious';
 
 export type Settings = {
-    maxOpenTabs: number;
-    capacity: number;
     theme: ThemeId;
     customTheme: CustomTheme;
     layout: LayoutSettings;

@@ -130,13 +130,7 @@ async function fetchTreeFromApi(treeId: string): Promise<TreeRecord | null> {
       return null;
     }
 
-    // Normalize payload: ensure capacity is a number (default to Infinity if missing/null)
-    const normalizedPayload: NavigationTreeJSON = {
-      ...payload,
-      capacity: typeof payload.capacity === 'number' && Number.isFinite(payload.capacity)
-        ? payload.capacity
-        : Infinity,
-    };
+    const normalizedPayload: NavigationTreeJSON = payload;
 
     const record: TreeRecord = {
       id: typeof data.id === 'string' ? (data.id as string) : treeId,
