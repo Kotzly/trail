@@ -137,14 +137,6 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
   // -------------------------------------------------------------------
 
   useEffect(() => {
-    if (
-      status !== "editing" &&
-      status !== "saving" &&
-      status !== "cancelling"
-    ) {
-      return;
-    }
-
     return () => {
       // Fire-and-forget: attempt to exit editor mode when navigating away.
       // The page may already be tearing down, but this gives the extension a
@@ -157,7 +149,7 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
         exitEditorMode().catch(() => {});
       }
     };
-  }, [status]);
+  }, []);
 
   // -------------------------------------------------------------------
   // Actions

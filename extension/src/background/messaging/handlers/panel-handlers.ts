@@ -80,10 +80,6 @@ async function enableAndOpenSidePanel(tabId: number): Promise<void> {
 
 export const panelHandlers = defineHandlers({
   async [MSG.OPEN_PANEL](_message, sender) {
-    // If the sidepanel is already alive, skip setOptions/open calls that could
-    // trigger a reload and cause a theme/layout flash.
-    if (isSidepanelAlive()) return ok();
-
     const tabId = sender.tab?.id;
     if (!tabId) return err("No tab ID");
 
