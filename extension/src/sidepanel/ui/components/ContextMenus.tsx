@@ -204,6 +204,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const tagDefsList = useStore((state) => state.tagDefsList);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
   const currentNodeId = useStore((state) => state.currentNodeId);
+  const editorActive = useStore((state) => state.editorMode.active);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
   const node = tree?.findNodeById(nodeId);
@@ -323,139 +324,144 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         }}
       >
         <div className="graph-context-menu-content">
-          <div
-            className="graph-context-menu-item"
-            onClick={() => {
-              void navigateTo(node);
-              closeContextMenu();
-            }}
-          >
-            Open in this tab
-          </div>
-          <div
-            className="graph-context-menu-item"
-            onClick={() => {
-              fireAndForget(msg.openInNewTab({ nodeId }));
-              closeContextMenu();
-            }}
-          >
-            Open in new tab
-          </div>
-
-      {hasOpenTab && (
-        <>
-          <div className="graph-context-menu-divider" />
-          <div className="graph-context-menu-header">
-            {tabs.length} open tab{tabs.length !== 1 ? "s" : ""}
-          </div>
-          <div
-            className="graph-context-tabs"
-            onMouseLeave={() => {
-              setHoverNodeId(null);
-            }}
-          >
-            {tabs.map((tab) => (
+          {!editorActive ? (
+            <>
               <div
-                key={tab.id}
-                className={`graph-context-tab-item${checkedTabId === tab.id ? ' is-checked' : ''}`}
-                onMouseEnter={() => {
-                  setHoverNodeId(nodeId);
-                }}
-                onMouseLeave={() => setHoverNodeId(null)}
-                onClick={async () => {
-                  if (!tab.id) return;
-                  setCheckedTabId(tab.id);
-                  if (checkTimeoutRef.current !== null) {
-                    window.clearTimeout(checkTimeoutRef.current);
-                  }
-                  checkTimeoutRef.current = window.setTimeout(() => {
-                    setCheckedTabId(null);
-                    checkTimeoutRef.current = null;
-                  }, 650);
-                  try {
-                    await chrome.tabs.update(tab.id, { active: true });
-                  } catch (error) {
-                    console.error('Failed to focus tab:', error);
-                  }
+                className="graph-context-menu-item"
+                onClick={() => {
+                  void navigateTo(node);
+                  closeContextMenu();
                 }}
               >
-                <div className="graph-context-tab-info">
-                  {tab.favIconUrl ? (
-                    <img className="graph-context-tab-favicon" src={tab.favIconUrl} alt="" />
-                  ) : null}
-                  <div className="graph-context-tab-text">
-                    <div className="graph-context-tab-title">{tab.title || 'Untitled tab'}</div>
-                    {tab.url ? (
-                      <div className="graph-context-tab-url">{tab.url}</div>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="graph-context-tab-actions">
-                  <span className="graph-context-tab-check" aria-hidden="true">
-                    <Icons.Check size={14} />
-                  </span>
-                  <button
-                    type="button"
-                    className="graph-context-tab-action"
-                    aria-label={tab.mutedInfo?.muted ? 'Unmute tab' : 'Mute tab'}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (!tab.id) return;
-                      fireAndForget(
-                        msg.toggleMute({ nodeId, tabId: tab.id as TabId }),
-                      );
-                      setTabs((prev) =>
-                        prev.map((item) =>
-                          item.id === tab.id
-                            ? {
-                                ...item,
-                                mutedInfo: {
-                                  muted: !item.mutedInfo?.muted,
-                                  reason: (item.mutedInfo?.reason as "user" | "capture" | "extension" | undefined) ?? undefined,
-                                },
-                              } as typeof item
-                            : item,
-                        )
-                      );
-                    }}
-                  >
-                    {tab.mutedInfo?.muted ? <Icons.VolumeX size={14} /> : <Icons.Volume2 size={14} />}
-                  </button>
-                  <button
-                    type="button"
-                    className="graph-context-tab-action danger"
-                    aria-label="Close tab"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (!tab.id) return;
-                      fireAndForget(msg.closeTab({ nodeId, tabId: tab.id as TabId }));
-                      setTabs((prev) => prev.filter((item) => item.id !== tab.id));
-                    }}
-                  >
-                    <Icons.X size={14} />
-                  </button>
-                </div>
+                Open in this tab
               </div>
-            ))}
-          </div>
-          <div
-            className="graph-context-menu-item"
-            onClick={() => {
-              if (tabs.length === 1 && tabs[0]?.id) {
-                fireAndForget(msg.closeTab({ nodeId, tabId: tabs[0].id as TabId }));
-                setTabs([]);
-              } else if (tabs.length > 1) {
-                fireAndForget(msg.bulkCloseTabs({ nodeIds: [nodeId] }));
-                setTabs([]);
-              }
-            }}
-          >
-            {tabs.length === 1 ? 'Close tab' : 'Close all tabs'}
-          </div>
-        </>
-      )}
+              <div
+                className="graph-context-menu-item"
+                onClick={() => {
+                  fireAndForget(msg.openInNewTab({ nodeId }));
+                  closeContextMenu();
+                }}
+              >
+                Open in new tab
+              </div>
 
-      <div className="graph-context-menu-divider" />
+              {hasOpenTab && (
+                <>
+                  <div className="graph-context-menu-divider" />
+                  <div className="graph-context-menu-header">
+                    {tabs.length} open tab{tabs.length !== 1 ? "s" : ""}
+                  </div>
+                  <div
+                    className="graph-context-tabs"
+                    onMouseLeave={() => {
+                      setHoverNodeId(null);
+                    }}
+                  >
+                    {tabs.map((tab) => (
+                      <div
+                        key={tab.id}
+                        className={`graph-context-tab-item${checkedTabId === tab.id ? ' is-checked' : ''}`}
+                        onMouseEnter={() => {
+                          setHoverNodeId(nodeId);
+                        }}
+                        onMouseLeave={() => setHoverNodeId(null)}
+                        onClick={async () => {
+                          if (!tab.id) return;
+                          setCheckedTabId(tab.id);
+                          if (checkTimeoutRef.current !== null) {
+                            window.clearTimeout(checkTimeoutRef.current);
+                          }
+                          checkTimeoutRef.current = window.setTimeout(() => {
+                            setCheckedTabId(null);
+                            checkTimeoutRef.current = null;
+                          }, 650);
+                          try {
+                            await chrome.tabs.update(tab.id, { active: true });
+                          } catch (error) {
+                            console.error('Failed to focus tab:', error);
+                          }
+                        }}
+                      >
+                        <div className="graph-context-tab-info">
+                          {tab.favIconUrl ? (
+                            <img className="graph-context-tab-favicon" src={tab.favIconUrl} alt="" />
+                          ) : null}
+                          <div className="graph-context-tab-text">
+                            <div className="graph-context-tab-title">{tab.title || 'Untitled tab'}</div>
+                            {tab.url ? (
+                              <div className="graph-context-tab-url">{tab.url}</div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="graph-context-tab-actions">
+                          <span className="graph-context-tab-check" aria-hidden="true">
+                            <Icons.Check size={14} />
+                          </span>
+                          <button
+                            type="button"
+                            className="graph-context-tab-action"
+                            aria-label={tab.mutedInfo?.muted ? 'Unmute tab' : 'Mute tab'}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (!tab.id) return;
+                              fireAndForget(
+                                msg.toggleMute({ nodeId, tabId: tab.id as TabId }),
+                              );
+                              setTabs((prev) =>
+                                prev.map((item) =>
+                                  item.id === tab.id
+                                    ? {
+                                        ...item,
+                                        mutedInfo: {
+                                          muted: !item.mutedInfo?.muted,
+                                          reason: (item.mutedInfo?.reason as "user" | "capture" | "extension" | undefined) ?? undefined,
+                                        },
+                                      } as typeof item
+                                    : item,
+                                )
+                              );
+                            }}
+                          >
+                            {tab.mutedInfo?.muted ? <Icons.VolumeX size={14} /> : <Icons.Volume2 size={14} />}
+                          </button>
+                          <button
+                            type="button"
+                            className="graph-context-tab-action danger"
+                            aria-label="Close tab"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (!tab.id) return;
+                              fireAndForget(msg.closeTab({ nodeId, tabId: tab.id as TabId }));
+                              setTabs((prev) => prev.filter((item) => item.id !== tab.id));
+                            }}
+                          >
+                            <Icons.X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div
+                    className="graph-context-menu-item"
+                    onClick={() => {
+                      if (tabs.length === 1 && tabs[0]?.id) {
+                        fireAndForget(msg.closeTab({ nodeId, tabId: tabs[0].id as TabId }));
+                        setTabs([]);
+                      } else if (tabs.length > 1) {
+                        fireAndForget(msg.bulkCloseTabs({ nodeIds: [nodeId] }));
+                        setTabs([]);
+                      }
+                    }}
+                  >
+                    {tabs.length === 1 ? 'Close tab' : 'Close all tabs'}
+                  </div>
+                </>
+              )}
+
+              <div className="graph-context-menu-divider" />
+            </>
+          ) : null}
+
       <div
         className="graph-context-menu-item"
         onClick={() => {
@@ -662,6 +668,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const tagDefsList = useStore((state) => state.tagDefsList);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
   const currentNodeId = useStore((state) => state.currentNodeId);
+  const editorActive = useStore((state) => state.editorMode.active);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
 
@@ -801,16 +808,18 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           })}
         </div>
       </div>
-      <div
-        className="graph-context-menu-item"
-        onClick={() => {
-          fireAndForget(msg.bulkCloseTabs({ nodeIds }));
-          clearSelection();
-          closeContextMenu();
-        }}
-      >
-        Close selected tabs
-      </div>
+      {!editorActive ? (
+        <div
+          className="graph-context-menu-item"
+          onClick={() => {
+            fireAndForget(msg.bulkCloseTabs({ nodeIds }));
+            clearSelection();
+            closeContextMenu();
+          }}
+        >
+          Close selected tabs
+        </div>
+      ) : null}
       <div className="graph-context-menu-divider" />
       <div
         className="graph-context-menu-item danger"

@@ -1,9 +1,19 @@
 import { useStore } from '../../state/store.js';
 import { shallow } from 'zustand/shallow';
 import GraphCanvas from './GraphCanvas.js';
+import type { GraphRenderMetrics } from '../../graph/render/GraphPixiRenderer.js';
+import {
+  createQualityPolicyState,
+  qualityPolicyFromState,
+  updateQualityPolicy,
+} from '../../graph/render/quality-policy.js';
 import React from 'react';
 
 export default function GraphArea() {
+  const [qualityPolicyState, setQualityPolicyState] = React.useState(() =>
+    createQualityPolicyState(Date.now()),
+  );
+
   const graphState = useStore(
     (state) => ({
       tree: state.tree,
@@ -23,7 +33,8 @@ export default function GraphArea() {
       },
       settings: state.settings,
       showConnections: state.settings?.showConnections ?? true,
-      detailMode: state.overlayEffects.lodCount > 0 ? ('dot' as const) : ('full' as const),
+      overlayLodCount: state.overlayEffects.lodCount,
+      adaptivePerformance: state.settings?.adaptivePerformance ?? true,
       graphView: state.graph.view,
       tool: state.graph.tool,
       selectedNodeIds: state.graph.selectedNodeIds,
@@ -36,6 +47,64 @@ export default function GraphArea() {
     }),
     shallow,
   );
+
+  const handleRenderMetrics = React.useCallback(
+    (metrics: GraphRenderMetrics) => {
+      if (!graphState.adaptivePerformance) {
+        setQualityPolicyState((prev) =>
+          prev.level === 'full' ? prev : createQualityPolicyState(Date.now()),
+        );
+        return;
+      }
+
+      const frameMs = metrics.updateVisibleMs + metrics.renderMs;
+      setQualityPolicyState((prev) => {
+        const { state: next, scoreMs } = updateQualityPolicy(
+          prev,
+          {
+            ...metrics,
+            frameMs,
+          },
+          Date.now(),
+        );
+
+        if (
+          typeof window !== 'undefined' &&
+          (window as { __TRAIL_GRAPH_POLICY_DEBUG?: boolean }).__TRAIL_GRAPH_POLICY_DEBUG
+        ) {
+          console.debug('[graph-policy]', {
+            scoreMs: Number(scoreMs.toFixed(2)),
+            frameMs: Number(frameMs.toFixed(2)),
+            level: next.level,
+            visibleNodes: metrics.visibleNodes,
+            visibleConnections: metrics.visibleConnections,
+          });
+        }
+
+        return next;
+      });
+    },
+    [graphState.adaptivePerformance],
+  );
+
+  const adaptiveQuality = React.useMemo(
+    () => qualityPolicyFromState(qualityPolicyState),
+    [qualityPolicyState],
+  );
+
+  const detailMode =
+    graphState.overlayLodCount > 0
+      ? ('dot' as const)
+      : graphState.adaptivePerformance
+        ? adaptiveQuality.detailMode
+        : ('full' as const);
+
+  const connectionQuality =
+    graphState.overlayLodCount > 0
+      ? ('thin' as const)
+      : graphState.adaptivePerformance
+        ? adaptiveQuality.connectionQuality
+        : ('full' as const);
 
   const graphActions = useStore(
     (state) => ({
@@ -52,5 +121,13 @@ export default function GraphArea() {
     shallow,
   );
 
-  return <GraphCanvas {...graphState} {...graphActions} />;
+  return (
+    <GraphCanvas
+      {...graphState}
+      {...graphActions}
+      detailMode={detailMode}
+      connectionQuality={connectionQuality}
+      onRenderMetrics={handleRenderMetrics}
+    />
+  );
 }

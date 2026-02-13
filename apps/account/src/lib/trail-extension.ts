@@ -30,6 +30,8 @@ export type SiteMessageType =
   | "OPEN_TRAIL_PANEL"
   | "ENTER_EDITOR_MODE"
   | "EXIT_EDITOR_MODE"
+  | "SAVE_EDITOR_MODE"
+  | "CANCEL_EDITOR_MODE"
   | "SELECT_NODE"
   | "UPDATE_NODE_METADATA"
   | "AUTH_REVOKED";
@@ -39,6 +41,8 @@ export type ExtensionMessageType =
   | "OPEN_TRAIL_PANEL_ACK"
   | "EDITOR_MODE_ENTERED"
   | "EDITOR_MODE_EXITED"
+  | "EDITOR_MODE_SAVED"
+  | "EDITOR_MODE_CANCELLED"
   | "NODE_SELECTED"
   | "NODE_METADATA_UPDATED"
   | "TREE_UPDATED";
@@ -57,6 +61,11 @@ export type EditorModeEnteredPayload = {
 export type NodeSelectedPayload = {
   nodeId: string;
   nodeData: unknown;
+};
+
+export type EditorModeActionAck = {
+  ok: boolean;
+  error?: string;
 };
 
 export type SendResult<T = Record<string, unknown>> =
@@ -180,6 +189,32 @@ async function sendWithRetry<T extends Record<string, unknown>>(
   };
 }
 
+function parseEditorModeActionResult(
+  result: SendResult<EditorModeActionAck & Record<string, unknown>>,
+  defaultError: string,
+): SendResult<EditorModeActionAck> {
+  if (!result.ok) {
+    return result;
+  }
+
+  const data = result.data as Record<string, unknown>;
+  if (data.ok !== true && data.ok !== false) {
+    return { ok: false, error: defaultError };
+  }
+
+  if (!data.ok) {
+    return {
+      ok: false,
+      error:
+        typeof data.error === "string" && data.error.trim().length > 0
+          ? data.error
+          : defaultError,
+    };
+  }
+
+  return { ok: true, data: { ok: true } };
+}
+
 // ---------------------------------------------------------------------------
 // Fire-and-forget
 // ---------------------------------------------------------------------------
@@ -249,13 +284,36 @@ export async function enterEditorMode(
   return { ok: true, data: result.data as EditorModeEnteredPayload };
 }
 
-/** Tell the extension to exit editor mode. */
+/**
+ * @deprecated Prefer `saveEditorMode` or `cancelEditorMode`.
+ * Kept for backwards compatibility with older UI flows.
+ */
 export function exitEditorMode(): Promise<SendResult<Record<string, unknown>>> {
   return sendWithRetry(
     "EXIT_EDITOR_MODE",
     {},
     "EDITOR_MODE_EXITED",
   );
+}
+
+/** Save the current editor session and exit editor mode on success. */
+export async function saveEditorMode(): Promise<SendResult<EditorModeActionAck>> {
+  const result = await sendWithRetry<EditorModeActionAck & Record<string, unknown>>(
+    "SAVE_EDITOR_MODE",
+    {},
+    "EDITOR_MODE_SAVED",
+  );
+  return parseEditorModeActionResult(result, "Failed to save editor session");
+}
+
+/** Cancel the current editor session and rollback to session snapshot. */
+export async function cancelEditorMode(): Promise<SendResult<EditorModeActionAck>> {
+  const result = await sendWithRetry<EditorModeActionAck & Record<string, unknown>>(
+    "CANCEL_EDITOR_MODE",
+    {},
+    "EDITOR_MODE_CANCELLED",
+  );
+  return parseEditorModeActionResult(result, "Failed to cancel editor session");
 }
 
 /** Select a node in the extension graph. */

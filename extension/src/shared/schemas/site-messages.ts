@@ -31,6 +31,8 @@ export const SiteMessageType = {
   OPEN_TRAIL_PANEL: "OPEN_TRAIL_PANEL",
   ENTER_EDITOR_MODE: "ENTER_EDITOR_MODE",
   EXIT_EDITOR_MODE: "EXIT_EDITOR_MODE",
+  SAVE_EDITOR_MODE: "SAVE_EDITOR_MODE",
+  CANCEL_EDITOR_MODE: "CANCEL_EDITOR_MODE",
   SELECT_NODE: "SELECT_NODE",
   UPDATE_NODE_METADATA: "UPDATE_NODE_METADATA",
   AUTH_REVOKED: "AUTH_REVOKED",
@@ -48,6 +50,8 @@ export const ExtensionMessageType = {
   OPEN_TRAIL_PANEL_ACK: "OPEN_TRAIL_PANEL_ACK",
   EDITOR_MODE_ENTERED: "EDITOR_MODE_ENTERED",
   EDITOR_MODE_EXITED: "EDITOR_MODE_EXITED",
+  EDITOR_MODE_SAVED: "EDITOR_MODE_SAVED",
+  EDITOR_MODE_CANCELLED: "EDITOR_MODE_CANCELLED",
   NODE_SELECTED: "NODE_SELECTED",
   NODE_METADATA_UPDATED: "NODE_METADATA_UPDATED",
   TREE_UPDATED: "TREE_UPDATED",
@@ -95,6 +99,14 @@ export const ExitEditorModeMessage = SiteMessageBase.extend({
   type: z.literal(SiteMessageType.EXIT_EDITOR_MODE),
 });
 
+export const SaveEditorModeMessage = SiteMessageBase.extend({
+  type: z.literal(SiteMessageType.SAVE_EDITOR_MODE),
+});
+
+export const CancelEditorModeMessage = SiteMessageBase.extend({
+  type: z.literal(SiteMessageType.CANCEL_EDITOR_MODE),
+});
+
 export const SelectNodeMessage = SiteMessageBase.extend({
   type: z.literal(SiteMessageType.SELECT_NODE),
   nodeId: z.string(),
@@ -118,6 +130,8 @@ export const SiteMessage = z.discriminatedUnion("type", [
   OpenTrailPanelMessage,
   EnterEditorModeMessage,
   ExitEditorModeMessage,
+  SaveEditorModeMessage,
+  CancelEditorModeMessage,
   SelectNodeMessage,
   UpdateNodeMetadataMessage,
   AuthRevokedMessage,
@@ -152,6 +166,18 @@ export const EditorModeExitedMessage = ExtensionMessageBase.extend({
   type: z.literal(ExtensionMessageType.EDITOR_MODE_EXITED),
 });
 
+export const EditorModeSavedMessage = ExtensionMessageBase.extend({
+  type: z.literal(ExtensionMessageType.EDITOR_MODE_SAVED),
+  ok: z.boolean(),
+  error: z.string().optional(),
+});
+
+export const EditorModeCancelledMessage = ExtensionMessageBase.extend({
+  type: z.literal(ExtensionMessageType.EDITOR_MODE_CANCELLED),
+  ok: z.boolean(),
+  error: z.string().optional(),
+});
+
 export const NodeSelectedMessage = ExtensionMessageBase.extend({
   type: z.literal(ExtensionMessageType.NODE_SELECTED),
   nodeId: z.string(),
@@ -175,6 +201,8 @@ export const ExtensionMessage = z.discriminatedUnion("type", [
   OpenTrailPanelAckMessage,
   EditorModeEnteredMessage,
   EditorModeExitedMessage,
+  EditorModeSavedMessage,
+  EditorModeCancelledMessage,
   NodeSelectedMessage,
   NodeMetadataUpdatedMessage,
   TreeUpdatedMessage,
@@ -192,11 +220,15 @@ export type OpenTrailPanelMessage = z.infer<typeof OpenTrailPanelMessage>;
 export type OpenTrailPanelAckMessage = z.infer<typeof OpenTrailPanelAckMessage>;
 export type EnterEditorModeMessage = z.infer<typeof EnterEditorModeMessage>;
 export type ExitEditorModeMessage = z.infer<typeof ExitEditorModeMessage>;
+export type SaveEditorModeMessage = z.infer<typeof SaveEditorModeMessage>;
+export type CancelEditorModeMessage = z.infer<typeof CancelEditorModeMessage>;
 export type SelectNodeMessage = z.infer<typeof SelectNodeMessage>;
 export type UpdateNodeMetadataMessage = z.infer<typeof UpdateNodeMetadataMessage>;
 export type AuthRevokedMessage = z.infer<typeof AuthRevokedMessage>;
 export type EditorModeEnteredMessage = z.infer<typeof EditorModeEnteredMessage>;
 export type EditorModeExitedMessage = z.infer<typeof EditorModeExitedMessage>;
+export type EditorModeSavedMessage = z.infer<typeof EditorModeSavedMessage>;
+export type EditorModeCancelledMessage = z.infer<typeof EditorModeCancelledMessage>;
 export type NodeSelectedMessage = z.infer<typeof NodeSelectedMessage>;
 export type NodeMetadataUpdatedMessage = z.infer<typeof NodeMetadataUpdatedMessage>;
 export type TreeUpdatedMessage = z.infer<typeof TreeUpdatedMessage>;

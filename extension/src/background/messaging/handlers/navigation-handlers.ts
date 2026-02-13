@@ -7,6 +7,7 @@ import { ok, err } from '../../../shared/types/messages.js';
 import { getActiveTab } from '../../tabs/lifecycle.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
+import { getEditorState } from './editor-handlers.js';
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
@@ -26,6 +27,17 @@ export const navigationHandlers = defineHandlers({
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
+
+    if (getEditorState().active) {
+      tree.setCurrentById(message.nodeId);
+      treeStorage.cacheTree(tree);
+      await notifyTreeUpdate(tree, 'set-current', {
+        focusNodeId: message.nodeId,
+        mode: 'force',
+      });
+      return ok();
+    }
+
     if (tabManager.openNodes().size === 0) {
       await syncOpenTabs();
     }
@@ -84,6 +96,10 @@ export const navigationHandlers = defineHandlers({
   },
 
   async [MSG.PREVIEW_NODE](message) {
+    if (getEditorState().active) {
+      return ok();
+    }
+
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
@@ -156,6 +172,16 @@ export const navigationHandlers = defineHandlers({
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
 
+    if (getEditorState().active) {
+      tree.setCurrentById(message.nodeId);
+      treeStorage.cacheTree(tree);
+      await notifyTreeUpdate(tree, 'set-current', {
+        focusNodeId: message.nodeId,
+        mode: 'force',
+      });
+      return ok();
+    }
+
     if (tabManager.openNodes().size === 0) {
       await syncOpenTabs();
     }
@@ -193,6 +219,10 @@ export const navigationHandlers = defineHandlers({
   },
 
   async [MSG.OPEN_IN_NEW_TAB](message) {
+    if (getEditorState().active) {
+      return ok();
+    }
+
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');

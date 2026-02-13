@@ -93,6 +93,7 @@ export const defaultSettings: Settings = {
     dimClosedNodes: true,
     confirmNewTree: true,
     shortcutsEnabled: true,
+    adaptivePerformance: true,
     onboardingSeen: false,
 };
 
@@ -145,6 +146,7 @@ function mergeDefaults(raw: unknown): Settings {
         dimClosedNodes: sanitized.dimClosedNodes ?? defaultSettings.dimClosedNodes,
         confirmNewTree: sanitized.confirmNewTree ?? defaultSettings.confirmNewTree,
         shortcutsEnabled: sanitized.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
+        adaptivePerformance: sanitized.adaptivePerformance ?? defaultSettings.adaptivePerformance,
         onboardingSeen: sanitized.onboardingSeen ?? defaultSettings.onboardingSeen,
     };
 }

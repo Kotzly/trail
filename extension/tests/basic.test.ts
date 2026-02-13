@@ -21,6 +21,13 @@ import {
   resolvePresetOverride,
 } from '../src/shared/config/backend.js';
 import { getFeatureAccess } from '../src/shared/lib/entitlements.js';
+import {
+  createQualityPolicyState,
+  updateQualityPolicy,
+} from '../src/sidepanel/ui/graph/render/quality-policy.js';
+import { decideViewInvalidation } from '../src/sidepanel/ui/graph/render/view-invalidation.js';
+import { MSG, msg } from '../src/shared/types/messages.js';
+import { ExtensionMessage, SiteMessage } from '../src/shared/schemas/site-messages.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -309,6 +316,132 @@ function testEntitlements(): void {
   assert.equal(teamAccess.requiredTier, 'teams');
 }
 
+function testQualityPolicyTransitions(): void {
+  let now = 1_000;
+  let state = createQualityPolicyState(now);
+
+  for (let i = 0; i < 30; i += 1) {
+    now += 100;
+    const next = updateQualityPolicy(
+      state,
+      {
+        frameMs: 36,
+        updateVisibleMs: 12,
+        connectionsMs: 8,
+        renderMs: 12,
+        visibleNodes: 1000,
+        visibleConnections: 1200,
+      },
+      now,
+    );
+    state = next.state;
+  }
+
+  assert.ok(state.level === 'low' || state.level === 'dot');
+
+  for (let i = 0; i < 90; i += 1) {
+    now += 120;
+    const next = updateQualityPolicy(
+      state,
+      {
+        frameMs: 10,
+        updateVisibleMs: 3,
+        connectionsMs: 2,
+        renderMs: 3,
+        visibleNodes: 120,
+        visibleConnections: 180,
+      },
+      now,
+    );
+    state = next.state;
+  }
+
+  assert.notEqual(state.level, 'dot');
+}
+
+function testViewInvalidationDecisions(): void {
+  const prev = { translateX: 0, translateY: 0, scale: 1 };
+  const cached = { minX: -200, minY: -200, maxX: 1000, maxY: 1000 };
+
+  const translateOnly = decideViewInvalidation({
+    prevView: prev,
+    nextView: { translateX: -20, translateY: -10, scale: 1 },
+    viewportWidth: 600,
+    viewportHeight: 400,
+    cachedCullingRect: cached,
+  });
+  assert.equal(translateOnly.decision, 'translate-only');
+
+  const scaled = decideViewInvalidation({
+    prevView: prev,
+    nextView: { translateX: -20, translateY: -10, scale: 1.1 },
+    viewportWidth: 600,
+    viewportHeight: 400,
+    cachedCullingRect: cached,
+  });
+  assert.equal(scaled.decision, 'full');
+
+  const outOfBounds = decideViewInvalidation({
+    prevView: prev,
+    nextView: { translateX: -2000, translateY: -1200, scale: 1 },
+    viewportWidth: 600,
+    viewportHeight: 400,
+    cachedCullingRect: cached,
+  });
+  assert.equal(outOfBounds.decision, 'full');
+}
+
+function testSetNodeLayoutBatchMessage(): void {
+  const request = msg.setNodeLayoutBatch({
+    layouts: [
+      { nodeId: 1 as NodeId, offsetX: 10, offsetY: -5 },
+      { nodeId: 2 as NodeId, radial: { angleDelta: 0.5, radiusDelta: 20 } },
+    ],
+  });
+
+  assert.equal(request.type, MSG.SET_NODE_LAYOUT_BATCH);
+  assert.equal(request.layouts.length, 2);
+}
+
+function testSaveCancelProtocolSchemas(): void {
+  const save = SiteMessage.parse({
+    source: 'trail-site',
+    type: 'SAVE_EDITOR_MODE',
+    requestId: '11111111-1111-4111-8111-111111111111',
+    timestamp: Date.now(),
+  });
+  assert.equal(save.type, 'SAVE_EDITOR_MODE');
+
+  const cancel = SiteMessage.parse({
+    source: 'trail-site',
+    type: 'CANCEL_EDITOR_MODE',
+    requestId: '22222222-2222-4222-8222-222222222222',
+    timestamp: Date.now(),
+  });
+  assert.equal(cancel.type, 'CANCEL_EDITOR_MODE');
+
+  const saveAck = ExtensionMessage.parse({
+    source: 'trail-extension',
+    type: 'EDITOR_MODE_SAVED',
+    requestId: '33333333-3333-4333-8333-333333333333',
+    timestamp: Date.now(),
+    ok: false,
+    error: 'sync failed',
+  });
+  assert.equal(saveAck.type, 'EDITOR_MODE_SAVED');
+  assert.equal(saveAck.ok, false);
+
+  const cancelAck = ExtensionMessage.parse({
+    source: 'trail-extension',
+    type: 'EDITOR_MODE_CANCELLED',
+    requestId: '44444444-4444-4444-8444-444444444444',
+    timestamp: Date.now(),
+    ok: true,
+  });
+  assert.equal(cancelAck.type, 'EDITOR_MODE_CANCELLED');
+  assert.equal(cancelAck.ok, true);
+}
+
 try {
   testNavigationTreeDeletion();
   testNavigationTreeDeleteMergesDuplicateReparentedNodes();
@@ -323,6 +456,10 @@ try {
   testBackendLocalPresetOverride();
   testBackendUnknownPresetOverride();
   testEntitlements();
+  testQualityPolicyTransitions();
+  testViewInvalidationDecisions();
+  testSetNodeLayoutBatchMessage();
+  testSaveCancelProtocolSchemas();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);

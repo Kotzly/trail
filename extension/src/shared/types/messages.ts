@@ -51,6 +51,7 @@ export const MSG = {
     BULK_DELETE_NODES: 'BULK_DELETE_NODES',
     BULK_DELETE_RECURSIVE: 'BULK_DELETE_RECURSIVE',
     SET_NODE_LAYOUT: 'SET_NODE_LAYOUT',
+    SET_NODE_LAYOUT_BATCH: 'SET_NODE_LAYOUT_BATCH',
     RESET_NODE_LAYOUTS: 'RESET_NODE_LAYOUTS',
     ENTER_EDITOR_MODE: 'ENTER_EDITOR_MODE',
     EXIT_EDITOR_MODE: 'EXIT_EDITOR_MODE',
@@ -147,7 +148,7 @@ export type BulkUnpinMessage = RequestMessageBase<typeof MSG.BULK_UNPIN, BulkNod
 export type AddTagMessage = RequestMessageBase<typeof MSG.ADD_TAG, TagMessageInput>;
 export type RemoveTagMessage = RequestMessageBase<typeof MSG.REMOVE_TAG, TagMessageInput>;
 
-export type SetNodeLayoutMessage = RequestMessageBase<typeof MSG.SET_NODE_LAYOUT, {
+export type NodeLayoutInput = {
   nodeId: NodeId;
   offsetX?: number;
   offsetY?: number;
@@ -155,6 +156,11 @@ export type SetNodeLayoutMessage = RequestMessageBase<typeof MSG.SET_NODE_LAYOUT
     angleDelta: number;
     radiusDelta: number;
   };
+};
+
+export type SetNodeLayoutMessage = RequestMessageBase<typeof MSG.SET_NODE_LAYOUT, NodeLayoutInput>;
+export type SetNodeLayoutBatchMessage = RequestMessageBase<typeof MSG.SET_NODE_LAYOUT_BATCH, {
+  layouts: NodeLayoutInput[];
 }>;
 export type ResetNodeLayoutsMessage = RequestMessageBase<typeof MSG.RESET_NODE_LAYOUTS>;
 
@@ -213,7 +219,7 @@ export type RequestMessage = NavigateToMessage |
     AddTagMessage | RemoveTagMessage |
     DeleteNodeMessage | DeleteChildrenMessage | DeleteWithChildrenMessage |
     BulkDeleteMessage | BulkDeleteNodesMessage | BulkDeleteRecursiveMessage |
-    SetNodeLayoutMessage | ResetNodeLayoutsMessage |
+    SetNodeLayoutMessage | SetNodeLayoutBatchMessage | ResetNodeLayoutsMessage |
     EnterEditorModeMessage | ExitEditorModeMessage |
     ReparentNodeMessage | DuplicateSubtreeMessage |
     SyncStatusUpdatedMessage | EditorSyncRetryMessage |
@@ -281,6 +287,7 @@ export type ResponseDataByType = {
     [MSG.BULK_DELETE_NODES]: void;
     [MSG.BULK_DELETE_RECURSIVE]: void;
     [MSG.SET_NODE_LAYOUT]: void;
+    [MSG.SET_NODE_LAYOUT_BATCH]: void;
     [MSG.RESET_NODE_LAYOUTS]: void;
     [MSG.ENTER_EDITOR_MODE]: EditorModeState;
     [MSG.EXIT_EDITOR_MODE]: EditorModeState;
@@ -369,6 +376,9 @@ export const msg = {
         radial?: { angleDelta: number; radiusDelta: number };
     }): SetNodeLayoutMessage {
         return { type: MSG.SET_NODE_LAYOUT, ...payload };
+    },
+    setNodeLayoutBatch(payload: { layouts: NodeLayoutInput[] }): SetNodeLayoutBatchMessage {
+        return { type: MSG.SET_NODE_LAYOUT_BATCH, ...payload };
     },
     resetNodeLayouts(): ResetNodeLayoutsMessage {
         return { type: MSG.RESET_NODE_LAYOUTS };

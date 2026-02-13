@@ -5,6 +5,7 @@ import { notifyTreeUpdate } from '../notifications.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { ok, err } from '../../../shared/types/messages.js';
 import { NavigationTree } from '../../state/nav-tree.js';
+import { getEditorState } from './editor-handlers.js';
 
 
 
@@ -28,6 +29,10 @@ export const tabHandlers = defineHandlers({
   },
 
   async [MSG.TOGGLE_MUTE](message) {
+    if (getEditorState().active) {
+      return ok();
+    }
+
     const { nodeId, tabId } = message;
 
     const tabsForNode = tabManager.tabsByNode(nodeId);
@@ -44,6 +49,10 @@ export const tabHandlers = defineHandlers({
   },
 
   async [MSG.CLOSE_TAB](message) {
+    if (getEditorState().active) {
+      return ok();
+    }
+
     const { nodeId, tabId } = message;
     const tabsForNode = tabManager.tabsByNode(nodeId);
     if (!tabsForNode?.has(tabId)) return err('Tab not found');
@@ -60,6 +69,10 @@ export const tabHandlers = defineHandlers({
   },
 
   async [MSG.BULK_CLOSE_TABS](message) {
+    if (getEditorState().active) {
+      return ok();
+    }
+
     const tree = await treeStorage.getOrCreateTree();
     const { nodeIds } = message;
     nodeIds.forEach(async (nodeId) => {

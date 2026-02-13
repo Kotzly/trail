@@ -77,5 +77,6 @@ export type Settings = {
     dimClosedNodes: boolean;
     confirmNewTree: boolean;
     shortcutsEnabled: boolean;
+    adaptivePerformance: boolean;
     onboardingSeen: boolean;
 }

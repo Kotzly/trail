@@ -15,7 +15,13 @@ import {
 } from "../../../shared/types/messages.js";
 import { defineHandlers } from "../../../shared/types/messages.js";
 import type { SiteMessageForwardMessage } from "../../../shared/types/messages.js";
-import { getEditorState, enterEditorMode, exitEditorMode } from "./editor-handlers.js";
+import {
+  getEditorState,
+  enterEditorMode,
+  exitEditorMode,
+  saveEditorMode,
+  cancelEditorMode,
+} from "./editor-handlers.js";
 
 // ---------------------------------------------------------------------------
 // Auth state helpers (reads from chrome.storage, same key as cloud-sync)
@@ -122,6 +128,30 @@ const innerHandlers: Record<string, InnerHandler> = {
         source: "trail-extension",
         type: "EDITOR_MODE_EXITED",
         editorMode: result.active,
+      },
+    };
+  },
+
+  SAVE_EDITOR_MODE: async (_payload, _requestId) => {
+    const result = await saveEditorMode();
+    return {
+      responsePayload: {
+        source: "trail-extension",
+        type: "EDITOR_MODE_SAVED",
+        ok: result.ok,
+        ...(result.ok ? {} : { error: result.error }),
+      },
+    };
+  },
+
+  CANCEL_EDITOR_MODE: async (_payload, _requestId) => {
+    const result = await cancelEditorMode();
+    return {
+      responsePayload: {
+        source: "trail-extension",
+        type: "EDITOR_MODE_CANCELLED",
+        ok: result.ok,
+        ...(result.ok ? {} : { error: result.error }),
       },
     };
   },

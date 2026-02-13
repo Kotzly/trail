@@ -3,6 +3,7 @@ import type { NodeId, TabId } from "../../shared/types/ids.js";
 import {
   msg,
   type BeginTempSelectionInput,
+  type NodeLayoutInput,
   type TempSelectionSessionId,
   type TreeUpdatedInput,
   type TreesSnapshot,
@@ -115,6 +116,12 @@ export async function setNodeLayout(
   }
 ): Promise<void> {
     const res = await sendMessage(msg.setNodeLayout({ nodeId, ...layout }));
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}
+
+export async function setNodeLayoutBatch(layouts: NodeLayoutInput[]): Promise<void> {
+    const res = await sendMessage(msg.setNodeLayoutBatch({ layouts }));
     if (!res.success) throw new Error(res.error);
     return res.data;
 }

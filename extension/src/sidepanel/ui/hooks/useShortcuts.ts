@@ -26,6 +26,8 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
       const shortcutsEnabled = state.settings?.shortcutsEnabled ?? true;
       if (!shortcutsEnabled) return;
 
+      const editorActive = state.editorMode.active;
+
       const isMac = state.isMac;
       const metaKey = isMac ? event.metaKey : event.ctrlKey;
       const key = event.key;
@@ -290,6 +292,10 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
 
       if (!metaKey && !event.altKey && !event.ctrlKey) {
         if (event.shiftKey && lower === 'p') {
+          if (editorActive) {
+            event.preventDefault();
+            return;
+          }
           event.preventDefault();
           togglePopup('pinnedOpen');
           return;
@@ -300,6 +306,10 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
           return;
         }
         if (event.shiftKey && lower === 'f') {
+          if (editorActive) {
+            event.preventDefault();
+            return;
+          }
           event.preventDefault();
           togglePopup('tagFilterOpen');
           return;
@@ -324,6 +334,10 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
         }
 
         if (key === 'Enter') {
+          if (editorActive) {
+            event.preventDefault();
+            return;
+          }
           event.preventDefault();
           await openNodes(getTargetNodeIds());
           return;
@@ -358,6 +372,10 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
       }
 
       if (metaKey && key === 'Enter') {
+        if (editorActive) {
+          event.preventDefault();
+          return;
+        }
         event.preventDefault();
         openNodesInNewTabs(getTargetNodeIds());
       }

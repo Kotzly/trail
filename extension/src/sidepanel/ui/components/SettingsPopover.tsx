@@ -243,6 +243,22 @@ export default function SettingsDropdown() {
 
           <hr className="settings-hr" />
 
+          <label className="settings-section settings-row" htmlFor="adaptive-performance-toggle">
+            <div className="settings-label">adaptive performance</div>
+            <div className="settings-toggle-switch">
+              <input
+                id="adaptive-performance-toggle"
+                className="settings-toggle-input"
+                type="checkbox"
+                checked={settings?.adaptivePerformance ?? true}
+                onChange={(e) => updateSettings({ adaptivePerformance: e.target.checked })}
+              />
+              <span className="settings-toggle-control" aria-hidden="true" />
+            </div>
+          </label>
+
+          <hr className="settings-hr" />
+
           {/* truncation */}
           <div className="settings-section">
             <div className="settings-label">title truncation</div>

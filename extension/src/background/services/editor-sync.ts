@@ -18,12 +18,16 @@ const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
 const SYNC_DEBOUNCE_MS = 3000;
 const RETRY_BACKOFFS = [2000, 4000, 8000] as const;
 
+export type EditorSyncFlushResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
 type SyncState = {
   treeId: string | null;
   dirty: boolean;
   status: SyncStatus;
   timer: ReturnType<typeof setTimeout> | null;
-  inFlight: Promise<void> | null;
+  inFlight: Promise<EditorSyncFlushResult> | null;
   retryCount: number;
 };
 
@@ -56,14 +60,20 @@ async function getAccessToken(): Promise<string | null> {
   return typeof raw.accessToken === 'string' && raw.accessToken ? raw.accessToken : null;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /* ------------------------------------------------------------------ */
 /*  Core sync logic                                                    */
 /* ------------------------------------------------------------------ */
 
-async function patchTree(treeId: string): Promise<boolean> {
+async function patchTree(treeId: string): Promise<EditorSyncFlushResult> {
   await initBackendConfig();
   const token = await getAccessToken();
-  if (!token) return false;
+  if (!token) {
+    return { ok: false, error: 'Missing auth token' };
+  }
 
   const tree = await treeStorage.getOrCreateTree();
   const json = NavigationTreeMapper.toJSON(tree);
@@ -94,8 +104,9 @@ async function patchTree(treeId: string): Promise<boolean> {
     });
 
     if (!response.ok) {
-      console.warn(`EditorSync: PATCH /trails/${treeId} failed with ${response.status}`);
-      return false;
+      const error = `PATCH /trails/${treeId} failed with ${response.status}`;
+      console.warn(`EditorSync: ${error}`);
+      return { ok: false, error };
     }
 
     // Update the LRU cache with the freshly synced data
@@ -106,27 +117,32 @@ async function patchTree(treeId: string): Promise<boolean> {
       await treeStorage.updateArchivedTree(treeId, tree, savedAt);
     }
 
-    return true;
+    return { ok: true };
   } catch (error) {
     console.warn('EditorSync: network error during PATCH', error);
-    return false;
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Network error during PATCH',
+    };
   } finally {
     clearTimeout(timeout);
   }
 }
 
-async function performSync(): Promise<void> {
+async function performSync(): Promise<EditorSyncFlushResult> {
   const { treeId } = state;
-  if (!treeId) return;
+  if (!treeId) {
+    return { ok: false, error: 'Editor sync is not active' };
+  }
 
   broadcastStatus('saving');
 
-  const ok = await patchTree(treeId);
-  if (ok) {
+  const result = await patchTree(treeId);
+  if (result.ok) {
     state.dirty = false;
     state.retryCount = 0;
     broadcastStatus('saved');
-    return;
+    return result;
   }
 
   // Retry with backoff
@@ -135,11 +151,36 @@ async function performSync(): Promise<void> {
     state.retryCount += 1;
     broadcastStatus('saving');
     scheduleSync(delay);
-    return;
+    return result;
   }
 
   // All retries exhausted
   broadcastStatus('error');
+  return result;
+}
+
+async function flushSyncWithRetries(treeId: string): Promise<EditorSyncFlushResult> {
+  broadcastStatus('saving');
+  let lastError = 'Editor sync failed';
+
+  for (let attempt = 0; attempt <= RETRY_BACKOFFS.length; attempt += 1) {
+    const result = await patchTree(treeId);
+    if (result.ok) {
+      state.dirty = false;
+      state.retryCount = 0;
+      broadcastStatus('saved');
+      return result;
+    }
+
+    lastError = result.error;
+    if (attempt < RETRY_BACKOFFS.length) {
+      await sleep(RETRY_BACKOFFS[attempt]!);
+    }
+  }
+
+  state.retryCount = RETRY_BACKOFFS.length;
+  broadcastStatus('error');
+  return { ok: false, error: lastError };
 }
 
 /* ------------------------------------------------------------------ */
@@ -196,19 +237,24 @@ export function editorSyncMarkDirty(): void {
  * Force an immediate sync if dirty. Returns when complete.
  * Used on editor exit to ensure no data loss.
  */
-export async function editorSyncFlush(): Promise<void> {
+export async function editorSyncFlush(): Promise<EditorSyncFlushResult> {
   clearTimer();
-  if (!state.treeId || !state.dirty) return;
+  if (!state.treeId || !state.dirty) {
+    return { ok: true };
+  }
 
   // Wait for any in-flight sync to finish first
   if (state.inFlight) {
     await state.inFlight;
   }
 
-  // If still dirty after in-flight finished, sync now
-  if (state.dirty && state.treeId) {
-    await performSync();
+  clearTimer();
+
+  if (!state.treeId || !state.dirty) {
+    return { ok: true };
   }
+
+  return flushSyncWithRetries(state.treeId);
 }
 
 /**

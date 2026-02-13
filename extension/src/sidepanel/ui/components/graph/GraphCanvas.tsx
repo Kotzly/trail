@@ -11,7 +11,7 @@ import type { TabState } from '../../../../shared/types/tabs.js';
 import type { TreeUpdatedInput } from '../../../../shared/types/messages.js';
 import type { TagDefinition } from '../../../../shared/types/tags.js';
 import type { NavigationTree } from '../../../../background/state/nav-tree.js';
-import { navigateTo, setNodeLayout, reparentNode } from '../../../api/tree.js';
+import { navigateTo, setNodeLayoutBatch, reparentNode } from '../../../api/tree.js';
 import { msg } from '../../../../shared/types/messages.js';
 import { fireAndForget } from '../../../api/background.js';
 import { PADDING } from '../../graph/layout/config.js';
@@ -26,7 +26,11 @@ import type { CanvasBounds, LayoutMode, NodePosition, ViewState } from '../../gr
 import { createAnimationSpec, easeOutCubic, getAnimationProgress, lerp } from '../../graph/animation-utils.js';
 import GraphZoomControls from './GraphZoomControls.js';
 import { buildConnections, getPathToNode } from './graph-utils.js';
-import { GraphPixiRenderer } from '../../graph/render/GraphPixiRenderer.js';
+import {
+  GraphPixiRenderer,
+  type ConnectionQuality,
+  type GraphRenderMetrics,
+} from '../../graph/render/GraphPixiRenderer.js';
 import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
 import { computeGraphGridTransform } from './grid-transform.js';
 import React from 'react';
@@ -119,6 +123,7 @@ type GraphCanvasProps = {
   settings: Settings | null;
   showConnections: boolean;
   detailMode: 'full' | 'low' | 'dot';
+  connectionQuality: ConnectionQuality;
   graphView: ViewState;
   tool: GraphTool;
   selectedNodeIds: Set<NodeId>;
@@ -134,6 +139,7 @@ type GraphCanvasProps = {
   onOpenContextMenu: (menu: ContextMenuState) => void;
   onClearViewIntent: () => void;
   onExpandNodes: (nodeIds: NodeId[]) => void;
+  onRenderMetrics: (metrics: GraphRenderMetrics) => void;
   editorActive: boolean;
   pickTarget: { type: 'duplicate'; sourceNodeId: NodeId } | null;
   onPickTargetComplete: () => void;
@@ -247,6 +253,7 @@ export default function GraphCanvas({
   settings,
   showConnections,
   detailMode,
+  connectionQuality,
   graphView,
   tool,
   selectedNodeIds,
@@ -262,13 +269,14 @@ export default function GraphCanvas({
   onOpenContextMenu,
   onClearViewIntent,
   onExpandNodes,
+  onRenderMetrics,
   editorActive,
   pickTarget,
   onPickTargetComplete,
 }: GraphCanvasProps) {
   const searchActive = search.active;
   const searchNavStep = search.navStep;
-  const effectiveShowConnections = showConnections && detailMode === 'full';
+  const effectiveShowConnections = showConnections;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const pixiHostRef = useRef<HTMLDivElement | null>(null);
@@ -585,8 +593,11 @@ export default function GraphCanvas({
     rendererRef.current = renderer;
     renderer.setView(viewRef.current);
     renderer.setDetailMode(detailMode);
+    renderer.setConnectionQuality(connectionQuality);
+    renderer.setMetricsListener(onRenderMetrics);
     applyGridTransform(viewRef.current);
     return () => {
+      renderer.setMetricsListener(null);
       renderer.destroy();
       rendererRef.current = null;
     };
@@ -623,9 +634,12 @@ export default function GraphCanvas({
 
   const flushLayoutUpdates = useCallback(async (updates: LayoutUpdateMap) => {
     try {
-      for (const [nodeId, layout] of updates) {
-        await setNodeLayout(nodeId, layout);
-      }
+      await setNodeLayoutBatch(
+        Array.from(updates.entries()).map(([nodeId, layout]) => ({
+          nodeId,
+          ...layout,
+        })),
+      );
     } catch (error) {
       console.error('Failed to save node position:', error);
     }
@@ -1226,14 +1240,20 @@ export default function GraphCanvas({
       return;
     }
 
-    onClearSelection();
     if (tool !== 'select') return;
+
+    if (editorActive) {
+      onSelectedNodeIdsChange(new Set([node.id]));
+      return;
+    }
+
+    onClearSelection();
     try {
       await navigateTo(node);
     } catch (error) {
       console.error('Failed to navigate:', error);
     }
-  }, [onClearSelection, tool]);
+  }, [editorActive, onClearSelection, onPickTargetComplete, onSelectedNodeIdsChange, pickTarget, tool]);
 
   const handleNodePointerDown = useCallback((node: NavigationNode, info: PointerInfo) => {
     if (info.button !== 0) return;
@@ -1746,6 +1766,7 @@ export default function GraphCanvas({
     rendererRef.current?.setData({
       nodes: renderNodes,
       connections,
+      layoutMode: layoutOptions.mode,
       nodeWidth,
       nodeHeight,
       showConnections: effectiveShowConnections,
@@ -1754,6 +1775,7 @@ export default function GraphCanvas({
   }, [
     connections,
     effectiveShowConnections,
+    layoutOptions.mode,
     nodeHeight,
     nodeWidth,
     particleRenderModels,
@@ -1764,6 +1786,14 @@ export default function GraphCanvas({
   useEffect(() => {
     rendererRef.current?.setDetailMode(detailMode);
   }, [detailMode]);
+
+  useEffect(() => {
+    rendererRef.current?.setConnectionQuality(connectionQuality);
+  }, [connectionQuality]);
+
+  useEffect(() => {
+    rendererRef.current?.setMetricsListener(onRenderMetrics);
+  }, [onRenderMetrics]);
 
   const getFitToViewView = useCallback(() => {
     const wrapper = wrapperRef.current;

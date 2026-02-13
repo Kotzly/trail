@@ -17,6 +17,7 @@ type FloatingControlsProps = {
 export default function FloatingControls({ searchInputRef }: FloatingControlsProps) {
   const commandState = useStore((state) => state.commandState);
   const metaKey = useStore((state) => state.metaKey);
+  const editorActive = useStore((state) => state.editorMode.active);
   const setCommandState = useStore((state) => state.setCommandState);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [controlsCompact, setControlsCompact] = useState(false);
@@ -120,9 +121,9 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
         </div>
 
         <div className="floating-island">
-          <PinnedDropdown />
+          {!editorActive ? <PinnedDropdown /> : null}
           <TreeDropdown />
-          <TagFilterDropdown />
+          {!editorActive ? <TagFilterDropdown /> : null}
         </div>
       </div>
 

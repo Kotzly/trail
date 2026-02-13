@@ -31,6 +31,13 @@ import type { Url, Title, FaviconUrl } from '../../../shared/types/ids.js';
 
 let editorState: EditorModeState = { active: false, treeId: null };
 
+type EditorSessionSnapshot = {
+  treeId: string;
+  tree: NavigationTreeJSON;
+};
+
+let editorSessionSnapshot: EditorSessionSnapshot | null = null;
+
 export function getEditorState(): EditorModeState {
   return editorState;
 }
@@ -58,6 +65,13 @@ function parseIsoTimestamp(value: unknown): number {
   if (typeof value !== 'string') return Date.now();
   const ts = Date.parse(value);
   return Number.isFinite(ts) ? ts : Date.now();
+}
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+  return fallback;
 }
 
 /**
@@ -281,11 +295,16 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
   }
 
   if (!treeJSON) {
+    editorSessionSnapshot = null;
     return 'Tree not found in local archives, cache, or API';
   }
 
   // Load the tree for editing
   const tree = NavigationTreeMapper.fromJSON(treeJSON);
+  editorSessionSnapshot = {
+    treeId,
+    tree: NavigationTreeMapper.toJSON(tree),
+  };
 
   // Save snapshot before entering editor mode
   const currentTree = await treeStorage.getOrCreateTree();
@@ -318,16 +337,14 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
   return editorState;
 }
 
-export async function exitEditorMode(): Promise<EditorModeState> {
-  if (!editorState.active) {
-    return editorState;
-  }
+export type EditorModeActionResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
-  // Flush any pending cloud sync before exiting
-  await editorSyncFlush();
-  editorSyncStop();
-
+async function finalizeEditorExit(): Promise<EditorModeState> {
   const wasEditingNonActive = treeStorage.isEditingNonActiveTree;
+
+  editorSyncStop();
 
   // Restore the real active tree from chrome.storage if we were editing
   // a non-active (archived) tree so the UI sees the correct tree.
@@ -337,6 +354,7 @@ export async function exitEditorMode(): Promise<EditorModeState> {
   }
 
   editorState = { active: false, treeId: null };
+  editorSessionSnapshot = null;
   CommandManager.clearHistory();
 
   const tree = await treeStorage.getOrCreateTree();
@@ -356,6 +374,64 @@ export async function exitEditorMode(): Promise<EditorModeState> {
   return editorState;
 }
 
+export async function saveEditorMode(): Promise<EditorModeActionResult> {
+  if (!editorState.active) {
+    return { ok: true };
+  }
+
+  const result = await editorSyncFlush();
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
+
+  await finalizeEditorExit();
+  return { ok: true };
+}
+
+export async function cancelEditorMode(): Promise<EditorModeActionResult> {
+  if (!editorState.active) {
+    return { ok: true };
+  }
+
+  if (!editorSessionSnapshot || editorSessionSnapshot.treeId !== editorState.treeId) {
+    return {
+      ok: false,
+      error: 'Editor session snapshot is missing',
+    };
+  }
+
+  try {
+    const snapshotTree = NavigationTreeMapper.fromJSON(editorSessionSnapshot.tree);
+    treeStorage.cacheTree(snapshotTree);
+
+    // Force one sync pass so rollback is persisted to API/archive.
+    editorSyncMarkDirty();
+    const result = await editorSyncFlush();
+    if (!result.ok) {
+      return { ok: false, error: result.error };
+    }
+
+    await finalizeEditorExit();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: toErrorMessage(error, 'Failed to rollback editor session'),
+    };
+  }
+}
+
+/**
+ * @deprecated Prefer saveEditorMode/cancelEditorMode.
+ */
+export async function exitEditorMode(): Promise<EditorModeState> {
+  const result = await saveEditorMode();
+  if (!result.ok) {
+    console.warn('[editor] exitEditorMode failed:', result.error);
+  }
+  return editorState;
+}
+
 export const editorHandlers = defineHandlers({
   async [MSG.ENTER_EDITOR_MODE](message) {
     const result = await enterEditorMode(message.treeId);
@@ -363,7 +439,11 @@ export const editorHandlers = defineHandlers({
   },
 
   async [MSG.EXIT_EDITOR_MODE]() {
-    return ok(await exitEditorMode());
+    const result = await saveEditorMode();
+    if (!result.ok) {
+      return err(result.error);
+    }
+    return ok(editorState);
   },
 
   async [MSG.REPARENT_NODE](message) {

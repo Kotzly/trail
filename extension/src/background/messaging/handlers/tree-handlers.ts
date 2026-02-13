@@ -433,6 +433,50 @@ export const treeHandlers = defineHandlers({
     // full re-render and stale intermediate positions arriving after drag
     // ends produce a visible double-move glitch.
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
+    return ok();
+  },
+
+  async [MSG.SET_NODE_LAYOUT_BATCH](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    let changed = false;
+
+    for (const layoutUpdate of message.layouts) {
+      const node = tree.findNodeById(layoutUpdate.nodeId);
+      if (!node) continue;
+
+      const hasChanges =
+        typeof layoutUpdate.offsetX === 'number' ||
+        typeof layoutUpdate.offsetY === 'number' ||
+        typeof layoutUpdate.radial !== 'undefined';
+      if (!hasChanges) continue;
+
+      const existingLayout = node.data.layout ?? { offsetX: 0, offsetY: 0 };
+      const nextLayout = {
+        offsetX:
+          typeof layoutUpdate.offsetX === 'number'
+            ? layoutUpdate.offsetX
+            : existingLayout.offsetX,
+        offsetY:
+          typeof layoutUpdate.offsetY === 'number'
+            ? layoutUpdate.offsetY
+            : existingLayout.offsetY,
+        ...(layoutUpdate.radial
+          ? { radial: layoutUpdate.radial }
+          : existingLayout.radial
+            ? { radial: existingLayout.radial }
+            : {}),
+      };
+
+      node.data = updateNodeData(node.data, { layout: nextLayout });
+      changed = true;
+    }
+
+    if (!changed) return ok();
+
+    // Keep drag updates silent to avoid extra TREE_UPDATED churn during pan/drag.
+    treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     return ok();
   },
 

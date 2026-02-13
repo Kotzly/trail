@@ -6,6 +6,8 @@ import {
   ping,
   enterEditorMode,
   exitEditorMode,
+  saveEditorMode,
+  cancelEditorMode,
   onExtensionEvent,
   type SendResult,
   type PongPayload,
@@ -18,7 +20,8 @@ type ExtensionStatus =
   | "ready"
   | "entering"
   | "editing"
-  | "exiting"
+  | "saving"
+  | "cancelling"
   | "error";
 
 export default function EditInExtensionButton({ trailId }: { trailId: string }) {
@@ -79,7 +82,13 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
   // -------------------------------------------------------------------
 
   useEffect(() => {
-    if (status !== "editing") return;
+    if (
+      status !== "editing" &&
+      status !== "saving" &&
+      status !== "cancelling"
+    ) {
+      return;
+    }
 
     const handleFocus = async () => {
       const result = await ping();
@@ -107,7 +116,13 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
   // -------------------------------------------------------------------
 
   useEffect(() => {
-    if (status !== "editing") return;
+    if (
+      status !== "editing" &&
+      status !== "saving" &&
+      status !== "cancelling"
+    ) {
+      return;
+    }
 
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -122,13 +137,23 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
   // -------------------------------------------------------------------
 
   useEffect(() => {
-    if (status !== "editing") return;
+    if (
+      status !== "editing" &&
+      status !== "saving" &&
+      status !== "cancelling"
+    ) {
+      return;
+    }
 
     return () => {
       // Fire-and-forget: attempt to exit editor mode when navigating away.
       // The page may already be tearing down, but this gives the extension a
       // chance to clean up.
-      if (statusRef.current === "editing") {
+      if (
+        statusRef.current === "editing" ||
+        statusRef.current === "saving" ||
+        statusRef.current === "cancelling"
+      ) {
         exitEditorMode().catch(() => {});
       }
     };
@@ -153,17 +178,34 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
     setStatus("editing");
   };
 
-  const handleExit = async () => {
-    setStatus("exiting");
-    const result = await exitEditorMode();
-    if (result.ok) {
-      setStatus("ready");
-      // Refresh server data so the page reflects changes made in the editor
-      router.refresh();
-    } else {
-      // Even if the exit message failed, try to re-check real state
-      await checkExtension();
+  const handleSave = async () => {
+    setStatus("saving");
+    setErrorMsg(null);
+
+    const result = await saveEditorMode();
+    if (!result.ok) {
+      setStatus("editing");
+      setErrorMsg(result.error);
+      return;
     }
+
+    setStatus("ready");
+    router.refresh();
+  };
+
+  const handleCancel = async () => {
+    setStatus("cancelling");
+    setErrorMsg(null);
+
+    const result = await cancelEditorMode();
+    if (!result.ok) {
+      setStatus("editing");
+      setErrorMsg(result.error);
+      return;
+    }
+
+    setStatus("ready");
+    router.refresh();
   };
 
   // -------------------------------------------------------------------
@@ -213,31 +255,59 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
     );
   }
 
-  if (status === "editing" || status === "exiting") {
+  if (
+    status === "editing" ||
+    status === "saving" ||
+    status === "cancelling"
+  ) {
+    const isSaving = status === "saving";
+    const isCancelling = status === "cancelling";
+    const isPending = isSaving || isCancelling;
+
     return (
       <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          Editing
-        </span>
-        <button
-          type="button"
-          onClick={handleExit}
-          disabled={status === "exiting"}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-        >
-          {status === "exiting" ? (
-            <>
-              <SpinnerIcon className="h-3.5 w-3.5" />
-              Saving…
-            </>
-          ) : (
-            <>
-              <CheckIcon className="h-3.5 w-3.5" />
-              Done
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            Editing
+          </span>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+          >
+            {isSaving ? (
+              <>
+                <SpinnerIcon className="h-3.5 w-3.5" />
+                Saving…
+              </>
+            ) : (
+              <>
+                <CheckIcon className="h-3.5 w-3.5" />
+                Save
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+          >
+            {isCancelling ? (
+              <>
+                <SpinnerIcon className="h-3.5 w-3.5" />
+                Cancelling…
+              </>
+            ) : (
+              "Cancel"
+            )}
+          </button>
+        </div>
+        {errorMsg ? (
+          <span className="text-xs text-red-500">{errorMsg}</span>
+        ) : null}
       </div>
     );
   }
