@@ -3,10 +3,6 @@ import { render, screen } from "@testing-library/react";
 
 import SettingsPage from "../page";
 
-const usageMocks = vi.hoisted(() => ({
-  getAccountUsageSnapshot: vi.fn(),
-}));
-
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
@@ -17,69 +13,26 @@ vi.mock("@/src/lib/auth", () => ({
   }),
 }));
 
-vi.mock("@/src/server/account-usage", () => ({
-  ...usageMocks,
+vi.mock("@/app/(app)/SignOutButton", () => ({
+  default: () => <button type="button">sign out</button>,
 }));
 
 describe("SettingsPage", () => {
-  it("renders the settings headers", async () => {
-    usageMocks.getAccountUsageSnapshot.mockResolvedValue({
-      trailCount: 0,
-      activeSessionCount: 0,
-      recentTrails: [],
-      devices: [],
-    });
-
+  it("renders settings with local manage link", async () => {
     const node = await SettingsPage();
     render(node);
 
-    expect(
-      screen.getByRole("heading", { name: "settings" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("account")).toBeInTheDocument();
-  });
-
-  it("uses better auth account settings links", async () => {
-    usageMocks.getAccountUsageSnapshot.mockResolvedValue({
-      trailCount: 0,
-      activeSessionCount: 0,
-      recentTrails: [],
-      devices: [],
-    });
-
-    const node = await SettingsPage();
-    render(node);
-
-    const expectedHref = `${process.env.TRAIL_AUTH_BASE_URL}/account`;
+    expect(screen.getByRole("heading", { name: "settings" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "manage" })).toHaveAttribute(
       "href",
-      expectedHref,
+      "/auth/account",
     );
   });
 
-  it("renders active extension sessions when present", async () => {
-    usageMocks.getAccountUsageSnapshot.mockResolvedValue({
-      trailCount: 0,
-      activeSessionCount: 1,
-      recentTrails: [],
-      devices: [
-        {
-          id: "device-1",
-          status: "ACTIVE",
-          deviceName: "MacBook Pro",
-          browserName: "Chrome",
-          os: "macOS",
-          lastSeenAt: "2026-02-06T22:45:53.094Z",
-          updatedAt: "2026-02-06T22:45:53.094Z",
-          session: null,
-        },
-      ],
-    });
-
+  it("does not render sessions manager", async () => {
     const node = await SettingsPage();
     render(node);
 
-    expect(screen.getByText("MacBook Pro")).toBeInTheDocument();
-    expect(screen.getByText("Chrome on macOS")).toBeInTheDocument();
+    expect(screen.queryByText("sessions")).not.toBeInTheDocument();
   });
 });

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getAuthTokenFromCookies } from "@/src/lib/auth";
-import { internalApiFetch } from "@/src/server/internal-api";
+import { POST as cancelV1 } from "@/app/api/v1/subscription/cancel/route";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(request: Request) {
   const token = await getAuthTokenFromCookies();
   if (!token) {
     return NextResponse.json(
@@ -18,20 +18,14 @@ export async function POST() {
     );
   }
 
-  let upstream: Response;
-  try {
-    upstream = await internalApiFetch("/api/v1/subscription/cancel", {
+  const upstream = await cancelV1(
+    new Request(new URL("/api/v1/subscription/cancel", request.url), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
-  } catch {
-    return NextResponse.json(
-      { code: "network", message: "Upstream unavailable", retryable: true },
-      { status: 503 },
-    );
-  }
+    }),
+  );
 
   if (upstream.status === 401) {
     return NextResponse.json(
@@ -56,4 +50,3 @@ export async function POST() {
     },
   });
 }
-

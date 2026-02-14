@@ -5,7 +5,7 @@ import { exportJWK, generateKeyPair, SignJWT } from "jose";
 
 vi.mock("@/src/env", () => ({
   env: {
-    TRAIL_AUTH_BASE_URL: "https://auth.example.com",
+    BETTER_AUTH_URL: "https://auth.example.com",
     ACCOUNT_AUTH_BYPASS: false,
   },
 }));

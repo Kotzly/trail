@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { env } from "@/src/env";
 
 export const runtime = "nodejs";
 
@@ -14,9 +13,8 @@ export async function GET(request: Request) {
 
   // If the user still has an auth session, the bridge flow will mint a fresh JWT
   // and send them back to the account app without showing the login UI.
-  const bridgeUrl = new URL("/auth/bridge", env.TRAIL_AUTH_BASE_URL);
+  const bridgeUrl = new URL("/auth/bridge", url.origin);
   bridgeUrl.searchParams.set("returnTo", callbackUrl.toString());
 
   return NextResponse.redirect(bridgeUrl);
 }
-

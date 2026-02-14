@@ -1,44 +1,48 @@
-import { randomBytes } from "crypto";
-import { NextResponse } from "next/server";
-import { internalApiJson } from "@/src/server/internal-api";
+import { jsonError } from "@/src/server/backend/error-response";
+import { jsonNoStore } from "@/src/server/backend/response";
+import {
+  createPortalSession,
+  PORTAL_POLL_INTERVAL_MS,
+} from "@/src/server/backend/portal-sessions";
 import { env } from "@/src/env";
 
 export const runtime = "nodejs";
 
-const SESSION_TTL_MS = 5 * 60 * 1000;
-
-function createSessionId() {
-  return randomBytes(16).toString("hex");
+function normalizeString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
 }
 
-export async function POST() {
-  const appBaseUrl = env.APP_BASE_URL;
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => null);
+  const source = normalizeString(body?.source);
+  const locale = normalizeString(body?.locale);
+  const returnUrl = normalizeString(body?.returnUrl);
 
-  let sessionId = createSessionId();
+  let session;
   try {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const { exists } = await internalApiJson<{ exists: boolean }>(
-        "/api/internal/extension/code-exists",
-        {
-          method: "POST",
-          body: { code: sessionId },
-        },
-      );
-      if (!exists) {
-        break;
-      }
-      sessionId = createSessionId();
-    }
+    session = await createPortalSession({ source, locale, returnUrl });
   } catch (error) {
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return jsonError(
+      "portal_create_failed",
+      "Could not create portal session.",
+      {
+        status: 500,
+        retryable: true,
+      },
+    );
   }
 
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+  const appBaseUrl = env.APP_BASE_URL;
+  const confirmUrl = new URL("/auth/portal/complete", appBaseUrl);
+  confirmUrl.searchParams.set("portal", session.id);
+  if (returnUrl) {
+    confirmUrl.searchParams.set("returnUrl", returnUrl);
+  }
 
-  return NextResponse.json({
-    id: sessionId,
-    url: `${appBaseUrl.replace(/\/$/, "")}/extension?code=${sessionId}`,
-    expiresAt: expiresAt.toISOString(),
-    pollIntervalMs: 1500,
+  return jsonNoStore({
+    id: session.id,
+    url: confirmUrl.toString(),
+    expiresAt: session.expiresAt.toISOString(),
+    pollIntervalMs: PORTAL_POLL_INTERVAL_MS,
   });
 }

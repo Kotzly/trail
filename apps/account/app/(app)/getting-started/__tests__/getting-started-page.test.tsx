@@ -6,6 +6,6 @@ describe("GettingStartedPage", () => {
   it("redirects to extension", async () => {
     const { redirect } = await import("next/navigation");
     GettingStartedPage();
-    expect(redirect).toHaveBeenCalledWith("/extension");
+    expect(redirect).toHaveBeenCalledWith("/trails");
   });
 });

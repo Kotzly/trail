@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { env } from "@/src/env";
 
 export const runtime = "nodejs";
 
@@ -12,7 +11,7 @@ export async function GET(request: Request) {
     callbackUrl.searchParams.set("next", next);
   }
 
-  const loginUrl = new URL("/login", env.TRAIL_AUTH_BASE_URL);
+  const loginUrl = new URL("/login", url.origin);
   loginUrl.searchParams.set("returnTo", callbackUrl.toString());
 
   return NextResponse.redirect(loginUrl);

@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/src/lib/auth";
-import { internalApiFetch } from "@/src/server/internal-api";
+import { resetUserOnboarding } from "@/src/server/backend/user";
 
 export const runtime = "nodejs";
 
-/**
- * Dev-only: reset onboarding for the current user.
- * DELETE /api/onboarding/reset
- */
 export async function DELETE() {
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json(
@@ -24,21 +20,16 @@ export async function DELETE() {
     );
   }
 
-  try {
-    const upstream = await internalApiFetch(
-      `/api/internal/users/${encodeURIComponent(session.user.id)}/onboarding`,
-      { method: "DELETE" },
-    );
-
-    const payload = await upstream.json().catch(() => null);
-    return NextResponse.json(payload, {
-      status: upstream.status,
-      headers: { "Cache-Control": "no-store" },
-    });
-  } catch {
+  const reset = await resetUserOnboarding(session.user.id).catch(() => false);
+  if (!reset) {
     return NextResponse.json(
-      { code: "unknown", message: "Internal error." },
-      { status: 500 },
+      { code: "not_found", message: "User not found." },
+      { status: 404 },
     );
   }
+
+  return NextResponse.json(
+    { ok: true },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

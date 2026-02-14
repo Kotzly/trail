@@ -1,42 +1,35 @@
-import { NextResponse } from "next/server";
-import { getBearerToken } from "@/src/server/auth-headers";
-import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
-import { internalApiFetch } from "@/src/server/internal-api";
+import { getBearerToken } from "@/src/server/backend/auth/headers";
+import { getUserFromBillingBearerToken } from "@/src/server/backend/auth/billing-user";
+import {
+  BillingProviderError,
+  getBillingProvider,
+} from "@/src/server/backend/billing/provider";
+import { jsonError } from "@/src/server/backend/error-response";
+import { jsonNoStore } from "@/src/server/backend/response";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const token = getBearerToken(request.headers);
-  if (!token || !verifyExtensionAccessToken(token)) {
-    return NextResponse.json(
-      { code: "auth", message: "Unauthorized", retryable: false },
-      { status: 401 },
-    );
+  const user = await getUserFromBillingBearerToken(token);
+  if (!user) {
+    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  let upstream: Response;
   try {
-    upstream = await internalApiFetch("/api/v1/billing", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const billing = await getBillingProvider().getBillingStatus({
+      userId: user.id,
+      userEmail: user.email,
     });
-  } catch {
-    return NextResponse.json(
-      { code: "network", message: "Upstream unavailable", retryable: true },
-      { status: 503 },
-    );
+    return jsonNoStore(billing);
+  } catch (error) {
+    if (error instanceof BillingProviderError) {
+      return jsonError(error.code, error.message, {
+        status: error.status,
+        retryable: error.retryable,
+        details: error.details,
+      });
+    }
+    throw error;
   }
-
-  const text = await upstream.text();
-  const contentType = upstream.headers.get("content-type") ?? "application/json";
-
-  return new NextResponse(text, {
-    status: upstream.status,
-    headers: {
-      "content-type": contentType,
-      "cache-control": "no-store",
-    },
-  });
 }

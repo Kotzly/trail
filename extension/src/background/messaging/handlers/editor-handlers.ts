@@ -56,6 +56,10 @@ async function getAccessToken(): Promise<string | null> {
   return typeof raw.accessToken === 'string' && raw.accessToken ? raw.accessToken : null;
 }
 
+async function clearAuthSession(): Promise<void> {
+  await chrome.storage.local.remove(AUTH_STORAGE_KEY).catch(() => undefined);
+}
+
 function normalizeLabelSource(value: unknown): TreeLabelSource {
   if (value === 'user' || value === 'auto' || value === 'system') return value;
   return 'system';
@@ -113,6 +117,7 @@ async function fetchTreeFromApi(treeId: string): Promise<TreeRecord | null> {
         console.warn(`EditorHandlers: Tree ${treeId} not found in API`);
       } else if (response.status === 401 || response.status === 403) {
         console.warn(`EditorHandlers: Unauthorized to fetch tree ${treeId}`);
+        await clearAuthSession();
       } else {
         console.warn(`EditorHandlers: Failed to fetch tree ${treeId}: ${response.status}`);
       }

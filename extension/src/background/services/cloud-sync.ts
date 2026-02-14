@@ -404,6 +404,10 @@ class CloudSyncService {
           return;
         }
       }
+      if (response.status === 401 || response.status === 403) {
+        await this.clearAuthSession();
+        return;
+      }
       if (response.status !== 401 && response.status !== 403) {
         this.scheduleSync(5000);
       }
@@ -638,6 +642,10 @@ class CloudSyncService {
   private async getAccessToken(): Promise<string | null> {
     const result = await chrome.storage.local.get(AUTH_STORAGE_KEY);
     return this.getTokenFromValue(result[AUTH_STORAGE_KEY]);
+  }
+
+  private async clearAuthSession(): Promise<void> {
+    await chrome.storage.local.remove(AUTH_STORAGE_KEY).catch(() => undefined);
   }
 
   private getTokenFromValue(value: unknown): string | null {

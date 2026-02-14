@@ -1,57 +1,88 @@
-import { NextResponse } from "next/server";
-import { getBearerToken } from "@/src/server/auth-headers";
-import { internalApiFetch } from "@/src/server/internal-api";
+import { getBearerToken } from "@/src/server/backend/auth/headers";
+import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
+import { jsonError } from "@/src/server/backend/error-response";
+import { jsonNoStore } from "@/src/server/backend/response";
+import {
+  getUserById,
+  markUserOnboardingSeen,
+} from "@/src/server/backend/user";
 
 export const runtime = "nodejs";
 
-/**
- * Proxy for extension-authenticated onboarding endpoints.
- * Forwards GET and POST to the API app's /api/v1/onboarding.
- */
+type OnboardingAction = "complete" | "skip";
+type OnboardingSource = "extension" | "web";
 
-async function proxy(request: Request, method: "GET" | "POST") {
-  const token = getBearerToken(request.headers);
-  if (!token) {
-    return NextResponse.json(
-      { code: "auth", message: "Unauthorized", retryable: false },
-      { status: 401 },
-    );
-  }
+type OnboardingBody = {
+  action?: unknown;
+  source?: unknown;
+};
 
-  try {
-    const init: RequestInit = {
-      method,
-      headers: { Authorization: `Bearer ${token}` },
+type OnboardingState = {
+  flowId: "activation-v1";
+  status: "pending" | "completed";
+  seenAt: string | null;
+};
+
+function buildOnboardingState(seenAt: Date | string | null): OnboardingState {
+  if (seenAt) {
+    return {
+      flowId: "activation-v1",
+      status: "completed",
+      seenAt: seenAt instanceof Date ? seenAt.toISOString() : seenAt,
     };
-
-    if (method === "POST") {
-      const body = await request.text();
-      if (body) {
-        (init.headers as Record<string, string>)["Content-Type"] =
-          "application/json";
-        init.body = body;
-      }
-    }
-
-    const upstream = await internalApiFetch("/api/v1/onboarding", init);
-    const payload = await upstream.json().catch(() => null);
-
-    return NextResponse.json(payload, {
-      status: upstream.status,
-      headers: { "Cache-Control": "no-store" },
-    });
-  } catch {
-    return NextResponse.json(
-      { code: "unknown", message: "Internal error", retryable: true },
-      { status: 500 },
-    );
   }
+  return { flowId: "activation-v1", status: "pending", seenAt: null };
+}
+
+function isValidAction(value: unknown): value is OnboardingAction {
+  return value === "complete" || value === "skip";
+}
+
+function isValidSource(value: unknown): value is OnboardingSource {
+  return value === "extension" || value === "web";
+}
+
+async function authenticateRequest(request: Request) {
+  const token = getBearerToken(request.headers);
+  if (!token) return null;
+  const payload = await verifyExtensionToken(token);
+  return payload?.sub ? { userId: payload.sub } : null;
 }
 
 export async function GET(request: Request) {
-  return proxy(request, "GET");
+  const auth = await authenticateRequest(request);
+  if (!auth) {
+    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+  }
+
+  const user = await getUserById(auth.userId);
+  if (!user) {
+    return jsonError("user_not_found", "User not found.", { status: 404 });
+  }
+
+  return jsonNoStore({
+    onboarding: buildOnboardingState(user.onboardingSeenAt),
+  });
 }
 
 export async function POST(request: Request) {
-  return proxy(request, "POST");
+  const auth = await authenticateRequest(request);
+  if (!auth) {
+    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+  }
+
+  const body: OnboardingBody = await request.json().catch(() => ({}));
+  const action = isValidAction(body.action) ? body.action : "complete";
+  const source = isValidSource(body.source) ? body.source : "extension";
+
+  const seenAt = await markUserOnboardingSeen(auth.userId);
+  if (seenAt === null) {
+    return jsonError("user_not_found", "User not found.", { status: 404 });
+  }
+
+  console.log(
+    `[onboarding] userId=${auth.userId} action=${action} source=${source}`,
+  );
+
+  return jsonNoStore({ onboarding: buildOnboardingState(seenAt) });
 }

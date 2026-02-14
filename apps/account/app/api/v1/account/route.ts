@@ -1,76 +1,36 @@
-import { NextResponse } from "next/server";
-import { buildAccountSnapshot } from "@/src/server/account-snapshot";
-import { getBearerToken } from "@/src/server/auth-headers";
-import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
-import { getExtensionConfig } from "@/src/server/extension-config";
-import { internalApiJson } from "@/src/server/internal-api";
+import { getBearerToken } from "@/src/server/backend/auth/headers";
+import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
+import { jsonError } from "@/src/server/backend/error-response";
+import { jsonNoStore } from "@/src/server/backend/response";
+import { buildAccountSnapshot } from "@/src/server/backend/account-snapshot";
+import { getUserById } from "@/src/server/backend/user";
+import { getSubscriptionSnapshotForUser } from "@/src/server/backend/subscription-access";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const config = await getExtensionConfig();
   const token = getBearerToken(request.headers);
-  if (!token) {
-    return NextResponse.json(buildAccountSnapshot({ user: null, config }));
+  const extension = token ? await verifyExtensionToken(token) : null;
+  if (!extension?.sub) {
+    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const payload = verifyExtensionAccessToken(token);
-  if (!payload) {
-    return NextResponse.json(
-      { code: "auth", message: "Unauthorized", retryable: false },
-      { status: 401 },
-    );
+  const user = await getUserById(extension.sub);
+  if (!user) {
+    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  try {
-    const { user } = await internalApiJson<{
-      user: {
-        id: string;
-        email: string | null;
-        name: string | null;
-        imageUrl: string | null;
-        createdAt: string;
-        onboardingSeenAt: string | null;
-      } | null;
-    }>(`/api/internal/users/${encodeURIComponent(payload.sub)}`, {
-      method: "GET",
-    });
+  const subscription = await getSubscriptionSnapshotForUser({
+    userId: extension.sub,
+    fallbackCreatedAt: user.createdAt,
+  });
 
-    if (!user) {
-      return NextResponse.json(buildAccountSnapshot({ user: null, config }));
-    }
+  const snapshot = buildAccountSnapshot({
+    user,
+    accessToken: token,
+    subscription,
+    onboardingSeenAt: user.onboardingSeenAt,
+  });
 
-    const subscription = await internalApiJson<{
-      id: string;
-      planId: "free" | "pro" | "teams";
-      status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired";
-      interval: "month";
-      currentPeriodStart: string;
-      currentPeriodEnd: string;
-      cancelAtPeriodEnd: boolean;
-      trialEndsAt: string | null;
-      canceledAt: string | null;
-    } | null>("/api/v1/subscription", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }).catch(() => null);
-
-    return NextResponse.json(
-      buildAccountSnapshot({
-        user: {
-          ...user,
-          createdAt: new Date(user.createdAt),
-        },
-        accessToken: token,
-        expiresAt: new Date(payload.exp * 1000).toISOString(),
-        config,
-        subscription,
-        onboardingSeenAt: user.onboardingSeenAt,
-      }),
-    );
-  } catch (error) {
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
-  }
+  return jsonNoStore(snapshot);
 }

@@ -71,7 +71,7 @@ function normalizeBaseUrl(value: string): string | null {
 }
 
 function resolveAuthIssuer(): string | null {
-  return normalizeBaseUrl(env.TRAIL_AUTH_BASE_URL);
+  return normalizeBaseUrl(env.BETTER_AUTH_URL);
 }
 
 function getRemoteJwks(jwksUrl: string) {

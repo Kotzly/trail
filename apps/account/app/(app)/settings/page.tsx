@@ -9,22 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getAuthSession } from "@/src/lib/auth";
-import { env } from "@/src/env";
-import { getAccountUsageSnapshot } from "@/src/server/account-usage";
-import {
-  formatDeviceLastSeen,
-  formatDeviceLocation,
-  formatDeviceName,
-} from "@/src/server/device-presentation";
+import SignOutButton from "@/app/(app)/SignOutButton";
 
 const avatarLoader = ({ src }: ImageLoaderProps) => src;
 
@@ -46,33 +32,11 @@ export default async function SettingsPage() {
     .map((chunk) => chunk[0]?.toLowerCase())
     .join("");
 
-  const betterAuthAccountUrl = new URL(
-    "/account",
-    env.TRAIL_AUTH_BASE_URL,
-  ).toString();
-  const usage = await getAccountUsageSnapshot();
-  const deviceSessions =
-    usage.devices.length > 0
-      ? usage.devices.map((device) => ({
-          id: device.id,
-          device: formatDeviceName(device),
-          location: formatDeviceLocation(device),
-          lastSeen: formatDeviceLastSeen(device),
-        }))
-      : [
-          {
-            id: "current",
-            device: settings.security.currentSession,
-            location: settings.security.currentLocation,
-            lastSeen: settings.security.currentActivity,
-          },
-        ];
-
   return (
     <section className="space-y-6">
       <div className="space-y-1">
         <h1 className="text-xl font-semibold">settings</h1>
-        <p className="text-sm text-muted-foreground">account and sessions.</p>
+        <p className="text-sm text-muted-foreground">account profile and security.</p>
       </div>
 
       <Card>
@@ -108,45 +72,12 @@ export default async function SettingsPage() {
 
           <div className="flex items-center gap-2">
             <Button asChild size="sm" variant="outline">
-              <a href={betterAuthAccountUrl} target="_blank" rel="noreferrer">
+              <a href="/auth/account">
                 manage
               </a>
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <a href="/auth/logout">sign out</a>
-            </Button>
+            <SignOutButton />
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>sessions</CardTitle>
-          <CardDescription>devices signed in with your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>device</TableHead>
-                <TableHead>location</TableHead>
-                <TableHead className="text-right">last seen</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {deviceSessions.map((sessionItem) => (
-                <TableRow key={sessionItem.id}>
-                  <TableCell className="font-medium">{sessionItem.device}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {sessionItem.location}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {sessionItem.lastSeen}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
         </CardContent>
       </Card>
     </section>

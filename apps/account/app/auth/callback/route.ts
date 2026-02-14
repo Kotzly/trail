@@ -1,39 +1,18 @@
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
-import { env } from "@/src/env";
+import { exchangeAuthBridgeCode } from "@/src/server/backend/auth-bridge";
 import { resolveSafeNextPath } from "@/src/server/auth-redirect";
 
 export const runtime = "nodejs";
 
 const DEFAULT_REDIRECT = "/trails";
 
-type ExchangeResponse = {
-  snapshot?: {
-    session?: {
-      accessToken?: string;
-    };
-  };
-};
-
 async function exchangeCode(code: string): Promise<string | null> {
-  const targetUrl = new URL("/api/v1/auth/bridge/exchange", env.TRAIL_API_BASE_URL);
-  const response = await fetch(targetUrl, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ code }),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
+  const result = await exchangeAuthBridgeCode(code);
+  if (!result.ok || !result.jwt) {
     return null;
   }
-
-  const data = (await response
-    .json()
-    .catch(() => null)) as ExchangeResponse | null;
-  return data?.snapshot?.session?.accessToken ?? null;
+  return result.jwt;
 }
 
 export async function GET(request: Request) {

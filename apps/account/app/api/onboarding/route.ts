@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/src/lib/auth";
-import { internalApiJson } from "@/src/server/internal-api";
+import { getUserById, markUserOnboardingSeen } from "@/src/server/backend/user";
 
 export const runtime = "nodejs";
 
@@ -10,17 +10,12 @@ type OnboardingState = {
   seenAt: string | null;
 };
 
-type InternalOnboardingResponse = {
-  seen: boolean;
-  seenAt?: string | null;
-};
-
-function toOnboardingState(resp: InternalOnboardingResponse): OnboardingState {
-  if (resp.seen) {
+function toOnboardingState(seenAt: Date | string | null): OnboardingState {
+  if (seenAt) {
     return {
       flowId: "activation-v1",
       status: "completed",
-      seenAt: resp.seenAt ?? new Date().toISOString(),
+      seenAt: seenAt instanceof Date ? seenAt.toISOString() : seenAt,
     };
   }
   return { flowId: "activation-v1", status: "pending", seenAt: null };
@@ -39,22 +34,18 @@ export async function GET() {
     return unauthorized();
   }
 
-  try {
-    const payload = await internalApiJson<InternalOnboardingResponse>(
-      `/api/internal/users/${encodeURIComponent(session.user.id)}/onboarding`,
-      { method: "GET" },
-    );
-
-    return NextResponse.json(
-      { onboarding: toOnboardingState(payload) },
-      { headers: { "Cache-Control": "no-store" } },
-    );
-  } catch {
+  const user = await getUserById(session.user.id).catch(() => null);
+  if (!user) {
     return NextResponse.json(
       { onboarding: { flowId: "activation-v1", status: "pending", seenAt: null } },
-      { status: 500 },
+      { status: 404 },
     );
   }
+
+  return NextResponse.json(
+    { onboarding: toOnboardingState(user.onboardingSeenAt) },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST() {
@@ -63,20 +54,16 @@ export async function POST() {
     return unauthorized();
   }
 
-  try {
-    const payload = await internalApiJson<InternalOnboardingResponse>(
-      `/api/internal/users/${encodeURIComponent(session.user.id)}/onboarding`,
-      { method: "POST" },
-    );
-
-    return NextResponse.json(
-      { onboarding: toOnboardingState(payload) },
-      { headers: { "Cache-Control": "no-store" } },
-    );
-  } catch {
+  const seenAt = await markUserOnboardingSeen(session.user.id).catch(() => null);
+  if (seenAt === null) {
     return NextResponse.json(
       { onboarding: { flowId: "activation-v1", status: "pending", seenAt: null } },
-      { status: 500 },
+      { status: 404 },
     );
   }
+
+  return NextResponse.json(
+    { onboarding: toOnboardingState(seenAt) },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

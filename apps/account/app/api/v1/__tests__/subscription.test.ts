@@ -1,82 +1,70 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 const authMocks = vi.hoisted(() => ({
-  verifyExtensionAccessToken: vi.fn(),
+  verifyExtensionToken: vi.fn(),
 }));
 
-const internalApiMocks = vi.hoisted(() => ({
-  internalApiFetch: vi.fn(),
+const userMocks = vi.hoisted(() => ({
+  getUserById: vi.fn(),
 }));
 
-vi.mock("@/src/server/extension-auth", () => ({
+const accessMocks = vi.hoisted(() => ({
+  getSubscriptionSnapshotForUser: vi.fn(),
+}));
+
+vi.mock("@/src/server/backend/auth/extension-auth", () => ({
   ...authMocks,
 }));
 
-vi.mock("@/src/server/internal-api", () => ({
-  ...internalApiMocks,
+vi.mock("@/src/server/backend/user", () => ({
+  ...userMocks,
+}));
+
+vi.mock("@/src/server/backend/subscription-access", () => ({
+  ...accessMocks,
 }));
 
 import { GET as getSubscription } from "../subscription/route";
 
-describe("account v1 subscription proxy", () => {
+describe("v1 subscription", () => {
   beforeEach(() => {
-    authMocks.verifyExtensionAccessToken.mockReset();
-    internalApiMocks.internalApiFetch.mockReset();
+    authMocks.verifyExtensionToken.mockReset();
+    userMocks.getUserById.mockReset();
+    accessMocks.getSubscriptionSnapshotForUser.mockReset();
   });
 
-  it("returns 401 when token is invalid", async () => {
-    authMocks.verifyExtensionAccessToken.mockReturnValue(null);
-
-    const response = await getSubscription(
-      new Request("http://localhost/v1/subscription", {
-        headers: { Authorization: "Bearer bad-token" },
-      }),
-    );
-
-    expect(response.status).toBe(401);
-    expect(internalApiMocks.internalApiFetch).not.toHaveBeenCalled();
-  });
-
-  it("proxies upstream subscription response", async () => {
-    authMocks.verifyExtensionAccessToken.mockReturnValue({
+  it("returns subscription snapshot for authorized extension user", async () => {
+    authMocks.verifyExtensionToken.mockResolvedValue({
       sub: "user-1",
       iat: 0,
       exp: 999999,
     });
-    internalApiMocks.internalApiFetch.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          id: "sub_1",
-          planId: "pro",
-          status: "active",
-          interval: "month",
-          currentPeriodStart: "2026-02-01T00:00:00.000Z",
-          currentPeriodEnd: "2026-03-01T00:00:00.000Z",
-          cancelAtPeriodEnd: false,
-          trialEndsAt: null,
-          canceledAt: null,
-        }),
-        {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        },
-      ),
-    );
+    userMocks.getUserById.mockResolvedValue({
+      id: "user-1",
+      email: "user@test.com",
+      name: "Test User",
+      imageUrl: null,
+      createdAt: new Date("2026-02-01T00:00:00Z"),
+    });
+    accessMocks.getSubscriptionSnapshotForUser.mockResolvedValue({
+      id: "sub_1",
+      planId: "pro",
+      status: "active",
+      interval: "month",
+      currentPeriodStart: "2026-02-01T00:00:00.000Z",
+      currentPeriodEnd: "2026-03-01T00:00:00.000Z",
+      cancelAtPeriodEnd: false,
+      trialEndsAt: null,
+      canceledAt: null,
+    });
 
     const response = await getSubscription(
-      new Request("http://localhost/v1/subscription", {
+      new Request("http://localhost/api/v1/subscription", {
         headers: { Authorization: "Bearer extension-token" },
       }),
     );
 
     expect(response.status).toBe(200);
-    expect(internalApiMocks.internalApiFetch).toHaveBeenCalledWith(
-      "/api/v1/subscription",
-      {
-        method: "GET",
-        headers: {
-          Authorization: "Bearer extension-token",
-        },
-      },
-    );
     await expect(response.json()).resolves.toEqual({
       id: "sub_1",
       planId: "pro",
@@ -87,6 +75,10 @@ describe("account v1 subscription proxy", () => {
       cancelAtPeriodEnd: false,
       trialEndsAt: null,
       canceledAt: null,
+    });
+    expect(accessMocks.getSubscriptionSnapshotForUser).toHaveBeenCalledWith({
+      userId: "user-1",
+      fallbackCreatedAt: new Date("2026-02-01T00:00:00.000Z"),
     });
   });
 });

@@ -85,15 +85,9 @@ function EmptyState() {
       <div className="space-y-2">
         <p className="text-sm font-medium">no trails yet</p>
         <p className="text-sm text-muted-foreground">
-          install the extension and start browsing to capture your first trail.
+          start browsing in the extension and your trails will appear here automatically.
         </p>
       </div>
-      <Link
-        href="/extension"
-        className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-      >
-        connect extension
-      </Link>
     </div>
   );
 }

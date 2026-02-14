@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/src/env";
 
-const protectedPrefixes = ["/trails", "/dashboard", "/settings", "/extension"];
+const protectedPrefixes = ["/trails", "/dashboard", "/settings"];
 const AUTH_COOKIE_NAME = "trail_auth_session";
 
 function decodeJwtPayload(token: string): { exp?: number } | null {

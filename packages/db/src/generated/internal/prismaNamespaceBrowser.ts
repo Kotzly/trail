@@ -95,7 +95,8 @@ export const UserScalarFieldEnum = {
   imageUrl: 'imageUrl',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  onboardingSeenAt: 'onboardingSeenAt'
+  onboardingSeenAt: 'onboardingSeenAt',
+  extensionAuthRevokedAt: 'extensionAuthRevokedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]

@@ -67,7 +67,9 @@ describe("TrailsPage", () => {
 
     expect(screen.getByText("no trails yet")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "connect extension" }),
+      screen.getByText(
+        "start browsing in the extension and your trails will appear here automatically.",
+      ),
     ).toBeInTheDocument();
   });
 });

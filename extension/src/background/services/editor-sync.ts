@@ -60,6 +60,10 @@ async function getAccessToken(): Promise<string | null> {
   return typeof raw.accessToken === 'string' && raw.accessToken ? raw.accessToken : null;
 }
 
+async function clearAuthSession(): Promise<void> {
+  await chrome.storage.local.remove(AUTH_STORAGE_KEY).catch(() => undefined);
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -104,6 +108,9 @@ async function patchTree(treeId: string): Promise<EditorSyncFlushResult> {
     });
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        await clearAuthSession();
+      }
       const error = `PATCH /trails/${treeId} failed with ${response.status}`;
       console.warn(`EditorSync: ${error}`);
       return { ok: false, error };

@@ -16,8 +16,7 @@ Documentation is organized by **scope** and **feature**. Each file is under 500 
 |-------|------|-------------|
 | **extension** | `docs/extension/` | Chrome/Brave extension: sidepanel UI, background, shared types |
 | **apps/marketing** | `docs/apps/marketing/` | gettrail.net: hero, carousel, legal, support, nav |
-| **apps/account** | `docs/apps/account/` | app.gettrail.net: auth, dashboard, billing, settings |
-| **apps/api** | `docs/apps/api/` | api.gettrail.net: internal API, tRPC |
+| **apps/account** | `docs/apps/account/` | app.gettrail.net: web app + auth + API runtime |
 | **packages** | `docs/packages/` | Shared: db, trpc, content, ui |
 
 ## Dev (`docs/dev/`)
@@ -56,13 +55,6 @@ Documentation is organized by **scope** and **feature**. Each file is under 500 
 | [auth-and-extension.md](apps/account/auth-and-extension.md) | Better Auth, extension JWT, login code, exchange |
 | [dashboard.md](apps/account/dashboard.md) | Dashboard, app shell |
 | [billing-and-settings.md](apps/account/billing-and-settings.md) | Billing, settings, v1 routes |
-
-## Apps: API (`docs/apps/api/`)
-
-| Doc | Feature |
-|-----|---------|
-| [internal-api.md](apps/api/internal-api.md) | Internal routes, extension login code, users |
-| [trpc.md](apps/api/trpc.md) | tRPC router, procedures, context |
 
 ## Packages (`docs/packages/`)
 

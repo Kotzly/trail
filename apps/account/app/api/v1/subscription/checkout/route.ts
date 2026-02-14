@@ -1,47 +1,64 @@
-import { NextResponse } from "next/server";
-import { getBearerToken } from "@/src/server/auth-headers";
-import { verifyExtensionAccessToken } from "@/src/server/extension-auth";
-import { internalApiFetch } from "@/src/server/internal-api";
+import { getBearerToken } from "@/src/server/backend/auth/headers";
+import { getUserFromBillingBearerToken } from "@/src/server/backend/auth/billing-user";
+import {
+  BillingProviderError,
+  type CheckoutInterval,
+  getBillingProvider,
+} from "@/src/server/backend/billing/provider";
+import { jsonError } from "@/src/server/backend/error-response";
+import { jsonNoStore } from "@/src/server/backend/response";
 
 export const runtime = "nodejs";
 
+function isInterval(value: unknown): value is CheckoutInterval {
+  return value === "month" || value === "year";
+}
+
+function isPlanId(value: unknown): value is "pro" | "teams" {
+  return value === "pro" || value === "teams";
+}
+
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === "string";
+}
+
 export async function POST(request: Request) {
   const token = getBearerToken(request.headers);
-  if (!token || !verifyExtensionAccessToken(token)) {
-    return NextResponse.json(
-      { code: "auth", message: "Unauthorized", retryable: false },
-      { status: 401 },
-    );
+  const user = await getUserFromBillingBearerToken(token);
+  if (!user) {
+    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const contentType = request.headers.get("content-type") ?? "application/json";
-  const body = await request.text().catch(() => "");
-
-  let upstream: Response;
-  try {
-    upstream = await internalApiFetch("/api/v1/subscription/checkout", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": contentType,
-      },
-      body: body || undefined,
+  const body = await request.json().catch(() => null);
+  if (
+    !isPlanId(body?.planId) ||
+    !isInterval(body.interval) ||
+    !isOptionalString(body.successUrl) ||
+    !isOptionalString(body.cancelUrl)
+  ) {
+    return jsonError("invalid_checkout", "Invalid checkout input.", {
+      status: 400,
     });
-  } catch {
-    return NextResponse.json(
-      { code: "network", message: "Upstream unavailable", retryable: true },
-      { status: 503 },
-    );
   }
 
-  const text = await upstream.text();
-  const upstreamContentType = upstream.headers.get("content-type") ?? "application/json";
-
-  return new NextResponse(text, {
-    status: upstream.status,
-    headers: {
-      "content-type": upstreamContentType,
-      "cache-control": "no-store",
-    },
-  });
+  try {
+    const link = await getBillingProvider().createCheckoutSession({
+      userId: user.id,
+      userEmail: user.email,
+      planId: body.planId,
+      interval: body.interval,
+      successUrl: body.successUrl,
+      cancelUrl: body.cancelUrl,
+    });
+    return jsonNoStore(link);
+  } catch (error) {
+    if (error instanceof BillingProviderError) {
+      return jsonError(error.code, error.message, {
+        status: error.status,
+        retryable: error.retryable,
+        details: error.details,
+      });
+    }
+    throw error;
+  }
 }

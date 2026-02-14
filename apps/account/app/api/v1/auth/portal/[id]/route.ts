@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
-import { buildAccountSnapshot } from "@/src/server/account-snapshot";
-import { createExtensionAccessToken } from "@/src/server/extension-auth";
-import { getExtensionConfig } from "@/src/server/extension-config";
-import { internalApiJson } from "@/src/server/internal-api";
+import { buildAccountSnapshot } from "@/src/server/backend/account-snapshot";
+import { jsonError } from "@/src/server/backend/error-response";
+import { jsonNoStore } from "@/src/server/backend/response";
+import { getPortalSessionStatus } from "@/src/server/backend/portal-sessions";
 
 export const runtime = "nodejs";
 
@@ -10,54 +9,37 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: sessionId } = await params;
-  if (!sessionId) {
-    return NextResponse.json({ status: "expired" });
+  const { id } = await params;
+  if (!id) {
+    return jsonError("portal_not_found", "Portal session not found.", {
+      status: 404,
+    });
   }
 
-  let response: {
-    status: "pending" | "expired" | "approved";
-    user?: {
-      id: string;
-      email: string | null;
-      name: string | null;
-      imageUrl: string | null;
-      createdAt: string;
-      onboardingSeenAt: string | null;
-    };
-  };
-
-  try {
-    response = await internalApiJson(
-      `/api/internal/extension/portal/${encodeURIComponent(sessionId)}`,
-      { method: "GET" },
-    );
-  } catch (error) {
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  const result = await getPortalSessionStatus(id);
+  if (!result) {
+    return jsonError("portal_not_found", "Portal session not found.", {
+      status: 404,
+    });
   }
 
-  if (response.status !== "approved") {
-    return NextResponse.json({ status: response.status });
+  if (result.status !== "approved") {
+    return jsonNoStore({ status: result.status });
   }
 
-  if (!response.user) {
-    return NextResponse.json({ status: "expired" });
+  const { session, user } = result;
+  if (!user || !session.extensionToken) {
+    return jsonNoStore({ status: "expired" });
   }
 
-  const token = createExtensionAccessToken(response.user.id);
-  const config = await getExtensionConfig();
-
-  return NextResponse.json({
-    status: "approved",
-    snapshot: buildAccountSnapshot({
-      user: {
-        ...response.user,
-        createdAt: new Date(response.user.createdAt),
-      },
-      accessToken: token.token,
-      expiresAt: token.expiresAt,
-      config,
-      onboardingSeenAt: response.user.onboardingSeenAt,
-    }),
+  const snapshot = buildAccountSnapshot({
+    user,
+    accessToken: session.extensionToken,
+    expiresAt: session.extensionTokenExpiresAt
+      ? session.extensionTokenExpiresAt.toISOString()
+      : null,
+    onboardingSeenAt: user.onboardingSeenAt,
   });
+
+  return jsonNoStore({ status: "approved", snapshot });
 }

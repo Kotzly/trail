@@ -42,7 +42,7 @@ export const DEFAULT_BACKEND_CONFIG: BackendConfig = {
   mode: 'remote',
   baseUrl: 'https://app.gettrail.net',
   basePath: '/api/v1',
-  portalUrl: 'https://app.gettrail.net/extension',
+  portalUrl: 'https://app.gettrail.net/auth/portal/complete',
   timeoutMs: 10000,
   endpoints: {
     authPortal: '/auth/portal',
@@ -157,7 +157,7 @@ export function resolvePresetOverride(tag: string | null | undefined): BackendCo
       env: 'local',
       mode: 'remote',
       baseUrl: 'http://localhost:3001',
-      portalUrl: 'http://localhost:3001/extension',
+      portalUrl: 'http://localhost:3001/auth/portal/complete',
     };
   }
   return null;

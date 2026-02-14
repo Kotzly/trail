@@ -31,7 +31,8 @@ export type SiteMessageType =
   | "ENTER_EDITOR_MODE"
   | "EXIT_EDITOR_MODE"
   | "SAVE_EDITOR_MODE"
-  | "CANCEL_EDITOR_MODE";
+  | "CANCEL_EDITOR_MODE"
+  | "AUTH_REVOKED";
 
 export type ExtensionMessageType =
   | "PONG"
@@ -227,6 +228,13 @@ export function openTrailPanel(): Promise<
   SendResult<{ ok: boolean; error?: string }>
 > {
   return sendWithRetry("OPEN_TRAIL_PANEL", {}, "OPEN_TRAIL_PANEL_ACK");
+}
+
+export function notifyAuthRevoked(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.postMessage(buildMessage("AUTH_REVOKED"), window.location.origin);
 }
 
 /**

@@ -263,13 +263,13 @@ function testSidebarWidth(): void {
 function testBackendConfigOverride(): void {
   const resolved = resolveBackendConfig({
     baseUrl: 'http://localhost:3001',
-    portalUrl: 'http://localhost:3001/extension',
+    portalUrl: 'http://localhost:3001/auth/portal/complete',
     mode: 'remote',
   });
 
   assert.equal(DEFAULT_BACKEND_CONFIG.baseUrl, 'https://app.gettrail.net');
   assert.equal(resolved.baseUrl, 'http://localhost:3001');
-  assert.equal(resolved.portalUrl, 'http://localhost:3001/extension');
+  assert.equal(resolved.portalUrl, 'http://localhost:3001/auth/portal/complete');
   assert.equal(resolved.mode, 'remote');
 }
 
@@ -277,7 +277,7 @@ function testBackendLocalPresetOverride(): void {
   const override = resolvePresetOverride('local');
   assert.ok(override);
   assert.equal(override.baseUrl, 'http://localhost:3001');
-  assert.equal(override.portalUrl, 'http://localhost:3001/extension');
+  assert.equal(override.portalUrl, 'http://localhost:3001/auth/portal/complete');
   assert.equal(override.mode, 'remote');
   assert.equal(override.env, 'local');
 }
@@ -298,7 +298,7 @@ function testBackendServerPresetResolution(): void {
 
   const localhostConfig = resolveBackendConfig({
     baseUrl: 'http://localhost:3001',
-    portalUrl: 'http://localhost:3001/extension',
+    portalUrl: 'http://localhost:3001/auth/portal/complete',
   });
   assert.equal(getBackendServerPreset(localhostConfig), 'local');
 }

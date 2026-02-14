@@ -3,10 +3,10 @@ import { getAuthSession } from "@/src/lib/auth";
 import { getOnboardingState } from "@/src/server/onboarding";
 import { Button } from "@/components/ui/button";
 import OnboardingGate from "./OnboardingGate";
+import SignOutButton from "./SignOutButton";
 
 const nav = [
   { href: "/trails", label: "trails" },
-  { href: "/extension", label: "extension" },
   { href: "/settings", label: "settings" },
 ];
 
@@ -41,9 +41,7 @@ export default async function AppLayout({
 
           <div className="flex items-center gap-2">
             {user ? (
-              <Button asChild size="sm" variant="outline">
-                <a href="/auth/logout">sign out</a>
-              </Button>
+              <SignOutButton />
             ) : (
               <Button asChild size="sm">
                 <a href="/auth/login">sign in</a>
