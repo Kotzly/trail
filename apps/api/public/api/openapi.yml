@@ -419,6 +419,54 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /onboarding:
+    get:
+      summary: Get onboarding state
+      description: Returns the current onboarding state for the authenticated extension user.
+      tags: [onboarding]
+      security:
+        - extensionAuth: []
+      responses:
+        "200":
+          description: Onboarding state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [onboarding]
+                properties:
+                  onboarding:
+                    $ref: "#/components/schemas/OnboardingState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Complete or skip onboarding
+      description: |
+        Marks onboarding as completed for the authenticated extension user.
+        Both "complete" and "skip" actions set onboardingSeenAt.
+      tags: [onboarding]
+      security:
+        - extensionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingCompleteInput"
+      responses:
+        "200":
+          description: Updated onboarding state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [onboarding]
+                properties:
+                  onboarding:
+                    $ref: "#/components/schemas/OnboardingState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /account:
     get:
       summary: Get account snapshot
@@ -1131,9 +1179,36 @@ components:
               format: date-time
               nullable: true
 
+    OnboardingState:
+      type: object
+      required: [flowId, status, seenAt]
+      properties:
+        flowId:
+          type: string
+          enum: [activation-v1]
+        status:
+          type: string
+          enum: [pending, completed]
+        seenAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    OnboardingCompleteInput:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [complete, skip]
+          default: complete
+        source:
+          type: string
+          enum: [extension, web]
+          default: extension
+
     AccountSnapshot:
       type: object
-      required: [session, user, subscription, billing, plans]
+      required: [session, user, subscription, billing, plans, onboarding]
       properties:
         session:
           $ref: "#/components/schemas/AuthSession"
@@ -1148,6 +1223,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Plan"
+        onboarding:
+          $ref: "#/components/schemas/OnboardingState"
 
     CheckoutInput:
       type: object

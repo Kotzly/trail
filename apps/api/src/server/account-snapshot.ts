@@ -25,6 +25,12 @@ type AuthSessionAuthenticated = {
   expiresAt?: string | null;
 };
 
+type OnboardingState = {
+  flowId: "activation-v1";
+  status: "pending" | "completed";
+  seenAt: string | null;
+};
+
 type AccountSnapshot = {
   session: AuthSessionGuest | AuthSessionAuthenticated;
   user: AccountUser | null;
@@ -32,6 +38,7 @@ type AccountSnapshot = {
   billing: { state: "none" };
   plans: readonly PlanDefinition[];
   config: ExtensionConfigMap;
+  onboarding: OnboardingState;
 };
 
 type DbUser = {
@@ -53,16 +60,29 @@ function toAccountUser(user: DbUser): AccountUser {
   };
 }
 
+function toOnboardingState(seenAt?: Date | string | null): OnboardingState {
+  if (seenAt) {
+    return {
+      flowId: "activation-v1",
+      status: "completed",
+      seenAt: seenAt instanceof Date ? seenAt.toISOString() : seenAt,
+    };
+  }
+  return { flowId: "activation-v1", status: "pending", seenAt: null };
+}
+
 export function buildAccountSnapshot({
   user,
   accessToken,
   expiresAt,
   subscription = null,
+  onboardingSeenAt = null,
 }: {
   user: DbUser | null;
   accessToken?: string | null;
   expiresAt?: string | null;
   subscription?: SubscriptionSnapshot | null;
+  onboardingSeenAt?: Date | string | null;
 }): AccountSnapshot {
   const { config } = getExtensionConfig();
   if (!user || !accessToken) {
@@ -73,6 +93,7 @@ export function buildAccountSnapshot({
       billing: { state: "none" },
       plans: trailPlans,
       config,
+      onboarding: toOnboardingState(null),
     };
   }
 
@@ -87,6 +108,7 @@ export function buildAccountSnapshot({
     billing: { state: "none" },
     plans: trailPlans,
     config,
+    onboarding: toOnboardingState(onboardingSeenAt),
   };
 }
 

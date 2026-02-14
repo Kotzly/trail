@@ -6,6 +6,7 @@ import type {
   AuthPortalStatus,
   BillingStatus,
   CheckoutInput,
+  OnboardingState,
   Plan,
   PortalLink,
   Subscription,
@@ -14,6 +15,11 @@ import type {
 import { BACKEND_CONFIG, initBackendConfig } from '../../shared/config/backend.js';
 import { createMockAccountClient } from './account/mock.js';
 import { createRemoteAccountClient } from './account/remote.js';
+
+export type CompleteOnboardingInput = {
+  action: 'complete' | 'skip';
+  source: 'extension' | 'web';
+};
 
 export type AccountClient = {
   startAuthPortal: (input?: AuthPortalRequest) => Promise<AuthPortalSession>;
@@ -26,6 +32,7 @@ export type AccountClient = {
   getSnapshot: () => Promise<AccountSnapshot>;
   startCheckout: (input: CheckoutInput) => Promise<PortalLink>;
   createBillingPortalLink: () => Promise<PortalLink>;
+  completeOnboarding: (input: CompleteOnboardingInput) => Promise<OnboardingState>;
 };
 
 function createDefaultClient(): AccountClient {
@@ -93,6 +100,12 @@ export async function startCheckout(input: CheckoutInput): Promise<PortalLink> {
 
 export async function createBillingPortalLink(): Promise<PortalLink> {
   return (await getActiveAccountClient()).createBillingPortalLink();
+}
+
+export async function completeOnboarding(
+  input: CompleteOnboardingInput,
+): Promise<OnboardingState> {
+  return (await getActiveAccountClient()).completeOnboarding(input);
 }
 
 export function normalizeAccountError(error: unknown): AccountError {

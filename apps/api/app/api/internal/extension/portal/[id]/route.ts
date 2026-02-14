@@ -30,6 +30,7 @@ export async function GET(
           name: true,
           imageUrl: true,
           createdAt: true,
+          onboardingSeenAt: true,
         },
       },
     },
@@ -61,6 +62,7 @@ export async function GET(
       name: user.name,
       imageUrl: user.imageUrl,
       createdAt: user.createdAt.toISOString(),
+      onboardingSeenAt: user.onboardingSeenAt?.toISOString() ?? null,
     },
   });
 }

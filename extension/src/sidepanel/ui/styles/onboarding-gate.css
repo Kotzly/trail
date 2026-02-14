@@ -1,0 +1,103 @@
+/* ── Onboarding Gate ──────────────────────────────────────── */
+
+.onboarding-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary, #0a0a0c);
+  color: var(--text-primary, #e4e4e7);
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+}
+
+.onboarding-gate__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 320px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.onboarding-gate__title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, #e4e4e7);
+}
+
+.onboarding-gate__subtitle {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--text-secondary, #a1a1aa);
+}
+
+.onboarding-gate__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.onboarding-gate__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 20px;
+  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary, #e4e4e7);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.onboarding-gate__btn--primary {
+  background: var(--accent, rgba(99, 102, 241, 0.8));
+  border-color: var(--accent, rgba(99, 102, 241, 0.6));
+}
+
+.onboarding-gate__btn:hover:not(:disabled) {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.10));
+  border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
+}
+
+.onboarding-gate__btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover, rgba(99, 102, 241, 0.9));
+}
+
+.onboarding-gate__btn:active:not(:disabled) {
+  background: var(--bg-active, rgba(255, 255, 255, 0.14));
+}
+
+.onboarding-gate__btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.onboarding-gate__spinner {
+  animation: onboarding-gate-spin 800ms linear infinite;
+}
+
+.onboarding-gate__error {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 4px 0 0;
+  color: var(--text-error, #ef4444);
+}
+
+@keyframes onboarding-gate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

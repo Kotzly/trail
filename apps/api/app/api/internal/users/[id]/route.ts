@@ -30,6 +30,7 @@ export async function GET(
       name: user.name,
       imageUrl: user.imageUrl,
       createdAt: user.createdAt.toISOString(),
+      onboardingSeenAt: user.onboardingSeenAt?.toISOString() ?? null,
     },
   });
 }

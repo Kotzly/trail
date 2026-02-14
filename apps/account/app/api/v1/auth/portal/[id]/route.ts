@@ -23,6 +23,7 @@ export async function GET(
       name: string | null;
       imageUrl: string | null;
       createdAt: string;
+      onboardingSeenAt: string | null;
     };
   };
 
@@ -56,6 +57,7 @@ export async function GET(
       accessToken: token.token,
       expiresAt: token.expiresAt,
       config,
+      onboardingSeenAt: response.user.onboardingSeenAt,
     }),
   });
 }

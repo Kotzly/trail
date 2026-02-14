@@ -32,6 +32,12 @@ type AccountSubscription = {
   canceledAt: string | null;
 };
 
+type OnboardingState = {
+  flowId: "activation-v1";
+  status: "pending" | "completed";
+  seenAt: string | null;
+};
+
 type AccountSnapshot = {
   session: AuthSessionGuest | AuthSessionAuthenticated;
   user: AccountUser | null;
@@ -39,6 +45,7 @@ type AccountSnapshot = {
   billing: { state: "none" };
   plans: readonly TrailPlanDefinition[];
   config: AccountConfig;
+  onboarding: OnboardingState;
 };
 
 type DbUser = {
@@ -60,18 +67,27 @@ function toAccountUser(user: DbUser): AccountUser {
   };
 }
 
+function toOnboardingState(seenAt?: string | null): OnboardingState {
+  if (seenAt) {
+    return { flowId: "activation-v1", status: "completed", seenAt };
+  }
+  return { flowId: "activation-v1", status: "pending", seenAt: null };
+}
+
 export function buildAccountSnapshot({
   user,
   accessToken,
   expiresAt,
   config = {},
   subscription = null,
+  onboardingSeenAt = null,
 }: {
   user: DbUser | null;
   accessToken?: string | null;
   expiresAt?: string | null;
   config?: AccountConfig;
   subscription?: AccountSubscription | null;
+  onboardingSeenAt?: string | null;
 }): AccountSnapshot {
   if (!user || !accessToken) {
     return {
@@ -81,6 +97,7 @@ export function buildAccountSnapshot({
       billing: { state: "none" },
       plans: trailPlans,
       config,
+      onboarding: toOnboardingState(null),
     };
   }
 
@@ -95,6 +112,7 @@ export function buildAccountSnapshot({
     billing: { state: "none" },
     plans: trailPlans,
     config,
+    onboarding: toOnboardingState(onboardingSeenAt),
   };
 }
 

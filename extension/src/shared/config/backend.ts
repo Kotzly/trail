@@ -13,6 +13,7 @@ export type BackendEndpoints = {
   checkout: string;
   billingPortal: string;
   trailsSync: string;
+  onboarding: string;
 };
 
 export type BackendConfig = {
@@ -53,6 +54,7 @@ export const DEFAULT_BACKEND_CONFIG: BackendConfig = {
     checkout: '/subscription/checkout',
     billingPortal: '/billing/portal',
     trailsSync: '/trails/sync',
+    onboarding: '/onboarding',
   },
   openApiPath: 'api/openapi.yml',
 };
@@ -139,6 +141,7 @@ export function resolveBackendConfig(override?: BackendConfigOverride | null): B
       checkout: normalizePath(endpointsInput?.checkout, base.endpoints.checkout),
       billingPortal: normalizePath(endpointsInput?.billingPortal, base.endpoints.billingPortal),
       trailsSync: normalizePath(endpointsInput?.trailsSync, base.endpoints.trailsSync),
+      onboarding: normalizePath(endpointsInput?.onboarding, base.endpoints.onboarding),
     },
     openApiPath:
       typeof override.openApiPath === 'string' && override.openApiPath.trim()

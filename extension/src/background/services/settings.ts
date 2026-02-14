@@ -92,7 +92,6 @@ export const defaultSettings: Settings = {
     confirmNewTree: true,
     shortcutsEnabled: true,
     adaptivePerformance: true,
-    onboardingSeen: false,
 };
 
 const settingsKey = 'trail_settings' as const;
@@ -140,7 +139,6 @@ function mergeDefaults(raw: unknown): Settings {
         confirmNewTree: sanitized.confirmNewTree ?? defaultSettings.confirmNewTree,
         shortcutsEnabled: sanitized.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
         adaptivePerformance: sanitized.adaptivePerformance ?? defaultSettings.adaptivePerformance,
-        onboardingSeen: sanitized.onboardingSeen ?? defaultSettings.onboardingSeen,
     };
 }
 

@@ -6,6 +6,7 @@ type BridgeUser = {
   name: string | null;
   imageUrl: string | null;
   createdAt: Date;
+  onboardingSeenAt: Date | null;
 };
 
 type ExchangeSuccess = {
@@ -30,11 +31,12 @@ export async function exchangeAuthBridgeCode(
     include: {
       user: {
         select: {
-          id: true,
-          email: true,
-          name: true,
-          imageUrl: true,
-          createdAt: true,
+      id: true,
+      email: true,
+      name: true,
+      imageUrl: true,
+      createdAt: true,
+      onboardingSeenAt: true,
         },
       },
     },

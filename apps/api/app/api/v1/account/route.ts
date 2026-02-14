@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     user,
     accessToken: token,
     subscription,
+    onboardingSeenAt: user.onboardingSeenAt,
   });
 
   return jsonNoStore(snapshot);

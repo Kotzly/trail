@@ -15,6 +15,7 @@ import type {
   AccountSnapshot,
   AuthSession,
   BillingStatus,
+  OnboardingState,
   Plan,
   Subscription,
   User,
@@ -69,6 +70,7 @@ export type AccountState = {
   subscription: Subscription | null;
   billing: BillingStatus | null;
   plans: Plan[];
+  onboarding: OnboardingState;
   error: AccountError | null;
   lastSyncedAt: string | null;
 };
@@ -224,6 +226,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     subscription: null,
     billing: { state: 'none' },
     plans: [],
+    onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
     error: null,
     lastSyncedAt: null,
   },
@@ -578,6 +581,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         ...state.account,
         ...snapshot,
         config: snapshot.config ?? state.account.config,
+        onboarding: snapshot.onboarding ?? state.account.onboarding,
         status: 'ready',
         network: 'online',
         error: null,
@@ -595,6 +599,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         subscription: null,
         billing: { state: 'none' },
         plans: [],
+        onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
         error: null,
         lastSyncedAt: null,
       },

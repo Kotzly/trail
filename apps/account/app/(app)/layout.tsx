@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getAuthSession } from "@/src/lib/auth";
+import { getOnboardingState } from "@/src/server/onboarding";
 import { Button } from "@/components/ui/button";
+import OnboardingGate from "./OnboardingGate";
 
 const nav = [
   { href: "/trails", label: "trails" },
@@ -15,6 +17,7 @@ export default async function AppLayout({
 }) {
   const session = await getAuthSession();
   const user = session?.user ?? null;
+  const onboarding = user ? await getOnboardingState() : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -51,6 +54,10 @@ export default async function AppLayout({
       </header>
 
       <main className="mx-auto w-full max-w-4xl px-4 py-8">{children}</main>
+
+      {onboarding?.status === "pending" && (
+        <OnboardingGate initialStatus="pending" />
+      )}
     </div>
   );
 }

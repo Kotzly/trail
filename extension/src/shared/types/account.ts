@@ -86,6 +86,15 @@ export type AuthSession = {
 export type AccountConfigValue = boolean | number | string | null;
 export type AccountConfig = Record<string, AccountConfigValue>;
 
+export type OnboardingFlowId = 'activation-v1';
+export type OnboardingStatus = 'pending' | 'completed';
+
+export type OnboardingState = {
+  flowId: OnboardingFlowId;
+  status: OnboardingStatus;
+  seenAt: string | null;
+};
+
 export type AccountSnapshot = {
   session: AuthSession;
   user: User | null;
@@ -93,6 +102,7 @@ export type AccountSnapshot = {
   billing: BillingStatus | null;
   plans: Plan[];
   config: AccountConfig;
+  onboarding: OnboardingState;
 };
 
 export type AuthPortalRequest = {

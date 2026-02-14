@@ -30,6 +30,7 @@ type PortalUser = {
   name: string | null;
   imageUrl: string | null;
   createdAt: Date;
+  onboardingSeenAt: Date | null;
 };
 
 type PortalSessionStatus =
@@ -88,6 +89,7 @@ export async function getPortalSessionStatus(
           name: true,
           imageUrl: true,
           createdAt: true,
+          onboardingSeenAt: true,
         },
       },
     },

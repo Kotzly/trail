@@ -15,6 +15,7 @@ type UserSummary = {
   name: string | null;
   imageUrl: string | null;
   createdAt: Date;
+  onboardingSeenAt: Date | null;
 };
 
 function resolveImageUrl(image?: string | null, imageUrl?: string | null) {
@@ -59,6 +60,7 @@ export async function getUserById(userId: string): Promise<UserSummary | null> {
       image: true,
       imageUrl: true,
       createdAt: true,
+      onboardingSeenAt: true,
     },
   });
 
@@ -72,6 +74,7 @@ export async function getUserById(userId: string): Promise<UserSummary | null> {
     name: record.name,
     imageUrl: resolveImageUrl(record.image, record.imageUrl),
     createdAt: record.createdAt,
+    onboardingSeenAt: record.onboardingSeenAt,
   };
 }
 
@@ -95,7 +98,7 @@ export async function getUserOnboardingSeen(
 
 export async function markUserOnboardingSeen(
   userId: string,
-): Promise<boolean | null> {
+): Promise<Date | null> {
   const updatedRows = await db.$executeRaw`
     UPDATE "User"
     SET "onboardingSeenAt" = COALESCE("onboardingSeenAt", NOW()),
@@ -107,7 +110,25 @@ export async function markUserOnboardingSeen(
     return null;
   }
 
-  return true;
+  const record = await db.user.findUnique({
+    where: { id: userId },
+    select: { onboardingSeenAt: true },
+  });
+
+  return record?.onboardingSeenAt ?? null;
+}
+
+export async function resetUserOnboarding(
+  userId: string,
+): Promise<boolean> {
+  const updatedRows = await db.$executeRaw`
+    UPDATE "User"
+    SET "onboardingSeenAt" = NULL,
+        "updatedAt" = NOW()
+    WHERE "id" = ${userId}
+  `;
+
+  return updatedRows > 0;
 }
 
 export type { AuthUser };

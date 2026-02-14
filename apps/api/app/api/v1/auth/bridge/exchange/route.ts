@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     user: result.user,
     accessToken: result.jwt,
     expiresAt: result.jwtExpiresAt ? result.jwtExpiresAt.toISOString() : null,
+    onboardingSeenAt: result.user.onboardingSeenAt,
   });
 
   return jsonNoStore({ snapshot });

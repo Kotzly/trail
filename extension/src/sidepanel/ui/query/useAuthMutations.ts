@@ -4,8 +4,10 @@ import type {
   AuthPortalStatus,
   CheckoutInput,
 } from "../../../shared/types/account.js";
+import type { CompleteOnboardingInput } from "../../api/account.js";
 import {
   checkAuthPortal,
+  completeOnboarding,
   createBillingPortalLink,
   logout,
   startAuthPortal,
@@ -44,11 +46,19 @@ export function useAuthMutations() {
     mutationFn: () => createBillingPortalLink(),
   });
 
+  const completeOnboardingMutation = useMutation({
+    mutationFn: (input: CompleteOnboardingInput) => completeOnboarding(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: accountKeys.snapshot() });
+    },
+  });
+
   return {
     startAuthPortalMutation,
     checkAuthPortalMutation,
     logoutMutation,
     startCheckoutMutation,
     createBillingPortalLinkMutation,
+    completeOnboardingMutation,
   };
 }

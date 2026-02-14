@@ -30,6 +30,7 @@ export async function GET(request: Request) {
         name: string | null;
         imageUrl: string | null;
         createdAt: string;
+        onboardingSeenAt: string | null;
       } | null;
     }>(`/api/internal/users/${encodeURIComponent(payload.sub)}`, {
       method: "GET",
@@ -66,6 +67,7 @@ export async function GET(request: Request) {
         expiresAt: new Date(payload.exp * 1000).toISOString(),
         config,
         subscription,
+        onboardingSeenAt: user.onboardingSeenAt,
       }),
     );
   } catch (error) {

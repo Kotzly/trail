@@ -38,6 +38,7 @@ export async function GET(
     expiresAt: session.extensionTokenExpiresAt
       ? session.extensionTokenExpiresAt.toISOString()
       : null,
+    onboardingSeenAt: user.onboardingSeenAt,
   });
 
   return jsonNoStore({ status: "approved", snapshot });

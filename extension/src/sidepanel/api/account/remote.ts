@@ -18,7 +18,7 @@ import {
   buildBackendUrl,
   initBackendConfig,
 } from '../../../shared/config/backend.js';
-import type { AccountClient } from '../account.js';
+import type { AccountClient, CompleteOnboardingInput } from '../account.js';
 
 type StoredAuthSession = {
   accessToken?: string;
@@ -260,5 +260,12 @@ export function createRemoteAccountClient(): AccountClient {
       }),
     createBillingPortalLink: async (): Promise<PortalLink> =>
       requestJson<PortalLink>(BACKEND_CONFIG.endpoints.billingPortal, { method: 'POST' }),
+    completeOnboarding: async (input: CompleteOnboardingInput) => {
+      const result = await requestJson<{ onboarding: import('../../../shared/types/account.js').OnboardingState }>(
+        BACKEND_CONFIG.endpoints.onboarding,
+        { method: 'POST', body: JSON.stringify(input) },
+      );
+      return result.onboarding;
+    },
   };
 }

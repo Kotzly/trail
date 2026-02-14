@@ -7,6 +7,7 @@ import type {
   AuthSession,
   BillingStatus,
   CheckoutInput,
+  OnboardingState,
   Plan,
   PlanInterval,
   PortalLink,
@@ -14,7 +15,7 @@ import type {
   User,
 } from '../../../shared/types/account.js';
 import type { Url } from '../../../shared/types/ids.js';
-import type { AccountClient } from '../account.js';
+import type { AccountClient, CompleteOnboardingInput } from '../account.js';
 
 const DEFAULT_DELAY_MS = 240;
 
@@ -60,6 +61,7 @@ type MockState = {
   user: User | null;
   subscription: Subscription | null;
   billing: BillingStatus | null;
+  onboardingSeenAt: string | null;
 };
 
 const state: MockState = {
@@ -67,6 +69,7 @@ const state: MockState = {
   user: null,
   subscription: null,
   billing: { state: 'none' },
+  onboardingSeenAt: null,
 };
 
 type PortalSession = {
@@ -111,6 +114,13 @@ function requireAuth(): void {
   }
 }
 
+function buildMockOnboarding(): OnboardingState {
+  if (state.onboardingSeenAt) {
+    return { flowId: 'activation-v1', status: 'completed', seenAt: state.onboardingSeenAt };
+  }
+  return { flowId: 'activation-v1', status: 'pending', seenAt: null };
+}
+
 function snapshot(): AccountSnapshot {
   return {
     session: state.session,
@@ -121,6 +131,7 @@ function snapshot(): AccountSnapshot {
     config: {
       payments: true,
     },
+    onboarding: buildMockOnboarding(),
   };
 }
 
@@ -298,6 +309,14 @@ export function createMockAccountClient(): AccountClient {
       ensureNetwork();
       await sleep(DEFAULT_DELAY_MS / 1.2);
       return snapshot();
+    },
+
+    async completeOnboarding(_input: CompleteOnboardingInput): Promise<OnboardingState> {
+      ensureNetwork();
+      requireAuth();
+      await sleep(DEFAULT_DELAY_MS / 2);
+      state.onboardingSeenAt = nowIso();
+      return buildMockOnboarding();
     },
   };
 }

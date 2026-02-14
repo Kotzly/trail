@@ -4,8 +4,33 @@ import { internalApiJson } from "@/src/server/internal-api";
 
 export const runtime = "nodejs";
 
+type OnboardingState = {
+  flowId: "activation-v1";
+  status: "pending" | "completed";
+  seenAt: string | null;
+};
+
+type InternalOnboardingResponse = {
+  seen: boolean;
+  seenAt?: string | null;
+};
+
+function toOnboardingState(resp: InternalOnboardingResponse): OnboardingState {
+  if (resp.seen) {
+    return {
+      flowId: "activation-v1",
+      status: "completed",
+      seenAt: resp.seenAt ?? new Date().toISOString(),
+    };
+  }
+  return { flowId: "activation-v1", status: "pending", seenAt: null };
+}
+
 function unauthorized() {
-  return NextResponse.json({ seen: false }, { status: 401 });
+  return NextResponse.json(
+    { onboarding: { flowId: "activation-v1", status: "pending", seenAt: null } },
+    { status: 401 },
+  );
 }
 
 export async function GET() {
@@ -15,16 +40,20 @@ export async function GET() {
   }
 
   try {
-    const payload = await internalApiJson<{ seen: boolean }>(
+    const payload = await internalApiJson<InternalOnboardingResponse>(
       `/api/internal/users/${encodeURIComponent(session.user.id)}/onboarding`,
       { method: "GET" },
     );
 
-    return NextResponse.json(payload, {
-      headers: { "Cache-Control": "no-store" },
-    });
+    return NextResponse.json(
+      { onboarding: toOnboardingState(payload) },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch {
-    return NextResponse.json({ seen: false }, { status: 500 });
+    return NextResponse.json(
+      { onboarding: { flowId: "activation-v1", status: "pending", seenAt: null } },
+      { status: 500 },
+    );
   }
 }
 
@@ -35,15 +64,19 @@ export async function POST() {
   }
 
   try {
-    const payload = await internalApiJson<{ seen: boolean }>(
+    const payload = await internalApiJson<InternalOnboardingResponse>(
       `/api/internal/users/${encodeURIComponent(session.user.id)}/onboarding`,
       { method: "POST" },
     );
 
-    return NextResponse.json(payload, {
-      headers: { "Cache-Control": "no-store" },
-    });
+    return NextResponse.json(
+      { onboarding: toOnboardingState(payload) },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch {
-    return NextResponse.json({ seen: false }, { status: 500 });
+    return NextResponse.json(
+      { onboarding: { flowId: "activation-v1", status: "pending", seenAt: null } },
+      { status: 500 },
+    );
   }
 }
