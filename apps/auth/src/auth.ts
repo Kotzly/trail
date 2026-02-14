@@ -12,7 +12,9 @@ const trustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: "postgresql" }),
   trustedOrigins,
-  emailAndPassword: { enabled: false },
+  // region INSECURE_AUTH
+  emailAndPassword: { enabled: true },
+  // endregion INSECURE_AUTH
   socialProviders: {
     google: {
       clientId: env.GOOGLE_CLIENT_ID,
@@ -26,4 +28,3 @@ export const auth = betterAuth({
     jwt({ jwt: { expirationTime: "30d" } }),
   ],
 });
-

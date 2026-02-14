@@ -45,7 +45,7 @@ const LOD_LOW_PX = 32;
 /** Paths/connections are not drawn when typical node size on screen is below this (must be < LOD_HIDE_PX). */
 const LOD_CONN_HIDE_PX = -1; // disabled
 
-const NODE_RADIUS = 22;
+const NODE_RADIUS = 12;
 const NODE_PADDING_X = 12;
 const NODE_PADDING_Y = 8;
 const NODE_GAP = 10;

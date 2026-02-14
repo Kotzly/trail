@@ -5,6 +5,10 @@ import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/src/auth-client";
 
+// region INSECURE_AUTH
+const INSECURE_AUTH_PASSWORD = "trail-dev-insecure-auth";
+// endregion INSECURE_AUTH
+
 const buildBridgeUrl = (returnTo: string) =>
   `/auth/bridge?returnTo=${encodeURIComponent(returnTo)}`;
 
@@ -51,32 +55,96 @@ const buttonStyle: CSSProperties = {
   color: "#ffffff",
 };
 
+const inputStyle: CSSProperties = {
+  padding: "10px 12px",
+  borderRadius: "8px",
+  border: "1px solid #d1d5db",
+  fontSize: "14px",
+};
+
+const toNameFromEmail = (email: string): string =>
+  email.split("@")[0]?.trim() || "trail user";
+
+// region INSECURE_AUTH
+const toInsecureAuthEmail = (email: string): string => {
+  let hash = 2166136261;
+  for (let index = 0; index < email.length; index += 1) {
+    hash ^= email.charCodeAt(index);
+    hash +=
+      (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  const token = (hash >>> 0).toString(36);
+  return `insecure-${token}@trail.local`;
+};
+// endregion INSECURE_AUTH
+
 export function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") ?? "/";
   const bridgeUrl = useMemo(() => buildBridgeUrl(returnTo), [returnTo]);
 
+  // region INSECURE_AUTH
+  const [email, setEmail] = useState("");
+  // endregion INSECURE_AUTH
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogle = async () => {
+  // region INSECURE_AUTH
+  const handleEmailLogin = async () => {
     setError(null);
     setIsLoading(true);
 
-    const { data, error: socialError } = await authClient.signIn.social({
-      provider: "google",
+    // region INSECURE_AUTH
+    // Temporarily disabled Google OAuth flow:
+    // const { data, error: socialError } = await authClient.signIn.social({
+    //   provider: "google",
+    //   callbackURL: bridgeUrl,
+    // });
+    // endregion INSECURE_AUTH
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setIsLoading(false);
+      setError("Enter your email.");
+      return;
+    }
+    const authEmail = toInsecureAuthEmail(normalizedEmail);
+
+    const signInResult = await authClient.signIn.email({
+      email: authEmail,
+      password: INSECURE_AUTH_PASSWORD,
       callbackURL: bridgeUrl,
+      rememberMe: true,
     });
 
-    setIsLoading(false);
+    if (signInResult.error) {
+      const signUpResult = await authClient.signUp.email({
+        email: authEmail,
+        name: toNameFromEmail(normalizedEmail),
+        password: INSECURE_AUTH_PASSWORD,
+        callbackURL: bridgeUrl,
+      });
 
-    if (socialError) {
-      setError(normalizeError(socialError));
+      if (signUpResult.error) {
+        setIsLoading(false);
+        setError(normalizeError(signUpResult.error));
+        return;
+      }
+
+      const signUpRedirectUrl = resolveRedirectUrl(signUpResult.data);
+      setIsLoading(false);
+      if (signUpRedirectUrl) {
+        window.location.assign(signUpRedirectUrl);
+        return;
+      }
+
+      router.push(bridgeUrl);
       return;
     }
 
-    const redirectUrl = resolveRedirectUrl(data);
+    setIsLoading(false);
+    const redirectUrl = resolveRedirectUrl(signInResult.data);
     if (redirectUrl) {
       window.location.assign(redirectUrl);
       return;
@@ -84,19 +152,30 @@ export function LoginClient() {
 
     router.push(bridgeUrl);
   };
+  // endregion INSECURE_AUTH
 
   return (
     <main style={mainStyle}>
       <header style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <h1 style={{ margin: 0, fontSize: "28px" }}>trail</h1>
         <p style={{ margin: 0, color: "#4b5563" }}>
-          Continue with Google to sign in.
+          Enter email to sign in.
         </p>
       </header>
 
+      {/* region INSECURE_AUTH */}
+      <input
+        type="email"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        placeholder="you@company.com"
+        autoComplete="email"
+        style={inputStyle}
+        disabled={isLoading}
+      />
       <button
         type="button"
-        onClick={handleGoogle}
+        onClick={handleEmailLogin}
         disabled={isLoading}
         style={{
           ...buttonStyle,
@@ -104,8 +183,9 @@ export function LoginClient() {
           opacity: isLoading ? 0.75 : 1,
         }}
       >
-        {isLoading ? "Google..." : "Continue with Google"}
+        {isLoading ? "Signing in..." : "Continue"}
       </button>
+      {/* endregion INSECURE_AUTH */}
 
       {error ? (
         <p role="alert" style={{ margin: 0, color: "#b91c1c" }}>
@@ -115,4 +195,3 @@ export function LoginClient() {
     </main>
   );
 }
-
