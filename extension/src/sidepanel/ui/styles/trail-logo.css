@@ -1,12 +1,12 @@
 :root,
 [data-theme="light"] {
-  --trail-logo-border: var(--md-outline);
-  --trail-logo-accent: var(--md-primary);
+  --trail-logo-border: var(--ring);
+  --trail-logo-accent: var(--primary);
 }
 
 [data-theme="dark"] {
-  --trail-logo-border: var(--md-outline);
-  --trail-logo-accent: var(--md-primary);
+  --trail-logo-border: var(--ring);
+  --trail-logo-accent: var(--primary);
 }
 
 .trail-logo {

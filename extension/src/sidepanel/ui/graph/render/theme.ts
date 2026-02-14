@@ -73,33 +73,33 @@ const parseColor = (value: string | null | undefined, fallback: number): number 
 
 export function readGraphTheme(source: ThemeSource): GraphTheme {
   const style = getComputedStyle(source.host);
-  // Single connection color for all edge types. Default to `--md-primary` so it tracks theme changes.
+  // Single connection color for all edge types. Default to `--primary` so it tracks theme changes.
   const connectionColor = parseColor(
     style.getPropertyValue('--graph-connection'),
-    parseColor(style.getPropertyValue('--md-primary'), DEFAULT_THEME.connection.path),
+    parseColor(style.getPropertyValue('--primary'), DEFAULT_THEME.connection.path),
   );
   const theme: GraphTheme = {
-    surface: parseColor(style.getPropertyValue('--md-surface'), DEFAULT_THEME.surface),
+    surface: parseColor(style.getPropertyValue('--background'), DEFAULT_THEME.surface),
     surfaceContainer: parseColor(
-      style.getPropertyValue('--md-surface-container'),
+      style.getPropertyValue('--card'),
       DEFAULT_THEME.surfaceContainer
     ),
     surfaceContainerHigh: parseColor(
-      style.getPropertyValue('--md-surface-container-high'),
+      style.getPropertyValue('--muted'),
       DEFAULT_THEME.surfaceContainerHigh
     ),
-    outline: parseColor(style.getPropertyValue('--md-outline-variant'), DEFAULT_THEME.outline),
-    primary: parseColor(style.getPropertyValue('--md-primary'), DEFAULT_THEME.primary),
+    outline: parseColor(style.getPropertyValue('--border'), DEFAULT_THEME.outline),
+    primary: parseColor(style.getPropertyValue('--primary'), DEFAULT_THEME.primary),
     primaryContainer: parseColor(
-      style.getPropertyValue('--md-primary-container'),
+      style.getPropertyValue('--secondary'),
       DEFAULT_THEME.primaryContainer
     ),
-    onSurface: parseColor(style.getPropertyValue('--md-on-surface'), DEFAULT_THEME.onSurface),
+    onSurface: parseColor(style.getPropertyValue('--foreground'), DEFAULT_THEME.onSurface),
     onSurfaceVariant: parseColor(
-      style.getPropertyValue('--md-on-surface-variant'),
+      style.getPropertyValue('--muted-foreground'),
       DEFAULT_THEME.onSurfaceVariant
     ),
-    onPrimary: parseColor(style.getPropertyValue('--md-on-primary'), DEFAULT_THEME.onPrimary),
+    onPrimary: parseColor(style.getPropertyValue('--primary-foreground'), DEFAULT_THEME.onPrimary),
     active: {
       background: parseColor(
         style.getPropertyValue('--graph-node-active-bg'),

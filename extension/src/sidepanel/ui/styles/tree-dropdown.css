@@ -11,14 +11,14 @@
   width: min(360px, calc(100vw - 16px));
   min-width: min(240px, calc(100vw - 16px));
   max-width: calc(100vw - 16px);
-  background: var(--md-glass-strong);
-  border: var(--md-glass-border);
+  background: var(--glass-strong);
+  border: var(--glass-border);
   border-radius: 12px;
-  box-shadow: var(--md-glass-shadow);
+  box-shadow: var(--glass-shadow);
   z-index: 100;
   overflow: hidden;
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   opacity: 1;
   transform: translateX(var(--dropdown-shift, 0px)) translateY(0) scale(1);
   transform-origin: top left;
@@ -36,9 +36,9 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border-top: 2px solid var(--md-glass-highlight);
-  border-left: 1px solid var(--md-glass-highlight-soft);
-  border-right: 1px solid var(--md-glass-highlight);
+  border-top: 2px solid var(--glass-highlight);
+  border-left: 1px solid var(--glass-highlight-soft);
+  border-right: 1px solid var(--glass-highlight);
   pointer-events: none;
 }
 
@@ -58,8 +58,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: var(--md-glass-border);
-  background: var(--md-glass);
+  border-bottom: var(--glass-border);
+  background: var(--glass);
 }
 
 .trees-dropdown-heading {
@@ -71,20 +71,20 @@
 .trees-dropdown-title {
   font-weight: 600;
   font-size: 13px;
-  color: var(--md-on-surface);
+  color: var(--foreground);
 }
 
 .trees-dropdown-count {
   font-size: 11px;
-  color: var(--md-on-surface-variant);
-  background: var(--md-glass);
+  color: var(--muted-foreground);
+  background: var(--glass);
   padding: 2px 8px;
   border-radius: 10px;
 }
 
 .trees-dropdown-section {
   padding: 10px 0;
-  border-bottom: var(--md-glass-border);
+  border-bottom: var(--glass-border);
 }
 
 .trees-dropdown-section:last-of-type {
@@ -96,7 +96,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
 }
 
 .trees-dropdown-section-header {
@@ -114,9 +114,9 @@
 .trees-dropdown-section-action {
   width: 26px;
   height: 26px;
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-on-surface-variant);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--muted-foreground);
   padding: 0;
   border-radius: 999px;
   display: inline-flex;
@@ -124,23 +124,23 @@
   justify-content: center;
   flex-shrink: 0;
   cursor: pointer;
-  box-shadow: var(--md-glass-inset);
+  box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
 }
 
 .trees-dropdown-section-action:hover {
-  color: var(--md-on-surface);
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  color: var(--foreground);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
   transform: translateY(-1px);
 }
 
 .trees-dropdown-empty {
   padding: 12px 16px 16px;
   text-align: center;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 
@@ -154,16 +154,16 @@
 }
 
 .trees-dropdown-item:hover {
-  background: var(--md-glass);
+  background: var(--glass);
 }
 
 .trees-dropdown-item.active {
   cursor: default;
-  background: var(--md-glass-strong);
+  background: var(--glass-strong);
 }
 
 .trees-dropdown-item.active:hover {
-  background: var(--md-glass-strong);
+  background: var(--glass-strong);
 }
 
 .trees-dropdown-item-favicon {
@@ -174,12 +174,12 @@
 }
 
 .trees-dropdown-item-favicon.placeholder {
-  background: var(--md-glass);
+  background: var(--glass);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
 }
 
 .trees-dropdown-item-info {
@@ -190,7 +190,7 @@
 
 .trees-dropdown-item-title {
   font-size: 13px;
-  color: var(--md-on-surface);
+  color: var(--foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -198,7 +198,7 @@
 
 .trees-dropdown-item-meta {
   font-size: 11px;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -209,19 +209,19 @@
   font-size: 13px;
   border-radius: 8px;
   padding: 4px 6px;
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-on-surface);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--foreground);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .trees-dropdown-item-action {
   width: 26px;
   height: 26px;
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-on-surface-variant);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--muted-foreground);
   padding: 0;
   border-radius: 999px;
   display: inline-flex;
@@ -229,7 +229,7 @@
   justify-content: center;
   flex-shrink: 0;
   cursor: pointer;
-  box-shadow: var(--md-glass-inset);
+  box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
@@ -242,7 +242,7 @@
 }
 
 .trees-dropdown-item-action:hover {
-  color: var(--md-on-surface);
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  color: var(--foreground);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
 }

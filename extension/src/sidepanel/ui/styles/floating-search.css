@@ -1,13 +1,13 @@
 .floating-search {
   position: relative;
   pointer-events: auto;
-  --search-ink: var(--md-glass-ink);
-  --search-ink-muted: color-mix(in srgb, var(--md-glass-ink) 60%, transparent);
-  --search-ink-subtle: color-mix(in srgb, var(--md-glass-ink) 45%, transparent);
-  --search-surface: var(--md-glass);
-  --search-surface-strong: var(--md-glass-strong);
-  --search-border: var(--md-glass-border);
-  --search-shadow: var(--md-glass-shadow);
+  --search-ink: var(--glass-ink);
+  --search-ink-muted: color-mix(in srgb, var(--glass-ink) 60%, transparent);
+  --search-ink-subtle: color-mix(in srgb, var(--glass-ink) 45%, transparent);
+  --search-surface: var(--glass);
+  --search-surface-strong: var(--glass-strong);
+  --search-border: var(--glass-border);
+  --search-shadow: var(--glass-shadow);
   --floating-search-width: clamp(140px, calc(100vw - 184px), 220px);
   --search-shell-size: var(--orb-size, 44px);
   --search-shell-radius: calc(var(--search-shell-size) / 2);
@@ -107,8 +107,8 @@
   background: var(--search-shell-bg);
   border: var(--search-shell-border);
   box-shadow: var(--search-shell-shadow);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   position: relative;
   overflow: hidden;
   transition:
@@ -127,9 +127,9 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border-top: 2px solid var(--md-glass-highlight);
-  border-left: 1px solid var(--md-glass-highlight-soft);
-  border-right: 1px solid var(--md-glass-highlight);
+  border-top: 2px solid var(--glass-highlight);
+  border-left: 1px solid var(--glass-highlight-soft);
+  border-right: 1px solid var(--glass-highlight);
   pointer-events: none;
   opacity: var(--search-shell-highlight);
   transition: opacity 140ms ease;
@@ -159,7 +159,7 @@
   --search-shell-gap: clamp(4px, 1.2vw, 6px);
   --search-shell-bg: var(--search-surface);
   --search-shell-border: var(--search-border);
-  --search-shell-shadow: var(--search-shadow), var(--md-glass-inset);
+  --search-shell-shadow: var(--search-shadow), var(--glass-inset);
   --search-shell-highlight: 1;
 }
 
@@ -174,7 +174,7 @@
 }
 
 .floating-search-close {
-  background: var(--md-glass);
+  background: var(--glass);
   border: transparent;
   padding: 2px;
   cursor: pointer;
@@ -188,8 +188,8 @@
 
 .floating-search-close:hover {
   color: var(--search-ink);
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
 }
 
 .floating-search-results {
@@ -213,9 +213,9 @@
   border-radius: 14px;
   background: var(--search-surface-strong);
   border: var(--search-border);
-  box-shadow: var(--search-shadow), var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--search-shadow), var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -226,9 +226,9 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border-top: 2px solid var(--md-glass-highlight);
-  border-left: 1px solid var(--md-glass-highlight-soft);
-  border-right: 1px solid var(--md-glass-highlight);
+  border-top: 2px solid var(--glass-highlight);
+  border-left: 1px solid var(--glass-highlight-soft);
+  border-right: 1px solid var(--glass-highlight);
   pointer-events: none;
 }
 
@@ -239,8 +239,8 @@
 }
 
 .floating-search-nav-btn {
-  background: var(--md-glass);
-  border: var(--md-glass-border);
+  background: var(--glass);
+  border: var(--glass-border);
   width: 28px;
   height: 28px;
   padding: 0;
@@ -250,7 +250,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--md-glass-inset);
+  box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
@@ -258,14 +258,14 @@
 
 .floating-search-nav-btn:hover {
   color: var(--search-ink);
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
 }
 
 .floating-search-nav-btn.is-active {
   color: var(--search-ink);
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
 }
 
 .floating-search-list-panel {
@@ -275,9 +275,9 @@
   border-radius: 14px;
   background: var(--search-surface-strong);
   border: var(--search-border);
-  box-shadow: var(--search-shadow), var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--search-shadow), var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   position: relative;
 }
 
@@ -286,9 +286,9 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border-top: 2px solid var(--md-glass-highlight);
-  border-left: 1px solid var(--md-glass-highlight-soft);
-  border-right: 1px solid var(--md-glass-highlight);
+  border-top: 2px solid var(--glass-highlight);
+  border-left: 1px solid var(--glass-highlight-soft);
+  border-right: 1px solid var(--glass-highlight);
   pointer-events: none;
 }
 
@@ -311,27 +311,27 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  border: var(--md-glass-border);
+  border: var(--glass-border);
   border-radius: 10px;
   padding: 8px 10px;
-  background: var(--md-glass);
+  background: var(--glass);
   color: var(--search-ink);
   text-align: left;
   cursor: pointer;
-  box-shadow: var(--md-glass-inset);
+  box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .floating-search-item:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
 }
 
 .floating-search-item.is-active {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
   color: var(--search-ink);
 }
 
@@ -339,7 +339,7 @@
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: var(--md-glass);
+  background: var(--glass);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -385,7 +385,7 @@
 }
 
 .floating-search-highlight {
-  background: var(--md-glass);
+  background: var(--glass);
   color: var(--search-ink);
   border-radius: 3px;
 }
@@ -403,14 +403,14 @@
   border-radius: 50%;
   border: var(--search-border);
   background: var(--search-surface);
-  box-shadow: var(--search-shadow), var(--md-glass-inset);
+  box-shadow: var(--search-shadow), var(--glass-inset);
   color: var(--search-ink-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transition: background 0.15s ease, transform 0.12s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
@@ -432,5 +432,5 @@
 }
 
 .floating-search.has-query .search-orb {
-  box-shadow: var(--md-elev-2), 0 0 0 2px rgba(var(--md-primary-rgb), 0.35);
+  box-shadow: var(--elev-2), 0 0 0 2px rgba(var(--primary-rgb), 0.35);
 }

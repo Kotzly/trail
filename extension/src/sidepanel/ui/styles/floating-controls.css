@@ -59,26 +59,26 @@
   width: var(--orb-size);
   height: var(--orb-size);
   border-radius: 50%;
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  box-shadow: var(--md-glass-shadow), var(--md-glass-inset);
-  color: var(--md-glass-ink-muted);
+  border: var(--glass-border);
+  background: var(--glass);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+  color: var(--glass-ink-muted);
   cursor: pointer;
   transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease, color 0.12s ease,
     border-color 0.12s ease;
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .matte-circle-btn:hover {
-  background: var(--md-glass-strong);
-  color: var(--md-glass-ink);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  background: var(--glass-strong);
+  color: var(--glass-ink);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
   transform: translateY(-1px);
 }
 
 .matte-circle-btn:focus-visible {
-  outline: 2px solid rgba(var(--md-primary-rgb), 0.35);
+  outline: 2px solid rgba(var(--primary-rgb), 0.35);
   outline-offset: 2px;
 }
 
@@ -114,7 +114,7 @@
 .confirm-overlay {
   position: fixed;
   inset: 0;
-  background: var(--md-overlay);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -129,13 +129,13 @@
 .confirm-dialog {
   min-width: 260px;
   max-width: 320px;
-  background: var(--md-glass-strong);
-  border: var(--md-glass-border);
+  background: var(--glass-strong);
+  border: var(--glass-border);
   border-radius: 16px;
   padding: 16px;
-  box-shadow: var(--md-glass-shadow);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   position: relative;
   overflow: hidden;
   animation: confirm-dialog-in 0.2s ease-out;
@@ -146,29 +146,29 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border-top: 2px solid var(--md-glass-highlight);
-  border-left: 1px solid var(--md-glass-highlight-soft);
-  border-right: 1px solid var(--md-glass-highlight);
+  border-top: 2px solid var(--glass-highlight);
+  border-left: 1px solid var(--glass-highlight-soft);
+  border-right: 1px solid var(--glass-highlight);
   pointer-events: none;
 }
 
 .confirm-title {
   font-size: 13px;
-  color: var(--md-on-surface);
+  color: var(--foreground);
   margin-bottom: 14px;
 }
 
 .confirm-input {
   width: 100%;
-  border: var(--md-glass-border);
+  border: var(--glass-border);
   border-radius: 10px;
   padding: 8px 10px;
   font-size: 13px;
-  background: var(--md-glass);
-  color: var(--md-on-surface);
+  background: var(--glass);
+  color: var(--foreground);
   margin-bottom: 12px;
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .confirm-actions {
@@ -178,33 +178,33 @@
 }
 
 .confirm-btn {
-  border: 1px solid color-mix(in srgb, var(--md-primary) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
   border-radius: 10px;
   padding: 8px 12px;
   font-size: 12px;
   cursor: pointer;
-  background: color-mix(in srgb, var(--md-primary) 40%, transparent);
-  color: var(--md-on-primary);
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  background: color-mix(in srgb, var(--primary) 40%, transparent);
+  color: var(--primary-foreground);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
 }
 
 .confirm-btn.danger {
-  border-color: color-mix(in srgb, var(--md-error) 50%, transparent);
-  background: color-mix(in srgb, var(--md-error) 42%, transparent);
-  color: var(--md-on-primary);
+  border-color: color-mix(in srgb, var(--destructive) 50%, transparent);
+  background: color-mix(in srgb, var(--destructive) 42%, transparent);
+  color: var(--primary-foreground);
 }
 
 .confirm-btn.danger:hover {
-  background: color-mix(in srgb, var(--md-error) 58%, transparent);
-  border-color: color-mix(in srgb, var(--md-error) 65%, transparent);
+  background: color-mix(in srgb, var(--destructive) 58%, transparent);
+  border-color: color-mix(in srgb, var(--destructive) 65%, transparent);
 }
 
 .confirm-btn:hover {
-  background: color-mix(in srgb, var(--md-primary) 55%, transparent);
-  border-color: color-mix(in srgb, var(--md-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--primary) 55%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
 }
 
 .confirm-btn:active {
@@ -212,18 +212,18 @@
 }
 
 .confirm-btn.ghost {
-  background: var(--md-glass);
-  border: var(--md-glass-border);
-  color: var(--md-on-surface-variant);
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  background: var(--glass);
+  border: var(--glass-border);
+  color: var(--muted-foreground);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .confirm-btn.ghost:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-on-surface);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--foreground);
 }
 
 @keyframes confirm-overlay-in {

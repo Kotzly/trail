@@ -1,7 +1,7 @@
 .tag-editor-overlay {
   position: fixed;
   inset: 0;
-  background: var(--md-overlay);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,13 +13,13 @@
 
 .tag-editor {
   width: min(360px, 92vw);
-  background: var(--md-glass-strong);
-  border: var(--md-glass-border);
+  background: var(--glass-strong);
+  border: var(--glass-border);
   border-radius: 18px;
   padding: 16px;
-  box-shadow: var(--md-glass-shadow);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   position: relative;
   overflow: hidden;
   animation: confirm-dialog-in 0.2s ease-out;
@@ -30,9 +30,9 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border-top: 2px solid var(--md-glass-highlight);
-  border-left: 1px solid var(--md-glass-highlight-soft);
-  border-right: 1px solid var(--md-glass-highlight);
+  border-top: 2px solid var(--glass-highlight);
+  border-left: 1px solid var(--glass-highlight-soft);
+  border-right: 1px solid var(--glass-highlight);
   pointer-events: none;
 }
 
@@ -46,34 +46,34 @@
 .tag-editor-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--md-on-surface);
+  color: var(--foreground);
 }
 
 .tag-editor-close {
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-on-surface-variant);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--muted-foreground);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
   padding: 4px;
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .tag-editor-close:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-on-surface);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--foreground);
 }
 
 .tag-editor-label {
   font-size: 12px;
-  color: var(--md-on-surface);
+  color: var(--foreground);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -83,12 +83,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: var(--md-glass-border);
+  border: var(--glass-border);
   border-radius: 12px;
   padding: 8px 10px;
-  background: var(--md-glass);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .tag-editor-input {
@@ -96,17 +96,17 @@
   border: none;
   background: transparent;
   font-size: 13px;
-  color: var(--md-on-surface);
+  color: var(--foreground);
   outline: none;
 }
 
 .tag-editor-count {
   font-size: 11px;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
 }
 
 .tag-editor-count.invalid {
-  color: var(--md-error);
+  color: var(--destructive);
 }
 
 .tag-editor-section {
@@ -115,7 +115,7 @@
 
 .tag-editor-section-title {
   font-size: 12px;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
   margin-bottom: 8px;
 }
 
@@ -131,14 +131,14 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: var(--md-glass-border);
+  border: var(--glass-border);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--md-glass);
-  color: var(--md-glass-ink);
-  box-shadow: var(--md-glass-inset);
+  background: var(--glass);
+  color: var(--glass-ink);
+  box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
@@ -146,8 +146,8 @@
 
 .tag-editor-color.selected,
 .tag-editor-icon.selected {
-  border-color: var(--md-primary);
-  box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb), 0.25);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.25);
   transform: scale(1.05);
 }
 
@@ -157,7 +157,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: var(--md-on-surface);
+  color: var(--foreground);
 }
 
 .tag-editor-preview-dot {
@@ -177,22 +177,22 @@
 }
 
 .tag-editor-btn {
-  border: 1px solid color-mix(in srgb, var(--md-primary) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
   border-radius: 10px;
   padding: 8px 12px;
   font-size: 12px;
   cursor: pointer;
-  background: color-mix(in srgb, var(--md-primary) 40%, transparent);
-  color: var(--md-on-primary);
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  background: color-mix(in srgb, var(--primary) 40%, transparent);
+  color: var(--primary-foreground);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
 }
 
 .tag-editor-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--md-primary) 55%, transparent);
-  border-color: color-mix(in srgb, var(--md-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--primary) 55%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
 }
 
 .tag-editor-btn:active:not(:disabled) {
@@ -205,16 +205,16 @@
 }
 
 .tag-editor-btn.ghost {
-  background: var(--md-glass);
-  border: var(--md-glass-border);
-  color: var(--md-on-surface-variant);
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  background: var(--glass);
+  border: var(--glass-border);
+  color: var(--muted-foreground);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .tag-editor-btn.ghost:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-on-surface);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--foreground);
 }
