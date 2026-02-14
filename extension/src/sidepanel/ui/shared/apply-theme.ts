@@ -7,7 +7,8 @@ export function applyTheme(theme: ThemeId, customTheme: CustomTheme): void {
   root.setAttribute('data-theme', theme);
   // Sync cache for instant theme restore on panel reload (avoids FOUC)
   try { sessionStorage.setItem('trail-theme-cache', theme); } catch { /* quota / security */ }
-  if (!customTheme?.enabled) {
+  const hasVisualContent = (customTheme?.dots?.length ?? 0) > 0 || (customTheme?.customColors?.length ?? 0) > 0;
+  if (!customTheme?.enabled || !hasVisualContent) {
     for (const key of THEME_TOKEN_KEYS) {
       root.style.removeProperty(key);
     }
