@@ -263,13 +263,13 @@ function testSidebarWidth(): void {
 function testBackendConfigOverride(): void {
   const resolved = resolveBackendConfig({
     baseUrl: 'http://localhost:3001',
-    portalUrl: 'http://localhost:3001/auth/portal/complete',
+    portalUrl: 'http://localhost:3001/login',
     mode: 'remote',
   });
 
   assert.equal(DEFAULT_BACKEND_CONFIG.baseUrl, 'https://app.gettrail.net');
   assert.equal(resolved.baseUrl, 'http://localhost:3001');
-  assert.equal(resolved.portalUrl, 'http://localhost:3001/auth/portal/complete');
+  assert.equal(resolved.portalUrl, 'http://localhost:3001/login');
   assert.equal(resolved.mode, 'remote');
 }
 
@@ -277,7 +277,7 @@ function testBackendLocalPresetOverride(): void {
   const override = resolvePresetOverride('local');
   assert.ok(override);
   assert.equal(override.baseUrl, 'http://localhost:3001');
-  assert.equal(override.portalUrl, 'http://localhost:3001/auth/portal/complete');
+  assert.equal(override.portalUrl, 'http://localhost:3001/login');
   assert.equal(override.mode, 'remote');
   assert.equal(override.env, 'local');
 }
@@ -298,7 +298,7 @@ function testBackendServerPresetResolution(): void {
 
   const localhostConfig = resolveBackendConfig({
     baseUrl: 'http://localhost:3001',
-    portalUrl: 'http://localhost:3001/auth/portal/complete',
+    portalUrl: 'http://localhost:3001/login',
   });
   assert.equal(getBackendServerPreset(localhostConfig), 'local');
 }
@@ -471,27 +471,7 @@ function testSaveCancelProtocolSchemas(): void {
   assert.equal(cancelAck.ok, true);
 }
 
-function testAuthBridgeProtocolSchemas(): void {
-  const request = SiteMessage.parse({
-    source: 'trail-site',
-    type: 'REQUEST_AUTH_BRIDGE_CODE',
-    requestId: '55555555-5555-4555-8555-555555555555',
-    timestamp: Date.now(),
-  });
-  assert.equal(request.type, 'REQUEST_AUTH_BRIDGE_CODE');
-
-  const response = ExtensionMessage.parse({
-    source: 'trail-extension',
-    type: 'AUTH_BRIDGE_CODE',
-    requestId: '66666666-6666-4666-8666-666666666666',
-    timestamp: Date.now(),
-    ok: true,
-    code: 'bridge-code',
-    expiresAt: '2026-02-14T12:00:00.000Z',
-  });
-  assert.equal(response.type, 'AUTH_BRIDGE_CODE');
-  assert.equal(response.ok, true);
-
+function testAuthProtocolSchemas(): void {
   const revokedAck = ExtensionMessage.parse({
     source: 'trail-extension',
     type: 'AUTH_REVOKED_ACK',
@@ -500,26 +480,6 @@ function testAuthBridgeProtocolSchemas(): void {
     ok: true,
   });
   assert.equal(revokedAck.type, 'AUTH_REVOKED_ACK');
-
-  const webBridgeRequest = ExtensionMessage.parse({
-    source: 'trail-extension',
-    type: 'REQUEST_WEB_AUTH_BRIDGE_CODE',
-    requestId: '88888888-8888-4888-8888-888888888888',
-    timestamp: Date.now(),
-  });
-  assert.equal(webBridgeRequest.type, 'REQUEST_WEB_AUTH_BRIDGE_CODE');
-
-  const webBridgeResponse = SiteMessage.parse({
-    source: 'trail-site',
-    type: 'WEB_AUTH_BRIDGE_CODE',
-    requestId: '99999999-9999-4999-8999-999999999999',
-    timestamp: Date.now(),
-    ok: true,
-    code: 'bridge-code-web',
-    expiresAt: '2026-02-14T12:00:00.000Z',
-  });
-  assert.equal(webBridgeResponse.type, 'WEB_AUTH_BRIDGE_CODE');
-  assert.equal(webBridgeResponse.ok, true);
 }
 
 function testAllowedSiteOrigins(): void {
@@ -583,7 +543,7 @@ try {
   testViewInvalidationDecisions();
   testSetNodeLayoutBatchMessage();
   testSaveCancelProtocolSchemas();
-  testAuthBridgeProtocolSchemas();
+  testAuthProtocolSchemas();
   testAllowedSiteOrigins();
   testSelectionUtilsBuildPreviewSelection();
   testSelectionUtilsDiffSelection();

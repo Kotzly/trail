@@ -6,6 +6,8 @@ export type ExtensionTokenPayload = {
   sub: string;
   iat: number;
   exp: number;
+  sid?: string;
+  ver?: number;
 };
 
 function base64Url(input: Buffer | string): string {
@@ -32,12 +34,15 @@ export function createSignedExtensionToken(
   secret: string,
   userId: string,
   ttlSeconds: number = DEFAULT_EXTENSION_TOKEN_TTL_SECONDS,
+  claims?: { sid?: string; ver?: number },
 ): { token: string; expiresAt: string } {
   const now = Math.floor(Date.now() / 1000);
   const payload: ExtensionTokenPayload = {
     sub: userId,
     iat: now,
     exp: now + ttlSeconds,
+    ...(claims?.sid ? { sid: claims.sid } : {}),
+    ...(typeof claims?.ver === "number" ? { ver: claims.ver } : {}),
   };
 
   const header = { alg: "HS256", typ: "JWT" };

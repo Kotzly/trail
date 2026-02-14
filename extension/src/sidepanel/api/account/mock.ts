@@ -1,9 +1,6 @@
 import type {
   AccountError,
   AccountSnapshot,
-  AuthPortalRequest,
-  AuthPortalSession,
-  AuthPortalStatus,
   AuthSession,
   BillingStatus,
   CheckoutInput,
@@ -71,14 +68,6 @@ const state: MockState = {
   billing: { state: 'none' },
   onboardingSeenAt: null,
 };
-
-type PortalSession = {
-  id: string;
-  expiresAt: number;
-  approved: boolean;
-};
-
-const portalSessions = new Map<string, PortalSession>();
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -151,19 +140,6 @@ function buildSubscription(planId: string, interval: PlanInterval, status: Subsc
   };
 }
 
-function buildPortalSession(): AuthPortalSession {
-  const id = `portal_${Math.random().toString(16).slice(2)}`;
-  const expiresAt = Date.now() + 5 * 60 * 1000;
-  const session: PortalSession = { id, expiresAt, approved: false };
-  portalSessions.set(id, session);
-  return {
-    id,
-    url: `https://trail.local/auth?session=${id}` as Url,
-    expiresAt: new Date(expiresAt).toISOString(),
-    pollIntervalMs: 800,
-  };
-}
-
 function buildPortalLink(path: string): PortalLink {
   return {
     url: `https://trail.local${path}` as Url,
@@ -223,43 +199,6 @@ function updateBilling(planId: string, status: Subscription['status']): BillingS
 
 export function createMockAccountClient(): AccountClient {
   return {
-    async startAuthPortal(_input?: AuthPortalRequest): Promise<AuthPortalSession> {
-      ensureNetwork();
-      await sleep(DEFAULT_DELAY_MS / 2);
-      return buildPortalSession();
-    },
-
-    async checkAuthPortal(sessionId: string): Promise<AuthPortalStatus> {
-      ensureNetwork();
-      await sleep(DEFAULT_DELAY_MS / 2);
-      const session = portalSessions.get(sessionId);
-      if (!session || Date.now() > session.expiresAt) {
-        portalSessions.delete(sessionId);
-        return { status: 'expired' };
-      }
-      if (!session.approved) {
-        session.approved = true;
-        const approvedSnapshot = signInMockUser();
-        return { status: 'approved', snapshot: approvedSnapshot };
-      }
-      return { status: 'approved', snapshot: snapshot() };
-    },
-
-    async exchangeAuthBridgeCode(_code: string): Promise<AccountSnapshot> {
-      ensureNetwork();
-      await sleep(DEFAULT_DELAY_MS / 2);
-      return signInMockUser();
-    },
-
-    async logout(): Promise<void> {
-      ensureNetwork();
-      await sleep(DEFAULT_DELAY_MS / 2);
-      state.session = { status: 'guest' };
-      state.user = null;
-      state.subscription = null;
-      state.billing = { state: 'none' };
-    },
-
     async getProfile(): Promise<User | null> {
       ensureNetwork();
       await sleep(DEFAULT_DELAY_MS / 2);

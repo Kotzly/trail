@@ -17,7 +17,7 @@ model User {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   onboardingSeenAt         DateTime?
-  extensionAuthRevokedAt   DateTime?
+  authSessionVersion       Int                       @default(1)
   sessions                 Session[]
   accounts                 Account[]
   subscription             UserSubscription?
@@ -26,10 +26,9 @@ model User {
   devices                  Device[]
   deviceSessions           DeviceSession[]
   accountSettings          AccountSettings?
-  portalSessions           PortalSession[]
-  authBridgeCodes          AuthBridgeCode[]
-  extensionLoginCodes      ExtensionLoginCode[]
-  extensionConnectSessions ExtensionConnectSession[]
+  extensionDeviceSessions  ExtensionDeviceSession[]
+  oauthAuthorizationCodes  OAuthAuthorizationCode[]
+  oauthRefreshTokens       OAuthRefreshToken[]
   trails                   Trail[]
 
   @@unique([email])
@@ -88,30 +87,59 @@ model Jwks {
   expiresAt  DateTime?
 }
 
-model AuthBridgeCode {
+model OAuthAuthorizationCode {
   id        String    @id @default(cuid())
-  code      String    @unique
+  codeHash  String    @unique
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jwt       String
+  clientId  String
+  redirectUri String
+  codeChallenge String
+  codeChallengeMethod String @default("S256")
+  scope     String?
+  state     String?
+  deviceId  String?
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
-  @@index([expiresAt])
+  @@index([userId, expiresAt])
 }
 
-model ExtensionLoginCode {
-  id        String    @id @default(cuid())
-  code      String    @unique
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model OAuthRefreshToken {
+  id              String                 @id @default(cuid())
+  tokenHash       String                 @unique
+  userId          String
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceSessionId String
+  deviceSession   ExtensionDeviceSession @relation(fields: [deviceSessionId], references: [id], onDelete: Cascade)
+  clientId        String
+  scope           String?
+  expiresAt       DateTime
+  usedAt          DateTime?
+  revokedAt       DateTime?
+  replacedByTokenId String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
 
-  @@index([expiresAt])
+  @@index([userId, expiresAt])
+  @@index([deviceSessionId])
+}
+
+model ExtensionDeviceSession {
+  id             String                     @id @default(cuid())
+  userId         String
+  user           User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId       String
+  status         ExtensionDeviceSessionStatus @default(ACTIVE)
+  sessionVersion Int                        @default(1)
+  lastSeenAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  refreshTokens  OAuthRefreshToken[]
+
+  @@unique([userId, deviceId])
   @@index([userId])
 }
 
@@ -284,36 +312,6 @@ model AccountSettings {
   updatedAt            DateTime             @updatedAt
 }
 
-model PortalSession {
-  id                      String    @id @default(cuid())
-  source                  String?
-  locale                  String?
-  returnUrl               String?
-  userId                  String?
-  user                    User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  extensionToken          String?
-  extensionTokenExpiresAt DateTime?
-  approvedAt              DateTime?
-  expiresAt               DateTime
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-
-  @@index([expiresAt])
-}
-
-model ExtensionConnectSession {
-  id         String    @id @default(cuid())
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  approvedAt DateTime?
-  expiresAt  DateTime
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  @@index([expiresAt])
-  @@index([userId])
-}
-
 model Trail {
   id             String           @id @default(uuid())
   userId         String
@@ -335,4 +333,9 @@ model Trail {
 
   @@index([userId, deletedAt, updatedAt, id])
   @@index([userId, updatedAt])
+}
+
+enum ExtensionDeviceSessionStatus {
+  ACTIVE
+  REVOKED
 }

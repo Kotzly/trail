@@ -9,6 +9,7 @@ export function useAccountSnapshotQuery() {
   const onboardingStatus = useStore(
     (state) => state.account.onboarding.status,
   );
+  const sessionStatus = useStore((state) => state.account.session.status);
 
   return useQuery({
     queryKey: accountKeys.snapshot(),
@@ -16,6 +17,8 @@ export function useAccountSnapshotQuery() {
     // Poll every 2.5 s while onboarding is pending so the gate closes
     // if the user completes onboarding in the web app.
     refetchInterval:
-      onboardingStatus === "pending" ? ONBOARDING_POLL_MS : false,
+      sessionStatus === "authenticated" && onboardingStatus === "pending"
+        ? ONBOARDING_POLL_MS
+        : false,
   });
 }

@@ -4,9 +4,10 @@ export type BackendPresetTag = 'production' | 'gettrail' | 'local';
 export type BackendServerPreset = 'gettrail' | 'local';
 
 export type BackendEndpoints = {
-  authPortal: string;
-  authBridgeExtension: string;
-  authBridgeExchange: string;
+  oauthAuthorize: string;
+  oauthToken: string;
+  oauthRevoke: string;
+  authSessionState: string;
   logout: string;
   account: string;
   plans: string;
@@ -44,12 +45,13 @@ export const DEFAULT_BACKEND_CONFIG: BackendConfig = {
   mode: 'remote',
   baseUrl: 'https://app.gettrail.net',
   basePath: '/api/v1',
-  portalUrl: 'https://app.gettrail.net/auth/portal/complete',
+  portalUrl: 'https://app.gettrail.net/login',
   timeoutMs: 10000,
   endpoints: {
-    authPortal: '/auth/portal',
-    authBridgeExtension: '/auth/bridge/extension',
-    authBridgeExchange: '/auth/bridge/exchange',
+    oauthAuthorize: '/oauth/authorize',
+    oauthToken: '/oauth/token',
+    oauthRevoke: '/oauth/revoke',
+    authSessionState: '/auth/session-state',
     logout: '/auth/logout',
     account: '/account',
     plans: '/plans',
@@ -136,14 +138,21 @@ export function resolveBackendConfig(override?: BackendConfigOverride | null): B
     portalUrl: normalizeBaseUrl(override.portalUrl, base.portalUrl),
     timeoutMs: normalizeTimeout(override.timeoutMs, base.timeoutMs),
     endpoints: {
-      authPortal: normalizePath(endpointsInput?.authPortal, base.endpoints.authPortal),
-      authBridgeExtension: normalizePath(
-        endpointsInput?.authBridgeExtension,
-        base.endpoints.authBridgeExtension,
+      oauthAuthorize: normalizePath(
+        endpointsInput?.oauthAuthorize,
+        base.endpoints.oauthAuthorize,
       ),
-      authBridgeExchange: normalizePath(
-        endpointsInput?.authBridgeExchange,
-        base.endpoints.authBridgeExchange,
+      oauthToken: normalizePath(
+        endpointsInput?.oauthToken,
+        base.endpoints.oauthToken,
+      ),
+      oauthRevoke: normalizePath(
+        endpointsInput?.oauthRevoke,
+        base.endpoints.oauthRevoke,
+      ),
+      authSessionState: normalizePath(
+        endpointsInput?.authSessionState,
+        base.endpoints.authSessionState,
       ),
       logout: normalizePath(endpointsInput?.logout, base.endpoints.logout),
       account: normalizePath(endpointsInput?.account, base.endpoints.account),
@@ -169,7 +178,7 @@ export function resolvePresetOverride(tag: string | null | undefined): BackendCo
       env: 'local',
       mode: 'remote',
       baseUrl: 'http://localhost:3001',
-      portalUrl: 'http://localhost:3001/auth/portal/complete',
+      portalUrl: 'http://localhost:3001/login',
     };
   }
   return null;

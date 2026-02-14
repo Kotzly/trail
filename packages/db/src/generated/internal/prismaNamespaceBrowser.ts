@@ -56,8 +56,9 @@ export const ModelName = {
   Account: 'Account',
   Verification: 'Verification',
   Jwks: 'Jwks',
-  AuthBridgeCode: 'AuthBridgeCode',
-  ExtensionLoginCode: 'ExtensionLoginCode',
+  OAuthAuthorizationCode: 'OAuthAuthorizationCode',
+  OAuthRefreshToken: 'OAuthRefreshToken',
+  ExtensionDeviceSession: 'ExtensionDeviceSession',
   UserSubscription: 'UserSubscription',
   BillingCheckoutSession: 'BillingCheckoutSession',
   PolarWebhookEvent: 'PolarWebhookEvent',
@@ -65,8 +66,6 @@ export const ModelName = {
   Device: 'Device',
   DeviceSession: 'DeviceSession',
   AccountSettings: 'AccountSettings',
-  PortalSession: 'PortalSession',
-  ExtensionConnectSession: 'ExtensionConnectSession',
   Trail: 'Trail'
 } as const
 
@@ -96,7 +95,7 @@ export const UserScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   onboardingSeenAt: 'onboardingSeenAt',
-  extensionAuthRevokedAt: 'extensionAuthRevokedAt'
+  authSessionVersion: 'authSessionVersion'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -158,30 +157,56 @@ export const JwksScalarFieldEnum = {
 export type JwksScalarFieldEnum = (typeof JwksScalarFieldEnum)[keyof typeof JwksScalarFieldEnum]
 
 
-export const AuthBridgeCodeScalarFieldEnum = {
+export const OAuthAuthorizationCodeScalarFieldEnum = {
   id: 'id',
-  code: 'code',
+  codeHash: 'codeHash',
   userId: 'userId',
-  jwt: 'jwt',
+  clientId: 'clientId',
+  redirectUri: 'redirectUri',
+  codeChallenge: 'codeChallenge',
+  codeChallengeMethod: 'codeChallengeMethod',
+  scope: 'scope',
+  state: 'state',
+  deviceId: 'deviceId',
   expiresAt: 'expiresAt',
   usedAt: 'usedAt',
   createdAt: 'createdAt'
 } as const
 
-export type AuthBridgeCodeScalarFieldEnum = (typeof AuthBridgeCodeScalarFieldEnum)[keyof typeof AuthBridgeCodeScalarFieldEnum]
+export type OAuthAuthorizationCodeScalarFieldEnum = (typeof OAuthAuthorizationCodeScalarFieldEnum)[keyof typeof OAuthAuthorizationCodeScalarFieldEnum]
 
 
-export const ExtensionLoginCodeScalarFieldEnum = {
+export const OAuthRefreshTokenScalarFieldEnum = {
   id: 'id',
-  code: 'code',
+  tokenHash: 'tokenHash',
   userId: 'userId',
+  deviceSessionId: 'deviceSessionId',
+  clientId: 'clientId',
+  scope: 'scope',
   expiresAt: 'expiresAt',
   usedAt: 'usedAt',
+  revokedAt: 'revokedAt',
+  replacedByTokenId: 'replacedByTokenId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type ExtensionLoginCodeScalarFieldEnum = (typeof ExtensionLoginCodeScalarFieldEnum)[keyof typeof ExtensionLoginCodeScalarFieldEnum]
+export type OAuthRefreshTokenScalarFieldEnum = (typeof OAuthRefreshTokenScalarFieldEnum)[keyof typeof OAuthRefreshTokenScalarFieldEnum]
+
+
+export const ExtensionDeviceSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  deviceId: 'deviceId',
+  status: 'status',
+  sessionVersion: 'sessionVersion',
+  lastSeenAt: 'lastSeenAt',
+  revokedAt: 'revokedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExtensionDeviceSessionScalarFieldEnum = (typeof ExtensionDeviceSessionScalarFieldEnum)[keyof typeof ExtensionDeviceSessionScalarFieldEnum]
 
 
 export const UserSubscriptionScalarFieldEnum = {
@@ -303,35 +328,6 @@ export const AccountSettingsScalarFieldEnum = {
 } as const
 
 export type AccountSettingsScalarFieldEnum = (typeof AccountSettingsScalarFieldEnum)[keyof typeof AccountSettingsScalarFieldEnum]
-
-
-export const PortalSessionScalarFieldEnum = {
-  id: 'id',
-  source: 'source',
-  locale: 'locale',
-  returnUrl: 'returnUrl',
-  userId: 'userId',
-  extensionToken: 'extensionToken',
-  extensionTokenExpiresAt: 'extensionTokenExpiresAt',
-  approvedAt: 'approvedAt',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type PortalSessionScalarFieldEnum = (typeof PortalSessionScalarFieldEnum)[keyof typeof PortalSessionScalarFieldEnum]
-
-
-export const ExtensionConnectSessionScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  approvedAt: 'approvedAt',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type ExtensionConnectSessionScalarFieldEnum = (typeof ExtensionConnectSessionScalarFieldEnum)[keyof typeof ExtensionConnectSessionScalarFieldEnum]
 
 
 export const TrailScalarFieldEnum = {

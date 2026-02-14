@@ -389,8 +389,9 @@ export const ModelName = {
   Account: 'Account',
   Verification: 'Verification',
   Jwks: 'Jwks',
-  AuthBridgeCode: 'AuthBridgeCode',
-  ExtensionLoginCode: 'ExtensionLoginCode',
+  OAuthAuthorizationCode: 'OAuthAuthorizationCode',
+  OAuthRefreshToken: 'OAuthRefreshToken',
+  ExtensionDeviceSession: 'ExtensionDeviceSession',
   UserSubscription: 'UserSubscription',
   BillingCheckoutSession: 'BillingCheckoutSession',
   PolarWebhookEvent: 'PolarWebhookEvent',
@@ -398,8 +399,6 @@ export const ModelName = {
   Device: 'Device',
   DeviceSession: 'DeviceSession',
   AccountSettings: 'AccountSettings',
-  PortalSession: 'PortalSession',
-  ExtensionConnectSession: 'ExtensionConnectSession',
   Trail: 'Trail'
 } as const
 
@@ -416,7 +415,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jwks" | "authBridgeCode" | "extensionLoginCode" | "userSubscription" | "billingCheckoutSession" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "portalSession" | "extensionConnectSession" | "trail"
+    modelProps: "user" | "session" | "account" | "verification" | "jwks" | "oAuthAuthorizationCode" | "oAuthRefreshToken" | "extensionDeviceSession" | "userSubscription" | "billingCheckoutSession" | "polarWebhookEvent" | "wishlistLead" | "device" | "deviceSession" | "accountSettings" | "trail"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -790,151 +789,225 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    AuthBridgeCode: {
-      payload: Prisma.$AuthBridgeCodePayload<ExtArgs>
-      fields: Prisma.AuthBridgeCodeFieldRefs
+    OAuthAuthorizationCode: {
+      payload: Prisma.$OAuthAuthorizationCodePayload<ExtArgs>
+      fields: Prisma.OAuthAuthorizationCodeFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.AuthBridgeCodeFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload> | null
+          args: Prisma.OAuthAuthorizationCodeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.AuthBridgeCodeFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload>
+          args: Prisma.OAuthAuthorizationCodeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload>
         }
         findFirst: {
-          args: Prisma.AuthBridgeCodeFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload> | null
+          args: Prisma.OAuthAuthorizationCodeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.AuthBridgeCodeFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload>
+          args: Prisma.OAuthAuthorizationCodeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload>
         }
         findMany: {
-          args: Prisma.AuthBridgeCodeFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload>[]
+          args: Prisma.OAuthAuthorizationCodeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload>[]
         }
         create: {
-          args: Prisma.AuthBridgeCodeCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload>
+          args: Prisma.OAuthAuthorizationCodeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload>
         }
         createMany: {
-          args: Prisma.AuthBridgeCodeCreateManyArgs<ExtArgs>
+          args: Prisma.OAuthAuthorizationCodeCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.AuthBridgeCodeCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload>[]
+          args: Prisma.OAuthAuthorizationCodeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload>[]
         }
         delete: {
-          args: Prisma.AuthBridgeCodeDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload>
+          args: Prisma.OAuthAuthorizationCodeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload>
         }
         update: {
-          args: Prisma.AuthBridgeCodeUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload>
+          args: Prisma.OAuthAuthorizationCodeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload>
         }
         deleteMany: {
-          args: Prisma.AuthBridgeCodeDeleteManyArgs<ExtArgs>
+          args: Prisma.OAuthAuthorizationCodeDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.AuthBridgeCodeUpdateManyArgs<ExtArgs>
+          args: Prisma.OAuthAuthorizationCodeUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.AuthBridgeCodeUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload>[]
+          args: Prisma.OAuthAuthorizationCodeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload>[]
         }
         upsert: {
-          args: Prisma.AuthBridgeCodeUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthBridgeCodePayload>
+          args: Prisma.OAuthAuthorizationCodeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthAuthorizationCodePayload>
         }
         aggregate: {
-          args: Prisma.AuthBridgeCodeAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAuthBridgeCode>
+          args: Prisma.OAuthAuthorizationCodeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOAuthAuthorizationCode>
         }
         groupBy: {
-          args: Prisma.AuthBridgeCodeGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AuthBridgeCodeGroupByOutputType>[]
+          args: Prisma.OAuthAuthorizationCodeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OAuthAuthorizationCodeGroupByOutputType>[]
         }
         count: {
-          args: Prisma.AuthBridgeCodeCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AuthBridgeCodeCountAggregateOutputType> | number
+          args: Prisma.OAuthAuthorizationCodeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OAuthAuthorizationCodeCountAggregateOutputType> | number
         }
       }
     }
-    ExtensionLoginCode: {
-      payload: Prisma.$ExtensionLoginCodePayload<ExtArgs>
-      fields: Prisma.ExtensionLoginCodeFieldRefs
+    OAuthRefreshToken: {
+      payload: Prisma.$OAuthRefreshTokenPayload<ExtArgs>
+      fields: Prisma.OAuthRefreshTokenFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.ExtensionLoginCodeFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload> | null
+          args: Prisma.OAuthRefreshTokenFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.ExtensionLoginCodeFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+          args: Prisma.OAuthRefreshTokenFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload>
         }
         findFirst: {
-          args: Prisma.ExtensionLoginCodeFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload> | null
+          args: Prisma.OAuthRefreshTokenFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.ExtensionLoginCodeFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+          args: Prisma.OAuthRefreshTokenFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload>
         }
         findMany: {
-          args: Prisma.ExtensionLoginCodeFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>[]
+          args: Prisma.OAuthRefreshTokenFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload>[]
         }
         create: {
-          args: Prisma.ExtensionLoginCodeCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+          args: Prisma.OAuthRefreshTokenCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload>
         }
         createMany: {
-          args: Prisma.ExtensionLoginCodeCreateManyArgs<ExtArgs>
+          args: Prisma.OAuthRefreshTokenCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.ExtensionLoginCodeCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>[]
+          args: Prisma.OAuthRefreshTokenCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload>[]
         }
         delete: {
-          args: Prisma.ExtensionLoginCodeDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+          args: Prisma.OAuthRefreshTokenDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload>
         }
         update: {
-          args: Prisma.ExtensionLoginCodeUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+          args: Prisma.OAuthRefreshTokenUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload>
         }
         deleteMany: {
-          args: Prisma.ExtensionLoginCodeDeleteManyArgs<ExtArgs>
+          args: Prisma.OAuthRefreshTokenDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.ExtensionLoginCodeUpdateManyArgs<ExtArgs>
+          args: Prisma.OAuthRefreshTokenUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.ExtensionLoginCodeUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>[]
+          args: Prisma.OAuthRefreshTokenUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload>[]
         }
         upsert: {
-          args: Prisma.ExtensionLoginCodeUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionLoginCodePayload>
+          args: Prisma.OAuthRefreshTokenUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthRefreshTokenPayload>
         }
         aggregate: {
-          args: Prisma.ExtensionLoginCodeAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateExtensionLoginCode>
+          args: Prisma.OAuthRefreshTokenAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOAuthRefreshToken>
         }
         groupBy: {
-          args: Prisma.ExtensionLoginCodeGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ExtensionLoginCodeGroupByOutputType>[]
+          args: Prisma.OAuthRefreshTokenGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OAuthRefreshTokenGroupByOutputType>[]
         }
         count: {
-          args: Prisma.ExtensionLoginCodeCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ExtensionLoginCodeCountAggregateOutputType> | number
+          args: Prisma.OAuthRefreshTokenCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OAuthRefreshTokenCountAggregateOutputType> | number
+        }
+      }
+    }
+    ExtensionDeviceSession: {
+      payload: Prisma.$ExtensionDeviceSessionPayload<ExtArgs>
+      fields: Prisma.ExtensionDeviceSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ExtensionDeviceSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ExtensionDeviceSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.ExtensionDeviceSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ExtensionDeviceSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload>
+        }
+        findMany: {
+          args: Prisma.ExtensionDeviceSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload>[]
+        }
+        create: {
+          args: Prisma.ExtensionDeviceSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload>
+        }
+        createMany: {
+          args: Prisma.ExtensionDeviceSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ExtensionDeviceSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.ExtensionDeviceSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload>
+        }
+        update: {
+          args: Prisma.ExtensionDeviceSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.ExtensionDeviceSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ExtensionDeviceSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ExtensionDeviceSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.ExtensionDeviceSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionDeviceSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.ExtensionDeviceSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateExtensionDeviceSession>
+        }
+        groupBy: {
+          args: Prisma.ExtensionDeviceSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExtensionDeviceSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ExtensionDeviceSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExtensionDeviceSessionCountAggregateOutputType> | number
         }
       }
     }
@@ -1456,154 +1529,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    PortalSession: {
-      payload: Prisma.$PortalSessionPayload<ExtArgs>
-      fields: Prisma.PortalSessionFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.PortalSessionFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.PortalSessionFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
-        }
-        findFirst: {
-          args: Prisma.PortalSessionFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.PortalSessionFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
-        }
-        findMany: {
-          args: Prisma.PortalSessionFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>[]
-        }
-        create: {
-          args: Prisma.PortalSessionCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
-        }
-        createMany: {
-          args: Prisma.PortalSessionCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.PortalSessionCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>[]
-        }
-        delete: {
-          args: Prisma.PortalSessionDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
-        }
-        update: {
-          args: Prisma.PortalSessionUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
-        }
-        deleteMany: {
-          args: Prisma.PortalSessionDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.PortalSessionUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.PortalSessionUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>[]
-        }
-        upsert: {
-          args: Prisma.PortalSessionUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalSessionPayload>
-        }
-        aggregate: {
-          args: Prisma.PortalSessionAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregatePortalSession>
-        }
-        groupBy: {
-          args: Prisma.PortalSessionGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.PortalSessionGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.PortalSessionCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.PortalSessionCountAggregateOutputType> | number
-        }
-      }
-    }
-    ExtensionConnectSession: {
-      payload: Prisma.$ExtensionConnectSessionPayload<ExtArgs>
-      fields: Prisma.ExtensionConnectSessionFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.ExtensionConnectSessionFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.ExtensionConnectSessionFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
-        }
-        findFirst: {
-          args: Prisma.ExtensionConnectSessionFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.ExtensionConnectSessionFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
-        }
-        findMany: {
-          args: Prisma.ExtensionConnectSessionFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>[]
-        }
-        create: {
-          args: Prisma.ExtensionConnectSessionCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
-        }
-        createMany: {
-          args: Prisma.ExtensionConnectSessionCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.ExtensionConnectSessionCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>[]
-        }
-        delete: {
-          args: Prisma.ExtensionConnectSessionDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
-        }
-        update: {
-          args: Prisma.ExtensionConnectSessionUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
-        }
-        deleteMany: {
-          args: Prisma.ExtensionConnectSessionDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.ExtensionConnectSessionUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.ExtensionConnectSessionUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>[]
-        }
-        upsert: {
-          args: Prisma.ExtensionConnectSessionUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExtensionConnectSessionPayload>
-        }
-        aggregate: {
-          args: Prisma.ExtensionConnectSessionAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateExtensionConnectSession>
-        }
-        groupBy: {
-          args: Prisma.ExtensionConnectSessionGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ExtensionConnectSessionGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.ExtensionConnectSessionCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ExtensionConnectSessionCountAggregateOutputType> | number
-        }
-      }
-    }
     Trail: {
       payload: Prisma.$TrailPayload<ExtArgs>
       fields: Prisma.TrailFieldRefs
@@ -1727,7 +1652,7 @@ export const UserScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   onboardingSeenAt: 'onboardingSeenAt',
-  extensionAuthRevokedAt: 'extensionAuthRevokedAt'
+  authSessionVersion: 'authSessionVersion'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -1789,30 +1714,56 @@ export const JwksScalarFieldEnum = {
 export type JwksScalarFieldEnum = (typeof JwksScalarFieldEnum)[keyof typeof JwksScalarFieldEnum]
 
 
-export const AuthBridgeCodeScalarFieldEnum = {
+export const OAuthAuthorizationCodeScalarFieldEnum = {
   id: 'id',
-  code: 'code',
+  codeHash: 'codeHash',
   userId: 'userId',
-  jwt: 'jwt',
+  clientId: 'clientId',
+  redirectUri: 'redirectUri',
+  codeChallenge: 'codeChallenge',
+  codeChallengeMethod: 'codeChallengeMethod',
+  scope: 'scope',
+  state: 'state',
+  deviceId: 'deviceId',
   expiresAt: 'expiresAt',
   usedAt: 'usedAt',
   createdAt: 'createdAt'
 } as const
 
-export type AuthBridgeCodeScalarFieldEnum = (typeof AuthBridgeCodeScalarFieldEnum)[keyof typeof AuthBridgeCodeScalarFieldEnum]
+export type OAuthAuthorizationCodeScalarFieldEnum = (typeof OAuthAuthorizationCodeScalarFieldEnum)[keyof typeof OAuthAuthorizationCodeScalarFieldEnum]
 
 
-export const ExtensionLoginCodeScalarFieldEnum = {
+export const OAuthRefreshTokenScalarFieldEnum = {
   id: 'id',
-  code: 'code',
+  tokenHash: 'tokenHash',
   userId: 'userId',
+  deviceSessionId: 'deviceSessionId',
+  clientId: 'clientId',
+  scope: 'scope',
   expiresAt: 'expiresAt',
   usedAt: 'usedAt',
+  revokedAt: 'revokedAt',
+  replacedByTokenId: 'replacedByTokenId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type ExtensionLoginCodeScalarFieldEnum = (typeof ExtensionLoginCodeScalarFieldEnum)[keyof typeof ExtensionLoginCodeScalarFieldEnum]
+export type OAuthRefreshTokenScalarFieldEnum = (typeof OAuthRefreshTokenScalarFieldEnum)[keyof typeof OAuthRefreshTokenScalarFieldEnum]
+
+
+export const ExtensionDeviceSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  deviceId: 'deviceId',
+  status: 'status',
+  sessionVersion: 'sessionVersion',
+  lastSeenAt: 'lastSeenAt',
+  revokedAt: 'revokedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExtensionDeviceSessionScalarFieldEnum = (typeof ExtensionDeviceSessionScalarFieldEnum)[keyof typeof ExtensionDeviceSessionScalarFieldEnum]
 
 
 export const UserSubscriptionScalarFieldEnum = {
@@ -1936,35 +1887,6 @@ export const AccountSettingsScalarFieldEnum = {
 export type AccountSettingsScalarFieldEnum = (typeof AccountSettingsScalarFieldEnum)[keyof typeof AccountSettingsScalarFieldEnum]
 
 
-export const PortalSessionScalarFieldEnum = {
-  id: 'id',
-  source: 'source',
-  locale: 'locale',
-  returnUrl: 'returnUrl',
-  userId: 'userId',
-  extensionToken: 'extensionToken',
-  extensionTokenExpiresAt: 'extensionTokenExpiresAt',
-  approvedAt: 'approvedAt',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type PortalSessionScalarFieldEnum = (typeof PortalSessionScalarFieldEnum)[keyof typeof PortalSessionScalarFieldEnum]
-
-
-export const ExtensionConnectSessionScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  approvedAt: 'approvedAt',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type ExtensionConnectSessionScalarFieldEnum = (typeof ExtensionConnectSessionScalarFieldEnum)[keyof typeof ExtensionConnectSessionScalarFieldEnum]
-
-
 export const TrailScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -2076,6 +1998,34 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ExtensionDeviceSessionStatus'
+ */
+export type EnumExtensionDeviceSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ExtensionDeviceSessionStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ExtensionDeviceSessionStatus[]'
+ */
+export type ListEnumExtensionDeviceSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ExtensionDeviceSessionStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'SubscriptionPlan'
  */
 export type EnumSubscriptionPlanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionPlan'>
@@ -2128,20 +2078,6 @@ export type EnumBillingProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'BillingProvider[]'
  */
 export type ListEnumBillingProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BillingProvider[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -2342,8 +2278,9 @@ export type GlobalOmitConfig = {
   account?: Prisma.AccountOmit
   verification?: Prisma.VerificationOmit
   jwks?: Prisma.JwksOmit
-  authBridgeCode?: Prisma.AuthBridgeCodeOmit
-  extensionLoginCode?: Prisma.ExtensionLoginCodeOmit
+  oAuthAuthorizationCode?: Prisma.OAuthAuthorizationCodeOmit
+  oAuthRefreshToken?: Prisma.OAuthRefreshTokenOmit
+  extensionDeviceSession?: Prisma.ExtensionDeviceSessionOmit
   userSubscription?: Prisma.UserSubscriptionOmit
   billingCheckoutSession?: Prisma.BillingCheckoutSessionOmit
   polarWebhookEvent?: Prisma.PolarWebhookEventOmit
@@ -2351,8 +2288,6 @@ export type GlobalOmitConfig = {
   device?: Prisma.DeviceOmit
   deviceSession?: Prisma.DeviceSessionOmit
   accountSettings?: Prisma.AccountSettingsOmit
-  portalSession?: Prisma.PortalSessionOmit
-  extensionConnectSession?: Prisma.ExtensionConnectSessionOmit
   trail?: Prisma.TrailOmit
 }
 

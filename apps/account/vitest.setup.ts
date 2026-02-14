@@ -10,8 +10,6 @@ process.env.BETTER_AUTH_URL =
   process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
 process.env.BETTER_AUTH_TRUSTED_ORIGINS =
   process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "http://localhost:3001";
-process.env.AUTH_BRIDGE_DEFAULT_RETURN_TO =
-  process.env.AUTH_BRIDGE_DEFAULT_RETURN_TO ?? "http://localhost:3001";
 process.env.GOOGLE_CLIENT_ID =
   process.env.GOOGLE_CLIENT_ID ?? "test-google-client-id";
 process.env.GOOGLE_CLIENT_SECRET =

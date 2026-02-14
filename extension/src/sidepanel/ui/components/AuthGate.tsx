@@ -29,7 +29,7 @@ export default function AuthGate() {
         <button
           className="auth-gate__btn"
           type="button"
-          onClick={() => void startAuthFlow({ source: 'extension-auth-gate' })}
+          onClick={() => void startAuthFlow()}
           disabled={busy || silentSyncing}
         >
           {busy ? (

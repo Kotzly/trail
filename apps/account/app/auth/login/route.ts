@@ -5,6 +5,8 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const next = url.searchParams.get("next") ?? url.searchParams.get("returnTo");
+  const prompt = url.searchParams.get("prompt");
+  const maxAge = url.searchParams.get("maxAge");
 
   const callbackUrl = new URL("/auth/callback", url.origin);
   if (next) {
@@ -13,6 +15,12 @@ export async function GET(request: Request) {
 
   const loginUrl = new URL("/login", url.origin);
   loginUrl.searchParams.set("returnTo", callbackUrl.toString());
+  if (prompt) {
+    loginUrl.searchParams.set("prompt", prompt);
+  }
+  if (maxAge) {
+    loginUrl.searchParams.set("maxAge", maxAge);
+  }
 
   return NextResponse.redirect(loginUrl);
 }

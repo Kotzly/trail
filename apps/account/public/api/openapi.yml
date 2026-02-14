@@ -59,97 +59,117 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /auth/portal:
-    post:
-      summary: Start extension sign-in portal flow
-      description: |
-        Returns a short-lived session id and a URL for user confirmation on the
-        account site. Used by the extension.
+  /oauth/authorize:
+    get:
+      summary: OAuth authorization endpoint (Authorization Code + PKCE)
       tags: [auth]
       security: []
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AuthPortalRequest"
+      parameters:
+        - name: response_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [code]
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: code_challenge
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: code_challenge_method
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [S256]
+        - name: prompt
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [none, select_account]
+        - name: device_id
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
-        "200":
-          description: Portal session
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthPortalSession"
+        "302":
+          description: Redirects to login or to redirect_uri with code/error.
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /auth/portal/{id}:
-    get:
-      summary: Check portal session status
-      description: Polled by the extension until approved or expired.
+  /oauth/token:
+    post:
+      summary: OAuth token endpoint (code exchange and refresh)
       tags: [auth]
       security: []
-      parameters:
-        - $ref: "#/components/parameters/PortalId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/OAuthTokenCodeGrantRequest"
+                - $ref: "#/components/schemas/OAuthTokenRefreshGrantRequest"
       responses:
         "200":
-          description: Portal status
+          description: OAuth token response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthPortalStatus"
-        "404":
-          $ref: "#/components/responses/NotFound"
+                $ref: "#/components/schemas/OAuthTokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
-  /auth/portal/{id}/approve:
+  /oauth/revoke:
     post:
-      summary: Approve portal sign-in
-      description: |
-        Called from the account site after user confirmation.
+      summary: Revoke refresh token
       tags: [auth]
-      security:
-        - userAuth: []
-      parameters:
-        - $ref: "#/components/parameters/PortalId"
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthRevokeRequest"
       responses:
-        "200":
-          description: Approved
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PortalApproval"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+        "204":
+          description: Token revoked (idempotent).
 
-  /auth/bridge/extension:
-    post:
-      summary: Exchange extension bearer for one-time web bridge code
-      description: |
-        Used by the site-extension bridge for silent web session restore.
-        Requires extension bearer token in Authorization header.
+  /auth/session-state:
+    get:
+      summary: Resolve current auth session state from bearer/cookie
       tags: [auth]
-      security:
-        - extensionAuth: []
+      security: []
       responses:
         "200":
-          description: Bridge code created
+          description: Session state
           content:
             application/json:
               schema:
-                type: object
-                required: [code, expiresAt]
-                properties:
-                  code:
-                    type: string
-                  expiresAt:
-                    type: string
-                    format: date-time
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+                $ref: "#/components/schemas/AuthSessionState"
 
   /trails:
     get:
@@ -438,18 +458,6 @@ components:
       description: Trail extension access token
 
   parameters:
-    PortalId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-    ConnectId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
     DeviceId:
       name: id
       in: path
@@ -564,89 +572,96 @@ components:
           type: string
           format: date-time
 
-    AuthPortalRequest:
+    OAuthTokenCodeGrantRequest:
       type: object
+      required: [grant_type, code, code_verifier, redirect_uri]
       properties:
+        grant_type:
+          type: string
+          enum: [authorization_code]
+        code:
+          type: string
+        code_verifier:
+          type: string
+        redirect_uri:
+          type: string
+          format: uri
+        client_id:
+          type: string
+        device_id:
+          type: string
+
+    OAuthTokenRefreshGrantRequest:
+      type: object
+      required: [grant_type, refresh_token]
+      properties:
+        grant_type:
+          type: string
+          enum: [refresh_token]
+        refresh_token:
+          type: string
+        client_id:
+          type: string
+
+    OAuthTokenResponse:
+      type: object
+      required:
+        [access_token, token_type, expires_at, refresh_token, refresh_expires_at, scope]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_at:
+          type: string
+          format: date-time
+        refresh_token:
+          type: string
+        refresh_expires_at:
+          type: string
+          format: date-time
+        scope:
+          type: string
+
+    OAuthRevokeRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    AuthSessionStateGuest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [guest]
+
+    AuthSessionStateAuthenticated:
+      type: object
+      required: [status, source, userId]
+      properties:
+        status:
+          type: string
+          enum: [authenticated]
         source:
           type: string
-        locale:
+          enum: [web, extension]
+        userId:
           type: string
-        returnUrl:
+        sessionId:
           type: string
-          format: uri
-
-    AuthPortalSession:
-      type: object
-      required: [id, url, expiresAt]
-      properties:
-        id:
-          type: string
-        url:
-          type: string
-          format: uri
-        expiresAt:
-          type: string
-          format: date-time
-        pollIntervalMs:
+          nullable: true
+        authSessionVersion:
           type: integer
           nullable: true
 
-    AuthPortalStatus:
-      type: object
-      required: [status]
-      properties:
-        status:
-          type: string
-          enum: [pending, approved, expired]
-        snapshot:
-          $ref: "#/components/schemas/AccountSnapshot"
-
-    PortalApproval:
-      type: object
-      required: [status]
-      properties:
-        status:
-          type: string
-          enum: [approved]
-        approvedAt:
-          type: string
-          format: date-time
-
-    ExtensionConnectSession:
-      type: object
-      required: [id, expiresAt]
-      properties:
-        id:
-          type: string
-        expiresAt:
-          type: string
-          format: date-time
-        pollIntervalMs:
-          type: integer
-          nullable: true
-
-    ExtensionConnectStatus:
-      type: object
-      required: [status]
-      properties:
-        status:
-          type: string
-          enum: [pending, approved, expired]
-        approvedAt:
-          type: string
-          format: date-time
-          nullable: true
-
-    ExtensionConnectApproval:
-      type: object
-      required: [status]
-      properties:
-        status:
-          type: string
-          enum: [approved]
-        approvedAt:
-          type: string
-          format: date-time
+    AuthSessionState:
+      oneOf:
+        - $ref: "#/components/schemas/AuthSessionStateGuest"
+        - $ref: "#/components/schemas/AuthSessionStateAuthenticated"
 
     DeviceStatus:
       type: string

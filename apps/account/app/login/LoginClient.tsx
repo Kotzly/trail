@@ -1,35 +1,12 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/src/auth-client";
-import { ping, requestAuthBridgeCode } from "@/src/lib/trail-extension";
 
 const INSECURE_AUTH_PASSWORD = "trail-dev-insecure-auth";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
-
-const buildBridgeUrl = (returnTo: string) =>
-  `/auth/bridge?returnTo=${encodeURIComponent(returnTo)}`;
-
-const buildCallbackUrl = (returnTo: string): URL => {
-  const fallback = new URL("/auth/callback", window.location.origin);
-
-  try {
-    const candidate = new URL(returnTo, window.location.origin);
-    if (candidate.pathname === "/auth/callback") {
-      return candidate;
-    }
-  } catch {
-    // Ignore invalid returnTo and fall back to /auth/callback.
-  }
-
-  if (returnTo.startsWith("/")) {
-    fallback.searchParams.set("next", returnTo);
-  }
-
-  return fallback;
-};
 
 const normalizeError = (error: unknown): string => {
   if (!error) {
@@ -84,7 +61,6 @@ const inputStyle: CSSProperties = {
 const toNameFromEmail = (email: string): string =>
   email.split("@")[0]?.trim() || "trail user";
 
-// region INSECURE_AUTH
 const toInsecureAuthEmail = (email: string): string => {
   let hash = 2166136261;
   for (let index = 0; index < email.length; index += 1) {
@@ -95,65 +71,67 @@ const toInsecureAuthEmail = (email: string): string => {
   const token = (hash >>> 0).toString(36);
   return `insecure-${token}@trail.local`;
 };
-// endregion INSECURE_AUTH
+
+function resolveCallbackUrl(returnToParam: string | null): string {
+  if (typeof window === "undefined") {
+    return "/auth/callback";
+  }
+
+  if (!returnToParam) {
+    return new URL("/auth/callback", window.location.origin).toString();
+  }
+
+  try {
+    const absolute = new URL(returnToParam);
+    if (absolute.origin === window.location.origin) {
+      return absolute.toString();
+    }
+  } catch {
+    // ignore
+  }
+
+  if (returnToParam.startsWith("/")) {
+    return new URL(returnToParam, window.location.origin).toString();
+  }
+
+  return new URL("/auth/callback", window.location.origin).toString();
+}
 
 export function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get("returnTo") ?? "/";
-  const bridgeUrl = useMemo(() => buildBridgeUrl(returnTo), [returnTo]);
+
+  const returnTo = searchParams.get("returnTo");
+  const prompt = searchParams.get("prompt");
+  const maxAge = searchParams.get("maxAge") ?? "0";
+
+  const callbackUrl = useMemo(() => resolveCallbackUrl(returnTo), [returnTo]);
 
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSilentSyncing, setIsSilentSyncing] = useState(false);
-  const [silentSyncError, setSilentSyncError] = useState<string | null>(null);
-  const [showSilentSyncModal, setShowSilentSyncModal] = useState(false);
-  const attemptedSilentSyncRef = useRef(false);
-
-  const runSilentSync = useCallback(
-    async (force: boolean) => {
-      if (attemptedSilentSyncRef.current && !force) {
-        return;
-      }
-      attemptedSilentSyncRef.current = true;
-      setSilentSyncError(null);
-      setIsSilentSyncing(true);
-
-      const pingResult = await ping();
-      if (!pingResult.ok || !pingResult.data.authenticated) {
-        setIsSilentSyncing(false);
-        setShowSilentSyncModal(false);
-        return;
-      }
-
-      const result = await requestAuthBridgeCode();
-      if (!result.ok) {
-        setIsSilentSyncing(false);
-        setSilentSyncError(result.error || "Could not sync extension session.");
-        setShowSilentSyncModal(true);
-        return;
-      }
-
-      const callbackUrl = buildCallbackUrl(returnTo);
-      callbackUrl.searchParams.set("code", result.data.code);
-      window.location.assign(callbackUrl.toString());
-    },
-    [returnTo],
-  );
-
-  useEffect(() => {
-    void runSilentSync(false);
-  }, [runSilentSync]);
 
   const handleGoogleLogin = async () => {
     setError(null);
     setIsLoading(true);
 
-    const { data, error: socialError } = await authClient.signIn.social({
+    const socialInput: Record<string, unknown> = {
       provider: "google",
-      callbackURL: bridgeUrl,
-    });
+      callbackURL: callbackUrl,
+    };
+
+    if (prompt === "select_account") {
+      socialInput.fetchOptions = {
+        query: {
+          prompt: "select_account",
+          max_age: maxAge,
+        },
+      };
+    }
+
+    const { data, error: socialError } = await (authClient.signIn.social as (
+      input: Record<string, unknown>,
+    ) => Promise<{ data?: unknown; error?: unknown }>)(socialInput);
 
     if (socialError) {
       setIsLoading(false);
@@ -168,7 +146,7 @@ export function LoginClient() {
       return;
     }
 
-    router.push(bridgeUrl);
+    router.push(callbackUrl);
   };
 
   const handleEmailLogin = async () => {
@@ -186,7 +164,7 @@ export function LoginClient() {
     const signInResult = await authClient.signIn.email({
       email: authEmail,
       password: INSECURE_AUTH_PASSWORD,
-      callbackURL: bridgeUrl,
+      callbackURL: callbackUrl,
       rememberMe: true,
     });
 
@@ -195,7 +173,7 @@ export function LoginClient() {
         email: authEmail,
         name: toNameFromEmail(normalizedEmail),
         password: INSECURE_AUTH_PASSWORD,
-        callbackURL: bridgeUrl,
+        callbackURL: callbackUrl,
       });
 
       if (signUpResult.error) {
@@ -211,7 +189,7 @@ export function LoginClient() {
         return;
       }
 
-      router.push(bridgeUrl);
+      router.push(callbackUrl);
       return;
     }
 
@@ -222,62 +200,11 @@ export function LoginClient() {
       return;
     }
 
-    router.push(bridgeUrl);
+    router.push(callbackUrl);
   };
 
   return (
     <main style={mainStyle}>
-      {showSilentSyncModal ? (
-        <section
-          role="dialog"
-          aria-modal="true"
-          style={{
-            border: "1px solid #d1d5db",
-            borderRadius: "10px",
-            padding: "14px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            background: "#f9fafb",
-          }}
-        >
-          <strong>Could not sync extension session</strong>
-          <p style={{ margin: 0, color: "#4b5563", fontSize: "14px" }}>
-            {silentSyncError ?? "Try again or continue with manual sign in."}
-          </p>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              type="button"
-              onClick={() => void runSilentSync(true)}
-              disabled={isSilentSyncing || isLoading}
-              style={{
-                ...buttonStyle,
-                cursor:
-                  isSilentSyncing || isLoading ? "not-allowed" : "pointer",
-              }}
-            >
-              {isSilentSyncing ? "Retrying..." : "Retry sync"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowSilentSyncModal(false)}
-              disabled={isSilentSyncing || isLoading}
-              style={{
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid #d1d5db",
-                background: "#fff",
-                color: "#111827",
-                cursor:
-                  isSilentSyncing || isLoading ? "not-allowed" : "pointer",
-              }}
-            >
-              Continue manually
-            </button>
-          </div>
-        </section>
-      ) : null}
-
       <header style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <h1 style={{ margin: 0, fontSize: "28px" }}>trail</h1>
         <p style={{ margin: 0, color: "#4b5563" }}>
@@ -289,14 +216,14 @@ export function LoginClient() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          disabled={isLoading || isSilentSyncing}
+          disabled={isLoading}
           style={{
             ...buttonStyle,
-            cursor: isLoading || isSilentSyncing ? "not-allowed" : "pointer",
-            opacity: isLoading || isSilentSyncing ? 0.75 : 1,
+            cursor: isLoading ? "not-allowed" : "pointer",
+            opacity: isLoading ? 0.75 : 1,
           }}
         >
-          {isLoading || isSilentSyncing ? "Redirecting..." : "Continue with Google"}
+          {isLoading ? "Redirecting..." : "Continue with Google"}
         </button>
       ) : (
         <>
@@ -307,19 +234,19 @@ export function LoginClient() {
             placeholder="you@company.com"
             autoComplete="email"
             style={inputStyle}
-            disabled={isLoading || isSilentSyncing}
+            disabled={isLoading}
           />
           <button
             type="button"
             onClick={handleEmailLogin}
-            disabled={isLoading || isSilentSyncing}
+            disabled={isLoading}
             style={{
               ...buttonStyle,
-              cursor: isLoading || isSilentSyncing ? "not-allowed" : "pointer",
-              opacity: isLoading || isSilentSyncing ? 0.75 : 1,
+              cursor: isLoading ? "not-allowed" : "pointer",
+              opacity: isLoading ? 0.75 : 1,
             }}
           >
-            {isLoading || isSilentSyncing ? "Signing in..." : "Continue"}
+            {isLoading ? "Signing in..." : "Continue"}
           </button>
         </>
       )}

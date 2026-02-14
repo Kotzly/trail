@@ -1,41 +1,9 @@
 import {
-  DEFAULT_EXTENSION_TOKEN_TTL_SECONDS,
-  createSignedExtensionToken,
   type ExtensionTokenPayload,
   verifySignedExtensionToken,
 } from "@trail/trpc";
 import { db } from "@trail/db";
 import { env } from "@/src/env";
-
-const TOKEN_TTL_SECONDS = DEFAULT_EXTENSION_TOKEN_TTL_SECONDS;
-
-export function createExtensionToken(
-  userId: string,
-  ttlSeconds: number = TOKEN_TTL_SECONDS,
-): { token: string; expiresAt: string } {
-  return createSignedExtensionToken(
-    env.TRAIL_EXTENSION_JWT_SECRET,
-    userId,
-    ttlSeconds,
-  );
-}
-
-async function isRevoked(
-  userId: string,
-  issuedAtSeconds: number,
-): Promise<boolean> {
-  const rows = await db.$queryRaw<Array<{ revokedAt: Date | null }>>`
-    SELECT "extensionAuthRevokedAt" as "revokedAt"
-    FROM "User"
-    WHERE "id" = ${userId}
-    LIMIT 1
-  `;
-  const revokedAt = rows[0]?.revokedAt ?? null;
-  if (!revokedAt) {
-    return false;
-  }
-  return issuedAtSeconds * 1000 <= revokedAt.getTime();
-}
 
 export async function verifyExtensionToken(
   token: string,
@@ -44,19 +12,45 @@ export async function verifyExtensionToken(
   if (!payload?.sub) {
     return null;
   }
-
-  if (await isRevoked(payload.sub, payload.iat)) {
+  if (!payload.sid || typeof payload.ver !== "number") {
     return null;
   }
 
-  return payload;
-}
+  const [user, session] = await Promise.all([
+    db.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, authSessionVersion: true },
+    }),
+    db.extensionDeviceSession.findUnique({
+      where: { id: payload.sid },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        revokedAt: true,
+      },
+    }),
+  ]);
 
-export async function revokeExtensionTokensForUser(userId: string): Promise<void> {
-  await db.$executeRaw`
-    UPDATE "User"
-    SET "extensionAuthRevokedAt" = NOW(),
-        "updatedAt" = NOW()
-    WHERE "id" = ${userId}
-  `;
+  if (!user || !session) {
+    return null;
+  }
+  if (session.userId !== payload.sub) {
+    return null;
+  }
+  if (session.status !== "ACTIVE" || session.revokedAt) {
+    return null;
+  }
+  if (user.authSessionVersion !== payload.ver) {
+    return null;
+  }
+
+  void db.extensionDeviceSession
+    .update({
+      where: { id: session.id },
+      data: { lastSeenAt: new Date() },
+    })
+    .catch(() => undefined);
+
+  return payload;
 }

@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         code: "auth",
         message: "Session expired. Please refresh.",
         retryable: false,
-        redirectUrl: "/auth/refresh?next=/billing",
+        redirectUrl: "/auth/login?next=/billing",
       },
       { status: 401 },
     );

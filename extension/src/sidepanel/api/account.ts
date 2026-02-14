@@ -1,9 +1,6 @@
 import type {
   AccountError,
   AccountSnapshot,
-  AuthPortalRequest,
-  AuthPortalSession,
-  AuthPortalStatus,
   BillingStatus,
   CheckoutInput,
   OnboardingState,
@@ -24,10 +21,6 @@ export type CompleteOnboardingInput = {
 };
 
 export type AccountClient = {
-  startAuthPortal: (input?: AuthPortalRequest) => Promise<AuthPortalSession>;
-  checkAuthPortal: (sessionId: string) => Promise<AuthPortalStatus>;
-  exchangeAuthBridgeCode: (code: string) => Promise<AccountSnapshot>;
-  logout: () => Promise<void>;
   getProfile: () => Promise<User | null>;
   getSubscription: () => Promise<Subscription | null>;
   listPlans: () => Promise<Plan[]>;
@@ -69,22 +62,6 @@ export async function getAccountSnapshot(): Promise<AccountSnapshot> {
   return (await getActiveAccountClient()).getSnapshot();
 }
 
-export async function startAuthPortal(input?: AuthPortalRequest): Promise<AuthPortalSession> {
-  return (await getActiveAccountClient()).startAuthPortal(input);
-}
-
-export async function checkAuthPortal(sessionId: string): Promise<AuthPortalStatus> {
-  return (await getActiveAccountClient()).checkAuthPortal(sessionId);
-}
-
-export async function exchangeAuthBridgeCode(code: string): Promise<AccountSnapshot> {
-  return (await getActiveAccountClient()).exchangeAuthBridgeCode(code);
-}
-
-export async function logout(): Promise<void> {
-  return (await getActiveAccountClient()).logout();
-}
-
 export async function getProfile(): Promise<User | null> {
   return (await getActiveAccountClient()).getProfile();
 }
@@ -115,13 +92,24 @@ export async function completeOnboarding(
   return (await getActiveAccountClient()).completeOnboarding(input);
 }
 
-export async function requestWebAuthBridgeCodeFromBackground(): Promise<{
-  code: string;
-  expiresAt: string;
-} | null> {
-  const response = await sendMessage(rpc.requestWebAuthBridgeCode());
+export async function requestOauthInteractiveLoginFromBackground(): Promise<{
+  ok: boolean;
+  reason?: string;
+}> {
+  const response = await sendMessage(rpc.oauthInteractiveLogin());
   if (!response.success) {
-    return null;
+    return { ok: false, reason: response.error };
+  }
+  return response.data;
+}
+
+export async function requestOauthSilentSyncFromBackground(): Promise<{
+  ok: boolean;
+  reason?: string;
+}> {
+  const response = await sendMessage(rpc.oauthSilentSync());
+  if (!response.success) {
+    return { ok: false, reason: response.error };
   }
   return response.data;
 }

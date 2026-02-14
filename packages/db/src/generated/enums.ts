@@ -92,3 +92,11 @@ export const BillingProvider = {
 } as const
 
 export type BillingProvider = (typeof BillingProvider)[keyof typeof BillingProvider]
+
+
+export const ExtensionDeviceSessionStatus = {
+  ACTIVE: 'ACTIVE',
+  REVOKED: 'REVOKED'
+} as const
+
+export type ExtensionDeviceSessionStatus = (typeof ExtensionDeviceSessionStatus)[keyof typeof ExtensionDeviceSessionStatus]

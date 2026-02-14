@@ -29,7 +29,7 @@ import { tagDefHandlers } from "./handlers/tag-def-handlers.js";
 import { panelHandlers } from "./handlers/panel-handlers.js";
 import { siteMessageHandlers } from "./handlers/site-message-handlers.js";
 import { editorHandlers } from "./handlers/editor-handlers.js";
-import { webAuthBridgeHandlers } from "./handlers/web-auth-bridge-handlers.js";
+import { oauthAuthHandlers } from "./handlers/oauth-auth-handlers.js";
 
 type AnyResponse = ResponseMessage<RequestType>;
 type AnyHandler = (
@@ -142,7 +142,7 @@ export function initMessaging(): void {
     .merge(tagDefHandlers)
     .merge(panelHandlers)
     .merge(siteMessageHandlers)
-    .merge(webAuthBridgeHandlers)
+    .merge(oauthAuthHandlers)
     .merge(editorHandlers)
     .listen();
 }

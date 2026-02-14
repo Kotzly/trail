@@ -105,24 +105,6 @@ export type AccountSnapshot = {
   onboarding: OnboardingState;
 };
 
-export type AuthPortalRequest = {
-  source?: string;
-  locale?: string;
-  returnUrl?: Url;
-};
-
-export type AuthPortalSession = {
-  id: string;
-  url: Url;
-  expiresAt: string;
-  pollIntervalMs?: number;
-};
-
-export type AuthPortalStatus = {
-  status: 'pending' | 'approved' | 'expired';
-  snapshot?: AccountSnapshot | null;
-};
-
 export type PortalLink = {
   url: Url;
   expiresAt?: string | null;

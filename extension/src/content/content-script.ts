@@ -108,8 +108,6 @@ const KNOWN_SITE_TYPES = new Set<string>([
   "EXIT_EDITOR_MODE",
   "SAVE_EDITOR_MODE",
   "CANCEL_EDITOR_MODE",
-  "REQUEST_AUTH_BRIDGE_CODE",
-  "WEB_AUTH_BRIDGE_CODE",
   "SELECT_NODE",
   "UPDATE_NODE_METADATA",
   "AUTH_REVOKED",
@@ -333,11 +331,6 @@ function handleSiteMessage(event: MessageEvent): void {
 
   const { requestId, type } = siteMessage;
   const origin = event.origin;
-
-  // This response type is handled by relay waiters in handleBackgroundRelay.
-  if (type === "WEB_AUTH_BRIDGE_CODE") {
-    return;
-  }
 
   // Legacy OPEN_TRAIL_PANEL — keep backward compat with existing handler.
   if (type === "OPEN_TRAIL_PANEL") {
