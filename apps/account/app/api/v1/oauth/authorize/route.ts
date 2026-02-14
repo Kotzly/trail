@@ -5,20 +5,50 @@ import { jsonError } from "@/src/server/backend/error-response";
 
 export const runtime = "nodejs";
 
-function isAllowedRedirectUri(value: string): boolean {
+/**
+ * OAuth client registry mapping client_id to allowed redirect_uri patterns.
+ * Each client defines the schemes/hosts that are permitted for authorization callbacks.
+ */
+type OAuthClientConfig = {
+  allowedRedirectPatterns: Array<{
+    scheme: string;
+    hostname?: string;
+    hostnamePattern?: RegExp;
+  }>;
+};
+
+const OAUTH_CLIENTS: Record<string, OAuthClientConfig> = {
+  "trail-extension": {
+    allowedRedirectPatterns: [
+      // Chrome extension identity API callback (e.g., trail-dev.chromiumapp.org)
+      { scheme: "https:", hostnamePattern: /^[a-z0-9-]+\.chromiumapp\.org$/ },
+      // Production web callback
+      { scheme: "https:", hostname: "app.gettrail.net" },
+      // Local development
+      { scheme: "http:", hostname: "localhost" },
+      { scheme: "http:", hostname: "127.0.0.1" },
+    ],
+  },
+};
+
+function isAllowedRedirectUri(clientId: string, value: string): boolean {
+  const client = OAUTH_CLIENTS[clientId];
+  if (!client) {
+    return false;
+  }
+
   try {
     const url = new URL(value);
-    if (url.protocol === "chrome-extension:") {
-      return true;
-    }
-    if (url.protocol === "https:" && url.hostname.endsWith(".chromiumapp.org")) {
-      return true;
-    }
-    if (url.protocol === "https:" && url.hostname === "app.gettrail.net") {
-      return true;
-    }
-    if (url.protocol === "http:" && (url.hostname === "localhost" || url.hostname === "127.0.0.1")) {
-      return true;
+    for (const pattern of client.allowedRedirectPatterns) {
+      if (url.protocol !== pattern.scheme) {
+        continue;
+      }
+      if (pattern.hostname && url.hostname === pattern.hostname) {
+        return true;
+      }
+      if (pattern.hostnamePattern && pattern.hostnamePattern.test(url.hostname)) {
+        return true;
+      }
     }
     return false;
   } catch {
@@ -51,7 +81,10 @@ export async function GET(request: Request) {
   const prompt = (url.searchParams.get("prompt") ?? "").trim().toLowerCase();
   const deviceId = url.searchParams.get("device_id");
 
-  if (!redirectUri || !isAllowedRedirectUri(redirectUri)) {
+  if (!(clientId in OAUTH_CLIENTS)) {
+    return jsonError("invalid_client", "Unknown client_id.", { status: 400 });
+  }
+  if (!redirectUri || !isAllowedRedirectUri(clientId, redirectUri)) {
     return jsonError("invalid_request", "Invalid redirect_uri.", { status: 400 });
   }
   if (responseType !== "code") {
@@ -89,8 +122,12 @@ export async function GET(request: Request) {
         state,
       });
     }
+    // Strip the prompt parameter from returnTo URL to prevent redirect loop
+    // after successful login/account selection
+    const returnToUrl = new URL(url.toString());
+    returnToUrl.searchParams.delete("prompt");
     const loginUrl = new URL("/login", url.origin);
-    loginUrl.searchParams.set("returnTo", url.toString());
+    loginUrl.searchParams.set("returnTo", returnToUrl.toString());
     if (forceInteractive) {
       loginUrl.searchParams.set("prompt", "select_account");
       loginUrl.searchParams.set("maxAge", "0");

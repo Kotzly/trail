@@ -45,6 +45,21 @@ export async function GET(request: Request) {
         authSessionVersion: extension.ver ?? null,
       });
     }
+
+    // Fallback: try verifying as a web user JWT bearer token
+    const userBearer = await verifyUserToken(bearer);
+    if (userBearer?.sub) {
+      const record = await db.user.findUnique({
+        where: { id: userBearer.sub },
+        select: { authSessionVersion: true },
+      });
+      return jsonNoStore({
+        status: "authenticated",
+        source: "web",
+        userId: userBearer.sub,
+        authSessionVersion: record?.authSessionVersion ?? null,
+      });
+    }
   }
 
   const cookieToken = getCookieToken(request.headers);
