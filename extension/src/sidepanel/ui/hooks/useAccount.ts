@@ -1,13 +1,18 @@
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { normalizeAccountError } from '../../api/account.js';
 import { useStore } from '../state/store.js';
 import { useAccountSnapshotQuery } from '../query/useAccountSnapshotQuery.js';
 import { showUiToast } from '../notifications/sonner-adapter.js';
+import { accountKeys } from '../query/account-keys.js';
 
+const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
 
 export function useAccount(): void {
+  const queryClient = useQueryClient();
   const setAccount = useStore((state) => state.setAccount);
   const setAccountSnapshot = useStore((state) => state.setAccountSnapshot);
+  const resetAccount = useStore((state) => state.resetAccount);
   const snapshotQuery = useAccountSnapshotQuery();
   const lastErrorKeyRef = useRef<string | null>(null);
 
@@ -63,4 +68,42 @@ export function useAccount(): void {
       });
     }
   }, [setAccount, setAccountSnapshot, snapshotQuery.data, snapshotQuery.error, snapshotQuery.isError, snapshotQuery.isPending, snapshotQuery.isSuccess]);
+
+  useEffect(() => {
+    const hasChromeStorage =
+      typeof chrome !== 'undefined' && Boolean(chrome.storage?.onChanged);
+    if (!hasChromeStorage) {
+      return;
+    }
+
+    const onStorageChanged = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string,
+    ) => {
+      if (areaName !== 'local' || !(AUTH_STORAGE_KEY in changes)) {
+        return;
+      }
+
+      const change = changes[AUTH_STORAGE_KEY];
+      const oldToken = (change?.oldValue as { accessToken?: string } | undefined)
+        ?.accessToken;
+      const nextToken = (change?.newValue as { accessToken?: string } | undefined)
+        ?.accessToken;
+
+      if (oldToken && !nextToken) {
+        queryClient.removeQueries({ queryKey: accountKeys.root });
+        resetAccount();
+        return;
+      }
+
+      if (!oldToken && nextToken) {
+        void queryClient.invalidateQueries({ queryKey: accountKeys.snapshot() });
+      }
+    };
+
+    chrome.storage.onChanged.addListener(onStorageChanged);
+    return () => {
+      chrome.storage.onChanged.removeListener(onStorageChanged);
+    };
+  }, [queryClient, resetAccount]);
 }

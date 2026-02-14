@@ -4,6 +4,7 @@ import { getOnboardingState } from "@/src/server/onboarding";
 import { Button } from "@/components/ui/button";
 import OnboardingGate from "./OnboardingGate";
 import SignOutButton from "./SignOutButton";
+import AuthSyncListener from "./AuthSyncListener";
 
 const nav = [
   { href: "/trails", label: "trails" },
@@ -21,6 +22,7 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <AuthSyncListener />
       <header className="border-b border-border">
         <div className="mx-auto flex h-14 w-full max-w-4xl items-center justify-between px-4">
           <Link href="/trails" className="text-sm font-semibold">

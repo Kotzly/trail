@@ -471,6 +471,37 @@ function testSaveCancelProtocolSchemas(): void {
   assert.equal(cancelAck.ok, true);
 }
 
+function testAuthBridgeProtocolSchemas(): void {
+  const request = SiteMessage.parse({
+    source: 'trail-site',
+    type: 'REQUEST_AUTH_BRIDGE_CODE',
+    requestId: '55555555-5555-4555-8555-555555555555',
+    timestamp: Date.now(),
+  });
+  assert.equal(request.type, 'REQUEST_AUTH_BRIDGE_CODE');
+
+  const response = ExtensionMessage.parse({
+    source: 'trail-extension',
+    type: 'AUTH_BRIDGE_CODE',
+    requestId: '66666666-6666-4666-8666-666666666666',
+    timestamp: Date.now(),
+    ok: true,
+    code: 'bridge-code',
+    expiresAt: '2026-02-14T12:00:00.000Z',
+  });
+  assert.equal(response.type, 'AUTH_BRIDGE_CODE');
+  assert.equal(response.ok, true);
+
+  const revokedAck = ExtensionMessage.parse({
+    source: 'trail-extension',
+    type: 'AUTH_REVOKED_ACK',
+    requestId: '77777777-7777-4777-8777-777777777777',
+    timestamp: Date.now(),
+    ok: true,
+  });
+  assert.equal(revokedAck.type, 'AUTH_REVOKED_ACK');
+}
+
 function testAllowedSiteOrigins(): void {
   assert.equal(isAllowedSiteOrigin('https://gettrail.net'), true);
   assert.equal(isAllowedSiteOrigin('https://app.gettrail.net'), true);
@@ -532,6 +563,7 @@ try {
   testViewInvalidationDecisions();
   testSetNodeLayoutBatchMessage();
   testSaveCancelProtocolSchemas();
+  testAuthBridgeProtocolSchemas();
   testAllowedSiteOrigins();
   testSelectionUtilsBuildPreviewSelection();
   testSelectionUtilsDiffSelection();

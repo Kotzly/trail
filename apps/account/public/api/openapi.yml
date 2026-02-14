@@ -123,6 +123,34 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /auth/bridge/extension:
+    post:
+      summary: Exchange extension bearer for one-time web bridge code
+      description: |
+        Used by the site-extension bridge for silent web session restore.
+        Requires extension bearer token in Authorization header.
+      tags: [auth]
+      security:
+        - extensionAuth: []
+      responses:
+        "200":
+          description: Bridge code created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [code, expiresAt]
+                properties:
+                  code:
+                    type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /trails:
     get:
       summary: List trails

@@ -33,6 +33,7 @@ export const SiteMessageType = {
   EXIT_EDITOR_MODE: "EXIT_EDITOR_MODE",
   SAVE_EDITOR_MODE: "SAVE_EDITOR_MODE",
   CANCEL_EDITOR_MODE: "CANCEL_EDITOR_MODE",
+  REQUEST_AUTH_BRIDGE_CODE: "REQUEST_AUTH_BRIDGE_CODE",
   SELECT_NODE: "SELECT_NODE",
   UPDATE_NODE_METADATA: "UPDATE_NODE_METADATA",
   AUTH_REVOKED: "AUTH_REVOKED",
@@ -52,6 +53,9 @@ export const ExtensionMessageType = {
   EDITOR_MODE_EXITED: "EDITOR_MODE_EXITED",
   EDITOR_MODE_SAVED: "EDITOR_MODE_SAVED",
   EDITOR_MODE_CANCELLED: "EDITOR_MODE_CANCELLED",
+  AUTH_BRIDGE_CODE: "AUTH_BRIDGE_CODE",
+  AUTH_REVOKED: "AUTH_REVOKED",
+  AUTH_REVOKED_ACK: "AUTH_REVOKED_ACK",
   NODE_SELECTED: "NODE_SELECTED",
   NODE_METADATA_UPDATED: "NODE_METADATA_UPDATED",
   TREE_UPDATED: "TREE_UPDATED",
@@ -107,6 +111,10 @@ export const CancelEditorModeMessage = SiteMessageBase.extend({
   type: z.literal(SiteMessageType.CANCEL_EDITOR_MODE),
 });
 
+export const RequestAuthBridgeCodeMessage = SiteMessageBase.extend({
+  type: z.literal(SiteMessageType.REQUEST_AUTH_BRIDGE_CODE),
+});
+
 export const SelectNodeMessage = SiteMessageBase.extend({
   type: z.literal(SiteMessageType.SELECT_NODE),
   nodeId: z.string(),
@@ -132,6 +140,7 @@ export const SiteMessage = z.discriminatedUnion("type", [
   ExitEditorModeMessage,
   SaveEditorModeMessage,
   CancelEditorModeMessage,
+  RequestAuthBridgeCodeMessage,
   SelectNodeMessage,
   UpdateNodeMetadataMessage,
   AuthRevokedMessage,
@@ -178,6 +187,24 @@ export const EditorModeCancelledMessage = ExtensionMessageBase.extend({
   error: z.string().optional(),
 });
 
+export const AuthBridgeCodeMessage = ExtensionMessageBase.extend({
+  type: z.literal(ExtensionMessageType.AUTH_BRIDGE_CODE),
+  ok: z.boolean(),
+  code: z.string().optional(),
+  expiresAt: z.string().optional(),
+  error: z.string().optional(),
+});
+
+export const AuthRevokedBroadcastMessage = ExtensionMessageBase.extend({
+  type: z.literal(ExtensionMessageType.AUTH_REVOKED),
+});
+
+export const AuthRevokedAckMessage = ExtensionMessageBase.extend({
+  type: z.literal(ExtensionMessageType.AUTH_REVOKED_ACK),
+  ok: z.boolean(),
+  error: z.string().optional(),
+});
+
 export const NodeSelectedMessage = ExtensionMessageBase.extend({
   type: z.literal(ExtensionMessageType.NODE_SELECTED),
   nodeId: z.string(),
@@ -203,6 +230,9 @@ export const ExtensionMessage = z.discriminatedUnion("type", [
   EditorModeExitedMessage,
   EditorModeSavedMessage,
   EditorModeCancelledMessage,
+  AuthBridgeCodeMessage,
+  AuthRevokedBroadcastMessage,
+  AuthRevokedAckMessage,
   NodeSelectedMessage,
   NodeMetadataUpdatedMessage,
   TreeUpdatedMessage,
@@ -222,6 +252,9 @@ export type EnterEditorModeMessage = z.infer<typeof EnterEditorModeMessage>;
 export type ExitEditorModeMessage = z.infer<typeof ExitEditorModeMessage>;
 export type SaveEditorModeMessage = z.infer<typeof SaveEditorModeMessage>;
 export type CancelEditorModeMessage = z.infer<typeof CancelEditorModeMessage>;
+export type RequestAuthBridgeCodeMessage = z.infer<
+  typeof RequestAuthBridgeCodeMessage
+>;
 export type SelectNodeMessage = z.infer<typeof SelectNodeMessage>;
 export type UpdateNodeMetadataMessage = z.infer<typeof UpdateNodeMetadataMessage>;
 export type AuthRevokedMessage = z.infer<typeof AuthRevokedMessage>;
@@ -229,6 +262,11 @@ export type EditorModeEnteredMessage = z.infer<typeof EditorModeEnteredMessage>;
 export type EditorModeExitedMessage = z.infer<typeof EditorModeExitedMessage>;
 export type EditorModeSavedMessage = z.infer<typeof EditorModeSavedMessage>;
 export type EditorModeCancelledMessage = z.infer<typeof EditorModeCancelledMessage>;
+export type AuthBridgeCodeMessage = z.infer<typeof AuthBridgeCodeMessage>;
+export type AuthRevokedBroadcastMessage = z.infer<
+  typeof AuthRevokedBroadcastMessage
+>;
+export type AuthRevokedAckMessage = z.infer<typeof AuthRevokedAckMessage>;
 export type NodeSelectedMessage = z.infer<typeof NodeSelectedMessage>;
 export type NodeMetadataUpdatedMessage = z.infer<typeof NodeMetadataUpdatedMessage>;
 export type TreeUpdatedMessage = z.infer<typeof TreeUpdatedMessage>;

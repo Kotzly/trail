@@ -108,6 +108,7 @@ const KNOWN_SITE_TYPES = new Set<string>([
   "EXIT_EDITOR_MODE",
   "SAVE_EDITOR_MODE",
   "CANCEL_EDITOR_MODE",
+  "REQUEST_AUTH_BRIDGE_CODE",
   "SELECT_NODE",
   "UPDATE_NODE_METADATA",
   "AUTH_REVOKED",
@@ -354,14 +355,6 @@ function handleSiteMessage(event: MessageEvent): void {
           origin,
         );
       });
-    return;
-  }
-
-  // AUTH_REVOKED — fire-and-forget, no ACK.
-  if (type === "AUTH_REVOKED") {
-    fireAndForget(
-      rpc.siteMessageForward("AUTH_REVOKED", {}, requestId),
-    );
     return;
   }
 

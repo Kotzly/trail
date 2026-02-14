@@ -21,6 +21,11 @@ import {
   saveEditorMode,
   cancelEditorMode,
 } from "./editor-handlers.js";
+import {
+  BACKEND_CONFIG,
+  buildBackendUrl,
+  initBackendConfig,
+} from "../../../shared/config/backend.js";
 
 // ---------------------------------------------------------------------------
 // Auth state helpers (reads from chrome.storage, same key as cloud-sync)
@@ -30,6 +35,11 @@ const AUTH_STORAGE_KEY = "trail_auth_session";
 
 type StoredAuthSession = {
   accessToken?: string;
+};
+
+type AuthBridgeCodePayload = {
+  code: string;
+  expiresAt: string;
 };
 
 async function isAuthenticated(): Promise<boolean> {
@@ -48,6 +58,67 @@ async function clearAuthSession(): Promise<void> {
   } catch (e) {
     console.error("[site-message] failed to clear auth session:", e);
   }
+}
+
+async function getAccessToken(): Promise<string | null> {
+  try {
+    const data = await chrome.storage.local.get(AUTH_STORAGE_KEY);
+    const session = data[AUTH_STORAGE_KEY] as StoredAuthSession | undefined;
+    return typeof session?.accessToken === "string" && session.accessToken
+      ? session.accessToken
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function requestAuthBridgeCode(): Promise<AuthBridgeCodePayload | null> {
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    return null;
+  }
+
+  await initBackendConfig();
+  const response = await fetch(
+    buildBackendUrl(BACKEND_CONFIG.endpoints.authBridgeExtension),
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+      },
+    },
+  ).catch(() => null);
+
+  if (!response) {
+    return null;
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    await clearAuthSession();
+    return null;
+  }
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        code?: unknown;
+        expiresAt?: unknown;
+      }
+    | null;
+
+  const code = typeof payload?.code === "string" ? payload.code.trim() : "";
+  const expiresAt =
+    typeof payload?.expiresAt === "string" ? payload.expiresAt.trim() : "";
+
+  if (!code || !expiresAt) {
+    return null;
+  }
+
+  return { code, expiresAt };
 }
 
 // ---------------------------------------------------------------------------
@@ -85,7 +156,37 @@ const innerHandlers: Record<string, InnerHandler> = {
   AUTH_REVOKED: async (_payload, _requestId) => {
     console.debug("[site-message] AUTH_REVOKED received — clearing tokens");
     await clearAuthSession();
-    return {};
+    return {
+      responsePayload: {
+        source: "trail-extension",
+        type: "AUTH_REVOKED_ACK",
+        ok: true,
+      },
+    };
+  },
+
+  REQUEST_AUTH_BRIDGE_CODE: async (_payload, _requestId) => {
+    const bridgeCode = await requestAuthBridgeCode();
+    if (!bridgeCode) {
+      return {
+        responsePayload: {
+          source: "trail-extension",
+          type: "AUTH_BRIDGE_CODE",
+          ok: false,
+          error: "Unable to create auth bridge code",
+        },
+      };
+    }
+
+    return {
+      responsePayload: {
+        source: "trail-extension",
+        type: "AUTH_BRIDGE_CODE",
+        ok: true,
+        code: bridgeCode.code,
+        expiresAt: bridgeCode.expiresAt,
+      },
+    };
   },
 
   ENTER_EDITOR_MODE: async (payload, _requestId) => {

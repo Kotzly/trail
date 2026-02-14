@@ -1,7 +1,8 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/src/auth";
 import { approvePortalSession } from "@/src/server/backend/portal-sessions";
+import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
 
 function sanitizeReturnUrl(raw: string | undefined): string | null {
   if (!raw) {
@@ -31,11 +32,18 @@ function buildLoginReturnTo(portalId: string, returnUrl: string | null): string 
 export default async function PortalCompletePage({
   searchParams,
 }: {
-  searchParams: Promise<{ portal?: string; returnUrl?: string }>;
+  searchParams: Promise<{
+    portal?: string;
+    returnUrl?: string;
+    code?: string;
+    synced?: string;
+  }>;
 }) {
-  const { portal, returnUrl } = await searchParams;
+  const { portal, returnUrl, code, synced } = await searchParams;
   const portalId = typeof portal === "string" ? portal.trim() : "";
   const safeReturnUrl = sanitizeReturnUrl(returnUrl);
+  const bridgeCode = typeof code === "string" ? code.trim() : "";
+  const isSynced = synced === "1";
 
   if (!portalId) {
     return (
@@ -56,6 +64,32 @@ export default async function PortalCompletePage({
   if (!session?.user?.id) {
     const returnTo = buildLoginReturnTo(portalId, safeReturnUrl);
     redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+  }
+
+  const cookieStore = await cookies();
+  const hasTrailAuthSession = Boolean(cookieStore.get(AUTH_COOKIE_NAME)?.value);
+
+  if (!isSynced && !hasTrailAuthSession) {
+    const nextTarget = new URL("http://localhost/auth/portal/complete");
+    nextTarget.searchParams.set("portal", portalId);
+    nextTarget.searchParams.set("synced", "1");
+    if (safeReturnUrl) {
+      nextTarget.searchParams.set("returnUrl", safeReturnUrl);
+    }
+
+    if (bridgeCode) {
+      const callbackUrl = new URL("/auth/callback", "http://localhost");
+      callbackUrl.searchParams.set("code", bridgeCode);
+      callbackUrl.searchParams.set("next", `${nextTarget.pathname}${nextTarget.search}`);
+      redirect(`${callbackUrl.pathname}${callbackUrl.search}`);
+    }
+
+    const bridgeTarget = new URL("/auth/bridge", "http://localhost");
+    bridgeTarget.searchParams.set(
+      "returnTo",
+      `${nextTarget.pathname}${nextTarget.search}`,
+    );
+    redirect(`${bridgeTarget.pathname}${bridgeTarget.search}`);
   }
 
   const approval = await approvePortalSession(portalId, session.user.id);

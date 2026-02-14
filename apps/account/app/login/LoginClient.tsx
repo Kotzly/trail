@@ -1,15 +1,35 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/src/auth-client";
+import { requestAuthBridgeCode } from "@/src/lib/trail-extension";
 
 const INSECURE_AUTH_PASSWORD = "trail-dev-insecure-auth";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 const buildBridgeUrl = (returnTo: string) =>
   `/auth/bridge?returnTo=${encodeURIComponent(returnTo)}`;
+
+const buildCallbackUrl = (returnTo: string): URL => {
+  const fallback = new URL("/auth/callback", window.location.origin);
+
+  try {
+    const candidate = new URL(returnTo, window.location.origin);
+    if (candidate.pathname === "/auth/callback") {
+      return candidate;
+    }
+  } catch {
+    // Ignore invalid returnTo and fall back to /auth/callback.
+  }
+
+  if (returnTo.startsWith("/")) {
+    fallback.searchParams.set("next", returnTo);
+  }
+
+  return fallback;
+};
 
 const normalizeError = (error: unknown): string => {
   if (!error) {
@@ -86,6 +106,38 @@ export function LoginClient() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSilentSyncing, setIsSilentSyncing] = useState(false);
+  const [silentSyncError, setSilentSyncError] = useState<string | null>(null);
+  const [showSilentSyncModal, setShowSilentSyncModal] = useState(false);
+  const attemptedSilentSyncRef = useRef(false);
+
+  const runSilentSync = useCallback(
+    async (force: boolean) => {
+      if (attemptedSilentSyncRef.current && !force) {
+        return;
+      }
+      attemptedSilentSyncRef.current = true;
+      setSilentSyncError(null);
+      setIsSilentSyncing(true);
+
+      const result = await requestAuthBridgeCode();
+      if (!result.ok) {
+        setIsSilentSyncing(false);
+        setSilentSyncError(result.error || "Could not sync extension session.");
+        setShowSilentSyncModal(true);
+        return;
+      }
+
+      const callbackUrl = buildCallbackUrl(returnTo);
+      callbackUrl.searchParams.set("code", result.data.code);
+      window.location.assign(callbackUrl.toString());
+    },
+    [returnTo],
+  );
+
+  useEffect(() => {
+    void runSilentSync(false);
+  }, [runSilentSync]);
 
   const handleGoogleLogin = async () => {
     setError(null);
@@ -168,6 +220,57 @@ export function LoginClient() {
 
   return (
     <main style={mainStyle}>
+      {showSilentSyncModal ? (
+        <section
+          role="dialog"
+          aria-modal="true"
+          style={{
+            border: "1px solid #d1d5db",
+            borderRadius: "10px",
+            padding: "14px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            background: "#f9fafb",
+          }}
+        >
+          <strong>Could not sync extension session</strong>
+          <p style={{ margin: 0, color: "#4b5563", fontSize: "14px" }}>
+            {silentSyncError ?? "Try again or continue with manual sign in."}
+          </p>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={() => void runSilentSync(true)}
+              disabled={isSilentSyncing || isLoading}
+              style={{
+                ...buttonStyle,
+                cursor:
+                  isSilentSyncing || isLoading ? "not-allowed" : "pointer",
+              }}
+            >
+              {isSilentSyncing ? "Retrying..." : "Retry sync"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSilentSyncModal(false)}
+              disabled={isSilentSyncing || isLoading}
+              style={{
+                padding: "10px 12px",
+                borderRadius: "8px",
+                border: "1px solid #d1d5db",
+                background: "#fff",
+                color: "#111827",
+                cursor:
+                  isSilentSyncing || isLoading ? "not-allowed" : "pointer",
+              }}
+            >
+              Continue manually
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       <header style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <h1 style={{ margin: 0, fontSize: "28px" }}>trail</h1>
         <p style={{ margin: 0, color: "#4b5563" }}>
@@ -179,14 +282,14 @@ export function LoginClient() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          disabled={isLoading}
+          disabled={isLoading || isSilentSyncing}
           style={{
             ...buttonStyle,
-            cursor: isLoading ? "not-allowed" : "pointer",
-            opacity: isLoading ? 0.75 : 1,
+            cursor: isLoading || isSilentSyncing ? "not-allowed" : "pointer",
+            opacity: isLoading || isSilentSyncing ? 0.75 : 1,
           }}
         >
-          {isLoading ? "Redirecting..." : "Continue with Google"}
+          {isLoading || isSilentSyncing ? "Redirecting..." : "Continue with Google"}
         </button>
       ) : (
         <>
@@ -197,19 +300,19 @@ export function LoginClient() {
             placeholder="you@company.com"
             autoComplete="email"
             style={inputStyle}
-            disabled={isLoading}
+            disabled={isLoading || isSilentSyncing}
           />
           <button
             type="button"
             onClick={handleEmailLogin}
-            disabled={isLoading}
+            disabled={isLoading || isSilentSyncing}
             style={{
               ...buttonStyle,
-              cursor: isLoading ? "not-allowed" : "pointer",
-              opacity: isLoading ? 0.75 : 1,
+              cursor: isLoading || isSilentSyncing ? "not-allowed" : "pointer",
+              opacity: isLoading || isSilentSyncing ? 0.75 : 1,
             }}
           >
-            {isLoading ? "Signing in..." : "Continue"}
+            {isLoading || isSilentSyncing ? "Signing in..." : "Continue"}
           </button>
         </>
       )}

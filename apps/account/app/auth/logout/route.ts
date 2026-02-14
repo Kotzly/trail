@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyUserToken } from "@/src/server/backend/auth/user-auth";
-import { revokeExtensionTokensForUser } from "@/src/server/backend/auth/extension-auth";
+import {
+  revokeExtensionTokensForUser,
+  verifyExtensionToken,
+} from "@/src/server/backend/auth/extension-auth";
 
 export const runtime = "nodejs";
 
@@ -39,11 +42,17 @@ async function revokeExtensionAuth(request: Request): Promise<void> {
   }
 
   const user = await verifyUserToken(token);
-  if (!user?.sub) {
+  if (user?.sub) {
+    await revokeExtensionTokensForUser(user.sub);
     return;
   }
 
-  await revokeExtensionTokensForUser(user.sub);
+  const extensionUser = await verifyExtensionToken(token);
+  if (!extensionUser?.sub) {
+    return;
+  }
+
+  await revokeExtensionTokensForUser(extensionUser.sub);
 }
 
 function buildLogoutResponse(response: NextResponse) {

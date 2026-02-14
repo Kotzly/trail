@@ -3,11 +3,27 @@
  */
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 
+const extensionAuthMocks = vi.hoisted(() => ({
+  verifyExtensionToken: vi.fn(async () => null as unknown),
+}));
+
+const userMocks = vi.hoisted(() => ({
+  getUserById: vi.fn(async () => null as unknown),
+}));
+
 vi.mock("@/src/env", () => ({
   env: {
     BETTER_AUTH_URL: "https://auth.example.com",
     ACCOUNT_AUTH_BYPASS: false,
   },
+}));
+
+vi.mock("@/src/server/backend/auth/extension-auth", () => ({
+  ...extensionAuthMocks,
+}));
+
+vi.mock("@/src/server/backend/user", () => ({
+  ...userMocks,
 }));
 
 const issuer = "https://auth.example.com";
@@ -40,6 +56,13 @@ describe("getUserFromToken", () => {
 
   afterAll(() => {
     vi.unstubAllGlobals();
+  });
+
+  beforeEach(() => {
+    extensionAuthMocks.verifyExtensionToken.mockReset();
+    userMocks.getUserById.mockReset();
+    extensionAuthMocks.verifyExtensionToken.mockResolvedValue(null);
+    userMocks.getUserById.mockResolvedValue(null);
   });
 
   it("returns the user for a valid token", async () => {
@@ -75,5 +98,41 @@ describe("getUserFromToken", () => {
       .sign(privateKey);
 
     await expect(getUserFromToken(token)).resolves.toBeUndefined();
+  });
+
+  it("falls back to extension token and resolves db user", async () => {
+    extensionAuthMocks.verifyExtensionToken.mockResolvedValue({
+      sub: "user-ext-1",
+      iat: 100,
+      exp: 200,
+    } as unknown);
+    userMocks.getUserById.mockResolvedValue({
+      id: "user-ext-1",
+      email: "ext@trail.net",
+      name: "Extension User",
+      imageUrl: "https://img.example.com/u.png",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      onboardingSeenAt: null,
+    } as unknown);
+
+    const user = await getUserFromToken("invalid.jwt.token");
+
+    expect(user).toEqual({
+      id: "user-ext-1",
+      email: "ext@trail.net",
+      name: "Extension User",
+      imageUrl: "https://img.example.com/u.png",
+    });
+  });
+
+  it("returns undefined when extension token user does not exist", async () => {
+    extensionAuthMocks.verifyExtensionToken.mockResolvedValue({
+      sub: "user-ext-missing",
+      iat: 100,
+      exp: 200,
+    } as unknown);
+    userMocks.getUserById.mockResolvedValue(null as unknown);
+
+    await expect(getUserFromToken("invalid.jwt.token")).resolves.toBeUndefined();
   });
 });

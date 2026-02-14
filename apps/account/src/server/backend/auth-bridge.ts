@@ -1,4 +1,9 @@
+import { randomUUID } from "crypto";
 import { db } from "@trail/db";
+import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
+import { getUserById } from "@/src/server/backend/user";
+
+const AUTH_BRIDGE_CODE_TTL_MINUTES = 10;
 
 type BridgeUser = {
   id: string;
@@ -22,6 +27,42 @@ type ExchangeFailure = {
 };
 
 type ExchangeResult = ExchangeSuccess | ExchangeFailure;
+
+type CreateFromExtensionSuccess = {
+  ok: true;
+  code: string;
+  expiresAt: Date;
+};
+
+type CreateFromExtensionFailure = {
+  ok: false;
+  reason: "unauthorized" | "user_not_found";
+};
+
+type CreateFromExtensionResult =
+  | CreateFromExtensionSuccess
+  | CreateFromExtensionFailure;
+
+async function createAuthBridgeCode(
+  userId: string,
+  jwt: string,
+): Promise<{ code: string; expiresAt: Date }> {
+  const code = randomUUID();
+  const expiresAt = new Date(
+    Date.now() + AUTH_BRIDGE_CODE_TTL_MINUTES * 60 * 1000,
+  );
+
+  await db.authBridgeCode.create({
+    data: {
+      code,
+      userId,
+      jwt,
+      expiresAt,
+    },
+  });
+
+  return { code, expiresAt };
+}
 
 export async function exchangeAuthBridgeCode(
   code: string,
@@ -68,3 +109,22 @@ export async function exchangeAuthBridgeCode(
 }
 
 export type { BridgeUser, ExchangeResult };
+
+export async function createAuthBridgeCodeFromExtensionToken(
+  token: string,
+): Promise<CreateFromExtensionResult> {
+  const extensionUser = await verifyExtensionToken(token);
+  if (!extensionUser?.sub) {
+    return { ok: false, reason: "unauthorized" };
+  }
+
+  const user = await getUserById(extensionUser.sub);
+  if (!user) {
+    return { ok: false, reason: "user_not_found" };
+  }
+
+  const created = await createAuthBridgeCode(user.id, token);
+  return { ok: true, code: created.code, expiresAt: created.expiresAt };
+}
+
+export type { CreateFromExtensionResult };

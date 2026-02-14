@@ -32,6 +32,7 @@ export type SiteMessageType =
   | "EXIT_EDITOR_MODE"
   | "SAVE_EDITOR_MODE"
   | "CANCEL_EDITOR_MODE"
+  | "REQUEST_AUTH_BRIDGE_CODE"
   | "AUTH_REVOKED";
 
 export type ExtensionMessageType =
@@ -56,6 +57,12 @@ export type EditorModeEnteredPayload = {
 
 export type EditorModeActionAck = {
   ok: boolean;
+  error?: string;
+};
+
+export type AuthBridgeCodeAck = {
+  code?: string;
+  expiresAt?: string;
   error?: string;
 };
 
@@ -230,11 +237,39 @@ export function openTrailPanel(): Promise<
   return sendWithRetry("OPEN_TRAIL_PANEL", {}, "OPEN_TRAIL_PANEL_ACK");
 }
 
-export function notifyAuthRevoked(): void {
-  if (typeof window === "undefined") {
-    return;
+export async function requestAuthBridgeCode(): Promise<
+  SendResult<{ code: string; expiresAt: string }>
+> {
+  const result = await sendWithRetry<AuthBridgeCodeAck & Record<string, unknown>>(
+    "REQUEST_AUTH_BRIDGE_CODE",
+    {},
+    "AUTH_BRIDGE_CODE",
+    1_500,
+  );
+
+  if (!result.ok) {
+    return result;
   }
-  window.postMessage(buildMessage("AUTH_REVOKED"), window.location.origin);
+
+  const code =
+    typeof result.data.code === "string" ? result.data.code.trim() : "";
+  const expiresAt =
+    typeof result.data.expiresAt === "string"
+      ? result.data.expiresAt.trim()
+      : "";
+  if (!code || !expiresAt) {
+    const error =
+      typeof result.data.error === "string" && result.data.error.trim().length > 0
+        ? result.data.error
+        : "Missing bridge code";
+    return { ok: false, error };
+  }
+
+  return { ok: true, data: { code, expiresAt } };
+}
+
+export async function notifyAuthRevoked(): Promise<SendResult<Record<string, unknown>>> {
+  return sendWithRetry("AUTH_REVOKED", {}, "AUTH_REVOKED_ACK", 1_500);
 }
 
 /**
@@ -306,7 +341,8 @@ export async function cancelEditorMode(): Promise<SendResult<EditorModeActionAck
 export type ExtensionEvent =
   | { type: "NODE_SELECTED"; nodeId: string; nodeData: unknown }
   | { type: "TREE_UPDATED"; treeId: string; patch: unknown }
-  | { type: "EDITOR_MODE_EXITED" };
+  | { type: "EDITOR_MODE_EXITED" }
+  | { type: "AUTH_REVOKED" };
 
 type ExtensionEventListener = (event: ExtensionEvent) => void;
 
@@ -341,6 +377,9 @@ function handleExtensionMessage(event: MessageEvent): void {
       break;
     case "EDITOR_MODE_EXITED":
       parsed = { type: "EDITOR_MODE_EXITED" };
+      break;
+    case "AUTH_REVOKED":
+      parsed = { type: "AUTH_REVOKED" };
       break;
   }
 

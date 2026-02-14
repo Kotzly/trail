@@ -19,7 +19,7 @@ export default function SignOutButton({ variant = "outline" }: SignOutButtonProp
     setPending(true);
 
     try {
-      notifyAuthRevoked();
+      await notifyAuthRevoked();
     } catch {
       // Ignore bridge errors and continue logout.
     }
