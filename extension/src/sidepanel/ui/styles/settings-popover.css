@@ -85,6 +85,9 @@
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
+  border-bottom: var(--glass-border);
+  border-width: 0 0 0px 0;
+  background: var(--glass);
   gap: 8px;
 }
 
