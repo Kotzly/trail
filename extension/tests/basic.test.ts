@@ -500,6 +500,26 @@ function testAuthBridgeProtocolSchemas(): void {
     ok: true,
   });
   assert.equal(revokedAck.type, 'AUTH_REVOKED_ACK');
+
+  const webBridgeRequest = ExtensionMessage.parse({
+    source: 'trail-extension',
+    type: 'REQUEST_WEB_AUTH_BRIDGE_CODE',
+    requestId: '88888888-8888-4888-8888-888888888888',
+    timestamp: Date.now(),
+  });
+  assert.equal(webBridgeRequest.type, 'REQUEST_WEB_AUTH_BRIDGE_CODE');
+
+  const webBridgeResponse = SiteMessage.parse({
+    source: 'trail-site',
+    type: 'WEB_AUTH_BRIDGE_CODE',
+    requestId: '99999999-9999-4999-8999-999999999999',
+    timestamp: Date.now(),
+    ok: true,
+    code: 'bridge-code-web',
+    expiresAt: '2026-02-14T12:00:00.000Z',
+  });
+  assert.equal(webBridgeResponse.type, 'WEB_AUTH_BRIDGE_CODE');
+  assert.equal(webBridgeResponse.ok, true);
 }
 
 function testAllowedSiteOrigins(): void {

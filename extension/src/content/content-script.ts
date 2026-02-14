@@ -109,6 +109,7 @@ const KNOWN_SITE_TYPES = new Set<string>([
   "SAVE_EDITOR_MODE",
   "CANCEL_EDITOR_MODE",
   "REQUEST_AUTH_BRIDGE_CODE",
+  "WEB_AUTH_BRIDGE_CODE",
   "SELECT_NODE",
   "UPDATE_NODE_METADATA",
   "AUTH_REVOKED",
@@ -333,6 +334,11 @@ function handleSiteMessage(event: MessageEvent): void {
   const { requestId, type } = siteMessage;
   const origin = event.origin;
 
+  // This response type is handled by relay waiters in handleBackgroundRelay.
+  if (type === "WEB_AUTH_BRIDGE_CODE") {
+    return;
+  }
+
   // Legacy OPEN_TRAIL_PANEL — keep backward compat with existing handler.
   if (type === "OPEN_TRAIL_PANEL") {
     sendMessage(rpc.openPanel())
@@ -389,7 +395,13 @@ function handleBackgroundRelay(): void {
 
   chrome.runtime.onMessage.addListener(
     (
-      message: { type: string; [key: string]: unknown },
+      message: {
+        type: string;
+        payload?: unknown;
+        expectResponseType?: unknown;
+        timeoutMs?: unknown;
+        [key: string]: unknown;
+      },
       _sender: chrome.runtime.MessageSender,
       sendResponse: (response?: unknown) => void,
     ) => {
@@ -405,9 +417,67 @@ function handleBackgroundRelay(): void {
         return false;
       }
 
+      const expectedType =
+        typeof message.expectResponseType === "string"
+          ? message.expectResponseType
+          : null;
+      const timeoutMs =
+        typeof message.timeoutMs === "number" && Number.isFinite(message.timeoutMs)
+          ? Math.max(250, Math.floor(message.timeoutMs))
+          : 1500;
+
+      if (!expectedType) {
+        postExtensionMessage(payload, targetOrigin);
+        sendResponse({ success: true });
+        return false;
+      }
+
+      const relayRequestId =
+        typeof payload.requestId === "string" ? payload.requestId : null;
+      if (!relayRequestId) {
+        sendResponse({ success: false, error: "missing_request_id" });
+        return false;
+      }
+
+      let done = false;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+
+      const finish = (response: unknown) => {
+        if (done) return;
+        done = true;
+        window.removeEventListener("message", onSiteResponse);
+        if (timer) {
+          clearTimeout(timer);
+        }
+        sendResponse(response);
+      };
+
+      const onSiteResponse = (event: MessageEvent) => {
+        if (event.source !== window) return;
+        if (event.origin !== targetOrigin) return;
+
+        const siteMessage = validateSiteMessage(event.data);
+        if (!siteMessage) return;
+        const age = Date.now() - siteMessage.timestamp;
+        if (age > MESSAGE_TTL_MS || age < -MESSAGE_TTL_MS) return;
+        if (siteMessage.type !== expectedType) return;
+        if (siteMessage.requestId !== relayRequestId) return;
+
+        finish({
+          success: true,
+          data: {
+            responsePayload: siteMessage,
+          },
+        });
+      };
+
+      window.addEventListener("message", onSiteResponse);
+      timer = setTimeout(() => {
+        finish({ success: false, error: "relay_timeout" });
+      }, timeoutMs);
+
       postExtensionMessage(payload, targetOrigin);
-      sendResponse({ success: true });
-      return false;
+      return true;
     },
   );
 }

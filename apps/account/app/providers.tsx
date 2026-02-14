@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import { trpc } from "@/src/trpc/client";
+import ExtensionBridgeResponder from "./ExtensionBridgeResponder";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient());
@@ -21,7 +22,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ExtensionBridgeResponder />
+        {children}
+      </QueryClientProvider>
     </trpc.Provider>
   );
 }

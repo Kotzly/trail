@@ -238,6 +238,26 @@ export function createRemoteAccountClient(): AccountClient {
       }
       return status;
     },
+    exchangeAuthBridgeCode: async (code: string): Promise<AccountSnapshot> => {
+      const result = await requestJson<{ snapshot?: AccountSnapshot }>(
+        BACKEND_CONFIG.endpoints.authBridgeExchange,
+        {
+          method: 'POST',
+          body: JSON.stringify({ code }),
+        },
+        { auth: false },
+      );
+      const snapshot = result.snapshot;
+      if (!snapshot) {
+        throw {
+          code: 'unknown',
+          message: 'Missing account snapshot',
+          retryable: true,
+        } as AccountError;
+      }
+      await syncAuthFromSnapshot(snapshot);
+      return snapshot;
+    },
     logout: async (): Promise<void> => {
       try {
         await requestJson<void>(BACKEND_CONFIG.endpoints.logout, { method: 'POST' });

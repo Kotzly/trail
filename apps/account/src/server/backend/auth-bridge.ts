@@ -1,7 +1,11 @@
 import { randomUUID } from "crypto";
 import { db } from "@trail/db";
-import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
+import {
+  verifyExtensionToken,
+  createExtensionToken,
+} from "@/src/server/backend/auth/extension-auth";
 import { getUserById } from "@/src/server/backend/user";
+import { getUserFromToken } from "@/src/lib/auth";
 
 const AUTH_BRIDGE_CODE_TTL_MINUTES = 10;
 
@@ -124,6 +128,24 @@ export async function createAuthBridgeCodeFromExtensionToken(
   }
 
   const created = await createAuthBridgeCode(user.id, token);
+  return { ok: true, code: created.code, expiresAt: created.expiresAt };
+}
+
+export async function createAuthBridgeCodeFromWebToken(
+  token: string,
+): Promise<CreateFromExtensionResult> {
+  const webUser = await getUserFromToken(token);
+  if (!webUser?.id) {
+    return { ok: false, reason: "unauthorized" };
+  }
+
+  const user = await getUserById(webUser.id);
+  if (!user) {
+    return { ok: false, reason: "user_not_found" };
+  }
+
+  const extensionToken = createExtensionToken(user.id);
+  const created = await createAuthBridgeCode(user.id, extensionToken.token);
   return { ok: true, code: created.code, expiresAt: created.expiresAt };
 }
 

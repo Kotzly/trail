@@ -4,8 +4,10 @@ import type { Url } from '../../../shared/types/ids.js';
 import type { AccountError } from '../../../shared/types/account.js';
 import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
 import {
+  exchangeAuthBridgeCode,
   getAccountSnapshot,
   normalizeAccountError,
+  requestWebAuthBridgeCodeFromBackground,
 } from '../../api/account.js';
 import { useStore } from '../state/store.js';
 import { accountKeys } from '../query/account-keys.js';
@@ -27,6 +29,7 @@ type AuthFlowOptions = {
 
 type AuthFlowState = {
   busy: boolean;
+  silentSyncing: boolean;
   notice: string | null;
   error: AccountError | null;
   startAuthFlow: (options?: AuthFlowOptions) => Promise<void>;
@@ -40,9 +43,11 @@ export function useAuthPortalFlow(): AuthFlowState {
   const setAccountSnapshot = useStore((state) => state.setAccountSnapshot);
   const { startAuthPortalMutation, checkAuthPortalMutation } = useAuthMutations();
   const [busy, setBusy] = useState(false);
+  const [silentSyncing, setSilentSyncing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<AccountError | null>(null);
   const flowRef = useRef(0);
+  const silentAttemptedRef = useRef(false);
 
   const openExternalLink = useCallback(async (url: Url) => {
     try {
@@ -67,6 +72,7 @@ export function useAuthPortalFlow(): AuthFlowState {
   const startAuthFlow = useCallback(
     async (options?: AuthFlowOptions) => {
       if (busy) return;
+      silentAttemptedRef.current = true;
       setBusy(true);
       setNotice(null);
       setError(null);
@@ -131,6 +137,33 @@ export function useAuthPortalFlow(): AuthFlowState {
     [busy, checkAuthPortalMutation, openExternalLink, queryClient, setAccount, setAccountSnapshot, startAuthPortalMutation, syncAccountSnapshot],
   );
 
+  const trySilentWebBridge = useCallback(async () => {
+    if (busy || silentSyncing || silentAttemptedRef.current) {
+      return;
+    }
+    silentAttemptedRef.current = true;
+
+    setSilentSyncing(true);
+    setNotice('Checking web session…');
+    try {
+      const bridgeCode = await requestWebAuthBridgeCodeFromBackground();
+      if (!bridgeCode?.code) {
+        setNotice(null);
+        return;
+      }
+
+      const snapshot = await exchangeAuthBridgeCode(bridgeCode.code);
+      queryClient.setQueryData(accountKeys.snapshot(), snapshot);
+      setAccountSnapshot(snapshot);
+      void queryClient.invalidateQueries({ queryKey: accountKeys.snapshot() });
+      setNotice(null);
+    } catch {
+      setNotice(null);
+    } finally {
+      setSilentSyncing(false);
+    }
+  }, [busy, queryClient, setAccountSnapshot, silentSyncing]);
+
   const cancelAuthFlow = useCallback(() => {
     flowRef.current += 1;
     setBusy(false);
@@ -138,10 +171,22 @@ export function useAuthPortalFlow(): AuthFlowState {
   }, []);
 
   useEffect(() => {
+    void trySilentWebBridge();
+  }, [trySilentWebBridge]);
+
+  useEffect(() => {
     return () => {
       flowRef.current += 1;
     };
   }, []);
 
-  return { busy, notice, error, startAuthFlow, cancelAuthFlow, setNotice };
+  return {
+    busy,
+    silentSyncing,
+    notice,
+    error,
+    startAuthFlow,
+    cancelAuthFlow,
+    setNotice,
+  };
 }

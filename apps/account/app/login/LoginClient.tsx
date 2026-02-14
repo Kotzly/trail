@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/src/auth-client";
-import { requestAuthBridgeCode } from "@/src/lib/trail-extension";
+import { ping, requestAuthBridgeCode } from "@/src/lib/trail-extension";
 
 const INSECURE_AUTH_PASSWORD = "trail-dev-insecure-auth";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
@@ -119,6 +119,13 @@ export function LoginClient() {
       attemptedSilentSyncRef.current = true;
       setSilentSyncError(null);
       setIsSilentSyncing(true);
+
+      const pingResult = await ping();
+      if (!pingResult.ok || !pingResult.data.authenticated) {
+        setIsSilentSyncing(false);
+        setShowSilentSyncModal(false);
+        return;
+      }
 
       const result = await requestAuthBridgeCode();
       if (!result.ok) {

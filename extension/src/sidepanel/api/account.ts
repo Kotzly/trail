@@ -15,6 +15,8 @@ import type {
 import { BACKEND_CONFIG, initBackendConfig } from '../../shared/config/backend.js';
 import { createMockAccountClient } from './account/mock.js';
 import { createRemoteAccountClient } from './account/remote.js';
+import { sendMessage } from './background.js';
+import { rpc } from '../../shared/rpc/contracts.js';
 
 export type CompleteOnboardingInput = {
   action: 'complete' | 'skip';
@@ -24,6 +26,7 @@ export type CompleteOnboardingInput = {
 export type AccountClient = {
   startAuthPortal: (input?: AuthPortalRequest) => Promise<AuthPortalSession>;
   checkAuthPortal: (sessionId: string) => Promise<AuthPortalStatus>;
+  exchangeAuthBridgeCode: (code: string) => Promise<AccountSnapshot>;
   logout: () => Promise<void>;
   getProfile: () => Promise<User | null>;
   getSubscription: () => Promise<Subscription | null>;
@@ -74,6 +77,10 @@ export async function checkAuthPortal(sessionId: string): Promise<AuthPortalStat
   return (await getActiveAccountClient()).checkAuthPortal(sessionId);
 }
 
+export async function exchangeAuthBridgeCode(code: string): Promise<AccountSnapshot> {
+  return (await getActiveAccountClient()).exchangeAuthBridgeCode(code);
+}
+
 export async function logout(): Promise<void> {
   return (await getActiveAccountClient()).logout();
 }
@@ -106,6 +113,17 @@ export async function completeOnboarding(
   input: CompleteOnboardingInput,
 ): Promise<OnboardingState> {
   return (await getActiveAccountClient()).completeOnboarding(input);
+}
+
+export async function requestWebAuthBridgeCodeFromBackground(): Promise<{
+  code: string;
+  expiresAt: string;
+} | null> {
+  const response = await sendMessage(rpc.requestWebAuthBridgeCode());
+  if (!response.success) {
+    return null;
+  }
+  return response.data;
 }
 
 export function normalizeAccountError(error: unknown): AccountError {

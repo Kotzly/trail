@@ -12,7 +12,7 @@ import { Icons } from './Icon.js';
  * "Continue with Google" button. Spinner while portal flow completes.
  */
 export default function AuthGate() {
-  const { busy, notice, startAuthFlow } = useAuthPortalFlow();
+  const { busy, silentSyncing, notice, startAuthFlow } = useAuthPortalFlow();
 
   return (
     <div className="auth-gate">
@@ -30,12 +30,17 @@ export default function AuthGate() {
           className="auth-gate__btn"
           type="button"
           onClick={() => void startAuthFlow({ source: 'extension-auth-gate' })}
-          disabled={busy}
+          disabled={busy || silentSyncing}
         >
           {busy ? (
             <>
               <Icons.RefreshCw size={14} className="auth-gate__spinner" />
               Waiting for sign in…
+            </>
+          ) : silentSyncing ? (
+            <>
+              <Icons.RefreshCw size={14} className="auth-gate__spinner" />
+              Checking web session…
             </>
           ) : (
             <>

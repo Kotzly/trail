@@ -14,6 +14,8 @@
 
 const SITE_SOURCE = "trail-site" as const;
 const EXTENSION_SOURCE = "trail-extension" as const;
+export const TRAIL_SITE_SOURCE = SITE_SOURCE;
+export const TRAIL_EXTENSION_SOURCE = EXTENSION_SOURCE;
 
 /** Retry backoffs (ms) for ACK-required messages: 1s, 2s, 4s */
 const RETRY_BACKOFFS = [1_000, 2_000, 4_000] as const;
@@ -61,6 +63,24 @@ export type EditorModeActionAck = {
 };
 
 export type AuthBridgeCodeAck = {
+  code?: string;
+  expiresAt?: string;
+  error?: string;
+};
+
+export type ExtensionWebBridgeCodeRequest = {
+  source: typeof TRAIL_EXTENSION_SOURCE;
+  type: "REQUEST_WEB_AUTH_BRIDGE_CODE";
+  requestId: string;
+  timestamp: number;
+};
+
+export type SiteWebBridgeCodeResponse = {
+  source: typeof TRAIL_SITE_SOURCE;
+  type: "WEB_AUTH_BRIDGE_CODE";
+  requestId: string;
+  timestamp: number;
+  ok: boolean;
   code?: string;
   expiresAt?: string;
   error?: string;

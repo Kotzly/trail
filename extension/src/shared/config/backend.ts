@@ -6,6 +6,7 @@ export type BackendServerPreset = 'gettrail' | 'local';
 export type BackendEndpoints = {
   authPortal: string;
   authBridgeExtension: string;
+  authBridgeExchange: string;
   logout: string;
   account: string;
   plans: string;
@@ -48,6 +49,7 @@ export const DEFAULT_BACKEND_CONFIG: BackendConfig = {
   endpoints: {
     authPortal: '/auth/portal',
     authBridgeExtension: '/auth/bridge/extension',
+    authBridgeExchange: '/auth/bridge/exchange',
     logout: '/auth/logout',
     account: '/account',
     plans: '/plans',
@@ -138,6 +140,10 @@ export function resolveBackendConfig(override?: BackendConfigOverride | null): B
       authBridgeExtension: normalizePath(
         endpointsInput?.authBridgeExtension,
         base.endpoints.authBridgeExtension,
+      ),
+      authBridgeExchange: normalizePath(
+        endpointsInput?.authBridgeExchange,
+        base.endpoints.authBridgeExchange,
       ),
       logout: normalizePath(endpointsInput?.logout, base.endpoints.logout),
       account: normalizePath(endpointsInput?.account, base.endpoints.account),

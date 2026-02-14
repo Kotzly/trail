@@ -34,6 +34,7 @@ export const SiteMessageType = {
   SAVE_EDITOR_MODE: "SAVE_EDITOR_MODE",
   CANCEL_EDITOR_MODE: "CANCEL_EDITOR_MODE",
   REQUEST_AUTH_BRIDGE_CODE: "REQUEST_AUTH_BRIDGE_CODE",
+  WEB_AUTH_BRIDGE_CODE: "WEB_AUTH_BRIDGE_CODE",
   SELECT_NODE: "SELECT_NODE",
   UPDATE_NODE_METADATA: "UPDATE_NODE_METADATA",
   AUTH_REVOKED: "AUTH_REVOKED",
@@ -47,6 +48,7 @@ export type SiteMessageTypeName =
 // ---------------------------------------------------------------------------
 
 export const ExtensionMessageType = {
+  REQUEST_WEB_AUTH_BRIDGE_CODE: "REQUEST_WEB_AUTH_BRIDGE_CODE",
   PONG: "PONG",
   OPEN_TRAIL_PANEL_ACK: "OPEN_TRAIL_PANEL_ACK",
   EDITOR_MODE_ENTERED: "EDITOR_MODE_ENTERED",
@@ -115,6 +117,14 @@ export const RequestAuthBridgeCodeMessage = SiteMessageBase.extend({
   type: z.literal(SiteMessageType.REQUEST_AUTH_BRIDGE_CODE),
 });
 
+export const WebAuthBridgeCodeMessage = SiteMessageBase.extend({
+  type: z.literal(SiteMessageType.WEB_AUTH_BRIDGE_CODE),
+  ok: z.boolean(),
+  code: z.string().optional(),
+  expiresAt: z.string().optional(),
+  error: z.string().optional(),
+});
+
 export const SelectNodeMessage = SiteMessageBase.extend({
   type: z.literal(SiteMessageType.SELECT_NODE),
   nodeId: z.string(),
@@ -141,6 +151,7 @@ export const SiteMessage = z.discriminatedUnion("type", [
   SaveEditorModeMessage,
   CancelEditorModeMessage,
   RequestAuthBridgeCodeMessage,
+  WebAuthBridgeCodeMessage,
   SelectNodeMessage,
   UpdateNodeMetadataMessage,
   AuthRevokedMessage,
@@ -151,6 +162,10 @@ export type SiteMessage = z.infer<typeof SiteMessage>;
 // ---------------------------------------------------------------------------
 // Extension → Site schemas
 // ---------------------------------------------------------------------------
+
+export const WebAuthBridgeCodeRequestMessage = ExtensionMessageBase.extend({
+  type: z.literal(ExtensionMessageType.REQUEST_WEB_AUTH_BRIDGE_CODE),
+});
 
 export const PongMessage = ExtensionMessageBase.extend({
   type: z.literal(ExtensionMessageType.PONG),
@@ -224,6 +239,7 @@ export const TreeUpdatedMessage = ExtensionMessageBase.extend({
 
 /** Discriminated union of all valid extension → site messages. */
 export const ExtensionMessage = z.discriminatedUnion("type", [
+  WebAuthBridgeCodeRequestMessage,
   PongMessage,
   OpenTrailPanelAckMessage,
   EditorModeEnteredMessage,
@@ -255,9 +271,15 @@ export type CancelEditorModeMessage = z.infer<typeof CancelEditorModeMessage>;
 export type RequestAuthBridgeCodeMessage = z.infer<
   typeof RequestAuthBridgeCodeMessage
 >;
+export type WebAuthBridgeCodeMessage = z.infer<
+  typeof WebAuthBridgeCodeMessage
+>;
 export type SelectNodeMessage = z.infer<typeof SelectNodeMessage>;
 export type UpdateNodeMetadataMessage = z.infer<typeof UpdateNodeMetadataMessage>;
 export type AuthRevokedMessage = z.infer<typeof AuthRevokedMessage>;
+export type WebAuthBridgeCodeRequestMessage = z.infer<
+  typeof WebAuthBridgeCodeRequestMessage
+>;
 export type EditorModeEnteredMessage = z.infer<typeof EditorModeEnteredMessage>;
 export type EditorModeExitedMessage = z.infer<typeof EditorModeExitedMessage>;
 export type EditorModeSavedMessage = z.infer<typeof EditorModeSavedMessage>;

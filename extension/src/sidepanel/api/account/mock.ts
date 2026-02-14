@@ -245,6 +245,12 @@ export function createMockAccountClient(): AccountClient {
       return { status: 'approved', snapshot: snapshot() };
     },
 
+    async exchangeAuthBridgeCode(_code: string): Promise<AccountSnapshot> {
+      ensureNetwork();
+      await sleep(DEFAULT_DELAY_MS / 2);
+      return signInMockUser();
+    },
+
     async logout(): Promise<void> {
       ensureNetwork();
       await sleep(DEFAULT_DELAY_MS / 2);

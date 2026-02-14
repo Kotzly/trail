@@ -60,6 +60,7 @@ export const RPC_METHOD = {
     SYNC_STATUS_UPDATED: 'SYNC_STATUS_UPDATED',
     EDITOR_SYNC_RETRY: 'EDITOR_SYNC_RETRY',
     SITE_MESSAGE_FORWARD: 'SITE_MESSAGE_FORWARD',
+    REQUEST_WEB_AUTH_BRIDGE_CODE: 'REQUEST_WEB_AUTH_BRIDGE_CODE',
 } as const;
 
 export type RequestType = typeof RPC_METHOD[keyof typeof RPC_METHOD];
@@ -204,6 +205,15 @@ export type SiteMessageForwardResponse = {
     responsePayload?: Record<string, unknown>;
 };
 
+export type RequestWebAuthBridgeCodeMessage = RequestMessageBase<
+    typeof RPC_METHOD.REQUEST_WEB_AUTH_BRIDGE_CODE
+>;
+
+export type RequestWebAuthBridgeCodeResponse = {
+    code: string;
+    expiresAt: string;
+};
+
 export type RequestMessage = NavigateToMessage |
     PreviewNodeMessage | SetCurrentMessage |
     BeginTempSelectionMessage | PreviewTempSelectionMessage | AcceptTempSelectionMessage |
@@ -223,7 +233,8 @@ export type RequestMessage = NavigateToMessage |
     EnterEditorModeMessage | ExitEditorModeMessage |
     ReparentNodeMessage | DuplicateSubtreeMessage |
     SyncStatusUpdatedMessage | EditorSyncRetryMessage |
-    SiteMessageForwardMessage;
+    SiteMessageForwardMessage |
+    RequestWebAuthBridgeCodeMessage;
 
 
 // ==== Responses ====
@@ -296,6 +307,7 @@ export type ResponseDataByType = {
     [RPC_METHOD.SYNC_STATUS_UPDATED]: void;
     [RPC_METHOD.EDITOR_SYNC_RETRY]: void;
     [RPC_METHOD.SITE_MESSAGE_FORWARD]: SiteMessageForwardResponse;
+    [RPC_METHOD.REQUEST_WEB_AUTH_BRIDGE_CODE]: RequestWebAuthBridgeCodeResponse;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -400,6 +412,9 @@ export const rpc = {
     },
     editorSyncRetry(): EditorSyncRetryMessage {
         return { type: RPC_METHOD.EDITOR_SYNC_RETRY };
+    },
+    requestWebAuthBridgeCode(): RequestWebAuthBridgeCodeMessage {
+        return { type: RPC_METHOD.REQUEST_WEB_AUTH_BRIDGE_CODE };
     },
 }
 
