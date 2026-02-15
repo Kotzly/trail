@@ -50,21 +50,30 @@ function getSessionTokenFromCookie(headers: Headers): string | null {
 async function resolveUserIdForLogout(request: Request): Promise<string | null> {
   const token =
     getBearerToken(request.headers) ?? getAuthTokenFromCookie(request.headers);
-  if (!token) {
-    return null;
+  if (token) {
+    const user = await verifyUserToken(token);
+    if (user?.sub) {
+      return user.sub;
+    }
+
+    const extensionUser = await verifyExtensionToken(token);
+    if (extensionUser?.sub) {
+      return extensionUser.sub;
+    }
   }
 
-  const user = await verifyUserToken(token);
-  if (user?.sub) {
-    return user.sub;
+  // Fall back to Better Auth session cookie to resolve the user
+  const sessionToken = getSessionTokenFromCookie(request.headers);
+  if (sessionToken) {
+    const session = await db.session
+      .findUnique({ where: { token: sessionToken }, select: { userId: true } })
+      .catch(() => null);
+    if (session?.userId) {
+      return session.userId;
+    }
   }
 
-  const extensionUser = await verifyExtensionToken(token);
-  if (!extensionUser?.sub) {
-    return null;
-  }
-
-  return extensionUser.sub;
+  return null;
 }
 
 function buildLogoutResponse(response: NextResponse) {
