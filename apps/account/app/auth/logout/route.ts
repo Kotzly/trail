@@ -113,7 +113,8 @@ async function revokeCurrentSession(request: Request): Promise<void> {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  await revokeCurrentSession(request);
+  // GET only clears local cookies – server-side session revocation is done
+  // exclusively via POST to prevent cross-site (CSRF) logout attacks.
   return buildLogoutResponse(NextResponse.redirect(new URL("/", url.origin)));
 }
 

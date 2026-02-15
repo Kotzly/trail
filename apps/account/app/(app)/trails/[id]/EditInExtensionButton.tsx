@@ -91,12 +91,18 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
     if (
       status !== "editing" &&
       status !== "saving" &&
-      status !== "cancelling"
+      status !== "cancelling" &&
+      status !== "not-found" &&
+      status !== "not-authenticated"
     ) {
       return;
     }
 
     const handleFocus = async () => {
+      if (status === "not-found" || status === "not-authenticated") {
+        void checkExtension();
+        return;
+      }
       const result = await ping();
       if (result.ok && !result.data.editorMode) {
         setStatus("ready");
@@ -115,7 +121,7 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [status]);
+  }, [status, checkExtension]);
 
   // -------------------------------------------------------------------
   // beforeunload warning while editing

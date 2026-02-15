@@ -160,7 +160,9 @@ export async function PATCH(
   const deletedAt = parseDeletedAt(body?.deletedAt);
   const payload = body?.payload !== undefined ? body.payload : undefined;
   const nodeCount =
-    typeof body?.nodeCount === "number" ? body.nodeCount : undefined;
+    typeof body?.nodeCount === "number" && Number.isInteger(body.nodeCount) && body.nodeCount >= 0
+      ? body.nodeCount
+      : undefined;
   const rootUrl =
     typeof body?.rootUrl === "string" ? body.rootUrl : body?.rootUrl === null ? null : undefined;
   const rootTitle =

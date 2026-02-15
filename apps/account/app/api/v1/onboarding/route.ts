@@ -72,7 +72,12 @@ export async function POST(request: Request) {
   }
 
   const body: OnboardingBody = await request.json().catch(() => ({}));
-  const action = isValidAction(body.action) ? body.action : "complete";
+
+  if (!isValidAction(body.action)) {
+    return jsonError("invalid_action", "Invalid action. Must be 'complete' or 'skip'.", { status: 400 });
+  }
+
+  const action = body.action;
   const source = isValidSource(body.source) ? body.source : "extension";
 
   const seenAt = await markUserOnboardingSeen(auth.userId);
