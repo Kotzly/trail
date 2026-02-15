@@ -60,7 +60,7 @@ function resolveCallbackUrl(returnToParam: string | null): string {
     // not an absolute URL
   }
 
-  if (returnToParam.startsWith("/")) {
+  if (returnToParam.startsWith("/") && !returnToParam.startsWith("//")) {
     return new URL(returnToParam, origin).toString();
   }
 

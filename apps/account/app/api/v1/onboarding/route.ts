@@ -11,19 +11,13 @@ import { buildOnboardingState } from "@/src/server/onboarding";
 export const runtime = "nodejs";
 
 type OnboardingAction = "complete" | "skip";
-type OnboardingSource = "extension" | "web";
 
 type OnboardingBody = {
   action?: unknown;
-  source?: unknown;
 };
 
 function isValidAction(value: unknown): value is OnboardingAction {
   return value === "complete" || value === "skip";
-}
-
-function isValidSource(value: unknown): value is OnboardingSource {
-  return value === "extension" || value === "web";
 }
 
 async function authenticateRequest(request: Request) {
