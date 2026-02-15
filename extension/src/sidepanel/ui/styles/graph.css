@@ -62,7 +62,6 @@
   );
   background-size: var(--graph-grid-size) var(--graph-grid-size);
   background-position: var(--graph-grid-offset-x) var(--graph-grid-offset-y);
-  mix-blend-mode: soft-light;
   z-index: 0;
 }
 
