@@ -22,18 +22,23 @@ export async function POST(
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const existing = await db.trail.findFirst({ where: { id, userId } });
-  if (!existing) {
+  const now = new Date();
+  const updated = await db.$transaction(async (tx) => {
+    const existing = await tx.trail.findFirst({
+      where: { id, userId, deletedAt: { not: null } },
+    });
+    if (!existing) return null;
+    return tx.trail.update({
+      where: { id },
+      data: { deletedAt: null, updatedAt: now },
+    });
+  });
+
+  if (!updated) {
     return jsonError("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  const now = new Date();
-  const updated = await db.trail.update({
-    where: { id },
-    data: { deletedAt: null, updatedAt: now },
-  });
-
   return jsonNoStore(
-    toTrailRecord(updated as typeof existing & { payload: unknown }),
+    toTrailRecord(updated as typeof updated & { payload: unknown }),
   );
 }

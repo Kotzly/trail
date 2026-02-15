@@ -85,7 +85,13 @@ export async function PATCH(
 
   const body = await request.json().catch(() => null);
   const label = typeof body?.label === "string" ? body.label : undefined;
-  const labelSource = toDbLabelSource(body?.labelSource);
+  const labelSource =
+    body?.labelSource !== undefined ? toDbLabelSource(body.labelSource) : undefined;
+  if (labelSource === null) {
+    return jsonError("invalid_label_source", "Invalid labelSource.", {
+      status: 400,
+    });
+  }
   const deletedAt = parseDeletedAt(body?.deletedAt);
   const payload = body?.payload !== undefined ? body.payload : undefined;
   const nodeCount =
@@ -103,7 +109,7 @@ export async function PATCH(
   const savedAt =
     savedAtRaw && !Number.isNaN(savedAtRaw.getTime()) ? savedAtRaw : undefined;
 
-  const hasMetaUpdate = label !== undefined || labelSource || deletedAt !== undefined;
+  const hasMetaUpdate = label !== undefined || labelSource !== undefined || deletedAt !== undefined;
   const hasPayloadUpdate =
     payload !== undefined ||
     nodeCount !== undefined ||
@@ -118,18 +124,13 @@ export async function PATCH(
     });
   }
 
-  const existing = await db.trail.findFirst({ where: { id, userId } });
-  if (!existing) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
-  }
-
   const now = new Date();
   const data: Record<string, unknown> = {};
   if (label !== undefined) {
     data.label = label;
     data.labelUpdatedAt = now;
   }
-  if (labelSource) {
+  if (labelSource !== undefined) {
     data.labelSource = labelSource;
     data.labelUpdatedAt = now;
   }
@@ -156,13 +157,18 @@ export async function PATCH(
   }
   data.updatedAt = now;
 
-  const updated = await db.trail.update({
-    where: { id },
-    data,
+  const updated = await db.$transaction(async (tx) => {
+    const existing = await tx.trail.findFirst({ where: { id, userId } });
+    if (!existing) return null;
+    return tx.trail.update({ where: { id }, data });
   });
 
+  if (!updated) {
+    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+  }
+
   return jsonNoStore(
-    toTrailRecord(updated as typeof existing & { payload: unknown }),
+    toTrailRecord(updated as typeof updated & { payload: unknown }),
   );
 }
 
@@ -181,18 +187,21 @@ export async function DELETE(
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const existing = await db.trail.findFirst({ where: { id, userId } });
-  if (!existing) {
+  const now = new Date();
+  const updated = await db.$transaction(async (tx) => {
+    const existing = await tx.trail.findFirst({ where: { id, userId } });
+    if (!existing) return null;
+    return tx.trail.update({
+      where: { id },
+      data: { deletedAt: now, updatedAt: now },
+    });
+  });
+
+  if (!updated) {
     return jsonError("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  const now = new Date();
-  const updated = await db.trail.update({
-    where: { id },
-    data: { deletedAt: now, updatedAt: now },
-  });
-
   return jsonNoStore(
-    toTrailRecord(updated as typeof existing & { payload: unknown }),
+    toTrailRecord(updated as typeof updated & { payload: unknown }),
   );
 }

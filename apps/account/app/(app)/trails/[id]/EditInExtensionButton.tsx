@@ -111,7 +111,7 @@ export default function EditInExtensionButton({ trailId }: { trailId: string }) 
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        handleFocus();
+        handleFocus().catch(() => {});
       }
     };
 
