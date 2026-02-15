@@ -8,7 +8,10 @@ import { db } from "@trail/db";
 
 export const runtime = "nodejs";
 
-function getAuthTokenFromCookie(headers: Headers): string | null {
+const BETTER_AUTH_SESSION_COOKIE = "better-auth.session_token";
+const BETTER_AUTH_SESSION_COOKIE_SECURE = "__Secure-better-auth.session_token";
+
+function getCookieValue(headers: Headers, name: string): string | null {
   const cookieHeader = headers.get("cookie");
   if (!cookieHeader) {
     return null;
@@ -17,7 +20,7 @@ function getAuthTokenFromCookie(headers: Headers): string | null {
   const cookies = cookieHeader.split(";");
   for (const rawCookie of cookies) {
     const [rawName, ...rawValueParts] = rawCookie.trim().split("=");
-    if (rawName !== AUTH_COOKIE_NAME) {
+    if (rawName !== name) {
       continue;
     }
     const rawValue = rawValueParts.join("=");
@@ -31,6 +34,17 @@ function getAuthTokenFromCookie(headers: Headers): string | null {
     }
   }
   return null;
+}
+
+function getAuthTokenFromCookie(headers: Headers): string | null {
+  return getCookieValue(headers, AUTH_COOKIE_NAME);
+}
+
+function getSessionTokenFromCookie(headers: Headers): string | null {
+  return (
+    getCookieValue(headers, BETTER_AUTH_SESSION_COOKIE_SECURE) ??
+    getCookieValue(headers, BETTER_AUTH_SESSION_COOKIE)
+  );
 }
 
 async function resolveUserIdForLogout(request: Request): Promise<string | null> {
@@ -79,25 +93,31 @@ function buildLogoutResponse(response: NextResponse) {
   return response;
 }
 
+async function revokeCurrentSession(request: Request): Promise<void> {
+  const userId = await resolveUserIdForLogout(request).catch(() => null);
+  const sessionToken = getSessionTokenFromCookie(request.headers);
+
+  const promises: Promise<unknown>[] = [];
+
+  if (userId) {
+    promises.push(revokeAllExtensionSessionsForUser(userId).catch(() => undefined));
+  }
+
+  if (sessionToken) {
+    // Only delete the current session, not all sessions for the user
+    promises.push(db.session.delete({ where: { token: sessionToken } }).catch(() => undefined));
+  }
+
+  await Promise.all(promises);
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const userId = await resolveUserIdForLogout(request).catch(() => null);
-  if (userId) {
-    await Promise.all([
-      revokeAllExtensionSessionsForUser(userId).catch(() => undefined),
-      db.session.deleteMany({ where: { userId } }).catch(() => undefined),
-    ]);
-  }
+  await revokeCurrentSession(request);
   return buildLogoutResponse(NextResponse.redirect(new URL("/", url.origin)));
 }
 
 export async function POST(request: Request) {
-  const userId = await resolveUserIdForLogout(request).catch(() => null);
-  if (userId) {
-    await Promise.all([
-      revokeAllExtensionSessionsForUser(userId).catch(() => undefined),
-      db.session.deleteMany({ where: { userId } }).catch(() => undefined),
-    ]);
-  }
+  await revokeCurrentSession(request);
   return buildLogoutResponse(new NextResponse(null, { status: 204 }));
 }

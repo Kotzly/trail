@@ -18,11 +18,9 @@ export default function SignOutButton({ variant = "outline" }: SignOutButtonProp
 
     setPending(true);
 
-    try {
-      await notifyAuthRevoked();
-    } catch {
-      // Ignore bridge errors and continue logout.
-    }
+    // Fire-and-forget: notify extension without blocking logout.
+    // The server-side logout already revokes extension sessions.
+    notifyAuthRevoked().catch(() => {});
 
     try {
       await fetch("/auth/logout", {
