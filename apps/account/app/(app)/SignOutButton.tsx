@@ -23,13 +23,19 @@ export default function SignOutButton({ variant = "outline" }: SignOutButtonProp
     notifyAuthRevoked().catch(() => {});
 
     try {
-      await fetch("/auth/logout", {
+      const res = await fetch("/auth/logout", {
         method: "POST",
         credentials: "include",
         cache: "no-store",
       });
-    } finally {
+
+      if (!res.ok) {
+        throw new Error("Logout failed");
+      }
+
       window.location.assign("/");
+    } catch {
+      setPending(false);
     }
   };
 
