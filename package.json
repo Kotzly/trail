@@ -17,6 +17,7 @@
     "format": "pnpm -r format",
     "db:generate": "pnpm --filter @trail/db prisma generate",
     "db:migrate": "pnpm --filter @trail/db prisma migrate dev",
+    "db:migrate:deploy": "pnpm --filter @trail/db prisma migrate deploy",
     "db:studio": "pnpm --filter @trail/db prisma studio"
   },
   "pnpm": {
