@@ -198,8 +198,8 @@ function PlanCard({
   index: number;
 }) {
   const Icon = plan.icon;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const billingHref = appUrl ? `${appUrl.replace(/\/+$/, "")}/billing` : "/downloads";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.gettrail.net";
+  const billingHref = `${appUrl.replace(/\/+$/, "")}/billing`;
   const ctaHref = plan.id === "free" ? "/downloads" : billingHref;
 
   return (
