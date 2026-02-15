@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import Image, { type ImageLoaderProps } from "next/image";
-import { headers } from "next/headers";
+import Image from "next/image";
 import { accountCopy } from "@trail/content";
 import {
   Card,
@@ -10,12 +9,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getAuthSession } from "@/src/lib/auth";
-import { auth } from "@/src/auth";
 import { splitDisplayName } from "@/src/account-profile";
 import SignOutButton from "@/app/(app)/SignOutButton";
 import { AccountSettingsForm } from "./AccountSettingsForm";
-
-const avatarLoader = ({ src }: ImageLoaderProps) => src;
 
 export default async function SettingsPage() {
   const { settings } = accountCopy;
@@ -25,12 +21,6 @@ export default async function SettingsPage() {
   if (!user) {
     redirect("/auth/login");
   }
-
-  /* Fetch the full Better Auth session so we have `image` for the form. */
-  const requestHeaders = await headers();
-  const betterAuthSession = await auth.api.getSession({
-    headers: new Headers(requestHeaders),
-  });
 
   const { firstName, lastName } = splitDisplayName(user.name);
 
@@ -58,7 +48,6 @@ export default async function SettingsPage() {
             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-background text-xs font-semibold">
               {user.imageUrl ? (
                 <Image
-                  loader={avatarLoader}
                   unoptimized
                   src={user.imageUrl}
                   alt={user.name ?? settings.profile.avatarAlt}
@@ -85,7 +74,6 @@ export default async function SettingsPage() {
             initialFirstName={firstName}
             initialLastName={lastName}
             initialEmail={user.email ?? ""}
-            initialPhotoUrl={betterAuthSession?.user?.image ?? user.imageUrl ?? ""}
           />
         </CardContent>
       </Card>

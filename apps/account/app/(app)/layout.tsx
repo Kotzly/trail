@@ -7,7 +7,6 @@ import SignOutButton from "./SignOutButton";
 
 const nav = [
   { href: "/trails", label: "trails" },
-  { href: "/settings", label: "settings" },
 ];
 
 export default async function AppLayout({

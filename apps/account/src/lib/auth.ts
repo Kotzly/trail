@@ -46,6 +46,9 @@ type CommonUserClaims = {
 type UserClaims = CommonUserClaims & {
   sub: UUID;
   exp: number;
+  /** Better Auth JWT uses "image" (matches DB column) */
+  image?: string;
+  /** Standard OIDC claim */
   picture?: string;
 };
 
@@ -111,7 +114,7 @@ export async function getUserFromToken(
       id: payload.sub,
       email: payload.email,
       name: payload.name,
-      imageUrl: payload.imageUrl ?? payload.picture,
+      imageUrl: payload.image ?? payload.imageUrl ?? payload.picture,
     };
   } catch {
     const extension = await verifyExtensionToken(token);

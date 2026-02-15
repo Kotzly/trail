@@ -5,7 +5,6 @@ import { auth } from "@/src/auth";
 import {
   buildDisplayName,
   normalizeEmail,
-  normalizeImageUrl,
 } from "@/src/account-profile";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -64,7 +63,6 @@ export async function updateAccountAction(
   const firstName = getFormValue(formData, "firstName");
   const lastName = getFormValue(formData, "lastName");
   const emailInput = getFormValue(formData, "email");
-  const photoUrlInput = getFormValue(formData, "photoUrl");
 
   const name = buildDisplayName(firstName, lastName);
   const email = normalizeEmail(emailInput);
@@ -83,25 +81,11 @@ export async function updateAccountAction(
     };
   }
 
-  let image: string | null;
-
   try {
-    image = normalizeImageUrl(photoUrlInput);
-  } catch (error) {
-    return {
-      status: "error",
-      message: normalizeError(error),
-    };
-  }
-
-  try {
-    if (name !== session.user.name || image !== (session.user.image ?? null)) {
+    if (name !== session.user.name) {
       await auth.api.updateUser({
         headers: new Headers(requestHeaders),
-        body: {
-          name,
-          image,
-        },
+        body: { name },
       });
     }
 

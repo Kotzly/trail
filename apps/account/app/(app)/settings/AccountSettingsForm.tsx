@@ -12,7 +12,6 @@ type AccountSettingsFormProps = {
   initialFirstName: string;
   initialLastName: string;
   initialEmail: string;
-  initialPhotoUrl: string;
 };
 
 function SubmitButton() {
@@ -59,7 +58,6 @@ export function AccountSettingsForm({
   initialFirstName,
   initialLastName,
   initialEmail,
-  initialPhotoUrl,
 }: AccountSettingsFormProps) {
   const [state, formAction] = useActionState(
     updateAccountAction,
@@ -92,15 +90,6 @@ export function AccountSettingsForm({
         defaultValue={initialEmail}
         placeholder="you@company.com"
         autoComplete="email"
-      />
-
-      <FormField
-        label="photo url"
-        name="photoUrl"
-        type="url"
-        defaultValue={initialPhotoUrl}
-        placeholder="https://cdn.example.com/avatar.png"
-        autoComplete="url"
       />
 
       <div className="flex items-center gap-3">
