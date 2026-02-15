@@ -1,14 +1,14 @@
-import { MSG, defineHandlers } from '../../../shared/types/messages.js';
+import { RPC_METHOD, defineRpcHandlers } from '../../../shared/rpc/contracts.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import type { Description, Tag } from '../../../shared/types/ids.js';
-import { err, ok } from '../../../shared/types/messages.js';
+import { err, ok } from '../../../shared/rpc/contracts.js';
 
 
-export const tagHandlers = defineHandlers({
-  async [MSG.ADD_TAG](message) {
+export const tagHandlers = defineRpcHandlers({
+  async [RPC_METHOD.ADD_TAG](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
@@ -22,7 +22,7 @@ export const tagHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.REMOVE_TAG](message) {
+  async [RPC_METHOD.REMOVE_TAG](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');

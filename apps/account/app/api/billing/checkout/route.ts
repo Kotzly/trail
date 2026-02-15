@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthTokenFromCookies } from "@/src/lib/auth";
-import { internalApiFetch } from "@/src/server/internal-api";
+import { POST as checkoutV1 } from "@/app/api/v1/subscription/checkout/route";
 
 export const runtime = "nodejs";
 
@@ -42,9 +42,8 @@ export async function POST(request: Request) {
     );
   }
 
-  let upstream: Response;
-  try {
-    upstream = await internalApiFetch("/v1/subscription/checkout", {
+  const upstream = await checkoutV1(
+    new Request(new URL("/api/v1/subscription/checkout", request.url), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -56,16 +55,8 @@ export async function POST(request: Request) {
         successUrl: body.successUrl,
         cancelUrl: body.cancelUrl,
       }),
-    });
-  } catch {
-    return NextResponse.json(
-      { code: "network", message: "Upstream unavailable", retryable: true },
-      { status: 503 },
-    );
-  }
-
-  const text = await upstream.text();
-  const contentType = upstream.headers.get("content-type") ?? "application/json";
+    }),
+  );
 
   if (upstream.status === 401) {
     return NextResponse.json(
@@ -73,11 +64,14 @@ export async function POST(request: Request) {
         code: "auth",
         message: "Session expired. Please refresh.",
         retryable: false,
-        redirectUrl: "/auth/refresh?next=/billing",
+        redirectUrl: "/auth/login?next=/billing",
       },
       { status: 401 },
     );
   }
+
+  const text = await upstream.text();
+  const contentType = upstream.headers.get("content-type") ?? "application/json";
 
   return new NextResponse(text, {
     status: upstream.status,

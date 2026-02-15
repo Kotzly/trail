@@ -1,7 +1,8 @@
 import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary } from '../../shared/types/tree.js';
 import { NavigationTree } from '../state/nav-tree.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
-import { settingsManager } from './settings.js';
+import { uuidv7 } from '../../shared/lib/uuid.js';
+import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 
 const TREE_KEY = 'trail_tree' as const;
 const TREE_META_KEY = 'trail_tree_meta' as const;
@@ -22,12 +23,6 @@ function normalizeLabelSource(raw: unknown): TreeLabelSource {
   return 'system';
 }
 
-function makeTreeId(): string {
-  const stamp = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `tree_${stamp}_${rand}`;
-}
-
 function normalizeMeta(raw: unknown): TreeMeta | null {
   if (!raw || typeof raw !== 'object') return null;
   const candidate = raw as Partial<TreeMeta>;
@@ -46,13 +41,14 @@ function normalizeMeta(raw: unknown): TreeMeta | null {
 function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): TreeSummary {
   const root = tree.getRoot();
   const rootData = root?.data;
+  const treeJSON = NavigationTreeMapper.toJSON(tree);
   return {
     ...meta,
     nodeCount: tree.size(),
     savedAt,
     rootUrl: rootData?.url,
     rootTitle: rootData?.title,
-    rootFavicon: rootData?.favicon,
+    rootFavicon: findBestTrailFavicon(treeJSON) ?? rootData?.favicon,
   } as TreeSummary;
 }
 
@@ -93,6 +89,21 @@ class TreeStorageService {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly saveDebounceMs = 1500;
 
+  /**
+   * When true, the cached tree is an editor tree for a non-active (archived)
+   * tree.  flushSaveNow() will skip persisting to TREE_KEY so the real active
+   * tree in chrome.storage is never overwritten.
+   */
+  private _editingNonActiveTree = false;
+
+  get isEditingNonActiveTree(): boolean {
+    return this._editingNonActiveTree;
+  }
+
+  setEditingNonActiveTree(value: boolean): void {
+    this._editingNonActiveTree = value;
+  }
+
   constructor() {}
 
   async getOrCreateTree(): Promise<NavigationTree> {
@@ -105,7 +116,7 @@ class TreeStorageService {
       const json = result[TREE_KEY] as NavigationTreeJSON | undefined;
       
       if (!json || !json.root) {
-        const tree = new NavigationTree(settingsManager.get().capacity);
+        const tree = new NavigationTree();
         this.cachedTree = tree;
         return tree;
       }
@@ -114,8 +125,7 @@ class TreeStorageService {
       return this.cachedTree;
     } catch (error) {
       console.error('TreeStorageService.getTree: Error loading tree:', error);
-      const capacity = settingsManager.get().capacity;
-      const tree = new NavigationTree(capacity);
+      const tree = new NavigationTree();
       this.cachedTree = tree;
       return tree;
     } finally {
@@ -144,7 +154,7 @@ class TreeStorageService {
 
       const createdAt = Date.now();
       const meta: TreeMeta = {
-        id: makeTreeId(),
+        id: uuidv7(),
         label: DEFAULT_LABEL,
         labelSource: 'system',
         labelUpdatedAt: createdAt,
@@ -167,7 +177,7 @@ class TreeStorageService {
   createMeta(label: string, source: TreeLabelSource = 'user'): TreeMeta {
     const now = Date.now();
     return {
-      id: makeTreeId(),
+      id: uuidv7(),
       label: normalizeLabel(label),
       labelSource: source,
       labelUpdatedAt: now,
@@ -299,6 +309,47 @@ class TreeStorageService {
     return true;
   }
 
+  /**
+   * Update an archived tree record with the current cached tree.
+   * Used after successful cloud sync to keep archives in sync.
+   */
+  async updateArchivedTree(treeId: string, tree: NavigationTree, savedAt: number): Promise<void> {
+    const archives = await this.getArchives();
+    const existingIndex = archives.findIndex((entry) => entry.id === treeId);
+    
+    if (existingIndex < 0) {
+      // Tree not in archives, nothing to update
+      return;
+    }
+
+    const existing = archives[existingIndex]!;
+    const treeJSON = NavigationTreeMapper.toJSON(tree);
+    const root = tree.getRoot();
+    const favicon = findBestTrailFavicon(treeJSON) ?? root?.data.favicon;
+    
+    const updated: TreeRecord = {
+      id: existing.id,
+      label: existing.label,
+      labelSource: existing.labelSource,
+      labelUpdatedAt: existing.labelUpdatedAt,
+      createdAt: existing.createdAt,
+      nodeCount: tree.size(),
+      savedAt,
+      tree: treeJSON,
+      ...(root?.data.url && { rootUrl: root.data.url }),
+      ...(root?.data.title && { rootTitle: root.data.title }),
+      ...(favicon && { rootFavicon: favicon }),
+    };
+
+    archives[existingIndex] = updated;
+    this.cachedArchives = archives;
+    try {
+      await treeArea.set({ [TREE_ARCHIVES_KEY]: archives });
+    } catch (error) {
+      console.error('TreeStorageService.updateArchivedTree: Error saving archive:', error);
+    }
+  }
+
   cacheTree(tree: NavigationTree): void {
       this.cachedTree = tree;
       this.dirty = true;
@@ -370,6 +421,14 @@ class TreeStorageService {
       this.saveTimer = null;
     }
     if (!this.dirty || !this.cachedTree) return;
+
+    // Guard: never persist the editor tree to TREE_KEY when editing
+    // a non-active (archived) tree — cloud sync handles persistence.
+    if (this._editingNonActiveTree) {
+      this.dirty = false;
+      return;
+    }
+
     const tree = this.cachedTree;
     this.dirty = false;
     try {
@@ -380,6 +439,25 @@ class TreeStorageService {
       this.dirty = true;
       this.scheduleSave();
     }
+  }
+
+  /**
+   * Reload the active tree from chrome.storage, discarding the in-memory
+   * cached (editor) tree.  Called when exiting editor mode so the UI gets
+   * the real active tree back.
+   */
+  async restoreActiveTreeFromStorage(): Promise<NavigationTree> {
+    // Cancel any pending save of the editor tree
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    this.dirty = false;
+
+    // Force a fresh load from chrome.storage
+    this.cachedTree = null;
+    this.loading = undefined;
+    return this.getOrCreateTree();
   }
 
   private scheduleSave(): void {

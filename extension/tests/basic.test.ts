@@ -17,10 +17,25 @@ import { computeGraphGridTransform } from '../src/sidepanel/ui/components/graph/
 import { getSidebarLabelState, getSidebarWidth } from '../src/sidepanel/ui/components/ui/sidebar-utils.js';
 import {
   DEFAULT_BACKEND_CONFIG,
+  getBackendServerPreset,
   resolveBackendConfig,
   resolvePresetOverride,
 } from '../src/shared/config/backend.js';
 import { getFeatureAccess } from '../src/shared/lib/entitlements.js';
+import {
+  createQualityPolicyState,
+  updateQualityPolicy,
+} from '../src/sidepanel/ui/graph/render/quality-policy.js';
+import { decideViewInvalidation } from '../src/sidepanel/ui/graph/render/view-invalidation.js';
+import { RPC_METHOD, rpc } from '../src/shared/rpc/contracts.js';
+import { ExtensionMessage, SiteMessage } from '../src/shared/schemas/site-messages.js';
+import { isAllowedSiteOrigin } from '../src/shared/config/site-origins.js';
+import {
+  buildPreviewSelection,
+  diffSelection,
+  shouldEmitPreview,
+} from '../src/sidepanel/ui/components/graph/selection-utils.js';
+import { runNotificationsSonnerAdapterTests } from './notifications-sonner-adapter.test.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -32,7 +47,7 @@ function data(url: Url, title?: Title): NodeData {
 }
 
 function testNavigationTreeDeletion(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://root.test' as Url));
   const child = tree.navigate(data('https://child.test' as Url));
   tree.setCurrent(root);
@@ -53,7 +68,7 @@ function testNavigationTreeDeletion(): void {
 }
 
 function testNavigationTreeDeleteMergesDuplicateReparentedNodes(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://root.test' as Url));
   const link1 = tree.navigate(data('https://example.com/auth' as Url));
   const link2a = tree.navigate(data('https://example.com/account/' as Url));
@@ -79,7 +94,7 @@ function testNavigationTreeDeleteMergesDuplicateReparentedNodes(): void {
 }
 
 function testNavigationTreeSubtree(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://root.test' as Url));
   const child = tree.navigate(data('https://child.test' as Url));
   const grand = tree.navigate(data('https://grand.test' as Url));
@@ -105,7 +120,6 @@ function testCommandManagerUndoRedo(): void {
   const snapshot1: NavigationTreeJSON = {
     root: rootNode,
     currentNodeId: rootNode.id,
-    capacity: 100,
     nodeCount: 1,
   };
 
@@ -122,7 +136,6 @@ function testCommandManagerUndoRedo(): void {
       children: [childNode],
     },
     currentNodeId: childNode.id,
-    capacity: 100,
     nodeCount: 2,
   };
 
@@ -140,7 +153,7 @@ function testCommandManagerUndoRedo(): void {
 }
 
 function testNavigationTreeSearchIndex(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://example.com/root' as Url, 'Root Page' as Title));
   const child = tree.navigate(data('https://docs.example.com/guide' as Url, 'Guide' as Title));
   tree.setCurrent(root);
@@ -162,8 +175,15 @@ function testNavigationTreeSearchIndex(): void {
   assert.ok(renameMatches.includes(updated.id));
 }
 
+function testNavigationTreeHasNoCapacityApi(): void {
+  const tree = new NavigationTree();
+  const treeWithLegacyApi = tree as unknown as { getCapacity?: unknown; setCapacity?: unknown };
+  assert.equal(typeof treeWithLegacyApi.getCapacity, 'undefined');
+  assert.equal(typeof treeWithLegacyApi.setCapacity, 'undefined');
+}
+
 function testGraphLayouts(): void {
-  const tree = new NavigationTree(100);
+  const tree = new NavigationTree();
   const root = tree.navigate(data('https://root.test'));
   const child = tree.navigate(data('https://child.test'));
   tree.setCurrent(root);
@@ -243,13 +263,13 @@ function testSidebarWidth(): void {
 function testBackendConfigOverride(): void {
   const resolved = resolveBackendConfig({
     baseUrl: 'http://localhost:3001',
-    portalUrl: 'http://localhost:3001/extension',
+    portalUrl: 'http://localhost:3001/login',
     mode: 'remote',
   });
 
   assert.equal(DEFAULT_BACKEND_CONFIG.baseUrl, 'https://app.gettrail.net');
   assert.equal(resolved.baseUrl, 'http://localhost:3001');
-  assert.equal(resolved.portalUrl, 'http://localhost:3001/extension');
+  assert.equal(resolved.portalUrl, 'http://localhost:3001/login');
   assert.equal(resolved.mode, 'remote');
 }
 
@@ -257,7 +277,7 @@ function testBackendLocalPresetOverride(): void {
   const override = resolvePresetOverride('local');
   assert.ok(override);
   assert.equal(override.baseUrl, 'http://localhost:3001');
-  assert.equal(override.portalUrl, 'http://localhost:3001/extension');
+  assert.equal(override.portalUrl, 'http://localhost:3001/login');
   assert.equal(override.mode, 'remote');
   assert.equal(override.env, 'local');
 }
@@ -265,6 +285,22 @@ function testBackendLocalPresetOverride(): void {
 function testBackendUnknownPresetOverride(): void {
   const override = resolvePresetOverride('unknown');
   assert.equal(override, null);
+}
+
+function testBackendServerPresetResolution(): void {
+  const defaultPreset = getBackendServerPreset(DEFAULT_BACKEND_CONFIG);
+  assert.equal(defaultPreset, 'gettrail');
+
+  const localOverride = resolvePresetOverride('local');
+  assert.ok(localOverride);
+  const localConfig = resolveBackendConfig(localOverride);
+  assert.equal(getBackendServerPreset(localConfig), 'local');
+
+  const localhostConfig = resolveBackendConfig({
+    baseUrl: 'http://localhost:3001',
+    portalUrl: 'http://localhost:3001/login',
+  });
+  assert.equal(getBackendServerPreset(localhostConfig), 'local');
 }
 
 function testEntitlements(): void {
@@ -309,12 +345,191 @@ function testEntitlements(): void {
   assert.equal(teamAccess.requiredTier, 'teams');
 }
 
+function testQualityPolicyTransitions(): void {
+  let now = 1_000;
+  let state = createQualityPolicyState(now);
+
+  for (let i = 0; i < 30; i += 1) {
+    now += 100;
+    const next = updateQualityPolicy(
+      state,
+      {
+        frameMs: 36,
+        updateVisibleMs: 12,
+        connectionsMs: 8,
+        renderMs: 12,
+        visibleNodes: 1000,
+        visibleConnections: 1200,
+      },
+      now,
+    );
+    state = next.state;
+  }
+
+  assert.ok(state.level === 'low' || state.level === 'dot');
+
+  for (let i = 0; i < 90; i += 1) {
+    now += 120;
+    const next = updateQualityPolicy(
+      state,
+      {
+        frameMs: 10,
+        updateVisibleMs: 3,
+        connectionsMs: 2,
+        renderMs: 3,
+        visibleNodes: 120,
+        visibleConnections: 180,
+      },
+      now,
+    );
+    state = next.state;
+  }
+
+  assert.notEqual(state.level, 'dot');
+}
+
+function testViewInvalidationDecisions(): void {
+  const prev = { translateX: 0, translateY: 0, scale: 1 };
+  const cached = { minX: -200, minY: -200, maxX: 1000, maxY: 1000 };
+
+  const translateOnly = decideViewInvalidation({
+    prevView: prev,
+    nextView: { translateX: -20, translateY: -10, scale: 1 },
+    viewportWidth: 600,
+    viewportHeight: 400,
+    cachedCullingRect: cached,
+  });
+  assert.equal(translateOnly.decision, 'translate-only');
+
+  const scaled = decideViewInvalidation({
+    prevView: prev,
+    nextView: { translateX: -20, translateY: -10, scale: 1.1 },
+    viewportWidth: 600,
+    viewportHeight: 400,
+    cachedCullingRect: cached,
+  });
+  assert.equal(scaled.decision, 'full');
+
+  const outOfBounds = decideViewInvalidation({
+    prevView: prev,
+    nextView: { translateX: -2000, translateY: -1200, scale: 1 },
+    viewportWidth: 600,
+    viewportHeight: 400,
+    cachedCullingRect: cached,
+  });
+  assert.equal(outOfBounds.decision, 'full');
+}
+
+function testSetNodeLayoutBatchMessage(): void {
+  const request = rpc.setNodeLayoutBatch({
+    layouts: [
+      { nodeId: 1 as NodeId, offsetX: 10, offsetY: -5 },
+      { nodeId: 2 as NodeId, radial: { angleDelta: 0.5, radiusDelta: 20 } },
+    ],
+  });
+
+  assert.equal(request.type, RPC_METHOD.SET_NODE_LAYOUT_BATCH);
+  assert.equal(request.layouts.length, 2);
+}
+
+function testSaveCancelProtocolSchemas(): void {
+  const save = SiteMessage.parse({
+    source: 'trail-site',
+    type: 'SAVE_EDITOR_MODE',
+    requestId: '11111111-1111-4111-8111-111111111111',
+    timestamp: Date.now(),
+  });
+  assert.equal(save.type, 'SAVE_EDITOR_MODE');
+
+  const cancel = SiteMessage.parse({
+    source: 'trail-site',
+    type: 'CANCEL_EDITOR_MODE',
+    requestId: '22222222-2222-4222-8222-222222222222',
+    timestamp: Date.now(),
+  });
+  assert.equal(cancel.type, 'CANCEL_EDITOR_MODE');
+
+  const saveAck = ExtensionMessage.parse({
+    source: 'trail-extension',
+    type: 'EDITOR_MODE_SAVED',
+    requestId: '33333333-3333-4333-8333-333333333333',
+    timestamp: Date.now(),
+    ok: false,
+    error: 'sync failed',
+  });
+  assert.equal(saveAck.type, 'EDITOR_MODE_SAVED');
+  assert.equal(saveAck.ok, false);
+
+  const cancelAck = ExtensionMessage.parse({
+    source: 'trail-extension',
+    type: 'EDITOR_MODE_CANCELLED',
+    requestId: '44444444-4444-4444-8444-444444444444',
+    timestamp: Date.now(),
+    ok: true,
+  });
+  assert.equal(cancelAck.type, 'EDITOR_MODE_CANCELLED');
+  assert.equal(cancelAck.ok, true);
+}
+
+function testAuthProtocolSchemas(): void {
+  const revokedAck = ExtensionMessage.parse({
+    source: 'trail-extension',
+    type: 'AUTH_REVOKED_ACK',
+    requestId: '77777777-7777-4777-8777-777777777777',
+    timestamp: Date.now(),
+    ok: true,
+  });
+  assert.equal(revokedAck.type, 'AUTH_REVOKED_ACK');
+}
+
+function testAllowedSiteOrigins(): void {
+  assert.equal(isAllowedSiteOrigin('https://gettrail.net'), true);
+  assert.equal(isAllowedSiteOrigin('https://app.gettrail.net'), true);
+  assert.equal(isAllowedSiteOrigin('http://localhost:3000'), true);
+  assert.equal(isAllowedSiteOrigin('https://evil.com'), false);
+}
+
+function testSelectionUtilsBuildPreviewSelection(): void {
+  const base = new Set<NodeId>([1 as NodeId, 2 as NodeId]);
+  const hits = new Set<NodeId>([2 as NodeId, 3 as NodeId, 4 as NodeId]);
+  const active = new Set<NodeId>([2 as NodeId, 3 as NodeId]);
+
+  const add = buildPreviewSelection(base, hits, 'add', active);
+  assert.deepEqual(Array.from(add).sort((a, b) => a - b), [1, 2, 3]);
+
+  const remove = buildPreviewSelection(base, hits, 'remove', active);
+  assert.deepEqual(Array.from(remove).sort((a, b) => a - b), [1]);
+
+  const replace = buildPreviewSelection(base, hits, 'replace', active);
+  assert.deepEqual(Array.from(replace).sort((a, b) => a - b), [2, 3]);
+}
+
+function testSelectionUtilsDiffSelection(): void {
+  const prev = new Set<NodeId>([1 as NodeId, 2 as NodeId, 3 as NodeId]);
+  const next = new Set<NodeId>([2 as NodeId, 3 as NodeId, 4 as NodeId]);
+
+  const diff = diffSelection(prev, next);
+  assert.deepEqual(Array.from(diff.added), [4]);
+  assert.deepEqual(Array.from(diff.removed), [1]);
+  assert.equal(diff.changedCount, 2);
+}
+
+function testSelectionUtilsShouldEmitPreview(): void {
+  const a = new Set<NodeId>([1 as NodeId, 2 as NodeId]);
+  const b = new Set<NodeId>([2 as NodeId, 1 as NodeId]);
+  const c = new Set<NodeId>([1 as NodeId, 3 as NodeId]);
+
+  assert.equal(shouldEmitPreview(a, b), false);
+  assert.equal(shouldEmitPreview(a, c), true);
+}
+
 try {
   testNavigationTreeDeletion();
   testNavigationTreeDeleteMergesDuplicateReparentedNodes();
   testNavigationTreeSubtree();
   testCommandManagerUndoRedo();
   testNavigationTreeSearchIndex();
+  testNavigationTreeHasNoCapacityApi();
   testGraphLayouts();
   testGraphGridTransform();
   testSidebarLabelState();
@@ -322,7 +537,18 @@ try {
   testBackendConfigOverride();
   testBackendLocalPresetOverride();
   testBackendUnknownPresetOverride();
+  testBackendServerPresetResolution();
   testEntitlements();
+  testQualityPolicyTransitions();
+  testViewInvalidationDecisions();
+  testSetNodeLayoutBatchMessage();
+  testSaveCancelProtocolSchemas();
+  testAuthProtocolSchemas();
+  testAllowedSiteOrigins();
+  testSelectionUtilsBuildPreviewSelection();
+  testSelectionUtilsDiffSelection();
+  testSelectionUtilsShouldEmitPreview();
+  runNotificationsSonnerAdapterTests();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);

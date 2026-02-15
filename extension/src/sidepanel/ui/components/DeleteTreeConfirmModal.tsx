@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { msg } from '../../../shared/types/messages.js';
+import { rpc } from '../../../shared/rpc/contracts.js';
 import { fireAndForget } from '../../api/background.js';
 import { createNewTree } from '../../api/tree.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
@@ -47,7 +47,7 @@ export default function DeleteTreeConfirmModal() {
     if (!canAct || !rootId) return;
     close();
     clearSelection();
-    fireAndForget(msg.deleteWithChildren({ nodeId: rootId }));
+    fireAndForget(rpc.deleteWithChildren({ nodeId: rootId }));
   };
 
   const handleCreateNewTree = () => {

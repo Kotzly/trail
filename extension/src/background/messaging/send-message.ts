@@ -1,4 +1,4 @@
-import type { RequestMessage } from '../../shared/types/messages.js';
+import type { RequestMessage } from '../../shared/rpc/contracts.js';
 
 const IGNORED_ERRORS = [
   'Receiving end does not exist',

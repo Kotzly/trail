@@ -1,15 +1,15 @@
 import { sendMessage } from "./background.js";
-import { msg } from "../../shared/types/messages.js";
-import type { CommandState } from "../../shared/types/messages.js";
+import { rpc } from "../../shared/rpc/contracts.js";
+import type { CommandState } from "../../shared/rpc/contracts.js";
 
 export async function getCommandState(): Promise<CommandState> {
-    const res = await sendMessage(msg.getCommandState());
+    const res = await sendMessage(rpc.getCommandState());
     if (!res.success) throw new Error(res.error);
     return res.data;
 }
 
 export async function undo(): Promise<CommandState> {
-    const res = await sendMessage(msg.undo());
+    const res = await sendMessage(rpc.undo());
     if (!res.success) {
         throw new Error(res.error);
     }
@@ -17,7 +17,7 @@ export async function undo(): Promise<CommandState> {
 }
 
 export async function redo(): Promise<CommandState> {
-    const res = await sendMessage(msg.redo());
+    const res = await sendMessage(rpc.redo());
     if (!res.success) throw new Error(res.error);
     return res.data;
 }

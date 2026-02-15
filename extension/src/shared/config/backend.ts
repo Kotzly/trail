@@ -1,9 +1,13 @@
 export type BackendEnvironment = 'production' | 'staging' | 'local';
 export type BackendMode = 'remote' | 'mock';
-export type BackendPresetTag = 'production' | 'local';
+export type BackendPresetTag = 'production' | 'gettrail' | 'local';
+export type BackendServerPreset = 'gettrail' | 'local';
 
 export type BackendEndpoints = {
-  authPortal: string;
+  oauthAuthorize: string;
+  oauthToken: string;
+  oauthRevoke: string;
+  authSessionState: string;
   logout: string;
   account: string;
   plans: string;
@@ -12,6 +16,7 @@ export type BackendEndpoints = {
   checkout: string;
   billingPortal: string;
   trailsSync: string;
+  onboarding: string;
 };
 
 export type BackendConfig = {
@@ -33,17 +38,20 @@ const BACKEND_CONFIG_STORAGE_KEY = 'trail_backend_config';
 const BACKEND_PRESET_CONFIG_PATH = 'backend-preset.json';
 const VALID_ENVS = new Set<BackendEnvironment>(['production', 'staging', 'local']);
 const VALID_MODES = new Set<BackendMode>(['remote', 'mock']);
-const VALID_PRESETS = new Set<BackendPresetTag>(['production', 'local']);
+const VALID_PRESETS = new Set<BackendPresetTag>(['production', 'gettrail', 'local']);
 
 export const DEFAULT_BACKEND_CONFIG: BackendConfig = {
   env: 'production',
   mode: 'remote',
   baseUrl: 'https://app.gettrail.net',
-  basePath: '/v1',
-  portalUrl: 'https://app.gettrail.net/extension',
+  basePath: '/api/v1',
+  portalUrl: 'https://app.gettrail.net/login',
   timeoutMs: 10000,
   endpoints: {
-    authPortal: '/auth/portal',
+    oauthAuthorize: '/oauth/authorize',
+    oauthToken: '/oauth/token',
+    oauthRevoke: '/oauth/revoke',
+    authSessionState: '/auth/session-state',
     logout: '/auth/logout',
     account: '/account',
     plans: '/plans',
@@ -52,6 +60,7 @@ export const DEFAULT_BACKEND_CONFIG: BackendConfig = {
     checkout: '/subscription/checkout',
     billingPortal: '/billing/portal',
     trailsSync: '/trails/sync',
+    onboarding: '/onboarding',
   },
   openApiPath: 'api/openapi.yml',
 };
@@ -129,7 +138,22 @@ export function resolveBackendConfig(override?: BackendConfigOverride | null): B
     portalUrl: normalizeBaseUrl(override.portalUrl, base.portalUrl),
     timeoutMs: normalizeTimeout(override.timeoutMs, base.timeoutMs),
     endpoints: {
-      authPortal: normalizePath(endpointsInput?.authPortal, base.endpoints.authPortal),
+      oauthAuthorize: normalizePath(
+        endpointsInput?.oauthAuthorize,
+        base.endpoints.oauthAuthorize,
+      ),
+      oauthToken: normalizePath(
+        endpointsInput?.oauthToken,
+        base.endpoints.oauthToken,
+      ),
+      oauthRevoke: normalizePath(
+        endpointsInput?.oauthRevoke,
+        base.endpoints.oauthRevoke,
+      ),
+      authSessionState: normalizePath(
+        endpointsInput?.authSessionState,
+        base.endpoints.authSessionState,
+      ),
       logout: normalizePath(endpointsInput?.logout, base.endpoints.logout),
       account: normalizePath(endpointsInput?.account, base.endpoints.account),
       plans: normalizePath(endpointsInput?.plans, base.endpoints.plans),
@@ -138,6 +162,7 @@ export function resolveBackendConfig(override?: BackendConfigOverride | null): B
       checkout: normalizePath(endpointsInput?.checkout, base.endpoints.checkout),
       billingPortal: normalizePath(endpointsInput?.billingPortal, base.endpoints.billingPortal),
       trailsSync: normalizePath(endpointsInput?.trailsSync, base.endpoints.trailsSync),
+      onboarding: normalizePath(endpointsInput?.onboarding, base.endpoints.onboarding),
     },
     openApiPath:
       typeof override.openApiPath === 'string' && override.openApiPath.trim()
@@ -153,10 +178,30 @@ export function resolvePresetOverride(tag: string | null | undefined): BackendCo
       env: 'local',
       mode: 'remote',
       baseUrl: 'http://localhost:3001',
-      portalUrl: 'http://localhost:3001/extension',
+      portalUrl: 'http://localhost:3001/login',
     };
   }
   return null;
+}
+
+function isLocalHostName(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
+function hasLocalBaseUrl(config: BackendConfig): boolean {
+  try {
+    const parsed = new URL(config.baseUrl);
+    return isLocalHostName(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function getBackendServerPreset(config: BackendConfig = BACKEND_CONFIG): BackendServerPreset {
+  if (config.env === 'local' || hasLocalBaseUrl(config)) {
+    return 'local';
+  }
+  return 'gettrail';
 }
 
 function mergeOverrides(

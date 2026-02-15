@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { publicEnv } from "@/lib/public-env";
 
-const siteUrl = publicEnv.NEXT_PUBLIC_SITE_URL;
+const SITE_URL = "https://gettrail.net";
 const ogImage = "/assets/video-poster-white.jpg";
 
 export const defaultTitle = "Trail – Visualized Browsing";
@@ -51,4 +50,4 @@ export function buildMetadata({
   };
 }
 
-export const metadataBase = new URL(siteUrl);
+export const metadataBase = new URL(SITE_URL);

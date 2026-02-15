@@ -1,4 +1,4 @@
-import { MSG, defineHandlers, ok, err } from '../../../shared/types/messages.js';
+import { RPC_METHOD, defineRpcHandlers, ok, err } from '../../../shared/rpc/contracts.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
 import { CommandManager } from '../../../shared/lib/commands.js';
@@ -6,8 +6,8 @@ import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import type { Description } from '../../../shared/types/ids.js';
 
 
-export const pinHandlers = defineHandlers({
-  async [MSG.TOGGLE_PIN](message) {
+export const pinHandlers = defineRpcHandlers({
+  async [RPC_METHOD.TOGGLE_PIN](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
@@ -19,7 +19,7 @@ export const pinHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.BULK_PIN](message) {
+  async [RPC_METHOD.BULK_PIN](message) {
     const tree = await treeStorage.getOrCreateTree();
     CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Pin nodes' as Description);
     for (const id of message.nodeIds) {
@@ -31,7 +31,7 @@ export const pinHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.BULK_UNPIN](message) {
+  async [RPC_METHOD.BULK_UNPIN](message) {
     const tree = await treeStorage.getOrCreateTree();
     CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), 'Unpin nodes' as Description);
     for (const id of message.nodeIds) {

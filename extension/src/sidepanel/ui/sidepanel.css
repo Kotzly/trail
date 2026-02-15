@@ -5,7 +5,6 @@
 @import './styles/tooltips.css';
 @import './styles/modal-overlay.css';
 @import './styles/floating-controls.css';
-@import './styles/notifications.css';
 @import './styles/tags.css';
 @import './styles/dropdowns.css';
 @import './styles/pinned-dropdown.css';
@@ -15,6 +14,7 @@
 @import './styles/graph.css';
 @import './styles/settings-popover.css';
 @import './styles/onboarding.css';
+@import './styles/auth-gate.css';
 @import './styles/zen-theme-panel.css';
 @import './styles/context-menus.css';
 @import './styles/tag-editor.css';

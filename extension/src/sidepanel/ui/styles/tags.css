@@ -13,11 +13,11 @@
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--tag-color, #667085) 18%, var(--md-surface-container-low) 82%),
-      color-mix(in srgb, var(--tag-color, #667085) 30%, var(--md-surface-container) 70%)
+      color-mix(in srgb, var(--tag-color, #667085) 18%, var(--popover) 82%),
+      color-mix(in srgb, var(--tag-color, #667085) 30%, var(--card) 70%)
     );
-  color: color-mix(in srgb, var(--tag-color, #667085) 70%, var(--md-on-surface) 30%);
-  border: 1px solid color-mix(in srgb, var(--tag-color, #667085) 45%, var(--md-outline-variant) 55%);
+  color: color-mix(in srgb, var(--tag-color, #667085) 70%, var(--foreground) 30%);
+  border: 1px solid color-mix(in srgb, var(--tag-color, #667085) 45%, var(--border) 55%);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag-color, #667085) 12%, transparent);
   white-space: nowrap;
   overflow: hidden;
@@ -32,8 +32,8 @@
 
 .tag-pill-new {
   background: transparent;
-  color: var(--md-on-surface-variant);
-  border: 1px dashed var(--md-outline-variant);
+  color: var(--muted-foreground);
+  border: 1px dashed var(--border);
   box-shadow: none;
 }
 
@@ -54,9 +54,9 @@
 }
 
 .tag-dot-new {
-  background: var(--md-surface-container-high);
-  color: var(--md-on-surface-variant);
-  border: 1px dashed var(--md-outline-variant);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px dashed var(--border);
 }
 
 .tag-label {
@@ -82,23 +82,23 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-on-surface-variant);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--muted-foreground);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--md-glass-inset);
+  box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: background 120ms ease, color 120ms ease, transform 120ms ease, border-color 120ms ease;
 }
 
 .tag-action-btn:hover:not(:disabled) {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-on-surface);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--foreground);
   transform: translateY(-1px);
 }
 
@@ -108,16 +108,16 @@
 }
 
 .tag-action-btn.danger {
-  color: var(--md-error);
+  color: var(--destructive);
 }
 
 .tag-action-btn.danger:hover:not(:disabled) {
-  background: rgba(var(--md-error-rgb), 0.16);
-  color: var(--md-error);
+  background: rgba(var(--destructive-rgb), 0.16);
+  color: var(--destructive);
 }
 
 .tag-check {
-  color: var(--md-primary);
+  color: var(--primary);
   font-weight: bold;
 }
 

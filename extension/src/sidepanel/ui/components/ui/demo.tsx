@@ -1,8 +1,8 @@
 import { motion } from 'motion/react';
 import { LayoutDashboard, LogOut, Settings, UserCog } from 'lucide-react';
 import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar';
+import { cn } from '../../lib/utils.js';
+import { Sidebar, SidebarBody, SidebarLink } from './sidebar.js';
 
 export function SidebarDemo() {
   const links = [

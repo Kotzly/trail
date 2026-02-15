@@ -2,12 +2,11 @@ import { create } from 'zustand';
 import type { NodeId, Tag } from '../../../shared/types/ids.js';
 import type { Settings } from '../../../shared/types/settings.js';
 import type { TabState } from '../../../shared/types/tabs.js';
-import type { CommandState, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '../../../shared/types/messages.js';
+import type { CommandState, EditorModeState, SyncStatus, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '../../../shared/rpc/contracts.js';
 import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
 import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { PinnedManager } from '../../../background/state/pinned.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
-import type { NotificationItem } from '../notifications/types.js';
 import type { TreeMeta, TreeSummary } from '../../../shared/types/tree.js';
 import { getCollapsedAncestorIds } from '../graph/collapse-utils.js';
 import type {
@@ -16,6 +15,7 @@ import type {
   AccountSnapshot,
   AuthSession,
   BillingStatus,
+  OnboardingState,
   Plan,
   Subscription,
   User,
@@ -70,6 +70,7 @@ export type AccountState = {
   subscription: Subscription | null;
   billing: BillingStatus | null;
   plans: Plan[];
+  onboarding: OnboardingState;
   error: AccountError | null;
   lastSyncedAt: string | null;
 };
@@ -98,7 +99,6 @@ type StoreState = {
   tagFilter: {
     selected: Set<Tag>;
   };
-  notifications: NotificationItem[];
   search: {
     query: string;
     results: NodeId[];
@@ -131,7 +131,10 @@ type StoreState = {
     collapseVersion: number;
     collapseAction: { kind: 'collapse' | 'expand'; nodeIds: Set<NodeId> } | null;
   };
+  editorMode: EditorModeState;
+  syncStatus: SyncStatus;
   contextMenu: ContextMenuState;
+  pickTarget: { type: 'duplicate'; sourceNodeId: NodeId } | null;
   metaKey: MetaKeyPair | null;
   isMac: boolean;
 };
@@ -177,9 +180,10 @@ type StoreActions = {
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
   clearViewIntent: () => void;
-  addNotification: (notification: NotificationItem) => void;
-  removeNotification: (id: string) => void;
-  clearNotifications: () => void;
+  setEditorMode: (state: EditorModeState) => void;
+  setPickTarget: (target: StoreState['pickTarget']) => void;
+  clearPickTarget: () => void;
+  setSyncStatus: (status: SyncStatus) => void;
 };
 
 type PopupKey = keyof StoreState['ui'];
@@ -222,6 +226,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     subscription: null,
     billing: { state: 'none' },
     plans: [],
+    onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
     error: null,
     lastSyncedAt: null,
   },
@@ -243,7 +248,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   tagFilter: {
     selected: new Set<Tag>(),
   },
-  notifications: [],
   search: {
     query: '',
     results: [],
@@ -280,7 +284,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     collapseVersion: 0,
     collapseAction: null,
   },
+  editorMode: { active: false, treeId: null },
+  syncStatus: 'idle' as SyncStatus,
   contextMenu: null,
+  pickTarget: null,
   metaKey: null,
   isMac: false,
 
@@ -574,6 +581,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         ...state.account,
         ...snapshot,
         config: snapshot.config ?? state.account.config,
+        onboarding: snapshot.onboarding ?? state.account.onboarding,
         status: 'ready',
         network: 'online',
         error: null,
@@ -591,6 +599,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         subscription: null,
         billing: { state: 'none' },
         plans: [],
+        onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
         error: null,
         lastSyncedAt: null,
       },
@@ -664,13 +673,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     set((state) => ({
       graph: { ...state.graph, viewIntent: null },
     })),
-  addNotification: (notification) =>
-    set((state) => ({
-      notifications: [notification, ...state.notifications],
-    })),
-  removeNotification: (id) =>
-    set((state) => ({
-      notifications: state.notifications.filter((item) => item.id !== id),
-    })),
-  clearNotifications: () => set({ notifications: [] }),
+  setEditorMode: (editorMode) => set({ editorMode }),
+  setPickTarget: (pickTarget) => set({ pickTarget }),
+  clearPickTarget: () => set({ pickTarget: null }),
+  setSyncStatus: (syncStatus) => set({ syncStatus }),
 }));

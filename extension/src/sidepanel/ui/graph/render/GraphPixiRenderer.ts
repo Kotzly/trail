@@ -3,14 +3,21 @@ import { ChevronDown, Pin, Volume2, VolumeX } from 'lucide';
 import type { TextStyleFontWeight } from 'pixi.js';
 import type { FaviconUrl, NodeId } from '../../../../shared/types/ids.js';
 import { formatUrl } from '../../shared/format.js';
-import type { ViewState } from '../types.js';
+import type { LayoutMode, ViewState } from '../types.js';
 import type { ConnectionSegment, GraphDisplayOptions, NodeRenderModel, ParticleRenderModel } from './types.js';
 import { SpatialIndex } from './spatial-index.js';
 import { readGraphTheme } from './theme.js';
+import {
+  decideViewInvalidation,
+  worldRectFromView,
+  type WorldRect,
+} from './view-invalidation.js';
+import { diffSelection, shouldEmitPreview } from '../../components/graph/selection-utils.js';
 
 type RenderData = {
   nodes: NodeRenderModel[];
   connections: ConnectionSegment[];
+  layoutMode: LayoutMode;
   nodeWidth: number;
   nodeHeight: number;
   showConnections: boolean;
@@ -19,12 +26,26 @@ type RenderData = {
 
 type LODLevel = 'hidden' | 'dot' | 'low' | 'full';
 type DetailMode = 'full' | 'low' | 'dot';
+export type ConnectionQuality = 'full' | 'simplified' | 'thin';
 
-const LOD_HIDE_PX = 6;
-const LOD_DOT_PX = 14;
-const LOD_LOW_PX = 28;
+export type GraphRenderMetrics = {
+  updateVisibleMs: number;
+  connectionsMs: number;
+  renderMs: number;
+  visibleNodes: number;
+  visibleConnections: number;
+  selectionQueryMs: number;
+  selectionPatchMs: number;
+  selectionChangedCount: number;
+};
 
-const NODE_RADIUS = 22;
+const LOD_HIDE_PX = -1; // disabled
+const LOD_DOT_PX = 12;
+const LOD_LOW_PX = 32;
+/** Paths/connections are not drawn when typical node size on screen is below this (must be < LOD_HIDE_PX). */
+const LOD_CONN_HIDE_PX = -1; // disabled
+
+const NODE_RADIUS = 12;
 const NODE_PADDING_X = 12;
 const NODE_PADDING_Y = 8;
 const NODE_GAP = 10;
@@ -250,14 +271,17 @@ class NodeVisual {
     const showLow = lod === 'low';
     const showFavicon = model.display.showFavicons && (showFull || showLow);
     const showUrls = model.display.showUrls && showFull;
-    const title = model.node.data.title || 'Untitled';
-    const url = model.node.data.url ? formatUrl(model.node.data.url) : '';
-    const textKey = `${title}|${url}|${model.display.titleTruncation}|${showUrls ? 'u' : 'n'}|${showFavicon ? 'f' : 'n'}`;
+    const title = lod === 'dot' ? '' : model.node.data.title || 'Untitled';
+    const url = lod === 'dot' ? '' : model.node.data.url ? formatUrl(model.node.data.url) : '';
+    const textKey =
+      lod === 'dot'
+        ? 'dot'
+        : `${title}|${url}|${model.display.titleTruncation}|${showUrls ? 'u' : 'n'}|${showFavicon ? 'f' : 'n'}`;
     const tagKey =
-      model.display.showTagDots && model.node.data.tags?.length
+      lod === 'full' && model.display.showTagDots && model.node.data.tags?.length
         ? model.node.data.tags.join(',')
         : '';
-    const rawFavicon = showFavicon ? model.node.data.favicon ?? null : null;
+    const rawFavicon = lod === 'dot' ? null : showFavicon ? model.node.data.favicon ?? null : null;
     const safeFavicon = rawFavicon && isSafeFavicon(rawFavicon) ? rawFavicon : null;
     const cachedFavicon = safeFavicon ? getCachedFaviconTexture(safeFavicon) : null;
     const faviconKey = `${showFavicon ? '1' : '0'}|${safeFavicon ?? 'none'}|${cachedFavicon ? '1' : '0'}`;
@@ -298,6 +322,18 @@ class NodeVisual {
 
     if (needsStyleUpdate) {
       this.drawBackground(model, theme, lod, isSelected, isPreview);
+    }
+
+    if (lod === 'dot') {
+      this.textContainer.visible = false;
+      this.tagDots.visible = false;
+      this.faviconBg.visible = false;
+      if (this.faviconSprite) this.faviconSprite.visible = false;
+      this.tabBadge.visible = false;
+      this.pinIcon.visible = false;
+      this.audioIcon.visible = false;
+      this.collapseBadge.visible = false;
+      return;
     }
 
     if (needsTextUpdate) {
@@ -516,8 +552,7 @@ class NodeVisual {
     lod: LODLevel
   ) {
     const showFull = lod === 'full';
-    const showLow = lod === 'low';
-    const showBadges = showFull || showLow;
+    const showBadges = showFull;
 
     this.tabBadge.visible = showBadges && model.display.showTabCounts && model.tabCount > 1;
     if (this.tabBadge.visible) {
@@ -655,15 +690,27 @@ export class GraphPixiRenderer {
   private connections: ConnectionSegment[] = [];
   private particles: ParticleRenderModel[] = [];
   private view: ViewState = { translateX: 0, translateY: 0, scale: 1 };
-  private data: RenderData = { nodes: [], connections: [], nodeWidth: 180, nodeHeight: 60, showConnections: true, particles: [] };
+  private data: RenderData = {
+    nodes: [],
+    connections: [],
+    layoutMode: 'tree',
+    nodeWidth: 180,
+    nodeHeight: 60,
+    showConnections: true,
+    particles: [],
+  };
   private theme = readGraphTheme({ host: document.body });
   private themeVersion = 0;
   private fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
   private detailMode: DetailMode = 'full';
+  private connectionQuality: ConnectionQuality = 'full';
   private textResolution = 1;
   private selectedNodeIds: Set<NodeId> = new Set();
-  private selectionOverride: Set<NodeId> | null = null;
+  private selectionPreviewIds: Set<NodeId> | null = null;
+  private lastSelectionPreviewIds: Set<NodeId> | null = null;
+  private visibleIdsCache: Set<NodeId> = new Set();
   private origin = { x: 0, y: 0 };
+  private cachedCullingRect: WorldRect | null = null;
   private needsRender = false;
   private destroyed = false;
   private isReady = false;
@@ -671,6 +718,17 @@ export class GraphPixiRenderer {
   private dppxMediaQuery: MediaQueryList | null = null;
   private dppxMediaQueryListener: (() => void) | null = null;
   private initPromise: Promise<void> | null = null;
+  private metrics: GraphRenderMetrics = {
+    updateVisibleMs: 0,
+    connectionsMs: 0,
+    renderMs: 0,
+    visibleNodes: 0,
+    visibleConnections: 0,
+    selectionQueryMs: 0,
+    selectionPatchMs: 0,
+    selectionChangedCount: 0,
+  };
+  private metricsListener: ((metrics: GraphRenderMetrics) => void) | null = null;
   private readonly requestRender = () => {
     if (this.destroyed) return;
     this.invalidateVisible();
@@ -804,28 +862,117 @@ export class GraphPixiRenderer {
     this.invalidateAll();
   }
 
+  setConnectionQuality(quality: ConnectionQuality) {
+    if (this.connectionQuality === quality) return;
+    this.connectionQuality = quality;
+    this.invalidateAll();
+  }
+
+  setMetricsListener(listener: ((metrics: GraphRenderMetrics) => void) | null) {
+    this.metricsListener = listener;
+  }
+
   setSelectedNodeIds(ids: Set<NodeId>) {
     if (this.selectedNodeIds === ids) return;
     this.selectedNodeIds = ids;
-    if (!this.isReady || this.selectionOverride) return;
+    if (!this.isReady || this.selectionPreviewIds) return;
     this.invalidateVisible();
   }
 
-  setSelectionOverride(ids: Set<NodeId> | null) {
-    if (this.selectionOverride === ids) return;
-    this.selectionOverride = ids;
+  setSelectionPreview(ids: Set<NodeId> | null) {
+    const prev = this.selectionPreviewIds ?? new Set<NodeId>();
+    const next = ids ?? new Set<NodeId>();
+    if (!shouldEmitPreview(prev, next)) return;
+    this.lastSelectionPreviewIds = this.selectionPreviewIds;
+    this.selectionPreviewIds = ids ? new Set(ids) : null;
     if (!this.isReady) return;
-    this.invalidateVisible();
+    this.patchSelectionVisuals(prev, next);
+  }
+
+  clearSelectionPreview() {
+    this.setSelectionPreview(null);
   }
 
   queryNodesInWorldRect(rect: { minX: number; minY: number; maxX: number; maxY: number }): Set<NodeId> {
-    return this.index.query(rect);
+    const started = performance.now();
+    const hits = this.index.query(rect);
+    this.metrics.selectionQueryMs = performance.now() - started;
+    return hits;
+  }
+
+  queryVisibleNodesInWorldRect(rect: { minX: number; minY: number; maxX: number; maxY: number }): Set<NodeId> {
+    const started = performance.now();
+    const hits = new Set<NodeId>();
+    this.visibleIdsCache.forEach((id) => {
+      const node = this.nodeData.get(id);
+      if (!node) return;
+      if (
+        node.x <= rect.maxX &&
+        node.x + node.width >= rect.minX &&
+        node.y <= rect.maxY &&
+        node.y + node.height >= rect.minY
+      ) {
+        hits.add(id);
+      }
+    });
+    this.metrics.selectionQueryMs = performance.now() - started;
+    return hits;
+  }
+
+  private getEffectiveSelection(): Set<NodeId> {
+    return this.selectionPreviewIds ?? this.selectedNodeIds;
+  }
+
+  private patchSelectionVisuals(prevSelection: ReadonlySet<NodeId>, nextSelection: ReadonlySet<NodeId>) {
+    const started = performance.now();
+    const { added, removed, changedCount } = diffSelection(prevSelection, nextSelection);
+    this.metrics.selectionChangedCount = changedCount;
+    if (changedCount === 0) {
+      this.metrics.selectionPatchMs = performance.now() - started;
+      return;
+    }
+
+    const changed = new Set<NodeId>([...added, ...removed]);
+    let patchedAny = false;
+    changed.forEach((id) => {
+      if (!this.visibleIdsCache.has(id)) return;
+      const node = this.nodeData.get(id);
+      if (!node) return;
+      let visual = this.nodeMap.get(id);
+      if (!visual) {
+        visual = new NodeVisual(id, this.fontFamily, this.requestRender);
+        this.nodeMap.set(id, visual);
+        this.nodeLayer.addChild(visual.container);
+      }
+      visual.update(
+        node,
+        this.view,
+        this.theme,
+        this.origin,
+        this.fontFamily,
+        this.themeVersion,
+        this.detailMode,
+        this.textResolution,
+        nextSelection.has(id),
+        node.isPreview,
+      );
+      patchedAny = true;
+    });
+
+    if (patchedAny) {
+      this.nodeLayer.sortDirty = true;
+      this.needsRender = true;
+      this.render();
+    }
+    this.metrics.selectionPatchMs = performance.now() - started;
   }
 
   setData(data: RenderData) {
     this.data = data;
     this.particles = data.particles ?? [];
     this.connections = data.connections;
+    this.cachedCullingRect = null;
+    this.visibleIdsCache = new Set();
     this.nodeData.clear();
     this.index = new SpatialIndex<NodeId>(Math.max(data.nodeWidth, data.nodeHeight) * 3);
     const ids = new Set<NodeId>();
@@ -850,17 +997,35 @@ export class GraphPixiRenderer {
   }
 
   setView(view: ViewState) {
+    const prevView = this.view;
     this.view = view;
     if (!this.isReady) return;
-    this.updateOrigin();
+    const originChanged = this.updateOrigin();
     this.updateWorldTransform();
     this.syncTextResolution();
-    this.invalidateVisible();
+
+    const invalidation = decideViewInvalidation({
+      prevView,
+      nextView: view,
+      viewportWidth: this.host.clientWidth || 1,
+      viewportHeight: this.host.clientHeight || 1,
+      cachedCullingRect: this.cachedCullingRect,
+      forceFull: this.cachedCullingRect === null,
+      originChanged,
+    });
+
+    if (invalidation.decision === 'translate-only') {
+      this.needsRender = true;
+      this.render();
+      return;
+    }
+
+    this.invalidateVisible(invalidation.nextCullingRect);
   }
 
-  hitTestScreen(screenX: number, screenY: number): NodeId | null {
+  hitTestScreen(screenX: number, screenY: number, excludeIds?: Set<NodeId>): NodeId | null {
     const world = this.screenToWorld(screenX, screenY);
-    return this.hitTestWorld(world.x, world.y);
+    return this.hitTestWorld(world.x, world.y, excludeIds);
   }
 
   hitTestTargetScreen(
@@ -892,7 +1057,7 @@ export class GraphPixiRenderer {
     };
   }
 
-  private hitTestWorld(worldX: number, worldY: number): NodeId | null {
+  private hitTestWorld(worldX: number, worldY: number, excludeIds?: Set<NodeId>): NodeId | null {
     const candidates = this.index.query({
       minX: worldX,
       maxX: worldX,
@@ -900,10 +1065,11 @@ export class GraphPixiRenderer {
       maxY: worldY,
     });
     if (candidates.size === 0) return null;
-    const selection = this.selectionOverride ?? this.selectedNodeIds;
+    const selection = this.getEffectiveSelection();
     let topId: NodeId | null = null;
     let topZ = -Infinity;
     candidates.forEach((id) => {
+      if (excludeIds?.has(id)) return;
       const node = this.nodeData.get(id);
       if (!node) return;
       if (
@@ -924,33 +1090,42 @@ export class GraphPixiRenderer {
 
   private isCollapseBadgeVisible(model: NodeRenderModel): boolean {
     if (!model.isCollapsed) return false;
-    const selection = this.selectionOverride ?? this.selectedNodeIds;
+    const selection = this.getEffectiveSelection();
     const lod = resolveNodeLod(model, this.view, this.detailMode, selection.has(model.id));
     return lod === 'full' || lod === 'low';
   }
 
   private invalidateAll() {
     if (!this.isReady) return;
+    this.cachedCullingRect = null;
     this.needsRender = true;
     this.updateVisible();
     this.render();
   }
 
-  private invalidateVisible() {
+  private invalidateVisible(cullingRect?: WorldRect) {
     if (!this.isReady) return;
     this.needsRender = true;
-    this.updateVisible();
+    this.updateVisible(cullingRect);
     this.render();
+  }
+
+  private emitMetrics() {
+    if (!this.metricsListener) return;
+    this.metricsListener({ ...this.metrics });
   }
 
   private render() {
     if (!this.isReady) return;
     if (!this.needsRender) return;
     this.needsRender = false;
+    const start = performance.now();
     this.app.renderer.render(this.app.stage);
+    this.metrics.renderMs = performance.now() - start;
+    this.emitMetrics();
   }
 
-  private updateOrigin() {
+  private updateOrigin(): boolean {
     const rect = this.getViewRect();
     const desiredX = Math.round(rect.minX + rect.width / 2);
     const desiredY = Math.round(rect.minY + rect.height / 2);
@@ -960,7 +1135,9 @@ export class GraphPixiRenderer {
       Math.abs(desiredY - this.origin.y) > threshold
     ) {
       this.origin = { x: desiredX, y: desiredY };
+      return true;
     }
+    return false;
   }
 
   private updateWorldTransform() {
@@ -971,17 +1148,26 @@ export class GraphPixiRenderer {
     );
   }
 
-  private updateVisible() {
-    const viewRect = this.getViewRect();
+  private updateVisible(cullingRect?: WorldRect) {
+    const updateStart = performance.now();
+    const viewRect = worldRectFromView(
+      this.view,
+      this.host.clientWidth || 1,
+      this.host.clientHeight || 1,
+    );
     const padding = 200 / this.view.scale;
-    const paddedRect = {
-      minX: viewRect.minX - padding,
-      minY: viewRect.minY - padding,
-      maxX: viewRect.maxX + padding,
-      maxY: viewRect.maxY + padding,
-    };
-    const selection = this.selectionOverride ?? this.selectedNodeIds;
+    const paddedRect =
+      cullingRect ?? {
+        minX: viewRect.minX - padding,
+        minY: viewRect.minY - padding,
+        maxX: viewRect.maxX + padding,
+        maxY: viewRect.maxY + padding,
+      };
+    this.cachedCullingRect = paddedRect;
+
+    const selection = this.getEffectiveSelection();
     const visibleIds = this.index.query(paddedRect);
+    this.visibleIdsCache = visibleIds;
     visibleIds.forEach((id) => {
       const node = this.nodeData.get(id);
       if (!node) return;
@@ -1010,48 +1196,107 @@ export class GraphPixiRenderer {
       }
     }
     this.nodeLayer.sortDirty = true;
-    this.updateConnections(paddedRect);
+    const { connectionsMs, visibleConnections } = this.updateConnections(paddedRect);
+    this.metrics.updateVisibleMs = performance.now() - updateStart;
+    this.metrics.connectionsMs = connectionsMs;
+    this.metrics.visibleNodes = visibleIds.size;
+    this.metrics.visibleConnections = visibleConnections;
   }
 
-  private updateConnections(viewRect: { minX: number; minY: number; maxX: number; maxY: number }) {
+  private updateConnections(viewRect: {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  }): { connectionsMs: number; visibleConnections: number } {
+    const start = performance.now();
     this.connectionLayer.clear();
     this.pathLayer.clear();
-    if (!this.data.showConnections || this.detailMode !== 'full') return;
+    this.particleLayer.removeChildren();
+    if (!this.data.showConnections) {
+      return { connectionsMs: performance.now() - start, visibleConnections: 0 };
+    }
+
+    const representativePx = Math.min(this.data.nodeWidth, this.data.nodeHeight) * this.view.scale;
+    if (representativePx < LOD_CONN_HIDE_PX) {
+      return { connectionsMs: performance.now() - start, visibleConnections: 0 };
+    }
+
     // Base connections and "active path" connections can share the same hue (theme-driven),
     // but must be visually distinct so the root -> current path reads as highlighted.
+    const radial = this.data.layoutMode === 'radial';
+    const thinQuality = this.connectionQuality === 'thin';
     const baseColor = this.theme.connection.base;
     const pathColor = this.theme.connection.path;
-    const baseWidth = 2 / this.view.scale;
-    const pathWidth = 2.8 / this.view.scale;
-    const baseAlpha = 0.22;
-    const pathAlpha = 0.85;
+    const baseWidth =
+      this.connectionQuality === 'full'
+        ? 2 / this.view.scale
+        : this.connectionQuality === 'simplified'
+          ? 1.5 / this.view.scale
+          : 1 / this.view.scale;
+    const pathWidth =
+      this.connectionQuality === 'full'
+        ? 2.8 / this.view.scale
+        : this.connectionQuality === 'simplified'
+          ? 2.1 / this.view.scale
+          : 1.6 / this.view.scale;
+    const baseAlpha =
+      this.connectionQuality === 'full'
+        ? 0.22
+        : this.connectionQuality === 'simplified'
+          ? 0.18
+          : 0.14;
+    const pathAlpha =
+      this.connectionQuality === 'full'
+        ? 0.85
+        : this.connectionQuality === 'simplified'
+          ? 0.75
+          : 0.62;
     this.connectionLayer.setStrokeStyle({ width: baseWidth, color: baseColor, alpha: baseAlpha });
     this.pathLayer.setStrokeStyle({ width: pathWidth, color: pathColor, alpha: pathAlpha });
 
+    let visibleConnections = 0;
     this.connections.forEach((conn) => {
       if (!intersects(conn.bounds, viewRect)) return;
+      if (
+        thinQuality &&
+        !radial &&
+        !conn.onPath &&
+        hashConnectionId(conn.id) % 2 === 0
+      ) {
+        return;
+      }
+
+      visibleConnections += 1;
       const layer = conn.onPath ? this.pathLayer : this.connectionLayer;
       const startX = conn.start.x - this.origin.x;
       const startY = conn.start.y - this.origin.y;
-      const cp1X = conn.cp1.x - this.origin.x;
-      const cp1Y = conn.cp1.y - this.origin.y;
-      const cp2X = conn.cp2.x - this.origin.x;
-      const cp2Y = conn.cp2.y - this.origin.y;
       const endX = conn.end.x - this.origin.x;
       const endY = conn.end.y - this.origin.y;
       layer.moveTo(startX, startY);
-      layer.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
+      if (this.connectionQuality === 'full') {
+        const cp1X = conn.cp1.x - this.origin.x;
+        const cp1Y = conn.cp1.y - this.origin.y;
+        const cp2X = conn.cp2.x - this.origin.x;
+        const cp2Y = conn.cp2.y - this.origin.y;
+        layer.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
+      } else {
+        layer.lineTo(endX, endY);
+      }
     });
-    if (this.connections.length > 0) {
+    if (visibleConnections > 0) {
       this.connectionLayer.stroke();
       this.pathLayer.stroke();
     }
 
     this.updateParticles();
+    return {
+      connectionsMs: performance.now() - start,
+      visibleConnections,
+    };
   }
 
   private updateParticles() {
-    this.particleLayer.removeChildren();
     if (!this.isReady) return;
     const color = this.theme.connection.path;
     this.particles.forEach((particle) => {
@@ -1083,6 +1328,14 @@ export class GraphPixiRenderer {
 
 function intersects(a: { minX: number; minY: number; maxX: number; maxY: number }, b: { minX: number; minY: number; maxX: number; maxY: number }) {
   return !(a.maxX < b.minX || a.minX > b.maxX || a.maxY < b.minY || a.minY > b.maxY);
+}
+
+function hashConnectionId(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
 }
 
 function truncateTitle(text: string, mode: GraphDisplayOptions['titleTruncation'], maxChars: number): string {

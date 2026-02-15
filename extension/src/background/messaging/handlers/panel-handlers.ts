@@ -1,7 +1,27 @@
-import { MSG, defineHandlers, err, ok } from "../../../shared/types/messages.js";
+import { RPC_METHOD, defineRpcHandlers, err, ok } from "../../../shared/rpc/contracts.js";
 
-const SIDE_PANEL_PATH = "sidepanel/sidepanel.html";
- 
+const SIDE_PANEL_PATH = "sidepanel/index.html";
+
+/* ------------------------------------------------------------------ */
+/*  Sidepanel liveness tracking via persistent Port                    */
+/* ------------------------------------------------------------------ */
+
+let sidepanelPort: chrome.runtime.Port | null = null;
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== "sidepanel") return;
+  sidepanelPort = port;
+  port.onDisconnect.addListener(() => {
+    sidepanelPort = null;
+  });
+});
+
+/** True when the sidepanel JS context is alive (port connected). */
+export function isSidepanelAlive(): boolean {
+  return sidepanelPort !== null;
+}
+
+/* ------------------------------------------------------------------ */
 
 function promisifyChromeCall<T>(fn: (cb: (result?: T) => void) => void): Promise<T | void> {
   return new Promise((resolve, reject) => {
@@ -58,8 +78,8 @@ async function enableAndOpenSidePanel(tabId: number): Promise<void> {
   }
 }
 
-export const panelHandlers = defineHandlers({
-  async [MSG.OPEN_PANEL](_message, sender) {
+export const panelHandlers = defineRpcHandlers({
+  async [RPC_METHOD.OPEN_PANEL](_message, sender) {
     const tabId = sender.tab?.id;
     if (!tabId) return err("No tab ID");
 

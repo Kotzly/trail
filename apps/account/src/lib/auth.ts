@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import type { UUID } from "crypto";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { env } from "@/src/env";
+import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
+import { getUserById } from "@/src/server/backend/user";
 
 export const AUTH_COOKIE_NAME = "trail_auth_session";
 
@@ -71,7 +73,7 @@ function normalizeBaseUrl(value: string): string | null {
 }
 
 function resolveAuthIssuer(): string | null {
-  return normalizeBaseUrl(env.TRAIL_AUTH_BASE_URL);
+  return normalizeBaseUrl(env.appBaseUrl);
 }
 
 function getRemoteJwks(jwksUrl: string) {
@@ -112,6 +114,21 @@ export async function getUserFromToken(
       imageUrl: payload.imageUrl ?? payload.picture,
     };
   } catch {
-    return undefined;
+    const extension = await verifyExtensionToken(token);
+    if (!extension?.sub) {
+      return undefined;
+    }
+
+    const user = await getUserById(extension.sub);
+    if (!user) {
+      return undefined;
+    }
+
+    return {
+      id: user.id as UUID,
+      email: user.email ?? "",
+      name: user.name ?? user.email ?? "User",
+      imageUrl: user.imageUrl ?? undefined,
+    };
   }
 }

@@ -129,11 +129,11 @@ describe("BillingPlansClient", () => {
     expect(screen.getByRole("button", { name: "cancel subscription" })).not.toBeDisabled();
   });
 
-  it("redirects to auth refresh when checkout returns 401 with redirectUrl", async () => {
+  it("redirects to auth login when checkout returns 401 with redirectUrl", async () => {
     const fetchMock = vi.mocked(fetch);
     const navigateSpy = vi.fn();
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ message: "Unauthorized", redirectUrl: "/auth/refresh?next=/billing" }), {
+      new Response(JSON.stringify({ message: "Unauthorized", redirectUrl: "/auth/login?next=/billing" }), {
         status: 401,
         headers: { "content-type": "application/json" },
       }),
@@ -151,7 +151,7 @@ describe("BillingPlansClient", () => {
     await user.click(screen.getByRole("button", { name: "upgrade to pro" }));
 
     await waitFor(() => {
-      expect(navigateSpy).toHaveBeenCalledWith("/auth/refresh?next=/billing");
+      expect(navigateSpy).toHaveBeenCalledWith("/auth/login?next=/billing");
     });
   });
 

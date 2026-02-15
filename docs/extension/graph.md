@@ -146,3 +146,11 @@ interface GraphAPI {
 - Add new node decoration: extend NodeVisual (new Graphics/Container), add to state key if needed, update `updateNode` branch.
 - New layout mode: extend LayoutMode, add config in settings, implement in layout calculator and pass through to renderer.
 - Graph theme tokens are defined in theme-generator (THEME_TOKEN_KEYS) and read in graph/render/theme.ts.
+
+---
+
+## Editor Mode Behavior
+
+- In `editor mode`, node click in `select` tool performs **selection** (replace selection with the clicked node).
+- All nav/tab actions are disabled in `editor mode` (open/focus/create/close/mute tabs).
+- Box selection remains enabled and works as before.

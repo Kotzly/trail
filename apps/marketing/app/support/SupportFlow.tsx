@@ -47,7 +47,7 @@ const QUICK_CHECKS_ACCOUNT = [
   },
   {
     id: "cookies",
-    label: "Allow cookies for gettrail.net and auth.gettrail.net",
+    label: "Allow cookies for gettrail.net and app.gettrail.net",
     hint: "Strict blockers can break sign-in redirects.",
   },
   {

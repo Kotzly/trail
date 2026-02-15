@@ -12,6 +12,7 @@ import {
   Zap,
 } from "@trail/ui/icons";
 import { Button } from "@trail/ui";
+import { trailPlans, type TrailPlanId } from "@trail/content";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
@@ -27,6 +28,7 @@ import {
 } from "../shared/marketing-primitives";
 
 type Plan = {
+  id: TrailPlanId;
   name: string;
   description: string;
   monthlyPrice: number;
@@ -37,12 +39,27 @@ type Plan = {
   icon: typeof Sparkles;
 };
 
+function resolvePlanPrice(planId: TrailPlanId): {
+  monthlyPrice: number;
+  yearlyPrice: number;
+} {
+  const plan = trailPlans.find((item) => item.id === planId);
+  if (!plan) {
+    return { monthlyPrice: 0, yearlyPrice: 0 };
+  }
+
+  return {
+    monthlyPrice: plan.priceMonthly,
+    yearlyPrice: plan.priceYearly > 0 ? plan.priceYearly / 12 : 0,
+  };
+}
+
 const plans: Plan[] = [
   {
+    id: "free",
     name: "Free",
     description: "Perfect for personal research and trying out Trail.",
-    monthlyPrice: 0,
-    yearlyPrice: 0,
+    ...resolvePlanPrice("free"),
     features: [
       "7 days of trail history",
       "Up to 50 paths per month",
@@ -54,10 +71,10 @@ const plans: Plan[] = [
     icon: Sparkles,
   },
   {
+    id: "pro",
     name: "Pro",
     description: "For power users who need unlimited history and sync.",
-    monthlyPrice: 10,
-    yearlyPrice: 8,
+    ...resolvePlanPrice("pro"),
     features: [
       "Unlimited trail history",
       "Unlimited paths",
@@ -72,10 +89,10 @@ const plans: Plan[] = [
     icon: Zap,
   },
   {
+    id: "teams",
     name: "Teams",
     description: "For teams collaborating on research together.",
-    monthlyPrice: 20,
-    yearlyPrice: 16,
+    ...resolvePlanPrice("teams"),
     features: [
       "Everything in Pro",
       "Shared team workspaces",
@@ -136,7 +153,7 @@ function BillingToggle({
         Yearly
       </span>
       <span className="ml-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600">
-        Save 20%
+        Save with yearly
       </span>
     </div>
   );
@@ -181,9 +198,9 @@ function PlanCard({
   index: number;
 }) {
   const Icon = plan.icon;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const billingHref = appUrl ? `${appUrl.replace(/\/+$/, "")}/billing` : "/downloads";
-  const ctaHref = plan.name === "Free" ? "/downloads" : billingHref;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.gettrail.net";
+  const billingHref = `${appUrl.replace(/\/+$/, "")}/billing`;
+  const ctaHref = plan.id === "free" ? "/downloads" : billingHref;
 
   return (
     <motion.div

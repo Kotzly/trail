@@ -8,11 +8,6 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..",
 
 const envCandidates = [
   "DATABASE_URL",
-  "POSTGRES_PRISMA_URL",
-  "POSTGRES_URL",
-  "SUPABASE_DATABASE_URL",
-  "SUPABASE_DB_URL",
-  "SUPABASE_POOLER_URL"
 ];
 
 const isValidDatabaseUrl = (value: string | undefined | null) => {

@@ -5,7 +5,10 @@ import { generateThemeTokens, THEME_TOKEN_KEYS } from './theme-generator.js';
 export function applyTheme(theme: ThemeId, customTheme: CustomTheme): void {
   const root = document.documentElement;
   root.setAttribute('data-theme', theme);
-  if (!customTheme?.enabled) {
+  // Sync cache for instant theme restore on panel reload (avoids FOUC)
+  try { sessionStorage.setItem('trail-theme-cache', theme); } catch { /* quota / security */ }
+  const hasVisualContent = (customTheme?.dots?.length ?? 0) > 0 || (customTheme?.customColors?.length ?? 0) > 0;
+  if (!customTheme?.enabled || !hasVisualContent) {
     for (const key of THEME_TOKEN_KEYS) {
       root.style.removeProperty(key);
     }

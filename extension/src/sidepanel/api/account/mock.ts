@@ -1,12 +1,10 @@
 import type {
   AccountError,
   AccountSnapshot,
-  AuthPortalRequest,
-  AuthPortalSession,
-  AuthPortalStatus,
   AuthSession,
   BillingStatus,
   CheckoutInput,
+  OnboardingState,
   Plan,
   PlanInterval,
   PortalLink,
@@ -14,7 +12,7 @@ import type {
   User,
 } from '../../../shared/types/account.js';
 import type { Url } from '../../../shared/types/ids.js';
-import type { AccountClient } from '../account.js';
+import type { AccountClient, CompleteOnboardingInput } from '../account.js';
 
 const DEFAULT_DELAY_MS = 240;
 
@@ -60,6 +58,7 @@ type MockState = {
   user: User | null;
   subscription: Subscription | null;
   billing: BillingStatus | null;
+  onboardingSeenAt: string | null;
 };
 
 const state: MockState = {
@@ -67,15 +66,8 @@ const state: MockState = {
   user: null,
   subscription: null,
   billing: { state: 'none' },
+  onboardingSeenAt: null,
 };
-
-type PortalSession = {
-  id: string;
-  expiresAt: number;
-  approved: boolean;
-};
-
-const portalSessions = new Map<string, PortalSession>();
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -111,6 +103,13 @@ function requireAuth(): void {
   }
 }
 
+function buildMockOnboarding(): OnboardingState {
+  if (state.onboardingSeenAt) {
+    return { flowId: 'activation-v1', status: 'completed', seenAt: state.onboardingSeenAt };
+  }
+  return { flowId: 'activation-v1', status: 'pending', seenAt: null };
+}
+
 function snapshot(): AccountSnapshot {
   return {
     session: state.session,
@@ -121,6 +120,7 @@ function snapshot(): AccountSnapshot {
     config: {
       payments: true,
     },
+    onboarding: buildMockOnboarding(),
   };
 }
 
@@ -137,19 +137,6 @@ function buildSubscription(planId: string, interval: PlanInterval, status: Subsc
     cancelAtPeriodEnd: false,
     trialEndsAt: status === 'trialing' ? addDays(14) : null,
     canceledAt: null,
-  };
-}
-
-function buildPortalSession(): AuthPortalSession {
-  const id = `portal_${Math.random().toString(16).slice(2)}`;
-  const expiresAt = Date.now() + 5 * 60 * 1000;
-  const session: PortalSession = { id, expiresAt, approved: false };
-  portalSessions.set(id, session);
-  return {
-    id,
-    url: `https://trail.local/auth?session=${id}` as Url,
-    expiresAt: new Date(expiresAt).toISOString(),
-    pollIntervalMs: 800,
   };
 }
 
@@ -212,37 +199,6 @@ function updateBilling(planId: string, status: Subscription['status']): BillingS
 
 export function createMockAccountClient(): AccountClient {
   return {
-    async startAuthPortal(_input?: AuthPortalRequest): Promise<AuthPortalSession> {
-      ensureNetwork();
-      await sleep(DEFAULT_DELAY_MS / 2);
-      return buildPortalSession();
-    },
-
-    async checkAuthPortal(sessionId: string): Promise<AuthPortalStatus> {
-      ensureNetwork();
-      await sleep(DEFAULT_DELAY_MS / 2);
-      const session = portalSessions.get(sessionId);
-      if (!session || Date.now() > session.expiresAt) {
-        portalSessions.delete(sessionId);
-        return { status: 'expired' };
-      }
-      if (!session.approved) {
-        session.approved = true;
-        const approvedSnapshot = signInMockUser();
-        return { status: 'approved', snapshot: approvedSnapshot };
-      }
-      return { status: 'approved', snapshot: snapshot() };
-    },
-
-    async logout(): Promise<void> {
-      ensureNetwork();
-      await sleep(DEFAULT_DELAY_MS / 2);
-      state.session = { status: 'guest' };
-      state.user = null;
-      state.subscription = null;
-      state.billing = { state: 'none' };
-    },
-
     async getProfile(): Promise<User | null> {
       ensureNetwork();
       await sleep(DEFAULT_DELAY_MS / 2);
@@ -298,6 +254,14 @@ export function createMockAccountClient(): AccountClient {
       ensureNetwork();
       await sleep(DEFAULT_DELAY_MS / 1.2);
       return snapshot();
+    },
+
+    async completeOnboarding(_input: CompleteOnboardingInput): Promise<OnboardingState> {
+      ensureNetwork();
+      requireAuth();
+      await sleep(DEFAULT_DELAY_MS / 2);
+      state.onboardingSeenAt = nowIso();
+      return buildMockOnboarding();
     },
   };
 }

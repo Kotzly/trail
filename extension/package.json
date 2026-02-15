@@ -7,12 +7,18 @@
     "lib": "lib"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.app.json --noEmit && vite build && node scripts/build-extension.js",
-    "build:local": "TRAIL_EXTENSION_BACKEND_TAG=local pnpm run build",
-    "watch": "tsc -p tsconfig.json --watch",
-    "dev": "tsc -p tsconfig.json --watch",
+    "dev": "wxt",
+    "dev:local": "pnpm run backend:local && wxt",
+    "dev:gettrail": "pnpm run backend:gettrail && wxt",
+    "build": "wxt build",
+    "build:local": "pnpm run backend:local && wxt build",
+    "build:gettrail": "pnpm run backend:gettrail && wxt build",
+    "zip": "wxt zip",
+    "backend:status": "node scripts/backend-preset.mjs status",
+    "backend:local": "node scripts/backend-preset.mjs local",
+    "backend:gettrail": "node scripts/backend-preset.mjs gettrail",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.app.json --noEmit",
     "typecheck:ui": "tsc -p tsconfig.app.json --noEmit",
-    "dev:ui": "vite",
     "generate-icons": "tsx src/shared/utils/generate-icons.ts",
     "test": "node --import tsx tests/basic.test.ts"
   },
@@ -46,16 +52,22 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^5.4.12",
+    "wxt": "^0.20.17",
     "zustand": "^4.5.5"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
+    "@tanstack/react-query": "^5.90.5",
     "autoprefixer": "^10.4.24",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "motion": "^12.30.1",
     "minisearch": "^7.2.0",
+    "motion": "^12.30.1",
     "pixi.js": "^8.8.2",
     "postcss": "^8.5.6",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "zod": "^4.3.6"
   }
 }

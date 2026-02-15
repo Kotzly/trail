@@ -759,9 +759,9 @@ export default function ThemePalette({
               />
               <defs>
                 <linearGradient id="zen-theme-picker-wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="var(--md-on-surface)" stopOpacity="0.6" />
-                  <stop ref={waveStopMidRef} offset="0%" stopColor="var(--md-on-surface)" stopOpacity="0.6" />
-                  <stop ref={waveStopEndRef} offset="100%" stopColor="var(--md-on-surface)" stopOpacity="0.35" />
+                <stop offset="0%" stopColor="var(--foreground)" stopOpacity="0.6" />
+                <stop ref={waveStopMidRef} offset="0%" stopColor="var(--foreground)" stopOpacity="0.6" />
+                <stop ref={waveStopEndRef} offset="100%" stopColor="var(--foreground)" stopOpacity="0.35" />
                 </linearGradient>
               </defs>
             </svg>

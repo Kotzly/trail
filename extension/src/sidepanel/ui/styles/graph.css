@@ -21,14 +21,14 @@
 }
 
 .stack-container::-webkit-scrollbar-thumb {
-  background: var(--md-outline-variant);
+  background: var(--border);
   border-radius: 2px;
 }
 
 .graph-wrapper {
-  --graph-grid-dot: var(--trail-grid-dot, color-mix(in srgb, var(--md-outline-variant) 60%, transparent));
+  --graph-grid-dot: var(--trail-grid-dot, color-mix(in srgb, var(--border) 60%, transparent));
   /* Edge/path color. Keep a single hue for connections and derive it from the active theme. */
-  --graph-connection: var(--md-primary);
+  --graph-connection: var(--primary);
   --graph-grid-size: 20px;
   --graph-grid-dot-size: 1.5px;
   --graph-grid-offset-x: 0px;
@@ -40,7 +40,7 @@
   bottom: 0;
   overflow: hidden;
   overscroll-behavior: contain;
-  background-color: var(--trail-app-bg-color, var(--md-surface));
+  background-color: var(--trail-app-bg-color, var(--background));
   background-image: var(--trail-app-bg-image, none);
   background-repeat: no-repeat;
   background-size: cover;
@@ -109,27 +109,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--md-glass);
-  border: var(--md-glass-border);
+  background: var(--glass);
+  border: var(--glass-border);
   border-radius: 10px;
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
-  color: var(--md-glass-ink-muted);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--glass-ink-muted);
   cursor: pointer;
   transition: all 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .graph-control-btn:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-glass-ink);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--glass-ink);
 }
 
 .graph-control-btn.active {
-  background: color-mix(in srgb, var(--md-primary) 45%, transparent);
-  border-color: color-mix(in srgb, var(--md-primary) 45%, transparent);
-  color: var(--md-on-primary-soft);
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  color: var(--on-primary-soft);
 }
 
 .graph-zoom-btn svg {
@@ -141,15 +141,50 @@
 
 .graph-zoom-divider {
   height: 1px;
-  background: var(--md-outline-variant);
+  background: var(--border);
   margin: 4px 0;
 }
 
 .graph-selection-box {
   position: absolute;
-  border: 2px solid var(--md-primary);
-  background: rgba(var(--md-primary-rgb), 0.1);
+  border: 2px solid var(--primary);
+  background: rgba(var(--primary-rgb), 0.1);
   pointer-events: none;
   z-index: 5;
   border-radius: 4px;
+}
+
+.graph-pick-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  font-size: 12px;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.graph-pick-hint button {
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.graph-pick-hint button:hover {
+  background: var(--card);
+  color: var(--foreground);
 }

@@ -2,9 +2,6 @@ import type {
   AccountError,
   AccountErrorCode,
   AccountSnapshot,
-  AuthPortalRequest,
-  AuthPortalSession,
-  AuthPortalStatus,
   AuthSession,
   BillingStatus,
   CheckoutInput,
@@ -18,7 +15,7 @@ import {
   buildBackendUrl,
   initBackendConfig,
 } from '../../../shared/config/backend.js';
-import type { AccountClient } from '../account.js';
+import type { AccountClient, CompleteOnboardingInput } from '../account.js';
 
 type StoredAuthSession = {
   accessToken?: string;
@@ -29,22 +26,16 @@ type StoredAuthSession = {
 const AUTH_STORAGE_KEY = 'trail_auth_session';
 const ERROR_CODES: AccountErrorCode[] = ['network', 'auth', 'payment', 'validation', 'unknown'];
 
-let authCache: StoredAuthSession | null = null;
-let authLoaded = false;
-
 function canPersist(): boolean {
   return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local);
 }
 
 async function loadAuth(): Promise<StoredAuthSession | null> {
-  if (authLoaded) return authCache;
-  authLoaded = true;
   if (!canPersist()) return null;
   try {
     const result = await chrome.storage.local.get(AUTH_STORAGE_KEY);
     const stored = result[AUTH_STORAGE_KEY] as StoredAuthSession | undefined;
-    authCache = stored ?? null;
-    return authCache;
+    return stored ?? null;
   } catch (error) {
     console.error('Account auth: failed to load session', error);
     return null;
@@ -52,8 +43,6 @@ async function loadAuth(): Promise<StoredAuthSession | null> {
 }
 
 async function saveAuth(session: StoredAuthSession | null): Promise<void> {
-  authCache = session;
-  authLoaded = true;
   if (!canPersist()) return;
   try {
     if (!session) {
@@ -188,8 +177,30 @@ function isAccountError(error: unknown): error is AccountError {
   return Boolean(error && typeof error === 'object' && 'code' in error && 'message' in error);
 }
 
+function buildGuestSnapshot(plans: Plan[] = []): AccountSnapshot {
+  return {
+    session: { status: 'guest' },
+    user: null,
+    subscription: null,
+    billing: { state: 'none' },
+    plans,
+    config: {},
+    onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
+  };
+}
+
 export function createRemoteAccountClient(): AccountClient {
   const getSnapshot = async (): Promise<AccountSnapshot> => {
+    const token = await getAccessToken();
+    if (!token) {
+      const plans = await requestJson<Plan[]>(
+        BACKEND_CONFIG.endpoints.plans,
+        {},
+        { auth: false },
+      ).catch(() => []);
+      return buildGuestSnapshot(plans);
+    }
+
     try {
       const snapshot = await requestJson<AccountSnapshot>(BACKEND_CONFIG.endpoints.account);
       await syncAuthFromSnapshot(snapshot);
@@ -205,9 +216,12 @@ export function createRemoteAccountClient(): AccountClient {
     } catch (error) {
       if (isAccountError(error) && error.code === 'auth') {
         await saveAuth(null);
-        const snapshot = await requestJson<AccountSnapshot>(BACKEND_CONFIG.endpoints.account, {}, { auth: false });
-        await syncAuthFromSnapshot(snapshot);
-        return snapshot;
+        const plans = await requestJson<Plan[]>(
+          BACKEND_CONFIG.endpoints.plans,
+          {},
+          { auth: false },
+        ).catch(() => []);
+        return buildGuestSnapshot(plans);
       }
       throw error;
     }
@@ -219,32 +233,6 @@ export function createRemoteAccountClient(): AccountClient {
   };
 
   return {
-    startAuthPortal: async (input?: AuthPortalRequest): Promise<AuthPortalSession> => {
-      const body = input ? JSON.stringify(input) : undefined;
-      return requestJson<AuthPortalSession>(
-        BACKEND_CONFIG.endpoints.authPortal,
-        { method: 'POST', body: body ?? null },
-        { auth: false },
-      );
-    },
-    checkAuthPortal: async (sessionId: string): Promise<AuthPortalStatus> => {
-      const status = await requestJson<AuthPortalStatus>(
-        `${BACKEND_CONFIG.endpoints.authPortal}/${encodeURIComponent(sessionId)}`,
-        {},
-        { auth: false },
-      );
-      if (status.snapshot) {
-        await syncAuthFromSnapshot(status.snapshot);
-      }
-      return status;
-    },
-    logout: async (): Promise<void> => {
-      try {
-        await requestJson<void>(BACKEND_CONFIG.endpoints.logout, { method: 'POST' });
-      } finally {
-        await saveAuth(null);
-      }
-    },
     getProfile,
     getSubscription: async (): Promise<Subscription | null> =>
       requestJson<Subscription | null>(BACKEND_CONFIG.endpoints.subscription),
@@ -260,5 +248,12 @@ export function createRemoteAccountClient(): AccountClient {
       }),
     createBillingPortalLink: async (): Promise<PortalLink> =>
       requestJson<PortalLink>(BACKEND_CONFIG.endpoints.billingPortal, { method: 'POST' }),
+    completeOnboarding: async (input: CompleteOnboardingInput) => {
+      const result = await requestJson<{ onboarding: import('../../../shared/types/account.js').OnboardingState }>(
+        BACKEND_CONFIG.endpoints.onboarding,
+        { method: 'POST', body: JSON.stringify(input) },
+      );
+      return result.onboarding;
+    },
   };
 }

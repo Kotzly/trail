@@ -2,7 +2,6 @@ import type { NavigationNode, NavigationNodeJSON, NodeData } from "../types/node
 import { TreeNode } from "../../background/state/tree-node.js";
 import { NavigationTreeJSON } from "../types/tree.js";
 import { NavigationTree } from "../../background/state/nav-tree.js";
-import { defaultSettings } from "../../background/services/settings.js";
 
 export class TreeNodeMapper {
     private static normalizeNodeData(
@@ -67,24 +66,22 @@ export class NavigationTreeMapper {
     static toJSON(tree: NavigationTree): NavigationTreeJSON {
         const root = tree.getRoot();
         const current = tree.getCurrent();
-        const capacity = tree.getCapacity();
         const nodeCount = tree.size();
         
         return {
             root: root ? TreeNodeMapper.toJSON(root) : null,
             currentNodeId: current?.id ?? null,
-            capacity: capacity,
             nodeCount: nodeCount,
         };
     }
 
     static fromJSON(json: NavigationTreeJSON): NavigationTree {
       if (!json.root) {
-          return new NavigationTree(json.capacity ?? defaultSettings.capacity);
+          return new NavigationTree();
       }
 
       const root = TreeNodeMapper.fromJSON(json.root);
-      const tree = new NavigationTree(json.capacity ?? defaultSettings.capacity, root);
+      const tree = new NavigationTree(root);
 
       if (json.currentNodeId) tree.setCurrentById(json.currentNodeId);
       if (!tree.getCurrent() && tree.getRoot()) {

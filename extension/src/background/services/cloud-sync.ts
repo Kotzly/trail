@@ -1,9 +1,11 @@
 import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from '../../shared/config/backend.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
+import { uuidv7 } from '../../shared/lib/uuid.js';
 import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary } from '../../shared/types/tree.js';
 import type { FaviconUrl, Title, Url } from '../../shared/types/ids.js';
 import { notifyTreesUpdate } from '../messaging/notifications.js';
 import { treeStorage } from './tree-storage.js';
+import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 
 const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
 const SYNC_DEVICE_ID_KEY = 'trail_sync_device_id' as const;
@@ -96,14 +98,13 @@ function normalizeLabelSource(value: unknown): TreeLabelSource {
   return 'system';
 }
 
-function isNavigationTreeJSON(value: unknown): value is NavigationTreeJSON {
+export function isNavigationTreeJSON(value: unknown): value is NavigationTreeJSON {
   if (!isObject(value)) return false;
   if (!('root' in value)) return false;
   const currentNodeId = value.currentNodeId;
-  const capacity = value.capacity;
   const nodeCount = value.nodeCount;
-  if (!(currentNodeId === null || typeof currentNodeId === 'string')) return false;
-  if (!Number.isFinite(capacity)) return false;
+  // currentNodeId is NodeId (branded number) or null, not string
+  if (!(currentNodeId === null || typeof currentNodeId === 'number')) return false;
   if (!Number.isFinite(nodeCount)) return false;
   return true;
 }
@@ -133,7 +134,7 @@ function toArchiveSummary(record: TreeRecord): TreeSummary {
   return summary;
 }
 
-function toTreeRecordFromRemote(remote: ParsedRemoteTrail): TreeRecord {
+export function toTreeRecordFromRemote(remote: ParsedRemoteTrail): TreeRecord {
   const record: TreeRecord = {
     id: remote.id,
     label: remote.label,
@@ -156,7 +157,7 @@ function toTreeRecordFromRemote(remote: ParsedRemoteTrail): TreeRecord {
   return record;
 }
 
-function parseRemoteTrail(value: unknown): ParsedRemoteTrail | null {
+export function parseRemoteTrail(value: unknown): ParsedRemoteTrail | null {
   if (!isObject(value)) return null;
   const id = typeof value.id === 'string' ? value.id : '';
   const deviceId = typeof value.deviceId === 'string' ? value.deviceId : '';
@@ -403,6 +404,10 @@ class CloudSyncService {
           return;
         }
       }
+      if (response.status === 401 || response.status === 403) {
+        await this.clearAuthSession();
+        return;
+      }
       if (response.status !== 401 && response.status !== 403) {
         this.scheduleSync(5000);
       }
@@ -476,7 +481,10 @@ class CloudSyncService {
       nodeCount: tree.size(),
       rootUrl: root?.data.url ?? null,
       rootTitle: root?.data.title ?? null,
-      rootFavicon: root?.data.favicon ?? null,
+      rootFavicon: (() => {
+        const treeJSON = NavigationTreeMapper.toJSON(tree);
+        return findBestTrailFavicon(treeJSON) ?? root?.data.favicon ?? null;
+      })(),
       payload: NavigationTreeMapper.toJSON(tree),
       deletedAt: null,
     };
@@ -636,6 +644,10 @@ class CloudSyncService {
     return this.getTokenFromValue(result[AUTH_STORAGE_KEY]);
   }
 
+  private async clearAuthSession(): Promise<void> {
+    await chrome.storage.local.remove(AUTH_STORAGE_KEY).catch(() => undefined);
+  }
+
   private getTokenFromValue(value: unknown): string | null {
     if (!isObject(value)) return null;
     const token = (value as StoredAuthSession).accessToken;
@@ -647,10 +659,7 @@ class CloudSyncService {
     const existing = result[SYNC_DEVICE_ID_KEY];
     if (typeof existing === 'string' && existing) return existing;
 
-    const generated =
-      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : `device_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const generated = uuidv7();
     await chrome.storage.local.set({ [SYNC_DEVICE_ID_KEY]: generated });
     return generated;
   }

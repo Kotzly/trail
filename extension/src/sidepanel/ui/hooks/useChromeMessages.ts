@@ -1,45 +1,57 @@
 import { useEffect } from 'react';
-import { MSG, type RequestMessage } from '../../../shared/types/messages.js';
+import { RPC_METHOD, type RequestMessage } from '../../../shared/rpc/contracts.js';
 import { getCommandState } from '../../api/commands.js';
 import { useStore } from '../state/store.js';
-import { notificationCenter } from '../notifications/notification-center.js';
-import type { NotificationDurationMs, NotificationInput } from '../notifications/types.js';
-import { Icons } from '../components/Icon.js';
+import { showUiToast } from '../notifications/sonner-adapter.js';
 
 export function useChromeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
   const setCommandState = useStore((state) => state.setCommandState);
+  const setEditorMode = useStore((state) => state.setEditorMode);
+  const setSyncStatus = useStore((state) => state.setSyncStatus);
   const setTagDefs = useStore((state) => state.setTagDefs);
   const setTrees = useStore((state) => state.setTrees);
 
   useEffect(() => {
     const handler = (message: RequestMessage) => {
-      if (message.type === MSG.TREE_UPDATED) {
+      if (message.type === RPC_METHOD.TREE_UPDATED) {
         applyTreeState(message);
+
+        // Sync editor mode state from tree update reason
+        if (message.reason === 'editor-enter') {
+          // The treeId is conveyed by the background; for now derive from the
+          // current tree's root or leave as null until a direct update.
+          setEditorMode({ active: true, treeId: null });
+        } else if (message.reason === 'editor-exit') {
+          setEditorMode({ active: false, treeId: null });
+        }
+
         getCommandState()
           .then((state) => setCommandState(state))
           .catch((error) => console.error('Failed to fetch command state:', error));
         return;
       }
-      if (message.type === MSG.TAGS_UPDATED) {
+      if (message.type === RPC_METHOD.TAGS_UPDATED) {
         setTagDefs(message.tagDefs);
         return;
       }
-      if (message.type === MSG.TREES_UPDATED) {
+      if (message.type === RPC_METHOD.TREES_UPDATED) {
         setTrees({ active: message.active, archived: message.archived });
         return;
       }
-      if (message.type === MSG.NOTIFY) {
-        const { message: text, icon, durationMs } = message.notification;
-        const input: NotificationInput = { message: text };
-        if (icon && icon in Icons) {
-          input.icon = icon as Exclude<NotificationInput['icon'], undefined>;
+      if (message.type === RPC_METHOD.SYNC_STATUS_UPDATED) {
+        setSyncStatus(message.status);
+        if (message.status === 'error') {
+          showUiToast({
+            message: 'Sync failed. Check your connection and try again.',
+            icon: 'AlertTriangle',
+            durationMs: 5000,
+          });
         }
-        const allowedDurations: NotificationDurationMs[] = [1000, 3000, 5000, 10000, 15000];
-        if (durationMs && allowedDurations.includes(durationMs as NotificationDurationMs)) {
-          input.durationMs = durationMs as NotificationDurationMs;
-        }
-        notificationCenter.notify(input);
+        return;
+      }
+      if (message.type === RPC_METHOD.NOTIFY) {
+        showUiToast(message.notification);
       }
     };
 
@@ -47,5 +59,5 @@ export function useChromeMessages(): void {
     return () => {
       chrome.runtime.onMessage.removeListener(handler);
     };
-  }, [applyTreeState, setCommandState, setTagDefs, setTrees]);
+  }, [applyTreeState, setCommandState, setEditorMode, setSyncStatus, setTagDefs, setTrees]);
 }

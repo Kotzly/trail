@@ -35,21 +35,6 @@ const resolveDatabaseUrl = () => {
   return null;
 };
 
-const resolveCaCert = () => {
-  const candidate = process.env.DATABASE_CA_CERT
-  if (!candidate) return null;
-  const trimmed = candidate.trim();
-  if (!trimmed) return null;
-  if (trimmed.includes("BEGIN CERTIFICATE")) return trimmed;
-  try {
-    const decoded = Buffer.from(trimmed, "base64").toString("utf8");
-    if (decoded.includes("BEGIN CERTIFICATE")) return decoded;
-  } catch {
-    // fall through to returning raw value
-  }
-  return trimmed;
-};
-
 let databaseUrl = resolveDatabaseUrl();
 
 // todo: remove file env checks
@@ -79,16 +64,15 @@ if (!databaseUrl) {
 
 if (!databaseUrl) {
   throw new Error(
-    "Missing database connection string. Set DATABASE_URL (or POSTGRES_PRISMA_URL / POSTGRES_URL / SUPABASE_DB_URL)."
+    "Missing database connection string. Set DATABASE_URL."
   );
 }
 
-const caCert = resolveCaCert();
 const pool =
   globalForPrisma.prismaPool ??
   new Pool({
     connectionString: databaseUrl,
-    ...(caCert ? { ssl: { ca: caCert, rejectUnauthorized: true } } : {})
+    ssl: databaseUrl.includes("neon.tech") ? { rejectUnauthorized: true } : undefined,
   });
 
 const adapter = new PrismaPg(pool);

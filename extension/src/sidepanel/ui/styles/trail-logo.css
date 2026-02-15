@@ -1,12 +1,12 @@
 :root,
 [data-theme="light"] {
-  --trail-logo-border: var(--md-outline);
-  --trail-logo-accent: var(--md-primary);
+  --trail-logo-border: var(--ring);
+  --trail-logo-accent: var(--primary);
 }
 
 [data-theme="dark"] {
-  --trail-logo-border: var(--md-outline);
-  --trail-logo-accent: var(--md-primary);
+  --trail-logo-border: var(--ring);
+  --trail-logo-accent: var(--primary);
 }
 
 .trail-logo {
@@ -46,35 +46,6 @@
 .trail-logo--hover:focus-visible .trail-logo__nodeGlow {
   animation: trailLogoNodePulse 2200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
   animation-delay: var(--trail-logo-delay, 0ms);
-}
-
-.trail-loader {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: var(--trail-app-bg-color, var(--md-surface));
-  z-index: 3;
-}
-
-.trail-loader__content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.trail-loader__label {
-  font-size: 10px;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--md-on-surface-variant);
-  font-weight: 600;
-}
-
-.trail-loader .trail-logo {
-  width: 56px;
-  height: 56px;
 }
 
 @keyframes trailLogoSpark {

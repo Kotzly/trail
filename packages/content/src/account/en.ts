@@ -285,12 +285,6 @@ export const accountCopy = {
   billing: {
     title: "billing",
     subtitle: "early access preview of plans and pricing.",
-    cta: "join waitlist",
-    badgeEarly: "early access",
-    badgePreview: "plans preview",
-    waitlistDialogTitle: "get billing updates",
-    waitlistDialogDescription: "share your email and we will notify you when billing opens.",
-    waitlistNote: "pricing is in preview while we finalize usage tiers.",
     planHighlight: "most popular",
     planFree: "free",
     planPerMonth: "per month",

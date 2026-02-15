@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn } from '../../lib/utils.js';
 import { AnimatePresence, motion } from 'motion/react';
 import { Menu, X } from 'lucide-react';
 import React, { createContext, useContext, useState } from 'react';

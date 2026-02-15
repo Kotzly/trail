@@ -36,11 +36,11 @@ body,
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
-  background-color: var(--trail-app-bg-color, var(--md-surface));
+  background-color: var(--trail-app-bg-color, var(--background));
   background-image: var(--trail-app-bg-image, none);
   background-repeat: no-repeat;
   background-size: cover;
-  color: var(--md-on-surface);
+  color: var(--foreground);
   font-size: 14px;
   line-height: 1.5;
   min-height: 100vh;
@@ -74,6 +74,21 @@ body {
   z-index: 1;
 }
 
+/* Keep Sonner toasts above every in-panel overlay, including auth gate. */
+[data-sonner-toaster] {
+  z-index: 2147483647 !important;
+}
+
+.container--editor::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 3px solid rgba(59, 130, 246, 0.45);
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 9999;
+}
+
 button,
 input,
 select,
@@ -84,7 +99,6 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .confirm-overlay,
   .confirm-dialog,
-  .notification-card,
   .settings-popover,
   .popover-segment-btn,
   .popover-range,
@@ -102,9 +116,5 @@ textarea {
   .tag-filter-dropdown {
     animation: none;
     transition: none;
-  }
-
-  .notification-progress::after {
-    animation: none;
   }
 }

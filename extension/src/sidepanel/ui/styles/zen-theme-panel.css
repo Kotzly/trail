@@ -1,6 +1,6 @@
 .theme-panel-overlay {
   --modal-overlay-z: 820;
-  background: var(--md-overlay);
+  background: var(--overlay);
   backdrop-filter: blur(8px) saturate(1.05);
   -webkit-backdrop-filter: blur(8px) saturate(1.05);
   animation: theme-panel-overlay-in 0.18s ease-out;
@@ -31,17 +31,17 @@
 .theme-panel {
   width: min(380px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
-  background: var(--md-glass);
+  background: var(--glass);
   border-radius: 18px;
-  /* border: var(--md-glass-border); */
-  box-shadow: var(--md-glass-shadow);
+  /* border: var(--glass-border); */
+  box-shadow: var(--glass-shadow);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   overflow: auto;
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   position: relative;
   animation: theme-panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top center;
@@ -78,36 +78,36 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border-top: 2px solid var(--md-glass-highlight);
-  border-left: 1px solid var(--md-glass-highlight-soft);
-  border-right: 1px solid var(--md-glass-highlight);
+  border-top: 2px solid var(--glass-highlight);
+  border-left: 1px solid var(--glass-highlight-soft);
+  border-right: 1px solid var(--glass-highlight);
   pointer-events: none;
 }
 
 .theme-panel-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--md-on-surface);
+  color: var(--foreground);
 }
 
 .theme-panel-subtitle {
   font-size: 12px;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
   margin-top: 2px;
 }
 
 .theme-panel-close {
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-glass-ink-muted);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--glass-ink-muted);
   cursor: pointer;
   width: 30px;
   height: 30px;
   padding: 0;
   border-radius: 8px;
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -116,9 +116,9 @@
 }
 
 .theme-panel-close:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-glass-ink);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--glass-ink);
 }
 
 .zen-theme-picker {
@@ -134,8 +134,8 @@
   overflow: hidden;
   border-radius: 12px;
   padding: var(--zen-picker-padding);
-  background: color-mix(in srgb, var(--md-on-surface) 4%, transparent);
-  /* border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent); */
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+  /* border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent); */
 }
 
 .zen-theme-picker-pad {
@@ -143,9 +143,9 @@
   overflow: hidden;
   border-radius: 12px;
   min-height: calc(var(--zen-picker-size) - var(--zen-picker-padding) * 2 - 2px);
-  background: color-mix(in srgb, var(--md-on-surface) 4%, transparent);
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
   background-image: radial-gradient(
-    color-mix(in srgb, var(--md-on-surface) 10%, transparent) 1px,
+    color-mix(in srgb, var(--foreground) 10%, transparent) 1px,
     transparent 0
   );
   background-position: -23px -23px;
@@ -234,20 +234,20 @@
 
 .zen-theme-picker-scheme-btn,
 .zen-theme-picker-actions button {
-  border: var(--md-glass-border);
+  border: var(--glass-border);
   padding: 0;
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  background: var(--md-glass);
-  color: color-mix(in srgb, var(--md-on-surface) 80%, transparent);
+  background: var(--glass);
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
@@ -256,19 +256,19 @@
   height: 30px;
   padding: 0;
   border-radius: 8px;
-  background: var(--md-glass);
-  border: var(--md-glass-border);
+  background: var(--glass);
+  border: var(--glass-border);
 }
 
 .zen-theme-picker-scheme-btn.active {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
 }
 
 .zen-theme-picker-actions button:hover:not(:disabled),
 .zen-theme-picker-scheme-btn:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
 }
 
 .zen-theme-picker-actions button:disabled {
@@ -282,7 +282,7 @@
   display: grid;
   place-items: center;
   font-weight: 600;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
   pointer-events: none;
 }
 
@@ -318,9 +318,9 @@
 }
 
 .zen-theme-picker-page-btn {
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-on-surface-variant);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--muted-foreground);
   cursor: pointer;
   flex: 0 0 auto;
   flex-shrink: 0;
@@ -334,9 +334,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
@@ -346,9 +346,9 @@
 }
 
 .zen-theme-picker-page-btn:hover:not(:disabled) {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-on-surface);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--foreground);
 }
 
 .zen-theme-picker-preset {
@@ -357,9 +357,9 @@
   flex: 0 0 26px;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
   cursor: pointer;
-  box-shadow: var(--md-glass-inset);
+  box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: transform 0.12s ease;
@@ -404,7 +404,7 @@
   position: absolute;
   width: calc(100% - (var(--zen-slider-padding) * 2));
   height: 16px;
-  background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  background: color-mix(in srgb, var(--foreground) 12%, transparent);
   border-radius: 999px;
   pointer-events: none;
   z-index: -1;
@@ -437,7 +437,7 @@
   width: var(--zen-thumb-width, 10px);
   height: var(--zen-thumb-height, 40px);
   border-radius: 999px;
-  background: var(--md-on-surface);
+  background: var(--foreground);
   border: none;
   cursor: pointer;
   margin-top: calc((var(--zen-slider-track-height) - var(--zen-thumb-height, 40px)) / 2);
@@ -447,7 +447,7 @@
   width: var(--zen-thumb-width, 10px);
   height: var(--zen-thumb-height, 40px);
   border-radius: 999px;
-  background: var(--md-on-surface);
+  background: var(--foreground);
   border: none;
   cursor: pointer;
   margin-top: calc((var(--zen-slider-track-height) - var(--zen-thumb-height, 40px)) / 2);
@@ -477,8 +477,8 @@
   width: 60%;
   height: 60%;
   border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 15%, transparent);
-  background: linear-gradient(-45deg, transparent -10%, color-mix(in srgb, var(--md-on-surface) 10%, transparent) 110%);
+  border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
+  background: linear-gradient(-45deg, transparent -10%, color-mix(in srgb, var(--foreground) 10%, transparent) 110%);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -507,7 +507,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--md-on-surface) 30%, transparent);
+  background: color-mix(in srgb, var(--foreground) 30%, transparent);
   transform: translate(-50%, -50%);
   opacity: 0.45;
   pointer-events: none;
@@ -518,7 +518,7 @@
   width: 6px;
   height: 12px;
   border-radius: 2px;
-  background: color-mix(in srgb, var(--md-on-surface) 60%, transparent);
+  background: color-mix(in srgb, var(--foreground) 60%, transparent);
   transform: translate(-50%, -50%);
   cursor: pointer;
   z-index: 3;
@@ -535,8 +535,8 @@
   gap: 8px;
   padding: 10px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--md-on-surface) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
 }
 
 .zen-theme-picker-accent {
@@ -556,11 +556,11 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: var(--md-glass-border);
-  background: var(--md-glass);
+  border: var(--glass-border);
+  background: var(--glass);
   padding: 3px;
   cursor: pointer;
-  box-shadow: var(--md-glass-inset);
+  box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   -webkit-appearance: none;
@@ -579,27 +579,27 @@
 .zen-theme-picker-accent-btn {
   height: 32px;
   border-radius: 8px;
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-on-surface);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--foreground);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
   padding: 0 12px;
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .zen-theme-picker-accent-btn.active {
-  background: color-mix(in srgb, var(--md-primary) 35%, transparent);
-  border-color: color-mix(in srgb, var(--md-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--primary) 35%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
 }
 
 .zen-theme-picker-custom-title {
   font-size: 12px;
   font-weight: 600;
-  color: var(--md-on-surface);
+  color: var(--foreground);
 }
 
 .zen-theme-picker-custom-inputs {
@@ -621,7 +621,7 @@
   justify-content: space-between;
   font-size: 11px;
   font-weight: 600;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
   letter-spacing: 0.01em;
 }
 
@@ -636,13 +636,13 @@
 .zen-theme-picker-opacity-input::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--md-on-surface) 20%, transparent);
+  background: color-mix(in srgb, var(--foreground) 20%, transparent);
 }
 
 .zen-theme-picker-opacity-input::-moz-range-track {
   height: 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--md-on-surface) 20%, transparent);
+  background: color-mix(in srgb, var(--foreground) 20%, transparent);
 }
 
 .zen-theme-picker-opacity-input::-webkit-slider-thumb {
@@ -650,8 +650,8 @@
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: var(--md-on-surface);
-  border: 2px solid var(--md-surface);
+  background: var(--foreground);
+  border: 2px solid var(--background);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   margin-top: -4px;
   cursor: pointer;
@@ -661,8 +661,8 @@
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: var(--md-on-surface);
-  border: 2px solid var(--md-surface);
+  background: var(--foreground);
+  border: 2px solid var(--background);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   cursor: pointer;
 }
@@ -671,22 +671,22 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-glass-ink);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--glass-ink);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--md-glass-inset);
-  backdrop-filter: var(--md-glass-blur);
-  -webkit-backdrop-filter: var(--md-glass-blur);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
 }
 
 .zen-theme-picker-icon-btn:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
   transform: translateY(-1px);
 }
 
@@ -712,8 +712,8 @@
   gap: 8px;
   padding: 6px 8px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 10%, transparent);
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
 }
 
 .zen-theme-picker-custom-swatch {
@@ -721,14 +721,14 @@
   height: 24px;
   border-radius: 50%;
   background: var(--zen-theme-picker-dot-color);
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
   flex-shrink: 0;
 }
 
 .zen-theme-picker-custom-list-item-label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--md-on-surface-variant);
+  color: var(--muted-foreground);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -736,9 +736,9 @@
 
 .zen-theme-picker-custom-list-item-remove {
   margin-left: auto;
-  border: var(--md-glass-border);
-  background: var(--md-glass);
-  color: var(--md-on-surface-variant);
+  border: var(--glass-border);
+  background: var(--glass);
+  color: var(--muted-foreground);
   cursor: pointer;
   border-radius: 999px;
   width: 24px;
@@ -748,7 +748,7 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  box-shadow: var(--md-glass-inset);
+  box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: opacity 0.12s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
@@ -771,7 +771,7 @@
 }
 
 .zen-theme-picker-custom-list-item-remove:hover {
-  background: var(--md-glass-strong);
-  border-color: color-mix(in srgb, var(--md-on-surface) 18%, transparent);
-  color: var(--md-on-surface);
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--foreground);
 }

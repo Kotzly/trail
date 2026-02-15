@@ -20,8 +20,18 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
+}
+
+export type UserAvgAggregateOutputType = {
+  authSessionVersion: number | null
+}
+
+export type UserSumAggregateOutputType = {
+  authSessionVersion: number | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -34,6 +44,7 @@ export type UserMinAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   onboardingSeenAt: Date | null
+  authSessionVersion: number | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -46,6 +57,7 @@ export type UserMaxAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   onboardingSeenAt: Date | null
+  authSessionVersion: number | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -58,9 +70,18 @@ export type UserCountAggregateOutputType = {
   createdAt: number
   updatedAt: number
   onboardingSeenAt: number
+  authSessionVersion: number
   _all: number
 }
 
+
+export type UserAvgAggregateInputType = {
+  authSessionVersion?: true
+}
+
+export type UserSumAggregateInputType = {
+  authSessionVersion?: true
+}
 
 export type UserMinAggregateInputType = {
   id?: true
@@ -72,6 +93,7 @@ export type UserMinAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   onboardingSeenAt?: true
+  authSessionVersion?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -84,6 +106,7 @@ export type UserMaxAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   onboardingSeenAt?: true
+  authSessionVersion?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -96,6 +119,7 @@ export type UserCountAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   onboardingSeenAt?: true
+  authSessionVersion?: true
   _all?: true
 }
 
@@ -137,6 +161,18 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -167,6 +203,8 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
+  _avg?: UserAvgAggregateInputType
+  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
@@ -181,7 +219,10 @@ export type UserGroupByOutputType = {
   createdAt: Date
   updatedAt: Date
   onboardingSeenAt: Date | null
+  authSessionVersion: number
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -214,6 +255,7 @@ export type UserWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   onboardingSeenAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  authSessionVersion?: Prisma.IntFilter<"User"> | number
   sessions?: Prisma.SessionListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   subscription?: Prisma.XOR<Prisma.UserSubscriptionNullableScalarRelationFilter, Prisma.UserSubscriptionWhereInput> | null
@@ -222,10 +264,9 @@ export type UserWhereInput = {
   devices?: Prisma.DeviceListRelationFilter
   deviceSessions?: Prisma.DeviceSessionListRelationFilter
   accountSettings?: Prisma.XOR<Prisma.AccountSettingsNullableScalarRelationFilter, Prisma.AccountSettingsWhereInput> | null
-  portalSessions?: Prisma.PortalSessionListRelationFilter
-  authBridgeCodes?: Prisma.AuthBridgeCodeListRelationFilter
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeListRelationFilter
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionListRelationFilter
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionListRelationFilter
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeListRelationFilter
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenListRelationFilter
   trails?: Prisma.TrailListRelationFilter
 }
 
@@ -239,6 +280,7 @@ export type UserOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   onboardingSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  authSessionVersion?: Prisma.SortOrder
   sessions?: Prisma.SessionOrderByRelationAggregateInput
   accounts?: Prisma.AccountOrderByRelationAggregateInput
   subscription?: Prisma.UserSubscriptionOrderByWithRelationInput
@@ -247,10 +289,9 @@ export type UserOrderByWithRelationInput = {
   devices?: Prisma.DeviceOrderByRelationAggregateInput
   deviceSessions?: Prisma.DeviceSessionOrderByRelationAggregateInput
   accountSettings?: Prisma.AccountSettingsOrderByWithRelationInput
-  portalSessions?: Prisma.PortalSessionOrderByRelationAggregateInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeOrderByRelationAggregateInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeOrderByRelationAggregateInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionOrderByRelationAggregateInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionOrderByRelationAggregateInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeOrderByRelationAggregateInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenOrderByRelationAggregateInput
   trails?: Prisma.TrailOrderByRelationAggregateInput
 }
 
@@ -267,6 +308,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   onboardingSeenAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  authSessionVersion?: Prisma.IntFilter<"User"> | number
   sessions?: Prisma.SessionListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   subscription?: Prisma.XOR<Prisma.UserSubscriptionNullableScalarRelationFilter, Prisma.UserSubscriptionWhereInput> | null
@@ -275,10 +317,9 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   devices?: Prisma.DeviceListRelationFilter
   deviceSessions?: Prisma.DeviceSessionListRelationFilter
   accountSettings?: Prisma.XOR<Prisma.AccountSettingsNullableScalarRelationFilter, Prisma.AccountSettingsWhereInput> | null
-  portalSessions?: Prisma.PortalSessionListRelationFilter
-  authBridgeCodes?: Prisma.AuthBridgeCodeListRelationFilter
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeListRelationFilter
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionListRelationFilter
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionListRelationFilter
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeListRelationFilter
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenListRelationFilter
   trails?: Prisma.TrailListRelationFilter
 }, "id" | "email">
 
@@ -292,9 +333,12 @@ export type UserOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   onboardingSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  authSessionVersion?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
+  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
+  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -310,6 +354,7 @@ export type UserScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   onboardingSeenAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  authSessionVersion?: Prisma.IntWithAggregatesFilter<"User"> | number
 }
 
 export type UserCreateInput = {
@@ -322,6 +367,7 @@ export type UserCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
@@ -330,10 +376,9 @@ export type UserCreateInput = {
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
@@ -347,6 +392,7 @@ export type UserUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
@@ -355,10 +401,9 @@ export type UserUncheckedCreateInput = {
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -372,6 +417,7 @@ export type UserUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
@@ -380,10 +426,9 @@ export type UserUpdateInput = {
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
@@ -397,6 +442,7 @@ export type UserUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
@@ -405,10 +451,9 @@ export type UserUncheckedUpdateInput = {
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -422,6 +467,7 @@ export type UserCreateManyInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
 }
 
 export type UserUpdateManyMutationInput = {
@@ -434,6 +480,7 @@ export type UserUpdateManyMutationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -446,6 +493,7 @@ export type UserUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -458,6 +506,11 @@ export type UserCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   onboardingSeenAt?: Prisma.SortOrder
+  authSessionVersion?: Prisma.SortOrder
+}
+
+export type UserAvgOrderByAggregateInput = {
+  authSessionVersion?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -470,6 +523,7 @@ export type UserMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   onboardingSeenAt?: Prisma.SortOrder
+  authSessionVersion?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -482,6 +536,11 @@ export type UserMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   onboardingSeenAt?: Prisma.SortOrder
+  authSessionVersion?: Prisma.SortOrder
+}
+
+export type UserSumOrderByAggregateInput = {
+  authSessionVersion?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -514,6 +573,14 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
 }
 
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type UserCreateNestedOneWithoutSessionsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutSessionsInput
@@ -542,32 +609,46 @@ export type UserUpdateOneRequiredWithoutAccountsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAccountsInput, Prisma.UserUpdateWithoutAccountsInput>, Prisma.UserUncheckedUpdateWithoutAccountsInput>
 }
 
-export type UserCreateNestedOneWithoutAuthBridgeCodesInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutAuthBridgeCodesInput, Prisma.UserUncheckedCreateWithoutAuthBridgeCodesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAuthBridgeCodesInput
+export type UserCreateNestedOneWithoutOauthAuthorizationCodesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthAuthorizationCodesInput, Prisma.UserUncheckedCreateWithoutOauthAuthorizationCodesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthAuthorizationCodesInput
   connect?: Prisma.UserWhereUniqueInput
 }
 
-export type UserUpdateOneRequiredWithoutAuthBridgeCodesNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutAuthBridgeCodesInput, Prisma.UserUncheckedCreateWithoutAuthBridgeCodesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAuthBridgeCodesInput
-  upsert?: Prisma.UserUpsertWithoutAuthBridgeCodesInput
+export type UserUpdateOneRequiredWithoutOauthAuthorizationCodesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthAuthorizationCodesInput, Prisma.UserUncheckedCreateWithoutOauthAuthorizationCodesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthAuthorizationCodesInput
+  upsert?: Prisma.UserUpsertWithoutOauthAuthorizationCodesInput
   connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAuthBridgeCodesInput, Prisma.UserUpdateWithoutAuthBridgeCodesInput>, Prisma.UserUncheckedUpdateWithoutAuthBridgeCodesInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOauthAuthorizationCodesInput, Prisma.UserUpdateWithoutOauthAuthorizationCodesInput>, Prisma.UserUncheckedUpdateWithoutOauthAuthorizationCodesInput>
 }
 
-export type UserCreateNestedOneWithoutExtensionLoginCodesInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutExtensionLoginCodesInput, Prisma.UserUncheckedCreateWithoutExtensionLoginCodesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutExtensionLoginCodesInput
+export type UserCreateNestedOneWithoutOauthRefreshTokensInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedCreateWithoutOauthRefreshTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthRefreshTokensInput
   connect?: Prisma.UserWhereUniqueInput
 }
 
-export type UserUpdateOneRequiredWithoutExtensionLoginCodesNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutExtensionLoginCodesInput, Prisma.UserUncheckedCreateWithoutExtensionLoginCodesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutExtensionLoginCodesInput
-  upsert?: Prisma.UserUpsertWithoutExtensionLoginCodesInput
+export type UserUpdateOneRequiredWithoutOauthRefreshTokensNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedCreateWithoutOauthRefreshTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOauthRefreshTokensInput
+  upsert?: Prisma.UserUpsertWithoutOauthRefreshTokensInput
   connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutExtensionLoginCodesInput, Prisma.UserUpdateWithoutExtensionLoginCodesInput>, Prisma.UserUncheckedUpdateWithoutExtensionLoginCodesInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOauthRefreshTokensInput, Prisma.UserUpdateWithoutOauthRefreshTokensInput>, Prisma.UserUncheckedUpdateWithoutOauthRefreshTokensInput>
+}
+
+export type UserCreateNestedOneWithoutExtensionDeviceSessionsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutExtensionDeviceSessionsInput, Prisma.UserUncheckedCreateWithoutExtensionDeviceSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutExtensionDeviceSessionsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutExtensionDeviceSessionsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutExtensionDeviceSessionsInput, Prisma.UserUncheckedCreateWithoutExtensionDeviceSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutExtensionDeviceSessionsInput
+  upsert?: Prisma.UserUpsertWithoutExtensionDeviceSessionsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutExtensionDeviceSessionsInput, Prisma.UserUpdateWithoutExtensionDeviceSessionsInput>, Prisma.UserUncheckedUpdateWithoutExtensionDeviceSessionsInput>
 }
 
 export type UserCreateNestedOneWithoutSubscriptionInput = {
@@ -656,36 +737,6 @@ export type UserUpdateOneRequiredWithoutAccountSettingsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAccountSettingsInput, Prisma.UserUpdateWithoutAccountSettingsInput>, Prisma.UserUncheckedUpdateWithoutAccountSettingsInput>
 }
 
-export type UserCreateNestedOneWithoutPortalSessionsInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutPortalSessionsInput, Prisma.UserUncheckedCreateWithoutPortalSessionsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPortalSessionsInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneWithoutPortalSessionsNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutPortalSessionsInput, Prisma.UserUncheckedCreateWithoutPortalSessionsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPortalSessionsInput
-  upsert?: Prisma.UserUpsertWithoutPortalSessionsInput
-  disconnect?: Prisma.UserWhereInput | boolean
-  delete?: Prisma.UserWhereInput | boolean
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPortalSessionsInput, Prisma.UserUpdateWithoutPortalSessionsInput>, Prisma.UserUncheckedUpdateWithoutPortalSessionsInput>
-}
-
-export type UserCreateNestedOneWithoutExtensionConnectSessionsInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutExtensionConnectSessionsInput, Prisma.UserUncheckedCreateWithoutExtensionConnectSessionsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutExtensionConnectSessionsInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneRequiredWithoutExtensionConnectSessionsNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutExtensionConnectSessionsInput, Prisma.UserUncheckedCreateWithoutExtensionConnectSessionsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutExtensionConnectSessionsInput
-  upsert?: Prisma.UserUpsertWithoutExtensionConnectSessionsInput
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutExtensionConnectSessionsInput, Prisma.UserUpdateWithoutExtensionConnectSessionsInput>, Prisma.UserUncheckedUpdateWithoutExtensionConnectSessionsInput>
-}
-
 export type UserCreateNestedOneWithoutTrailsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutTrailsInput, Prisma.UserUncheckedCreateWithoutTrailsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutTrailsInput
@@ -710,6 +761,7 @@ export type UserCreateWithoutSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
@@ -717,10 +769,9 @@ export type UserCreateWithoutSessionsInput = {
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
@@ -734,6 +785,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
@@ -741,10 +793,9 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -774,6 +825,7 @@ export type UserUpdateWithoutSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
@@ -781,10 +833,9 @@ export type UserUpdateWithoutSessionsInput = {
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
@@ -798,6 +849,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -805,10 +857,9 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -822,6 +873,7 @@ export type UserCreateWithoutAccountsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
@@ -829,10 +881,9 @@ export type UserCreateWithoutAccountsInput = {
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
@@ -846,6 +897,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
@@ -853,10 +905,9 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -886,6 +937,7 @@ export type UserUpdateWithoutAccountsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
@@ -893,10 +945,9 @@ export type UserUpdateWithoutAccountsInput = {
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
@@ -910,6 +961,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -917,14 +969,13 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
-export type UserCreateWithoutAuthBridgeCodesInput = {
+export type UserCreateWithoutOauthAuthorizationCodesInput = {
   id?: string
   email: string
   name: string
@@ -934,6 +985,7 @@ export type UserCreateWithoutAuthBridgeCodesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
@@ -942,13 +994,12 @@ export type UserCreateWithoutAuthBridgeCodesInput = {
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
-export type UserUncheckedCreateWithoutAuthBridgeCodesInput = {
+export type UserUncheckedCreateWithoutOauthAuthorizationCodesInput = {
   id?: string
   email: string
   name: string
@@ -958,6 +1009,7 @@ export type UserUncheckedCreateWithoutAuthBridgeCodesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
@@ -966,29 +1018,28 @@ export type UserUncheckedCreateWithoutAuthBridgeCodesInput = {
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
-export type UserCreateOrConnectWithoutAuthBridgeCodesInput = {
+export type UserCreateOrConnectWithoutOauthAuthorizationCodesInput = {
   where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutAuthBridgeCodesInput, Prisma.UserUncheckedCreateWithoutAuthBridgeCodesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthAuthorizationCodesInput, Prisma.UserUncheckedCreateWithoutOauthAuthorizationCodesInput>
 }
 
-export type UserUpsertWithoutAuthBridgeCodesInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutAuthBridgeCodesInput, Prisma.UserUncheckedUpdateWithoutAuthBridgeCodesInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutAuthBridgeCodesInput, Prisma.UserUncheckedCreateWithoutAuthBridgeCodesInput>
+export type UserUpsertWithoutOauthAuthorizationCodesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutOauthAuthorizationCodesInput, Prisma.UserUncheckedUpdateWithoutOauthAuthorizationCodesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthAuthorizationCodesInput, Prisma.UserUncheckedCreateWithoutOauthAuthorizationCodesInput>
   where?: Prisma.UserWhereInput
 }
 
-export type UserUpdateToOneWithWhereWithoutAuthBridgeCodesInput = {
+export type UserUpdateToOneWithWhereWithoutOauthAuthorizationCodesInput = {
   where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutAuthBridgeCodesInput, Prisma.UserUncheckedUpdateWithoutAuthBridgeCodesInput>
+  data: Prisma.XOR<Prisma.UserUpdateWithoutOauthAuthorizationCodesInput, Prisma.UserUncheckedUpdateWithoutOauthAuthorizationCodesInput>
 }
 
-export type UserUpdateWithoutAuthBridgeCodesInput = {
+export type UserUpdateWithoutOauthAuthorizationCodesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -998,6 +1049,7 @@ export type UserUpdateWithoutAuthBridgeCodesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
@@ -1006,13 +1058,12 @@ export type UserUpdateWithoutAuthBridgeCodesInput = {
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
-export type UserUncheckedUpdateWithoutAuthBridgeCodesInput = {
+export type UserUncheckedUpdateWithoutOauthAuthorizationCodesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1022,6 +1073,7 @@ export type UserUncheckedUpdateWithoutAuthBridgeCodesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
@@ -1030,13 +1082,12 @@ export type UserUncheckedUpdateWithoutAuthBridgeCodesInput = {
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
-export type UserCreateWithoutExtensionLoginCodesInput = {
+export type UserCreateWithoutOauthRefreshTokensInput = {
   id?: string
   email: string
   name: string
@@ -1046,6 +1097,7 @@ export type UserCreateWithoutExtensionLoginCodesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
@@ -1054,13 +1106,12 @@ export type UserCreateWithoutExtensionLoginCodesInput = {
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
-export type UserUncheckedCreateWithoutExtensionLoginCodesInput = {
+export type UserUncheckedCreateWithoutOauthRefreshTokensInput = {
   id?: string
   email: string
   name: string
@@ -1070,6 +1121,7 @@ export type UserUncheckedCreateWithoutExtensionLoginCodesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
@@ -1078,29 +1130,28 @@ export type UserUncheckedCreateWithoutExtensionLoginCodesInput = {
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
-export type UserCreateOrConnectWithoutExtensionLoginCodesInput = {
+export type UserCreateOrConnectWithoutOauthRefreshTokensInput = {
   where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutExtensionLoginCodesInput, Prisma.UserUncheckedCreateWithoutExtensionLoginCodesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedCreateWithoutOauthRefreshTokensInput>
 }
 
-export type UserUpsertWithoutExtensionLoginCodesInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutExtensionLoginCodesInput, Prisma.UserUncheckedUpdateWithoutExtensionLoginCodesInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutExtensionLoginCodesInput, Prisma.UserUncheckedCreateWithoutExtensionLoginCodesInput>
+export type UserUpsertWithoutOauthRefreshTokensInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedUpdateWithoutOauthRefreshTokensInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedCreateWithoutOauthRefreshTokensInput>
   where?: Prisma.UserWhereInput
 }
 
-export type UserUpdateToOneWithWhereWithoutExtensionLoginCodesInput = {
+export type UserUpdateToOneWithWhereWithoutOauthRefreshTokensInput = {
   where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutExtensionLoginCodesInput, Prisma.UserUncheckedUpdateWithoutExtensionLoginCodesInput>
+  data: Prisma.XOR<Prisma.UserUpdateWithoutOauthRefreshTokensInput, Prisma.UserUncheckedUpdateWithoutOauthRefreshTokensInput>
 }
 
-export type UserUpdateWithoutExtensionLoginCodesInput = {
+export type UserUpdateWithoutOauthRefreshTokensInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1110,6 +1161,7 @@ export type UserUpdateWithoutExtensionLoginCodesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
@@ -1118,13 +1170,12 @@ export type UserUpdateWithoutExtensionLoginCodesInput = {
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
-export type UserUncheckedUpdateWithoutExtensionLoginCodesInput = {
+export type UserUncheckedUpdateWithoutOauthRefreshTokensInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1134,6 +1185,7 @@ export type UserUncheckedUpdateWithoutExtensionLoginCodesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
@@ -1142,9 +1194,120 @@ export type UserUncheckedUpdateWithoutExtensionLoginCodesInput = {
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutExtensionDeviceSessionsInput = {
+  id?: string
+  email: string
+  name: string
+  emailVerified?: boolean
+  image?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
+  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutExtensionDeviceSessionsInput = {
+  id?: string
+  email: string
+  name: string
+  emailVerified?: boolean
+  image?: string | null
+  imageUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutExtensionDeviceSessionsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutExtensionDeviceSessionsInput, Prisma.UserUncheckedCreateWithoutExtensionDeviceSessionsInput>
+}
+
+export type UserUpsertWithoutExtensionDeviceSessionsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutExtensionDeviceSessionsInput, Prisma.UserUncheckedUpdateWithoutExtensionDeviceSessionsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutExtensionDeviceSessionsInput, Prisma.UserUncheckedCreateWithoutExtensionDeviceSessionsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutExtensionDeviceSessionsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutExtensionDeviceSessionsInput, Prisma.UserUncheckedUpdateWithoutExtensionDeviceSessionsInput>
+}
+
+export type UserUpdateWithoutExtensionDeviceSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
+  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutExtensionDeviceSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
+  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
+  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1158,6 +1321,7 @@ export type UserCreateWithoutSubscriptionInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
@@ -1165,10 +1329,9 @@ export type UserCreateWithoutSubscriptionInput = {
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
@@ -1182,6 +1345,7 @@ export type UserUncheckedCreateWithoutSubscriptionInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
@@ -1189,10 +1353,9 @@ export type UserUncheckedCreateWithoutSubscriptionInput = {
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1222,6 +1385,7 @@ export type UserUpdateWithoutSubscriptionInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
@@ -1229,10 +1393,9 @@ export type UserUpdateWithoutSubscriptionInput = {
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
@@ -1246,6 +1409,7 @@ export type UserUncheckedUpdateWithoutSubscriptionInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1253,10 +1417,9 @@ export type UserUncheckedUpdateWithoutSubscriptionInput = {
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1270,6 +1433,7 @@ export type UserCreateWithoutBillingCheckoutSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
@@ -1277,10 +1441,9 @@ export type UserCreateWithoutBillingCheckoutSessionsInput = {
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
@@ -1294,6 +1457,7 @@ export type UserUncheckedCreateWithoutBillingCheckoutSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
@@ -1301,10 +1465,9 @@ export type UserUncheckedCreateWithoutBillingCheckoutSessionsInput = {
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1334,6 +1497,7 @@ export type UserUpdateWithoutBillingCheckoutSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
@@ -1341,10 +1505,9 @@ export type UserUpdateWithoutBillingCheckoutSessionsInput = {
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
@@ -1358,6 +1521,7 @@ export type UserUncheckedUpdateWithoutBillingCheckoutSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
@@ -1365,10 +1529,9 @@ export type UserUncheckedUpdateWithoutBillingCheckoutSessionsInput = {
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1382,6 +1545,7 @@ export type UserCreateWithoutWishlistLeadsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
@@ -1389,10 +1553,9 @@ export type UserCreateWithoutWishlistLeadsInput = {
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
@@ -1406,6 +1569,7 @@ export type UserUncheckedCreateWithoutWishlistLeadsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
@@ -1413,10 +1577,9 @@ export type UserUncheckedCreateWithoutWishlistLeadsInput = {
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1446,6 +1609,7 @@ export type UserUpdateWithoutWishlistLeadsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
@@ -1453,10 +1617,9 @@ export type UserUpdateWithoutWishlistLeadsInput = {
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
@@ -1470,6 +1633,7 @@ export type UserUncheckedUpdateWithoutWishlistLeadsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
@@ -1477,10 +1641,9 @@ export type UserUncheckedUpdateWithoutWishlistLeadsInput = {
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1494,6 +1657,7 @@ export type UserCreateWithoutDevicesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
@@ -1501,10 +1665,9 @@ export type UserCreateWithoutDevicesInput = {
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
@@ -1518,6 +1681,7 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
@@ -1525,10 +1689,9 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1558,6 +1721,7 @@ export type UserUpdateWithoutDevicesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
@@ -1565,10 +1729,9 @@ export type UserUpdateWithoutDevicesInput = {
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
@@ -1582,6 +1745,7 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
@@ -1589,10 +1753,9 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1606,6 +1769,7 @@ export type UserCreateWithoutDeviceSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
@@ -1613,10 +1777,9 @@ export type UserCreateWithoutDeviceSessionsInput = {
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
@@ -1630,6 +1793,7 @@ export type UserUncheckedCreateWithoutDeviceSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
@@ -1637,10 +1801,9 @@ export type UserUncheckedCreateWithoutDeviceSessionsInput = {
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1670,6 +1833,7 @@ export type UserUpdateWithoutDeviceSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
@@ -1677,10 +1841,9 @@ export type UserUpdateWithoutDeviceSessionsInput = {
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
@@ -1694,6 +1857,7 @@ export type UserUncheckedUpdateWithoutDeviceSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
@@ -1701,10 +1865,9 @@ export type UserUncheckedUpdateWithoutDeviceSessionsInput = {
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1718,6 +1881,7 @@ export type UserCreateWithoutAccountSettingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
@@ -1725,10 +1889,9 @@ export type UserCreateWithoutAccountSettingsInput = {
   wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailCreateNestedManyWithoutUserInput
 }
 
@@ -1742,6 +1905,7 @@ export type UserUncheckedCreateWithoutAccountSettingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
@@ -1749,10 +1913,9 @@ export type UserUncheckedCreateWithoutAccountSettingsInput = {
   wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
   trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1782,6 +1945,7 @@ export type UserUpdateWithoutAccountSettingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
@@ -1789,10 +1953,9 @@ export type UserUpdateWithoutAccountSettingsInput = {
   wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
 }
 
@@ -1806,6 +1969,7 @@ export type UserUncheckedUpdateWithoutAccountSettingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
@@ -1813,234 +1977,9 @@ export type UserUncheckedUpdateWithoutAccountSettingsInput = {
   wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
-  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
-}
-
-export type UserCreateWithoutPortalSessionsInput = {
-  id?: string
-  email: string
-  name: string
-  emailVerified?: boolean
-  image?: string | null
-  imageUrl?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  onboardingSeenAt?: Date | string | null
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
-  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
-  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
-  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
-  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
-  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
-  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
-  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
-}
-
-export type UserUncheckedCreateWithoutPortalSessionsInput = {
-  id?: string
-  email: string
-  name: string
-  emailVerified?: boolean
-  image?: string | null
-  imageUrl?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  onboardingSeenAt?: Date | string | null
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
-  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
-  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
-  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
-  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
-  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
-  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
-  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
-}
-
-export type UserCreateOrConnectWithoutPortalSessionsInput = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutPortalSessionsInput, Prisma.UserUncheckedCreateWithoutPortalSessionsInput>
-}
-
-export type UserUpsertWithoutPortalSessionsInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutPortalSessionsInput, Prisma.UserUncheckedUpdateWithoutPortalSessionsInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutPortalSessionsInput, Prisma.UserUncheckedCreateWithoutPortalSessionsInput>
-  where?: Prisma.UserWhereInput
-}
-
-export type UserUpdateToOneWithWhereWithoutPortalSessionsInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutPortalSessionsInput, Prisma.UserUncheckedUpdateWithoutPortalSessionsInput>
-}
-
-export type UserUpdateWithoutPortalSessionsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
-  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
-  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
-  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
-  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
-  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
-  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
-  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
-}
-
-export type UserUncheckedUpdateWithoutPortalSessionsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
-  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
-  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
-  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
-  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
-  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
-  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
-  trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
-}
-
-export type UserCreateWithoutExtensionConnectSessionsInput = {
-  id?: string
-  email: string
-  name: string
-  emailVerified?: boolean
-  image?: string | null
-  imageUrl?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  onboardingSeenAt?: Date | string | null
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
-  subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
-  billingCheckoutSessions?: Prisma.BillingCheckoutSessionCreateNestedManyWithoutUserInput
-  wishlistLeads?: Prisma.WishlistLeadCreateNestedManyWithoutUserInput
-  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
-  deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
-  accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  trails?: Prisma.TrailCreateNestedManyWithoutUserInput
-}
-
-export type UserUncheckedCreateWithoutExtensionConnectSessionsInput = {
-  id?: string
-  email: string
-  name: string
-  emailVerified?: boolean
-  image?: string | null
-  imageUrl?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  onboardingSeenAt?: Date | string | null
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
-  subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
-  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedCreateNestedManyWithoutUserInput
-  wishlistLeads?: Prisma.WishlistLeadUncheckedCreateNestedManyWithoutUserInput
-  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
-  deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
-  accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  trails?: Prisma.TrailUncheckedCreateNestedManyWithoutUserInput
-}
-
-export type UserCreateOrConnectWithoutExtensionConnectSessionsInput = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutExtensionConnectSessionsInput, Prisma.UserUncheckedCreateWithoutExtensionConnectSessionsInput>
-}
-
-export type UserUpsertWithoutExtensionConnectSessionsInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutExtensionConnectSessionsInput, Prisma.UserUncheckedUpdateWithoutExtensionConnectSessionsInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutExtensionConnectSessionsInput, Prisma.UserUncheckedCreateWithoutExtensionConnectSessionsInput>
-  where?: Prisma.UserWhereInput
-}
-
-export type UserUpdateToOneWithWhereWithoutExtensionConnectSessionsInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutExtensionConnectSessionsInput, Prisma.UserUncheckedUpdateWithoutExtensionConnectSessionsInput>
-}
-
-export type UserUpdateWithoutExtensionConnectSessionsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
-  subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
-  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUpdateManyWithoutUserNestedInput
-  wishlistLeads?: Prisma.WishlistLeadUpdateManyWithoutUserNestedInput
-  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
-  deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
-  accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  trails?: Prisma.TrailUpdateManyWithoutUserNestedInput
-}
-
-export type UserUncheckedUpdateWithoutExtensionConnectSessionsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
-  subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
-  billingCheckoutSessions?: Prisma.BillingCheckoutSessionUncheckedUpdateManyWithoutUserNestedInput
-  wishlistLeads?: Prisma.WishlistLeadUncheckedUpdateManyWithoutUserNestedInput
-  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
-  deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
-  accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
   trails?: Prisma.TrailUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2054,6 +1993,7 @@ export type UserCreateWithoutTrailsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionCreateNestedOneWithoutUserInput
@@ -2062,10 +2002,9 @@ export type UserCreateWithoutTrailsInput = {
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTrailsInput = {
@@ -2078,6 +2017,7 @@ export type UserUncheckedCreateWithoutTrailsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   onboardingSeenAt?: Date | string | null
+  authSessionVersion?: number
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   subscription?: Prisma.UserSubscriptionUncheckedCreateNestedOneWithoutUserInput
@@ -2086,10 +2026,9 @@ export type UserUncheckedCreateWithoutTrailsInput = {
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   deviceSessions?: Prisma.DeviceSessionUncheckedCreateNestedManyWithoutUserInput
   accountSettings?: Prisma.AccountSettingsUncheckedCreateNestedOneWithoutUserInput
-  portalSessions?: Prisma.PortalSessionUncheckedCreateNestedManyWithoutUserInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedCreateNestedManyWithoutUserInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedCreateNestedManyWithoutUserInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedCreateNestedManyWithoutUserInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedCreateNestedManyWithoutUserInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTrailsInput = {
@@ -2118,6 +2057,7 @@ export type UserUpdateWithoutTrailsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUpdateOneWithoutUserNestedInput
@@ -2126,10 +2066,9 @@ export type UserUpdateWithoutTrailsInput = {
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTrailsInput = {
@@ -2142,6 +2081,7 @@ export type UserUncheckedUpdateWithoutTrailsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   onboardingSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  authSessionVersion?: Prisma.IntFieldUpdateOperationsInput | number
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   subscription?: Prisma.UserSubscriptionUncheckedUpdateOneWithoutUserNestedInput
@@ -2150,10 +2090,9 @@ export type UserUncheckedUpdateWithoutTrailsInput = {
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   deviceSessions?: Prisma.DeviceSessionUncheckedUpdateManyWithoutUserNestedInput
   accountSettings?: Prisma.AccountSettingsUncheckedUpdateOneWithoutUserNestedInput
-  portalSessions?: Prisma.PortalSessionUncheckedUpdateManyWithoutUserNestedInput
-  authBridgeCodes?: Prisma.AuthBridgeCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionLoginCodes?: Prisma.ExtensionLoginCodeUncheckedUpdateManyWithoutUserNestedInput
-  extensionConnectSessions?: Prisma.ExtensionConnectSessionUncheckedUpdateManyWithoutUserNestedInput
+  extensionDeviceSessions?: Prisma.ExtensionDeviceSessionUncheckedUpdateManyWithoutUserNestedInput
+  oauthAuthorizationCodes?: Prisma.OAuthAuthorizationCodeUncheckedUpdateManyWithoutUserNestedInput
+  oauthRefreshTokens?: Prisma.OAuthRefreshTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -2168,10 +2107,9 @@ export type UserCountOutputType = {
   wishlistLeads: number
   devices: number
   deviceSessions: number
-  portalSessions: number
-  authBridgeCodes: number
-  extensionLoginCodes: number
-  extensionConnectSessions: number
+  extensionDeviceSessions: number
+  oauthAuthorizationCodes: number
+  oauthRefreshTokens: number
   trails: number
 }
 
@@ -2182,10 +2120,9 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   wishlistLeads?: boolean | UserCountOutputTypeCountWishlistLeadsArgs
   devices?: boolean | UserCountOutputTypeCountDevicesArgs
   deviceSessions?: boolean | UserCountOutputTypeCountDeviceSessionsArgs
-  portalSessions?: boolean | UserCountOutputTypeCountPortalSessionsArgs
-  authBridgeCodes?: boolean | UserCountOutputTypeCountAuthBridgeCodesArgs
-  extensionLoginCodes?: boolean | UserCountOutputTypeCountExtensionLoginCodesArgs
-  extensionConnectSessions?: boolean | UserCountOutputTypeCountExtensionConnectSessionsArgs
+  extensionDeviceSessions?: boolean | UserCountOutputTypeCountExtensionDeviceSessionsArgs
+  oauthAuthorizationCodes?: boolean | UserCountOutputTypeCountOauthAuthorizationCodesArgs
+  oauthRefreshTokens?: boolean | UserCountOutputTypeCountOauthRefreshTokensArgs
   trails?: boolean | UserCountOutputTypeCountTrailsArgs
 }
 
@@ -2244,29 +2181,22 @@ export type UserCountOutputTypeCountDeviceSessionsArgs<ExtArgs extends runtime.T
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountPortalSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.PortalSessionWhereInput
+export type UserCountOutputTypeCountExtensionDeviceSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ExtensionDeviceSessionWhereInput
 }
 
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountAuthBridgeCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.AuthBridgeCodeWhereInput
+export type UserCountOutputTypeCountOauthAuthorizationCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OAuthAuthorizationCodeWhereInput
 }
 
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountExtensionLoginCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ExtensionLoginCodeWhereInput
-}
-
-/**
- * UserCountOutputType without action
- */
-export type UserCountOutputTypeCountExtensionConnectSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ExtensionConnectSessionWhereInput
+export type UserCountOutputTypeCountOauthRefreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OAuthRefreshTokenWhereInput
 }
 
 /**
@@ -2287,6 +2217,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   createdAt?: boolean
   updatedAt?: boolean
   onboardingSeenAt?: boolean
+  authSessionVersion?: boolean
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   subscription?: boolean | Prisma.User$subscriptionArgs<ExtArgs>
@@ -2295,10 +2226,9 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
   deviceSessions?: boolean | Prisma.User$deviceSessionsArgs<ExtArgs>
   accountSettings?: boolean | Prisma.User$accountSettingsArgs<ExtArgs>
-  portalSessions?: boolean | Prisma.User$portalSessionsArgs<ExtArgs>
-  authBridgeCodes?: boolean | Prisma.User$authBridgeCodesArgs<ExtArgs>
-  extensionLoginCodes?: boolean | Prisma.User$extensionLoginCodesArgs<ExtArgs>
-  extensionConnectSessions?: boolean | Prisma.User$extensionConnectSessionsArgs<ExtArgs>
+  extensionDeviceSessions?: boolean | Prisma.User$extensionDeviceSessionsArgs<ExtArgs>
+  oauthAuthorizationCodes?: boolean | Prisma.User$oauthAuthorizationCodesArgs<ExtArgs>
+  oauthRefreshTokens?: boolean | Prisma.User$oauthRefreshTokensArgs<ExtArgs>
   trails?: boolean | Prisma.User$trailsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
@@ -2313,6 +2243,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   createdAt?: boolean
   updatedAt?: boolean
   onboardingSeenAt?: boolean
+  authSessionVersion?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -2325,6 +2256,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   createdAt?: boolean
   updatedAt?: boolean
   onboardingSeenAt?: boolean
+  authSessionVersion?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -2337,9 +2269,10 @@ export type UserSelectScalar = {
   createdAt?: boolean
   updatedAt?: boolean
   onboardingSeenAt?: boolean
+  authSessionVersion?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "emailVerified" | "image" | "imageUrl" | "createdAt" | "updatedAt" | "onboardingSeenAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "emailVerified" | "image" | "imageUrl" | "createdAt" | "updatedAt" | "onboardingSeenAt" | "authSessionVersion", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
@@ -2349,10 +2282,9 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
   deviceSessions?: boolean | Prisma.User$deviceSessionsArgs<ExtArgs>
   accountSettings?: boolean | Prisma.User$accountSettingsArgs<ExtArgs>
-  portalSessions?: boolean | Prisma.User$portalSessionsArgs<ExtArgs>
-  authBridgeCodes?: boolean | Prisma.User$authBridgeCodesArgs<ExtArgs>
-  extensionLoginCodes?: boolean | Prisma.User$extensionLoginCodesArgs<ExtArgs>
-  extensionConnectSessions?: boolean | Prisma.User$extensionConnectSessionsArgs<ExtArgs>
+  extensionDeviceSessions?: boolean | Prisma.User$extensionDeviceSessionsArgs<ExtArgs>
+  oauthAuthorizationCodes?: boolean | Prisma.User$oauthAuthorizationCodesArgs<ExtArgs>
+  oauthRefreshTokens?: boolean | Prisma.User$oauthRefreshTokensArgs<ExtArgs>
   trails?: boolean | Prisma.User$trailsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -2370,10 +2302,9 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     devices: Prisma.$DevicePayload<ExtArgs>[]
     deviceSessions: Prisma.$DeviceSessionPayload<ExtArgs>[]
     accountSettings: Prisma.$AccountSettingsPayload<ExtArgs> | null
-    portalSessions: Prisma.$PortalSessionPayload<ExtArgs>[]
-    authBridgeCodes: Prisma.$AuthBridgeCodePayload<ExtArgs>[]
-    extensionLoginCodes: Prisma.$ExtensionLoginCodePayload<ExtArgs>[]
-    extensionConnectSessions: Prisma.$ExtensionConnectSessionPayload<ExtArgs>[]
+    extensionDeviceSessions: Prisma.$ExtensionDeviceSessionPayload<ExtArgs>[]
+    oauthAuthorizationCodes: Prisma.$OAuthAuthorizationCodePayload<ExtArgs>[]
+    oauthRefreshTokens: Prisma.$OAuthRefreshTokenPayload<ExtArgs>[]
     trails: Prisma.$TrailPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -2386,6 +2317,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     createdAt: Date
     updatedAt: Date
     onboardingSeenAt: Date | null
+    authSessionVersion: number
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -2788,10 +2720,9 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   devices<T extends Prisma.User$devicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$devicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   deviceSessions<T extends Prisma.User$deviceSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$deviceSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DeviceSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   accountSettings<T extends Prisma.User$accountSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$accountSettingsArgs<ExtArgs>>): Prisma.Prisma__AccountSettingsClient<runtime.Types.Result.GetResult<Prisma.$AccountSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  portalSessions<T extends Prisma.User$portalSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$portalSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PortalSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  authBridgeCodes<T extends Prisma.User$authBridgeCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$authBridgeCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuthBridgeCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  extensionLoginCodes<T extends Prisma.User$extensionLoginCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$extensionLoginCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExtensionLoginCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  extensionConnectSessions<T extends Prisma.User$extensionConnectSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$extensionConnectSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExtensionConnectSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  extensionDeviceSessions<T extends Prisma.User$extensionDeviceSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$extensionDeviceSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExtensionDeviceSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  oauthAuthorizationCodes<T extends Prisma.User$oauthAuthorizationCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$oauthAuthorizationCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OAuthAuthorizationCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  oauthRefreshTokens<T extends Prisma.User$oauthRefreshTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$oauthRefreshTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OAuthRefreshTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   trails<T extends Prisma.User$trailsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$trailsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TrailPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -2831,6 +2762,7 @@ export interface UserFieldRefs {
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly onboardingSeenAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly authSessionVersion: Prisma.FieldRef<"User", 'Int'>
 }
     
 
@@ -3401,99 +3333,75 @@ export type User$accountSettingsArgs<ExtArgs extends runtime.Types.Extensions.In
 }
 
 /**
- * User.portalSessions
+ * User.extensionDeviceSessions
  */
-export type User$portalSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$extensionDeviceSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PortalSession
+   * Select specific fields to fetch from the ExtensionDeviceSession
    */
-  select?: Prisma.PortalSessionSelect<ExtArgs> | null
+  select?: Prisma.ExtensionDeviceSessionSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PortalSession
+   * Omit specific fields from the ExtensionDeviceSession
    */
-  omit?: Prisma.PortalSessionOmit<ExtArgs> | null
+  omit?: Prisma.ExtensionDeviceSessionOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PortalSessionInclude<ExtArgs> | null
-  where?: Prisma.PortalSessionWhereInput
-  orderBy?: Prisma.PortalSessionOrderByWithRelationInput | Prisma.PortalSessionOrderByWithRelationInput[]
-  cursor?: Prisma.PortalSessionWhereUniqueInput
+  include?: Prisma.ExtensionDeviceSessionInclude<ExtArgs> | null
+  where?: Prisma.ExtensionDeviceSessionWhereInput
+  orderBy?: Prisma.ExtensionDeviceSessionOrderByWithRelationInput | Prisma.ExtensionDeviceSessionOrderByWithRelationInput[]
+  cursor?: Prisma.ExtensionDeviceSessionWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.PortalSessionScalarFieldEnum | Prisma.PortalSessionScalarFieldEnum[]
+  distinct?: Prisma.ExtensionDeviceSessionScalarFieldEnum | Prisma.ExtensionDeviceSessionScalarFieldEnum[]
 }
 
 /**
- * User.authBridgeCodes
+ * User.oauthAuthorizationCodes
  */
-export type User$authBridgeCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$oauthAuthorizationCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the AuthBridgeCode
+   * Select specific fields to fetch from the OAuthAuthorizationCode
    */
-  select?: Prisma.AuthBridgeCodeSelect<ExtArgs> | null
+  select?: Prisma.OAuthAuthorizationCodeSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the AuthBridgeCode
+   * Omit specific fields from the OAuthAuthorizationCode
    */
-  omit?: Prisma.AuthBridgeCodeOmit<ExtArgs> | null
+  omit?: Prisma.OAuthAuthorizationCodeOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.AuthBridgeCodeInclude<ExtArgs> | null
-  where?: Prisma.AuthBridgeCodeWhereInput
-  orderBy?: Prisma.AuthBridgeCodeOrderByWithRelationInput | Prisma.AuthBridgeCodeOrderByWithRelationInput[]
-  cursor?: Prisma.AuthBridgeCodeWhereUniqueInput
+  include?: Prisma.OAuthAuthorizationCodeInclude<ExtArgs> | null
+  where?: Prisma.OAuthAuthorizationCodeWhereInput
+  orderBy?: Prisma.OAuthAuthorizationCodeOrderByWithRelationInput | Prisma.OAuthAuthorizationCodeOrderByWithRelationInput[]
+  cursor?: Prisma.OAuthAuthorizationCodeWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.AuthBridgeCodeScalarFieldEnum | Prisma.AuthBridgeCodeScalarFieldEnum[]
+  distinct?: Prisma.OAuthAuthorizationCodeScalarFieldEnum | Prisma.OAuthAuthorizationCodeScalarFieldEnum[]
 }
 
 /**
- * User.extensionLoginCodes
+ * User.oauthRefreshTokens
  */
-export type User$extensionLoginCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$oauthRefreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the ExtensionLoginCode
+   * Select specific fields to fetch from the OAuthRefreshToken
    */
-  select?: Prisma.ExtensionLoginCodeSelect<ExtArgs> | null
+  select?: Prisma.OAuthRefreshTokenSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the ExtensionLoginCode
+   * Omit specific fields from the OAuthRefreshToken
    */
-  omit?: Prisma.ExtensionLoginCodeOmit<ExtArgs> | null
+  omit?: Prisma.OAuthRefreshTokenOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.ExtensionLoginCodeInclude<ExtArgs> | null
-  where?: Prisma.ExtensionLoginCodeWhereInput
-  orderBy?: Prisma.ExtensionLoginCodeOrderByWithRelationInput | Prisma.ExtensionLoginCodeOrderByWithRelationInput[]
-  cursor?: Prisma.ExtensionLoginCodeWhereUniqueInput
+  include?: Prisma.OAuthRefreshTokenInclude<ExtArgs> | null
+  where?: Prisma.OAuthRefreshTokenWhereInput
+  orderBy?: Prisma.OAuthRefreshTokenOrderByWithRelationInput | Prisma.OAuthRefreshTokenOrderByWithRelationInput[]
+  cursor?: Prisma.OAuthRefreshTokenWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.ExtensionLoginCodeScalarFieldEnum | Prisma.ExtensionLoginCodeScalarFieldEnum[]
-}
-
-/**
- * User.extensionConnectSessions
- */
-export type User$extensionConnectSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the ExtensionConnectSession
-   */
-  select?: Prisma.ExtensionConnectSessionSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the ExtensionConnectSession
-   */
-  omit?: Prisma.ExtensionConnectSessionOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ExtensionConnectSessionInclude<ExtArgs> | null
-  where?: Prisma.ExtensionConnectSessionWhereInput
-  orderBy?: Prisma.ExtensionConnectSessionOrderByWithRelationInput | Prisma.ExtensionConnectSessionOrderByWithRelationInput[]
-  cursor?: Prisma.ExtensionConnectSessionWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.ExtensionConnectSessionScalarFieldEnum | Prisma.ExtensionConnectSessionScalarFieldEnum[]
+  distinct?: Prisma.OAuthRefreshTokenScalarFieldEnum | Prisma.OAuthRefreshTokenScalarFieldEnum[]
 }
 
 /**

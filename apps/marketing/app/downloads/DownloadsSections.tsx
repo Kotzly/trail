@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import {
-  ArrowDown,
-  ArrowRight,
   CheckCircle2,
   Download,
   FaBrave,
@@ -12,11 +10,9 @@ import {
   FaEdge,
   FaFirefoxBrowser,
   FaSafari,
-  Loader2,
-  Mail,
   Sparkles,
 } from "@trail/ui/icons";
-import { Button, WaitlistSuccessDialog } from "@trail/ui";
+import { Button } from "@trail/ui";
 import { GlowingEffect } from "../components/ui/glowing-effect";
 import {
   HeroBadge,
@@ -72,14 +68,14 @@ const browsers = [
     id: "firefox",
     name: "Firefox",
     icon: FaFirefoxBrowser,
-    status: "waitlist",
+    status: "coming-soon",
     color: "#FF7139",
   },
   {
     id: "safari",
     name: "Safari",
     icon: FaSafari,
-    status: "waitlist",
+    status: "coming-soon",
     color: "#006CFF",
   },
 ] as const;
@@ -116,8 +112,6 @@ const includedItems = [
   "Export to Markdown/PDF",
   "7-day history (Free plan)",
 ];
-
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function BrowserCard({
   browser,
@@ -168,7 +162,7 @@ function BrowserCard({
               }
             />
             <span className="text-xs text-ink-subtle">
-              {isAvailable ? "Available now" : "Waitlist"}
+              {isAvailable ? "Available now" : "Coming soon"}
             </span>
           </div>
 
@@ -182,16 +176,8 @@ function BrowserCard({
             {isAvailable ? (
               <Button className="w-full">Install Now</Button>
             ) : (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  document.getElementById("waitlist")?.scrollIntoView({
-                    behavior: "smooth",
-                  });
-                }}
-              >
-                Join <ArrowDown className="h-4 w-4" />
+              <Button variant="outline" className="w-full" disabled>
+                Coming Soon
               </Button>
             )}
           </div>
@@ -201,109 +187,8 @@ function BrowserCard({
   );
 }
 
-function WaitlistCard({
-  email,
-  status,
-  error,
-  onEmailChange,
-  onSubmit,
-}: {
-  email: string;
-  status: "idle" | "submitting" | "success" | "error";
-  error: string | null;
-  onEmailChange: (value: string) => void;
-  onSubmit: (event: React.FormEvent) => void;
-}) {
-  const trimmedEmail = email.trim();
-
-  return (
-    <SurfaceCard className="relative overflow-hidden bg-surface/70 p-8 md:p-12">
-      <GlowingEffect
-        spread={60}
-        glow={true}
-        disabled={false}
-        proximity={80}
-        inactiveZone={0.01}
-        borderWidth={2}
-      />
-
-      <section id="waitlist" className="relative text-center">
-        <IconChip accent className="mx-auto h-14 w-14">
-          <Mail className="h-7 w-7" />
-        </IconChip>
-
-        <h2 className="mt-6 text-2xl font-semibold text-ink md:text-3xl">
-          Firefox or Safari user?
-        </h2>
-        <p className="mx-auto mt-3 max-w-lg text-ink-muted">
-          We&apos;re working on support for your browser. Join the waitlist and
-          be the first to know when it&apos;s ready.
-        </p>
-
-        <AnimatePresence mode="wait">
-          <motion.form
-            key="form"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onSubmit={onSubmit}
-            className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center"
-          >
-            <div className="relative w-full max-w-sm">
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => onEmailChange(event.target.value)}
-                placeholder="Enter your email"
-                className="h-12 w-full rounded-full border border-stroke/60 bg-surface px-6 text-sm text-ink placeholder:text-ink-subtle transition-all focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
-                disabled={status === "submitting"}
-              />
-              <AnimatePresence>
-                {error ? (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute -bottom-6 left-4 text-xs text-red-500"
-                  >
-                    {error}
-                  </motion.p>
-                ) : null}
-              </AnimatePresence>
-            </div>
-            <Button
-              type="submit"
-              disabled={status === "submitting" || !trimmedEmail}
-              className="inline-flex items-center gap-2"
-            >
-              {status === "submitting" ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Joining...
-                </>
-              ) : (
-                <>
-                  Join Waitlist
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </motion.form>
-        </AnimatePresence>
-      </section>
-    </SurfaceCard>
-  );
-}
-
 export function DownloadsContent() {
   const [detectedBrowser, setDetectedBrowser] = useState("chrome");
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">(
-    "idle",
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
@@ -312,45 +197,6 @@ export function DownloadsContent() {
     else if (ua.includes("chrome")) setDetectedBrowser("chrome");
     else if (ua.includes("safari")) setDetectedBrowser("safari");
   }, []);
-
-  const trimmedEmail = email.trim();
-  const isEmailValid = emailPattern.test(trimmedEmail);
-
-  const onSubmitWaitlist = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (!isEmailValid) {
-      setError("Please enter a valid email address.");
-      setStatus("error");
-      return;
-    }
-
-    setStatus("submitting");
-    setError(null);
-
-    try {
-      const response = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmedEmail, source: "downloads-page" }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          setStatus("success");
-          setShowSuccessDialog(true);
-          return;
-        }
-        throw new Error("Failed to join waitlist");
-      }
-
-      setStatus("success");
-      setShowSuccessDialog(true);
-    } catch {
-      setStatus("error");
-      setError("Something went wrong. Please try again.");
-    }
-  };
 
   return (
     <MarketingPageShell>
@@ -373,8 +219,8 @@ export function DownloadsContent() {
             </motion.div>
             <motion.div variants={itemVariants}>
               <HeroSubtitle>
-                Available for Chrome and Edge. Join the waitlist for Firefox and
-                Safari.
+                Available for Chrome, Brave, and Edge. Firefox and Safari support
+                coming soon.
               </HeroSubtitle>
             </motion.div>
           </motion.div>
@@ -444,31 +290,6 @@ export function DownloadsContent() {
       </PageSection>
 
       <PageSection spacing="spacious">
-        <SectionContainer size="md">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <WaitlistCard
-              email={email}
-              status={status}
-              error={error}
-              onEmailChange={(value) => {
-                setEmail(value);
-                if (status === "error") {
-                  setStatus("idle");
-                  setError(null);
-                }
-              }}
-              onSubmit={onSubmitWaitlist}
-            />
-          </motion.div>
-        </SectionContainer>
-      </PageSection>
-
-      <PageSection spacing="spacious">
         <SectionContainer size="lg">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -503,16 +324,6 @@ export function DownloadsContent() {
           </motion.div>
         </SectionContainer>
       </PageSection>
-
-      <WaitlistSuccessDialog
-        open={showSuccessDialog}
-        onClose={() => {
-          setShowSuccessDialog(false);
-          setEmail("");
-          setStatus("idle");
-        }}
-        email={email}
-      />
     </MarketingPageShell>
   );
 }

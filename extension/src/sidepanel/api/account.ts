@@ -1,11 +1,9 @@
 import type {
   AccountError,
   AccountSnapshot,
-  AuthPortalRequest,
-  AuthPortalSession,
-  AuthPortalStatus,
   BillingStatus,
   CheckoutInput,
+  OnboardingState,
   Plan,
   PortalLink,
   Subscription,
@@ -14,11 +12,15 @@ import type {
 import { BACKEND_CONFIG, initBackendConfig } from '../../shared/config/backend.js';
 import { createMockAccountClient } from './account/mock.js';
 import { createRemoteAccountClient } from './account/remote.js';
+import { sendMessage } from './background.js';
+import { rpc } from '../../shared/rpc/contracts.js';
+
+export type CompleteOnboardingInput = {
+  action: 'complete' | 'skip';
+  source: 'extension' | 'web';
+};
 
 export type AccountClient = {
-  startAuthPortal: (input?: AuthPortalRequest) => Promise<AuthPortalSession>;
-  checkAuthPortal: (sessionId: string) => Promise<AuthPortalStatus>;
-  logout: () => Promise<void>;
   getProfile: () => Promise<User | null>;
   getSubscription: () => Promise<Subscription | null>;
   listPlans: () => Promise<Plan[]>;
@@ -26,6 +28,7 @@ export type AccountClient = {
   getSnapshot: () => Promise<AccountSnapshot>;
   startCheckout: (input: CheckoutInput) => Promise<PortalLink>;
   createBillingPortalLink: () => Promise<PortalLink>;
+  completeOnboarding: (input: CompleteOnboardingInput) => Promise<OnboardingState>;
 };
 
 function createDefaultClient(): AccountClient {
@@ -59,18 +62,6 @@ export async function getAccountSnapshot(): Promise<AccountSnapshot> {
   return (await getActiveAccountClient()).getSnapshot();
 }
 
-export async function startAuthPortal(input?: AuthPortalRequest): Promise<AuthPortalSession> {
-  return (await getActiveAccountClient()).startAuthPortal(input);
-}
-
-export async function checkAuthPortal(sessionId: string): Promise<AuthPortalStatus> {
-  return (await getActiveAccountClient()).checkAuthPortal(sessionId);
-}
-
-export async function logout(): Promise<void> {
-  return (await getActiveAccountClient()).logout();
-}
-
 export async function getProfile(): Promise<User | null> {
   return (await getActiveAccountClient()).getProfile();
 }
@@ -93,6 +84,34 @@ export async function startCheckout(input: CheckoutInput): Promise<PortalLink> {
 
 export async function createBillingPortalLink(): Promise<PortalLink> {
   return (await getActiveAccountClient()).createBillingPortalLink();
+}
+
+export async function completeOnboarding(
+  input: CompleteOnboardingInput,
+): Promise<OnboardingState> {
+  return (await getActiveAccountClient()).completeOnboarding(input);
+}
+
+export async function requestOauthInteractiveLoginFromBackground(): Promise<{
+  ok: boolean;
+  reason?: string;
+}> {
+  const response = await sendMessage(rpc.oauthInteractiveLogin());
+  if (!response.success) {
+    return { ok: false, reason: response.error };
+  }
+  return response.data;
+}
+
+export async function requestOauthSilentSyncFromBackground(): Promise<{
+  ok: boolean;
+  reason?: string;
+}> {
+  const response = await sendMessage(rpc.oauthSilentSync());
+  if (!response.success) {
+    return { ok: false, reason: response.error };
+  }
+  return response.data;
 }
 
 export function normalizeAccountError(error: unknown): AccountError {

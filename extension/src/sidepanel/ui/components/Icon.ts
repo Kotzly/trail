@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   CreditCard,
+  ExternalLink,
   Info,
   Keyboard,
   Bell,
@@ -55,6 +56,7 @@ import {
 export const Icons = {
   AlertTriangle,
   CreditCard,
+  ExternalLink,
   Info,
   Keyboard,
   Bell,

@@ -3,11 +3,11 @@
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "dev": "sh -c 'pnpm -r --parallel dev & pnpm --dir extension dev:local; wait'",
+    "dev:web": "pnpm -r --parallel dev",
+    "dev:extension": "pnpm --dir extension dev:local",
     "dev:marketing": "pnpm --filter @trail/marketing dev",
     "dev:account": "pnpm --filter @trail/account dev",
-    "dev:api": "pnpm --filter @trail/api dev",
-    "dev:auth": "pnpm --filter @trail/auth dev",
     "build": "pnpm run db:generate && pnpm -r build",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
@@ -17,6 +17,7 @@
     "format": "pnpm -r format",
     "db:generate": "pnpm --filter @trail/db prisma generate",
     "db:migrate": "pnpm --filter @trail/db prisma migrate dev",
+    "db:migrate:deploy": "pnpm --filter @trail/db prisma migrate deploy",
     "db:studio": "pnpm --filter @trail/db prisma studio"
   },
   "pnpm": {
@@ -31,6 +32,12 @@
   },
   "devDependencies": {
     "cypress": "^15.9.0",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^16.1.6",
     "next": "16.1.6"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
+    "class-variance-authority": "^0.7.1"
   }
 }

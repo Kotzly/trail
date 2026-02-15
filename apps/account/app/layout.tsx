@@ -1,15 +1,7 @@
 import type { Metadata } from "next";
-import { Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { accountCopy } from "@trail/content";
 import { Providers } from "./providers";
-
-const sans = Instrument_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sans",
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata: Metadata = {
   title: accountCopy.meta.title,
@@ -38,7 +30,6 @@ export default function RootLayout({
       lang="en"
       data-theme="system"
       suppressHydrationWarning
-      className={sans.variable}
     >
       <body className="min-h-screen bg-background text-foreground">
         <Providers>{children}</Providers>

@@ -1,4 +1,5 @@
-import { MSG, defineHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot, type TreeViewIntent } from '../../../shared/types/messages.js';
+import { RPC_METHOD, defineRpcHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot, type TreeViewIntent } from '../../../shared/rpc/contracts.js';
+import { getEditorState } from './editor-handlers.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from '../notifications.js';
 import { tabManager } from '../../state/tab-manager.js';
@@ -9,10 +10,15 @@ import { NavigationTree } from '../../state/nav-tree.js';
 import { ForEacher } from '../../../shared/types/foreach.js';
 import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } from '../../../shared/types/node.js';
 import { normalizeFaviconUrl, shouldTrackUrl } from '../../utils/url-utils.js';
-import { settingsManager } from '../../services/settings.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { cloudSync } from '../../services/cloud-sync.js';
+import { editorSyncMarkDirty } from '../../services/editor-sync.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
+
+/** Mark editor sync dirty if currently in editor mode. */
+function maybeEditorDirty(): void {
+  if (getEditorState().active) editorSyncMarkDirty();
+}
 
 function reassignTabsForRedirects(redirects: Array<{ from: NodeId; to: NodeId }>): void {
   for (const redirect of redirects) {
@@ -65,13 +71,18 @@ async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
 }
 
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
-  return {
+  const editorMode = getEditorState();
+  const snapshot: TreeUpdatedInput = {
     tree: NavigationTreeMapper.toJSON(await treeStorage.getOrCreateTree()),
     openNodeIds: Array.from(tabManager.openNodes()),
     tabStates: await getTabStates(),
     nodeTabCounts: Object.fromEntries(Array.from(tabManager.openNodes()).map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)])),
     reason: 'sync',
   };
+  if (editorMode.active) {
+    snapshot.editorMode = editorMode;
+  }
+  return snapshot;
 }
 
 async function buildTreesSnapshot(): Promise<TreesSnapshot> {
@@ -180,18 +191,18 @@ async function switchTree(
   await notifyTreesUpdate(await buildTreesSnapshot());
 }
 
-export const treeHandlers = defineHandlers({
-  async [MSG.GET_TREE]() {
+export const treeHandlers = defineRpcHandlers({
+  async [RPC_METHOD.GET_TREE]() {
     const snapshot = await buildTreeSnapshot();
     return ok(snapshot);
   },
 
-  async [MSG.GET_TREES]() {
+  async [RPC_METHOD.GET_TREES]() {
     const snapshot = await buildTreesSnapshot();
     return ok(snapshot);
   },
 
-  async [MSG.CLEAR_TREE]() {
+  async [RPC_METHOD.CLEAR_TREE]() {
     const tree = await treeStorage.getOrCreateTree();
     if (tree.getRoot()) {
       snapshot(tree, 'Clear history');
@@ -205,19 +216,19 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.NEW_TREE](message) {
+  async [RPC_METHOD.NEW_TREE](message) {
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
       snapshot(current, 'New tree');
     }
     await treeStorage.archiveActiveTree();
     const meta = treeStorage.createMeta(message.label);
-    const nextTree = new NavigationTree(settingsManager.get().capacity);
+    const nextTree = new NavigationTree();
     await switchTree(nextTree, meta, null, null);
     return ok();
   },
 
-  async [MSG.OPEN_TREE](message) {
+  async [RPC_METHOD.OPEN_TREE](message) {
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
       snapshot(current, 'Open tree');
@@ -238,13 +249,13 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.RENAME_TREE](message) {
+  async [RPC_METHOD.RENAME_TREE](message) {
     await treeStorage.renameTree(message.treeId, message.label);
     await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
   },
 
-  async [MSG.DELETE_ARCHIVED_TREE](message) {
+  async [RPC_METHOD.DELETE_ARCHIVED_TREE](message) {
     const active = await treeStorage.getActiveMeta();
     if (active.id === message.treeId) return err('Cannot delete active tree');
     const archives = await treeStorage.getArchives();
@@ -258,7 +269,7 @@ export const treeHandlers = defineHandlers({
     return ok();
   },
 
-  async [MSG.DELETE_NODE](message) {
+  async [RPC_METHOD.DELETE_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
     const prevCurrentId = tree.getCurrentId();
@@ -268,12 +279,13 @@ export const treeHandlers = defineHandlers({
     await closeTabsForNodes(result.removed.map(node => node.id));
     reassignTabsForRedirects(result.redirects);
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
-  async [MSG.DELETE_CHILDREN](message) {
+  async [RPC_METHOD.DELETE_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
     const prevCurrentId = tree.getCurrentId();
@@ -282,12 +294,13 @@ export const treeHandlers = defineHandlers({
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
-  async [MSG.DELETE_WITH_CHILDREN](message) {
+  async [RPC_METHOD.DELETE_WITH_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
     if (!tree.findNodeById(message.nodeId)) return err('Node not found');
     const prevCurrentId = tree.getCurrentId();
@@ -296,12 +309,13 @@ export const treeHandlers = defineHandlers({
     if (removed.length === 0) return err('Node not found');
     await closeTabsForNodes(removed.map(node => node.id));
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
-  async [MSG.BULK_DELETE](message) {
+  async [RPC_METHOD.BULK_DELETE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete selection');
@@ -314,12 +328,13 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
-  async [MSG.BULK_DELETE_NODES](message) {
+  async [RPC_METHOD.BULK_DELETE_NODES](message) {
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete selected nodes');
@@ -333,12 +348,13 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
-  async [MSG.BULK_DELETE_RECURSIVE](message) {
+  async [RPC_METHOD.BULK_DELETE_RECURSIVE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, 'Delete selected nodes recursively');
@@ -354,6 +370,7 @@ export const treeHandlers = defineHandlers({
         removedIds.push(...removed.map(n => n.id));
         await closeTabsForNodes(removedIds);
         treeStorage.cacheTree(tree);
+        maybeEditorDirty();
         const view = getDeleteFocusView(tree, prevCurrentId);
         await notifyTreeUpdate(tree, 'delete', view);
         return ok();
@@ -384,12 +401,13 @@ export const treeHandlers = defineHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, 'delete', view);
     return ok();
   },
 
-  async [MSG.SET_NODE_LAYOUT](message) {
+  async [RPC_METHOD.SET_NODE_LAYOUT](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
@@ -409,12 +427,59 @@ export const treeHandlers = defineHandlers({
       typeof message.radial !== 'undefined';
     if (!hasChanges) return ok();
     node.data = updateNodeData(node.data, { layout: nextLayout });
+    // Save silently — the sidepanel already has the correct position via
+    // dragPreview / local state.  Sending TREE_UPDATED here would cause a
+    // full re-render and stale intermediate positions arriving after drag
+    // ends produce a visible double-move glitch.
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'layout');
+    maybeEditorDirty();
     return ok();
   },
 
-  async [MSG.RESET_NODE_LAYOUTS]() {
+  async [RPC_METHOD.SET_NODE_LAYOUT_BATCH](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    let changed = false;
+
+    for (const layoutUpdate of message.layouts) {
+      const node = tree.findNodeById(layoutUpdate.nodeId);
+      if (!node) continue;
+
+      const hasChanges =
+        typeof layoutUpdate.offsetX === 'number' ||
+        typeof layoutUpdate.offsetY === 'number' ||
+        typeof layoutUpdate.radial !== 'undefined';
+      if (!hasChanges) continue;
+
+      const existingLayout = node.data.layout ?? { offsetX: 0, offsetY: 0 };
+      const nextLayout = {
+        offsetX:
+          typeof layoutUpdate.offsetX === 'number'
+            ? layoutUpdate.offsetX
+            : existingLayout.offsetX,
+        offsetY:
+          typeof layoutUpdate.offsetY === 'number'
+            ? layoutUpdate.offsetY
+            : existingLayout.offsetY,
+        ...(layoutUpdate.radial
+          ? { radial: layoutUpdate.radial }
+          : existingLayout.radial
+            ? { radial: existingLayout.radial }
+            : {}),
+      };
+
+      node.data = updateNodeData(node.data, { layout: nextLayout });
+      changed = true;
+    }
+
+    if (!changed) return ok();
+
+    // Keep drag updates silent to avoid extra TREE_UPDATED churn during pan/drag.
+    treeStorage.cacheTree(tree);
+    maybeEditorDirty();
+    return ok();
+  },
+
+  async [RPC_METHOD.RESET_NODE_LAYOUTS]() {
     const tree = await treeStorage.getOrCreateTree();
     let changed = false;
     for (const node of tree.iter() ?? []) {
@@ -426,6 +491,7 @@ export const treeHandlers = defineHandlers({
     }
     if (!changed) return ok();
     treeStorage.cacheTree(tree);
+    maybeEditorDirty();
     await notifyTreeUpdate(tree, 'layout');
     return ok();
   },

@@ -1,62 +1,21 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/src/auth";
 import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
-import { env } from "@/src/env";
+import { resolveSafeNextPath } from "@/src/server/auth-redirect";
 
 export const runtime = "nodejs";
 
 const DEFAULT_REDIRECT = "/trails";
 
-type ExchangeResponse = {
-  snapshot?: {
-    session?: {
-      accessToken?: string;
-    };
-  };
-};
-
-async function exchangeCode(code: string): Promise<string | null> {
-  const targetUrl = new URL("/v1/auth/bridge/exchange", env.TRAIL_API_BASE_URL);
-  const response = await fetch(targetUrl, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ code }),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const data = (await response
-    .json()
-    .catch(() => null)) as ExchangeResponse | null;
-  return data?.snapshot?.session?.accessToken ?? null;
-}
-
-function resolveNextPath(nextParam: string | null): string {
-  if (!nextParam) {
-    return DEFAULT_REDIRECT;
-  }
-
-  return nextParam.startsWith("/") ? nextParam : DEFAULT_REDIRECT;
-}
-
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const code = url.searchParams.get("code") ?? "";
   const nextParam = url.searchParams.get("next");
-  const nextPath = resolveNextPath(nextParam);
-
-  if (!code) {
-    const loginUrl = new URL("/auth/login", url.origin);
-    loginUrl.searchParams.set("next", nextPath);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  const accessToken = await exchangeCode(code);
-  if (!accessToken) {
+  const nextPath = resolveSafeNextPath(nextParam, DEFAULT_REDIRECT);
+  const headers = new Headers(request.headers);
+  const session = await auth.api.getSession({ headers });
+  const tokenResponse = await auth.api.getToken({ headers }).catch(() => null);
+  const accessToken = tokenResponse?.token;
+  if (!session?.user?.id || !accessToken) {
     const loginUrl = new URL("/auth/login", url.origin);
     loginUrl.searchParams.set("next", nextPath);
     return NextResponse.redirect(loginUrl);

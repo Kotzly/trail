@@ -1,0 +1,65 @@
+import { resolve } from "node:path";
+import { defineConfig } from "wxt";
+import {
+  ALLOWED_SITE_MATCH_PATTERNS,
+  OPTIONAL_HOST_MATCH_PATTERNS,
+} from "./src/shared/config/site-origins";
+
+const DEFAULT_DEV_SERVER_PORT = 3011;
+
+function resolveDevServerPort(): number {
+  const raw = process.env.TRAIL_WXT_DEV_PORT;
+  if (!raw) return DEFAULT_DEV_SERVER_PORT;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_DEV_SERVER_PORT;
+}
+
+const devServerPort = resolveDevServerPort();
+
+export default defineConfig({
+  alias: {
+    "@": resolve("src/sidepanel/ui"),
+  },
+  dev: {
+    server: {
+      host: "localhost",
+      port: devServerPort,
+      origin: `http://localhost:${devServerPort}`,
+    },
+  },
+  manifest: {
+    name: "trail",
+    description:
+      "transform your browsing experience. trail enables you to track your browsing sessions as trees",
+    version: "1.0.0",
+    icons: {
+      "16": "icons/trail-16.png",
+      "32": "icons/trail-32.png",
+      "48": "icons/trail-48.png",
+      "128": "icons/trail-128.png",
+    },
+    permissions: [
+      "sidePanel",
+      "storage",
+      "tabs",
+      "webNavigation",
+      "favicon",
+      "alarms",
+      "identity",
+      "cookies",
+    ],
+    host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
+    optional_host_permissions: [...OPTIONAL_HOST_MATCH_PATTERNS],
+    side_panel: {
+      default_path: "sidepanel/index.html",
+    },
+    action: {
+      default_title: "open trail",
+      default_icon: {
+        "16": "icons/trail-16.png",
+        "32": "icons/trail-32.png",
+        "48": "icons/trail-48.png",
+      },
+    },
+  },
+});

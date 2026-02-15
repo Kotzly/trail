@@ -72,8 +72,6 @@ function normalizeCustomTheme(raw: unknown): CustomTheme {
 }
 
 export const defaultSettings: Settings = {
-    maxOpenTabs: 100,
-    capacity: Infinity,
     theme: THEME_IDS.SYSTEM,
     customTheme: { ...DEFAULT_CUSTOM_THEME },
     layout: {
@@ -93,7 +91,7 @@ export const defaultSettings: Settings = {
     dimClosedNodes: true,
     confirmNewTree: true,
     shortcutsEnabled: true,
-    onboardingSeen: false,
+    adaptivePerformance: true,
 };
 
 const settingsKey = 'trail_settings' as const;
@@ -110,14 +108,9 @@ function mergeDefaults(raw: unknown): Settings {
     const { adaptiveMode: _adaptiveMode, adaptiveModeLayouts: _adaptiveModeLayouts, ...rest } = partial;
     const sanitized = rest as Partial<Settings>;
     const layout = sanitized.layout ?? DEFAULT_LAYOUT_SETTINGS;
-    const rawCapacity =
-        typeof sanitized.capacity === 'number' ? sanitized.capacity : defaultSettings.capacity;
-    const capacity =
-        Number.isFinite(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
     return {
         ...defaultSettings,
         ...sanitized,
-        capacity,
         customTheme: normalizeCustomTheme(sanitized.customTheme),
         layout: {
             mode: layout.mode ?? DEFAULT_LAYOUT_SETTINGS.mode,
@@ -145,7 +138,7 @@ function mergeDefaults(raw: unknown): Settings {
         dimClosedNodes: sanitized.dimClosedNodes ?? defaultSettings.dimClosedNodes,
         confirmNewTree: sanitized.confirmNewTree ?? defaultSettings.confirmNewTree,
         shortcutsEnabled: sanitized.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
-        onboardingSeen: sanitized.onboardingSeen ?? defaultSettings.onboardingSeen,
+        adaptivePerformance: sanitized.adaptivePerformance ?? defaultSettings.adaptivePerformance,
     };
 }
 

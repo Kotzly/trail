@@ -1,20 +1,15 @@
-import { MessageByType, RequestType, ResponseMessage } from "../../shared/types/messages.js";
+import { MessageByType, RequestType, ResponseMessage } from "../../shared/rpc/contracts.js";
+import { sendRpcMessage } from "../../shared/rpc/client.js";
 
 
 export function sendMessage<T extends RequestType>(
     message: MessageByType<T>
 ): Promise<ResponseMessage<T>> {
-    return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage(message, (response: ResponseMessage<T>) => {
-            const err = chrome.runtime.lastError;
-            if (err) return reject(err);
-            resolve(response);
-        });
-    });
+    return sendRpcMessage(message);
 }
 
 export function fireAndForget<T extends RequestType>(message: MessageByType<T>): void {
     sendMessage(message).catch((error) => {
-      console.error('Failed to send message:', message.type, error);
+      console.error('Failed to send RPC message:', message.type, error);
     });
 }

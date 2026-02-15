@@ -37,19 +37,18 @@ jobs:
       # They do NOT need to point to a real database for typecheck/build.
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trail_ci
 
-      # Used by account/api internal fetch helpers.
-      TRAIL_API_BASE_URL: http://localhost:3002
-      TRAIL_INTERNAL_API_KEY: ci
-      TRAIL_AUTH_BASE_URL: http://localhost:3003
       TRAIL_EXTENSION_JWT_SECRET: test-extension-secret
-      WAITLIST_PROVIDER_ENDPOINT: http://localhost:3999/waitlist
-      WAITLIST_PROVIDER_TOKEN: test-waitlist-token
 
-      # API app auth + billing placeholders for build-time env checks.
-      BETTER_AUTH_URL: http://localhost:3003
+      # Account auth + billing placeholders for build-time env checks.
       BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef
-      POLAR_WEBHOOK_SECRET: test-polar-secret
-      APP_BASE_URL: http://localhost:3001
+      GOOGLE_CLIENT_ID: test-google-client-id
+      GOOGLE_CLIENT_SECRET: test-google-client-secret
+      BILLING_PROVIDER: manual
+      BILLING_TEST_MODE: "1"
+      NOWPAYMENTS_API_KEY: ""
+      NOWPAYMENTS_IPN_SECRET: ""
+      NOWPAYMENTS_API_BASE_URL: ""
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
 
     steps:
       - uses: actions/checkout@v4
@@ -60,7 +59,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.15.0
+          version: 10.28.2
 
       - uses: actions/setup-node@v4
         with:
@@ -70,14 +69,11 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck (marketing/account/api)
-        run: pnpm --filter @trail/marketing --filter @trail/account --filter @trail/api typecheck
+      - name: Typecheck (marketing/account)
+        run: pnpm --filter @trail/marketing --filter @trail/account typecheck
 
       - name: Build (marketing)
         run: pnpm --filter @trail/marketing build
 
       - name: Build (account)
         run: pnpm --filter @trail/account build
-
-      - name: Build (api)
-        run: pnpm --filter @trail/api build

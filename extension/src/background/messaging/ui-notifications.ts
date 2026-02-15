@@ -1,4 +1,4 @@
-import { msg } from '../../shared/types/messages.js';
+import { rpc } from '../../shared/rpc/contracts.js';
 import { sendRuntimeMessage } from './send-message.js';
 
 export type UiNotificationPayload = {
@@ -8,5 +8,5 @@ export type UiNotificationPayload = {
 };
 
 export function notifyUi(notification: UiNotificationPayload): void {
-  sendRuntimeMessage(msg.notify({ notification }));
+  sendRuntimeMessage(rpc.notify({ notification }));
 }

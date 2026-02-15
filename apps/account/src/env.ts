@@ -1,13 +1,13 @@
 import "server-only";
 
 type RequiredEnvKey =
-  | "APP_BASE_URL"
-  | "TRAIL_API_BASE_URL"
-  | "TRAIL_INTERNAL_API_KEY"
-  | "TRAIL_AUTH_BASE_URL"
+  | "BETTER_AUTH_SECRET"
+  | "GOOGLE_CLIENT_ID"
+  | "GOOGLE_CLIENT_SECRET"
   | "TRAIL_EXTENSION_JWT_SECRET"
-  | "WAITLIST_PROVIDER_ENDPOINT"
-  | "WAITLIST_PROVIDER_TOKEN";
+  | "DATABASE_URL";
+
+export type BillingProviderName = "manual" | "nowpayments";
 
 function requireEnv(keys: RequiredEnvKey[]): Record<RequiredEnvKey, string> {
   const errors: string[] = [];
@@ -26,19 +26,58 @@ function requireEnv(keys: RequiredEnvKey[]): Record<RequiredEnvKey, string> {
   return values;
 }
 
+function normalizeBillingProvider(value: unknown): BillingProviderName {
+  if (typeof value !== "string") {
+    return "manual";
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "manual" || normalized === "nowpayments") {
+    return normalized;
+  }
+
+  return "manual";
+}
+
+function readOptionalEnv(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function readBooleanEnv(value: unknown): boolean {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const normalized = value.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes";
+}
+
+function resolveAppBaseUrl(): string {
+  if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:4001";
+}
+
 const requiredEnvVars: RequiredEnvKey[] = [
-  "APP_BASE_URL",
-  "TRAIL_API_BASE_URL",
-  "TRAIL_INTERNAL_API_KEY",
-  "TRAIL_AUTH_BASE_URL",
+  "BETTER_AUTH_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
   "TRAIL_EXTENSION_JWT_SECRET",
-  "WAITLIST_PROVIDER_ENDPOINT",
-  "WAITLIST_PROVIDER_TOKEN",
+  "DATABASE_URL",
 ];
 
 const resolved = requireEnv(requiredEnvVars);
 
 export const env = {
   ...resolved,
-  ACCOUNT_AUTH_BYPASS: process.env.ACCOUNT_AUTH_BYPASS === "1",
+  appBaseUrl: resolveAppBaseUrl(),
+  ACCOUNT_AUTH_BYPASS: readBooleanEnv(process.env.ACCOUNT_AUTH_BYPASS),
+  BILLING_PROVIDER: normalizeBillingProvider(process.env.BILLING_PROVIDER),
+  BILLING_TEST_MODE: readBooleanEnv(process.env.BILLING_TEST_MODE),
+  NOWPAYMENTS_API_KEY: readOptionalEnv(process.env.NOWPAYMENTS_API_KEY),
+  NOWPAYMENTS_IPN_SECRET: readOptionalEnv(process.env.NOWPAYMENTS_IPN_SECRET),
+  NOWPAYMENTS_API_BASE_URL: readOptionalEnv(process.env.NOWPAYMENTS_API_BASE_URL),
 };

@@ -65,15 +65,20 @@ export type Verification = Prisma.VerificationModel
  */
 export type Jwks = Prisma.JwksModel
 /**
- * Model AuthBridgeCode
+ * Model OAuthAuthorizationCode
  * 
  */
-export type AuthBridgeCode = Prisma.AuthBridgeCodeModel
+export type OAuthAuthorizationCode = Prisma.OAuthAuthorizationCodeModel
 /**
- * Model ExtensionLoginCode
+ * Model OAuthRefreshToken
  * 
  */
-export type ExtensionLoginCode = Prisma.ExtensionLoginCodeModel
+export type OAuthRefreshToken = Prisma.OAuthRefreshTokenModel
+/**
+ * Model ExtensionDeviceSession
+ * 
+ */
+export type ExtensionDeviceSession = Prisma.ExtensionDeviceSessionModel
 /**
  * Model UserSubscription
  * 
@@ -109,16 +114,6 @@ export type DeviceSession = Prisma.DeviceSessionModel
  * 
  */
 export type AccountSettings = Prisma.AccountSettingsModel
-/**
- * Model PortalSession
- * 
- */
-export type PortalSession = Prisma.PortalSessionModel
-/**
- * Model ExtensionConnectSession
- * 
- */
-export type ExtensionConnectSession = Prisma.ExtensionConnectSessionModel
 /**
  * Model Trail
  * 

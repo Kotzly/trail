@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate dev-marketing dev-account dev-api lint typecheck test extension e2e
+.PHONY: dev db-up db-down db-migrate dev-marketing dev-account lint typecheck test extension e2e
 
 db-up:
 	docker compose up -d postgres
@@ -18,9 +18,6 @@ dev-marketing:
 dev-account:
 	pnpm --filter @trail/account dev
 
-dev-api:
-	pnpm --filter @trail/api dev
-
 lint:
 	pnpm lint
 
@@ -39,6 +36,5 @@ e2e: db-up
 	if [ -f .env.e2e ]; then . ./.env.e2e; fi; \
 	set +a; \
 	pnpm --dir extension install --ignore-workspace --frozen-lockfile; \
-	pnpm --dir extension run build:local; \
 	pnpm db:migrate; \
 	pnpm dev

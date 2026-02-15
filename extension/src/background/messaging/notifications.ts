@@ -1,7 +1,7 @@
 import type { TabId, NodeId } from '../../shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import type { TabSoundState, TabState } from '../../shared/types/tabs.js';
-import { msg, type TreeUpdateReason, type TreeViewIntent, type TreesSnapshot } from '../../shared/types/messages.js';
+import { rpc, type TreeUpdateReason, type TreeViewIntent, type TreesSnapshot } from '../../shared/rpc/contracts.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { NavigationTree } from '../state/nav-tree.js';
 import { sendRuntimeMessage } from './send-message.js';
@@ -44,7 +44,7 @@ export async function notifyTreeUpdate(
       ? { ...view, intentId: view.intentId ?? (viewIntentCounter += 1) }
       : undefined;
 
-    const payload = msg.treeUpdated({
+    const payload = rpc.treeUpdated({
         tree: NavigationTreeMapper.toJSON(tree),
         openNodeIds: openNodes,
         tabStates: tabStates,
@@ -57,6 +57,6 @@ export async function notifyTreeUpdate(
 }
 
 export async function notifyTreesUpdate(snapshot: TreesSnapshot): Promise<void> {
-  const payload = msg.treesUpdated(snapshot);
+  const payload = rpc.treesUpdated(snapshot);
   sendRuntimeMessage(payload);
 }
