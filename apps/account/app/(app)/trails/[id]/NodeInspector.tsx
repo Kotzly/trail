@@ -134,7 +134,7 @@ export default function NodeInspector() {
               <p className="mt-0.5 text-sm tabular-nums">{node.depth}</p>
             </div>
           )}
-          {node.timestamp && (
+          {node.timestamp !== undefined && (
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Visited

@@ -48,7 +48,13 @@ function parseCursor(raw: string | undefined): TrailCursor | null {
     return null;
   }
 
-  const [updatedAtRaw, id] = raw.split("|");
+  const sepIndex = raw.indexOf("|");
+  if (sepIndex === -1) {
+    return null;
+  }
+
+  const updatedAtRaw = raw.slice(0, sepIndex);
+  const id = raw.slice(sepIndex + 1);
   if (!updatedAtRaw || !id) {
     return null;
   }
