@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/src/auth-client";
+import TrailLogo from "@/components/TrailLogo";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -121,11 +122,14 @@ export function LoginClient() {
 
   return (
     <main className="flex flex-col items-center gap-6 py-12 text-center">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">trail</h1>
-        <p className="text-sm text-muted-foreground">
-          Continue with Google to sign in.
-        </p>
+      <header className="flex flex-col items-center gap-4">
+        <TrailLogo animated label="Trail" />
+        <div className="space-y-1 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">trail</h1>
+          <p className="text-sm text-muted-foreground">
+            Continue with Google to sign in.
+          </p>
+        </div>
       </header>
 
       <button

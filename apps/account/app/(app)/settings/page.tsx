@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Image, { type ImageLoaderProps } from "next/image";
+import { headers } from "next/headers";
 import { accountCopy } from "@trail/content";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,7 +10,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getAuthSession } from "@/src/lib/auth";
+import { auth } from "@/src/auth";
+import { splitDisplayName } from "@/src/account-profile";
 import SignOutButton from "@/app/(app)/SignOutButton";
+import { AccountSettingsForm } from "./AccountSettingsForm";
 
 const avatarLoader = ({ src }: ImageLoaderProps) => src;
 
@@ -22,6 +25,14 @@ export default async function SettingsPage() {
   if (!user) {
     redirect("/auth/login");
   }
+
+  /* Fetch the full Better Auth session so we have `image` for the form. */
+  const requestHeaders = await headers();
+  const betterAuthSession = await auth.api.getSession({
+    headers: new Headers(requestHeaders),
+  });
+
+  const { firstName, lastName } = splitDisplayName(user.name);
 
   const initialsSource =
     user.name || user.email || settings.profile.fallbackName;
@@ -36,17 +47,15 @@ export default async function SettingsPage() {
     <section className="space-y-6">
       <div className="space-y-1">
         <h1 className="text-xl font-semibold">settings</h1>
-        <p className="text-sm text-muted-foreground">account profile and security.</p>
+        <p className="text-sm text-muted-foreground">
+          account profile and security.
+        </p>
       </div>
 
       <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>account</CardTitle>
-          <CardDescription>{user.email ?? settings.profile.fallbackEmail}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+        <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border bg-background text-xs font-semibold">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-background text-xs font-semibold">
               {user.imageUrl ? (
                 <Image
                   loader={avatarLoader}
@@ -62,22 +71,34 @@ export default async function SettingsPage() {
                 initials
               )}
             </div>
-            <div className="leading-tight">
-              <div className="text-sm font-medium">{user.name ?? settings.profile.fallbackName}</div>
-              <div className="text-xs text-muted-foreground">
+            <div>
+              <CardTitle>{user.name ?? settings.profile.fallbackName}</CardTitle>
+              <CardDescription>
                 {user.email ?? settings.profile.fallbackEmail}
-              </div>
+              </CardDescription>
             </div>
           </div>
+        </CardHeader>
 
-          <div className="flex items-center gap-2">
-            <Button asChild size="sm" variant="outline">
-              <a href="/auth/account">
-                manage
-              </a>
-            </Button>
-            <SignOutButton />
+        <CardContent>
+          <AccountSettingsForm
+            initialFirstName={firstName}
+            initialLastName={lastName}
+            initialEmail={user.email ?? ""}
+            initialPhotoUrl={betterAuthSession?.user?.image ?? user.imageUrl ?? ""}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex items-center justify-between pt-6">
+          <div>
+            <p className="text-sm font-medium">sign out</p>
+            <p className="text-xs text-muted-foreground">
+              end your current session.
+            </p>
           </div>
+          <SignOutButton />
         </CardContent>
       </Card>
     </section>
