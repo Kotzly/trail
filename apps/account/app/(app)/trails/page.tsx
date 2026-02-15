@@ -100,6 +100,15 @@ function formatRelative(iso: string): string {
   const diff = now - date.getTime();
   const seconds = Math.floor(diff / 1000);
 
+  if (seconds < 0) {
+    // Future date (e.g. clock skew) — show absolute date
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+    });
+  }
+
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
