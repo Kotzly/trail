@@ -28,9 +28,9 @@ export default defineConfig({
     },
   },
   manifest: {
-    name: "trail",
+    name: "Trail",
     description:
-      "transform your browsing experience. trail enables you to track your browsing sessions as trees",
+      "Visualize your browsing history as trees",
     version: "1.0.0",
     icons: {
       "16": "icons/trail-16.png",
