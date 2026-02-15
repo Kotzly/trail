@@ -8,6 +8,7 @@ import {
   type TreeUpdatedInput,
   type TreesSnapshot,
 } from "../../shared/rpc/contracts.js";
+import type { TrailExportBundle } from "../../shared/types/export.js";
 import { sendMessage } from "./background.js";
 
 export async function navigateTo(node: NavigationNode): Promise<void> {
@@ -103,6 +104,14 @@ export async function renameTree(treeId: string, label: string): Promise<void> {
 
 export async function deleteArchivedTree(treeId: string): Promise<void> {
     const res = await sendMessage(rpc.deleteArchivedTree({ treeId }));
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}
+
+export async function exportTree(treeId?: string): Promise<TrailExportBundle> {
+    const payload: { treeId?: string } = {};
+    if (treeId !== undefined) payload.treeId = treeId;
+    const res = await sendMessage(rpc.exportTree(payload));
     if (!res.success) throw new Error(res.error);
     return res.data;
 }

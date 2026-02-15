@@ -278,14 +278,13 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
     }
   }
 
-  // 3. Fall back to local archives
+  // 3. Fall back to local archives (per-tree compressed blob)
   if (!treeJSON) {
-    const archives = await treeStorage.getArchives();
-    const record = archives.find((entry) => entry.id === treeId);
-    if (record) {
-      treeJSON = record.tree;
+    const archived = await treeStorage.getArchiveTree(treeId);
+    if (archived) {
+      treeJSON = archived;
       // Populate LRU cache for next time
-      await setCachedTree(treeId, record.tree, Date.now());
+      await setCachedTree(treeId, archived, Date.now());
     }
   }
 
@@ -294,10 +293,9 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
     const apiRecord = await fetchTreeFromApi(treeId);
     if (apiRecord) {
       treeJSON = apiRecord.tree;
-      // Save to archives
+      // Save to archives: full load + prepend + write (rare path)
       const archives = await treeStorage.getArchives();
-      const updatedArchives = [apiRecord, ...archives.filter((a) => a.id !== treeId)];
-      await treeStorage.setArchives(updatedArchives);
+      await treeStorage.setArchives([apiRecord, ...archives.filter((a) => a.id !== treeId)]);
       // Save to LRU cache
       await setCachedTree(treeId, apiRecord.tree, Date.now());
     }

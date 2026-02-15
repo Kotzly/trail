@@ -57,6 +57,7 @@ pens/
 .codex/
 .claude/
 .cursor/
+extension/.wxt/
 extension/public/backend-preset.json
 .output/
 **/**/next-env.d.ts

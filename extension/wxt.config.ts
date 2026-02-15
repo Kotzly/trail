@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { mkdirSync } from "node:fs";
 import { defineConfig } from "wxt";
 import {
   ALLOWED_SITE_MATCH_PATTERNS,
@@ -16,6 +17,9 @@ function resolveDevServerPort(): number {
 
 const devServerPort = resolveDevServerPort();
 
+const chromeProfileDir = resolve(".wxt/chrome-data");
+mkdirSync(chromeProfileDir, { recursive: true });
+
 export default defineConfig({
   alias: {
     "@": resolve("src/sidepanel/ui"),
@@ -26,6 +30,10 @@ export default defineConfig({
       port: devServerPort,
       origin: `http://localhost:${devServerPort}`,
     },
+  },
+  webExt: {
+    chromiumProfile: chromeProfileDir,
+    keepProfileChanges: true,
   },
   manifest: {
     name: "Trail",

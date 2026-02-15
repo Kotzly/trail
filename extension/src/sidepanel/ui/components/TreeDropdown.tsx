@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createNewTree, deleteArchivedTree, openTree, renameTree } from '../../api/tree.js';
+import { createNewTree, deleteArchivedTree, exportTree, openTree, renameTree } from '../../api/tree.js';
+import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
@@ -16,6 +17,7 @@ type TreeItem = {
   rootTitle?: Title;
   rootFavicon?: FaviconUrl;
   savedAt?: number;
+  stub?: boolean;
 };
 
 function formatHost(url?: Url): string {
@@ -39,6 +41,24 @@ function formatDate(ts?: number): string {
   } catch {
     return '';
   }
+}
+
+function sanitizeFilename(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_\-. ]/g, '_').trim() || 'trail';
+}
+
+function downloadBundle(bundle: import('../../../shared/types/export.js').TrailExportBundle): void {
+  const label = bundle.source.treeLabel ?? 'trail';
+  const json = JSON.stringify(bundle);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${sanitizeFilename(label)}.trail.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export default function TreeDropdown() {
@@ -69,8 +89,8 @@ export default function TreeDropdown() {
     return [...trees.archived]
       .sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))
       .map(
-        (entry) =>
-          ({
+        (entry) => {
+          const item: TreeItem = {
             id: entry.id,
             label: entry.label,
             nodeCount: entry.nodeCount,
@@ -78,7 +98,12 @@ export default function TreeDropdown() {
             rootTitle: entry.rootTitle,
             rootFavicon: entry.rootFavicon,
             savedAt: entry.savedAt,
-          }) as TreeItem,
+          };
+          if ('stub' in entry && (entry as { stub?: boolean }).stub) {
+            item.stub = true;
+          }
+          return item;
+        },
       );
   }, [trees.archived]);
 
@@ -88,6 +113,7 @@ export default function TreeDropdown() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [labelDraft, setLabelDraft] = useState('');
   const [creating, setCreating] = useState(false);
+  const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!treesOpen) {
@@ -150,12 +176,16 @@ export default function TreeDropdown() {
     setDraft('');
   };
 
-  const handleOpen = async (treeId: string) => {
+  const handleOpen = async (tree: TreeItem) => {
     try {
-      await openTree(treeId);
+      if (tree.stub) {
+        setLoadingTreeId(tree.id);
+      }
+      await openTree(tree.id);
     } catch (error) {
       console.error('Failed to open tree:', error);
     } finally {
+      setLoadingTreeId(null);
       setTreesOpen(false);
     }
   };
@@ -165,6 +195,25 @@ export default function TreeDropdown() {
       await deleteArchivedTree(treeId);
     } catch (error) {
       console.error('Failed to delete saved tree:', error);
+    }
+  };
+
+  const handleExport = async (treeId?: string) => {
+    try {
+      const bundle = await exportTree(treeId);
+      downloadBundle(bundle);
+    } catch (error) {
+      console.error('Failed to export tree:', error);
+    }
+  };
+
+  const openTrailEditor = async (treeId: string) => {
+    try {
+      await initBackendConfig();
+      const baseUrl = getBackendConfig().baseUrl;
+      await chrome.tabs.create({ url: `${baseUrl}/trails/${treeId}`, active: true });
+    } catch (error) {
+      console.error('Failed to open trail editor:', error);
     }
   };
 
@@ -239,7 +288,12 @@ export default function TreeDropdown() {
                     onBlur={() => void commitEdit()}
                   />
                 ) : (
-                  <div className="trees-dropdown-item-title">{activeTree.label}</div>
+                  <div
+                    className="trees-dropdown-item-title"
+                    onDoubleClick={() => startEdit(activeTree)}
+                  >
+                    {activeTree.label}
+                  </div>
                 )}
                 <div className="trees-dropdown-item-meta">active now · {activeTree.nodeCount} nodes</div>
               </div>
@@ -248,11 +302,23 @@ export default function TreeDropdown() {
                   <button
                     className="trees-dropdown-item-action"
                     type="button"
-                    aria-label="Rename tree"
-                    data-tooltip="Rename tree"
+                    aria-label="Export tree"
+                    data-tooltip="Export tree"
                     onClick={(event) => {
                       event.stopPropagation();
-                      startEdit(activeTree);
+                      void handleExport();
+                    }}
+                  >
+                    <Icons.Download size={12} />
+                  </button>
+                  <button
+                    className="trees-dropdown-item-action"
+                    type="button"
+                    aria-label="Open in editor"
+                    data-tooltip="Open in editor"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void openTrailEditor(activeTree.id);
                     }}
                   >
                     <Icons.Pencil size={12} />
@@ -284,9 +350,11 @@ export default function TreeDropdown() {
             <div className="trees-dropdown-empty">no saved trees</div>
           ) : (
             archivedTrees.map((tree) => {
+              const isLoading = loadingTreeId === tree.id;
               const host = formatHost(tree.rootUrl);
               const date = formatDate(tree.savedAt);
               const meta = [
+                tree.stub ? 'cloud' : null,
                 host || tree.rootTitle || 'Untitled',
                 `${tree.nodeCount} nodes`,
                 date,
@@ -296,10 +364,18 @@ export default function TreeDropdown() {
               return (
                 <div
                   key={tree.id}
-                  className="trees-dropdown-item"
-                  onClick={() => void handleOpen(tree.id)}
+                  className={`trees-dropdown-item${isLoading ? ' loading' : ''}`}
+                  onClick={() => !isLoading && void handleOpen(tree)}
                 >
-                  {tree.rootFavicon ? (
+                  {isLoading ? (
+                    <div className="trees-dropdown-item-favicon placeholder">
+                      <Icons.Loader2 size={14} className="spin" />
+                    </div>
+                  ) : tree.stub ? (
+                    <div className="trees-dropdown-item-favicon placeholder">
+                      <Icons.Cloud size={14} />
+                    </div>
+                  ) : tree.rootFavicon ? (
                     <img className="trees-dropdown-item-favicon" alt="" src={tree.rootFavicon} />
                   ) : (
                     <div className="trees-dropdown-item-favicon placeholder">
@@ -327,20 +403,42 @@ export default function TreeDropdown() {
                         onClick={(event) => event.stopPropagation()}
                       />
                     ) : (
-                      <div className="trees-dropdown-item-title">{tree.label}</div>
+                      <div
+                        className="trees-dropdown-item-title"
+                        onDoubleClick={(event) => {
+                          event.stopPropagation();
+                          startEdit(tree);
+                        }}
+                      >
+                        {tree.label}
+                      </div>
                     )}
                     <div className="trees-dropdown-item-meta">{meta}</div>
                   </div>
-                  {editingId !== tree.id ? (
+                  {editingId !== tree.id && !isLoading ? (
                     <div className="trees-dropdown-item-actions">
+                      {!tree.stub ? (
+                        <button
+                          className="trees-dropdown-item-action"
+                          type="button"
+                          aria-label="Export tree"
+                          data-tooltip="Export tree"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleExport(tree.id);
+                          }}
+                        >
+                          <Icons.Download size={12} />
+                        </button>
+                      ) : null}
                       <button
                         className="trees-dropdown-item-action"
                         type="button"
-                        aria-label="Rename tree"
-                        data-tooltip="Rename tree"
+                        aria-label="Open in editor"
+                        data-tooltip="Open in editor"
                         onClick={(event) => {
                           event.stopPropagation();
-                          startEdit(tree);
+                          void openTrailEditor(tree.id);
                         }}
                       >
                         <Icons.Pencil size={12} />

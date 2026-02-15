@@ -13,7 +13,7 @@
   left: auto;
   margin-top: 6px;
   width: min(300px, calc(100vw - 16px));
-  background: var(--glass-strong);
+  background: var(--glass);
   border: var(--glass-border);
   border-radius: 12px;
   box-shadow: var(--glass-shadow);

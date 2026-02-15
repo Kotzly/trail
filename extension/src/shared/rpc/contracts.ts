@@ -1,8 +1,9 @@
 import type { Description, NodeId, Title, Url, Tag, TabId, FaviconUrl } from "../types/ids.js";
 import { Settings } from "../types/settings.js";
 import { TabState } from "../types/tabs.js";
-import { NavigationTreeJSON, TreeMeta, TreeSummary } from "../types/tree.js";
+import { NavigationTreeJSON, TreeMeta, TreeSummary, ArchiveIndexEntry } from "../types/tree.js";
 import type { TagDefinition } from "../types/tags.js";
+import type { TrailExportBundle } from "../types/export.js";
 
 export const RPC_METHOD = {
     NAVIGATE_TO: 'NAVIGATE_TO',
@@ -35,6 +36,7 @@ export const RPC_METHOD = {
     OPEN_TREE: 'OPEN_TREE',
     RENAME_TREE: 'RENAME_TREE',
     DELETE_ARCHIVED_TREE: 'DELETE_ARCHIVED_TREE',
+    EXPORT_TREE: 'EXPORT_TREE',
     OPEN_IN_NEW_TAB: 'OPEN_IN_NEW_TAB',
     TOGGLE_MUTE: 'TOGGLE_MUTE',
     CLOSE_TAB: 'CLOSE_TAB',
@@ -134,6 +136,7 @@ export type NewTreeMessage = RequestMessageBase<typeof RPC_METHOD.NEW_TREE, { la
 export type OpenTreeMessage = RequestMessageBase<typeof RPC_METHOD.OPEN_TREE, { treeId: string }>;
 export type RenameTreeMessage = RequestMessageBase<typeof RPC_METHOD.RENAME_TREE, { treeId: string; label: string }>;
 export type DeleteArchivedTreeMessage = RequestMessageBase<typeof RPC_METHOD.DELETE_ARCHIVED_TREE, { treeId: string }>;
+export type ExportTreeMessage = RequestMessageBase<typeof RPC_METHOD.EXPORT_TREE, { treeId?: string }>;
 
 export type OpenInNewTabMessage = RequestMessageBase<typeof RPC_METHOD.OPEN_IN_NEW_TAB, {
   nodeId: NodeId;
@@ -233,7 +236,7 @@ export type RequestMessage = NavigateToMessage |
     TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleOrFaviconChangedMessage |
     TreeUpdatedMessage | TreesUpdatedMessage | TagsUpdatedMessage |
     NotifyMessage |
-    GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | RenameTreeMessage | DeleteArchivedTreeMessage |
+    GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | RenameTreeMessage | DeleteArchivedTreeMessage | ExportTreeMessage |
     OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
     AddTagMessage | RemoveTagMessage |
@@ -293,6 +296,7 @@ export type ResponseDataByType = {
     [RPC_METHOD.OPEN_TREE]: void;
     [RPC_METHOD.RENAME_TREE]: void;
     [RPC_METHOD.DELETE_ARCHIVED_TREE]: void;
+    [RPC_METHOD.EXPORT_TREE]: TrailExportBundle;
     [RPC_METHOD.OPEN_IN_NEW_TAB]: void;
     [RPC_METHOD.TOGGLE_MUTE]: void;
     [RPC_METHOD.CLOSE_TAB]: void;
@@ -377,6 +381,11 @@ export const rpc = {
     renameTree(payload: { treeId: string; label: string }): RenameTreeMessage { return { type: RPC_METHOD.RENAME_TREE, ...payload } },
     deleteArchivedTree(payload: { treeId: string }): DeleteArchivedTreeMessage {
         return { type: RPC_METHOD.DELETE_ARCHIVED_TREE, ...payload };
+    },
+    exportTree(payload: { treeId?: string }): ExportTreeMessage {
+        const msg: Record<string, unknown> = { type: RPC_METHOD.EXPORT_TREE };
+        if (payload.treeId !== undefined) msg.treeId = payload.treeId;
+        return msg as ExportTreeMessage;
     },
     openInNewTab(payload: { nodeId: NodeId }): OpenInNewTabMessage { return { type: RPC_METHOD.OPEN_IN_NEW_TAB, ...payload } },
     toggleMute(payload: { nodeId: NodeId, tabId: TabId }): ToggleMuteMessage { return { type: RPC_METHOD.TOGGLE_MUTE, ...payload } },
@@ -523,7 +532,7 @@ export type TreeUpdatedInput = {
 
 export type TreesSnapshot = {
     active: TreeMeta;
-    archived: TreeSummary[];
+    archived: ArchiveIndexEntry[];
 };
 
 export type BulkNodeIdsInput = {

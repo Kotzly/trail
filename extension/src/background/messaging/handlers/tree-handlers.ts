@@ -14,6 +14,10 @@ import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { cloudSync } from '../../services/cloud-sync.js';
 import { editorSyncMarkDirty } from '../../services/editor-sync.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
+import { isTreeStub } from '../../../shared/types/tree.js';
+import { fetchTrailFromCloud } from '../../services/cloud-fetch.js';
+import type { TrailExportBundle } from '../../../shared/types/export.js';
+import { EXPORT_SCHEMA } from '../../../shared/types/export.js';
 
 /** Mark editor sync dirty if currently in editor mode. */
 function maybeEditorDirty(): void {
@@ -229,6 +233,16 @@ export const treeHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.OPEN_TREE](message) {
+    // If the archive is a stub, rehydrate it from the cloud first
+    const index = await treeStorage.getArchiveIndex();
+    const entry = index.find((e) => e.id === message.treeId);
+    if (entry && isTreeStub(entry)) {
+      const cloudTree = await fetchTrailFromCloud(message.treeId);
+      if (!cloudTree) return err('Failed to load tree from cloud');
+      await treeStorage.saveArchiveTree(message.treeId, cloudTree);
+      await treeStorage.unstubArchiveEntry(message.treeId);
+    }
+
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
       snapshot(current, 'Open tree');
@@ -258,8 +272,8 @@ export const treeHandlers = defineRpcHandlers({
   async [RPC_METHOD.DELETE_ARCHIVED_TREE](message) {
     const active = await treeStorage.getActiveMeta();
     if (active.id === message.treeId) return err('Cannot delete active tree');
-    const archives = await treeStorage.getArchives();
-    const archivedRecord = archives.find((entry) => entry.id === message.treeId) ?? null;
+    // Load full record before deletion so we can create a tombstone for sync
+    const archivedRecord = await treeStorage.getFullArchiveRecord(message.treeId);
     const removed = await treeStorage.deleteArchivedTree(message.treeId);
     if (!removed) return err('Tree not found');
     if (archivedRecord) {
@@ -267,6 +281,41 @@ export const treeHandlers = defineRpcHandlers({
     }
     await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
+  },
+
+  async [RPC_METHOD.EXPORT_TREE](message) {
+    let treeJSON: import('../../../shared/types/tree.js').NavigationTreeJSON;
+    let label: string;
+
+    if (message.treeId) {
+      // Export a specific archived tree
+      const record = await treeStorage.getFullArchiveRecord(message.treeId);
+      if (!record) return err('Tree not found');
+      treeJSON = record.tree;
+      label = record.label;
+    } else {
+      // Export the active tree
+      const tree = await treeStorage.getOrCreateTree();
+      const meta = await treeStorage.getActiveMeta();
+      treeJSON = NavigationTreeMapper.toJSON(tree);
+      label = meta.label;
+    }
+
+    const bundle: TrailExportBundle = {
+      schema: EXPORT_SCHEMA,
+      exportedAt: Date.now(),
+      source: {
+        treeId: message.treeId ?? (await treeStorage.getActiveMeta()).id,
+        treeLabel: label,
+        origin: 'extension',
+      },
+      tree: treeJSON,
+      meta: {
+        nodeCount: treeJSON.nodeCount,
+      },
+    };
+
+    return ok(bundle);
   },
 
   async [RPC_METHOD.DELETE_NODE](message) {

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getAuthSession } from "@/src/lib/auth";
 import { getTrailById } from "@/src/server/trails";
 import EditInExtensionButton from "./EditInExtensionButton";
+import ExportButton from "./ExportButton";
 import NodeInspector from "./NodeInspector";
 
 export default async function TrailDetailPage({
@@ -65,7 +66,13 @@ export default async function TrailDetailPage({
           )}
         </div>
 
-        <div className="shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
+          <ExportButton
+            trailId={trail.id}
+            label={trail.label}
+            nodeCount={trail.nodeCount}
+            payload={trail.payload}
+          />
           <EditInExtensionButton trailId={trail.id} />
         </div>
       </div>

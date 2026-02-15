@@ -10,7 +10,7 @@
   width: min(360px, calc(100vw - 16px));
   min-width: min(240px, calc(100vw - 16px));
   max-width: calc(100vw - 16px);
-  background: var(--glass-strong);
+  background: var(--glass);
   border: var(--glass-border);
   border-radius: 12px;
   box-shadow: var(--glass-shadow);

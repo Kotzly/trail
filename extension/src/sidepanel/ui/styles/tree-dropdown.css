@@ -11,7 +11,7 @@
   width: min(360px, calc(100vw - 16px));
   min-width: min(240px, calc(100vw - 16px));
   max-width: calc(100vw - 16px);
-  background: var(--glass-strong);
+  background: var(--glass);
   border: var(--glass-border);
   border-radius: 12px;
   box-shadow: var(--glass-shadow);
@@ -245,4 +245,18 @@
   color: var(--foreground);
   background: var(--glass-strong);
   border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
+.trees-dropdown-item.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.trees-dropdown-item .spin {
+  animation: tree-dropdown-spin 1s linear infinite;
+}
+
+@keyframes tree-dropdown-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
