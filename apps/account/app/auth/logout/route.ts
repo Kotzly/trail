@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
+import { getCookieValue } from "@/src/lib/cookies";
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyUserToken } from "@/src/server/backend/auth/user-auth";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
@@ -10,31 +11,6 @@ export const runtime = "nodejs";
 
 const BETTER_AUTH_SESSION_COOKIE = "better-auth.session_token";
 const BETTER_AUTH_SESSION_COOKIE_SECURE = "__Secure-better-auth.session_token";
-
-function getCookieValue(headers: Headers, name: string): string | null {
-  const cookieHeader = headers.get("cookie");
-  if (!cookieHeader) {
-    return null;
-  }
-
-  const cookies = cookieHeader.split(";");
-  for (const rawCookie of cookies) {
-    const [rawName, ...rawValueParts] = rawCookie.trim().split("=");
-    if (rawName !== name) {
-      continue;
-    }
-    const rawValue = rawValueParts.join("=");
-    if (!rawValue) {
-      return null;
-    }
-    try {
-      return decodeURIComponent(rawValue);
-    } catch {
-      return rawValue;
-    }
-  }
-  return null;
-}
 
 function getAuthTokenFromCookie(headers: Headers): string | null {
   return getCookieValue(headers, AUTH_COOKIE_NAME);
