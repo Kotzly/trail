@@ -10,10 +10,9 @@ export default async function TrailDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await getAuthSession();
-  if (!session?.user) redirect("/auth");
-
   const { id } = await params;
+  const session = await getAuthSession();
+  if (!session?.user) redirect(`/auth/login?next=/trails/${encodeURIComponent(id)}`);
   const trail = await getTrailById(id);
   if (!trail) notFound();
 

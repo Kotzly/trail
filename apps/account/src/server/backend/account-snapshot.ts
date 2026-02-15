@@ -2,6 +2,10 @@ import type { ExtensionConfigMap } from "@/src/server/backend/extension-config";
 import { getExtensionConfig } from "@/src/server/backend/extension-config";
 import type { SubscriptionSnapshot } from "@/src/server/backend/subscription-access";
 import { env } from "@/src/env";
+import {
+  buildOnboardingState,
+  type OnboardingState,
+} from "@/src/server/onboarding";
 import { trailPlans, type TrailPlanDefinition } from "@trail/content";
 
 export type PlanDefinition = TrailPlanDefinition;
@@ -23,12 +27,6 @@ type AuthSessionAuthenticated = {
   accessToken: string;
   refreshToken?: string | null;
   expiresAt?: string | null;
-};
-
-type OnboardingState = {
-  flowId: "activation-v1";
-  status: "pending" | "completed";
-  seenAt: string | null;
 };
 
 type AccountSnapshot = {
@@ -60,17 +58,6 @@ function toAccountUser(user: DbUser): AccountUser {
   };
 }
 
-function toOnboardingState(seenAt?: Date | string | null): OnboardingState {
-  if (seenAt) {
-    return {
-      flowId: "activation-v1",
-      status: "completed",
-      seenAt: seenAt instanceof Date ? seenAt.toISOString() : seenAt,
-    };
-  }
-  return { flowId: "activation-v1", status: "pending", seenAt: null };
-}
-
 export function buildAccountSnapshot({
   user,
   accessToken,
@@ -93,7 +80,7 @@ export function buildAccountSnapshot({
       billing: { state: "none" },
       plans: trailPlans,
       config,
-      onboarding: toOnboardingState(null),
+      onboarding: buildOnboardingState(null),
     };
   }
 
@@ -108,7 +95,7 @@ export function buildAccountSnapshot({
     billing: { state: "none" },
     plans: trailPlans,
     config,
-    onboarding: toOnboardingState(onboardingSeenAt),
+    onboarding: buildOnboardingState(onboardingSeenAt),
   };
 }
 

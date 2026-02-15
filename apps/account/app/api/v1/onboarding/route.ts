@@ -61,17 +61,10 @@ export async function POST(request: Request) {
     return jsonError("invalid_action", "Invalid action. Must be 'complete' or 'skip'.", { status: 400 });
   }
 
-  const action = body.action;
-  const source = isValidSource(body.source) ? body.source : "extension";
-
   const seenAt = await markUserOnboardingSeen(auth.userId);
   if (seenAt === null) {
     return jsonError("user_not_found", "User not found.", { status: 404 });
   }
-
-  console.log(
-    `[onboarding] userId=${auth.userId} action=${action} source=${source}`,
-  );
 
   return jsonNoStore({ onboarding: buildOnboardingState(seenAt) });
 }
