@@ -1,25 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/src/lib/auth";
 import { getUserById, markUserOnboardingSeen } from "@/src/server/backend/user";
+import { buildOnboardingState } from "@/src/server/onboarding";
 
 export const runtime = "nodejs";
-
-type OnboardingState = {
-  flowId: "activation-v1";
-  status: "pending" | "completed";
-  seenAt: string | null;
-};
-
-function toOnboardingState(seenAt: Date | string | null): OnboardingState {
-  if (seenAt) {
-    return {
-      flowId: "activation-v1",
-      status: "completed",
-      seenAt: seenAt instanceof Date ? seenAt.toISOString() : seenAt,
-    };
-  }
-  return { flowId: "activation-v1", status: "pending", seenAt: null };
-}
 
 function unauthorized() {
   return NextResponse.json(
@@ -43,7 +27,7 @@ export async function GET() {
   }
 
   return NextResponse.json(
-    { onboarding: toOnboardingState(user.onboardingSeenAt) },
+    { onboarding: buildOnboardingState(user.onboardingSeenAt) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -63,7 +47,7 @@ export async function POST() {
   }
 
   return NextResponse.json(
-    { onboarding: toOnboardingState(seenAt) },
+    { onboarding: buildOnboardingState(seenAt) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

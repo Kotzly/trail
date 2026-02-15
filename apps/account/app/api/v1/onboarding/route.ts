@@ -6,6 +6,7 @@ import {
   getUserById,
   markUserOnboardingSeen,
 } from "@/src/server/backend/user";
+import { buildOnboardingState } from "@/src/server/onboarding";
 
 export const runtime = "nodejs";
 
@@ -16,23 +17,6 @@ type OnboardingBody = {
   action?: unknown;
   source?: unknown;
 };
-
-type OnboardingState = {
-  flowId: "activation-v1";
-  status: "pending" | "completed";
-  seenAt: string | null;
-};
-
-function buildOnboardingState(seenAt: Date | string | null): OnboardingState {
-  if (seenAt) {
-    return {
-      flowId: "activation-v1",
-      status: "completed",
-      seenAt: seenAt instanceof Date ? seenAt.toISOString() : seenAt,
-    };
-  }
-  return { flowId: "activation-v1", status: "pending", seenAt: null };
-}
 
 function isValidAction(value: unknown): value is OnboardingAction {
   return value === "complete" || value === "skip";
