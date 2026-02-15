@@ -2,24 +2,11 @@ import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyUserToken } from "@/src/server/backend/auth/user-auth";
 import { jsonError } from "@/src/server/backend/error-response";
 import { jsonNoStore } from "@/src/server/backend/response";
+import { toTrailSummary } from "@/src/server/backend/trail-serializers";
 import { ensureUser } from "@/src/server/backend/user";
 import { db } from "@trail/db";
 
 export const runtime = "nodejs";
-
-type ApiLabelSource = "user" | "auto" | "system";
-
-type DbLabelSource = "USER" | "AUTO" | "SYSTEM";
-
-const LABEL_TO_API: Record<DbLabelSource, ApiLabelSource> = {
-  USER: "user",
-  AUTO: "auto",
-  SYSTEM: "system",
-};
-
-function toApiLabelSource(value: DbLabelSource): ApiLabelSource {
-  return LABEL_TO_API[value] ?? "user";
-}
 
 type TrailCursor = {
   updatedAt: Date;
@@ -46,40 +33,6 @@ function parseCursor(raw: string | null): TrailCursor | null {
   }
 
   return { updatedAt, id };
-}
-
-function toTrailSummary(trail: {
-  id: string;
-  userId: string;
-  deviceId: string;
-  label: string;
-  labelSource: DbLabelSource;
-  labelUpdatedAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  savedAt: Date;
-  nodeCount: number;
-  rootUrl?: string | null;
-  rootTitle?: string | null;
-  rootFavicon?: string | null;
-  deletedAt?: Date | null;
-}) {
-  return {
-    id: trail.id,
-    userId: trail.userId,
-    deviceId: trail.deviceId,
-    label: trail.label,
-    labelSource: toApiLabelSource(trail.labelSource),
-    labelUpdatedAt: trail.labelUpdatedAt.toISOString(),
-    createdAt: trail.createdAt.toISOString(),
-    updatedAt: trail.updatedAt.toISOString(),
-    savedAt: trail.savedAt.toISOString(),
-    nodeCount: trail.nodeCount,
-    rootUrl: trail.rootUrl ?? null,
-    rootTitle: trail.rootTitle ?? null,
-    rootFavicon: trail.rootFavicon ?? null,
-    deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null,
-  };
 }
 
 export async function GET(request: Request) {
