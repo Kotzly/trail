@@ -13,7 +13,7 @@ const userMocks = vi.hoisted(() => ({
 
 vi.mock("@/src/env", () => ({
   env: {
-    BETTER_AUTH_URL: "https://auth.example.com",
+    appBaseUrl: "https://auth.example.com",
     ACCOUNT_AUTH_BYPASS: false,
   },
 }));

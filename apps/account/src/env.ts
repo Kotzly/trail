@@ -2,12 +2,9 @@ import "server-only";
 
 type RequiredEnvKey =
   | "BETTER_AUTH_SECRET"
-  | "BETTER_AUTH_URL"
-  | "BETTER_AUTH_TRUSTED_ORIGINS"
   | "GOOGLE_CLIENT_ID"
   | "GOOGLE_CLIENT_SECRET"
   | "TRAIL_EXTENSION_JWT_SECRET"
-  | "APP_BASE_URL"
   | "DATABASE_URL";
 
 export type BillingProviderName = "manual" | "nowpayments";
@@ -58,14 +55,17 @@ function readBooleanEnv(value: unknown): boolean {
   return normalized === "1" || normalized === "true" || normalized === "yes";
 }
 
+function resolveAppBaseUrl(): string {
+  if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:4001";
+}
+
 const requiredEnvVars: RequiredEnvKey[] = [
   "BETTER_AUTH_SECRET",
-  "BETTER_AUTH_URL",
-  "BETTER_AUTH_TRUSTED_ORIGINS",
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
   "TRAIL_EXTENSION_JWT_SECRET",
-  "APP_BASE_URL",
   "DATABASE_URL",
 ];
 
@@ -73,12 +73,11 @@ const resolved = requireEnv(requiredEnvVars);
 
 export const env = {
   ...resolved,
+  appBaseUrl: resolveAppBaseUrl(),
   ACCOUNT_AUTH_BYPASS: readBooleanEnv(process.env.ACCOUNT_AUTH_BYPASS),
   BILLING_PROVIDER: normalizeBillingProvider(process.env.BILLING_PROVIDER),
   BILLING_TEST_MODE: readBooleanEnv(process.env.BILLING_TEST_MODE),
   NOWPAYMENTS_API_KEY: readOptionalEnv(process.env.NOWPAYMENTS_API_KEY),
   NOWPAYMENTS_IPN_SECRET: readOptionalEnv(process.env.NOWPAYMENTS_IPN_SECRET),
   NOWPAYMENTS_API_BASE_URL: readOptionalEnv(process.env.NOWPAYMENTS_API_BASE_URL),
-  WAITLIST_PROVIDER_ENDPOINT: readOptionalEnv(process.env.WAITLIST_PROVIDER_ENDPOINT),
-  WAITLIST_PROVIDER_TOKEN: readOptionalEnv(process.env.WAITLIST_PROVIDER_TOKEN),
 };

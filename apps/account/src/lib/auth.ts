@@ -73,7 +73,7 @@ function normalizeBaseUrl(value: string): string | null {
 }
 
 function resolveAuthIssuer(): string | null {
-  return normalizeBaseUrl(env.BETTER_AUTH_URL);
+  return normalizeBaseUrl(env.appBaseUrl);
 }
 
 function getRemoteJwks(jwksUrl: string) {

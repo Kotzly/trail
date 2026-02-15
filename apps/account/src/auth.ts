@@ -4,16 +4,10 @@ import { jwt } from "better-auth/plugins/jwt";
 import { db } from "@trail/db";
 import { env } from "./env";
 
-const trustedOrigins = env.BETTER_AUTH_TRUSTED_ORIGINS
-  .split(",")
-  .map((value) => value.trim())
-  .filter(Boolean);
-
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.BETTER_AUTH_URL,
   database: prismaAdapter(db, { provider: "postgresql" }),
-  trustedOrigins,
+  trustedOrigins: [env.appBaseUrl],
   socialProviders: {
     google: {
       clientId: env.GOOGLE_CLIENT_ID,

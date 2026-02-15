@@ -11,7 +11,7 @@ import { db } from "@trail/db";
 import { addInterval } from "@/src/server/backend/subscription/period";
 
 function billingUrl(): string {
-  return `${env.APP_BASE_URL.replace(/\/$/, "")}/billing`;
+  return `${env.appBaseUrl.replace(/\/$/, "")}/billing`;
 }
 
 function link(): BillingPortalLink {

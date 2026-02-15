@@ -11,54 +11,6 @@ servers:
 security: []
 
 paths:
-  /waitlist:
-    post:
-      summary: Create or update a waitlist lead
-      description: |
-        Alias for /wishlist. If the email already exists, the lead is updated and
-        sources are merged.
-      tags: [wishlist]
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WishlistLeadInput"
-      responses:
-        "201":
-          description: Lead created or updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WishlistLead"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
-  /wishlist:
-    post:
-      summary: Create or update a wishlist lead
-      description: |
-        Public endpoint. If the email already exists, the lead is updated and
-        sources are merged.
-      tags: [wishlist]
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WishlistLeadInput"
-      responses:
-        "201":
-          description: Lead created or updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WishlistLead"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
   /oauth/authorize:
     get:
       summary: OAuth authorization endpoint (Authorization Code + PKCE)
@@ -504,73 +456,6 @@ components:
           type: boolean
         details:
           type: string
-
-    WishlistSource:
-      type: string
-      enum: [marketing, account, extension]
-
-    WishlistLeadInput:
-      type: object
-      required: [email, source]
-      properties:
-        email:
-          type: string
-          format: email
-        source:
-          $ref: "#/components/schemas/WishlistSource"
-        utmSource:
-          type: string
-          nullable: true
-        utmMedium:
-          type: string
-          nullable: true
-        utmCampaign:
-          type: string
-          nullable: true
-        utmContent:
-          type: string
-          nullable: true
-        utmTerm:
-          type: string
-          nullable: true
-        referrer:
-          type: string
-          nullable: true
-        pagePath:
-          type: string
-          nullable: true
-        userAgent:
-          type: string
-          nullable: true
-        ip:
-          type: string
-          nullable: true
-        country:
-          type: string
-          nullable: true
-
-    WishlistLead:
-      type: object
-      required: [id, email, sources, createdAt, updatedAt]
-      properties:
-        id:
-          type: string
-        email:
-          type: string
-          format: email
-        userId:
-          type: string
-          nullable: true
-        sources:
-          type: array
-          items:
-            $ref: "#/components/schemas/WishlistSource"
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
 
     OAuthTokenCodeGrantRequest:
       type: object

@@ -43,7 +43,7 @@ function getNowPaymentsBaseUrl(): string {
 }
 
 function billingUrl(): string {
-  return `${env.APP_BASE_URL.replace(/\/$/, "")}/billing`;
+  return `${env.appBaseUrl.replace(/\/$/, "")}/billing`;
 }
 
 function assertPaidPlanId(planId: string): asserts planId is Exclude<PlanId, "free"> {

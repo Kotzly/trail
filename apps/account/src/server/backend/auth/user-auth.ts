@@ -53,7 +53,7 @@ export async function verifyUserToken(
 
   const primaryIssuer =
     (options.issuer ? normalizeBaseUrl(options.issuer) : null) ??
-    normalizeBaseUrl(env.BETTER_AUTH_URL);
+    normalizeBaseUrl(env.appBaseUrl);
   if (!primaryIssuer) {
     return null;
   }

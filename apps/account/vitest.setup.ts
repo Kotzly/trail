@@ -3,13 +3,8 @@ import * as matchers from "@testing-library/jest-dom/matchers";
 
 expect.extend(matchers);
 
-process.env.APP_BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:3001";
 process.env.BETTER_AUTH_SECRET =
   process.env.BETTER_AUTH_SECRET ?? "0123456789abcdef0123456789abcdef";
-process.env.BETTER_AUTH_URL =
-  process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
-process.env.BETTER_AUTH_TRUSTED_ORIGINS =
-  process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "http://localhost:3001";
 process.env.GOOGLE_CLIENT_ID =
   process.env.GOOGLE_CLIENT_ID ?? "test-google-client-id";
 process.env.GOOGLE_CLIENT_SECRET =

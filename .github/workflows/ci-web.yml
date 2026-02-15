@@ -38,23 +38,16 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trail_ci
 
       TRAIL_EXTENSION_JWT_SECRET: test-extension-secret
-      WAITLIST_PROVIDER_ENDPOINT: http://localhost:3001/api/v1/waitlist
-      WAITLIST_PROVIDER_TOKEN: test-waitlist-token
 
       # Account auth + billing placeholders for build-time env checks.
-      BETTER_AUTH_URL: http://localhost:3001
       BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef
-      BETTER_AUTH_TRUSTED_ORIGINS: http://localhost:3001
-      AUTH_BRIDGE_DEFAULT_RETURN_TO: http://localhost:3001
       GOOGLE_CLIENT_ID: test-google-client-id
       GOOGLE_CLIENT_SECRET: test-google-client-secret
-      APP_BASE_URL: http://localhost:3001
       BILLING_PROVIDER: manual
       BILLING_TEST_MODE: "1"
       NOWPAYMENTS_API_KEY: ""
       NOWPAYMENTS_IPN_SECRET: ""
       NOWPAYMENTS_API_BASE_URL: ""
-      NEXT_PUBLIC_SITE_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3001
 
     steps:

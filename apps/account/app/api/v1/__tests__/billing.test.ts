@@ -74,8 +74,7 @@ vi.mock("@/src/server/backend/subscription-access", () => ({
 
 vi.mock("@/src/env", () => ({
   env: {
-    APP_BASE_URL: "http://localhost:3001",
-    BETTER_AUTH_URL: "http://localhost:3003",
+    appBaseUrl: "http://localhost:3001",
     TRAIL_EXTENSION_JWT_SECRET: "test-extension-secret",
     BILLING_PROVIDER: "manual",
     NOWPAYMENTS_API_KEY: null,

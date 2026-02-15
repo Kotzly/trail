@@ -378,9 +378,6 @@ export function BillingPlansClient({
         <p className="text-center text-xs text-ink-muted">{notice}</p>
       ) : null}
 
-      <div className="text-center text-xs text-ink-muted lowercase">
-        {billing.waitlistNote}
-      </div>
     </>
   );
 }

@@ -380,13 +380,13 @@ export const marketingCopy = {
     eyebrow: "Downloads",
     title: "Install the app where you work",
     subtitle:
-      "Downloads are opening in waves. Join the list and we will email you as soon as the build is ready.",
-    primaryCta: "Join the waitlist",
+      "Available for Chrome, Brave, and Edge. Firefox and Safari support coming soon.",
+    primaryCta: "Get started",
     secondaryCta: "Sign in",
     cards: [
       {
         title: "Chrome add-on",
-        status: "waitlist",
+        status: "available",
         copy: "Optimized for Chrome and Chromium builds with the full sidepanel experience.",
       },
       {
