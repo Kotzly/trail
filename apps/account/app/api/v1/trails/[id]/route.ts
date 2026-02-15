@@ -172,7 +172,7 @@ export async function PATCH(
   const savedAt =
     savedAtRaw && !Number.isNaN(savedAtRaw.getTime()) ? savedAtRaw : undefined;
 
-  const hasMetaUpdate = label || labelSource || deletedAt !== undefined;
+  const hasMetaUpdate = label !== undefined || labelSource || deletedAt !== undefined;
   const hasPayloadUpdate =
     payload !== undefined ||
     nodeCount !== undefined ||
