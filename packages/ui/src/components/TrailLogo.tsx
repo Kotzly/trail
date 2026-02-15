@@ -1,4 +1,4 @@
-import { useId, type CSSProperties, type FC } from "react";
+import { type CSSProperties, type FC } from "react";
 import { cn } from "../utils/cn";
 
 const delayStyles: Record<string, CSSProperties> = {
@@ -64,10 +64,9 @@ type TrailLogoComponent = FC<TrailLogoProps> & {
   Static: FC<TrailLogoCompoundProps>;
 };
 
+const GLOW_GRADIENT_ID = "trail-logo-glow";
+
 function TrailLogoBase({ className, variant = "static", label }: TrailLogoProps) {
-  const id = useId();
-  const nodeId = `${id}-node`;
-  const glowId = `${id}-glow`;
   const isAnimated = variant === "animated";
   const ariaProps = label
     ? { role: "img", "aria-label": label }
@@ -87,11 +86,7 @@ function TrailLogoBase({ className, variant = "static", label }: TrailLogoProps)
       {...ariaProps}
     >
       <defs>
-        <radialGradient id={nodeId} cx="30%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="var(--trail-logo-accent)" stopOpacity="1" />
-          <stop offset="100%" stopColor="var(--trail-logo-accent)" stopOpacity="1" />
-        </radialGradient>
-        <radialGradient id={glowId} cx="30%" cy="30%" r="70%">
+        <radialGradient id={GLOW_GRADIENT_ID} cx="30%" cy="30%" r="70%">
           <stop offset="0%" stopColor="var(--trail-logo-accent)" stopOpacity="0" />
           <stop offset="38%" stopColor="var(--trail-logo-accent)" stopOpacity="0.45" />
           <stop offset="100%" stopColor="var(--trail-logo-accent)" stopOpacity="0" />
@@ -127,7 +122,7 @@ function TrailLogoBase({ className, variant = "static", label }: TrailLogoProps)
         ))}
       </g>
 
-      <g fill={`url(#${glowId})`} pointerEvents="none">
+      <g fill={`url(#${GLOW_GRADIENT_ID})`} pointerEvents="none">
         {glowNodes.map(({ cx, cy, delay }) => (
           <circle
             key={`${cx}-${cy}-${delay}`}
@@ -140,7 +135,7 @@ function TrailLogoBase({ className, variant = "static", label }: TrailLogoProps)
         ))}
       </g>
 
-      <g fill={`url(#${nodeId})`}>
+      <g fill="var(--trail-logo-accent)">
         {nodePoints.map(({ cx, cy }) => (
           <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={nodeRadius} />
         ))}

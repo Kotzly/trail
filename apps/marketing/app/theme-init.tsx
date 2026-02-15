@@ -1,22 +1,13 @@
 // app/theme-init.tsx
 export function ThemeInit() {
+  // Inline script that runs before first paint to prevent flash.
+  // Marketing site always follows system preference via data-theme="system";
+  // CSS @media rules handle the actual light/dark switching.
   const code = `(function () {
       try {
-        var key = 'trail-theme';
-        var stored = localStorage.getItem(key);
-  
-        var theme = stored || 'system';
-        var resolved = theme;
-  
-        if (theme === 'system') {
-          resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-  
         var root = document.documentElement;
-  
-        root.dataset.theme = resolved;
-  
-        root.style.colorScheme = resolved;
+        try { localStorage.removeItem('trail-theme'); } catch (_) {}
+        root.dataset.theme = 'system';
       } catch (e) {}
     })();`;
 
