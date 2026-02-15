@@ -59,4 +59,4 @@ pens/
 .cursor/
 extension/public/backend-preset.json
 .output/
-next-env.d.ts
+**/**/next-env.d.ts
