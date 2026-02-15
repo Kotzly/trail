@@ -55,4 +55,4 @@
   - API: https://api.gettrail.net
 - The extension is not yet deployed.
 - The auth is handled by Better Auth.
-- The database is handled by Supabase.
+- The database is handled by Neon.
