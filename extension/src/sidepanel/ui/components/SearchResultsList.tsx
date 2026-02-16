@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { FaviconUrl, NodeId, Timestamp, Url } from '../../../shared/types/ids.js';
+import { getFaviconUrl } from '../../../shared/utils/favicon.js';
 import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { formatTime, formatUrl } from '../shared/format.js';
 import { Icons } from './Icon.js';
@@ -89,8 +90,8 @@ const SearchResultRow = React.memo(function SearchResultRow({
       onClick={() => onSelect(item.id)}
     >
       <div className="floating-search-item-icon" aria-hidden="true">
-        {item.favicon && !faviconError ? (
-          <img src={item.favicon} alt="" onError={() => setFaviconError(true)} />
+        {!faviconError ? (
+          <img src={getFaviconUrl(item.url)} alt="" onError={() => setFaviconError(true)} />
         ) : (
           <Icons.Search size={14} />
         )}

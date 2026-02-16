@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { NodeId } from '../../../shared/types/ids.js';
+import { getFaviconUrl } from '../../../shared/utils/favicon.js';
 import { navigateTo } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
@@ -143,8 +144,8 @@ export default function PinnedDropdown() {
                 onClick={() => void handleNavigate(node.id as NodeId)}
                 onMouseOver={() => setFocusedIndex(idx)}
               >
-                {node.data.favicon ? (
-                  <img className="pinned-dropdown-item-favicon" alt="" src={node.data.favicon} />
+                {node.data.url ? (
+                  <img className="pinned-dropdown-item-favicon" alt="" src={getFaviconUrl(node.data.url)} />
                 ) : (
                   <div className="pinned-dropdown-item-favicon placeholder">
                     <Icons.Pin size={14} />

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { NodeId, Tag, Url } from '../../../../shared/types/ids.js';
+import { getFaviconUrl } from '../../../../shared/utils/favicon.js';
 import type { TagDefinition } from '../../../../shared/types/tags.js';
 import { navigateTo } from '../../../api/tree.js';
 import { useStore } from '../../state/store.js';
@@ -209,8 +210,8 @@ export default function TagFilterDropdown() {
                   onClick={() => void handleNavigate(node.id)}
                   onMouseOver={() => setFocusedIndex(idx)}
                 >
-                  {node.data.favicon ? (
-                    <img className="tag-filter-node-favicon" alt="" src={node.data.favicon} />
+                  {node.data.url ? (
+                    <img className="tag-filter-node-favicon" alt="" src={getFaviconUrl(node.data.url)} />
                   ) : (
                     <div className="tag-filter-node-favicon placeholder">
                       <Icons.Tag size={12} />

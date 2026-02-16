@@ -1,4 +1,6 @@
 import type { FaviconUrl, Url } from '../../shared/types/ids.js';
+import { getFaviconUrl } from '../../shared/utils/favicon.js';
+export { getFaviconUrl };
 
 const ignoredUrlPatterns: RegExp[] = [
   /^devtools:/,
@@ -42,13 +44,6 @@ export function isNewTabContext(url: Url, title?: string | null): boolean {
 
 export function shouldTrackUrl(url: Url): boolean {
   return !ignoredUrlPatterns.some(pattern => pattern.test(url));
-}
-
-export function getFaviconUrl(pageUrl: Url, size = 32): FaviconUrl {
-  const url = new URL(chrome.runtime.getURL("/_favicon/"));
-  url.searchParams.set("pageUrl", pageUrl);
-  url.searchParams.set("size", String(size));
-  return url.toString() as FaviconUrl;
 }
 
 export function normalizeFaviconUrl(

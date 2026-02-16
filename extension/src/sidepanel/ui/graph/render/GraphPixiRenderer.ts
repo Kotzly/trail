@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import { ChevronDown, Pin, Volume2, VolumeX } from 'lucide';
 import type { TextStyleFontWeight } from 'pixi.js';
 import type { FaviconUrl, NodeId } from '../../../../shared/types/ids.js';
+import { getFaviconUrl } from '../../../../shared/utils/favicon.js';
 import { formatUrl } from '../../shared/format.js';
 import type { LayoutMode, ViewState } from '../types.js';
 import type { ConnectionSegment, GraphDisplayOptions, NodeRenderModel, ParticleRenderModel } from './types.js';
@@ -281,7 +282,9 @@ class NodeVisual {
       lod === 'full' && model.display.showTagDots && model.node.data.tags?.length
         ? model.node.data.tags.join(',')
         : '';
-    const rawFavicon = lod === 'dot' ? null : showFavicon ? model.node.data.favicon ?? null : null;
+    const rawFavicon = lod === 'dot' ? null : showFavicon && model.node.data.url
+      ? getFaviconUrl(model.node.data.url)
+      : null;
     const safeFavicon = rawFavicon && isSafeFavicon(rawFavicon) ? rawFavicon : null;
     const cachedFavicon = safeFavicon ? getCachedFaviconTexture(safeFavicon) : null;
     const faviconKey = `${showFavicon ? '1' : '0'}|${safeFavicon ?? 'none'}|${cachedFavicon ? '1' : '0'}`;

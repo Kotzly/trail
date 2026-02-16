@@ -7,6 +7,7 @@ import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
 import React from 'react';
 import type { FaviconUrl, Title, Url } from '../../../shared/types/ids.js';
+import { getFaviconUrl } from '../../../shared/utils/favicon.js';
 import { createPortal } from 'react-dom';
 
 type TreeItem = {
@@ -397,8 +398,8 @@ export default function TreeDropdown() {
                     <div className="trees-dropdown-item-favicon placeholder">
                       <Icons.Cloud size={14} />
                     </div>
-                  ) : tree.rootFavicon ? (
-                    <img className="trees-dropdown-item-favicon" alt="" src={tree.rootFavicon} />
+                  ) : tree.rootUrl ? (
+                    <img className="trees-dropdown-item-favicon" alt="" src={getFaviconUrl(tree.rootUrl)} />
                   ) : (
                     <div className="trees-dropdown-item-favicon placeholder">
                       <Icons.Bookmark size={14} />
