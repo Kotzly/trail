@@ -4,10 +4,9 @@ import { initWebNavigation } from './navigation/webnavigation.js';
 import { initTabsLifecycle } from './tabs/lifecycle.js';
 import { syncOpenTabs } from './tabs/sync-open-tabs.js';
 import { CommandManager } from '../shared/lib/commands.js';
-import { cloudSync } from './services/cloud-sync.js';
+import { syncEngine } from './services/sync/engine.js';
 import { initBackendConfig } from '../shared/config/backend.js';
 import { authOrchestrator } from './services/auth-orchestrator.js';
-import { ensureIndexSynced } from './services/startup-sync.js';
 
 
 // Initialize all modules
@@ -17,8 +16,7 @@ initWebNavigation();
 initTabsLifecycle();
 void syncOpenTabs();
 void CommandManager.init();
-cloudSync.init();
-void ensureIndexSynced();
+syncEngine.init();
 authOrchestrator.init();
 
 const sidePanel = chrome?.sidePanel;

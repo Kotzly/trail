@@ -1,4 +1,5 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
+import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
 import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
 import { jsonError } from "@/src/server/backend/error-response";
 import { jsonNoStore } from "@/src/server/backend/response";
@@ -7,6 +8,9 @@ import {
   type DbLabelSource,
   toTrailRecord,
 } from "@/src/server/backend/trail-serializers";
+import { isJsonValue } from "@/src/server/backend/json";
+import { upsertTrail } from "@/src/server/backend/trails-sync";
+import type { TrailLabelSource } from "@/src/server/backend/trails-sync";
 import { db } from "@trail/db";
 
 export const runtime = "nodejs";
@@ -62,6 +66,128 @@ export async function GET(
   }
 
   return jsonNoStore(toTrailRecord(trail as typeof trail & { payload: unknown }));
+}
+
+/* ------------------------------------------------------------------ */
+/*  PUT /api/v1/trails/:id — single-tree upsert with LWW merge        */
+/* ------------------------------------------------------------------ */
+
+function parseDate(value: unknown): Date | null {
+  if (typeof value !== "string") return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+const API_TO_DB_LABEL: Record<ApiLabelSource, DbLabelSource> = {
+  user: "USER",
+  auto: "AUTO",
+  system: "SYSTEM",
+};
+
+function toDbLabelSourceStrict(value: unknown): DbLabelSource | null {
+  if (typeof value !== "string") return null;
+  const lowered = value.trim().toLowerCase() as ApiLabelSource;
+  return API_TO_DB_LABEL[lowered] ?? null;
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  if (!id) {
+    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+  }
+
+  const token = getBearerToken(request.headers);
+  const extension = token ? await verifyExtensionToken(token) : null;
+  if (!extension?.sub) {
+    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return jsonError("invalid_payload", "Invalid payload.", { status: 400 });
+  }
+
+  const deviceId = typeof body.deviceId === "string" ? body.deviceId.trim() : "";
+  if (!deviceId) {
+    return jsonError("device_id_required", "Device id is required.", { status: 400 });
+  }
+
+  const label = typeof body.label === "string" ? body.label : "";
+  const labelSource = toDbLabelSourceStrict(body.labelSource);
+  const labelUpdatedAt = parseDate(body.labelUpdatedAt);
+  const createdAt = parseDate(body.createdAt);
+  const updatedAt = parseDate(body.updatedAt);
+  const savedAt = parseDate(body.savedAt);
+  const nodeCount = typeof body.nodeCount === "number" ? body.nodeCount : null;
+  const payload = body.payload ?? null;
+
+  if (
+    !label ||
+    !labelSource ||
+    !labelUpdatedAt ||
+    !createdAt ||
+    !updatedAt ||
+    !savedAt ||
+    nodeCount === null ||
+    !isJsonValue(payload)
+  ) {
+    return jsonError("invalid_payload", "Missing required fields.", { status: 400 });
+  }
+
+  const deletedAtRaw = body.deletedAt === null ? null : parseDate(body.deletedAt);
+
+  try {
+    const result = await upsertTrail({
+      userId: extension.sub,
+      deviceId,
+      trail: {
+        id,
+        deviceId: typeof body.trailDeviceId === "string" ? body.trailDeviceId : null,
+        label,
+        labelSource: labelSource as TrailLabelSource,
+        labelUpdatedAt,
+        createdAt,
+        updatedAt,
+        savedAt,
+        nodeCount,
+        rootUrl: typeof body.rootUrl === "string" ? body.rootUrl : null,
+        rootTitle: typeof body.rootTitle === "string" ? body.rootTitle : null,
+        rootFavicon: typeof body.rootFavicon === "string" ? body.rootFavicon : null,
+        payload,
+        deletedAt: deletedAtRaw,
+      },
+    });
+
+    return jsonNoStore({
+      updatedAt: result.updatedAt.toISOString(),
+      applied: result.applied,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+
+    if (message === "user_not_found") {
+      return jsonError("unauthorized", "Unauthorized.", {
+        status: 401,
+        retryable: false,
+        details: "reason=user_not_found",
+      });
+    }
+
+    if (message === "device_id_required") {
+      return jsonError("device_id_required", "Device id is required.", {
+        status: 400,
+      });
+    }
+
+    return jsonError("internal_error", "Internal error.", {
+      status: 500,
+      retryable: true,
+    });
+  }
 }
 
 /* ------------------------------------------------------------------ */

@@ -1,7 +1,7 @@
-import { buildBackendUrl, initBackendConfig, BACKEND_CONFIG } from '../../shared/config/backend.js';
 import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { treeStorage } from './tree-storage.js';
-import { setCachedTree } from './tree-cache.js';
+import { syncApi, SyncApiError } from './sync/api.js';
+import { dirtyTracker } from './sync/dirty-tracker.js';
 import { sendRuntimeMessage } from '../messaging/send-message.js';
 import { rpc, type SyncStatus } from '../../shared/rpc/contracts.js';
 import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
@@ -12,9 +12,10 @@ import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 /*  Handles debounced PATCH syncing of the editor tree to the API.     */
 /*  After each tree mutation in editor mode, the service waits 3s      */
 /*  then PATCHes the full tree payload.                                */
+/*                                                                     */
+/*  Also marks trees as dirty for the sync engine to push via PUT.     */
 /* ------------------------------------------------------------------ */
 
-const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
 const SYNC_DEBOUNCE_MS = 3000;
 const RETRY_BACKOFFS = [2000, 4000, 8000] as const;
 
@@ -50,74 +51,29 @@ function broadcastStatus(status: SyncStatus): void {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Auth helper                                                        */
+/*  Core sync logic                                                    */
 /* ------------------------------------------------------------------ */
-
-async function getAccessToken(): Promise<string | null> {
-  const result = await chrome.storage.local.get(AUTH_STORAGE_KEY);
-  const raw = result[AUTH_STORAGE_KEY] as { accessToken?: string } | undefined;
-  if (!raw || typeof raw !== 'object') return null;
-  return typeof raw.accessToken === 'string' && raw.accessToken ? raw.accessToken : null;
-}
-
-async function clearAuthSession(): Promise<void> {
-  await chrome.storage.local.remove(AUTH_STORAGE_KEY).catch(() => undefined);
-}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/* ------------------------------------------------------------------ */
-/*  Core sync logic                                                    */
-/* ------------------------------------------------------------------ */
-
 async function patchTree(treeId: string): Promise<EditorSyncFlushResult> {
-  await initBackendConfig();
-  const token = await getAccessToken();
-  if (!token) {
-    return { ok: false, error: 'Missing auth token' };
-  }
-
   const tree = await treeStorage.getOrCreateTree();
   const json = NavigationTreeMapper.toJSON(tree);
   const root = tree.getRoot();
   const savedAt = Date.now();
   const savedAtIso = new Date(savedAt).toISOString();
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), BACKEND_CONFIG.timeoutMs);
-
   try {
-    const response = await fetch(buildBackendUrl(`/trails/${treeId}`), {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        payload: json,
-        nodeCount: tree.size(),
-        rootUrl: root?.data.url ?? null,
-        rootTitle: root?.data.title ?? null,
-        rootFavicon: findBestTrailFavicon(json) ?? root?.data.favicon ?? null,
-        savedAt: savedAtIso,
-      }),
-      signal: controller.signal,
+    await syncApi.patchTree(treeId, {
+      payload: json,
+      nodeCount: tree.size(),
+      rootUrl: root?.data.url ?? null,
+      rootTitle: root?.data.title ?? null,
+      rootFavicon: findBestTrailFavicon(json) ?? root?.data.favicon ?? null,
+      savedAt: savedAtIso,
     });
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        await clearAuthSession();
-      }
-      const error = `PATCH /trails/${treeId} failed with ${response.status}`;
-      console.warn(`EditorSync: ${error}`);
-      return { ok: false, error };
-    }
-
-    // Update the LRU cache with the freshly synced data
-    await setCachedTree(treeId, json, savedAt);
 
     // Update archives if we're editing a non-active tree
     if (treeStorage.isEditingNonActiveTree) {
@@ -126,13 +82,15 @@ async function patchTree(treeId: string): Promise<EditorSyncFlushResult> {
 
     return { ok: true };
   } catch (error) {
+    if (error instanceof SyncApiError) {
+      console.warn(`EditorSync: PATCH /trails/${treeId} failed: ${error.message}`);
+      return { ok: false, error: error.message };
+    }
     console.warn('EditorSync: network error during PATCH', error);
     return {
       ok: false,
       error: error instanceof Error ? error.message : 'Network error during PATCH',
     };
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
@@ -207,7 +165,7 @@ function scheduleSync(delayMs: number = SYNC_DEBOUNCE_MS): void {
     state.timer = null;
     if (!state.dirty && state.retryCount === 0) return;
 
-    if (state.inFlight) return; // Already syncing
+    if (state.inFlight) return;
     state.inFlight = performSync().finally(() => {
       state.inFlight = null;
     });
@@ -218,9 +176,6 @@ function scheduleSync(delayMs: number = SYNC_DEBOUNCE_MS): void {
 /*  Public API                                                         */
 /* ------------------------------------------------------------------ */
 
-/**
- * Call when entering editor mode to start tracking changes.
- */
 export function editorSyncStart(treeId: string): void {
   clearTimer();
   state.treeId = treeId;
@@ -232,25 +187,25 @@ export function editorSyncStart(treeId: string): void {
 
 /**
  * Mark the editor tree as dirty and schedule a debounced sync.
+ * Also marks the tree dirty for the sync engine (so the next full
+ * sync cycle pushes the complete record via PUT).
  */
 export function editorSyncMarkDirty(): void {
   if (!state.treeId) return;
   state.dirty = true;
   state.retryCount = 0;
   scheduleSync();
+
+  // Mark dirty for the sync engine too
+  void dirtyTracker.markDirty(state.treeId);
 }
 
-/**
- * Force an immediate sync if dirty. Returns when complete.
- * Used on editor exit to ensure no data loss.
- */
 export async function editorSyncFlush(): Promise<EditorSyncFlushResult> {
   clearTimer();
   if (!state.treeId || !state.dirty) {
     return { ok: true };
   }
 
-  // Wait for any in-flight sync to finish first
   if (state.inFlight) {
     await state.inFlight;
   }
@@ -264,9 +219,6 @@ export async function editorSyncFlush(): Promise<EditorSyncFlushResult> {
   return flushSyncWithRetries(state.treeId);
 }
 
-/**
- * Stop tracking editor sync state.
- */
 export function editorSyncStop(): void {
   clearTimer();
   state.treeId = null;
@@ -276,9 +228,6 @@ export function editorSyncStop(): void {
   state.inFlight = null;
 }
 
-/**
- * Retry a failed sync manually.
- */
 export function editorSyncRetry(): void {
   if (!state.treeId || state.status !== 'error') return;
   state.retryCount = 0;
@@ -286,9 +235,6 @@ export function editorSyncRetry(): void {
   scheduleSync(0);
 }
 
-/**
- * Get the current sync status.
- */
 export function getEditorSyncStatus(): SyncStatus {
   return state.status;
 }

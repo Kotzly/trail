@@ -123,7 +123,6 @@ export default function TreeDropdown() {
       return;
     }
 
-    // Sync trees index when dropdown opens
     let cancelled = false;
     const doSync = async () => {
       try {

@@ -1,5 +1,6 @@
 import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
 import { notifyUi } from "../messaging/ui-notifications.js";
+import { syncEngine } from "./sync/engine.js";
 
 const AUTH_STORAGE_KEY = "trail_auth_session" as const;
 const DEVICE_ID_STORAGE_KEY = "trail_oauth_device_id" as const;
@@ -267,6 +268,12 @@ class AuthOrchestrator {
       this.clearLoginRequiredCooldown();
     }
     logAuth("auth_cleared", { reason });
+
+    // On explicit logout, clear all local trees so the next login
+    // pulls a fresh set for the (possibly different) account.
+    if (reason === "web_logout") {
+      await syncEngine.resetForAccountSwitch();
+    }
   }
 
   async invalidateFromWebLogout(): Promise<void> {

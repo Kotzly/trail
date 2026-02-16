@@ -1,10 +1,26 @@
 type TrailLabelSource = "USER" | "AUTO" | "SYSTEM";
 
-import { type JsonValue, toPrismaJsonInput } from "./json";
+import { toPrismaJsonInput } from "./json";
+import type { JsonValue } from "./json";
 
-type TrailSyncRecord = {
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Input for the lightweight index-sync endpoint.
+ * The client sends only its deviceId and last-known sync cursor;
+ * the server returns metadata-only updates.
+ */
+type IndexSyncInput = {
+  userId: string;
+  deviceId: string;
+  clientSyncAt: Date;
+};
+
+type TrailMetaRecord = {
   id: string;
-  deviceId?: string | null;
+  deviceId: string;
   label: string;
   labelSource: TrailLabelSource;
   labelUpdatedAt: Date;
@@ -12,27 +28,52 @@ type TrailSyncRecord = {
   updatedAt: Date;
   savedAt: Date;
   nodeCount: number;
-  rootUrl?: string | null;
-  rootTitle?: string | null;
-  rootFavicon?: string | null;
-  payload: JsonValue;
-  deletedAt?: Date | null;
+  rootUrl: string | null;
+  rootTitle: string | null;
+  rootFavicon: string | null;
+  deletedAt: Date | null;
 };
 
-type TrailSyncInput = {
+type IndexSyncOutput = {
+  serverSyncAt: Date;
+  updates: TrailMetaRecord[];
+};
+
+/**
+ * Input for the per-tree upsert endpoint (PUT /trails/:id).
+ */
+type TrailUpsertInput = {
   userId: string;
   deviceId: string;
-  clientSyncAt: Date;
-  trails: TrailSyncRecord[];
+  trail: {
+    id: string;
+    deviceId?: string | null;
+    label: string;
+    labelSource: TrailLabelSource;
+    labelUpdatedAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+    savedAt: Date;
+    nodeCount: number;
+    rootUrl?: string | null;
+    rootTitle?: string | null;
+    rootFavicon?: string | null;
+    payload: JsonValue;
+    deletedAt?: Date | null;
+  };
 };
 
-type TrailSyncOutput = {
-  serverSyncAt: Date;
-  updates: TrailSyncRecord[];
+type TrailUpsertOutput = {
+  updatedAt: Date;
+  applied: boolean;
 };
 
 const TOMBSTONE_RETENTION_DAYS = 30;
 const TOMBSTONE_RETENTION_MS = TOMBSTONE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+/* ------------------------------------------------------------------ */
+/*  Merge logic                                                        */
+/* ------------------------------------------------------------------ */
 
 function isStaleAfterTombstone(params: {
   serverDeletedAt: Date | null | undefined;
@@ -69,16 +110,9 @@ export function mergeTrailUpdates(
   return { applied: true };
 }
 
-function normalizeClientTrails(trails: TrailSyncRecord[]): TrailSyncRecord[] {
-  const map = new Map<string, TrailSyncRecord>();
-  for (const trail of trails) {
-    const existing = map.get(trail.id);
-    if (!existing || existing.updatedAt.getTime() < trail.updatedAt.getTime()) {
-      map.set(trail.id, trail);
-    }
-  }
-  return Array.from(map.values());
-}
+/* ------------------------------------------------------------------ */
+/*  Device helpers                                                     */
+/* ------------------------------------------------------------------ */
 
 function normalizeDeviceId(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -90,29 +124,22 @@ async function ensureSyncDevices(params: {
   db: Awaited<typeof import("@trail/db")>["db"];
   userId: string;
   primaryDeviceId: string;
-  trails: TrailSyncRecord[];
+  extraDeviceIds?: string[];
   now: Date;
 }) {
-  const { db, userId, primaryDeviceId, trails, now } = params;
+  const { db, userId, primaryDeviceId, now } = params;
   const ids = new Set<string>();
   ids.add(primaryDeviceId);
-
-  for (const trail of trails) {
-    const deviceId = normalizeDeviceId(trail.deviceId);
-    if (deviceId) {
-      ids.add(deviceId);
+  if (params.extraDeviceIds) {
+    for (const id of params.extraDeviceIds) {
+      if (id) ids.add(id);
     }
   }
 
   const deviceIds = Array.from(ids);
   const existing = await db.device.findMany({
-    where: {
-      id: { in: deviceIds },
-    },
-    select: {
-      id: true,
-      userId: true,
-    },
+    where: { id: { in: deviceIds } },
+    select: { id: true, userId: true },
   });
 
   const existingById = new Map(existing.map((device) => [device.id, device]));
@@ -125,8 +152,6 @@ async function ensureSyncDevices(params: {
       continue;
     }
     if (device.userId !== userId) {
-      // Device was previously associated with another user — reassign to current user.
-      // This is safe because deviceId is a local identifier, not sensitive.
       await db.device.update({
         where: { id: deviceId },
         data: { userId },
@@ -162,51 +187,22 @@ async function ensureUserExists(params: {
     select: { id: true },
   });
   if (!user) {
-    // Most commonly happens in dev/e2e when the DB was reset but the client
-    // still holds a previously issued extension JWT for a now-missing user.
     throw new Error("user_not_found");
   }
 }
 
-function toDbData(params: {
-  trail: TrailSyncRecord;
-  userId: string;
-  deviceId: string;
-  includeCreatedAt: boolean;
-}) {
-  const { trail, userId, deviceId, includeCreatedAt } = params;
-  const resolvedDeviceId = normalizeDeviceId(trail.deviceId) ?? deviceId;
+/* ------------------------------------------------------------------ */
+/*  Index sync (POST /trails/sync)                                     */
+/* ------------------------------------------------------------------ */
 
-  const baseData = {
-    userId,
-    deviceId: resolvedDeviceId,
-    label: trail.label,
-    labelSource: trail.labelSource,
-    labelUpdatedAt: trail.labelUpdatedAt,
-    updatedAt: trail.updatedAt,
-    savedAt: trail.savedAt,
-    nodeCount: trail.nodeCount,
-    rootUrl: trail.rootUrl ?? null,
-    rootTitle: trail.rootTitle ?? null,
-    rootFavicon: trail.rootFavicon ?? null,
-    payload: toPrismaJsonInput(trail.payload),
-    deletedAt: trail.deletedAt ?? null,
-  };
-
-  if (!includeCreatedAt) {
-    return baseData;
-  }
-
-  return {
-    id: trail.id,
-    ...baseData,
-    createdAt: trail.createdAt,
-  };
-}
-
-export async function syncTrails(
-  input: TrailSyncInput,
-): Promise<TrailSyncOutput> {
+/**
+ * Lightweight index sync: returns metadata-only updates since clientSyncAt.
+ * No payloads, no client upserts. The client uses separate PUT/GET/DELETE
+ * endpoints for per-tree operations.
+ */
+export async function syncTrailsIndex(
+  input: IndexSyncInput,
+): Promise<IndexSyncOutput> {
   const { db } = await import("@trail/db");
   const primaryDeviceId = normalizeDeviceId(input.deviceId);
   if (!primaryDeviceId) {
@@ -221,10 +217,10 @@ export async function syncTrails(
     db,
     userId: input.userId,
     primaryDeviceId,
-    trails: input.trails,
     now,
   });
 
+  // Clean up old tombstones
   await db.trail.deleteMany({
     where: {
       userId: input.userId,
@@ -232,62 +228,27 @@ export async function syncTrails(
     },
   });
 
-  const clientTrails = normalizeClientTrails(input.trails);
-  const ids = clientTrails.map((trail) => trail.id);
-
-  const existing = ids.length
-    ? await db.trail.findMany({
-        where: {
-          userId: input.userId,
-          id: { in: ids },
-        },
-      })
-    : [];
-
-  const existingMap = new Map(existing.map((trail) => [trail.id, trail]));
-  const operations: Array<ReturnType<typeof db.trail.update>> = [];
-
-  for (const trail of clientTrails) {
-    const serverTrail = existingMap.get(trail.id) ?? null;
-    const merge = mergeTrailUpdates(serverTrail, trail);
-    if (!merge.applied) {
-      continue;
-    }
-
-    if (serverTrail) {
-      operations.push(
-        db.trail.update({
-          where: { id: serverTrail.id },
-          data: toDbData({
-            trail,
-            userId: input.userId,
-            deviceId: primaryDeviceId,
-            includeCreatedAt: false,
-          }),
-        }),
-      );
-    } else {
-      operations.push(
-        db.trail.create({
-          data: toDbData({
-            trail,
-            userId: input.userId,
-            deviceId: primaryDeviceId,
-            includeCreatedAt: true,
-          }),
-        }),
-      );
-    }
-  }
-
-  if (operations.length) {
-    await db.$transaction(operations);
-  }
-
+  // Return metadata-only updates since clientSyncAt
   const updates = await db.trail.findMany({
     where: {
       userId: input.userId,
       updatedAt: { gt: input.clientSyncAt },
+    },
+    select: {
+      id: true,
+      deviceId: true,
+      label: true,
+      labelSource: true,
+      labelUpdatedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      savedAt: true,
+      nodeCount: true,
+      rootUrl: true,
+      rootTitle: true,
+      rootFavicon: true,
+      deletedAt: true,
+      // No payload!
     },
   });
 
@@ -306,15 +267,99 @@ export async function syncTrails(
       rootUrl: trail.rootUrl ?? null,
       rootTitle: trail.rootTitle ?? null,
       rootFavicon: trail.rootFavicon ?? null,
-      payload: trail.payload,
       deletedAt: trail.deletedAt ?? null,
     })),
   };
 }
 
+/* ------------------------------------------------------------------ */
+/*  Per-tree upsert (PUT /trails/:id)                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Upsert a single tree. Applies last-write-wins merge logic.
+ * Returns whether the update was applied and the resulting updatedAt.
+ */
+export async function upsertTrail(
+  input: TrailUpsertInput,
+): Promise<TrailUpsertOutput> {
+  const { db } = await import("@trail/db");
+  const primaryDeviceId = normalizeDeviceId(input.deviceId);
+  if (!primaryDeviceId) {
+    throw new Error("device_id_required");
+  }
+
+  await ensureUserExists({ db, userId: input.userId });
+
+  const trailDeviceId = normalizeDeviceId(input.trail.deviceId) ?? primaryDeviceId;
+
+  await ensureSyncDevices({
+    db,
+    userId: input.userId,
+    primaryDeviceId,
+    extraDeviceIds: trailDeviceId !== primaryDeviceId ? [trailDeviceId] : undefined,
+    now: new Date(),
+  });
+
+  const existing = await db.trail.findFirst({
+    where: { id: input.trail.id, userId: input.userId },
+  });
+
+  const merge = mergeTrailUpdates(
+    existing,
+    { updatedAt: input.trail.updatedAt, deletedAt: input.trail.deletedAt },
+  );
+
+  if (!merge.applied) {
+    return {
+      updatedAt: existing?.updatedAt ?? input.trail.updatedAt,
+      applied: false,
+    };
+  }
+
+  const data = {
+    userId: input.userId,
+    deviceId: trailDeviceId,
+    label: input.trail.label,
+    labelSource: input.trail.labelSource,
+    labelUpdatedAt: input.trail.labelUpdatedAt,
+    updatedAt: input.trail.updatedAt,
+    savedAt: input.trail.savedAt,
+    nodeCount: input.trail.nodeCount,
+    rootUrl: input.trail.rootUrl ?? null,
+    rootTitle: input.trail.rootTitle ?? null,
+    rootFavicon: input.trail.rootFavicon ?? null,
+    payload: toPrismaJsonInput(input.trail.payload),
+    deletedAt: input.trail.deletedAt ?? null,
+  };
+
+  if (existing) {
+    const updated = await db.trail.update({
+      where: { id: existing.id },
+      data,
+    });
+    return { updatedAt: updated.updatedAt, applied: true };
+  }
+
+  const created = await db.trail.create({
+    data: {
+      id: input.trail.id,
+      ...data,
+      createdAt: input.trail.createdAt,
+    },
+  });
+  return { updatedAt: created.updatedAt, applied: true };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Exports                                                            */
+/* ------------------------------------------------------------------ */
+
 export type {
-  TrailSyncInput,
-  TrailSyncOutput,
-  TrailSyncRecord,
+  IndexSyncInput,
+  IndexSyncOutput,
+  TrailMetaRecord,
+  TrailUpsertInput,
+  TrailUpsertOutput,
   TrailLabelSource,
 };

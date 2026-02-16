@@ -11,12 +11,11 @@ import { ForEacher } from '../../../shared/types/foreach.js';
 import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } from '../../../shared/types/node.js';
 import { normalizeFaviconUrl, shouldTrackUrl } from '../../utils/url-utils.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
-import { cloudSync } from '../../services/cloud-sync.js';
+import { syncEngine } from '../../services/sync/engine.js';
+import { dirtyTracker } from '../../services/sync/dirty-tracker.js';
+import { loadTree } from '../../services/tree-loader.js';
 import { editorSyncMarkDirty } from '../../services/editor-sync.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
-import { isTreeStub } from '../../../shared/types/tree.js';
-import { fetchTrailFromCloud } from '../../services/cloud-fetch.js';
-import { ensureIndexSynced } from '../../services/startup-sync.js';
 import type { TrailExportBundle } from '../../../shared/types/export.js';
 import { EXPORT_SCHEMA } from '../../../shared/types/export.js';
 
@@ -125,28 +124,20 @@ function registerTabForNode(nodeId: NodeId, tab: chrome.tabs.Tab): void {
 function ensureRootForTab(tree: NavigationTree, tab: chrome.tabs.Tab): NavigationNode | null {
   const root = tree.getRoot();
   const data = buildNodeDataFromTab(tab);
-  // No root yet: build it from the newly created tab and mark it current.
   if (!root) {
-    // If we can't derive data from the tab, we can't create a root.
     if (!data) {
       return null;
     }
-    // Navigate creates the first node when root is missing.
     const created = tree.navigate(data);
-    // Keep tree current aligned with the root tab.
     tree.setCurrent(created);
-    // Register the tab so we can track open tab <-> node mapping.
     registerTabForNode(created.id, tab);
     return created;
   }
-  // If the existing root matches this tab, refresh its metadata (title/favicon).
   if (data && root.data.url === data.url) {
     root.data = updateNodeMeta(root.data, data);
     tree.refreshSearchEntry(root.id);
   }
-  // Ensure current node points at root after tree switch.
   tree.setCurrent(root);
-  // Make sure the root tab is registered for tab tracking.
   registerTabForNode(root.id, tab);
   return root;
 }
@@ -234,15 +225,9 @@ export const treeHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.OPEN_TREE](message) {
-    // If the archive is a stub, rehydrate it from the cloud first
-    const index = await treeStorage.getArchiveIndex();
-    const entry = index.find((e) => e.id === message.treeId);
-    if (entry && isTreeStub(entry)) {
-      const cloudTree = await fetchTrailFromCloud(message.treeId);
-      if (!cloudTree) return err('Failed to load tree from cloud');
-      await treeStorage.saveArchiveTree(message.treeId, cloudTree);
-      await treeStorage.unstubArchiveEntry(message.treeId);
-    }
+    // Use tree-loader (handles active tree, archive blob, cloud fetch)
+    const loaded = await loadTree(message.treeId);
+    if (!loaded) return err('Tree not found');
 
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
@@ -265,17 +250,19 @@ export const treeHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.ENSURE_TREE_LOADED](message) {
-    const record = await treeStorage.ensureTreeLoaded(message.treeId);
+    const record = await loadTree(message.treeId);
     return ok(Boolean(record));
   },
 
   async [RPC_METHOD.SYNC_TREES]() {
-    await ensureIndexSynced();
+    await syncEngine.syncNow('manual');
     return ok();
   },
 
   async [RPC_METHOD.RENAME_TREE](message) {
     await treeStorage.renameTree(message.treeId, message.label);
+    // Mark dirty so the rename gets pushed on next sync
+    void dirtyTracker.markDirty(message.treeId);
     await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
   },
@@ -283,13 +270,10 @@ export const treeHandlers = defineRpcHandlers({
   async [RPC_METHOD.DELETE_ARCHIVED_TREE](message) {
     const active = await treeStorage.getActiveMeta();
     if (active.id === message.treeId) return err('Cannot delete active tree');
-    // Load full record before deletion so we can create a tombstone for sync
-    const archivedRecord = await treeStorage.getFullArchiveRecord(message.treeId);
     const removed = await treeStorage.deleteArchivedTree(message.treeId);
     if (!removed) return err('Tree not found');
-    if (archivedRecord) {
-      await cloudSync.recordArchiveDeletion(archivedRecord);
-    }
+    // Queue for server-side soft-delete on next sync
+    await dirtyTracker.queueDelete(message.treeId);
     await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
   },
@@ -299,13 +283,11 @@ export const treeHandlers = defineRpcHandlers({
     let label: string;
 
     if (message.treeId) {
-      // Export a specific archived tree
       const record = await treeStorage.getFullArchiveRecord(message.treeId);
       if (!record) return err('Tree not found');
       treeJSON = record.tree;
       label = record.label;
     } else {
-      // Export the active tree
       const tree = await treeStorage.getOrCreateTree();
       const meta = await treeStorage.getActiveMeta();
       treeJSON = NavigationTreeMapper.toJSON(tree);
@@ -487,10 +469,6 @@ export const treeHandlers = defineRpcHandlers({
       typeof message.radial !== 'undefined';
     if (!hasChanges) return ok();
     node.data = updateNodeData(node.data, { layout: nextLayout });
-    // Save silently — the sidepanel already has the correct position via
-    // dragPreview / local state.  Sending TREE_UPDATED here would cause a
-    // full re-render and stale intermediate positions arriving after drag
-    // ends produce a visible double-move glitch.
     treeStorage.cacheTree(tree);
     maybeEditorDirty();
     return ok();
@@ -533,7 +511,6 @@ export const treeHandlers = defineRpcHandlers({
 
     if (!changed) return ok();
 
-    // Keep drag updates silent to avoid extra TREE_UPDATED churn during pan/drag.
     treeStorage.cacheTree(tree);
     maybeEditorDirty();
     return ok();

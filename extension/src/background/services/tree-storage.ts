@@ -6,10 +6,9 @@ import { uuidv7 } from '../../shared/lib/uuid.js';
 import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 import { encodeTree, decodeTree } from '../../shared/lib/tree-codec.js';
 import { quotaAwareSet } from './quota-manager.js';
-import { fetchTrailFromCloud } from './cloud-fetch.js';
 
 // ---------------------------------------------------------------------------
-// Storage key constants
+// Storage key constants (v3)
 // ---------------------------------------------------------------------------
 
 const TREE_KEY = 'trail_tree' as const;
@@ -72,30 +71,6 @@ function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): Tr
   } as TreeSummary;
 }
 
-/** Normalize a legacy TreeRecord stored in the old single-blob format. */
-function normalizeLegacyRecord(raw: unknown): TreeRecord | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const candidate = raw as Partial<TreeRecord>;
-  if (typeof candidate.id !== 'string') return null;
-  if (!candidate.tree || typeof candidate.tree !== 'object') return null;
-  const meta = normalizeMeta(candidate);
-  if (!meta) return null;
-  const savedAt = Number.isFinite(candidate.savedAt) ? (candidate.savedAt as number) : Date.now();
-  const nodeCount = Number.isFinite(candidate.nodeCount) ? (candidate.nodeCount as number) : 0;
-  const rootUrl = typeof candidate.rootUrl === 'string' ? candidate.rootUrl : undefined;
-  const rootTitle = typeof candidate.rootTitle === 'string' ? candidate.rootTitle : undefined;
-  const rootFavicon = typeof candidate.rootFavicon === 'string' ? candidate.rootFavicon : undefined;
-  return {
-    ...meta,
-    savedAt,
-    nodeCount,
-    rootUrl,
-    rootTitle,
-    rootFavicon,
-    tree: candidate.tree as NavigationTreeJSON,
-  } as TreeRecord;
-}
-
 function normalizeIndexEntry(raw: unknown): ArchiveIndexEntry | null {
   if (!raw || typeof raw !== 'object') return null;
   const candidate = raw as Partial<ArchiveIndexEntry>;
@@ -132,9 +107,19 @@ function extractSummary(record: TreeRecord): TreeSummary {
 }
 
 /**
+ * Convert a Uint8Array to a base64 string for chrome.storage.local.
+ */
+function serializeBlob(data: Uint8Array): string {
+  let binary = '';
+  const CHUNK = 8192;
+  for (let i = 0; i < data.length; i += CHUNK) {
+    binary += String.fromCharCode(...data.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+/**
  * Safely coerce chrome.storage output back to Uint8Array.
- * Structured clone normally preserves Uint8Array, but some Chrome builds
- * return ArrayBuffer or even a plain numeric-keyed object.
  */
 function toUint8Array(data: unknown): Uint8Array | null {
   if (data instanceof Uint8Array) return data;
@@ -143,23 +128,52 @@ function toUint8Array(data: unknown): Uint8Array | null {
     const view = data as ArrayBufferView;
     return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
   }
+  if (typeof data === 'string') {
+    try {
+      const binary = atob(data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    } catch {
+      return null;
+    }
+  }
+  if (Array.isArray(data)) {
+    return new Uint8Array(data);
+  }
   return null;
+}
+
+/** Normalize a legacy TreeRecord stored in the old single-blob format. */
+function normalizeLegacyRecord(raw: unknown): TreeRecord | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const candidate = raw as Partial<TreeRecord>;
+  if (typeof candidate.id !== 'string') return null;
+  if (!candidate.tree || typeof candidate.tree !== 'object') return null;
+  const meta = normalizeMeta(candidate);
+  if (!meta) return null;
+  const savedAt = Number.isFinite(candidate.savedAt) ? (candidate.savedAt as number) : Date.now();
+  const nodeCount = Number.isFinite(candidate.nodeCount) ? (candidate.nodeCount as number) : 0;
+  const rootUrl = typeof candidate.rootUrl === 'string' ? candidate.rootUrl : undefined;
+  const rootTitle = typeof candidate.rootTitle === 'string' ? candidate.rootTitle : undefined;
+  const rootFavicon = typeof candidate.rootFavicon === 'string' ? candidate.rootFavicon : undefined;
+  return {
+    ...meta,
+    savedAt,
+    nodeCount,
+    rootUrl,
+    rootTitle,
+    rootFavicon,
+    tree: candidate.tree as NavigationTreeJSON,
+  } as TreeRecord;
 }
 
 // ---------------------------------------------------------------------------
 // TreeStorageService
 // ---------------------------------------------------------------------------
 
-/**
- * Tree storage service for managing navigation trees in chrome.storage.
- *
- * Storage layout (v2 — per-tree archive keys):
- *   trail_tree_archives  → TreeSummary[]          (index, ~200 B/entry)
- *   trail_ar_{id}        → Uint8Array             (gzip-compressed compact tree)
- *   trail_tree            → NavigationTreeJSON      (active tree, uncompressed)
- *   trail_tree_meta       → TreeMeta               (active tree metadata)
- *   trail_tree_saved_at   → number                  (active tree save timestamp)
- */
 class TreeStorageService {
   cachedTree: NavigationTree | null = null;
   cachedMeta: TreeMeta | null = null;
@@ -310,8 +324,6 @@ class TreeStorageService {
     }
     if (!this.dirty || !this.cachedTree) return;
 
-    // Guard: never persist the editor tree to TREE_KEY when editing
-    // a non-active (archived) tree — cloud sync handles persistence.
     if (this._editingNonActiveTree) {
       this.dirty = false;
       return;
@@ -329,11 +341,6 @@ class TreeStorageService {
     }
   }
 
-  /**
-   * Reload the active tree from chrome.storage, discarding the in-memory
-   * cached (editor) tree.  Called when exiting editor mode so the UI gets
-   * the real active tree back.
-   */
   async restoreActiveTreeFromStorage(): Promise<NavigationTree> {
     if (this.saveTimer) {
       clearTimeout(this.saveTimer);
@@ -380,10 +387,6 @@ class TreeStorageService {
   // Archive index (summaries only — fast, lightweight)
   // -----------------------------------------------------------------------
 
-  /**
-   * Return the archive index (summaries without tree payloads).
-   * Entries may be stubs (payload only on server) — check with isTreeStub().
-   */
   async getArchiveIndex(): Promise<ArchiveIndexEntry[]> {
     if (this.cachedIndex) return this.cachedIndex;
     if (this.indexLoading) return this.indexLoading;
@@ -407,19 +410,26 @@ class TreeStorageService {
     return this.indexLoading;
   }
 
-  /** Return summaries only (strips stubs). Used by UI / tree-handlers. */
   async getArchivedSummaries(): Promise<ArchiveIndexEntry[]> {
     return this.getArchiveIndex();
+  }
+
+  /**
+   * Replace the archive index directly. Used by sync engine.
+   */
+  async setArchiveIndex(index: ArchiveIndexEntry[]): Promise<void> {
+    this.cachedIndex = index;
+    try {
+      await treeArea.set({ [TREE_ARCHIVES_KEY]: index });
+    } catch (error) {
+      console.error('TreeStorageService.setArchiveIndex: Error saving index:', error);
+    }
   }
 
   // -----------------------------------------------------------------------
   // Per-tree compressed blobs
   // -----------------------------------------------------------------------
 
-  /**
-   * Load a single archived tree's payload (decompressed).
-   * Returns null if the blob is missing (e.g. stub or deleted).
-   */
   async getArchiveTree(treeId: string): Promise<NavigationTreeJSON | null> {
     try {
       const key = archiveBlobKey(treeId);
@@ -435,25 +445,29 @@ class TreeStorageService {
     }
   }
 
-  /**
-   * Save a compressed tree blob for one archive entry.
-   */
   async saveArchiveTree(treeId: string, tree: NavigationTreeJSON): Promise<void> {
     const key = archiveBlobKey(treeId);
     const compressed = encodeTree(tree);
-    await treeArea.set({ [key]: compressed });
+    const blob = serializeBlob(compressed);
+    await treeArea.set({ [key]: blob });
+  }
+
+  /**
+   * Delete just the blob for an archive entry. Used by sync engine
+   * when a remote delete is received.
+   */
+  async deleteArchiveBlob(treeId: string): Promise<void> {
+    try {
+      await treeArea.remove(archiveBlobKey(treeId));
+    } catch (error) {
+      console.error(`TreeStorageService.deleteArchiveBlob(${treeId}): Error:`, error);
+    }
   }
 
   // -----------------------------------------------------------------------
-  // Full archive operations (load all trees — used by cloud-sync)
+  // Full archive operations (load all trees)
   // -----------------------------------------------------------------------
 
-  /**
-   * Load ALL archived trees with their full payloads.
-   * This is the slow path — loads and decompresses every tree.
-   * Stubs are skipped (they have no local blob).
-   * Used by cloud-sync and editor fallback.
-   */
   async getArchives(): Promise<TreeRecord[]> {
     const index = await this.getArchiveIndex();
     const records: TreeRecord[] = [];
@@ -466,11 +480,6 @@ class TreeStorageService {
     return records;
   }
 
-  /**
-   * Replace all archives with the given records.
-   * Writes index + individual compressed blobs via quotaAwareSet.
-   * Also removes blobs for trees no longer in the set.
-   */
   async setArchives(records: TreeRecord[]): Promise<void> {
     const prevIndex = await this.getArchiveIndex();
     const prevIds = new Set(prevIndex.map((e) => e.id));
@@ -481,7 +490,7 @@ class TreeStorageService {
 
     for (const record of records) {
       entries.push(extractSummary(record));
-      writes[archiveBlobKey(record.id)] = encodeTree(record.tree);
+      writes[archiveBlobKey(record.id)] = serializeBlob(encodeTree(record.tree));
     }
     writes[TREE_ARCHIVES_KEY] = entries;
     this.cachedIndex = entries;
@@ -492,7 +501,6 @@ class TreeStorageService {
       console.error('TreeStorageService.setArchives: Error writing:', error);
     }
 
-    // Remove blobs for trees that were removed from the set
     const removedIds = [...prevIds].filter((id) => !nextIds.has(id));
     if (removedIds.length > 0) {
       try {
@@ -520,10 +528,11 @@ class TreeStorageService {
     const nextIndex = [extractSummary(record), ...index.filter((e) => e.id !== meta.id)];
     this.cachedIndex = nextIndex;
 
+    const blob = serializeBlob(encodeTree(treeJSON));
     try {
       await quotaAwareSet({
         [TREE_ARCHIVES_KEY]: nextIndex,
-        [archiveBlobKey(record.id)]: encodeTree(treeJSON),
+        [archiveBlobKey(record.id)]: blob,
       });
     } catch (error) {
       console.error('TreeStorageService.archiveActiveTree: Error saving:', error);
@@ -540,7 +549,6 @@ class TreeStorageService {
     const tree = await this.getArchiveTree(treeId);
     if (!tree) return null;
 
-    // Remove from index and delete blob
     const nextIndex = [...index];
     nextIndex.splice(idx, 1);
     this.cachedIndex = nextIndex;
@@ -555,75 +563,16 @@ class TreeStorageService {
     return { ...summary, tree };
   }
 
-  /**
-   * Get a full TreeRecord for a single archived tree.
-   * Combines index summary + decompressed blob.
-   */
   async getFullArchiveRecord(treeId: string): Promise<TreeRecord | null> {
     const index = await this.getArchiveIndex();
     const entry = index.find((e) => e.id === treeId);
     if (!entry) return null;
-    if (isTreeStub(entry)) return null; // stub has no local blob
+    if (isTreeStub(entry)) return null;
     const tree = await this.getArchiveTree(treeId);
     if (!tree) return null;
     return { ...entry, tree };
   }
 
-  /**
-   * Ensure a tree is loaded and return its full record.
-   * Priority: active tree → archive blob → cloud fetch (if in index)
-   * Returns null if the tree doesn't exist anywhere.
-   */
-  async ensureTreeLoaded(treeId: string): Promise<TreeRecord | null> {
-    // 1. Check if it's the active tree
-    const activeMeta = await this.getActiveMeta();
-    if (activeMeta.id === treeId) {
-      const tree = await this.getOrCreateTree();
-      const treeJSON = NavigationTreeMapper.toJSON(tree);
-      return {
-        ...activeMeta,
-        nodeCount: tree.size(),
-        savedAt: Date.now(),
-        tree: treeJSON,
-      };
-    }
-
-    // 2. Check if archived tree has blob
-    const fullRecord = await this.getFullArchiveRecord(treeId);
-    if (fullRecord) return fullRecord;
-
-    // 3. Check if it's in the index but has no blob (stub or never downloaded)
-    const index = await this.getArchiveIndex();
-    const entry = index.find((e) => e.id === treeId);
-    if (entry) {
-      const cloudTree = await fetchTrailFromCloud(treeId);
-      if (cloudTree) {
-        await this.saveArchiveTree(treeId, cloudTree);
-        await this.unstubArchiveEntry(treeId);
-        return {
-          ...entry,
-          savedAt: Date.now(),
-          tree: cloudTree,
-        };
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Check if an archive entry is a stub (payload only on server).
-   */
-  async isStub(treeId: string): Promise<boolean> {
-    const index = await this.getArchiveIndex();
-    const entry = index.find((e) => e.id === treeId);
-    return entry ? isTreeStub(entry) : false;
-  }
-
-  /**
-   * Remove the stub marker from an archive entry after rehydrating
-   * its compressed blob from the cloud.
-   */
   async unstubArchiveEntry(treeId: string): Promise<void> {
     const index = await this.getArchiveIndex();
     const idx = index.findIndex((e) => e.id === treeId);
@@ -631,7 +580,6 @@ class TreeStorageService {
     const entry = index[idx]!;
     if (!isTreeStub(entry)) return;
 
-    // Reconstruct without the stub flag
     const { stub, ...summary } = entry;
     index[idx] = summary as TreeSummary;
     this.cachedIndex = index;
@@ -674,6 +622,40 @@ class TreeStorageService {
     }
   }
 
+  async clearAllTrees(): Promise<void> {
+    const index = await this.getArchiveIndex();
+    const blobKeys = index.map((e) => archiveBlobKey(e.id));
+
+    const keysToRemove = [
+      TREE_KEY,
+      TREE_META_KEY,
+      TREE_ARCHIVES_KEY,
+      TREE_SAVED_AT_KEY,
+      ...blobKeys,
+    ];
+
+    try {
+      await treeArea.remove(keysToRemove);
+    } catch (error) {
+      console.error('TreeStorageService.clearAllTrees: Error:', error);
+    }
+
+    this.cachedTree = null;
+    this.cachedMeta = null;
+    this.cachedIndex = null;
+    this.cachedSavedAt = null;
+    this.loading = undefined;
+    this.metaLoading = undefined;
+    this.indexLoading = undefined;
+    this.savedAtLoading = undefined;
+    this._editingNonActiveTree = false;
+    this.dirty = false;
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+  }
+
   async deleteArchivedTree(treeId: string): Promise<boolean> {
     const index = await this.getArchiveIndex();
     const next = index.filter((e) => e.id !== treeId);
@@ -688,10 +670,6 @@ class TreeStorageService {
     return true;
   }
 
-  /**
-   * Update an archived tree's payload and summary.
-   * Used by editor-sync after saving changes.
-   */
   async updateArchivedTree(treeId: string, tree: NavigationTree, savedAt: number): Promise<void> {
     const index = await this.getArchiveIndex();
     const idx = index.findIndex((e) => e.id === treeId);
@@ -721,7 +699,7 @@ class TreeStorageService {
     try {
       await quotaAwareSet({
         [TREE_ARCHIVES_KEY]: index,
-        [archiveBlobKey(treeId)]: encodeTree(treeJSON),
+        [archiveBlobKey(treeId)]: serializeBlob(encodeTree(treeJSON)),
       });
     } catch (error) {
       console.error('TreeStorageService.updateArchivedTree: Error:', error);
@@ -732,10 +710,6 @@ class TreeStorageService {
   // Migration from legacy single-blob format
   // -----------------------------------------------------------------------
 
-  /**
-   * One-time migration from the old format (TreeRecord[] in a single key)
-   * to the new per-tree format (summary index + individual compressed blobs).
-   */
   private async ensureMigrated(): Promise<void> {
     if (this.migrated) return;
     this.migrated = true;
@@ -745,11 +719,9 @@ class TreeStorageService {
       const raw = result[TREE_ARCHIVES_KEY];
       if (!Array.isArray(raw) || raw.length === 0) return;
 
-      // Detect legacy format: entries have a 'tree' field with an object value
       const first = raw[0];
       if (!first || typeof first !== 'object') return;
       if (!('tree' in first) || !first.tree || typeof first.tree !== 'object') {
-        // Already new format (summaries without tree field)
         return;
       }
 
@@ -762,7 +734,7 @@ class TreeStorageService {
         const record = normalizeLegacyRecord(entry);
         if (!record) continue;
         summaries.push(extractSummary(record));
-        writes[archiveBlobKey(record.id)] = encodeTree(record.tree);
+        writes[archiveBlobKey(record.id)] = serializeBlob(encodeTree(record.tree));
       }
 
       writes[TREE_ARCHIVES_KEY] = summaries;

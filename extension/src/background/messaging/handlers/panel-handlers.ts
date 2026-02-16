@@ -1,6 +1,6 @@
 import { RPC_METHOD, defineRpcHandlers, err, ok } from "../../../shared/rpc/contracts.js";
 
-const SIDE_PANEL_PATH = "sidepanel/index.html";
+const SIDE_PANEL_PATH = "sidepanel.html";
 
 /* ------------------------------------------------------------------ */
 /*  Sidepanel liveness tracking via persistent Port                    */
