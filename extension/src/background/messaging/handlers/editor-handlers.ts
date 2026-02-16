@@ -259,52 +259,20 @@ async function broadcastEditorExitToSite(): Promise<void> {
 /* ------------------------------------------------------------------ */
 
 export async function enterEditorMode(treeId: string): Promise<EditorModeState | string> {
-  // Try to load the tree: active tree → LRU cache → local archives
-  let treeJSON: import('../../../shared/types/tree.js').NavigationTreeJSON | null = null;
-
-  // 1. Check if it's the currently active tree
-  const activeMeta = await treeStorage.getActiveMeta();
-  const isActiveTree = activeMeta.id === treeId;
-  if (isActiveTree) {
-    const activeTree = await treeStorage.getOrCreateTree();
-    treeJSON = NavigationTreeMapper.toJSON(activeTree);
-  }
-
-  // 2. Check LRU cache
-  if (!treeJSON) {
-    const cached = await getCachedTree(treeId);
-    if (cached) {
-      treeJSON = cached.tree;
-    }
-  }
-
-  // 3. Fall back to local archives (per-tree compressed blob)
-  if (!treeJSON) {
-    const archived = await treeStorage.getArchiveTree(treeId);
-    if (archived) {
-      treeJSON = archived;
-      // Populate LRU cache for next time
-      await setCachedTree(treeId, archived, Date.now());
-    }
-  }
-
-  // 4. Try to fetch from API if not found locally
-  if (!treeJSON) {
-    const apiRecord = await fetchTreeFromApi(treeId);
-    if (apiRecord) {
-      treeJSON = apiRecord.tree;
-      // Save to archives: full load + prepend + write (rare path)
-      const archives = await treeStorage.getArchives();
-      await treeStorage.setArchives([apiRecord, ...archives.filter((a) => a.id !== treeId)]);
-      // Save to LRU cache
-      await setCachedTree(treeId, apiRecord.tree, Date.now());
-    }
-  }
-
-  if (!treeJSON) {
+  // Try to load the tree: active tree → archive blob → cloud fetch
+  // Use ensureTreeLoaded for the main logic (handles all cases including stubs)
+  const record = await treeStorage.ensureTreeLoaded(treeId);
+  
+  if (!record) {
     editorSessionSnapshot = null;
     return 'Tree not found in local archives, cache, or API';
   }
+
+  const treeJSON = record.tree;
+
+  // Check if we're editing the active tree
+  const activeMeta = await treeStorage.getActiveMeta();
+  const isActiveTree = activeMeta.id === treeId;
 
   // Load the tree for editing
   const tree = NavigationTreeMapper.fromJSON(treeJSON);

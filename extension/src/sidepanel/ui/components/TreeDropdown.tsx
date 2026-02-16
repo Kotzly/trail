@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createNewTree, deleteArchivedTree, exportTree, openTree, renameTree } from '../../api/tree.js';
+import { createNewTree, deleteArchivedTree, ensureTreeLoaded, exportTree, openTree, renameTree, syncTrees } from '../../api/tree.js';
 import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
@@ -114,12 +114,34 @@ export default function TreeDropdown() {
   const [labelDraft, setLabelDraft] = useState('');
   const [creating, setCreating] = useState(false);
   const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (!treesOpen) {
       setEditingId(null);
       setDraft('');
+      return;
     }
+
+    // Sync trees index when dropdown opens
+    let cancelled = false;
+    const doSync = async () => {
+      try {
+        setSyncing(true);
+        await syncTrees();
+      } catch (error) {
+        console.warn('Failed to sync trees:', error);
+      } finally {
+        if (!cancelled) {
+          setSyncing(false);
+        }
+      }
+    };
+    void doSync();
+
+    return () => {
+      cancelled = true;
+    };
   }, [treesOpen]);
 
   useEffect(() => {
@@ -180,6 +202,7 @@ export default function TreeDropdown() {
     try {
       if (tree.stub) {
         setLoadingTreeId(tree.id);
+        await ensureTreeLoaded(tree.id);
       }
       await openTree(tree.id);
     } catch (error) {

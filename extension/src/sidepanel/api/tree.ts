@@ -96,6 +96,18 @@ export async function openTree(treeId: string): Promise<void> {
     return res.data;
 }
 
+export async function ensureTreeLoaded(treeId: string): Promise<boolean> {
+    const res = await sendMessage(rpc.ensureTreeLoaded({ treeId }));
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}
+
+export async function syncTrees(): Promise<void> {
+    const res = await sendMessage(rpc.syncTrees());
+    if (!res.success) throw new Error(res.error);
+    return res.data;
+}
+
 export async function renameTree(treeId: string, label: string): Promise<void> {
     const res = await sendMessage(rpc.renameTree({ treeId, label }));
     if (!res.success) throw new Error(res.error);

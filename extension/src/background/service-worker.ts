@@ -7,6 +7,7 @@ import { CommandManager } from '../shared/lib/commands.js';
 import { cloudSync } from './services/cloud-sync.js';
 import { initBackendConfig } from '../shared/config/backend.js';
 import { authOrchestrator } from './services/auth-orchestrator.js';
+import { ensureIndexSynced } from './services/startup-sync.js';
 
 
 // Initialize all modules
@@ -17,6 +18,7 @@ initTabsLifecycle();
 void syncOpenTabs();
 void CommandManager.init();
 cloudSync.init();
+void ensureIndexSynced();
 authOrchestrator.init();
 
 const sidePanel = chrome?.sidePanel;

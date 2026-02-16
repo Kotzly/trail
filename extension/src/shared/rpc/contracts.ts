@@ -64,6 +64,8 @@ export const RPC_METHOD = {
     SITE_MESSAGE_FORWARD: 'SITE_MESSAGE_FORWARD',
     OAUTH_INTERACTIVE_LOGIN: 'OAUTH_INTERACTIVE_LOGIN',
     OAUTH_SILENT_SYNC: 'OAUTH_SILENT_SYNC',
+    ENSURE_TREE_LOADED: 'ENSURE_TREE_LOADED',
+    SYNC_TREES: 'SYNC_TREES',
 } as const;
 
 export type RequestType = typeof RPC_METHOD[keyof typeof RPC_METHOD];
@@ -134,6 +136,8 @@ export type GetTreesMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREES>;
 export type ClearTreeMessage = RequestMessageBase<typeof RPC_METHOD.CLEAR_TREE>;
 export type NewTreeMessage = RequestMessageBase<typeof RPC_METHOD.NEW_TREE, { label: string }>;
 export type OpenTreeMessage = RequestMessageBase<typeof RPC_METHOD.OPEN_TREE, { treeId: string }>;
+export type EnsureTreeLoadedMessage = RequestMessageBase<typeof RPC_METHOD.ENSURE_TREE_LOADED, { treeId: string }>;
+export type SyncTreesMessage = RequestMessageBase<typeof RPC_METHOD.SYNC_TREES>;
 export type RenameTreeMessage = RequestMessageBase<typeof RPC_METHOD.RENAME_TREE, { treeId: string; label: string }>;
 export type DeleteArchivedTreeMessage = RequestMessageBase<typeof RPC_METHOD.DELETE_ARCHIVED_TREE, { treeId: string }>;
 export type ExportTreeMessage = RequestMessageBase<typeof RPC_METHOD.EXPORT_TREE, { treeId?: string }>;
@@ -236,7 +240,7 @@ export type RequestMessage = NavigateToMessage |
     TabsForNodeMessage | SaveSettingsMessage | GetSettingsMessage | TitleOrFaviconChangedMessage |
     TreeUpdatedMessage | TreesUpdatedMessage | TagsUpdatedMessage |
     NotifyMessage |
-    GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | RenameTreeMessage | DeleteArchivedTreeMessage | ExportTreeMessage |
+    GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | EnsureTreeLoadedMessage | SyncTreesMessage | RenameTreeMessage | DeleteArchivedTreeMessage | ExportTreeMessage |
     OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
     AddTagMessage | RemoveTagMessage |
@@ -324,6 +328,8 @@ export type ResponseDataByType = {
     [RPC_METHOD.SITE_MESSAGE_FORWARD]: SiteMessageForwardResponse;
     [RPC_METHOD.OAUTH_INTERACTIVE_LOGIN]: OAuthInteractiveLoginResponse;
     [RPC_METHOD.OAUTH_SILENT_SYNC]: OAuthSilentSyncResponse;
+    [RPC_METHOD.ENSURE_TREE_LOADED]: boolean;
+    [RPC_METHOD.SYNC_TREES]: void;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -378,6 +384,8 @@ export const rpc = {
     clearTree(): ClearTreeMessage { return { type: RPC_METHOD.CLEAR_TREE } },
     newTree(payload: { label: string }): NewTreeMessage { return { type: RPC_METHOD.NEW_TREE, ...payload } },
     openTree(payload: { treeId: string }): OpenTreeMessage { return { type: RPC_METHOD.OPEN_TREE, ...payload } },
+    ensureTreeLoaded(payload: { treeId: string }): EnsureTreeLoadedMessage { return { type: RPC_METHOD.ENSURE_TREE_LOADED, ...payload } },
+    syncTrees(): SyncTreesMessage { return { type: RPC_METHOD.SYNC_TREES } },
     renameTree(payload: { treeId: string; label: string }): RenameTreeMessage { return { type: RPC_METHOD.RENAME_TREE, ...payload } },
     deleteArchivedTree(payload: { treeId: string }): DeleteArchivedTreeMessage {
         return { type: RPC_METHOD.DELETE_ARCHIVED_TREE, ...payload };

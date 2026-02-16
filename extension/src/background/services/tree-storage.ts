@@ -6,6 +6,7 @@ import { uuidv7 } from '../../shared/lib/uuid.js';
 import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 import { encodeTree, decodeTree } from '../../shared/lib/tree-codec.js';
 import { quotaAwareSet } from './quota-manager.js';
+import { fetchTrailFromCloud } from './cloud-fetch.js';
 
 // ---------------------------------------------------------------------------
 // Storage key constants
@@ -566,6 +567,48 @@ class TreeStorageService {
     const tree = await this.getArchiveTree(treeId);
     if (!tree) return null;
     return { ...entry, tree };
+  }
+
+  /**
+   * Ensure a tree is loaded and return its full record.
+   * Priority: active tree → archive blob → cloud fetch (if in index)
+   * Returns null if the tree doesn't exist anywhere.
+   */
+  async ensureTreeLoaded(treeId: string): Promise<TreeRecord | null> {
+    // 1. Check if it's the active tree
+    const activeMeta = await this.getActiveMeta();
+    if (activeMeta.id === treeId) {
+      const tree = await this.getOrCreateTree();
+      const treeJSON = NavigationTreeMapper.toJSON(tree);
+      return {
+        ...activeMeta,
+        nodeCount: tree.size(),
+        savedAt: Date.now(),
+        tree: treeJSON,
+      };
+    }
+
+    // 2. Check if archived tree has blob
+    const fullRecord = await this.getFullArchiveRecord(treeId);
+    if (fullRecord) return fullRecord;
+
+    // 3. Check if it's in the index but has no blob (stub or never downloaded)
+    const index = await this.getArchiveIndex();
+    const entry = index.find((e) => e.id === treeId);
+    if (entry) {
+      const cloudTree = await fetchTrailFromCloud(treeId);
+      if (cloudTree) {
+        await this.saveArchiveTree(treeId, cloudTree);
+        await this.unstubArchiveEntry(treeId);
+        return {
+          ...entry,
+          savedAt: Date.now(),
+          tree: cloudTree,
+        };
+      }
+    }
+
+    return null;
   }
 
   /**

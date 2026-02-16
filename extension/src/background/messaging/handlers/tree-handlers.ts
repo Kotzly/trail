@@ -16,6 +16,7 @@ import { editorSyncMarkDirty } from '../../services/editor-sync.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
 import { isTreeStub } from '../../../shared/types/tree.js';
 import { fetchTrailFromCloud } from '../../services/cloud-fetch.js';
+import { ensureIndexSynced } from '../../services/startup-sync.js';
 import type { TrailExportBundle } from '../../../shared/types/export.js';
 import { EXPORT_SCHEMA } from '../../../shared/types/export.js';
 
@@ -260,6 +261,16 @@ export const treeHandlers = defineRpcHandlers({
     };
     const rootUrl = record.rootUrl ?? nextTree.getRoot()?.data.url ?? null;
     await switchTree(nextTree, meta, rootUrl);
+    return ok();
+  },
+
+  async [RPC_METHOD.ENSURE_TREE_LOADED](message) {
+    const record = await treeStorage.ensureTreeLoaded(message.treeId);
+    return ok(Boolean(record));
+  },
+
+  async [RPC_METHOD.SYNC_TREES]() {
+    await ensureIndexSynced();
     return ok();
   },
 
