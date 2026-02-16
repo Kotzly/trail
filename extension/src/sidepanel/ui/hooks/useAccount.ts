@@ -7,6 +7,7 @@ import { showUiToast } from '../notifications/sonner-adapter.js';
 import { accountKeys } from '../query/account-keys.js';
 
 const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
+const SNAPSHOT_CACHE_KEY = 'trail_account_snapshot' as const;
 
 export function useAccount(): void {
   const queryClient = useQueryClient();
@@ -80,24 +81,42 @@ export function useAccount(): void {
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
-      if (areaName !== 'local' || !(AUTH_STORAGE_KEY in changes)) {
+      if (areaName !== 'local') {
         return;
       }
 
-      const change = changes[AUTH_STORAGE_KEY];
-      const oldToken = (change?.oldValue as { accessToken?: string } | undefined)
-        ?.accessToken;
-      const nextToken = (change?.newValue as { accessToken?: string } | undefined)
-        ?.accessToken;
+      // React to auth token changes
+      if (AUTH_STORAGE_KEY in changes) {
+        const change = changes[AUTH_STORAGE_KEY];
+        const oldToken = (change?.oldValue as { accessToken?: string } | undefined)
+          ?.accessToken;
+        const nextToken = (change?.newValue as { accessToken?: string } | undefined)
+          ?.accessToken;
 
-      if (oldToken && !nextToken) {
-        queryClient.removeQueries({ queryKey: accountKeys.root });
-        resetAccount();
-        return;
+        if (oldToken && !nextToken) {
+          queryClient.removeQueries({ queryKey: accountKeys.root });
+          resetAccount();
+          return;
+        }
+
+        if (!oldToken && nextToken) {
+          void queryClient.invalidateQueries({ queryKey: accountKeys.snapshot() });
+          return;
+        }
       }
 
-      if (!oldToken && nextToken) {
-        void queryClient.invalidateQueries({ queryKey: accountKeys.snapshot() });
+      // React to background snapshot cache updates
+      if (SNAPSHOT_CACHE_KEY in changes) {
+        const envelope = changes[SNAPSHOT_CACHE_KEY]?.newValue as
+          | { snapshot?: unknown; fetchedAt?: unknown }
+          | undefined;
+        if (envelope?.snapshot && typeof envelope.fetchedAt === 'number') {
+          queryClient.setQueryData(
+            accountKeys.snapshot(),
+            envelope.snapshot,
+            { updatedAt: envelope.fetchedAt },
+          );
+        }
       }
     };
 

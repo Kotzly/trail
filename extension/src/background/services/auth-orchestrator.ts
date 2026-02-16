@@ -1,6 +1,7 @@
 import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
 import { notifyUi } from "../messaging/ui-notifications.js";
 import { syncEngine } from "./sync/engine.js";
+import { accountKeeper } from "./account-keeper.js";
 
 const AUTH_STORAGE_KEY = "trail_auth_session" as const;
 const DEVICE_ID_STORAGE_KEY = "trail_oauth_device_id" as const;
@@ -269,6 +270,8 @@ class AuthOrchestrator {
     }
     logAuth("auth_cleared", { reason });
 
+    await accountKeeper.clearSnapshot();
+
     // On explicit logout, clear all local trees so the next login
     // pulls a fresh set for the (possibly different) account.
     if (reason === "web_logout") {
@@ -372,6 +375,7 @@ class AuthOrchestrator {
 
     const auth = await loadAuth();
     if (auth?.accessToken && !isAccessTokenExpired(auth.expiresAt)) {
+      void accountKeeper.refreshSnapshot();
       return { ok: true, reason: "authenticated" };
     }
 
@@ -379,6 +383,7 @@ class AuthOrchestrator {
       const refreshed = await refreshWithToken(auth.refreshToken);
       if (refreshed.ok) {
         this.clearLoginRequiredCooldown();
+        void accountKeeper.refreshSnapshot();
         return refreshed;
       }
       if (refreshed.reason === "refresh_invalid") {
@@ -390,6 +395,7 @@ class AuthOrchestrator {
     const result = await runSilentAuthorizeFlow();
     if (result.ok) {
       this.clearLoginRequiredCooldown();
+      void accountKeeper.refreshSnapshot();
       return result;
     }
     if (result.reason === "login_required") {
