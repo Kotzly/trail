@@ -18,6 +18,8 @@ import { editorSyncMarkDirty } from '../../services/editor-sync.js';
 import type { TreeMeta } from '../../../shared/types/tree.js';
 import type { TrailExportBundle } from '../../../shared/types/export.js';
 import { EXPORT_SCHEMA } from '../../../shared/types/export.js';
+import { settingsManager } from '../../services/settings.js';
+import { saveOpenTabs, getOpenTabs, clearOpenTabs } from '../../services/tab-restoration.js';
 
 /** Mark editor sync dirty if currently in editor mode. */
 function maybeEditorDirty(): void {
@@ -148,6 +150,20 @@ async function switchTree(
   rootUrl?: Url | null,
   viewOverride?: TreeViewIntent | null,
 ): Promise<void> {
+  const keepTabs = settingsManager.get().keepTabsOnSwitch;
+
+  // --- Save open tab URLs for the current tree -------------------------
+  if (keepTabs) {
+    const currentMeta = await treeStorage.getActiveMeta();
+    const currentTree = await treeStorage.getOrCreateTree();
+    const openUrls: string[] = [];
+    tabManager.openNodes().forEach(nodeId => {
+      const node = currentTree.findNodeById(nodeId);
+      if (node?.data.url) openUrls.push(node.data.url);
+    });
+    await saveOpenTabs(currentMeta.id, openUrls);
+  }
+
   const tabsToClose = collectTabIdsForNodes(tabManager.openNodes());
   tabManager.reset();
   if (tabsToClose) {
@@ -158,22 +174,74 @@ async function switchTree(
 
   await treeStorage.setActiveTree(nextTree, nextMeta);
 
-  let created: chrome.tabs.Tab;
-  try {
-    created = await chrome.tabs.create(rootUrl ? { url: rootUrl, active: true } : { active: true });
-  } catch (error) {
-    console.error('Failed to open root tab for tree switch:', error);
-    created = await chrome.tabs.create({});
-  }
-  const rootNode = ensureRootForTab(nextTree, created);
-  if (rootNode) {
-    treeStorage.cacheTree(nextTree);
+  // --- Restore previously-open tabs for the target tree ----------------
+  const savedUrls = keepTabs ? await getOpenTabs(nextMeta.id) : null;
+
+  let focusNodeId: NodeId | undefined;
+
+  if (savedUrls && savedUrls.length > 0) {
+    const currentNodeUrl = nextTree.getCurrentId()
+      ? nextTree.findNodeById(nextTree.getCurrentId()!)?.data.url
+      : null;
+    let treeChanged = false;
+
+    for (const url of savedUrls) {
+      const isActive = url === currentNodeUrl;
+      let tab: chrome.tabs.Tab;
+      try {
+        tab = await chrome.tabs.create({ url, active: isActive });
+      } catch {
+        continue;
+      }
+      const node = nextTree.findByUrl(url as Url);
+      if (node && tab.id !== undefined) {
+        registerTabForNode(node.id, tab);
+        if (isActive) {
+          focusNodeId = node.id;
+          nextTree.setCurrent(node);
+          treeChanged = true;
+        }
+      }
+    }
+
+    // If no active tab was created (e.g. current node URL wasn't in saved list),
+    // fall back: open root URL
+    if (!focusNodeId) {
+      const fallbackUrl = rootUrl ?? nextTree.getRoot()?.data.url ?? null;
+      let tab: chrome.tabs.Tab;
+      try {
+        tab = await chrome.tabs.create(fallbackUrl ? { url: fallbackUrl, active: true } : { active: true });
+      } catch {
+        tab = await chrome.tabs.create({});
+      }
+      const rootNode = ensureRootForTab(nextTree, tab);
+      if (rootNode) {
+        focusNodeId = rootNode.id;
+        treeChanged = true;
+      }
+    }
+
+    if (treeChanged) treeStorage.cacheTree(nextTree);
+  } else {
+    // No saved tabs — original behaviour: open single root tab
+    let created: chrome.tabs.Tab;
+    try {
+      created = await chrome.tabs.create(rootUrl ? { url: rootUrl, active: true } : { active: true });
+    } catch (error) {
+      console.error('Failed to open root tab for tree switch:', error);
+      created = await chrome.tabs.create({});
+    }
+    const rootNode = ensureRootForTab(nextTree, created);
+    if (rootNode) {
+      focusNodeId = rootNode.id;
+      treeStorage.cacheTree(nextTree);
+    }
   }
 
   const defaultView: TreeViewIntent = {
     fitToView: true,
     mode: 'force' as const,
-    ...(rootNode ? { focusNodeId: rootNode.id } : {}),
+    ...(focusNodeId ? { focusNodeId } : {}),
   };
   const view = viewOverride === null ? undefined : (viewOverride ?? defaultView);
   await notifyTreeUpdate(nextTree, 'tree-switch', view);
@@ -274,6 +342,7 @@ export const treeHandlers = defineRpcHandlers({
     if (!removed) return err('Tree not found');
     // Queue for server-side soft-delete on next sync
     await dirtyTracker.queueDelete(message.treeId);
+    await clearOpenTabs(message.treeId);
     await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
   },

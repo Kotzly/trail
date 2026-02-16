@@ -326,6 +326,22 @@ export default function SettingsDropdown() {
 
           <hr className="settings-hr" />
 
+          <label className="settings-section settings-row" htmlFor="keep-tabs-toggle">
+            <div className="settings-label">keep tabs on switch</div>
+            <div className="settings-toggle-switch">
+              <input
+                id="keep-tabs-toggle"
+                className="settings-toggle-input"
+                type="checkbox"
+                checked={settings?.keepTabsOnSwitch ?? true}
+                onChange={(e) => updateSettings({ keepTabsOnSwitch: e.target.checked })}
+              />
+              <span className="settings-toggle-control" aria-hidden="true" />
+            </div>
+          </label>
+
+          <hr className="settings-hr" />
+
           {/* truncation */}
           <div className="settings-section">
             <div className="settings-label">title truncation</div>

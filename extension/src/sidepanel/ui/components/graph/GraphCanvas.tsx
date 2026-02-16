@@ -1161,10 +1161,8 @@ export default function GraphCanvas({
     return pending;
   }, [animationVersion]);
   const visibleDisplayNodes = useMemo(() => {
-    const filtered = displayNodes.filter((pos) => !pendingEnterIds.has(pos.node.id));
-    if (layoutOptions.mode !== 'tree' || !root || !hideTreeRoot) return filtered;
-    return filtered.filter((pos) => pos.node.id !== root.id);
-  }, [displayNodes, hideTreeRoot, layoutOptions.mode, pendingEnterIds, root]);
+    return displayNodes.filter((pos) => !pendingEnterIds.has(pos.node.id));
+  }, [displayNodes, pendingEnterIds]);
   const searchSet = useMemo(() => new Set(search.results), [search.results]);
   const focusedSearchId = search.results[search.index];
   const display = useMemo(

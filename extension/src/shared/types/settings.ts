@@ -76,4 +76,5 @@ export type Settings = {
     confirmNewTree: boolean;
     shortcutsEnabled: boolean;
     adaptivePerformance: boolean;
+    keepTabsOnSwitch: boolean;
 }
