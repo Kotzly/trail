@@ -1,102 +1,304 @@
-/* ── Onboarding Gate ──────────────────────────────────────── */
+/* ── Onboarding (multi-step) ──────────────────────────────── */
 
-.onboarding-gate {
+.ob {
   position: fixed;
   inset: 0;
   z-index: 9998;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--bg-primary, #0a0a0c);
-  color: var(--text-primary, #e4e4e7);
+  height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
 }
 
-.onboarding-gate__content {
+/* ── Card (current step) ─────────────────────────────────── */
+
+.ob__content {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 16px;
+  width: 100%;
   max-width: 320px;
+  margin: auto;
   padding: 32px 24px;
   text-align: center;
+  overflow: auto;
 }
 
-.onboarding-gate__title {
-  font-size: 20px;
+.ob__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px 28px 16px;
+  text-align: center;
+  animation: ob-slide-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ob__card[data-direction="prev"] {
+  animation-name: ob-slide-in-rev;
+}
+
+/* ── Logo (welcome step) ─────────────────────────────────── */
+
+.ob__logo {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Ready icon (last step) ──────────────────────────────── */
+
+.ob__ready-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Badge ────────────────────────────────────────────────── */
+
+.ob__badge {
+  display: inline-block;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* ── Typography ───────────────────────────────────────────── */
+
+.ob__title {
+  font-size: 20px;
+  font-weight: 700;
   margin: 0;
   letter-spacing: -0.02em;
-  color: var(--text-primary, #e4e4e7);
+  color: var(--foreground);
+  line-height: 1.2;
 }
 
-.onboarding-gate__subtitle {
+.ob__body {
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   margin: 0;
-  color: var(--text-secondary, #a1a1aa);
+  color: var(--muted-foreground);
+  max-width: 300px;
 }
 
-.onboarding-gate__actions {
+/* ── Feature details ──────────────────────────────────────── */
+
+.ob__details {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  margin-top: 8px;
+  max-width: 280px;
 }
 
-.onboarding-gate__btn {
-  display: inline-flex;
+.ob__detail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--foreground);
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.ob__detail-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.ob__detail-text {
+  flex: 1 1 auto;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+
+.ob__footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 24px 24px;
+}
+
+/* ── Dots ──────────────────────────────────────────────────── */
+
+.ob__dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ob__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 16%, transparent);
+  transition: width 200ms ease, background 200ms ease;
+}
+
+.ob__dot--active {
+  width: 20px;
+  background: var(--primary);
+}
+
+.ob__dot--done {
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+/* ── Navigation buttons ───────────────────────────────────── */
+
+.ob__nav {
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 20px;
-  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.12));
-  border-radius: 8px;
-  background: var(--bg-secondary, rgba(255, 255, 255, 0.06));
-  color: var(--text-primary, #e4e4e7);
-  font-size: 14px;
+}
+
+.ob__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease;
+  border: 1px solid transparent;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 100ms ease;
+  white-space: nowrap;
 }
 
-.onboarding-gate__btn--primary {
-  background: var(--accent, rgba(99, 102, 241, 0.8));
-  border-color: var(--accent, rgba(99, 102, 241, 0.6));
+.ob__btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
-.onboarding-gate__btn:hover:not(:disabled) {
-  background: var(--bg-hover, rgba(255, 255, 255, 0.10));
-  border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
-}
-
-.onboarding-gate__btn--primary:hover:not(:disabled) {
-  background: var(--accent-hover, rgba(99, 102, 241, 0.9));
-}
-
-.onboarding-gate__btn:active:not(:disabled) {
-  background: var(--bg-active, rgba(255, 255, 255, 0.14));
-}
-
-.onboarding-gate__btn:disabled {
-  opacity: 0.7;
+.ob__btn:disabled {
+  opacity: 0.6;
   cursor: default;
 }
 
-.onboarding-gate__spinner {
-  animation: onboarding-gate-spin 800ms linear infinite;
+/* Primary (filled) */
+.ob__btn--primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  flex: 1 1 auto;
+  max-width: 200px;
 }
 
-.onboarding-gate__error {
+.ob__btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 88%, black);
+  border-color: color-mix(in srgb, var(--primary) 88%, black);
+}
+
+/* Secondary (outline) */
+.ob__btn--secondary {
+  background: var(--secondary);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.ob__btn--secondary:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--ring);
+}
+
+/* Ghost (text-only) */
+.ob__btn--ghost {
+  background: transparent;
+  color: var(--muted-foreground);
+}
+
+.ob__btn--ghost:hover:not(:disabled) {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+/* ── Spinner ──────────────────────────────────────────────── */
+
+.ob__spinner {
+  animation: ob-spin 800ms linear infinite;
+}
+
+/* ── Error ─────────────────────────────────────────────────── */
+
+.ob__error {
   font-size: 12px;
   line-height: 1.4;
-  margin: 4px 0 0;
-  color: var(--text-error, #ef4444);
+  margin: 0;
+  padding: 0 24px 16px;
+  text-align: center;
+  color: var(--destructive, #ef4444);
 }
 
-@keyframes onboarding-gate-spin {
+/* ── Animations ───────────────────────────────────────────── */
+
+@keyframes ob-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ob-slide-in-rev {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ob-spin {
   to {
     transform: rotate(360deg);
   }
