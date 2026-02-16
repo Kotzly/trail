@@ -6,6 +6,8 @@ import { uuidv7 } from '../../shared/lib/uuid.js';
 import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 import { encodeTree, decodeTree } from '../../shared/lib/tree-codec.js';
 import { quotaAwareSet } from './quota-manager.js';
+import type { Title, Url } from '../../shared/types/ids.js';
+import type { NodeData } from '../../shared/types/node.js';
 
 // ---------------------------------------------------------------------------
 // Storage key constants (v3)
@@ -221,6 +223,7 @@ class TreeStorageService {
 
       if (!json || !json.root) {
         const tree = new NavigationTree();
+        tree.navigate({ url: 'chrome://newtab/' as Url, title: 'New Tab' as Title, pinned: false, tags: [] } as NodeData);
         this.cachedTree = tree;
         return tree;
       }
@@ -230,6 +233,7 @@ class TreeStorageService {
     } catch (error) {
       console.error('TreeStorageService.getTree: Error loading tree:', error);
       const tree = new NavigationTree();
+      tree.navigate({ url: 'chrome://newtab/' as Url, title: 'New Tab' as Title, pinned: false, tags: [] } as NodeData);
       this.cachedTree = tree;
       return tree;
     } finally {

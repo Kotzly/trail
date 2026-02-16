@@ -163,6 +163,12 @@ class AccountKeeper {
     }
   }
 
+  async getCachedSnapshot(): Promise<AccountSnapshot | null> {
+    const result = await chrome.storage.local.get(SNAPSHOT_CACHE_KEY);
+    const envelope = result[SNAPSHOT_CACHE_KEY] as CachedSnapshotEnvelope | undefined;
+    return envelope?.snapshot ?? null;
+  }
+
   async clearSnapshot(): Promise<void> {
     const guest = buildGuestSnapshot();
     const envelope: CachedSnapshotEnvelope = {

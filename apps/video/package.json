@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "remotion studio",
+    "studio": "remotion studio",
     "build": "remotion render TrailDemo out/trail-demo.mp4",
     "preview": "remotion preview"
   },

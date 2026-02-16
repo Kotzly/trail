@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  ArrowLeft,
   Cloud,
   CreditCard,
   Download,
@@ -28,6 +29,7 @@ import {
   Moon,
   MoonStar,
   MousePointer2,
+  Move,
   Network,
   Palette,
   Pin,
@@ -59,6 +61,7 @@ import {
 
 export const Icons = {
   AlertTriangle,
+  ArrowLeft,
   Cloud,
   CreditCard,
   Download,
@@ -87,6 +90,7 @@ export const Icons = {
   Moon,
   MoonStar,
   MousePointer2,
+  Move,
   Network,
   Palette,
   Pin,
