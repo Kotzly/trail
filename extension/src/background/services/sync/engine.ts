@@ -163,6 +163,7 @@ class SyncEngine {
 
       // Step 2: Push dirty trees
       const dirtyIds = await dirtyTracker.getDirtyIds();
+
       for (const treeId of dirtyIds) {
         await this.pushDirtyTree(treeId, deviceId);
       }
@@ -354,8 +355,14 @@ class SyncEngine {
     if (areaName !== 'local') return;
     if (this.applyingRemote) return;
 
-    const treeChanged = Object.keys(changes).some((key) => TREE_STORAGE_KEYS.has(key));
+    const changedKeys = Object.keys(changes);
+    const treeChanged = changedKeys.some((key) => TREE_STORAGE_KEYS.has(key));
     if (!treeChanged) return;
+
+    // Mark the active tree as dirty so the next sync cycle pushes it
+    void treeStorage.getActiveMeta().then((meta) => {
+      return dirtyTracker.markDirty(meta.id);
+    });
 
     // Debounced sync on local mutation
     this.schedule(MUTATION_DEBOUNCE_MS);
