@@ -125,7 +125,13 @@ async function ensureSyncDevices(params: {
       continue;
     }
     if (device.userId !== userId) {
-      throw new Error(`device_conflict:${deviceId}`);
+      // Device was previously associated with another user — reassign to current user.
+      // This is safe because deviceId is a local identifier, not sensitive.
+      await db.device.update({
+        where: { id: deviceId },
+        data: { userId },
+      });
+      continue;
     }
   }
 
