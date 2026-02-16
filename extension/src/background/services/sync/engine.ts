@@ -138,10 +138,13 @@ class SyncEngine {
     this.backoffAttempt = 0;
 
     await dirtyTracker.clearAll();
-    await treeStorage.clearAllTrees();
+    await treeStorage.clearArchivesOnly();
+
+    const activeMeta = await treeStorage.getActiveMeta();
+    await dirtyTracker.markDirty(activeMeta.id);
 
     await notifyTreesUpdate({
-      active: await treeStorage.getActiveMeta(),
+      active: activeMeta,
       archived: [],
     });
   }

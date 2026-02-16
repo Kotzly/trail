@@ -622,6 +622,25 @@ class TreeStorageService {
     }
   }
 
+  async clearArchivesOnly(): Promise<void> {
+    const index = await this.getArchiveIndex();
+    const blobKeys = index.map((e) => archiveBlobKey(e.id));
+
+    const keysToRemove = [
+      TREE_ARCHIVES_KEY,
+      ...blobKeys,
+    ];
+
+    try {
+      await treeArea.remove(keysToRemove);
+    } catch (error) {
+      console.error('TreeStorageService.clearArchivesOnly: Error:', error);
+    }
+
+    this.cachedIndex = null;
+    this.indexLoading = undefined;
+  }
+
   async clearAllTrees(): Promise<void> {
     const index = await this.getArchiveIndex();
     const blobKeys = index.map((e) => archiveBlobKey(e.id));
