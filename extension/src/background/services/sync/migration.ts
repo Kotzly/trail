@@ -53,7 +53,7 @@ export async function migrateV2ToV3(): Promise<void> {
     // Clean up v2 keys
     await chrome.storage.local.remove([V2_SERVER_AT_KEY, V2_TOMBSTONES_KEY]);
 
-    console.log('Sync migration v2→v3 completed', { serverSyncAt, pendingDeletes: pendingDeletes.length });
+    // Sync migration v2→v3 completed.
   } catch (error) {
     console.error('Sync migration v2→v3 failed:', error);
     // Mark done anyway to prevent repeated failures

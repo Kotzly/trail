@@ -31,12 +31,9 @@ type AuthFlowResult =
   | { ok: true; reason: AuthSuccessReason }
   | { ok: false; reason: AuthFailureReason };
 
-function logAuth(message: string, payload?: Record<string, unknown>): void {
-  if (payload) {
-    console.info("[auth-orchestrator]", message, payload);
-    return;
-  }
-  console.info("[auth-orchestrator]", message);
+function logAuth(_message: string, _payload?: Record<string, unknown>): void {
+  // Intentionally silent in production. Enable for local debugging:
+  // console.info("[auth-orchestrator]", _message, _payload);
 }
 
 function isAccessTokenExpired(expiresAt?: string | null): boolean {
@@ -248,15 +245,13 @@ class AuthOrchestrator {
 
   private async openWebsiteLoginTab(): Promise<boolean> {
     await initBackendConfig();
-    const loginUrl = new URL("/auth/login", BACKEND_CONFIG.baseUrl);
-    loginUrl.searchParams.set("next", LOGIN_NEXT_PATH);
-    loginUrl.searchParams.set("prompt", "select_account");
-    loginUrl.searchParams.set("maxAge", "0");
-    loginUrl.searchParams.set("source", "extension");
+    const callbackUrl = new URL("/auth/callback", BACKEND_CONFIG.baseUrl);
+    callbackUrl.searchParams.set("next", LOGIN_NEXT_PATH);
+    callbackUrl.searchParams.set("source", "extension");
 
     try {
-      await chrome.tabs.create({ url: loginUrl.toString(), active: true });
-      logAuth("opened_login_tab", { url: loginUrl.toString() });
+      await chrome.tabs.create({ url: callbackUrl.toString(), active: true });
+      logAuth("opened_login_tab", { url: callbackUrl.toString() });
       this.clearLoginRequiredCooldown();
       this.scheduleSilentSync({ force: true });
       return true;

@@ -18,7 +18,11 @@ function structure(S: StructureBuilder) {
       S.listItem()
         .title('Landing Page')
         .icon(StarIcon)
-        .child(S.documentTypeList('landingPage').title('Landing Page')),
+        .child(
+          S.document()
+            .schemaType('landingPage')
+            .documentId('042dbb5a-4a60-4cde-8076-97f3e1293d36'),
+        ),
       S.divider(),
       S.listItem()
         .title('Content Pages')

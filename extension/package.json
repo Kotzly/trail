@@ -23,7 +23,7 @@
     "test": "node --import tsx tests/basic.test.ts"
   },
   "keywords": [],
-  "author": "",
+  "author": "Trail",
   "license": "ISC",
   "packageManager": "pnpm@10.29.3",
   "pnpm": {

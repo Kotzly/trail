@@ -748,7 +748,7 @@ class TreeStorageService {
         return;
       }
 
-      console.log(`TreeStorageService: migrating ${raw.length} legacy archives to per-tree format`);
+      // Migrating legacy archives to per-tree format.
 
       const summaries: TreeSummary[] = [];
       const writes: Record<string, unknown> = {};
@@ -764,7 +764,7 @@ class TreeStorageService {
       await treeArea.set(writes);
       this.cachedIndex = summaries;
 
-      console.log(`TreeStorageService: migrated ${summaries.length} archives successfully`);
+      // Migration complete.
     } catch (error) {
       console.error('TreeStorageService.ensureMigrated: Migration error:', error);
     }

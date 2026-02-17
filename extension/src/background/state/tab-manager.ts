@@ -222,8 +222,7 @@ export class TabManager {
         await chrome.tabs.remove(tabIdToClose);
         this.unregister(tabIdToClose);
         return tabIdToClose;
-      } catch (error) {
-        console.debug('Failed to close oldest tab:', error);
+      } catch {
         return null;
       }
     }

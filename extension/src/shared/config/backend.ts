@@ -87,6 +87,7 @@ function normalizeBaseUrl(value: unknown, fallback: string): string {
   if (!next) return fallback;
   try {
     const parsed = new URL(next);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return fallback;
     return parsed.toString().replace(/\/$/, '');
   } catch {
     return fallback;

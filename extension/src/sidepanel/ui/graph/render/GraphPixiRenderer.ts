@@ -1,3 +1,4 @@
+import '../pixi-no-eval-bootstrap.js';
 import * as PIXI from 'pixi.js';
 import { ChevronDown, Pin, Volume2, VolumeX } from 'lucide';
 import type { TextStyleFontWeight } from 'pixi.js';

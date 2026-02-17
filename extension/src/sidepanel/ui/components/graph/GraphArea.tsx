@@ -1,13 +1,14 @@
 import { useStore } from '../../state/store.js';
 import { shallow } from 'zustand/shallow';
-import GraphCanvas from './GraphCanvas.js';
 import type { GraphRenderMetrics } from '../../graph/render/GraphPixiRenderer.js';
 import {
   createQualityPolicyState,
   qualityPolicyFromState,
   updateQualityPolicy,
 } from '../../graph/render/quality-policy.js';
-import React from 'react';
+import React, { Suspense } from 'react';
+
+const GraphCanvas = React.lazy(() => import('./GraphCanvas.js'));
 
 export default function GraphArea() {
   const [qualityPolicyState, setQualityPolicyState] = React.useState(() =>
@@ -122,12 +123,14 @@ export default function GraphArea() {
   );
 
   return (
-    <GraphCanvas
-      {...graphState}
-      {...graphActions}
-      detailMode={detailMode}
-      connectionQuality={connectionQuality}
-      onRenderMetrics={handleRenderMetrics}
-    />
+    <Suspense fallback={null}>
+      <GraphCanvas
+        {...graphState}
+        {...graphActions}
+        detailMode={detailMode}
+        connectionQuality={connectionQuality}
+        onRenderMetrics={handleRenderMetrics}
+      />
+    </Suspense>
   );
 }

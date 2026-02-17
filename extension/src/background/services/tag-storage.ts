@@ -5,6 +5,14 @@ import { DEFAULT_TAG_DEFS } from '../../shared/data/tag-presets.js';
 const TAGS_KEY = 'trail_tag_defs' as const;
 const tagArea = chrome.storage.sync;
 
+/** chrome.storage.sync per-item limit is 8,192 bytes. Stay safely under. */
+const SYNC_ITEM_BYTE_LIMIT = 8_192;
+const MAX_TAG_COUNT = 50;
+
+function estimateJsonBytes(value: unknown): number {
+  return new Blob([JSON.stringify(value)]).size;
+}
+
 function normalizeTagDefs(raw: unknown): TagDefinition[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -68,8 +76,18 @@ class TagStorageService {
     if (index >= 0) {
       next[index] = normalized;
     } else {
+      if (next.length >= MAX_TAG_COUNT) {
+        console.warn(`TagStorageService: max tag limit (${MAX_TAG_COUNT}) reached, ignoring upsert`);
+        return;
+      }
       next.push(normalized);
     }
+
+    if (estimateJsonBytes(next) > SYNC_ITEM_BYTE_LIMIT) {
+      console.warn('TagStorageService: tag data exceeds storage.sync item limit, ignoring upsert');
+      return;
+    }
+
     this.cached = next;
     await tagArea.set({ [TAGS_KEY]: next });
   }

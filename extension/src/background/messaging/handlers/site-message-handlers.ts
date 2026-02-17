@@ -76,7 +76,7 @@ const innerHandlers: Record<string, InnerHandler> = {
    * Extension should clear tokens and show auth gate.
    */
   AUTH_REVOKED: async (_payload, _requestId) => {
-    console.debug("[site-message] AUTH_REVOKED received — clearing tokens");
+    // AUTH_REVOKED received — clearing tokens
     await authOrchestrator.invalidateFromWebLogout();
     return {
       responsePayload: {

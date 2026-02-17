@@ -36,6 +36,7 @@ import {
   shouldEmitPreview,
 } from '../src/sidepanel/ui/components/graph/selection-utils.js';
 import { runNotificationsSonnerAdapterTests } from './notifications-sonner-adapter.test.js';
+import { runSecurityAuditTests } from './security-audit.test.js';
 
 function data(url: Url, title?: Title): NodeData {
   return {
@@ -304,7 +305,14 @@ function testBackendServerPresetResolution(): void {
 }
 
 function testEntitlements(): void {
+  const plans: import('../src/shared/types/account.js').Plan[] = [
+    { id: 'free', name: 'Free', tier: 'free', priceMonthly: 0, priceYearly: 0, currency: 'usd', features: [], rank: 0 },
+    { id: 'pro', name: 'Pro', tier: 'pro', priceMonthly: 9, priceYearly: 90, currency: 'usd', features: [], rank: 10 },
+    { id: 'teams', name: 'Teams', tier: 'teams', priceMonthly: 19, priceYearly: 190, currency: 'usd', features: [], rank: 20 },
+  ];
+
   const proAccess = getFeatureAccess({
+    plans,
     config: { 'feature.trailsSync.minTier': 'pro' },
     subscription: {
       id: 'sub_1',
@@ -325,6 +333,7 @@ function testEntitlements(): void {
   assert.equal(proAccess.requiredTier, 'pro');
 
   const teamAccess = getFeatureAccess({
+    plans,
     config: { 'feature.trailsSync.minTier': 'teams' },
     subscription: {
       id: 'sub_2',
@@ -549,6 +558,7 @@ try {
   testSelectionUtilsDiffSelection();
   testSelectionUtilsShouldEmitPreview();
   runNotificationsSonnerAdapterTests();
+  runSecurityAuditTests();
   console.log('All tests passed');
 } catch (error) {
   console.error('Test failure:', error);

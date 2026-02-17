@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 const SITE_SOURCE = "trail-site" as const;
@@ -9,7 +9,6 @@ const RELAY_TIMEOUT_MS = 5_000;
 
 function ExtensionRelayInner() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const sentRef = useRef(false);
 
   const code = searchParams.get("code");
@@ -20,7 +19,7 @@ function ExtensionRelayInner() {
   useEffect(() => {
     if (sentRef.current) return;
     if (!code || !codeVerifier || !redirectUri) {
-      router.replace(next);
+      window.location.replace(next);
       return;
     }
     sentRef.current = true;
@@ -38,7 +37,7 @@ function ExtensionRelayInner() {
     window.postMessage(message, window.location.origin);
 
     const timer = setTimeout(() => {
-      router.replace(next);
+      window.location.replace(next);
     }, RELAY_TIMEOUT_MS);
 
     function onMessage(event: MessageEvent) {
@@ -51,7 +50,7 @@ function ExtensionRelayInner() {
         data.type === "AUTH_CODE_RELAY_ACK"
       ) {
         clearTimeout(timer);
-        router.replace(next);
+        window.location.replace(next);
       }
     }
 
@@ -60,7 +59,7 @@ function ExtensionRelayInner() {
       clearTimeout(timer);
       window.removeEventListener("message", onMessage);
     };
-  }, [code, codeVerifier, redirectUri, next, router]);
+  }, [code, codeVerifier, redirectUri, next]);
 
   return (
     <div className="flex min-h-[200px] items-center justify-center">

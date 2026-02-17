@@ -48,7 +48,7 @@ export async function handleNavigation(
         await notifyTreeUpdate(tree, 'tabs', view);
       }
     } catch (error) {
-      console.debug('Navigation error:', error);
+      // Navigation error — silently ignored.
     }
     return;
   }
@@ -192,7 +192,7 @@ export async function handleNavigation(
         isActiveTab && currentId !== null ? { focusNodeId: currentId, mode: 'force' } : undefined;
       await notifyTreeUpdate(tree, reason, view);
     }
-  } catch (error) {
-    console.debug('Navigation error:', error);
+  } catch {
+    // Navigation error — silently ignored.
   }
 }

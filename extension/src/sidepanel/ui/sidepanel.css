@@ -14,6 +14,7 @@
 @import './styles/graph.css';
 @import './styles/settings-popover.css';
 @import './styles/auth-gate.css';
+@import './styles/error-boundary.css';
 @import './styles/zen-theme-panel.css';
 @import './styles/context-menus.css';
 @import './styles/tag-editor.css';

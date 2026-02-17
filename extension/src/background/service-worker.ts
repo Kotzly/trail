@@ -9,6 +9,11 @@ import { initBackendConfig } from '../shared/config/backend.js';
 import { authOrchestrator } from './services/auth-orchestrator.js';
 import { accountKeeper } from './services/account-keeper.js';
 
+// Catch unhandled promise rejections so they don't silently disappear
+// in the service worker context.
+self.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  console.error('Unhandled rejection in service worker:', event.reason);
+});
 
 // Initialize all modules
 void initBackendConfig();
@@ -29,4 +34,4 @@ if (sidePanel?.setPanelBehavior) {
   });
 }
 
-console.log('Trail service worker initialized');
+// Service worker initialized.

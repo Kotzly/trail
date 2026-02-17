@@ -1,10 +1,10 @@
 import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import App from './App.js';
+import ErrorBoundary from './components/ErrorBoundary.js';
 import './sidepanel.css';
 import React from 'react';
 import { initBackendConfig } from '../../shared/config/backend.js';
-import './graph/pixi-no-eval-bootstrap.js';
 import { queryClient } from './query/client.js';
 
 // Notify background that the sidepanel is alive (used to skip redundant
@@ -19,7 +19,9 @@ if (!rootEl) {
 void initBackendConfig();
 
 createRoot(rootEl).render(
-  <QueryClientProvider client={queryClient}>
-    <App />
-  </QueryClientProvider>,
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </ErrorBoundary>,
 );

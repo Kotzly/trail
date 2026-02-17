@@ -333,7 +333,7 @@ function handleSiteMessage(event: MessageEvent): void {
     })
     .catch((error) => {
       if (shouldIgnoreRuntimeError(error)) return;
-      console.debug("Failed to forward site message:", type, error);
+      // Failed to forward site message — silently ignored.
     });
 }
 
@@ -443,4 +443,4 @@ window.addEventListener("message", handleSiteMessage);
 // Register relay from background → site.
 handleBackgroundRelay();
 
-console.debug("trail content script loaded");
+// Content script loaded.

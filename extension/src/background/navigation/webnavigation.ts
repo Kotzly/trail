@@ -6,8 +6,8 @@ import { handleNavigation } from './navigation-handler.js';
  */
 export function initWebNavigation(): void {
   const listener = (details: chrome.webNavigation.WebNavigationFramedCallbackDetails) => {
-    handleNavigation(details).catch((error) => {
-      console.debug('Navigation handler error:', error);
+    handleNavigation(details).catch(() => {
+      // Navigation handler error — silently ignored.
     });
   };
 

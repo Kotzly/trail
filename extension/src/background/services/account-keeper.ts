@@ -21,12 +21,9 @@ type CachedSnapshotEnvelope = {
   fetchedAt: number;
 };
 
-function log(message: string, payload?: Record<string, unknown>): void {
-  if (payload) {
-    console.info("[account-keeper]", message, payload);
-    return;
-  }
-  console.info("[account-keeper]", message);
+function log(_message: string, _payload?: Record<string, unknown>): void {
+  // Intentionally silent in production. Enable for local debugging:
+  // console.info("[account-keeper]", _message, _payload);
 }
 
 async function loadAuth(): Promise<StoredAuthSession | null> {
