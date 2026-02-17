@@ -1,27 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import TrailLogo from "@/components/TrailLogo";
 
 const SITE_SOURCE = "trail-site" as const;
 const RELAY_TIMEOUT_MS = 5_000;
 
-/**
- * Navigate through /auth/callback so the route can validate the Better Auth
- * session and set a fresh trail_auth_session cookie in the same redirect hop
- * to the final destination. Going directly to a protected page (e.g. /trails)
- * can fail when the cookie set during a prior redirect chain hasn't settled.
- */
-function navigateViaCallback(next: string): void {
-  const url = new URL("/auth/callback", window.location.origin);
-  url.searchParams.set("next", next);
-  window.location.replace(url.toString());
-}
+type RelayStatus = "connecting" | "connected";
 
 function ExtensionRelayInner() {
   const searchParams = useSearchParams();
   const sentRef = useRef(false);
+  const [status, setStatus] = useState<RelayStatus>("connecting");
 
   const code = searchParams.get("code");
   const codeVerifier = searchParams.get("codeVerifier");
@@ -30,10 +22,16 @@ function ExtensionRelayInner() {
 
   useEffect(() => {
     if (sentRef.current) return;
+
     if (!code || !codeVerifier || !redirectUri) {
-      navigateViaCallback(next);
+      // Page loaded without expected params — redirect through callback to
+      // re-establish the session cookie and land on the destination page.
+      const url = new URL("/auth/callback", window.location.origin);
+      url.searchParams.set("next", next);
+      window.location.replace(url.toString());
       return;
     }
+
     sentRef.current = true;
 
     const message = {
@@ -49,7 +47,7 @@ function ExtensionRelayInner() {
     window.postMessage(message, window.location.origin);
 
     const timer = setTimeout(() => {
-      navigateViaCallback(next);
+      setStatus("connected");
     }, RELAY_TIMEOUT_MS);
 
     function onMessage(event: MessageEvent) {
@@ -62,7 +60,7 @@ function ExtensionRelayInner() {
         data.type === "AUTH_CODE_RELAY_ACK"
       ) {
         clearTimeout(timer);
-        navigateViaCallback(next);
+        setStatus("connected");
       }
     }
 
@@ -73,12 +71,42 @@ function ExtensionRelayInner() {
     };
   }, [code, codeVerifier, redirectUri, next]);
 
+  if (status === "connected") {
+    return (
+      <main className="flex flex-col items-center gap-6 py-12 text-center">
+        <header className="flex flex-col items-center gap-4">
+          <TrailLogo animated label="Trail" />
+          <div className="space-y-1 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              extension connected
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              You can close this tab or head to your dashboard.
+            </p>
+          </div>
+        </header>
+
+        <a
+          href={next}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+        >
+          Go to dashboard
+        </a>
+      </main>
+    );
+  }
+
   return (
-    <div className="flex min-h-[200px] items-center justify-center">
-      <p className="text-sm text-muted-foreground">
-        Connecting to Trail extension…
-      </p>
-    </div>
+    <main className="flex flex-col items-center gap-6 py-12 text-center">
+      <header className="flex flex-col items-center gap-4">
+        <TrailLogo label="Trail" />
+        <div className="space-y-1 text-center">
+          <p className="text-sm text-muted-foreground">
+            Connecting to Trail extension…
+          </p>
+        </div>
+      </header>
+    </main>
   );
 }
 
@@ -86,9 +114,9 @@ export default function ExtensionRelayPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[200px] items-center justify-center">
+        <main className="flex flex-col items-center gap-6 py-12 text-center">
           <p className="text-sm text-muted-foreground">Loading…</p>
-        </div>
+        </main>
       }
     >
       <ExtensionRelayInner />
