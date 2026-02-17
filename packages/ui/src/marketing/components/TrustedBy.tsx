@@ -103,14 +103,20 @@ function getAutoLogoScale(logoSize: Company["logoSize"]) {
   return Math.min(MAX_AUTO_UPSCALE, MIN_VISUAL_LOGO_WIDTH / naturalWidth);
 }
 
-export function TrustedBy() {
-  // Double the companies for seamless loop
-  const doubledCompanies = [...companies, ...companies];
+interface TrustedByProps {
+  title?: string;
+  brands?: Company[];
+}
+
+export function TrustedBy(props: TrustedByProps) {
+  const title = props.title ?? "Trusted by power users at";
+  const baseCompanies = props.brands ?? companies;
+  const doubledCompanies = [...baseCompanies, ...baseCompanies];
 
   return (
     <section className="py-16 overflow-visible">
       <div className="text-center mb-10">
-        <p className="text-sm text-ink-subtle">Trusted by power users at</p>
+        <p className="text-sm text-ink-subtle">{title}</p>
       </div>
 
       <div className="relative group max-w-5xl mx-auto">

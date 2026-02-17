@@ -1,4 +1,6 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
+import { SanityPage } from "../components/SanityPage";
 import { FeaturesContent } from "./FeaturesSections";
 
 export const metadata: Metadata = {
@@ -8,5 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function FeaturesPage() {
-  return <FeaturesContent />;
+  return (
+    <Suspense>
+      <SanityPage slug="features" fallback={<FeaturesContent />} />
+    </Suspense>
+  );
 }

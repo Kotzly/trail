@@ -9,8 +9,19 @@ import {
   AccordionTrigger,
 } from "../ui/accordion";
 
-export function FAQSection() {
-  const { faq } = marketingCopy;
+interface FAQSectionProps {
+  eyebrow?: string;
+  title?: string;
+  items?: { question: string; answer: string; category?: string }[];
+}
+
+export function FAQSection(props: FAQSectionProps) {
+  const fallback = marketingCopy.faq;
+  const faq = {
+    eyebrow: props.eyebrow ?? fallback.eyebrow,
+    title: props.title ?? fallback.title,
+    items: props.items ?? fallback.items,
+  };
 
   return (
     <section id="faq" className="relative px-6 py-24">

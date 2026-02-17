@@ -1,8 +1,12 @@
 "use client";
 
-import { VideosSection } from "@trail/ui/marketing";
+import { VideosSection, type VideosSectionContent } from "@trail/ui/marketing";
 import { videos } from "../../data/videos";
 
-export default function VideoShowcases() {
-  return <VideosSection content={videos} />;
+interface VideoShowcasesProps {
+  content?: VideosSectionContent;
+}
+
+export default function VideoShowcases({ content }: VideoShowcasesProps) {
+  return <VideosSection content={content ?? videos} />;
 }

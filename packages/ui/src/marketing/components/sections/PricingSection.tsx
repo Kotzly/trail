@@ -114,8 +114,26 @@ function PricingCard({ plan, isMonthly, index }: PricingCardProps) {
   );
 }
 
-export function PricingSection() {
-  const { pricing } = marketingCopy;
+interface PricingSectionProps {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  toggleLabel?: string;
+  toggleNote?: string;
+  plans?: PricingPlan[];
+}
+
+export function PricingSection(props: PricingSectionProps) {
+  const fallback = marketingCopy.pricing;
+  const pricing = {
+    eyebrow: props.eyebrow ?? fallback.eyebrow,
+    title: props.title ?? fallback.title,
+    description: props.description ?? fallback.description,
+    toggleLabel: props.toggleLabel ?? fallback.toggleLabel,
+    toggleNote: props.toggleNote ?? fallback.toggleNote,
+    billedMonthlyLabel: fallback.billedMonthlyLabel,
+    billedAnnuallyLabel: fallback.billedAnnuallyLabel,
+  };
   const [isMonthly, setIsMonthly] = useState(true);
   const switchRef = useRef<HTMLButtonElement>(null);
 
@@ -123,7 +141,7 @@ export function PricingSection() {
     setIsMonthly(!checked);
   };
 
-  const plans: PricingPlan[] = pricing.plans.map((plan) => ({
+  const plans: PricingPlan[] = (props.plans ?? fallback.plans).map((plan) => ({
     name: plan.name,
     price: plan.price,
     yearlyPrice: plan.yearlyPrice,

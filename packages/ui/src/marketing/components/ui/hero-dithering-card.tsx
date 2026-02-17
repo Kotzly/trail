@@ -28,6 +28,8 @@ export function HeroDitheringCard({
   secondaryCtaText,
   secondaryCtaHref,
   showStats = true,
+  stats: statsProp,
+  statsNote: statsNoteProp,
 }: {
   eyebrow?: string;
   title: string;
@@ -38,6 +40,8 @@ export function HeroDitheringCard({
   secondaryCtaText?: string;
   secondaryCtaHref?: string;
   showStats?: boolean;
+  stats?: { value: string; label: string }[];
+  statsNote?: string;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [titleNumber, setTitleNumber] = useState(0);
@@ -54,7 +58,8 @@ export function HeroDitheringCard({
     return () => clearTimeout(timeoutId);
   }, [titleNumber, titles]);
 
-  const { stats, statsNote } = marketingCopy;
+  const stats = statsProp ?? marketingCopy.stats;
+  const statsNote = statsNoteProp ?? marketingCopy.statsNote;
 
   return (
     <section className="relative pt-24 pb-8 w-full flex flex-col items-center px-4 md:px-6">

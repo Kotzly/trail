@@ -219,8 +219,27 @@ function BentoCard({
   );
 }
 
-export function BentoFeatures() {
-  const { features } = marketingCopy;
+interface BentoFeaturesProps {
+  eyebrow?: string;
+  title?: string;
+  summary?: string;
+  features?: {
+    id: string;
+    name: string;
+    description: string;
+    href: string;
+    cta: string;
+    className?: string;
+    icon?: string;
+  }[];
+}
+
+export function BentoFeatures(props: BentoFeaturesProps) {
+  const fallback = marketingCopy.features;
+  const eyebrow = props.eyebrow ?? fallback.eyebrow;
+  const title = props.title ?? fallback.title;
+  const summary = props.summary ?? fallback.summary;
+  const items = props.features ?? fallback.items;
 
   return (
     <section id="features" className="relative px-6 py-24">
@@ -232,7 +251,7 @@ export function BentoFeatures() {
           transition={{ duration: 0.5 }}
           className="inline-block text-xs font-semibold uppercase tracking-wider text-accent"
         >
-          {features.eyebrow}
+          {eyebrow}
         </motion.span>
         <motion.h2
           initial={{ opacity: 0, y: 10 }}
@@ -241,7 +260,7 @@ export function BentoFeatures() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mt-4 text-3xl font-semibold tracking-tight text-ink md:text-4xl"
         >
-          {features.title}
+          {title}
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 10 }}
@@ -250,13 +269,13 @@ export function BentoFeatures() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mx-auto mt-4 max-w-2xl text-ink-muted"
         >
-          {features.summary}
+          {summary}
         </motion.p>
       </div>
 
       <div className="mx-auto mt-16 max-w-6xl">
         <div className="grid auto-rows-[200px] grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-3">
-          {features.items.map((feature, index) => (
+          {items.map((feature, index) => (
             <BentoCard
               key={feature.id}
               name={feature.name}
