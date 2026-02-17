@@ -110,6 +110,14 @@ async function getAccessToken(): Promise<string | null> {
   return typeof raw.accessToken === 'string' && raw.accessToken ? raw.accessToken : null;
 }
 
+/**
+ * Quick check used by the sync engine to bail out early
+ * before doing any work when the user is not logged in.
+ */
+export async function isAuthenticated(): Promise<boolean> {
+  return (await getAccessToken()) !== null;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Request helper                                                     */
 /* ------------------------------------------------------------------ */

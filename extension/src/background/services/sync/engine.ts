@@ -20,7 +20,7 @@ import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSum
 import type { FaviconUrl, Title, Url } from '../../../shared/types/ids.js';
 import { notifyTreesUpdate } from '../../messaging/notifications.js';
 import { treeStorage } from '../tree-storage.js';
-import { syncApi, SyncApiError } from './api.js';
+import { syncApi, SyncApiError, isAuthenticated } from './api.js';
 import type { IndexSyncMeta } from './api.js';
 import { dirtyTracker } from './dirty-tracker.js';
 import { migrateV2ToV3 } from './migration.js';
@@ -154,6 +154,13 @@ class SyncEngine {
   /* ---------------------------------------------------------------- */
 
   private async performSyncCycle(): Promise<void> {
+    // Skip the entire cycle when the user is not authenticated.
+    // This avoids unnecessary work and pointless 401 errors.
+    if (!(await isAuthenticated())) {
+      this.state = 'idle';
+      return;
+    }
+
     try {
       const deviceId = await this.getOrCreateDeviceId();
       const clientSyncAt = await dirtyTracker.getServerSyncAt();
