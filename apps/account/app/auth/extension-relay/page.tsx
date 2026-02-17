@@ -7,6 +7,18 @@ import { Suspense } from "react";
 const SITE_SOURCE = "trail-site" as const;
 const RELAY_TIMEOUT_MS = 5_000;
 
+/**
+ * Navigate through /auth/callback so the route can validate the Better Auth
+ * session and set a fresh trail_auth_session cookie in the same redirect hop
+ * to the final destination. Going directly to a protected page (e.g. /trails)
+ * can fail when the cookie set during a prior redirect chain hasn't settled.
+ */
+function navigateViaCallback(next: string): void {
+  const url = new URL("/auth/callback", window.location.origin);
+  url.searchParams.set("next", next);
+  window.location.replace(url.toString());
+}
+
 function ExtensionRelayInner() {
   const searchParams = useSearchParams();
   const sentRef = useRef(false);
@@ -19,7 +31,7 @@ function ExtensionRelayInner() {
   useEffect(() => {
     if (sentRef.current) return;
     if (!code || !codeVerifier || !redirectUri) {
-      window.location.replace(next);
+      navigateViaCallback(next);
       return;
     }
     sentRef.current = true;
@@ -37,7 +49,7 @@ function ExtensionRelayInner() {
     window.postMessage(message, window.location.origin);
 
     const timer = setTimeout(() => {
-      window.location.replace(next);
+      navigateViaCallback(next);
     }, RELAY_TIMEOUT_MS);
 
     function onMessage(event: MessageEvent) {
@@ -50,7 +62,7 @@ function ExtensionRelayInner() {
         data.type === "AUTH_CODE_RELAY_ACK"
       ) {
         clearTimeout(timer);
-        window.location.replace(next);
+        navigateViaCallback(next);
       }
     }
 
