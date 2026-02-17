@@ -25,6 +25,12 @@ export const siteSettings = defineType({
       of: [{type: 'link'}],
     }),
     defineField({
+      name: 'navCta',
+      title: 'Navigation CTA Button',
+      type: 'ctaBlock',
+      description: 'The primary call-to-action button shown in the navigation bar',
+    }),
+    defineField({
       name: 'footerCopyright',
       title: 'Footer Copyright Text',
       type: 'string',

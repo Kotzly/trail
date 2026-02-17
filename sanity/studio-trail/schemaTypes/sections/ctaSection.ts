@@ -21,6 +21,13 @@ export const ctaSection = defineType({
     defineField({name: 'secondaryCta', title: 'Secondary CTA', type: 'ctaBlock'}),
     defineField({name: 'note', title: 'Note', type: 'string', description: 'Small text below buttons'}),
     defineField({
+      name: 'bulletPoints',
+      title: 'Bullet Points',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'Optional list of feature highlights shown alongside the CTA',
+    }),
+    defineField({
       name: 'stats',
       title: 'Stats',
       type: 'array',

@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "motion/react";
-import { marketingCopy } from "@trail/content";
 import {
   Accordion,
   AccordionContent,
@@ -12,15 +11,14 @@ import {
 interface FAQSectionProps {
   eyebrow?: string;
   title?: string;
-  items?: { question: string; answer: string; category?: string }[];
+  items?: readonly { question: string; answer: string; category?: string }[];
 }
 
 export function FAQSection(props: FAQSectionProps) {
-  const fallback = marketingCopy.faq;
   const faq = {
-    eyebrow: props.eyebrow ?? fallback.eyebrow,
-    title: props.title ?? fallback.title,
-    items: props.items ?? fallback.items,
+    eyebrow: props.eyebrow ?? "FAQ",
+    title: props.title ?? "Frequently asked questions",
+    items: props.items ?? [],
   };
 
   return (

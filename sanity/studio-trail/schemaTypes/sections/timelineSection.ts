@@ -27,6 +27,19 @@ export const timelineSection = defineType({
               of: [{type: 'string'}],
             }),
             defineField({name: 'image', title: 'Image', type: 'image', options: {hotspot: true}}),
+            defineField({
+              name: 'status',
+              title: 'Status',
+              type: 'string',
+              options: {
+                list: [
+                  {title: 'Completed', value: 'completed'},
+                  {title: 'In Progress', value: 'in_progress'},
+                  {title: 'Planned', value: 'planned'},
+                  {title: 'Future', value: 'future'},
+                ],
+              },
+            }),
           ],
           preview: {
             select: {title: 'year', subtitle: 'heading'},

@@ -5,6 +5,7 @@ import {ctaBlock} from './objects/ctaBlock'
 
 // Documents
 import {page} from './documents/page'
+import {landingPage} from './documents/landingPage'
 import {siteSettings} from './documents/siteSettings'
 import {legalPage} from './documents/legalPage'
 
@@ -27,6 +28,12 @@ import {onboardingStepsSection} from './sections/onboardingStepsSection'
 import {featuresGridSection} from './sections/featuresGridSection'
 import {timelineSection} from './sections/timelineSection'
 import {supportOptionsSection} from './sections/supportOptionsSection'
+import {quickLinksSection} from './sections/quickLinksSection'
+import {comparisonTableSection} from './sections/comparisonTableSection'
+import {infoColumnsSection} from './sections/infoColumnsSection'
+import {supportFlowSection} from './sections/supportFlowSection'
+import {pageHeaderSection} from './sections/pageHeaderSection'
+import {simpleCtaSection} from './sections/simpleCtaSection'
 
 export const schemaTypes = [
   // Objects (must be registered before types that reference them)
@@ -53,9 +60,16 @@ export const schemaTypes = [
   featuresGridSection,
   timelineSection,
   supportOptionsSection,
+  quickLinksSection,
+  comparisonTableSection,
+  infoColumnsSection,
+  supportFlowSection,
+  pageHeaderSection,
+  simpleCtaSection,
 
   // Documents
   page,
+  landingPage,
   siteSettings,
   legalPage,
 ]

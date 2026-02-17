@@ -2,10 +2,10 @@ import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './schemaTypes'
-import {CogIcon, DocumentTextIcon, DocumentIcon} from '@sanity/icons'
+import {CogIcon, DocumentTextIcon, DocumentIcon, StarIcon} from '@sanity/icons'
 import type {StructureBuilder} from 'sanity/structure'
 
-const singletonTypes = new Set(['siteSettings'])
+const singletonTypes = new Set(['siteSettings', 'landingPage'])
 
 function structure(S: StructureBuilder) {
   return S.list()
@@ -15,11 +15,15 @@ function structure(S: StructureBuilder) {
         .title('Site Settings')
         .icon(CogIcon)
         .child(S.document().schemaType('siteSettings').documentId('siteSettings')),
+      S.listItem()
+        .title('Landing Page')
+        .icon(StarIcon)
+        .child(S.documentTypeList('landingPage').title('Landing Page')),
       S.divider(),
       S.listItem()
-        .title('Pages')
+        .title('Content Pages')
         .icon(DocumentTextIcon)
-        .child(S.documentTypeList('page').title('Pages')),
+        .child(S.documentTypeList('page').title('Content Pages')),
       S.listItem()
         .title('Legal Pages')
         .icon(DocumentIcon)

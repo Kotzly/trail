@@ -1,6 +1,8 @@
-import { MarketingFooter as SharedMarketingFooter } from "@trail/ui/marketing";
-import { publicEnv } from "@/lib/public-env";
+import {
+  MarketingFooter as SharedMarketingFooter,
+  type MarketingFooterProps,
+} from "@trail/ui/marketing";
 
-export function MarketingFooter() {
-  return <SharedMarketingFooter appBaseUrl={publicEnv.NEXT_PUBLIC_APP_URL} />;
+export function MarketingFooter(props: MarketingFooterProps) {
+  return <SharedMarketingFooter {...props} />;
 }

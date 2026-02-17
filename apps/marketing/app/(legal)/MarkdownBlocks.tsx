@@ -11,12 +11,13 @@ const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 
 function renderEmailNodes(
   text: string,
-  opts: { strong?: boolean },
+  opts: { strong?: boolean; keyPrefix?: string },
 ): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   const pattern = new RegExp(emailPattern.source, "gi");
+  const kp = opts.keyPrefix ?? "";
 
   while ((match = pattern.exec(text))) {
     const start = match.index;
@@ -24,13 +25,13 @@ function renderEmailNodes(
     if (start > lastIndex) {
       const chunk = text.slice(lastIndex, start);
       nodes.push(
-        opts.strong ? <strong key={`${start}-t`}>{chunk}</strong> : chunk,
+        opts.strong ? <strong key={`${kp}${start}-t`}>{chunk}</strong> : chunk,
       );
     }
 
     nodes.push(
       <a
-        key={`${start}-e`}
+        key={`${kp}${start}-e`}
         href={`mailto:${email}`}
         className="font-semibold text-ink underline underline-offset-4"
       >
@@ -43,7 +44,7 @@ function renderEmailNodes(
   if (lastIndex < text.length) {
     const tail = text.slice(lastIndex);
     nodes.push(
-      opts.strong ? <strong key={`${lastIndex}-t`}>{tail}</strong> : tail,
+      opts.strong ? <strong key={`${kp}${lastIndex}-t`}>{tail}</strong> : tail,
     );
   }
 
@@ -63,7 +64,7 @@ function renderInline(text: string): React.ReactNode {
   parts.forEach((part, index) => {
     const strong = index % 2 === 1;
     if (!part) return;
-    nodes.push(...renderEmailNodes(part, { strong }));
+    nodes.push(...renderEmailNodes(part, { strong, keyPrefix: `${index}-` }));
   });
 
   return nodes.length === 1 ? nodes[0] : nodes;

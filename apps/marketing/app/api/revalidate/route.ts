@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     const tags: string[] = ["sanity"];
 
-    if (body._type === "page") {
+    if (body._type === "page" || body._type === "landingPage") {
       tags.push("sanity:page");
       if (body.slug?.current) {
         tags.push(`sanity:page:${body.slug.current}`);

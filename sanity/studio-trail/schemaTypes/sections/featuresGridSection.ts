@@ -26,6 +26,7 @@ export const featuresGridSection = defineType({
               type: 'string',
               description: 'Lucide icon name',
             }),
+            defineField({name: 'highlight', title: 'Highlight', type: 'string', description: 'Short highlight text shown below the description'}),
           ],
           preview: {
             select: {title: 'name', subtitle: 'description'},

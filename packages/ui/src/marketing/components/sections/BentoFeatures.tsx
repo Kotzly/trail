@@ -2,7 +2,6 @@
 
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { marketingCopy } from "@trail/content";
 import { GlowingEffect } from "../ui/glowing-effect";
 import { Button } from "../ui/button";
 import {
@@ -223,7 +222,7 @@ interface BentoFeaturesProps {
   eyebrow?: string;
   title?: string;
   summary?: string;
-  features?: {
+  features?: readonly {
     id: string;
     name: string;
     description: string;
@@ -235,11 +234,10 @@ interface BentoFeaturesProps {
 }
 
 export function BentoFeatures(props: BentoFeaturesProps) {
-  const fallback = marketingCopy.features;
-  const eyebrow = props.eyebrow ?? fallback.eyebrow;
-  const title = props.title ?? fallback.title;
-  const summary = props.summary ?? fallback.summary;
-  const items = props.features ?? fallback.items;
+  const eyebrow = props.eyebrow ?? "Features";
+  const title = props.title ?? "Everything you need to stay in flow.";
+  const summary = props.summary ?? "";
+  const items = props.features ?? [];
 
   return (
     <section id="features" className="relative px-6 py-24">

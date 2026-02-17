@@ -29,7 +29,7 @@ interface FeaturesGridSectionProps {
   eyebrow?: string;
   title?: string;
   subtitle?: string;
-  features?: { name: string; description?: string; icon?: string }[];
+  features?: { name: string; description?: string; icon?: string; highlight?: string }[];
 }
 
 export function FeaturesGridSection({
@@ -91,6 +91,11 @@ export function FeaturesGridSection({
                   {feature.description && (
                     <p className="mt-2 text-sm text-ink-muted">
                       {feature.description}
+                    </p>
+                  )}
+                  {feature.highlight && (
+                    <p className="mt-3 text-xs font-medium text-accent">
+                      {feature.highlight}
                     </p>
                   )}
                 </SurfaceCard>

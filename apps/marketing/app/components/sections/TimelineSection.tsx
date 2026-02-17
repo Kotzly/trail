@@ -16,6 +16,7 @@ interface TimelineSectionProps {
     description?: string;
     highlights?: string[];
     image?: { asset?: { url?: string } };
+    status?: "completed" | "in_progress" | "planned" | "future";
   }[];
 }
 
@@ -58,11 +59,42 @@ export function TimelineSection({
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className="md:pl-12"
             >
-              <div className="hidden md:block absolute left-2.5 mt-1.5 h-3 w-3 rounded-full border-2 border-accent bg-base" />
+              <div
+                className={`hidden md:block absolute left-2.5 mt-1.5 h-3 w-3 rounded-full border-2 ${
+                  item.status === "completed"
+                    ? "border-green-500 bg-green-500"
+                    : item.status === "in_progress"
+                      ? "border-accent bg-accent"
+                      : "border-stroke bg-base"
+                }`}
+              />
               <SurfaceCard className="p-6">
-                <span className="text-sm font-semibold text-accent">
-                  {item.year}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-accent">
+                    {item.year}
+                  </span>
+                  {item.status && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        item.status === "completed"
+                          ? "bg-green-500/10 text-green-600"
+                          : item.status === "in_progress"
+                            ? "bg-accent/10 text-accent"
+                            : item.status === "planned"
+                              ? "bg-amber-500/10 text-amber-600"
+                              : "bg-ink-subtle/10 text-ink-subtle"
+                      }`}
+                    >
+                      {item.status === "completed"
+                        ? "Done"
+                        : item.status === "in_progress"
+                          ? "In Progress"
+                          : item.status === "planned"
+                            ? "Planned"
+                            : "Future"}
+                    </span>
+                  )}
+                </div>
                 {item.heading && (
                   <h3 className="mt-2 text-lg font-semibold text-ink">
                     {item.heading}

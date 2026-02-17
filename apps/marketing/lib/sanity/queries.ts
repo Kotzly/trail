@@ -14,7 +14,7 @@ const fileFields = `
 `;
 
 export const pageQuery = /* groq */ `
-  *[_type == "page" && slug.current == $slug][0]{
+  *[_type in ["landingPage", "page"] && slug.current == $slug][0]{
     _id,
     title,
     "slug": slug.current,
@@ -54,6 +54,7 @@ export const siteSettingsQuery = /* groq */ `
     siteName,
     siteUrl,
     nav[]{label, href, isExternal},
+    navCta{text, href},
     footerCopyright,
     footerLinks[]{label, href, isExternal},
     supportEmail,
@@ -73,7 +74,7 @@ export const legalPageQuery = /* groq */ `
 `;
 
 export const allPagesQuery = /* groq */ `
-  *[_type == "page"]{
+  *[_type in ["landingPage", "page"]]{
     "slug": slug.current
   }
 `;

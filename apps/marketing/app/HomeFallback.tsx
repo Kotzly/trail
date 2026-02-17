@@ -1,3 +1,4 @@
+import { marketingCopy } from "@trail/content";
 import { TrustedBy } from "./components/TrustedBy";
 import { BentoFeatures } from "./components/sections/BentoFeatures";
 import { FAQSection } from "./components/sections/FAQSection";
@@ -28,9 +29,18 @@ export function HomeFallback() {
           posterUrl="/assets/video-poster-white.jpg"
         />
         <TrustedBy />
-        <BentoFeatures />
+        <BentoFeatures
+          eyebrow={marketingCopy.features.eyebrow}
+          title={marketingCopy.features.title}
+          summary={marketingCopy.features.summary}
+          features={marketingCopy.features.items}
+        />
         <VideoShowcases content={videos} />
-        <FAQSection />
+        <FAQSection
+          eyebrow={marketingCopy.faq.eyebrow}
+          title={marketingCopy.faq.title}
+          items={marketingCopy.faq.items}
+        />
         <CTASection />
       </div>
     </MarketingPageShell>

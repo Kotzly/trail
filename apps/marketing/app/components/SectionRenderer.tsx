@@ -16,6 +16,12 @@ import { OnboardingStepsSection } from "./sections/OnboardingStepsSection";
 import { FeaturesGridSection } from "./sections/FeaturesGridSection";
 import { TimelineSection } from "./sections/TimelineSection";
 import { SupportOptionsSection } from "./sections/SupportOptionsSection";
+import { QuickLinksSection } from "./sections/QuickLinksSection";
+import { ComparisonTableSection } from "./sections/ComparisonTableSection";
+import { InfoColumnsSection } from "./sections/InfoColumnsSection";
+import { SupportFlowSectionWrapper } from "./sections/SupportFlowSectionWrapper";
+import { PageHeader } from "./sections/PageHeader";
+import { SimpleCtaSection } from "./sections/SimpleCtaSection";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type SanitySection = {
@@ -44,6 +50,27 @@ function HeroAdapter({ section }: { section: any }) {
       ctaHref={cta?.href}
       videoUrl={resolveFileUrl(section.video)}
       posterUrl={resolveImageUrl(section.poster)}
+    />
+  );
+}
+
+function PageHeaderAdapter({ section }: { section: any }) {
+  return (
+    <PageHeader
+      eyebrow={section.eyebrow}
+      title={section.title}
+      description={section.description}
+    />
+  );
+}
+
+function SimpleCtaAdapter({ section }: { section: any }) {
+  return (
+    <SimpleCtaSection
+      title={section.title}
+      description={section.description}
+      primaryCta={section.primaryCta}
+      secondaryCta={section.secondaryCta}
     />
   );
 }
@@ -109,6 +136,7 @@ function CTAAdapter({ section }: { section: any }) {
       stats={section.stats}
       statsNote={section.note}
       showStats={!!section.stats?.length}
+      bulletPoints={section.bulletPoints}
     />
   );
 }
@@ -162,6 +190,14 @@ const sectionMap: Record<string, React.ComponentType<{ section: any }>> = {
   supportOptionsSection: ({ section }) => (
     <SupportOptionsSection {...section} />
   ),
+  quickLinksSection: ({ section }) => <QuickLinksSection {...section} />,
+  comparisonTableSection: ({ section }) => (
+    <ComparisonTableSection {...section} />
+  ),
+  infoColumnsSection: ({ section }) => <InfoColumnsSection {...section} />,
+  supportFlowSection: () => <SupportFlowSectionWrapper />,
+  pageHeaderSection: PageHeaderAdapter,
+  simpleCtaSection: SimpleCtaAdapter,
 };
 
 export function SectionRenderer({ sections }: { sections: SanitySection[] }) {
