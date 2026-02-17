@@ -21,8 +21,6 @@ function ExtensionRelayInner() {
   const next = searchParams.get("next") ?? "/trails";
 
   useEffect(() => {
-    if (sentRef.current) return;
-
     if (!code || !codeVerifier || !redirectUri) {
       // Page loaded without expected params — redirect through callback to
       // re-establish the session cookie and land on the destination page.
@@ -32,20 +30,25 @@ function ExtensionRelayInner() {
       return;
     }
 
-    sentRef.current = true;
+    // Post the auth code only once (skip on React strict-mode remount).
+    if (!sentRef.current) {
+      sentRef.current = true;
 
-    const message = {
-      source: SITE_SOURCE,
-      type: "AUTH_CODE_RELAY",
-      requestId: crypto.randomUUID(),
-      timestamp: Date.now(),
-      code,
-      codeVerifier,
-      redirectUri,
-    };
+      const message = {
+        source: SITE_SOURCE,
+        type: "AUTH_CODE_RELAY",
+        requestId: crypto.randomUUID(),
+        timestamp: Date.now(),
+        code,
+        codeVerifier,
+        redirectUri,
+      };
 
-    window.postMessage(message, window.location.origin);
+      window.postMessage(message, window.location.origin);
+    }
 
+    // Always set up the timer + listener, even on strict-mode remount,
+    // because cleanup kills them.
     const timer = setTimeout(() => {
       setStatus("connected");
     }, RELAY_TIMEOUT_MS);
