@@ -1,8 +1,17 @@
 "use client";
 
-import { TestimonialsSection } from "@trail/ui/marketing";
-import { testimonials } from "../../data/testimonials";
+import {
+  TestimonialsSection,
+  type TestimonialItem,
+} from "@trail/ui/marketing";
+import { testimonials as defaultTestimonials } from "../../data/testimonials";
 
-export default function Testimonials() {
-  return <TestimonialsSection testimonials={testimonials} />;
+interface TestimonialsProps {
+  testimonials?: TestimonialItem[];
+}
+
+export default function Testimonials({ testimonials }: TestimonialsProps) {
+  return (
+    <TestimonialsSection testimonials={testimonials ?? defaultTestimonials} />
+  );
 }

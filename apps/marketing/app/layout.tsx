@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { marketingCopy } from "@trail/content";
 import { RevealObserver } from "./components/RevealObserver";
 import { VideoObserver } from "./components/VideoObserver";
 import { defaultDescription, defaultTitle, metadataBase } from "../lib/seo";
 import { MarketingNav } from "./components/MarketingNav";
 import { MarketingFooter } from "./components/MarketingFooter";
+import { fetchSiteSettings } from "../lib/sanity/queries";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeInit } from "./theme-init";
 const posterUrl = new URL(
@@ -75,11 +75,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const settings = await fetchSiteSettings();
+
   return (
     <html lang="en" suppressHydrationWarning className={jakarta.variable}>
       <head>
@@ -91,11 +93,18 @@ export default function RootLayout({
       </head>
       <body className="bg-bg text-ink">
         <div className="min-h-screen flex flex-col">
-          <MarketingNav />
+          <MarketingNav
+            navLinks={settings?.nav}
+            ctaText={settings?.navCta?.text}
+            ctaHref={settings?.navCta?.href}
+          />
 
           <main className="flex-1">{children}</main>
 
-          <MarketingFooter />
+          <MarketingFooter
+            links={settings?.footerLinks}
+            copyright={settings?.footerCopyright}
+          />
         </div>
         <RevealObserver />
         <VideoObserver />

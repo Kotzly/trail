@@ -2,22 +2,31 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
-import { marketingCopy } from "@trail/content";
 import { TrailLogo } from "../../components/TrailLogo";
 import { GetTrailButton } from "./GetTrailButton";
 
-const navItems = [
-  {
-    href: "/#features",
-    label: marketingCopy.nav.features,
-  },
-  {
-    href: "/#faq",
-    label: marketingCopy.nav.faq,
-  },
+export interface NavLink {
+  label: string;
+  href: string;
+  isExternal?: boolean;
+}
+
+export interface MarketingNavProps {
+  navLinks?: NavLink[];
+  ctaText?: string;
+  ctaHref?: string;
+}
+
+const defaultNavItems: NavLink[] = [
+  { href: "/#features", label: "Features" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
-export function MarketingNav() {
+export function MarketingNav({
+  navLinks,
+  ctaText = "Get Trail",
+  ctaHref = "/downloads",
+}: MarketingNavProps = {}) {
   const [isPastHero, setIsPastHero] = React.useState(false);
 
   React.useEffect(() => {
@@ -88,10 +97,11 @@ export function MarketingNav() {
             </motion.a>
 
             <nav className="flex items-center gap-4 text-sm font-medium text-ink-subtle sm:gap-6">
-              {navItems.map((item) => (
+              {(navLinks ?? defaultNavItems).map((item) => (
                 <motion.a
                   key={item.href}
                   href={item.href}
+                  {...(item.isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -114,11 +124,11 @@ export function MarketingNav() {
         style={{ pointerEvents: isPastHero ? "auto" : "none" }}
       >
         <GetTrailButton
-          href="/downloads"
+          href={ctaHref}
           showIcon={false}
           className="h-10 px-5 shadow-[var(--trail-elev-3)]"
         >
-          Get Trail
+          {ctaText}
         </GetTrailButton>
       </motion.div>
     </>

@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "motion/react";
-import { marketingCopy } from "@trail/content";
 import {
   Accordion,
   AccordionContent,
@@ -9,8 +8,18 @@ import {
   AccordionTrigger,
 } from "../ui/accordion";
 
-export function FAQSection() {
-  const { faq } = marketingCopy;
+interface FAQSectionProps {
+  eyebrow?: string;
+  title?: string;
+  items?: readonly { question: string; answer: string; category?: string }[];
+}
+
+export function FAQSection(props: FAQSectionProps) {
+  const faq = {
+    eyebrow: props.eyebrow ?? "FAQ",
+    title: props.title ?? "Frequently asked questions",
+    items: props.items ?? [],
+  };
 
   return (
     <section id="faq" className="relative px-6 py-24">

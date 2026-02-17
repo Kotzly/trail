@@ -1,7 +1,10 @@
 "use client";
 
-import { MarketingNav as SharedMarketingNav } from "@trail/ui/marketing";
+import {
+  MarketingNav as SharedMarketingNav,
+  type MarketingNavProps,
+} from "@trail/ui/marketing";
 
-export function MarketingNav() {
-  return <SharedMarketingNav />;
+export function MarketingNav(props: MarketingNavProps) {
+  return <SharedMarketingNav {...props} />;
 }

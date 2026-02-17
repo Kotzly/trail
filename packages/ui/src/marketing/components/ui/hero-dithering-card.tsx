@@ -4,7 +4,6 @@ import { ArrowRight, MoveRight } from "../../../icons";
 import { useState, Suspense, lazy, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
-import { marketingCopy } from "@trail/content";
 
 const Dithering = lazy(() =>
   import("@paper-design/shaders-react").then((mod) => ({
@@ -28,6 +27,9 @@ export function HeroDitheringCard({
   secondaryCtaText,
   secondaryCtaHref,
   showStats = true,
+  stats: statsProp,
+  statsNote: statsNoteProp,
+  bulletPoints,
 }: {
   eyebrow?: string;
   title: string;
@@ -38,6 +40,9 @@ export function HeroDitheringCard({
   secondaryCtaText?: string;
   secondaryCtaHref?: string;
   showStats?: boolean;
+  stats?: { value: string; label: string }[];
+  statsNote?: string;
+  bulletPoints?: string[];
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [titleNumber, setTitleNumber] = useState(0);
@@ -54,7 +59,8 @@ export function HeroDitheringCard({
     return () => clearTimeout(timeoutId);
   }, [titleNumber, titles]);
 
-  const { stats, statsNote } = marketingCopy;
+  const stats = statsProp ?? [];
+  const statsNote = statsNoteProp ?? "";
 
   return (
     <section className="relative pt-24 pb-8 w-full flex flex-col items-center px-4 md:px-6">
@@ -150,6 +156,23 @@ export function HeroDitheringCard({
             >
               {description}
             </motion.p>
+
+            {/* Bullet Points */}
+            {bulletPoints?.length ? (
+              <motion.ul
+                className="mb-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink-muted"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.45 }}
+              >
+                {bulletPoints.map((bp) => (
+                  <li key={bp} className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                    {bp}
+                  </li>
+                ))}
+              </motion.ul>
+            ) : null}
 
             {/* Buttons */}
             <motion.div

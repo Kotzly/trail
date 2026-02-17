@@ -1,7 +1,7 @@
 {
   "name": "trail",
   "private": true,
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.29.3",
   "scripts": {
     "dev": "sh -c 'pnpm -r --parallel dev & pnpm --dir extension dev:local; wait'",
     "dev:web": "pnpm -r --parallel dev",

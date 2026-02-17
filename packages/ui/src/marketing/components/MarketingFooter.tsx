@@ -1,68 +1,67 @@
 import Link from "next/link";
-import { marketingCopy } from "@trail/content";
 
-interface MarketingFooterProps {
-  appBaseUrl: string;
+export interface FooterLink {
+  label: string;
+  href: string;
+  isExternal?: boolean;
 }
 
-export function MarketingFooter({ appBaseUrl }: MarketingFooterProps) {
-  const { footer } = marketingCopy;
+export interface MarketingFooterProps {
+  appBaseUrl?: string;
+  links?: FooterLink[];
+  copyright?: string;
+}
+
+const defaultLinks: FooterLink[] = [
+  { label: "FAQ", href: "/faq" },
+  { label: "Support", href: "/support" },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
+];
+
+export function MarketingFooter({
+  links,
+  copyright = "Trail",
+}: MarketingFooterProps) {
+  const resolvedLinks = links ?? defaultLinks;
 
   return (
     <footer className="border-t border-stroke/40 bg-base/80">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-6 text-xs text-ink-subtle md:flex-row md:items-center md:justify-between">
         <span>
-          {footer.copyright} © {new Date().getFullYear()}
+          {copyright} © {new Date().getFullYear()}
         </span>
         <div className="flex flex-wrap gap-4">
-          <Link
-            href="/faq"
-            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-          >
-            {footer.links.faq}
-          </Link>
-          <Link
-            href="/support"
-            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-          >
-            {footer.links.support}
-          </Link>
-          <Link
-            href="/about"
-            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-          >
-            {footer.links.about}
-          </Link>
-          <Link
-            href="/contact"
-            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-          >
-            {footer.links.contact}
-          </Link>
-          <Link
-            href="/privacy"
-            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-          >
-            {footer.links.privacy}
-          </Link>
-          <Link
-            href="/terms"
-            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-          >
-            {footer.links.terms}
-          </Link>
-          <a
-            href={appBaseUrl}
-            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-          >
-            {footer.links.signIn}
-          </a>
-          <a
-            href={`mailto:${footer.links.email}`}
-            className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-          >
-            {footer.links.email}
-          </a>
+          {resolvedLinks.map((link) => {
+            const isExternal =
+              link.isExternal || link.href.startsWith("http") || link.href.startsWith("mailto:");
+
+            if (isExternal) {
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+                >
+                  {link.label}
+                </a>
+              );
+            }
+
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-full transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </footer>

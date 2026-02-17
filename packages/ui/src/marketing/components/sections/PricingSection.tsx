@@ -4,7 +4,6 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Check, Sparkles } from "../../../icons";
-import { marketingCopy } from "@trail/content";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
 import { GlowingEffect } from "../ui/glowing-effect";
@@ -78,9 +77,7 @@ function PricingCard({ plan, isMonthly, index }: PricingCardProps) {
         </div>
 
         <p className="mt-1 text-xs text-ink-subtle">
-          {isMonthly
-            ? marketingCopy.pricing.billedMonthlyLabel
-            : marketingCopy.pricing.billedAnnuallyLabel}
+          {isMonthly ? "Billed monthly" : "Billed annually"}
           {plan.name === "Teams" && (
             <span className="text-sm text-ink-subtle">, per user</span>
           )}
@@ -114,8 +111,23 @@ function PricingCard({ plan, isMonthly, index }: PricingCardProps) {
   );
 }
 
-export function PricingSection() {
-  const { pricing } = marketingCopy;
+interface PricingSectionProps {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  toggleLabel?: string;
+  toggleNote?: string;
+  plans?: PricingPlan[];
+}
+
+export function PricingSection(props: PricingSectionProps) {
+  const pricing = {
+    eyebrow: props.eyebrow ?? "Pricing",
+    title: props.title ?? "Plans that scale with your research",
+    description: props.description ?? "",
+    toggleLabel: props.toggleLabel ?? "Annual billing",
+    toggleNote: props.toggleNote ?? "Save 20%",
+  };
   const [isMonthly, setIsMonthly] = useState(true);
   const switchRef = useRef<HTMLButtonElement>(null);
 
@@ -123,7 +135,7 @@ export function PricingSection() {
     setIsMonthly(!checked);
   };
 
-  const plans: PricingPlan[] = pricing.plans.map((plan) => ({
+  const plans: PricingPlan[] = (props.plans ?? []).map((plan) => ({
     name: plan.name,
     price: plan.price,
     yearlyPrice: plan.yearlyPrice,
@@ -173,7 +185,7 @@ export function PricingSection() {
           <span
             className={`text-sm ${isMonthly ? "text-ink" : "text-ink-subtle"}`}
           >
-            {pricing.billedMonthlyLabel}
+            Monthly
           </span>
           <Label className="relative inline-flex cursor-pointer items-center">
             <Switch
@@ -185,7 +197,7 @@ export function PricingSection() {
           <span
             className={`text-sm ${!isMonthly ? "text-ink" : "text-ink-subtle"}`}
           >
-            {pricing.billedAnnuallyLabel}
+            Yearly
           </span>
           <span className="ml-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
             {pricing.toggleNote}
