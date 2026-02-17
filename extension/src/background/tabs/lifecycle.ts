@@ -118,6 +118,18 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
     }
 }
 
+async function onWindowFocusChanged(windowId: number): Promise<void> {
+    if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+
+    const [activeTab] = await chrome.tabs.query({ active: true, windowId });
+    if (!activeTab?.id) return;
+
+    const tabId = activeTab.id as TabId;
+    if (tabManager.isIgnoredTab(tabId)) return;
+
+    await onTabActivated({ tabId: activeTab.id, windowId });
+}
+
 async function onTabUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab): Promise<void> {
     if (tabManager.isIgnoredTab(tabId as TabId)) return;
     if (changeInfo.audible || changeInfo.mutedInfo) {
@@ -137,4 +149,5 @@ export function initTabsLifecycle(): void {
     chrome.tabs.onRemoved.addListener(onTabRemoved);
     chrome.tabs.onActivated.addListener(onTabActivated);
     chrome.tabs.onUpdated.addListener(onTabUpdated);
+    chrome.windows.onFocusChanged.addListener(onWindowFocusChanged);
 }
