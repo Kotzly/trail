@@ -1,9 +1,16 @@
-# Sanity Clean Content Studio
+# Trail Sanity Studio
 
-Congratulations, you have now installed the Sanity Content Studio, an open-source real-time content editing environment connected to the Sanity backend.
+Sanity Content Studio for the Trail marketing site (`gettrail.net`). Manages CMS content consumed by `apps/marketing`.
 
-Now you can do the following things:
+## Setup
 
-- [Read “getting started” in the docs](https://www.sanity.io/docs/introduction/getting-started?utm_source=readme)
-- [Join the Sanity community](https://www.sanity.io/community/join?utm_source=readme)
-- [Extend and build plugins](https://www.sanity.io/docs/content-studio/extending?utm_source=readme)
+```bash
+cd sanity/studio-trail
+pnpm install
+pnpm dev
+```
+
+## Useful links
+
+- [Sanity docs](https://www.sanity.io/docs)
+- [Sanity community](https://www.sanity.io/community/join)

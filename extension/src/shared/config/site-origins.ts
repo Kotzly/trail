@@ -14,8 +14,6 @@ export const ALLOWED_SITE_MATCH_PATTERNS = [
   'http://127.0.0.1/*',
 ] as const;
 
-export const OPTIONAL_HOST_MATCH_PATTERNS = ['<all_urls>'] as const;
-
 const allowedSiteOriginsSet = new Set<string>(ALLOWED_SITE_ORIGINS);
 
 export function isAllowedSiteOrigin(origin: string): boolean {

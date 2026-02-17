@@ -4,11 +4,9 @@ PRDs define goals, user flows, edge cases, and technical constraints for major p
 
 | PRD | Scope | Key flows |
 |-----|--------|-----------|
-| [landing.md](landing.md) | gettrail.net | Visit → hero → downloads / waitlist; support; legal |
-| [dashboard.md](dashboard.md) | app.gettrail.net | Signed-in → dashboard / extension / settings / billing |
-| [account-settings.md](account-settings.md) | app.gettrail.net | View profile; edit name/avatar; export data; delete account |
-| [extension-cloud-features.md](extension-cloud-features.md) | Extension ↔ cloud | Link account (portal or code exchange); token; future sync/sessions |
 | [share-trails.md](share-trails.md) | Extension + site | Export/import branches (JSON + public share links); placement & merge |
+| [polar-billing.md](polar-billing.md) | Billing | Polar billing integration, subscription management |
+| [user-flow-redesign.md](user-flow-redesign.md) | UX | User flow redesign across the product |
 
 Each PRD includes:
 - **Goals & success**

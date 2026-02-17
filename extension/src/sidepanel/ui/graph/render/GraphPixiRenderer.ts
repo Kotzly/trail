@@ -1582,7 +1582,6 @@ function loadFaviconTexture(url: FaviconUrl): Promise<PIXI.Texture | null> {
   return promise;
 }
 
-
 function getExtensionBaseUrl(): string | null {
   try {
     if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {

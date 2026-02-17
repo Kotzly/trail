@@ -4,35 +4,19 @@ import { isAllowedSiteOrigin } from '../shared/config/site-origins.js';
 /**
  * Content script for Trail.
  *
- * Responsibilities:
- * 1. Track title / favicon changes and report to background.
- * 2. Bridge postMessage between the Trail account site and the extension
- *    background, enforcing the security layer (origin, schema, TTL, nonce).
+ * Bridges postMessage between the Trail account site and the extension
+ * background, enforcing the security layer (origin, schema, TTL, nonce).
+ *
+ * Title/favicon tracking is handled by the background service worker via
+ * chrome.tabs.onUpdated — no content script injection required.
  *
  * ⚠ No heavy dependencies here (no Zod, no large libs) — this script is
  * injected only on trusted Trail site origins.
  */
 
 // ---------------------------------------------------------------------------
-// Brand types (mirrors shared/types/ids.ts without importing)
-// ---------------------------------------------------------------------------
-
-type Brand<T, B extends string> = T & { readonly __brand: B };
-
-type Url = Brand<string, "Url">;
-type Title = Brand<string, "Title">;
-type FaviconUrl = Brand<string, "FaviconUrl">;
-
-// ---------------------------------------------------------------------------
 // Internal messaging types (background ↔ content script)
 // ---------------------------------------------------------------------------
-
-type TitleOrFaviconChangedMessage = {
-  type: typeof RPC_METHOD.TITLE_OR_FAVICON_CHANGED;
-  url: Url;
-  title?: Title;
-  favicon?: FaviconUrl;
-};
 
 type OpenPanelMessage = {
   type: typeof RPC_METHOD.OPEN_PANEL;
@@ -47,7 +31,6 @@ type SiteForwardMessage = {
 };
 
 type RequestMessage =
-  | TitleOrFaviconChangedMessage
   | OpenPanelMessage
   | SiteForwardMessage;
 
@@ -60,7 +43,6 @@ type Err = { success: false; error: string };
 type MessageResponse<T = void> = Ok<T> | Err;
 
 type ResponseDataByType = {
-  [RPC_METHOD.TITLE_OR_FAVICON_CHANGED]: void;
   [RPC_METHOD.OPEN_PANEL]: void;
   [RPC_METHOD.SITE_MESSAGE_FORWARD]: { responsePayload?: Record<string, unknown> };
 };
@@ -68,19 +50,11 @@ type ResponseDataByType = {
 type ResponseMessage<T extends RequestType> = MessageResponse<ResponseDataByType[T]>;
 
 const RPC_METHOD = {
-  TITLE_OR_FAVICON_CHANGED: "TITLE_OR_FAVICON_CHANGED",
   OPEN_PANEL: "OPEN_PANEL",
   SITE_MESSAGE_FORWARD: "SITE_MESSAGE_FORWARD",
 } as const;
 
 const rpc = {
-  titleOrFaviconChanged(payload: {
-    url: Url;
-    title?: Title;
-    favicon?: FaviconUrl;
-  }): TitleOrFaviconChangedMessage {
-    return { type: RPC_METHOD.TITLE_OR_FAVICON_CHANGED, ...payload };
-  },
   openPanel(): OpenPanelMessage {
     return { type: RPC_METHOD.OPEN_PANEL };
   },
@@ -273,23 +247,6 @@ function sendMessage<T extends RequestType>(
   });
 }
 
-function fireAndForget<T extends RequestType>(
-  message: MessageByType<T>,
-): void {
-  sendMessage(message).catch((error) => {
-    if (shouldIgnoreRuntimeError(error)) return;
-    console.debug("Failed to send message:", message.type, error);
-  });
-}
-
-function notifyTitleOrFaviconChange(payload: {
-  url: Url;
-  title?: Title;
-  favicon?: FaviconUrl;
-}): void {
-  fireAndForget(rpc.titleOrFaviconChanged(payload));
-}
-
 // ---------------------------------------------------------------------------
 // Extension → Site postMessage helper
 // ---------------------------------------------------------------------------
@@ -476,80 +433,13 @@ function handleBackgroundRelay(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Title + Favicon observation (unchanged logic)
+// Bootstrap
 // ---------------------------------------------------------------------------
 
-(function () {
-  "use strict";
+// Register postMessage listener with security layer.
+window.addEventListener("message", handleSiteMessage);
 
-  // Register postMessage listener with security layer.
-  window.addEventListener("message", handleSiteMessage);
+// Register relay from background → site.
+handleBackgroundRelay();
 
-  // Register relay from background → site.
-  handleBackgroundRelay();
-
-  let lastTitle = document.title;
-
-  function handleTitleChange() {
-    const title = document.title as Title;
-    if (title && title !== lastTitle) {
-      lastTitle = title;
-      const url = window.location.href as Url;
-      notifyTitleOrFaviconChange({ url, title });
-    }
-  }
-
-  function getFaviconUrl(): FaviconUrl | undefined {
-    const faviconElement =
-      document.querySelector<HTMLLinkElement>("link[rel~='icon']");
-    if (faviconElement && faviconElement.href) {
-      return faviconElement.href as FaviconUrl;
-    }
-    return undefined;
-  }
-
-  function handleFaviconChange() {
-    const favicon = getFaviconUrl();
-    if (favicon && favicon !== lastFavicon) {
-      lastFavicon = favicon;
-      const url = window.location.href as Url;
-      notifyTitleOrFaviconChange({ url, favicon });
-    }
-  }
-
-  // Observe title element changes
-  const titleElement = document.querySelector("title");
-  if (titleElement) {
-    const titleObserver = new MutationObserver(handleTitleChange);
-    titleObserver.observe(titleElement, {
-      childList: true,
-      characterData: true,
-      subtree: true,
-    });
-  }
-
-  // Watch for favicon changes
-  let lastFavicon: FaviconUrl | undefined = getFaviconUrl();
-
-  // Observe <head> for changes to favicon links
-  const headElement = document.querySelector("head");
-  if (headElement) {
-    const faviconObserver = new MutationObserver(handleFaviconChange);
-    faviconObserver.observe(headElement, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["href", "rel"],
-    });
-  }
-
-  const faviconCheckInterval = setInterval(handleFaviconChange, 2000);
-  const titleCheckInterval = setInterval(handleTitleChange, 2000);
-
-  setTimeout(() => {
-    clearInterval(faviconCheckInterval);
-    clearInterval(titleCheckInterval);
-  }, 30000);
-
-  console.debug("trail content script loaded");
-})();
+console.debug("trail content script loaded");

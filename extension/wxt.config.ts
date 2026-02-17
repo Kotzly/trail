@@ -3,7 +3,6 @@ import { mkdirSync } from "node:fs";
 import { defineConfig } from "wxt";
 import {
   ALLOWED_SITE_MATCH_PATTERNS,
-  OPTIONAL_HOST_MATCH_PATTERNS,
 } from "./src/shared/config/site-origins";
 
 const DEFAULT_DEV_SERVER_PORT = 3011;
@@ -38,7 +37,7 @@ export default defineConfig({
   manifest: {
     name: "Trail",
     description:
-      "Visualize your browsing history as trees",
+      "Your browsing sessions, reimagined.",
     version: "1.0.0",
     icons: {
       "16": "icons/trail-16.png",
@@ -57,16 +56,16 @@ export default defineConfig({
       "cookies",
     ],
     host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
-    optional_host_permissions: [...OPTIONAL_HOST_MATCH_PATTERNS],
     side_panel: {
       default_path: "sidepanel/index.html",
     },
     action: {
-      default_title: "open trail",
+      default_title: "open Trail",
       default_icon: {
         "16": "icons/trail-16.png",
         "32": "icons/trail-32.png",
         "48": "icons/trail-48.png",
+        "128": "icons/trail-128.png",
       },
     },
   },

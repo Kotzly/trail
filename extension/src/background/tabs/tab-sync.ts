@@ -18,7 +18,7 @@ export async function syncTabTitleFavicon(
 
   const nodeId = tabManager.nodeByTab(tabId);
   if (!nodeId) return;
-  
+
   const tree = await treeStorage.getOrCreateTree();
 
   const node = tree.findNodeById(nodeId);
