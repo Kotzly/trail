@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getAuthSession } from "@/src/lib/auth";
+import { notFound } from "next/navigation";
 import { getTrailById } from "@/src/server/trails";
 import EditInExtensionButton from "./EditInExtensionButton";
 import ExportButton from "./ExportButton";
@@ -12,8 +11,6 @@ export default async function TrailDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await getAuthSession();
-  if (!session?.user) redirect(`/auth/login?next=/trails/${encodeURIComponent(id)}`);
   const trail = await getTrailById(id);
   if (!trail) notFound();
 

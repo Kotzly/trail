@@ -8,6 +8,7 @@ import { createOAuthAuthorizationCode } from "@/src/server/backend/oauth";
 export const runtime = "nodejs";
 
 const DEFAULT_REDIRECT = "/trails";
+const AUTH_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days, matches JWT expirationTime
 
 function base64Url(buffer: Buffer): string {
   return buffer
@@ -41,6 +42,7 @@ export async function GET(request: Request) {
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
   });
 
   if (source === "extension") {
@@ -69,6 +71,7 @@ export async function GET(request: Request) {
       path: "/",
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
+      maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
     });
     return relayResponse;
   }

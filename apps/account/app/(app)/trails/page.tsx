@@ -1,12 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getAuthSession } from "@/src/lib/auth";
 import { getTrailsList, type TrailSummary } from "@/src/server/trails";
 
 export default async function TrailsPage() {
-  const session = await getAuthSession();
-  if (!session?.user) redirect("/auth");
-
   const data = await getTrailsList({ limit: 50 });
   const trails = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;

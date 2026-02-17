@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getAuthSession } from "@/src/lib/auth";
 import { getOnboardingState } from "@/src/server/onboarding";
-import { Button } from "@/components/ui/button";
 import OnboardingGate from "./OnboardingGate";
 import SignOutButton from "./SignOutButton";
 
@@ -15,8 +15,12 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await getAuthSession();
-  const user = session?.user ?? null;
-  const onboarding = user ? await getOnboardingState() : null;
+  if (!session?.user) {
+    redirect("/auth/callback");
+  }
+
+  const user = session.user;
+  const onboarding = await getOnboardingState();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -39,13 +43,7 @@ export default async function AppLayout({
           </nav>
 
           <div className="flex items-center gap-2">
-            {user ? (
-              <SignOutButton />
-            ) : (
-              <Button asChild size="sm">
-                <a href="/auth/login">sign in</a>
-              </Button>
-            )}
+            <SignOutButton />
           </div>
         </div>
       </header>

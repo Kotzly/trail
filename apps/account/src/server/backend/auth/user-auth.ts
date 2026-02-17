@@ -80,7 +80,10 @@ export async function verifyUserToken(
       name: payload.name,
       picture: payload.picture ?? payload.image,
     };
-  } catch {
+  } catch (error) {
+    console.warn("[auth] verifyUserToken failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }

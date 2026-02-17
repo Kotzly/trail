@@ -116,7 +116,11 @@ export async function getUserFromToken(
       name: payload.name,
       imageUrl: payload.image ?? payload.imageUrl ?? payload.picture,
     };
-  } catch {
+  } catch (error) {
+    console.warn("[auth] JWT verification failed, trying extension token", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
     const extension = await verifyExtensionToken(token);
     if (!extension?.sub) {
       return undefined;

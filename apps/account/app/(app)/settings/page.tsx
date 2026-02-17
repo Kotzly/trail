@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import Image from "next/image";
 import { accountCopy } from "@trail/content";
 import {
@@ -15,12 +14,9 @@ import { AccountSettingsForm } from "./AccountSettingsForm";
 
 export default async function SettingsPage() {
   const { settings } = accountCopy;
+  // Auth is guaranteed by the (app) layout — no need to redirect here.
   const session = await getAuthSession();
-  const user = session?.user;
-
-  if (!user) {
-    redirect("/auth/login");
-  }
+  const user = session!.user;
 
   const { firstName, lastName } = splitDisplayName(user.name);
 

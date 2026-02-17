@@ -7,5 +7,5 @@ export default async function AccountHome() {
     redirect("/trails");
   }
 
-  redirect("/auth/login");
+  redirect("/auth/callback");
 }
