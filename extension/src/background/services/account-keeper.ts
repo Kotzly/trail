@@ -101,11 +101,10 @@ async function fetchSnapshot(): Promise<AccountSnapshot> {
     }
     return snapshot;
   } catch {
-    const plans = await fetchJson<Plan[]>(
-      BACKEND_CONFIG.endpoints.plans,
-      { auth: false },
-    ).catch(() => []);
-    return buildGuestSnapshot(plans);
+    // Propagate the error so refreshSnapshot() does NOT overwrite the
+    // cached authenticated snapshot with a guest one. Transient failures
+    // (network, 401 with valid refresh token) should not flash the auth gate.
+    throw new Error("snapshot fetch failed");
   }
 }
 

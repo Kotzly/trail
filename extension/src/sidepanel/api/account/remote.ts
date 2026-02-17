@@ -2,7 +2,6 @@ import type {
   AccountError,
   AccountErrorCode,
   AccountSnapshot,
-  AuthSession,
   BillingStatus,
   CheckoutInput,
   Plan,
@@ -42,32 +41,11 @@ async function loadAuth(): Promise<StoredAuthSession | null> {
   }
 }
 
-async function saveAuth(session: StoredAuthSession | null): Promise<void> {
-  if (!canPersist()) return;
-  try {
-    if (!session) {
-      await chrome.storage.local.remove(AUTH_STORAGE_KEY);
-      return;
-    }
-    await chrome.storage.local.set({ [AUTH_STORAGE_KEY]: session });
-  } catch (error) {
-    console.error('Account auth: failed to persist session', error);
-  }
-}
-
-function extractAuth(session: AuthSession | null | undefined): StoredAuthSession | null {
-  if (!session || session.status !== 'authenticated') return null;
-  if (!session.accessToken) return null;
-  const auth: StoredAuthSession = { accessToken: session.accessToken };
-  if (session.refreshToken) auth.refreshToken = session.refreshToken;
-  if (session.expiresAt) auth.expiresAt = session.expiresAt;
-  return auth;
-}
-
-async function syncAuthFromSnapshot(snapshot: AccountSnapshot | null): Promise<void> {
-  if (!snapshot) return;
-  await saveAuth(extractAuth(snapshot.session));
-}
+// saveAuth / extractAuth / syncAuthFromSnapshot were removed — the
+// backend's /account endpoint may omit refreshToken/expiresAt from the
+// session object, and blindly overwriting chrome.storage would destroy
+// the tokens saved during login. Token lifecycle is owned exclusively
+// by the background authOrchestrator.
 
 async function getAccessToken(): Promise<string | null> {
   const auth = await loadAuth();
@@ -203,7 +181,6 @@ export function createRemoteAccountClient(): AccountClient {
 
     try {
       const snapshot = await requestJson<AccountSnapshot>(BACKEND_CONFIG.endpoints.account);
-      await syncAuthFromSnapshot(snapshot);
       if (!snapshot.plans || snapshot.plans.length === 0) {
         try {
           const plans = await requestJson<Plan[]>(BACKEND_CONFIG.endpoints.plans, {}, { auth: false });
@@ -215,7 +192,8 @@ export function createRemoteAccountClient(): AccountClient {
       return snapshot;
     } catch (error) {
       if (isAccountError(error) && error.code === 'auth') {
-        await saveAuth(null);
+        // Do NOT clear tokens here — the background authOrchestrator owns
+        // token lifecycle and will attempt refresh with the stored refreshToken.
         const plans = await requestJson<Plan[]>(
           BACKEND_CONFIG.endpoints.plans,
           {},

@@ -38,7 +38,7 @@ export default defineConfig({
     name: "Trail",
     description:
       "Your browsing sessions, reimagined.",
-    version: "1.0.0",
+    version: "0.9.0",
     homepage_url: "https://gettrail.net",
     icons: {
       "16": "icons/trail-16.png",
