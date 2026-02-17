@@ -8,6 +8,7 @@ import { MarketingNav } from "./components/MarketingNav";
 import { MarketingFooter } from "./components/MarketingFooter";
 import { fetchSiteSettings } from "../lib/sanity/queries";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeInit } from "./theme-init";
 const posterUrl = new URL(
   "/assets/video-poster-white.jpg",
@@ -109,6 +110,7 @@ export default async function RootLayout({
         <RevealObserver />
         <VideoObserver />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
