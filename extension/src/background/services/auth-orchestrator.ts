@@ -1,4 +1,5 @@
 import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
+import { isAllowedSiteOrigin } from "../../shared/config/site-origins.js";
 import { notifyUi } from "../messaging/ui-notifications.js";
 import { syncEngine } from "./sync/engine.js";
 import { accountKeeper } from "./account-keeper.js";
@@ -22,8 +23,6 @@ type AuthFailureReason =
   | "login_required"
   | "refresh_invalid"
   | "network_error"
-  | "state_mismatch"
-  | "missing_code"
   | "token_exchange_failed"
   | "token_payload_invalid"
   | "open_login_tab_failed";
@@ -38,25 +37,6 @@ function logAuth(message: string, payload?: Record<string, unknown>): void {
     return;
   }
   console.info("[auth-orchestrator]", message);
-}
-
-function base64Url(bytes: Uint8Array): string {
-  let binary = "";
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return btoa(binary).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-
-function randomBase64Url(byteLength: number): string {
-  const bytes = new Uint8Array(byteLength);
-  crypto.getRandomValues(bytes);
-  return base64Url(bytes);
-}
-
-async function sha256Base64Url(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return base64Url(new Uint8Array(digest));
 }
 
 function isAccessTokenExpired(expiresAt?: string | null): boolean {
@@ -140,68 +120,6 @@ async function exchangeAuthorizationCode(input: {
     expiresAt,
   });
   return { ok: true, reason: "authenticated" };
-}
-
-async function runSilentAuthorizeFlow(): Promise<AuthFlowResult> {
-  await initBackendConfig();
-  const clientId = "trail-extension";
-  const deviceId = await getOrCreateDeviceId();
-  const redirectUri = chrome.identity.getRedirectURL("oauth-callback");
-  const state = randomBase64Url(24);
-  const codeVerifier = randomBase64Url(64);
-  const codeChallenge = await sha256Base64Url(codeVerifier);
-
-  const authorizeUrl = new URL(buildBackendUrl(BACKEND_CONFIG.endpoints.oauthAuthorize));
-  authorizeUrl.searchParams.set("response_type", "code");
-  authorizeUrl.searchParams.set("client_id", clientId);
-  authorizeUrl.searchParams.set("redirect_uri", redirectUri);
-  authorizeUrl.searchParams.set("scope", "trail.extension");
-  authorizeUrl.searchParams.set("state", state);
-  authorizeUrl.searchParams.set("code_challenge", codeChallenge);
-  authorizeUrl.searchParams.set("code_challenge_method", "S256");
-  authorizeUrl.searchParams.set("prompt", "none");
-  authorizeUrl.searchParams.set("device_id", deviceId);
-
-  let callbackUrl: string | undefined;
-  try {
-    callbackUrl = await chrome.identity.launchWebAuthFlow({
-      url: authorizeUrl.toString(),
-      interactive: false,
-    });
-  } catch {
-    return { ok: false, reason: "login_required" };
-  }
-
-  if (!callbackUrl) {
-    return { ok: false, reason: "login_required" };
-  }
-
-  const callback = new URL(callbackUrl);
-  const callbackState = callback.searchParams.get("state") ?? "";
-  if (callbackState !== state) {
-    return { ok: false, reason: "state_mismatch" };
-  }
-
-  const error = callback.searchParams.get("error");
-  if (error) {
-    if (error === "login_required") {
-      return { ok: false, reason: "login_required" };
-    }
-    return { ok: false, reason: "token_exchange_failed" };
-  }
-
-  const code = callback.searchParams.get("code") ?? "";
-  if (!code) {
-    return { ok: false, reason: "missing_code" };
-  }
-
-  return exchangeAuthorizationCode({
-    code,
-    codeVerifier,
-    redirectUri,
-    clientId,
-    deviceId,
-  });
 }
 
 async function refreshWithToken(refreshToken: string): Promise<AuthFlowResult> {
@@ -293,33 +211,13 @@ class AuthOrchestrator {
       }
       try {
         const origin = new URL(details.url).origin;
-        if (
-          origin === "https://app.gettrail.net" ||
-          origin === "https://gettrail.net" ||
-          origin === "http://localhost:3000" ||
-          origin === "http://localhost:3001" ||
-          origin === "http://127.0.0.1:3000" ||
-          origin === "http://127.0.0.1:3001"
-        ) {
+        if (isAllowedSiteOrigin(origin)) {
           this.scheduleSilentSync();
         }
       } catch {
         // ignore malformed URL
       }
     });
-
-    if (chrome.cookies?.onChanged) {
-      chrome.cookies.onChanged.addListener((changeInfo) => {
-        if (
-          changeInfo.cookie.name === "trail_auth_session" ||
-          changeInfo.cookie.name === "better-auth.session_token" ||
-          changeInfo.cookie.name === "__Secure-better-auth.session_token"
-        ) {
-          this.clearLoginRequiredCooldown();
-          this.scheduleSilentSync({ force: true });
-        }
-      });
-    }
 
     this.scheduleSilentSync();
   }
@@ -354,6 +252,7 @@ class AuthOrchestrator {
     loginUrl.searchParams.set("next", LOGIN_NEXT_PATH);
     loginUrl.searchParams.set("prompt", "select_account");
     loginUrl.searchParams.set("maxAge", "0");
+    loginUrl.searchParams.set("source", "extension");
 
     try {
       await chrome.tabs.create({ url: loginUrl.toString(), active: true });
@@ -392,16 +291,10 @@ class AuthOrchestrator {
       return refreshed;
     }
 
-    const result = await runSilentAuthorizeFlow();
-    if (result.ok) {
-      this.clearLoginRequiredCooldown();
-      void accountKeeper.refreshSnapshot();
-      return result;
-    }
-    if (result.reason === "login_required") {
-      await this.clearAuth("login_required");
-    }
-    return result;
+    // No stored tokens — user must sign in via the website.
+    // The site will relay an auth code through the content script
+    // (AUTH_CODE_RELAY), which is handled by handleAuthCodeRelay().
+    return { ok: false, reason: "login_required" };
   }
 
   async interactiveLogin(): Promise<AuthFlowResult> {
@@ -441,6 +334,34 @@ class AuthOrchestrator {
 
   async silentSync(): Promise<AuthFlowResult> {
     return this.runSingleFlight(() => this.executeSilentSync());
+  }
+
+  async handleAuthCodeRelay(input: {
+    code: string;
+    codeVerifier: string;
+    redirectUri: string;
+  }): Promise<AuthFlowResult> {
+    return this.runSingleFlight(async () => {
+      const clientId = "trail-extension";
+      const deviceId = await getOrCreateDeviceId();
+      const result = await exchangeAuthorizationCode({
+        code: input.code,
+        codeVerifier: input.codeVerifier,
+        redirectUri: input.redirectUri,
+        clientId,
+        deviceId,
+      });
+
+      if (result.ok) {
+        this.clearLoginRequiredCooldown();
+        void accountKeeper.refreshSnapshot();
+        logAuth("auth_code_relay_success");
+      } else {
+        logAuth("auth_code_relay_failed", { reason: result.reason });
+      }
+
+      return result;
+    });
   }
 }
 

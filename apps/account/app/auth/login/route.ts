@@ -7,10 +7,14 @@ export async function GET(request: Request) {
   const next = url.searchParams.get("next") ?? url.searchParams.get("returnTo");
   const prompt = url.searchParams.get("prompt");
   const maxAge = url.searchParams.get("maxAge");
+  const source = url.searchParams.get("source");
 
   const callbackUrl = new URL("/auth/callback", url.origin);
   if (next) {
     callbackUrl.searchParams.set("next", next);
+  }
+  if (source) {
+    callbackUrl.searchParams.set("source", source);
   }
 
   const loginUrl = new URL("/login", url.origin);

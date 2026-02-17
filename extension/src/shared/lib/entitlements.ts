@@ -1,50 +1,41 @@
-import type { AccountConfig, PlanTier, Subscription } from '../types/account.js';
+import type { AccountConfig, Plan, PlanTier, Subscription } from '../types/account.js';
 
 const FEATURE_CONFIG_PREFIX = 'feature.';
 const FEATURE_MIN_TIER_SUFFIX = '.minTier';
 
-const TIER_ORDER: Record<PlanTier, number> = {
-  free: 0,
-  pro: 1,
-  teams: 2,
-  enterprise: 3,
-};
+const DEFAULT_TIER: PlanTier = 'free';
 
-export function normalizePlanTier(
-  value: unknown,
-  fallback: PlanTier = 'free',
-): PlanTier {
-  if (typeof value !== 'string') return fallback;
-  const normalized = value.trim().toLowerCase();
-  if (
-    normalized === 'free' ||
-    normalized === 'pro' ||
-    normalized === 'teams' ||
-    normalized === 'enterprise'
-  ) {
-    return normalized;
-  }
-  return fallback;
+function tierRank(plans: readonly Plan[], tier: PlanTier): number {
+  const plan = plans.find((p) => p.tier === tier);
+  return plan?.rank ?? -1;
 }
 
-export function hasTierAccess(current: PlanTier, required: PlanTier): boolean {
-  return TIER_ORDER[current] >= TIER_ORDER[required];
+export function hasTierAccess(
+  plans: readonly Plan[],
+  current: PlanTier,
+  required: PlanTier,
+): boolean {
+  if (current === required) return true;
+  return tierRank(plans, current) >= tierRank(plans, required);
 }
 
 export function resolveCurrentTier(subscription: Subscription | null): PlanTier {
-  return normalizePlanTier(subscription?.planId, 'free');
+  const tier = subscription?.planId;
+  return typeof tier === 'string' && tier.trim() ? tier.trim() : DEFAULT_TIER;
 }
 
 export function getFeatureMinTier(
   config: AccountConfig,
   featureKey: string,
-  fallback: PlanTier = 'free',
+  fallback: PlanTier = DEFAULT_TIER,
 ): PlanTier {
   const key = `${FEATURE_CONFIG_PREFIX}${featureKey}${FEATURE_MIN_TIER_SUFFIX}`;
-  return normalizePlanTier(config[key], fallback);
+  const value = config[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
 export function getFeatureAccess(params: {
+  plans: readonly Plan[];
   config: AccountConfig;
   subscription: Subscription | null;
   featureKey: string;
@@ -53,11 +44,11 @@ export function getFeatureAccess(params: {
   const requiredTier = getFeatureMinTier(
     params.config,
     params.featureKey,
-    params.fallbackMinTier ?? 'free',
+    params.fallbackMinTier ?? DEFAULT_TIER,
   );
   const currentTier = resolveCurrentTier(params.subscription);
   return {
-    allowed: hasTierAccess(currentTier, requiredTier),
+    allowed: hasTierAccess(params.plans, currentTier, requiredTier),
     currentTier,
     requiredTier,
   };

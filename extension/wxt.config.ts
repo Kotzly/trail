@@ -52,8 +52,6 @@ export default defineConfig({
       "webNavigation",
       "favicon",
       "alarms",
-      "identity",
-      "cookies",
     ],
     host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
     side_panel: {

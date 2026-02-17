@@ -165,6 +165,38 @@ const innerHandlers: Record<string, InnerHandler> = {
       },
     };
   },
+
+  AUTH_CODE_RELAY: async (payload, _requestId) => {
+    const code = typeof payload.code === "string" ? payload.code : "";
+    const codeVerifier = typeof payload.codeVerifier === "string" ? payload.codeVerifier : "";
+    const redirectUri = typeof payload.redirectUri === "string" ? payload.redirectUri : "";
+
+    if (!code || !codeVerifier || !redirectUri) {
+      return {
+        responsePayload: {
+          source: "trail-extension",
+          type: "AUTH_CODE_RELAY_ACK",
+          ok: false,
+          error: "Missing code, codeVerifier, or redirectUri",
+        },
+      };
+    }
+
+    const result = await authOrchestrator.handleAuthCodeRelay({
+      code,
+      codeVerifier,
+      redirectUri,
+    });
+
+    return {
+      responsePayload: {
+        source: "trail-extension",
+        type: "AUTH_CODE_RELAY_ACK",
+        ok: result.ok,
+        error: result.ok ? undefined : result.reason,
+      },
+    };
+  },
 };
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,8 @@
 import type { Url } from './ids.js';
 
 export type PlanInterval = 'month' | 'year';
-export type PlanTier = 'free' | 'pro' | 'teams' | 'enterprise';
+/** Arbitrary tier identifier — defined by the backend, not hardcoded. */
+export type PlanTier = string;
 
 export type PlanLimits = {
   maxTrees?: number;
@@ -20,7 +21,7 @@ export type Plan = {
   features: string[];
   limits?: PlanLimits;
   highlight?: boolean;
-  rank?: number;
+  rank: number;
 };
 
 export type SubscriptionStatus =

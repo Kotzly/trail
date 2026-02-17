@@ -36,6 +36,7 @@ export const SiteMessageType = {
   SELECT_NODE: "SELECT_NODE",
   UPDATE_NODE_METADATA: "UPDATE_NODE_METADATA",
   AUTH_REVOKED: "AUTH_REVOKED",
+  AUTH_CODE_RELAY: "AUTH_CODE_RELAY",
 } as const;
 
 export type SiteMessageTypeName =
@@ -53,6 +54,7 @@ export const ExtensionMessageType = {
   EDITOR_MODE_SAVED: "EDITOR_MODE_SAVED",
   EDITOR_MODE_CANCELLED: "EDITOR_MODE_CANCELLED",
   AUTH_REVOKED_ACK: "AUTH_REVOKED_ACK",
+  AUTH_CODE_RELAY_ACK: "AUTH_CODE_RELAY_ACK",
   NODE_SELECTED: "NODE_SELECTED",
   NODE_METADATA_UPDATED: "NODE_METADATA_UPDATED",
   TREE_UPDATED: "TREE_UPDATED",
@@ -125,6 +127,13 @@ export const AuthRevokedMessage = SiteMessageBase.extend({
   type: z.literal(SiteMessageType.AUTH_REVOKED),
 });
 
+export const AuthCodeRelayMessage = SiteMessageBase.extend({
+  type: z.literal(SiteMessageType.AUTH_CODE_RELAY),
+  code: z.string(),
+  codeVerifier: z.string(),
+  redirectUri: z.string(),
+});
+
 /** Discriminated union of all valid site → extension messages. */
 export const SiteMessage = z.discriminatedUnion("type", [
   PingMessage,
@@ -136,6 +145,7 @@ export const SiteMessage = z.discriminatedUnion("type", [
   SelectNodeMessage,
   UpdateNodeMetadataMessage,
   AuthRevokedMessage,
+  AuthCodeRelayMessage,
 ]);
 
 export type SiteMessage = z.infer<typeof SiteMessage>;
@@ -185,6 +195,12 @@ export const AuthRevokedAckMessage = ExtensionMessageBase.extend({
   error: z.string().optional(),
 });
 
+export const AuthCodeRelayAckMessage = ExtensionMessageBase.extend({
+  type: z.literal(ExtensionMessageType.AUTH_CODE_RELAY_ACK),
+  ok: z.boolean(),
+  error: z.string().optional(),
+});
+
 export const NodeSelectedMessage = ExtensionMessageBase.extend({
   type: z.literal(ExtensionMessageType.NODE_SELECTED),
   nodeId: z.string(),
@@ -211,6 +227,7 @@ export const ExtensionMessage = z.discriminatedUnion("type", [
   EditorModeSavedMessage,
   EditorModeCancelledMessage,
   AuthRevokedAckMessage,
+  AuthCodeRelayAckMessage,
   NodeSelectedMessage,
   NodeMetadataUpdatedMessage,
   TreeUpdatedMessage,
@@ -233,11 +250,13 @@ export type CancelEditorModeMessage = z.infer<typeof CancelEditorModeMessage>;
 export type SelectNodeMessage = z.infer<typeof SelectNodeMessage>;
 export type UpdateNodeMetadataMessage = z.infer<typeof UpdateNodeMetadataMessage>;
 export type AuthRevokedMessage = z.infer<typeof AuthRevokedMessage>;
+export type AuthCodeRelayMessage = z.infer<typeof AuthCodeRelayMessage>;
 export type EditorModeEnteredMessage = z.infer<typeof EditorModeEnteredMessage>;
 export type EditorModeExitedMessage = z.infer<typeof EditorModeExitedMessage>;
 export type EditorModeSavedMessage = z.infer<typeof EditorModeSavedMessage>;
 export type EditorModeCancelledMessage = z.infer<typeof EditorModeCancelledMessage>;
 export type AuthRevokedAckMessage = z.infer<typeof AuthRevokedAckMessage>;
+export type AuthCodeRelayAckMessage = z.infer<typeof AuthCodeRelayAckMessage>;
 export type NodeSelectedMessage = z.infer<typeof NodeSelectedMessage>;
 export type NodeMetadataUpdatedMessage = z.infer<typeof NodeMetadataUpdatedMessage>;
 export type TreeUpdatedMessage = z.infer<typeof TreeUpdatedMessage>;

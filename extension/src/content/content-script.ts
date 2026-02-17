@@ -85,6 +85,7 @@ const KNOWN_SITE_TYPES = new Set<string>([
   "SELECT_NODE",
   "UPDATE_NODE_METADATA",
   "AUTH_REVOKED",
+  "AUTH_CODE_RELAY",
 ]);
 
 /** TTL window — messages older than 30 s are rejected. */
