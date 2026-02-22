@@ -41,7 +41,7 @@ const nextConfig = {
   turbopack: {
     root: join(__dirname, "../.."),
   },
-  transpilePackages: ["@trail/ui", "@trail/content"],
+  transpilePackages: [],
   images: {
     remotePatterns: [
       {

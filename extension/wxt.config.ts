@@ -35,7 +35,7 @@ export default defineConfig({
     keepProfileChanges: true,
   },
   manifest: {
-    name: "Trail",
+    name: "Trail - Visual Browsing History",
     description:
       "Your browsing sessions, reimagined.",
     version: "0.9.0",

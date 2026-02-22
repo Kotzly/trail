@@ -36,13 +36,6 @@ export async function POST(req: NextRequest) {
       tags.push("sanity:siteSettings");
     }
 
-    if (body._type === "legalPage") {
-      tags.push("sanity:legalPage");
-      if (body.slug?.current) {
-        tags.push(`sanity:legalPage:${body.slug.current}`);
-      }
-    }
-
     for (const tag of tags) {
       revalidateTag(tag, "default");
     }

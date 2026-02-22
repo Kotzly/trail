@@ -31,13 +31,8 @@ export const landingPage = defineType({
       type: 'array',
       of: [
         {type: 'heroSection'},
-        {type: 'trustedBySection'},
         {type: 'bentoFeaturesSection'},
-        {type: 'videoShowcasesSection'},
         {type: 'ctaSection'},
-        {type: 'testimonialsSection'},
-        {type: 'faqSection'},
-        {type: 'pricingSection'},
       ],
     }),
   ],

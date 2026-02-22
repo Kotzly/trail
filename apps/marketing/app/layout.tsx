@@ -1,37 +1,21 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Instrument_Serif } from "next/font/google";
 import "./globals.css";
-import { RevealObserver } from "./components/RevealObserver";
-import { VideoObserver } from "./components/VideoObserver";
 import { defaultDescription, defaultTitle, metadataBase } from "../lib/seo";
-import { MarketingNav } from "./components/MarketingNav";
-import { MarketingFooter } from "./components/MarketingFooter";
+import { Header } from "./components/Header";
+import { Footer } from "./components/Footer";
 import { fetchSiteSettings } from "../lib/sanity/queries";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { ThemeInit } from "./theme-init";
-const posterUrl = new URL(
-  "/assets/video-poster-white.jpg",
-  metadataBase,
-).toString();
-const videoUrl = new URL("/assets/showcase.mp4", metadataBase).toString();
 
-const videoSchema = {
-  "@context": "https://schema.org",
-  "@type": "VideoObject",
-  name: "Trail product demo",
-  description: "A quick tour of capture, curate, and share in under a minute.",
-  thumbnailUrl: posterUrl,
-  uploadDate: "2026-01-31T00:00:00Z",
-  duration: "PT1M",
-  contentUrl: videoUrl,
-};
-
-const jakarta = Plus_Jakarta_Sans({
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
   subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sans",
-  weight: ["300", "400", "500", "600", "700"],
+  weight: "400",
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -84,31 +68,24 @@ export default async function RootLayout({
   const settings = await fetchSiteSettings();
 
   return (
-    <html lang="en" suppressHydrationWarning className={jakarta.variable}>
-      <head>
-        <ThemeInit />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }}
-        />
-      </head>
-      <body className="bg-bg text-ink">
+    <html
+      lang="en"
+      className={`dark ${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
+    >
+      <body className="antialiased">
         <div className="min-h-screen flex flex-col">
-          <MarketingNav
+          <Header
             navLinks={settings?.nav}
             ctaText={settings?.navCta?.text}
             ctaHref={settings?.navCta?.href}
           />
-
           <main className="flex-1">{children}</main>
-
-          <MarketingFooter
+          <Footer
             links={settings?.footerLinks}
             copyright={settings?.footerCopyright}
           />
         </div>
-        <RevealObserver />
-        <VideoObserver />
+        <div className="noise" aria-hidden="true" />
         <Analytics />
         <SpeedInsights />
       </body>
