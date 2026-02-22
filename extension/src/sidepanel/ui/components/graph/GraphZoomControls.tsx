@@ -5,9 +5,10 @@ type GraphZoomControlsProps = {
   tool: 'hand' | 'select';
   onToolChange: (tool: 'hand' | 'select') => void;
   onZoom: (direction: 'in' | 'out' | 'reset') => void;
+  onOpenFullView: () => void;
 };
 
-export default function GraphZoomControls({ tool, onToolChange, onZoom }: GraphZoomControlsProps) {
+export default function GraphZoomControls({ tool, onToolChange, onZoom, onOpenFullView }: GraphZoomControlsProps) {
   return (
     <div className="graph-zoom-controls" data-graph-ui="true">
         <button
@@ -60,6 +61,16 @@ export default function GraphZoomControls({ tool, onToolChange, onZoom }: GraphZ
         onClick={() => onZoom('reset')}
       >
         <Icons.RefreshCw size={18} />
+      </button>
+      <div className="graph-zoom-divider" />
+      <button
+        className="graph-control-btn"
+        aria-label="Open full view"
+        data-tooltip="Open full view"
+        type="button"
+        onClick={onOpenFullView}
+      >
+        <Icons.ExternalLink size={18} />
       </button>
     </div>
   );

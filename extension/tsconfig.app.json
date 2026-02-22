@@ -18,5 +18,8 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/sidepanel/ui/**/*"]
+  "include": [
+    "src/sidepanel/ui/**/*",
+    "src/fullview/ui/**/*"
+  ]
 }

@@ -2485,6 +2485,24 @@ export default function GraphCanvas({
             clearSelectionState();
           }}
           onZoom={(direction) => zoom(direction, true)}
+          onOpenFullView={async () => {
+            try {
+              const fullViewUrl = chrome.runtime.getURL('fullview.html');
+              const existing = await chrome.tabs.query({ url: fullViewUrl });
+              const tab = existing.find((t) => t.active) ?? existing[0];
+              if (tab?.id != null) {
+                if (tab.windowId != null) {
+                  await chrome.windows.update(tab.windowId, { focused: true });
+                }
+                await chrome.tabs.update(tab.id, { active: true });
+                await chrome.tabs.reload(tab.id);
+              } else {
+                await chrome.tabs.create({ url: fullViewUrl, active: true });
+              }
+            } catch (error) {
+              console.error('Failed to open full view:', error);
+            }
+          }}
         />
         {pickTarget && (
           <div className="graph-pick-hint" data-graph-ui="true">
