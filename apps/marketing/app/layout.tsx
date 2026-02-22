@@ -14,6 +14,7 @@ import { fetchSiteSettings } from "../lib/sanity/queries";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { JsonLd } from "./components/JsonLd";
+import { FeedbackWidget } from "./components/FeedbackWidget";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -99,6 +100,7 @@ export default async function RootLayout({
             copyright={settings?.footerCopyright}
           />
         </div>
+        <FeedbackWidget />
         <div className="noise" aria-hidden="true" />
         <Analytics />
         <SpeedInsights />
