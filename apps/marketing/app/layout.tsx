@@ -3,9 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import {
+  buildRobots,
   defaultDescription,
+  defaultKeywords,
+  SITE_NAME,
   defaultTitle,
-  metadataBase,
+  resolveSiteUrl,
   resolveOgImage,
 } from "../lib/seo";
 import { Header } from "./components/Header";
@@ -27,30 +30,44 @@ const instrumentSerif = Instrument_Serif({
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await fetchSiteSettings();
+  const siteName = settings?.siteName?.trim() || SITE_NAME;
+  const siteUrl = resolveSiteUrl(settings?.siteUrl);
+  const title = settings?.defaultSeo?.title?.trim() || defaultTitle;
+  const description =
+    settings?.defaultSeo?.description?.trim() || defaultDescription;
   const image = resolveOgImage(settings?.defaultSeo?.ogImage);
 
   return {
-    metadataBase,
+    metadataBase: new URL(siteUrl),
+    applicationName: siteName,
     title: {
-      default: defaultTitle,
-      template: "%s | Trail",
+      default: title,
+      template: `%s | ${siteName}`,
     },
-    description: defaultDescription,
+    description,
+    keywords: defaultKeywords,
+    robots: buildRobots(),
+    formatDetection: {
+      email: false,
+      address: false,
+      telephone: false,
+    },
     alternates: {
       canonical: "/",
     },
     openGraph: {
-      title: defaultTitle,
-      description: defaultDescription,
+      title,
+      description,
       url: "/",
-      siteName: "Trail",
+      siteName,
+      locale: "en_US",
       type: "website",
       images: [image],
     },
     twitter: {
       card: "summary_large_image",
-      title: defaultTitle,
-      description: defaultDescription,
+      title,
+      description,
       images: [image.url],
     },
     icons: {
@@ -74,6 +91,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const settings = await fetchSiteSettings();
+  const siteUrl = resolveSiteUrl(settings?.siteUrl);
 
   return (
     <html
@@ -83,7 +101,7 @@ export default async function RootLayout({
       <body className="antialiased">
         <JsonLd
           siteName={settings?.siteName}
-          siteUrl={settings?.siteUrl}
+          siteUrl={siteUrl}
           description={settings?.defaultSeo?.description}
           supportEmail={settings?.supportEmail}
           installUrl={settings?.navCta?.href}

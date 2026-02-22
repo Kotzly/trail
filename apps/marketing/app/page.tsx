@@ -1,27 +1,20 @@
 import type { Metadata } from "next";
 import { fetchPage } from "../lib/sanity/queries";
 import { SectionRenderer } from "./components/SectionRenderer";
-import { defaultTitle, defaultDescription, resolveOgImage } from "../lib/seo";
+import { buildMetadata, defaultDescription, defaultTitle } from "../lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const page = await fetchPage("home");
-  const image = resolveOgImage(page?.seo?.ogImage);
   const title = page?.seo?.title ?? defaultTitle;
   const description = page?.seo?.description ?? defaultDescription;
 
-  return {
-    title: { absolute: title },
+  return buildMetadata({
+    title,
     description,
-    openGraph: {
-      title,
-      description,
-      images: [image],
-    },
-    twitter: {
-      card: "summary_large_image",
-      images: [image.url],
-    },
-  };
+    path: "/",
+    ogImage: page?.seo?.ogImage,
+    absoluteTitle: true,
+  });
 }
 
 export default async function HomePage() {

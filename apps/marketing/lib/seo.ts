@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
 
-const SITE_URL = "https://gettrail.net";
+const FALLBACK_SITE_URL = "https://gettrail.net";
+export const SITE_NAME = "Trail";
 const FALLBACK_OG_IMAGE = "/assets/og-default.png";
 
 export const defaultTitle = "Trail – Visualized Browsing";
 export const defaultDescription =
   "Capture sources, notes, and decisions as you browse. Trail turns tab chaos into organized research trails you can share without storing page content.";
+export const defaultKeywords = [
+  "research assistant",
+  "browser extension",
+  "knowledge management",
+  "web research workflow",
+  "source tracking",
+  "research notes",
+  "decision log",
+];
 
 type SanityImage = {
   asset?: { url?: string; metadata?: { dimensions?: { width?: number; height?: number } } };
@@ -16,7 +26,15 @@ type MetadataInput = {
   description: string;
   path: string;
   ogImage?: SanityImage;
+  keywords?: string[];
+  absoluteTitle?: boolean;
 };
+
+export function resolveSiteUrl(siteUrl?: string | null): string {
+  const trimmed = siteUrl?.trim();
+  if (!trimmed) return FALLBACK_SITE_URL;
+  return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+}
 
 function resolveOgImage(image?: SanityImage) {
   if (image?.asset?.url) {
@@ -36,24 +54,65 @@ function resolveOgImage(image?: SanityImage) {
   };
 }
 
+function isIndexableEnvironment() {
+  if (process.env.VERCEL_ENV) {
+    return process.env.VERCEL_ENV === "production";
+  }
+
+  return process.env.NODE_ENV === "production";
+}
+
+export function buildRobots(
+  indexable = isIndexableEnvironment(),
+): NonNullable<Metadata["robots"]> {
+  if (!indexable) {
+    return {
+      index: false,
+      follow: false,
+      googleBot: {
+        index: false,
+        follow: false,
+        noimageindex: true,
+      },
+    };
+  }
+
+  return {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  };
+}
+
 export function buildMetadata({
   title,
   description,
   path,
   ogImage,
+  keywords,
+  absoluteTitle,
 }: MetadataInput): Metadata {
   const image = resolveOgImage(ogImage);
   return {
-    title,
+    title: absoluteTitle ? { absolute: title } : title,
     description,
+    keywords: keywords ?? defaultKeywords,
     alternates: {
       canonical: path,
     },
+    robots: buildRobots(),
     openGraph: {
       title,
       description,
       url: path,
-      siteName: "Trail",
+      siteName: SITE_NAME,
+      locale: "en_US",
       type: "website",
       images: [image],
     },
@@ -67,4 +126,3 @@ export function buildMetadata({
 }
 
 export { resolveOgImage, FALLBACK_OG_IMAGE };
-export const metadataBase = new URL(SITE_URL);
