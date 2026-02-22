@@ -172,7 +172,7 @@ export function FeedbackWidget() {
                     maxLength={1000}
                     required
                     rows={4}
-                    className="mt-4 w-full resize-none rounded-xl border border-border-subtle bg-elevated px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary transition-colors focus:border-magenta/40 focus:outline-none"
+                    className="mt-4 w-full resize-none rounded-xl border border-border-subtle bg-elevated px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary transition-colors"
                   />
                   <div className="mt-1 text-right text-xs text-text-tertiary tabular-nums">
                     {message.length}/1000
@@ -185,7 +185,7 @@ export function FeedbackWidget() {
                     onChange={(e) => setContact(e.target.value)}
                     placeholder="Email or Telegram for follow-up (optional)"
                     maxLength={100}
-                    className="mt-2 w-full rounded-xl border border-border-subtle bg-elevated px-4 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary transition-colors focus:border-magenta/40 focus:outline-none"
+                    className="mt-2 w-full rounded-xl border border-border-subtle bg-elevated px-4 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary transition-colors"
                   />
 
                   {/* Error */}
