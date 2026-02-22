@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "motion/react";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
 import ColorBends from "../ui/color-bends";
 import { parseHeadline } from "../ui/parse-headline";
 
@@ -12,21 +13,35 @@ export function HeroSection({ section }: { section: any }) {
   const videoUrl: string | undefined = section.video?.asset?.url;
   const posterUrl: string | undefined = section.poster?.asset?.url;
 
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+
+  const videoY = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const videoScale = useTransform(scrollYProgress, [0, 0.5], [1, 1.05]);
+  const videoRotateX = useTransform(scrollYProgress, [0, 0.4], [2, 0]);
+
   return (
-    <section className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
+    <section
+      ref={sectionRef}
+      className="relative flex min-h-svh flex-col items-center overflow-hidden"
+    >
       {/* Animated background */}
       <div className="pointer-events-none absolute inset-0">
-      <ColorBends
-  style={{ position: "absolute", inset: 0 }}
-  colors={["#C2174B", "#C37A30", "#FDD57E"]}
-  speed={0.15}
-  noise={0.05}
-  mouseInfluence={0.5}
-/>        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,_transparent_0%,_rgba(0,0,0,0.9)_100%)]" />
+        <ColorBends
+          style={{ position: "absolute", inset: 0 }}
+          colors={["#C2174B", "#C37A30", "#FDD57E"]}
+          speed={0.15}
+          noise={0.05}
+          mouseInfluence={0.5}
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,_transparent_0%,_rgba(0,0,0,0.9)_100%)]" />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 mx-auto max-w-4xl px-6 pt-32 text-center">
+      <div className="relative z-10 mx-auto max-w-4xl px-6 pt-40 text-center">
         {section.eyebrow && (
           <motion.div
             initial={{ filter: "blur(10px)", opacity: 0, y: 24 }}
@@ -78,21 +93,27 @@ export function HeroSection({ section }: { section: any }) {
         )}
       </div>
 
-      {/* Video with vignette fade */}
+      {/* Video with scroll parallax */}
       {videoUrl && (
         <motion.div
-          className="relative z-10 mx-auto mt-16 w-full max-w-5xl px-6 pb-12"
-          initial={{ filter: "blur(10px)", opacity: 0, y: 40 }}
+          className="relative z-10 mx-auto mt-12 w-full max-w-6xl px-4 pb-16"
+          initial={{ filter: "blur(10px)", opacity: 0, y: 60 }}
           animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.9, ease }}
+          style={{
+            y: videoY,
+            scale: videoScale,
+            rotateX: videoRotateX,
+            perspective: 1200,
+          }}
         >
           <div
             className="relative overflow-hidden rounded-2xl"
             style={{
               maskImage:
-                "radial-gradient(ellipse 90% 80% at 50% 40%, black 40%, transparent 100%)",
+                "radial-gradient(ellipse 95% 85% at 50% 45%, black 50%, transparent 100%)",
               WebkitMaskImage:
-                "radial-gradient(ellipse 90% 80% at 50% 40%, black 40%, transparent 100%)",
+                "radial-gradient(ellipse 95% 85% at 50% 45%, black 50%, transparent 100%)",
             }}
           >
             <video
