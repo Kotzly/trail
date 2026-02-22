@@ -80,7 +80,13 @@ export default async function RootLayout({
       className={`dark ${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
     >
       <body className="antialiased">
-        <JsonLd />
+        <JsonLd
+          siteName={settings?.siteName}
+          siteUrl={settings?.siteUrl}
+          description={settings?.defaultSeo?.description}
+          supportEmail={settings?.supportEmail}
+          installUrl={settings?.navCta?.href}
+        />
         <div className="min-h-screen flex flex-col">
           <Header
             navLinks={settings?.nav}
