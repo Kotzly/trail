@@ -59,8 +59,7 @@ export const supportPageQuery = /* groq */ `
     seo{title, description, ogImage{${imageFields}}},
     statusPageUrl,
     statusLabel,
-    contactEmail,
-    contactChannels[]{label, description, href, icon}
+    contactEmail
   }
 `;
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { fetchPage } from "../lib/sanity/queries";
 import { SectionRenderer } from "./components/SectionRenderer";
+import { PageBackground } from "./components/PageBackground";
 import { buildMetadata, defaultDescription, defaultTitle } from "../lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,5 +29,10 @@ export default async function HomePage() {
     );
   }
 
-  return <SectionRenderer sections={page.sections} />;
+  return (
+    <>
+      <PageBackground />
+      <SectionRenderer sections={page.sections} />
+    </>
+  );
 }

@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageCircle, X, Lightbulb, MessageSquare, Send, Check } from "lucide-react";
+import { MessageCircle, X, Lightbulb, MessageSquare, Send, Check, HelpCircle } from "lucide-react";
 
-type FeedbackType = "feature" | "feedback";
+type FeedbackType = "feature" | "feedback" | "support";
 type Status = "idle" | "sending" | "sent" | "error";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
@@ -44,6 +44,16 @@ export function FeedbackWidget() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, handleClose]);
+
+  useEffect(() => {
+    function onOpenFeedback(e: Event) {
+      const detail = (e as CustomEvent<{ type?: FeedbackType }>).detail;
+      if (detail?.type) setType(detail.type);
+      setOpen(true);
+    }
+    window.addEventListener("open-feedback", onOpenFeedback);
+    return () => window.removeEventListener("open-feedback", onOpenFeedback);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -131,7 +141,7 @@ export function FeedbackWidget() {
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
                   <h2 className="text-base font-semibold tracking-heading text-text-primary">
-                    Send Feedback
+                    {type === "support" ? "Leave a Note" : "Send Feedback"}
                   </h2>
                   <button
                     onClick={handleClose}
@@ -157,6 +167,12 @@ export function FeedbackWidget() {
                       icon={<MessageSquare size={14} />}
                       label="Provide Feedback"
                     />
+                    <TypeTab
+                      active={type === "support"}
+                      onClick={() => setType("support")}
+                      icon={<HelpCircle size={14} />}
+                      label="Support"
+                    />
                   </div>
 
                   {/* Message */}
@@ -167,7 +183,9 @@ export function FeedbackWidget() {
                     placeholder={
                       type === "feature"
                         ? "Describe the feature you'd like to see..."
-                        : "Share your thoughts, suggestions, or issues..."
+                        : type === "support"
+                          ? "Describe your issue or question..."
+                          : "Share your thoughts, suggestions, or issues..."
                     }
                     maxLength={1000}
                     required
@@ -212,7 +230,7 @@ export function FeedbackWidget() {
                     ) : (
                       <>
                         <Send size={16} />
-                        Send {type === "feature" ? "Request" : "Feedback"}
+                        Send {type === "feature" ? "Request" : type === "support" ? "Note" : "Feedback"}
                       </>
                     )}
                   </button>

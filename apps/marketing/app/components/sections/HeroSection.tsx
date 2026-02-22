@@ -2,7 +2,6 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
-import ColorBends from "../ui/color-bends";
 import { parseHeadline } from "../ui/parse-headline";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
@@ -28,18 +27,6 @@ export function HeroSection({ section }: { section: any }) {
       ref={sectionRef}
       className="relative flex min-h-svh flex-col items-center overflow-hidden"
     >
-      {/* Animated background */}
-      <div className="pointer-events-none absolute inset-0">
-        <ColorBends
-          style={{ position: "absolute", inset: 0 }}
-          colors={["#C2174B", "#C37A30", "#FDD57E"]}
-          speed={0.15}
-          noise={0.05}
-          mouseInfluence={0.5}
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,_transparent_0%,_rgba(0,0,0,0.9)_100%)]" />
-      </div>
-
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-4xl px-6 pt-40 text-center">
         {section.eyebrow && (

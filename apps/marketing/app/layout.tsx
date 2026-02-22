@@ -106,7 +106,7 @@ export default async function RootLayout({
           supportEmail={settings?.supportEmail}
           installUrl={settings?.navCta?.href}
         />
-        <div className="min-h-screen flex flex-col">
+        <div className="relative z-10 min-h-screen flex flex-col">
           <Header
             navLinks={settings?.nav}
             ctaText={settings?.navCta?.text}

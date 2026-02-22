@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
     !env.TELEGRAM_BOT_TOKEN ||
     !env.TELEGRAM_GROUP_ID ||
     !env.TELEGRAM_FEATURE_TOPIC_ID ||
-    !env.TELEGRAM_FEEDBACK_TOPIC_ID
+    !env.TELEGRAM_FEEDBACK_TOPIC_ID ||
+    !env.TELEGRAM_SUPPORT_TOPIC_ID
   ) {
     return NextResponse.json(
       { error: "Feedback is not configured yet" },
@@ -69,9 +70,9 @@ export async function POST(req: NextRequest) {
     contact?: string;
   };
 
-  if (type !== "feature" && type !== "feedback") {
+  if (type !== "feature" && type !== "feedback" && type !== "support") {
     return NextResponse.json(
-      { error: 'type must be "feature" or "feedback"' },
+      { error: 'type must be "feature", "feedback", or "support"' },
       { status: 400 },
     );
   }
@@ -100,9 +101,12 @@ export async function POST(req: NextRequest) {
   const threadId =
     type === "feature"
       ? Number(env.TELEGRAM_FEATURE_TOPIC_ID)
-      : Number(env.TELEGRAM_FEEDBACK_TOPIC_ID);
+      : type === "support"
+        ? Number(env.TELEGRAM_SUPPORT_TOPIC_ID)
+        : Number(env.TELEGRAM_FEEDBACK_TOPIC_ID);
 
-  const title = type === "feature" ? "Feature Request" : "Feedback";
+  const titleMap = { feature: "Feature Request", feedback: "Feedback", support: "Support Request" } as const;
+  const title = titleMap[type];
 
   const lines = [
     `<b>${escapeHtml(title)}</b>`,

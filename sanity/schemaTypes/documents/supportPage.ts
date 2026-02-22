@@ -1,38 +1,5 @@
-import {defineField, defineType, defineArrayMember} from 'sanity'
+import {defineField, defineType} from 'sanity'
 import {HelpCircleIcon} from '@sanity/icons'
-
-const contactChannel = defineArrayMember({
-  type: 'object',
-  name: 'contactChannel',
-  fields: [
-    defineField({
-      name: 'label',
-      title: 'Label',
-      type: 'string',
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: 'description',
-      title: 'Description',
-      type: 'string',
-    }),
-    defineField({
-      name: 'href',
-      title: 'Link',
-      type: 'string',
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: 'icon',
-      title: 'Icon',
-      type: 'string',
-      description: 'Lucide icon name, e.g. "Mail", "MessageCircle", "Send"',
-    }),
-  ],
-  preview: {
-    select: {title: 'label', subtitle: 'href'},
-  },
-})
 
 export const supportPage = defineType({
   name: 'supportPage',
@@ -75,12 +42,6 @@ export const supportPage = defineType({
       title: 'Contact Email',
       type: 'string',
       initialValue: 'support@gettrail.net',
-    }),
-    defineField({
-      name: 'contactChannels',
-      title: 'Contact Channels',
-      type: 'array',
-      of: [contactChannel],
     }),
   ],
   preview: {

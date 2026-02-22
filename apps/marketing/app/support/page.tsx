@@ -1,29 +1,10 @@
 import type { Metadata } from "next";
-import {
-  Mail,
-  MessageCircle,
-  Send,
-  ExternalLink,
-  ArrowUpRight,
-  Activity,
-} from "lucide-react";
+import { Mail, ArrowUpRight } from "lucide-react";
 import type { ComponentType } from "react";
 import { fetchSupportPage } from "../../lib/sanity/queries";
 import { buildMetadata } from "../../lib/seo";
 import { Reveal } from "../components/ui/reveal";
-
-const ICON_MAP: Record<string, ComponentType<{ size?: number }>> = {
-  Mail,
-  MessageCircle,
-  Send,
-  ExternalLink,
-  Activity,
-};
-
-function resolveIcon(name?: string | null) {
-  if (!name || !(name in ICON_MAP)) return Mail;
-  return ICON_MAP[name];
-}
+import { LeaveNoteButton } from "./LeaveNoteButton";
 
 type SupportPageData = {
   title?: string;
@@ -32,12 +13,6 @@ type SupportPageData = {
   statusPageUrl?: string;
   statusLabel?: string;
   contactEmail?: string;
-  contactChannels?: {
-    label: string;
-    description?: string;
-    href: string;
-    icon?: string;
-  }[];
 };
 
 const fallback = {
@@ -71,7 +46,6 @@ export default async function SupportPage() {
   const statusLabel = page?.statusLabel ?? fallback.statusLabel;
   const statusPageUrl = page?.statusPageUrl;
   const contactEmail = page?.contactEmail ?? fallback.contactEmail;
-  const channels = page?.contactChannels;
 
   return (
     <section className="relative mx-auto max-w-3xl px-6 pb-24 pt-32">
@@ -138,7 +112,6 @@ export default async function SupportPage() {
           </h2>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {/* Email card — always visible */}
             <ContactCard
               icon={Mail}
               label="Email"
@@ -147,24 +120,7 @@ export default async function SupportPage() {
               cta={contactEmail}
             />
 
-            {/* CMS-driven channels */}
-            {channels?.map((ch) => {
-              const Icon = resolveIcon(ch.icon);
-              return (
-                <ContactCard
-                  key={ch.href}
-                  icon={Icon}
-                  label={ch.label}
-                  description={ch.description}
-                  href={ch.href}
-                  cta={ch.label}
-                  external={
-                    ch.href.startsWith("http") ||
-                    ch.href.startsWith("tg:")
-                  }
-                />
-              );
-            })}
+            <LeaveNoteButton />
           </div>
         </div>
       </Reveal>
@@ -178,27 +134,16 @@ function ContactCard({
   description,
   href,
   cta,
-  external,
 }: {
   icon: ComponentType<{ size?: number }>;
   label: string;
   description?: string;
   href: string;
   cta: string;
-  external?: boolean;
 }) {
-  const isExternal =
-    external ?? (href.startsWith("http") || href.startsWith("mailto:"));
-
-  const Tag = isExternal ? "a" : "a";
-  const extraProps = isExternal
-    ? { target: "_blank" as const, rel: "noopener noreferrer" }
-    : {};
-
   return (
-    <Tag
+    <a
       href={href}
-      {...extraProps}
       className="group flex flex-col rounded-2xl border border-border-subtle bg-surface p-6 transition-colors hover:border-border-strong"
     >
       <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border-subtle bg-elevated text-text-secondary transition-colors group-hover:text-text-primary group-hover:border-border-strong">
@@ -217,6 +162,6 @@ function ContactCard({
           className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
         />
       </span>
-    </Tag>
+    </a>
   );
 }
