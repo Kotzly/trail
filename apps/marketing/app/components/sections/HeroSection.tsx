@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import ColorBends from "../ui/color-bends";
 import { parseHeadline } from "../ui/parse-headline";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
@@ -13,10 +14,10 @@ export function HeroSection({ section }: { section: any }) {
 
   return (
     <section className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
-      {/* Background gradients */}
+      {/* Animated background */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(10,10,10,1)_0%,_rgba(0,0,0,1)_70%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,22,108,0.04)_0%,_transparent_50%)]" />
+        <ColorBends style={{ position: "absolute", inset: 0 }} />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,_transparent_0%,_rgba(0,0,0,0.9)_100%)]" />
       </div>
 
       {/* Content */}
