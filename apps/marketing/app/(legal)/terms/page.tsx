@@ -6,7 +6,7 @@ import { buildMetadata } from "../../../lib/seo";
 export const dynamic = "force-static";
 
 export const metadata = buildMetadata({
-  title: "Trail Terms — Accounts, acceptable use, and access",
+  title: "Terms of Service",
   description:
     "Review responsibilities, acceptable use, billing, and how the product is provided, including updates, suspension, and termination.",
   path: "/terms",

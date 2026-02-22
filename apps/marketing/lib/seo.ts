@@ -44,9 +44,7 @@ export function buildMetadata({
 }: MetadataInput): Metadata {
   const image = resolveOgImage(ogImage);
   return {
-    title: {
-      absolute: title,
-    },
+    title,
     description,
     alternates: {
       canonical: path,

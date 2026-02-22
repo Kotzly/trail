@@ -51,3 +51,14 @@ export async function fetchSiteSettings() {
     next: { tags: ["sanity", "sanity:siteSettings"] },
   });
 }
+
+const pageUpdatedAtQuery = /* groq */ `
+  *[_type == "landingPage" && slug.current == $slug][0]{ _updatedAt }
+`;
+
+export async function fetchPageUpdatedAt(slug: string): Promise<string | null> {
+  const result = await client.fetch(pageUpdatedAtQuery, { slug }, {
+    next: { tags: ["sanity", `sanity:page:${slug}`] },
+  });
+  return result?._updatedAt ?? null;
+}

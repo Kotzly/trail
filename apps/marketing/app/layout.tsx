@@ -13,6 +13,7 @@ import { Footer } from "./components/Footer";
 import { fetchSiteSettings } from "../lib/sanity/queries";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { JsonLd } from "./components/JsonLd";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -29,7 +30,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase,
-    title: defaultTitle,
+    title: {
+      default: defaultTitle,
+      template: "%s | Trail",
+    },
     description: defaultDescription,
     alternates: {
       canonical: "/",
@@ -76,6 +80,7 @@ export default async function RootLayout({
       className={`dark ${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
     >
       <body className="antialiased">
+        <JsonLd />
         <div className="min-h-screen flex flex-col">
           <Header
             navLinks={settings?.nav}

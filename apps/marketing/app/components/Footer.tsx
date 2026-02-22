@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type FooterLink = { label: string; href: string; isExternal?: boolean };
 
 export function Footer({
@@ -16,16 +18,27 @@ export function Footer({
 
         {links && links.length > 0 && (
           <nav className="flex items-center gap-6">
-            {links.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
-                {...(link.isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              >
-                {link.label}
-              </a>
-            ))}
+            {links.map((link) =>
+              link.isExternal ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
+                >
+                  {link.label}
+                </Link>
+              )
+            )}
           </nav>
         )}
       </div>

@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   motion,
   AnimatePresence,
   useScroll,
   useMotionValueEvent,
 } from "motion/react";
+
+function isInternalPath(href: string) {
+  return href.startsWith("/") && !href.startsWith("//");
+}
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
@@ -82,22 +87,32 @@ export function Header({
           transition={{ duration: 0.5, ease }}
           style={{ borderStyle: "solid" }}
         >
-          <a href="/" className="text-text-primary font-semibold tracking-heading text-lg">
+          <Link href="/" className="text-text-primary font-semibold tracking-heading text-lg">
             Trail
-          </a>
+          </Link>
 
           {/* Desktop nav */}
           <div className="hidden sm:flex items-center gap-6">
-            {links.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-sm text-text-secondary hover:text-text-primary transition-colors tracking-body"
-                {...(link.isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              >
-                {link.label}
-              </a>
-            ))}
+            {links.map((link) =>
+              !link.isExternal && isInternalPath(link.href) ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm text-text-secondary hover:text-text-primary transition-colors tracking-body"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm text-text-secondary hover:text-text-primary transition-colors tracking-body"
+                  {...(link.isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                >
+                  {link.label}
+                </a>
+              )
+            )}
 
             {ctaText && ctaHref && (
               <a
@@ -166,14 +181,24 @@ export function Header({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + i * 0.08, duration: 0.4, ease }}
               >
-                <a
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="text-2xl tracking-heading font-medium text-text-primary hover:text-magenta transition-colors"
-                  {...(link.isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                >
-                  {link.label}
-                </a>
+                {!link.isExternal && isInternalPath(link.href) ? (
+                  <Link
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="text-2xl tracking-heading font-medium text-text-primary hover:text-magenta transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                ) : (
+                  <a
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="text-2xl tracking-heading font-medium text-text-primary hover:text-magenta transition-colors"
+                    {...(link.isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  >
+                    {link.label}
+                  </a>
+                )}
               </motion.div>
             ))}
 

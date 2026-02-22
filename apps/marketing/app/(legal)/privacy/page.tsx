@@ -6,7 +6,7 @@ import { buildMetadata } from "../../../lib/seo";
 export const dynamic = "force-static";
 
 export const metadata = buildMetadata({
-  title: "Trail Privacy Policy — Data use and control",
+  title: "Privacy Policy",
   description:
     "Learn what data is collected, how it is stored, and the choices you have to control sharing, retention, exports, and deletion requests.",
   path: "/privacy",

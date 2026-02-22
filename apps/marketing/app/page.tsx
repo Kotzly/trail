@@ -6,11 +6,15 @@ import { defaultTitle, defaultDescription, resolveOgImage } from "../lib/seo";
 export async function generateMetadata(): Promise<Metadata> {
   const page = await fetchPage("home");
   const image = resolveOgImage(page?.seo?.ogImage);
+  const title = page?.seo?.title ?? defaultTitle;
+  const description = page?.seo?.description ?? defaultDescription;
 
   return {
+    title: { absolute: title },
+    description,
     openGraph: {
-      title: page?.seo?.title ?? defaultTitle,
-      description: page?.seo?.description ?? defaultDescription,
+      title,
+      description,
       images: [image],
     },
     twitter: {

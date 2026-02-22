@@ -1,24 +1,25 @@
 import type { MetadataRoute } from "next";
+import { fetchPageUpdatedAt } from "../lib/sanity/queries";
 
 const SITE_URL = "https://gettrail.net";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const homeUpdatedAt = await fetchPageUpdatedAt("home");
+
   return [
     {
       url: SITE_URL,
-      lastModified: new Date(),
+      lastModified: homeUpdatedAt ? new Date(homeUpdatedAt) : new Date(),
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${SITE_URL}/privacy`,
-      lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/terms`,
-      lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
