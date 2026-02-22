@@ -2,10 +2,10 @@ import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './schemaTypes'
-import {CogIcon, StarIcon} from '@sanity/icons'
+import {CogIcon, StarIcon, HelpCircleIcon} from '@sanity/icons'
 import type {StructureBuilder} from 'sanity/structure'
 
-const singletonTypes = new Set(['siteSettings', 'landingPage'])
+const singletonTypes = new Set(['siteSettings', 'landingPage', 'supportPage'])
 
 function structure(S: StructureBuilder) {
   return S.list()
@@ -22,6 +22,14 @@ function structure(S: StructureBuilder) {
           S.document()
             .schemaType('landingPage')
             .documentId('042dbb5a-4a60-4cde-8076-97f3e1293d36'),
+        ),
+      S.listItem()
+        .title('Support Page')
+        .icon(HelpCircleIcon)
+        .child(
+          S.document()
+            .schemaType('supportPage')
+            .documentId('f02432de-5376-4257-8019-488b3e442672'),
         ),
     ])
 }

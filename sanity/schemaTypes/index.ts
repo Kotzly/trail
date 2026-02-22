@@ -6,6 +6,7 @@ import {ctaBlock} from './objects/ctaBlock'
 // Documents
 import {landingPage} from './documents/landingPage'
 import {siteSettings} from './documents/siteSettings'
+import {supportPage} from './documents/supportPage'
 
 // Sections
 import {heroSection} from './sections/heroSection'
@@ -23,4 +24,5 @@ export const schemaTypes = [
 
   landingPage,
   siteSettings,
+  supportPage,
 ]

@@ -36,6 +36,10 @@ export async function POST(req: NextRequest) {
       tags.push("sanity:siteSettings");
     }
 
+    if (body._type === "supportPage") {
+      tags.push("sanity:supportPage");
+    }
+
     for (const tag of tags) {
       revalidateTag(tag, "default");
     }

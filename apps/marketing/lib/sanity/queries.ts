@@ -52,6 +52,24 @@ export async function fetchSiteSettings() {
   });
 }
 
+export const supportPageQuery = /* groq */ `
+  *[_type == "supportPage"][0]{
+    title,
+    description,
+    seo{title, description, ogImage{${imageFields}}},
+    statusPageUrl,
+    statusLabel,
+    contactEmail,
+    contactChannels[]{label, description, href, icon}
+  }
+`;
+
+export async function fetchSupportPage() {
+  return client.fetch(supportPageQuery, {}, {
+    next: { tags: ["sanity", "sanity:supportPage"] },
+  });
+}
+
 const pageUpdatedAtQuery = /* groq */ `
   *[_type == "landingPage" && slug.current == $slug][0]{ _updatedAt }
 `;
