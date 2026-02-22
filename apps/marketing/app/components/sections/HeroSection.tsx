@@ -16,8 +16,13 @@ export function HeroSection({ section }: { section: any }) {
     <section className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
       {/* Animated background */}
       <div className="pointer-events-none absolute inset-0">
-        <ColorBends style={{ position: "absolute", inset: 0 }} />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,_transparent_0%,_rgba(0,0,0,0.9)_100%)]" />
+      <ColorBends
+  style={{ position: "absolute", inset: 0 }}
+  colors={["#C2174B", "#C37A30", "#FDD57E"]}
+  speed={0.15}
+  noise={0.05}
+  mouseInfluence={0.5}
+/>        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,_transparent_0%,_rgba(0,0,0,0.9)_100%)]" />
       </div>
 
       {/* Content */}
