@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Instrument_Serif } from "next/font/google";
 import "./globals.css";
-import { defaultDescription, defaultTitle, metadataBase } from "../lib/seo";
+import {
+  defaultDescription,
+  defaultTitle,
+  metadataBase,
+  resolveOgImage,
+} from "../lib/seo";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { fetchSiteSettings } from "../lib/sanity/queries";
@@ -18,47 +23,45 @@ const instrumentSerif = Instrument_Serif({
   style: ["normal", "italic"],
 });
 
-export const metadata: Metadata = {
-  metadataBase,
-  title: defaultTitle,
-  description: defaultDescription,
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await fetchSiteSettings();
+  const image = resolveOgImage(settings?.defaultSeo?.ogImage);
+
+  return {
+    metadataBase,
     title: defaultTitle,
     description: defaultDescription,
-    url: "/",
-    siteName: "Trail",
-    type: "website",
-    images: [
-      {
-        url: "/assets/video-poster-white.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Trail product overview",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: defaultTitle,
-    description: defaultDescription,
-    images: ["/assets/video-poster-white.jpg"],
-  },
-  icons: {
-    icon: [
-      {
-        url: "/assets/brand/trail-fork-light.svg",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/assets/brand/trail-fork-dark.svg",
-        media: "(prefers-color-scheme: dark)",
-      },
-    ],
-  },
-};
+    alternates: {
+      canonical: "/",
+    },
+    openGraph: {
+      title: defaultTitle,
+      description: defaultDescription,
+      url: "/",
+      siteName: "Trail",
+      type: "website",
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: defaultTitle,
+      description: defaultDescription,
+      images: [image.url],
+    },
+    icons: {
+      icon: [
+        {
+          url: "/assets/brand/trail-fork-light.svg",
+          media: "(prefers-color-scheme: light)",
+        },
+        {
+          url: "/assets/brand/trail-fork-dark.svg",
+          media: "(prefers-color-scheme: dark)",
+        },
+      ],
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
