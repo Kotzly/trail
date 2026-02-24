@@ -31,7 +31,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
       const isMac = state.isMac;
       const metaKey = isMac ? event.metaKey : event.ctrlKey;
       const key = event.key;
-      const lower = key.toLowerCase();
+      const code = event.code;
       const isEditable = isEditableTarget(event.target);
 
       const focusSearch = () => {
@@ -205,7 +205,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
         void saveSettings(nextSettings);
       };
 
-      if (metaKey && (key === '/' || key === '?')) {
+      if (metaKey && code === 'Slash') {
         event.preventDefault();
         state.setTooltipsOpen(!state.ui.tooltipsOpen);
         return;
@@ -213,7 +213,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
 
       if (isEditable) return;
 
-      if (metaKey && lower === 'z') {
+      if (metaKey && code === 'KeyZ') {
         event.preventDefault();
         const canRedo = state.commandState?.canRedo ?? false;
         const canUndo = state.commandState?.canUndo ?? false;
@@ -231,7 +231,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
         return;
       }
 
-      if (!isMac && metaKey && lower === 'y') {
+      if (!isMac && metaKey && code === 'KeyY') {
         event.preventDefault();
         const canRedo = state.commandState?.canRedo ?? false;
         if (!canRedo) return;
@@ -244,25 +244,25 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
         return;
       }
 
-      if (metaKey && (lower === 'f' || lower === 'k')) {
+      if (metaKey && (code === 'KeyF' || code === 'KeyK')) {
         event.preventDefault();
         focusSearch();
         return;
       }
 
-      if (!metaKey && !event.altKey && lower === '/') {
+      if (!metaKey && !event.altKey && code === 'Slash') {
         event.preventDefault();
         focusSearch();
         return;
       }
 
-      if (metaKey && lower === ',') {
+      if (metaKey && code === 'Comma') {
         event.preventDefault();
         toggleSettings();
         return;
       }
 
-      if (metaKey && lower === 'a') {
+      if (metaKey && code === 'KeyA') {
         event.preventDefault();
         if (event.shiftKey) {
           state.clearSelection();
@@ -291,7 +291,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
         Boolean(state.contextMenu);
 
       if (!metaKey && !event.altKey && !event.ctrlKey) {
-        if (event.shiftKey && lower === 'p') {
+        if (event.shiftKey && code === 'KeyP') {
           if (editorActive) {
             event.preventDefault();
             return;
@@ -300,12 +300,12 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
           togglePopup('pinnedOpen');
           return;
         }
-        if (event.shiftKey && lower === 't') {
+        if (event.shiftKey && code === 'KeyT') {
           event.preventDefault();
           togglePopup('treesOpen');
           return;
         }
-        if (event.shiftKey && lower === 'f') {
+        if (event.shiftKey && code === 'KeyF') {
           if (editorActive) {
             event.preventDefault();
             return;
@@ -314,12 +314,12 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
           togglePopup('tagFilterOpen');
           return;
         }
-        if (event.shiftKey && lower === 'l') {
+        if (event.shiftKey && code === 'KeyL') {
           event.preventDefault();
           cycleLayoutMode();
           return;
         }
-        if (event.shiftKey && lower === 'c') {
+        if (event.shiftKey && code === 'KeyC') {
           event.preventDefault();
           toggleConnections();
           return;
@@ -327,7 +327,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void 
 
         if (overlayOpen) return;
 
-        if (lower === 'p') {
+        if (code === 'KeyP') {
           event.preventDefault();
           togglePinned(getTargetNodeIds());
           return;

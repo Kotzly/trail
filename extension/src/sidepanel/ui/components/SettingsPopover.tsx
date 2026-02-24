@@ -4,13 +4,69 @@ import type { Url } from '../../../shared/types/ids.js';
 import { getBackendConfig, initBackendConfig } from '../../../shared/config/backend.js';
 import { DEFAULT_LAYOUT_SETTINGS } from '../../../shared/layout/defaults.js';
 import { saveSettings } from '../../api/settings.js';
+import { setFlag, resetFlags } from '../../api/flags.js';
+import { FLAG_DEFS, type FlagDef, type FlagKey } from '../../../shared/types/flags.js';
 import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
 import { cn } from '../lib/utils.js';
+import { toast } from 'sonner';
 import React from 'react';
+
+const UNLOCK_STORAGE_KEY = 'trail_flags_unlocked';
+const UNLOCK_CLICKS = 7;
+const UNLOCK_WINDOW_MS = 3000;
+
+function FlagToggle({
+  flagKey,
+  def,
+  value,
+  onToggle,
+}: {
+  flagKey: FlagKey;
+  def: FlagDef;
+  value: unknown;
+  onToggle: (key: FlagKey, value: unknown) => void;
+}) {
+  if (def.type === 'boolean') {
+    return (
+      <label className="settings-section settings-row" htmlFor={`flag-${flagKey}`}>
+        <div className="settings-label-group">
+          <div className="settings-label">{def.label}</div>
+          <div className="settings-description">{def.description}</div>
+        </div>
+        <div className="settings-toggle-switch">
+          <input
+            id={`flag-${flagKey}`}
+            className="settings-toggle-input"
+            type="checkbox"
+            checked={value as boolean}
+            onChange={(e) => onToggle(flagKey, e.target.checked)}
+          />
+          <span className="settings-toggle-control" aria-hidden="true" />
+        </div>
+      </label>
+    );
+  }
+  if (def.type === 'variant') {
+    return (
+      <div className="settings-section">
+        <div className="settings-label-group">
+          <div className="settings-label">{def.label}</div>
+          <div className="settings-description">{def.description}</div>
+        </div>
+        <Seg
+          value={String(value)}
+          options={def.variants}
+          onChange={(v) => onToggle(flagKey, v)}
+        />
+      </div>
+    );
+  }
+  return null;
+}
 
 type LayoutMode = Settings['layout']['mode'];
 
@@ -45,11 +101,55 @@ export default function SettingsDropdown() {
   const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
   const settings = useStore((state) => state.settings);
   const setSettings = useStore((state) => state.setSettings);
+  const flags = useStore((state) => state.flags);
+  const setFlags = useStore((state) => state.setFlags);
   const metaKey = useStore((state) => state.metaKey);
 
   const saveTimerRef = useRef<number | null>(null);
   const pendingSaveRef = useRef<Settings | null>(null);
   const [dashboardBusy, setDashboardBusy] = useState(false);
+
+  const [experimentsUnlocked, setExperimentsUnlocked] = useState(false);
+  const clickTimestamps = useRef<number[]>([]);
+
+  useEffect(() => {
+    chrome.storage.local.get(UNLOCK_STORAGE_KEY).then((result) => {
+      if (result[UNLOCK_STORAGE_KEY] === true) setExperimentsUnlocked(true);
+    }).catch(() => {});
+  }, []);
+
+  const handleGearClick = () => {
+    setSettingsOpen(!settingsOpen);
+    if (experimentsUnlocked) return;
+    const now = Date.now();
+    clickTimestamps.current = clickTimestamps.current
+      .filter((t) => now - t < UNLOCK_WINDOW_MS)
+      .concat(now);
+    if (clickTimestamps.current.length >= UNLOCK_CLICKS) {
+      clickTimestamps.current = [];
+      setExperimentsUnlocked(true);
+      chrome.storage.local.set({ [UNLOCK_STORAGE_KEY]: true }).catch(() => {});
+      toast('Experiments unlocked');
+    }
+  };
+
+  const handleFlagToggle = async (key: FlagKey, value: unknown) => {
+    try {
+      const updated = await setFlag(key, value);
+      setFlags(updated);
+    } catch (error) {
+      console.error('Failed to set flag:', error);
+    }
+  };
+
+  const handleResetFlags = async () => {
+    try {
+      const updated = await resetFlags();
+      setFlags(updated);
+    } catch (error) {
+      console.error('Failed to reset flags:', error);
+    }
+  };
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -180,7 +280,7 @@ export default function SettingsDropdown() {
         type="button"
         aria-label={settingsLabel}
         data-tooltip={settingsTooltip}
-        onClick={() => setSettingsOpen(!settingsOpen)}
+        onClick={handleGearClick}
       >
         <Icons.Settings size={18} />
       </button>
@@ -315,6 +415,35 @@ export default function SettingsDropdown() {
               <Icons.ExternalLink size={13} />
             </button>
           </div>
+
+          {experimentsUnlocked && flags && (
+            <>
+              <hr className="settings-hr settings-hr-dashed" />
+              <div className="settings-section">
+                <div className="settings-label">experiments</div>
+              </div>
+
+              {(Object.keys(FLAG_DEFS) as FlagKey[]).map((key) => (
+                <FlagToggle
+                  key={key}
+                  flagKey={key}
+                  def={FLAG_DEFS[key]}
+                  value={flags[key]}
+                  onToggle={(k, v) => void handleFlagToggle(k, v)}
+                />
+              ))}
+
+              <div className="settings-section">
+                <button
+                  className="settings-action settings-reset-btn"
+                  type="button"
+                  onClick={() => void handleResetFlags()}
+                >
+                  reset all experiments
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

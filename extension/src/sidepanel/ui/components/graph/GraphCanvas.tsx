@@ -148,6 +148,7 @@ type GraphCanvasProps = {
   editorActive: boolean;
   pickTarget: { type: 'duplicate'; sourceNodeId: NodeId } | null;
   onPickTargetComplete: () => void;
+  fullViewEnabled: boolean;
 };
 
 type SelectionBox = {
@@ -278,6 +279,7 @@ export default function GraphCanvas({
   editorActive,
   pickTarget,
   onPickTargetComplete,
+  fullViewEnabled,
 }: GraphCanvasProps) {
   const searchActive = search.active;
   const searchNavStep = search.navStep;
@@ -1262,6 +1264,15 @@ export default function GraphCanvas({
         }));
       }
       onPickTargetComplete();
+      return;
+    }
+
+    if (tool === 'hand') {
+      try {
+        await navigateTo(node);
+      } catch (error) {
+        console.error('Failed to navigate:', error);
+      }
       return;
     }
 
@@ -2385,25 +2396,25 @@ export default function GraphCanvas({
   }, [handleWheel, root]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    const key = event.key;
-    if (key === '+' || key === '=') {
+    const code = event.code;
+    if (code === 'Equal' || code === 'NumpadAdd') {
       event.preventDefault();
       zoom('in', true);
-    } else if (key === '-' || key === '_') {
+    } else if (code === 'Minus' || code === 'NumpadSubtract') {
       event.preventDefault();
       zoom('out', true);
-    } else if (key === '0') {
+    } else if (code === 'Digit0' || code === 'Numpad0') {
       event.preventDefault();
       zoom('reset', true);
-    } else if (key === 'h' || key === 'H') {
+    } else if (code === 'KeyH') {
       event.preventDefault();
       onGraphToolChange('hand');
       clearSelectionState();
-    } else if (key === 'v' || key === 'V') {
+    } else if (code === 'KeyV') {
       event.preventDefault();
       onGraphToolChange('select');
       clearSelectionState();
-    } else if (key === 'Escape') {
+    } else if (event.key === 'Escape') {
       event.preventDefault();
       if (pickTarget) {
         onPickTargetComplete();
@@ -2485,6 +2496,7 @@ export default function GraphCanvas({
             clearSelectionState();
           }}
           onZoom={(direction) => zoom(direction, true)}
+          fullViewEnabled={fullViewEnabled}
           onOpenFullView={async () => {
             try {
               const fullViewUrl = chrome.runtime.getURL('fullview.html');

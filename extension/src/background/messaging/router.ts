@@ -30,6 +30,7 @@ import { panelHandlers } from "./handlers/panel-handlers.js";
 import { siteMessageHandlers } from "./handlers/site-message-handlers.js";
 import { editorHandlers } from "./handlers/editor-handlers.js";
 import { oauthAuthHandlers } from "./handlers/oauth-auth-handlers.js";
+import { flagsHandlers } from "./handlers/flags-handlers.js";
 
 type AnyResponse = ResponseMessage<RequestType>;
 type AnyHandler = (
@@ -144,5 +145,6 @@ export function initMessaging(): void {
     .merge(siteMessageHandlers)
     .merge(oauthAuthHandlers)
     .merge(editorHandlers)
+    .merge(flagsHandlers)
     .listen();
 }

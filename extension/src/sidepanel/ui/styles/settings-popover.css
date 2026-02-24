@@ -246,3 +246,43 @@
   transform: translateX(14px);
   opacity: 1;
 }
+
+/* ── Experiments section ── */
+
+.settings-hr-dashed {
+  border: none;
+  height: 1px;
+  margin: 0;
+  background: repeating-linear-gradient(
+    to right,
+    color-mix(in srgb, var(--foreground) 12%, transparent) 0,
+    color-mix(in srgb, var(--foreground) 12%, transparent) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+.settings-label-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-description {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+.settings-reset-btn {
+  width: 100%;
+  justify-content: center;
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+.settings-reset-btn:hover:not(:disabled) {
+  opacity: 1;
+}

@@ -45,6 +45,7 @@ export default function GraphArea() {
       tagDefs: state.tagDefs,
       editorActive: state.editorMode.active,
       pickTarget: state.pickTarget,
+      fullViewEnabled: state.flags?.fullView ?? false,
     }),
     shallow,
   );

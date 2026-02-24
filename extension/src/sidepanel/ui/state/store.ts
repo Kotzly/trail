@@ -8,6 +8,7 @@ import type { NavigationTree } from '../../../background/state/nav-tree.js';
 import { PinnedManager } from '../../../background/state/pinned.js';
 import type { TagDefinition } from '../../../shared/types/tags.js';
 import type { TreeMeta, TreeSummary } from '../../../shared/types/tree.js';
+import type { ResolvedFlags } from '../../../shared/types/flags.js';
 import { getCollapsedAncestorIds } from '../graph/collapse-utils.js';
 import type {
   AccountError,
@@ -77,6 +78,7 @@ export type AccountState = {
 
 type StoreState = {
   settings: Settings | null;
+  flags: ResolvedFlags | null;
   account: AccountState;
   tree: NavigationTree | null;
   treeUpdate: {
@@ -155,6 +157,7 @@ type StoreActions = {
   setSearchIndex: (index: number) => void;
   clearSearch: () => void;
   setSettings: (settings: Settings) => void;
+  setFlags: (flags: ResolvedFlags) => void;
   setSettingsOpen: (open: boolean) => void;
   setThemePickerOpen: (open: boolean) => void;
   setPinnedOpen: (open: boolean) => void;
@@ -217,6 +220,7 @@ const pruneCollapsedNodes = (tree: NavigationTree | null, collapsed: Set<NodeId>
 
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
   settings: null,
+  flags: null,
   account: {
     status: 'idle',
     network: 'online',
@@ -492,6 +496,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     }),
 
   setSettings: (settings) => set({ settings }),
+  setFlags: (flags) => set({ flags }),
   setSettingsOpen: (open) =>
     set((state) =>
       open

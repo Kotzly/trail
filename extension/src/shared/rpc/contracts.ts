@@ -4,6 +4,7 @@ import { TabState } from "../types/tabs.js";
 import { NavigationTreeJSON, TreeMeta, TreeSummary, ArchiveIndexEntry } from "../types/tree.js";
 import type { TagDefinition } from "../types/tags.js";
 import type { TrailExportBundle } from "../types/export.js";
+import type { FlagKey, ResolvedFlags } from "../types/flags.js";
 
 export const RPC_METHOD = {
     NAVIGATE_TO: 'NAVIGATE_TO',
@@ -66,6 +67,9 @@ export const RPC_METHOD = {
     OAUTH_SILENT_SYNC: 'OAUTH_SILENT_SYNC',
     ENSURE_TREE_LOADED: 'ENSURE_TREE_LOADED',
     SYNC_TREES: 'SYNC_TREES',
+    GET_FLAGS: 'GET_FLAGS',
+    SET_FLAG: 'SET_FLAG',
+    RESET_FLAGS: 'RESET_FLAGS',
 } as const;
 
 export type RequestType = typeof RPC_METHOD[keyof typeof RPC_METHOD];
@@ -231,6 +235,11 @@ export type OAuthSilentSyncResponse = {
     reason?: string;
 };
 
+export type SetFlagInput = { key: FlagKey; value: unknown };
+export type GetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.GET_FLAGS>;
+export type SetFlagMessage = RequestMessageBase<typeof RPC_METHOD.SET_FLAG, SetFlagInput>;
+export type ResetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.RESET_FLAGS>;
+
 export type RequestMessage = NavigateToMessage |
     PreviewNodeMessage | SetCurrentMessage |
     BeginTempSelectionMessage | PreviewTempSelectionMessage | AcceptTempSelectionMessage |
@@ -252,7 +261,10 @@ export type RequestMessage = NavigateToMessage |
     SyncStatusUpdatedMessage | EditorSyncRetryMessage |
     SiteMessageForwardMessage |
     OAuthInteractiveLoginMessage |
-    OAuthSilentSyncMessage;
+    OAuthSilentSyncMessage |
+    GetFlagsMessage |
+    SetFlagMessage |
+    ResetFlagsMessage;
 
 
 // ==== Responses ====
@@ -330,6 +342,9 @@ export type ResponseDataByType = {
     [RPC_METHOD.OAUTH_SILENT_SYNC]: OAuthSilentSyncResponse;
     [RPC_METHOD.ENSURE_TREE_LOADED]: boolean;
     [RPC_METHOD.SYNC_TREES]: void;
+    [RPC_METHOD.GET_FLAGS]: ResolvedFlags;
+    [RPC_METHOD.SET_FLAG]: ResolvedFlags;
+    [RPC_METHOD.RESET_FLAGS]: ResolvedFlags;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -447,6 +462,15 @@ export const rpc = {
     },
     oauthSilentSync(): OAuthSilentSyncMessage {
         return { type: RPC_METHOD.OAUTH_SILENT_SYNC };
+    },
+    getFlags(): GetFlagsMessage {
+        return { type: RPC_METHOD.GET_FLAGS };
+    },
+    setFlag(payload: SetFlagInput): SetFlagMessage {
+        return { type: RPC_METHOD.SET_FLAG, ...payload };
+    },
+    resetFlags(): ResetFlagsMessage {
+        return { type: RPC_METHOD.RESET_FLAGS };
     },
 }
 
