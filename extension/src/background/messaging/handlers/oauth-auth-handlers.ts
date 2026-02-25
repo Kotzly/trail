@@ -6,14 +6,14 @@ export const oauthAuthHandlers = defineRpcHandlers({
     const result = await authOrchestrator.interactiveLogin();
     return ok({
       ok: result.ok,
-      reason: (result as { reason?: string }).reason,
+      reason: result.reason,
     });
   },
   async [RPC_METHOD.OAUTH_SILENT_SYNC]() {
     const result = await authOrchestrator.silentSync();
     return ok({
       ok: result.ok,
-      reason: (result as { reason?: string }).reason,
+      reason: result.reason,
     });
   },
 });

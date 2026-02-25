@@ -8,16 +8,20 @@ const userMocks = vi.hoisted(() => ({
   ensureUser: vi.fn(),
 }));
 
-const dbMocks = vi.hoisted(() => ({
-  db: {
-    trail: {
-      count: vi.fn(),
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-      update: vi.fn(),
+const dbMocks = vi.hoisted(() => {
+  const trail = {
+    count: vi.fn(),
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
+  };
+  return {
+    db: {
+      trail,
+      $transaction: vi.fn(async (fn: (tx: { trail: typeof trail }) => Promise<unknown>) => fn({ trail })),
     },
-  },
-}));
+  };
+});
 
 vi.mock("@/src/server/backend/auth/user-auth", () => ({
   ...authMocks,

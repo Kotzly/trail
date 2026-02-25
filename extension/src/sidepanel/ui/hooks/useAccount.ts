@@ -1,12 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { normalizeAccountError } from '../../api/account.js';
+import { AUTH_STORAGE_KEY } from '../../../shared/config/storage-keys.js';
 import { useStore } from '../state/store.js';
 import { useAccountSnapshotQuery } from '../query/useAccountSnapshotQuery.js';
 import { showUiToast } from '../notifications/sonner-adapter.js';
 import { accountKeys } from '../query/account-keys.js';
-
-const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
 const SNAPSHOT_CACHE_KEY = 'trail_account_snapshot' as const;
 
 export function useAccount(): void {
@@ -96,6 +95,7 @@ export function useAccount(): void {
         if (oldToken && !nextToken) {
           queryClient.removeQueries({ queryKey: accountKeys.root });
           resetAccount();
+          setAccount({ sessionExpired: true });
           return;
         }
 
@@ -124,5 +124,5 @@ export function useAccount(): void {
     return () => {
       chrome.storage.onChanged.removeListener(onStorageChanged);
     };
-  }, [queryClient, resetAccount]);
+  }, [queryClient, resetAccount, setAccount]);
 }

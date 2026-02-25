@@ -192,7 +192,7 @@ export async function handleNavigation(
         isActiveTab && currentId !== null ? { focusNodeId: currentId, mode: 'force' } : undefined;
       await notifyTreeUpdate(tree, reason, view);
     }
-  } catch {
-    // Navigation error — silently ignored.
+  } catch (error) {
+    console.error("[navigation-handler] navigation error:", error);
   }
 }

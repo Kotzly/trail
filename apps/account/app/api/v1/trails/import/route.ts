@@ -84,7 +84,7 @@ export async function POST(request: Request) {
   await db.device.upsert({
     where: { id: IMPORT_DEVICE_ID },
     create: { id: IMPORT_DEVICE_ID, userId },
-    update: {},
+    update: { userId },
   });
 
   const now = new Date();

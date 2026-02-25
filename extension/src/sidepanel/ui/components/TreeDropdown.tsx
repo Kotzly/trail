@@ -95,10 +95,10 @@ export default function TreeDropdown() {
             id: entry.id,
             label: entry.label,
             nodeCount: entry.nodeCount,
-            rootUrl: entry.rootUrl,
-            rootTitle: entry.rootTitle,
-            rootFavicon: entry.rootFavicon,
             savedAt: entry.savedAt,
+            ...(entry.rootUrl != null && { rootUrl: entry.rootUrl }),
+            ...(entry.rootTitle != null && { rootTitle: entry.rootTitle }),
+            ...(entry.rootFavicon != null && { rootFavicon: entry.rootFavicon }),
           };
           if ('stub' in entry && (entry as { stub?: boolean }).stub) {
             item.stub = true;

@@ -14,6 +14,7 @@ import {
   buildBackendUrl,
   initBackendConfig,
 } from '../../../shared/config/backend.js';
+import { AUTH_STORAGE_KEY } from '../../../shared/config/storage-keys.js';
 import type { AccountClient, CompleteOnboardingInput } from '../account.js';
 
 type StoredAuthSession = {
@@ -21,8 +22,6 @@ type StoredAuthSession = {
   refreshToken?: string;
   expiresAt?: string;
 };
-
-const AUTH_STORAGE_KEY = 'trail_auth_session';
 const ERROR_CODES: AccountErrorCode[] = ['network', 'auth', 'payment', 'validation', 'unknown'];
 
 function canPersist(): boolean {

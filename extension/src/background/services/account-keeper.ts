@@ -4,9 +4,9 @@ import {
   buildBackendUrl,
   initBackendConfig,
 } from "../../shared/config/backend.js";
+import { AUTH_STORAGE_KEY } from "../../shared/config/storage-keys.js";
 
 const SNAPSHOT_CACHE_KEY = "trail_account_snapshot";
-const AUTH_STORAGE_KEY = "trail_auth_session";
 const ALARM_NAME = "trail_account_snapshot_refresh";
 const REFRESH_INTERVAL_MINUTES = 5;
 
@@ -47,7 +47,7 @@ function buildGuestSnapshot(plans: Plan[] = []): AccountSnapshot {
 async function fetchJson<T>(
   path: string,
   options: { auth?: boolean } = {},
-): Promise<T> {
+): Promise<T | null> {
   await initBackendConfig();
   const headers = new Headers({ Accept: "application/json" });
 
@@ -71,7 +71,7 @@ async function fetchJson<T>(
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = await response.text();
-    if (!text) return undefined as T;
+    if (!text) return null;
     return JSON.parse(text) as T;
   } finally {
     globalThis.clearTimeout(timeout);
@@ -84,20 +84,21 @@ async function fetchSnapshot(): Promise<AccountSnapshot> {
     const plans = await fetchJson<Plan[]>(
       BACKEND_CONFIG.endpoints.plans,
       { auth: false },
-    ).catch(() => []);
-    return buildGuestSnapshot(plans);
+    ).catch(() => null);
+    return buildGuestSnapshot(plans ?? []);
   }
 
   try {
     const snapshot = await fetchJson<AccountSnapshot>(
       BACKEND_CONFIG.endpoints.account,
     );
+    if (!snapshot) throw new Error("empty account response");
     if (!snapshot.plans || snapshot.plans.length === 0) {
       const plans = await fetchJson<Plan[]>(
         BACKEND_CONFIG.endpoints.plans,
         { auth: false },
-      ).catch(() => []);
-      return { ...snapshot, plans };
+      ).catch(() => null);
+      return { ...snapshot, plans: plans ?? [] };
     }
     return snapshot;
   } catch {

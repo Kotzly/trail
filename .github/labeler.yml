@@ -1,0 +1,28 @@
+extension:
+  - changed-files:
+      - any-glob-to-any-file: "extension/**"
+
+web:
+  - changed-files:
+      - any-glob-to-any-file: "apps/**"
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "packages/db/**"
+          - "**/migrations/**"
+
+ui:
+  - changed-files:
+      - any-glob-to-any-file: "packages/ui/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "pnpm-lock.yaml"
+          - "package.json"
+          - "**/package.json"
