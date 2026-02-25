@@ -150,7 +150,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
             <div className="floating-search-results">
               <span className="floating-search-count">
                 {search.results.length === 0
-                  ? 'No results'
+                  ? 'No matches'
                   : `${search.index + 1} of ${search.results.length}`}
               </span>
               <div className="floating-search-nav">

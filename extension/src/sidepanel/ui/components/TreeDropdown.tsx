@@ -9,6 +9,7 @@ import React from 'react';
 import type { FaviconUrl, Title, Url } from '../../../shared/types/ids.js';
 import { getFaviconUrl } from '../../../shared/utils/favicon.js';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 
 type TreeItem = {
   id: string;
@@ -225,6 +226,7 @@ export default function TreeDropdown() {
     try {
       const bundle = await exportTree(treeId);
       downloadBundle(bundle);
+      toast.success('Exported as JSON');
     } catch (error) {
       console.error('Failed to export tree:', error);
     }
@@ -370,7 +372,11 @@ export default function TreeDropdown() {
             </button>
           </div>
           {archivedTrees.length === 0 ? (
-            <div className="trees-dropdown-empty">no saved trees</div>
+            <div className="trees-dropdown-empty">
+              <Icons.ListTree size={24} />
+              <span>No saved trees yet</span>
+              <span className="trees-dropdown-empty-hint">Create a new tree to get started</span>
+            </div>
           ) : (
             archivedTrees.map((tree) => {
               const isLoading = loadingTreeId === tree.id;

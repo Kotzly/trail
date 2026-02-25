@@ -134,7 +134,11 @@ export default function PinnedDropdown() {
         </div>
         <div className="pinned-dropdown-list" id="pinnedList">
           {pinnedNodes.length === 0 ? (
-            <div className="pinned-dropdown-empty">no pinned pages</div>
+            <div className="pinned-dropdown-empty">
+              <Icons.Bookmark size={24} />
+              <span>No pinned pages yet</span>
+              <span className="pinned-dropdown-empty-hint">Right-click a node to pin it</span>
+            </div>
           ) : (
             pinnedNodes.map((node, idx) => (
               <div

@@ -42,12 +42,30 @@ vi.mock("../AccountSettingsForm", () => ({
   AccountSettingsForm: () => <form data-testid="account-settings-form" />,
 }));
 
+vi.mock("../settings-tabs", () => ({
+  SettingsTabs: ({
+    profileContent,
+    appearanceContent,
+    dataContent,
+  }: {
+    profileContent: React.ReactNode;
+    appearanceContent: React.ReactNode;
+    dataContent: React.ReactNode;
+  }) => (
+    <div>
+      {profileContent}
+      {appearanceContent}
+      {dataContent}
+    </div>
+  ),
+}));
+
 describe("SettingsPage", () => {
   it("renders settings with inline account form", async () => {
     const node = await SettingsPage();
     render(node);
 
-    expect(screen.getByRole("heading", { name: "settings" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
     expect(screen.getByTestId("account-settings-form")).toBeInTheDocument();
   });
 

@@ -172,7 +172,10 @@ export default function TagFilterDropdown() {
 
         <div className="tag-filter-strip">
           {showEmptyTags ? (
-            <div className="tag-filter-empty">no tags yet</div>
+            <div className="tag-filter-empty">
+              <Icons.Tag size={16} />
+              <span>No tags yet</span>
+            </div>
           ) : (
             usedTags.map((tag) => {
               const isSelected = selected.has(tag.id as Tag);
@@ -194,9 +197,16 @@ export default function TagFilterDropdown() {
 
         <div className="tag-filter-results">
           {!hasTaggedNodes ? (
-            <div className="tag-filter-empty">no tagged nodes yet</div>
+            <div className="tag-filter-empty">
+              <Icons.Tag size={24} />
+              <span>No tagged nodes yet</span>
+              <span className="tag-filter-empty-hint">Right-click a node to add tags</span>
+            </div>
           ) : isEmpty ? (
-            <div className="tag-filter-empty">no nodes with selected tags</div>
+            <div className="tag-filter-empty">
+              <Icons.Search size={24} />
+              <span>No nodes with selected tags</span>
+            </div>
           ) : (
             filteredNodes.map((node, idx) => {
               const title = node.data.title || 'Untitled';

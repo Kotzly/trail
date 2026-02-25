@@ -1,13 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/src/lib/auth";
 import { getOnboardingState } from "@/src/server/onboarding";
 import OnboardingGate from "./OnboardingGate";
-import SignOutButton from "./SignOutButton";
-
-const nav = [
-  { href: "/trails", label: "trails" },
-];
+import { AppSidebar } from "@/components/app-sidebar";
+import { Toaster } from "sonner";
 
 export default async function AppLayout({
   children,
@@ -23,32 +19,23 @@ export default async function AppLayout({
   const onboarding = await getOnboardingState();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-14 w-full max-w-4xl items-center justify-between px-4">
-          <Link href="/trails" className="text-sm font-semibold">
-            trail
-          </Link>
+    <div className="flex min-h-screen bg-background text-foreground">
+      <AppSidebar
+        user={{
+          name: user.name,
+          email: user.email,
+          imageUrl: user.imageUrl ?? null,
+        }}
+      />
 
-          <nav className="flex items-center gap-4">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+      {/* Mobile top spacing for hamburger */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 md:px-8">
+          {children}
+        </main>
+      </div>
 
-          <div className="flex items-center gap-2">
-            <SignOutButton />
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-4xl px-4 py-8">{children}</main>
+      <Toaster />
 
       {onboarding?.status === "pending" && (
         <OnboardingGate initialStatus="pending" />

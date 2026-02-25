@@ -82,6 +82,11 @@
   background: color-mix(in srgb, rgba(var(--destructive-rgb), 0.2) 70%, transparent);
 }
 
+.graph-context-menu-item.danger.is-confirming {
+  background: color-mix(in srgb, rgba(var(--destructive-rgb), 0.15) 70%, transparent);
+  font-weight: 600;
+}
+
 .graph-context-menu-header {
   padding: 8px 16px;
   font-size: 12px;

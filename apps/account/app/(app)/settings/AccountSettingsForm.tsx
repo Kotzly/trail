@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   initialUpdateAccountActionState,
@@ -64,6 +65,19 @@ export function AccountSettingsForm({
     initialUpdateAccountActionState,
   );
 
+  const prevStatusRef = useRef(state.status);
+
+  useEffect(() => {
+    if (state.status === prevStatusRef.current && state.status === "idle") return;
+    prevStatusRef.current = state.status;
+
+    if (state.status === "success" && state.message) {
+      toast.success(state.message);
+    } else if (state.status === "error" && state.message) {
+      toast.error(state.message);
+    }
+  }, [state.status, state.message]);
+
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -94,19 +108,6 @@ export function AccountSettingsForm({
 
       <div className="flex items-center gap-3">
         <SubmitButton />
-
-        {state.message ? (
-          <p
-            role={state.status === "error" ? "alert" : "status"}
-            className={
-              state.status === "error"
-                ? "text-sm text-destructive"
-                : "text-sm text-emerald-600"
-            }
-          >
-            {state.message}
-          </p>
-        ) : null}
       </div>
     </form>
   );
