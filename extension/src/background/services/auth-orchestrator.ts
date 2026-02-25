@@ -6,7 +6,7 @@ import { syncEngine } from "./sync/engine.js";
 import { accountKeeper } from "./account-keeper.js";
 const DEVICE_ID_STORAGE_KEY = "trail_oauth_device_id" as const;
 const AUTH_REFRESH_ALARM = "trail-auth-refresh" as const;
-const AUTH_REFRESH_INTERVAL_MINUTES = 4;
+const AUTH_REFRESH_INTERVAL_MINUTES = 2;
 const SILENT_SYNC_DEBOUNCE_MS = 1000;
 const ACCESS_TOKEN_EARLY_REFRESH_MS = 30_000;
 const LOGIN_REQUIRED_COOLDOWN_MS = 5_000;
