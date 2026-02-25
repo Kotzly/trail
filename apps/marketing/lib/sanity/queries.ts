@@ -41,12 +41,14 @@ export const siteSettingsQuery = /* groq */ `
 `;
 
 export async function fetchPage(slug: string) {
+  if (!client) return null;
   return client.fetch(pageQuery, { slug }, {
     next: { tags: ["sanity", "sanity:page", `sanity:page:${slug}`] },
   });
 }
 
 export async function fetchSiteSettings() {
+  if (!client) return null;
   return client.fetch(siteSettingsQuery, {}, {
     next: { tags: ["sanity", "sanity:siteSettings"] },
   });
@@ -64,6 +66,7 @@ export const supportPageQuery = /* groq */ `
 `;
 
 export async function fetchSupportPage() {
+  if (!client) return null;
   return client.fetch(supportPageQuery, {}, {
     next: { tags: ["sanity", "sanity:supportPage"] },
   });
@@ -74,6 +77,7 @@ const pageUpdatedAtQuery = /* groq */ `
 `;
 
 export async function fetchPageUpdatedAt(slug: string): Promise<string | null> {
+  if (!client) return null;
   const result = await client.fetch(pageUpdatedAtQuery, { slug }, {
     next: { tags: ["sanity", `sanity:page:${slug}`] },
   });
