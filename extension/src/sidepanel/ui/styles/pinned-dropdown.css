@@ -92,6 +92,19 @@
   text-align: center;
   color: var(--muted-foreground);
   font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.pinned-dropdown-empty svg {
+  opacity: 0.4;
+}
+
+.pinned-dropdown-empty-hint {
+  font-size: 11px;
+  opacity: 0.6;
 }
 
 .pinned-dropdown-item {

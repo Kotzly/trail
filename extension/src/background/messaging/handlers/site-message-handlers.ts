@@ -22,12 +22,11 @@ import {
   cancelEditorMode,
 } from "./editor-handlers.js";
 import { authOrchestrator } from "../../services/auth-orchestrator.js";
+import { AUTH_STORAGE_KEY } from "../../../shared/config/storage-keys.js";
 
 // ---------------------------------------------------------------------------
 // Auth state helpers (reads from chrome.storage, same key as cloud-sync)
 // ---------------------------------------------------------------------------
-
-const AUTH_STORAGE_KEY = "trail_auth_session";
 
 type StoredAuthSession = {
   accessToken?: string;

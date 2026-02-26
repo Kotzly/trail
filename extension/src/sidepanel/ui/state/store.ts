@@ -74,6 +74,7 @@ export type AccountState = {
   onboarding: OnboardingState;
   error: AccountError | null;
   lastSyncedAt: string | null;
+  sessionExpired: boolean;
 };
 
 type StoreState = {
@@ -233,6 +234,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
     error: null,
     lastSyncedAt: null,
+    sessionExpired: false,
   },
   tree: null,
   treeUpdate: null,
@@ -591,6 +593,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         network: 'online',
         error: null,
         lastSyncedAt: new Date().toISOString(),
+        sessionExpired: false,
       },
     })),
   resetAccount: () =>
@@ -607,6 +610,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
         error: null,
         lastSyncedAt: null,
+        sessionExpired: false,
       },
     }),
 

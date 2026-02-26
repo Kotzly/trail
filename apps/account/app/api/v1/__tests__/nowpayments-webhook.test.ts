@@ -1,19 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createHmac } from "crypto";
 
-const dbMocks = vi.hoisted(() => ({
-  db: {
-    billingCheckoutSession: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
+const dbMocks = vi.hoisted(() => {
+  const billingCheckoutSession = {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  };
+  const userSubscription = {
+    findUnique: vi.fn(),
+    upsert: vi.fn(),
+    update: vi.fn(),
+  };
+  return {
+    db: {
+      billingCheckoutSession,
+      userSubscription,
+      $transaction: vi.fn(async (fn: (tx: { billingCheckoutSession: typeof billingCheckoutSession; userSubscription: typeof userSubscription }) => Promise<unknown>) => fn({ billingCheckoutSession, userSubscription })),
     },
-    userSubscription: {
-      findUnique: vi.fn(),
-      upsert: vi.fn(),
-      update: vi.fn(),
-    },
-  },
-}));
+  };
+});
 
 vi.mock("@trail/db", () => ({
   ...dbMocks,

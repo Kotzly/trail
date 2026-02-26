@@ -15,6 +15,7 @@ import { Icons } from './Icon.js';
 import { getIncludedRootId } from '../shared/delete-tree.js';
 import { getNearestCollapsedAncestorId } from '../graph/collapse-utils.js';
 import React from 'react';
+import { toast } from 'sonner';
 
 type MenuPosition = { left: number; top: number; maxHeight: number };
 
@@ -305,6 +306,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     return () => window.removeEventListener('resize', updateSubmenuLayout);
   }, [updateSubmenuLayout]);
 
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const hasOpenTab = tabs.length > 0;
   const hasTitle = Boolean(node?.data.title && node.data.title.trim().length > 0);
   const hasChildren = node?.getChildren()?.length ? node.getChildren().length > 0 : false;
@@ -318,6 +320,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       <div
         ref={menuRef}
         className={`graph-context-menu${submenuLeft ? ' submenu-left' : ''}`}
+        role="menu"
         style={{
           left: `${menuStyle.left}px`,
           top: `${menuStyle.top}px`,
@@ -329,6 +332,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
             <>
               <div
                 className="graph-context-menu-item"
+                role="menuitem"
+                tabIndex={-1}
                 onClick={() => {
                   void navigateTo(node);
                   closeContextMenu();
@@ -338,6 +343,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
               </div>
               <div
                 className="graph-context-menu-item"
+                role="menuitem"
+                tabIndex={-1}
                 onClick={() => {
                   fireAndForget(rpc.openInNewTab({ nodeId }));
                   closeContextMenu();
@@ -465,6 +472,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
 
       <div
         className="graph-context-menu-item"
+        role="menuitem"
+        tabIndex={-1}
         onClick={() => {
           fireAndForget(rpc.togglePin({ nodeId }));
           closeContextMenu();
@@ -571,9 +580,12 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
 
       <div
         className="graph-context-menu-item"
+        role="menuitem"
+        tabIndex={-1}
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(node.data.url);
+            toast.success('URL copied');
           } catch (error) {
             console.error('Failed to copy URL:', error);
           }
@@ -585,9 +597,12 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       {hasTitle && (
         <div
           className="graph-context-menu-item"
+          role="menuitem"
+          tabIndex={-1}
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(node.data.title || 'Untitled');
+              toast.success('Title copied');
             } catch (error) {
               console.error('Failed to copy title:', error);
             }
@@ -613,40 +628,85 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       <div className="graph-context-menu-divider" />
 
       {!isRoot && (
-        <div
-          className="graph-context-menu-item danger"
-          onClick={() => {
-            fireAndForget(rpc.deleteNode({ nodeId }));
-            closeContextMenu();
-          }}
-        >
-          Delete node
-        </div>
+        pendingDelete === 'node' ? (
+          <div
+            className="graph-context-menu-item danger is-confirming"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => {
+              fireAndForget(rpc.deleteNode({ nodeId }));
+              closeContextMenu();
+            }}
+          >
+            Confirm delete?
+          </div>
+        ) : (
+          <div
+            className="graph-context-menu-item danger"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => setPendingDelete('node')}
+          >
+            Delete node
+          </div>
+        )
       )}
       {hasChildren && (
+        pendingDelete === 'children' ? (
+          <div
+            className="graph-context-menu-item danger is-confirming"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => {
+              fireAndForget(rpc.deleteChildren({ nodeId }));
+              closeContextMenu();
+            }}
+          >
+            Confirm delete?
+          </div>
+        ) : (
+          <div
+            className="graph-context-menu-item danger"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => setPendingDelete('children')}
+          >
+            Delete children
+          </div>
+        )
+      )}
+      {pendingDelete === 'withChildren' ? (
         <div
-          className="graph-context-menu-item danger"
+          className="graph-context-menu-item danger is-confirming"
+          role="menuitem"
+          tabIndex={-1}
           onClick={() => {
-            fireAndForget(rpc.deleteChildren({ nodeId }));
+            if (isRoot) {
+              openDeleteTreeConfirm(nodeId);
+              return;
+            }
+            fireAndForget(rpc.deleteWithChildren({ nodeId }));
             closeContextMenu();
           }}
         >
-          Delete children
+          Confirm delete?
+        </div>
+      ) : (
+        <div
+          className="graph-context-menu-item danger"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={() => {
+            if (isRoot) {
+              openDeleteTreeConfirm(nodeId);
+              return;
+            }
+            setPendingDelete('withChildren');
+          }}
+        >
+          {isRoot && !hasChildren ? 'Delete tree' : 'Delete with children'}
         </div>
       )}
-      <div
-        className="graph-context-menu-item danger"
-        onClick={() => {
-          if (isRoot) {
-            openDeleteTreeConfirm(nodeId);
-            return;
-          }
-          fireAndForget(rpc.deleteWithChildren({ nodeId }));
-          closeContextMenu();
-        }}
-      >
-        {isRoot && !hasChildren ? 'Delete tree' : 'Delete with children'}
-      </div>
         </div>
       </div>
     </>
@@ -724,6 +784,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
     <div
       ref={menuRef}
       className="graph-context-menu"
+      role="menu"
       style={{
         left: `${menuStyle.left}px`,
         top: `${menuStyle.top}px`,

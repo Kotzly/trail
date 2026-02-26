@@ -27,6 +27,8 @@ pnpm-debug.log*
 # Environment variables
 .env
 .env.*
+.env.prod
+.env.e2e
 !.env.example
 !apps/account/.env.example
 !apps/api/.env.example

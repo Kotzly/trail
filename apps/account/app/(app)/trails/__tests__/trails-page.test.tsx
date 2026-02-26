@@ -15,6 +15,21 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
 
+vi.mock("../trails-client", () => ({
+  TrailsClient: ({ trails }: { trails: { id: string; label: string; nodeCount: number; rootTitle?: string | null; savedAt: string }[] }) => (
+    <div data-testid="trails-client">
+      {trails.map((t) => (
+        <div key={t.id}>
+          <span>{t.label}</span>
+          <span>{t.rootTitle}</span>
+          <span>{t.nodeCount} nodes</span>
+        </div>
+      ))}
+      {trails.length === 0 && <span>No trails yet</span>}
+    </div>
+  ),
+}));
+
 import TrailsPage from "../page";
 
 describe("TrailsPage", () => {
@@ -48,7 +63,7 @@ describe("TrailsPage", () => {
     render(await TrailsPage());
 
     expect(
-      screen.getByRole("heading", { name: "trails" }),
+      screen.getByRole("heading", { name: "Trails" }),
     ).toBeInTheDocument();
     expect(screen.getByText("1 saved trail")).toBeInTheDocument();
     expect(screen.getByText("testing tree")).toBeInTheDocument();
@@ -65,11 +80,6 @@ describe("TrailsPage", () => {
 
     render(await TrailsPage());
 
-    expect(screen.getByText("no trails yet")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "start browsing in the extension and your trails will appear here automatically.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No trails yet")).toBeInTheDocument();
   });
 });

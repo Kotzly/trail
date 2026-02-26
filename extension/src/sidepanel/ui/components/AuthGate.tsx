@@ -1,6 +1,7 @@
 import React from 'react';
 import TrailLogo from './TrailLogo.js';
 import { useAuthPortalFlow } from '../hooks/useAuthPortalFlow.js';
+import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';
 
 /**
@@ -13,17 +14,26 @@ import { Icons } from './Icon.js';
  */
 export default function AuthGate() {
   const { busy, silentSyncing, notice, startAuthFlow } = useAuthPortalFlow();
+  const sessionExpired = useStore((state) => state.account.sessionExpired);
 
   return (
     <div className="auth-gate">
       <div className="auth-gate__content">
         <TrailLogo className="auth-gate__logo" animated label="Trail" />
 
-        <h1 className="auth-gate__title">Sign in to start</h1>
+        <h1 className="auth-gate__title">
+          {sessionExpired ? 'Session expired' : 'Sign in to start'}
+        </h1>
         <p className="auth-gate__subtitle">
-          Trail maps your browsing into a visual tree.
-          <br />
-          Sign in to get started.
+          {sessionExpired ? (
+            'Your session has expired. Sign in again to continue.'
+          ) : (
+            <>
+              Trail maps your browsing into a visual tree.
+              <br />
+              Sign in to get started.
+            </>
+          )}
         </p>
 
         <button

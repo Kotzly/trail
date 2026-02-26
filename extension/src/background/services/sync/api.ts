@@ -10,6 +10,7 @@
  */
 
 import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from '../../../shared/config/backend.js';
+import { AUTH_STORAGE_KEY } from '../../../shared/config/storage-keys.js';
 import type { NavigationTreeJSON, TreeLabelSource } from '../../../shared/types/tree.js';
 
 /* ------------------------------------------------------------------ */
@@ -101,21 +102,43 @@ export class SyncApiError extends Error {
 /*  Auth helper                                                        */
 /* ------------------------------------------------------------------ */
 
-const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
+type StoredAuthSession = {
+  accessToken?: string;
+  expiresAt?: string;
+};
+
+const TOKEN_EXPIRY_BUFFER_MS = 30_000;
+
+async function loadAuthSession(): Promise<StoredAuthSession | null> {
+  const result = await chrome.storage.local.get(AUTH_STORAGE_KEY);
+  const raw = result[AUTH_STORAGE_KEY] as StoredAuthSession | undefined;
+  if (!raw || typeof raw !== 'object') return null;
+  return raw;
+}
 
 async function getAccessToken(): Promise<string | null> {
-  const result = await chrome.storage.local.get(AUTH_STORAGE_KEY);
-  const raw = result[AUTH_STORAGE_KEY] as { accessToken?: string } | undefined;
-  if (!raw || typeof raw !== 'object') return null;
-  return typeof raw.accessToken === 'string' && raw.accessToken ? raw.accessToken : null;
+  const session = await loadAuthSession();
+  if (!session) return null;
+  return typeof session.accessToken === 'string' && session.accessToken ? session.accessToken : null;
 }
 
 /**
  * Quick check used by the sync engine to bail out early
  * before doing any work when the user is not logged in.
+ * Returns false when the token is missing OR expired (within 30s buffer).
  */
 export async function isAuthenticated(): Promise<boolean> {
-  return (await getAccessToken()) !== null;
+  const session = await loadAuthSession();
+  if (!session || typeof session.accessToken !== 'string' || !session.accessToken) {
+    return false;
+  }
+  if (session.expiresAt) {
+    const parsed = Date.parse(session.expiresAt);
+    if (Number.isFinite(parsed) && parsed <= Date.now() + TOKEN_EXPIRY_BUFFER_MS) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /* ------------------------------------------------------------------ */

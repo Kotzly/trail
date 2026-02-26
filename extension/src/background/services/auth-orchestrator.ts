@@ -1,11 +1,12 @@
 import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
 import { isAllowedSiteOrigin } from "../../shared/config/site-origins.js";
+import { AUTH_STORAGE_KEY } from "../../shared/config/storage-keys.js";
 import { notifyUi } from "../messaging/ui-notifications.js";
 import { syncEngine } from "./sync/engine.js";
 import { accountKeeper } from "./account-keeper.js";
-
-const AUTH_STORAGE_KEY = "trail_auth_session" as const;
 const DEVICE_ID_STORAGE_KEY = "trail_oauth_device_id" as const;
+const AUTH_REFRESH_ALARM = "trail-auth-refresh" as const;
+const AUTH_REFRESH_INTERVAL_MINUTES = 2;
 const SILENT_SYNC_DEBOUNCE_MS = 1000;
 const ACCESS_TOKEN_EARLY_REFRESH_MS = 30_000;
 const LOGIN_REQUIRED_COOLDOWN_MS = 5_000;
@@ -201,6 +202,16 @@ class AuthOrchestrator {
   init(): void {
     if (this.initialized) return;
     this.initialized = true;
+
+    chrome.alarms.onAlarm.addListener((alarm) => {
+      if (alarm.name === AUTH_REFRESH_ALARM) {
+        void this.silentSync();
+      }
+    });
+
+    void chrome.alarms.create(AUTH_REFRESH_ALARM, {
+      periodInMinutes: AUTH_REFRESH_INTERVAL_MINUTES,
+    });
 
     chrome.webNavigation.onCommitted.addListener((details) => {
       if (details.frameId !== 0 || !details.url) {

@@ -57,6 +57,9 @@ export type User = CommonUserClaims & {
 };
 
 export function getAuthBypassState(): boolean {
+  if (process.env.NODE_ENV === "production" && env.ACCOUNT_AUTH_BYPASS) {
+    throw new Error("ACCOUNT_AUTH_BYPASS must not be enabled in production");
+  }
   return env.ACCOUNT_AUTH_BYPASS;
 }
 

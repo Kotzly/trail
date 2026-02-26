@@ -1,0 +1,57 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  pull_request:
+    paths:
+      - "pnpm-lock.yaml"
+      - "extension/pnpm-lock.yaml"
+  workflow_dispatch:
+
+jobs:
+  audit-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit
+        run: pnpm audit --prod
+        continue-on-error: true
+
+  audit-extension:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: extension/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit
+        run: pnpm audit --prod
+        continue-on-error: true

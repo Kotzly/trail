@@ -15,7 +15,7 @@ class FlagManager {
   async init(): Promise<void> {
     const result = await storage.get(STORAGE_KEY).catch((error) => {
       console.error('FlagManager.init: failed to load flags:', error);
-      return {};
+      return {} as { [key: string]: unknown };
     });
     const persisted = result[STORAGE_KEY] as PersistedFlagState | undefined;
     if (persisted && typeof persisted === 'object' && persisted.v === 1) {

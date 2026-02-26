@@ -5,7 +5,7 @@ const authMocks = vi.hoisted(() => ({
 }));
 
 const trailMocks = vi.hoisted(() => ({
-  syncTrails: vi.fn(),
+  syncTrailsIndex: vi.fn(),
 }));
 
 const configMocks = vi.hoisted(() => ({
@@ -45,7 +45,7 @@ import { POST as sync } from "../trails/sync/route";
 describe("v1 trails sync", () => {
   beforeEach(() => {
     authMocks.verifyExtensionToken.mockReset();
-    trailMocks.syncTrails.mockReset();
+    trailMocks.syncTrailsIndex.mockReset();
     configMocks.getExtensionConfig.mockClear();
     accessMocks.getFeatureAccessForUser.mockClear();
     accessMocks.getFeatureAccessForUser.mockResolvedValue({
@@ -61,7 +61,7 @@ describe("v1 trails sync", () => {
       iat: 0,
       exp: 999999,
     });
-    trailMocks.syncTrails.mockResolvedValue({
+    trailMocks.syncTrailsIndex.mockResolvedValue({
       serverSyncAt: new Date("2026-02-03T00:00:00Z"),
       updates: [
         {
@@ -152,7 +152,7 @@ describe("v1 trails sync", () => {
     const payload = await response.json();
     expect(payload.code).toBe("feature_locked");
     expect(payload.retryable).toBe(false);
-    expect(trailMocks.syncTrails).not.toHaveBeenCalled();
+    expect(trailMocks.syncTrailsIndex).not.toHaveBeenCalled();
   });
 
   it("returns 401 when token subject user does not exist", async () => {
@@ -161,7 +161,7 @@ describe("v1 trails sync", () => {
       iat: 0,
       exp: 999999,
     });
-    trailMocks.syncTrails.mockRejectedValue(new Error("user_not_found"));
+    trailMocks.syncTrailsIndex.mockRejectedValue(new Error("user_not_found"));
 
     const response = await sync(
       new Request("http://localhost/api/v1/trails/sync", {

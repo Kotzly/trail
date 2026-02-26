@@ -151,6 +151,9 @@ async function ensureSyncDevices(params: {
       missing.push(deviceId);
       continue;
     }
+    // Reassign device to the current user when the same device ID appears
+    // under a different account. This handles extension reinstalls and
+    // account switches on the same browser where the device ID persists.
     if (device.userId !== userId) {
       await db.device.update({
         where: { id: deviceId },
@@ -301,54 +304,56 @@ export async function upsertTrail(
     now: new Date(),
   });
 
-  const existing = await db.trail.findFirst({
-    where: { id: input.trail.id, userId: input.userId },
-  });
-
-  const merge = mergeTrailUpdates(
-    existing,
-    { updatedAt: input.trail.updatedAt, deletedAt: input.trail.deletedAt },
-  );
-
-  if (!merge.applied) {
-    return {
-      updatedAt: existing?.updatedAt ?? input.trail.updatedAt,
-      applied: false,
-    };
-  }
-
-  const data = {
-    userId: input.userId,
-    deviceId: trailDeviceId,
-    label: input.trail.label,
-    labelSource: input.trail.labelSource,
-    labelUpdatedAt: input.trail.labelUpdatedAt,
-    updatedAt: input.trail.updatedAt,
-    savedAt: input.trail.savedAt,
-    nodeCount: input.trail.nodeCount,
-    rootUrl: input.trail.rootUrl ?? null,
-    rootTitle: input.trail.rootTitle ?? null,
-    rootFavicon: input.trail.rootFavicon ?? null,
-    payload: toPrismaJsonInput(input.trail.payload),
-    deletedAt: input.trail.deletedAt ?? null,
-  };
-
-  if (existing) {
-    const updated = await db.trail.update({
-      where: { id: existing.id },
-      data,
+  return db.$transaction(async (tx) => {
+    const existing = await tx.trail.findFirst({
+      where: { id: input.trail.id, userId: input.userId },
     });
-    return { updatedAt: updated.updatedAt, applied: true };
-  }
 
-  const created = await db.trail.create({
-    data: {
-      id: input.trail.id,
-      ...data,
-      createdAt: input.trail.createdAt,
-    },
+    const merge = mergeTrailUpdates(
+      existing,
+      { updatedAt: input.trail.updatedAt, deletedAt: input.trail.deletedAt },
+    );
+
+    if (!merge.applied) {
+      return {
+        updatedAt: existing?.updatedAt ?? input.trail.updatedAt,
+        applied: false,
+      };
+    }
+
+    const data = {
+      userId: input.userId,
+      deviceId: trailDeviceId,
+      label: input.trail.label,
+      labelSource: input.trail.labelSource,
+      labelUpdatedAt: input.trail.labelUpdatedAt,
+      updatedAt: input.trail.updatedAt,
+      savedAt: input.trail.savedAt,
+      nodeCount: input.trail.nodeCount,
+      rootUrl: input.trail.rootUrl ?? null,
+      rootTitle: input.trail.rootTitle ?? null,
+      rootFavicon: input.trail.rootFavicon ?? null,
+      payload: toPrismaJsonInput(input.trail.payload),
+      deletedAt: input.trail.deletedAt ?? null,
+    };
+
+    if (existing) {
+      const updated = await tx.trail.update({
+        where: { id: existing.id },
+        data,
+      });
+      return { updatedAt: updated.updatedAt, applied: true };
+    }
+
+    const created = await tx.trail.create({
+      data: {
+        id: input.trail.id,
+        ...data,
+        createdAt: input.trail.createdAt,
+      },
+    });
+    return { updatedAt: created.updatedAt, applied: true };
   });
-  return { updatedAt: created.updatedAt, applied: true };
 }
 
 /* ------------------------------------------------------------------ */
