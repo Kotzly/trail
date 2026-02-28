@@ -749,6 +749,8 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const expandNodes = useStore((state) => state.expandNodes);
   const [pendingDelete, setPendingDelete] = useState<'nodes' | 'recursive' | null>(null);
 
+  useEffect(() => { setPendingDelete(null); }, [nodeIds, position]);
+
   const selectedNodes = useMemo(() => {
     if (!tree) return [];
     return nodeIds
