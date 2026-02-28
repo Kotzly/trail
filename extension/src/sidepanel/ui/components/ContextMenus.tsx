@@ -306,7 +306,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     return () => window.removeEventListener('resize', updateSubmenuLayout);
   }, [updateSubmenuLayout]);
 
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<'node' | 'children' | 'withChildren' | null>(null);
   const hasOpenTab = tabs.length > 0;
   const hasTitle = Boolean(node?.data.title && node.data.title.trim().length > 0);
   const hasChildren = node?.getChildren()?.length ? node.getChildren().length > 0 : false;
@@ -747,7 +747,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const editorActive = useStore((state) => state.editorMode.active);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<'nodes' | 'recursive' | null>(null);
 
   const selectedNodes = useMemo(() => {
     if (!tree) return [];
