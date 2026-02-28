@@ -41,6 +41,16 @@ export default function GraphArea() {
       pickTarget: state.pickTarget,
       fullViewEnabled: state.flags?.fullView ?? false,
     })),
+
+  const searchState = useStore(
+    useShallow((state) => ({
+      results: state.search.results,
+      index: state.search.index,
+      navStep: state.search.navStep,
+      active: state.search.active,
+    })),
+  );
+
   );
 
   const handleRenderMetrics = React.useCallback(
