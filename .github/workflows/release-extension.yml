@@ -25,8 +25,6 @@ jobs:
       - uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10.29.3
 
       - uses: actions/setup-node@v6
         with:
@@ -50,13 +48,22 @@ jobs:
         run: pnpm zip
 
       - name: Extract version from tag
-        run: echo "VERSION=${GITHUB_REF_NAME#chrome-v}" >> $GITHUB_ENV
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^chrome-v ]]; then
+            echo "::error::Expected tag matching chrome-v*, got $GITHUB_REF_NAME"
+            exit 1
+          fi
+          echo "VERSION=${GITHUB_REF_NAME#chrome-v}" >> "$GITHUB_ENV"
 
       - name: Find zip file
         run: |
-          ZIP_PATH=$(ls .output/*-chrome.zip | head -1)
-          echo "ZIP_PATH=$ZIP_PATH" >> $GITHUB_ENV
-          echo "ZIP_NAME=$(basename $ZIP_PATH)" >> $GITHUB_ENV
+          shopt -s nullglob
+          zips=(.output/*-chrome.zip)
+          if [ ${#zips[@]} -ne 1 ]; then
+            echo "::error::Expected exactly 1 zip, found ${#zips[@]}"
+            exit 1
+          fi
+          echo "ZIP_PATH=${zips[0]}" >> "$GITHUB_ENV"
 
       - name: Upload to Chrome Web Store (draft)
         uses: nicolo-ribaudo/chrom-webstore-upload@v1
