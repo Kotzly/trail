@@ -155,6 +155,11 @@ async function ensureSyncDevices(params: {
     // under a different account. This handles extension reinstalls and
     // account switches on the same browser where the device ID persists.
     if (device.userId !== userId) {
+      console.warn("[trails-sync] device ownership reassigned", {
+        deviceId,
+        previousUserId: device.userId,
+        newUserId: userId,
+      });
       await db.device.update({
         where: { id: deviceId },
         data: { userId },
