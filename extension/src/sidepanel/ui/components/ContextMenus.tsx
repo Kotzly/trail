@@ -355,8 +355,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
 
               {hasOpenTab && (
                 <>
-                  <div className="graph-context-menu-divider" />
-                  <div className="graph-context-menu-header">
+                  <div className="graph-context-menu-divider" role="separator" />
+                  <div className="graph-context-menu-header" role="presentation">
                     {tabs.length} open tab{tabs.length !== 1 ? "s" : ""}
                   </div>
                   <div
@@ -368,6 +368,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                     {tabs.map((tab) => (
                       <div
                         key={tab.id}
+                        role="menuitem"
+                        tabIndex={-1}
                         className={`graph-context-tab-item${checkedTabId === tab.id ? ' is-checked' : ''}`}
                         onMouseEnter={() => {
                           setHoverNodeId(nodeId);
@@ -451,6 +453,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                   </div>
                   <div
                     className="graph-context-menu-item"
+                    role="menuitem"
+                    tabIndex={-1}
                     onClick={() => {
                       if (tabs.length === 1 && tabs[0]?.id) {
                         fireAndForget(rpc.closeTab({ nodeId, tabId: tabs[0].id as TabId }));
@@ -466,7 +470,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                 </>
               )}
 
-              <div className="graph-context-menu-divider" />
+              <div className="graph-context-menu-divider" role="separator" />
             </>
           ) : null}
 
@@ -484,6 +488,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       {hasChildren && !isCollapsed ? (
         <div
           className="graph-context-menu-item"
+          role="menuitem"
+          tabIndex={-1}
           onClick={() => {
             const nextCollapsed = new Set(collapsedNodeIds);
             nextCollapsed.add(nodeId);
@@ -501,6 +507,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       {isCollapsed ? (
         <div
           className="graph-context-menu-item"
+          role="menuitem"
+          tabIndex={-1}
           onClick={() => {
             expandNodes([nodeId]);
             closeContextMenu();
@@ -510,15 +518,18 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         </div>
       ) : null}
 
-      <div className="graph-context-menu-item has-submenu">
+      <div className="graph-context-menu-item has-submenu" role="menuitem" tabIndex={-1}>
         Tags <span className="submenu-arrow">›</span>
-        <div className="graph-context-submenu">
+        <div className="graph-context-submenu" role="menu">
           {tagDefsList.map((tag) => {
             const hasTag = node.data.tags?.includes(tag.id as Tag);
             return (
               <div
                 key={tag.id as string}
                 className="graph-context-menu-item tag-option"
+                role="menuitemcheckbox"
+                aria-checked={Boolean(hasTag)}
+                tabIndex={-1}
                 onClick={(event) => {
                   event.stopPropagation();
                   if (hasTag) {
@@ -568,6 +579,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
           })}
           <div
             className="graph-context-menu-item tag-option tag-option-new"
+            role="menuitem"
+            tabIndex={-1}
             onClick={(event) => {
               event.stopPropagation();
               onCreateTag();
@@ -616,6 +629,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       {!isRoot && (
         <div
           className="graph-context-menu-item"
+          role="menuitem"
+          tabIndex={-1}
           onClick={() => {
             setPickTarget({ type: 'duplicate', sourceNodeId: nodeId });
             closeContextMenu();
@@ -625,7 +640,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
         </div>
       )}
 
-      <div className="graph-context-menu-divider" />
+      <div className="graph-context-menu-divider" role="separator" />
 
       {!isRoot && (
         pendingDelete === 'node' ? (
@@ -793,10 +808,12 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       }}
     >
       <div className="graph-context-menu-content">
-      <div className="graph-context-menu-header">{nodeIds.length} nodes selected</div>
-      <div className="graph-context-menu-divider" />
+      <div className="graph-context-menu-header" role="presentation">{nodeIds.length} nodes selected</div>
+      <div className="graph-context-menu-divider" role="separator" />
       <div
         className="graph-context-menu-item"
+        role="menuitem"
+        tabIndex={-1}
         onClick={() => {
           fireAndForget(rpc.bulkPin({ nodeIds }));
           clearSelection();
@@ -807,6 +824,8 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       </div>
       <div
         className="graph-context-menu-item"
+        role="menuitem"
+        tabIndex={-1}
         onClick={() => {
           fireAndForget(rpc.bulkUnpin({ nodeIds }));
           clearSelection();
@@ -817,6 +836,8 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       </div>
       <div
         className={`graph-context-menu-item${collapseCandidates.length === 0 ? ' is-disabled' : ''}`}
+        role="menuitem"
+        tabIndex={-1}
         aria-disabled={collapseCandidates.length === 0}
         onClick={() => {
           if (collapseCandidates.length === 0) return;
@@ -835,6 +856,8 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       </div>
       <div
         className={`graph-context-menu-item${expandCandidates.length === 0 ? ' is-disabled' : ''}`}
+        role="menuitem"
+        tabIndex={-1}
         aria-disabled={expandCandidates.length === 0}
         onClick={() => {
           if (expandCandidates.length === 0) return;
@@ -845,9 +868,9 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       >
         Expand selected
       </div>
-      <div className="graph-context-menu-item has-submenu">
+      <div className="graph-context-menu-item has-submenu" role="menuitem" tabIndex={-1}>
         Tags <span className="submenu-arrow">›</span>
-        <div className="graph-context-submenu">
+        <div className="graph-context-submenu" role="menu">
           {tagDefsList.map((tag) => {
             const count = tagCounts.get(tag.id as Tag) ?? 0;
             const allSelected = selectedNodes.length > 0 && count === selectedNodes.length;
@@ -856,6 +879,9 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
               <div
                 key={tag.id as string}
                 className="graph-context-menu-item tag-option"
+                role="menuitemcheckbox"
+                aria-checked={allSelected ? true : someSelected ? 'mixed' : false}
+                tabIndex={-1}
                 onClick={(event) => {
                   event.stopPropagation();
                   toggleTagForSelection(tag.id as Tag);
@@ -874,6 +900,8 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       {!editorActive ? (
         <div
           className="graph-context-menu-item"
+          role="menuitem"
+          tabIndex={-1}
           onClick={() => {
             fireAndForget(rpc.bulkCloseTabs({ nodeIds }));
             clearSelection();
