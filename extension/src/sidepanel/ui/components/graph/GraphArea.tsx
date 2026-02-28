@@ -1,5 +1,5 @@
 import { useStore } from '../../state/store.js';
-import { shallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import type { GraphRenderMetrics } from '../../graph/render/GraphPixiRenderer.js';
 import {
   createQualityPolicyState,
@@ -16,7 +16,7 @@ export default function GraphArea() {
   );
 
   const graphState = useStore(
-    (state) => ({
+    useShallow((state) => ({
       tree: state.tree,
       treeUpdate: state.treeUpdate,
       currentNodeId: state.currentNodeId,
@@ -26,12 +26,6 @@ export default function GraphArea() {
       collapseAction: state.graph.collapseAction,
       nodeTabCounts: state.nodeTabCounts,
       tabStates: state.tabStates,
-      search: {
-        results: state.search.results,
-        index: state.search.index,
-        navStep: state.search.navStep,
-        active: state.search.active,
-      },
       settings: state.settings,
       showConnections: state.settings?.showConnections ?? true,
       overlayLodCount: state.overlayEffects.lodCount,
@@ -46,8 +40,16 @@ export default function GraphArea() {
       editorActive: state.editorMode.active,
       pickTarget: state.pickTarget,
       fullViewEnabled: state.flags?.fullView ?? false,
-    }),
-    shallow,
+    })),
+  );
+
+  const searchState = useStore(
+    useShallow((state) => ({
+      results: state.search.results,
+      index: state.search.index,
+      navStep: state.search.navStep,
+      active: state.search.active,
+    })),
   );
 
   const handleRenderMetrics = React.useCallback(
@@ -109,7 +111,7 @@ export default function GraphArea() {
         : ('full' as const);
 
   const graphActions = useStore(
-    (state) => ({
+    useShallow((state) => ({
       onGraphToolChange: state.setGraphTool,
       onSelectedNodeIdsChange: state.setSelectedNodeIds,
       onClearSelection: state.clearSelection,
@@ -119,8 +121,7 @@ export default function GraphArea() {
       onClearViewIntent: state.clearViewIntent,
       onExpandNodes: state.expandNodes,
       onPickTargetComplete: state.clearPickTarget,
-    }),
-    shallow,
+    })),
   );
 
   return (
@@ -128,6 +129,7 @@ export default function GraphArea() {
       <GraphCanvas
         {...graphState}
         {...graphActions}
+        search={searchState}
         detailMode={detailMode}
         connectionQuality={connectionQuality}
         onRenderMetrics={handleRenderMetrics}
