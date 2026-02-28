@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import TrailLogo from "@/components/TrailLogo";
 
 export default function GlobalError({
   reset,
@@ -11,6 +12,7 @@ export default function GlobalError({
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="flex flex-col items-center gap-4 text-center">
+        <TrailLogo animated className="h-12 w-12" label="Error" />
         <div className="space-y-2">
           <h1 className="text-xl font-semibold">something went wrong</h1>
           <p className="text-sm text-muted-foreground">
