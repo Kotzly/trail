@@ -3,7 +3,7 @@ import type { RefObject } from 'react';
 
 type AnchoredDropdownOptions = {
   open: boolean;
-  dropdownRef: RefObject<HTMLElement>;
+  dropdownRef: RefObject<HTMLElement | null>;
   padding?: number;
 };
 

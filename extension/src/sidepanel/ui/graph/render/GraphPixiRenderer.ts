@@ -73,7 +73,7 @@ const COLLAPSE_ICON_STROKE = 2;
 const COLLAPSE_ICON_SCALE = COLLAPSE_ICON_SIZE / ICON_VIEWBOX;
 const COLLAPSE_ICON_NAME = 'ChevronDown';
 
-type LucideNode = Array<[string, Record<string, string | number>]>;
+type LucideNode = Array<[string, Record<string, string | number | undefined>]>;
 
 const lucideIcons: Record<string, LucideNode> = {
   ChevronDown,
@@ -127,8 +127,9 @@ function buildLucideSvg(node: LucideNode, stroke: string, size: number, strokeWi
   return parts.join('');
 }
 
-function toAttrString(attrs: Record<string, string | number>) {
+function toAttrString(attrs: Record<string, string | number | undefined>) {
   return Object.entries(attrs)
+    .filter(([, value]) => value !== undefined)
     .map(([key, value]) => `${key}="${escapeXml(String(value))}"`)
     .join(' ');
 }

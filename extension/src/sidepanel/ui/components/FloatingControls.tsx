@@ -11,7 +11,7 @@ import SettingsDropdown from './SettingsPopover.js';
 import React from 'react';
 
 type FloatingControlsProps = {
-  searchInputRef: RefObject<HTMLInputElement>;
+  searchInputRef: RefObject<HTMLInputElement | null>;
 };
 
 export default function FloatingControls({ searchInputRef }: FloatingControlsProps) {

@@ -43,15 +43,6 @@ export default function GraphArea() {
     })),
   );
 
-  const searchState = useStore(
-    useShallow((state) => ({
-      results: state.search.results,
-      index: state.search.index,
-      navStep: state.search.navStep,
-      active: state.search.active,
-    })),
-  );
-
   const handleRenderMetrics = React.useCallback(
     (metrics: GraphRenderMetrics) => {
       if (!graphState.adaptivePerformance) {
