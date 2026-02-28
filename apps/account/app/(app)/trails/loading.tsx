@@ -16,6 +16,7 @@ export default function TrailsLoading() {
           <div
             key={i}
             className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4"
+            style={{ animationDelay: `${i * 75}ms` }}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
