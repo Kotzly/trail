@@ -1,8 +1,10 @@
 import Link from "next/link";
+import TrailLogo from "@/components/TrailLogo";
 
 export default function NotFound() {
   return (
     <div className="flex flex-col items-center gap-4 py-24 text-center">
+      <TrailLogo animated className="h-10 w-10" label="Page not found" />
       <div className="space-y-2">
         <h1 className="text-xl font-semibold">page not found</h1>
         <p className="text-sm text-muted-foreground">
