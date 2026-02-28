@@ -4,10 +4,6 @@ const protectedPrefixes = ["/trails", "/dashboard", "/settings", "/billing"];
 const AUTH_COOKIE_NAME = "trail_auth_session";
 
 export async function proxy(request: NextRequest) {
-  if (process.env.ACCOUNT_AUTH_BYPASS === "true" || process.env.ACCOUNT_AUTH_BYPASS === "1") {
-    return NextResponse.next();
-  }
-
   const { pathname, search } = request.nextUrl;
   const needsAuth = protectedPrefixes.some((prefix) =>
     pathname.startsWith(prefix),
