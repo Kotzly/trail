@@ -75,7 +75,6 @@ const resolved = requireEnv(requiredEnvVars);
 export const env = {
   ...resolved,
   appBaseUrl: resolveAppBaseUrl(),
-  ACCOUNT_AUTH_BYPASS: readBooleanEnv(process.env.ACCOUNT_AUTH_BYPASS),
   BILLING_PROVIDER: normalizeBillingProvider(process.env.BILLING_PROVIDER),
   BILLING_TEST_MODE: readBooleanEnv(process.env.BILLING_TEST_MODE),
   NOWPAYMENTS_API_KEY: readOptionalEnv(process.env.NOWPAYMENTS_API_KEY),

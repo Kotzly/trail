@@ -26,12 +26,6 @@ export default function GraphArea() {
       collapseAction: state.graph.collapseAction,
       nodeTabCounts: state.nodeTabCounts,
       tabStates: state.tabStates,
-      search: {
-        results: state.search.results,
-        index: state.search.index,
-        navStep: state.search.navStep,
-        active: state.search.active,
-      },
       settings: state.settings,
       showConnections: state.settings?.showConnections ?? true,
       overlayLodCount: state.overlayEffects.lodCount,
@@ -46,6 +40,15 @@ export default function GraphArea() {
       editorActive: state.editorMode.active,
       pickTarget: state.pickTarget,
       fullViewEnabled: state.flags?.fullView ?? false,
+    })),
+  );
+
+  const searchState = useStore(
+    useShallow((state) => ({
+      results: state.search.results,
+      index: state.search.index,
+      navStep: state.search.navStep,
+      active: state.search.active,
     })),
   );
 
@@ -126,6 +129,7 @@ export default function GraphArea() {
       <GraphCanvas
         {...graphState}
         {...graphActions}
+        search={searchState}
         detailMode={detailMode}
         connectionQuality={connectionQuality}
         onRenderMetrics={handleRenderMetrics}

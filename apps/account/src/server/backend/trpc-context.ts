@@ -3,7 +3,6 @@ import type { AppContext, AppSession } from "@trail/trpc";
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyUserToken } from "@/src/server/backend/auth/user-auth";
 import { ensureUser } from "@/src/server/backend/user";
-import { devUser, getAuthBypassState } from "@/src/lib/auth";
 
 const AUTH_COOKIE_NAME = "trail_auth_session";
 
@@ -33,17 +32,6 @@ function getAuthTokenFromCookie(headers: Headers): string | null {
 }
 
 async function getRequestSession(headers: Headers): Promise<AppSession> {
-  if (getAuthBypassState()) {
-    return {
-      user: {
-        id: devUser.id,
-        email: devUser.email,
-        name: devUser.name,
-        imageUrl: devUser.imageUrl ?? null,
-      },
-    };
-  }
-
   const token = getBearerToken(headers) ?? getAuthTokenFromCookie(headers);
   if (!token) {
     return null;

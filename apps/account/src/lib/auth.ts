@@ -14,10 +14,6 @@ type AuthSession = {
 };
 
 export async function getAuthSession(): Promise<AuthSession | null> {
-  if (getAuthBypassState()) {
-    return { user: devUser };
-  }
-
   const token = await getAuthTokenFromCookies();
   if (!token) {
     return null;
@@ -26,16 +22,6 @@ export async function getAuthSession(): Promise<AuthSession | null> {
   const user = await getUserFromToken(token);
   return user ? { user } : null;
 }
-
-export function isAuthBypassed() {
-  return getAuthBypassState();
-}
-
-export const devUser: User = {
-  id: "uuiddev1-2345-6789-0123-456789012345",
-  email: "dev@gettrail.local",
-  name: "Local Dev",
-};
 
 type CommonUserClaims = {
   email: string;
@@ -55,13 +41,6 @@ type UserClaims = CommonUserClaims & {
 export type User = CommonUserClaims & {
   id: UUID;
 };
-
-export function getAuthBypassState(): boolean {
-  if (process.env.NODE_ENV === "production" && env.ACCOUNT_AUTH_BYPASS) {
-    throw new Error("ACCOUNT_AUTH_BYPASS must not be enabled in production");
-  }
-  return env.ACCOUNT_AUTH_BYPASS;
-}
 
 export async function getAuthTokenFromCookies(): Promise<string | null> {
   const cookieStore = await cookies();

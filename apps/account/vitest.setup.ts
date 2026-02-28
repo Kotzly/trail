@@ -22,4 +22,3 @@ process.env.NOWPAYMENTS_IPN_SECRET =
   process.env.NOWPAYMENTS_IPN_SECRET ?? "test-nowpayments-secret";
 process.env.NOWPAYMENTS_API_BASE_URL =
   process.env.NOWPAYMENTS_API_BASE_URL ?? "https://api.nowpayments.io";
-process.env.ACCOUNT_AUTH_BYPASS = process.env.ACCOUNT_AUTH_BYPASS ?? "0";

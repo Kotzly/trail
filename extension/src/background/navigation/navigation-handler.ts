@@ -48,7 +48,7 @@ export async function handleNavigation(
         await notifyTreeUpdate(tree, 'tabs', view);
       }
     } catch (error) {
-      // Navigation error — silently ignored.
+      console.error("[navigation-handler] new tab navigation error:", error);
     }
     return;
   }

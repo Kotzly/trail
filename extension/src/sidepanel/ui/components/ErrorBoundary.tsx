@@ -54,6 +54,14 @@ export default class ErrorBoundary extends Component<Props, State> {
             Reload Trail
           </button>
 
+          <button
+            className="error-boundary__btn"
+            type="button"
+            onClick={() => window.open('https://gettrail.net/support', '_blank')}
+          >
+            Contact Support
+          </button>
+
           {this.state.error ? (
             <p className="error-boundary__detail">
               {this.state.error.message}
