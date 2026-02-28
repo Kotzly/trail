@@ -21,7 +21,7 @@ type MenuPosition = { left: number; top: number; maxHeight: number };
 
 const SUBMENU_MIN_WIDTH = 160;
 
-function useMenuPosition(menuRef: RefObject<HTMLDivElement>, position: { x: number; y: number }) {
+function useMenuPosition(menuRef: RefObject<HTMLDivElement | null>, position: { x: number; y: number }) {
   const [menuStyle, setMenuStyle] = useState<MenuPosition>({
     left: position.x,
     top: position.y,

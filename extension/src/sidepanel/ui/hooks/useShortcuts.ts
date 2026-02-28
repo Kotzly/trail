@@ -17,7 +17,7 @@ const isEditableTarget = (target: EventTarget | null): boolean => {
   return Boolean(target.closest('[contenteditable="true"]'));
 };
 
-export function useShortcuts(searchInputRef: RefObject<HTMLInputElement>): void {
+export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>): void {
   useEffect(() => {
     const onKeyDown = async (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
