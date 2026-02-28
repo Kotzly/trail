@@ -63,3 +63,4 @@ extension/.wxt/
 extension/public/backend-preset.json
 .output/
 **/**/next-env.d.ts
+.superset/
