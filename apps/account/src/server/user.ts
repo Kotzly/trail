@@ -1,12 +1,7 @@
 import type { User } from "@trail/trpc";
 import { db } from "@trail/db";
-import { devUser, getAuthBypassState } from "@/src/lib/auth";
 
 export async function ensureUser(user: User): Promise<User | undefined> {
-  if (getAuthBypassState()) {
-    return devUser;
-  }
-
   if (!user.id || !user.email || !user.name) {
     return undefined;
   }
