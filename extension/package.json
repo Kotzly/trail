@@ -58,17 +58,17 @@
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.90.5",
-    "autoprefixer": "^10.4.24",
+    "autoprefixer": "^10.4.27",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fflate": "^0.8.2",
     "minisearch": "^7.2.0",
-    "motion": "^12.30.1",
-    "pixi.js": "^8.8.2",
+    "motion": "^12.34.3",
+    "pixi.js": "^8.16.0",
     "postcss": "^8.5.6",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.4.0",
-    "tailwindcss": "^4.1.18",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.1",
     "zod": "^4.3.6"
   }
 }
