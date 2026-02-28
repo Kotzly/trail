@@ -22,6 +22,15 @@ jobs:
         working-directory: extension
 
     steps:
+      - name: Validate release tag
+        working-directory: .
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^chrome-v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "::error::Expected tag matching chrome-v<semver>, got '$GITHUB_REF_NAME'"
+            exit 1
+          fi
+          echo "VERSION=${GITHUB_REF_NAME#chrome-v}" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v4
@@ -46,14 +55,6 @@ jobs:
 
       - name: Package
         run: pnpm zip
-
-      - name: Extract version from tag
-        run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^chrome-v ]]; then
-            echo "::error::Expected tag matching chrome-v*, got $GITHUB_REF_NAME"
-            exit 1
-          fi
-          echo "VERSION=${GITHUB_REF_NAME#chrome-v}" >> "$GITHUB_ENV"
 
       - name: Find zip file
         run: |
