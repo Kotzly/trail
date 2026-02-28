@@ -4,7 +4,7 @@ import { Icons } from './Icon.js';
 import React from 'react';
 
 type SearchBarProps = {
-  inputRef: RefObject<HTMLInputElement>;
+  inputRef: RefObject<HTMLInputElement | null>;
 };
 
 export default function SearchBar({ inputRef }: SearchBarProps) {

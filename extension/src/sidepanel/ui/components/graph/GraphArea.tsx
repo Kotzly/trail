@@ -1,5 +1,5 @@
 import { useStore } from '../../state/store.js';
-import { shallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import type { GraphRenderMetrics } from '../../graph/render/GraphPixiRenderer.js';
 import {
   createQualityPolicyState,
@@ -16,7 +16,7 @@ export default function GraphArea() {
   );
 
   const graphState = useStore(
-    (state) => ({
+    useShallow((state) => ({
       tree: state.tree,
       treeUpdate: state.treeUpdate,
       currentNodeId: state.currentNodeId,
@@ -46,8 +46,7 @@ export default function GraphArea() {
       editorActive: state.editorMode.active,
       pickTarget: state.pickTarget,
       fullViewEnabled: state.flags?.fullView ?? false,
-    }),
-    shallow,
+    })),
   );
 
   const handleRenderMetrics = React.useCallback(
@@ -109,7 +108,7 @@ export default function GraphArea() {
         : ('full' as const);
 
   const graphActions = useStore(
-    (state) => ({
+    useShallow((state) => ({
       onGraphToolChange: state.setGraphTool,
       onSelectedNodeIdsChange: state.setSelectedNodeIds,
       onClearSelection: state.clearSelection,
@@ -119,8 +118,7 @@ export default function GraphArea() {
       onClearViewIntent: state.clearViewIntent,
       onExpandNodes: state.expandNodes,
       onPickTargetComplete: state.clearPickTarget,
-    }),
-    shallow,
+    })),
   );
 
   return (

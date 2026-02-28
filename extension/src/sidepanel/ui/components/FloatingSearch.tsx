@@ -7,7 +7,7 @@ import { Icons } from './Icon.js';
 import SearchResultsList from './SearchResultsList.js';
 
 type FloatingSearchProps = {
-  inputRef: RefObject<HTMLInputElement>;
+  inputRef: RefObject<HTMLInputElement | null>;
   onExpandedChange?: (expanded: boolean) => void;
 };
 
