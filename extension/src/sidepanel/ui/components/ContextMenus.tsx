@@ -732,6 +732,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const editorActive = useStore((state) => state.editorMode.active);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const selectedNodes = useMemo(() => {
     if (!tree) return [];
@@ -882,32 +883,58 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           Close selected tabs
         </div>
       ) : null}
-      <div className="graph-context-menu-divider" />
-      <div
-        className="graph-context-menu-item danger"
-        onClick={() => {
-          fireAndForget(rpc.bulkDeleteNodes({ nodeIds }));
-          clearSelection();
-          closeContextMenu();
-        }}
-      >
-        Delete nodes
-      </div>
-      <div
-        className="graph-context-menu-item danger"
-        onClick={() => {
-          const rootId = getIncludedRootId(tree, nodeIds);
-          if (rootId) {
-            openDeleteTreeConfirm(rootId);
-            return;
-          }
-          fireAndForget(rpc.bulkDeleteRecursive({ nodeIds }));
-          clearSelection();
-          closeContextMenu();
-        }}
-      >
-        Delete nodes recursively
-      </div>
+      <div className="graph-context-menu-divider" role="separator" />
+      {pendingDelete === 'nodes' ? (
+        <div
+          className="graph-context-menu-item danger is-confirming"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={() => {
+            fireAndForget(rpc.bulkDeleteNodes({ nodeIds }));
+            clearSelection();
+            closeContextMenu();
+          }}
+        >
+          Confirm delete?
+        </div>
+      ) : (
+        <div
+          className="graph-context-menu-item danger"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={() => setPendingDelete('nodes')}
+        >
+          Delete nodes
+        </div>
+      )}
+      {pendingDelete === 'recursive' ? (
+        <div
+          className="graph-context-menu-item danger is-confirming"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={() => {
+            const rootId = getIncludedRootId(tree, nodeIds);
+            if (rootId) {
+              openDeleteTreeConfirm(rootId);
+              return;
+            }
+            fireAndForget(rpc.bulkDeleteRecursive({ nodeIds }));
+            clearSelection();
+            closeContextMenu();
+          }}
+        >
+          Confirm delete?
+        </div>
+      ) : (
+        <div
+          className="graph-context-menu-item danger"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={() => setPendingDelete('recursive')}
+        >
+          Delete nodes recursively
+        </div>
+      )}
       </div>
     </div>
   );
