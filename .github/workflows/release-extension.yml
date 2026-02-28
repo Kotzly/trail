@@ -1,0 +1,79 @@
+name: Release (extension)
+
+on:
+  push:
+    tags:
+      - "chrome-v*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-extension
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: extension
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.3
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: extension/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Package
+        run: pnpm zip
+
+      - name: Extract version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#chrome-v}" >> $GITHUB_ENV
+
+      - name: Find zip file
+        run: |
+          ZIP_PATH=$(ls .output/*-chrome.zip | head -1)
+          echo "ZIP_PATH=$ZIP_PATH" >> $GITHUB_ENV
+          echo "ZIP_NAME=$(basename $ZIP_PATH)" >> $GITHUB_ENV
+
+      - name: Upload to Chrome Web Store (draft)
+        uses: nicolo-ribaudo/chrom-webstore-upload@v1
+        with:
+          extension-id: ${{ secrets.CWS_EXTENSION_ID }}
+          client-id: ${{ secrets.CWS_CLIENT_ID }}
+          client-secret: ${{ secrets.CWS_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CWS_REFRESH_TOKEN }}
+          file-name: extension/${{ env.ZIP_PATH }}
+          publish: false
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Extension v${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: extension/${{ env.ZIP_PATH }}
