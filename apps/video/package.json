@@ -17,8 +17,8 @@
     "remotion": "4.0.429"
   },
   "devDependencies": {
-    "@remotion/bundler": "4.0.422",
-    "@types/react": "^19.2.10",
+    "@remotion/bundler": "4.0.429",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "typescript": "^5.9.3"
   }

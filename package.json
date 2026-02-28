@@ -31,8 +31,8 @@
     ]
   },
   "devDependencies": {
-    "cypress": "^15.9.0",
-    "eslint": "^9.39.2",
+    "cypress": "^15.11.0",
+    "eslint": "^10.0.2",
     "eslint-config-next": "^16.1.6",
     "next": "16.1.6"
   },
