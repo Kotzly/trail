@@ -64,3 +64,5 @@ extension/public/backend-preset.json
 .output/
 **/**/next-env.d.ts
 .superset/
+backend-preset.json
+runtime-debug.json
