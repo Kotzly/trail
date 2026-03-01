@@ -66,13 +66,13 @@ jobs:
           echo "ZIP_PATH=${zips[0]}" >> "$GITHUB_ENV"
 
       - name: Upload to Chrome Web Store (draft)
-        uses: nicolo-ribaudo/chrom-webstore-upload@v1
+        uses: mnao305/chrome-extension-upload@v5.0.0
         with:
           extension-id: ${{ secrets.CWS_EXTENSION_ID }}
           client-id: ${{ secrets.CWS_CLIENT_ID }}
           client-secret: ${{ secrets.CWS_CLIENT_SECRET }}
           refresh-token: ${{ secrets.CWS_REFRESH_TOKEN }}
-          file-name: extension/${{ env.ZIP_PATH }}
+          file-path: extension/${{ env.ZIP_PATH }}
           publish: false
 
       - name: Create GitHub Release
