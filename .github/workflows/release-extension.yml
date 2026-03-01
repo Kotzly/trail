@@ -23,6 +23,7 @@ jobs:
 
     steps:
       - name: Validate release tag
+        working-directory: .
         run: |
           if [[ ! "$GITHUB_REF_NAME" =~ ^chrome-v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
             echo "::error::Expected tag matching chrome-v<semver>, got '$GITHUB_REF_NAME'"
