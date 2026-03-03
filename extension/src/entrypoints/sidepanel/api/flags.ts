@@ -1,5 +1,5 @@
-import { rpc } from '../../../shared/rpc/contracts.js';
-import type { FlagKey, ResolvedFlags } from '../../../shared/types/flags.js';
+import { rpc } from '@shared/rpc/contracts.js';
+import type { FlagKey, ResolvedFlags } from '@shared/types/flags.js';
 import { sendMessage } from './background.js';
 
 export async function getFlags(): Promise<ResolvedFlags> {

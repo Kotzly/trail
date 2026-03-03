@@ -9,11 +9,11 @@ import type {
   Subscription,
   User,
 } from '../../../shared/types/account.js';
-import { BACKEND_CONFIG, initBackendConfig } from '../../../shared/config/backend.js';
+import { BACKEND_CONFIG, initBackendConfig } from '@shared/config/backend.js';
 import { createMockAccountClient } from './account/mock.js';
 import { createRemoteAccountClient } from './account/remote.js';
 import { sendMessage } from './background.js';
-import { rpc } from '../../../shared/rpc/contracts.js';
+import { rpc } from '@shared/rpc/contracts.js';
 
 export type CompleteOnboardingInput = {
   action: 'complete' | 'skip';

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Settings, CustomTheme } from '../../../../../shared/types/settings.js';
+import type { Settings, CustomTheme } from '@shared/types/settings.js';
 import { saveSettings } from '../../../api/settings.js';
 import { useStore } from '../../state/store.js';
 import { useOverlayEffects } from '../../state/overlay-effects.js';
 import { Icons } from '../Icon.js';
 import ThemePalette from './ThemePalette.js';
-import { applyTheme } from '../../shared/apply-theme.js';
+import { applyTheme } from '@shared/apply-theme.js';
 
 
 const DEFAULT_THEME: CustomTheme = {

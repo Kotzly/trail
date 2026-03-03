@@ -1,4 +1,4 @@
-import type { TabId, Url, UrlWithTimestamp } from '../../shared/types/ids.js';
+import type { TabId, Url, UrlWithTimestamp } from '@shared/types/ids.js';
 
 // Track last URL per tab for redirect detection
 export class RedirectDetector {

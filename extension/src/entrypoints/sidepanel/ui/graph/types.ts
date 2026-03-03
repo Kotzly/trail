@@ -1,6 +1,6 @@
-import type { NodeId } from '../../../../shared/types/ids.js';
-import type { TabState } from '../../../../shared/types/tabs.js';
-import type { NavigationNode } from '../../../../shared/types/node.js';
+import type { NodeId } from '@shared/types/ids.js';
+import type { TabState } from '@shared/types/tabs.js';
+import type { NavigationNode } from '@shared/types/node.js';
 
 export interface LayoutConfig {
   nodeWidth: number;

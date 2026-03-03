@@ -13,11 +13,11 @@
  * Tree pulls happen on-demand (user opens a tree), NOT during sync cycle.
  */
 
-import { uuidv7 } from '../../../shared/lib/uuid.js';
-import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
-import { findBestTrailFavicon } from '../../../shared/lib/tree-favicon.js';
-import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary, ArchiveIndexEntry } from '../../../shared/types/tree.js';
-import type { FaviconUrl, Title, Url } from '../../../shared/types/ids.js';
+import { uuidv7 } from '@shared/lib/uuid.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import { findBestTrailFavicon } from '@shared/lib/tree-favicon.js';
+import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary, ArchiveIndexEntry } from '@shared/types/tree.js';
+import type { FaviconUrl, Title, Url } from '@shared/types/ids.js';
 import { notifyTreesUpdate } from '../../messaging/notifications.js';
 import { treeStorage } from '../tree-storage.js';
 import { syncApi, SyncApiError, isAuthenticated } from './api.js';

@@ -1,5 +1,5 @@
-import { rpc } from "../../../shared/rpc/contracts.js";
-import { Settings } from "../../../shared/types/settings.js";
+import { rpc } from "@shared/rpc/contracts.js";
+import { Settings } from "@shared/types/settings.js";
 import { sendMessage } from "./background.js";
 
 export async function saveSettings(settings: Settings): Promise<void> {

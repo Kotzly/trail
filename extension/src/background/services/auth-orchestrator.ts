@@ -1,5 +1,5 @@
-import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
-import { isAllowedSiteOrigin } from "../../shared/config/site-origins.js";
+import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "@shared/config/backend.js";
+import { isAllowedSiteOrigin } from "@shared/config/site-origins.js";
 import {
   authSessionItem,
   oauthDeviceIdItem,

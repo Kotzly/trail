@@ -4,7 +4,7 @@ import { getFlags } from '../../api/flags.js';
 import { getTreeState, getTrees } from '../../api/tree.js';
 import { getTagDefs } from '../../api/tags.js';
 import { getCommandState } from '../../api/commands.js';
-import { isMac } from '../../../../shared/utils/platform.js';
+import { isMac } from '@shared/utils/platform.js';
 import { MetaKeyPair, useStore } from '../state/store.js';
 import { applyTheme } from '../shared/apply-theme.js';
 

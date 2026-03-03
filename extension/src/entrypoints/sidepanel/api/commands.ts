@@ -1,6 +1,6 @@
 import { sendMessage } from "./background.js";
-import { rpc } from "../../../shared/rpc/contracts.js";
-import type { CommandState } from "../../../shared/rpc/contracts.js";
+import { rpc } from "@shared/rpc/contracts.js";
+import type { CommandState } from "@shared/rpc/contracts.js";
 
 export async function getCommandState(): Promise<CommandState> {
     const res = await sendMessage(rpc.getCommandState());

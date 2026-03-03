@@ -1,5 +1,5 @@
-import type { FaviconUrl, Url } from '../../shared/types/ids.js';
-import { getFaviconUrl } from '../../shared/utils/favicon.js';
+import type { FaviconUrl, Url } from '@shared/types/ids.js';
+import { getFaviconUrl } from '@shared/utils/favicon.js';
 export { getFaviconUrl };
 
 const ignoredUrlPatterns: RegExp[] = [

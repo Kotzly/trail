@@ -1,4 +1,4 @@
-import type { NodeId } from '../../../../../shared/types/ids.js';
+import type { NodeId } from '@shared/types/ids.js';
 
 export type SelectionMode = 'replace' | 'add' | 'remove';
 type NodeIdLookup = { has(id: NodeId): boolean };

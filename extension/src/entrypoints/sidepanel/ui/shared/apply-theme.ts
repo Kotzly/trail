@@ -1,4 +1,4 @@
-import type { CustomTheme } from '../../../../shared/types/settings.js';
+import type { CustomTheme } from '@shared/types/settings.js';
 import type { ThemeId } from '@features/themes/model.js';
 import { generateThemeTokens, THEME_TOKEN_KEYS } from './theme-generator.js';
 

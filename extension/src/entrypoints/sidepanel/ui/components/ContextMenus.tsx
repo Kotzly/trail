@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import type { NodeId, TabId, Tag, Url } from '../../../../shared/types/ids.js';
-import { getFaviconUrl } from '../../../../shared/utils/favicon.js';
-import type { TagDefinition } from '../../../../shared/types/tags.js';
-import { rpc } from '../../../../shared/rpc/contracts.js';
+import type { NodeId, TabId, Tag, Url } from '@shared/types/ids.js';
+import { getFaviconUrl } from '@shared/utils/favicon.js';
+import type { TagDefinition } from '@shared/types/tags.js';
+import { rpc } from '@shared/rpc/contracts.js';
 import { fireAndForget } from '../../api/background.js';
 import { navigateTo, setCurrentNode } from '../../api/tree.js';
 import { getTabsForNodeMessage } from '../../api/tabs.js';

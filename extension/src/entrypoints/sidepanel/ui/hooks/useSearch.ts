@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { NodeId } from '../../../../shared/types/ids.js';
+import type { NodeId } from '@shared/types/ids.js';
 import { useStore } from '../state/store.js';
 
 

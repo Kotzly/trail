@@ -8,10 +8,10 @@
  *   - inline loading in editor-handlers
  */
 
-import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
-import { isTreeStub } from '../../shared/types/tree.js';
-import type { TreeRecord } from '../../shared/types/tree.js';
-import type { Url, Title, FaviconUrl } from '../../shared/types/ids.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import { isTreeStub } from '@shared/types/tree.js';
+import type { TreeRecord } from '@shared/types/tree.js';
+import type { Url, Title, FaviconUrl } from '@shared/types/ids.js';
 import { treeStorage } from './tree-storage.js';
 import { syncApi, SyncApiError } from './sync/api.js';
 import type { PullTreeResponse } from './sync/api.js';

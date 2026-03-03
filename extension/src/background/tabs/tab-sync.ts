@@ -1,10 +1,10 @@
-import type { FaviconUrl, TabId, Title, Url } from '../../shared/types/ids.js';
+import type { FaviconUrl, TabId, Title, Url } from '@shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { resolveTabUrl } from '../utils/tab-utils.js';
-import { createUrlKey } from '../../shared/lib/url-key.js';
+import { createUrlKey } from '@shared/lib/url-key.js';
 
 /**
  * Sync tab title and favicon changes to node.

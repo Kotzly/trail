@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { TagDefinition } from '../../../../../shared/types/tags.js';
+import type { TagDefinition } from '@shared/types/tags.js';
 import { TAG_COLOR_OPTIONS } from './tag-palette.js';
 import { TAG_ICON_OPTIONS } from './tag-icons.js';
 import { TagIcon } from './TagIcon.js';

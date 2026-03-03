@@ -1,9 +1,9 @@
-import type { TabId } from '../../../shared/types/ids.js';
-import { RPC_METHOD, defineRpcHandlers } from '../../../shared/rpc/contracts.js';
+import type { TabId } from '@shared/types/ids.js';
+import { RPC_METHOD, defineRpcHandlers } from '@shared/rpc/contracts.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
-import { ok, err } from '../../../shared/rpc/contracts.js';
+import { ok, err } from '@shared/rpc/contracts.js';
 import { getActiveTab } from '../../tabs/lifecycle.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';

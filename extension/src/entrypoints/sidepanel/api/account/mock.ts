@@ -11,7 +11,7 @@ import type {
   Subscription,
   User,
 } from '../../../../shared/types/account.js';
-import type { Url } from '../../../../shared/types/ids.js';
+import type { Url } from '@shared/types/ids.js';
 import type { AccountClient, CompleteOnboardingInput } from '../account.js';
 
 const DEFAULT_DELAY_MS = 240;

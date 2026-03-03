@@ -1,4 +1,4 @@
-import { isAllowedSiteOrigin } from '../../shared/config/site-origins.js';
+import { isAllowedSiteOrigin } from '@shared/config/site-origins.js';
 
 
 /**

@@ -5,7 +5,7 @@
  * Shape: Record<treeId, string[]>  (treeId → URL list)
  */
 
-import { openTabsItem } from '../../shared/config/storage-items.js';
+import { openTabsItem } from '@shared/config/storage-items.js';
 
 /** Save the list of open URLs for a tree. */
 export async function saveOpenTabs(treeId: string, urls: string[]): Promise<void> {

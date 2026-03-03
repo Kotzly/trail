@@ -1,4 +1,4 @@
-import { TreeNode } from "../../background/state/tree-node.js";
+import { TreeNode } from "@background/state/tree-node.js";
 import type { NodeId, Timestamp, Title, Url, FaviconUrl, Tag } from "./ids.js"
 
 

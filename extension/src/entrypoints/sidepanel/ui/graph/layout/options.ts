@@ -1,5 +1,5 @@
-import type { Settings } from '../../../../../shared/types/settings.js';
-import { DEFAULT_LAYOUT_SETTINGS } from '../../../../../shared/layout/defaults.js';
+import type { Settings } from '@shared/types/settings.js';
+import { DEFAULT_LAYOUT_SETTINGS } from '@shared/layout/defaults.js';
 import type { LayoutConfig, RadialLayoutConfig } from '../types.js';
 import { HORIZONTAL_GAP, NODE_HEIGHT, NODE_WIDTH, VERTICAL_GAP } from './config.js';
 

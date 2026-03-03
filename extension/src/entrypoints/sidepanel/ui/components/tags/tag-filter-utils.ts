@@ -1,6 +1,6 @@
-import type { NavigationTree } from '../../../../../background/state/nav-tree.js';
-import type { Tag } from '../../../../../shared/types/ids.js';
-import type { NavigationNode } from '../../../../../shared/types/node.js';
+import type { NavigationTree } from '@background/state/nav-tree.js';
+import type { Tag } from '@shared/types/ids.js';
+import type { NavigationNode } from '@shared/types/node.js';
 
 export type TagCounts = Map<Tag, number>;
 

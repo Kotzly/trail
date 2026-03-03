@@ -13,8 +13,8 @@ import {
   ok,
   err,
 } from "../../../shared/rpc/contracts.js";
-import { defineRpcHandlers } from "../../../shared/rpc/contracts.js";
-import type { SiteMessageForwardMessage } from "../../../shared/rpc/contracts.js";
+import { defineRpcHandlers } from "@shared/rpc/contracts.js";
+import type { SiteMessageForwardMessage } from "@shared/rpc/contracts.js";
 import {
   getEditorState,
   enterEditorMode,
@@ -22,7 +22,7 @@ import {
   cancelEditorMode,
 } from "./editor-handlers.js";
 import { authOrchestrator } from "../../services/auth-orchestrator.js";
-import { authSessionItem } from "../../../shared/config/storage-items.js";
+import { authSessionItem } from "@shared/config/storage-items.js";
 
 // ---------------------------------------------------------------------------
 // Auth state helpers

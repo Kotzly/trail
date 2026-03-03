@@ -4,15 +4,15 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from 'react';
-import type { NodeId } from '../../../../../shared/types/ids.js';
-import type { NavigationNode } from '../../../../../shared/types/node.js';
-import type { Settings } from '../../../../../shared/types/settings.js';
-import type { TabState } from '../../../../../shared/types/tabs.js';
-import type { TreeUpdatedInput } from '../../../../../shared/rpc/contracts.js';
-import type { TagDefinition } from '../../../../../shared/types/tags.js';
-import type { NavigationTree } from '../../../../../background/state/nav-tree.js';
+import type { NodeId } from '@shared/types/ids.js';
+import type { NavigationNode } from '@shared/types/node.js';
+import type { Settings } from '@shared/types/settings.js';
+import type { TabState } from '@shared/types/tabs.js';
+import type { TreeUpdatedInput } from '@shared/rpc/contracts.js';
+import type { TagDefinition } from '@shared/types/tags.js';
+import type { NavigationTree } from '@background/state/nav-tree.js';
 import { navigateTo, setNodeLayoutBatch, reparentNode } from '../../../api/tree.js';
-import { rpc } from '../../../../../shared/rpc/contracts.js';
+import { rpc } from '@shared/rpc/contracts.js';
 import { fireAndForget } from '../../../api/background.js';
 import { PADDING } from '../../graph/layout/config.js';
 import {

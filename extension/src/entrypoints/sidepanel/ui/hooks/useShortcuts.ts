@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
-import type { NodeId } from '../../../../shared/types/ids.js';
-import type { LayoutMode } from '../../../../shared/types/settings.js';
-import { rpc } from '../../../../shared/rpc/contracts.js';
+import type { NodeId } from '@shared/types/ids.js';
+import type { LayoutMode } from '@shared/types/settings.js';
+import { rpc } from '@shared/rpc/contracts.js';
 import { redo, undo } from '../../api/commands.js';
 import { fireAndForget } from '../../api/background.js';
 import { navigateTo, setCurrentNode } from '../../api/tree.js';

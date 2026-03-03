@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AccountError } from '../../../../shared/types/account.js';
+import type { AccountError } from '@shared/types/account.js';
 import {
   getAccountSnapshot,
   normalizeAccountError,

@@ -1,5 +1,5 @@
-import type { NavigationNode } from "../../../shared/types/node.js";
-import type { NodeId, TabId } from "../../../shared/types/ids.js";
+import type { NavigationNode } from "@shared/types/node.js";
+import type { NodeId, TabId } from "@shared/types/ids.js";
 import {
   rpc,
   type BeginTempSelectionInput,
@@ -8,7 +8,7 @@ import {
   type TreeUpdatedInput,
   type TreesSnapshot,
 } from "../../../shared/rpc/contracts.js";
-import type { TrailExportBundle } from "../../../shared/types/export.js";
+import type { TrailExportBundle } from "@shared/types/export.js";
 import { sendMessage } from "./background.js";
 
 export async function navigateTo(node: NavigationNode): Promise<void> {

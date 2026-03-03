@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { NodeId } from '../../../../shared/types/ids.js';
-import { getFaviconUrl } from '../../../../shared/utils/favicon.js';
+import type { NodeId } from '@shared/types/ids.js';
+import { getFaviconUrl } from '@shared/utils/favicon.js';
 import { navigateTo } from '../../api/tree.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';

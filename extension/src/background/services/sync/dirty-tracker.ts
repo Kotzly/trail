@@ -6,7 +6,7 @@
  * and which trees need to be deleted on the server.
  */
 
-import { syncStateItem, type SyncState } from '../../../shared/config/storage-items.js';
+import { syncStateItem, type SyncState } from '@shared/config/storage-items.js';
 
 const DEFAULT_STATE: SyncState = {
   serverSyncAt: null,

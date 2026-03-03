@@ -1,6 +1,6 @@
-import { tabManager } from "../../../background/state/tab-manager.js";
-import type { NodeId, TabId } from "../../../shared/types/ids.js";
-import { rpc } from "../../../shared/rpc/contracts.js";
+import { tabManager } from "@background/state/tab-manager.js";
+import type { NodeId, TabId } from "@shared/types/ids.js";
+import { rpc } from "@shared/rpc/contracts.js";
 import { sendMessage } from "./background.js";
 
 export async function getTabsForNode(nodeId: NodeId): Promise<chrome.tabs.Tab[]> {

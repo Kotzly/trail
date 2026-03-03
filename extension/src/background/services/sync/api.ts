@@ -9,9 +9,9 @@
  *   PATCH  /trails/:id     – editor partial update
  */
 
-import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from '../../../shared/config/backend.js';
-import { authSessionItem, type StoredAuthSession } from '../../../shared/config/storage-items.js';
-import type { NavigationTreeJSON, TreeLabelSource } from '../../../shared/types/tree.js';
+import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from '@shared/config/backend.js';
+import { authSessionItem, type StoredAuthSession } from '@shared/config/storage-items.js';
+import type { NavigationTreeJSON, TreeLabelSource } from '@shared/types/tree.js';
 
 /* ------------------------------------------------------------------ */
 /*  Response types                                                     */

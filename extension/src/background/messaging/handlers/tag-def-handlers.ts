@@ -1,10 +1,10 @@
-import { RPC_METHOD, defineRpcHandlers, err, ok } from '../../../shared/rpc/contracts.js';
-import type { Tag } from '../../../shared/types/ids.js';
-import type { TagDefinition } from '../../../shared/types/tags.js';
+import { RPC_METHOD, defineRpcHandlers, err, ok } from '@shared/rpc/contracts.js';
+import type { Tag } from '@shared/types/ids.js';
+import type { TagDefinition } from '@shared/types/tags.js';
 import { tagStorage } from '../../services/tag-storage.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
-import { rpc } from '../../../shared/rpc/contracts.js';
+import { rpc } from '@shared/rpc/contracts.js';
 import { sendRuntimeMessage } from '../send-message.js';
 
 async function broadcastTagDefs(defs?: TagDefinition[]): Promise<void> {

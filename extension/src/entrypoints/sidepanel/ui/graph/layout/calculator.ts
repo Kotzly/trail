@@ -1,5 +1,5 @@
-import type { NodeId } from '../../../../../shared/types/ids.js';
-import type { NavigationNode } from '../../../../../shared/types/node.js';
+import type { NodeId } from '@shared/types/ids.js';
+import type { NavigationNode } from '@shared/types/node.js';
 import type { LayoutConfig, NodePosition, CanvasBounds, RadialLayoutConfig } from '../types.js';
 import { PADDING } from './config.js';
 

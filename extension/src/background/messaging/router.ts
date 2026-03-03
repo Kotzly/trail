@@ -9,8 +9,8 @@ import {
   type RequestType,
   type ResponseMessage,
 } from "../../shared/rpc/contracts.js";
-import { defineRpcHandlers } from "../../shared/rpc/contracts.js";
-import type { RpcRequestEnvelope, RpcResponseEnvelope } from "../../shared/rpc/schema.js";
+import { defineRpcHandlers } from "@shared/rpc/contracts.js";
+import type { RpcRequestEnvelope, RpcResponseEnvelope } from "@shared/rpc/schema.js";
 import {
   createRpcErrorEnvelope,
   parseRpcRequestEnvelope,

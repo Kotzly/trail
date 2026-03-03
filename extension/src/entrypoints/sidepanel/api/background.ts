@@ -1,5 +1,5 @@
-import { MessageByType, RequestType, ResponseMessage } from "../../../shared/rpc/contracts.js";
-import { sendRpcMessage } from "../../../shared/rpc/client.js";
+import { MessageByType, RequestType, ResponseMessage } from "@shared/rpc/contracts.js";
+import { sendRpcMessage } from "@shared/rpc/client.js";
 
 
 export function sendMessage<T extends RequestType>(

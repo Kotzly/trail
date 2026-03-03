@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createNewTree, deleteArchivedTree, ensureTreeLoaded, exportTree, openTree, renameTree, syncTrees } from '../../api/tree.js';
-import { getBackendConfig, initBackendConfig } from '../../../../shared/config/backend.js';
+import { getBackendConfig, initBackendConfig } from '@shared/config/backend.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
 
-import type { FaviconUrl, Title, Url } from '../../../../shared/types/ids.js';
-import { getFaviconUrl } from '../../../../shared/utils/favicon.js';
+import type { FaviconUrl, Title, Url } from '@shared/types/ids.js';
+import { getFaviconUrl } from '@shared/utils/favicon.js';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 

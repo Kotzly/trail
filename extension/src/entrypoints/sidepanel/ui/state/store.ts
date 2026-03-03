@@ -1,14 +1,14 @@
 import { create } from 'zustand';
-import type { NodeId, Tag } from '../../../../shared/types/ids.js';
-import type { Settings } from '../../../../shared/types/settings.js';
-import type { TabState } from '../../../../shared/types/tabs.js';
-import type { CommandState, EditorModeState, SyncStatus, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '../../../../shared/rpc/contracts.js';
-import { NavigationTreeMapper } from '../../../../shared/lib/mapper.js';
-import type { NavigationTree } from '../../../../background/state/nav-tree.js';
-import { PinnedManager } from '../../../../background/state/pinned.js';
-import type { TagDefinition } from '../../../../shared/types/tags.js';
-import type { TreeMeta, TreeSummary } from '../../../../shared/types/tree.js';
-import type { ResolvedFlags } from '../../../../shared/types/flags.js';
+import type { NodeId, Tag } from '@shared/types/ids.js';
+import type { Settings } from '@shared/types/settings.js';
+import type { TabState } from '@shared/types/tabs.js';
+import type { CommandState, EditorModeState, SyncStatus, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '@shared/rpc/contracts.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import type { NavigationTree } from '@background/state/nav-tree.js';
+import { PinnedManager } from '@background/state/pinned.js';
+import type { TagDefinition } from '@shared/types/tags.js';
+import type { TreeMeta, TreeSummary } from '@shared/types/tree.js';
+import type { ResolvedFlags } from '@shared/types/flags.js';
 import { getCollapsedAncestorIds } from '../graph/collapse-utils.js';
 import type {
   AccountError,

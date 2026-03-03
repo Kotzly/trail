@@ -1,5 +1,5 @@
-import type { NodeId } from '../../../../../shared/types/ids.js';
-import type { NavigationNode } from '../../../../../shared/types/node.js';
+import type { NodeId } from '@shared/types/ids.js';
+import type { NavigationNode } from '@shared/types/node.js';
 import type { LayoutMode, NodePosition } from '../../graph/types.js';
 import type { ConnectionSegment } from '../../graph/render/types.js';
 

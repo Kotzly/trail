@@ -1,7 +1,7 @@
 import { THEME_IDS } from "@features/themes/model.js";
-import type { CustomTheme, Settings, ThemeHarmony, ThemeDotType } from "../../shared/types/settings.js";
-import { DEFAULT_LAYOUT_SETTINGS } from "../../shared/layout/defaults.js";
-import { settingsItem } from "../../shared/config/storage-items.js";
+import type { CustomTheme, Settings, ThemeHarmony, ThemeDotType } from "@shared/types/settings.js";
+import { DEFAULT_LAYOUT_SETTINGS } from "@shared/layout/defaults.js";
+import { settingsItem } from "@shared/config/storage-items.js";
 
 const DEFAULT_CUSTOM_THEME: CustomTheme = {
     enabled: false,

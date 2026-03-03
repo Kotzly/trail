@@ -1,4 +1,4 @@
-import { NavigationNode } from "../../shared/types/node.js";
+import { NavigationNode } from "@shared/types/node.js";
 import { NavigationTree } from "./nav-tree.js"
 
 export class PinnedManager {

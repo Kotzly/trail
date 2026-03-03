@@ -1,4 +1,4 @@
-import type { NodeId, TabId } from "../../shared/types/ids.js";
+import type { NodeId, TabId } from "@shared/types/ids.js";
 import { NavigationTree } from "./nav-tree.js";
 import { TabIndex } from "./tab-index.js";
 import { LruManager } from "./tab-lru.js";

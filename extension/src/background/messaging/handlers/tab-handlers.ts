@@ -1,9 +1,9 @@
-import type { NodeId, TabId } from '../../../shared/types/ids.js';
-import { RPC_METHOD, defineRpcHandlers } from '../../../shared/rpc/contracts.js';
+import type { NodeId, TabId } from '@shared/types/ids.js';
+import { RPC_METHOD, defineRpcHandlers } from '@shared/rpc/contracts.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { notifyTreeUpdate } from '../notifications.js';
 import { treeStorage } from '../../services/tree-storage.js';
-import { ok, err } from '../../../shared/rpc/contracts.js';
+import { ok, err } from '@shared/rpc/contracts.js';
 import { NavigationTree } from '../../state/nav-tree.js';
 import { getEditorState } from './editor-handlers.js';
 

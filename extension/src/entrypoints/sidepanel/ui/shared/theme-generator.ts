@@ -1,4 +1,4 @@
-import type { CustomTheme, ThemeDot, ThemeHarmony } from '../../../../shared/types/settings.js';
+import type { CustomTheme, ThemeDot, ThemeHarmony } from '@shared/types/settings.js';
 import type { ThemeId } from '@features/themes/model.js';
 
 type HslColor = { h: number; s: number; l: number };

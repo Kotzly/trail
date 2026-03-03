@@ -1,8 +1,8 @@
-import type { TabId, NodeId } from '../../shared/types/ids.js';
+import type { TabId, NodeId } from '@shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
-import type { TabSoundState, TabState } from '../../shared/types/tabs.js';
-import { rpc, type TreeUpdateReason, type TreeViewIntent, type TreesSnapshot } from '../../shared/rpc/contracts.js';
-import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
+import type { TabSoundState, TabState } from '@shared/types/tabs.js';
+import { rpc, type TreeUpdateReason, type TreeViewIntent, type TreesSnapshot } from '@shared/rpc/contracts.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
 import { NavigationTree } from '../state/nav-tree.js';
 import { sendRuntimeMessage } from './send-message.js';
 

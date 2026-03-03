@@ -1,8 +1,8 @@
-import { RPC_METHOD, defineRpcHandlers, ok, err } from '../../../shared/rpc/contracts.js';
+import { RPC_METHOD, defineRpcHandlers, ok, err } from '@shared/rpc/contracts.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
-import { CommandManager } from '../../../shared/lib/commands.js';
-import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
+import { CommandManager } from '@shared/lib/commands.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
 import { tabManager } from '../../state/tab-manager.js';
 import type { NavigationTree } from '../../state/nav-tree.js';
 import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';

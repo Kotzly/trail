@@ -4,7 +4,7 @@ import { getAccountSnapshot } from "../../api/account.js";
 import { accountKeys } from "./account-keys.js";
 import { useStore } from "../state/store.js";
 import { loadCachedSnapshotWithAge } from "../../api/account/cache.js";
-import type { AccountSnapshot } from "../../../../shared/types/account.js";
+import type { AccountSnapshot } from "@shared/types/account.js";
 
 const ONBOARDING_POLL_MS = 2500;
 const SNAPSHOT_STALE_MS = 5 * 60_000;

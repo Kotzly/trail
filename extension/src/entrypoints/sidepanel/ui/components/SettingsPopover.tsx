@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Settings } from '../../../../shared/types/settings.js';
-import type { Url } from '../../../../shared/types/ids.js';
-import { getBackendConfig, initBackendConfig } from '../../../../shared/config/backend.js';
-import { DEFAULT_LAYOUT_SETTINGS } from '../../../../shared/layout/defaults.js';
+import type { Settings } from '@shared/types/settings.js';
+import type { Url } from '@shared/types/ids.js';
+import { getBackendConfig, initBackendConfig } from '@shared/config/backend.js';
+import { DEFAULT_LAYOUT_SETTINGS } from '@shared/layout/defaults.js';
 import { saveSettings } from '../../api/settings.js';
 import { setFlag, resetFlags } from '../../api/flags.js';
-import { FLAG_DEFS, type FlagDef, type FlagKey } from '../../../../shared/types/flags.js';
-import { experimentsUnlockedItem } from '../../../../shared/config/storage-items.js';
+import { FLAG_DEFS, type FlagDef, type FlagKey } from '@shared/types/flags.js';
+import { experimentsUnlockedItem } from '@shared/config/storage-items.js';
 import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';

@@ -1,4 +1,4 @@
-import type { Url } from '../../shared/types/ids.js';
+import type { Url } from '@shared/types/ids.js';
 import { shouldTrackUrl } from './url-utils.js';
 
 export function resolveTabUrl(tab: chrome.tabs.Tab): Url | null {

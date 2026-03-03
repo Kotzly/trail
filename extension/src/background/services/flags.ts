@@ -5,7 +5,7 @@ import {
   type PersistedFlagState,
   resolveFlags,
 } from '../../shared/types/flags.js';
-import { flagsItem } from '../../shared/config/storage-items.js';
+import { flagsItem } from '@shared/config/storage-items.js';
 
 let overrides: Partial<Record<string, unknown>> = {};
 

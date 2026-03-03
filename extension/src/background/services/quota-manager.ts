@@ -6,9 +6,9 @@
  */
 
 import { storage } from 'wxt/utils/storage';
-import type { TreeSummary, ArchiveIndexEntry, TreeStub } from '../../shared/types/tree.js';
-import { isTreeStub } from '../../shared/types/tree.js';
-import { archiveIndexItem, archiveBlobKey } from '../../shared/config/storage-items.js';
+import type { TreeSummary, ArchiveIndexEntry, TreeStub } from '@shared/types/tree.js';
+import { isTreeStub } from '@shared/types/tree.js';
+import { archiveIndexItem, archiveBlobKey } from '@shared/config/storage-items.js';
 
 function isQuotaError(error: unknown): boolean {
   const msg = String(error);

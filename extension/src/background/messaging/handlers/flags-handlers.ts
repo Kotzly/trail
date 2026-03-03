@@ -1,6 +1,6 @@
 import { getAllFlags, setFlagOverride, resetAllFlags } from '../../services/flags.js';
-import { RPC_METHOD, defineRpcHandlers, ok } from '../../../shared/rpc/contracts.js';
-import type { FlagKey, FlagValue } from '../../../shared/types/flags.js';
+import { RPC_METHOD, defineRpcHandlers, ok } from '@shared/rpc/contracts.js';
+import type { FlagKey, FlagValue } from '@shared/types/flags.js';
 
 export const flagsHandlers = defineRpcHandlers({
   async [RPC_METHOD.GET_FLAGS]() {

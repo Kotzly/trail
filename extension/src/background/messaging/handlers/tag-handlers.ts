@@ -1,10 +1,10 @@
-import { RPC_METHOD, defineRpcHandlers } from '../../../shared/rpc/contracts.js';
+import { RPC_METHOD, defineRpcHandlers } from '@shared/rpc/contracts.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
-import { CommandManager } from '../../../shared/lib/commands.js';
-import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
-import type { Description, Tag } from '../../../shared/types/ids.js';
-import { err, ok } from '../../../shared/rpc/contracts.js';
+import { CommandManager } from '@shared/lib/commands.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import type { Description, Tag } from '@shared/types/ids.js';
+import { err, ok } from '@shared/rpc/contracts.js';
 
 
 export const tagHandlers = defineRpcHandlers({

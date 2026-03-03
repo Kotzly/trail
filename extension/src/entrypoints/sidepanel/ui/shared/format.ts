@@ -1,4 +1,4 @@
-import type { Timestamp, Url } from "../../../../shared/types/ids.js";
+import type { Timestamp, Url } from "@shared/types/ids.js";
 
 export function formatTime(timestamp: Timestamp): string {
     const now = Date.now();

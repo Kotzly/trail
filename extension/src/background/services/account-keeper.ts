@@ -1,4 +1,4 @@
-import type { AccountSnapshot, Plan } from "../../shared/types/account.js";
+import type { AccountSnapshot, Plan } from "@shared/types/account.js";
 import {
   BACKEND_CONFIG,
   buildBackendUrl,

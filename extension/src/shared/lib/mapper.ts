@@ -1,7 +1,7 @@
 import type { NavigationNode, NavigationNodeJSON, NodeData } from "../types/node.js";
-import { TreeNode } from "../../background/state/tree-node.js";
+import { TreeNode } from "@background/state/tree-node.js";
 import { NavigationTreeJSON } from "../types/tree.js";
-import { NavigationTree } from "../../background/state/nav-tree.js";
+import { NavigationTree } from "@background/state/nav-tree.js";
 
 export class TreeNodeMapper {
     private static normalizeNodeData(

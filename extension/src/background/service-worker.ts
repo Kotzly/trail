@@ -3,9 +3,9 @@ import { initMessaging } from './messaging/router.js';
 import { initWebNavigation } from './navigation/webnavigation.js';
 import { initTabsLifecycle } from './tabs/lifecycle.js';
 import { syncOpenTabs } from './tabs/sync-open-tabs.js';
-import { CommandManager } from '../shared/lib/commands.js';
+import { CommandManager } from '@shared/lib/commands.js';
 import { syncEngine } from './services/sync/engine.js';
-import { initBackendConfig } from '../shared/config/backend.js';
+import { initBackendConfig } from '@shared/config/backend.js';
 import { authOrchestrator } from './services/auth-orchestrator.js';
 import { accountKeeper } from './services/account-keeper.js';
 

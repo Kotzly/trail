@@ -1,11 +1,11 @@
 import { storage } from 'wxt/utils/storage';
-import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary, ArchiveIndexEntry } from '../../shared/types/tree.js';
-import { isTreeStub } from '../../shared/types/tree.js';
+import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary, ArchiveIndexEntry } from '@shared/types/tree.js';
+import { isTreeStub } from '@shared/types/tree.js';
 import { NavigationTree } from '../state/nav-tree.js';
-import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
-import { uuidv7 } from '../../shared/lib/uuid.js';
-import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
-import { encodeTree, decodeTree } from '../../shared/lib/tree-codec.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import { uuidv7 } from '@shared/lib/uuid.js';
+import { findBestTrailFavicon } from '@shared/lib/tree-favicon.js';
+import { encodeTree, decodeTree } from '@shared/lib/tree-codec.js';
 import { quotaAwareSet, type BulkEntry } from './quota-manager.js';
 import {
   activeTreeItem,
@@ -14,8 +14,8 @@ import {
   treeSavedAtItem,
   archiveBlobKey,
 } from '../../shared/config/storage-items.js';
-import type { Title, Url } from '../../shared/types/ids.js';
-import type { NodeData } from '../../shared/types/node.js';
+import type { Title, Url } from '@shared/types/ids.js';
+import type { NodeData } from '@shared/types/node.js';
 
 // ---------------------------------------------------------------------------
 // Constants

@@ -13,7 +13,7 @@
  */
 
 import { storage } from 'wxt/utils/storage';
-import { migrationDoneItem, syncStateItem } from '../../../shared/config/storage-items.js';
+import { migrationDoneItem, syncStateItem } from '@shared/config/storage-items.js';
 
 const V2_SERVER_AT_KEY = 'local:trail_sync_server_at' as const;
 const V2_TOMBSTONES_KEY = 'local:trail_sync_tombstones' as const;

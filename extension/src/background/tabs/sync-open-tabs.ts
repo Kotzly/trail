@@ -1,10 +1,10 @@
-import type { FaviconUrl, NodeId, TabId, Title, Url } from '../../shared/types/ids.js';
+import type { FaviconUrl, NodeId, TabId, Title, Url } from '@shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from '../utils/url-utils.js';
 import { handleNewTabTab } from '../utils/new-tab.js';
-import type { NodeData } from '../../shared/types/node.js';
+import type { NodeData } from '@shared/types/node.js';
 
 let syncPromise: Promise<void> | null = null;
 

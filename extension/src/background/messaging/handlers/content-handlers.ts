@@ -3,10 +3,10 @@ import { shouldTrackUrl } from "../../utils/url-utils.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { notifyTreeUpdate } from "../notifications.js";
-import { RPC_METHOD, defineRpcHandlers } from "../../../shared/rpc/contracts.js";
-import { ok, err } from "../../../shared/rpc/contracts.js";
-import type { FaviconUrl, TabId, Title, Url } from "../../../shared/types/ids.js";
-import { createUrlKey } from "../../../shared/lib/url-key.js";
+import { RPC_METHOD, defineRpcHandlers } from "@shared/rpc/contracts.js";
+import { ok, err } from "@shared/rpc/contracts.js";
+import type { FaviconUrl, TabId, Title, Url } from "@shared/types/ids.js";
+import { createUrlKey } from "@shared/lib/url-key.js";
 
 function getSenderTabId(sender: chrome.runtime.MessageSender): TabId | null {
   const id = sender.tab?.id;

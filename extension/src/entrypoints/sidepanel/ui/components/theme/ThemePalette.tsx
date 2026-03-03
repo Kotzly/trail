@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CustomTheme, ThemeDot, ThemeHarmony } from '../../../../../shared/types/settings.js';
+import type { CustomTheme, ThemeDot, ThemeHarmony } from '@shared/types/settings.js';
 import type { ThemeId } from '@features/themes/model.js';
 import { Icons } from '../Icon.js';
 import {

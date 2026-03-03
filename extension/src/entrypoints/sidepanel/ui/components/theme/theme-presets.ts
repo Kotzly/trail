@@ -1,4 +1,4 @@
-import type { ThemeDot, ThemeHarmony } from '../../../../../shared/types/settings.js';
+import type { ThemeDot, ThemeHarmony } from '@shared/types/settings.js';
 
 type PresetPreview = {
   c1: string;

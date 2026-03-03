@@ -1,7 +1,7 @@
 import { memo, useMemo, useState, type ReactNode } from 'react';
 import type { FaviconUrl, NodeId, Timestamp, Url } from '@shared/types/ids.js';
 import { getFaviconUrl } from '@shared/utils/favicon.js';
-import type { NavigationTree } from '../../../../background/state/nav-tree.js';
+import type { NavigationTree } from '@background/state/nav-tree.js';
 import { formatTime, formatUrl } from '../shared/format.js';
 import { Icons } from './Icon.js';
 

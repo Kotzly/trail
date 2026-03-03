@@ -1,5 +1,5 @@
-import type { NodeId, TabId, Url } from '../../shared/types/ids.js';
-import type { TempSelectionOptions } from '../../shared/rpc/contracts.js';
+import type { NodeId, TabId, Url } from '@shared/types/ids.js';
+import type { TempSelectionOptions } from '@shared/rpc/contracts.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from './tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';

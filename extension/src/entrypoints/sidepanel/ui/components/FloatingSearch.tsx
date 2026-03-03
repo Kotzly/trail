@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import React, { useEffect, useState } from 'react';
-import type { NodeId } from '../../../../shared/types/ids.js';
+import type { NodeId } from '@shared/types/ids.js';
 import { useSearch } from '../hooks/useSearch.js';
 import { useStore } from '../state/store.js';
 import { Icons } from './Icon.js';

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { rpc } from '../../../../shared/rpc/contracts.js';
+import { rpc } from '@shared/rpc/contracts.js';
 import { fireAndForget } from '../../api/background.js';
 import { createNewTree } from '../../api/tree.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';

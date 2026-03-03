@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { CheckoutInput } from "../../../../shared/types/account.js";
+import type { CheckoutInput } from "@shared/types/account.js";
 import type { CompleteOnboardingInput } from "../../api/account.js";
 import {
   completeOnboarding,

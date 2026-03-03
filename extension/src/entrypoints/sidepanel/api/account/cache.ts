@@ -1,4 +1,4 @@
-import type { AccountSnapshot } from '../../../../shared/types/account.js';
+import type { AccountSnapshot } from '@shared/types/account.js';
 import {
   accountSnapshotItem,
   type CachedSnapshotEnvelope,

@@ -1,10 +1,10 @@
-import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
 import { treeStorage } from './tree-storage.js';
 import { syncApi, SyncApiError } from './sync/api.js';
 import { dirtyTracker } from './sync/dirty-tracker.js';
 import { sendRuntimeMessage } from '../messaging/send-message.js';
-import { rpc, type SyncStatus } from '../../shared/rpc/contracts.js';
-import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
+import { rpc, type SyncStatus } from '@shared/rpc/contracts.js';
+import { findBestTrailFavicon } from '@shared/lib/tree-favicon.js';
 
 /* ------------------------------------------------------------------ */
 /*  Editor Sync Service                                                */

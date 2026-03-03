@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { RPC_METHOD, type RequestMessage } from '../../../../shared/rpc/contracts.js';
+import { RPC_METHOD, type RequestMessage } from '@shared/rpc/contracts.js';
 import { getCommandState } from '../../api/commands.js';
 import { useStore } from '../state/store.js';
 import { showUiToast } from '../notifications/sonner-adapter.js';

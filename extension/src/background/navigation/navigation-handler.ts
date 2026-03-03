@@ -1,13 +1,13 @@
-import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '../../shared/types/ids.js';
-import type { TreeViewIntent } from '../../shared/rpc/contracts.js';
-import { NodeMetaPatch, updateNodeMeta, type NodeData } from '../../shared/types/node.js';
+import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '@shared/types/ids.js';
+import type { TreeViewIntent } from '@shared/rpc/contracts.js';
+import { NodeMetaPatch, updateNodeMeta, type NodeData } from '@shared/types/node.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { redirectDetector } from './redirect-detection.js';
 import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { handleNewTabTab } from '../utils/new-tab.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { createUrlKey } from '../../shared/lib/url-key.js';
+import { createUrlKey } from '@shared/lib/url-key.js';
 
 /**
  * Handle navigation events and add to tree.

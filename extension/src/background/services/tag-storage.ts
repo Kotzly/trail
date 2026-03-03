@@ -1,7 +1,7 @@
-import type { Tag } from '../../shared/types/ids.js';
-import type { TagDefinition } from '../../shared/types/tags.js';
-import { DEFAULT_TAG_DEFS } from '../../shared/data/tag-presets.js';
-import { tagDefsItem } from '../../shared/config/storage-items.js';
+import type { Tag } from '@shared/types/ids.js';
+import type { TagDefinition } from '@shared/types/tags.js';
+import { DEFAULT_TAG_DEFS } from '@shared/data/tag-presets.js';
+import { tagDefsItem } from '@shared/config/storage-items.js';
 
 /** chrome.storage.sync per-item limit is 8,192 bytes. Stay safely under. */
 const SYNC_ITEM_BYTE_LIMIT = 8_192;
