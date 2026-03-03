@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "composite": true,
     "types": ["chrome", "vite/client"],
     "noEmit": true
   },

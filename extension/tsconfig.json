@@ -1,18 +1,7 @@
 {
-  "extends": "./tsconfig.base.json",
-  "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "types": ["chrome"],
-
-    "sourceMap": true
-  },
-  "include": ["./src"],
-  "exclude": [
-    "./src/entrypoints/**/*",
-    "./src/entrypoints/sidepanel/**/*.tsx",
-    "./src/entrypoints/fullview/**/*.tsx",
-    "./src/entrypoints/content-ui/**/*.tsx",
-    "./src/ui-core/**/*.tsx"
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
   ]
 }
