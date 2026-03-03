@@ -170,14 +170,9 @@ export default function TagFilterDropdown() {
           </div>
         </div>
 
-        <div className="tag-filter-strip">
-          {showEmptyTags ? (
-            <div className="tag-filter-empty">
-              <Icons.Tag size={16} />
-              <span>No tags yet</span>
-            </div>
-          ) : (
-            usedTags.map((tag) => {
+        {showEmptyTags ? null : (
+          <div className="tag-filter-strip">
+            {usedTags.map((tag) => {
               const isSelected = selected.has(tag.id as Tag);
               return (
                 <button
@@ -191,9 +186,9 @@ export default function TagFilterDropdown() {
                   </span>
                 </button>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
 
         <div className="tag-filter-results">
           {!hasTaggedNodes ? (
