@@ -4,7 +4,7 @@ import { getFaviconUrl } from '../../../../shared/utils/favicon.js';
 import type { NavigationTree } from '../../../../background/state/nav-tree.js';
 import { formatTime, formatUrl } from '../shared/format.js';
 import { Icons } from './Icon.js';
-import React from 'react';
+
 
 type SearchResultsListProps = {
   tree: NavigationTree | null;

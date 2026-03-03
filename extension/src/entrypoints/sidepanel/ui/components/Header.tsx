@@ -4,7 +4,7 @@ import { Icons } from './Icon.js';
 import PinnedDropdown from './PinnedDropdown.js';
 import TreeDropdown from './TreeDropdown.js';
 import TagFilterDropdown from './tags/TagFilterDropdown.js';
-import React from 'react';
+
 
 export default function Header() {
   const commandState = useStore((state) => state.commandState);

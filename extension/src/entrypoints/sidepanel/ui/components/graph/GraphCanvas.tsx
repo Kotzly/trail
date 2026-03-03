@@ -37,7 +37,7 @@ import {
   buildPreviewSelection,
   shouldEmitPreview,
 } from './selection-utils.js';
-import React from 'react';
+
 
 type GraphTool = 'hand' | 'select';
 

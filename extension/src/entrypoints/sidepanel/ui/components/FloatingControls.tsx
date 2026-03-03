@@ -8,7 +8,7 @@ import PinnedDropdown from './PinnedDropdown.js';
 import TreeDropdown from './TreeDropdown.js';
 import TagFilterDropdown from './tags/TagFilterDropdown.js';
 import SettingsDropdown from './SettingsPopover.js';
-import React from 'react';
+
 
 type FloatingControlsProps = {
   searchInputRef: RefObject<HTMLInputElement | null>;

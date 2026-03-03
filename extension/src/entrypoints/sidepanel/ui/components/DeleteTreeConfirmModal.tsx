@@ -5,7 +5,7 @@ import { fireAndForget } from '../../api/background.js';
 import { createNewTree } from '../../api/tree.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { useStore } from '../state/store.js';
-import React from 'react';
+
 
 const DEFAULT_NEW_TREE_LABEL = 'Unnamed Tree';
 

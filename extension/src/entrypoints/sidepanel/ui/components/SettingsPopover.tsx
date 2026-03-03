@@ -13,7 +13,7 @@ import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
 import { cn } from '../lib/utils.js';
 import { toast } from 'sonner';
-import React from 'react';
+
 
 const UNLOCK_STORAGE_KEY = 'trail_flags_unlocked';
 const UNLOCK_CLICKS = 7;

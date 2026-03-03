@@ -10,7 +10,7 @@ import {
   resolveHarmonyForCount,
 } from '../../shared/theme-generator.js';
 import { PRESET_PAGES, type ThemePreset } from './theme-presets.js';
-import React from 'react';
+
 
 type ThemePaletteProps = {
   scheme: ThemeId;

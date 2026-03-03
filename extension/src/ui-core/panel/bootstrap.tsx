@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+
 import App from '@entrypoints/sidepanel/ui/App.js';
 import ErrorBoundary from '@entrypoints/sidepanel/ui/components/ErrorBoundary.js';
 import { initBackendConfig } from '@shared/config/backend.js';

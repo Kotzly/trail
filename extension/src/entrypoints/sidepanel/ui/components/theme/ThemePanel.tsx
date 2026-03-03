@@ -7,7 +7,7 @@ import { useOverlayEffects } from '../../state/overlay-effects.js';
 import { Icons } from '../Icon.js';
 import ThemePalette from './ThemePalette.js';
 import { applyTheme } from '../../shared/apply-theme.js';
-import React from 'react';
+
 
 const DEFAULT_THEME: CustomTheme = {
   enabled: false,

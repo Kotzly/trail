@@ -1,5 +1,5 @@
 import { useStore } from '../state/store.js';
-import React from 'react';
+
 
 export default function TabInfo() {
   const nodeTabCounts = useStore((state) => state.nodeTabCounts);

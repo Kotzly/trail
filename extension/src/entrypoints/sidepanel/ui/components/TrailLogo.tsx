@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import React from 'react';
+
 
 export type TrailLogoProps = {
   className?: string;

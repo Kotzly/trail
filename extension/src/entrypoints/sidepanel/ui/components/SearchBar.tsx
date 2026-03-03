@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import { useSearch } from '../hooks/useSearch.js';
 import { Icons } from './Icon.js';
-import React from 'react';
+
 
 type SearchBarProps = {
   inputRef: RefObject<HTMLInputElement | null>;

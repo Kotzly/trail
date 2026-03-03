@@ -1,6 +1,6 @@
 import { createRoot, type Root } from 'react-dom/client';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
-import React from 'react';
+
 import App from './App.js';
 import './styles.css';
 

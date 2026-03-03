@@ -1,6 +1,6 @@
 import type { TagIconId } from './tag-icons.js';
 import { getTagIcon } from './tag-icons.js';
-import React from 'react';
+
 
 type TagIconProps = {
   id: TagIconId | string;

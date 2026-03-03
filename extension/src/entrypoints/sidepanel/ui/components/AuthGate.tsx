@@ -1,4 +1,4 @@
-import React from 'react';
+
 import TrailLogo from './TrailLogo.js';
 import { useAuthPortalFlow } from '../hooks/useAuthPortalFlow.js';
 import { useStore } from '../state/store.js';

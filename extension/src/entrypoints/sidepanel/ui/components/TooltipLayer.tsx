@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { Icons } from './Icon.js';
-import React from 'react';
+
 
 type Placement = 'top' | 'bottom' | 'left' | 'right';
 

@@ -6,7 +6,7 @@ import { TagIcon } from './TagIcon.js';
 import { Icons } from '../Icon.js';
 import { createPortal } from 'react-dom';
 import { useOverlayEffects } from '../../state/overlay-effects.js';
-import React from 'react';
+
 
 type TagEditorMode = 'create' | 'edit';
 

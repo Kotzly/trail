@@ -1,5 +1,5 @@
 import { Icons } from '../Icon.js';
-import React from 'react';
+
 
 type GraphZoomControlsProps = {
   tool: 'hand' | 'select';

@@ -14,7 +14,7 @@ import { deleteTagDef, upsertTagDef } from '../../api/tags.js';
 import { Icons } from './Icon.js';
 import { getIncludedRootId } from '../shared/delete-tree.js';
 import { getNearestCollapsedAncestorId } from '../graph/collapse-utils.js';
-import React from 'react';
+
 import { toast } from 'sonner';
 
 type MenuPosition = { left: number; top: number; maxHeight: number };

@@ -11,7 +11,7 @@ import { useAccount } from './hooks/useAccount.js';
 import { useChromeMessages } from './hooks/useChromeMessages.js';
 import { useShortcuts } from './hooks/useShortcuts.js';
 import TooltipLayer from './components/TooltipLayer.js';
-import React from 'react';
+
 import { listenSystemTheme } from './hooks/listenSystemTheme.js';
 import { useStore } from './state/store.js';
 

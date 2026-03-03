@@ -8,7 +8,7 @@ import { useOverlayEffects } from '../../state/overlay-effects.js';
 import { useAnchoredDropdown } from '../../hooks/useAnchoredDropdown.js';
 import { Icons } from '../Icon.js';
 import { collectTagCounts, collectTaggedNodes, filterNodesByTags } from './tag-filter-utils.js';
-import React from 'react';
+
 
 export default function TagFilterDropdown() {
   const tree = useStore((state) => state.tree);

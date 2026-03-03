@@ -5,7 +5,7 @@ import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
-import React from 'react';
+
 import type { FaviconUrl, Title, Url } from '../../../../shared/types/ids.js';
 import { getFaviconUrl } from '../../../../shared/utils/favicon.js';
 import { createPortal } from 'react-dom';
