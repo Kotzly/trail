@@ -1,4 +1,4 @@
-import { THEME_IDS } from "../../sidepanel/ui/shared/themes.js";
+import { THEME_IDS } from "@features/themes/model.js";
 import type { CustomTheme, Settings, ThemeHarmony, ThemeDotType } from "../../shared/types/settings.js";
 import { DEFAULT_LAYOUT_SETTINGS } from "../../shared/layout/defaults.js";
 

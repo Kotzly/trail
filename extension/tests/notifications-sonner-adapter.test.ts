@@ -4,7 +4,7 @@ import {
   mapIconToToastKind,
   normalizeToastDuration,
   showUiToast,
-} from '../src/sidepanel/ui/notifications/sonner-adapter.js';
+} from '../src/entrypoints/sidepanel/ui/notifications/sonner-adapter.js';
 
 type ToastCall = {
   kind: 'default' | 'success' | 'error' | 'info';

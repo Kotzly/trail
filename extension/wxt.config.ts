@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { mkdirSync } from "node:fs";
 import { defineConfig } from "wxt";
+import react from "@vitejs/plugin-react";
 import {
   ALLOWED_SITE_MATCH_PATTERNS,
 } from "./src/shared/config/site-origins";
@@ -20,8 +21,21 @@ const chromeProfileDir = resolve(".wxt/chrome-data");
 mkdirSync(chromeProfileDir, { recursive: true });
 
 export default defineConfig({
+  srcDir: "src",
+  vite: () => ({
+    plugins: [react()],
+    esbuild: {
+      jsx: "automatic",
+      jsxImportSource: "react",
+    },
+  }),
   alias: {
-    "@": resolve("src/sidepanel/ui"),
+    "@entrypoints": resolve("src/entrypoints"),
+    "@ui": resolve("src/ui-core"),
+    "@features": resolve("src/features"),
+    "@background": resolve("src/background"),
+    "@content": resolve("src/content"),
+    "@shared": resolve("src/shared"),
   },
   dev: {
     server: {

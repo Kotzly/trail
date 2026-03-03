@@ -107,30 +107,39 @@ Content is pulled from Sanity CMS via GROQ queries. Sanity webhook triggers `/ap
 | | |
 |---|---|
 | **Stack** | WXT 0.20, Pixi.js 8, React 18, Zustand, MiniSearch |
-| **Version** | 0.9.0 |
+| **Version** | 0.9.1 |
 | **Role** | Visualize browsing history as interactive tree in side panel |
 
 Separate pnpm workspace. Architecture:
 
 ```
 extension/
-├── entrypoints/
-│   ├── background.ts          Service worker
-│   ├── content.ts             Content script
-│   └── sidepanel/             Side panel (React app)
 ├── src/
+│   ├── entrypoints/           WXT entrypoints (srcDir mode)
+│   │   ├── background.ts      Service worker entry
+│   │   ├── content.ts         Content script entry (bridge + UI mount)
+│   │   ├── content-ui/        Shadow DOM React mount scaffold
+│   │   ├── sidepanel/         Side panel surface (index/main + api/ui)
+│   │   └── fullview/          Full-view surface (index/main + ui)
+│   ├── ui-core/               Cross-surface UI bootstrap/shared UI glue
+│   ├── features/              Domain modules (themes, settings, tags, etc.)
 │   ├── background/
 │   │   ├── services/          Auth, tree-storage, sync, quota, settings
 │   │   ├── messaging/         RPC router + handlers
 │   │   ├── navigation/        WebNavigation events
 │   │   ├── state/             Background state
 │   │   └── tabs/              Tab tracking
-│   ├── content/               Content script logic
-│   ├── shared/                Types, config, schemas
-│   └── sidepanel/
-│       ├── ui/                Components, graph renderer, hooks
-│       └── api/               API layer
+│   ├── content/
+│   │   ├── bridge/            Site ↔ extension postMessage bridge runtime
+│   │   ├── messaging/         Reserved for content messaging modules
+│   │   └── security/          Reserved for content security modules
+│   └── shared/                Cross-runtime types, config, schemas, utils
 ```
+
+Import boundaries (enforced by convention):
+- `@background/*` and `@shared/*` must not import `@entrypoints/*`.
+- `fullview` must consume shared UI bootstrap from `@ui/*`, not from `sidepanel` relative paths.
+- Theme primitives (`ThemeId`, `THEME_IDS`) live in shared/feature-agnostic modules.
 
 ---
 

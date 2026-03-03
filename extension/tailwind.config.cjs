@@ -1,5 +1,8 @@
 module.exports = {
-  content: ['./src/sidepanel/ui/**/*.{ts,tsx,html}'],
+  content: [
+    './src/entrypoints/**/*.{ts,tsx,html,css}',
+    './src/ui-core/**/*.{ts,tsx,css}',
+  ],
   darkMode: ['class', "[data-theme='dark']"],
   theme: {
     extend: {},

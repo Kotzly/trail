@@ -1,0 +1,8 @@
+:host {
+  all: initial;
+}
+
+.trail-content-ui-root {
+  all: initial;
+  display: none;
+}

@@ -1,29 +1,18 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-
-    "lib": ["DOM", "ES2022"],
     "types": ["chrome"],
 
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "useUnknownInCatchVariables": true,
-
-    "sourceMap": true,
-
-    "isolatedModules": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "sourceMap": true
   },
   "include": ["./src"],
   "exclude": [
-    "./src/sidepanel/ui/**/*.tsx",
-    "./src/fullview/ui/**/*.tsx"
+    "./src/entrypoints/**/*",
+    "./src/entrypoints/sidepanel/**/*.tsx",
+    "./src/entrypoints/fullview/**/*.tsx",
+    "./src/entrypoints/content-ui/**/*.tsx",
+    "./src/ui-core/**/*.tsx"
   ]
 }

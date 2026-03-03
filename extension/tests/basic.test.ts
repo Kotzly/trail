@@ -5,16 +5,16 @@ import type { Description, NodeId, Timestamp, Url, Title } from '../src/shared/t
 import type { NavigationTreeJSON } from '../src/shared/types/tree.js';
 import { NavigationTree } from '../src/background/state/nav-tree.js';
 import { CommandManager } from '../src/shared/lib/commands.js';
-import type { LayoutConfig, RadialLayoutConfig } from '../src/sidepanel/ui/graph/types.js';
-import type { ViewState } from '../src/sidepanel/ui/graph/types.js';
+import type { LayoutConfig, RadialLayoutConfig } from '../src/entrypoints/sidepanel/ui/graph/types.js';
+import type { ViewState } from '../src/entrypoints/sidepanel/ui/graph/types.js';
 import {
   calculateLayout,
   calculateMindmapLayout,
   calculateRadialLayout,
   getCanvasBounds,
-} from '../src/sidepanel/ui/graph/layout/calculator.js';
-import { computeGraphGridTransform } from '../src/sidepanel/ui/components/graph/grid-transform.js';
-import { getSidebarLabelState, getSidebarWidth } from '../src/sidepanel/ui/components/ui/sidebar-utils.js';
+} from '../src/entrypoints/sidepanel/ui/graph/layout/calculator.js';
+import { computeGraphGridTransform } from '../src/entrypoints/sidepanel/ui/components/graph/grid-transform.js';
+import { getSidebarLabelState, getSidebarWidth } from '../src/entrypoints/sidepanel/ui/components/ui/sidebar-utils.js';
 import {
   DEFAULT_BACKEND_CONFIG,
   getBackendServerPreset,
@@ -25,8 +25,8 @@ import { getFeatureAccess } from '../src/shared/lib/entitlements.js';
 import {
   createQualityPolicyState,
   updateQualityPolicy,
-} from '../src/sidepanel/ui/graph/render/quality-policy.js';
-import { decideViewInvalidation } from '../src/sidepanel/ui/graph/render/view-invalidation.js';
+} from '../src/entrypoints/sidepanel/ui/graph/render/quality-policy.js';
+import { decideViewInvalidation } from '../src/entrypoints/sidepanel/ui/graph/render/view-invalidation.js';
 import { RPC_METHOD, rpc } from '../src/shared/rpc/contracts.js';
 import { ExtensionMessage, SiteMessage } from '../src/shared/schemas/site-messages.js';
 import { isAllowedSiteOrigin } from '../src/shared/config/site-origins.js';
@@ -34,7 +34,7 @@ import {
   buildPreviewSelection,
   diffSelection,
   shouldEmitPreview,
-} from '../src/sidepanel/ui/components/graph/selection-utils.js';
+} from '../src/entrypoints/sidepanel/ui/components/graph/selection-utils.js';
 import { runNotificationsSonnerAdapterTests } from './notifications-sonner-adapter.test.js';
 import { runSecurityAuditTests } from './security-audit.test.js';
 
