@@ -26,8 +26,8 @@ export default function App() {
   listenSystemTheme();
   useShortcuts(searchInputRef);
 
-  const isAuthenticated =
-    account.session.status === 'authenticated' && Boolean(account.user);
+  const isAuthenticated = true; // temp
+    // account.session.status === 'authenticated' && Boolean(account.user);
 
   const containerClass = `container${editorActive ? ' container--editor' : ''}`;
 
