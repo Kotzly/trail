@@ -72,7 +72,8 @@
   pointer-events: none;
   opacity: var(--trail-grain-opacity, 0);
   background-image: var(--trail-grain-image);
-  background-size: var(--trail-grain-size, 220px 220px);
+  background-size: var(--graph-grain-size, var(--trail-grain-size, 220px 220px)) var(--graph-grain-size, var(--trail-grain-size, 220px 220px));
+  background-position: var(--graph-grain-offset-x, 0px) var(--graph-grain-offset-y, 0px);
   mix-blend-mode: var(--trail-grain-blend-mode, overlay);
   z-index: 1;
 }

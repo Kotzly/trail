@@ -3,11 +3,15 @@ import type { ViewState } from '../../graph/types.js';
 const GRID_BASE_SIZE = 20;
 const GRID_BASE_DOT_SIZE = 1.5;
 const GRID_MIN_DOT_PX = 1;
+const GRAIN_BASE_SIZE = 220;
 export type GraphGridTransform = {
   size: number;
   dotSize: number;
   offsetX: number;
   offsetY: number;
+  grainSize: number;
+  grainOffsetX: number;
+  grainOffsetY: number;
 };
 
 const normalizeModulo = (value: number, modulus: number) => {
@@ -25,10 +29,14 @@ export function computeGraphGridTransform(view: ViewState): GraphGridTransform {
   const bandMultiplier = Math.pow(2, band);
   const size = GRID_BASE_SIZE * scale * bandMultiplier;
   const dotSize = Math.max(GRID_BASE_DOT_SIZE * scale, GRID_MIN_DOT_PX);
+  const grainSize = GRAIN_BASE_SIZE * scale;
   return {
     size,
     dotSize,
     offsetX: normalizeModulo(view.translateX, size),
     offsetY: normalizeModulo(view.translateY, size),
+    grainSize,
+    grainOffsetX: normalizeModulo(view.translateX, grainSize),
+    grainOffsetY: normalizeModulo(view.translateY, grainSize),
   };
 }

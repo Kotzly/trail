@@ -298,6 +298,9 @@ export default function GraphCanvas({
     dotSize: '',
     offsetX: '',
     offsetY: '',
+    grainSize: '',
+    grainOffsetX: '',
+    grainOffsetY: '',
   });
   const emptyPositionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
   const animationStatesRef = useRef<Map<NodeId, NodeAnimationState>>(new Map());
@@ -545,12 +548,18 @@ export default function GraphCanvas({
     const dotValue = `${grid.dotSize.toFixed(3)}px`;
     const offsetXValue = `${grid.offsetX.toFixed(3)}px`;
     const offsetYValue = `${grid.offsetY.toFixed(3)}px`;
+    const grainSizeValue = `${grid.grainSize.toFixed(3)}px`;
+    const grainOffsetXValue = `${grid.grainOffsetX.toFixed(3)}px`;
+    const grainOffsetYValue = `${grid.grainOffsetY.toFixed(3)}px`;
     const prev = gridVarsRef.current;
     if (
       prev.size === sizeValue &&
       prev.dotSize === dotValue &&
       prev.offsetX === offsetXValue &&
-      prev.offsetY === offsetYValue
+      prev.offsetY === offsetYValue &&
+      prev.grainSize === grainSizeValue &&
+      prev.grainOffsetX === grainOffsetXValue &&
+      prev.grainOffsetY === grainOffsetYValue
     ) {
       return;
     }
@@ -558,11 +567,17 @@ export default function GraphCanvas({
     wrapper.style.setProperty('--graph-grid-dot-size', dotValue);
     wrapper.style.setProperty('--graph-grid-offset-x', offsetXValue);
     wrapper.style.setProperty('--graph-grid-offset-y', offsetYValue);
+    wrapper.style.setProperty('--graph-grain-size', grainSizeValue);
+    wrapper.style.setProperty('--graph-grain-offset-x', grainOffsetXValue);
+    wrapper.style.setProperty('--graph-grain-offset-y', grainOffsetYValue);
     gridVarsRef.current = {
       size: sizeValue,
       dotSize: dotValue,
       offsetX: offsetXValue,
       offsetY: offsetYValue,
+      grainSize: grainSizeValue,
+      grainOffsetX: grainOffsetXValue,
+      grainOffsetY: grainOffsetYValue,
     };
   }, []);
 

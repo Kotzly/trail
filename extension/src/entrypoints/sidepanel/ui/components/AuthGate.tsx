@@ -44,12 +44,12 @@ export default function AuthGate() {
         >
           {busy ? (
             <>
-              <Icons.RefreshCw size={14} className="auth-gate__spinner" />
+              <Icons.Maximize size={14} className="auth-gate__spinner" />
               Waiting for sign in…
             </>
           ) : silentSyncing ? (
             <>
-              <Icons.RefreshCw size={14} className="auth-gate__spinner" />
+              <Icons.Maximize size={14} className="auth-gate__spinner" />
               Checking web session…
             </>
           ) : (

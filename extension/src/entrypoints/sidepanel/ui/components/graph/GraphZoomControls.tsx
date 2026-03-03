@@ -61,7 +61,7 @@ export default function GraphZoomControls({ tool, onToolChange, onZoom, onOpenFu
         type="button"
         onClick={() => onZoom('reset')}
       >
-        <Icons.RefreshCw size={18} />
+        <Icons.Maximize size={18} />
       </button>
       {fullViewEnabled && (
         <>
