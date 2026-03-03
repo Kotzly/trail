@@ -14,26 +14,17 @@ import {
   buildBackendUrl,
   initBackendConfig,
 } from '../../../../shared/config/backend.js';
-import { AUTH_STORAGE_KEY } from '../../../../shared/config/storage-keys.js';
+import {
+  authSessionItem,
+  type StoredAuthSession,
+} from '../../../../shared/config/storage-items.js';
 import type { AccountClient, CompleteOnboardingInput } from '../account.js';
 
-type StoredAuthSession = {
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: string;
-};
 const ERROR_CODES: AccountErrorCode[] = ['network', 'auth', 'payment', 'validation', 'unknown'];
 
-function canPersist(): boolean {
-  return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local);
-}
-
 async function loadAuth(): Promise<StoredAuthSession | null> {
-  if (!canPersist()) return null;
   try {
-    const result = await chrome.storage.local.get(AUTH_STORAGE_KEY);
-    const stored = result[AUTH_STORAGE_KEY] as StoredAuthSession | undefined;
-    return stored ?? null;
+    return await authSessionItem.getValue();
   } catch (error) {
     console.error('Account auth: failed to load session', error);
     return null;

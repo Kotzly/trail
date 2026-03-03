@@ -4,22 +4,15 @@ import {
   buildBackendUrl,
   initBackendConfig,
 } from "../../shared/config/backend.js";
-import { AUTH_STORAGE_KEY } from "../../shared/config/storage-keys.js";
+import {
+  authSessionItem,
+  accountSnapshotItem,
+  type StoredAuthSession,
+  type CachedSnapshotEnvelope,
+} from "../../shared/config/storage-items.js";
 
-const SNAPSHOT_CACHE_KEY = "trail_account_snapshot";
 const ALARM_NAME = "trail_account_snapshot_refresh";
 const REFRESH_INTERVAL_MINUTES = 5;
-
-type StoredAuthSession = {
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: string;
-};
-
-type CachedSnapshotEnvelope = {
-  snapshot: AccountSnapshot;
-  fetchedAt: number;
-};
 
 function log(_message: string, _payload?: Record<string, unknown>): void {
   // Intentionally silent in production. Enable for local debugging:
@@ -27,9 +20,7 @@ function log(_message: string, _payload?: Record<string, unknown>): void {
 }
 
 async function loadAuth(): Promise<StoredAuthSession | null> {
-  const data = await chrome.storage.local.get(AUTH_STORAGE_KEY);
-  const auth = data[AUTH_STORAGE_KEY] as StoredAuthSession | undefined;
-  return auth ?? null;
+  return authSessionItem.getValue();
 }
 
 function buildGuestSnapshot(plans: Plan[] = []): AccountSnapshot {
@@ -110,7 +101,7 @@ async function fetchSnapshot(): Promise<AccountSnapshot> {
 }
 
 async function saveToStorage(envelope: CachedSnapshotEnvelope): Promise<void> {
-  await chrome.storage.local.set({ [SNAPSHOT_CACHE_KEY]: envelope });
+  await accountSnapshotItem.setValue(envelope);
 }
 
 class AccountKeeper {
@@ -161,8 +152,7 @@ class AccountKeeper {
   }
 
   async getCachedSnapshot(): Promise<AccountSnapshot | null> {
-    const result = await chrome.storage.local.get(SNAPSHOT_CACHE_KEY);
-    const envelope = result[SNAPSHOT_CACHE_KEY] as CachedSnapshotEnvelope | undefined;
+    const envelope = await accountSnapshotItem.getValue();
     return envelope?.snapshot ?? null;
   }
 

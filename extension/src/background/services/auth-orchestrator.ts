@@ -1,22 +1,20 @@
 import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
 import { isAllowedSiteOrigin } from "../../shared/config/site-origins.js";
-import { AUTH_STORAGE_KEY } from "../../shared/config/storage-keys.js";
+import {
+  authSessionItem,
+  oauthDeviceIdItem,
+  type StoredAuthSession,
+} from "../../shared/config/storage-items.js";
 import { notifyUi } from "../messaging/ui-notifications.js";
 import { syncEngine } from "./sync/engine.js";
 import { accountKeeper } from "./account-keeper.js";
-const DEVICE_ID_STORAGE_KEY = "trail_oauth_device_id" as const;
+
 const AUTH_REFRESH_ALARM = "trail-auth-refresh" as const;
 const AUTH_REFRESH_INTERVAL_MINUTES = 2;
 const SILENT_SYNC_DEBOUNCE_MS = 1000;
 const ACCESS_TOKEN_EARLY_REFRESH_MS = 30_000;
 const LOGIN_REQUIRED_COOLDOWN_MS = 5_000;
 const LOGIN_NEXT_PATH = "/trails";
-
-type StoredAuthSession = {
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: string;
-};
 
 type AuthSuccessReason = "authenticated" | "opened_login_tab";
 
@@ -45,22 +43,19 @@ function isAccessTokenExpired(expiresAt?: string | null): boolean {
 }
 
 async function loadAuth(): Promise<StoredAuthSession | null> {
-  const data = await chrome.storage.local.get(AUTH_STORAGE_KEY);
-  const auth = data[AUTH_STORAGE_KEY] as StoredAuthSession | undefined;
-  return auth ?? null;
+  return authSessionItem.getValue();
 }
 
 async function saveAuth(auth: StoredAuthSession | null): Promise<void> {
   if (!auth) {
-    await chrome.storage.local.remove(AUTH_STORAGE_KEY);
+    await authSessionItem.removeValue();
     return;
   }
-  await chrome.storage.local.set({ [AUTH_STORAGE_KEY]: auth });
+  await authSessionItem.setValue(auth);
 }
 
 async function getOrCreateDeviceId(): Promise<string> {
-  const data = await chrome.storage.local.get(DEVICE_ID_STORAGE_KEY);
-  const existing = data[DEVICE_ID_STORAGE_KEY];
+  const existing = await oauthDeviceIdItem.getValue();
   if (typeof existing === "string" && existing.trim()) {
     return existing;
   }
@@ -68,7 +63,7 @@ async function getOrCreateDeviceId(): Promise<string> {
   const next = typeof crypto.randomUUID === "function"
     ? crypto.randomUUID()
     : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  await chrome.storage.local.set({ [DEVICE_ID_STORAGE_KEY]: next });
+  await oauthDeviceIdItem.setValue(next);
   return next;
 }
 

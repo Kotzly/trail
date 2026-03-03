@@ -1,9 +1,7 @@
 import type { Tag } from '../../shared/types/ids.js';
 import type { TagDefinition } from '../../shared/types/tags.js';
 import { DEFAULT_TAG_DEFS } from '../../shared/data/tag-presets.js';
-
-const TAGS_KEY = 'trail_tag_defs' as const;
-const tagArea = chrome.storage.sync;
+import { tagDefsItem } from '../../shared/config/storage-items.js';
 
 /** chrome.storage.sync per-item limit is 8,192 bytes. Stay safely under. */
 const SYNC_ITEM_BYTE_LIMIT = 8_192;
@@ -41,13 +39,12 @@ class TagStorageService {
 
     this.loading = (async () => {
       try {
-        const result = await tagArea.get(TAGS_KEY);
-        const raw = result[TAGS_KEY];
+        const raw = await tagDefsItem.getValue();
         let defs = normalizeTagDefs(raw);
         const merged = this.mergeDefaults(defs);
         if (merged.changed || defs.length === 0) {
           defs = merged.list;
-          await tagArea.set({ [TAGS_KEY]: defs });
+          await tagDefsItem.setValue(defs);
         } else {
           defs = merged.list;
         }
@@ -89,14 +86,14 @@ class TagStorageService {
     }
 
     this.cached = next;
-    await tagArea.set({ [TAGS_KEY]: next });
+    await tagDefsItem.setValue(next);
   }
 
   async delete(tagId: Tag): Promise<void> {
     const defs = await this.getAll();
     const next = defs.filter((tag) => tag.id !== tagId);
     this.cached = next;
-    await tagArea.set({ [TAGS_KEY]: next });
+    await tagDefsItem.setValue(next);
   }
 
   private mergeDefaults(defs: TagDefinition[]): { list: TagDefinition[]; changed: boolean } {

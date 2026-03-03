@@ -24,6 +24,12 @@ import { syncApi, SyncApiError, isAuthenticated } from './api.js';
 import type { IndexSyncMeta } from './api.js';
 import { dirtyTracker } from './dirty-tracker.js';
 import { migrateV2ToV3 } from './migration.js';
+import {
+  activeTreeItem,
+  activeTreeMetaItem,
+  archiveIndexItem,
+  syncDeviceIdItem,
+} from '../../../shared/config/storage-items.js';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -32,8 +38,6 @@ import { migrateV2ToV3 } from './migration.js';
 const SYNC_ALARM_NAME = 'trail-sync-v3' as const;
 const SYNC_ALARM_MINUTES = 1;
 const MUTATION_DEBOUNCE_MS = 3000;
-const DEVICE_ID_KEY = 'trail_sync_device_id' as const;
-const TREE_STORAGE_KEYS = new Set(['trail_tree', 'trail_tree_meta', 'trail_tree_archives']);
 
 const BACKOFF_SCHEDULE = [2000, 4000, 8000, 16000, 32000, 60000] as const;
 
@@ -100,10 +104,11 @@ class SyncEngine {
     // Run one-time v2→v3 migration before first sync
     void migrateV2ToV3();
 
-    // Listen for local tree mutations
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-      this.handleStorageChanges(changes, areaName);
-    });
+    // Listen for local tree mutations via per-item watchers
+    const onMutation = () => this.onTreeMutation();
+    activeTreeItem.watch(onMutation);
+    activeTreeMetaItem.watch(onMutation);
+    archiveIndexItem.watch(onMutation);
 
     // Periodic alarm
     chrome.alarms?.onAlarm.addListener((alarm) => {
@@ -355,19 +360,11 @@ class SyncEngine {
   }
 
   /* ---------------------------------------------------------------- */
-  /*  Storage change listener                                          */
+  /*  Tree mutation handler (called by per-item watchers)               */
   /* ---------------------------------------------------------------- */
 
-  private handleStorageChanges(
-    changes: Record<string, chrome.storage.StorageChange>,
-    areaName: string,
-  ): void {
-    if (areaName !== 'local') return;
+  private onTreeMutation(): void {
     if (this.applyingRemote) return;
-
-    const changedKeys = Object.keys(changes);
-    const treeChanged = changedKeys.some((key) => TREE_STORAGE_KEYS.has(key));
-    if (!treeChanged) return;
 
     // Mark the active tree as dirty so the next sync cycle pushes it
     void treeStorage.getActiveMeta().then((meta) => {
@@ -402,11 +399,10 @@ class SyncEngine {
   /* ---------------------------------------------------------------- */
 
   private async getOrCreateDeviceId(): Promise<string> {
-    const result = await chrome.storage.local.get(DEVICE_ID_KEY);
-    const existing = result[DEVICE_ID_KEY];
+    const existing = await syncDeviceIdItem.getValue();
     if (typeof existing === 'string' && existing) return existing;
     const generated = uuidv7();
-    await chrome.storage.local.set({ [DEVICE_ID_KEY]: generated });
+    await syncDeviceIdItem.setValue(generated);
     return generated;
   }
 }

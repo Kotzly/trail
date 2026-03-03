@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { normalizeAccountError } from '../../api/account.js';
-import { AUTH_STORAGE_KEY } from '../../../../shared/config/storage-keys.js';
+import {
+  authSessionItem,
+  accountSnapshotItem,
+  type StoredAuthSession,
+} from '../../../../shared/config/storage-items.js';
 import { useStore } from '../state/store.js';
 import { useAccountSnapshotQuery } from '../query/useAccountSnapshotQuery.js';
 import { showUiToast } from '../notifications/sonner-adapter.js';
 import { accountKeys } from '../query/account-keys.js';
-const SNAPSHOT_CACHE_KEY = 'trail_account_snapshot' as const;
 
 export function useAccount(): void {
   const queryClient = useQueryClient();
@@ -70,59 +73,40 @@ export function useAccount(): void {
   }, [setAccount, setAccountSnapshot, snapshotQuery.data, snapshotQuery.error, snapshotQuery.isError, snapshotQuery.isPending, snapshotQuery.isSuccess]);
 
   useEffect(() => {
-    const hasChromeStorage =
-      typeof chrome !== 'undefined' && Boolean(chrome.storage?.onChanged);
-    if (!hasChromeStorage) {
-      return;
-    }
-
-    const onStorageChanged = (
-      changes: Record<string, chrome.storage.StorageChange>,
-      areaName: string,
+    // React to auth token changes (login/logout)
+    const unwatchAuth = authSessionItem.watch((
+      newVal: StoredAuthSession | null,
+      oldVal: StoredAuthSession | null,
     ) => {
-      if (areaName !== 'local') {
+      const oldToken = oldVal?.accessToken;
+      const nextToken = newVal?.accessToken;
+
+      if (oldToken && !nextToken) {
+        queryClient.removeQueries({ queryKey: accountKeys.root });
+        resetAccount();
+        setAccount({ sessionExpired: true });
         return;
       }
 
-      // React to auth token changes
-      if (AUTH_STORAGE_KEY in changes) {
-        const change = changes[AUTH_STORAGE_KEY];
-        const oldToken = (change?.oldValue as { accessToken?: string } | undefined)
-          ?.accessToken;
-        const nextToken = (change?.newValue as { accessToken?: string } | undefined)
-          ?.accessToken;
-
-        if (oldToken && !nextToken) {
-          queryClient.removeQueries({ queryKey: accountKeys.root });
-          resetAccount();
-          setAccount({ sessionExpired: true });
-          return;
-        }
-
-        if (!oldToken && nextToken) {
-          void queryClient.invalidateQueries({ queryKey: accountKeys.snapshot() });
-          return;
-        }
+      if (!oldToken && nextToken) {
+        void queryClient.invalidateQueries({ queryKey: accountKeys.snapshot() });
       }
+    });
 
-      // React to background snapshot cache updates
-      if (SNAPSHOT_CACHE_KEY in changes) {
-        const envelope = changes[SNAPSHOT_CACHE_KEY]?.newValue as
-          | { snapshot?: unknown; fetchedAt?: unknown }
-          | undefined;
-        if (envelope?.snapshot && typeof envelope.fetchedAt === 'number') {
-          queryClient.setQueryData(
-            accountKeys.snapshot(),
-            envelope.snapshot,
-            { updatedAt: envelope.fetchedAt },
-          );
-        }
+    // React to background snapshot cache updates
+    const unwatchSnapshot = accountSnapshotItem.watch((newEnvelope) => {
+      if (newEnvelope?.snapshot && typeof newEnvelope.fetchedAt === 'number') {
+        queryClient.setQueryData(
+          accountKeys.snapshot(),
+          newEnvelope.snapshot,
+          { updatedAt: newEnvelope.fetchedAt },
+        );
       }
-    };
+    });
 
-    chrome.storage.onChanged.addListener(onStorageChanged);
     return () => {
-      chrome.storage.onChanged.removeListener(onStorageChanged);
+      unwatchAuth();
+      unwatchSnapshot();
     };
   }, [queryClient, resetAccount, setAccount]);
 }

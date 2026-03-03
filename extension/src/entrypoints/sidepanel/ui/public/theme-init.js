@@ -1,3 +1,6 @@
+// This file intentionally uses raw chrome.storage.local instead of WXT storage.
+// It is vanilla JS (not a module), runs before React hydration to prevent
+// a theme flash, and cannot import from 'wxt/utils/storage'.
 (function () {
   var root = document.documentElement;
   // Fast path: use cached value to avoid visible theme flash.

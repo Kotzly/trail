@@ -12,51 +12,52 @@
  * remain unchanged — no data migration is needed for them.
  */
 
-const V2_SERVER_AT_KEY = 'trail_sync_server_at' as const;
-const V2_TOMBSTONES_KEY = 'trail_sync_tombstones' as const;
-const V3_SYNC_KEY = 'trail_v3_sync' as const;
-const MIGRATION_DONE_KEY = 'trail_v3_migration_done' as const;
+import { storage } from 'wxt/utils/storage';
+import { migrationDoneItem, syncStateItem } from '../../../shared/config/storage-items.js';
+
+const V2_SERVER_AT_KEY = 'local:trail_sync_server_at' as const;
+const V2_TOMBSTONES_KEY = 'local:trail_sync_tombstones' as const;
 
 export async function migrateV2ToV3(): Promise<void> {
-  const result = await chrome.storage.local.get(MIGRATION_DONE_KEY);
-  if (result[MIGRATION_DONE_KEY] === true) return;
+  const done = await migrationDoneItem.getValue();
+  if (done) return;
 
   try {
-    const data = await chrome.storage.local.get([V2_SERVER_AT_KEY, V2_TOMBSTONES_KEY, V3_SYNC_KEY]);
-
     // If v3 sync state already exists, skip migration
-    if (data[V3_SYNC_KEY]) {
-      await chrome.storage.local.set({ [MIGRATION_DONE_KEY]: true });
+    const existing = await syncStateItem.getValue();
+    if (existing) {
+      await migrationDoneItem.setValue(true);
       return;
     }
 
-    const serverSyncAt = typeof data[V2_SERVER_AT_KEY] === 'string'
-      ? data[V2_SERVER_AT_KEY] as string
+    const serverSyncAtRaw = await storage.getItem<string>(V2_SERVER_AT_KEY);
+    const serverSyncAt = typeof serverSyncAtRaw === 'string'
+      ? serverSyncAtRaw
       : new Date(0).toISOString();
 
     // Extract pending deletes from v2 tombstones
-    const tombstones = Array.isArray(data[V2_TOMBSTONES_KEY]) ? data[V2_TOMBSTONES_KEY] as Array<{ id?: string }> : [];
+    const tombstonesRaw = await storage.getItem<Array<{ id?: string }>>(V2_TOMBSTONES_KEY);
+    const tombstones = Array.isArray(tombstonesRaw) ? tombstonesRaw : [];
     const pendingDeletes = tombstones
       .map((t) => (typeof t?.id === 'string' ? t.id : ''))
       .filter(Boolean);
 
     // Write v3 sync state
-    await chrome.storage.local.set({
-      [V3_SYNC_KEY]: {
-        serverSyncAt,
-        dirtyIds: [],
-        pendingDeletes,
-      },
-      [MIGRATION_DONE_KEY]: true,
+    await syncStateItem.setValue({
+      serverSyncAt,
+      dirtyIds: [],
+      pendingDeletes,
     });
+    await migrationDoneItem.setValue(true);
 
     // Clean up v2 keys
-    await chrome.storage.local.remove([V2_SERVER_AT_KEY, V2_TOMBSTONES_KEY]);
+    await storage.removeItem(V2_SERVER_AT_KEY);
+    await storage.removeItem(V2_TOMBSTONES_KEY);
 
     // Sync migration v2→v3 completed.
   } catch (error) {
     console.error('Sync migration v2→v3 failed:', error);
     // Mark done anyway to prevent repeated failures
-    await chrome.storage.local.set({ [MIGRATION_DONE_KEY]: true }).catch(() => {});
+    await migrationDoneItem.setValue(true).catch(() => {});
   }
 }

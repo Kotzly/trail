@@ -34,7 +34,8 @@ export type BackendConfigOverride = Partial<
   Omit<BackendConfig, 'endpoints'> & { endpoints: Partial<BackendEndpoints> }
 >;
 
-const BACKEND_CONFIG_STORAGE_KEY = 'trail_backend_config';
+import { backendConfigItem } from './storage-items.js';
+
 const BACKEND_PRESET_CONFIG_PATH = 'backend-preset.json';
 const VALID_ENVS = new Set<BackendEnvironment>(['production', 'staging', 'local']);
 const VALID_MODES = new Set<BackendMode>(['remote', 'mock']);
@@ -72,10 +73,6 @@ export const BACKEND_CONFIG: BackendConfig = {
 
 let initPromise: Promise<BackendConfig> | null = null;
 let initialized = false;
-
-function hasStorage(): boolean {
-  return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local);
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -254,10 +251,8 @@ function applyBackendConfig(next: BackendConfig): BackendConfig {
 }
 
 async function readStoredOverride(): Promise<BackendConfigOverride | null> {
-  if (!hasStorage()) return null;
-  const payload = await chrome.storage.local.get(BACKEND_CONFIG_STORAGE_KEY);
-  const candidate = payload[BACKEND_CONFIG_STORAGE_KEY];
-  return isRecord(candidate) ? (candidate as BackendConfigOverride) : null;
+  const candidate = await backendConfigItem.getValue();
+  return isRecord(candidate) ? candidate : null;
 }
 
 async function readBuildPresetOverride(): Promise<BackendConfigOverride | null> {
@@ -297,12 +292,10 @@ export async function initBackendConfig(): Promise<BackendConfig> {
 export async function setBackendConfigOverride(
   override: BackendConfigOverride | null,
 ): Promise<BackendConfig> {
-  if (hasStorage()) {
-    if (override) {
-      await chrome.storage.local.set({ [BACKEND_CONFIG_STORAGE_KEY]: override });
-    } else {
-      await chrome.storage.local.remove(BACKEND_CONFIG_STORAGE_KEY);
-    }
+  if (override) {
+    await backendConfigItem.setValue(override);
+  } else {
+    await backendConfigItem.removeValue();
   }
   initialized = true;
   return applyBackendConfig(resolveBackendConfig(override));

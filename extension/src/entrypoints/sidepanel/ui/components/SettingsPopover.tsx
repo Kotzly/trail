@@ -6,6 +6,7 @@ import { DEFAULT_LAYOUT_SETTINGS } from '../../../../shared/layout/defaults.js';
 import { saveSettings } from '../../api/settings.js';
 import { setFlag, resetFlags } from '../../api/flags.js';
 import { FLAG_DEFS, type FlagDef, type FlagKey } from '../../../../shared/types/flags.js';
+import { experimentsUnlockedItem } from '../../../../shared/config/storage-items.js';
 import { applyTheme } from '../shared/apply-theme.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
@@ -14,8 +15,6 @@ import { Icons } from './Icon.js';
 import { cn } from '../lib/utils.js';
 import { toast } from 'sonner';
 
-
-const UNLOCK_STORAGE_KEY = 'trail_flags_unlocked';
 const UNLOCK_CLICKS = 7;
 const UNLOCK_WINDOW_MS = 3000;
 
@@ -113,8 +112,8 @@ export default function SettingsDropdown() {
   const clickTimestamps = useRef<number[]>([]);
 
   useEffect(() => {
-    chrome.storage.local.get(UNLOCK_STORAGE_KEY).then((result) => {
-      if (result[UNLOCK_STORAGE_KEY] === true) setExperimentsUnlocked(true);
+    experimentsUnlockedItem.getValue().then((unlocked) => {
+      if (unlocked) setExperimentsUnlocked(true);
     }).catch(() => {});
   }, []);
 
@@ -128,7 +127,7 @@ export default function SettingsDropdown() {
     if (clickTimestamps.current.length >= UNLOCK_CLICKS) {
       clickTimestamps.current = [];
       setExperimentsUnlocked(true);
-      chrome.storage.local.set({ [UNLOCK_STORAGE_KEY]: true }).catch(() => {});
+      experimentsUnlockedItem.setValue(true).catch(() => {});
       toast('Experiments unlocked');
     }
   };

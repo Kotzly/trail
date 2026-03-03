@@ -1,3 +1,4 @@
+import { storage } from 'wxt/utils/storage';
 import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary, ArchiveIndexEntry } from '../../shared/types/tree.js';
 import { isTreeStub } from '../../shared/types/tree.js';
 import { NavigationTree } from '../state/nav-tree.js';
@@ -5,33 +6,27 @@ import { NavigationTreeMapper } from '../../shared/lib/mapper.js';
 import { uuidv7 } from '../../shared/lib/uuid.js';
 import { findBestTrailFavicon } from '../../shared/lib/tree-favicon.js';
 import { encodeTree, decodeTree } from '../../shared/lib/tree-codec.js';
-import { quotaAwareSet } from './quota-manager.js';
+import { quotaAwareSet, type BulkEntry } from './quota-manager.js';
+import {
+  activeTreeItem,
+  activeTreeMetaItem,
+  archiveIndexItem,
+  treeSavedAtItem,
+  archiveBlobKey,
+} from '../../shared/config/storage-items.js';
 import type { Title, Url } from '../../shared/types/ids.js';
 import type { NodeData } from '../../shared/types/node.js';
 
 // ---------------------------------------------------------------------------
-// Storage key constants (v3)
+// Constants
 // ---------------------------------------------------------------------------
 
-const TREE_KEY = 'trail_tree' as const;
-const TREE_META_KEY = 'trail_tree_meta' as const;
-const TREE_ARCHIVES_KEY = 'trail_tree_archives' as const;
-const TREE_SAVED_AT_KEY = 'trail_tree_saved_at' as const;
-
-/** Per-tree compressed blob prefix: trail_ar_{treeId} */
-const ARCHIVE_BLOB_PREFIX = 'trail_ar_' as const;
-
-const treeArea = chrome.storage.local;
 const DEFAULT_LABEL = 'Unnamed Tree';
 const LABEL_MAX = 80;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function archiveBlobKey(treeId: string): string {
-  return `${ARCHIVE_BLOB_PREFIX}${treeId}`;
-}
 
 function normalizeLabel(raw: unknown): string {
   if (typeof raw !== 'string') return DEFAULT_LABEL;
@@ -109,7 +104,7 @@ function extractSummary(record: TreeRecord): TreeSummary {
 }
 
 /**
- * Convert a Uint8Array to a base64 string for chrome.storage.local.
+ * Convert a Uint8Array to a base64 string for storage.
  */
 function serializeBlob(data: Uint8Array): string {
   let binary = '';
@@ -121,7 +116,7 @@ function serializeBlob(data: Uint8Array): string {
 }
 
 /**
- * Safely coerce chrome.storage output back to Uint8Array.
+ * Safely coerce storage output back to Uint8Array.
  */
 function toUint8Array(data: unknown): Uint8Array | null {
   if (data instanceof Uint8Array) return data;
@@ -192,8 +187,8 @@ class TreeStorageService {
 
   /**
    * When true, the cached tree is an editor tree for a non-active (archived)
-   * tree.  flushSaveNow() will skip persisting to TREE_KEY so the real active
-   * tree in chrome.storage is never overwritten.
+   * tree.  flushSaveNow() will skip persisting so the real active
+   * tree in storage is never overwritten.
    */
   private _editingNonActiveTree = false;
 
@@ -218,8 +213,7 @@ class TreeStorageService {
     this.loading = (async () => { try {
       await this.ensureMigrated();
       await this.getActiveMeta();
-      const result = await treeArea.get(TREE_KEY);
-      const json = result[TREE_KEY] as NavigationTreeJSON | undefined;
+      const json = await activeTreeItem.getValue();
 
       if (!json || !json.root) {
         const tree = new NavigationTree();
@@ -249,8 +243,7 @@ class TreeStorageService {
 
     this.metaLoading = (async () => {
       try {
-        const result = await treeArea.get(TREE_META_KEY);
-        const raw = result[TREE_META_KEY] as TreeMeta | undefined;
+        const raw = await activeTreeMetaItem.getValue();
         const normalized = normalizeMeta(raw);
         if (normalized) {
           this.cachedMeta = normalized;
@@ -270,7 +263,7 @@ class TreeStorageService {
       };
       this.cachedMeta = meta;
       try {
-        await treeArea.set({ [TREE_META_KEY]: meta });
+        await activeTreeMetaItem.setValue(meta);
       } catch (error) {
         console.error('TreeStorageService.getActiveMeta: Error saving meta:', error);
       }
@@ -296,7 +289,7 @@ class TreeStorageService {
   async setActiveMeta(meta: TreeMeta): Promise<void> {
     this.cachedMeta = meta;
     try {
-      await treeArea.set({ [TREE_META_KEY]: meta });
+      await activeTreeMetaItem.setValue(meta);
     } catch (error) {
       console.error('TreeStorageService.setActiveMeta: Error saving meta:', error);
     }
@@ -318,7 +311,7 @@ class TreeStorageService {
 
   async saveTreeToChrome(tree: NavigationTree) {
     const json = NavigationTreeMapper.toJSON(tree);
-    await treeArea.set({ [TREE_KEY]: json });
+    await activeTreeItem.setValue(json);
   }
 
   async flushSaveNow(): Promise<void> {
@@ -362,8 +355,7 @@ class TreeStorageService {
 
     this.savedAtLoading = (async () => {
       try {
-        const result = await treeArea.get(TREE_SAVED_AT_KEY);
-        const raw = result[TREE_SAVED_AT_KEY];
+        const raw = await treeSavedAtItem.getValue();
         if (Number.isFinite(raw)) {
           this.cachedSavedAt = raw as number;
           return this.cachedSavedAt;
@@ -375,7 +367,7 @@ class TreeStorageService {
       const now = Date.now();
       this.cachedSavedAt = now;
       try {
-        await treeArea.set({ [TREE_SAVED_AT_KEY]: now });
+        await treeSavedAtItem.setValue(now);
       } catch (error) {
         console.error('TreeStorageService.getActiveSavedAt: Error saving default savedAt:', error);
       }
@@ -397,9 +389,7 @@ class TreeStorageService {
     this.indexLoading = (async () => {
       try {
         await this.ensureMigrated();
-        const result = await treeArea.get(TREE_ARCHIVES_KEY);
-        const raw = result[TREE_ARCHIVES_KEY] as unknown;
-        const rawArr = Array.isArray(raw) ? raw : [];
+        const rawArr = await archiveIndexItem.getValue();
         const list = rawArr.map(normalizeIndexEntry).filter((entry): entry is ArchiveIndexEntry => Boolean(entry));
         this.cachedIndex = list;
         return list;
@@ -424,7 +414,7 @@ class TreeStorageService {
   async setArchiveIndex(index: ArchiveIndexEntry[]): Promise<void> {
     this.cachedIndex = index;
     try {
-      await treeArea.set({ [TREE_ARCHIVES_KEY]: index });
+      await archiveIndexItem.setValue(index);
     } catch (error) {
       console.error('TreeStorageService.setArchiveIndex: Error saving index:', error);
     }
@@ -436,9 +426,7 @@ class TreeStorageService {
 
   async getArchiveTree(treeId: string): Promise<NavigationTreeJSON | null> {
     try {
-      const key = archiveBlobKey(treeId);
-      const result = await treeArea.get(key);
-      const raw = result[key];
+      const raw = await storage.getItem<unknown>(archiveBlobKey(treeId));
       if (!raw) return null;
       const bytes = toUint8Array(raw);
       if (!bytes) return null;
@@ -450,10 +438,9 @@ class TreeStorageService {
   }
 
   async saveArchiveTree(treeId: string, tree: NavigationTreeJSON): Promise<void> {
-    const key = archiveBlobKey(treeId);
     const compressed = encodeTree(tree);
     const blob = serializeBlob(compressed);
-    await treeArea.set({ [key]: blob });
+    await storage.setItem(archiveBlobKey(treeId), blob);
   }
 
   /**
@@ -462,7 +449,7 @@ class TreeStorageService {
    */
   async deleteArchiveBlob(treeId: string): Promise<void> {
     try {
-      await treeArea.remove(archiveBlobKey(treeId));
+      await storage.removeItem(archiveBlobKey(treeId));
     } catch (error) {
       console.error(`TreeStorageService.deleteArchiveBlob(${treeId}): Error:`, error);
     }
@@ -489,18 +476,18 @@ class TreeStorageService {
     const prevIds = new Set(prevIndex.map((e) => e.id));
     const nextIds = new Set(records.map((r) => r.id));
 
-    const writes: Record<string, unknown> = {};
-    const entries: ArchiveIndexEntry[] = [];
+    const entries: BulkEntry[] = [];
+    const summaries: ArchiveIndexEntry[] = [];
 
     for (const record of records) {
-      entries.push(extractSummary(record));
-      writes[archiveBlobKey(record.id)] = serializeBlob(encodeTree(record.tree));
+      summaries.push(extractSummary(record));
+      entries.push({ key: archiveBlobKey(record.id), value: serializeBlob(encodeTree(record.tree)) });
     }
-    writes[TREE_ARCHIVES_KEY] = entries;
-    this.cachedIndex = entries;
+    entries.push({ item: archiveIndexItem, value: summaries });
+    this.cachedIndex = summaries;
 
     try {
-      await quotaAwareSet(writes);
+      await quotaAwareSet(entries);
     } catch (error) {
       console.error('TreeStorageService.setArchives: Error writing:', error);
     }
@@ -508,7 +495,9 @@ class TreeStorageService {
     const removedIds = [...prevIds].filter((id) => !nextIds.has(id));
     if (removedIds.length > 0) {
       try {
-        await treeArea.remove(removedIds.map(archiveBlobKey));
+        for (const id of removedIds) {
+          await storage.removeItem(archiveBlobKey(id));
+        }
       } catch (error) {
         console.error('TreeStorageService.setArchives: Error cleaning old blobs:', error);
       }
@@ -534,10 +523,10 @@ class TreeStorageService {
 
     const blob = serializeBlob(encodeTree(treeJSON));
     try {
-      await quotaAwareSet({
-        [TREE_ARCHIVES_KEY]: nextIndex,
-        [archiveBlobKey(record.id)]: blob,
-      });
+      await quotaAwareSet([
+        { item: archiveIndexItem, value: nextIndex },
+        { key: archiveBlobKey(record.id), value: blob },
+      ]);
     } catch (error) {
       console.error('TreeStorageService.archiveActiveTree: Error saving:', error);
     }
@@ -558,8 +547,8 @@ class TreeStorageService {
     this.cachedIndex = nextIndex;
 
     try {
-      await treeArea.set({ [TREE_ARCHIVES_KEY]: nextIndex });
-      await treeArea.remove(archiveBlobKey(treeId));
+      await archiveIndexItem.setValue(nextIndex);
+      await storage.removeItem(archiveBlobKey(treeId));
     } catch (error) {
       console.error('TreeStorageService.takeArchivedTree: Error removing:', error);
     }
@@ -588,7 +577,7 @@ class TreeStorageService {
     index[idx] = summary as TreeSummary;
     this.cachedIndex = index;
     try {
-      await treeArea.set({ [TREE_ARCHIVES_KEY]: index });
+      await archiveIndexItem.setValue(index);
     } catch (error) {
       console.error('TreeStorageService.unstubArchiveEntry: Error:', error);
     }
@@ -619,7 +608,7 @@ class TreeStorageService {
       };
       this.cachedIndex = index;
       try {
-        await treeArea.set({ [TREE_ARCHIVES_KEY]: index });
+        await archiveIndexItem.setValue(index);
       } catch (error) {
         console.error('TreeStorageService.renameTree: Error saving index:', error);
       }
@@ -628,15 +617,12 @@ class TreeStorageService {
 
   async clearArchivesOnly(): Promise<void> {
     const index = await this.getArchiveIndex();
-    const blobKeys = index.map((e) => archiveBlobKey(e.id));
-
-    const keysToRemove = [
-      TREE_ARCHIVES_KEY,
-      ...blobKeys,
-    ];
 
     try {
-      await treeArea.remove(keysToRemove);
+      await archiveIndexItem.removeValue();
+      for (const e of index) {
+        await storage.removeItem(archiveBlobKey(e.id));
+      }
     } catch (error) {
       console.error('TreeStorageService.clearArchivesOnly: Error:', error);
     }
@@ -647,18 +633,15 @@ class TreeStorageService {
 
   async clearAllTrees(): Promise<void> {
     const index = await this.getArchiveIndex();
-    const blobKeys = index.map((e) => archiveBlobKey(e.id));
-
-    const keysToRemove = [
-      TREE_KEY,
-      TREE_META_KEY,
-      TREE_ARCHIVES_KEY,
-      TREE_SAVED_AT_KEY,
-      ...blobKeys,
-    ];
 
     try {
-      await treeArea.remove(keysToRemove);
+      await activeTreeItem.removeValue();
+      await activeTreeMetaItem.removeValue();
+      await archiveIndexItem.removeValue();
+      await treeSavedAtItem.removeValue();
+      for (const e of index) {
+        await storage.removeItem(archiveBlobKey(e.id));
+      }
     } catch (error) {
       console.error('TreeStorageService.clearAllTrees: Error:', error);
     }
@@ -685,8 +668,8 @@ class TreeStorageService {
     if (next.length === index.length) return false;
     this.cachedIndex = next;
     try {
-      await treeArea.set({ [TREE_ARCHIVES_KEY]: next });
-      await treeArea.remove(archiveBlobKey(treeId));
+      await archiveIndexItem.setValue(next);
+      await storage.removeItem(archiveBlobKey(treeId));
     } catch (error) {
       console.error('TreeStorageService.deleteArchivedTree: Error:', error);
     }
@@ -720,10 +703,10 @@ class TreeStorageService {
     this.cachedIndex = index;
 
     try {
-      await quotaAwareSet({
-        [TREE_ARCHIVES_KEY]: index,
-        [archiveBlobKey(treeId)]: serializeBlob(encodeTree(treeJSON)),
-      });
+      await quotaAwareSet([
+        { item: archiveIndexItem, value: index },
+        { key: archiveBlobKey(treeId), value: serializeBlob(encodeTree(treeJSON)) },
+      ]);
     } catch (error) {
       console.error('TreeStorageService.updateArchivedTree: Error:', error);
     }
@@ -738,33 +721,29 @@ class TreeStorageService {
     this.migrated = true;
 
     try {
-      const result = await treeArea.get(TREE_ARCHIVES_KEY);
-      const raw = result[TREE_ARCHIVES_KEY];
-      if (!Array.isArray(raw) || raw.length === 0) return;
+      const rawArr = await archiveIndexItem.getValue();
+      if (rawArr.length === 0) return;
 
-      const first = raw[0];
+      const first = rawArr[0];
       if (!first || typeof first !== 'object') return;
       if (!('tree' in first) || !first.tree || typeof first.tree !== 'object') {
         return;
       }
 
       // Migrating legacy archives to per-tree format.
-
       const summaries: TreeSummary[] = [];
-      const writes: Record<string, unknown> = {};
+      const entries: BulkEntry[] = [];
 
-      for (const entry of raw) {
+      for (const entry of rawArr) {
         const record = normalizeLegacyRecord(entry);
         if (!record) continue;
         summaries.push(extractSummary(record));
-        writes[archiveBlobKey(record.id)] = serializeBlob(encodeTree(record.tree));
+        entries.push({ key: archiveBlobKey(record.id), value: serializeBlob(encodeTree(record.tree)) });
       }
 
-      writes[TREE_ARCHIVES_KEY] = summaries;
-      await treeArea.set(writes);
+      entries.push({ item: archiveIndexItem, value: summaries });
+      await writeBulkDirect(entries);
       this.cachedIndex = summaries;
-
-      // Migration complete.
     } catch (error) {
       console.error('TreeStorageService.ensureMigrated: Migration error:', error);
     }
@@ -787,9 +766,20 @@ class TreeStorageService {
   private async setActiveSavedAt(savedAt: number): Promise<void> {
     this.cachedSavedAt = savedAt;
     try {
-      await treeArea.set({ [TREE_SAVED_AT_KEY]: savedAt });
+      await treeSavedAtItem.setValue(savedAt);
     } catch (error) {
       console.error('TreeStorageService.setActiveSavedAt: Error saving savedAt:', error);
+    }
+  }
+}
+
+/** Direct bulk write without quota-aware retry (used for migration). */
+async function writeBulkDirect(entries: BulkEntry[]): Promise<void> {
+  for (const entry of entries) {
+    if ('item' in entry) {
+      await entry.item.setValue(entry.value);
+    } else {
+      await storage.setItem(entry.key, entry.value);
     }
   }
 }
