@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { NodeId } from '@shared/types/ids.js';
 import { getFaviconUrl } from '@shared/utils/favicon.js';
 import { navigateTo } from '../../api/tree.js';
@@ -27,13 +27,6 @@ export default function PinnedDropdown() {
     return Array.from(pins.pinned);
   }, [pins, tree]);
 
-  const [focusedIndex, setFocusedIndex] = useState(0);
-
-  useEffect(() => {
-    if (!pinnedOpen) return;
-    setFocusedIndex((prev) => Math.min(prev, Math.max(0, pinnedNodes.length - 1)));
-  }, [pinnedOpen, pinnedNodes.length]);
-
   useEffect(() => {
     if (!pinnedOpen) return;
 
@@ -46,21 +39,9 @@ export default function PinnedDropdown() {
           event.preventDefault();
           setPinnedOpen(false);
           return;
-        case 'ArrowUp':
-          event.preventDefault();
-          setFocusedIndex((prev) =>
-            pinnedNodes.length === 0 ? 0 : (prev - 1 + pinnedNodes.length) % pinnedNodes.length,
-          );
-          return;
-        case 'ArrowDown':
-          event.preventDefault();
-          setFocusedIndex((prev) =>
-            pinnedNodes.length === 0 ? 0 : (prev + 1) % pinnedNodes.length,
-          );
-          return;
         case 'Enter': {
           event.preventDefault();
-          const node = pinnedNodes[focusedIndex];
+          const node = pinnedNodes[0];
           if (node) void navigateTo(node).finally(() => setPinnedOpen(false));
           return;
         }
@@ -83,7 +64,7 @@ export default function PinnedDropdown() {
       document.removeEventListener('keydown', onKeyDown, true);
       document.removeEventListener('mousedown', onMouseDown, true);
     };
-  }, [focusedIndex, pinnedNodes, pinnedOpen, setPinnedOpen]);
+  }, [pinnedNodes, pinnedOpen, setPinnedOpen]);
 
   const handleNavigate = async (nodeId: NodeId) => {
     const node = tree?.findNodeById(nodeId);
@@ -140,13 +121,12 @@ export default function PinnedDropdown() {
               <span className="pinned-dropdown-empty-hint">Right-click a node to pin it</span>
             </div>
           ) : (
-            pinnedNodes.map((node, idx) => (
+            pinnedNodes.map((node) => (
               <div
                 key={node.id}
-                className={`pinned-dropdown-item ${idx === focusedIndex ? 'focused' : ''}`}
+                className="pinned-dropdown-item"
                 data-node-id={node.id}
                 onClick={() => void handleNavigate(node.id as NodeId)}
-                onMouseOver={() => setFocusedIndex(idx)}
               >
                 {node.data.url ? (
                   <img className="pinned-dropdown-item-favicon" alt="" src={getFaviconUrl(node.data.url)} />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { NodeId, Tag, Url } from '@shared/types/ids.js';
 import { getFaviconUrl } from '@shared/utils/favicon.js';
 import type { TagDefinition } from '@shared/types/tags.js';
@@ -26,7 +26,6 @@ export default function TagFilterDropdown() {
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const [focusedIndex, setFocusedIndex] = useState(0);
   useAnchoredDropdown({ open: tagFilterOpen, dropdownRef });
 
   const tagCounts = useMemo(() => collectTagCounts(tree), [tree]);
@@ -47,11 +46,6 @@ export default function TagFilterDropdown() {
 
   useEffect(() => {
     if (!tagFilterOpen) return;
-    setFocusedIndex((prev) => Math.min(prev, Math.max(0, filteredNodes.length - 1)));
-  }, [filteredNodes.length, tagFilterOpen]);
-
-  useEffect(() => {
-    if (!tagFilterOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
@@ -60,24 +54,9 @@ export default function TagFilterDropdown() {
         setTagFilterOpen(false);
         return;
       }
-      if (filteredNodes.length === 0) return;
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setFocusedIndex((prev) =>
-          filteredNodes.length === 0 ? 0 : (prev - 1 + filteredNodes.length) % filteredNodes.length,
-        );
-        return;
-      }
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setFocusedIndex((prev) =>
-          filteredNodes.length === 0 ? 0 : (prev + 1) % filteredNodes.length,
-        );
-        return;
-      }
       if (event.key === 'Enter') {
         event.preventDefault();
-        const node = filteredNodes[focusedIndex];
+        const node = filteredNodes[0];
         if (node) void handleNavigate(node.id);
       }
     };
@@ -96,7 +75,7 @@ export default function TagFilterDropdown() {
       document.removeEventListener('keydown', onKeyDown, true);
       document.removeEventListener('mousedown', onMouseDown, true);
     };
-  }, [filteredNodes, focusedIndex, setTagFilterOpen, tagFilterOpen]);
+  }, [filteredNodes, setTagFilterOpen, tagFilterOpen]);
 
   const handleNavigate = async (nodeId: NodeId) => {
     const node = tree?.findNodeById(nodeId);
@@ -125,8 +104,7 @@ export default function TagFilterDropdown() {
     }
   }, [clearTagFilter, selected, setTagFilterSelected, usedTags]);
 
-  const selectedCount = selected.size;
-  const hasSelected = selectedCount > 0;
+  const hasSelected = selected.size > 0;
   const hasTaggedNodes = taggedNodes.length > 0;
   const showEmptyTags = usedTags.length === 0;
   const isEmpty = filteredNodes.length === 0;
@@ -205,7 +183,7 @@ export default function TagFilterDropdown() {
               <span>No nodes with selected tags</span>
             </div>
           ) : (
-            filteredNodes.map((node, idx) => {
+            filteredNodes.map((node) => {
               const title = node.data.title || 'Untitled';
               const url = node.data.url;
               const hostname = safeHostname(url);
@@ -213,9 +191,8 @@ export default function TagFilterDropdown() {
               return (
                 <div
                   key={node.id}
-                  className={`tag-filter-node ${idx === focusedIndex ? 'focused' : ''}`}
+                  className="tag-filter-node"
                   onClick={() => void handleNavigate(node.id)}
-                  onMouseOver={() => setFocusedIndex(idx)}
                 >
                   {node.data.url ? (
                     <img className="tag-filter-node-favicon" alt="" src={getFaviconUrl(node.data.url)} />

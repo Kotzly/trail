@@ -116,14 +116,8 @@
   transition: background 0.1s ease;
 }
 
-.pinned-dropdown-item:hover,
-.pinned-dropdown-item.focused {
+.pinned-dropdown-item:hover {
   background: var(--glass);
-}
-
-.pinned-dropdown-item.focused {
-  outline: 2px solid color-mix(in srgb, var(--primary) 55%, transparent);
-  outline-offset: -2px;
 }
 
 .pinned-dropdown-item-favicon {
