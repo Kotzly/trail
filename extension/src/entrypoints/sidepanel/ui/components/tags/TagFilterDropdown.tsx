@@ -7,6 +7,7 @@ import { useStore } from '../../state/store.js';
 import { useOverlayEffects } from '../../state/overlay-effects.js';
 import { useAnchoredDropdown } from '../../hooks/useAnchoredDropdown.js';
 import { Icons } from '../Icon.js';
+import { TagIcon } from './TagIcon.js';
 import { collectTagCounts, collectTaggedNodes, filterNodesByTags } from './tag-filter-utils.js';
 
 
@@ -182,6 +183,7 @@ export default function TagFilterDropdown() {
                   onClick={() => toggleTagFilterTag(tag.id as Tag)}
                 >
                   <span className="tag-pill" style={{ '--tag-color': tag.color } as React.CSSProperties}>
+                    <TagIcon id={tag.iconId} size={10} />
                     {tag.label}
                   </span>
                 </button>
@@ -236,6 +238,7 @@ export default function TagFilterDropdown() {
                               style={{ '--tag-color': def?.color ?? '#667085' } as React.CSSProperties}
                               title={def?.label ?? (tagId as string)}
                             >
+                              <TagIcon id={def?.iconId ?? 'Tag'} size={8} />
                               {def?.label ?? (tagId as string)}
                             </span>
                           );

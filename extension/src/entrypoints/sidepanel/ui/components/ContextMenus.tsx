@@ -10,6 +10,7 @@ import { getTabsForNodeMessage } from '../../api/tabs.js';
 import { useStore } from '../state/store.js';
 import { useOverlayEffects } from '../state/overlay-effects.js';
 import TagEditorModal from './tags/TagEditorModal.js';
+import { TagIcon } from './tags/TagIcon.js';
 import { deleteTagDef, upsertTagDef } from '../../api/tags.js';
 import { Icons } from './Icon.js';
 import { getIncludedRootId } from '../shared/delete-tree.js';
@@ -540,9 +541,10 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                   closeContextMenu();
                 }}
               >
-                <span className="tag-pill" style={{ '--tag-color': tag.color } as React.CSSProperties}>
-                  {tag.label}
+                <span className="tag-dot" style={{ background: tag.color } as React.CSSProperties}>
+                  <TagIcon id={tag.iconId} size={9} />
                 </span>
+                <span className="tag-option-label">{tag.label}</span>
                 <span className="tag-actions">
                   <button
                     type="button"
@@ -573,7 +575,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                     <Icons.Trash2 size={12} />
                   </button>
                 </span>
-                {hasTag ? <span className="tag-check">✓</span> : null}
+                {hasTag ? <Icons.Check size={13} className="tag-check" /> : null}
               </div>
             );
           })}
@@ -586,7 +588,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
               onCreateTag();
             }}
           >
-            <span className="tag-pill tag-pill-new">New Tag...</span>
+            <span className="tag-dot tag-dot-new"><Icons.Plus size={9} /></span>
+            <span className="tag-option-label">New Tag...</span>
           </div>
         </div>
       </div>
@@ -889,11 +892,12 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
                   toggleTagForSelection(tag.id as Tag);
                 }}
               >
-                <span className="tag-pill" style={{ '--tag-color': tag.color } as React.CSSProperties}>
-                  {tag.label}
+                <span className="tag-dot" style={{ background: tag.color } as React.CSSProperties}>
+                  <TagIcon id={tag.iconId} size={9} />
                 </span>
-                {allSelected ? <span className="tag-check">✓</span> : null}
-                {someSelected ? <span className="tag-check partial">•</span> : null}
+                <span className="tag-option-label">{tag.label}</span>
+                {allSelected ? <Icons.Check size={13} className="tag-check" /> : null}
+                {someSelected ? <Icons.Minus size={12} className="tag-check partial" /> : null}
               </div>
             );
           })}
