@@ -558,6 +558,7 @@ export type TreeUpdatedInput = {
     openNodeIds: NodeId[],
     tabStates: Record<NodeId, TabState>,
     nodeTabCounts: Record<NodeId, number>,
+    nodeRecency: Record<NodeId, number>,
     reason: TreeUpdateReason,
     view?: TreeViewIntent,
     editorMode?: EditorModeState,

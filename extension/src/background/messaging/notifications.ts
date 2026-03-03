@@ -41,6 +41,11 @@ export async function notifyTreeUpdate(
     const tabStates = await getTabStates();
     
     const nodeTabCounts = Object.fromEntries(openNodes.map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)]));
+    const nodeRecency: Record<string, number> = {};
+    for (const nodeId of openNodes) {
+      const r = tabManager.getNodeRecency(nodeId);
+      if (r > 0) nodeRecency[nodeId] = r;
+    }
     const nextView = view
       ? { ...view, intentId: view.intentId ?? (viewIntentCounter += 1) }
       : undefined;
@@ -50,6 +55,7 @@ export async function notifyTreeUpdate(
         openNodeIds: openNodes,
         tabStates: tabStates,
         nodeTabCounts: nodeTabCounts,
+        nodeRecency,
         reason,
         ...(nextView ? { view: nextView } : {}),
     });

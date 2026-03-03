@@ -251,6 +251,7 @@ export function calculateMindmapLayout(
   root: NavigationNode,
   layoutConfig: LayoutConfig,
   getChildren: GetChildren = (node) => node.getChildren?.() ?? [],
+  options?: { sortWithinSide?: (children: NavigationNode[]) => NavigationNode[] },
 ): { positions: Map<NodeId, NodePosition>, width: number } {
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
@@ -293,6 +294,12 @@ export function calculateMindmapLayout(
       rightHeight += height;
     }
   });
+
+  if (options?.sortWithinSide) {
+    const sortFn = options.sortWithinSide;
+    leftChildren.splice(0, leftChildren.length, ...sortFn(leftChildren));
+    rightChildren.splice(0, rightChildren.length, ...sortFn(rightChildren));
+  }
 
   const rootX = 0;
   const rootY = 0;
@@ -666,6 +673,42 @@ export function calculateRadialLayout(
   return { positions, width: maxRadius * 2 + nodeWidth };
 }
 
+
+/**
+ * Pre-compute exact visual span (tidy-tree width) for every subtree.
+ *
+ * Runs Reingold-Tilford on the tree rooted at `root` with unsorted children
+ * (collapse-filtered only), then walks post-order to determine
+ * span = maxBreadth − minBreadth for each node's subtree.
+ *
+ * The returned Map<NodeId, number> gives each node a weight proportional to
+ * how much horizontal space its subtree occupies — regardless of sibling order.
+ */
+export function computeSubtreeSpans(
+  root: NavigationNode,
+  getChildren: GetChildren,
+  baseSeparation: number,
+): Map<NodeId, number> {
+  const tidyRoot = createTidyTree(root, getChildren);
+  computeTidyBreadths(tidyRoot, baseSeparation);
+
+  const spans = new Map<NodeId, number>();
+
+  function walk(node: TidyNode): { min: number; max: number } {
+    let min = node.breadth;
+    let max = node.breadth;
+    for (const child of node.children) {
+      const childExtent = walk(child);
+      if (childExtent.min < min) min = childExtent.min;
+      if (childExtent.max > max) max = childExtent.max;
+    }
+    spans.set(node.node.id, max - min);
+    return { min, max };
+  }
+
+  walk(tidyRoot);
+  return spans;
+}
 
 /**
  * Get canvas bounds from positions.

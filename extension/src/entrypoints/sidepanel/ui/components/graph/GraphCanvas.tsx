@@ -20,8 +20,10 @@ import {
   calculateMindmapLayout,
   calculateRadialLayout,
   getCanvasBounds,
+  computeSubtreeSpans,
 } from '../../graph/layout/calculator.js';
 import { deriveLayoutOptions } from '../../graph/layout/options.js';
+import { computeSubtreeRecency, spotlightSortChildren } from '@shared/lib/spotlight.js';
 import type { CanvasBounds, LayoutMode, NodePosition, ViewState } from '../../graph/types.js';
 import { createAnimationSpec, easeOutCubic, getAnimationProgress, lerp } from '../../graph/animation-utils.js';
 import GraphZoomControls from './GraphZoomControls.js';
@@ -124,6 +126,7 @@ type GraphCanvasProps = {
   collapseVersion: number;
   collapseAction: CollapseAction | null;
   nodeTabCounts: Record<NodeId, number>;
+  nodeRecency: Record<NodeId, number>;
   tabStates: Record<NodeId, TabState>;
   search: SearchState;
   settings: Settings | null;
@@ -255,6 +258,7 @@ export default function GraphCanvas({
   collapseVersion,
   collapseAction,
   nodeTabCounts,
+  nodeRecency,
   tabStates,
   search,
   settings,
@@ -620,9 +624,36 @@ export default function GraphCanvas({
   const hideTreeRoot = settings?.layout?.tree?.hideRoot ?? false;
   const root = tree?.getRoot() ?? null;
   const { nodeWidth, nodeHeight } = baseLayoutConfig;
-  const getVisibleChildren = useCallback(
-    (node: NavigationNode) => (collapsedNodeIds.has(node.id) ? [] : node.getChildren?.() ?? []),
+
+  const subtreeRecency = useMemo(() => {
+    if (!root || Object.keys(nodeRecency).length === 0) return null;
+    return computeSubtreeRecency(root, nodeRecency, (n) => n.getChildren?.() ?? []);
+  }, [root, nodeRecency]);
+
+  // Collapse-filtered children WITHOUT spotlight sorting (for span pre-pass)
+  const getBaseVisibleChildren = useCallback(
+    (node: NavigationNode) => {
+      if (collapsedNodeIds.has(node.id)) return [];
+      return node.getChildren?.() ?? [];
+    },
     [collapsedNodeIds],
+  );
+
+  // Pre-compute exact tidy-tree spans for balanced spotlight placement
+  const subtreeSpans = useMemo(() => {
+    if (!root || !subtreeRecency) return null;
+    const baseSep = Math.max(baseLayoutConfig.nodeWidth + baseLayoutConfig.horizontalGap, 1);
+    return computeSubtreeSpans(root, getBaseVisibleChildren, baseSep);
+  }, [root, subtreeRecency, getBaseVisibleChildren, baseLayoutConfig.nodeWidth, baseLayoutConfig.horizontalGap]);
+
+  const getVisibleChildren = useCallback(
+    (node: NavigationNode) => {
+      if (collapsedNodeIds.has(node.id)) return [];
+      const children = node.getChildren?.() ?? [];
+      if (!subtreeRecency || children.length <= 2) return children;
+      return spotlightSortChildren(children, subtreeRecency, subtreeSpans);
+    },
+    [collapsedNodeIds, subtreeRecency, subtreeSpans],
   );
 
   useEffect(() => {
@@ -778,8 +809,13 @@ export default function GraphCanvas({
     switch (layoutOptions.mode) {
       case 'tree':
         return calculateLayout(root, layoutOptions.tree, getVisibleChildren);
-      case 'mindmap':
-        return calculateMindmapLayout(root, layoutOptions.mindmap, getVisibleChildren);
+      case 'mindmap': {
+        const sortWithinSide = subtreeRecency
+          ? (children: NavigationNode[]) => spotlightSortChildren(children, subtreeRecency, subtreeSpans)
+          : undefined;
+        return calculateMindmapLayout(root, layoutOptions.mindmap, getVisibleChildren,
+          sortWithinSide ? { sortWithinSide } : undefined);
+      }
       default:
         return calculateRadialLayout(root, layoutOptions.radial, baseLayoutConfig, getVisibleChildren);
     }
@@ -791,6 +827,8 @@ export default function GraphCanvas({
     layoutOptions.radial,
     layoutOptions.tree,
     root,
+    subtreeRecency,
+    subtreeSpans,
   ]);
 
   const basePositions = layout?.positions ?? emptyPositionsRef.current;
@@ -1641,6 +1679,20 @@ export default function GraphCanvas({
   };
 
 
+  const debugChildIndices = useMemo(() => {
+    if (!root) return null;
+    const map = new Map<NodeId, number>();
+    const walk = (node: NavigationNode) => {
+      const children = getVisibleChildren(node);
+      children.forEach((child, i) => {
+        map.set(child.id, i);
+        walk(child);
+      });
+    };
+    walk(root);
+    return map;
+  }, [root, getVisibleChildren]);
+
   const renderNodes = useMemo<NodeRenderModel[]>(() => {
     const dimmedBySearch = searchActive;
     return visibleDisplayNodes.map((pos) => {
@@ -1674,9 +1726,11 @@ export default function GraphCanvas({
         isHoverFocused: hoverNodeId === id,
         display,
         tagDefs,
+        debugChildIndex: debugChildIndices?.get(id),
       };
     });
   }, [
+    debugChildIndices,
     animationVersion,
     currentNodeId,
     collapsedNodeIds,

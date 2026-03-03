@@ -79,11 +79,18 @@ async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
 
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
   const editorMode = getEditorState();
+  const openNodes = Array.from(tabManager.openNodes());
+  const nodeRecency: Record<string, number> = {};
+  for (const nodeId of openNodes) {
+    const r = tabManager.getNodeRecency(nodeId);
+    if (r > 0) nodeRecency[nodeId] = r;
+  }
   const snapshot: TreeUpdatedInput = {
     tree: NavigationTreeMapper.toJSON(await treeStorage.getOrCreateTree()),
-    openNodeIds: Array.from(tabManager.openNodes()),
+    openNodeIds: openNodes,
     tabStates: await getTabStates(),
-    nodeTabCounts: Object.fromEntries(Array.from(tabManager.openNodes()).map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)])),
+    nodeTabCounts: Object.fromEntries(openNodes.map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)])),
+    nodeRecency,
     reason: 'sync',
   };
   if (editorMode.active) {

@@ -184,6 +184,7 @@ class NodeVisual {
   private readonly tagDots = new PIXI.Container();
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
+  private readonly debugIndexText = new PIXI.Text({ text: '' });
   private state: NodeVisualState = {
     lod: 'full',
     styleKey: '',
@@ -224,6 +225,11 @@ class NodeVisual {
     this.collapseBadge.addChild(this.collapseBadgeBg);
     this.collapseBadge.addChild(this.collapseIcon);
     this.container.addChild(this.tagDots);
+    this.container.addChild(this.debugIndexText);
+    this.debugIndexText.anchor.set(0.5, 0.5);
+    this.debugIndexText.style.fontSize = 14;
+    this.debugIndexText.style.fontWeight = '700';
+    this.debugIndexText.style.fill = 0xff0000;
 
     this.tabBadgeText.anchor.set(0.5, 0.5);
     this.pinIcon.pivot.set(ICON_VIEWBOX, 0);
@@ -326,6 +332,14 @@ class NodeVisual {
     this.container.position.set(model.x - origin.x, model.y - origin.y);
     this.container.zIndex = computeZIndex(model, isSelected);
 
+    if (model.debugChildIndex != null) {
+      this.debugIndexText.text = String(model.debugChildIndex);
+      this.debugIndexText.position.set(model.width / 2, model.height / 2);
+      this.debugIndexText.visible = true;
+    } else {
+      this.debugIndexText.visible = false;
+    }
+
     if (needsStyleUpdate) {
       this.drawBackground(model, theme, lod, isSelected, isPreview);
     }
@@ -339,6 +353,7 @@ class NodeVisual {
       this.pinIcon.visible = false;
       this.audioIcon.visible = false;
       this.collapseBadge.visible = false;
+      this.debugIndexText.visible = false;
       return;
     }
 

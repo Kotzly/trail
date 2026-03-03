@@ -93,6 +93,7 @@ type StoreState = {
   pins: PinnedManager | null;
   tabStates: Record<NodeId, TabState>;
   nodeTabCounts: Record<NodeId, number>;
+  nodeRecency: Record<NodeId, number>;
   openNodeIds: Set<NodeId>;
   currentNodeId: NodeId | null;
   nodeCount: number;
@@ -245,6 +246,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   pins: null,
   tabStates: {},
   nodeTabCounts: {},
+  nodeRecency: {},
   openNodeIds: new Set<NodeId>(),
   currentNodeId: null,
   nodeCount: 0,
@@ -309,6 +311,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       pins,
       tabStates: payload.tabStates,
       nodeTabCounts: payload.nodeTabCounts,
+      nodeRecency: payload.nodeRecency ?? {},
       openNodeIds: new Set(payload.openNodeIds),
       currentNodeId: currentId,
       nodeCount,
@@ -361,6 +364,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         pins,
         tabStates: payload.tabStates,
         nodeTabCounts: payload.nodeTabCounts,
+        nodeRecency: payload.nodeRecency ?? {},
         openNodeIds: new Set(payload.openNodeIds),
         currentNodeId: currentId,
         nodeCount,

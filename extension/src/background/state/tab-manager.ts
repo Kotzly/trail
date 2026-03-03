@@ -166,6 +166,16 @@ export class TabManager {
       return [...tabsSet].sort((a, b) => this.lru.getLastUsed(b) - this.lru.getLastUsed(a));
     }
 
+    getNodeRecency(nodeId: NodeId): number {
+      const tabsSet = this.index.tabsByNode(nodeId);
+      if (!tabsSet || tabsSet.size === 0) return 0;
+      let max = 0;
+      for (const tabId of tabsSet) {
+        max = Math.max(max, this.lru.getLastUsed(tabId));
+      }
+      return max;
+    }
+
     private isCycleOrderValid(order: TabId[] | undefined, tabsSet: Set<TabId>): order is TabId[] {
       if (!order || order.length !== tabsSet.size) return false;
       for (const tabId of order) {

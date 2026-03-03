@@ -34,6 +34,7 @@ export type NodeRenderModel = {
   isHoverFocused: boolean;
   display: GraphDisplayOptions;
   tagDefs: Record<string, TagDefinition>;
+  debugChildIndex?: number;
 };
 
 export type ConnectionSegment = {

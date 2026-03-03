@@ -25,6 +25,7 @@ export default function GraphArea() {
       collapseVersion: state.graph.collapseVersion,
       collapseAction: state.graph.collapseAction,
       nodeTabCounts: state.nodeTabCounts,
+      nodeRecency: state.nodeRecency,
       tabStates: state.tabStates,
       settings: state.settings,
       showConnections: state.settings?.showConnections ?? true,
