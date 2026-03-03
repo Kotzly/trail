@@ -8,14 +8,15 @@ import { getActiveTab } from '../../tabs/lifecycle.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
 import { getEditorState } from './editor-handlers.js';
+import { browser } from '@shared/platform/webext.js';
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
-    const tab = await chrome.tabs.get(tabId);
+    const tab = await browser.tabs.get(tabId);
     if (tab.windowId !== undefined) {
-      await chrome.windows.update(tab.windowId, { focused: true });
+      await browser.windows.update(tab.windowId, { focused: true });
     }
-    await chrome.tabs.update(tabId, { active: true });
+    await browser.tabs.update(tabId, { active: true });
     return true;
   } catch (e) {
     return false;
@@ -75,8 +76,8 @@ export const navigationHandlers = defineRpcHandlers({
       tabManager.unregister(tabId as TabId);
     }
 
-    const targetWindow = await chrome.windows.getLastFocused();
-    const created = await chrome.tabs.create({
+    const targetWindow = await browser.windows.getLastFocused();
+    const created = await browser.tabs.create({
       windowId: targetWindow?.id,
       url: node.data.url,
       active: true,
@@ -199,8 +200,8 @@ export const navigationHandlers = defineRpcHandlers({
       tabManager.unregister(tabId as TabId);
     }
 
-    const targetWindow = await chrome.windows.getLastFocused();
-    const created = await chrome.tabs.create({
+    const targetWindow = await browser.windows.getLastFocused();
+    const created = await browser.tabs.create({
       windowId: targetWindow?.id,
       url: node.data.url,
       active: true,
@@ -227,7 +228,7 @@ export const navigationHandlers = defineRpcHandlers({
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
 
-    const tab = await chrome.tabs.create({ url: node.data.url, active: false });
+    const tab = await browser.tabs.create({ url: node.data.url, active: false });
     if (tab.id !== undefined) {
       const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
       const registerOptions = lastUsed === undefined ? { touch: false } : { touch: false, lastUsed };

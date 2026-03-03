@@ -1,3 +1,4 @@
+import { browser } from '@shared/platform/webext.js';
 import type {
   MessageByType,
   RequestType,
@@ -65,19 +66,12 @@ export function sendRpcMessage<T extends RequestType>(
   message: MessageByType<T>,
 ): Promise<ResponseMessage<T>> {
   const request = toRpcRequestEnvelope(message);
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(request, (rawResponse: unknown) => {
-      const err = chrome.runtime.lastError;
-      if (err) return reject(err);
-
-      try {
-        const envelope = parseRpcResponseEnvelope(rawResponse);
-        resolve(toResponseMessage<T>(request, envelope));
-      } catch (error) {
-        reject(error);
-      }
+  return browser.runtime
+    .sendMessage(request)
+    .then((rawResponse: unknown) => {
+      const envelope = parseRpcResponseEnvelope(rawResponse);
+      return toResponseMessage<T>(request, envelope);
     });
-  });
 }
 
 export function fireAndForgetRpcMessage<T extends RequestType>(

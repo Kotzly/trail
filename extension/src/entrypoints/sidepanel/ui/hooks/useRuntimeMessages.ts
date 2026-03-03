@@ -3,8 +3,9 @@ import { RPC_METHOD, type RequestMessage } from '@shared/rpc/contracts.js';
 import { getCommandState } from '../../api/commands.js';
 import { useStore } from '../state/store.js';
 import { showUiToast } from '../notifications/sonner-adapter.js';
+import { browser } from '@shared/platform/webext.js';
 
-export function useChromeMessages(): void {
+export function useRuntimeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
   const setCommandState = useStore((state) => state.setCommandState);
   const setEditorMode = useStore((state) => state.setEditorMode);
@@ -55,9 +56,9 @@ export function useChromeMessages(): void {
       }
     };
 
-    chrome.runtime.onMessage.addListener(handler);
+    browser.runtime.onMessage.addListener(handler);
     return () => {
-      chrome.runtime.onMessage.removeListener(handler);
+      browser.runtime.onMessage.removeListener(handler);
     };
   }, [applyTreeState, setCommandState, setEditorMode, setSyncStatus, setTagDefs, setTrees]);
 }

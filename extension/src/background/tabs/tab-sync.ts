@@ -5,14 +5,15 @@ import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { resolveTabUrl } from '../utils/tab-utils.js';
 import { createUrlKey } from '@shared/lib/url-key.js';
+import { type Browser, type Tab } from '@shared/platform/webext.js';
 
 /**
  * Sync tab title and favicon changes to node.
  */
 export async function syncTabTitleFavicon(
   tabId: TabId,
-  changeInfo: chrome.tabs.OnUpdatedInfo,
-  tab: chrome.tabs.Tab
+  changeInfo: Browser.tabs.OnUpdatedInfo,
+  tab: Tab
 ): Promise<void> {
   if (!changeInfo.title && !changeInfo.favIconUrl) return;
 
@@ -51,8 +52,8 @@ export async function syncTabTitleFavicon(
  */
 export async function syncTabAudioState(
   tabId: TabId,
-  changeInfo: chrome.tabs.OnUpdatedInfo,
-  tab: chrome.tabs.Tab
+  changeInfo: Browser.tabs.OnUpdatedInfo,
+  tab: Tab
 ): Promise<void> {
   if (!changeInfo.audible && !changeInfo.mutedInfo) return;
   const nodeId = tabManager.nodeByTab(tabId);

@@ -5,6 +5,7 @@ import { accountKeys } from "./account-keys.js";
 import { useStore } from "../state/store.js";
 import { loadCachedSnapshotWithAge } from "../../api/account/cache.js";
 import type { AccountSnapshot } from "@shared/types/account.js";
+import { browser } from '@shared/platform/webext.js';
 
 const ONBOARDING_POLL_MS = 2500;
 const SNAPSHOT_STALE_MS = 5 * 60_000;
@@ -40,7 +41,7 @@ export function useAccountSnapshotQuery() {
     queryKey: accountKeys.snapshot(),
     queryFn: getAccountSnapshot,
     staleTime: SNAPSHOT_STALE_MS,
-    // Use cached snapshot from chrome.storage as initial data so the
+    // Use cached snapshot from browser.storage as initial data so the
     // side panel can render immediately without a network request.
     ...(cached
       ? {

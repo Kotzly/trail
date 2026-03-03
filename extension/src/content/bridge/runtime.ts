@@ -1,4 +1,5 @@
 import { isAllowedSiteOrigin } from '@shared/config/site-origins.js';
+import { browser, type RuntimeMessageSender } from '@shared/platform/webext.js';
 
 
 /**
@@ -8,7 +9,7 @@ import { isAllowedSiteOrigin } from '@shared/config/site-origins.js';
  * background, enforcing the security layer (origin, schema, TTL, nonce).
  *
  * Title/favicon tracking is handled by the background service worker via
- * chrome.tabs.onUpdated — no content script injection required.
+ * browser.tabs.onUpdated — no content script injection required.
  *
  * ⚠ No heavy dependencies here (no Zod, no large libs) — this script is
  * injected only on trusted Trail site origins.
@@ -164,7 +165,7 @@ function validateSiteMessage(
 }
 
 // ---------------------------------------------------------------------------
-// Chrome messaging helpers
+// Runtime messaging helpers
 // ---------------------------------------------------------------------------
 
 const IGNORED_ERROR_FRAGMENTS = [
@@ -232,20 +233,12 @@ function sendMessage<T extends RequestType>(
   message: MessageByType<T>,
 ): Promise<ResponseMessage<T>> {
   const request = toRpcRequestEnvelope(message);
-  return new Promise((resolve, reject) => {
-    if (!chrome?.runtime?.id) {
-      return reject(new Error("Extension context invalidated"));
-    }
-    try {
-      chrome.runtime.sendMessage(request, (response: unknown) => {
-        const err = chrome.runtime.lastError;
-        if (err) return reject(err);
-        resolve(toResponseMessage(request, response));
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
+  if (!browser?.runtime?.id) {
+    return Promise.reject(new Error("Extension context invalidated"));
+  }
+  return browser.runtime
+    .sendMessage(request)
+    .then((response: unknown) => toResponseMessage(request, response));
 }
 
 // ---------------------------------------------------------------------------
@@ -342,9 +335,9 @@ function handleSiteMessage(event: MessageEvent): void {
 // ---------------------------------------------------------------------------
 
 function handleBackgroundRelay(): void {
-  if (!chrome?.runtime?.onMessage) return;
+  if (!browser?.runtime?.onMessage) return;
 
-  chrome.runtime.onMessage.addListener(
+  browser.runtime.onMessage.addListener(
     (
       message: {
         type: string;
@@ -353,19 +346,17 @@ function handleBackgroundRelay(): void {
         timeoutMs?: unknown;
         [key: string]: unknown;
       },
-      _sender: chrome.runtime.MessageSender,
-      sendResponse: (response?: unknown) => void,
+      _sender: RuntimeMessageSender,
     ) => {
       // Only handle relay messages from background → site.
-      if (message.type !== "RELAY_TO_SITE") return false;
+      if (message.type !== "RELAY_TO_SITE") return;
 
       const payload = message.payload as Record<string, unknown> | undefined;
-      if (!payload) return false;
+      if (!payload) return;
 
       const targetOrigin = window.location.origin;
       if (!isAllowedSiteOrigin(targetOrigin)) {
-        sendResponse({ success: false, error: "origin_not_allowed" });
-        return false;
+        return Promise.resolve({ success: false, error: "origin_not_allowed" });
       }
 
       const expectedType =
@@ -379,56 +370,55 @@ function handleBackgroundRelay(): void {
 
       if (!expectedType) {
         postExtensionMessage(payload, targetOrigin);
-        sendResponse({ success: true });
-        return false;
+        return Promise.resolve({ success: true });
       }
 
       const relayRequestId =
         typeof payload.requestId === "string" ? payload.requestId : null;
       if (!relayRequestId) {
-        sendResponse({ success: false, error: "missing_request_id" });
-        return false;
+        return Promise.resolve({ success: false, error: "missing_request_id" });
       }
 
-      let done = false;
-      let timer: ReturnType<typeof setTimeout> | null = null;
+      return new Promise((resolve) => {
+        let done = false;
+        let timer: ReturnType<typeof setTimeout> | null = null;
 
-      const finish = (response: unknown) => {
-        if (done) return;
-        done = true;
-        window.removeEventListener("message", onSiteResponse);
-        if (timer) {
-          clearTimeout(timer);
-        }
-        sendResponse(response);
-      };
+        const finish = (response: unknown) => {
+          if (done) return;
+          done = true;
+          window.removeEventListener("message", onSiteResponse);
+          if (timer) {
+            clearTimeout(timer);
+          }
+          resolve(response);
+        };
 
-      const onSiteResponse = (event: MessageEvent) => {
-        if (event.source !== window) return;
-        if (event.origin !== targetOrigin) return;
+        const onSiteResponse = (event: MessageEvent) => {
+          if (event.source !== window) return;
+          if (event.origin !== targetOrigin) return;
 
-        const siteMessage = validateSiteMessage(event.data);
-        if (!siteMessage) return;
-        const age = Date.now() - siteMessage.timestamp;
-        if (age > MESSAGE_TTL_MS || age < -MESSAGE_TTL_MS) return;
-        if (siteMessage.type !== expectedType) return;
-        if (siteMessage.requestId !== relayRequestId) return;
+          const siteMessage = validateSiteMessage(event.data);
+          if (!siteMessage) return;
+          const age = Date.now() - siteMessage.timestamp;
+          if (age > MESSAGE_TTL_MS || age < -MESSAGE_TTL_MS) return;
+          if (siteMessage.type !== expectedType) return;
+          if (siteMessage.requestId !== relayRequestId) return;
 
-        finish({
-          success: true,
-          data: {
-            responsePayload: siteMessage,
-          },
-        });
-      };
+          finish({
+            success: true,
+            data: {
+              responsePayload: siteMessage,
+            },
+          });
+        };
 
-      window.addEventListener("message", onSiteResponse);
-      timer = setTimeout(() => {
-        finish({ success: false, error: "relay_timeout" });
-      }, timeoutMs);
+        window.addEventListener("message", onSiteResponse);
+        timer = setTimeout(() => {
+          finish({ success: false, error: "relay_timeout" });
+        }, timeoutMs);
 
-      postExtensionMessage(payload, targetOrigin);
-      return true;
+        postExtensionMessage(payload, targetOrigin);
+      });
     },
   );
 }

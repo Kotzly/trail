@@ -35,6 +35,7 @@ export type BackendConfigOverride = Partial<
 >;
 
 import { backendConfigItem } from './storage-items.js';
+import { hasRuntimeGetURL, runtimeGetURL } from '@shared/platform/webext.js';
 
 const BACKEND_PRESET_CONFIG_PATH = 'backend-preset.json';
 const VALID_ENVS = new Set<BackendEnvironment>(['production', 'staging', 'local']);
@@ -257,9 +258,9 @@ async function readStoredOverride(): Promise<BackendConfigOverride | null> {
 
 async function readBuildPresetOverride(): Promise<BackendConfigOverride | null> {
   if (typeof fetch !== 'function') return null;
-  if (typeof chrome === 'undefined' || !chrome.runtime?.getURL) return null;
+  if (!hasRuntimeGetURL()) return null;
   try {
-    const response = await fetch(chrome.runtime.getURL(BACKEND_PRESET_CONFIG_PATH), {
+    const response = await fetch(runtimeGetURL(BACKEND_PRESET_CONFIG_PATH), {
       cache: 'no-store',
     });
     if (!response.ok) return null;

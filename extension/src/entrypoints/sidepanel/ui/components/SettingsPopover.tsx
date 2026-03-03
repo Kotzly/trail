@@ -14,6 +14,7 @@ import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
 import { Icons } from './Icon.js';
 import { cn } from '../lib/utils.js';
 import { toast } from 'sonner';
+import { browser } from '@shared/platform/webext.js';
 
 const UNLOCK_CLICKS = 7;
 const UNLOCK_WINDOW_MS = 3000;
@@ -261,7 +262,7 @@ export default function SettingsDropdown() {
     try {
       await initBackendConfig();
       const baseUrl = getBackendConfig().baseUrl;
-      await chrome.tabs.create({ url: `${baseUrl}` as Url, active: true });
+      await browser.tabs.create({ url: `${baseUrl}` as Url, active: true });
     } catch (error) {
       console.error('Failed to open dashboard:', error);
       window?.open('https://app.gettrail.net', '_blank');

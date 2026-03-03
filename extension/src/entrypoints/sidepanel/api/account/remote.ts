@@ -19,6 +19,7 @@ import {
   type StoredAuthSession,
 } from '../../../../shared/config/storage-items.js';
 import type { AccountClient, CompleteOnboardingInput } from '../account.js';
+import { browser } from '@shared/platform/webext.js';
 
 const ERROR_CODES: AccountErrorCode[] = ['network', 'auth', 'payment', 'validation', 'unknown'];
 
@@ -33,7 +34,7 @@ async function loadAuth(): Promise<StoredAuthSession | null> {
 
 // saveAuth / extractAuth / syncAuthFromSnapshot were removed — the
 // backend's /account endpoint may omit refreshToken/expiresAt from the
-// session object, and blindly overwriting chrome.storage would destroy
+// session object, and blindly overwriting browser.storage would destroy
 // the tokens saved during login. Token lifecycle is owned exclusively
 // by the background authOrchestrator.
 

@@ -8,6 +8,7 @@ import { syncEngine } from './services/sync/engine.js';
 import { initBackendConfig } from '@shared/config/backend.js';
 import { authOrchestrator } from './services/auth-orchestrator.js';
 import { accountKeeper } from './services/account-keeper.js';
+import { browser } from '@shared/platform/webext.js';
 
 // Catch unhandled promise rejections so they don't silently disappear
 // in the service worker context.
@@ -26,10 +27,14 @@ syncEngine.init();
 authOrchestrator.init();
 accountKeeper.init();
 
-const sidePanel = chrome?.sidePanel;
+const sidePanel = (browser as unknown as {
+  sidePanel?: {
+    setPanelBehavior?: (behavior: { openPanelOnActionClick: boolean }) => Promise<void> | void;
+  };
+})?.sidePanel;
 
 if (sidePanel?.setPanelBehavior) {
-  sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err) => {
+  void Promise.resolve(sidePanel.setPanelBehavior({ openPanelOnActionClick: true })).catch((err: unknown) => {
     console.warn('Failed to set side panel behavior', err);
   });
 }

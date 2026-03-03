@@ -23,6 +23,7 @@ import {
 } from "./editor-handlers.js";
 import { authOrchestrator } from "../../services/auth-orchestrator.js";
 import { authSessionItem } from "@shared/config/storage-items.js";
+import { browser } from '@shared/platform/webext.js';
 
 // ---------------------------------------------------------------------------
 // Auth state helpers
@@ -58,7 +59,7 @@ const innerHandlers: Record<string, InnerHandler> = {
       responsePayload: {
         source: "trail-extension",
         type: "PONG",
-        version: chrome.runtime.getManifest().version,
+        version: browser.runtime.getManifest().version,
         authenticated: authed,
         editorMode: editor.active,
       },

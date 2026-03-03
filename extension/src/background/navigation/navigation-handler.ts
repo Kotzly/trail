@@ -8,13 +8,14 @@ import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from '../utils/u
 import { handleNewTabTab } from '../utils/new-tab.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { createUrlKey } from '@shared/lib/url-key.js';
+import { browser, type Browser, type Tab } from '@shared/platform/webext.js';
 
 /**
  * Handle navigation events and add to tree.
  * Always uses multi-tab mode.
  */
 export async function handleNavigation(
-  details: chrome.webNavigation.WebNavigationFramedCallbackDetails,
+  details: Browser.webNavigation.WebNavigationFramedCallbackDetails,
   _transitionType?: string
 ): Promise<void> {
   const { tabId, url, frameId } = details;
@@ -23,9 +24,9 @@ export async function handleNavigation(
   if (tabManager.isIgnoredTab(tabId as TabId)) return;
 
   // Ensure tab still exists
-  let tab: chrome.tabs.Tab;
+  let tab: Tab;
   try {
-    tab = await chrome.tabs.get(tabId);
+    tab = await browser.tabs.get(tabId);
   } catch (e) {
     return; // Tab no longer exists
   }

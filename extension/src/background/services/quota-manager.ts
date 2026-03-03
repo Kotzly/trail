@@ -1,5 +1,5 @@
 /**
- * Quota-aware wrapper for chrome.storage.local writes.
+ * Quota-aware wrapper for browser.storage.local writes.
  *
  * When a QUOTA_BYTES error is caught, the oldest non-stub archive is evicted
  * (replaced with a TreeStub) and the write is retried.
@@ -9,6 +9,7 @@ import { storage } from 'wxt/utils/storage';
 import type { TreeSummary, ArchiveIndexEntry, TreeStub } from '@shared/types/tree.js';
 import { isTreeStub } from '@shared/types/tree.js';
 import { archiveIndexItem, archiveBlobKey } from '@shared/config/storage-items.js';
+import { browser } from '@shared/platform/webext.js';
 
 function isQuotaError(error: unknown): boolean {
   const msg = String(error);

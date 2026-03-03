@@ -22,6 +22,7 @@ import {
 } from '../../services/editor-sync.js';
 import { isAllowedSiteOrigin } from '@shared/config/site-origins.js';
 import type { NavigationTreeJSON } from '@shared/types/tree.js';
+import { browser } from '@shared/platform/webext.js';
 
 /* ------------------------------------------------------------------ */
 /*  Editor mode tracking (in-memory, background service worker)        */
@@ -106,7 +107,7 @@ function registerCloneInTree(_tree: NavigationTree, _node: NavigationNode): void
  */
 async function broadcastEditorExitToSite(): Promise<void> {
   try {
-    const tabs = await chrome.tabs.query({});
+    const tabs = await browser.tabs.query({});
     const payload = {
       source: 'trail-extension',
       type: 'EDITOR_MODE_EXITED',
@@ -123,7 +124,7 @@ async function broadcastEditorExitToSite(): Promise<void> {
       }
       if (!isAllowedSiteOrigin(origin)) continue;
 
-      chrome.tabs.sendMessage(tab.id, {
+      browser.tabs.sendMessage(tab.id, {
         type: 'RELAY_TO_SITE',
         payload,
       }).catch(() => { /* tab has no content script — ignore */ });

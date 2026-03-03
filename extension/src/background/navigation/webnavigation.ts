@@ -1,17 +1,18 @@
 
 import { handleNavigation } from './navigation-handler.js';
+import { browser, type Browser } from '@shared/platform/webext.js';
 
 /**
  * Initialize webNavigation event listeners.
  */
 export function initWebNavigation(): void {
-  const listener = (details: chrome.webNavigation.WebNavigationFramedCallbackDetails) => {
+  const listener = (details: Browser.webNavigation.WebNavigationFramedCallbackDetails) => {
     handleNavigation(details).catch(() => {
       // Navigation handler error — silently ignored.
     });
   };
 
-  chrome.webNavigation.onCommitted.addListener(listener);
-  chrome.webNavigation.onHistoryStateUpdated.addListener(listener);
-  chrome.webNavigation.onReferenceFragmentUpdated.addListener(listener);
+  browser.webNavigation.onCommitted.addListener(listener);
+  browser.webNavigation.onHistoryStateUpdated.addListener(listener);
+  browser.webNavigation.onReferenceFragmentUpdated.addListener(listener);
 }

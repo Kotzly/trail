@@ -8,7 +8,7 @@ import AuthGate from './components/AuthGate.js';
 import { Toaster } from './components/ui/sonner.js';
 import { useBootstrap } from './hooks/useBootstrap.js';
 import { useAccount } from './hooks/useAccount.js';
-import { useChromeMessages } from './hooks/useChromeMessages.js';
+import { useRuntimeMessages } from './hooks/useRuntimeMessages.js';
 import { useShortcuts } from './hooks/useShortcuts.js';
 import TooltipLayer from './components/TooltipLayer.js';
 
@@ -22,7 +22,7 @@ export default function App() {
 
   useBootstrap();
   useAccount();
-  useChromeMessages();
+  useRuntimeMessages();
   listenSystemTheme();
   useShortcuts(searchInputRef);
 

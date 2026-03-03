@@ -5,12 +5,13 @@ import { rpc, type TreeUpdateReason, type TreeViewIntent, type TreesSnapshot } f
 import { NavigationTreeMapper } from '@shared/lib/mapper.js';
 import { NavigationTree } from '../state/nav-tree.js';
 import { sendRuntimeMessage } from './send-message.js';
+import { browser } from '@shared/platform/webext.js';
 
 
 // Get tab states for all open tabs.
 export async function getTabStates(): Promise<Record<NodeId, TabState>> {
   const tabStates: Record<NodeId, TabState> = {};
-  const allTabs = await chrome.tabs.query({});
+  const allTabs = await browser.tabs.query({});
   
   for (const tab of allTabs) {
     if (tab.id === undefined) continue;

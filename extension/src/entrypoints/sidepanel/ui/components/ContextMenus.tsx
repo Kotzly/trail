@@ -17,6 +17,7 @@ import { getIncludedRootId } from '../shared/delete-tree.js';
 import { getNearestCollapsedAncestorId } from '../graph/collapse-utils.js';
 
 import { toast } from 'sonner';
+import { browser, type Tab } from '@shared/platform/webext.js';
 
 type MenuPosition = { left: number; top: number; maxHeight: number };
 
@@ -215,7 +216,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const menuStyle = useMenuPosition(menuRef, position);
   const menuVars = { '--menu-max-height': `${menuStyle.maxHeight}px` } as React.CSSProperties;
   const [submenuLeft, setSubmenuLeft] = useState(false);
-  const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
+  const [tabs, setTabs] = useState<Tab[]>([]);
   const [checkedTabId, setCheckedTabId] = useState<number | null>(null);
   const checkTimeoutRef = useRef<number | null>(null);
   useEffect(() => {
@@ -387,7 +388,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                             checkTimeoutRef.current = null;
                           }, 650);
                           try {
-                            await chrome.tabs.update(tab.id, { active: true });
+                            await browser.tabs.update(tab.id, { active: true });
                           } catch (error) {
                             console.error('Failed to focus tab:', error);
                           }

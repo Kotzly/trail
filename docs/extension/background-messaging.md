@@ -29,7 +29,7 @@
 
 - **Request:** `{ type: MSG.<TYPE>, ...payload }`.  
 - **Response:** `{ success: true, data?: T }` or `{ success: false, error: string }`.  
-- Channel: `chrome.runtime.onMessage.addListener`; handler returns `true` to keep channel open for async `sendResponse`.
+- Channel: `browser.runtime.onMessage.addListener` (via `wxt/browser` wrapper); async handlers return a Promise response.
 
 ### Type safety
 
@@ -80,7 +80,7 @@ initMessaging():
     .listen()
 ```
 
-- `listen()` registers `chrome.runtime.onMessage.addListener`; `dispatch(message, sender)` looks up handler by `message.type`, runs it, returns response or err.
+- `listen()` registers `browser.runtime.onMessage.addListener`; `dispatch(message, sender)` looks up handler by `message.type`, runs it, returns response or err.
 
 ---
 
@@ -95,5 +95,11 @@ initMessaging():
 ## AI Agent Notes
 
 - Add new message: add `MSG.NEW_TYPE`, add request/response types and `ResponseDataByType`, add handler in appropriate handlers file, merge in router, call from sidepanel via sendMessage wrapper.
-- Sender: use `chrome.runtime.sendMessage(msg.xyz(...))` from sidepanel; await response for request/response. For outbound, background may use `chrome.runtime.sendMessage` to sidepanel or tabs.
+- Sender: use `browser.runtime.sendMessage(msg.xyz(...))` from sidepanel; await response for request/response. For outbound, background may use `browser.runtime.sendMessage` to sidepanel or tabs.
 - Content script: content-handlers run in content context; use for page-specific actions; messaging from content to background uses same router when message is received by extension.
+
+### Sidebar API compatibility
+
+- Chromium path: `browser.sidePanel` (open + setOptions/setPanelBehavior where available).
+- Firefox path: `browser.sidebarAction` fallback through the shared adapter.
+- Adapter location: `extension/src/shared/platform/webext.ts` (`openSidebarForTab`).

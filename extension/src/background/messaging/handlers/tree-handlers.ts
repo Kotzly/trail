@@ -20,6 +20,7 @@ import type { TrailExportBundle } from '@shared/types/export.js';
 import { EXPORT_SCHEMA } from '@shared/types/export.js';
 import { settingsManager } from '../../services/settings.js';
 import { saveOpenTabs, getOpenTabs, clearOpenTabs } from '../../services/tab-restoration.js';
+import { browser, type Tab } from '@shared/platform/webext.js';
 
 /** Mark editor sync dirty if currently in editor mode. */
 function maybeEditorDirty(): void {
@@ -63,7 +64,7 @@ function collectTabIdsForNodes(nodeIds: ForEacher<NodeId>): TabId[] {
 async function closeTabs(tabIds: TabId[], context: string): Promise<boolean> {
   if (tabIds.length === 0) return true;
   try {
-    await chrome.tabs.remove(tabIds);
+    await browser.tabs.remove(tabIds);
     return true;
   } catch (error) {
     console.error(`Failed to close tabs for ${context}:`, error);
@@ -98,7 +99,7 @@ async function buildTreesSnapshot(): Promise<TreesSnapshot> {
   };
 }
 
-function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
+function buildNodeDataFromTab(tab: Tab): NodeData | null {
   const urlCandidate = tab.url;
   const pendingCandidate = tab.pendingUrl;
   let rawUrl = urlCandidate || pendingCandidate;
@@ -116,14 +117,14 @@ function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
   } as NodeData;
 }
 
-function registerTabForNode(nodeId: NodeId, tab: chrome.tabs.Tab): void {
+function registerTabForNode(nodeId: NodeId, tab: Tab): void {
   if (tab.id === undefined) return;
   const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
   const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
   tabManager.register(nodeId, tab.id as TabId, registerOptions);
 }
 
-function ensureRootForTab(tree: NavigationTree, tab: chrome.tabs.Tab): NavigationNode | null {
+function ensureRootForTab(tree: NavigationTree, tab: Tab): NavigationNode | null {
   const root = tree.getRoot();
   const data = buildNodeDataFromTab(tab);
   if (!root) {
@@ -187,9 +188,9 @@ async function switchTree(
 
     for (const url of savedUrls) {
       const isActive = url === currentNodeUrl;
-      let tab: chrome.tabs.Tab;
+      let tab: Tab;
       try {
-        tab = await chrome.tabs.create({ url, active: isActive });
+        tab = await browser.tabs.create({ url, active: isActive });
       } catch {
         continue;
       }
@@ -208,11 +209,11 @@ async function switchTree(
     // fall back: open root URL
     if (!focusNodeId) {
       const fallbackUrl = rootUrl ?? nextTree.getRoot()?.data.url ?? null;
-      let tab: chrome.tabs.Tab;
+      let tab: Tab;
       try {
-        tab = await chrome.tabs.create(fallbackUrl ? { url: fallbackUrl, active: true } : { active: true });
+        tab = await browser.tabs.create(fallbackUrl ? { url: fallbackUrl, active: true } : { active: true });
       } catch {
-        tab = await chrome.tabs.create({});
+        tab = await browser.tabs.create({});
       }
       const rootNode = ensureRootForTab(nextTree, tab);
       if (rootNode) {
@@ -224,12 +225,12 @@ async function switchTree(
     if (treeChanged) treeStorage.cacheTree(nextTree);
   } else {
     // No saved tabs — original behaviour: open single root tab
-    let created: chrome.tabs.Tab;
+    let created: Tab;
     try {
-      created = await chrome.tabs.create(rootUrl ? { url: rootUrl, active: true } : { active: true });
+      created = await browser.tabs.create(rootUrl ? { url: rootUrl, active: true } : { active: true });
     } catch (error) {
       console.error('Failed to open root tab for tree switch:', error);
-      created = await chrome.tabs.create({});
+      created = await browser.tabs.create({});
     }
     const rootNode = ensureRootForTab(nextTree, created);
     if (rootNode) {

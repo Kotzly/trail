@@ -10,6 +10,7 @@ import type { FaviconUrl, Title, Url } from '@shared/types/ids.js';
 import { getFaviconUrl } from '@shared/utils/favicon.js';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
+import { browser } from '@shared/platform/webext.js';
 
 type TreeItem = {
   id: string;
@@ -236,7 +237,7 @@ export default function TreeDropdown() {
     try {
       await initBackendConfig();
       const baseUrl = getBackendConfig().baseUrl;
-      await chrome.tabs.create({ url: `${baseUrl}/trails/${treeId}`, active: true });
+      await browser.tabs.create({ url: `${baseUrl}/trails/${treeId}`, active: true });
     } catch (error) {
       console.error('Failed to open trail editor:', error);
     }

@@ -5,6 +5,7 @@ import { NavigationTreeJSON, TreeMeta, TreeSummary, ArchiveIndexEntry } from "..
 import type { TagDefinition } from "../types/tags.js";
 import type { TrailExportBundle } from "../types/export.js";
 import type { FlagKey, ResolvedFlags } from "../types/flags.js";
+import { type RuntimeMessageSender, type Tab } from '@shared/platform/webext.js';
 
 export const RPC_METHOD = {
     NAVIGATE_TO: 'NAVIGATE_TO',
@@ -478,7 +479,7 @@ export const rpc = {
 
 export type MessageHandler<T extends RequestType = RequestType> = (
     message: MessageByType<T>,
-    sender: chrome.runtime.MessageSender,
+    sender: RuntimeMessageSender,
 ) => Promise<ResponseMessage<T>> | ResponseMessage<T>;
 
 export type HandlerMap = Partial<{ [K in RequestType]: MessageHandler<K>}>;
@@ -512,7 +513,7 @@ export type TabsForNodeInput = {
 }
 
 export type TabsForNodeData = {
-    tabs: chrome.tabs.Tab[]
+    tabs: Tab[]
 }
 
 export type SaveSettingsInput = {

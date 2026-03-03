@@ -31,11 +31,12 @@ import { siteMessageHandlers } from "./handlers/site-message-handlers.js";
 import { editorHandlers } from "./handlers/editor-handlers.js";
 import { oauthAuthHandlers } from "./handlers/oauth-auth-handlers.js";
 import { flagsHandlers } from "./handlers/flags-handlers.js";
+import { browser, type RuntimeMessageSender } from '@shared/platform/webext.js';
 
 type AnyResponse = ResponseMessage<RequestType>;
 type AnyHandler = (
   message: RequestMessage,
-  sender: chrome.runtime.MessageSender,
+  sender: RuntimeMessageSender,
 ) => Promise<AnyResponse> | AnyResponse;
 
 function err(error: string): Err {
@@ -71,7 +72,7 @@ function createMessageRouter() {
 
   async function dispatch(
     message: RequestMessage,
-    sender: chrome.runtime.MessageSender,
+    sender: RuntimeMessageSender,
   ): Promise<AnyResponse> {
     if (!TYPED_TYPES.has(message.type)) {
       return err(`Unknown message type: ${message.type}`);
@@ -90,7 +91,7 @@ function createMessageRouter() {
 
   async function dispatchRpcEnvelope(
     rawMessage: unknown,
-    sender: chrome.runtime.MessageSender,
+    sender: RuntimeMessageSender,
   ): Promise<RpcResponseEnvelope> {
     const request = parseRpcRequestEnvelope(rawMessage);
     if (!request) {
@@ -113,12 +114,8 @@ function createMessageRouter() {
   }
 
   function listen() {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      (async () => {
-        const res = await dispatchRpcEnvelope(message, sender);
-        sendResponse(res);
-      })();
-      return true; // Keep channel open for async response
+    browser.runtime.onMessage.addListener((message, sender) => {
+      return dispatchRpcEnvelope(message, sender);
     });
   }
 

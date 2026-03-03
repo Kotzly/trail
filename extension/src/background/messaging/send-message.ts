@@ -1,4 +1,5 @@
 import type { RequestMessage } from '@shared/rpc/contracts.js';
+import { browser } from '@shared/platform/webext.js';
 
 const IGNORED_ERRORS = [
   'Receiving end does not exist',
@@ -11,10 +12,9 @@ function shouldIgnoreRuntimeError(message: string | undefined): boolean {
 }
 
 export function sendRuntimeMessage(message: RequestMessage): void {
-  chrome.runtime.sendMessage(message, () => {
-    const err = chrome.runtime.lastError;
-    if (!err) return;
-    if (shouldIgnoreRuntimeError(err.message)) return;
-    console.error('Failed to send runtime message:', message.type, err);
+  void browser.runtime.sendMessage(message).catch((error) => {
+    const errMessage = error instanceof Error ? error.message : String(error);
+    if (shouldIgnoreRuntimeError(errMessage)) return;
+    console.error('Failed to send runtime message:', message.type, error);
   });
 }

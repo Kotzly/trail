@@ -15,6 +15,7 @@ import {
   type WorldRect,
 } from './view-invalidation.js';
 import { diffSelection, shouldEmitPreview } from '../../components/graph/selection-utils.js';
+import { hasRuntimeGetURL, runtimeGetURL } from '@shared/platform/webext.js';
 
 type RenderData = {
   nodes: NodeRenderModel[];
@@ -1586,8 +1587,8 @@ function loadFaviconTexture(url: FaviconUrl): Promise<PIXI.Texture | null> {
 
 function getExtensionBaseUrl(): string | null {
   try {
-    if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
-      return chrome.runtime.getURL('');
+    if (hasRuntimeGetURL()) {
+      return runtimeGetURL('');
     }
   } catch {
     // ignore

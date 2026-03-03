@@ -24,6 +24,7 @@ import { syncApi, SyncApiError, isAuthenticated } from './api.js';
 import type { IndexSyncMeta } from './api.js';
 import { dirtyTracker } from './dirty-tracker.js';
 import { migrateV2ToV3 } from './migration.js';
+import { browser } from '@shared/platform/webext.js';
 import {
   activeTreeItem,
   activeTreeMetaItem,
@@ -111,11 +112,11 @@ class SyncEngine {
     archiveIndexItem.watch(onMutation);
 
     // Periodic alarm
-    chrome.alarms?.onAlarm.addListener((alarm) => {
+    browser.alarms?.onAlarm.addListener((alarm) => {
       if (alarm.name !== SYNC_ALARM_NAME) return;
       void this.syncNow('alarm');
     });
-    chrome.alarms?.create(SYNC_ALARM_NAME, { periodInMinutes: SYNC_ALARM_MINUTES });
+    browser.alarms?.create(SYNC_ALARM_NAME, { periodInMinutes: SYNC_ALARM_MINUTES });
 
     // Initial sync after startup
     this.schedule(1000);

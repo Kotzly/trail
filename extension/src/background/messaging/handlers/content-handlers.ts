@@ -7,8 +7,9 @@ import { RPC_METHOD, defineRpcHandlers } from "@shared/rpc/contracts.js";
 import { ok, err } from "@shared/rpc/contracts.js";
 import type { FaviconUrl, TabId, Title, Url } from "@shared/types/ids.js";
 import { createUrlKey } from "@shared/lib/url-key.js";
+import { type RuntimeMessageSender, type Tab } from '@shared/platform/webext.js';
 
-function getSenderTabId(sender: chrome.runtime.MessageSender): TabId | null {
+function getSenderTabId(sender: RuntimeMessageSender): TabId | null {
   const id = sender.tab?.id;
   return id as TabId | null;
 }

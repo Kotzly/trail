@@ -2,6 +2,7 @@ import type { NodeId, TabId } from "@shared/types/ids.js";
 import { NavigationTree } from "./nav-tree.js";
 import { TabIndex } from "./tab-index.js";
 import { LruManager } from "./tab-lru.js";
+import { browser } from '@shared/platform/webext.js';
 
 export class TabManager {
     private index: TabIndex;
@@ -205,7 +206,7 @@ export class TabManager {
         if (options?.activeTabIds && options.activeTabIds.has(tabId)) continue;
         if (options?.skipLoading) {
           try {
-            const tab = await chrome.tabs.get(tabId);
+            const tab = await browser.tabs.get(tabId);
             if (tab.status === 'loading') continue;
           } catch {
             this.unregister(tabId);
@@ -219,7 +220,7 @@ export class TabManager {
       if (!tabIdToClose) return null; // All tabs are pinned
 
       try {
-        await chrome.tabs.remove(tabIdToClose);
+        await browser.tabs.remove(tabIdToClose);
         this.unregister(tabIdToClose);
         return tabIdToClose;
       } catch {

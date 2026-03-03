@@ -1,4 +1,5 @@
 import type { AccountSnapshot, Plan } from "@shared/types/account.js";
+import { browser } from '@shared/platform/webext.js';
 import {
   BACKEND_CONFIG,
   buildBackendUrl,
@@ -112,13 +113,13 @@ class AccountKeeper {
     if (this.initialized) return;
     this.initialized = true;
 
-    chrome.alarms.onAlarm.addListener((alarm) => {
+    browser.alarms.onAlarm.addListener((alarm) => {
       if (alarm.name === ALARM_NAME) {
         void this.refreshSnapshot();
       }
     });
 
-    void chrome.alarms.create(ALARM_NAME, {
+    void browser.alarms.create(ALARM_NAME, {
       periodInMinutes: REFRESH_INTERVAL_MINUTES,
     });
 

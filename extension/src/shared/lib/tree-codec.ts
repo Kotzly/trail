@@ -1,13 +1,14 @@
 /**
  * Tree codec: compact tuple format + gzip compression.
  *
- * Used for persisting archived trees in chrome.storage.local.
+ * Used for persisting archived trees in browser.storage.local.
  * Active tree stays as plain NavigationTreeJSON for fast read/write.
  */
 
 import { gzipSync, gunzipSync } from 'fflate';
 import { toCompact, fromCompact } from './compact-mapper.js';
 import type { NavigationTreeJSON } from '../types/tree.js';
+import { browser } from '@shared/platform/webext.js';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

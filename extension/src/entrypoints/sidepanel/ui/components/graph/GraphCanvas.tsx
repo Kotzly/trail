@@ -33,6 +33,7 @@ import {
 } from '../../graph/render/GraphPixiRenderer.js';
 import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
 import { computeGraphGridTransform } from './grid-transform.js';
+import { browser, runtimeGetURL } from '@shared/platform/webext.js';
 import {
   buildPreviewSelection,
   shouldEmitPreview,
@@ -2514,17 +2515,17 @@ export default function GraphCanvas({
           fullViewEnabled={fullViewEnabled}
           onOpenFullView={async () => {
             try {
-              const fullViewUrl = chrome.runtime.getURL('fullview.html');
-              const existing = await chrome.tabs.query({ url: fullViewUrl });
+              const fullViewUrl = runtimeGetURL('fullview.html');
+              const existing = await browser.tabs.query({ url: fullViewUrl });
               const tab = existing.find((t) => t.active) ?? existing[0];
               if (tab?.id != null) {
                 if (tab.windowId != null) {
-                  await chrome.windows.update(tab.windowId, { focused: true });
+                  await browser.windows.update(tab.windowId, { focused: true });
                 }
-                await chrome.tabs.update(tab.id, { active: true });
-                await chrome.tabs.reload(tab.id);
+                await browser.tabs.update(tab.id, { active: true });
+                await browser.tabs.reload(tab.id);
               } else {
-                await chrome.tabs.create({ url: fullViewUrl, active: true });
+                await browser.tabs.create({ url: fullViewUrl, active: true });
               }
             } catch (error) {
               console.error('Failed to open full view:', error);

@@ -2,9 +2,10 @@ import { NodeId, TabId, Title, Url } from "@shared/types/ids.js";
 import { rpc } from "@shared/rpc/contracts.js";
 import { fireAndForget } from "./background.js";
 import { tabManager } from "@background/state/tab-manager.js";
+import { browser, type Tab } from '@shared/platform/webext.js';
 
-export async function getCurrentTab(): Promise<chrome.tabs.Tab | undefined> {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+export async function getCurrentTab(): Promise<Tab | undefined> {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
     return tabs[0];
 }
 

@@ -8,9 +8,10 @@ import { syncTabTitleFavicon, syncTabAudioState } from './tab-sync.js';
 import { NodeData } from '@shared/types/node.js';
 import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from '../utils/url-utils.js';
 import { handleNewTabTab } from '../utils/new-tab.js';
+import { browser, type Browser, type Tab } from '@shared/platform/webext.js';
 
 
-async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
+async function onTabCreated(tab: Tab): Promise<void> {
   if (!tab.id) return;
   if (tabManager.isIgnoredTab(tab.id as TabId)) return;
   const nodeId = tabManager.nodeByTab(tab.id as TabId);
@@ -38,12 +39,12 @@ async function onTabCreated(tab: chrome.tabs.Tab): Promise<void> {
   await notifyTreeUpdate(tree, 'tabs');
 }
 
-export async function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
-  const active = await chrome.tabs.query({ active: true, currentWindow: true });
+export async function getActiveTab(): Promise<Tab | undefined> {
+  const active = await browser.tabs.query({ active: true, currentWindow: true });
   return active[0];
 }
 
-async function onTabRemoved(tabId_: number, _: chrome.tabs.OnRemovedInfo): Promise<void> {
+async function onTabRemoved(tabId_: number, _: Browser.tabs.OnRemovedInfo): Promise<void> {
   const tabId = tabId_ as TabId;
 
   const tree = await treeStorage.getOrCreateTree();
@@ -60,7 +61,7 @@ async function onTabRemoved(tabId_: number, _: chrome.tabs.OnRemovedInfo): Promi
   treeStorage.cacheTree(tree);
 }
 
-async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<void> {
+async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise<void> {
     const tabId = activeInfo.tabId as TabId;
     if (tabManager.isIgnoredTab(tabId)) return;
 
@@ -69,7 +70,7 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
 
     if (nodeId === undefined) {
         try {
-            const tab = await chrome.tabs.get(tabId);
+            const tab = await browser.tabs.get(tabId);
             if (!tab.url) return;
             const url = tab.url as Url;
             if (isNewTabContext(url, tab.title)) {
@@ -119,9 +120,9 @@ async function onTabActivated(activeInfo: chrome.tabs.OnActivatedInfo): Promise<
 }
 
 async function onWindowFocusChanged(windowId: number): Promise<void> {
-    if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+    if (windowId === browser.windows.WINDOW_ID_NONE) return;
 
-    const [activeTab] = await chrome.tabs.query({ active: true, windowId });
+    const [activeTab] = await browser.tabs.query({ active: true, windowId });
     if (!activeTab?.id) return;
 
     const tabId = activeTab.id as TabId;
@@ -130,7 +131,7 @@ async function onWindowFocusChanged(windowId: number): Promise<void> {
     await onTabActivated({ tabId: activeTab.id, windowId });
 }
 
-async function onTabUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab): Promise<void> {
+async function onTabUpdated(tabId: number, changeInfo: Browser.tabs.OnUpdatedInfo, tab: Tab): Promise<void> {
     if (tabManager.isIgnoredTab(tabId as TabId)) return;
     if (changeInfo.audible || changeInfo.mutedInfo) {
         await syncTabAudioState(tabId as TabId, changeInfo, tab);
@@ -145,9 +146,9 @@ async function onTabUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo
 
 
 export function initTabsLifecycle(): void {
-    chrome.tabs.onCreated.addListener(onTabCreated);
-    chrome.tabs.onRemoved.addListener(onTabRemoved);
-    chrome.tabs.onActivated.addListener(onTabActivated);
-    chrome.tabs.onUpdated.addListener(onTabUpdated);
-    chrome.windows.onFocusChanged.addListener(onWindowFocusChanged);
+    browser.tabs.onCreated.addListener(onTabCreated);
+    browser.tabs.onRemoved.addListener(onTabRemoved);
+    browser.tabs.onActivated.addListener(onTabActivated);
+    browser.tabs.onUpdated.addListener(onTabUpdated);
+    browser.windows.onFocusChanged.addListener(onWindowFocusChanged);
 }

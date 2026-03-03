@@ -8,6 +8,7 @@ import {
 import { notifyUi } from "../messaging/ui-notifications.js";
 import { syncEngine } from "./sync/engine.js";
 import { accountKeeper } from "./account-keeper.js";
+import { browser } from '@shared/platform/webext.js';
 
 const AUTH_REFRESH_ALARM = "trail-auth-refresh" as const;
 const AUTH_REFRESH_INTERVAL_MINUTES = 2;
@@ -198,17 +199,17 @@ class AuthOrchestrator {
     if (this.initialized) return;
     this.initialized = true;
 
-    chrome.alarms.onAlarm.addListener((alarm) => {
+    browser.alarms.onAlarm.addListener((alarm) => {
       if (alarm.name === AUTH_REFRESH_ALARM) {
         void this.silentSync();
       }
     });
 
-    void chrome.alarms.create(AUTH_REFRESH_ALARM, {
+    void browser.alarms.create(AUTH_REFRESH_ALARM, {
       periodInMinutes: AUTH_REFRESH_INTERVAL_MINUTES,
     });
 
-    chrome.webNavigation.onCommitted.addListener((details) => {
+    browser.webNavigation.onCommitted.addListener((details) => {
       if (details.frameId !== 0 || !details.url) {
         return;
       }
@@ -256,7 +257,7 @@ class AuthOrchestrator {
     callbackUrl.searchParams.set("source", "extension");
 
     try {
-      await chrome.tabs.create({ url: callbackUrl.toString(), active: true });
+      await browser.tabs.create({ url: callbackUrl.toString(), active: true });
       logAuth("opened_login_tab", { url: callbackUrl.toString() });
       this.clearLoginRequiredCooldown();
       this.scheduleSilentSync({ force: true });
