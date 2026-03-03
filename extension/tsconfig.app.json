@@ -5,11 +5,5 @@
     "types": ["chrome", "vite/client"],
     "noEmit": true
   },
-  "include": [
-    "src/entrypoints/sidepanel/**/*",
-    "src/entrypoints/fullview/**/*",
-    "src/entrypoints/content-ui/**/*",
-    "src/ui-core/**/*",
-    "src/features/**/*"
-  ]
+  "include": ["src/**/*"]
 }

@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import type { FaviconUrl, NodeId, Timestamp, Url } from '../../../../shared/types/ids.js';
-import { getFaviconUrl } from '../../../../shared/utils/favicon.js';
+import { memo, useMemo, useState, type ReactNode } from 'react';
+import type { FaviconUrl, NodeId, Timestamp, Url } from '@shared/types/ids.js';
+import { getFaviconUrl } from '@shared/utils/favicon.js';
 import type { NavigationTree } from '../../../../background/state/nav-tree.js';
 import { formatTime, formatUrl } from '../shared/format.js';
 import { Icons } from './Icon.js';
@@ -73,7 +73,7 @@ type SearchResultRowProps = {
   onSelect: (id: NodeId) => void;
 };
 
-const SearchResultRow = React.memo(function SearchResultRow({
+const SearchResultRow = memo(function SearchResultRow({
   item,
   query,
   isActive,
@@ -105,7 +105,7 @@ const SearchResultRow = React.memo(function SearchResultRow({
   );
 });
 
-function renderHighlight(text: string, query: string): React.ReactNode {
+function renderHighlight(text: string, query: string): ReactNode {
   const tokens = query.trim().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return text;
   const escaped = tokens.map(escapeRegExp);

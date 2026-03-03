@@ -47,7 +47,7 @@
   --scrollbar-thumb-hover: rgba(var(--primary-rgb), 0.4);
 
   /* Grain & texture (used by theme editor) */
-  --trail-grain-image: url("/grain-bg.png");
+  --trail-grain-image: url("/public/grain-bg.png");
   --trail-grain-size: 220px 220px;
   --trail-grain-blend-mode: overlay;
 
