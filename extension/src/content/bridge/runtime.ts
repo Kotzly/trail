@@ -347,16 +347,18 @@ function handleBackgroundRelay(): void {
         [key: string]: unknown;
       },
       _sender: RuntimeMessageSender,
+      sendResponse: (response: unknown) => void,
     ) => {
       // Only handle relay messages from background → site.
-      if (message.type !== "RELAY_TO_SITE") return;
+      if (message.type !== "RELAY_TO_SITE") return false;
 
       const payload = message.payload as Record<string, unknown> | undefined;
-      if (!payload) return;
+      if (!payload) return false;
 
       const targetOrigin = window.location.origin;
       if (!isAllowedSiteOrigin(targetOrigin)) {
-        return Promise.resolve({ success: false, error: "origin_not_allowed" });
+        sendResponse({ success: false, error: "origin_not_allowed" });
+        return false;
       }
 
       const expectedType =
@@ -370,55 +372,57 @@ function handleBackgroundRelay(): void {
 
       if (!expectedType) {
         postExtensionMessage(payload, targetOrigin);
-        return Promise.resolve({ success: true });
+        sendResponse({ success: true });
+        return false;
       }
 
       const relayRequestId =
         typeof payload.requestId === "string" ? payload.requestId : null;
       if (!relayRequestId) {
-        return Promise.resolve({ success: false, error: "missing_request_id" });
+        sendResponse({ success: false, error: "missing_request_id" });
+        return false;
       }
 
-      return new Promise((resolve) => {
-        let done = false;
-        let timer: ReturnType<typeof setTimeout> | null = null;
+      // Async path: wait for site response then sendResponse
+      let done = false;
+      let timer: ReturnType<typeof setTimeout> | null = null;
 
-        const finish = (response: unknown) => {
-          if (done) return;
-          done = true;
-          window.removeEventListener("message", onSiteResponse);
-          if (timer) {
-            clearTimeout(timer);
-          }
-          resolve(response);
-        };
+      const finish = (response: unknown) => {
+        if (done) return;
+        done = true;
+        window.removeEventListener("message", onSiteResponse);
+        if (timer) {
+          clearTimeout(timer);
+        }
+        sendResponse(response);
+      };
 
-        const onSiteResponse = (event: MessageEvent) => {
-          if (event.source !== window) return;
-          if (event.origin !== targetOrigin) return;
+      const onSiteResponse = (event: MessageEvent) => {
+        if (event.source !== window) return;
+        if (event.origin !== targetOrigin) return;
 
-          const siteMessage = validateSiteMessage(event.data);
-          if (!siteMessage) return;
-          const age = Date.now() - siteMessage.timestamp;
-          if (age > MESSAGE_TTL_MS || age < -MESSAGE_TTL_MS) return;
-          if (siteMessage.type !== expectedType) return;
-          if (siteMessage.requestId !== relayRequestId) return;
+        const siteMessage = validateSiteMessage(event.data);
+        if (!siteMessage) return;
+        const age = Date.now() - siteMessage.timestamp;
+        if (age > MESSAGE_TTL_MS || age < -MESSAGE_TTL_MS) return;
+        if (siteMessage.type !== expectedType) return;
+        if (siteMessage.requestId !== relayRequestId) return;
 
-          finish({
-            success: true,
-            data: {
-              responsePayload: siteMessage,
-            },
-          });
-        };
+        finish({
+          success: true,
+          data: {
+            responsePayload: siteMessage,
+          },
+        });
+      };
 
-        window.addEventListener("message", onSiteResponse);
-        timer = setTimeout(() => {
-          finish({ success: false, error: "relay_timeout" });
-        }, timeoutMs);
+      window.addEventListener("message", onSiteResponse);
+      timer = setTimeout(() => {
+        finish({ success: false, error: "relay_timeout" });
+      }, timeoutMs);
 
-        postExtensionMessage(payload, targetOrigin);
-      });
+      postExtensionMessage(payload, targetOrigin);
+      return true; // keep channel open for async sendResponse
     },
   );
 }
