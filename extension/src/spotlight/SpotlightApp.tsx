@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { fetchSpotlightData } from './rpc.js';
 import { SpotlightOverlay } from './SpotlightOverlay.js';
+import { generateThemeTokens, THEME_TOKEN_KEYS } from '@entrypoints/sidepanel/ui/shared/theme-generator.js';
 import type { SpotlightData } from './types.js';
 
 type SpotlightAppProps = {
@@ -60,6 +61,17 @@ export function SpotlightApp({ onRegisterToggle }: SpotlightAppProps) {
     };
   }, [isOpen]);
 
+  // Compute theme CSS tokens from settings
+  const themeTokens = useMemo(() => {
+    const settings = data?.settings;
+    if (!settings) return null;
+    const { theme, customTheme } = settings;
+    const hasVisualContent =
+      (customTheme?.dots?.length ?? 0) > 0 || (customTheme?.customColors?.length ?? 0) > 0;
+    if (!customTheme?.enabled || !hasVisualContent) return null;
+    return generateThemeTokens(customTheme, theme);
+  }, [data?.settings]);
+
   if (!isOpen) return null;
 
   return (
@@ -67,6 +79,7 @@ export function SpotlightApp({ onRegisterToggle }: SpotlightAppProps) {
       data={data}
       loading={loading}
       onClose={close}
+      themeTokens={themeTokens}
     />
   );
 }

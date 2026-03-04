@@ -10,13 +10,25 @@ type SpotlightOverlayProps = {
   data: SpotlightData | null;
   loading: boolean;
   onClose: () => void;
+  themeTokens: Record<string, string> | null;
 };
 
-export function SpotlightOverlay({ data, loading, onClose }: SpotlightOverlayProps) {
+export function SpotlightOverlay({ data, loading, onClose, themeTokens }: SpotlightOverlayProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [visible, setVisible] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  // Apply theme CSS custom properties to the Shadow DOM subtree
+  useEffect(() => {
+    const el = backdropRef.current;
+    if (!el) return;
+    if (!themeTokens) return;
+    for (const [key, value] of Object.entries(themeTokens)) {
+      el.style.setProperty(key, value);
+    }
+  }, [themeTokens]);
 
   // Filter suggestions based on query
   const filteredSuggestions = filterSuggestions(data?.suggestions ?? [], query);
@@ -92,6 +104,7 @@ export function SpotlightOverlay({ data, loading, onClose }: SpotlightOverlayPro
     <AnimatePresence>
       {visible && (
         <motion.div
+          ref={backdropRef}
           className="spotlight-backdrop"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -101,50 +114,55 @@ export function SpotlightOverlay({ data, loading, onClose }: SpotlightOverlayPro
           onKeyDown={handleKeyDown}
         >
           <motion.div
-            className="spotlight-modal"
+            className="spotlight-container"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* Left Panel */}
-            <div className="spotlight-left">
-              <div className="spotlight-search">
-                <SearchIcon />
-                <input
-                  ref={inputRef}
-                  className="spotlight-search-input"
-                  type="text"
-                  placeholder="Search pages..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </div>
-              {loading ? (
-                <div className="spotlight-empty">Loading...</div>
-              ) : filteredSuggestions.length === 0 ? (
-                <div className="spotlight-empty">No results found</div>
-              ) : (
-                <SuggestionList
-                  suggestions={filteredSuggestions}
-                  selectedIndex={selectedIndex}
-                  onSelect={(index) => setSelectedIndex(index)}
-                  onActivate={(suggestion) => void handleNavigate(suggestion)}
-                />
-              )}
+            {/* Search Bar (floating pill) */}
+            <div className="spotlight-search">
+              <SearchIcon />
+              <input
+                ref={inputRef}
+                className="spotlight-search-input"
+                type="text"
+                placeholder="Search pages..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
             </div>
 
-            {/* Right Panel */}
-            <div className="spotlight-right">
-              <SpotlightGraphFrame
-                highlightNodeId={selectedSuggestion?.nodeId ?? null}
-                onNavigate={(nodeId, url) => {
-                  void navigateToNode(nodeId, url);
-                  handleClose();
-                }}
-              />
+            {/* Panels Row */}
+            <div className="spotlight-panels">
+              {/* Left: Suggestions */}
+              <div className="spotlight-left">
+                {loading ? (
+                  <div className="spotlight-empty">Loading...</div>
+                ) : filteredSuggestions.length === 0 ? (
+                  <div className="spotlight-empty">No results found</div>
+                ) : (
+                  <SuggestionList
+                    suggestions={filteredSuggestions}
+                    selectedIndex={selectedIndex}
+                    onSelect={(index) => setSelectedIndex(index)}
+                    onActivate={(suggestion) => void handleNavigate(suggestion)}
+                  />
+                )}
+              </div>
+
+              {/* Right: Graph */}
+              <div className="spotlight-right">
+                <SpotlightGraphFrame
+                  highlightNodeId={selectedSuggestion?.nodeId ?? null}
+                  onNavigate={(nodeId, url) => {
+                    void navigateToNode(nodeId, url);
+                    handleClose();
+                  }}
+                />
+              </div>
             </div>
           </motion.div>
         </motion.div>
