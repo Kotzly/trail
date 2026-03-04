@@ -110,23 +110,26 @@ function balancedCenterOrder<T>(
 }
 
 // ---------------------------------------------------------------------------
-// Incremental center reorder
+// Incremental reorder (shared infrastructure)
 // ---------------------------------------------------------------------------
 
+type GravityStrategy = 'center' | 'cluster';
+
 /**
- * Incrementally reorder children toward their ideal score-based positions.
+ * Shared incremental reorder engine.
  *
- * Instead of recomputing positions from scratch (which causes dramatic jumps),
- * this starts from the previous order and applies limited adjacent swaps.
+ * Starts from the previous sibling order and applies bounded adjacent swaps
+ * to move high-scoring children toward a gravity point.
  *
- * Movement is bounded: nodes near the center can move at most 1 position,
- * nodes near the edges can move more (proportional to their distance from center).
+ * - `'center'` strategy: gravity = array midpoint (for tree/mindmap)
+ * - `'cluster'` strategy: gravity = position of highest-scoring node (for radial)
  */
-export function incrementalCenterReorder(
+function incrementalReorder(
   children: NavigationNode[],
   scores: Map<NodeId, number>,
   previousOrder: NodeId[] | null | undefined,
-  subtreeSpans?: Map<NodeId, number> | null,
+  subtreeSpans: Map<NodeId, number> | null | undefined,
+  strategy: GravityStrategy,
 ): NavigationNode[] {
   if (children.length <= 1) return children;
 
@@ -159,34 +162,47 @@ export function incrementalCenterReorder(
     }
 
     if (newChildren.length > 0) {
-      // Sort new children by score descending, then interleave at edges
       newChildren.sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
-      // Append at end (edges) — they'll bubble inward via future updates
       current = [...kept, ...newChildren];
     } else {
       current = kept;
     }
   } else {
-    // No previous order — use balanced center order for initial placement
+    // No previous order — initial placement depends on strategy
     const sorted = [...children].sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
     if (children.length === 2) return sorted;
-    return balancedCenterOrder(sorted, (node) => subtreeSpans?.get(node.id) ?? 1);
+    if (strategy === 'center') {
+      return balancedCenterOrder(sorted, (node) => subtreeSpans?.get(node.id) ?? 1);
+    }
+    // 'cluster': sorted descending keeps high-score nodes adjacent
+    return sorted;
   }
 
   if (current.length <= 2) {
-    // For 2 children, just sort by score
     current.sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
     return current;
   }
 
-  // Compute max swaps allowed per position.
-  // Center positions get 1, edges get more.
+  // Compute gravity point
   const len = current.length;
-  const centerIdx = len >> 1;
+  let gravityIdx: number;
+  if (strategy === 'center') {
+    gravityIdx = len >> 1;
+  } else {
+    // 'cluster': gravity = position of highest-scoring node
+    gravityIdx = 0;
+    let maxScore = -1;
+    for (let i = 0; i < len; i++) {
+      const s = scores.get(current[i]!.id) ?? 0;
+      if (s > maxScore) {
+        maxScore = s;
+        gravityIdx = i;
+      }
+    }
+  }
 
   function maxSwapsAt(idx: number): number {
-    const distFromCenter = Math.abs(idx - centerIdx);
-    return Math.max(1, distFromCenter);
+    return Math.max(1, Math.abs(idx - gravityIdx));
   }
 
   // Track how many times each node has moved this round
@@ -205,12 +221,10 @@ export function incrementalCenterReorder(
       const scoreA = scores.get(a.id) ?? 0;
       const scoreB = scores.get(b.id) ?? 0;
 
-      // Should b be ahead of a? (higher score should be closer to center)
-      // "Closer to center" means closer to centerIdx
-      const distA = Math.abs(i - centerIdx);
-      const distB = Math.abs(i + 1 - centerIdx);
+      const distA = Math.abs(i - gravityIdx);
+      const distB = Math.abs(i + 1 - gravityIdx);
 
-      // Only swap if b has higher score AND b is currently farther from center
+      // Swap if b has higher score AND is currently farther from gravity
       if (scoreB > scoreA && distB >= distA) {
         const movesA = moveCount.get(a.id) ?? 0;
         const movesB = moveCount.get(b.id) ?? 0;
@@ -231,8 +245,8 @@ export function incrementalCenterReorder(
       const scoreA = scores.get(a.id) ?? 0;
       const scoreB = scores.get(b.id) ?? 0;
 
-      const distA = Math.abs(i - centerIdx);
-      const distB = Math.abs(i + 1 - centerIdx);
+      const distA = Math.abs(i - gravityIdx);
+      const distB = Math.abs(i + 1 - gravityIdx);
 
       if (scoreA > scoreB && distA >= distB) {
         const movesA = moveCount.get(a.id) ?? 0;
@@ -251,6 +265,40 @@ export function incrementalCenterReorder(
   }
 
   return current;
+}
+
+// ---------------------------------------------------------------------------
+// Public reorder functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Incremental center-weighted reorder (for tree/mindmap layouts).
+ *
+ * Gravity = array midpoint. High-scoring nodes migrate toward the visual center.
+ */
+export function incrementalCenterReorder(
+  children: NavigationNode[],
+  scores: Map<NodeId, number>,
+  previousOrder: NodeId[] | null | undefined,
+  subtreeSpans?: Map<NodeId, number> | null,
+): NavigationNode[] {
+  return incrementalReorder(children, scores, previousOrder, subtreeSpans, 'center');
+}
+
+/**
+ * Incremental cluster reorder (for radial layout).
+ *
+ * Gravity = position of the highest-scoring node. Active nodes cluster
+ * together around the most active one, which is what matters in radial
+ * layouts where all angular positions are equivalent.
+ */
+export function incrementalClusterReorder(
+  children: NavigationNode[],
+  scores: Map<NodeId, number>,
+  previousOrder: NodeId[] | null | undefined,
+  subtreeSpans?: Map<NodeId, number> | null,
+): NavigationNode[] {
+  return incrementalReorder(children, scores, previousOrder, subtreeSpans, 'cluster');
 }
 
 // ---------------------------------------------------------------------------

@@ -4,8 +4,8 @@ import type { NavigationNode } from '../src/shared/types/node.js';
 import {
   computeSubtreeScores,
   computeNodeScore,
-  recencySortChildrenV2,
   incrementalCenterReorder,
+  incrementalClusterReorder,
   SCORE_FREQ_WEIGHT,
   SCORE_RECENCY_WEIGHT,
   SCORE_RECENCY_DECAY_MS,
@@ -94,7 +94,7 @@ function testTwoChildrenSort(): void {
   const b = makeNode(2);
   const scores = new Map<NodeId, number>([[a.id, 50], [b.id, 100]]);
 
-  const result = recencySortChildrenV2(asNav([a, b]), scores);
+  const result = incrementalCenterReorder(asNav([a, b]), scores, null);
   assert.equal(result[0]?.id, b.id, '2 children: higher score first');
   console.log('  twoChildren: OK');
 }
@@ -238,6 +238,96 @@ function testEqualScoresPreserveOrder(): void {
 }
 
 // ---------------------------------------------------------------------------
+// incrementalClusterReorder - active nodes at opposite ends converge
+// ---------------------------------------------------------------------------
+
+function testClusterConvergence(): void {
+  // 7 nodes, indices 0–6. Nodes 0 and 6 have high scores (user switches between them).
+  const nodes = Array.from({ length: 7 }, (_, i) => makeNode(i));
+  const scores = new Map<NodeId, number>(
+    nodes.map((n, i) => [n.id, i === 0 || i === 6 ? 500 : 10]),
+  );
+
+  let order: NodeId[] = nodes.map((n) => n.id);
+  let current = asNav(nodes);
+
+  // Run iterations — nodes 0 and 6 should become adjacent
+  for (let i = 0; i < 15; i++) {
+    const result = incrementalClusterReorder(current, scores, order);
+    order = result.map((n) => n.id);
+    current = result;
+  }
+
+  const idx0 = order.indexOf(nodes[0]!.id);
+  const idx6 = order.indexOf(nodes[6]!.id);
+  const gap = Math.abs(idx0 - idx6);
+  assert(gap <= 1, `cluster convergence: active nodes gap=${gap}, expected <=1`);
+  console.log('  clusterConvergence: OK');
+}
+
+// ---------------------------------------------------------------------------
+// incrementalClusterReorder - gravity node (highest score) stays stable
+// ---------------------------------------------------------------------------
+
+function testClusterGravityStability(): void {
+  const nodes = [makeNode(1), makeNode(2), makeNode(3), makeNode(4), makeNode(5)];
+  // Node 3 (index 2) is the anchor with highest score
+  const scores = new Map<NodeId, number>([
+    [nodes[0]!.id, 10],
+    [nodes[1]!.id, 20],
+    [nodes[2]!.id, 500], // gravity anchor
+    [nodes[3]!.id, 40],
+    [nodes[4]!.id, 30],
+  ]);
+
+  const previousOrder = nodes.map((n) => n.id);
+  const result = incrementalClusterReorder(asNav(nodes), scores, previousOrder);
+  const resultIds = ids(result);
+
+  // The anchor (id=3) was at index 2, should not move
+  const anchorIdx = resultIds.indexOf(3);
+  assert.equal(anchorIdx, 2, 'gravity anchor should stay at its position');
+  console.log('  clusterGravityStability: OK');
+}
+
+// ---------------------------------------------------------------------------
+// incrementalClusterReorder - initial placement sorts descending
+// ---------------------------------------------------------------------------
+
+function testClusterInitialPlacement(): void {
+  const nodes = [makeNode(1), makeNode(2), makeNode(3), makeNode(4), makeNode(5)];
+  const scores = new Map<NodeId, number>([
+    [nodes[0]!.id, 100],
+    [nodes[1]!.id, 500],
+    [nodes[2]!.id, 300],
+    [nodes[3]!.id, 200],
+    [nodes[4]!.id, 400],
+  ]);
+
+  // No previous order → should return sorted descending by score
+  const result = incrementalClusterReorder(asNav(nodes), scores, null);
+  const resultIds = ids(result);
+  assert.deepEqual(resultIds, [2, 5, 3, 4, 1], 'cluster initial: sorted descending by score');
+  console.log('  clusterInitialPlacement: OK');
+}
+
+// ---------------------------------------------------------------------------
+// incrementalClusterReorder - equal scores preserve order
+// ---------------------------------------------------------------------------
+
+function testClusterEqualScores(): void {
+  const nodes = [makeNode(1), makeNode(2), makeNode(3), makeNode(4)];
+  const previousOrder = nodes.map((n) => n.id);
+  const scores = new Map<NodeId, number>(
+    nodes.map((n) => [n.id, 100]),
+  );
+
+  const result = incrementalClusterReorder(asNav(nodes), scores, previousOrder);
+  assert.deepEqual(ids(result), ids(asNav(nodes)), 'cluster: equal scores preserve order');
+  console.log('  clusterEqualScores: OK');
+}
+
+// ---------------------------------------------------------------------------
 // Run all tests
 // ---------------------------------------------------------------------------
 
@@ -251,6 +341,10 @@ function run(): void {
   testConvergence();
   testAddRemoveChildren();
   testEqualScoresPreserveOrder();
+  testClusterConvergence();
+  testClusterGravityStability();
+  testClusterInitialPlacement();
+  testClusterEqualScores();
 }
 
 run();

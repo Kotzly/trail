@@ -102,7 +102,7 @@ export async function notifyTreeUpdate(
   }
 
   // Debounce: keep latest args, send after DEBOUNCE_MS of quiet
-  pendingArgs = { tree, reason, view };
+  pendingArgs = { tree, reason, ...(view ? { view } : {}) };
   if (!debounceTimer) {
     debounceTimer = setTimeout(async () => {
       const args = pendingArgs;

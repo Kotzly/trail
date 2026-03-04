@@ -26,7 +26,8 @@ import { deriveLayoutOptions } from '../../graph/layout/options.js';
 import {
   computeSubtreeScores,
   computeNodeScore,
-  recencySortChildrenV2,
+  incrementalCenterReorder,
+  incrementalClusterReorder,
 } from '@shared/lib/recency.js';
 import type { CanvasBounds, LayoutMode, NodePosition, ViewState } from '../../graph/types.js';
 import { createAnimationSpec, easeOutCubic, getAnimationProgress, lerp } from '../../graph/animation-utils.js';
@@ -676,17 +677,19 @@ export default function GraphCanvas({
     return computeSubtreeSpans(root, getBaseVisibleChildren, baseSep);
   }, [root, subtreeScores, getBaseVisibleChildren, baseLayoutConfig.nodeWidth, baseLayoutConfig.horizontalGap, recencyOrderingV2Enabled]);
 
+  const reorderFn = layoutOptions.mode === 'radial'
+    ? incrementalClusterReorder
+    : incrementalCenterReorder;
+
   const sortChildrenForParentKey = useCallback(
     (parentKey: string, children: NavigationNode[]): NavigationNode[] => {
       if (!recencyOrderingV2Enabled || !subtreeScores || children.length <= 1) return children;
       const previousSiblingOrder = previousSiblingOrderRef.current.get(parentKey);
-      const sorted = recencySortChildrenV2(children, subtreeScores, subtreeSpans, {
-        previousSiblingOrder,
-      });
-      previousSiblingOrderRef.current.set(parentKey, sorted.map((child) => child.id));
+      const sorted = reorderFn(children, subtreeScores, previousSiblingOrder, subtreeSpans);
+      previousSiblingOrderRef.current.set(parentKey, sorted.map((child: NavigationNode) => child.id));
       return sorted;
     },
-    [recencyOrderingV2Enabled, subtreeScores, subtreeSpans],
+    [recencyOrderingV2Enabled, subtreeScores, subtreeSpans, reorderFn],
   );
 
   const getVisibleChildren = useCallback(
