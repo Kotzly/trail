@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { fetchSpotlightData } from './rpc.js';
 import { SpotlightOverlay } from './SpotlightOverlay.js';
-import { generateThemeTokens, THEME_TOKEN_KEYS } from '@entrypoints/sidepanel/ui/shared/theme-generator.js';
+import { generateThemeTokens } from '@entrypoints/sidepanel/ui/shared/theme-generator.js';
 import type { SpotlightData } from './types.js';
 
 type SpotlightAppProps = {
@@ -10,34 +10,30 @@ type SpotlightAppProps = {
 
 export function SpotlightApp({ onRegisterToggle }: SpotlightAppProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [hasBeenOpened, setHasBeenOpened] = useState(false);
   const [data, setData] = useState<SpotlightData | null>(null);
   const [loading, setLoading] = useState(false);
-  const isOpenRef = useRef(false);
 
   const toggle = useCallback(() => {
-    setIsOpen((prev) => {
-      const next = !prev;
-      isOpenRef.current = next;
-      return next;
-    });
+    setIsOpen((prev) => !prev);
   }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
-    isOpenRef.current = false;
   }, []);
 
-  // Register the toggle function for external callers
   useEffect(() => {
     onRegisterToggle(toggle);
   }, [onRegisterToggle, toggle]);
 
-  // Fetch data when opening
+  // Track first open — never unmount after that
   useEffect(() => {
-    if (!isOpen) {
-      setData(null);
-      return;
-    }
+    if (isOpen) setHasBeenOpened(true);
+  }, [isOpen]);
+
+  // Fetch data when opening (keep data across close/reopen)
+  useEffect(() => {
+    if (!isOpen) return;
 
     let cancelled = false;
     setLoading(true);
@@ -51,14 +47,10 @@ export function SpotlightApp({ onRegisterToggle }: SpotlightAppProps) {
       })
       .catch((error) => {
         console.error('Failed to fetch spotlight data:', error);
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [isOpen]);
 
   // Compute theme CSS tokens from settings
@@ -72,10 +64,12 @@ export function SpotlightApp({ onRegisterToggle }: SpotlightAppProps) {
     return generateThemeTokens(customTheme, theme);
   }, [data?.settings]);
 
-  if (!isOpen) return null;
+  // Don't render anything until first open
+  if (!hasBeenOpened) return null;
 
   return (
     <SpotlightOverlay
+      isOpen={isOpen}
       data={data}
       loading={loading}
       onClose={close}

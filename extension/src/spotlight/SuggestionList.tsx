@@ -1,4 +1,6 @@
-import { useRef, useEffect, useMemo, forwardRef } from 'react';
+import { useState, useRef, useEffect, useMemo, forwardRef } from 'react';
+import { getFaviconUrl } from '@shared/utils/favicon.js';
+import type { Url } from '@shared/types/ids.js';
 import type { SpotlightSuggestion, SpotlightSuggestionGroup } from './types.js';
 
 type SuggestionListProps = {
@@ -97,6 +99,8 @@ type SuggestionItemProps = {
 
 const SuggestionItem = forwardRef<HTMLDivElement, SuggestionItemProps>(
   function SuggestionItem({ suggestion, selected, onMouseEnter, onClick }, ref) {
+    const faviconSrc = suggestion.favicon || getFaviconUrl(suggestion.url as Url, 16);
+
     return (
       <div
         ref={ref}
@@ -105,19 +109,7 @@ const SuggestionItem = forwardRef<HTMLDivElement, SuggestionItemProps>(
         onMouseEnter={onMouseEnter}
         onClick={onClick}
       >
-        {suggestion.favicon ? (
-          <img
-            className="spotlight-item-favicon"
-            src={suggestion.favicon}
-            alt=""
-            loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        ) : (
-          <div className="spotlight-item-favicon-placeholder" />
-        )}
+        <Favicon src={faviconSrc} />
         <div className="spotlight-item-text">
           <div className="spotlight-item-title">
             {suggestion.group === 'other-trees' && suggestion.treeName
@@ -134,6 +126,44 @@ const SuggestionItem = forwardRef<HTMLDivElement, SuggestionItemProps>(
     );
   },
 );
+
+// ─── Favicon with globe fallback ───
+
+function Favicon({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) return <GlobeIcon />;
+
+  return (
+    <img
+      className="spotlight-item-favicon"
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function GlobeIcon() {
+  return (
+    <svg
+      className="spotlight-item-favicon"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ opacity: 0.35 }}
+    >
+      <circle cx="8" cy="8" r="6" />
+      <path d="M2 8h12" />
+      <path d="M8 2a10.5 10.5 0 0 1 2.8 6 10.5 10.5 0 0 1-2.8 6" />
+      <path d="M8 2a10.5 10.5 0 0 0-2.8 6 10.5 10.5 0 0 0 2.8 6" />
+    </svg>
+  );
+}
 
 function truncateUrl(url: string): string {
   try {
