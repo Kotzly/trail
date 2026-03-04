@@ -23,7 +23,11 @@ import {
   computeSubtreeSpans,
 } from '../../graph/layout/calculator.js';
 import { deriveLayoutOptions } from '../../graph/layout/options.js';
-import { computeSubtreeRecency, spotlightSortChildren } from '@shared/lib/spotlight.js';
+import {
+  computeSubtreeScores,
+  computeNodeScore,
+  recencySortChildrenV2,
+} from '@shared/lib/recency.js';
 import type { CanvasBounds, LayoutMode, NodePosition, ViewState } from '../../graph/types.js';
 import { createAnimationSpec, easeOutCubic, getAnimationProgress, lerp } from '../../graph/animation-utils.js';
 import GraphZoomControls from './GraphZoomControls.js';
@@ -153,6 +157,7 @@ type GraphCanvasProps = {
   pickTarget: { type: 'duplicate'; sourceNodeId: NodeId } | null;
   onPickTargetComplete: () => void;
   fullViewEnabled: boolean;
+  recencyOrderingV2Enabled: boolean;
 };
 
 type SelectionBox = {
@@ -285,6 +290,7 @@ export default function GraphCanvas({
   pickTarget,
   onPickTargetComplete,
   fullViewEnabled,
+  recencyOrderingV2Enabled,
 }: GraphCanvasProps) {
   const searchActive = search.active;
   const searchNavStep = search.navStep;
@@ -331,6 +337,8 @@ export default function GraphCanvas({
   const lastAnimationTimeRef = useRef<number | null>(null);
   const animationNowRef = useRef<number | null>(null);
   const prevOpenNodesRef = useRef<Set<NodeId>>(new Set());
+  const previousSiblingOrderRef = useRef<Map<string, NodeId[]>>(new Map());
+  const mindmapSideRef = useRef<Map<NodeId, 'left' | 'right'>>(new Map());
   const lastCollapseVersionRef = useRef<number>(-1);
   const animateTick = useCallback(
     function animateTick(time: number) {
@@ -625,12 +633,34 @@ export default function GraphCanvas({
   const root = tree?.getRoot() ?? null;
   const { nodeWidth, nodeHeight } = baseLayoutConfig;
 
-  const subtreeRecency = useMemo(() => {
-    if (!root || Object.keys(nodeRecency).length === 0) return null;
-    return computeSubtreeRecency(root, nodeRecency, (n) => n.getChildren?.() ?? []);
-  }, [root, nodeRecency]);
+  const effectiveNodeScores = useMemo(() => {
+    if (!recencyOrderingV2Enabled || !root) return null;
+    const now = Date.now();
+    const next = {} as Record<NodeId, number>;
+    root.forEach((node) => {
+      const lastVisited =
+        typeof node.data.lastVisitedAt === 'number' && Number.isFinite(node.data.lastVisitedAt)
+          ? Number(node.data.lastVisitedAt)
+          : Number(node.timestamp);
+      const liveRecency = nodeRecency[node.id] ?? 0;
+      const bestRecency = Math.max(lastVisited, liveRecency);
+      const visitCount = typeof node.data.visitCount === 'number' ? node.data.visitCount : 0;
+      next[node.id] = computeNodeScore(visitCount, bestRecency, now);
+    });
+    return next;
+  }, [nodeRecency, root, recencyOrderingV2Enabled]);
 
-  // Collapse-filtered children WITHOUT spotlight sorting (for span pre-pass)
+  const subtreeScores = useMemo(() => {
+    if (!root || !recencyOrderingV2Enabled || !effectiveNodeScores) return null;
+    return computeSubtreeScores(root, effectiveNodeScores, (n: NavigationNode) => n.getChildren?.() ?? []);
+  }, [effectiveNodeScores, root, recencyOrderingV2Enabled]);
+
+  useEffect(() => {
+    previousSiblingOrderRef.current.clear();
+    mindmapSideRef.current.clear();
+  }, [recencyOrderingV2Enabled, root?.id]);
+
+  // Collapse-filtered children WITHOUT recency sorting (for span pre-pass)
   const getBaseVisibleChildren = useCallback(
     (node: NavigationNode) => {
       if (collapsedNodeIds.has(node.id)) return [];
@@ -639,21 +669,33 @@ export default function GraphCanvas({
     [collapsedNodeIds],
   );
 
-  // Pre-compute exact tidy-tree spans for balanced spotlight placement
+  // Pre-compute exact tidy-tree spans for balanced recency placement
   const subtreeSpans = useMemo(() => {
-    if (!root || !subtreeRecency) return null;
+    if (!root || !subtreeScores || !recencyOrderingV2Enabled) return null;
     const baseSep = Math.max(baseLayoutConfig.nodeWidth + baseLayoutConfig.horizontalGap, 1);
     return computeSubtreeSpans(root, getBaseVisibleChildren, baseSep);
-  }, [root, subtreeRecency, getBaseVisibleChildren, baseLayoutConfig.nodeWidth, baseLayoutConfig.horizontalGap]);
+  }, [root, subtreeScores, getBaseVisibleChildren, baseLayoutConfig.nodeWidth, baseLayoutConfig.horizontalGap, recencyOrderingV2Enabled]);
+
+  const sortChildrenForParentKey = useCallback(
+    (parentKey: string, children: NavigationNode[]): NavigationNode[] => {
+      if (!recencyOrderingV2Enabled || !subtreeScores || children.length <= 1) return children;
+      const previousSiblingOrder = previousSiblingOrderRef.current.get(parentKey);
+      const sorted = recencySortChildrenV2(children, subtreeScores, subtreeSpans, {
+        previousSiblingOrder,
+      });
+      previousSiblingOrderRef.current.set(parentKey, sorted.map((child) => child.id));
+      return sorted;
+    },
+    [recencyOrderingV2Enabled, subtreeScores, subtreeSpans],
+  );
 
   const getVisibleChildren = useCallback(
     (node: NavigationNode) => {
       if (collapsedNodeIds.has(node.id)) return [];
       const children = node.getChildren?.() ?? [];
-      if (!subtreeRecency || children.length <= 2) return children;
-      return spotlightSortChildren(children, subtreeRecency, subtreeSpans);
+      return sortChildrenForParentKey(String(node.id), children);
     },
-    [collapsedNodeIds, subtreeRecency, subtreeSpans],
+    [collapsedNodeIds, sortChildrenForParentKey],
   );
 
   useEffect(() => {
@@ -810,11 +852,50 @@ export default function GraphCanvas({
       case 'tree':
         return calculateLayout(root, layoutOptions.tree, getVisibleChildren);
       case 'mindmap': {
-        const sortWithinSide = subtreeRecency
-          ? (children: NavigationNode[]) => spotlightSortChildren(children, subtreeRecency, subtreeSpans)
+        const sortWithinSide = subtreeScores
+          ? (children: NavigationNode[], side: 'left' | 'right') =>
+              sortChildrenForParentKey(`${String(root.id)}:${side}`, children)
+          : undefined;
+        // Stable side assignment: remember which side each child was on
+        const splitSides = recencyOrderingV2Enabled
+          ? (children: NavigationNode[], subtreeHeights: Map<NodeId, number>) => {
+              const sideMap = mindmapSideRef.current;
+              const left: NavigationNode[] = [];
+              const right: NavigationNode[] = [];
+              const unassigned: NavigationNode[] = [];
+
+              for (const child of children) {
+                const stored = sideMap.get(child.id);
+                if (stored === 'left') left.push(child);
+                else if (stored === 'right') right.push(child);
+                else unassigned.push(child);
+              }
+
+              // Assign new children to the lighter side
+              let leftH = left.reduce((s, c) => s + (subtreeHeights.get(c.id) ?? 0), 0);
+              let rightH = right.reduce((s, c) => s + (subtreeHeights.get(c.id) ?? 0), 0);
+              for (const child of unassigned) {
+                const h = subtreeHeights.get(child.id) ?? 0;
+                if (leftH <= rightH) {
+                  left.push(child);
+                  sideMap.set(child.id, 'left');
+                  leftH += h;
+                } else {
+                  right.push(child);
+                  sideMap.set(child.id, 'right');
+                  rightH += h;
+                }
+              }
+
+              // Persist sides for existing children
+              for (const c of left) sideMap.set(c.id, 'left');
+              for (const c of right) sideMap.set(c.id, 'right');
+
+              return { left, right };
+            }
           : undefined;
         return calculateMindmapLayout(root, layoutOptions.mindmap, getVisibleChildren,
-          sortWithinSide ? { sortWithinSide } : undefined);
+          { ...(sortWithinSide ? { sortWithinSide } : {}), ...(splitSides ? { splitSides } : {}) });
       }
       default:
         return calculateRadialLayout(root, layoutOptions.radial, baseLayoutConfig, getVisibleChildren);
@@ -827,8 +908,8 @@ export default function GraphCanvas({
     layoutOptions.radial,
     layoutOptions.tree,
     root,
-    subtreeRecency,
-    subtreeSpans,
+    sortChildrenForParentKey,
+    subtreeScores,
   ]);
 
   const basePositions = layout?.positions ?? emptyPositionsRef.current;
@@ -1726,7 +1807,7 @@ export default function GraphCanvas({
         isHoverFocused: hoverNodeId === id,
         display,
         tagDefs,
-        debugChildIndex: debugChildIndices?.get(id),
+        ...(debugChildIndices?.has(id) ? { debugChildIndex: debugChildIndices.get(id)! } : {}),
       };
     });
   }, [

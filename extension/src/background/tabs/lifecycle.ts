@@ -9,6 +9,7 @@ import { NodeData } from '@shared/types/node.js';
 import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from '../utils/url-utils.js';
 import { handleNewTabTab } from '../utils/new-tab.js';
 import { browser, type Browser, type Tab } from '@shared/platform/webext.js';
+import { markNodeVisited } from '../state/node-recency.js';
 
 
 async function onTabCreated(tab: Tab): Promise<void> {
@@ -108,6 +109,7 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
     tempSelectionManager.handleTabActivated(tabId);
     if (!tabManager.shouldSuppressTouch(tabId)) {
         tabManager.touch(tabId, nodeId);
+        markNodeVisited(tree, nodeId);
     }
     const prevCurrentId = tree.getCurrentId();
     tree.setCurrentById(nodeId);

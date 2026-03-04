@@ -12,7 +12,7 @@ import { browser } from '@shared/platform/webext.js';
 export async function getTabStates(): Promise<Record<NodeId, TabState>> {
   const tabStates: Record<NodeId, TabState> = {};
   const allTabs = await browser.tabs.query({});
-  
+
   for (const tab of allTabs) {
     if (tab.id === undefined) continue;
     const nodeId = tabManager.nodeByTab(tab.id as TabId);
@@ -26,41 +26,91 @@ export async function getTabStates(): Promise<Record<NodeId, TabState>> {
     };
     tabStates[nodeId] = tabState;
   }
-  
+
   return tabStates;
 }
 
 let viewIntentCounter = 0;
+
+// ---------------------------------------------------------------------------
+// Debounce for navigate/sync reasons to batch redirect chains
+// ---------------------------------------------------------------------------
+
+const DEBOUNCE_MS = 200;
+const IMMEDIATE_REASONS: ReadonlySet<TreeUpdateReason> = new Set<TreeUpdateReason>([
+  'set-current',
+  'tree-switch',
+  'tree-reset',
+  'layout',
+  'delete',
+  'undo',
+  'pins',
+  'tags',
+  'reparent',
+  'duplicate',
+  'editor-enter',
+  'editor-exit',
+]);
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingArgs: { tree: NavigationTree; reason: TreeUpdateReason; view?: TreeViewIntent } | null = null;
+
+async function sendTreeNotification(
+  tree: NavigationTree,
+  reason: TreeUpdateReason,
+  view?: TreeViewIntent,
+): Promise<void> {
+  const openNodes = Array.from(tabManager.openNodes());
+  const tabStates = await getTabStates();
+
+  const nodeTabCounts = Object.fromEntries(openNodes.map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)]));
+  const nodeRecency: Record<string, number> = {};
+  for (const nodeId of openNodes) {
+    const r = tabManager.getNodeRecency(nodeId);
+    if (r > 0) nodeRecency[nodeId] = r;
+  }
+  const nextView = view
+    ? { ...view, intentId: view.intentId ?? (viewIntentCounter += 1) }
+    : undefined;
+
+  const payload = rpc.treeUpdated({
+      tree: NavigationTreeMapper.toJSON(tree),
+      openNodeIds: openNodes,
+      tabStates: tabStates,
+      nodeTabCounts: nodeTabCounts,
+      nodeRecency,
+      reason,
+      ...(nextView ? { view: nextView } : {}),
+  });
+
+  sendRuntimeMessage(payload);
+}
 
 export async function notifyTreeUpdate(
   tree: NavigationTree,
   reason: TreeUpdateReason = 'sync',
   view?: TreeViewIntent,
 ): Promise<void> {
-    const openNodes = Array.from(tabManager.openNodes());
-    const tabStates = await getTabStates();
-    
-    const nodeTabCounts = Object.fromEntries(openNodes.map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)]));
-    const nodeRecency: Record<string, number> = {};
-    for (const nodeId of openNodes) {
-      const r = tabManager.getNodeRecency(nodeId);
-      if (r > 0) nodeRecency[nodeId] = r;
+  if (IMMEDIATE_REASONS.has(reason)) {
+    // Flush any pending debounced update, then send immediately
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+      pendingArgs = null;
     }
-    const nextView = view
-      ? { ...view, intentId: view.intentId ?? (viewIntentCounter += 1) }
-      : undefined;
+    return sendTreeNotification(tree, reason, view);
+  }
 
-    const payload = rpc.treeUpdated({
-        tree: NavigationTreeMapper.toJSON(tree),
-        openNodeIds: openNodes,
-        tabStates: tabStates,
-        nodeTabCounts: nodeTabCounts,
-        nodeRecency,
-        reason,
-        ...(nextView ? { view: nextView } : {}),
-    });
-
-    sendRuntimeMessage(payload);
+  // Debounce: keep latest args, send after DEBOUNCE_MS of quiet
+  pendingArgs = { tree, reason, view };
+  if (!debounceTimer) {
+    debounceTimer = setTimeout(async () => {
+      const args = pendingArgs;
+      pendingArgs = null;
+      debounceTimer = null;
+      if (args) await sendTreeNotification(args.tree, args.reason, args.view);
+    }, DEBOUNCE_MS);
+  }
 }
 
 export async function notifyTreesUpdate(snapshot: TreesSnapshot): Promise<void> {

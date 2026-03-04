@@ -41,6 +41,7 @@ export default function GraphArea() {
       editorActive: state.editorMode.active,
       pickTarget: state.pickTarget,
       fullViewEnabled: state.flags?.fullView ?? false,
+      recencyOrderingV2Enabled: state.flags?.recencyOrderingV2 ?? false,
     })),
   );
 

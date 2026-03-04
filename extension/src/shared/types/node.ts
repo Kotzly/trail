@@ -9,6 +9,8 @@ export type NodeData = {
     favicon?: FaviconUrl;
     pinned: boolean;
     tags: Tag[];
+    lastVisitedAt?: Timestamp;
+    visitCount?: number;
     layout?: {
       offsetX: number;
       offsetY: number;

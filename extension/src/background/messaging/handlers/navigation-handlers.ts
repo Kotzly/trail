@@ -9,6 +9,7 @@ import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
 import { getEditorState } from './editor-handlers.js';
 import { browser } from '@shared/platform/webext.js';
+import { markNodeVisited } from '../../state/node-recency.js';
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
@@ -54,6 +55,7 @@ export const navigationHandlers = defineRpcHandlers({
         tabManager.suppressNextTouch(nextTabId as TabId);
         const focused = await focusTab(nextTabId as TabId);
         if (focused) {
+          markNodeVisited(tree, message.nodeId);
           tree.setCurrentById(message.nodeId);
           treeStorage.cacheTree(tree);
           await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
@@ -68,6 +70,7 @@ export const navigationHandlers = defineRpcHandlers({
       const focused = await focusTab(tabId as TabId);
       if (focused) {
         tabManager.touch(tabId as TabId, message.nodeId);
+        markNodeVisited(tree, message.nodeId);
         tree.setCurrentById(message.nodeId);
         treeStorage.cacheTree(tree);
         await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
@@ -87,6 +90,7 @@ export const navigationHandlers = defineRpcHandlers({
       const lastUsed = Number.isFinite(created.lastAccessed) ? created.lastAccessed : undefined;
       const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
       tabManager.register(message.nodeId, created.id as TabId, registerOptions);
+      markNodeVisited(tree, message.nodeId, lastUsed);
     }
 
     tree.setCurrentById(message.nodeId);
@@ -192,6 +196,7 @@ export const navigationHandlers = defineRpcHandlers({
       const focused = await focusTab(tabId as TabId);
       if (focused) {
         tabManager.touch(tabId as TabId, message.nodeId);
+        markNodeVisited(tree, message.nodeId);
         tree.setCurrentById(message.nodeId);
         treeStorage.cacheTree(tree);
         await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
@@ -211,6 +216,7 @@ export const navigationHandlers = defineRpcHandlers({
       const lastUsed = Number.isFinite(created.lastAccessed) ? created.lastAccessed : undefined;
       const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
       tabManager.register(message.nodeId, created.id as TabId, registerOptions);
+      markNodeVisited(tree, message.nodeId, lastUsed);
     }
 
     tree.setCurrentById(message.nodeId);

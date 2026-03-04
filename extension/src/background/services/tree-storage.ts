@@ -17,6 +17,11 @@ import {
 import type { Title, Url } from '@shared/types/ids.js';
 import type { NodeData } from '@shared/types/node.js';
 
+const archiveIndexBulkItem = archiveIndexItem as unknown as {
+  key: string;
+  setValue: (value: unknown) => Promise<void>;
+};
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -483,7 +488,7 @@ class TreeStorageService {
       summaries.push(extractSummary(record));
       entries.push({ key: archiveBlobKey(record.id), value: serializeBlob(encodeTree(record.tree)) });
     }
-    entries.push({ item: archiveIndexItem, value: summaries });
+    entries.push({ item: archiveIndexBulkItem, value: summaries });
     this.cachedIndex = summaries;
 
     try {
@@ -524,7 +529,7 @@ class TreeStorageService {
     const blob = serializeBlob(encodeTree(treeJSON));
     try {
       await quotaAwareSet([
-        { item: archiveIndexItem, value: nextIndex },
+        { item: archiveIndexBulkItem, value: nextIndex },
         { key: archiveBlobKey(record.id), value: blob },
       ]);
     } catch (error) {
@@ -704,7 +709,7 @@ class TreeStorageService {
 
     try {
       await quotaAwareSet([
-        { item: archiveIndexItem, value: index },
+        { item: archiveIndexBulkItem, value: index },
         { key: archiveBlobKey(treeId), value: serializeBlob(encodeTree(treeJSON)) },
       ]);
     } catch (error) {
@@ -741,7 +746,7 @@ class TreeStorageService {
         entries.push({ key: archiveBlobKey(record.id), value: serializeBlob(encodeTree(record.tree)) });
       }
 
-      entries.push({ item: archiveIndexItem, value: summaries });
+      entries.push({ item: archiveIndexBulkItem, value: summaries });
       await writeBulkDirect(entries);
       this.cachedIndex = summaries;
     } catch (error) {

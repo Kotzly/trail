@@ -251,7 +251,10 @@ export function calculateMindmapLayout(
   root: NavigationNode,
   layoutConfig: LayoutConfig,
   getChildren: GetChildren = (node) => node.getChildren?.() ?? [],
-  options?: { sortWithinSide?: (children: NavigationNode[]) => NavigationNode[] },
+  options?: {
+    sortWithinSide?: (children: NavigationNode[], side: 'left' | 'right') => NavigationNode[];
+    splitSides?: (children: NavigationNode[], subtreeHeights: Map<NodeId, number>) => { left: NavigationNode[]; right: NavigationNode[] };
+  },
 ): { positions: Map<NodeId, NodePosition>, width: number } {
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
@@ -277,28 +280,37 @@ export function calculateMindmapLayout(
   calcHeights(root);
 
   const rootChildren = getChildren(root);
-  const sorted = [...rootChildren].sort((a, b) => {
-    return (subtreeHeights.get(b.id) ?? 0) - (subtreeHeights.get(a.id) ?? 0);
-  });
-  const leftChildren: NavigationNode[] = [];
-  const rightChildren: NavigationNode[] = [];
-  let leftHeight = 0;
-  let rightHeight = 0;
-  sorted.forEach((child) => {
-    const height = subtreeHeights.get(child.id) ?? nodeHeight;
-    if (leftHeight <= rightHeight) {
-      leftChildren.push(child);
-      leftHeight += height;
-    } else {
-      rightChildren.push(child);
-      rightHeight += height;
-    }
-  });
+  let leftChildren: NavigationNode[];
+  let rightChildren: NavigationNode[];
+
+  if (options?.splitSides) {
+    const split = options.splitSides(rootChildren, subtreeHeights);
+    leftChildren = split.left;
+    rightChildren = split.right;
+  } else {
+    const sorted = [...rootChildren].sort((a, b) => {
+      return (subtreeHeights.get(b.id) ?? 0) - (subtreeHeights.get(a.id) ?? 0);
+    });
+    leftChildren = [];
+    rightChildren = [];
+    let leftHeight = 0;
+    let rightHeight = 0;
+    sorted.forEach((child) => {
+      const height = subtreeHeights.get(child.id) ?? nodeHeight;
+      if (leftHeight <= rightHeight) {
+        leftChildren.push(child);
+        leftHeight += height;
+      } else {
+        rightChildren.push(child);
+        rightHeight += height;
+      }
+    });
+  }
 
   if (options?.sortWithinSide) {
     const sortFn = options.sortWithinSide;
-    leftChildren.splice(0, leftChildren.length, ...sortFn(leftChildren));
-    rightChildren.splice(0, rightChildren.length, ...sortFn(rightChildren));
+    leftChildren.splice(0, leftChildren.length, ...sortFn(leftChildren, 'left'));
+    rightChildren.splice(0, rightChildren.length, ...sortFn(rightChildren, 'right'));
   }
 
   const rootX = 0;
