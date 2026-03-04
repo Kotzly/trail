@@ -159,6 +159,8 @@ type GraphCanvasProps = {
   onPickTargetComplete: () => void;
   fullViewEnabled: boolean;
   recencyOrderingV2Enabled: boolean;
+  /** When set, called instead of the default navigateTo on node click. */
+  onNodeActivate?: (nodeId: NodeId, url: string) => void;
 };
 
 type SelectionBox = {
@@ -292,6 +294,7 @@ export default function GraphCanvas({
   onPickTargetComplete,
   fullViewEnabled,
   recencyOrderingV2Enabled,
+  onNodeActivate,
 }: GraphCanvasProps) {
   const searchActive = search.active;
   const searchNavStep = search.navStep;
@@ -1407,7 +1410,11 @@ export default function GraphCanvas({
 
     if (tool === 'hand') {
       try {
-        await navigateTo(node);
+        if (onNodeActivate) {
+          onNodeActivate(node.id, node.data.url);
+        } else {
+          await navigateTo(node);
+        }
       } catch (error) {
         console.error('Failed to navigate:', error);
       }
@@ -1423,11 +1430,15 @@ export default function GraphCanvas({
 
     onClearSelection();
     try {
-      await navigateTo(node);
+      if (onNodeActivate) {
+        onNodeActivate(node.id, node.data.url);
+      } else {
+        await navigateTo(node);
+      }
     } catch (error) {
       console.error('Failed to navigate:', error);
     }
-  }, [editorActive, onClearSelection, onPickTargetComplete, onSelectedNodeIdsChange, pickTarget, tool]);
+  }, [editorActive, onClearSelection, onNodeActivate, onPickTargetComplete, onSelectedNodeIdsChange, pickTarget, tool]);
 
   const handleNodePointerDown = useCallback((node: NavigationNode, info: PointerInfo) => {
     if (info.button !== 0) return;

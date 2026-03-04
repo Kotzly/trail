@@ -67,6 +67,23 @@ export default defineConfig({
       "webNavigation",
       "favicon",
       "alarms",
+      "scripting",
+      "activeTab",
+    ],
+    commands: {
+      "toggle-spotlight": {
+        suggested_key: {
+          default: "Ctrl+Shift+K",
+          mac: "Command+Shift+K",
+        },
+        description: "Toggle Spotlight search",
+      },
+    },
+    web_accessible_resources: [
+      {
+        resources: ['spotlight-graph.html'],
+        matches: ['<all_urls>'],
+      },
     ],
     host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
     side_panel: {

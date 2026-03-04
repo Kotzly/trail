@@ -1,0 +1,217 @@
+/* Spotlight overlay — injected into page Shadow DOM */
+
+:host {
+  all: initial;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.spotlight-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e8e8e8;
+}
+
+.spotlight-modal {
+  display: flex;
+  width: 860px;
+  max-width: 92vw;
+  height: 520px;
+  max-height: 70vh;
+  border-radius: 16px;
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  overflow: hidden;
+}
+
+/* ─── Left Panel: Search + Suggestions ─── */
+
+.spotlight-left {
+  display: flex;
+  flex-direction: column;
+  width: 45%;
+  min-width: 280px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.spotlight-search {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 10px;
+}
+
+.spotlight-search-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  opacity: 0.4;
+}
+
+.spotlight-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  font-family: inherit;
+  color: #e8e8e8;
+  caret-color: #7c8fff;
+}
+
+.spotlight-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.spotlight-suggestions {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.spotlight-group-header {
+  padding: 8px 16px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.3);
+  user-select: none;
+}
+
+.spotlight-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border-radius: 0;
+}
+
+.spotlight-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.spotlight-item[data-selected="true"] {
+  background: rgba(124, 143, 255, 0.12);
+}
+
+.spotlight-item-favicon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: contain;
+}
+
+.spotlight-item-favicon-placeholder {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.spotlight-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.spotlight-item-title {
+  font-size: 13px;
+  color: #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spotlight-item[data-selected="true"] .spotlight-item-title {
+  color: #fff;
+}
+
+.spotlight-item-url {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spotlight-item-current {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #7c8fff;
+}
+
+.spotlight-item-tab-indicator {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  opacity: 0.7;
+}
+
+/* ─── Right Panel: Graph ─── */
+
+.spotlight-right {
+  flex: 1;
+  position: relative;
+  background: #171717;
+  overflow: hidden;
+}
+
+.spotlight-graph-container {
+  width: 100%;
+  height: 100%;
+}
+
+.spotlight-graph-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 13px;
+}
+
+/* ─── Empty state ─── */
+
+.spotlight-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 13px;
+  padding: 16px;
+  text-align: center;
+}

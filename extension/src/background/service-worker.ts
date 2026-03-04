@@ -9,6 +9,7 @@ import { initBackendConfig } from '@shared/config/backend.js';
 import { authOrchestrator } from './services/auth-orchestrator.js';
 import { accountKeeper } from './services/account-keeper.js';
 import { browser } from '@shared/platform/webext.js';
+import { initSpotlightCommand } from './spotlight-command.js';
 
 // Catch unhandled promise rejections so they don't silently disappear
 // in the service worker context.
@@ -26,6 +27,7 @@ void CommandManager.init();
 syncEngine.init();
 authOrchestrator.init();
 accountKeeper.init();
+initSpotlightCommand();
 
 const sidePanel = (browser as unknown as {
   sidePanel?: {

@@ -71,6 +71,8 @@ export const RPC_METHOD = {
     GET_FLAGS: 'GET_FLAGS',
     SET_FLAG: 'SET_FLAG',
     RESET_FLAGS: 'RESET_FLAGS',
+    GET_SPOTLIGHT_DATA: 'GET_SPOTLIGHT_DATA',
+    TOGGLE_SPOTLIGHT: 'TOGGLE_SPOTLIGHT',
 } as const;
 
 export type RequestType = typeof RPC_METHOD[keyof typeof RPC_METHOD];
@@ -241,6 +243,35 @@ export type GetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.GET_FLAGS>;
 export type SetFlagMessage = RequestMessageBase<typeof RPC_METHOD.SET_FLAG, SetFlagInput>;
 export type ResetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.RESET_FLAGS>;
 
+// ==== Spotlight ====
+
+export type SpotlightSuggestionGroup = 'open-tabs' | 'recently-closed' | 'current-tree' | 'other-trees';
+
+export type SpotlightSuggestion = {
+  nodeId: NodeId;
+  title: string;
+  url: string;
+  favicon?: string | undefined;
+  group: SpotlightSuggestionGroup;
+  recency: number;
+  isCurrent: boolean;
+  treeId?: string | undefined;
+  treeName?: string | undefined;
+};
+
+export type SpotlightData = {
+  suggestions: SpotlightSuggestion[];
+  tree: NavigationTreeJSON;
+  currentNodeId: NodeId | null;
+  openNodeIds: NodeId[];
+  nodeRecency: Record<NodeId, number>;
+  nodeTabCounts: Record<NodeId, number>;
+  settings: Settings;
+};
+
+export type GetSpotlightDataMessage = RequestMessageBase<typeof RPC_METHOD.GET_SPOTLIGHT_DATA>;
+export type ToggleSpotlightMessage = RequestMessageBase<typeof RPC_METHOD.TOGGLE_SPOTLIGHT>;
+
 export type RequestMessage = NavigateToMessage |
     PreviewNodeMessage | SetCurrentMessage |
     BeginTempSelectionMessage | PreviewTempSelectionMessage | AcceptTempSelectionMessage |
@@ -265,7 +296,9 @@ export type RequestMessage = NavigateToMessage |
     OAuthSilentSyncMessage |
     GetFlagsMessage |
     SetFlagMessage |
-    ResetFlagsMessage;
+    ResetFlagsMessage |
+    GetSpotlightDataMessage |
+    ToggleSpotlightMessage;
 
 
 // ==== Responses ====
@@ -346,6 +379,8 @@ export type ResponseDataByType = {
     [RPC_METHOD.GET_FLAGS]: ResolvedFlags;
     [RPC_METHOD.SET_FLAG]: ResolvedFlags;
     [RPC_METHOD.RESET_FLAGS]: ResolvedFlags;
+    [RPC_METHOD.GET_SPOTLIGHT_DATA]: SpotlightData;
+    [RPC_METHOD.TOGGLE_SPOTLIGHT]: void;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -472,6 +507,12 @@ export const rpc = {
     },
     resetFlags(): ResetFlagsMessage {
         return { type: RPC_METHOD.RESET_FLAGS };
+    },
+    getSpotlightData(): GetSpotlightDataMessage {
+        return { type: RPC_METHOD.GET_SPOTLIGHT_DATA };
+    },
+    toggleSpotlight(): ToggleSpotlightMessage {
+        return { type: RPC_METHOD.TOGGLE_SPOTLIGHT };
     },
 }
 

@@ -31,6 +31,7 @@ import { siteMessageHandlers } from "./handlers/site-message-handlers.js";
 import { editorHandlers } from "./handlers/editor-handlers.js";
 import { oauthAuthHandlers } from "./handlers/oauth-auth-handlers.js";
 import { flagsHandlers } from "./handlers/flags-handlers.js";
+import { spotlightHandlers } from "./handlers/spotlight-handlers.js";
 import { browser, type RuntimeMessageSender } from '@shared/platform/webext.js';
 
 type AnyResponse = ResponseMessage<RequestType>;
@@ -144,5 +145,6 @@ export function initMessaging(): void {
     .merge(oauthAuthHandlers)
     .merge(editorHandlers)
     .merge(flagsHandlers)
+    .merge(spotlightHandlers)
     .listen();
 }

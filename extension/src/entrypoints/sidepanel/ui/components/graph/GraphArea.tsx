@@ -7,10 +7,16 @@ import {
   updateQualityPolicy,
 } from '../../graph/render/quality-policy.js';
 import React, { Suspense } from 'react';
+import type { NodeId } from '@shared/types/ids.js';
 
 const GraphCanvas = React.lazy(() => import('./GraphCanvas.js'));
 
-export default function GraphArea() {
+type GraphAreaProps = {
+  /** When set, called instead of the default navigateTo on node click. */
+  onNodeActivate?: (nodeId: NodeId, url: string) => void;
+};
+
+export default function GraphArea({ onNodeActivate }: GraphAreaProps = {}) {
   const [qualityPolicyState, setQualityPolicyState] = React.useState(() =>
     createQualityPolicyState(Date.now()),
   );
@@ -135,6 +141,7 @@ export default function GraphArea() {
         detailMode={detailMode}
         connectionQuality={connectionQuality}
         onRenderMetrics={handleRenderMetrics}
+        onNodeActivate={onNodeActivate}
       />
     </Suspense>
   );
