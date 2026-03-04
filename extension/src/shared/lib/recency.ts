@@ -8,7 +8,7 @@ import type { NavigationNode } from '../types/node.js';
 /** Weight for visit frequency in the combined score. */
 export const SCORE_FREQ_WEIGHT = 10;
 /** Weight for recency bonus in the combined score. */
-export const SCORE_RECENCY_WEIGHT = 1;
+export const SCORE_RECENCY_WEIGHT = 5;
 /** Time window (ms) over which recency bonus decays linearly to 0. */
 export const SCORE_RECENCY_DECAY_MS = 2 * 60 * 60 * 1000; // 2 hours
 
@@ -25,7 +25,7 @@ export function computeNodeScore(
   lastVisitedAt: number,
   now: number,
 ): number {
-  const freqScore = visitCount * SCORE_FREQ_WEIGHT;
+  const freqScore = Math.log2(1 + visitCount) * SCORE_FREQ_WEIGHT;
   const age = now - lastVisitedAt;
   const recencyBonus = age <= 0 ? 1 : age >= SCORE_RECENCY_DECAY_MS ? 0 : 1 - age / SCORE_RECENCY_DECAY_MS;
   return freqScore + recencyBonus * SCORE_RECENCY_WEIGHT;
@@ -110,26 +110,22 @@ function balancedCenterOrder<T>(
 }
 
 // ---------------------------------------------------------------------------
-// Incremental reorder (shared infrastructure)
+// Incremental center reorder (for tree/mindmap)
 // ---------------------------------------------------------------------------
 
-type GravityStrategy = 'center' | 'cluster';
-
 /**
- * Shared incremental reorder engine.
+ * Incrementally reorder children toward the array center.
  *
- * Starts from the previous sibling order and applies bounded adjacent swaps
- * to move high-scoring children toward a gravity point.
- *
- * - `'center'` strategy: gravity = array midpoint (for tree/mindmap)
- * - `'cluster'` strategy: gravity = position of highest-scoring node (for radial)
+ * Starts from the previous order and applies cascading inward sweeps.
+ * Each sweep direction enables multi-position cascades in a single pass:
+ * edge nodes can cascade all the way to center, while center nodes
+ * resist displacement (budget = 1, only moved once per call).
  */
-function incrementalReorder(
+export function incrementalCenterReorder(
   children: NavigationNode[],
   scores: Map<NodeId, number>,
   previousOrder: NodeId[] | null | undefined,
-  subtreeSpans: Map<NodeId, number> | null | undefined,
-  strategy: GravityStrategy,
+  subtreeSpans?: Map<NodeId, number> | null,
 ): NavigationNode[] {
   if (children.length <= 1) return children;
 
@@ -138,11 +134,9 @@ function incrementalReorder(
     childMap.set(child.id, child);
   }
 
-  // Build current working order: start from previous, handle additions/removals
   let current: NavigationNode[];
 
   if (previousOrder && previousOrder.length > 0) {
-    // Keep existing children in their previous order
     const kept: NavigationNode[] = [];
     const seen = new Set<NodeId>();
     for (const id of previousOrder) {
@@ -153,7 +147,6 @@ function incrementalReorder(
       }
     }
 
-    // New children (not in previous order) get appended at edges
     const newChildren: NavigationNode[] = [];
     for (const child of children) {
       if (!seen.has(child.id)) {
@@ -168,14 +161,9 @@ function incrementalReorder(
       current = kept;
     }
   } else {
-    // No previous order — initial placement depends on strategy
     const sorted = [...children].sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
     if (children.length === 2) return sorted;
-    if (strategy === 'center') {
-      return balancedCenterOrder(sorted, (node) => subtreeSpans?.get(node.id) ?? 1);
-    }
-    // 'cluster': sorted descending keeps high-score nodes adjacent
-    return sorted;
+    return balancedCenterOrder(sorted, (node) => subtreeSpans?.get(node.id) ?? 1);
   }
 
   if (current.length <= 2) {
@@ -183,52 +171,35 @@ function incrementalReorder(
     return current;
   }
 
-  // Compute gravity point
   const len = current.length;
-  let gravityIdx: number;
-  if (strategy === 'center') {
-    gravityIdx = len >> 1;
-  } else {
-    // 'cluster': gravity = position of highest-scoring node
-    gravityIdx = 0;
-    let maxScore = -1;
-    for (let i = 0; i < len; i++) {
-      const s = scores.get(current[i]!.id) ?? 0;
-      if (s > maxScore) {
-        maxScore = s;
-        gravityIdx = i;
-      }
-    }
+  const centerIdx = len >> 1;
+
+  // Budget from STARTING position: edge nodes get more swaps, center fewer.
+  // Pre-computed so budget doesn't shrink as nodes cascade inward.
+  const budget = new Map<NodeId, number>();
+  for (let i = 0; i < len; i++) {
+    budget.set(current[i]!.id, Math.max(1, Math.abs(i - centerIdx)));
   }
 
-  function maxSwapsAt(idx: number): number {
-    return Math.max(1, Math.abs(idx - gravityIdx));
-  }
-
-  // Track how many times each node has moved this round
   const moveCount = new Map<NodeId, number>();
-
-  // Run limited bubble-sort passes (bidirectional for fairness)
   const MAX_PASSES = 3;
 
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     let swapped = false;
 
-    // Forward pass
-    for (let i = 0; i < len - 1; i++) {
+    // Inward sweep from right — cascades right-side high-score nodes toward center
+    for (let i = len - 2; i >= 0; i--) {
       const a = current[i]!;
       const b = current[i + 1]!;
       const scoreA = scores.get(a.id) ?? 0;
       const scoreB = scores.get(b.id) ?? 0;
+      const distA = Math.abs(i - centerIdx);
+      const distB = Math.abs(i + 1 - centerIdx);
 
-      const distA = Math.abs(i - gravityIdx);
-      const distB = Math.abs(i + 1 - gravityIdx);
-
-      // Swap if b has higher score AND is currently farther from gravity
       if (scoreB > scoreA && distB >= distA) {
         const movesA = moveCount.get(a.id) ?? 0;
         const movesB = moveCount.get(b.id) ?? 0;
-        if (movesA < maxSwapsAt(i) && movesB < maxSwapsAt(i + 1)) {
+        if (movesA < (budget.get(a.id) ?? 1) && movesB < (budget.get(b.id) ?? 1)) {
           current[i] = b;
           current[i + 1] = a;
           moveCount.set(a.id, movesA + 1);
@@ -238,20 +209,19 @@ function incrementalReorder(
       }
     }
 
-    // Backward pass
-    for (let i = len - 2; i >= 0; i--) {
+    // Inward sweep from left — cascades left-side high-score nodes toward center
+    for (let i = 0; i < len - 1; i++) {
       const a = current[i]!;
       const b = current[i + 1]!;
       const scoreA = scores.get(a.id) ?? 0;
       const scoreB = scores.get(b.id) ?? 0;
-
-      const distA = Math.abs(i - gravityIdx);
-      const distB = Math.abs(i + 1 - gravityIdx);
+      const distA = Math.abs(i - centerIdx);
+      const distB = Math.abs(i + 1 - centerIdx);
 
       if (scoreA > scoreB && distA >= distB) {
         const movesA = moveCount.get(a.id) ?? 0;
         const movesB = moveCount.get(b.id) ?? 0;
-        if (movesA < maxSwapsAt(i) && movesB < maxSwapsAt(i + 1)) {
+        if (movesA < (budget.get(a.id) ?? 1) && movesB < (budget.get(b.id) ?? 1)) {
           current[i + 1] = a;
           current[i] = b;
           moveCount.set(a.id, movesA + 1);
@@ -268,37 +238,24 @@ function incrementalReorder(
 }
 
 // ---------------------------------------------------------------------------
-// Public reorder functions
+// Cluster reorder (for radial layout)
 // ---------------------------------------------------------------------------
 
 /**
- * Incremental center-weighted reorder (for tree/mindmap layouts).
+ * Sort children by score descending. Active nodes cluster at the start
+ * of the array, which maps to a contiguous arc in radial layout.
  *
- * Gravity = array midpoint. High-scoring nodes migrate toward the visual center.
- */
-export function incrementalCenterReorder(
-  children: NavigationNode[],
-  scores: Map<NodeId, number>,
-  previousOrder: NodeId[] | null | undefined,
-  subtreeSpans?: Map<NodeId, number> | null,
-): NavigationNode[] {
-  return incrementalReorder(children, scores, previousOrder, subtreeSpans, 'center');
-}
-
-/**
- * Incremental cluster reorder (for radial layout).
- *
- * Gravity = position of the highest-scoring node. Active nodes cluster
- * together around the most active one, which is what matters in radial
- * layouts where all angular positions are equivalent.
+ * Signature matches `incrementalCenterReorder` so both can be used
+ * interchangeably via `reorderFn` in GraphCanvas.
  */
 export function incrementalClusterReorder(
   children: NavigationNode[],
   scores: Map<NodeId, number>,
-  previousOrder: NodeId[] | null | undefined,
-  subtreeSpans?: Map<NodeId, number> | null,
+  _previousOrder?: NodeId[] | null,
+  _subtreeSpans?: Map<NodeId, number> | null,
 ): NavigationNode[] {
-  return incrementalReorder(children, scores, previousOrder, subtreeSpans, 'cluster');
+  if (children.length <= 1) return children;
+  return [...children].sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
 }
 
 // ---------------------------------------------------------------------------

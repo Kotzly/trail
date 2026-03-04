@@ -71,16 +71,23 @@ function testSubtreeScores(): void {
 function testNodeScore(): void {
   const now = Date.now();
 
-  // Just visited, 1 visit
+  // Just visited, 1 visit — freq + full recency bonus
   const score1 = computeNodeScore(1, now, now);
-  assert(score1 >= SCORE_FREQ_WEIGHT, `single visit just now should be >= FREQ_WEIGHT, got ${score1}`);
+  const expectedFreq1 = Math.log2(2) * SCORE_FREQ_WEIGHT; // 10
+  assert(score1 >= expectedFreq1, `single visit just now should be >= log2(2)*FREQ_WEIGHT, got ${score1}`);
+  assert(score1 <= expectedFreq1 + SCORE_RECENCY_WEIGHT + 0.01, `score1 should not exceed freq + recency`);
 
-  // Visited 20 times, 2+ hours ago
+  // Visited 20 times, 2+ hours ago — only freq component, no recency
   const score20old = computeNodeScore(20, now - SCORE_RECENCY_DECAY_MS - 1, now);
-  assert.equal(score20old, 20 * SCORE_FREQ_WEIGHT, 'expired recency should contribute 0 bonus');
+  const expectedFreq20 = Math.log2(21) * SCORE_FREQ_WEIGHT;
+  assert(Math.abs(score20old - expectedFreq20) < 0.01, `expired recency should contribute 0 bonus, got ${score20old} expected ~${expectedFreq20.toFixed(1)}`);
 
-  // 1 visit just now should not beat 20 visits long ago
+  // 1 visit just now should not beat 20 visits long ago (frequency still dominates)
   assert(score20old > score1, 'frequency should dominate: 20 old visits > 1 fresh visit');
+
+  // But 20 fresh visits should beat 20 stale visits
+  const score20fresh = computeNodeScore(20, now, now);
+  assert(score20fresh > score20old, 'recency should add bonus to equal visit counts');
 
   console.log('  nodeScore: OK');
 }
@@ -238,63 +245,10 @@ function testEqualScoresPreserveOrder(): void {
 }
 
 // ---------------------------------------------------------------------------
-// incrementalClusterReorder - active nodes at opposite ends converge
+// incrementalClusterReorder - sorts descending by score
 // ---------------------------------------------------------------------------
 
-function testClusterConvergence(): void {
-  // 7 nodes, indices 0–6. Nodes 0 and 6 have high scores (user switches between them).
-  const nodes = Array.from({ length: 7 }, (_, i) => makeNode(i));
-  const scores = new Map<NodeId, number>(
-    nodes.map((n, i) => [n.id, i === 0 || i === 6 ? 500 : 10]),
-  );
-
-  let order: NodeId[] = nodes.map((n) => n.id);
-  let current = asNav(nodes);
-
-  // Run iterations — nodes 0 and 6 should become adjacent
-  for (let i = 0; i < 15; i++) {
-    const result = incrementalClusterReorder(current, scores, order);
-    order = result.map((n) => n.id);
-    current = result;
-  }
-
-  const idx0 = order.indexOf(nodes[0]!.id);
-  const idx6 = order.indexOf(nodes[6]!.id);
-  const gap = Math.abs(idx0 - idx6);
-  assert(gap <= 1, `cluster convergence: active nodes gap=${gap}, expected <=1`);
-  console.log('  clusterConvergence: OK');
-}
-
-// ---------------------------------------------------------------------------
-// incrementalClusterReorder - gravity node (highest score) stays stable
-// ---------------------------------------------------------------------------
-
-function testClusterGravityStability(): void {
-  const nodes = [makeNode(1), makeNode(2), makeNode(3), makeNode(4), makeNode(5)];
-  // Node 3 (index 2) is the anchor with highest score
-  const scores = new Map<NodeId, number>([
-    [nodes[0]!.id, 10],
-    [nodes[1]!.id, 20],
-    [nodes[2]!.id, 500], // gravity anchor
-    [nodes[3]!.id, 40],
-    [nodes[4]!.id, 30],
-  ]);
-
-  const previousOrder = nodes.map((n) => n.id);
-  const result = incrementalClusterReorder(asNav(nodes), scores, previousOrder);
-  const resultIds = ids(result);
-
-  // The anchor (id=3) was at index 2, should not move
-  const anchorIdx = resultIds.indexOf(3);
-  assert.equal(anchorIdx, 2, 'gravity anchor should stay at its position');
-  console.log('  clusterGravityStability: OK');
-}
-
-// ---------------------------------------------------------------------------
-// incrementalClusterReorder - initial placement sorts descending
-// ---------------------------------------------------------------------------
-
-function testClusterInitialPlacement(): void {
+function testClusterSortsDescending(): void {
   const nodes = [makeNode(1), makeNode(2), makeNode(3), makeNode(4), makeNode(5)];
   const scores = new Map<NodeId, number>([
     [nodes[0]!.id, 100],
@@ -304,25 +258,22 @@ function testClusterInitialPlacement(): void {
     [nodes[4]!.id, 400],
   ]);
 
-  // No previous order → should return sorted descending by score
-  const result = incrementalClusterReorder(asNav(nodes), scores, null);
-  const resultIds = ids(result);
-  assert.deepEqual(resultIds, [2, 5, 3, 4, 1], 'cluster initial: sorted descending by score');
-  console.log('  clusterInitialPlacement: OK');
+  const result = incrementalClusterReorder(asNav(nodes), scores);
+  assert.deepEqual(ids(result), [2, 5, 3, 4, 1], 'cluster: sorted descending by score');
+  console.log('  clusterSortsDescending: OK');
 }
 
 // ---------------------------------------------------------------------------
-// incrementalClusterReorder - equal scores preserve order
+// incrementalClusterReorder - equal scores preserve input order (stable sort)
 // ---------------------------------------------------------------------------
 
 function testClusterEqualScores(): void {
   const nodes = [makeNode(1), makeNode(2), makeNode(3), makeNode(4)];
-  const previousOrder = nodes.map((n) => n.id);
   const scores = new Map<NodeId, number>(
     nodes.map((n) => [n.id, 100]),
   );
 
-  const result = incrementalClusterReorder(asNav(nodes), scores, previousOrder);
+  const result = incrementalClusterReorder(asNav(nodes), scores);
   assert.deepEqual(ids(result), ids(asNav(nodes)), 'cluster: equal scores preserve order');
   console.log('  clusterEqualScores: OK');
 }
@@ -341,9 +292,7 @@ function run(): void {
   testConvergence();
   testAddRemoveChildren();
   testEqualScoresPreserveOrder();
-  testClusterConvergence();
-  testClusterGravityStability();
-  testClusterInitialPlacement();
+  testClusterSortsDescending();
   testClusterEqualScores();
 }
 
