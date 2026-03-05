@@ -14,9 +14,10 @@ const GraphCanvas = React.lazy(() => import('./GraphCanvas.js'));
 type GraphAreaProps = {
   /** When set, called instead of the default navigateTo on node click. */
   onNodeActivate?: (nodeId: NodeId, url: string) => void;
+  showControls?: boolean;
 };
 
-export default function GraphArea({ onNodeActivate }: GraphAreaProps = {}) {
+export default function GraphArea({ onNodeActivate, showControls = true }: GraphAreaProps = {}) {
   const [qualityPolicyState, setQualityPolicyState] = React.useState(() =>
     createQualityPolicyState(Date.now()),
   );
@@ -141,7 +142,8 @@ export default function GraphArea({ onNodeActivate }: GraphAreaProps = {}) {
         detailMode={detailMode}
         connectionQuality={connectionQuality}
         onRenderMetrics={handleRenderMetrics}
-        onNodeActivate={onNodeActivate}
+        {...(onNodeActivate ? { onNodeActivate } : {})}
+        showControls={showControls}
       />
     </Suspense>
   );

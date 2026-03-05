@@ -159,6 +159,7 @@ type GraphCanvasProps = {
   onPickTargetComplete: () => void;
   fullViewEnabled: boolean;
   recencyOrderingV2Enabled: boolean;
+  showControls: boolean;
   /** When set, called instead of the default navigateTo on node click. */
   onNodeActivate?: (nodeId: NodeId, url: string) => void;
 };
@@ -294,6 +295,7 @@ export default function GraphCanvas({
   onPickTargetComplete,
   fullViewEnabled,
   recencyOrderingV2Enabled,
+  showControls,
   onNodeActivate,
 }: GraphCanvasProps) {
   const searchActive = search.active;
@@ -2654,33 +2656,35 @@ export default function GraphCanvas({
           className="graph-selection-box"
           style={{ opacity: 0, width: '0px', height: '0px' }}
         />
-        <GraphZoomControls
-          tool={tool}
-          onToolChange={(nextTool) => {
-            onGraphToolChange(nextTool);
-            clearSelectionState();
-          }}
-          onZoom={(direction) => zoom(direction, true)}
-          fullViewEnabled={fullViewEnabled}
-          onOpenFullView={async () => {
-            try {
-              const fullViewUrl = runtimeGetURL('fullview.html');
-              const existing = await browser.tabs.query({ url: fullViewUrl });
-              const tab = existing.find((t) => t.active) ?? existing[0];
-              if (tab?.id != null) {
-                if (tab.windowId != null) {
-                  await browser.windows.update(tab.windowId, { focused: true });
+        {showControls && (
+          <GraphZoomControls
+            tool={tool}
+            onToolChange={(nextTool) => {
+              onGraphToolChange(nextTool);
+              clearSelectionState();
+            }}
+            onZoom={(direction) => zoom(direction, true)}
+            fullViewEnabled={fullViewEnabled}
+            onOpenFullView={async () => {
+              try {
+                const fullViewUrl = runtimeGetURL('fullview.html');
+                const existing = await browser.tabs.query({ url: fullViewUrl });
+                const tab = existing.find((t) => t.active) ?? existing[0];
+                if (tab?.id != null) {
+                  if (tab.windowId != null) {
+                    await browser.windows.update(tab.windowId, { focused: true });
+                  }
+                  await browser.tabs.update(tab.id, { active: true });
+                  await browser.tabs.reload(tab.id);
+                } else {
+                  await browser.tabs.create({ url: fullViewUrl, active: true });
                 }
-                await browser.tabs.update(tab.id, { active: true });
-                await browser.tabs.reload(tab.id);
-              } else {
-                await browser.tabs.create({ url: fullViewUrl, active: true });
+              } catch (error) {
+                console.error('Failed to open full view:', error);
               }
-            } catch (error) {
-              console.error('Failed to open full view:', error);
-            }
-          }}
-        />
+            }}
+          />
+        )}
         {pickTarget && (
           <div className="graph-pick-hint" data-graph-ui="true">
             <span>Click a node to duplicate to</span>

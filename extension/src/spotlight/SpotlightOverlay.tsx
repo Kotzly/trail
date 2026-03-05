@@ -27,12 +27,12 @@ const childVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const },
   },
   hidden: {
     opacity: 0,
     y: 28,
-    transition: { duration: 0.2, ease: [0.4, 0, 1, 1] },
+    transition: { duration: 0.2, ease: [0.4, 0, 1, 1] as const },
   },
 };
 
@@ -49,6 +49,7 @@ type SpotlightOverlayProps = {
 export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }: SpotlightOverlayProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [hoveredGraphNodeId, setHoveredGraphNodeId] = useState<NodeId | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
 
@@ -59,11 +60,6 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
     for (const [key, value] of Object.entries(themeTokens)) {
       el.style.setProperty(key, value);
     }
-    // Derive glass token for panels (muted color at 55% opacity)
-    const muted = themeTokens['--muted'];
-    if (muted) {
-      el.style.setProperty('--spotlight-glass', hexToRgba(muted, 0.55));
-    }
   }, [themeTokens]);
 
   const filteredSuggestions = filterSuggestions(data?.suggestions ?? [], query);
@@ -72,6 +68,7 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
   useEffect(() => {
     const firstNonCurrent = filteredSuggestions.findIndex((s) => !s.isCurrent);
     setSelectedIndex(firstNonCurrent >= 0 ? firstNonCurrent : 0);
+    setHoveredGraphNodeId(null);
   }, [query, data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Focus input when opening, reset query when closing
@@ -80,10 +77,24 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
       requestAnimationFrame(() => inputRef.current?.focus());
     } else {
       setQuery('');
+      setHoveredGraphNodeId(null);
     }
   }, [isOpen]);
 
   const selectedSuggestion = filteredSuggestions[selectedIndex] ?? null;
+  const highlightedNodeId =
+    selectedSuggestion && selectedSuggestion.group !== 'other-trees'
+      ? selectedSuggestion.nodeId
+      : null;
+  const hoveredSuggestionIndex =
+    hoveredGraphNodeId === null
+      ? -1
+      : filteredSuggestions.findIndex(
+          (suggestion) =>
+            suggestion.group !== 'other-trees' && suggestion.nodeId === hoveredGraphNodeId,
+        );
+  const displaySelectedIndex =
+    hoveredSuggestionIndex >= 0 ? hoveredSuggestionIndex : selectedIndex;
 
   const handleNavigate = useCallback(
     async (suggestion: SpotlightSuggestion) => {
@@ -97,15 +108,29 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
     [onClose],
   );
 
+  const handleGraphNavigate = useCallback(
+    (nodeId: NodeId, url: Url) => {
+      void navigateToNode(nodeId, url);
+      onClose();
+    },
+    [onClose],
+  );
+
+  const handleGraphHover = useCallback((nodeId: NodeId | null) => {
+    setHoveredGraphNodeId(nodeId);
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
+          setHoveredGraphNodeId(null);
           setSelectedIndex((i) => Math.min(i + 1, filteredSuggestions.length - 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
+          setHoveredGraphNodeId(null);
           setSelectedIndex((i) => Math.max(i - 1, 0));
           break;
         case 'Enter': {
@@ -169,8 +194,11 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
             ) : (
               <SuggestionList
                 suggestions={filteredSuggestions}
-                selectedIndex={selectedIndex}
-                onSelect={(index) => setSelectedIndex(index)}
+                selectedIndex={displaySelectedIndex}
+                onSelect={(index) => {
+                  setHoveredGraphNodeId(null);
+                  setSelectedIndex(index);
+                }}
                 onActivate={(suggestion) => void handleNavigate(suggestion)}
               />
             )}
@@ -179,11 +207,9 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
           {/* Right: Graph */}
           <motion.div className="spotlight-right" variants={childVariants}>
             <SpotlightGraphFrame
-              highlightNodeId={selectedSuggestion?.nodeId ?? null}
-              onNavigate={(nodeId, url) => {
-                void navigateToNode(nodeId, url);
-                onClose();
-              }}
+              highlightNodeId={highlightedNodeId}
+              onNavigate={handleGraphNavigate}
+              onHoverNode={handleGraphHover}
             />
           </motion.div>
         </motion.div>
@@ -204,14 +230,6 @@ function filterSuggestions(
     const haystack = `${item.title} ${item.url}`.toLowerCase();
     return tokens.every((token) => haystack.includes(token));
   });
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.substring(0, 2), 16);
-  const g = parseInt(h.substring(2, 4), 16);
-  const b = parseInt(h.substring(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function SearchIcon() {

@@ -474,6 +474,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           ...state.search,
           results,
           index: nextIndex,
+          ...(results.length > 0 ? { active: true } : {}),
         },
       };
     }),
