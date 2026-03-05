@@ -48,11 +48,19 @@ export default function SpotlightGraphApp() {
         useStore.setState((state) => ({
           graph: {
             ...state.graph,
+            hoverNodeId: highlightNodeId as NodeId,
             viewIntent: {
               focusNodeId: highlightNodeId as NodeId,
               mode: 'soft',
               intentId: focusIntentRef.current,
             },
+          },
+        }));
+      } else {
+        useStore.setState((state) => ({
+          graph: {
+            ...state.graph,
+            hoverNodeId: null,
           },
         }));
       }
