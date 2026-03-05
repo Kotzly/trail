@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict';
-import { parseSpotlightQuery, tokenizeSpotlightQuery } from '../src/shared/lib/spotlight/query-dsl.js';
+import {
+  parseSpotlightQuery,
+  resolveSpotlightQueryMode,
+  tokenizeSpotlightQuery,
+} from '../src/shared/lib/spotlight/query-dsl.js';
 import { scoreSpotlightCandidate } from '../src/shared/lib/spotlight/scoring.js';
+import {
+  emptySpotlightUsageStats,
+  recordSpotlightSelection,
+  getSelectionFrequencyBoost,
+  getSelectionTokenAffinityBoost,
+} from '../src/shared/lib/spotlight/usage-stats.js';
 import type { NodeId } from '../src/shared/types/ids.js';
 
 function testDslAndOr(): void {
@@ -37,18 +47,37 @@ function testDslInvalidFallback(): void {
   console.log('  dsl invalid fallback: OK');
 }
 
+function testCommandModeParsing(): void {
+  const command = resolveSpotlightQueryMode('> export tree');
+  assert.equal(command.mode, 'commands');
+  assert.equal(command.normalizedQuery, 'export tree');
+
+  const search = resolveSpotlightQueryMode('github issues');
+  assert.equal(search.mode, 'search');
+
+  const discover = resolveSpotlightQueryMode('   ');
+  assert.equal(discover.mode, 'discover');
+  console.log('  dsl command mode: OK');
+}
+
 function testScoringOrdering(): void {
   const now = Date.now();
 
   const exact = scoreSpotlightCandidate(
     {
       nodeId: 1 as NodeId,
+      title: 'Repo issues',
       url: 'https://github.com/org/repo',
       domain: 'github.com',
       group: 'open-tabs',
       recency: now,
       isCurrent: false,
       tabCount: 2,
+      exactPrefixMatch: true,
+      graphProximityBoost: 3,
+      branchAffinityBoost: 1.2,
+      selectionFrequencyBoost: 1.4,
+      selectionTokenAffinityBoost: 1.2,
     },
     {
       textScore: 7,
@@ -61,6 +90,7 @@ function testScoringOrdering(): void {
   const weak = scoreSpotlightCandidate(
     {
       nodeId: 2 as NodeId,
+      title: 'Example',
       url: 'https://example.com/page',
       domain: 'example.com',
       group: 'recently-closed',
@@ -81,12 +111,16 @@ function testScoringOrdering(): void {
   const penalizedCurrent = scoreSpotlightCandidate(
     {
       nodeId: 3 as NodeId,
+      title: 'Repo issues',
       url: 'https://github.com/org/repo',
       domain: 'github.com',
       group: 'open-tabs',
       recency: now,
       isCurrent: true,
       tabCount: 2,
+      exactPrefixMatch: true,
+      graphProximityBoost: 3,
+      branchAffinityBoost: 1.2,
     },
     {
       textScore: 7,
@@ -104,12 +138,26 @@ function testScoringOrdering(): void {
   console.log('  scoring ordering: OK');
 }
 
+function testUsageStatsBoosts(): void {
+  let stats = emptySpotlightUsageStats();
+  stats = recordSpotlightSelection(stats, 'n:1', ['github', 'issues'], Date.now());
+  stats = recordSpotlightSelection(stats, 'n:1', ['github'], Date.now());
+
+  const entry = stats.targets['n:1'];
+  assert(entry, 'recorded entry should exist');
+  assert(getSelectionFrequencyBoost(entry) > 1, 'frequency boost should grow with repeated picks');
+  assert(getSelectionTokenAffinityBoost(entry, ['github']) > 0, 'token affinity should use matching query token');
+  console.log('  usage stats boosts: OK');
+}
+
 function run(): void {
   console.log('Running spotlight-search.test.ts...');
   testDslAndOr();
   testDslPhraseNegationFields();
   testDslInvalidFallback();
+  testCommandModeParsing();
   testScoringOrdering();
+  testUsageStatsBoosts();
 }
 
 run();

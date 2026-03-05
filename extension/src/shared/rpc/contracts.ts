@@ -35,6 +35,7 @@ export const RPC_METHOD = {
     GET_TREES: 'GET_TREES',
     CLEAR_TREE: 'CLEAR_TREE',
     NEW_TREE: 'NEW_TREE',
+    ARCHIVE_ACTIVE_TREE: 'ARCHIVE_ACTIVE_TREE',
     OPEN_TREE: 'OPEN_TREE',
     RENAME_TREE: 'RENAME_TREE',
     DELETE_ARCHIVED_TREE: 'DELETE_ARCHIVED_TREE',
@@ -74,6 +75,7 @@ export const RPC_METHOD = {
     GET_SPOTLIGHT_DATA: 'GET_SPOTLIGHT_DATA',
     SPOTLIGHT_BOOTSTRAP: 'SPOTLIGHT_BOOTSTRAP',
     SPOTLIGHT_SEARCH: 'SPOTLIGHT_SEARCH',
+    SPOTLIGHT_EXECUTE_ACTION: 'SPOTLIGHT_EXECUTE_ACTION',
     SPOTLIGHT_DISPOSE_SESSION: 'SPOTLIGHT_DISPOSE_SESSION',
     TOGGLE_SPOTLIGHT: 'TOGGLE_SPOTLIGHT',
 } as const;
@@ -145,6 +147,7 @@ export type GetTreeMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREE>;
 export type GetTreesMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREES>;
 export type ClearTreeMessage = RequestMessageBase<typeof RPC_METHOD.CLEAR_TREE>;
 export type NewTreeMessage = RequestMessageBase<typeof RPC_METHOD.NEW_TREE, { label: string }>;
+export type ArchiveActiveTreeMessage = RequestMessageBase<typeof RPC_METHOD.ARCHIVE_ACTIVE_TREE>;
 export type OpenTreeMessage = RequestMessageBase<typeof RPC_METHOD.OPEN_TREE, { treeId: string }>;
 export type EnsureTreeLoadedMessage = RequestMessageBase<typeof RPC_METHOD.ENSURE_TREE_LOADED, { treeId: string }>;
 export type SyncTreesMessage = RequestMessageBase<typeof RPC_METHOD.SYNC_TREES>;
@@ -250,6 +253,25 @@ export type ResetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.RESET_FLAGS
 
 export type SpotlightSuggestionGroup = 'open-tabs' | 'recently-closed' | 'current-tree' | 'other-trees';
 export type SpotlightSearchSessionId = string;
+export type SpotlightMode = 'discover' | 'search' | 'commands';
+export type SpotlightItemKind = 'node' | 'tree' | 'action';
+export type SpotlightActionSafety = 'safe' | 'destructive';
+export type SpotlightSectionId =
+  | 'continue'
+  | 'actions'
+  | 'open-tabs'
+  | 'recent'
+  | 'current-tree'
+  | 'archived-trees'
+  | 'matches';
+
+export type SpotlightTreeRelation =
+  | 'current'
+  | 'parent'
+  | 'child'
+  | 'sibling'
+  | 'same-branch'
+  | 'other-branch';
 
 export type SpotlightHighlightRange = {
   start: number;
@@ -261,7 +283,28 @@ export type SpotlightHighlightMap = {
   url: SpotlightHighlightRange[];
 };
 
-export type SpotlightSearchResult = {
+export type SpotlightActionId =
+  | 'open'
+  | 'open-tree'
+  | 'copy-url'
+  | 'pin'
+  | 'unpin'
+  | 'close-tab'
+  | 'close-tabs'
+  | 'archive-current-tree'
+  | 'delete-archived-tree'
+  | 'export-tree'
+  | 'new-tree'
+  | 'show-command-help';
+
+export type SpotlightActionTarget =
+  | { kind: 'node'; nodeId: NodeId }
+  | { kind: 'tree'; treeId: string }
+  | { kind: 'global' };
+
+export type SpotlightNodeResult = {
+  kind: 'node';
+  key: string;
   nodeId: NodeId;
   title: string;
   url: string;
@@ -269,11 +312,51 @@ export type SpotlightSearchResult = {
   group: SpotlightSuggestionGroup;
   recency: number;
   isCurrent: boolean;
+  treeRelation: SpotlightTreeRelation;
+  tabCount: number;
+  pinned: boolean;
   treeId?: string | undefined;
   treeName?: string | undefined;
   score: number;
   groupBadge: 'Open' | 'Recent' | 'Tree' | 'Archived';
   highlights: SpotlightHighlightMap;
+  why: string[];
+};
+
+export type SpotlightTreeResult = {
+  kind: 'tree';
+  key: string;
+  treeId: string;
+  treeName: string;
+  rootUrl: string;
+  favicon?: string | undefined;
+  recency: number;
+  score: number;
+  groupBadge: 'Archived';
+  highlights: SpotlightHighlightMap;
+  why: string[];
+};
+
+export type SpotlightActionResult = {
+  kind: 'action';
+  key: string;
+  actionId: SpotlightActionId;
+  title: string;
+  subtitle: string;
+  safety: SpotlightActionSafety;
+  shortcutHint: 'Enter' | 'Alt+Enter';
+  target?: SpotlightActionTarget;
+};
+
+export type SpotlightSearchResult =
+  | SpotlightNodeResult
+  | SpotlightTreeResult
+  | SpotlightActionResult;
+
+export type SpotlightSection = {
+  id: SpotlightSectionId;
+  title: string;
+  items: SpotlightSearchResult[];
 };
 
 export type SpotlightSearchRequest = {
@@ -283,19 +366,33 @@ export type SpotlightSearchRequest = {
   requestSeq: number;
 };
 
+export type SpotlightExecuteActionRequest = {
+  actionId: SpotlightActionId;
+  target?: SpotlightActionTarget;
+  query?: string;
+};
+
+export type SpotlightExecuteActionResponse = {
+  closeSpotlight: boolean;
+  statusText?: string;
+};
+
 export type SpotlightSearchResponse = {
   requestSeq: number;
-  results: SpotlightSearchResult[];
+  mode: SpotlightMode;
+  sections: SpotlightSection[];
 };
 
 export type SpotlightBootstrapData = {
   sessionId: SpotlightSearchSessionId;
-  results: SpotlightSearchResult[];
+  mode: SpotlightMode;
+  sections: SpotlightSection[];
   tree: NavigationTreeJSON;
   currentNodeId: NodeId | null;
   openNodeIds: NodeId[];
   nodeRecency: Record<NodeId, number>;
   nodeTabCounts: Record<NodeId, number>;
+  flags?: ResolvedFlags;
   settings: Settings;
 };
 
@@ -305,6 +402,7 @@ export type SpotlightBootstrapMessage = RequestMessageBase<typeof RPC_METHOD.SPO
   limit?: number;
 }>;
 export type SpotlightSearchMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_SEARCH, SpotlightSearchRequest>;
+export type SpotlightExecuteActionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION, SpotlightExecuteActionRequest>;
 export type SpotlightDisposeSessionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, {
   sessionId: SpotlightSearchSessionId;
 }>;
@@ -320,6 +418,7 @@ export type RequestMessage = NavigateToMessage |
     TreeUpdatedMessage | TreesUpdatedMessage | TagsUpdatedMessage |
     NotifyMessage |
     GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | EnsureTreeLoadedMessage | SyncTreesMessage | RenameTreeMessage | DeleteArchivedTreeMessage | ExportTreeMessage |
+    ArchiveActiveTreeMessage |
     OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
     AddTagMessage | RemoveTagMessage |
@@ -338,6 +437,7 @@ export type RequestMessage = NavigateToMessage |
     GetSpotlightDataMessage |
     SpotlightBootstrapMessage |
     SpotlightSearchMessage |
+    SpotlightExecuteActionMessage |
     SpotlightDisposeSessionMessage |
     ToggleSpotlightMessage;
 
@@ -384,6 +484,7 @@ export type ResponseDataByType = {
     [RPC_METHOD.GET_TREES]: TreesSnapshot;
     [RPC_METHOD.CLEAR_TREE]: void;
     [RPC_METHOD.NEW_TREE]: void;
+    [RPC_METHOD.ARCHIVE_ACTIVE_TREE]: void;
     [RPC_METHOD.OPEN_TREE]: void;
     [RPC_METHOD.RENAME_TREE]: void;
     [RPC_METHOD.DELETE_ARCHIVED_TREE]: void;
@@ -423,6 +524,7 @@ export type ResponseDataByType = {
     [RPC_METHOD.GET_SPOTLIGHT_DATA]: SpotlightBootstrapData;
     [RPC_METHOD.SPOTLIGHT_BOOTSTRAP]: SpotlightBootstrapData;
     [RPC_METHOD.SPOTLIGHT_SEARCH]: SpotlightSearchResponse;
+    [RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION]: SpotlightExecuteActionResponse;
     [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION]: void;
     [RPC_METHOD.TOGGLE_SPOTLIGHT]: void;
 }
@@ -478,6 +580,7 @@ export const rpc = {
     getTrees(): GetTreesMessage { return { type: RPC_METHOD.GET_TREES } },
     clearTree(): ClearTreeMessage { return { type: RPC_METHOD.CLEAR_TREE } },
     newTree(payload: { label: string }): NewTreeMessage { return { type: RPC_METHOD.NEW_TREE, ...payload } },
+    archiveActiveTree(): ArchiveActiveTreeMessage { return { type: RPC_METHOD.ARCHIVE_ACTIVE_TREE } },
     openTree(payload: { treeId: string }): OpenTreeMessage { return { type: RPC_METHOD.OPEN_TREE, ...payload } },
     ensureTreeLoaded(payload: { treeId: string }): EnsureTreeLoadedMessage { return { type: RPC_METHOD.ENSURE_TREE_LOADED, ...payload } },
     syncTrees(): SyncTreesMessage { return { type: RPC_METHOD.SYNC_TREES } },
@@ -563,6 +666,9 @@ export const rpc = {
     },
     spotlightSearch(payload: SpotlightSearchRequest): SpotlightSearchMessage {
         return { type: RPC_METHOD.SPOTLIGHT_SEARCH, ...payload };
+    },
+    spotlightExecuteAction(payload: SpotlightExecuteActionRequest): SpotlightExecuteActionMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION, ...payload };
     },
     spotlightDisposeSession(payload: { sessionId: SpotlightSearchSessionId }): SpotlightDisposeSessionMessage {
         return { type: RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, ...payload };

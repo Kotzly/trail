@@ -28,6 +28,12 @@ export const FLAG_DEFS = {
     label: 'Recency Ordering V2',
     description: 'Enable stable recency-based branch ordering with hysteresis.',
   },
+  spotlightV3: {
+    type: 'boolean',
+    default: false,
+    label: 'Spotlight V3',
+    description: 'Enable the command palette, sectioned search, and adaptive ranking in Spotlight.',
+  },
 } as const satisfies Record<string, FlagDef>;
 
 export type FlagKey = keyof typeof FLAG_DEFS;

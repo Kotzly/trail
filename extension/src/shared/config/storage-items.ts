@@ -14,6 +14,7 @@ import type { PersistedFlagState } from '../types/flags.js';
 import type { TagDefinition } from '../types/tags.js';
 import type { AccountSnapshot } from '../types/account.js';
 import type { BackendConfigOverride } from './backend.js';
+import type { SpotlightUsageStats } from '../lib/spotlight/usage-stats.js';
 
 // ── Auth ────────────────────────────────────────────────────────────
 
@@ -151,5 +152,12 @@ export const accountSnapshotItem = storage.defineItem<CachedSnapshotEnvelope | n
 
 export const backendConfigItem = storage.defineItem<BackendConfigOverride | null>(
   'local:trail_backend_config',
+  { fallback: null },
+);
+
+// ── Spotlight ───────────────────────────────────────────────────────
+
+export const spotlightUsageStatsItem = storage.defineItem<SpotlightUsageStats | null>(
+  'local:trail_spotlight_usage_stats',
   { fallback: null },
 );

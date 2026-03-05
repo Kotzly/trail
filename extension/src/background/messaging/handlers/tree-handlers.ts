@@ -300,6 +300,18 @@ export const treeHandlers = defineRpcHandlers({
     return ok();
   },
 
+  async [RPC_METHOD.ARCHIVE_ACTIVE_TREE]() {
+    const current = await treeStorage.getOrCreateTree();
+    if (current.getRoot()) {
+      snapshot(current, 'Archive active tree');
+    }
+    await treeStorage.archiveActiveTree();
+    const meta = treeStorage.createMeta('Untitled Tree');
+    const nextTree = new NavigationTree();
+    await switchTree(nextTree, meta, null, null);
+    return ok();
+  },
+
   async [RPC_METHOD.OPEN_TREE](message) {
     // Use tree-loader (handles active tree, archive blob, cloud fetch)
     const loaded = await loadTree(message.treeId);

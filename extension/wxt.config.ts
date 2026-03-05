@@ -84,6 +84,10 @@ export default defineConfig({
         resources: ['spotlight-graph.html'],
         matches: ['<all_urls>'],
       },
+      {
+        resources: ['assets/*.woff2'],
+        matches: ['<all_urls>'],
+      },
     ],
     host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
     side_panel: {

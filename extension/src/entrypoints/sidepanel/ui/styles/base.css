@@ -35,7 +35,7 @@ body,
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
+  font-family: var(--trail-font-sans, "Inter", system-ui, sans-serif);
   background-color: var(--trail-app-bg-color, var(--background));
   background-image: var(--trail-app-bg-image, none);
   background-repeat: no-repeat;

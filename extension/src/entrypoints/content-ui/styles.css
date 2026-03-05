@@ -1,3 +1,5 @@
+@import '@shared/styles/inter.css';
+
 :host {
   all: initial;
 }
@@ -5,4 +7,5 @@
 .trail-content-ui-root {
   all: initial;
   display: none;
+  font-family: var(--trail-font-sans, "Inter", system-ui, sans-serif);
 }

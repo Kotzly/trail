@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { SuggestionList } from './SuggestionList.js';
 import { SpotlightGraphFrame } from './SpotlightGraphFrame.js';
 import { navigateToNode } from './rpc.js';
-import type { SpotlightSearchResult } from './types.js';
+import type { LegacySpotlightSearchResult } from './legacy-types.js';
 import type { NodeId, Url } from '@shared/types/ids.js';
 
 const backdropVariants = {
@@ -36,11 +36,11 @@ const childVariants = {
 
 type SpotlightOverlayProps = {
   isOpen: boolean;
-  suggestions: SpotlightSearchResult[];
+  suggestions: LegacySpotlightSearchResult[];
   query: string;
   loading: boolean;
   onQueryChange: (query: string) => void;
-  onActivate: (suggestion: SpotlightSearchResult) => Promise<void>;
+  onActivate: (suggestion: LegacySpotlightSearchResult) => Promise<void>;
   onClose: () => void;
   themeTokens: Record<string, string> | null;
 };

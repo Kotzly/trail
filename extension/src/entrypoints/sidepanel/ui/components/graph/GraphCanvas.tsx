@@ -755,6 +755,19 @@ export default function GraphCanvas({
   }, []);
 
   useEffect(() => {
+    const fonts = document.fonts;
+    if (!fonts) return;
+    let cancelled = false;
+    void fonts.ready.then(() => {
+      if (cancelled) return;
+      rendererRef.current?.refreshTheme();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     resetStepRef.current = null;
   }, [currentNodeId]);
 

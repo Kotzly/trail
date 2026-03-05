@@ -6,6 +6,7 @@ import { NavigationTreeMapper } from '@shared/lib/mapper.js';
 import { NavigationTree } from '../state/nav-tree.js';
 import { sendRuntimeMessage } from './send-message.js';
 import { browser } from '@shared/platform/webext.js';
+import { spotlightLiveIndex } from '../services/spotlight-live-index.js';
 
 
 // Get tab states for all open tabs.
@@ -91,6 +92,7 @@ export async function notifyTreeUpdate(
   reason: TreeUpdateReason = 'sync',
   view?: TreeViewIntent,
 ): Promise<void> {
+  spotlightLiveIndex.invalidate();
   if (IMMEDIATE_REASONS.has(reason)) {
     // Flush any pending debounced update, then send immediately
     if (debounceTimer) {
@@ -114,6 +116,7 @@ export async function notifyTreeUpdate(
 }
 
 export async function notifyTreesUpdate(snapshot: TreesSnapshot): Promise<void> {
+  spotlightLiveIndex.invalidate();
   const payload = rpc.treesUpdated(snapshot);
   sendRuntimeMessage(payload);
 }

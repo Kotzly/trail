@@ -18,6 +18,8 @@ export type SpotlightQueryAst = {
   clauses: SpotlightQueryClause[];
 };
 
+export type SpotlightQueryMode = 'discover' | 'search' | 'commands';
+
 const VALID_FIELDS: ReadonlySet<SpotlightField> = new Set([
   'domain',
   'tab',
@@ -116,6 +118,17 @@ export function parseSpotlightQuery(input: string): SpotlightQueryAst {
   return {
     clauses: clauses.length > 0 ? clauses : [{ terms: [] }],
   };
+}
+
+export function resolveSpotlightQueryMode(input: string): { mode: SpotlightQueryMode; normalizedQuery: string } {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return { mode: 'discover', normalizedQuery: '' };
+  }
+  if (trimmed.startsWith('>')) {
+    return { mode: 'commands', normalizedQuery: trimmed.slice(1).trim() };
+  }
+  return { mode: 'search', normalizedQuery: trimmed };
 }
 
 function splitRawTokens(input: string): string[] {

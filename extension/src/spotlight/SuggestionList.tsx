@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, forwardRef, Fragment, type ReactNode } from 'react';
 import { getFaviconUrl } from '@shared/utils/favicon.js';
 import type { Url } from '@shared/types/ids.js';
-import type { SpotlightSearchResult, SpotlightHighlightRange } from './types.js';
+import type { LegacySpotlightSearchResult, LegacySpotlightHighlightRange } from './legacy-types.js';
 
 type SuggestionListProps = {
-  suggestions: SpotlightSearchResult[];
+  suggestions: LegacySpotlightSearchResult[];
   selectedIndex: number;
   onSelect: (index: number) => void;
-  onActivate: (suggestion: SpotlightSearchResult) => void;
+  onActivate: (suggestion: LegacySpotlightSearchResult) => void;
 };
 
 export function SuggestionList({
@@ -39,7 +39,7 @@ export function SuggestionList({
 }
 
 type SuggestionItemProps = {
-  suggestion: SpotlightSearchResult;
+  suggestion: LegacySpotlightSearchResult;
   selected: boolean;
   onMouseEnter: () => void;
   onClick: () => void;
@@ -114,7 +114,7 @@ function GlobeIcon() {
   );
 }
 
-function renderHighlighted(text: string, ranges: SpotlightHighlightRange[]) {
+function renderHighlighted(text: string, ranges: LegacySpotlightHighlightRange[]) {
   if (!text || ranges.length === 0) return text;
 
   const safeRanges = ranges

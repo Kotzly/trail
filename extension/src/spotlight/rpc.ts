@@ -1,10 +1,14 @@
 import { browser } from 'wxt/browser';
 import type {
+  SpotlightActionTarget,
   SpotlightBootstrapData,
+  SpotlightExecuteActionResponse,
   SpotlightSearchResponse,
   SpotlightSearchSessionId,
 } from './types.js';
 import type { NodeId, Url } from '@shared/types/ids.js';
+import type { ResolvedFlags } from '@shared/types/flags.js';
+import type { TrailExportBundle } from '@shared/types/export.js';
 
 const RPC_VERSION = 2 as const;
 
@@ -75,4 +79,25 @@ export async function navigateToNode(nodeId: NodeId, url: Url): Promise<void> {
 
 export async function openTree(treeId: string): Promise<void> {
   await sendRpc<void>('OPEN_TREE', { treeId });
+}
+
+export async function executeSpotlightAction(
+  actionId: string,
+  target?: SpotlightActionTarget,
+  query?: string,
+): Promise<SpotlightExecuteActionResponse> {
+  const input: Record<string, unknown> = { actionId };
+  if (target) input.target = target;
+  if (query !== undefined) input.query = query;
+  return sendRpc<SpotlightExecuteActionResponse>('SPOTLIGHT_EXECUTE_ACTION', input);
+}
+
+export async function getFlags(): Promise<ResolvedFlags> {
+  return sendRpc<ResolvedFlags>('GET_FLAGS');
+}
+
+export async function exportTree(treeId?: string): Promise<TrailExportBundle> {
+  const input: Record<string, unknown> = {};
+  if (treeId) input.treeId = treeId;
+  return sendRpc<TrailExportBundle>('EXPORT_TREE', input);
 }

@@ -9,7 +9,7 @@
   justify-content: center;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  font-family: var(--trail-font-sans, "Inter", system-ui, sans-serif);
 }
 
 .error-boundary__content {

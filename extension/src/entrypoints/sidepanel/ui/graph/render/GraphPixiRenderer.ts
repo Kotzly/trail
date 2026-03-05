@@ -722,7 +722,7 @@ export class GraphPixiRenderer {
   };
   private theme = readGraphTheme({ host: document.body });
   private themeVersion = 0;
-  private fontFamily = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
+  private fontFamily = '"Inter", system-ui, sans-serif';
   private detailMode: DetailMode = 'full';
   private connectionQuality: ConnectionQuality = 'full';
   private textResolution = 1;

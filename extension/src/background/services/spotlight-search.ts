@@ -6,10 +6,6 @@ import {
   type SpotlightScoringCandidate,
 } from '@shared/lib/spotlight/scoring.js';
 import {
-  type SpotlightBootstrapData,
-  type SpotlightSearchResponse,
-  type SpotlightSearchResult,
-  type SpotlightSearchSessionId,
   type SpotlightSuggestionGroup,
 } from '@shared/rpc/contracts.js';
 import { treeStorage } from './tree-storage.js';
@@ -36,17 +32,52 @@ type SessionDoc = {
 };
 
 type SpotlightSession = {
-  id: SpotlightSearchSessionId;
+  id: LegacySpotlightSearchSessionId;
   index: MiniSearch;
   docsById: Map<string, SessionDoc>;
   docs: SessionDoc[];
   touchedAt: number;
 };
 
-export class SpotlightSearchService {
-  private sessions = new Map<SpotlightSearchSessionId, SpotlightSession>();
+export type LegacySpotlightSearchSessionId = string;
 
-  async bootstrap(limit: number): Promise<Omit<SpotlightBootstrapData, 'settings'>> {
+export type LegacySpotlightSearchResult = {
+  nodeId: NodeId;
+  title: string;
+  url: string;
+  favicon?: string;
+  group: SpotlightSuggestionGroup;
+  recency: number;
+  isCurrent: boolean;
+  treeId?: string;
+  treeName?: string;
+  score: number;
+  groupBadge: 'Open' | 'Recent' | 'Tree' | 'Archived';
+  highlights: {
+    title: Array<{ start: number; end: number }>;
+    url: Array<{ start: number; end: number }>;
+  };
+};
+
+export type LegacySpotlightSearchResponse = {
+  requestSeq: number;
+  results: LegacySpotlightSearchResult[];
+};
+
+export type LegacySpotlightBootstrapData = {
+  sessionId: LegacySpotlightSearchSessionId;
+  results: LegacySpotlightSearchResult[];
+  tree: ReturnType<typeof NavigationTreeMapper.toJSON>;
+  currentNodeId: NodeId | null;
+  openNodeIds: NodeId[];
+  nodeRecency: Record<NodeId, number>;
+  nodeTabCounts: Record<NodeId, number>;
+};
+
+export class SpotlightSearchService {
+  private sessions = new Map<LegacySpotlightSearchSessionId, SpotlightSession>();
+
+  async bootstrap(limit: number): Promise<LegacySpotlightBootstrapData> {
     this.pruneExpiredSessions();
 
     const tree = await treeStorage.getOrCreateTree();
@@ -122,11 +153,11 @@ export class SpotlightSearchService {
   }
 
   search(
-    sessionId: SpotlightSearchSessionId,
+    sessionId: LegacySpotlightSearchSessionId,
     query: string,
     limit: number,
     requestSeq: number,
-  ): SpotlightSearchResponse {
+  ): LegacySpotlightSearchResponse {
     this.pruneExpiredSessions();
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -136,7 +167,7 @@ export class SpotlightSearchService {
     return this.searchInSession(session, query, limit, requestSeq);
   }
 
-  dispose(sessionId: SpotlightSearchSessionId): void {
+  dispose(sessionId: LegacySpotlightSearchSessionId): void {
     this.sessions.delete(sessionId);
   }
 
@@ -183,7 +214,7 @@ export class SpotlightSearchService {
     query: string,
     limit: number,
     requestSeq: number,
-  ): SpotlightSearchResponse {
+  ): LegacySpotlightSearchResponse {
     const ast = parseSpotlightQuery(query);
     const queryDomains = extractQueryDomains(ast.clauses.flatMap((clause) => clause.terms));
     const queryUrls = extractQueryUrls(ast.clauses.flatMap((clause) => clause.terms));
@@ -211,7 +242,7 @@ export class SpotlightSearchService {
       }
     }
 
-    const ranked: Array<{ item: SpotlightSearchResult; recency: number }> = [];
+    const ranked: Array<{ item: LegacySpotlightSearchResult; recency: number }> = [];
     const now = Date.now();
 
     const needles = collectHighlightNeedles(ast.clauses.flatMap((clause) => clause.terms));
@@ -244,12 +275,12 @@ export class SpotlightSearchService {
           nodeId: doc.nodeId,
           title: doc.title,
           url: doc.url,
-          favicon: doc.favicon,
+          ...(doc.favicon ? { favicon: doc.favicon } : {}),
           group: doc.group,
           recency: doc.recency,
           isCurrent: doc.isCurrent,
-          treeId: doc.treeId,
-          treeName: doc.treeName,
+          ...(doc.treeId ? { treeId: doc.treeId } : {}),
+          ...(doc.treeName ? { treeName: doc.treeName } : {}),
           score: breakdown.finalScore,
           groupBadge: toGroupBadge(doc.group),
           highlights: {
