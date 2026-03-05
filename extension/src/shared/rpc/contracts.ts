@@ -72,6 +72,9 @@ export const RPC_METHOD = {
     SET_FLAG: 'SET_FLAG',
     RESET_FLAGS: 'RESET_FLAGS',
     GET_SPOTLIGHT_DATA: 'GET_SPOTLIGHT_DATA',
+    SPOTLIGHT_BOOTSTRAP: 'SPOTLIGHT_BOOTSTRAP',
+    SPOTLIGHT_SEARCH: 'SPOTLIGHT_SEARCH',
+    SPOTLIGHT_DISPOSE_SESSION: 'SPOTLIGHT_DISPOSE_SESSION',
     TOGGLE_SPOTLIGHT: 'TOGGLE_SPOTLIGHT',
 } as const;
 
@@ -246,8 +249,19 @@ export type ResetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.RESET_FLAGS
 // ==== Spotlight ====
 
 export type SpotlightSuggestionGroup = 'open-tabs' | 'recently-closed' | 'current-tree' | 'other-trees';
+export type SpotlightSearchSessionId = string;
 
-export type SpotlightSuggestion = {
+export type SpotlightHighlightRange = {
+  start: number;
+  end: number;
+};
+
+export type SpotlightHighlightMap = {
+  title: SpotlightHighlightRange[];
+  url: SpotlightHighlightRange[];
+};
+
+export type SpotlightSearchResult = {
   nodeId: NodeId;
   title: string;
   url: string;
@@ -257,10 +271,26 @@ export type SpotlightSuggestion = {
   isCurrent: boolean;
   treeId?: string | undefined;
   treeName?: string | undefined;
+  score: number;
+  groupBadge: 'Open' | 'Recent' | 'Tree' | 'Archived';
+  highlights: SpotlightHighlightMap;
 };
 
-export type SpotlightData = {
-  suggestions: SpotlightSuggestion[];
+export type SpotlightSearchRequest = {
+  sessionId: SpotlightSearchSessionId;
+  query: string;
+  limit: number;
+  requestSeq: number;
+};
+
+export type SpotlightSearchResponse = {
+  requestSeq: number;
+  results: SpotlightSearchResult[];
+};
+
+export type SpotlightBootstrapData = {
+  sessionId: SpotlightSearchSessionId;
+  results: SpotlightSearchResult[];
   tree: NavigationTreeJSON;
   currentNodeId: NodeId | null;
   openNodeIds: NodeId[];
@@ -269,7 +299,15 @@ export type SpotlightData = {
   settings: Settings;
 };
 
+/** @deprecated Use SPOTLIGHT_BOOTSTRAP instead. */
 export type GetSpotlightDataMessage = RequestMessageBase<typeof RPC_METHOD.GET_SPOTLIGHT_DATA>;
+export type SpotlightBootstrapMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_BOOTSTRAP, {
+  limit?: number;
+}>;
+export type SpotlightSearchMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_SEARCH, SpotlightSearchRequest>;
+export type SpotlightDisposeSessionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, {
+  sessionId: SpotlightSearchSessionId;
+}>;
 export type ToggleSpotlightMessage = RequestMessageBase<typeof RPC_METHOD.TOGGLE_SPOTLIGHT>;
 
 export type RequestMessage = NavigateToMessage |
@@ -298,6 +336,9 @@ export type RequestMessage = NavigateToMessage |
     SetFlagMessage |
     ResetFlagsMessage |
     GetSpotlightDataMessage |
+    SpotlightBootstrapMessage |
+    SpotlightSearchMessage |
+    SpotlightDisposeSessionMessage |
     ToggleSpotlightMessage;
 
 
@@ -379,7 +420,10 @@ export type ResponseDataByType = {
     [RPC_METHOD.GET_FLAGS]: ResolvedFlags;
     [RPC_METHOD.SET_FLAG]: ResolvedFlags;
     [RPC_METHOD.RESET_FLAGS]: ResolvedFlags;
-    [RPC_METHOD.GET_SPOTLIGHT_DATA]: SpotlightData;
+    [RPC_METHOD.GET_SPOTLIGHT_DATA]: SpotlightBootstrapData;
+    [RPC_METHOD.SPOTLIGHT_BOOTSTRAP]: SpotlightBootstrapData;
+    [RPC_METHOD.SPOTLIGHT_SEARCH]: SpotlightSearchResponse;
+    [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION]: void;
     [RPC_METHOD.TOGGLE_SPOTLIGHT]: void;
 }
 
@@ -510,6 +554,18 @@ export const rpc = {
     },
     getSpotlightData(): GetSpotlightDataMessage {
         return { type: RPC_METHOD.GET_SPOTLIGHT_DATA };
+    },
+    spotlightBootstrap(payload?: { limit?: number }): SpotlightBootstrapMessage {
+        if (payload?.limit === undefined) {
+            return { type: RPC_METHOD.SPOTLIGHT_BOOTSTRAP };
+        }
+        return { type: RPC_METHOD.SPOTLIGHT_BOOTSTRAP, ...payload };
+    },
+    spotlightSearch(payload: SpotlightSearchRequest): SpotlightSearchMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_SEARCH, ...payload };
+    },
+    spotlightDisposeSession(payload: { sessionId: SpotlightSearchSessionId }): SpotlightDisposeSessionMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, ...payload };
     },
     toggleSpotlight(): ToggleSpotlightMessage {
         return { type: RPC_METHOD.TOGGLE_SPOTLIGHT };

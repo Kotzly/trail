@@ -1,1 +1,10 @@
-export type { SpotlightData, SpotlightSuggestion, SpotlightSuggestionGroup } from '@shared/rpc/contracts.js';
+export type {
+  SpotlightBootstrapData,
+  SpotlightSearchRequest,
+  SpotlightSearchResponse,
+  SpotlightSearchResult,
+  SpotlightSearchSessionId,
+  SpotlightSuggestionGroup,
+  SpotlightHighlightMap,
+  SpotlightHighlightRange,
+} from '@shared/rpc/contracts.js';

@@ -17,8 +17,9 @@ export default defineContentScript({
 
   async main(ctx) {
     const MOUNT_FLAG = '__trailSpotlightMounted';
-    if ((window as Record<string, unknown>)[MOUNT_FLAG]) return;
-    (window as Record<string, unknown>)[MOUNT_FLAG] = true;
+    const globalWindow = window as unknown as Record<string, unknown>;
+    if (globalWindow[MOUNT_FLAG]) return;
+    globalWindow[MOUNT_FLAG] = true;
 
     let toggleFn: (() => void) | null = null;
 

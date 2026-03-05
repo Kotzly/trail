@@ -1,33 +1,13 @@
-import { useState, useRef, useEffect, useMemo, forwardRef } from 'react';
+import { useState, useRef, useEffect, forwardRef, Fragment, type ReactNode } from 'react';
 import { getFaviconUrl } from '@shared/utils/favicon.js';
 import type { Url } from '@shared/types/ids.js';
-import type { SpotlightSuggestion, SpotlightSuggestionGroup } from './types.js';
+import type { SpotlightSearchResult, SpotlightHighlightRange } from './types.js';
 
 type SuggestionListProps = {
-  suggestions: SpotlightSuggestion[];
+  suggestions: SpotlightSearchResult[];
   selectedIndex: number;
   onSelect: (index: number) => void;
-  onActivate: (suggestion: SpotlightSuggestion) => void;
-};
-
-const GROUP_LABELS: Record<SpotlightSuggestionGroup, string> = {
-  'open-tabs': 'Open Tabs',
-  'recently-closed': 'Recently Closed',
-  'current-tree': 'Current Tree',
-  'other-trees': 'Other Trees',
-};
-
-const GROUP_ORDER: SpotlightSuggestionGroup[] = [
-  'open-tabs',
-  'recently-closed',
-  'current-tree',
-  'other-trees',
-];
-
-type GroupedSuggestions = {
-  group: SpotlightSuggestionGroup;
-  label: string;
-  items: Array<{ suggestion: SpotlightSuggestion; flatIndex: number }>;
+  onActivate: (suggestion: SpotlightSearchResult) => void;
 };
 
 export function SuggestionList({
@@ -36,62 +16,30 @@ export function SuggestionList({
   onSelect,
   onActivate,
 }: SuggestionListProps) {
-  const listRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLDivElement>(null);
 
-  // Group suggestions by category, preserving flat index
-  const groups = useMemo(() => {
-    const grouped = new Map<SpotlightSuggestionGroup, GroupedSuggestions>();
-
-    suggestions.forEach((suggestion, flatIndex) => {
-      let group = grouped.get(suggestion.group);
-      if (!group) {
-        group = {
-          group: suggestion.group,
-          label: GROUP_LABELS[suggestion.group],
-          items: [],
-        };
-        grouped.set(suggestion.group, group);
-      }
-      group.items.push({ suggestion, flatIndex });
-    });
-
-    // Return in defined order, skipping empty groups
-    return GROUP_ORDER
-      .map((key) => grouped.get(key))
-      .filter((g): g is GroupedSuggestions => g !== undefined && g.items.length > 0);
-  }, [suggestions]);
-
-  // Auto-scroll selected item into view
   useEffect(() => {
     selectedRef.current?.scrollIntoView({ block: 'nearest' });
   }, [selectedIndex]);
 
   return (
-    <div className="spotlight-suggestions" ref={listRef}>
-      {groups.map((group) => (
-        <div key={group.group}>
-          <div className="spotlight-group-header">{group.label}</div>
-          {group.items.map(({ suggestion, flatIndex }) => (
-            <SuggestionItem
-              key={`${suggestion.group}-${suggestion.nodeId}-${suggestion.treeId ?? ''}`}
-              ref={flatIndex === selectedIndex ? selectedRef : undefined}
-              suggestion={suggestion}
-              selected={flatIndex === selectedIndex}
-              onMouseEnter={() => onSelect(flatIndex)}
-              onClick={() => onActivate(suggestion)}
-            />
-          ))}
-        </div>
+    <div className="spotlight-suggestions">
+      {suggestions.map((suggestion, flatIndex) => (
+        <SuggestionItem
+          key={`${suggestion.group}-${suggestion.nodeId}-${suggestion.treeId ?? ''}`}
+          ref={flatIndex === selectedIndex ? selectedRef : undefined}
+          suggestion={suggestion}
+          selected={flatIndex === selectedIndex}
+          onMouseEnter={() => onSelect(flatIndex)}
+          onClick={() => onActivate(suggestion)}
+        />
       ))}
     </div>
   );
 }
 
-// ─── Item ───
-
 type SuggestionItemProps = {
-  suggestion: SpotlightSuggestion;
+  suggestion: SpotlightSearchResult;
   selected: boolean;
   onMouseEnter: () => void;
   onClick: () => void;
@@ -112,22 +60,23 @@ const SuggestionItem = forwardRef<HTMLDivElement, SuggestionItemProps>(
         <Favicon src={faviconSrc} />
         <div className="spotlight-item-text">
           <div className="spotlight-item-title">
-            {suggestion.group === 'other-trees' && suggestion.treeName
-              ? suggestion.treeName
-              : suggestion.title}
+            {renderHighlighted(
+              suggestion.group === 'other-trees' && suggestion.treeName ? suggestion.treeName : suggestion.title,
+              suggestion.highlights.title,
+            )}
           </div>
-          <div className="spotlight-item-url">{truncateUrl(suggestion.url)}</div>
+          <div className="spotlight-item-url">
+            {renderHighlighted(suggestion.url, suggestion.highlights.url)}
+          </div>
+        </div>
+        <div className={`spotlight-item-badge spotlight-item-badge--${suggestion.group}`}>
+          {suggestion.groupBadge}
         </div>
         {suggestion.isCurrent && <div className="spotlight-item-current" />}
-        {suggestion.group === 'open-tabs' && !suggestion.isCurrent && (
-          <div className="spotlight-item-tab-indicator" />
-        )}
       </div>
     );
   },
 );
-
-// ─── Favicon with globe fallback ───
 
 function Favicon({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
@@ -165,12 +114,34 @@ function GlobeIcon() {
   );
 }
 
-function truncateUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const path = parsed.pathname === '/' ? '' : parsed.pathname;
-    return `${parsed.hostname}${path}`;
-  } catch {
-    return url;
+function renderHighlighted(text: string, ranges: SpotlightHighlightRange[]) {
+  if (!text || ranges.length === 0) return text;
+
+  const safeRanges = ranges
+    .filter((range) => range.start < range.end && range.start >= 0 && range.end <= text.length)
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+
+  if (safeRanges.length === 0) return text;
+
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+
+  for (let i = 0; i < safeRanges.length; i += 1) {
+    const range = safeRanges[i]!;
+    if (range.start > cursor) {
+      parts.push(<Fragment key={`p-${i}`}>{text.slice(cursor, range.start)}</Fragment>);
+    }
+    parts.push(
+      <mark key={`m-${i}`} className="spotlight-highlight">
+        {text.slice(range.start, range.end)}
+      </mark>,
+    );
+    cursor = range.end;
   }
+
+  if (cursor < text.length) {
+    parts.push(<Fragment key="tail">{text.slice(cursor)}</Fragment>);
+  }
+
+  return parts;
 }

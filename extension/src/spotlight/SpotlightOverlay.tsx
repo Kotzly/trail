@@ -2,11 +2,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { SuggestionList } from './SuggestionList.js';
 import { SpotlightGraphFrame } from './SpotlightGraphFrame.js';
-import { navigateToNode, openTree } from './rpc.js';
-import type { SpotlightData, SpotlightSuggestion } from './types.js';
+import { navigateToNode } from './rpc.js';
+import type { SpotlightSearchResult } from './types.js';
 import type { NodeId, Url } from '@shared/types/ids.js';
-
-// ─── Animation variants ───
 
 const backdropVariants = {
   visible: { opacity: 1 },
@@ -36,24 +34,32 @@ const childVariants = {
   },
 };
 
-// ─── Component ───
-
 type SpotlightOverlayProps = {
   isOpen: boolean;
-  data: SpotlightData | null;
+  suggestions: SpotlightSearchResult[];
+  query: string;
   loading: boolean;
+  onQueryChange: (query: string) => void;
+  onActivate: (suggestion: SpotlightSearchResult) => Promise<void>;
   onClose: () => void;
   themeTokens: Record<string, string> | null;
 };
 
-export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }: SpotlightOverlayProps) {
-  const [query, setQuery] = useState('');
+export function SpotlightOverlay({
+  isOpen,
+  suggestions,
+  query,
+  loading,
+  onQueryChange,
+  onActivate,
+  onClose,
+  themeTokens,
+}: SpotlightOverlayProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredGraphNodeId, setHoveredGraphNodeId] = useState<NodeId | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
 
-  // Apply theme CSS custom properties to the Shadow DOM subtree
   useEffect(() => {
     const el = backdropRef.current;
     if (!el || !themeTokens) return;
@@ -62,51 +68,32 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
     }
   }, [themeTokens]);
 
-  const filteredSuggestions = filterSuggestions(data?.suggestions ?? [], query);
-
-  // Reset selection when query or data changes
   useEffect(() => {
-    const firstNonCurrent = filteredSuggestions.findIndex((s) => !s.isCurrent);
+    const firstNonCurrent = suggestions.findIndex((s) => !s.isCurrent);
     setSelectedIndex(firstNonCurrent >= 0 ? firstNonCurrent : 0);
     setHoveredGraphNodeId(null);
-  }, [query, data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [query, suggestions]);
 
-  // Focus input when opening, reset query when closing
   useEffect(() => {
     if (isOpen) {
       requestAnimationFrame(() => inputRef.current?.focus());
     } else {
-      setQuery('');
       setHoveredGraphNodeId(null);
     }
   }, [isOpen]);
 
-  const selectedSuggestion = filteredSuggestions[selectedIndex] ?? null;
+  const selectedSuggestion = suggestions[selectedIndex] ?? null;
   const highlightedNodeId =
-    selectedSuggestion && selectedSuggestion.group !== 'other-trees'
-      ? selectedSuggestion.nodeId
-      : null;
+    selectedSuggestion && selectedSuggestion.group !== 'other-trees' ? selectedSuggestion.nodeId : null;
+
   const hoveredSuggestionIndex =
     hoveredGraphNodeId === null
       ? -1
-      : filteredSuggestions.findIndex(
+      : suggestions.findIndex(
           (suggestion) =>
             suggestion.group !== 'other-trees' && suggestion.nodeId === hoveredGraphNodeId,
         );
-  const displaySelectedIndex =
-    hoveredSuggestionIndex >= 0 ? hoveredSuggestionIndex : selectedIndex;
-
-  const handleNavigate = useCallback(
-    async (suggestion: SpotlightSuggestion) => {
-      if (suggestion.group === 'other-trees' && suggestion.treeId) {
-        await openTree(suggestion.treeId);
-      } else {
-        await navigateToNode(suggestion.nodeId, suggestion.url as Url);
-      }
-      onClose();
-    },
-    [onClose],
-  );
+  const displaySelectedIndex = hoveredSuggestionIndex >= 0 ? hoveredSuggestionIndex : selectedIndex;
 
   const handleGraphNavigate = useCallback(
     (nodeId: NodeId, url: Url) => {
@@ -126,7 +113,7 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
         case 'ArrowDown':
           e.preventDefault();
           setHoveredGraphNodeId(null);
-          setSelectedIndex((i) => Math.min(i + 1, filteredSuggestions.length - 1));
+          setSelectedIndex((i) => Math.min(i + 1, suggestions.length - 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -135,8 +122,8 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
           break;
         case 'Enter': {
           e.preventDefault();
-          const item = filteredSuggestions[selectedIndex];
-          if (item) void handleNavigate(item);
+          const item = suggestions[selectedIndex];
+          if (item) void onActivate(item);
           break;
         }
         case 'Escape':
@@ -145,7 +132,7 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
           break;
       }
     },
-    [filteredSuggestions, selectedIndex, handleNavigate, onClose],
+    [suggestions, selectedIndex, onActivate, onClose],
   );
 
   const handleBackdropClick = useCallback(
@@ -168,7 +155,6 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
       onKeyDown={handleKeyDown}
     >
       <motion.div className="spotlight-container" variants={containerVariants}>
-        {/* Search Bar */}
         <motion.div className="spotlight-search" variants={childVariants}>
           <SearchIcon />
           <input
@@ -177,34 +163,31 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
             type="text"
             placeholder="Search pages..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => onQueryChange(e.target.value)}
             autoComplete="off"
             spellCheck={false}
           />
         </motion.div>
 
-        {/* Panels Row */}
         <motion.div className="spotlight-panels" variants={panelRowVariants}>
-          {/* Left: Suggestions */}
           <motion.div className="spotlight-left" variants={childVariants}>
             {loading ? (
               <div className="spotlight-empty">Loading...</div>
-            ) : filteredSuggestions.length === 0 ? (
+            ) : suggestions.length === 0 ? (
               <div className="spotlight-empty">No results found</div>
             ) : (
               <SuggestionList
-                suggestions={filteredSuggestions}
+                suggestions={suggestions}
                 selectedIndex={displaySelectedIndex}
                 onSelect={(index) => {
                   setHoveredGraphNodeId(null);
                   setSelectedIndex(index);
                 }}
-                onActivate={(suggestion) => void handleNavigate(suggestion)}
+                onActivate={(suggestion) => void onActivate(suggestion)}
               />
             )}
           </motion.div>
 
-          {/* Right: Graph */}
           <motion.div className="spotlight-right" variants={childVariants}>
             <SpotlightGraphFrame
               highlightNodeId={highlightedNodeId}
@@ -216,20 +199,6 @@ export function SpotlightOverlay({ isOpen, data, loading, onClose, themeTokens }
       </motion.div>
     </motion.div>
   );
-}
-
-// ─── Helpers ───
-
-function filterSuggestions(
-  items: SpotlightSuggestion[],
-  query: string,
-): SpotlightSuggestion[] {
-  if (!query.trim()) return items;
-  const tokens = query.toLowerCase().trim().split(/\s+/);
-  return items.filter((item) => {
-    const haystack = `${item.title} ${item.url}`.toLowerCase();
-    return tokens.every((token) => haystack.includes(token));
-  });
 }
 
 function SearchIcon() {

@@ -1,5 +1,9 @@
 import { browser } from 'wxt/browser';
-import type { SpotlightData } from './types.js';
+import type {
+  SpotlightBootstrapData,
+  SpotlightSearchResponse,
+  SpotlightSearchSessionId,
+} from './types.js';
 import type { NodeId, Url } from '@shared/types/ids.js';
 
 const RPC_VERSION = 2 as const;
@@ -28,7 +32,6 @@ function buildEnvelope(method: string, input: Record<string, unknown> = {}): Rpc
   };
 }
 
-// The router returns { v, kind, id, method, success, data } where `data` is the payload directly.
 type RpcResponseEnvelope = {
   success: boolean;
   data?: unknown;
@@ -37,15 +40,33 @@ type RpcResponseEnvelope = {
 
 async function sendRpc<T>(method: string, input: Record<string, unknown> = {}): Promise<T> {
   const envelope = buildEnvelope(method, input);
-  const response = await browser.runtime.sendMessage(envelope) as RpcResponseEnvelope;
+  const response = (await browser.runtime.sendMessage(envelope)) as RpcResponseEnvelope;
   if (!response?.success) {
     throw new Error(response?.error ?? `RPC ${method} failed`);
   }
   return response.data as T;
 }
 
-export async function fetchSpotlightData(): Promise<SpotlightData> {
-  return sendRpc<SpotlightData>('GET_SPOTLIGHT_DATA');
+export async function bootstrapSpotlight(limit = 80): Promise<SpotlightBootstrapData> {
+  return sendRpc<SpotlightBootstrapData>('SPOTLIGHT_BOOTSTRAP', { limit });
+}
+
+export async function searchSpotlight(
+  sessionId: SpotlightSearchSessionId,
+  query: string,
+  limit: number,
+  requestSeq: number,
+): Promise<SpotlightSearchResponse> {
+  return sendRpc<SpotlightSearchResponse>('SPOTLIGHT_SEARCH', {
+    sessionId,
+    query,
+    limit,
+    requestSeq,
+  });
+}
+
+export async function disposeSpotlightSession(sessionId: SpotlightSearchSessionId): Promise<void> {
+  await sendRpc<void>('SPOTLIGHT_DISPOSE_SESSION', { sessionId });
 }
 
 export async function navigateToNode(nodeId: NodeId, url: Url): Promise<void> {

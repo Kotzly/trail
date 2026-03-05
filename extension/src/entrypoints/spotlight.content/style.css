@@ -119,16 +119,6 @@
   display: none;
 }
 
-.spotlight-group-header {
-  padding: 10px 20px 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--muted-foreground, #a1a1aa);
-  opacity: 0.5;
-  user-select: none;
-}
-
 .spotlight-item {
   display: flex;
   align-items: center;
@@ -182,6 +172,39 @@
   text-overflow: ellipsis;
 }
 
+.spotlight-item-badge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 0.25rem;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.spotlight-item-badge--open-tabs {
+  border-color: rgba(45, 212, 122, 0.14);
+  background: rgba(101, 244, 161, 0.35);
+}
+
+.spotlight-item-badge--recently-closed {
+  border-color: rgba(56, 189, 248, 0.12);
+  background: rgba(138, 211, 255, 0.32);
+}
+
+.spotlight-item-badge--current-tree {
+  border-color: rgba(250, 204, 21, 0.14);
+  background: rgba(240, 216, 142, 0.32);
+}
+
+.spotlight-item-badge--other-trees {
+  border-color: rgba(168, 85, 247, 0.14);
+  background: rgba(225, 194, 255, 0.32);
+}
+
 .spotlight-item-current {
   flex-shrink: 0;
   width: 6px;
@@ -197,6 +220,13 @@
   border-radius: 50%;
   background: #4ade80;
   opacity: 0.6;
+}
+
+.spotlight-highlight {
+  background: rgba(250, 204, 21, 0.22);
+  color: var(--foreground, #fafafa);
+  border-radius: 3px;
+  padding: 0 1px;
 }
 
 /* ─── Right Panel: Graph ─── */
