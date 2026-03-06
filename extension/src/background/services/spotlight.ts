@@ -106,8 +106,8 @@ export class SpotlightService {
 
     session.lastTouchedAt = Date.now();
     const snapshot = await spotlightLiveIndex.getSnapshot();
-    const { mode, normalizedQuery } = resolveSpotlightMode(query);
-    const sections = await this.buildSections(snapshot, mode, normalizedQuery, limit, scopeTreeId);
+    const { mode, normalizedQuery, kindFilter } = resolveSpotlightMode(query);
+    const sections = await this.buildSections(snapshot, mode, normalizedQuery, limit, scopeTreeId, kindFilter);
 
     return {
       requestSeq,
@@ -170,6 +170,7 @@ export class SpotlightService {
     query: string,
     limit: number,
     scopeTreeId?: string,
+    kindFilter?: SpotlightKindFilter,
   ): Promise<SpotlightSection[]> {
     if (mode === 'commands') {
       return this.buildCommandSections(snapshot, query);
@@ -180,9 +181,11 @@ export class SpotlightService {
         : this.buildScopedSearchSections(snapshot, scopeTreeId, query, limit);
     }
     if (mode === 'discover') {
-      return this.buildDiscoverSections(snapshot, limit);
+      const sections = await this.buildDiscoverSections(snapshot, limit);
+      return kindFilter ? filterSectionsByKind(sections, kindFilter) : sections;
     }
-    return this.buildSearchSections(snapshot, query, limit);
+    const sections = await this.buildSearchSections(snapshot, query, limit);
+    return kindFilter ? filterSectionsByKind(sections, kindFilter) : sections;
   }
 
   private async buildDiscoverSections(
@@ -359,11 +362,7 @@ export class SpotlightService {
     const actions = [
       ...buildGlobalActions(),
       ...buildCommandActionsForCurrentNode(currentDoc),
-    ].filter((action) => {
-      if (!q) return true;
-      const haystack = `${action.title} ${action.subtitle}`.toLowerCase();
-      return haystack.includes(q);
-    });
+    ].filter((action) => matchesCommandQuery(action, q));
 
     return [{
       id: 'actions',
@@ -629,13 +628,44 @@ export class SpotlightService {
   }
 }
 
-function resolveSpotlightMode(query: string): { mode: SpotlightMode; normalizedQuery: string } {
+type SpotlightKindFilter = 'node' | 'tree' | null;
+
+type SpotlightModeResult = {
+  mode: SpotlightMode;
+  normalizedQuery: string;
+  kindFilter: SpotlightKindFilter;
+};
+
+function resolveSpotlightMode(query: string): SpotlightModeResult {
   const trimmed = query.trim();
-  if (!trimmed) return { mode: 'discover', normalizedQuery: '' };
+  if (!trimmed) return { mode: 'discover', normalizedQuery: '', kindFilter: null };
   if (trimmed.startsWith('>') || trimmed.startsWith('/')) {
-    return { mode: 'commands', normalizedQuery: trimmed.slice(1).trim() };
+    return { mode: 'commands', normalizedQuery: trimmed.slice(1).trim(), kindFilter: null };
   }
-  return { mode: 'search', normalizedQuery: trimmed };
+  const kindMatch = /^([tpc]):(.*)$/i.exec(trimmed);
+  if (kindMatch) {
+    const prefix = kindMatch[1]!.toLowerCase();
+    const rest = kindMatch[2]!.trim();
+    if (prefix === 'c') {
+      return { mode: 'commands', normalizedQuery: rest, kindFilter: null };
+    }
+    const kindFilter: SpotlightKindFilter = prefix === 't' ? 'tree' : 'node';
+    if (!rest) return { mode: 'discover', normalizedQuery: '', kindFilter };
+    return { mode: 'search', normalizedQuery: rest, kindFilter };
+  }
+  return { mode: 'search', normalizedQuery: trimmed, kindFilter: null };
+}
+
+function filterSectionsByKind(
+  sections: SpotlightSection[],
+  kindFilter: 'node' | 'tree',
+): SpotlightSection[] {
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.kind === kindFilter),
+    }))
+    .filter((section) => section.items.length > 0);
 }
 
 function appendSectionIfAny(
@@ -661,6 +691,29 @@ function compareNodeDocsByPriority(a: SpotlightLiveNodeDoc, b: SpotlightLiveNode
     return b.tabCount - a.tabCount;
   }
   return b.recency - a.recency;
+}
+
+const COMMAND_ALIASES: Record<string, readonly string[]> = {
+  'new-tree': ['create', 'add', 'new'],
+  'archive-current-tree': ['archive', 'delete', 'remove', 'hide'],
+  'export-tree': ['export', 'download', 'save', 'backup'],
+  'show-command-help': ['help', 'shortcuts', 'keys'],
+  'open-settings': ['settings', 'preferences', 'config', 'options'],
+  'toggle-sidebar': ['sidebar', 'panel', 'toggle'],
+  'clear-history': ['clear', 'reset', 'wipe', 'clean'],
+  'pin': ['pin', 'bookmark', 'star'],
+  'unpin': ['unpin', 'unbookmark', 'unstar'],
+  'close-tab': ['close', 'kill', 'shut'],
+  'close-tabs': ['close-all', 'kill-all'],
+};
+
+function matchesCommandQuery(action: ActionSeed, query: string): boolean {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  if (action.title.toLowerCase().includes(q)) return true;
+  if (action.subtitle.toLowerCase().includes(q)) return true;
+  const aliases = COMMAND_ALIASES[action.actionId];
+  return aliases?.some((alias) => alias.includes(q)) ?? false;
 }
 
 function buildGlobalActions(): ActionSeed[] {

@@ -18,6 +18,8 @@ import {
 import { isDestructiveAction } from './SpotlightFooter.js';
 import { SpotlightHelp } from './SpotlightHelp.js';
 import { SpotlightActionMenu, buildClientContextActions } from './SpotlightActionMenu.js';
+import { SpotlightRowActions } from './SpotlightRowActions.js';
+import { SpotlightQuickLook } from './SpotlightQuickLook.js';
 import type {
   SpotlightActionId,
   SpotlightActionResult,
@@ -65,6 +67,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [drilldownTransition, setDrilldownTransition] = useState<'idle' | 'entering' | 'exiting'>('idle');
   const [actionMenuActions, setActionMenuActions] = useState<SpotlightActionResult[] | null>(null);
   const [confirmingAction, setConfirmingAction] = useState<SpotlightSearchResult | null>(null);
+  const [quickLookItem, setQuickLookItem] = useState<SpotlightSearchResult | null>(null);
   const drilldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requestSeqRef = useRef(0);
@@ -499,6 +502,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
         event.stopPropagation();
         if (confirmingAction) {
           setConfirmingAction(null);
+        } else if (quickLookItem) {
+          setQuickLookItem(null);
         } else if (actionMenuActions) {
           setActionMenuActions(null);
         } else if (helpOpen) {
@@ -524,10 +529,25 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
         }
         return;
       }
+      case 'l': {
+        const isMacL = navigator.platform.includes('Mac');
+        if ((isMacL && event.metaKey) || (!isMacL && event.ctrlKey)) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (quickLookItem) {
+            setQuickLookItem(null);
+            return;
+          }
+          if (selectedItem && (selectedItem.kind === 'node' || selectedItem.kind === 'tree')) {
+            setQuickLookItem(selectedItem);
+          }
+        }
+        return;
+      }
       default:
         return;
     }
-  }, [actionMenuActions, activeHint, activeTreeId, close, confirmingAction, drilldownScope, exitDrilldown, handleActivate, handleApplyHint, handleConfirmDestructive, helpOpen, hintCandidates, hoveredGraphItem, query, selectedItem]);
+  }, [actionMenuActions, activeHint, activeTreeId, close, confirmingAction, drilldownScope, exitDrilldown, handleActivate, handleApplyHint, handleConfirmDestructive, helpOpen, hintCandidates, hoveredGraphItem, query, quickLookItem, selectedItem]);
 
   if (!hasBeenOpened) return null;
 
@@ -633,7 +653,15 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                             <div className="spotlight-row-title">{renderItemTitle(item)}</div>
                             <div className="spotlight-row-subtitle">{renderItemSubtitle(item)}</div>
                           </div>
-                          <div className="spotlight-row-meta">{getItemMeta(item)}</div>
+                          {item.key === selectedKey && item.kind !== 'action' ? (
+                            <SpotlightRowActions
+                              item={item}
+                              activeTreeId={activeTreeId}
+                              onAction={handleExecuteAction}
+                            />
+                          ) : (
+                            <div className="spotlight-row-meta">{getItemMeta(item)}</div>
+                          )}
                         </Command.Item>
                       ))}
                     </Command.Group>
@@ -681,6 +709,17 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
             actions={actionMenuActions}
             onSelect={handleActionMenuSelect}
             onClose={() => setActionMenuActions(null)}
+          />
+        )}
+
+        {quickLookItem && (quickLookItem.kind === 'node' || quickLookItem.kind === 'tree') && (
+          <SpotlightQuickLook
+            item={quickLookItem}
+            onClose={() => setQuickLookItem(null)}
+            onAction={(actionId, target, status) => {
+              setQuickLookItem(null);
+              void handleExecuteAction(actionId, target, status);
+            }}
           />
         )}
       </Command>

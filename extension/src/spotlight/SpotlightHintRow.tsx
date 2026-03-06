@@ -25,13 +25,16 @@ export function buildSpotlightHints(query: string): string[] {
 
   if (trimmed.startsWith('>') || trimmed.startsWith('/')) {
     const prefix = trimmed[0]!;
-    return [`${prefix} new tree`, `${prefix} archive tree`, `${prefix} export tree`, `${prefix} settings`, `${prefix} sidebar`];
+    return [`${prefix} new tree`, `${prefix} archive tree`, `${prefix} export tree`, `${prefix} settings`, `${prefix} sidebar`, `${prefix} help`, `${prefix} close`, `${prefix} pin`];
   }
 
   const parts = query.split(/\s+/);
   const last = parts[parts.length - 1] ?? '';
   if (!last) return [];
 
+  if ('t:'.startsWith(last.toLowerCase()) && last.length === 1) return ['t:'];
+  if ('p:'.startsWith(last.toLowerCase()) && last.length === 1) return ['p:'];
+  if ('c:'.startsWith(last.toLowerCase()) && last.length === 1) return ['c:'];
   if ('domain:'.startsWith(last)) return ['domain:'];
   if (last.startsWith('tab:')) return ['tab:open', 'tab:closed'];
   if (last.startsWith('tree:')) return ['tree:current', 'tree:other', 'tree:any'];

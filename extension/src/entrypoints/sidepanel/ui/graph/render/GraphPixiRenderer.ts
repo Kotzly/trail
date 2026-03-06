@@ -1294,15 +1294,45 @@ export class GraphPixiRenderer {
       const startY = conn.start.y - this.origin.y;
       const endX = conn.end.x - this.origin.x;
       const endY = conn.end.y - this.origin.y;
-      layer.moveTo(startX, startY);
-      if (this.connectionQuality === 'full') {
+
+      if (conn.style === 'orthogonal') {
         const cp1X = conn.cp1.x - this.origin.x;
         const cp1Y = conn.cp1.y - this.origin.y;
         const cp2X = conn.cp2.x - this.origin.x;
         const cp2Y = conn.cp2.y - this.origin.y;
-        layer.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
+        const isStraight =
+          (Math.abs(startX - endX) < 0.5 && Math.abs(cp1X - startX) < 0.5) ||
+          (Math.abs(startY - endY) < 0.5 && Math.abs(cp1Y - startY) < 0.5);
+
+        if (isStraight) {
+          layer.moveTo(startX, startY);
+          layer.lineTo(endX, endY);
+        } else if (this.connectionQuality === 'full') {
+          const seg1 = Math.hypot(cp1X - startX, cp1Y - startY);
+          const seg2 = Math.hypot(cp2X - cp1X, cp2Y - cp1Y);
+          const seg3 = Math.hypot(endX - cp2X, endY - cp2Y);
+          const r = Math.min(16 / this.view.scale, seg1 / 2, seg2 / 2, seg3 / 2);
+          layer.moveTo(startX, startY);
+          layer.arcTo(cp1X, cp1Y, cp2X, cp2Y, r);
+          layer.arcTo(cp2X, cp2Y, endX, endY, r);
+          layer.lineTo(endX, endY);
+        } else {
+          layer.moveTo(startX, startY);
+          layer.lineTo(cp1X, cp1Y);
+          layer.lineTo(cp2X, cp2Y);
+          layer.lineTo(endX, endY);
+        }
       } else {
-        layer.lineTo(endX, endY);
+        layer.moveTo(startX, startY);
+        if (this.connectionQuality === 'full') {
+          const cp1X = conn.cp1.x - this.origin.x;
+          const cp1Y = conn.cp1.y - this.origin.y;
+          const cp2X = conn.cp2.x - this.origin.x;
+          const cp2Y = conn.cp2.y - this.origin.y;
+          layer.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
+        } else {
+          layer.lineTo(endX, endY);
+        }
       }
     });
     if (visibleConnections > 0) {

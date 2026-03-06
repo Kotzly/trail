@@ -569,6 +569,54 @@ textarea {
   color: rgba(255, 255, 255, 0.62);
 }
 
+/* ─── Row Inline Actions ─── */
+
+.spotlight-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  animation: spotlight-actions-in 0.12s ease-out both;
+}
+
+@keyframes spotlight-actions-in {
+  from { opacity: 0; transform: translateX(4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.spotlight-row-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.spotlight-row-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.spotlight-row-action-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.spotlight-row-action-btn--destructive {
+  color: rgba(255, 120, 100, 0.5);
+}
+
+.spotlight-row-action-btn--destructive:hover {
+  background: rgba(255, 100, 80, 0.12);
+  color: rgba(255, 140, 120, 0.9);
+}
+
 .spotlight-graph-fallback {
   position: absolute;
   inset: 0;
@@ -879,6 +927,177 @@ textarea {
   margin-left: 16px;
 }
 
+/* ─── Quick Look ─── */
+
+.spotlight-quicklook-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  animation: spotlight-fade-in 0.1s ease-out both;
+}
+
+.spotlight-quicklook {
+  width: 340px;
+  max-height: 420px;
+  overflow: hidden;
+  background: rgba(28, 28, 34, 0.94);
+  backdrop-filter: blur(40px) saturate(1.5);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  animation: spotlight-confirm-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.spotlight-quicklook-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 0;
+}
+
+.spotlight-quicklook-domain-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spotlight-quicklook-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.spotlight-quicklook-domain {
+  font-size: 11px;
+  font-weight: 520;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.spotlight-quicklook-close {
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.spotlight-quicklook-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.spotlight-quicklook-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  margin: 12px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.spotlight-quicklook-hero-icon {
+  font-size: 42px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.15);
+  user-select: none;
+}
+
+.spotlight-quicklook-info {
+  padding: 0 16px 12px;
+}
+
+.spotlight-quicklook-title {
+  font-size: 15px;
+  font-weight: 560;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.spotlight-quicklook-url {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spotlight-quicklook-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 16px 12px;
+}
+
+.spotlight-quicklook-chip {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 520;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.spotlight-quicklook-chip--accent {
+  color: rgba(255, 200, 100, 0.8);
+  background: rgba(255, 200, 100, 0.1);
+}
+
+.spotlight-quicklook-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.spotlight-quicklook-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.spotlight-quicklook-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.spotlight-quicklook-btn kbd {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: inherit;
+}
+
 /* ─── Responsive ─── */
 
 @media (max-width: 920px) {
@@ -1131,8 +1350,99 @@ textarea {
     color: rgba(0, 0, 0, 0.56);
   }
 
+  .spotlight-row-action-btn {
+    color: rgba(0, 0, 0, 0.35);
+  }
+
+  .spotlight-row-action-btn:hover {
+    background: rgba(0, 0, 0, 0.07);
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .spotlight-row-action-btn:active {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .spotlight-row-action-btn--destructive {
+    color: rgba(200, 40, 20, 0.45);
+  }
+
+  .spotlight-row-action-btn--destructive:hover {
+    background: rgba(220, 50, 30, 0.08);
+    color: rgba(200, 40, 20, 0.8);
+  }
+
   .spotlight-graph-fallback {
     background: rgba(255, 255, 255, 0.6);
+  }
+
+  .spotlight-quicklook-overlay {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .spotlight-quicklook {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.15),
+      0 8px 32px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .spotlight-quicklook-domain {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  .spotlight-quicklook-close {
+    border-color: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.4);
+  }
+
+  .spotlight-quicklook-hero {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02));
+    border-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .spotlight-quicklook-hero-icon {
+    color: rgba(0, 0, 0, 0.1);
+  }
+
+  .spotlight-quicklook-title {
+    color: rgba(0, 0, 0, 0.88);
+  }
+
+  .spotlight-quicklook-url {
+    color: rgba(0, 0, 0, 0.36);
+  }
+
+  .spotlight-quicklook-chip {
+    color: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .spotlight-quicklook-chip--accent {
+    color: rgba(180, 120, 20, 0.8);
+    background: rgba(180, 120, 20, 0.1);
+  }
+
+  .spotlight-quicklook-actions {
+    border-top-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .spotlight-quicklook-btn {
+    border-color: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .spotlight-quicklook-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #000;
+  }
+
+  .spotlight-quicklook-btn kbd {
+    color: rgba(0, 0, 0, 0.3);
   }
 
   .spotlight-context-card {

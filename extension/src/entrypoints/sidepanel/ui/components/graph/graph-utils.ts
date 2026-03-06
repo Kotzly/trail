@@ -54,6 +54,56 @@ export function getPathBetweenNodes(
   return ids;
 }
 
+type Point = { x: number; y: number };
+
+function straightSegment(
+  id: string,
+  start: Point,
+  end: Point,
+  onPath: boolean,
+): ConnectionSegment {
+  return {
+    id,
+    start,
+    end,
+    cp1: start,
+    cp2: end,
+    onPath,
+    style: 'orthogonal',
+    bounds: {
+      minX: Math.min(start.x, end.x),
+      minY: Math.min(start.y, end.y),
+      maxX: Math.max(start.x, end.x),
+      maxY: Math.max(start.y, end.y),
+    },
+  };
+}
+
+function orthogonalSegment(
+  id: string,
+  start: Point,
+  cp1: Point,
+  cp2: Point,
+  end: Point,
+  onPath: boolean,
+): ConnectionSegment {
+  return {
+    id,
+    start,
+    cp1,
+    cp2,
+    end,
+    onPath,
+    style: 'orthogonal',
+    bounds: {
+      minX: Math.min(start.x, end.x, cp1.x, cp2.x),
+      minY: Math.min(start.y, end.y, cp1.y, cp2.y),
+      maxX: Math.max(start.x, end.x, cp1.x, cp2.x),
+      maxY: Math.max(start.y, end.y, cp1.y, cp2.y),
+    },
+  };
+}
+
 export function buildConnections(
   root: NavigationNode | null,
   positions: Map<NodeId, NodePosition>,
@@ -65,71 +115,164 @@ export function buildConnections(
 ): ConnectionSegment[] {
   if (!root) return [];
   const list: ConnectionSegment[] = [];
+
+  const isOnPath = (parentId: NodeId, childId: NodeId): boolean =>
+    pathNodeIds ? pathNodeIds.has(parentId) && pathNodeIds.has(childId) : false;
+
   const traverse = (node: NavigationNode | null) => {
     if (!node) return;
     const parentPos = positions.get(node.id);
     if (!parentPos) return;
-    node.getChildren().forEach((child) => {
-      const childPos = positions.get(child.id);
-      if (!childPos) return;
-      let startX: number;
-      let startY: number;
-      let endX: number;
-      let endY: number;
-      if (layoutMode === 'tree') {
-        startX = parentPos.x + nodeWidth / 2;
-        startY = parentPos.y + nodeHeight;
-        endX = childPos.x + nodeWidth / 2;
-        endY = childPos.y;
-      } else if (layoutMode === 'mindmap') {
-        const childOnRight = childPos.x >= parentPos.x;
-        startX = parentPos.x + (childOnRight ? nodeWidth : 0);
-        startY = parentPos.y + nodeHeight / 2;
-        endX = childPos.x + (childOnRight ? 0 : nodeWidth);
-        endY = childPos.y + nodeHeight / 2;
-      } else {
-        startX = parentPos.x + nodeWidth / 2;
-        startY = parentPos.y + nodeHeight / 2;
-        endX = childPos.x + nodeWidth / 2;
-        endY = childPos.y + nodeHeight / 2;
+
+    const children = node.getChildren();
+    const childEntries = children
+      .map((child) => ({ child, pos: positions.get(child.id) }))
+      .filter((e): e is { child: NavigationNode; pos: NodePosition } => !!e.pos);
+
+    if (childEntries.length > 0 && layoutMode === 'tree') {
+      const hidden = hideRoot && node.isRoot();
+      if (!hidden) {
+        const startX = parentPos.x + nodeWidth / 2;
+        const startY = parentPos.y + nodeHeight;
+        const firstChildY = Math.min(...childEntries.map((e) => e.pos.y));
+        const busY = (startY + firstChildY) / 2;
+
+        if (childEntries.length === 1) {
+          const e = childEntries[0]!;
+          const endX = e.pos.x + nodeWidth / 2;
+          const endY = e.pos.y;
+          list.push(orthogonalSegment(
+            `${node.id}-${e.child.id}`,
+            { x: startX, y: startY },
+            { x: startX, y: busY },
+            { x: endX, y: busY },
+            { x: endX, y: endY },
+            isOnPath(node.id, e.child.id),
+          ));
+        } else {
+          const anyChildOnPath = childEntries.some((e) => isOnPath(node.id, e.child.id));
+          list.push(straightSegment(
+            `trunk-${node.id}`,
+            { x: startX, y: startY },
+            { x: startX, y: busY },
+            anyChildOnPath,
+          ));
+
+          const childXs = childEntries.map((e) => e.pos.x + nodeWidth / 2);
+          const minX = Math.min(startX, ...childXs);
+          const maxX = Math.max(startX, ...childXs);
+          list.push(straightSegment(
+            `bus-${node.id}`,
+            { x: minX, y: busY },
+            { x: maxX, y: busY },
+            false,
+          ));
+
+          childEntries.forEach((e) => {
+            const endX = e.pos.x + nodeWidth / 2;
+            const endY = e.pos.y;
+            list.push(straightSegment(
+              `${node.id}-${e.child.id}`,
+              { x: endX, y: busY },
+              { x: endX, y: endY },
+              isOnPath(node.id, e.child.id),
+            ));
+          });
+        }
       }
-      const midX = (startX + endX) / 2;
-      const midY = (startY + endY) / 2;
-      let cp1: { x: number; y: number };
-      let cp2: { x: number; y: number };
-      if (layoutMode === 'tree') {
-        cp1 = { x: startX, y: midY };
-        cp2 = { x: endX, y: midY };
-      } else if (layoutMode === 'mindmap') {
-        cp1 = { x: midX, y: startY };
-        cp2 = { x: midX, y: endY };
-      } else {
-        cp1 = { x: midX, y: startY };
-        cp2 = { x: midX, y: endY };
-      }
-      const onPath =
-        pathNodeIds ? pathNodeIds.has(node.id) && pathNodeIds.has(child.id) : false;
-      const hideConnection = layoutMode === 'tree' && hideRoot && node.isRoot();
-      if (!hideConnection) {
-        const bounds = {
-          minX: Math.min(startX, endX, cp1.x, cp2.x),
-          minY: Math.min(startY, endY, cp1.y, cp2.y),
-          maxX: Math.max(startX, endX, cp1.x, cp2.x),
-          maxY: Math.max(startY, endY, cp1.y, cp2.y),
-        };
+    } else if (childEntries.length > 0 && layoutMode === 'mindmap') {
+      const rightChildren = childEntries.filter((e) => e.pos.x >= parentPos.x);
+      const leftChildren = childEntries.filter((e) => e.pos.x < parentPos.x);
+
+      const emitMindmapSide = (entries: typeof childEntries, direction: 1 | -1) => {
+        if (entries.length === 0) return;
+        const sX = parentPos.x + (direction === 1 ? nodeWidth : 0);
+        const sY = parentPos.y + nodeHeight / 2;
+
+        if (entries.length === 1) {
+          const e = entries[0]!;
+          const eX = e.pos.x + (direction === 1 ? 0 : nodeWidth);
+          const eY = e.pos.y + nodeHeight / 2;
+          const busX = (sX + eX) / 2;
+          list.push(orthogonalSegment(
+            `${node.id}-${e.child.id}`,
+            { x: sX, y: sY },
+            { x: busX, y: sY },
+            { x: busX, y: eY },
+            { x: eX, y: eY },
+            isOnPath(node.id, e.child.id),
+          ));
+        } else {
+          const childEdges = entries.map((e) => e.pos.x + (direction === 1 ? 0 : nodeWidth));
+          const busX = direction === 1
+            ? Math.min(...childEdges)
+            : Math.max(...childEdges);
+          const midX = (sX + busX) / 2;
+
+          const anyOnPath = entries.some((e) => isOnPath(node.id, e.child.id));
+          list.push(straightSegment(
+            `trunk-${node.id}-${direction === 1 ? 'r' : 'l'}`,
+            { x: sX, y: sY },
+            { x: midX, y: sY },
+            anyOnPath,
+          ));
+
+          const childYs = entries.map((e) => e.pos.y + nodeHeight / 2);
+          const minY = Math.min(sY, ...childYs);
+          const maxY = Math.max(sY, ...childYs);
+          list.push(straightSegment(
+            `bus-${node.id}-${direction === 1 ? 'r' : 'l'}`,
+            { x: midX, y: minY },
+            { x: midX, y: maxY },
+            false,
+          ));
+
+          entries.forEach((e) => {
+            const eX = e.pos.x + (direction === 1 ? 0 : nodeWidth);
+            const eY = e.pos.y + nodeHeight / 2;
+            list.push(straightSegment(
+              `${node.id}-${e.child.id}`,
+              { x: midX, y: eY },
+              { x: eX, y: eY },
+              isOnPath(node.id, e.child.id),
+            ));
+          });
+        }
+      };
+
+      emitMindmapSide(rightChildren, 1);
+      emitMindmapSide(leftChildren, -1);
+    } else {
+      // Radial: keep existing bezier logic
+      childEntries.forEach((e) => {
+        const startX = parentPos.x + nodeWidth / 2;
+        const startY = parentPos.y + nodeHeight / 2;
+        const endX = e.pos.x + nodeWidth / 2;
+        const endY = e.pos.y + nodeHeight / 2;
+        const midX = (startX + endX) / 2;
+        const cp1 = { x: midX, y: startY };
+        const cp2 = { x: midX, y: endY };
         list.push({
-          id: `${node.id}-${child.id}`,
+          id: `${node.id}-${e.child.id}`,
           start: { x: startX, y: startY },
           cp1,
           cp2,
           end: { x: endX, y: endY },
-          onPath,
-          bounds,
+          onPath: isOnPath(node.id, e.child.id),
+          style: 'bezier',
+          bounds: {
+            minX: Math.min(startX, endX, cp1.x, cp2.x),
+            minY: Math.min(startY, endY, cp1.y, cp2.y),
+            maxX: Math.max(startX, endX, cp1.x, cp2.x),
+            maxY: Math.max(startY, endY, cp1.y, cp2.y),
+          },
         });
-      }
-      traverse(child);
-    });
+      });
+    }
+
+    children.forEach((child) => traverse(child));
   };
+
   traverse(root);
   return list;
 }
