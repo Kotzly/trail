@@ -56,29 +56,6 @@ export function getPathBetweenNodes(
 
 type Point = { x: number; y: number };
 
-function straightSegment(
-  id: string,
-  start: Point,
-  end: Point,
-  onPath: boolean,
-): ConnectionSegment {
-  return {
-    id,
-    start,
-    end,
-    cp1: start,
-    cp2: end,
-    onPath,
-    style: 'orthogonal',
-    bounds: {
-      minX: Math.min(start.x, end.x),
-      minY: Math.min(start.y, end.y),
-      maxX: Math.max(start.x, end.x),
-      maxY: Math.max(start.y, end.y),
-    },
-  };
-}
-
 function orthogonalSegment(
   id: string,
   start: Point,
@@ -155,23 +132,14 @@ export function buildConnections(
           const firstChildY = Math.min(...normalChildren.map((e) => e.pos.y));
           const busY = (startY + firstChildY) / 2;
 
-          const anyChildOnPath = normalChildren.some((e) => isOnPath(node.id, e.child.id));
-          list.push(straightSegment(
-            `trunk-${node.id}`,
-            { x: startX, y: startY },
-            { x: startX, y: busY },
-            anyChildOnPath,
-          ));
-
           normalChildren.forEach((e) => {
             const endX = e.pos.x + nodeWidth / 2;
             const endY = e.pos.y;
-            const corner = { x: endX, y: busY };
             list.push(orthogonalSegment(
               `${node.id}-${e.child.id}`,
+              { x: startX, y: startY },
               { x: startX, y: busY },
-              corner,
-              corner,
+              { x: endX, y: busY },
               { x: endX, y: endY },
               isOnPath(node.id, e.child.id),
             ));
@@ -232,23 +200,14 @@ export function buildConnections(
             return direction === 1 ? Math.min(acc, edge) : Math.max(acc, edge);
           }, direction === 1 ? Infinity : -Infinity)) / 2;
 
-          const anyOnPath = normalEntries.some((e) => isOnPath(node.id, e.child.id));
-          list.push(straightSegment(
-            `trunk-${node.id}-${direction === 1 ? 'r' : 'l'}`,
-            { x: sX, y: sY },
-            { x: midX, y: sY },
-            anyOnPath,
-          ));
-
           normalEntries.forEach((e) => {
             const eX = e.pos.x + (direction === 1 ? 0 : nodeWidth);
             const eY = e.pos.y + nodeHeight / 2;
-            const corner = { x: midX, y: eY };
             list.push(orthogonalSegment(
               `${node.id}-${e.child.id}`,
+              { x: sX, y: sY },
               { x: midX, y: sY },
-              corner,
-              corner,
+              { x: midX, y: eY },
               { x: eX, y: eY },
               isOnPath(node.id, e.child.id),
             ));
