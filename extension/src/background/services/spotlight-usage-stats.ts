@@ -3,7 +3,10 @@ import {
   emptySpotlightUsageStats,
   getSelectionFrequencyBoost,
   getSelectionTokenAffinityBoost,
+  getTopTargetKeys,
+  getRecentQueries,
   normalizeUsageQueryTokens,
+  recordRecentQuery,
   recordSpotlightSelection,
   sanitizeSpotlightUsageStats,
   type SpotlightUsageTargetStats,
@@ -38,6 +41,27 @@ export class SpotlightUsageStatsService {
 
   normalizeQueryTokens(queryTokens: string[]): string[] {
     return normalizeUsageQueryTokens(queryTokens);
+  }
+
+  async recordQuery(query: string): Promise<void> {
+    await this.ensureLoaded();
+    this.cache = recordRecentQuery(this.cache, query);
+    await spotlightUsageStatsItem.setValue(this.cache);
+  }
+
+  async getRecentQueries(): Promise<string[]> {
+    await this.ensureLoaded();
+    return getRecentQueries(this.cache);
+  }
+
+  async getTopTargetKeys(limit: number): Promise<string[]> {
+    await this.ensureLoaded();
+    return getTopTargetKeys(this.cache, limit);
+  }
+
+  async clear(): Promise<void> {
+    this.cache = emptySpotlightUsageStats();
+    await spotlightUsageStatsItem.setValue(this.cache);
   }
 
   private async ensureLoaded(): Promise<void> {

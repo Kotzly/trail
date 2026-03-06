@@ -1,6 +1,7 @@
 export type SpotlightUsageStats = {
   version: 1;
   targets: Record<string, SpotlightUsageTargetStats>;
+  recentQueries?: string[];
 };
 
 export type SpotlightUsageTargetStats = {
@@ -41,7 +42,11 @@ export function sanitizeSpotlightUsageStats(input: SpotlightUsageStats | null | 
     };
   }
 
-  return pruneSpotlightUsageStats({ version: 1, targets }, Date.now());
+  return pruneSpotlightUsageStats({
+    version: 1,
+    targets,
+    recentQueries: Array.isArray(input.recentQueries) ? input.recentQueries.filter((q) => typeof q === 'string').slice(0, MAX_RECENT_QUERIES) : undefined,
+  }, Date.now());
 }
 
 export function normalizeUsageQueryTokens(tokens: string[]): string[] {
@@ -117,7 +122,34 @@ export function pruneSpotlightUsageStats(stats: SpotlightUsageStats, now: number
     };
   }
 
+  if (stats.recentQueries) {
+    cleaned.recentQueries = stats.recentQueries;
+  }
+
   return cleaned;
+}
+
+const MAX_RECENT_QUERIES = 10;
+
+export function recordRecentQuery(stats: SpotlightUsageStats, query: string): SpotlightUsageStats {
+  const trimmed = query.trim();
+  if (!trimmed || trimmed.startsWith('>') || trimmed.startsWith('/')) return stats;
+  const filtered = (stats.recentQueries ?? []).filter((q) => q !== trimmed);
+  return {
+    ...stats,
+    recentQueries: [trimmed, ...filtered].slice(0, MAX_RECENT_QUERIES),
+  };
+}
+
+export function getRecentQueries(stats: SpotlightUsageStats): string[] {
+  return (stats.recentQueries ?? []).slice(0, MAX_RECENT_QUERIES);
+}
+
+export function getTopTargetKeys(stats: SpotlightUsageStats, limit: number): string[] {
+  return Object.entries(stats.targets)
+    .sort((a, b) => b[1].count - a[1].count || b[1].lastSelectedAt - a[1].lastSelectedAt)
+    .slice(0, limit)
+    .map(([key]) => key);
 }
 
 function sanitizeTokenCounts(input: Record<string, number> | null | undefined): Record<string, number> {

@@ -15,7 +15,8 @@ import { navigationHandlers } from './navigation-handlers.js';
 import { openTreeAndFocusNode, treeHandlers } from './tree-handlers.js';
 import { pinHandlers } from './pin-handlers.js';
 import { tabHandlers } from './tab-handlers.js';
-import { browser, type RuntimeMessageSender } from '@shared/platform/webext.js';
+import { browser, openSidebarForTab, type RuntimeMessageSender } from '@shared/platform/webext.js';
+import { spotlightUsageStats } from '../../services/spotlight-usage-stats.js';
 
 const EMPTY_SENDER = {} as RuntimeMessageSender;
 
@@ -128,6 +129,18 @@ export const spotlightHandlers = defineRpcHandlers({
             treeHandlers[RPC_METHOD.NEW_TREE],
             rpc.newTree({ label: 'Untitled Tree' }),
           );
+        case 'open-settings':
+          await browser.runtime.openOptionsPage();
+          return ok({ closeSpotlight: true });
+        case 'toggle-sidebar': {
+          const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+          const tabId = tabs[0]?.id;
+          if (tabId) await openSidebarForTab(tabId);
+          return ok({ closeSpotlight: true });
+        }
+        case 'clear-history':
+          await spotlightUsageStats.clear();
+          return ok({ closeSpotlight: false, statusText: 'History cleared' });
         default:
           return ok({ closeSpotlight: false });
       }

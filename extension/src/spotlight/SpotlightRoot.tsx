@@ -17,8 +17,10 @@ import {
 } from './SpotlightHintRow.js';
 import { isDestructiveAction } from './SpotlightFooter.js';
 import { SpotlightHelp } from './SpotlightHelp.js';
+import { SpotlightActionMenu, buildClientContextActions } from './SpotlightActionMenu.js';
 import type {
   SpotlightActionId,
+  SpotlightActionResult,
   SpotlightBootstrapData,
   SpotlightGraphPreviewData,
   SpotlightSearchResult,
@@ -60,6 +62,9 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [drilldownScope, setDrilldownScope] = useState<{ treeId: string; treeName: string } | null>(null);
   const [predrilldownQuery, setPredrilldownQuery] = useState('');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [drilldownTransition, setDrilldownTransition] = useState<'idle' | 'entering' | 'exiting'>('idle');
+  const [actionMenuActions, setActionMenuActions] = useState<SpotlightActionResult[] | null>(null);
+  const drilldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requestSeqRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -299,11 +304,16 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   }, []);
 
   const exitDrilldown = useCallback(() => {
+    if (drilldownTimerRef.current) clearTimeout(drilldownTimerRef.current);
+    setDrilldownTransition('exiting');
     const restored = predrilldownQuery;
-    setDrilldownScope(null);
-    setPredrilldownQuery('');
-    setQuery(restored);
-    setGraphPreviewData(null);
+    drilldownTimerRef.current = setTimeout(() => {
+      setDrilldownScope(null);
+      setPredrilldownQuery('');
+      setQuery(restored);
+      setGraphPreviewData(null);
+      setDrilldownTransition('idle');
+    }, 220);
   }, [predrilldownQuery]);
 
   const toggleSection = useCallback((sectionId: string) => {
@@ -385,9 +395,12 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     }
 
     if (item.kind === 'tree') {
+      if (drilldownTimerRef.current) clearTimeout(drilldownTimerRef.current);
+      setDrilldownTransition('entering');
       setPredrilldownQuery(query);
       setDrilldownScope({ treeId: item.treeId, treeName: item.treeName });
       setQuery('');
+      drilldownTimerRef.current = setTimeout(() => setDrilldownTransition('idle'), 250);
 
       const cached = previewCacheRef.current.get(item.treeId);
       if (cached) {
@@ -413,6 +426,14 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       actionId === 'open-node-in-tree' ? 'Opened in tree' : 'Opened',
     );
   }, [activeTreeId, close, flatItems, handleExecuteAction, query]);
+
+  const handleActionMenuSelect = useCallback(
+    (action: SpotlightActionResult) => {
+      setActionMenuActions(null);
+      void handleActivate(action, { allowDestructive: action.safety === 'destructive' });
+    },
+    [handleActivate],
+  );
 
   const handleKeyDownCapture = useCallback((event: React.KeyboardEvent) => {
     switch (event.key) {
@@ -463,7 +484,9 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       case 'Escape':
         event.preventDefault();
         event.stopPropagation();
-        if (helpOpen) {
+        if (actionMenuActions) {
+          setActionMenuActions(null);
+        } else if (helpOpen) {
           setHelpOpen(false);
         } else if (drilldownScope) {
           exitDrilldown();
@@ -471,10 +494,25 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           close();
         }
         return;
+      case 'k': {
+        const isMac = navigator.platform.includes('Mac');
+        if ((isMac && event.metaKey) || (!isMac && event.ctrlKey)) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (actionMenuActions) {
+            setActionMenuActions(null);
+            return;
+          }
+          if (!selectedItem) return;
+          const actions = buildClientContextActions(selectedItem, activeTreeId);
+          setActionMenuActions(actions.length > 0 ? actions : null);
+        }
+        return;
+      }
       default:
         return;
     }
-  }, [activeHint, close, drilldownScope, exitDrilldown, handleActivate, handleApplyHint, helpOpen, hintCandidates, hoveredGraphItem, query]);
+  }, [actionMenuActions, activeHint, activeTreeId, close, drilldownScope, exitDrilldown, handleActivate, handleApplyHint, helpOpen, hintCandidates, hoveredGraphItem, query, selectedItem]);
 
   if (!hasBeenOpened) return null;
 
@@ -493,6 +531,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
         onValueChange={(value) => {
           setSelectedKey(value || null);
           setHoveredGraphTarget(null);
+          setActionMenuActions(null);
         }}
         loop
         className="spotlight-container spotlight-container--v3"
@@ -502,7 +541,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
             <Command.Input
               ref={inputRef}
               className="spotlight-search-input"
-              placeholder={drilldownScope ? `Search in ${drilldownScope.treeName}...` : 'Search pages or type > for commands'}
+              placeholder={drilldownScope ? `Search in ${drilldownScope.treeName}...` : 'Search pages or type > / for commands'}
               value={query}
               onValueChange={(value) => {
                 setQuery(value);
@@ -543,7 +582,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
             ) : sections.length === 0 ? (
               <Command.Empty className="spotlight-empty">No results found</Command.Empty>
             ) : (
-              <Command.List className="spotlight-sections">
+              <Command.List className="spotlight-sections" data-transition={drilldownTransition}>
                 {sections.map((section, i) => {
                   const collapsed = collapsedSections.has(section.id);
                   return (
@@ -623,6 +662,14 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           <div className="spotlight-status-bar">
             <span className="spotlight-status">{statusText}</span>
           </div>
+        )}
+
+        {actionMenuActions && (
+          <SpotlightActionMenu
+            actions={actionMenuActions}
+            onSelect={handleActionMenuSelect}
+            onClose={() => setActionMenuActions(null)}
+          />
         )}
       </Command>
     </div>

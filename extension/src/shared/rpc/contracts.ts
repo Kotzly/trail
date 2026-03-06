@@ -269,7 +269,9 @@ export type SpotlightSectionId =
   | 'trees'
   | 'external'
   | 'matches'
-  | 'scoped-pages';
+  | 'scoped-pages'
+  | 'frequent'
+  | 'recent-searches';
 
 export type SpotlightTreeRelation =
   | 'current'
@@ -305,7 +307,10 @@ export type SpotlightActionId =
   | 'delete-archived-tree'
   | 'export-tree'
   | 'new-tree'
-  | 'show-command-help';
+  | 'show-command-help'
+  | 'open-settings'
+  | 'toggle-sidebar'
+  | 'clear-history';
 
 export type SpotlightActionTarget =
   | { kind: 'node'; nodeId: NodeId; treeId: string }
@@ -422,6 +427,7 @@ export type SpotlightBootstrapData = {
   openNodeIds: NodeId[];
   nodeRecency: Record<NodeId, number>;
   nodeTabCounts: Record<NodeId, number>;
+  recentQueries?: string[];
   flags?: ResolvedFlags;
   settings: Settings;
 };

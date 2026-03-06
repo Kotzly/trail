@@ -3,7 +3,7 @@ export function computeGhostSuffix(query: string, activeHint: string | null): st
   const trimmed = query.trim();
   if (!trimmed) return '';
 
-  if (trimmed.startsWith('>') && activeHint.startsWith('>')) {
+  if ((trimmed.startsWith('>') || trimmed.startsWith('/')) && activeHint.startsWith(trimmed[0]!)) {
     return activeHint.slice(trimmed.length);
   }
 
@@ -23,8 +23,9 @@ export function buildSpotlightHints(query: string): string[] {
     return ['domain:', 'tab:open', 'tab:closed', 'tree:current', 'tree:other', 'group:open-tabs', 'is:current', '|', '>'];
   }
 
-  if (trimmed.startsWith('>')) {
-    return ['> new tree', '> archive tree', '> export tree', '> pin current page'];
+  if (trimmed.startsWith('>') || trimmed.startsWith('/')) {
+    const prefix = trimmed[0]!;
+    return [`${prefix} new tree`, `${prefix} archive tree`, `${prefix} export tree`, `${prefix} settings`, `${prefix} sidebar`];
   }
 
   const parts = query.split(/\s+/);
@@ -45,7 +46,7 @@ export function shouldApplyHintOnTab(query: string, hints: string[]): boolean {
   if (hints.length === 0) return false;
   const trimmed = query.trim();
   if (!trimmed) return true;
-  if (trimmed.startsWith('>')) return true;
+  if (trimmed.startsWith('>') || trimmed.startsWith('/')) return true;
   const parts = query.split(/\s+/);
   const last = parts[parts.length - 1] ?? '';
   return last.includes(':') || last.length <= 3;
@@ -54,7 +55,7 @@ export function shouldApplyHintOnTab(query: string, hints: string[]): boolean {
 export function applySpotlightHint(query: string, hint: string): string {
   const trimmed = query.trim();
   if (!trimmed) return hint.endsWith(':') ? hint : `${hint} `;
-  if (trimmed.startsWith('>')) return hint;
+  if (trimmed.startsWith('>') || trimmed.startsWith('/')) return hint;
 
   const parts = query.split(/\s+/);
   parts[parts.length - 1] = hint;

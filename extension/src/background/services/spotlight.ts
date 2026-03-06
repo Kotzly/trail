@@ -50,6 +50,8 @@ const SECTION_TITLES: Record<SpotlightSection['id'], string> = {
   'external': 'External',
   'matches': 'Matches',
   'scoped-pages': 'Pages',
+  'frequent': 'Frequently Used',
+  'recent-searches': 'Recent Searches',
 };
 
 type SpotlightSession = {
@@ -70,6 +72,8 @@ export class SpotlightService {
     const mode: SpotlightMode = 'discover';
     const sections = await this.buildSections(snapshot, mode, '', limit);
 
+    const recentQueries = await spotlightUsageStats.getRecentQueries();
+
     return {
       sessionId: session.id,
       mode,
@@ -81,6 +85,7 @@ export class SpotlightService {
       openNodeIds: snapshot.openNodeIds,
       nodeRecency: snapshot.nodeRecency,
       nodeTabCounts: snapshot.nodeTabCounts,
+      recentQueries,
       flags: getAllFlags(),
       settings: settingsManager.get(),
     };
@@ -132,6 +137,9 @@ export class SpotlightService {
     const ast = parseSpotlightQuery(normalizedQuery);
     const tokens = collectPositivePlainTokens(ast.clauses.flatMap((clause) => clause.terms));
     await spotlightUsageStats.record(key, tokens);
+    if (normalizedQuery) {
+      await spotlightUsageStats.recordQuery(normalizedQuery);
+    }
   }
 
   private createSession(baseIndexVersion: number): SpotlightSession {
@@ -211,6 +219,17 @@ export class SpotlightService {
       }
     }
     appendSectionIfAny(sections, 'continue', continueDocs.slice(0, 4));
+
+    const frequentKeys = await spotlightUsageStats.getTopTargetKeys(5);
+    const frequentItems: SpotlightSearchResult[] = [];
+    for (const key of frequentKeys) {
+      const doc = snapshot.docsByKey.get(key);
+      if (!doc || seen.has(doc.key)) continue;
+      if (doc.kind === 'node') {
+        pushUnique(seen, frequentItems, await this.toNodeResult(snapshot, doc, 0, []) as SpotlightSearchResult);
+      }
+    }
+    appendSectionIfAny(sections, 'frequent', frequentItems);
 
     const pins = await this.mapNodes(
       snapshot,
@@ -613,7 +632,7 @@ export class SpotlightService {
 function resolveSpotlightMode(query: string): { mode: SpotlightMode; normalizedQuery: string } {
   const trimmed = query.trim();
   if (!trimmed) return { mode: 'discover', normalizedQuery: '' };
-  if (trimmed.startsWith('>')) {
+  if (trimmed.startsWith('>') || trimmed.startsWith('/')) {
     return { mode: 'commands', normalizedQuery: trimmed.slice(1).trim() };
   }
   return { mode: 'search', normalizedQuery: trimmed };
@@ -676,6 +695,30 @@ function buildGlobalActions(): ActionSeed[] {
       subtitle: 'Open search syntax and command mode help',
       safety: 'safe',
       shortcutHint: 'Enter',
+      target: { kind: 'global' },
+    },
+    {
+      actionId: 'open-settings',
+      title: 'Open settings',
+      subtitle: 'Open Trail extension settings',
+      safety: 'safe',
+      shortcutHint: 'Enter',
+      target: { kind: 'global' },
+    },
+    {
+      actionId: 'toggle-sidebar',
+      title: 'Toggle sidebar',
+      subtitle: 'Show or hide the Trail sidebar',
+      safety: 'safe',
+      shortcutHint: 'Enter',
+      target: { kind: 'global' },
+    },
+    {
+      actionId: 'clear-history',
+      title: 'Clear search history',
+      subtitle: 'Reset all usage statistics and recent queries',
+      safety: 'destructive',
+      shortcutHint: 'Alt+Enter',
       target: { kind: 'global' },
     },
   ];
