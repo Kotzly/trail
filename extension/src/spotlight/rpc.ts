@@ -1,8 +1,10 @@
 import { browser } from 'wxt/browser';
 import type {
+  SpotlightActionId,
   SpotlightActionTarget,
   SpotlightBootstrapData,
   SpotlightExecuteActionResponse,
+  SpotlightGraphPreviewData,
   SpotlightSearchResponse,
   SpotlightSearchSessionId,
 } from './types.js';
@@ -73,6 +75,10 @@ export async function disposeSpotlightSession(sessionId: SpotlightSearchSessionI
   await sendRpc<void>('SPOTLIGHT_DISPOSE_SESSION', { sessionId });
 }
 
+export async function getSpotlightTreePreview(treeId: string): Promise<SpotlightGraphPreviewData | null> {
+  return sendRpc<SpotlightGraphPreviewData | null>('SPOTLIGHT_GET_TREE_PREVIEW', { treeId });
+}
+
 export async function navigateToNode(nodeId: NodeId, url: Url): Promise<void> {
   await sendRpc<void>('NAVIGATE_TO', { nodeId, url });
 }
@@ -82,7 +88,7 @@ export async function openTree(treeId: string): Promise<void> {
 }
 
 export async function executeSpotlightAction(
-  actionId: string,
+  actionId: SpotlightActionId,
   target?: SpotlightActionTarget,
   query?: string,
 ): Promise<SpotlightExecuteActionResponse> {

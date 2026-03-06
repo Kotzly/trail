@@ -69,6 +69,7 @@ export default defineConfig({
       "alarms",
       "scripting",
       "activeTab",
+      "search",
     ],
     commands: {
       "toggle-spotlight": {

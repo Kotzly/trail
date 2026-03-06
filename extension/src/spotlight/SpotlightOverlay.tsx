@@ -190,9 +190,17 @@ export function SpotlightOverlay({
 
           <motion.div className="spotlight-right" variants={childVariants}>
             <SpotlightGraphFrame
-              highlightNodeId={highlightedNodeId}
-              onNavigate={handleGraphNavigate}
-              onHoverNode={handleGraphHover}
+              activeTreeId="legacy-active"
+              previewData={null}
+              selectedNodeId={highlightedNodeId}
+              highlightNodeId={hoveredGraphNodeId ?? highlightedNodeId}
+              selectionIntentId={selectedIndex + 1}
+              onNavigate={(_treeId, nodeId, url) => {
+                handleGraphNavigate(nodeId, url);
+              }}
+              onHoverNode={(_treeId, nodeId) => {
+                handleGraphHover(nodeId);
+              }}
             />
           </motion.div>
         </motion.div>

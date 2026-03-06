@@ -21,23 +21,47 @@ textarea {
   font-family: inherit;
 }
 
+/* ─── Animations ─── */
+
+@keyframes spotlight-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes spotlight-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes spotlight-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 /* ─── Backdrop ─── */
 
 .spotlight-backdrop {
   position: fixed;
   inset: 0;
   z-index: 2147483647;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 10vh;
+  padding-top: 9vh;
   font-family: var(--trail-font-sans, "Inter", system-ui, sans-serif);
   font-size: 14px;
   line-height: 1.5;
   color: var(--foreground, #fafafa);
+  transition: opacity 0.2s ease;
 }
 
 /* ─── Container ─── */
@@ -48,6 +72,7 @@ textarea {
   gap: 10px;
   width: 920px;
   max-width: 92vw;
+  animation: spotlight-fade-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ─── Glass surface mixin ─── */
@@ -55,14 +80,16 @@ textarea {
 .spotlight-search,
 .spotlight-left,
 .spotlight-right {
-  background: rgba(20, 20, 22, 0.55);
-  backdrop-filter: blur(40px) saturate(1.6);
-  -webkit-backdrop-filter: blur(40px) saturate(1.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(18, 18, 22, 0.58);
+  backdrop-filter: blur(48px) saturate(1.7);
+  -webkit-backdrop-filter: blur(48px) saturate(1.7);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    0 8px 32px rgba(0, 0, 0, 0.3),
     0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.02);
 }
 
 /* ─── Search Bar ─── */
@@ -71,8 +98,19 @@ textarea {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 20px;
+  padding: 14px 22px;
   border-radius: 48px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.spotlight-search:focus-within {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 24px rgba(255, 255, 255, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .spotlight-search-icon {
@@ -88,14 +126,16 @@ textarea {
   border: none;
   outline: none;
   font-size: 15px;
+  font-weight: 420;
   font-family: inherit;
   color: var(--foreground, #fafafa);
-  caret-color: var(--primary, #fafafa);
+  caret-color: rgba(255, 255, 255, 0.7);
+  letter-spacing: -0.01em;
 }
 
 .spotlight-search-input::placeholder {
-  color: var(--muted-foreground, #a1a1aa);
-  opacity: 0.6;
+  color: rgba(255, 255, 255, 0.32);
+  font-weight: 380;
 }
 
 /* ─── Panels Row ─── */
@@ -254,13 +294,18 @@ textarea {
 }
 
 .spotlight-graph-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
+  background: rgba(12, 12, 16, 0.42);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   color: var(--muted-foreground, #a1a1aa);
   font-size: 13px;
+  animation: spotlight-pulse 2s ease-in-out infinite;
 }
 
 /* ─── Empty state ─── */
@@ -270,41 +315,53 @@ textarea {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--muted-foreground, #a1a1aa);
+  color: rgba(255, 255, 255, 0.36);
   font-size: 13px;
+  font-weight: 420;
   padding: 16px;
   text-align: center;
+  animation: spotlight-pulse 2.5s ease-in-out infinite;
 }
 
+/* ─── V3 overrides ─── */
+
 .spotlight-container--v3 {
-  gap: 12px;
+  gap: 10px;
   width: 1040px;
 }
 
 .spotlight-search--v3 {
-  border-radius: 24px;
+  border-radius: 20px;
+  padding: 15px 22px;
 }
 
-.spotlight-hints {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 0 2px;
+/* ─── Ghost autocomplete ─── */
+
+.spotlight-input-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
 }
 
-.spotlight-hint {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(16, 16, 18, 0.46);
-  color: rgba(255, 255, 255, 0.76);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font: inherit;
-  cursor: pointer;
+.spotlight-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 420;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  line-height: inherit;
 }
 
-.spotlight-hint[data-active="true"] {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+.spotlight-ghost-mirror {
+  visibility: hidden;
+}
+
+.spotlight-ghost-suffix {
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .spotlight-panels--v3 {
@@ -315,16 +372,21 @@ textarea {
   width: 400px;
 }
 
+.spotlight-right--v3 {
+  transition: box-shadow 0.3s ease;
+}
+
 .spotlight-right--v3[data-focus="graph"] {
   box-shadow:
-    0 10px 36px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(244, 212, 87, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 220, 120, 0.12),
+    0 0 40px rgba(255, 220, 120, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .spotlight-sections {
   overflow-y: auto;
-  padding: 8px 0 10px;
+  padding: 6px 0 10px;
   scrollbar-width: none;
 }
 
@@ -333,26 +395,27 @@ textarea {
 }
 
 .spotlight-section {
-  padding: 0 8px 10px;
+  padding: 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .spotlight-section + .spotlight-section {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 12px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
+
 
 .spotlight-section-title {
-  padding: 0 6px 8px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.spotlight-section-items {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  padding: 0 8px 6px;
+  font-size: 10px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  /* text-transform: uppercase; */
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .spotlight-row {
@@ -361,25 +424,29 @@ textarea {
   align-items: center;
   gap: 12px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 14px;
   background: transparent;
   color: inherit;
   text-align: left;
-  padding: 10px 12px;
+  padding: 9px 12px;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.spotlight-row:hover,
+.spotlight-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .spotlight-row[data-selected="true"] {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 12px rgba(255, 255, 255, 0.02);
 }
 
-.spotlight-row[data-selected="true"] {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-.spotlight-row[data-destructive="true"] .spotlight-row-meta {
-  color: rgba(255, 146, 126, 0.92);
+.spotlight-row[data-destructive="true"][data-selected="true"] {
+  background: rgba(255, 100, 80, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 100, 80, 0.12);
 }
 
 .spotlight-row-main {
@@ -389,135 +456,197 @@ textarea {
 
 .spotlight-row-title {
   font-size: 13px;
-  color: #fff;
+  font-weight: 440;
+  color: rgba(255, 255, 255, 0.92);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.005em;
+}
+
+.spotlight-row[data-selected="true"] .spotlight-row-title {
+  color: #fff;
+}
+
+.spotlight-row[data-destructive="true"] .spotlight-row-title {
+  color: rgba(255, 160, 140, 0.92);
 }
 
 .spotlight-row-subtitle {
   margin-top: 2px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.46);
+  color: rgba(255, 255, 255, 0.3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.spotlight-row[data-selected="true"] .spotlight-row-subtitle {
+  color: rgba(255, 255, 255, 0.46);
+}
+
 .spotlight-row-meta {
   flex-shrink: 0;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.58);
+  max-width: 120px;
+  font-size: 10px;
+  font-weight: 520;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.spotlight-row[data-selected="true"] .spotlight-row-meta {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.spotlight-graph-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(12, 12, 16, 0.56);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ─── Context Card ─── */
 
 .spotlight-context-card {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
-  max-width: 300px;
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(12, 12, 16, 0.74);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  max-height: 220px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(10, 10, 14, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
 }
 
 .spotlight-context-eyebrow {
   font-size: 10px;
-  letter-spacing: 0.08em;
+  font-weight: 560;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.48);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .spotlight-context-title {
   margin-top: 6px;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 520;
   color: #fff;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .spotlight-context-body {
-  margin-top: 6px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.64);
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.48);
   word-break: break-word;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .spotlight-context-meta {
   margin-top: 8px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.52);
+  color: rgba(255, 255, 255, 0.36);
 }
 
 .spotlight-context-chips {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
   margin-top: 10px;
 }
 
 .spotlight-context-chip {
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 3px 8px;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.86);
-  background: rgba(255, 255, 255, 0.08);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
+
+/* ─── Help (inside left panel) ─── */
 
 .spotlight-help {
-  position: absolute;
-  inset: 16px;
-  padding: 18px;
-  border-radius: 20px;
-  background: rgba(10, 10, 12, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.spotlight-help-title {
-  font-size: 15px;
-  color: #fff;
-}
-
-.spotlight-help-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.spotlight-help-grid div {
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  height: 100%;
 }
 
-.spotlight-help-grid code {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.spotlight-help-grid span {
+.spotlight-help-title {
+  padding: 0 6px 8px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.54);
+  font-weight: 520;
+  color: rgba(255, 255, 255, 0.32);
+  letter-spacing: 0.02em;
 }
 
-.spotlight-footer {
+.spotlight-help-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spotlight-help-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 0 8px;
-  color: rgba(255, 255, 255, 0.6);
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background 0.15s ease;
+}
+
+.spotlight-help-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.spotlight-help-item code {
+  font-size: 12.5px;
+  font-weight: 460;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.spotlight-help-item span {
   font-size: 11px;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* ─── Status bar (visible only when status text exists) ─── */
+
+.spotlight-status-bar {
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 460;
 }
 
 .spotlight-status {
-  color: rgba(255, 244, 194, 0.96);
+  color: rgba(255, 230, 160, 0.85);
 }
+
+/* ─── Responsive ─── */
 
 @media (max-width: 920px) {
   .spotlight-container,
@@ -541,9 +670,5 @@ textarea {
 
   .spotlight-right {
     min-height: 280px;
-  }
-
-  .spotlight-help-grid {
-    grid-template-columns: 1fr;
   }
 }

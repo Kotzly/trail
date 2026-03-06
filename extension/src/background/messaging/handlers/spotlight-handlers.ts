@@ -6,6 +6,7 @@ import {
   rpc,
   type SpotlightActionTarget,
   type SpotlightBootstrapData,
+  type SpotlightGraphPreviewData,
   type SpotlightSearchResponse,
 } from '@shared/rpc/contracts.js';
 import { settingsManager } from '../../services/settings.js';
@@ -13,10 +14,10 @@ import { spotlightSearchService } from '../../services/spotlight-search.js';
 import { spotlightV3Service } from '../../services/spotlight-v3.js';
 import { getFlag } from '../../services/flags.js';
 import { navigationHandlers } from './navigation-handlers.js';
-import { treeHandlers } from './tree-handlers.js';
+import { openTreeAndFocusNode, treeHandlers } from './tree-handlers.js';
 import { pinHandlers } from './pin-handlers.js';
 import { tabHandlers } from './tab-handlers.js';
-import type { RuntimeMessageSender } from '@shared/platform/webext.js';
+import { browser, type RuntimeMessageSender } from '@shared/platform/webext.js';
 
 const EMPTY_SENDER = {} as RuntimeMessageSender;
 
@@ -75,6 +76,18 @@ export const spotlightHandlers = defineRpcHandlers({
     }
   },
 
+  async [RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW](message) {
+    try {
+      if (!getFlag('spotlightV3')) {
+        return ok(null as SpotlightGraphPreviewData | null);
+      }
+      const preview = await spotlightV3Service.getTreePreview(message.treeId);
+      return ok(preview);
+    } catch (error) {
+      return err(error instanceof Error ? error.message : 'SPOTLIGHT_GET_TREE_PREVIEW_FAILED');
+    }
+  },
+
   async [RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION](message) {
     try {
       await spotlightV3Service.recordSelection(message.actionId, message.target, message.query ?? '');
@@ -88,11 +101,24 @@ export const spotlightHandlers = defineRpcHandlers({
               url: '' as never,
             }),
           );
+        case 'open-node-in-tree':
+          await openTreeAndFocusNode(
+            requireTargetTreeId(message.target),
+            requireNodeTarget(message.target),
+          );
+          return ok({ closeSpotlight: true });
         case 'open-tree':
           return executeWithHandler(
             treeHandlers[RPC_METHOD.OPEN_TREE],
             rpc.openTree({ treeId: requireTreeTarget(message.target) }),
           );
+        case 'open-url-only':
+        case 'open-url':
+          await openUrlInNewTab(requireUrlTarget(message.target));
+          return ok({ closeSpotlight: true });
+        case 'search-default-engine':
+          await searchWithDefaultEngine(requireSearchQueryTarget(message.target));
+          return ok({ closeSpotlight: true });
         case 'pin':
         case 'unpin':
           return executeWithHandler(
@@ -175,4 +201,66 @@ function requireTreeTarget(target: SpotlightActionTarget | undefined) {
     throw new Error('Tree target required');
   }
   return target.treeId;
+}
+
+function requireTargetTreeId(target: SpotlightActionTarget | undefined): string {
+  if (!target) {
+    throw new Error('Tree target required');
+  }
+  if (target.kind === 'tree' || target.kind === 'node') {
+    return target.treeId;
+  }
+  throw new Error('Tree target required');
+}
+
+function requireUrlTarget(target: SpotlightActionTarget | undefined): string {
+  if (!target || target.kind !== 'url') {
+    throw new Error('URL target required');
+  }
+  return target.url;
+}
+
+function requireSearchQueryTarget(target: SpotlightActionTarget | undefined): string {
+  if (!target || target.kind !== 'search') {
+    throw new Error('Search query target required');
+  }
+  return target.query;
+}
+
+async function openUrlInNewTab(url: string): Promise<void> {
+  const targetWindow = await browser.windows.getLastFocused();
+  await browser.tabs.create({
+    windowId: targetWindow?.id,
+    url,
+    active: true,
+  });
+}
+
+async function searchWithDefaultEngine(query: string): Promise<void> {
+  const searchApi = (browser as typeof browser & {
+    search?: {
+      query?: (payload: {
+        text: string;
+        disposition?: 'CURRENT_TAB' | 'NEW_TAB' | 'NEW_WINDOW';
+      }) => Promise<void> | void;
+      search?: (payload: {
+        query: string;
+      }) => Promise<void> | void;
+    };
+  }).search;
+
+  if (typeof searchApi?.query === 'function') {
+    await searchApi.query({
+      text: query,
+      disposition: 'NEW_TAB',
+    });
+    return;
+  }
+
+  if (typeof searchApi?.search === 'function') {
+    await searchApi.search({ query });
+    return;
+  }
+
+  throw new Error('Default search engine API is unavailable');
 }

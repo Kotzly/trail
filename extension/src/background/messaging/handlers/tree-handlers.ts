@@ -157,6 +157,7 @@ async function switchTree(
   nextMeta: TreeMeta,
   rootUrl?: Url | null,
   viewOverride?: TreeViewIntent | null,
+  preferredFocusNodeId?: NodeId | null,
 ): Promise<void> {
   const keepTabs = settingsManager.get().keepTabsOnSwitch;
 
@@ -186,15 +187,20 @@ async function switchTree(
   const savedUrls = keepTabs ? await getOpenTabs(nextMeta.id) : null;
 
   let focusNodeId: NodeId | undefined;
+  const preferredFocusNode =
+    preferredFocusNodeId !== undefined && preferredFocusNodeId !== null
+      ? nextTree.findNodeById(preferredFocusNodeId)
+      : null;
+  const preferredFocusUrl = preferredFocusNode?.data.url
+    ?? rootUrl
+    ?? nextTree.getRoot()?.data.url
+    ?? null;
 
   if (savedUrls && savedUrls.length > 0) {
-    const currentNodeUrl = nextTree.getCurrentId()
-      ? nextTree.findNodeById(nextTree.getCurrentId()!)?.data.url
-      : null;
     let treeChanged = false;
 
     for (const url of savedUrls) {
-      const isActive = url === currentNodeUrl;
+      const isActive = preferredFocusUrl !== null && url === preferredFocusUrl;
       let tab: Tab;
       try {
         tab = await browser.tabs.create({ url, active: isActive });
@@ -213,36 +219,52 @@ async function switchTree(
     }
 
     // If no active tab was created (e.g. current node URL wasn't in saved list),
-    // fall back: open root URL
+    // fall back: open the preferred focus URL
     if (!focusNodeId) {
-      const fallbackUrl = rootUrl ?? nextTree.getRoot()?.data.url ?? null;
+      const fallbackUrl = preferredFocusUrl;
       let tab: Tab;
       try {
         tab = await browser.tabs.create(fallbackUrl ? { url: fallbackUrl, active: true } : { active: true });
       } catch {
         tab = await browser.tabs.create({});
       }
-      const rootNode = ensureRootForTab(nextTree, tab);
-      if (rootNode) {
-        focusNodeId = rootNode.id;
+      if (preferredFocusNode) {
+        nextTree.setCurrent(preferredFocusNode);
+        registerTabForNode(preferredFocusNode.id, tab);
+        focusNodeId = preferredFocusNode.id;
         treeChanged = true;
+      } else {
+        const rootNode = ensureRootForTab(nextTree, tab);
+        if (rootNode) {
+          focusNodeId = rootNode.id;
+          treeChanged = true;
+        }
       }
     }
 
-    if (treeChanged) treeStorage.cacheTree(nextTree);
+    if (treeChanged) {
+      treeStorage.cacheTree(nextTree);
+    }
   } else {
-    // No saved tabs — original behaviour: open single root tab
+    // No saved tabs — original behaviour: open single preferred tab
     let created: Tab;
     try {
-      created = await browser.tabs.create(rootUrl ? { url: rootUrl, active: true } : { active: true });
+      created = await browser.tabs.create(preferredFocusUrl ? { url: preferredFocusUrl, active: true } : { active: true });
     } catch (error) {
       console.error('Failed to open root tab for tree switch:', error);
       created = await browser.tabs.create({});
     }
-    const rootNode = ensureRootForTab(nextTree, created);
-    if (rootNode) {
-      focusNodeId = rootNode.id;
+    if (preferredFocusNode) {
+      nextTree.setCurrent(preferredFocusNode);
+      registerTabForNode(preferredFocusNode.id, created);
+      focusNodeId = preferredFocusNode.id;
       treeStorage.cacheTree(nextTree);
+    } else {
+      const rootNode = ensureRootForTab(nextTree, created);
+      if (rootNode) {
+        focusNodeId = rootNode.id;
+        treeStorage.cacheTree(nextTree);
+      }
     }
   }
 
@@ -261,6 +283,33 @@ async function switchTree(
   }
 
   await notifyTreesUpdate(await buildTreesSnapshot());
+}
+
+export async function openTreeAndFocusNode(treeId: string, nodeId: NodeId): Promise<void> {
+  const loaded = await loadTree(treeId);
+  if (!loaded) throw new Error('Tree not found');
+
+  const current = await treeStorage.getOrCreateTree();
+  if (current.getRoot()) {
+    snapshot(current, 'Open node in tree');
+  }
+  await treeStorage.archiveActiveTree();
+  const record = await treeStorage.takeArchivedTree(treeId);
+  if (!record) throw new Error('Tree not found');
+
+  const nextTree = NavigationTreeMapper.fromJSON(record.tree);
+  const targetNode = nextTree.findNodeById(nodeId);
+  if (!targetNode) throw new Error('Node not found');
+
+  const meta: TreeMeta = {
+    id: record.id,
+    label: record.label,
+    labelSource: record.labelSource,
+    labelUpdatedAt: record.labelUpdatedAt,
+    createdAt: record.createdAt,
+  };
+
+  await switchTree(nextTree, meta, targetNode.data.url, undefined, nodeId);
 }
 
 export const treeHandlers = defineRpcHandlers({

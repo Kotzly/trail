@@ -11,6 +11,10 @@ import {
   getSelectionFrequencyBoost,
   getSelectionTokenAffinityBoost,
 } from '../src/shared/lib/spotlight/usage-stats.js';
+import {
+  normalizeSpotlightSearchQuery,
+  normalizeSpotlightUrlCandidate,
+} from '../src/shared/lib/spotlight/external.js';
 import type { NodeId } from '../src/shared/types/ids.js';
 
 function testDslAndOr(): void {
@@ -140,14 +144,38 @@ function testScoringOrdering(): void {
 
 function testUsageStatsBoosts(): void {
   let stats = emptySpotlightUsageStats();
-  stats = recordSpotlightSelection(stats, 'n:1', ['github', 'issues'], Date.now());
-  stats = recordSpotlightSelection(stats, 'n:1', ['github'], Date.now());
+  stats = recordSpotlightSelection(stats, 'n:tree-1:1', ['github', 'issues'], Date.now());
+  stats = recordSpotlightSelection(stats, 'n:tree-1:1', ['github'], Date.now());
 
-  const entry = stats.targets['n:1'];
+  const entry = stats.targets['n:tree-1:1'];
   assert(entry, 'recorded entry should exist');
   assert(getSelectionFrequencyBoost(entry) > 1, 'frequency boost should grow with repeated picks');
   assert(getSelectionTokenAffinityBoost(entry, ['github']) > 0, 'token affinity should use matching query token');
   console.log('  usage stats boosts: OK');
+}
+
+function testExternalFallbackParsing(): void {
+  assert.equal(
+    normalizeSpotlightSearchQuery('   github issues   '),
+    'github issues',
+    'search query should trim surrounding whitespace',
+  );
+  assert.equal(
+    normalizeSpotlightUrlCandidate('trail.app/docs'),
+    'https://trail.app/docs',
+    'bare host should normalize to https URL',
+  );
+  assert.equal(
+    normalizeSpotlightUrlCandidate('https://trail.app/docs?q=1'),
+    'https://trail.app/docs?q=1',
+    'full URL should be preserved',
+  );
+  assert.equal(
+    normalizeSpotlightUrlCandidate('github issues'),
+    null,
+    'plain search text should not be treated as URL',
+  );
+  console.log('  external fallback parsing: OK');
 }
 
 function run(): void {
@@ -158,6 +186,7 @@ function run(): void {
   testCommandModeParsing();
   testScoringOrdering();
   testUsageStatsBoosts();
+  testExternalFallbackParsing();
 }
 
 run();

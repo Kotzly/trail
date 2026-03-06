@@ -3,13 +3,20 @@ import { NavigationTreeMapper } from '@shared/lib/mapper.js';
 import type { NavigationNode } from '@shared/types/node.js';
 import type { ArchiveIndexEntry } from '@shared/types/tree.js';
 import type { NodeId } from '@shared/types/ids.js';
-import type { SpotlightSuggestionGroup, SpotlightTreeRelation } from '@shared/rpc/contracts.js';
+import type {
+  SpotlightGraphPreviewData,
+  SpotlightSuggestionGroup,
+  SpotlightTreeRelation,
+} from '@shared/rpc/contracts.js';
 import { treeStorage } from './tree-storage.js';
 import { tabManager } from '../state/tab-manager.js';
+import { loadTree } from './tree-loader.js';
 
 export type SpotlightLiveNodeDoc = {
   kind: 'node';
   key: string;
+  treeId: string;
+  treeName: string;
   nodeId: NodeId;
   title: string;
   url: string;
@@ -49,6 +56,9 @@ export type SpotlightLiveSnapshot = {
   docsByKey: Map<string, SpotlightLiveDoc>;
   nodeDocs: SpotlightLiveNodeDoc[];
   treeDocs: SpotlightLiveTreeDoc[];
+  activeTreeId: string;
+  activeTreeName: string;
+  previewsByTreeId: Map<string, SpotlightGraphPreviewData>;
   tree: ReturnType<typeof NavigationTreeMapper.toJSON>;
   currentNodeId: NodeId | null;
   currentPath: NodeId[];
@@ -109,6 +119,7 @@ export class SpotlightLiveIndexService {
 
   private async rebuild(): Promise<SpotlightLiveSnapshot> {
     const tree = await treeStorage.getOrCreateTree();
+    const activeMeta = await treeStorage.getActiveMeta();
     const treeJSON = NavigationTreeMapper.toJSON(tree);
     const currentNodeId = tree.getCurrentId();
     const openNodeSet = new Set(tabManager.openNodes());
@@ -132,45 +143,55 @@ export class SpotlightLiveIndexService {
     }
 
     for (const node of tree.iter()) {
-      const isOpen = openNodeSet.has(node.id);
-      const recency = nodeRecency[node.id] ?? node.data.lastVisitedAt ?? node.timestamp ?? 0;
-      const group: SpotlightSuggestionGroup = isOpen
-        ? 'open-tabs'
-        : recency > 0
-          ? 'recently-closed'
-          : 'current-tree';
-      const path = pathByNodeId.get(node.id) ?? [node.id];
-      const doc: SpotlightLiveNodeDoc = {
-        kind: 'node',
-        key: `n:${node.id}`,
-        nodeId: node.id,
-        title: node.data.title || 'Untitled',
-        url: node.data.url,
-        ...(node.data.favicon ? { favicon: node.data.favicon as string } : {}),
-        group,
-        recency,
-        isCurrent: node.id === currentNodeId,
-        tabCount: nodeTabCounts[node.id] ?? 0,
-        visitCount: typeof node.data.visitCount === 'number' ? node.data.visitCount : 0,
-        pinned: Boolean(node.data.pinned),
-        domain: extractDomain(node.data.url),
-        parentId: node.getParent()?.id ?? null,
-        childIds: node.getChildren().map((child) => child.id),
-        path,
-        depth: Math.max(0, path.length - 1),
-        haystack: buildHaystack([
-          node.data.title || 'Untitled',
-          node.data.url,
-          extractDomain(node.data.url),
-        ]),
-      };
+      const doc = createNodeDoc(node, {
+        treeId: activeMeta.id,
+        treeName: activeMeta.label,
+        currentNodeId,
+        nodeRecency,
+        nodeTabCounts,
+        openNodeSet,
+        pathByNodeId,
+      });
       nodeDocs.push(doc);
       docsByKey.set(doc.key, doc);
     }
 
-    const treeDocs = (await treeStorage.getArchivedSummaries()).map((entry) => createTreeDoc(entry));
+    const previewsByTreeId = new Map<string, SpotlightGraphPreviewData>();
+    const archiveEntries = await treeStorage.getArchivedSummaries();
+    const treeDocs = archiveEntries.map((entry) => createTreeDoc(entry));
     for (const doc of treeDocs) {
       docsByKey.set(doc.key, doc);
+    }
+    const archiveRecords = await Promise.all(archiveEntries.map(async (entry) => ({
+      entry,
+      record: await loadTree(entry.id),
+    })));
+    for (const { entry, record } of archiveRecords) {
+      if (!record) continue;
+      previewsByTreeId.set(entry.id, createPreviewData(record.id, record.label, record.tree));
+      const archiveTree = NavigationTreeMapper.fromJSON(record.tree);
+      const archivePathByNodeId = new Map<NodeId, NodeId[]>();
+      const archiveRoot = archiveTree.getRoot();
+      if (archiveRoot) {
+        collectPaths(archiveRoot, [], archivePathByNodeId);
+      }
+      const archiveNodeRecency = buildTreeNodeRecencyMap(archiveTree);
+      const archiveNodeTabCounts = {} as Record<NodeId, number>;
+      const archiveOpenNodeSet = new Set<NodeId>();
+      for (const archiveNode of archiveTree.iter()) {
+        const doc = createNodeDoc(archiveNode, {
+          treeId: record.id,
+          treeName: record.label,
+          currentNodeId: null,
+          nodeRecency: archiveNodeRecency,
+          nodeTabCounts: archiveNodeTabCounts,
+          openNodeSet: archiveOpenNodeSet,
+          pathByNodeId: archivePathByNodeId,
+          groupOverride: 'other-trees',
+        });
+        nodeDocs.push(doc);
+        docsByKey.set(doc.key, doc);
+      }
     }
 
     const index = new MiniSearch({
@@ -191,7 +212,7 @@ export class SpotlightLiveIndexService {
         title: doc.title,
         url: doc.url,
         domain: doc.domain,
-        treeName: '',
+        treeName: doc.treeName,
       })),
       ...treeDocs.map((doc) => ({
         key: doc.key,
@@ -211,6 +232,9 @@ export class SpotlightLiveIndexService {
       docsByKey,
       nodeDocs,
       treeDocs,
+      activeTreeId: activeMeta.id,
+      activeTreeName: activeMeta.label,
+      previewsByTreeId,
       tree: treeJSON,
       currentNodeId,
       currentPath: currentNodeId ? pathByNodeId.get(currentNodeId) ?? [] : [],
@@ -246,9 +270,13 @@ export function computeTreeRelation(
 
 export function computeGraphBoosts(
   doc: SpotlightLiveNodeDoc,
+  activeTreeId: string,
   currentNodeId: NodeId | null,
   currentPath: NodeId[],
 ): { graphProximityBoost: number; branchAffinityBoost: number; relation: SpotlightTreeRelation } {
+  if (doc.treeId !== activeTreeId) {
+    return { graphProximityBoost: 0, branchAffinityBoost: 0, relation: 'other-branch' };
+  }
   const relation = computeTreeRelation(doc, currentNodeId, currentPath);
   switch (relation) {
     case 'current':
@@ -268,6 +296,83 @@ export function computeGraphBoosts(
     default:
       return { graphProximityBoost: currentNodeId ? 0.4 : 0, branchAffinityBoost: 0, relation };
   }
+}
+
+function createNodeDoc(
+  node: NavigationNode,
+  options: {
+    treeId: string;
+    treeName: string;
+    currentNodeId: NodeId | null;
+    nodeRecency: Record<NodeId, number>;
+    nodeTabCounts: Record<NodeId, number>;
+    openNodeSet: Set<NodeId>;
+    pathByNodeId: Map<NodeId, NodeId[]>;
+    groupOverride?: SpotlightSuggestionGroup;
+  },
+): SpotlightLiveNodeDoc {
+  const recency = options.nodeRecency[node.id] ?? node.data.lastVisitedAt ?? node.timestamp ?? 0;
+  const isOpen = options.openNodeSet.has(node.id);
+  const group: SpotlightSuggestionGroup = options.groupOverride
+    ?? (isOpen
+      ? 'open-tabs'
+      : recency > 0
+        ? 'recently-closed'
+        : 'current-tree');
+  const path = options.pathByNodeId.get(node.id) ?? [node.id];
+  return {
+    kind: 'node',
+    key: `n:${options.treeId}:${node.id}`,
+    treeId: options.treeId,
+    treeName: options.treeName,
+    nodeId: node.id,
+    title: node.data.title || 'Untitled',
+    url: node.data.url,
+    ...(node.data.favicon ? { favicon: node.data.favicon as string } : {}),
+    group,
+    recency,
+    isCurrent: options.currentNodeId === node.id,
+    tabCount: options.nodeTabCounts[node.id] ?? 0,
+    visitCount: typeof node.data.visitCount === 'number' ? node.data.visitCount : 0,
+    pinned: Boolean(node.data.pinned),
+    domain: extractDomain(node.data.url),
+    parentId: node.getParent()?.id ?? null,
+    childIds: node.getChildren().map((child) => child.id),
+    path,
+    depth: Math.max(0, path.length - 1),
+    haystack: buildHaystack([
+      node.data.title || 'Untitled',
+      node.data.url,
+      extractDomain(node.data.url),
+      options.treeName,
+    ]),
+  };
+}
+
+function buildTreeNodeRecencyMap(tree: ReturnType<typeof NavigationTreeMapper.fromJSON>): Record<NodeId, number> {
+  const nodeRecency = {} as Record<NodeId, number>;
+  for (const node of tree.iter()) {
+    const recency = node.data.lastVisitedAt ?? node.timestamp ?? 0;
+    if (recency > 0) {
+      nodeRecency[node.id] = recency;
+    }
+  }
+  return nodeRecency;
+}
+
+function createPreviewData(treeId: string, treeName: string, tree: ReturnType<typeof NavigationTreeMapper.toJSON>): SpotlightGraphPreviewData {
+  const previewTree = NavigationTreeMapper.fromJSON(tree);
+  const nodeRecency = buildTreeNodeRecencyMap(previewTree);
+  return {
+    treeId,
+    treeName,
+    tree,
+    currentNodeId: previewTree.getCurrentId(),
+    openNodeIds: [],
+    tabStates: {},
+    nodeTabCounts: {},
+    nodeRecency,
+  };
 }
 
 function collectPaths(node: NavigationNode, prefix: NodeId[], out: Map<NodeId, NodeId[]>): void {

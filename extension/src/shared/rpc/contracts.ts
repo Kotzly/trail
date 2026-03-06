@@ -75,6 +75,7 @@ export const RPC_METHOD = {
     GET_SPOTLIGHT_DATA: 'GET_SPOTLIGHT_DATA',
     SPOTLIGHT_BOOTSTRAP: 'SPOTLIGHT_BOOTSTRAP',
     SPOTLIGHT_SEARCH: 'SPOTLIGHT_SEARCH',
+    SPOTLIGHT_GET_TREE_PREVIEW: 'SPOTLIGHT_GET_TREE_PREVIEW',
     SPOTLIGHT_EXECUTE_ACTION: 'SPOTLIGHT_EXECUTE_ACTION',
     SPOTLIGHT_DISPOSE_SESSION: 'SPOTLIGHT_DISPOSE_SESSION',
     TOGGLE_SPOTLIGHT: 'TOGGLE_SPOTLIGHT',
@@ -259,10 +260,14 @@ export type SpotlightActionSafety = 'safe' | 'destructive';
 export type SpotlightSectionId =
   | 'continue'
   | 'actions'
+  | 'pins'
   | 'open-tabs'
   | 'recent'
   | 'current-tree'
+  | 'other-trees'
   | 'archived-trees'
+  | 'trees'
+  | 'external'
   | 'matches';
 
 export type SpotlightTreeRelation =
@@ -285,7 +290,11 @@ export type SpotlightHighlightMap = {
 
 export type SpotlightActionId =
   | 'open'
+  | 'open-node-in-tree'
   | 'open-tree'
+  | 'open-url-only'
+  | 'search-default-engine'
+  | 'open-url'
   | 'copy-url'
   | 'pin'
   | 'unpin'
@@ -298,9 +307,22 @@ export type SpotlightActionId =
   | 'show-command-help';
 
 export type SpotlightActionTarget =
-  | { kind: 'node'; nodeId: NodeId }
+  | { kind: 'node'; nodeId: NodeId; treeId: string }
   | { kind: 'tree'; treeId: string }
+  | { kind: 'url'; url: string }
+  | { kind: 'search'; query: string }
   | { kind: 'global' };
+
+export type SpotlightGraphPreviewData = {
+  treeId: string;
+  treeName: string;
+  tree: NavigationTreeJSON;
+  currentNodeId: NodeId | null;
+  openNodeIds: NodeId[];
+  tabStates: Record<NodeId, TabState>;
+  nodeTabCounts: Record<NodeId, number>;
+  nodeRecency: Record<NodeId, number>;
+};
 
 export type SpotlightNodeResult = {
   kind: 'node';
@@ -315,8 +337,8 @@ export type SpotlightNodeResult = {
   treeRelation: SpotlightTreeRelation;
   tabCount: number;
   pinned: boolean;
-  treeId?: string | undefined;
-  treeName?: string | undefined;
+  treeId: string;
+  treeName: string;
   score: number;
   groupBadge: 'Open' | 'Recent' | 'Tree' | 'Archived';
   highlights: SpotlightHighlightMap;
@@ -383,10 +405,16 @@ export type SpotlightSearchResponse = {
   sections: SpotlightSection[];
 };
 
+export type SpotlightGetTreePreviewRequest = {
+  treeId: string;
+};
+
 export type SpotlightBootstrapData = {
   sessionId: SpotlightSearchSessionId;
   mode: SpotlightMode;
   sections: SpotlightSection[];
+  activeTreeId: string;
+  activeTreeName: string;
   tree: NavigationTreeJSON;
   currentNodeId: NodeId | null;
   openNodeIds: NodeId[];
@@ -402,6 +430,10 @@ export type SpotlightBootstrapMessage = RequestMessageBase<typeof RPC_METHOD.SPO
   limit?: number;
 }>;
 export type SpotlightSearchMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_SEARCH, SpotlightSearchRequest>;
+export type SpotlightGetTreePreviewMessage = RequestMessageBase<
+  typeof RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW,
+  SpotlightGetTreePreviewRequest
+>;
 export type SpotlightExecuteActionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION, SpotlightExecuteActionRequest>;
 export type SpotlightDisposeSessionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, {
   sessionId: SpotlightSearchSessionId;
@@ -437,6 +469,7 @@ export type RequestMessage = NavigateToMessage |
     GetSpotlightDataMessage |
     SpotlightBootstrapMessage |
     SpotlightSearchMessage |
+    SpotlightGetTreePreviewMessage |
     SpotlightExecuteActionMessage |
     SpotlightDisposeSessionMessage |
     ToggleSpotlightMessage;
@@ -524,6 +557,7 @@ export type ResponseDataByType = {
     [RPC_METHOD.GET_SPOTLIGHT_DATA]: SpotlightBootstrapData;
     [RPC_METHOD.SPOTLIGHT_BOOTSTRAP]: SpotlightBootstrapData;
     [RPC_METHOD.SPOTLIGHT_SEARCH]: SpotlightSearchResponse;
+    [RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW]: SpotlightGraphPreviewData | null;
     [RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION]: SpotlightExecuteActionResponse;
     [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION]: void;
     [RPC_METHOD.TOGGLE_SPOTLIGHT]: void;
@@ -666,6 +700,9 @@ export const rpc = {
     },
     spotlightSearch(payload: SpotlightSearchRequest): SpotlightSearchMessage {
         return { type: RPC_METHOD.SPOTLIGHT_SEARCH, ...payload };
+    },
+    spotlightGetTreePreview(payload: SpotlightGetTreePreviewRequest): SpotlightGetTreePreviewMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW, ...payload };
     },
     spotlightExecuteAction(payload: SpotlightExecuteActionRequest): SpotlightExecuteActionMessage {
         return { type: RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION, ...payload };

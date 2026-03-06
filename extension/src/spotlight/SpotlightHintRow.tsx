@@ -1,31 +1,20 @@
-import type { KeyboardEvent } from 'react';
+export function computeGhostSuffix(query: string, activeHint: string | null): string {
+  if (!activeHint) return '';
+  const trimmed = query.trim();
+  if (!trimmed) return '';
 
-type SpotlightHintRowProps = {
-  hints: string[];
-  activeHint: string | null;
-  onApply: (hint: string) => void;
-};
+  if (trimmed.startsWith('>') && activeHint.startsWith('>')) {
+    return activeHint.slice(trimmed.length);
+  }
 
-export function SpotlightHintRow({ hints, activeHint, onApply }: SpotlightHintRowProps) {
-  if (hints.length === 0) return null;
-  return (
-    <div className="spotlight-hints" role="listbox" aria-label="Spotlight hints">
-      {hints.map((hint) => (
-        <button
-          key={hint}
-          type="button"
-          className="spotlight-hint"
-          data-active={hint === activeHint}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            onApply(hint);
-          }}
-        >
-          {hint}
-        </button>
-      ))}
-    </div>
-  );
+  const parts = query.split(/\s+/);
+  const last = parts[parts.length - 1] ?? '';
+  if (!last) return '';
+
+  if (activeHint.toLowerCase().startsWith(last.toLowerCase())) {
+    return activeHint.slice(last.length);
+  }
+  return '';
 }
 
 export function buildSpotlightHints(query: string): string[] {

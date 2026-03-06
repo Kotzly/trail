@@ -4,16 +4,22 @@ import {
   disposeSpotlightSession,
   executeSpotlightAction,
   exportTree,
+  getSpotlightTreePreview,
   searchSpotlight,
 } from './rpc.js';
 import { SpotlightGraphFrame } from './SpotlightGraphFrame.js';
-import { SpotlightHintRow, applySpotlightHint, buildSpotlightHints, shouldApplyHintOnTab } from './SpotlightHintRow.js';
-import { SpotlightFooter, isDestructiveAction } from './SpotlightFooter.js';
+import {
+  applySpotlightHint,
+  buildSpotlightHints,
+  computeGhostSuffix,
+  shouldApplyHintOnTab,
+} from './SpotlightHintRow.js';
+import { isDestructiveAction } from './SpotlightFooter.js';
 import { SpotlightHelp } from './SpotlightHelp.js';
-import { SpotlightContextCard } from './SpotlightContextCard.js';
 import type {
-  SpotlightActionResult,
+  SpotlightActionId,
   SpotlightBootstrapData,
+  SpotlightGraphPreviewData,
   SpotlightSearchResult,
   SpotlightSearchSessionId,
   SpotlightSection,
@@ -31,24 +37,36 @@ type SpotlightSelectableRow = {
   rowIndex: number;
 };
 
+type SpotlightNodeTarget = {
+  treeId: string;
+  nodeId: NodeId;
+};
+
 const SEARCH_LIMIT = 80;
 const SEARCH_DEBOUNCE_MS = 80;
 
 export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasBeenOpened, setHasBeenOpened] = useState(false);
-  const [, setBootstrapData] = useState<SpotlightBootstrapData | null>(null);
+  const [bootstrapData, setBootstrapData] = useState<SpotlightBootstrapData | null>(null);
   const [sessionId, setSessionId] = useState<SpotlightSearchSessionId | null>(null);
   const [sections, setSections] = useState<SpotlightSection[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [hoveredListKey, setHoveredListKey] = useState<string | null>(null);
   const [selectedFocusPane, setSelectedFocusPane] = useState<'list' | 'graph'>('list');
   const [helpOpen, setHelpOpen] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
-  const [hoveredGraphNodeId, setHoveredGraphNodeId] = useState<NodeId | null>(null);
+  const [hoveredGraphTarget, setHoveredGraphTarget] = useState<SpotlightNodeTarget | null>(null);
+  const [graphPreviewData, setGraphPreviewData] = useState<SpotlightGraphPreviewData | null>(null);
+  const [graphPreviewLoading, setGraphPreviewLoading] = useState(false);
+  const [selectionIntentId, setSelectionIntentId] = useState(0);
+
   const requestSeqRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const previewCacheRef = useRef<Map<string, SpotlightGraphPreviewData>>(new Map());
+  const lastCommittedKeyRef = useRef<string | null>(null);
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -77,9 +95,12 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
     bootstrapSpotlight(SEARCH_LIMIT)
       .then((data) => {
         if (cancelled) return;
+        previewCacheRef.current.clear();
         setBootstrapData(data);
         setSessionId(data.sessionId);
         setSections(data.sections);
+        setGraphPreviewData(null);
+        setGraphPreviewLoading(false);
         setLoading(false);
       })
       .catch((error) => {
@@ -114,6 +135,7 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
             try {
               const data = await bootstrapSpotlight(SEARCH_LIMIT);
               if (cancelled) return;
+              previewCacheRef.current.clear();
               setBootstrapData(data);
               setSessionId(data.sessionId);
               setSections(data.sections);
@@ -145,7 +167,10 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
     setQuery('');
     requestSeqRef.current += 1;
     setSelectedKey(null);
-    setHoveredGraphNodeId(null);
+    setHoveredListKey(null);
+    setHoveredGraphTarget(null);
+    setGraphPreviewData(null);
+    setGraphPreviewLoading(false);
 
     const activeSession = sessionId;
     setSessionId(null);
@@ -161,12 +186,28 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
     };
   }, [sessionId]);
 
+  const activeTreeId = bootstrapData?.activeTreeId ?? null;
   const flatRows = useMemo(() => flattenSections(sections), [sections]);
   const itemByKey = useMemo(() => new Map(flatRows.map((row) => [row.key, row.item])), [flatRows]);
-  const hoveredKey = useMemo(() => {
-    if (hoveredGraphNodeId === null) return null;
-    return flatRows.find((row) => row.item.kind === 'node' && row.item.nodeId === hoveredGraphNodeId)?.key ?? null;
-  }, [flatRows, hoveredGraphNodeId]);
+
+  const hoveredGraphKey = useMemo(() => {
+    if (!hoveredGraphTarget) return null;
+    return (
+      flatRows.find((row) => {
+        const target = resolveNodeTarget(row.item);
+        return (
+          target?.treeId === hoveredGraphTarget.treeId
+          && target.nodeId === hoveredGraphTarget.nodeId
+        );
+      })?.key ?? null
+    );
+  }, [flatRows, hoveredGraphTarget]);
+
+  const selectedItem = selectedKey ? itemByKey.get(selectedKey) ?? null : null;
+  const hoveredListItem = hoveredListKey ? itemByKey.get(hoveredListKey) ?? null : null;
+  const hoveredGraphItem = hoveredGraphKey ? itemByKey.get(hoveredGraphKey) ?? null : null;
+  const effectiveItem = hoveredGraphItem ?? hoveredListItem ?? selectedItem;
+  const activeRowKey = hoveredGraphKey ?? hoveredListKey ?? selectedKey;
 
   useEffect(() => {
     if (flatRows.length === 0) {
@@ -179,20 +220,106 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
     setSelectedKey(flatRows[0]?.key ?? null);
   }, [flatRows, selectedKey]);
 
-  const selectedItem = (hoveredKey ? itemByKey.get(hoveredKey) : null) ?? (selectedKey ? itemByKey.get(selectedKey) : null) ?? null;
+  useEffect(() => {
+    if (selectedKey === lastCommittedKeyRef.current) return;
+    lastCommittedKeyRef.current = selectedKey;
+    setSelectionIntentId((current) => current + 1);
+  }, [selectedKey]);
+
   const hintCandidates = useMemo(() => buildSpotlightHints(query), [query]);
   const activeHint = hintCandidates[0] ?? null;
+  const ghostSuffix = useMemo(() => computeGhostSuffix(query, activeHint), [query, activeHint]);
 
-  const highlightedNodeId = useMemo(() => {
-    if (selectedItem?.kind === 'node') return selectedItem.nodeId;
-    if (selectedItem?.kind === 'action' && selectedItem.target?.kind === 'node') return selectedItem.target.nodeId;
-    return null;
-  }, [selectedItem]);
+  const previewTreeId = useMemo(() => {
+    const candidate = hoveredGraphTarget?.treeId ?? resolvePreviewTreeId(effectiveItem);
+    if (!candidate || !activeTreeId || candidate === activeTreeId) {
+      return null;
+    }
+    return candidate;
+  }, [activeTreeId, effectiveItem, hoveredGraphTarget]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!previewTreeId) {
+      setGraphPreviewData(null);
+      setGraphPreviewLoading(false);
+      return;
+    }
+
+    const cached = previewCacheRef.current.get(previewTreeId) ?? null;
+    if (cached) {
+      setGraphPreviewData(cached);
+      setGraphPreviewLoading(false);
+      return;
+    }
+
+    setGraphPreviewLoading(true);
+    void getSpotlightTreePreview(previewTreeId)
+      .then((preview) => {
+        if (cancelled) return;
+        if (preview) {
+          previewCacheRef.current.set(previewTreeId, preview);
+          setGraphPreviewData(preview);
+        } else {
+          setGraphPreviewData(null);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load spotlight graph preview:', error);
+        if (!cancelled) {
+          setGraphPreviewData(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setGraphPreviewLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [previewTreeId]);
+
+  const selectedNodeTarget = resolveNodeTarget(selectedItem);
+  const highlightNodeTarget = hoveredGraphTarget ?? resolveNodeTarget(hoveredListItem ?? selectedItem);
+  const currentGraphTreeId = previewTreeId ?? activeTreeId;
+  const graphSelectedNodeId =
+    currentGraphTreeId && selectedNodeTarget?.treeId === currentGraphTreeId
+      ? selectedNodeTarget.nodeId
+      : null;
+  const graphHighlightNodeId =
+    currentGraphTreeId && highlightNodeTarget?.treeId === currentGraphTreeId
+      ? highlightNodeTarget.nodeId
+      : null;
 
   const handleApplyHint = useCallback((hint: string) => {
     setQuery((current) => applySpotlightHint(current, hint));
     setStatusText(null);
   }, []);
+
+  const handleExecuteAction = useCallback(
+    async (
+      actionId: SpotlightActionId,
+      target: Parameters<typeof executeSpotlightAction>[1],
+      nextStatusText: string,
+    ) => {
+      try {
+        const response = await executeSpotlightAction(actionId, target, query);
+        if (response.statusText) {
+          setStatusText(response.statusText);
+        } else {
+          setStatusText(nextStatusText);
+        }
+        if (response.closeSpotlight) close();
+      } catch (error) {
+        console.error(`Failed to execute spotlight action ${actionId}:`, error);
+        setStatusText('Action failed');
+      }
+    },
+    [close, query],
+  );
 
   const handleActivate = useCallback(async (item: SpotlightSearchResult, event?: { allowDestructive?: boolean }) => {
     setStatusText(null);
@@ -207,9 +334,8 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
         return;
       }
       if (item.actionId === 'copy-url') {
-        const targetNodeId = item.target?.kind === 'node' ? item.target.nodeId : null;
-        const targetItem = targetNodeId ? flatRows.find((row) => row.item.kind === 'node' && row.item.nodeId === targetNodeId)?.item : null;
-        if (targetItem && targetItem.kind === 'node') {
+        const targetItem = resolveCopyUrlItem(item, flatRows);
+        if (targetItem) {
           try {
             await navigator.clipboard.writeText(targetItem.url);
             setStatusText('URL copied');
@@ -235,41 +361,41 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
         return;
       }
 
-      try {
-        const response = await executeSpotlightAction(item.actionId, item.target, query);
-        if (response.statusText) setStatusText(response.statusText);
-        if (response.closeSpotlight) close();
-      } catch (error) {
-        console.error('Failed to execute spotlight action:', error);
-        setStatusText('Action failed');
-      }
+      await handleExecuteAction(item.actionId, item.target, 'Done');
       return;
     }
 
-    const actionId = item.kind === 'tree' ? 'open-tree' : 'open';
-    const target = item.kind === 'tree'
-      ? { kind: 'tree', treeId: item.treeId } as const
-      : { kind: 'node', nodeId: item.nodeId } as const;
-    try {
-      const response = await executeSpotlightAction(actionId, target, query);
-      if (response.closeSpotlight) close();
-    } catch (error) {
-      console.error('Failed to open spotlight result:', error);
-      setStatusText('Open failed');
+    if (item.kind === 'tree') {
+      await handleExecuteAction(
+        'open-tree',
+        { kind: 'tree', treeId: item.treeId },
+        'Tree opened',
+      );
+      return;
     }
-  }, [close, flatRows, query]);
+
+    const actionId: SpotlightActionId =
+      activeTreeId && item.treeId !== activeTreeId ? 'open-node-in-tree' : 'open';
+    await handleExecuteAction(
+      actionId,
+      { kind: 'node', nodeId: item.nodeId, treeId: item.treeId },
+      actionId === 'open-node-in-tree' ? 'Opened in tree' : 'Opened',
+    );
+  }, [activeTreeId, close, flatRows, handleExecuteAction]);
 
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     const rows = flatRows;
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault();
-        setHoveredGraphNodeId(null);
+        setHoveredListKey(null);
+        setHoveredGraphTarget(null);
         setSelectedKey((current) => nextSelection(rows, current, 1));
         return;
       case 'ArrowUp':
         event.preventDefault();
-        setHoveredGraphNodeId(null);
+        setHoveredListKey(null);
+        setHoveredGraphTarget(null);
         setSelectedKey((current) => nextSelection(rows, current, -1));
         return;
       case 'Tab':
@@ -283,8 +409,8 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
         return;
       case 'Enter': {
         event.preventDefault();
-        if (!selectedItem) return;
-        void handleActivate(selectedItem, { allowDestructive: event.altKey });
+        if (!effectiveItem) return;
+        void handleActivate(effectiveItem, { allowDestructive: event.altKey });
         return;
       }
       case 'Backspace': {
@@ -313,7 +439,7 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
       default:
         return;
     }
-  }, [activeHint, close, flatRows, handleActivate, handleApplyHint, helpOpen, hintCandidates, query, selectedItem]);
+  }, [activeHint, close, effectiveItem, flatRows, handleActivate, handleApplyHint, helpOpen, hintCandidates, query]);
 
   if (!hasBeenOpened) return null;
 
@@ -328,43 +454,81 @@ export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
     >
       <div className="spotlight-container spotlight-container--v3">
         <div className="spotlight-search spotlight-search--v3">
-          <input
-            ref={inputRef}
-            className="spotlight-search-input"
-            type="text"
-            placeholder="Search pages or type > for commands"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setStatusText(null);
-            }}
-            autoComplete="off"
-            spellCheck={false}
-          />
+          <div className="spotlight-input-wrap">
+            <input
+              ref={inputRef}
+              className="spotlight-search-input"
+              type="text"
+              placeholder="Search pages or type > for commands"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setStatusText(null);
+              }}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {ghostSuffix && (
+              <span className="spotlight-ghost" aria-hidden="true">
+                <span className="spotlight-ghost-mirror">{query}</span>
+                <span className="spotlight-ghost-suffix">{ghostSuffix}</span>
+              </span>
+            )}
+          </div>
         </div>
-
-        <SpotlightHintRow hints={hintCandidates} activeHint={activeHint} onApply={handleApplyHint} />
 
         <div className="spotlight-panels spotlight-panels--v3">
           <div className="spotlight-left spotlight-left--v3">
-            {loading ? <div className="spotlight-empty">Loading...</div> : <SpotlightSectionList sections={sections} selectedKey={hoveredKey ?? selectedKey} onHoverKey={setSelectedKey} onActivate={handleActivate} />}
+            {helpOpen ? (
+              <SpotlightHelp open />
+            ) : loading ? (
+              <div className="spotlight-empty">Loading...</div>
+            ) : (
+              <SpotlightSectionList
+                sections={sections}
+                selectedKey={activeRowKey}
+                onHoverKey={(key) => {
+                  setHoveredGraphTarget(null);
+                  setHoveredListKey(key);
+                }}
+                onHoverEnd={() => setHoveredListKey(null)}
+                onActivate={handleActivate}
+              />
+            )}
           </div>
 
           <div className="spotlight-right spotlight-right--v3" data-focus={selectedFocusPane}>
             <SpotlightGraphFrame
-              highlightNodeId={highlightedNodeId}
-              onNavigate={(nodeId) => {
-                const item = flatRows.find((row) => row.item.kind === 'node' && row.item.nodeId === nodeId)?.item;
-                if (item) void handleActivate(item, { allowDestructive: true });
+              activeTreeId={activeTreeId}
+              previewData={graphPreviewData}
+              selectedNodeId={graphSelectedNodeId}
+              highlightNodeId={graphHighlightNodeId}
+              selectionIntentId={selectionIntentId}
+              onNavigate={(treeId, nodeId) => {
+                const actionId: SpotlightActionId =
+                  activeTreeId && treeId !== activeTreeId ? 'open-node-in-tree' : 'open';
+                void handleExecuteAction(
+                  actionId,
+                  { kind: 'node', nodeId, treeId },
+                  actionId === 'open-node-in-tree' ? 'Opened in tree' : 'Opened',
+                );
               }}
-              onHoverNode={setHoveredGraphNodeId}
+              onHoverNode={(treeId, nodeId) => {
+                setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId });
+              }}
             />
-            <SpotlightContextCard item={selectedItem} />
-            <SpotlightHelp open={helpOpen} />
+            {graphPreviewLoading && <div className="spotlight-graph-loading">Loading tree preview...</div>}
+            {previewTreeId && !graphPreviewLoading && !graphPreviewData && (
+              <div className="spotlight-empty spotlight-graph-fallback">Preview unavailable</div>
+            )}
           </div>
         </div>
 
-        <SpotlightFooter selectedItem={selectedItem} statusText={statusText} />
+        {statusText && (
+          <div className="spotlight-status-bar">
+            <span className="spotlight-status">{statusText}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -374,11 +538,13 @@ function SpotlightSectionList({
   sections,
   selectedKey,
   onHoverKey,
+  onHoverEnd,
   onActivate,
 }: {
   sections: SpotlightSection[];
   selectedKey: string | null;
   onHoverKey: (key: string) => void;
+  onHoverEnd: () => void;
   onActivate: (item: SpotlightSearchResult) => void;
 }) {
   if (sections.length === 0) {
@@ -386,29 +552,27 @@ function SpotlightSectionList({
   }
 
   return (
-    <div className="spotlight-sections">
-      {sections.map((section) => (
-        <div key={section.id} className="spotlight-section">
+    <div className="spotlight-sections" onMouseLeave={onHoverEnd}>
+      {sections.map((section, sectionIndex) => (
+        <div key={section.id} className="spotlight-section" data-first={sectionIndex === 0}>
           <div className="spotlight-section-title">{section.title}</div>
-          <div className="spotlight-section-items">
-            {section.items.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`spotlight-row spotlight-row--${item.kind}`}
-                data-selected={item.key === selectedKey}
-                data-destructive={item.kind === 'action' && item.safety === 'destructive'}
-                onMouseEnter={() => onHoverKey(item.key)}
-                onClick={() => onActivate(item)}
-              >
-                <div className="spotlight-row-main">
-                  <div className="spotlight-row-title">{getItemTitle(item)}</div>
-                  <div className="spotlight-row-subtitle">{getItemSubtitle(item)}</div>
-                </div>
-                <div className="spotlight-row-meta">{getItemMeta(item)}</div>
-              </button>
-            ))}
-          </div>
+          {section.items.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`spotlight-row spotlight-row--${item.kind}`}
+              data-selected={item.key === selectedKey}
+              data-destructive={item.kind === 'action' && item.safety === 'destructive'}
+              onMouseEnter={() => onHoverKey(item.key)}
+              onClick={() => onActivate(item)}
+            >
+              <div className="spotlight-row-main">
+                <div className="spotlight-row-title">{getItemTitle(item)}</div>
+                <div className="spotlight-row-subtitle">{getItemSubtitle(item)}</div>
+              </div>
+              <div className="spotlight-row-meta">{getItemMeta(item)}</div>
+            </button>
+          ))}
         </div>
       ))}
     </div>
@@ -427,10 +591,14 @@ function flattenSections(sections: SpotlightSection[]): SpotlightSelectableRow[]
   return rows;
 }
 
-function nextSelection(rows: SpotlightSelectableRow[], current: string | null, delta: 1 | -1): string | null {
+function nextSelection(
+  rows: SpotlightSelectableRow[],
+  current: string | null,
+  delta: 1 | -1,
+): string | null {
   if (rows.length === 0) return null;
   const currentIndex = current ? rows.findIndex((row) => row.key === current) : -1;
-  const base = currentIndex === -1 ? 0 : currentIndex;
+  const base = currentIndex === -1 ? (delta === 1 ? -1 : 0) : currentIndex;
   const nextIndex = (base + delta + rows.length) % rows.length;
   return rows[nextIndex]?.key ?? null;
 }
@@ -448,9 +616,50 @@ function getItemSubtitle(item: SpotlightSearchResult): string {
 }
 
 function getItemMeta(item: SpotlightSearchResult): string {
-  if (item.kind === 'node') return item.groupBadge;
+  if (item.kind === 'node') {
+    if (item.group === 'other-trees') return item.treeName;
+    if (item.pinned) return 'Pinned';
+    return item.groupBadge;
+  }
   if (item.kind === 'tree') return item.groupBadge;
   return item.shortcutHint;
+}
+
+function resolvePreviewTreeId(item: SpotlightSearchResult | null): string | null {
+  if (!item) return null;
+  if (item.kind === 'node') return item.treeId;
+  if (item.kind === 'tree') return item.treeId;
+  if (item.target?.kind === 'node' || item.target?.kind === 'tree') {
+    return item.target.treeId;
+  }
+  return null;
+}
+
+function resolveNodeTarget(item: SpotlightSearchResult | null): SpotlightNodeTarget | null {
+  if (!item) return null;
+  if (item.kind === 'node') {
+    return { treeId: item.treeId, nodeId: item.nodeId };
+  }
+  if (item.kind === 'action' && item.target?.kind === 'node') {
+    return { treeId: item.target.treeId, nodeId: item.target.nodeId };
+  }
+  return null;
+}
+
+function resolveCopyUrlItem(
+  action: Extract<SpotlightSearchResult, { kind: 'action' }>,
+  rows: SpotlightSelectableRow[],
+): Extract<SpotlightSearchResult, { kind: 'node' }> | null {
+  const target = action.target;
+  if (!target || target.kind !== 'node') return null;
+  const item = rows.find((row) => {
+    return (
+      row.item.kind === 'node'
+      && row.item.nodeId === target.nodeId
+      && row.item.treeId === target.treeId
+    );
+  })?.item;
+  return item?.kind === 'node' ? item : null;
 }
 
 function downloadBundle(bundle: import('@shared/types/export.js').TrailExportBundle): void {
