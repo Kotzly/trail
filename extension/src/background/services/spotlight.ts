@@ -58,7 +58,7 @@ type SpotlightSession = {
   baseIndexVersion: number;
 };
 
-export class SpotlightV3Service {
+export class SpotlightService {
   private sessions = new Map<SpotlightSearchSessionId, SpotlightSession>();
 
   async bootstrap(limit: number): Promise<SpotlightBootstrapData> {
@@ -972,4 +972,4 @@ function buildTreeWhyChips(breakdown: ReturnType<typeof scoreSpotlightCandidate>
   return chips;
 }
 
-export const spotlightV3Service = new SpotlightV3Service();
+export const spotlightService = new SpotlightService();

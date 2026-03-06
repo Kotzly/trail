@@ -10,9 +10,7 @@ import {
   type SpotlightSearchResponse,
 } from '@shared/rpc/contracts.js';
 import { settingsManager } from '../../services/settings.js';
-import { spotlightSearchService } from '../../services/spotlight-search.js';
-import { spotlightV3Service } from '../../services/spotlight-v3.js';
-import { getFlag } from '../../services/flags.js';
+import { spotlightService } from '../../services/spotlight.js';
 import { navigationHandlers } from './navigation-handlers.js';
 import { openTreeAndFocusNode, treeHandlers } from './tree-handlers.js';
 import { pinHandlers } from './pin-handlers.js';
@@ -24,12 +22,7 @@ const EMPTY_SENDER = {} as RuntimeMessageSender;
 export const spotlightHandlers = defineRpcHandlers({
   /** @deprecated Use SPOTLIGHT_BOOTSTRAP instead. */
   async [RPC_METHOD.GET_SPOTLIGHT_DATA]() {
-    if (getFlag('spotlightV3')) {
-      const bootstrap = await spotlightV3Service.bootstrap(80);
-      return ok(bootstrap);
-    }
-
-    const bootstrap = await spotlightSearchService.bootstrap(80);
+    const bootstrap = await spotlightService.bootstrap(80);
     return ok({
       ...bootstrap,
       settings: settingsManager.get(),
@@ -37,12 +30,7 @@ export const spotlightHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.SPOTLIGHT_BOOTSTRAP](message) {
-    if (getFlag('spotlightV3')) {
-      const bootstrap = await spotlightV3Service.bootstrap(message.limit ?? 80);
-      return ok(bootstrap);
-    }
-
-    const bootstrap = await spotlightSearchService.bootstrap(message.limit ?? 80);
+    const bootstrap = await spotlightService.bootstrap(message.limit ?? 80);
     return ok({
       ...bootstrap,
       settings: settingsManager.get(),
@@ -51,23 +39,13 @@ export const spotlightHandlers = defineRpcHandlers({
 
   async [RPC_METHOD.SPOTLIGHT_SEARCH](message) {
     try {
-      if (getFlag('spotlightV3')) {
-        const response = await spotlightV3Service.search(
-          message.sessionId,
-          message.query,
-          message.limit,
-          message.requestSeq,
-        );
-        return ok(response);
-      }
-
-      const response = spotlightSearchService.search(
+      const response = await spotlightService.search(
         message.sessionId,
         message.query,
         message.limit,
         message.requestSeq,
       );
-      return ok(response as unknown as SpotlightSearchResponse);
+      return ok(response as SpotlightSearchResponse);
     } catch (error) {
       if (error instanceof Error && error.message === 'SESSION_EXPIRED') {
         return err('SESSION_EXPIRED');
@@ -78,10 +56,7 @@ export const spotlightHandlers = defineRpcHandlers({
 
   async [RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW](message) {
     try {
-      if (!getFlag('spotlightV3')) {
-        return ok(null as SpotlightGraphPreviewData | null);
-      }
-      const preview = await spotlightV3Service.getTreePreview(message.treeId);
+      const preview = await spotlightService.getTreePreview(message.treeId);
       return ok(preview);
     } catch (error) {
       return err(error instanceof Error ? error.message : 'SPOTLIGHT_GET_TREE_PREVIEW_FAILED');
@@ -90,7 +65,7 @@ export const spotlightHandlers = defineRpcHandlers({
 
   async [RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION](message) {
     try {
-      await spotlightV3Service.recordSelection(message.actionId, message.target, message.query ?? '');
+      await spotlightService.recordSelection(message.actionId, message.target, message.query ?? '');
 
       switch (message.actionId) {
         case 'open':
@@ -161,12 +136,7 @@ export const spotlightHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION](message) {
-    if (getFlag('spotlightV3')) {
-      spotlightV3Service.dispose(message.sessionId);
-      return ok();
-    }
-
-    spotlightSearchService.dispose(message.sessionId);
+    spotlightService.dispose(message.sessionId);
     return ok();
   },
 

@@ -66,8 +66,6 @@ function run(): void {
   const v2On = resolveFlags({ recencyOrderingV2: true });
   assert.equal(v2On.recencyOrderingV2, true, 'recencyOrderingV2 should enable v2 ordering');
 
-  const spotlightV3 = resolveFlags({ spotlightV3: true });
-  assert.equal(spotlightV3.spotlightV3, true, 'spotlightV3 flag should resolve when explicitly enabled');
 }
 
 run();

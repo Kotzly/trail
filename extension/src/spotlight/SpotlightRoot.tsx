@@ -26,7 +26,7 @@ import type {
 } from './types.js';
 import type { NodeId } from '@shared/types/ids.js';
 
-type SpotlightV3AppProps = {
+type SpotlightRootProps = {
   onRegisterToggle: (toggle: () => void) => void;
 };
 
@@ -45,7 +45,7 @@ type SpotlightNodeTarget = {
 const SEARCH_LIMIT = 80;
 const SEARCH_DEBOUNCE_MS = 80;
 
-export function SpotlightV3App({ onRegisterToggle }: SpotlightV3AppProps) {
+export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasBeenOpened, setHasBeenOpened] = useState(false);
   const [bootstrapData, setBootstrapData] = useState<SpotlightBootstrapData | null>(null);
