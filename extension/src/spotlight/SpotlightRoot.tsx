@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Command } from 'cmdk';
 import {
   bootstrapSpotlight,
   disposeSpotlightSession,
@@ -30,13 +31,6 @@ type SpotlightRootProps = {
   onRegisterToggle: (toggle: () => void) => void;
 };
 
-type SpotlightSelectableRow = {
-  key: string;
-  sectionId: SpotlightSection['id'];
-  item: SpotlightSearchResult;
-  rowIndex: number;
-};
-
 type SpotlightNodeTarget = {
   treeId: string;
   nodeId: NodeId;
@@ -54,7 +48,6 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [hoveredListKey, setHoveredListKey] = useState<string | null>(null);
   const [selectedFocusPane, setSelectedFocusPane] = useState<'list' | 'graph'>('list');
   const [helpOpen, setHelpOpen] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
@@ -62,11 +55,15 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [graphPreviewData, setGraphPreviewData] = useState<SpotlightGraphPreviewData | null>(null);
   const [graphPreviewLoading, setGraphPreviewLoading] = useState(false);
   const [selectionIntentId, setSelectionIntentId] = useState(0);
+  const [drilldownScope, setDrilldownScope] = useState<{ treeId: string; treeName: string } | null>(null);
+  const [predrilldownQuery, setPredrilldownQuery] = useState('');
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const requestSeqRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const previewCacheRef = useRef<Map<string, SpotlightGraphPreviewData>>(new Map());
   const lastCommittedKeyRef = useRef<string | null>(null);
+  const lastKeyEventRef = useRef<{ altKey: boolean }>({ altKey: false });
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -76,6 +73,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     setIsOpen(false);
     setHelpOpen(false);
     setStatusText(null);
+    setDrilldownScope(null);
+    setPredrilldownQuery('');
   }, []);
 
   useEffect(() => {
@@ -122,7 +121,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       const requestSeq = requestSeqRef.current;
       setLoading(true);
 
-      searchSpotlight(sessionId, query, SEARCH_LIMIT, requestSeq)
+      searchSpotlight(sessionId, query, SEARCH_LIMIT, requestSeq, drilldownScope?.treeId)
         .then((response) => {
           if (cancelled) return;
           if (response.requestSeq !== requestSeqRef.current) return;
@@ -156,7 +155,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [isOpen, query, sessionId]);
+  }, [isOpen, query, sessionId, drilldownScope]);
 
   useEffect(() => {
     if (isOpen) {
@@ -167,10 +166,11 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     setQuery('');
     requestSeqRef.current += 1;
     setSelectedKey(null);
-    setHoveredListKey(null);
     setHoveredGraphTarget(null);
     setGraphPreviewData(null);
     setGraphPreviewLoading(false);
+    setDrilldownScope(null);
+    setPredrilldownQuery('');
 
     const activeSession = sessionId;
     setSessionId(null);
@@ -187,38 +187,33 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   }, [sessionId]);
 
   const activeTreeId = bootstrapData?.activeTreeId ?? null;
-  const flatRows = useMemo(() => flattenSections(sections), [sections]);
-  const itemByKey = useMemo(() => new Map(flatRows.map((row) => [row.key, row.item])), [flatRows]);
+
+  const flatItems = useMemo(
+    () => sections.flatMap((s) => s.items),
+    [sections],
+  );
+  const itemByKey = useMemo(
+    () => new Map(flatItems.map((item) => [item.key, item])),
+    [flatItems],
+  );
 
   const hoveredGraphKey = useMemo(() => {
     if (!hoveredGraphTarget) return null;
     return (
-      flatRows.find((row) => {
-        const target = resolveNodeTarget(row.item);
+      flatItems.find((item) => {
+        const target = resolveNodeTarget(item);
         return (
           target?.treeId === hoveredGraphTarget.treeId
           && target.nodeId === hoveredGraphTarget.nodeId
         );
       })?.key ?? null
     );
-  }, [flatRows, hoveredGraphTarget]);
+  }, [flatItems, hoveredGraphTarget]);
 
   const selectedItem = selectedKey ? itemByKey.get(selectedKey) ?? null : null;
-  const hoveredListItem = hoveredListKey ? itemByKey.get(hoveredListKey) ?? null : null;
   const hoveredGraphItem = hoveredGraphKey ? itemByKey.get(hoveredGraphKey) ?? null : null;
-  const effectiveItem = hoveredGraphItem ?? hoveredListItem ?? selectedItem;
-  const activeRowKey = hoveredGraphKey ?? hoveredListKey ?? selectedKey;
-
-  useEffect(() => {
-    if (flatRows.length === 0) {
-      setSelectedKey(null);
-      return;
-    }
-    if (selectedKey && flatRows.some((row) => row.key === selectedKey)) {
-      return;
-    }
-    setSelectedKey(flatRows[0]?.key ?? null);
-  }, [flatRows, selectedKey]);
+  const effectiveItem = hoveredGraphItem ?? selectedItem;
+  const activeRowKey = hoveredGraphKey ?? selectedKey;
 
   useEffect(() => {
     if (selectedKey === lastCommittedKeyRef.current) return;
@@ -231,12 +226,13 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const ghostSuffix = useMemo(() => computeGhostSuffix(query, activeHint), [query, activeHint]);
 
   const previewTreeId = useMemo(() => {
+    if (drilldownScope) return drilldownScope.treeId;
     const candidate = hoveredGraphTarget?.treeId ?? resolvePreviewTreeId(effectiveItem);
     if (!candidate || !activeTreeId || candidate === activeTreeId) {
       return null;
     }
     return candidate;
-  }, [activeTreeId, effectiveItem, hoveredGraphTarget]);
+  }, [activeTreeId, drilldownScope, effectiveItem, hoveredGraphTarget]);
 
   useEffect(() => {
     let cancelled = false;
@@ -283,7 +279,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   }, [previewTreeId]);
 
   const selectedNodeTarget = resolveNodeTarget(selectedItem);
-  const highlightNodeTarget = hoveredGraphTarget ?? resolveNodeTarget(hoveredListItem ?? selectedItem);
+  const highlightNodeTarget = hoveredGraphTarget ?? resolveNodeTarget(selectedItem);
   const currentGraphTreeId = previewTreeId ?? activeTreeId;
   const graphSelectedNodeId =
     currentGraphTreeId && selectedNodeTarget?.treeId === currentGraphTreeId
@@ -297,6 +293,26 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const handleApplyHint = useCallback((hint: string) => {
     setQuery((current) => applySpotlightHint(current, hint));
     setStatusText(null);
+  }, []);
+
+  const exitDrilldown = useCallback(() => {
+    const restored = predrilldownQuery;
+    setDrilldownScope(null);
+    setPredrilldownQuery('');
+    setQuery(restored);
+    setGraphPreviewData(null);
+  }, [predrilldownQuery]);
+
+  const toggleSection = useCallback((sectionId: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
   }, []);
 
   const handleExecuteAction = useCallback(
@@ -334,7 +350,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
         return;
       }
       if (item.actionId === 'copy-url') {
-        const targetItem = resolveCopyUrlItem(item, flatRows);
+        const targetItem = resolveCopyUrlItem(item, flatItems);
         if (targetItem) {
           try {
             await navigator.clipboard.writeText(targetItem.url);
@@ -366,11 +382,23 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     }
 
     if (item.kind === 'tree') {
-      await handleExecuteAction(
-        'open-tree',
-        { kind: 'tree', treeId: item.treeId },
-        'Tree opened',
-      );
+      setPredrilldownQuery(query);
+      setDrilldownScope({ treeId: item.treeId, treeName: item.treeName });
+      setQuery('');
+
+      const cached = previewCacheRef.current.get(item.treeId);
+      if (cached) {
+        setGraphPreviewData(cached);
+      } else {
+        setGraphPreviewLoading(true);
+        void getSpotlightTreePreview(item.treeId).then((preview) => {
+          if (preview) {
+            previewCacheRef.current.set(item.treeId, preview);
+            setGraphPreviewData(preview);
+          }
+          setGraphPreviewLoading(false);
+        });
+      }
       return;
     }
 
@@ -381,43 +409,43 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       { kind: 'node', nodeId: item.nodeId, treeId: item.treeId },
       actionId === 'open-node-in-tree' ? 'Opened in tree' : 'Opened',
     );
-  }, [activeTreeId, close, flatRows, handleExecuteAction]);
+  }, [activeTreeId, close, flatItems, handleExecuteAction, query]);
 
-  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    const rows = flatRows;
+  const handleKeyDownCapture = useCallback((event: React.KeyboardEvent) => {
     switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        setHoveredListKey(null);
-        setHoveredGraphTarget(null);
-        setSelectedKey((current) => nextSelection(rows, current, 1));
+      case 'Enter': {
+        if (hoveredGraphItem) {
+          event.preventDefault();
+          event.stopPropagation();
+          void handleActivate(hoveredGraphItem, { allowDestructive: event.altKey });
+          return;
+        }
+        lastKeyEventRef.current = { altKey: event.altKey };
         return;
-      case 'ArrowUp':
-        event.preventDefault();
-        setHoveredListKey(null);
-        setHoveredGraphTarget(null);
-        setSelectedKey((current) => nextSelection(rows, current, -1));
-        return;
+      }
       case 'Tab':
         if (shouldApplyHintOnTab(query, hintCandidates) && activeHint) {
           event.preventDefault();
+          event.stopPropagation();
           handleApplyHint(activeHint);
           return;
         }
         event.preventDefault();
+        event.stopPropagation();
         setSelectedFocusPane((current) => current === 'list' ? 'graph' : 'list');
         return;
-      case 'Enter': {
-        event.preventDefault();
-        if (!effectiveItem) return;
-        void handleActivate(effectiveItem, { allowDestructive: event.altKey });
-        return;
-      }
       case 'Backspace': {
+        if (drilldownScope && query === '') {
+          event.preventDefault();
+          event.stopPropagation();
+          exitDrilldown();
+          return;
+        }
         const isMac = navigator.platform.includes('Mac');
         const clearCombo = isMac ? event.metaKey : event.ctrlKey;
         if (clearCombo) {
           event.preventDefault();
+          event.stopPropagation();
           setQuery('');
         }
         return;
@@ -425,13 +453,17 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       case '?':
         if (!event.metaKey && !event.ctrlKey) {
           event.preventDefault();
+          event.stopPropagation();
           setHelpOpen((current) => !current);
         }
         return;
       case 'Escape':
         event.preventDefault();
+        event.stopPropagation();
         if (helpOpen) {
           setHelpOpen(false);
+        } else if (drilldownScope) {
+          exitDrilldown();
         } else {
           close();
         }
@@ -439,7 +471,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       default:
         return;
     }
-  }, [activeHint, close, effectiveItem, flatRows, handleActivate, handleApplyHint, helpOpen, hintCandidates, query]);
+  }, [activeHint, close, drilldownScope, exitDrilldown, handleActivate, handleApplyHint, helpOpen, hintCandidates, hoveredGraphItem, query]);
 
   if (!hasBeenOpened) return null;
 
@@ -450,19 +482,27 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       onClick={(event) => {
         if (event.target === event.currentTarget) close();
       }}
-      onKeyDown={handleKeyDown}
+      onKeyDownCapture={handleKeyDownCapture}
     >
-      <div className="spotlight-container spotlight-container--v3">
+      <Command
+        shouldFilter={false}
+        value={selectedKey ?? ''}
+        onValueChange={(value) => {
+          setSelectedKey(value || null);
+          setHoveredGraphTarget(null);
+        }}
+        loop
+        className="spotlight-container spotlight-container--v3"
+      >
         <div className="spotlight-search spotlight-search--v3">
           <div className="spotlight-input-wrap">
-            <input
+            <Command.Input
               ref={inputRef}
               className="spotlight-search-input"
-              type="text"
-              placeholder="Search pages or type > for commands"
+              placeholder={drilldownScope ? `Search in ${drilldownScope.treeName}...` : 'Search pages or type > for commands'}
               value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
+              onValueChange={(value) => {
+                setQuery(value);
                 setStatusText(null);
               }}
               autoComplete="off"
@@ -477,23 +517,75 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           </div>
         </div>
 
+        {drilldownScope && (
+          <div className="spotlight-breadcrumb">
+            <button
+              type="button"
+              className="spotlight-breadcrumb-back"
+              onClick={exitDrilldown}
+              tabIndex={-1}
+            >
+              ←
+            </button>
+            <span className="spotlight-breadcrumb-label">{drilldownScope.treeName}</span>
+          </div>
+        )}
+
         <div className="spotlight-panels spotlight-panels--v3">
           <div className="spotlight-left spotlight-left--v3">
             {helpOpen ? (
               <SpotlightHelp open />
             ) : loading ? (
               <div className="spotlight-empty">Loading...</div>
+            ) : sections.length === 0 ? (
+              <Command.Empty className="spotlight-empty">No results found</Command.Empty>
             ) : (
-              <SpotlightSectionList
-                sections={sections}
-                selectedKey={activeRowKey}
-                onHoverKey={(key) => {
-                  setHoveredGraphTarget(null);
-                  setHoveredListKey(key);
-                }}
-                onHoverEnd={() => setHoveredListKey(null)}
-                onActivate={handleActivate}
-              />
+              <Command.List className="spotlight-sections">
+                {sections.map((section, i) => {
+                  const collapsed = collapsedSections.has(section.id);
+                  return (
+                    <Command.Group
+                      key={section.id}
+                      heading={
+                        <button
+                          type="button"
+                          className="spotlight-section-toggle"
+                          onClick={() => toggleSection(section.id)}
+                          tabIndex={-1}
+                        >
+                          <span className="spotlight-section-chevron" data-collapsed={collapsed} />
+                          {section.title}
+                          <span className="spotlight-section-count">{section.items.length}</span>
+                        </button>
+                      }
+                      className="spotlight-section"
+                      data-first={i === 0}
+                      data-collapsed={collapsed}
+                    >
+                      {!collapsed && section.items.map((item) => (
+                        <Command.Item
+                          key={item.key}
+                          value={item.key}
+                          className={`spotlight-row spotlight-row--${item.kind}`}
+                          data-destructive={item.kind === 'action' && item.safety === 'destructive'}
+                          onSelect={() => {
+                            void handleActivate(item, {
+                              allowDestructive: lastKeyEventRef.current.altKey,
+                            });
+                            lastKeyEventRef.current = { altKey: false };
+                          }}
+                        >
+                          <div className="spotlight-row-main">
+                            <div className="spotlight-row-title">{getItemTitle(item)}</div>
+                            <div className="spotlight-row-subtitle">{getItemSubtitle(item)}</div>
+                          </div>
+                          <div className="spotlight-row-meta">{getItemMeta(item)}</div>
+                        </Command.Item>
+                      ))}
+                    </Command.Group>
+                  );
+                })}
+              </Command.List>
             )}
           </div>
 
@@ -529,78 +621,9 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
             <span className="spotlight-status">{statusText}</span>
           </div>
         )}
-      </div>
+      </Command>
     </div>
   );
-}
-
-function SpotlightSectionList({
-  sections,
-  selectedKey,
-  onHoverKey,
-  onHoverEnd,
-  onActivate,
-}: {
-  sections: SpotlightSection[];
-  selectedKey: string | null;
-  onHoverKey: (key: string) => void;
-  onHoverEnd: () => void;
-  onActivate: (item: SpotlightSearchResult) => void;
-}) {
-  if (sections.length === 0) {
-    return <div className="spotlight-empty">No results found</div>;
-  }
-
-  return (
-    <div className="spotlight-sections" onMouseLeave={onHoverEnd}>
-      {sections.map((section, sectionIndex) => (
-        <div key={section.id} className="spotlight-section" data-first={sectionIndex === 0}>
-          <div className="spotlight-section-title">{section.title}</div>
-          {section.items.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`spotlight-row spotlight-row--${item.kind}`}
-              data-selected={item.key === selectedKey}
-              data-destructive={item.kind === 'action' && item.safety === 'destructive'}
-              onMouseEnter={() => onHoverKey(item.key)}
-              onClick={() => onActivate(item)}
-            >
-              <div className="spotlight-row-main">
-                <div className="spotlight-row-title">{getItemTitle(item)}</div>
-                <div className="spotlight-row-subtitle">{getItemSubtitle(item)}</div>
-              </div>
-              <div className="spotlight-row-meta">{getItemMeta(item)}</div>
-            </button>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function flattenSections(sections: SpotlightSection[]): SpotlightSelectableRow[] {
-  const rows: SpotlightSelectableRow[] = [];
-  let rowIndex = 0;
-  for (const section of sections) {
-    for (const item of section.items) {
-      rows.push({ key: item.key, sectionId: section.id, item, rowIndex });
-      rowIndex += 1;
-    }
-  }
-  return rows;
-}
-
-function nextSelection(
-  rows: SpotlightSelectableRow[],
-  current: string | null,
-  delta: 1 | -1,
-): string | null {
-  if (rows.length === 0) return null;
-  const currentIndex = current ? rows.findIndex((row) => row.key === current) : -1;
-  const base = currentIndex === -1 ? (delta === 1 ? -1 : 0) : currentIndex;
-  const nextIndex = (base + delta + rows.length) % rows.length;
-  return rows[nextIndex]?.key ?? null;
 }
 
 function getItemTitle(item: SpotlightSearchResult): string {
@@ -648,17 +671,17 @@ function resolveNodeTarget(item: SpotlightSearchResult | null): SpotlightNodeTar
 
 function resolveCopyUrlItem(
   action: Extract<SpotlightSearchResult, { kind: 'action' }>,
-  rows: SpotlightSelectableRow[],
+  items: SpotlightSearchResult[],
 ): Extract<SpotlightSearchResult, { kind: 'node' }> | null {
   const target = action.target;
   if (!target || target.kind !== 'node') return null;
-  const item = rows.find((row) => {
+  const item = items.find((candidate) => {
     return (
-      row.item.kind === 'node'
-      && row.item.nodeId === target.nodeId
-      && row.item.treeId === target.treeId
+      candidate.kind === 'node'
+      && candidate.nodeId === target.nodeId
+      && candidate.treeId === target.treeId
     );
-  })?.item;
+  });
   return item?.kind === 'node' ? item : null;
 }
 

@@ -62,12 +62,14 @@ export async function searchSpotlight(
   query: string,
   limit: number,
   requestSeq: number,
+  scopeTreeId?: string,
 ): Promise<SpotlightSearchResponse> {
   return sendRpc<SpotlightSearchResponse>('SPOTLIGHT_SEARCH', {
     sessionId,
     query,
     limit,
     requestSeq,
+    ...(scopeTreeId ? { scopeTreeId } : {}),
   });
 }
 

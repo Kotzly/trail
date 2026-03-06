@@ -268,7 +268,8 @@ export type SpotlightSectionId =
   | 'archived-trees'
   | 'trees'
   | 'external'
-  | 'matches';
+  | 'matches'
+  | 'scoped-pages';
 
 export type SpotlightTreeRelation =
   | 'current'
@@ -386,6 +387,7 @@ export type SpotlightSearchRequest = {
   query: string;
   limit: number;
   requestSeq: number;
+  scopeTreeId?: string;
 };
 
 export type SpotlightExecuteActionRequest = {

@@ -49,6 +49,7 @@ const SECTION_TITLES: Record<SpotlightSection['id'], string> = {
   'trees': 'Trees',
   'external': 'External',
   'matches': 'Matches',
+  'scoped-pages': 'Pages',
 };
 
 type SpotlightSession = {
@@ -90,6 +91,7 @@ export class SpotlightService {
     query: string,
     limit: number,
     requestSeq: number,
+    scopeTreeId?: string,
   ): Promise<SpotlightSearchResponse> {
     this.pruneExpiredSessions();
     const session = this.sessions.get(sessionId);
@@ -100,7 +102,7 @@ export class SpotlightService {
     session.lastTouchedAt = Date.now();
     const snapshot = await spotlightLiveIndex.getSnapshot();
     const { mode, normalizedQuery } = resolveSpotlightMode(query);
-    const sections = await this.buildSections(snapshot, mode, normalizedQuery, limit);
+    const sections = await this.buildSections(snapshot, mode, normalizedQuery, limit, scopeTreeId);
 
     return {
       requestSeq,
@@ -159,9 +161,15 @@ export class SpotlightService {
     mode: SpotlightMode,
     query: string,
     limit: number,
+    scopeTreeId?: string,
   ): Promise<SpotlightSection[]> {
     if (mode === 'commands') {
       return this.buildCommandSections(snapshot, query);
+    }
+    if (scopeTreeId) {
+      return mode === 'discover'
+        ? this.buildScopedDiscoverSections(snapshot, scopeTreeId, limit)
+        : this.buildScopedSearchSections(snapshot, scopeTreeId, query, limit);
     }
     if (mode === 'discover') {
       return this.buildDiscoverSections(snapshot, limit);
@@ -268,6 +276,56 @@ export class SpotlightService {
       'actions',
       contextualActions.map((action) => toActionResult(action)).slice(0, 4),
     );
+
+    return sections;
+  }
+
+  private async buildScopedDiscoverSections(
+    snapshot: SpotlightLiveSnapshot,
+    scopeTreeId: string,
+    limit: number,
+  ): Promise<SpotlightSection[]> {
+    const sections: SpotlightSection[] = [];
+    const seen = new Set<string>();
+    const scopedDocs = snapshot.nodeDocs.filter((doc) => doc.treeId === scopeTreeId);
+
+    const pages = await this.mapNodes(
+      snapshot,
+      [...scopedDocs].sort(compareNodeDocsByPriority),
+      Math.min(Math.max(limit, 1), 40),
+      seen,
+    );
+    appendSectionIfAny(sections, 'scoped-pages', pages);
+
+    const treeDoc = snapshot.treeDocs.find((d) => d.treeId === scopeTreeId);
+    if (treeDoc) {
+      const actions = buildScopedTreeActions(treeDoc);
+      appendSectionIfAny(sections, 'actions', actions.map((a) => toActionResult(a)));
+    }
+
+    return sections;
+  }
+
+  private async buildScopedSearchSections(
+    snapshot: SpotlightLiveSnapshot,
+    scopeTreeId: string,
+    query: string,
+    limit: number,
+  ): Promise<SpotlightSection[]> {
+    const searchLimit = Math.max(Math.min(limit || MAX_RESULTS, MAX_RESULTS), 1);
+    const ranked = await this.rankEntities(snapshot, query, Math.max(searchLimit * 4, 40));
+    const sections: SpotlightSection[] = [];
+
+    const scopedMatches = ranked
+      .filter((item): item is SpotlightNodeResult => item.kind === 'node' && item.treeId === scopeTreeId)
+      .slice(0, searchLimit);
+    appendSectionIfAny(sections, 'matches', scopedMatches);
+
+    const treeDoc = snapshot.treeDocs.find((d) => d.treeId === scopeTreeId);
+    if (treeDoc) {
+      const actions = buildScopedTreeActions(treeDoc);
+      appendSectionIfAny(sections, 'actions', actions.map((a) => toActionResult(a)));
+    }
 
     return sections;
   }
@@ -729,6 +787,35 @@ function buildContextualActions(
       safety: 'destructive',
       shortcutHint: 'Alt+Enter',
       target: { kind: 'tree', treeId: result.treeId },
+    },
+  ];
+}
+
+function buildScopedTreeActions(treeDoc: SpotlightLiveTreeDoc): ActionSeed[] {
+  return [
+    {
+      actionId: 'open-tree',
+      title: 'Open tree',
+      subtitle: treeDoc.treeName,
+      safety: 'safe',
+      shortcutHint: 'Enter',
+      target: { kind: 'tree', treeId: treeDoc.treeId },
+    },
+    {
+      actionId: 'export-tree',
+      title: 'Export tree',
+      subtitle: treeDoc.treeName,
+      safety: 'safe',
+      shortcutHint: 'Enter',
+      target: { kind: 'tree', treeId: treeDoc.treeId },
+    },
+    {
+      actionId: 'delete-archived-tree',
+      title: 'Delete archived tree',
+      subtitle: treeDoc.treeName,
+      safety: 'destructive',
+      shortcutHint: 'Alt+Enter',
+      target: { kind: 'tree', treeId: treeDoc.treeId },
     },
   ];
 }

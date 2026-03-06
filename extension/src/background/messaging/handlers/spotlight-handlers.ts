@@ -44,6 +44,7 @@ export const spotlightHandlers = defineRpcHandlers({
         message.query,
         message.limit,
         message.requestSeq,
+        message.scopeTreeId,
       );
       return ok(response as SpotlightSearchResponse);
     } catch (error) {
