@@ -372,7 +372,7 @@ export type SpotlightActionResult = {
   title: string;
   subtitle: string;
   safety: SpotlightActionSafety;
-  shortcutHint: 'Enter' | 'Alt+Enter';
+  shortcutHint: 'Enter';
   target?: SpotlightActionTarget;
 };
 

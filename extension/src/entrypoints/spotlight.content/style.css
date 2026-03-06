@@ -712,6 +712,111 @@ textarea {
   color: rgba(255, 230, 160, 0.85);
 }
 
+/* ─── Destructive confirmation popup ─── */
+
+@keyframes spotlight-confirm-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.spotlight-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: inherit;
+  animation: spotlight-fade-in 0.12s ease-out both;
+}
+
+.spotlight-confirm-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 280px;
+  padding: 24px 28px 20px;
+  background: rgba(32, 30, 36, 0.96);
+  backdrop-filter: blur(32px) saturate(1.4);
+  -webkit-backdrop-filter: blur(32px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: spotlight-confirm-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.spotlight-confirm-icon {
+  font-size: 28px;
+  line-height: 1;
+  margin-bottom: 4px;
+  filter: grayscale(0.2);
+}
+
+.spotlight-confirm-title {
+  font-size: 14px;
+  font-weight: 560;
+  color: rgba(255, 255, 255, 0.92);
+  text-align: center;
+}
+
+.spotlight-confirm-message {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.42);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.spotlight-confirm-buttons {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.spotlight-confirm-btn {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 520;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.1s ease;
+}
+
+.spotlight-confirm-btn:active {
+  transform: scale(0.97);
+}
+
+.spotlight-confirm-btn--cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.spotlight-confirm-btn--cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.spotlight-confirm-btn--confirm {
+  background: rgba(220, 60, 50, 0.85);
+  color: #fff;
+}
+
+.spotlight-confirm-btn--confirm:hover {
+  background: rgba(230, 70, 55, 0.95);
+}
+
 /* ─── Action Menu (Cmd+K submenu) ─── */
 
 .spotlight-action-menu {
@@ -1078,6 +1183,44 @@ textarea {
 
   .spotlight-status {
     color: rgba(140, 100, 10, 0.85);
+  }
+
+  .spotlight-confirm-overlay {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .spotlight-confirm-popup {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.15),
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .spotlight-confirm-title {
+    color: rgba(0, 0, 0, 0.88);
+  }
+
+  .spotlight-confirm-message {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  .spotlight-confirm-btn--cancel {
+    background: rgba(0, 0, 0, 0.06);
+    color: rgba(0, 0, 0, 0.65);
+  }
+
+  .spotlight-confirm-btn--cancel:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .spotlight-confirm-btn--confirm {
+    background: rgba(220, 50, 40, 0.88);
+  }
+
+  .spotlight-confirm-btn--confirm:hover {
+    background: rgba(220, 50, 40, 1);
   }
 
   .spotlight-section-toggle:hover {

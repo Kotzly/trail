@@ -82,7 +82,7 @@ type ActionSeed = {
   title: string;
   subtitle: string;
   safety: SpotlightActionSafety;
-  shortcutHint: 'Enter' | 'Alt+Enter';
+  shortcutHint: 'Enter';
   target?: SpotlightActionTarget;
 };
 
@@ -131,7 +131,7 @@ export function buildClientContextActions(
         title: 'Delete archived tree',
         subtitle: item.treeName,
         safety: 'destructive',
-        shortcutHint: 'Alt+Enter',
+        shortcutHint: 'Enter',
         target: { kind: 'tree', treeId: item.treeId },
       }),
     ];
@@ -180,7 +180,7 @@ export function buildClientContextActions(
         title: item.tabCount > 1 ? 'Close tabs for page' : 'Close tab',
         subtitle: item.title,
         safety: 'destructive',
-        shortcutHint: 'Alt+Enter',
+        shortcutHint: 'Enter',
         target: { kind: 'node', nodeId: item.nodeId, treeId: item.treeId },
       });
     }

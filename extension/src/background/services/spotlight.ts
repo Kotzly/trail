@@ -678,7 +678,7 @@ function buildGlobalActions(): ActionSeed[] {
       title: 'Archive current tree',
       subtitle: 'Move the active tree into archived trees',
       safety: 'destructive',
-      shortcutHint: 'Alt+Enter',
+      shortcutHint: 'Enter',
       target: { kind: 'global' },
     },
     {
@@ -718,7 +718,7 @@ function buildGlobalActions(): ActionSeed[] {
       title: 'Clear search history',
       subtitle: 'Reset all usage statistics and recent queries',
       safety: 'destructive',
-      shortcutHint: 'Alt+Enter',
+      shortcutHint: 'Enter',
       target: { kind: 'global' },
     },
   ];
@@ -742,7 +742,7 @@ function buildCommandActionsForCurrentNode(currentDoc: SpotlightLiveNodeDoc | nu
       title: currentDoc.tabCount > 1 ? 'Close tabs for current page' : 'Close current tab',
       subtitle: currentDoc.title,
       safety: 'destructive',
-      shortcutHint: 'Alt+Enter',
+      shortcutHint: 'Enter',
       target: { kind: 'node', nodeId: currentDoc.nodeId, treeId: currentDoc.treeId },
     });
   }
@@ -798,7 +798,7 @@ function buildContextualActions(
           title: result.tabCount > 1 ? 'Close tabs for page' : 'Close tab',
           subtitle: result.title,
           safety: 'destructive',
-          shortcutHint: 'Alt+Enter',
+          shortcutHint: 'Enter',
           target: { kind: 'node', nodeId: result.nodeId, treeId: result.treeId },
         });
       }
@@ -828,7 +828,7 @@ function buildContextualActions(
       title: 'Delete archived tree',
       subtitle: result.treeName,
       safety: 'destructive',
-      shortcutHint: 'Alt+Enter',
+      shortcutHint: 'Enter',
       target: { kind: 'tree', treeId: result.treeId },
     },
   ];
@@ -857,7 +857,7 @@ function buildScopedTreeActions(treeDoc: SpotlightLiveTreeDoc): ActionSeed[] {
       title: 'Delete archived tree',
       subtitle: treeDoc.treeName,
       safety: 'destructive',
-      shortcutHint: 'Alt+Enter',
+      shortcutHint: 'Enter',
       target: { kind: 'tree', treeId: treeDoc.treeId },
     },
   ];
@@ -895,7 +895,7 @@ type ActionSeed = {
   title: string;
   subtitle: string;
   safety: SpotlightActionSafety;
-  shortcutHint: 'Enter' | 'Alt+Enter';
+  shortcutHint: 'Enter';
   target?: SpotlightActionTarget;
 };
 

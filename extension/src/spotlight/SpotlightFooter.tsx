@@ -9,7 +9,7 @@ export function SpotlightFooter({ selectedItem, statusText }: SpotlightFooterPro
   return (
     <div className="spotlight-footer">
       <div className="spotlight-footer-left">
-        {statusText ? <span className="spotlight-status">{statusText}</span> : <span>Enter open, Alt+Enter destructive, ? help</span>}
+        {statusText ? <span className="spotlight-status">{statusText}</span> : <span>Enter open, ? help</span>}
       </div>
       <div className="spotlight-footer-right">
         {selectedItem?.kind === 'action' ? (

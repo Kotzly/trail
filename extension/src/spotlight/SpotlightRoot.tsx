@@ -64,13 +64,13 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [drilldownTransition, setDrilldownTransition] = useState<'idle' | 'entering' | 'exiting'>('idle');
   const [actionMenuActions, setActionMenuActions] = useState<SpotlightActionResult[] | null>(null);
+  const [confirmingAction, setConfirmingAction] = useState<SpotlightSearchResult | null>(null);
   const drilldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requestSeqRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const previewCacheRef = useRef(new LRUMap<string, SpotlightGraphPreviewData>(20));
   const lastCommittedKeyRef = useRef<string | null>(null);
-  const lastKeyEventRef = useRef<{ altKey: boolean }>({ altKey: false });
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -350,16 +350,17 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     [close, query],
   );
 
-  const handleActivate = useCallback(async (item: SpotlightSearchResult, event?: { allowDestructive?: boolean }) => {
+  const handleActivate = useCallback(async (item: SpotlightSearchResult) => {
     setStatusText(null);
+    setConfirmingAction(null);
 
     if (item.kind === 'action') {
       if (item.actionId === 'show-command-help') {
         setHelpOpen(true);
         return;
       }
-      if (isDestructiveAction(item) && !event?.allowDestructive) {
-        setStatusText('Use Alt+Enter for destructive actions');
+      if (isDestructiveAction(item)) {
+        setConfirmingAction(item);
         return;
       }
       if (item.actionId === 'copy-url') {
@@ -430,21 +431,33 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const handleActionMenuSelect = useCallback(
     (action: SpotlightActionResult) => {
       setActionMenuActions(null);
-      void handleActivate(action, { allowDestructive: action.safety === 'destructive' });
+      void handleActivate(action);
     },
     [handleActivate],
   );
 
+  const handleConfirmDestructive = useCallback(async () => {
+    if (!confirmingAction || confirmingAction.kind !== 'action') return;
+    const action = confirmingAction;
+    setConfirmingAction(null);
+    await handleExecuteAction(action.actionId, action.target, 'Done');
+  }, [confirmingAction, handleExecuteAction]);
+
   const handleKeyDownCapture = useCallback((event: React.KeyboardEvent) => {
     switch (event.key) {
       case 'Enter': {
+        if (confirmingAction) {
+          event.preventDefault();
+          event.stopPropagation();
+          void handleConfirmDestructive();
+          return;
+        }
         if (hoveredGraphItem) {
           event.preventDefault();
           event.stopPropagation();
-          void handleActivate(hoveredGraphItem, { allowDestructive: event.altKey });
+          void handleActivate(hoveredGraphItem);
           return;
         }
-        lastKeyEventRef.current = { altKey: event.altKey };
         return;
       }
       case 'Tab':
@@ -484,7 +497,9 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       case 'Escape':
         event.preventDefault();
         event.stopPropagation();
-        if (actionMenuActions) {
+        if (confirmingAction) {
+          setConfirmingAction(null);
+        } else if (actionMenuActions) {
           setActionMenuActions(null);
         } else if (helpOpen) {
           setHelpOpen(false);
@@ -512,7 +527,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       default:
         return;
     }
-  }, [actionMenuActions, activeHint, activeTreeId, close, drilldownScope, exitDrilldown, handleActivate, handleApplyHint, helpOpen, hintCandidates, hoveredGraphItem, query, selectedItem]);
+  }, [actionMenuActions, activeHint, activeTreeId, close, confirmingAction, drilldownScope, exitDrilldown, handleActivate, handleApplyHint, handleConfirmDestructive, helpOpen, hintCandidates, hoveredGraphItem, query, selectedItem]);
 
   if (!hasBeenOpened) return null;
 
@@ -611,10 +626,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                           className={`spotlight-row spotlight-row--${item.kind}`}
                           data-destructive={item.kind === 'action' && item.safety === 'destructive'}
                           onSelect={() => {
-                            void handleActivate(item, {
-                              allowDestructive: lastKeyEventRef.current.altKey,
-                            });
-                            lastKeyEventRef.current = { altKey: false };
+                            void handleActivate(item);
                           }}
                         >
                           <div className="spotlight-row-main">
@@ -672,6 +684,38 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           />
         )}
       </Command>
+
+      {confirmingAction && confirmingAction.kind === 'action' && (
+        <div
+          className="spotlight-confirm-overlay"
+          onClick={() => setConfirmingAction(null)}
+        >
+          <div
+            className="spotlight-confirm-popup"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="spotlight-confirm-icon">⚠</div>
+            <div className="spotlight-confirm-title">{confirmingAction.title}</div>
+            <div className="spotlight-confirm-message">This action cannot be undone.</div>
+            <div className="spotlight-confirm-buttons">
+              <button
+                type="button"
+                className="spotlight-confirm-btn spotlight-confirm-btn--cancel"
+                onClick={() => setConfirmingAction(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="spotlight-confirm-btn spotlight-confirm-btn--confirm"
+                onClick={() => void handleConfirmDestructive()}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
