@@ -1184,6 +1184,8 @@ textarea {
 }
 
 [cmdk-input] {
+  width: 100%;
+  min-width: 0;
   outline: none;
 }
 

@@ -703,6 +703,8 @@ export class GraphPixiRenderer {
   private readonly world = new PIXI.Container();
   private readonly connectionLayer = new PIXI.Graphics();
   private readonly pathLayer = new PIXI.Graphics();
+  private readonly connectionAlphaFilter = new PIXI.AlphaFilter({ alpha: 1 });
+  private readonly pathAlphaFilter = new PIXI.AlphaFilter({ alpha: 1 });
   private readonly nodeLayer = new PIXI.Container();
   private readonly particleLayer = new PIXI.Container();
   private readonly nodeMap = new Map<NodeId, NodeVisual>();
@@ -759,6 +761,8 @@ export class GraphPixiRenderer {
     this.host = host;
     this.app = new PIXI.Application();
     this.app.stage.addChild(this.world);
+    this.connectionLayer.filters = [this.connectionAlphaFilter];
+    this.pathLayer.filters = [this.pathAlphaFilter];
     this.world.addChild(this.connectionLayer);
     this.world.addChild(this.pathLayer);
     this.world.addChild(this.nodeLayer);
@@ -1273,8 +1277,10 @@ export class GraphPixiRenderer {
         : this.connectionQuality === 'simplified'
           ? 0.75
           : 0.62;
-    this.connectionLayer.setStrokeStyle({ width: baseWidth, color: baseColor, alpha: baseAlpha });
-    this.pathLayer.setStrokeStyle({ width: pathWidth, color: pathColor, alpha: pathAlpha });
+    this.connectionAlphaFilter.alpha = baseAlpha;
+    this.pathAlphaFilter.alpha = pathAlpha;
+    this.connectionLayer.setStrokeStyle({ width: baseWidth, color: baseColor });
+    this.pathLayer.setStrokeStyle({ width: pathWidth, color: pathColor });
 
     let visibleConnections = 0;
     this.connections.forEach((conn) => {
@@ -1304,8 +1310,23 @@ export class GraphPixiRenderer {
           (Math.abs(startX - endX) < 0.5 && Math.abs(cp1X - startX) < 0.5) ||
           (Math.abs(startY - endY) < 0.5 && Math.abs(cp1Y - startY) < 0.5);
 
+        const isLShape = Math.abs(cp1X - cp2X) < 0.5 && Math.abs(cp1Y - cp2Y) < 0.5;
+
         if (isStraight) {
           layer.moveTo(startX, startY);
+          layer.lineTo(endX, endY);
+        } else if (isLShape) {
+          const seg1 = Math.hypot(cp1X - startX, cp1Y - startY);
+          const seg2 = Math.hypot(endX - cp1X, endY - cp1Y);
+          const r = this.connectionQuality === 'full'
+            ? Math.min(16 / this.view.scale, seg1 / 2, seg2 / 2)
+            : 0;
+          layer.moveTo(startX, startY);
+          if (r > 0.5) {
+            layer.arcTo(cp1X, cp1Y, endX, endY, r);
+          } else {
+            layer.lineTo(cp1X, cp1Y);
+          }
           layer.lineTo(endX, endY);
         } else if (this.connectionQuality === 'full') {
           const seg1 = Math.hypot(cp1X - startX, cp1Y - startY);

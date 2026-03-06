@@ -353,6 +353,23 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     [close, query],
   );
 
+  const handleInlineAction = useCallback(
+    async (
+      actionId: SpotlightActionId,
+      target: Parameters<typeof executeSpotlightAction>[1],
+      nextStatusText: string,
+    ) => {
+      try {
+        const response = await executeSpotlightAction(actionId, target, query);
+        setStatusText(response.statusText ?? nextStatusText);
+      } catch (error) {
+        console.error(`Failed to execute inline action ${actionId}:`, error);
+        setStatusText('Action failed');
+      }
+    },
+    [query],
+  );
+
   const handleActivate = useCallback(async (item: SpotlightSearchResult) => {
     setStatusText(null);
     setConfirmingAction(null);
@@ -657,7 +674,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                             <SpotlightRowActions
                               item={item}
                               activeTreeId={activeTreeId}
-                              onAction={handleExecuteAction}
+                              onAction={handleInlineAction}
                             />
                           ) : (
                             <div className="spotlight-row-meta">{getItemMeta(item)}</div>

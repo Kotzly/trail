@@ -134,13 +134,15 @@ export function buildConnections(
       if (!hidden) {
         const startX = parentPos.x + nodeWidth / 2;
         const startY = parentPos.y + nodeHeight;
-        const firstChildY = Math.min(...childEntries.map((e) => e.pos.y));
-        const busY = (startY + firstChildY) / 2;
 
-        if (childEntries.length === 1) {
-          const e = childEntries[0]!;
+        const normalChildren = childEntries.filter((e) => e.pos.y >= startY);
+        const outlierChildren = childEntries.filter((e) => e.pos.y < startY);
+
+        if (normalChildren.length === 1) {
+          const e = normalChildren[0]!;
           const endX = e.pos.x + nodeWidth / 2;
           const endY = e.pos.y;
+          const busY = (startY + endY) / 2;
           list.push(orthogonalSegment(
             `${node.id}-${e.child.id}`,
             { x: startX, y: startY },
@@ -149,8 +151,11 @@ export function buildConnections(
             { x: endX, y: endY },
             isOnPath(node.id, e.child.id),
           ));
-        } else {
-          const anyChildOnPath = childEntries.some((e) => isOnPath(node.id, e.child.id));
+        } else if (normalChildren.length >= 2) {
+          const firstChildY = Math.min(...normalChildren.map((e) => e.pos.y));
+          const busY = (startY + firstChildY) / 2;
+
+          const anyChildOnPath = normalChildren.some((e) => isOnPath(node.id, e.child.id));
           list.push(straightSegment(
             `trunk-${node.id}`,
             { x: startX, y: startY },
@@ -158,27 +163,35 @@ export function buildConnections(
             anyChildOnPath,
           ));
 
-          const childXs = childEntries.map((e) => e.pos.x + nodeWidth / 2);
-          const minX = Math.min(startX, ...childXs);
-          const maxX = Math.max(startX, ...childXs);
-          list.push(straightSegment(
-            `bus-${node.id}`,
-            { x: minX, y: busY },
-            { x: maxX, y: busY },
-            false,
-          ));
-
-          childEntries.forEach((e) => {
+          normalChildren.forEach((e) => {
             const endX = e.pos.x + nodeWidth / 2;
             const endY = e.pos.y;
-            list.push(straightSegment(
+            const corner = { x: endX, y: busY };
+            list.push(orthogonalSegment(
               `${node.id}-${e.child.id}`,
-              { x: endX, y: busY },
+              { x: startX, y: busY },
+              corner,
+              corner,
               { x: endX, y: endY },
               isOnPath(node.id, e.child.id),
             ));
           });
         }
+
+        outlierChildren.forEach((e) => {
+          const oStartY = parentPos.y;
+          const endX = e.pos.x + nodeWidth / 2;
+          const endY = e.pos.y + nodeHeight;
+          const busY = (oStartY + endY) / 2;
+          list.push(orthogonalSegment(
+            `${node.id}-${e.child.id}`,
+            { x: startX, y: oStartY },
+            { x: startX, y: busY },
+            { x: endX, y: busY },
+            { x: endX, y: endY },
+            isOnPath(node.id, e.child.id),
+          ));
+        });
       }
     } else if (childEntries.length > 0 && layoutMode === 'mindmap') {
       const rightChildren = childEntries.filter((e) => e.pos.x >= parentPos.x);
@@ -189,8 +202,19 @@ export function buildConnections(
         const sX = parentPos.x + (direction === 1 ? nodeWidth : 0);
         const sY = parentPos.y + nodeHeight / 2;
 
-        if (entries.length === 1) {
-          const e = entries[0]!;
+        const normalEntries = entries.filter((e) =>
+          direction === 1
+            ? e.pos.x >= parentPos.x + nodeWidth
+            : e.pos.x + nodeWidth <= parentPos.x,
+        );
+        const outlierEntries = entries.filter((e) =>
+          direction === 1
+            ? e.pos.x < parentPos.x + nodeWidth
+            : e.pos.x + nodeWidth > parentPos.x,
+        );
+
+        if (normalEntries.length === 1) {
+          const e = normalEntries[0]!;
           const eX = e.pos.x + (direction === 1 ? 0 : nodeWidth);
           const eY = e.pos.y + nodeHeight / 2;
           const busX = (sX + eX) / 2;
@@ -202,14 +226,13 @@ export function buildConnections(
             { x: eX, y: eY },
             isOnPath(node.id, e.child.id),
           ));
-        } else {
-          const childEdges = entries.map((e) => e.pos.x + (direction === 1 ? 0 : nodeWidth));
-          const busX = direction === 1
-            ? Math.min(...childEdges)
-            : Math.max(...childEdges);
-          const midX = (sX + busX) / 2;
+        } else if (normalEntries.length >= 2) {
+          const midX = (sX + normalEntries.reduce((acc, e) => {
+            const edge = e.pos.x + (direction === 1 ? 0 : nodeWidth);
+            return direction === 1 ? Math.min(acc, edge) : Math.max(acc, edge);
+          }, direction === 1 ? Infinity : -Infinity)) / 2;
 
-          const anyOnPath = entries.some((e) => isOnPath(node.id, e.child.id));
+          const anyOnPath = normalEntries.some((e) => isOnPath(node.id, e.child.id));
           list.push(straightSegment(
             `trunk-${node.id}-${direction === 1 ? 'r' : 'l'}`,
             { x: sX, y: sY },
@@ -217,27 +240,35 @@ export function buildConnections(
             anyOnPath,
           ));
 
-          const childYs = entries.map((e) => e.pos.y + nodeHeight / 2);
-          const minY = Math.min(sY, ...childYs);
-          const maxY = Math.max(sY, ...childYs);
-          list.push(straightSegment(
-            `bus-${node.id}-${direction === 1 ? 'r' : 'l'}`,
-            { x: midX, y: minY },
-            { x: midX, y: maxY },
-            false,
-          ));
-
-          entries.forEach((e) => {
+          normalEntries.forEach((e) => {
             const eX = e.pos.x + (direction === 1 ? 0 : nodeWidth);
             const eY = e.pos.y + nodeHeight / 2;
-            list.push(straightSegment(
+            const corner = { x: midX, y: eY };
+            list.push(orthogonalSegment(
               `${node.id}-${e.child.id}`,
-              { x: midX, y: eY },
+              { x: midX, y: sY },
+              corner,
+              corner,
               { x: eX, y: eY },
               isOnPath(node.id, e.child.id),
             ));
           });
         }
+
+        outlierEntries.forEach((e) => {
+          const oSX = parentPos.x + (direction === 1 ? 0 : nodeWidth);
+          const eX = e.pos.x + (direction === 1 ? nodeWidth : 0);
+          const eY = e.pos.y + nodeHeight / 2;
+          const busX = (oSX + eX) / 2;
+          list.push(orthogonalSegment(
+            `${node.id}-${e.child.id}`,
+            { x: oSX, y: sY },
+            { x: busX, y: sY },
+            { x: busX, y: eY },
+            { x: eX, y: eY },
+            isOnPath(node.id, e.child.id),
+          ));
+        });
       };
 
       emitMindmapSide(rightChildren, 1);
