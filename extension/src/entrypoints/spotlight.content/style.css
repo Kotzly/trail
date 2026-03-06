@@ -520,6 +520,19 @@ textarea {
   color: rgba(255, 255, 255, 0.46);
 }
 
+.spotlight-highlight {
+  background: none;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.32);
+  text-underline-offset: 2px;
+}
+
+.spotlight-row[data-selected="true"] .spotlight-highlight {
+  text-decoration-color: rgba(255, 255, 255, 0.56);
+}
+
 .spotlight-row-meta {
   flex-shrink: 0;
   max-width: 120px;
@@ -915,6 +928,14 @@ textarea {
 
   .spotlight-row[data-selected="true"] .spotlight-row-subtitle {
     color: rgba(0, 0, 0, 0.5);
+  }
+
+  .spotlight-highlight {
+    text-decoration-color: rgba(0, 0, 0, 0.24);
+  }
+
+  .spotlight-row[data-selected="true"] .spotlight-highlight {
+    text-decoration-color: rgba(0, 0, 0, 0.48);
   }
 
   .spotlight-row-meta {

@@ -201,7 +201,7 @@ export class SpotlightLiveIndexService {
       searchOptions: {
         boost: { title: 4, domain: 3, treeName: 2, url: 1 },
         prefix: true,
-        fuzzy: 0.2,
+        fuzzy: 0.25,
         combineWith: 'AND',
       },
     });

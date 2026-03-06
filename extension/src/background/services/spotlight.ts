@@ -372,7 +372,7 @@ export class SpotlightService {
       const clauseCandidates = positiveTerms.length > 0
         ? (snapshot.index.search(
             positiveTerms.map((term) => term.value).join(' '),
-            { combineWith: 'AND', prefix: true, fuzzy: 0.2 },
+            { combineWith: 'AND', prefix: true, fuzzy: 0.25 },
           ) as Array<{ key?: string; id?: string; score: number }>)
         : Array.from(snapshot.docsByKey.keys()).map((key) => ({ key, score: 0 }));
 

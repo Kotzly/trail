@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
 import {
   bootstrapSpotlight,
@@ -25,6 +25,8 @@ import type {
   SpotlightSearchSessionId,
   SpotlightSection,
 } from './types.js';
+import { highlightText } from './highlight.js';
+import { LRUMap } from './lru-map.js';
 import type { NodeId } from '@shared/types/ids.js';
 
 type SpotlightRootProps = {
@@ -61,7 +63,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
 
   const requestSeqRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const previewCacheRef = useRef<Map<string, SpotlightGraphPreviewData>>(new Map());
+  const previewCacheRef = useRef(new LRUMap<string, SpotlightGraphPreviewData>(20));
   const lastCommittedKeyRef = useRef<string | null>(null);
   const lastKeyEventRef = useRef<{ altKey: boolean }>({ altKey: false });
 
@@ -127,6 +129,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           if (response.requestSeq !== requestSeqRef.current) return;
           setSections(response.sections);
           setLoading(false);
+          prefetchPreviews(response.sections, activeTreeId, previewCacheRef.current);
         })
         .catch(async (error) => {
           if (cancelled) return;
@@ -576,8 +579,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                           }}
                         >
                           <div className="spotlight-row-main">
-                            <div className="spotlight-row-title">{getItemTitle(item)}</div>
-                            <div className="spotlight-row-subtitle">{getItemSubtitle(item)}</div>
+                            <div className="spotlight-row-title">{renderItemTitle(item)}</div>
+                            <div className="spotlight-row-subtitle">{renderItemSubtitle(item)}</div>
                           </div>
                           <div className="spotlight-row-meta">{getItemMeta(item)}</div>
                         </Command.Item>
@@ -626,15 +629,18 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   );
 }
 
-function getItemTitle(item: SpotlightSearchResult): string {
-  if (item.kind === 'node') return item.title;
-  if (item.kind === 'tree') return item.treeName;
+function renderItemTitle(item: SpotlightSearchResult): ReactNode {
+  if (item.kind === 'node') return highlightText(item.title, item.highlights.title);
+  if (item.kind === 'tree') return highlightText(item.treeName, item.highlights.title);
   return item.title;
 }
 
-function getItemSubtitle(item: SpotlightSearchResult): string {
-  if (item.kind === 'node') return item.url;
-  if (item.kind === 'tree') return item.rootUrl || 'Archived tree';
+function renderItemSubtitle(item: SpotlightSearchResult): ReactNode {
+  if (item.kind === 'node') return highlightText(item.url, item.highlights.url);
+  if (item.kind === 'tree') {
+    const text = item.rootUrl || 'Archived tree';
+    return item.rootUrl ? highlightText(text, item.highlights.url) : text;
+  }
   return item.subtitle;
 }
 
@@ -701,4 +707,31 @@ function downloadBundle(bundle: import('@shared/types/export.js').TrailExportBun
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9_\-. ]/g, '_').trim() || 'trail';
+}
+
+const PREFETCH_LIMIT = 3;
+
+function prefetchPreviews(
+  sections: SpotlightSection[],
+  activeTreeId: string | null,
+  cache: LRUMap<string, SpotlightGraphPreviewData>,
+): void {
+  const seen = new Set<string>();
+  const treeIds: string[] = [];
+
+  for (const section of sections) {
+    for (const item of section.items) {
+      if (treeIds.length >= PREFETCH_LIMIT) return;
+      const treeId = item.kind === 'node' ? item.treeId : item.kind === 'tree' ? item.treeId : null;
+      if (!treeId || treeId === activeTreeId || cache.has(treeId) || seen.has(treeId)) continue;
+      seen.add(treeId);
+      treeIds.push(treeId);
+    }
+  }
+
+  for (const treeId of treeIds) {
+    void getSpotlightTreePreview(treeId).then((preview) => {
+      if (preview) cache.set(treeId, preview);
+    }).catch(() => undefined);
+  }
 }
