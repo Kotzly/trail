@@ -2,6 +2,8 @@ import { useEffect, useRef, useCallback } from 'react';
 import { runtimeGetURL } from '@shared/platform/webext.js';
 import type { NodeId, Url } from '@shared/types/ids.js';
 import type { SpotlightGraphPreviewData } from './types.js';
+import { sendToGraph, onGraphMessage } from './spotlight-ipc.js';
+import type { ParentToGraphMsg } from './spotlight-ipc.js';
 
 type SpotlightGraphFrameProps = {
   activeTreeId: string | null;
@@ -12,48 +14,6 @@ type SpotlightGraphFrameProps = {
   onNavigate: (treeId: string, nodeId: NodeId, url: Url) => void;
   onHoverNode: (treeId: string, nodeId: NodeId | null) => void;
 };
-
-type GraphContextMessage = {
-  type: 'SET_GRAPH_CONTEXT';
-  activeTreeId: string;
-  previewData: SpotlightGraphPreviewData | null;
-  selectedNodeId: NodeId | null;
-  highlightNodeId: NodeId | null;
-  selectionIntentId: number;
-};
-
-function isNavigateMessage(msg: unknown): msg is { type: 'NAVIGATE'; treeId: string; nodeId: number; url: string } {
-  if (typeof msg !== 'object' || msg === null) return false;
-  if ((msg as Record<string, unknown>).type !== 'NAVIGATE') return false;
-  const nodeId = (msg as Record<string, unknown>).nodeId;
-  const treeId = (msg as Record<string, unknown>).treeId;
-  const url = (msg as Record<string, unknown>).url;
-  return (
-    typeof treeId === 'string' &&
-    typeof nodeId === 'number' &&
-    Number.isFinite(nodeId) &&
-    typeof url === 'string'
-  );
-}
-
-function isGraphReadyMessage(msg: unknown): msg is { type: 'GRAPH_READY' } {
-  return (
-    typeof msg === 'object'
-    && msg !== null
-    && (msg as Record<string, unknown>).type === 'GRAPH_READY'
-  );
-}
-
-function isHoverNodeMessage(msg: unknown): msg is { type: 'HOVER_NODE'; treeId: string; nodeId: number | null } {
-  if (typeof msg !== 'object' || msg === null) return false;
-  if ((msg as Record<string, unknown>).type !== 'HOVER_NODE') return false;
-  const treeId = (msg as Record<string, unknown>).treeId;
-  const nodeId = (msg as Record<string, unknown>).nodeId;
-  return (
-    typeof treeId === 'string'
-    && (nodeId === null || (typeof nodeId === 'number' && Number.isFinite(nodeId)))
-  );
-}
 
 export function SpotlightGraphFrame({
   activeTreeId,
@@ -66,46 +26,37 @@ export function SpotlightGraphFrame({
 }: SpotlightGraphFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const readyRef = useRef(false);
-  const pendingContextRef = useRef<GraphContextMessage | null>(null);
+  const pendingContextRef = useRef<ParentToGraphMsg | null>(null);
 
-  const sendContext = useCallback((context: GraphContextMessage) => {
+  const sendContext = useCallback((context: ParentToGraphMsg) => {
     const iframe = iframeRef.current;
-    if (!iframe?.contentWindow) return;
-    iframe.contentWindow.postMessage(context, '*');
+    if (!iframe) return;
+    sendToGraph(iframe, context);
   }, []);
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.source !== iframeRef.current?.contentWindow) return;
-
-      if (isGraphReadyMessage(event.data)) {
-        readyRef.current = true;
-        if (pendingContextRef.current) {
-          sendContext(pendingContextRef.current);
-        }
-        return;
+    const source = iframeRef.current?.contentWindow ?? null;
+    return onGraphMessage(source, (msg) => {
+      switch (msg.type) {
+        case 'GRAPH_READY':
+          readyRef.current = true;
+          if (pendingContextRef.current) {
+            sendContext(pendingContextRef.current);
+          }
+          break;
+        case 'NAVIGATE':
+          onNavigate(msg.treeId, msg.nodeId, msg.url);
+          break;
+        case 'HOVER_NODE':
+          onHoverNode(msg.treeId, msg.nodeId);
+          break;
       }
-
-      if (isNavigateMessage(event.data)) {
-        onNavigate(event.data.treeId, event.data.nodeId as NodeId, event.data.url as Url);
-        return;
-      }
-
-      if (isHoverNodeMessage(event.data)) {
-        onHoverNode(
-          event.data.treeId,
-          event.data.nodeId === null ? null : (event.data.nodeId as NodeId),
-        );
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    });
   }, [onHoverNode, onNavigate, sendContext]);
 
   useEffect(() => {
     if (!activeTreeId) return;
-    const nextContext: GraphContextMessage = {
+    const nextContext: ParentToGraphMsg = {
       type: 'SET_GRAPH_CONTEXT',
       activeTreeId,
       previewData,

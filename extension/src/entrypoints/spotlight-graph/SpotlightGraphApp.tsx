@@ -6,27 +6,7 @@ import { useStore } from '@entrypoints/sidepanel/ui/state/store.js';
 import { NavigationTreeMapper } from '@shared/lib/mapper.js';
 import type { SpotlightGraphPreviewData } from '../../spotlight/types.js';
 import type { NodeId } from '@shared/types/ids.js';
-
-type SetGraphContextMessage = {
-  type: 'SET_GRAPH_CONTEXT';
-  activeTreeId: string;
-  previewData: SpotlightGraphPreviewData | null;
-  selectedNodeId: number | null;
-  highlightNodeId: number | null;
-  selectionIntentId: number;
-};
-
-function isSetGraphContextMessage(msg: unknown): msg is SetGraphContextMessage {
-  if (typeof msg !== 'object' || msg === null) return false;
-  if ((msg as Record<string, unknown>).type !== 'SET_GRAPH_CONTEXT') return false;
-  const activeTreeId = (msg as Record<string, unknown>).activeTreeId;
-  const selectionIntentId = (msg as Record<string, unknown>).selectionIntentId;
-  return typeof activeTreeId === 'string' && typeof selectionIntentId === 'number';
-}
-
-function isValidNodeId(value: unknown): value is NodeId | null {
-  return value === null || (typeof value === 'number' && Number.isFinite(value) && value > 0);
-}
+import { sendToParent, onParentMessage } from '../../spotlight/spotlight-ipc.js';
 
 export default function SpotlightGraphApp() {
   useBootstrap();
@@ -72,7 +52,7 @@ export default function SpotlightGraphApp() {
     }
     if (!readyFired.current) {
       readyFired.current = true;
-      window.parent.postMessage({ type: 'GRAPH_READY' }, '*');
+      sendToParent({ type: 'GRAPH_READY' });
     }
   }, [currentNodeId, nodeRecency, nodeTabCounts, openNodeIds, tabStates, tree]);
 
@@ -93,16 +73,14 @@ export default function SpotlightGraphApp() {
   }, []);
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (!isSetGraphContextMessage(event.data)) return;
+    return onParentMessage((msg) => {
       const {
         activeTreeId,
         previewData,
         selectedNodeId,
         highlightNodeId,
         selectionIntentId,
-      } = event.data;
-      if (!isValidNodeId(selectedNodeId) || !isValidNodeId(highlightNodeId)) return;
+      } = msg;
 
       activeTreeIdRef.current = activeTreeId;
       if (activePreviewRef.current?.treeId === '__active__') {
@@ -150,10 +128,7 @@ export default function SpotlightGraphApp() {
           },
         }));
       }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    });
   }, [applyPreviewData, hoverNodeId, setLocalHighlight]);
 
   useEffect(() => {
@@ -171,7 +146,7 @@ export default function SpotlightGraphApp() {
       const payloadKey = `${previewTreeId}:null`;
       if (lastHoverSentRef.current !== payloadKey) {
         lastHoverSentRef.current = payloadKey;
-        window.parent.postMessage({ type: 'HOVER_NODE', treeId: previewTreeId, nodeId: null }, '*');
+        sendToParent({ type: 'HOVER_NODE', treeId: previewTreeId, nodeId: null });
       }
       if (baselineHighlight !== null) {
         setLocalHighlight(baselineHighlight);
@@ -183,7 +158,7 @@ export default function SpotlightGraphApp() {
       const payloadKey = `${previewTreeId}:null`;
       if (lastHoverSentRef.current !== payloadKey) {
         lastHoverSentRef.current = payloadKey;
-        window.parent.postMessage({ type: 'HOVER_NODE', treeId: previewTreeId, nodeId: null }, '*');
+        sendToParent({ type: 'HOVER_NODE', treeId: previewTreeId, nodeId: null });
       }
       return;
     }
@@ -191,13 +166,13 @@ export default function SpotlightGraphApp() {
     const payloadKey = `${previewTreeId}:${hoverNodeId}`;
     if (lastHoverSentRef.current === payloadKey) return;
     lastHoverSentRef.current = payloadKey;
-    window.parent.postMessage({ type: 'HOVER_NODE', treeId: previewTreeId, nodeId: hoverNodeId }, '*');
+    sendToParent({ type: 'HOVER_NODE', treeId: previewTreeId, nodeId: hoverNodeId });
   }, [hoverNodeId, setLocalHighlight]);
 
   const handleNodeActivate = useCallback((nodeId: NodeId, url: string) => {
     const previewTreeId = currentPreviewTreeIdRef.current ?? activeTreeIdRef.current;
     if (!previewTreeId) return;
-    window.parent.postMessage({ type: 'NAVIGATE', treeId: previewTreeId, nodeId, url }, '*');
+    sendToParent({ type: 'NAVIGATE', treeId: previewTreeId, nodeId, url: url as import('@shared/types/ids.js').Url });
   }, []);
 
   return (
