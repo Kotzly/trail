@@ -50,16 +50,6 @@ export default defineContentScript({
       }
     });
 
-    // Keyboard shortcut backup
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-      const isMac = navigator.platform.includes('Mac');
-      const meta = isMac ? e.metaKey : e.ctrlKey;
-      if (meta && e.key === 'k') {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleFn?.();
-      }
-    }, true);
   },
 });
 
