@@ -5,6 +5,7 @@ import type {
   SpotlightActionResult,
   SpotlightSearchResult,
 } from './types.js';
+import type React from 'react';
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -34,6 +35,9 @@ type UseSpotlightKeyboardOptions = {
   handleApplyHint: (hint: string) => void;
   handleConfirmDestructive: () => Promise<void>;
   setConfirmingAction: (action: SpotlightSearchResult | null) => void;
+  flatItems: SpotlightSearchResult[];
+  selectedKeys: Set<string>;
+  setSelectedKeys: (keys: Set<string>) => void;
 };
 
 type UseSpotlightKeyboardReturn = {
@@ -67,6 +71,9 @@ export function useSpotlightKeyboard(
     handleApplyHint,
     handleConfirmDestructive,
     setConfirmingAction,
+    flatItems,
+    selectedKeys,
+    setSelectedKeys,
   } = options;
 
   const handleKeyDownCapture = useCallback((event: React.KeyboardEvent) => {
@@ -167,6 +174,24 @@ export function useSpotlightKeyboard(
         }
         return;
       }
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        if (!event.shiftKey) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const currentIdx = selectedItem ? flatItems.findIndex((i) => i.key === selectedItem.key) : -1;
+        if (currentIdx === -1) return;
+        const nextIdx = event.key === 'ArrowDown'
+          ? Math.min(currentIdx + 1, flatItems.length - 1)
+          : Math.max(currentIdx - 1, 0);
+        const nextItem = flatItems[nextIdx];
+        if (!nextItem) return;
+        const next = new Set(selectedKeys);
+        next.add(selectedItem!.key);
+        next.add(nextItem.key);
+        setSelectedKeys(next);
+        return;
+      }
       default:
         return;
     }
@@ -194,6 +219,9 @@ export function useSpotlightKeyboard(
     setQuery,
     setQuickLookItem,
     setSelectedFocusPane,
+    flatItems,
+    selectedKeys,
+    setSelectedKeys,
   ]);
 
   return { handleKeyDownCapture };

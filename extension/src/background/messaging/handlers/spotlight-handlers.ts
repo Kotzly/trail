@@ -149,6 +149,52 @@ export const spotlightHandlers = defineRpcHandlers({
     }
   },
 
+  async [RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION](message) {
+    try {
+      const { actionId, targets } = message;
+      const nodeTargets = targets.filter(
+        (t): t is Extract<typeof t, { kind: 'node' }> => t.kind === 'node',
+      );
+      const nodeIds = nodeTargets.map((t) => t.nodeId);
+
+      switch (actionId) {
+        case 'batch-close-tabs': {
+          if (nodeIds.length === 0) return ok({ closeSpotlight: false });
+          const closeResult = await executeWithHandler(
+            tabHandlers[RPC_METHOD.BULK_CLOSE_TABS],
+            rpc.bulkCloseTabs({ nodeIds }),
+          );
+          if (!closeResult.success) return closeResult;
+          return ok({ closeSpotlight: false, statusText: `Closed tabs for ${nodeIds.length} pages` });
+        }
+        case 'batch-pin': {
+          if (nodeIds.length === 0) return ok({ closeSpotlight: false });
+          const pinResult = await executeWithHandler(
+            pinHandlers[RPC_METHOD.BULK_PIN],
+            rpc.bulkPin({ nodeIds }),
+          );
+          if (!pinResult.success) return pinResult;
+          return ok({ closeSpotlight: false, statusText: `Pinned ${nodeIds.length} pages` });
+        }
+        case 'batch-unpin': {
+          if (nodeIds.length === 0) return ok({ closeSpotlight: false });
+          const unpinResult = await executeWithHandler(
+            pinHandlers[RPC_METHOD.BULK_UNPIN],
+            rpc.bulkUnpin({ nodeIds }),
+          );
+          if (!unpinResult.success) return unpinResult;
+          return ok({ closeSpotlight: false, statusText: `Unpinned ${nodeIds.length} pages` });
+        }
+        case 'batch-copy-urls':
+          return ok({ closeSpotlight: false, statusText: `Copied ${targets.length} URLs` });
+        default:
+          return ok({ closeSpotlight: false });
+      }
+    } catch (error) {
+      return err(error instanceof Error ? error.message : 'SPOTLIGHT_BATCH_ACTION_FAILED');
+    }
+  },
+
   async [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION](message) {
     spotlightService.dispose(message.sessionId);
     return ok();

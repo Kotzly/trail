@@ -100,6 +100,16 @@ export async function executeSpotlightAction(
   return sendRpc<SpotlightExecuteActionResponse>('SPOTLIGHT_EXECUTE_ACTION', input);
 }
 
+export async function executeBatchAction(
+  actionId: string,
+  targets: Array<{ kind: string; nodeId?: NodeId; treeId?: string; url?: string }>,
+): Promise<SpotlightExecuteActionResponse> {
+  return sendRpc<SpotlightExecuteActionResponse>('SPOTLIGHT_EXECUTE_BATCH_ACTION', {
+    actionId,
+    targets,
+  });
+}
+
 export async function getFlags(): Promise<ResolvedFlags> {
   return sendRpc<ResolvedFlags>('GET_FLAGS');
 }

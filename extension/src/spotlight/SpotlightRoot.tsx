@@ -11,7 +11,9 @@ import { useSpotlightSearch } from './useSpotlightSearch.js';
 import { useSpotlightPreview, resolveNodeTarget } from './useSpotlightPreview.js';
 import { useSpotlightActions } from './useSpotlightActions.js';
 import { useSpotlightKeyboard } from './useSpotlightKeyboard.js';
-import type { SpotlightActionId, SpotlightSearchResult } from './types.js';
+import { SpotlightBatchBar } from './SpotlightBatchBar.js';
+import { executeBatchAction } from './rpc.js';
+import type { SpotlightActionId, SpotlightBatchActionId, SpotlightSearchResult } from './types.js';
 import type { SpotlightNodeTarget } from './useSpotlightPreview.js';
 
 type SpotlightRootProps = { onRegisterToggle: (toggle: () => void) => void };
@@ -30,6 +32,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [hoveredGraphTarget, setHoveredGraphTarget] = useState<SpotlightNodeTarget | null>(null);
   const [selectionIntentId, setSelectionIntentId] = useState(0);
   const [drilldownScope, setDrilldownScope] = useState<{ treeId: string; treeName: string } | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const lastCommittedKeyRef = useRef<string | null>(null);
 
@@ -45,6 +48,14 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const flatItems = useMemo(() => search.sections.flatMap((s) => s.items), [search.sections]);
   const itemByKey = useMemo(() => new Map(flatItems.map((item) => [item.key, item])), [flatItems]);
   const selectedItem = selectedKey ? itemByKey.get(selectedKey) ?? null : null;
+  const multiSelectedItems = useMemo(
+    () => Array.from(selectedKeys).map((k) => itemByKey.get(k)).filter(Boolean) as SpotlightSearchResult[],
+    [selectedKeys, itemByKey],
+  );
+  const isMultiSelect = selectedKeys.size > 1;
+
+  // Clear multi-select when query or sections change
+  useEffect(() => { setSelectedKeys(new Set()); }, [search.query, search.sections]);
 
   const preview = useSpotlightPreview({
     activeTreeId, drilldownScope, effectiveItem: selectedItem,
@@ -72,6 +83,21 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     search.setQuery(applySpotlightHint(search.query, hint));
     act.setStatusText(null);
   }, [search, act]);
+
+  const handleBatchExecute = useCallback(async (actionId: SpotlightBatchActionId) => {
+    const nodes = multiSelectedItems.filter((i) => i.kind === 'node');
+    if (actionId === 'batch-copy-urls') {
+      const urls = nodes.map((n) => n.kind === 'node' ? n.url : '').filter(Boolean).join('\n');
+      await navigator.clipboard.writeText(urls);
+      act.setStatusText(`Copied ${nodes.length} URLs`);
+      setSelectedKeys(new Set());
+      return;
+    }
+    const targets = nodes.map((n) => n.kind === 'node' ? { kind: 'node' as const, nodeId: n.nodeId, treeId: n.treeId } : null).filter(Boolean);
+    const response = await executeBatchAction(actionId, targets as Array<{ kind: string; nodeId?: any; treeId?: string }>);
+    if (response.statusText) act.setStatusText(response.statusText);
+    setSelectedKeys(new Set());
+  }, [multiSelectedItems, act]);
 
   // Selection intent
   useEffect(() => {
@@ -101,6 +127,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     selectedFocusPane, setSelectedFocusPane, setQuery: search.setQuery, close,
     exitDrilldown: act.exitDrilldown, handleActivate: act.handleActivate, handleApplyHint,
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
+    flatItems, selectedKeys, setSelectedKeys,
   });
 
   if (!hasBeenOpened) return null;
@@ -173,7 +200,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                       className="spotlight-section" data-first={i === 0} data-collapsed={collapsed}
                     >
                       {!collapsed && section.items.map((item) => (
-                        <Command.Item key={item.key} value={item.key} className={`spotlight-row spotlight-row--${item.kind}`} data-destructive={item.kind === 'action' && item.safety === 'destructive'} onSelect={() => { void act.handleActivate(item); }}>
+                        <Command.Item key={item.key} value={item.key} className={`spotlight-row spotlight-row--${item.kind}`} data-destructive={item.kind === 'action' && item.safety === 'destructive'} data-multi-selected={selectedKeys.has(item.key)} onSelect={() => { void act.handleActivate(item); }}>
                           <div className="spotlight-row-main">
                             <div className="spotlight-row-title">{renderItemTitle(item)}</div>
                             <div className="spotlight-row-subtitle">{renderItemSubtitle(item)}</div>
@@ -208,6 +235,14 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           </div>
         </div>
 
+        {isMultiSelect && (
+          <SpotlightBatchBar
+            selectedItems={multiSelectedItems}
+            activeTreeId={activeTreeId}
+            onExecute={handleBatchExecute}
+            onClear={() => setSelectedKeys(new Set())}
+          />
+        )}
         {act.statusText && <div className="spotlight-status-bar"><span className="spotlight-status">{act.statusText}</span></div>}
         {act.actionMenuActions && <SpotlightActionMenu actions={act.actionMenuActions} onSelect={act.handleActionMenuSelect} onClose={() => act.setActionMenuActions(null)} />}
         {act.quickLookItem && (act.quickLookItem.kind === 'node' || act.quickLookItem.kind === 'tree') && (

@@ -85,6 +85,7 @@ export class SpotlightService {
       openNodeIds: snapshot.openNodeIds,
       nodeRecency: snapshot.nodeRecency,
       nodeTabCounts: snapshot.nodeTabCounts,
+      docCount: snapshot.docsByKey.size,
       recentQueries,
       flags: getAllFlags(),
       settings: settingsManager.get(),

@@ -17,8 +17,14 @@ import type {
 // ---------------------------------------------------------------------------
 
 const SEARCH_LIMIT = 80;
-const SEARCH_DEBOUNCE_MS = 80;
 const BACKOFF_DELAYS = [200, 800, 2000] as const;
+
+function computeDebounceMs(docCount: number): number {
+  if (docCount < 200) return 0;
+  if (docCount < 1000) return 40;
+  if (docCount < 5000) return 80;
+  return 150;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -78,7 +84,8 @@ export function useSpotlightSearch(
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   const requestSeqRef = useRef(0);
-  const previewCacheRef = useRef(new LRUMap<string, SpotlightGraphPreviewData>(20));
+  const previewCacheRef = useRef(new LRUMap<string, SpotlightGraphPreviewData>(64));
+  const prevActiveTreeIdRef = useRef<string | null>(null);
 
   // Bootstrap on open
   useEffect(() => {
@@ -91,7 +98,10 @@ export function useSpotlightSearch(
     bootstrapSpotlight(SEARCH_LIMIT)
       .then((data) => {
         if (cancelled) return;
-        previewCacheRef.current.clear();
+        if (data.activeTreeId !== prevActiveTreeIdRef.current) {
+          previewCacheRef.current.clear();
+        }
+        prevActiveTreeIdRef.current = data.activeTreeId;
         setBootstrapData(data);
         setSessionId(data.sessionId);
         setSections(data.sections);
@@ -133,7 +143,7 @@ export function useSpotlightSearch(
           console.error('Failed to search spotlight:', error);
           if (!cancelled) setLoading(false);
         });
-    }, SEARCH_DEBOUNCE_MS);
+    }, computeDebounceMs(bootstrapData?.docCount ?? 500));
 
     async function attemptRecovery(alreadyCancelled: boolean): Promise<void> {
       for (let attempt = 0; attempt < BACKOFF_DELAYS.length; attempt++) {
@@ -142,7 +152,10 @@ export function useSpotlightSearch(
         try {
           const data = await bootstrapSpotlight(SEARCH_LIMIT);
           if (alreadyCancelled) return;
-          previewCacheRef.current.clear();
+          if (data.activeTreeId !== prevActiveTreeIdRef.current) {
+            previewCacheRef.current.clear();
+          }
+          prevActiveTreeIdRef.current = data.activeTreeId;
           setBootstrapData(data);
           setSessionId(data.sessionId);
           setSections(data.sections);

@@ -78,6 +78,7 @@ export const RPC_METHOD = {
     SPOTLIGHT_GET_TREE_PREVIEW: 'SPOTLIGHT_GET_TREE_PREVIEW',
     SPOTLIGHT_EXECUTE_ACTION: 'SPOTLIGHT_EXECUTE_ACTION',
     SPOTLIGHT_DISPOSE_SESSION: 'SPOTLIGHT_DISPOSE_SESSION',
+    SPOTLIGHT_EXECUTE_BATCH_ACTION: 'SPOTLIGHT_EXECUTE_BATCH_ACTION',
     TOGGLE_SPOTLIGHT: 'TOGGLE_SPOTLIGHT',
 } as const;
 
@@ -401,6 +402,13 @@ export type SpotlightExecuteActionRequest = {
   query?: string;
 };
 
+export type SpotlightBatchActionId = 'batch-copy-urls' | 'batch-close-tabs' | 'batch-pin' | 'batch-unpin';
+
+export type SpotlightExecuteBatchActionRequest = {
+  actionId: SpotlightBatchActionId;
+  targets: SpotlightActionTarget[];
+};
+
 export type SpotlightExecuteActionResponse = {
   closeSpotlight: boolean;
   statusText?: string;
@@ -427,6 +435,7 @@ export type SpotlightBootstrapData = {
   openNodeIds: NodeId[];
   nodeRecency: Record<NodeId, number>;
   nodeTabCounts: Record<NodeId, number>;
+  docCount: number;
   recentQueries?: string[];
   flags?: ResolvedFlags;
   settings: Settings;
@@ -446,6 +455,7 @@ export type SpotlightExecuteActionMessage = RequestMessageBase<typeof RPC_METHOD
 export type SpotlightDisposeSessionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, {
   sessionId: SpotlightSearchSessionId;
 }>;
+export type SpotlightExecuteBatchActionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION, SpotlightExecuteBatchActionRequest>;
 export type ToggleSpotlightMessage = RequestMessageBase<typeof RPC_METHOD.TOGGLE_SPOTLIGHT>;
 
 export type RequestMessage = NavigateToMessage |
@@ -480,6 +490,7 @@ export type RequestMessage = NavigateToMessage |
     SpotlightGetTreePreviewMessage |
     SpotlightExecuteActionMessage |
     SpotlightDisposeSessionMessage |
+    SpotlightExecuteBatchActionMessage |
     ToggleSpotlightMessage;
 
 
@@ -568,6 +579,7 @@ export type ResponseDataByType = {
     [RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW]: SpotlightGraphPreviewData | null;
     [RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION]: SpotlightExecuteActionResponse;
     [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION]: void;
+    [RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION]: SpotlightExecuteActionResponse;
     [RPC_METHOD.TOGGLE_SPOTLIGHT]: void;
 }
 
@@ -717,6 +729,9 @@ export const rpc = {
     },
     spotlightDisposeSession(payload: { sessionId: SpotlightSearchSessionId }): SpotlightDisposeSessionMessage {
         return { type: RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, ...payload };
+    },
+    spotlightExecuteBatchAction(payload: SpotlightExecuteBatchActionRequest): SpotlightExecuteBatchActionMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION, ...payload };
     },
     toggleSpotlight(): ToggleSpotlightMessage {
         return { type: RPC_METHOD.TOGGLE_SPOTLIGHT };
