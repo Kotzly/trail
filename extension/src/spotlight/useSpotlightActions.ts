@@ -66,7 +66,6 @@ type UseSpotlightActionsOptions = {
   setGraphPreviewLoading: (loading: boolean) => void;
   setQuery: (q: string) => void;
   setHelpOpen: (open: boolean) => void;
-  drilldownScope: DrilldownScope | null;
   setDrilldownScope: (scope: DrilldownScope | null) => void;
 };
 
@@ -112,7 +111,6 @@ export function useSpotlightActions(
     setGraphPreviewLoading,
     setQuery,
     setHelpOpen,
-    drilldownScope,
     setDrilldownScope,
   } = options;
 

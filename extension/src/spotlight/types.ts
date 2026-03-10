@@ -4,6 +4,7 @@ export type {
   SpotlightExecuteActionResponse,
   SpotlightActionId,
   SpotlightActionResult,
+  SpotlightActionSafety,
   SpotlightActionTarget,
   SpotlightMode,
   SpotlightSearchRequest,

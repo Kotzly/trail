@@ -54,7 +54,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     activeTreeId, query: search.query, close, flatItems,
     previewCache: search.previewCache, setGraphPreviewData: preview.setGraphPreviewData,
     setGraphPreviewLoading: preview.setGraphPreviewLoading, setQuery: search.setQuery,
-    setHelpOpen, drilldownScope, setDrilldownScope,
+    setHelpOpen, setDrilldownScope,
   });
 
   // Echo index O(1) lookup
