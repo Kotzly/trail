@@ -38,6 +38,7 @@ type UseSpotlightKeyboardOptions = {
   flatItems: SpotlightSearchResult[];
   selectedKeys: Set<string>;
   setSelectedKeys: (keys: Set<string>) => void;
+  showPreview: boolean;
 };
 
 type UseSpotlightKeyboardReturn = {
@@ -74,6 +75,7 @@ export function useSpotlightKeyboard(
     flatItems,
     selectedKeys,
     setSelectedKeys,
+    showPreview,
   } = options;
 
   const handleKeyDownCapture = useCallback((event: React.KeyboardEvent) => {
@@ -100,6 +102,7 @@ export function useSpotlightKeyboard(
           handleApplyHint(activeHint);
           return;
         }
+        if (selectedFocusPane === 'list' && !showPreview) return;
         event.preventDefault();
         event.stopPropagation();
         setSelectedFocusPane(selectedFocusPane === 'list' ? 'graph' : 'list');
@@ -222,6 +225,7 @@ export function useSpotlightKeyboard(
     flatItems,
     selectedKeys,
     setSelectedKeys,
+    showPreview,
   ]);
 
   return { handleKeyDownCapture };

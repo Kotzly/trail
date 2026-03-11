@@ -30,6 +30,9 @@ export default defineContentScript({
       onMount: (container) => {
         const root = createRoot(container);
 
+        const grainUrl = browser.runtime.getURL('/grain-bg.png');
+        container.style.setProperty('--spotlight-grain-url', `url("${grainUrl}")`);
+
         spotlightChunk.then(({ SpotlightApp }) => {
           root.render(<SpotlightApp onRegisterToggle={(fn) => { toggleFn = fn; }} />);
         });
