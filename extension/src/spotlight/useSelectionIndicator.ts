@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
 type IndicatorPosition = { top: number; height: number } | null;
 
@@ -7,9 +7,11 @@ export function useSelectionIndicator(
   selectedKey: string | null,
 ): IndicatorPosition {
   const [pos, setPos] = useState<IndicatorPosition>(null);
+  const lastPos = useRef<IndicatorPosition>(null);
 
   const measure = useCallback(() => {
     if (!selectedKey || !listRef.current) {
+      lastPos.current = null;
       setPos(null);
       return;
     }
@@ -17,27 +19,46 @@ export function useSelectionIndicator(
     const container = listRef.current;
     const selected = container.querySelector('[data-selected="true"]') as HTMLElement | null;
     if (!selected) {
-      setPos(null);
+      // Keep last known position so the indicator stays mounted during transitions
       return;
     }
 
     const containerRect = container.getBoundingClientRect();
     const selectedRect = selected.getBoundingClientRect();
 
-    setPos({
+    const next = {
       top: selectedRect.top - containerRect.top + container.scrollTop,
       height: selectedRect.height,
-    });
+    };
+    lastPos.current = next;
+    setPos(next);
   }, [selectedKey, listRef]);
 
   useLayoutEffect(() => {
     measure();
+    // Deferred re-measure: cmdk may update data-selected after our layout effect
+    const raf = requestAnimationFrame(measure);
 
+    const container = listRef.current;
+    if (!container) return () => cancelAnimationFrame(raf);
+
+    container.addEventListener('scroll', measure, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      container.removeEventListener('scroll', measure);
+    };
+  }, [measure, listRef]);
+
+  // Re-measure when list DOM changes (e.g. section expand/collapse shifts items)
+  useEffect(() => {
     const container = listRef.current;
     if (!container) return;
 
-    container.addEventListener('scroll', measure, { passive: true });
-    return () => container.removeEventListener('scroll', measure);
+    const observer = new MutationObserver(() => {
+      requestAnimationFrame(measure);
+    });
+    observer.observe(container, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [measure, listRef]);
 
   return pos;
