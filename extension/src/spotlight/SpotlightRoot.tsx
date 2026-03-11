@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { SpotlightGraphFrame } from './SpotlightGraphFrame.js';
 import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from './SpotlightHintRow.js';
 import { SpotlightHelp } from './SpotlightHelp.js';
@@ -67,7 +67,6 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     activeTreeId, drilldownScope, effectiveItem: selectedItem,
     hoveredGraphTarget, sections: search.sections, previewCache: search.previewCache,
   });
-  const showPreview = activeTreeId !== null || preview.previewTreeId !== null;
   const indicatorPos = useSelectionIndicator(listRef, selectedKey);
 
   const act = useSpotlightActions({
@@ -136,13 +135,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     selectedFocusPane, setSelectedFocusPane, setQuery: search.setQuery, close,
     exitDrilldown: act.exitDrilldown, handleActivate: act.handleActivate, handleApplyHint,
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
-    flatItems, selectedKeys, setSelectedKeys, showPreview,
+    flatItems, selectedKeys, setSelectedKeys, showPreview: true,
   });
-
-  // Reset focus pane when preview closes
-  useEffect(() => {
-    if (!showPreview && selectedFocusPane === 'graph') setSelectedFocusPane('list');
-  }, [showPreview, selectedFocusPane]);
 
   if (!hasBeenOpened) return null;
 
@@ -193,13 +187,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           </div>
 
           <div className="spotlight-panels spotlight-panels--v3">
-            <motion.div
-              className="spotlight-left spotlight-left--v3"
-              data-focus={selectedFocusPane}
-              layout
-              transition={SPRING_TRANSITION}
-              style={{ flex: showPreview ? '0 0 400px' : '1 1 100%' }}
-            >
+            <div className="spotlight-left spotlight-left--v3" data-focus={selectedFocusPane}>
               {search.sessionError ? (
                 <div className="spotlight-empty" role="alert">Connection lost. Close and reopen spotlight to retry.</div>
               ) : helpOpen ? (
@@ -250,19 +238,9 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                   })}
                 </Command.List>
               )}
-            </motion.div>
+            </div>
 
-            <AnimatePresence mode="popLayout">
-              {showPreview && (
-                <motion.div
-                  key="preview-panel"
-                  className="spotlight-right spotlight-right--v3"
-                  data-focus={selectedFocusPane}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={SPRING_TRANSITION}
-                >
+            <div className="spotlight-right spotlight-right--v3" data-focus={selectedFocusPane}>
                   <SpotlightGraphFrame
                     activeTreeId={activeTreeId} previewData={preview.graphPreviewData}
                     selectedNodeId={graphSelectedNodeId} highlightNodeId={graphHighlightNodeId}
@@ -273,11 +251,9 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                     }}
                     onHoverNode={(treeId, nodeId) => setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId })}
                   />
-                  {preview.graphPreviewLoading && <div className="spotlight-graph-loading" role="status" aria-label="Loading tree preview">Loading tree preview...</div>}
-                  {preview.previewTreeId && !preview.graphPreviewLoading && !preview.graphPreviewData && <div className="spotlight-empty spotlight-graph-fallback">Preview unavailable</div>}
-                </motion.div>
-              )}
-            </AnimatePresence>
+              {preview.graphPreviewLoading && <div className="spotlight-graph-loading" role="status" aria-label="Loading tree preview">Loading tree preview...</div>}
+              {preview.previewTreeId && !preview.graphPreviewLoading && !preview.graphPreviewData && <div className="spotlight-empty spotlight-graph-fallback">Preview unavailable</div>}
+            </div>
           </div>
 
           {isMultiSelect && (

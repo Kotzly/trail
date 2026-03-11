@@ -447,7 +447,7 @@ textarea {
 }
 
 .spotlight-left--v3 {
-  /* width now controlled by motion inline styles for dynamic preview */
+  width: 400px;
 }
 
 .spotlight-right--v3 {
@@ -1201,7 +1201,7 @@ textarea {
   }
 
   .spotlight-right {
-    min-height: 280px;
+    min-height: 0;
   }
 }
 
