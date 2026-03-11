@@ -67,7 +67,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     activeTreeId, drilldownScope, effectiveItem: selectedItem,
     hoveredGraphTarget, sections: search.sections, previewCache: search.previewCache,
   });
-  const showPreview = preview.previewTreeId !== null;
+  const showPreview = activeTreeId !== null || preview.previewTreeId !== null;
   const indicatorPos = useSelectionIndicator(listRef, selectedKey);
 
   const act = useSpotlightActions({
