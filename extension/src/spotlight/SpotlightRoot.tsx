@@ -127,6 +127,33 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const graphSelectedNodeId = currentGraphTreeId && selectedNodeTarget?.treeId === currentGraphTreeId ? selectedNodeTarget.nodeId : null;
   const graphHighlightNodeId = currentGraphTreeId && highlightNodeTarget?.treeId === currentGraphTreeId ? highlightNodeTarget.nodeId : null;
 
+  const handleToggleSection = useCallback((sectionId: string) => {
+    const isCollapsing = !act.collapsedSections.has(sectionId);
+    if (isCollapsing && selectedKey) {
+      const section = search.sections.find((s) => s.id === sectionId);
+      if (section?.items.some((item) => item.key === selectedKey)) {
+        const sectionIndex = search.sections.findIndex((s) => s.id === sectionId);
+        let nearestKey: string | null = null;
+        // Search sections after the collapsed one, then before
+        for (let offset = 1; offset < search.sections.length; offset++) {
+          for (const dir of [1, -1] as const) {
+            const idx = sectionIndex + offset * dir;
+            if (idx < 0 || idx >= search.sections.length) continue;
+            const candidate = search.sections[idx]!;
+            if (act.collapsedSections.has(candidate.id)) continue;
+            if (candidate.items.length > 0) {
+              nearestKey = candidate.items[0]!.key;
+              break;
+            }
+          }
+          if (nearestKey) break;
+        }
+        setSelectedKey(nearestKey);
+      }
+    }
+    act.toggleSection(sectionId);
+  }, [act, selectedKey, search.sections]);
+
   const { handleKeyDownCapture } = useSpotlightKeyboard({
     query: search.query, selectedItem, hoveredGraphItem, activeTreeId, hintCandidates, activeHint,
     actionMenuActions: act.actionMenuActions, setActionMenuActions: act.setActionMenuActions,
@@ -211,7 +238,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                       <Command.Group
                         key={section.id}
                         heading={
-                          <button type="button" className="spotlight-section-toggle" onClick={() => act.toggleSection(section.id)} tabIndex={-1} aria-label={collapsed ? 'Expand section' : 'Collapse section'} aria-expanded={!collapsed}>
+                          <button type="button" className="spotlight-section-toggle" onClick={() => handleToggleSection(section.id)} tabIndex={-1} aria-label={collapsed ? 'Expand section' : 'Collapse section'} aria-expanded={!collapsed}>
                             <span className="spotlight-section-chevron" data-collapsed={collapsed} />
                             {section.title}
                             <span className="spotlight-section-count">{section.items.length}</span>

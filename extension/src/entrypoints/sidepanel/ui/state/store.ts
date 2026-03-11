@@ -132,6 +132,7 @@ type StoreState = {
     viewIntent: TreeUpdatedInput['view'] | null;
     hoverNodeId: NodeId | null;
     collapsedNodeIds: Set<NodeId>;
+    collapsedByTree: Map<NodeId, Set<NodeId>>;
     collapseVersion: number;
     collapseAction: { kind: 'collapse' | 'expand'; nodeIds: Set<NodeId> } | null;
   };
@@ -289,6 +290,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     viewIntent: null,
     hoverNodeId: null,
     collapsedNodeIds: new Set<NodeId>(),
+    collapsedByTree: new Map<NodeId, Set<NodeId>>(),
     collapseVersion: 0,
     collapseAction: null,
   },
@@ -329,9 +331,21 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       const nextViewIntent = payload.view ?? state.graph.viewIntent;
       const shouldResetTransient = payload.reason === 'tree-switch' || payload.reason === 'tree-reset';
       const resolvedViewIntent = shouldResetTransient ? nextViewIntent ?? null : nextViewIntent ?? state.graph.viewIntent;
-      const nextCollapsedNodeIds = shouldResetTransient
-        ? new Set<NodeId>()
-        : pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
+      // Save/restore per-tree collapse state on tree-switch
+      let nextCollapsedByTree = state.graph.collapsedByTree;
+      let nextCollapsedNodeIds: Set<NodeId>;
+      if (shouldResetTransient) {
+        const oldRootId = state.tree?.getRoot()?.id;
+        if (oldRootId && state.graph.collapsedNodeIds.size > 0) {
+          nextCollapsedByTree = new Map(nextCollapsedByTree);
+          nextCollapsedByTree.set(oldRootId, state.graph.collapsedNodeIds);
+        }
+        const newRootId = tree.getRoot()?.id;
+        const saved = newRootId ? nextCollapsedByTree.get(newRootId) : undefined;
+        nextCollapsedNodeIds = saved ? pruneCollapsedNodes(tree, saved) : new Set<NodeId>();
+      } else {
+        nextCollapsedNodeIds = pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
+      }
       const autoExpandIds = shouldResetTransient
         ? []
         : getCollapsedAncestorIds(tree, currentId, nextCollapsedNodeIds);
@@ -348,6 +362,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         ...state.graph,
         viewIntent: resolvedViewIntent,
         collapsedNodeIds: nextCollapsedNodeIds,
+        collapsedByTree: nextCollapsedByTree,
         collapseVersion,
         collapseAction,
         ...(shouldResetTransient
