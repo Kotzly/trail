@@ -15,9 +15,11 @@ type GraphAreaProps = {
   /** When set, called instead of the default navigateTo on node click. */
   onNodeActivate?: (nodeId: NodeId, url: string) => void;
   showControls?: boolean;
+  /** Limit initial zoom to ~25×36 nodes (Spotlight mode). */
+  compactInitialView?: boolean;
 };
 
-export default function GraphArea({ onNodeActivate, showControls = true }: GraphAreaProps = {}) {
+export default function GraphArea({ onNodeActivate, showControls = true, compactInitialView = false }: GraphAreaProps = {}) {
   const [qualityPolicyState, setQualityPolicyState] = React.useState(() =>
     createQualityPolicyState(Date.now()),
   );
@@ -144,6 +146,7 @@ export default function GraphArea({ onNodeActivate, showControls = true }: Graph
         onRenderMetrics={handleRenderMetrics}
         {...(onNodeActivate ? { onNodeActivate } : {})}
         showControls={showControls}
+        compactInitialView={compactInitialView}
       />
     </Suspense>
   );

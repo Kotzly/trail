@@ -38,6 +38,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLElement>(null);
   const panelsRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const lastCommittedKeyRef = useRef<string | null>(null);
   const drilldownScopeRef = useRef(drilldownScope);
   drilldownScopeRef.current = drilldownScope;
@@ -175,7 +176,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     act.toggleSection(sectionId);
   }, [act, selectedKey, search.sections]);
 
-  const { handleKeyDownCapture } = useSpotlightKeyboard({
+  useSpotlightKeyboard({
+    isOpen, containerRef: backdropRef,
     query: search.query, selectedItem, hoveredGraphItem, activeTreeId, hintCandidates, activeHint,
     actionMenuActions: act.actionMenuActions, setActionMenuActions: act.setActionMenuActions,
     confirmingAction: act.confirmingAction, quickLookItem: act.quickLookItem,
@@ -192,10 +194,10 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
 
   return (
     <div
+      ref={backdropRef}
       className="spotlight-backdrop"
       style={{ pointerEvents: isOpen ? 'auto' : 'none', opacity: isOpen ? 1 : 0 }}
       onClick={(e) => { if (e.target === e.currentTarget) close(); }}
-      onKeyDownCapture={handleKeyDownCapture}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.97, y: -8 }}

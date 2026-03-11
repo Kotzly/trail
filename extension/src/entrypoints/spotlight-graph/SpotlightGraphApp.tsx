@@ -177,7 +177,7 @@ export default function SpotlightGraphApp() {
 
   return (
     <div className="container" style={{ width: '100%', height: '100%' }}>
-      <GraphArea onNodeActivate={handleNodeActivate} showControls={false} />
+      <GraphArea onNodeActivate={handleNodeActivate} showControls={false} compactInitialView />
     </div>
   );
 }

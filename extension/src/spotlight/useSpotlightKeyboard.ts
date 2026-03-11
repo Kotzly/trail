@@ -1,17 +1,18 @@
-import { useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { shouldApplyHintOnTab } from './SpotlightHintRow.js';
 import { buildClientContextActions } from './SpotlightActionMenu.js';
 import type {
   SpotlightActionResult,
   SpotlightSearchResult,
 } from './types.js';
-import type React from 'react';
 
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
 type UseSpotlightKeyboardOptions = {
+  isOpen: boolean;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   query: string;
   selectedItem: SpotlightSearchResult | null;
   hoveredGraphItem: SpotlightSearchResult | null;
@@ -41,194 +42,156 @@ type UseSpotlightKeyboardOptions = {
   showPreview: boolean;
 };
 
-type UseSpotlightKeyboardReturn = {
-  handleKeyDownCapture: (event: React.KeyboardEvent) => void;
-};
+/**
+ * Attaches a **native** capture-phase keydown listener to the backdrop element.
+ *
+ * React's synthetic `onKeyDownCapture` doesn't reliably fire inside Shadow DOM
+ * content scripts (React 18 delegates events on the `createRoot` container, which
+ * may not see composed keyboard events crossing the shadow boundary).  A native
+ * `addEventListener('keydown', …, true)` on the backdrop div works regardless of
+ * shadow-root topology because `keydown` is a composed event.
+ */
+export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void {
+  // Keep a ref that always points at the latest options so the single native
+  // listener (attached once per open) never holds a stale closure.
+  const stateRef = useRef(options);
+  stateRef.current = options;
 
-export function useSpotlightKeyboard(
-  options: UseSpotlightKeyboardOptions,
-): UseSpotlightKeyboardReturn {
-  const {
-    query,
-    selectedItem,
-    hoveredGraphItem,
-    activeTreeId,
-    hintCandidates,
-    activeHint,
-    actionMenuActions,
-    setActionMenuActions,
-    confirmingAction,
-    quickLookItem,
-    setQuickLookItem,
-    helpOpen,
-    setHelpOpen,
-    drilldownScope,
-    selectedFocusPane,
-    setSelectedFocusPane,
-    setQuery,
-    close,
-    exitDrilldown,
-    handleActivate,
-    handleApplyHint,
-    handleConfirmDestructive,
-    setConfirmingAction,
-    flatItems,
-    selectedKeys,
-    setSelectedKeys,
-    showPreview,
-  } = options;
+  useEffect(() => {
+    if (!options.isOpen) return;
+    const container = options.containerRef.current;
+    if (!container) return;
 
-  const handleKeyDownCapture = useCallback((event: React.KeyboardEvent) => {
-    switch (event.key) {
-      case 'Enter': {
-        if (confirmingAction) {
-          event.preventDefault();
-          event.stopPropagation();
-          void handleConfirmDestructive();
-          return;
-        }
-        if (hoveredGraphItem) {
-          event.preventDefault();
-          event.stopPropagation();
-          void handleActivate(hoveredGraphItem);
-          return;
-        }
-        return;
-      }
-      case 'Tab':
-        if (shouldApplyHintOnTab(query, hintCandidates) && activeHint) {
-          event.preventDefault();
-          event.stopPropagation();
-          handleApplyHint(activeHint);
-          return;
-        }
-        if (selectedFocusPane === 'list' && !showPreview) return;
-        event.preventDefault();
-        event.stopPropagation();
-        setSelectedFocusPane(selectedFocusPane === 'list' ? 'graph' : 'list');
-        return;
-      case 'Backspace': {
-        if (drilldownScope && query === '') {
-          event.preventDefault();
-          event.stopPropagation();
-          exitDrilldown();
-          return;
-        }
-        const isMac = navigator.platform.includes('Mac');
-        const clearCombo = isMac ? event.metaKey : event.ctrlKey;
-        if (clearCombo) {
-          event.preventDefault();
-          event.stopPropagation();
-          setQuery('');
-        }
-        return;
-      }
-      case '?':
-        if (!event.metaKey && !event.ctrlKey) {
-          event.preventDefault();
-          event.stopPropagation();
-          setHelpOpen(!helpOpen);
-        }
-        return;
-      case 'Escape':
-        event.preventDefault();
-        event.stopPropagation();
-        if (confirmingAction) {
-          setConfirmingAction(null);
-        } else if (quickLookItem) {
-          setQuickLookItem(null);
-        } else if (actionMenuActions) {
-          setActionMenuActions(null);
-        } else if (helpOpen) {
-          setHelpOpen(false);
-        } else if (drilldownScope) {
-          exitDrilldown();
-        } else if (query) {
-          setQuery('');
-        } else {
-          close();
-        }
-        return;
-      case 'k': {
-        const isMac = navigator.platform.includes('Mac');
-        if ((isMac && event.metaKey) || (!isMac && event.ctrlKey)) {
-          event.preventDefault();
-          event.stopPropagation();
-          if (actionMenuActions) {
-            setActionMenuActions(null);
+    const handler = (event: KeyboardEvent) => {
+      const s = stateRef.current;
+
+      switch (event.key) {
+        case 'Enter': {
+          if (s.confirmingAction) {
+            event.preventDefault();
+            event.stopPropagation();
+            void s.handleConfirmDestructive();
             return;
           }
-          if (!selectedItem) return;
-          const actions = buildClientContextActions(selectedItem, activeTreeId);
-          setActionMenuActions(actions.length > 0 ? actions : null);
-        }
-        return;
-      }
-      case 'l': {
-        const isMacL = navigator.platform.includes('Mac');
-        if ((isMacL && event.metaKey) || (!isMacL && event.ctrlKey)) {
-          event.preventDefault();
-          event.stopPropagation();
-          if (quickLookItem) {
-            setQuickLookItem(null);
+          if (s.hoveredGraphItem) {
+            event.preventDefault();
+            event.stopPropagation();
+            void s.handleActivate(s.hoveredGraphItem);
             return;
           }
-          if (selectedItem && (selectedItem.kind === 'node' || selectedItem.kind === 'tree')) {
-            setQuickLookItem(selectedItem);
-          }
+          return;
         }
-        return;
+        case 'Tab':
+          if (shouldApplyHintOnTab(s.query, s.hintCandidates) && s.activeHint) {
+            event.preventDefault();
+            event.stopPropagation();
+            s.handleApplyHint(s.activeHint);
+            return;
+          }
+          if (s.selectedFocusPane === 'list' && !s.showPreview) return;
+          event.preventDefault();
+          event.stopPropagation();
+          s.setSelectedFocusPane(s.selectedFocusPane === 'list' ? 'graph' : 'list');
+          return;
+        case 'Backspace': {
+          if (s.drilldownScope && s.query === '') {
+            event.preventDefault();
+            event.stopPropagation();
+            s.exitDrilldown();
+            return;
+          }
+          const isMac = navigator.platform.includes('Mac');
+          const clearCombo = isMac ? event.metaKey : event.ctrlKey;
+          if (clearCombo) {
+            event.preventDefault();
+            event.stopPropagation();
+            s.setQuery('');
+          }
+          return;
+        }
+        case '?':
+          if (!event.metaKey && !event.ctrlKey) {
+            event.preventDefault();
+            event.stopPropagation();
+            s.setHelpOpen(!s.helpOpen);
+          }
+          return;
+        case 'Escape':
+          event.preventDefault();
+          event.stopPropagation();
+          if (s.confirmingAction) {
+            s.setConfirmingAction(null);
+          } else if (s.quickLookItem) {
+            s.setQuickLookItem(null);
+          } else if (s.actionMenuActions) {
+            s.setActionMenuActions(null);
+          } else if (s.helpOpen) {
+            s.setHelpOpen(false);
+          } else if (s.drilldownScope) {
+            s.exitDrilldown();
+          } else if (s.query) {
+            s.setQuery('');
+          } else {
+            s.close();
+          }
+          return;
+        case 'k': {
+          const isMac = navigator.platform.includes('Mac');
+          if ((isMac && event.metaKey) || (!isMac && event.ctrlKey)) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (s.actionMenuActions) {
+              s.setActionMenuActions(null);
+              return;
+            }
+            if (!s.selectedItem) return;
+            const actions = buildClientContextActions(s.selectedItem, s.activeTreeId);
+            s.setActionMenuActions(actions.length > 0 ? actions : null);
+          }
+          return;
+        }
+        case 'l': {
+          const isMacL = navigator.platform.includes('Mac');
+          if ((isMacL && event.metaKey) || (!isMacL && event.ctrlKey)) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (s.quickLookItem) {
+              s.setQuickLookItem(null);
+              return;
+            }
+            if (s.selectedItem && (s.selectedItem.kind === 'node' || s.selectedItem.kind === 'tree')) {
+              s.setQuickLookItem(s.selectedItem);
+            }
+          }
+          return;
+        }
+        case 'ArrowDown':
+        case 'ArrowUp': {
+          if (!event.shiftKey) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const currentIdx = s.selectedItem ? s.flatItems.findIndex((i) => i.key === s.selectedItem!.key) : -1;
+          if (currentIdx === -1) return;
+          const nextIdx = event.key === 'ArrowDown'
+            ? Math.min(currentIdx + 1, s.flatItems.length - 1)
+            : Math.max(currentIdx - 1, 0);
+          const nextItem = s.flatItems[nextIdx];
+          if (!nextItem) return;
+          const next = new Set(s.selectedKeys);
+          next.add(s.selectedItem!.key);
+          next.add(nextItem.key);
+          s.setSelectedKeys(next);
+          return;
+        }
+        default:
+          return;
       }
-      case 'ArrowDown':
-      case 'ArrowUp': {
-        if (!event.shiftKey) return;
-        event.preventDefault();
-        event.stopPropagation();
-        const currentIdx = selectedItem ? flatItems.findIndex((i) => i.key === selectedItem.key) : -1;
-        if (currentIdx === -1) return;
-        const nextIdx = event.key === 'ArrowDown'
-          ? Math.min(currentIdx + 1, flatItems.length - 1)
-          : Math.max(currentIdx - 1, 0);
-        const nextItem = flatItems[nextIdx];
-        if (!nextItem) return;
-        const next = new Set(selectedKeys);
-        next.add(selectedItem!.key);
-        next.add(nextItem.key);
-        setSelectedKeys(next);
-        return;
-      }
-      default:
-        return;
-    }
-  }, [
-    actionMenuActions,
-    activeHint,
-    activeTreeId,
-    close,
-    confirmingAction,
-    drilldownScope,
-    exitDrilldown,
-    handleActivate,
-    handleApplyHint,
-    handleConfirmDestructive,
-    helpOpen,
-    hintCandidates,
-    hoveredGraphItem,
-    query,
-    quickLookItem,
-    selectedFocusPane,
-    selectedItem,
-    setActionMenuActions,
-    setConfirmingAction,
-    setHelpOpen,
-    setQuery,
-    setQuickLookItem,
-    setSelectedFocusPane,
-    flatItems,
-    selectedKeys,
-    setSelectedKeys,
-    showPreview,
-  ]);
+    };
 
-  return { handleKeyDownCapture };
+    container.addEventListener('keydown', handler, true);
+    return () => container.removeEventListener('keydown', handler, true);
+    // Only re-attach when open state or container ref identity changes.
+    // All mutable state is read from stateRef inside the handler.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.isOpen, options.containerRef]);
 }

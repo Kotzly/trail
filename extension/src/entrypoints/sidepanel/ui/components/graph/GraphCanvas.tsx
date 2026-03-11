@@ -14,7 +14,7 @@ import type { NavigationTree } from '@background/state/nav-tree.js';
 import { navigateTo, setNodeLayoutBatch, reparentNode } from '../../../api/tree.js';
 import { rpc } from '@shared/rpc/contracts.js';
 import { fireAndForget } from '../../../api/background.js';
-import { PADDING } from '../../graph/layout/config.js';
+import { PADDING, NODE_WIDTH, NODE_HEIGHT, HORIZONTAL_GAP, VERTICAL_GAP } from '../../graph/layout/config.js';
 import {
   calculateLayout,
   calculateMindmapLayout,
@@ -160,6 +160,8 @@ type GraphCanvasProps = {
   fullViewEnabled: boolean;
   recencyOrderingV2Enabled: boolean;
   showControls: boolean;
+  /** Limit initial zoom so at most ~25×36 nodes are visible (Spotlight mode). */
+  compactInitialView?: boolean;
   /** When set, called instead of the default navigateTo on node click. */
   onNodeActivate?: (nodeId: NodeId, url: string) => void;
 };
@@ -296,6 +298,7 @@ export default function GraphCanvas({
   fullViewEnabled,
   recencyOrderingV2Enabled,
   showControls,
+  compactInitialView = false,
   onNodeActivate,
 }: GraphCanvasProps) {
   const searchActive = search.active;
@@ -2003,13 +2006,33 @@ export default function GraphCanvas({
     const treeWidth = bounds.maxX - bounds.minX + PADDING * 2;
     const treeHeight = bounds.maxY - bounds.minY + PADDING * 2;
     if (treeWidth <= 0 || treeHeight <= 0) return null;
-    const scaleX = (rect.width * 0.9) / treeWidth;
-    const scaleY = (rect.height * 0.9) / treeHeight;
-    const scale = Math.min(scaleX, scaleY, 2);
+
+    // Scale that fits the entire tree
+    const scaleToFit = Math.min(
+      (rect.width * 0.9) / treeWidth,
+      (rect.height * 0.9) / treeHeight,
+    );
+
+    let scale: number;
+    if (compactInitialView) {
+      // Spotlight mode: show at most ~12 columns × 18 rows of nodes
+      const targetViewportX = 12 * (NODE_WIDTH + HORIZONTAL_GAP);
+      const targetViewportY = 18 * (NODE_HEIGHT + VERTICAL_GAP);
+      const minScale = Math.max(rect.width / targetViewportX, rect.height / targetViewportY);
+      // For small trees scaleToFit > minScale → show all nodes.
+      // For large trees scaleToFit < minScale → zoom in to ~25×36 window.
+      scale = Math.min(Math.max(scaleToFit, minScale), 2);
+    } else {
+      // Default: fit entire tree, cap zoom-in at 5×5 nodes
+      const maxScaleX = rect.width / (5 * (NODE_WIDTH + HORIZONTAL_GAP));
+      const maxScaleY = rect.height / (5 * (NODE_HEIGHT + VERTICAL_GAP));
+      scale = Math.min(scaleToFit, maxScaleX, maxScaleY, 2);
+    }
+
     const translateX = (rect.width - treeWidth * scale) / 2 - (bounds.minX - PADDING) * scale;
     const translateY = (rect.height - treeHeight * scale) / 2 - (bounds.minY - PADDING) * scale;
     return { translateX, translateY, scale };
-  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY]);
+  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY, compactInitialView]);
 
   const fitToView = (animate = false) => {
     const fitView = getFitToViewView();
