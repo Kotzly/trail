@@ -1789,20 +1789,6 @@ export default function GraphCanvas({
   };
 
 
-  const debugChildIndices = useMemo(() => {
-    if (!root) return null;
-    const map = new Map<NodeId, number>();
-    const walk = (node: NavigationNode) => {
-      const children = getVisibleChildren(node);
-      children.forEach((child, i) => {
-        map.set(child.id, i);
-        walk(child);
-      });
-    };
-    walk(root);
-    return map;
-  }, [root, getVisibleChildren]);
-
   const renderNodes = useMemo<NodeRenderModel[]>(() => {
     const dimmedBySearch = searchActive;
     return visibleDisplayNodes.map((pos) => {
@@ -1836,11 +1822,10 @@ export default function GraphCanvas({
         isHoverFocused: hoverNodeId === id,
         display,
         tagDefs,
-        ...(debugChildIndices?.has(id) ? { debugChildIndex: debugChildIndices.get(id)! } : {}),
+
       };
     });
   }, [
-    debugChildIndices,
     animationVersion,
     currentNodeId,
     collapsedNodeIds,
