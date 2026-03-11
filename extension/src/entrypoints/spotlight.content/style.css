@@ -1195,7 +1195,8 @@ textarea {
   .spotlight-left--v3 {
     width: 100%;
     min-width: 0;
-    min-height: 260px;
+    max-height: 40vh;
+    min-height: 180px;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   }
