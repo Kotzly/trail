@@ -18,6 +18,7 @@ import type {
 
 const SEARCH_LIMIT = 80;
 const BACKOFF_DELAYS = [200, 800, 2000] as const;
+const SESSION_MEMORY_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 function computeDebounceMs(docCount: number): number {
   if (docCount < 200) return 0;
@@ -69,6 +70,7 @@ type UseSpotlightSearchReturn = {
   query: string;
   setQuery: (q: string) => void;
   previewCache: LRUMap<string, SpotlightGraphPreviewData>;
+  recentQueries: string[];
 };
 
 export function useSpotlightSearch(
@@ -86,6 +88,10 @@ export function useSpotlightSearch(
   const requestSeqRef = useRef(0);
   const previewCacheRef = useRef(new LRUMap<string, SpotlightGraphPreviewData>(64));
   const prevActiveTreeIdRef = useRef<string | null>(null);
+  const currentQueryRef = useRef('');
+  currentQueryRef.current = query;
+  const sessionMemoryRef = useRef<{ query: string; savedAt: number } | null>(null);
+  const memoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Bootstrap on open
   useEffect(() => {
@@ -106,6 +112,13 @@ export function useSpotlightSearch(
         setSessionId(data.sessionId);
         setSections(data.sections);
         setLoading(false);
+
+        // Restore query from session memory if recent
+        const memory = sessionMemoryRef.current;
+        if (memory && Date.now() - memory.savedAt < SESSION_MEMORY_TTL_MS) {
+          setQuery(memory.query);
+        }
+        sessionMemoryRef.current = null;
       })
       .catch((error) => {
         console.error('Failed to bootstrap spotlight:', error);
@@ -178,9 +191,20 @@ export function useSpotlightSearch(
     };
   }, [isOpen, query, sessionId, drilldownScopeTreeId]);
 
-  // Dispose on close, reset state
+  // Dispose on close, reset state (preserve query in session memory)
   useEffect(() => {
     if (isOpen) return;
+
+    // Save current query to session memory before clearing
+    const savedQuery = currentQueryRef.current;
+    if (savedQuery) {
+      sessionMemoryRef.current = { query: savedQuery, savedAt: Date.now() };
+      if (memoryTimerRef.current) clearTimeout(memoryTimerRef.current);
+      memoryTimerRef.current = setTimeout(() => {
+        sessionMemoryRef.current = null;
+        memoryTimerRef.current = null;
+      }, SESSION_MEMORY_TTL_MS);
+    }
 
     setQuery('');
     requestSeqRef.current += 1;
@@ -209,5 +233,6 @@ export function useSpotlightSearch(
     query,
     setQuery,
     previewCache: previewCacheRef.current,
+    recentQueries: bootstrapData?.recentQueries ?? [],
   };
 }

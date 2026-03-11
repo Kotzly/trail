@@ -90,6 +90,7 @@ type UseSpotlightPreviewOptions = {
   effectiveItem: SpotlightSearchResult | null;
   hoveredGraphTarget: SpotlightNodeTarget | null;
   sections: SpotlightSection[];
+  flatItems: SpotlightSearchResult[];
   previewCache: LRUMap<string, SpotlightGraphPreviewData>;
 };
 
@@ -111,6 +112,7 @@ export function useSpotlightPreview(
     effectiveItem,
     hoveredGraphTarget,
     sections,
+    flatItems,
     previewCache,
   } = options;
 
@@ -191,6 +193,39 @@ export function useSpotlightPreview(
   useEffect(() => {
     prefetchPreviews(sections, activeTreeId, previewCache, inflightRef.current);
   }, [sections, activeTreeId, previewCache]);
+
+  // Look-ahead prefetch: prefetch next 2 items when user pauses on current selection
+  useEffect(() => {
+    if (!effectiveItem) return;
+
+    const currentIndex = flatItems.findIndex((i) => i.key === effectiveItem.key);
+    if (currentIndex === -1) return;
+
+    const candidateTreeIds: string[] = [];
+    for (const offset of [1, 2]) {
+      const nextItem = flatItems[currentIndex + offset];
+      if (!nextItem) continue;
+      const treeId = nextItem.kind === 'node' || nextItem.kind === 'tree' ? nextItem.treeId : null;
+      if (treeId && treeId !== activeTreeId && !previewCache.has(treeId) && !inflightRef.current.has(treeId)) {
+        candidateTreeIds.push(treeId);
+      }
+    }
+
+    if (candidateTreeIds.length === 0) return;
+
+    const timer = setTimeout(() => {
+      for (const treeId of candidateTreeIds) {
+        if (previewCache.has(treeId) || inflightRef.current.has(treeId)) continue;
+        inflightRef.current.add(treeId);
+        void getSpotlightTreePreview(treeId)
+          .then((preview) => { if (preview) previewCache.set(treeId, preview); })
+          .catch(() => undefined)
+          .finally(() => { inflightRef.current.delete(treeId); });
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [effectiveItem, flatItems, activeTreeId, previewCache]);
 
   return {
     previewTreeId,

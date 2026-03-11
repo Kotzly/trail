@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
-type IndicatorPosition = { top: number; height: number } | null;
+export type IndicatorPosition = { top: number; height: number } | null;
 
 export function useSelectionIndicator(
   listRef: RefObject<HTMLElement | null>,

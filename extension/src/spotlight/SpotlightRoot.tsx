@@ -1,20 +1,19 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
 import { motion } from 'motion/react';
 import { SpotlightGraphFrame } from './SpotlightGraphFrame.js';
 import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from './SpotlightHintRow.js';
 import { SpotlightHelp } from './SpotlightHelp.js';
 import { SpotlightActionMenu } from './SpotlightActionMenu.js';
-import { SpotlightRowActions } from './SpotlightRowActions.js';
 import { SpotlightQuickLook } from './SpotlightQuickLook.js';
-import { SpotlightRowIcon } from './SpotlightRowIcon.js';
-import { highlightText } from './highlight.js';
+import { SpotlightResults } from './SpotlightResults.js';
 import { useSpotlightSearch } from './useSpotlightSearch.js';
 import { useSpotlightPreview, resolveNodeTarget } from './useSpotlightPreview.js';
 import { useSpotlightActions } from './useSpotlightActions.js';
 import { useSpotlightKeyboard } from './useSpotlightKeyboard.js';
 import { useSelectionIndicator } from './useSelectionIndicator.js';
 import { SpotlightBatchBar } from './SpotlightBatchBar.js';
+import { useSpotlightResize } from './useSpotlightResize.js';
 import { executeBatchAction } from './rpc.js';
 import type { SpotlightActionId, SpotlightBatchActionId, SpotlightSearchResult } from './types.js';
 import type { SpotlightNodeTarget } from './useSpotlightPreview.js';
@@ -25,8 +24,6 @@ const SR_ONLY: React.CSSProperties = {
   position: 'absolute', width: '1px', height: '1px',
   overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap',
 };
-
-const SPRING_TRANSITION = { type: 'spring' as const, stiffness: 400, damping: 35 };
 
 export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +37,12 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLElement>(null);
+  const panelsRef = useRef<HTMLDivElement>(null);
   const lastCommittedKeyRef = useRef<string | null>(null);
+  const drilldownScopeRef = useRef(drilldownScope);
+  drilldownScopeRef.current = drilldownScope;
+  const drilldownMemoryRef = useRef<{ drilldownScope: { treeId: string; treeName: string }; savedAt: number } | null>(null);
+  const drilldownMemoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggle = useCallback(() => setIsOpen((prev) => !prev), []);
   const close = useCallback(() => { setIsOpen(false); setHelpOpen(false); setDrilldownScope(null); }, []);
@@ -65,7 +67,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
 
   const preview = useSpotlightPreview({
     activeTreeId, drilldownScope, effectiveItem: selectedItem,
-    hoveredGraphTarget, sections: search.sections, previewCache: search.previewCache,
+    hoveredGraphTarget, sections: search.sections, flatItems, previewCache: search.previewCache,
   });
   const indicatorPos = useSelectionIndicator(listRef, selectedKey);
 
@@ -116,7 +118,26 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
 
   // Open/close side effects
   useEffect(() => {
-    if (isOpen) { requestAnimationFrame(() => inputRef.current?.focus()); return; }
+    if (isOpen) {
+      requestAnimationFrame(() => inputRef.current?.focus());
+      // Restore drilldown scope from memory if recent
+      const memory = drilldownMemoryRef.current;
+      if (memory && Date.now() - memory.savedAt < 3 * 60 * 1000) {
+        setDrilldownScope(memory.drilldownScope);
+      }
+      drilldownMemoryRef.current = null;
+      return;
+    }
+    // Save drilldown scope before clearing
+    const currentDrilldown = drilldownScopeRef.current;
+    if (currentDrilldown) {
+      drilldownMemoryRef.current = { drilldownScope: currentDrilldown, savedAt: Date.now() };
+      if (drilldownMemoryTimerRef.current) clearTimeout(drilldownMemoryTimerRef.current);
+      drilldownMemoryTimerRef.current = setTimeout(() => {
+        drilldownMemoryRef.current = null;
+        drilldownMemoryTimerRef.current = null;
+      }, 3 * 60 * 1000);
+    }
     setSelectedKey(null); setHoveredGraphTarget(null); setDrilldownScope(null);
   }, [isOpen]);
 
@@ -164,6 +185,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
     flatItems, selectedKeys, setSelectedKeys, showPreview: true,
   });
+
+  const resize = useSpotlightResize(panelsRef);
 
   if (!hasBeenOpened) return null;
 
@@ -213,61 +236,57 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
               : !search.loading && search.query && search.sections.length === 0 ? 'No results found' : ''}
           </div>
 
-          <div className="spotlight-panels spotlight-panels--v3">
-            <div className="spotlight-left spotlight-left--v3" data-focus={selectedFocusPane}>
+          <div ref={panelsRef} className="spotlight-panels spotlight-panels--v3">
+            <div className="spotlight-left spotlight-left--v3" data-focus={selectedFocusPane} style={resize.leftStyle}>
               {search.sessionError ? (
                 <div className="spotlight-empty" role="alert">Connection lost. Close and reopen spotlight to retry.</div>
               ) : helpOpen ? (
                 <SpotlightHelp open />
               ) : search.loading ? (
                 <div className="spotlight-empty">Loading...</div>
+              ) : search.sections.length === 0 && search.query ? (
+                <Command.Empty className="spotlight-empty">No results found</Command.Empty>
+              ) : search.sections.length === 0 && !search.query && search.recentQueries.length > 0 ? (
+                <div className="spotlight-sections spotlight-recent-queries">
+                  <div className="spotlight-recent-queries-title">Recent Searches</div>
+                  {search.recentQueries.map((q) => (
+                    <button
+                      key={q} type="button" className="spotlight-recent-query-item"
+                      onClick={() => search.setQuery(q)}
+                    >
+                      <span className="spotlight-recent-query-icon">⌕</span>
+                      <span className="spotlight-recent-query-text">{q}</span>
+                    </button>
+                  ))}
+                </div>
               ) : search.sections.length === 0 ? (
                 <Command.Empty className="spotlight-empty">No results found</Command.Empty>
               ) : (
-                <Command.List ref={listRef as React.Ref<HTMLDivElement>} className="spotlight-sections" data-transition={act.drilldownTransition}>
-                  {indicatorPos && (
-                    <motion.div
-                      className="spotlight-selection-indicator"
-                      animate={{ y: indicatorPos.top, height: indicatorPos.height }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                    />
-                  )}
-                  {search.sections.map((section, i) => {
-                    const collapsed = act.collapsedSections.has(section.id);
-                    return (
-                      <Command.Group
-                        key={section.id}
-                        heading={
-                          <button type="button" className="spotlight-section-toggle" onClick={() => handleToggleSection(section.id)} tabIndex={-1} aria-label={collapsed ? 'Expand section' : 'Collapse section'} aria-expanded={!collapsed}>
-                            <span className="spotlight-section-chevron" data-collapsed={collapsed} />
-                            {section.title}
-                            <span className="spotlight-section-count">{section.items.length}</span>
-                          </button>
-                        }
-                        className="spotlight-section" data-first={i === 0} data-collapsed={collapsed}
-                      >
-                        {!collapsed && section.items.map((item) => (
-                          <Command.Item key={item.key} value={item.key} className={`spotlight-row spotlight-row--${item.kind}`} data-destructive={item.kind === 'action' && item.safety === 'destructive'} data-multi-selected={selectedKeys.has(item.key)} onSelect={() => { void act.handleActivate(item); }}>
-                            <SpotlightRowIcon item={item} />
-                            <div className="spotlight-row-main">
-                              <div className="spotlight-row-title">{renderItemTitle(item)}</div>
-                              <div className="spotlight-row-subtitle">{renderItemSubtitle(item)}</div>
-                            </div>
-                            {item.key === selectedKey && item.kind !== 'action' ? (
-                              <SpotlightRowActions item={item} activeTreeId={activeTreeId} onAction={act.handleInlineAction} />
-                            ) : (
-                              <div className="spotlight-row-meta">{getItemMeta(item)}</div>
-                            )}
-                          </Command.Item>
-                        ))}
-                      </Command.Group>
-                    );
-                  })}
-                </Command.List>
+                <SpotlightResults
+                  listRef={listRef}
+                  sections={search.sections}
+                  selectedKey={selectedKey}
+                  selectedKeys={selectedKeys}
+                  collapsedSections={act.collapsedSections}
+                  indicatorPos={indicatorPos}
+                  activeTreeId={activeTreeId}
+                  drilldownTransition={act.drilldownTransition}
+                  onToggleSection={handleToggleSection}
+                  onActivate={act.handleActivate}
+                  onInlineAction={act.handleInlineAction}
+                />
               )}
             </div>
 
-            <div className="spotlight-right spotlight-right--v3" data-focus={selectedFocusPane}>
+            {resize.splitRatio !== null && (
+              <div
+                className="spotlight-resize-handle"
+                data-dragging={resize.isDragging}
+                onMouseDown={resize.handleMouseDown}
+                role="separator" aria-orientation="vertical" aria-label="Resize panels"
+              />
+            )}
+            <div className="spotlight-right spotlight-right--v3" data-focus={selectedFocusPane} style={resize.rightStyle}>
                   <SpotlightGraphFrame
                     activeTreeId={activeTreeId} previewData={preview.graphPreviewData}
                     selectedNodeId={graphSelectedNodeId} highlightNodeId={graphHighlightNodeId}
@@ -314,29 +333,4 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       )}
     </div>
   );
-}
-
-function renderItemTitle(item: SpotlightSearchResult): ReactNode {
-  return item.kind === 'node' ? highlightText(item.title, item.highlights.title)
-    : item.kind === 'tree' ? highlightText(item.treeName, item.highlights.title)
-    : item.title;
-}
-
-function renderItemSubtitle(item: SpotlightSearchResult): ReactNode {
-  if (item.kind === 'node') {
-    return <span className="spotlight-mono">{highlightText(item.url, item.highlights.url)}</span>;
-  }
-  if (item.kind === 'tree') {
-    if (!item.rootUrl) return 'Archived tree';
-    return <span className="spotlight-mono">{highlightText(item.rootUrl, item.highlights.url)}</span>;
-  }
-  if (item.subtitle.startsWith('http')) {
-    return <span className="spotlight-mono">{item.subtitle}</span>;
-  }
-  return item.subtitle;
-}
-
-function getItemMeta(item: SpotlightSearchResult): string {
-  if (item.kind === 'node') return item.group === 'other-trees' ? item.treeName : item.pinned ? 'Pinned' : item.groupBadge;
-  return item.kind === 'tree' ? item.groupBadge : item.shortcutHint;
 }

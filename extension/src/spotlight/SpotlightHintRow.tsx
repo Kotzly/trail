@@ -41,7 +41,12 @@ export function buildSpotlightHints(query: string): string[] {
   if (last.startsWith('group:')) return ['group:open-tabs', 'group:recently-closed', 'group:current-tree', 'group:other-trees'];
   if (last.startsWith('is:')) return ['is:current'];
   if (last === '|') return ['|'];
-  if ('do'.startsWith(last.toLowerCase()) || 'domain'.startsWith(last.toLowerCase())) return ['domain:'];
+  const lower = last.toLowerCase();
+  if ('domain:'.startsWith(lower)) return ['domain:'];
+  if ('tab:'.startsWith(lower) && lower.length >= 2) return ['tab:open', 'tab:closed'];
+  if ('tree:'.startsWith(lower) && lower.length >= 2) return ['tree:current', 'tree:other', 'tree:any'];
+  if ('group:'.startsWith(lower) && lower.length >= 2) return ['group:open-tabs', 'group:recently-closed'];
+  if ('is:'.startsWith(lower) && lower.length >= 2) return ['is:current'];
   return [];
 }
 

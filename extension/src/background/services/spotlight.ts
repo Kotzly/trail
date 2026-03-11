@@ -1080,17 +1080,51 @@ function collectPositivePlainTokens(tokens: SpotlightToken[]): string[] {
     .slice(0, 5);
 }
 
+function levenshteinDistance(a: string, b: string): number {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const matrix: number[][] = [];
+  for (let i = 0; i <= a.length; i += 1) matrix[i] = [i];
+  for (let j = 0; j <= b.length; j += 1) matrix[0]![j] = j;
+  for (let i = 1; i <= a.length; i += 1) {
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i]![j] = Math.min(
+        matrix[i - 1]![j]! + 1,
+        matrix[i]![j - 1]! + 1,
+        matrix[i - 1]![j - 1]! + cost,
+      );
+    }
+  }
+  return matrix[a.length]![b.length]!;
+}
+
 function findRanges(text: string, needles: string[]): Array<{ start: number; end: number }> {
   if (!text || needles.length === 0) return [];
   const lower = text.toLowerCase();
   const ranges: Array<{ start: number; end: number }> = [];
   for (const needle of needles) {
+    let found = false;
     let from = 0;
     while (from < lower.length) {
       const index = lower.indexOf(needle, from);
       if (index === -1) break;
+      found = true;
       ranges.push({ start: index, end: index + needle.length });
       from = index + Math.max(1, needle.length);
+    }
+    // Fuzzy fallback: if exact match fails, find words within edit distance
+    if (!found && needle.length >= 3) {
+      const maxDist = Math.ceil(needle.length * 0.25);
+      const wordRe = /[a-z0-9]+/g;
+      let match: RegExpExecArray | null;
+      while ((match = wordRe.exec(lower)) !== null) {
+        const word = match[0]!;
+        if (Math.abs(word.length - needle.length) > maxDist) continue;
+        if (levenshteinDistance(word, needle) <= maxDist) {
+          ranges.push({ start: match.index, end: match.index + word.length });
+        }
+      }
     }
   }
   if (ranges.length === 0) return [];

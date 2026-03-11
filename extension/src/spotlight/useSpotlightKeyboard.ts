@@ -143,6 +143,8 @@ export function useSpotlightKeyboard(
           setHelpOpen(false);
         } else if (drilldownScope) {
           exitDrilldown();
+        } else if (query) {
+          setQuery('');
         } else {
           close();
         }
