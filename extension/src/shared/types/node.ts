@@ -1,4 +1,4 @@
-import { TreeNode } from "../../background/state/tree-node.js";
+import { TreeNode } from "@background/state/tree-node.js";
 import type { NodeId, Timestamp, Title, Url, FaviconUrl, Tag } from "./ids.js"
 
 
@@ -9,6 +9,8 @@ export type NodeData = {
     favicon?: FaviconUrl;
     pinned: boolean;
     tags: Tag[];
+    lastVisitedAt?: Timestamp;
+    visitCount?: number;
     layout?: {
       offsetX: number;
       offsetY: number;

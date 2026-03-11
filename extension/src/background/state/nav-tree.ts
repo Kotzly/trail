@@ -1,9 +1,9 @@
-import type { NodeId, Title, Url } from "../../shared/types/ids.js";
-import MiniSearch from "../../shared/vendor/minisearch.js";
+import type { NodeId, Title, Url } from "@shared/types/ids.js";
+import MiniSearch from "@shared/vendor/minisearch.js";
 import { TreeNode } from "./tree-node.js";
-import { DefaultNavigationOptions, type NavigationOptions } from "../../shared/types/tree.js";
-import { NodeData, NavigationNode, updateNodeMeta } from "../../shared/types/node.js";
-import { createUrlKey } from "../../shared/lib/url-key.js";
+import { DefaultNavigationOptions, type NavigationOptions } from "@shared/types/tree.js";
+import { NodeData, NavigationNode, updateNodeMeta } from "@shared/types/node.js";
+import { createUrlKey } from "@shared/lib/url-key.js";
 
 export type NodeRedirect = { from: NodeId; to: NodeId };
 export type DeleteNodeResult = { removed: NavigationNode[]; redirects: NodeRedirect[] };

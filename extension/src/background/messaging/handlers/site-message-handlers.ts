@@ -13,8 +13,8 @@ import {
   ok,
   err,
 } from "../../../shared/rpc/contracts.js";
-import { defineRpcHandlers } from "../../../shared/rpc/contracts.js";
-import type { SiteMessageForwardMessage } from "../../../shared/rpc/contracts.js";
+import { defineRpcHandlers } from "@shared/rpc/contracts.js";
+import type { SiteMessageForwardMessage } from "@shared/rpc/contracts.js";
 import {
   getEditorState,
   enterEditorMode,
@@ -22,20 +22,16 @@ import {
   cancelEditorMode,
 } from "./editor-handlers.js";
 import { authOrchestrator } from "../../services/auth-orchestrator.js";
-import { AUTH_STORAGE_KEY } from "../../../shared/config/storage-keys.js";
+import { authSessionItem } from "@shared/config/storage-items.js";
+import { browser } from '@shared/platform/webext.js';
 
 // ---------------------------------------------------------------------------
-// Auth state helpers (reads from chrome.storage, same key as cloud-sync)
+// Auth state helpers
 // ---------------------------------------------------------------------------
-
-type StoredAuthSession = {
-  accessToken?: string;
-};
 
 async function isAuthenticated(): Promise<boolean> {
   try {
-    const data = await chrome.storage.local.get(AUTH_STORAGE_KEY);
-    const session = data[AUTH_STORAGE_KEY] as StoredAuthSession | undefined;
+    const session = await authSessionItem.getValue();
     return Boolean(session?.accessToken);
   } catch {
     return false;
@@ -63,7 +59,7 @@ const innerHandlers: Record<string, InnerHandler> = {
       responsePayload: {
         source: "trail-extension",
         type: "PONG",
-        version: chrome.runtime.getManifest().version,
+        version: browser.runtime.getManifest().version,
         authenticated: authed,
         editorMode: editor.active,
       },

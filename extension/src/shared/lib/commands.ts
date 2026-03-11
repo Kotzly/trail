@@ -1,10 +1,10 @@
 import type { Description, JSONString } from "../types/ids.js";
 import type { CommandState } from "../rpc/contracts.js";
 import { NavigationTreeJSON } from "../types/tree.js";
+import { undoHistoryItem } from "../config/storage-items.js";
 
 // max history stack size (todo: make this configurable by the user)
 const MAX_HISTORY = 30;
-const HISTORY_KEY = 'trail_undo_history';
 
 
 export type Snapshot = {
@@ -20,10 +20,6 @@ export class CommandManager {
     private static loading: Promise<void> | null = null;
     private static dirtyDuringLoad = false;
     private static persistTimer: ReturnType<typeof setTimeout> | null = null;
-
-    private static canPersist(): boolean {
-        return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local);
-    }
 
     private static sanitizeStack(raw: unknown): Snapshot[] {
         if (!Array.isArray(raw)) return [];
@@ -42,7 +38,6 @@ export class CommandManager {
     }
 
     private static schedulePersist(): void {
-        if (!this.canPersist()) return;
         if (this.persistTimer) {
             clearTimeout(this.persistTimer);
         }
@@ -53,14 +48,11 @@ export class CommandManager {
     }
 
     private static async persistNow(): Promise<void> {
-        if (!this.canPersist()) return;
         try {
-            await chrome.storage.local.set({
-                [HISTORY_KEY]: {
-                    undoStack: this.undoStack,
-                    redoStack: this.redoStack,
-                    updatedAt: Date.now(),
-                },
+            await undoHistoryItem.setValue({
+                undoStack: this.undoStack,
+                redoStack: this.redoStack,
+                updatedAt: Date.now(),
             });
         } catch (error) {
             console.error('CommandManager.persistNow: Failed to persist history', error);
@@ -70,14 +62,9 @@ export class CommandManager {
     static async init(): Promise<void> {
         if (this.loaded) return;
         if (this.loading) return this.loading;
-        if (!this.canPersist()) {
-            this.loaded = true;
-            return;
-        }
         this.loading = (async () => {
             try {
-                const result = await chrome.storage.local.get(HISTORY_KEY);
-                const stored = result[HISTORY_KEY] as { undoStack?: unknown; redoStack?: unknown } | undefined;
+                const stored = await undoHistoryItem.getValue();
                 if (!this.dirtyDuringLoad && stored) {
                     this.undoStack = this.sanitizeStack(stored.undoStack);
                     this.redoStack = this.sanitizeStack(stored.redoStack);
@@ -102,7 +89,7 @@ export class CommandManager {
           treeJSON: JSON.stringify(treeJSON) as JSONString,
           description: desc,
         });
-      
+
         this.redoStack = this.redoStack.slice(0, 0); // new action invalidates redo history
         while (this.undoStack.length > MAX_HISTORY) {
           this.undoStack.shift(); // todo: check code for correctness
@@ -119,7 +106,7 @@ export class CommandManager {
             treeJSON: JSON.stringify(currentTreeJSON) as JSONString,
             description: this.undoStack[this.undoStack.length - 1]?.description || 'Undo' as Description,
         });
-        
+
         const previousState = this.undoStack.pop();
         this.schedulePersist();
         return previousState ? JSON.parse(previousState.treeJSON) as NavigationTreeJSON : null;
@@ -129,12 +116,12 @@ export class CommandManager {
         if (!this.loaded && this.loading) {
             this.dirtyDuringLoad = true;
         }
-      
+
         this.undoStack.push({
           treeJSON: JSON.stringify(currentTreeJSON) as JSONString,
           description: this.redoStack[this.redoStack.length - 1]?.description || 'Redo' as Description,
         });
-      
+
         // Pop and return next state
         const nextState = this.redoStack.pop();
         this.schedulePersist();
@@ -155,7 +142,7 @@ export class CommandManager {
     static getNextRedoDesc(): Description | undefined {
         return this.redoStack[this.redoStack.length - 1]?.description;
     }
-    
+
     static getState(): CommandState {
         return {
             canUndo: this.canUndo(),

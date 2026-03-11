@@ -5,49 +5,44 @@ import {
   type PersistedFlagState,
   resolveFlags,
 } from '../../shared/types/flags.js';
+import { flagsItem } from '@shared/config/storage-items.js';
 
-const STORAGE_KEY = 'trail_flags' as const;
-const storage = chrome.storage.local;
+let overrides: Partial<Record<string, unknown>> = {};
 
-class FlagManager {
-  private overrides: Partial<Record<string, unknown>> = {};
-
-  async init(): Promise<void> {
-    const result = await storage.get(STORAGE_KEY).catch((error) => {
-      console.error('FlagManager.init: failed to load flags:', error);
-      return {} as { [key: string]: unknown };
-    });
-    const persisted = result[STORAGE_KEY] as PersistedFlagState | undefined;
+export async function initFlags(): Promise<void> {
+  try {
+    const persisted = await flagsItem.getValue();
     if (persisted && typeof persisted === 'object' && persisted.v === 1) {
-      this.overrides = persisted.overrides ?? {};
+      overrides = persisted.overrides ?? {};
     }
-  }
-
-  getAll(): ResolvedFlags {
-    return resolveFlags(this.overrides);
-  }
-
-  get<K extends FlagKey>(key: K): FlagValue<K> {
-    return this.getAll()[key];
-  }
-
-  async setOverride<K extends FlagKey>(key: K, value: FlagValue<K>): Promise<void> {
-    this.overrides[key] = value;
-    await this.persist();
-  }
-
-  async resetAll(): Promise<void> {
-    this.overrides = {};
-    await this.persist();
-  }
-
-  private async persist(): Promise<void> {
-    const state: PersistedFlagState = { v: 1, overrides: { ...this.overrides } };
-    await storage.set({ [STORAGE_KEY]: state }).catch((error) => {
-      console.error('FlagManager.persist: failed to save flags:', error);
-    });
+  } catch (error) {
+    console.error('initFlags: failed to load flags:', error);
   }
 }
 
-export const flagManager = new FlagManager();
-flagManager.init().catch(console.error);
+export function getAllFlags(): ResolvedFlags {
+  return resolveFlags(overrides);
+}
+
+export function getFlag<K extends FlagKey>(key: K): FlagValue<K> {
+  return getAllFlags()[key];
+}
+
+export async function setFlagOverride<K extends FlagKey>(key: K, value: FlagValue<K>): Promise<void> {
+  overrides[key] = value;
+  await persistFlags();
+}
+
+export async function resetAllFlags(): Promise<void> {
+  overrides = {};
+  await persistFlags();
+}
+
+async function persistFlags(): Promise<void> {
+  const state: PersistedFlagState = { v: 1, overrides: { ...overrides } };
+  await flagsItem.setValue(state).catch((error) => {
+    console.error('persistFlags: failed to save flags:', error);
+  });
+}
+
+initFlags().catch(console.error);

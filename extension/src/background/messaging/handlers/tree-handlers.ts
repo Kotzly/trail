@@ -1,25 +1,26 @@
-import { RPC_METHOD, defineRpcHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot, type TreeViewIntent } from '../../../shared/rpc/contracts.js';
+import { RPC_METHOD, defineRpcHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot, type TreeViewIntent } from '@shared/rpc/contracts.js';
 import { getEditorState } from './editor-handlers.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from '../notifications.js';
 import { tabManager } from '../../state/tab-manager.js';
-import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
-import { CommandManager } from '../../../shared/lib/commands.js';
-import type { Description, FaviconUrl, NodeId, TabId, Title, Url } from '../../../shared/types/ids.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import { CommandManager } from '@shared/lib/commands.js';
+import type { Description, FaviconUrl, NodeId, TabId, Title, Url } from '@shared/types/ids.js';
 import { NavigationTree } from '../../state/nav-tree.js';
-import { ForEacher } from '../../../shared/types/foreach.js';
-import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } from '../../../shared/types/node.js';
+import { ForEacher } from '@shared/types/foreach.js';
+import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } from '@shared/types/node.js';
 import { normalizeFaviconUrl, shouldTrackUrl } from '../../utils/url-utils.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { syncEngine } from '../../services/sync/engine.js';
 import { dirtyTracker } from '../../services/sync/dirty-tracker.js';
 import { loadTree } from '../../services/tree-loader.js';
 import { editorSyncMarkDirty } from '../../services/editor-sync.js';
-import type { TreeMeta } from '../../../shared/types/tree.js';
-import type { TrailExportBundle } from '../../../shared/types/export.js';
-import { EXPORT_SCHEMA } from '../../../shared/types/export.js';
+import type { TreeMeta } from '@shared/types/tree.js';
+import type { TrailExportBundle } from '@shared/types/export.js';
+import { EXPORT_SCHEMA } from '@shared/types/export.js';
 import { settingsManager } from '../../services/settings.js';
 import { saveOpenTabs, getOpenTabs, clearOpenTabs } from '../../services/tab-restoration.js';
+import { browser, type Tab } from '@shared/platform/webext.js';
 
 /** Mark editor sync dirty if currently in editor mode. */
 function maybeEditorDirty(): void {
@@ -63,7 +64,7 @@ function collectTabIdsForNodes(nodeIds: ForEacher<NodeId>): TabId[] {
 async function closeTabs(tabIds: TabId[], context: string): Promise<boolean> {
   if (tabIds.length === 0) return true;
   try {
-    await chrome.tabs.remove(tabIds);
+    await browser.tabs.remove(tabIds);
     return true;
   } catch (error) {
     console.error(`Failed to close tabs for ${context}:`, error);
@@ -78,11 +79,18 @@ async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
 
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
   const editorMode = getEditorState();
+  const openNodes = Array.from(tabManager.openNodes());
+  const nodeRecency: Record<string, number> = {};
+  for (const nodeId of openNodes) {
+    const r = tabManager.getNodeRecency(nodeId);
+    if (r > 0) nodeRecency[nodeId] = r;
+  }
   const snapshot: TreeUpdatedInput = {
     tree: NavigationTreeMapper.toJSON(await treeStorage.getOrCreateTree()),
-    openNodeIds: Array.from(tabManager.openNodes()),
+    openNodeIds: openNodes,
     tabStates: await getTabStates(),
-    nodeTabCounts: Object.fromEntries(Array.from(tabManager.openNodes()).map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)])),
+    nodeTabCounts: Object.fromEntries(openNodes.map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)])),
+    nodeRecency,
     reason: 'sync',
   };
   if (editorMode.active) {
@@ -98,7 +106,7 @@ async function buildTreesSnapshot(): Promise<TreesSnapshot> {
   };
 }
 
-function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
+function buildNodeDataFromTab(tab: Tab): NodeData | null {
   const urlCandidate = tab.url;
   const pendingCandidate = tab.pendingUrl;
   let rawUrl = urlCandidate || pendingCandidate;
@@ -116,14 +124,14 @@ function buildNodeDataFromTab(tab: chrome.tabs.Tab): NodeData | null {
   } as NodeData;
 }
 
-function registerTabForNode(nodeId: NodeId, tab: chrome.tabs.Tab): void {
+function registerTabForNode(nodeId: NodeId, tab: Tab): void {
   if (tab.id === undefined) return;
   const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
   const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
   tabManager.register(nodeId, tab.id as TabId, registerOptions);
 }
 
-function ensureRootForTab(tree: NavigationTree, tab: chrome.tabs.Tab): NavigationNode | null {
+function ensureRootForTab(tree: NavigationTree, tab: Tab): NavigationNode | null {
   const root = tree.getRoot();
   const data = buildNodeDataFromTab(tab);
   if (!root) {
@@ -149,6 +157,7 @@ async function switchTree(
   nextMeta: TreeMeta,
   rootUrl?: Url | null,
   viewOverride?: TreeViewIntent | null,
+  preferredFocusNodeId?: NodeId | null,
 ): Promise<void> {
   const keepTabs = settingsManager.get().keepTabsOnSwitch;
 
@@ -178,18 +187,23 @@ async function switchTree(
   const savedUrls = keepTabs ? await getOpenTabs(nextMeta.id) : null;
 
   let focusNodeId: NodeId | undefined;
+  const preferredFocusNode =
+    preferredFocusNodeId !== undefined && preferredFocusNodeId !== null
+      ? nextTree.findNodeById(preferredFocusNodeId)
+      : null;
+  const preferredFocusUrl = preferredFocusNode?.data.url
+    ?? rootUrl
+    ?? nextTree.getRoot()?.data.url
+    ?? null;
 
   if (savedUrls && savedUrls.length > 0) {
-    const currentNodeUrl = nextTree.getCurrentId()
-      ? nextTree.findNodeById(nextTree.getCurrentId()!)?.data.url
-      : null;
     let treeChanged = false;
 
     for (const url of savedUrls) {
-      const isActive = url === currentNodeUrl;
-      let tab: chrome.tabs.Tab;
+      const isActive = preferredFocusUrl !== null && url === preferredFocusUrl;
+      let tab: Tab;
       try {
-        tab = await chrome.tabs.create({ url, active: isActive });
+        tab = await browser.tabs.create({ url, active: isActive });
       } catch {
         continue;
       }
@@ -205,36 +219,52 @@ async function switchTree(
     }
 
     // If no active tab was created (e.g. current node URL wasn't in saved list),
-    // fall back: open root URL
+    // fall back: open the preferred focus URL
     if (!focusNodeId) {
-      const fallbackUrl = rootUrl ?? nextTree.getRoot()?.data.url ?? null;
-      let tab: chrome.tabs.Tab;
+      const fallbackUrl = preferredFocusUrl;
+      let tab: Tab;
       try {
-        tab = await chrome.tabs.create(fallbackUrl ? { url: fallbackUrl, active: true } : { active: true });
+        tab = await browser.tabs.create(fallbackUrl ? { url: fallbackUrl, active: true } : { active: true });
       } catch {
-        tab = await chrome.tabs.create({});
+        tab = await browser.tabs.create({});
       }
-      const rootNode = ensureRootForTab(nextTree, tab);
-      if (rootNode) {
-        focusNodeId = rootNode.id;
+      if (preferredFocusNode) {
+        nextTree.setCurrent(preferredFocusNode);
+        registerTabForNode(preferredFocusNode.id, tab);
+        focusNodeId = preferredFocusNode.id;
         treeChanged = true;
+      } else {
+        const rootNode = ensureRootForTab(nextTree, tab);
+        if (rootNode) {
+          focusNodeId = rootNode.id;
+          treeChanged = true;
+        }
       }
     }
 
-    if (treeChanged) treeStorage.cacheTree(nextTree);
+    if (treeChanged) {
+      treeStorage.cacheTree(nextTree);
+    }
   } else {
-    // No saved tabs — original behaviour: open single root tab
-    let created: chrome.tabs.Tab;
+    // No saved tabs — original behaviour: open single preferred tab
+    let created: Tab;
     try {
-      created = await chrome.tabs.create(rootUrl ? { url: rootUrl, active: true } : { active: true });
+      created = await browser.tabs.create(preferredFocusUrl ? { url: preferredFocusUrl, active: true } : { active: true });
     } catch (error) {
       console.error('Failed to open root tab for tree switch:', error);
-      created = await chrome.tabs.create({});
+      created = await browser.tabs.create({});
     }
-    const rootNode = ensureRootForTab(nextTree, created);
-    if (rootNode) {
-      focusNodeId = rootNode.id;
+    if (preferredFocusNode) {
+      nextTree.setCurrent(preferredFocusNode);
+      registerTabForNode(preferredFocusNode.id, created);
+      focusNodeId = preferredFocusNode.id;
       treeStorage.cacheTree(nextTree);
+    } else {
+      const rootNode = ensureRootForTab(nextTree, created);
+      if (rootNode) {
+        focusNodeId = rootNode.id;
+        treeStorage.cacheTree(nextTree);
+      }
     }
   }
 
@@ -253,6 +283,33 @@ async function switchTree(
   }
 
   await notifyTreesUpdate(await buildTreesSnapshot());
+}
+
+export async function openTreeAndFocusNode(treeId: string, nodeId: NodeId): Promise<void> {
+  const loaded = await loadTree(treeId);
+  if (!loaded) throw new Error('Tree not found');
+
+  const current = await treeStorage.getOrCreateTree();
+  if (current.getRoot()) {
+    snapshot(current, 'Open node in tree');
+  }
+  await treeStorage.archiveActiveTree();
+  const record = await treeStorage.takeArchivedTree(treeId);
+  if (!record) throw new Error('Tree not found');
+
+  const nextTree = NavigationTreeMapper.fromJSON(record.tree);
+  const targetNode = nextTree.findNodeById(nodeId);
+  if (!targetNode) throw new Error('Node not found');
+
+  const meta: TreeMeta = {
+    id: record.id,
+    label: record.label,
+    labelSource: record.labelSource,
+    labelUpdatedAt: record.labelUpdatedAt,
+    createdAt: record.createdAt,
+  };
+
+  await switchTree(nextTree, meta, targetNode.data.url, undefined, nodeId);
 }
 
 export const treeHandlers = defineRpcHandlers({
@@ -287,6 +344,18 @@ export const treeHandlers = defineRpcHandlers({
     }
     await treeStorage.archiveActiveTree();
     const meta = treeStorage.createMeta(message.label);
+    const nextTree = new NavigationTree();
+    await switchTree(nextTree, meta, null, null);
+    return ok();
+  },
+
+  async [RPC_METHOD.ARCHIVE_ACTIVE_TREE]() {
+    const current = await treeStorage.getOrCreateTree();
+    if (current.getRoot()) {
+      snapshot(current, 'Archive active tree');
+    }
+    await treeStorage.archiveActiveTree();
+    const meta = treeStorage.createMeta('Untitled Tree');
     const nextTree = new NavigationTree();
     await switchTree(nextTree, meta, null, null);
     return ok();

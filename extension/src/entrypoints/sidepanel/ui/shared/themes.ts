@@ -1,0 +1,30 @@
+import { DEFAULT_THEME, THEME_IDS, type ThemeId } from "@features/themes/model.js";
+
+export type Theme = {
+    id: ThemeId;
+    label: string;
+    icon: string;
+};
+
+
+export const THEMES: Record<ThemeId, Theme> = {
+    'light': {
+        id: 'light',
+        label: 'Light',
+        icon: '☀️',
+    },
+    'dark': {
+        id: 'dark',
+        label: 'Dark',
+        icon: '🌙',
+    },
+    'system': {
+        id: 'system',
+        label: 'System',
+        icon: '💻',
+    }
+};
+
+export function getThemes(): Theme[] {
+    return Object.values(THEMES);
+}

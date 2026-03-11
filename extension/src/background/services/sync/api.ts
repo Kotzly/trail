@@ -9,9 +9,9 @@
  *   PATCH  /trails/:id     – editor partial update
  */
 
-import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from '../../../shared/config/backend.js';
-import { AUTH_STORAGE_KEY } from '../../../shared/config/storage-keys.js';
-import type { NavigationTreeJSON, TreeLabelSource } from '../../../shared/types/tree.js';
+import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from '@shared/config/backend.js';
+import { authSessionItem, type StoredAuthSession } from '@shared/config/storage-items.js';
+import type { NavigationTreeJSON, TreeLabelSource } from '@shared/types/tree.js';
 
 /* ------------------------------------------------------------------ */
 /*  Response types                                                     */
@@ -102,18 +102,10 @@ export class SyncApiError extends Error {
 /*  Auth helper                                                        */
 /* ------------------------------------------------------------------ */
 
-type StoredAuthSession = {
-  accessToken?: string;
-  expiresAt?: string;
-};
-
 const TOKEN_EXPIRY_BUFFER_MS = 30_000;
 
 async function loadAuthSession(): Promise<StoredAuthSession | null> {
-  const result = await chrome.storage.local.get(AUTH_STORAGE_KEY);
-  const raw = result[AUTH_STORAGE_KEY] as StoredAuthSession | undefined;
-  if (!raw || typeof raw !== 'object') return null;
-  return raw;
+  return authSessionItem.getValue();
 }
 
 async function getAccessToken(): Promise<string | null> {

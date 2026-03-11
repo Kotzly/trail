@@ -1,6 +1,7 @@
-import { THEME_IDS } from "../../sidepanel/ui/shared/themes.js";
-import type { CustomTheme, Settings, ThemeHarmony, ThemeDotType } from "../../shared/types/settings.js";
-import { DEFAULT_LAYOUT_SETTINGS } from "../../shared/layout/defaults.js";
+import { THEME_IDS } from "@features/themes/model.js";
+import type { CustomTheme, Settings, ThemeHarmony, ThemeDotType } from "@shared/types/settings.js";
+import { DEFAULT_LAYOUT_SETTINGS } from "@shared/layout/defaults.js";
+import { settingsItem } from "@shared/config/storage-items.js";
 
 const DEFAULT_CUSTOM_THEME: CustomTheme = {
     enabled: false,
@@ -95,9 +96,6 @@ export const defaultSettings: Settings = {
     keepTabsOnSwitch: true,
 };
 
-const settingsKey = 'trail_settings' as const;
-const settingsArea = chrome.storage.local;
-
 function mergeDefaults(raw: unknown): Settings {
     if (!raw || typeof raw !== 'object') {
         return {...defaultSettings};
@@ -146,7 +144,7 @@ function mergeDefaults(raw: unknown): Settings {
 
 class SettingsManager {
     private settings: Settings = { ...defaultSettings };
-    
+
     async init(): Promise<void> {
         await this.loadSettings();
     }
@@ -156,20 +154,24 @@ class SettingsManager {
     }
 
     async loadSettings(): Promise<Settings> {
-        const result = await settingsArea.get({ [settingsKey]: defaultSettings }).catch(error => {
+        try {
+            const stored = await settingsItem.getValue();
+            this.settings = mergeDefaults(stored);
+        } catch (error) {
             console.error('SettingsManager.loadSettings: Error loading settings:', error);
             throw error;
-        });
-        this.settings = mergeDefaults(result[settingsKey]);
+        }
         return this.settings;
     }
 
     async saveSettings(next: Settings): Promise<void> {
         this.settings = { ...defaultSettings, ...next };
-        await settingsArea.set({ [settingsKey]: this.settings }).catch(error => {
+        try {
+            await settingsItem.setValue(this.settings);
+        } catch (error) {
             console.error('SettingsManager.saveSettings: Error saving settings:', error);
             throw error;
-        });
+        }
     }
 
     async patch(patch: Partial<Settings>): Promise<Settings> {

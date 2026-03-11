@@ -1,9 +1,9 @@
-import { RPC_METHOD, defineRpcHandlers, ok, err } from '../../../shared/rpc/contracts.js';
+import { RPC_METHOD, defineRpcHandlers, ok, err } from '@shared/rpc/contracts.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
-import { CommandManager } from '../../../shared/lib/commands.js';
-import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
-import type { Description } from '../../../shared/types/ids.js';
+import { CommandManager } from '@shared/lib/commands.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import type { Description } from '@shared/types/ids.js';
 
 
 export const pinHandlers = defineRpcHandlers({

@@ -22,6 +22,12 @@ export const FLAG_DEFS = {
     label: 'Full View',
     description: 'Show the "Open full view" button in the graph toolbar.',
   },
+  recencyOrderingV2: {
+    type: 'boolean',
+    default: false,
+    label: 'Recency Ordering V2',
+    description: 'Enable stable recency-based branch ordering with hysteresis.',
+  },
 } as const satisfies Record<string, FlagDef>;
 
 export type FlagKey = keyof typeof FLAG_DEFS;

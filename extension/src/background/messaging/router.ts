@@ -9,8 +9,8 @@ import {
   type RequestType,
   type ResponseMessage,
 } from "../../shared/rpc/contracts.js";
-import { defineRpcHandlers } from "../../shared/rpc/contracts.js";
-import type { RpcRequestEnvelope, RpcResponseEnvelope } from "../../shared/rpc/schema.js";
+import { defineRpcHandlers } from "@shared/rpc/contracts.js";
+import type { RpcRequestEnvelope, RpcResponseEnvelope } from "@shared/rpc/schema.js";
 import {
   createRpcErrorEnvelope,
   parseRpcRequestEnvelope,
@@ -31,11 +31,13 @@ import { siteMessageHandlers } from "./handlers/site-message-handlers.js";
 import { editorHandlers } from "./handlers/editor-handlers.js";
 import { oauthAuthHandlers } from "./handlers/oauth-auth-handlers.js";
 import { flagsHandlers } from "./handlers/flags-handlers.js";
+import { spotlightHandlers } from "./handlers/spotlight-handlers.js";
+import { browser, type RuntimeMessageSender } from '@shared/platform/webext.js';
 
 type AnyResponse = ResponseMessage<RequestType>;
 type AnyHandler = (
   message: RequestMessage,
-  sender: chrome.runtime.MessageSender,
+  sender: RuntimeMessageSender,
 ) => Promise<AnyResponse> | AnyResponse;
 
 function err(error: string): Err {
@@ -71,7 +73,7 @@ function createMessageRouter() {
 
   async function dispatch(
     message: RequestMessage,
-    sender: chrome.runtime.MessageSender,
+    sender: RuntimeMessageSender,
   ): Promise<AnyResponse> {
     if (!TYPED_TYPES.has(message.type)) {
       return err(`Unknown message type: ${message.type}`);
@@ -90,7 +92,7 @@ function createMessageRouter() {
 
   async function dispatchRpcEnvelope(
     rawMessage: unknown,
-    sender: chrome.runtime.MessageSender,
+    sender: RuntimeMessageSender,
   ): Promise<RpcResponseEnvelope> {
     const request = parseRpcRequestEnvelope(rawMessage);
     if (!request) {
@@ -113,12 +115,9 @@ function createMessageRouter() {
   }
 
   function listen() {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      (async () => {
-        const res = await dispatchRpcEnvelope(message, sender);
-        sendResponse(res);
-      })();
-      return true; // Keep channel open for async response
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      dispatchRpcEnvelope(message, sender).then(sendResponse);
+      return true; // keep channel open for async response
     });
   }
 
@@ -146,5 +145,6 @@ export function initMessaging(): void {
     .merge(oauthAuthHandlers)
     .merge(editorHandlers)
     .merge(flagsHandlers)
+    .merge(spotlightHandlers)
     .listen();
 }

@@ -1,4 +1,4 @@
-import { NodeId, now, Timestamp } from "../../shared/types/ids.js";
+import { NodeId, now, Timestamp } from "@shared/types/ids.js";
 let nodeIdCounter = 0 as NodeId;
 
 function nextNodeId(): NodeId {

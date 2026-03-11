@@ -1,8 +1,9 @@
-import type { NodeId, TabId, Url } from '../../shared/types/ids.js';
-import type { TempSelectionOptions } from '../../shared/rpc/contracts.js';
+import type { NodeId, TabId, Url } from '@shared/types/ids.js';
+import type { TempSelectionOptions } from '@shared/rpc/contracts.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from './tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
+import { browser, type Tab } from '@shared/platform/webext.js';
 
 type SessionId = string;
 
@@ -15,18 +16,18 @@ type TempSelectionState = {
   options: Required<TempSelectionOptions>;
 };
 
-async function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
-  const active = await chrome.tabs.query({ active: true, currentWindow: true });
+async function getActiveTab(): Promise<Tab | undefined> {
+  const active = await browser.tabs.query({ active: true, currentWindow: true });
   return active[0];
 }
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
-    const tab = await chrome.tabs.get(tabId);
+    const tab = await browser.tabs.get(tabId);
     if (tab.windowId !== undefined) {
-      await chrome.windows.update(tab.windowId, { focused: true });
+      await browser.windows.update(tab.windowId, { focused: true });
     }
-    await chrome.tabs.update(tabId, { active: true });
+    await browser.tabs.update(tabId, { active: true });
     return true;
   } catch {
     return false;
@@ -158,7 +159,7 @@ export class TemporaryTabSelectionManager {
     }
 
     if (session.options.allowCreateOnCommit) {
-      const created = await chrome.tabs.create({
+      const created = await browser.tabs.create({
         url: node.data.url as Url,
         active: true,
       });

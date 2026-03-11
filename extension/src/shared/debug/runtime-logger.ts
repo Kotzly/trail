@@ -1,3 +1,4 @@
+import { hasRuntimeGetURL, runtimeGetURL } from '@shared/platform/webext.js';
 type RuntimeDebugConfig = {
   runId: string;
   serverEndpoint: string;
@@ -19,12 +20,12 @@ async function loadRuntimeDebugConfig(): Promise<RuntimeDebugConfig | null> {
   }
 
   configPromise = (async () => {
-    if (typeof chrome === "undefined" || !chrome.runtime?.getURL) {
+    if (!hasRuntimeGetURL()) {
       return null;
     }
 
     try {
-      const url = chrome.runtime.getURL("runtime-debug.json");
+      const url = runtimeGetURL('runtime-debug.json');
       const response = await fetch(url, { cache: "no-store" });
       if (!response.ok) {
         return null;

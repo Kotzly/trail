@@ -1,4 +1,4 @@
-import { RPC_METHOD, defineRpcHandlers, ok } from "../../../shared/rpc/contracts.js";
+import { RPC_METHOD, defineRpcHandlers, ok } from "@shared/rpc/contracts.js";
 import { authOrchestrator } from "../../services/auth-orchestrator.js";
 
 export const oauthAuthHandlers = defineRpcHandlers({

@@ -1,4 +1,4 @@
-import { ThemeId } from "../../sidepanel/ui/shared/themes.js";
+import type { ThemeId } from "./theme.js";
 
 export type ThemeDotType = 'explicit-lightness' | 'explicit-black-white';
 

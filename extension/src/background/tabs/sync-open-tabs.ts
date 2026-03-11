@@ -1,10 +1,11 @@
-import type { FaviconUrl, NodeId, TabId, Title, Url } from '../../shared/types/ids.js';
+import type { FaviconUrl, NodeId, TabId, Title, Url } from '@shared/types/ids.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
 import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from '../utils/url-utils.js';
 import { handleNewTabTab } from '../utils/new-tab.js';
-import type { NodeData } from '../../shared/types/node.js';
+import type { NodeData } from '@shared/types/node.js';
+import { browser } from '@shared/platform/webext.js';
 
 let syncPromise: Promise<void> | null = null;
 
@@ -14,7 +15,7 @@ export async function syncOpenTabs(): Promise<void> {
     const tree = await treeStorage.getOrCreateTree();
     tabManager.reset();
 
-    const tabs = await chrome.tabs.query({});
+    const tabs = await browser.tabs.query({});
     const touched: Array<{ tabId: TabId; nodeId: NodeId; lastAccessed: number }> = [];
 
     const validTabs = tabs.filter((tab) => tab.id && tab.url);
@@ -47,7 +48,7 @@ export async function syncOpenTabs(): Promise<void> {
     });
 
     const prevCurrentId = tree.getCurrentId();
-    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const [activeTab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
     if (activeTab?.id && activeTab.url) {
       const activeUrl = activeTab.url as Url;
       if (isNewTabContext(activeUrl, activeTab.title)) {

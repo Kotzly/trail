@@ -13,17 +13,24 @@
  * Tree pulls happen on-demand (user opens a tree), NOT during sync cycle.
  */
 
-import { uuidv7 } from '../../../shared/lib/uuid.js';
-import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
-import { findBestTrailFavicon } from '../../../shared/lib/tree-favicon.js';
-import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary, ArchiveIndexEntry } from '../../../shared/types/tree.js';
-import type { FaviconUrl, Title, Url } from '../../../shared/types/ids.js';
+import { uuidv7 } from '@shared/lib/uuid.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import { findBestTrailFavicon } from '@shared/lib/tree-favicon.js';
+import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary, ArchiveIndexEntry } from '@shared/types/tree.js';
+import type { FaviconUrl, Title, Url } from '@shared/types/ids.js';
 import { notifyTreesUpdate } from '../../messaging/notifications.js';
 import { treeStorage } from '../tree-storage.js';
 import { syncApi, SyncApiError, isAuthenticated } from './api.js';
 import type { IndexSyncMeta } from './api.js';
 import { dirtyTracker } from './dirty-tracker.js';
 import { migrateV2ToV3 } from './migration.js';
+import { browser } from '@shared/platform/webext.js';
+import {
+  activeTreeItem,
+  activeTreeMetaItem,
+  archiveIndexItem,
+  syncDeviceIdItem,
+} from '../../../shared/config/storage-items.js';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -32,8 +39,6 @@ import { migrateV2ToV3 } from './migration.js';
 const SYNC_ALARM_NAME = 'trail-sync-v3' as const;
 const SYNC_ALARM_MINUTES = 1;
 const MUTATION_DEBOUNCE_MS = 3000;
-const DEVICE_ID_KEY = 'trail_sync_device_id' as const;
-const TREE_STORAGE_KEYS = new Set(['trail_tree', 'trail_tree_meta', 'trail_tree_archives']);
 
 const BACKOFF_SCHEDULE = [2000, 4000, 8000, 16000, 32000, 60000] as const;
 
@@ -100,17 +105,18 @@ class SyncEngine {
     // Run one-time v2→v3 migration before first sync
     void migrateV2ToV3();
 
-    // Listen for local tree mutations
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-      this.handleStorageChanges(changes, areaName);
-    });
+    // Listen for local tree mutations via per-item watchers
+    const onMutation = () => this.onTreeMutation();
+    activeTreeItem.watch(onMutation);
+    activeTreeMetaItem.watch(onMutation);
+    archiveIndexItem.watch(onMutation);
 
     // Periodic alarm
-    chrome.alarms?.onAlarm.addListener((alarm) => {
+    browser.alarms?.onAlarm.addListener((alarm) => {
       if (alarm.name !== SYNC_ALARM_NAME) return;
       void this.syncNow('alarm');
     });
-    chrome.alarms?.create(SYNC_ALARM_NAME, { periodInMinutes: SYNC_ALARM_MINUTES });
+    browser.alarms?.create(SYNC_ALARM_NAME, { periodInMinutes: SYNC_ALARM_MINUTES });
 
     // Initial sync after startup
     this.schedule(1000);
@@ -355,19 +361,11 @@ class SyncEngine {
   }
 
   /* ---------------------------------------------------------------- */
-  /*  Storage change listener                                          */
+  /*  Tree mutation handler (called by per-item watchers)               */
   /* ---------------------------------------------------------------- */
 
-  private handleStorageChanges(
-    changes: Record<string, chrome.storage.StorageChange>,
-    areaName: string,
-  ): void {
-    if (areaName !== 'local') return;
+  private onTreeMutation(): void {
     if (this.applyingRemote) return;
-
-    const changedKeys = Object.keys(changes);
-    const treeChanged = changedKeys.some((key) => TREE_STORAGE_KEYS.has(key));
-    if (!treeChanged) return;
 
     // Mark the active tree as dirty so the next sync cycle pushes it
     void treeStorage.getActiveMeta().then((meta) => {
@@ -402,11 +400,10 @@ class SyncEngine {
   /* ---------------------------------------------------------------- */
 
   private async getOrCreateDeviceId(): Promise<string> {
-    const result = await chrome.storage.local.get(DEVICE_ID_KEY);
-    const existing = result[DEVICE_ID_KEY];
+    const existing = await syncDeviceIdItem.getValue();
     if (typeof existing === 'string' && existing) return existing;
     const generated = uuidv7();
-    await chrome.storage.local.set({ [DEVICE_ID_KEY]: generated });
+    await syncDeviceIdItem.setValue(generated);
     return generated;
   }
 }

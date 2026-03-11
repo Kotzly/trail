@@ -1,4 +1,4 @@
-import type { NodeId, TabId } from "../../shared/types/ids.js";
+import type { NodeId, TabId } from "@shared/types/ids.js";
 
 export class LruManager {
     private set: Set<TabId>;

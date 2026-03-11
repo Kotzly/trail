@@ -1,7 +1,8 @@
-import type { Url } from '../../shared/types/ids.js';
+import type { Url } from '@shared/types/ids.js';
 import { shouldTrackUrl } from './url-utils.js';
+import { type Tab } from '@shared/platform/webext.js';
 
-export function resolveTabUrl(tab: chrome.tabs.Tab): Url | null {
+export function resolveTabUrl(tab: Tab): Url | null {
   const urlCandidate = tab.url ?? null;
   const pendingCandidate = tab.pendingUrl ?? null;
 

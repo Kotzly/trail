@@ -1,7 +1,8 @@
-import type { NodeId, TabId } from "../../shared/types/ids.js";
+import type { NodeId, TabId } from "@shared/types/ids.js";
 import { NavigationTree } from "./nav-tree.js";
 import { TabIndex } from "./tab-index.js";
 import { LruManager } from "./tab-lru.js";
+import { browser } from '@shared/platform/webext.js';
 
 export class TabManager {
     private index: TabIndex;
@@ -165,6 +166,16 @@ export class TabManager {
       return [...tabsSet].sort((a, b) => this.lru.getLastUsed(b) - this.lru.getLastUsed(a));
     }
 
+    getNodeRecency(nodeId: NodeId): number {
+      const tabsSet = this.index.tabsByNode(nodeId);
+      if (!tabsSet || tabsSet.size === 0) return 0;
+      let max = 0;
+      for (const tabId of tabsSet) {
+        max = Math.max(max, this.lru.getLastUsed(tabId));
+      }
+      return max;
+    }
+
     private isCycleOrderValid(order: TabId[] | undefined, tabsSet: Set<TabId>): order is TabId[] {
       if (!order || order.length !== tabsSet.size) return false;
       for (const tabId of order) {
@@ -205,7 +216,7 @@ export class TabManager {
         if (options?.activeTabIds && options.activeTabIds.has(tabId)) continue;
         if (options?.skipLoading) {
           try {
-            const tab = await chrome.tabs.get(tabId);
+            const tab = await browser.tabs.get(tabId);
             if (tab.status === 'loading') continue;
           } catch {
             this.unregister(tabId);
@@ -219,7 +230,7 @@ export class TabManager {
       if (!tabIdToClose) return null; // All tabs are pinned
 
       try {
-        await chrome.tabs.remove(tabIdToClose);
+        await browser.tabs.remove(tabIdToClose);
         this.unregister(tabIdToClose);
         return tabIdToClose;
       } catch {

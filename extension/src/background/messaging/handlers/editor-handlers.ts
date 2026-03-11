@@ -7,11 +7,11 @@ import {
 } from '../../../shared/rpc/contracts.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
-import { NavigationTreeMapper } from '../../../shared/lib/mapper.js';
-import { CommandManager } from '../../../shared/lib/commands.js';
-import type { Description, NodeId } from '../../../shared/types/ids.js';
+import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import { CommandManager } from '@shared/lib/commands.js';
+import type { Description, NodeId } from '@shared/types/ids.js';
 import type { NavigationTree } from '../../state/nav-tree.js';
-import type { NavigationNode, NodeData } from '../../../shared/types/node.js';
+import type { NavigationNode, NodeData } from '@shared/types/node.js';
 import { TreeNode } from '../../state/tree-node.js';
 import { loadTree } from '../../services/tree-loader.js';
 import {
@@ -20,8 +20,9 @@ import {
   editorSyncFlush,
   editorSyncStop,
 } from '../../services/editor-sync.js';
-import { isAllowedSiteOrigin } from '../../../shared/config/site-origins.js';
-import type { NavigationTreeJSON } from '../../../shared/types/tree.js';
+import { isAllowedSiteOrigin } from '@shared/config/site-origins.js';
+import type { NavigationTreeJSON } from '@shared/types/tree.js';
+import { browser } from '@shared/platform/webext.js';
 
 /* ------------------------------------------------------------------ */
 /*  Editor mode tracking (in-memory, background service worker)        */
@@ -106,7 +107,7 @@ function registerCloneInTree(_tree: NavigationTree, _node: NavigationNode): void
  */
 async function broadcastEditorExitToSite(): Promise<void> {
   try {
-    const tabs = await chrome.tabs.query({});
+    const tabs = await browser.tabs.query({});
     const payload = {
       source: 'trail-extension',
       type: 'EDITOR_MODE_EXITED',
@@ -123,7 +124,7 @@ async function broadcastEditorExitToSite(): Promise<void> {
       }
       if (!isAllowedSiteOrigin(origin)) continue;
 
-      chrome.tabs.sendMessage(tab.id, {
+      browser.tabs.sendMessage(tab.id, {
         type: 'RELAY_TO_SITE',
         payload,
       }).catch(() => { /* tab has no content script — ignore */ });

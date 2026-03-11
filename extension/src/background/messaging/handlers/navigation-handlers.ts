@@ -1,21 +1,23 @@
-import type { TabId } from '../../../shared/types/ids.js';
-import { RPC_METHOD, defineRpcHandlers } from '../../../shared/rpc/contracts.js';
+import type { TabId } from '@shared/types/ids.js';
+import { RPC_METHOD, defineRpcHandlers } from '@shared/rpc/contracts.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { treeStorage } from '../../services/tree-storage.js';
 import { notifyTreeUpdate } from '../notifications.js';
-import { ok, err } from '../../../shared/rpc/contracts.js';
+import { ok, err } from '@shared/rpc/contracts.js';
 import { getActiveTab } from '../../tabs/lifecycle.js';
 import { tempSelectionManager } from '../../services/temporary-selection.js';
 import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
 import { getEditorState } from './editor-handlers.js';
+import { browser } from '@shared/platform/webext.js';
+import { markNodeVisited } from '../../state/node-recency.js';
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
-    const tab = await chrome.tabs.get(tabId);
+    const tab = await browser.tabs.get(tabId);
     if (tab.windowId !== undefined) {
-      await chrome.windows.update(tab.windowId, { focused: true });
+      await browser.windows.update(tab.windowId, { focused: true });
     }
-    await chrome.tabs.update(tabId, { active: true });
+    await browser.tabs.update(tabId, { active: true });
     return true;
   } catch (e) {
     return false;
@@ -53,6 +55,7 @@ export const navigationHandlers = defineRpcHandlers({
         tabManager.suppressNextTouch(nextTabId as TabId);
         const focused = await focusTab(nextTabId as TabId);
         if (focused) {
+          markNodeVisited(tree, message.nodeId);
           tree.setCurrentById(message.nodeId);
           treeStorage.cacheTree(tree);
           await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
@@ -67,6 +70,7 @@ export const navigationHandlers = defineRpcHandlers({
       const focused = await focusTab(tabId as TabId);
       if (focused) {
         tabManager.touch(tabId as TabId, message.nodeId);
+        markNodeVisited(tree, message.nodeId);
         tree.setCurrentById(message.nodeId);
         treeStorage.cacheTree(tree);
         await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
@@ -75,8 +79,8 @@ export const navigationHandlers = defineRpcHandlers({
       tabManager.unregister(tabId as TabId);
     }
 
-    const targetWindow = await chrome.windows.getLastFocused();
-    const created = await chrome.tabs.create({
+    const targetWindow = await browser.windows.getLastFocused();
+    const created = await browser.tabs.create({
       windowId: targetWindow?.id,
       url: node.data.url,
       active: true,
@@ -86,6 +90,7 @@ export const navigationHandlers = defineRpcHandlers({
       const lastUsed = Number.isFinite(created.lastAccessed) ? created.lastAccessed : undefined;
       const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
       tabManager.register(message.nodeId, created.id as TabId, registerOptions);
+      markNodeVisited(tree, message.nodeId, lastUsed);
     }
 
     tree.setCurrentById(message.nodeId);
@@ -191,6 +196,7 @@ export const navigationHandlers = defineRpcHandlers({
       const focused = await focusTab(tabId as TabId);
       if (focused) {
         tabManager.touch(tabId as TabId, message.nodeId);
+        markNodeVisited(tree, message.nodeId);
         tree.setCurrentById(message.nodeId);
         treeStorage.cacheTree(tree);
         await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
@@ -199,8 +205,8 @@ export const navigationHandlers = defineRpcHandlers({
       tabManager.unregister(tabId as TabId);
     }
 
-    const targetWindow = await chrome.windows.getLastFocused();
-    const created = await chrome.tabs.create({
+    const targetWindow = await browser.windows.getLastFocused();
+    const created = await browser.tabs.create({
       windowId: targetWindow?.id,
       url: node.data.url,
       active: true,
@@ -210,6 +216,7 @@ export const navigationHandlers = defineRpcHandlers({
       const lastUsed = Number.isFinite(created.lastAccessed) ? created.lastAccessed : undefined;
       const registerOptions = lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
       tabManager.register(message.nodeId, created.id as TabId, registerOptions);
+      markNodeVisited(tree, message.nodeId, lastUsed);
     }
 
     tree.setCurrentById(message.nodeId);
@@ -227,7 +234,7 @@ export const navigationHandlers = defineRpcHandlers({
     const node = tree.findNodeById(message.nodeId);
     if (!node) return err('Node not found');
 
-    const tab = await chrome.tabs.create({ url: node.data.url, active: false });
+    const tab = await browser.tabs.create({ url: node.data.url, active: false });
     if (tab.id !== undefined) {
       const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
       const registerOptions = lastUsed === undefined ? { touch: false } : { touch: false, lastUsed };

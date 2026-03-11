@@ -1,4 +1,4 @@
-import type { NavigationNode, NodeData } from '../../shared/types/node.js';
+import type { NavigationNode, NodeData } from '@shared/types/node.js';
 import type { NavigationTree } from '../state/nav-tree.js';
 import type { TreeNode } from '../state/tree-node.js';
 

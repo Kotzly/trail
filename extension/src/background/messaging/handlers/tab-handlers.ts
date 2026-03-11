@@ -1,11 +1,12 @@
-import type { NodeId, TabId } from '../../../shared/types/ids.js';
-import { RPC_METHOD, defineRpcHandlers } from '../../../shared/rpc/contracts.js';
+import type { NodeId, TabId } from '@shared/types/ids.js';
+import { RPC_METHOD, defineRpcHandlers } from '@shared/rpc/contracts.js';
 import { tabManager } from '../../state/tab-manager.js';
 import { notifyTreeUpdate } from '../notifications.js';
 import { treeStorage } from '../../services/tree-storage.js';
-import { ok, err } from '../../../shared/rpc/contracts.js';
+import { ok, err } from '@shared/rpc/contracts.js';
 import { NavigationTree } from '../../state/nav-tree.js';
 import { getEditorState } from './editor-handlers.js';
+import { browser, type Tab } from '@shared/platform/webext.js';
 
 
 
@@ -16,7 +17,7 @@ export const tabHandlers = defineRpcHandlers({
     const tabs = await Promise.all(
       tabIds.map(async (tabId) => {
         try {
-          return await chrome.tabs.get(tabId as TabId);
+          return await browser.tabs.get(tabId as TabId);
         } catch (error) {
           tabManager.unregister(tabId as TabId);
           console.error('Failed to get tab:', error);
@@ -25,7 +26,7 @@ export const tabHandlers = defineRpcHandlers({
       }),
     );
 
-    return ok({ tabs: tabs.filter((tab): tab is chrome.tabs.Tab => Boolean(tab)) });
+    return ok({ tabs: tabs.filter((tab): tab is Tab => Boolean(tab)) });
   },
 
   async [RPC_METHOD.TOGGLE_MUTE](message) {
@@ -39,9 +40,9 @@ export const tabHandlers = defineRpcHandlers({
     if (!tabsForNode?.has(tabId)) return err('Tab not found');
 
     try {
-      const tab = await chrome.tabs.get(tabId);
+      const tab = await browser.tabs.get(tabId);
       const newMuted = !tab.mutedInfo?.muted;
-      await chrome.tabs.update(tabId, { muted: newMuted });
+      await browser.tabs.update(tabId, { muted: newMuted });
       return ok();
     } catch (e) {
       return err((e as Error).message);
@@ -59,7 +60,7 @@ export const tabHandlers = defineRpcHandlers({
 
     const tree = await treeStorage.getOrCreateTree();
     try {
-      await chrome.tabs.remove(tabId);
+      await browser.tabs.remove(tabId);
       await unregisterTabForNode(tree, nodeId, tabId);
       await notifyTreeUpdate(tree, 'tabs');
       return ok();
@@ -77,7 +78,7 @@ export const tabHandlers = defineRpcHandlers({
     const { nodeIds } = message;
     nodeIds.forEach(async (nodeId) => {
       tabManager.tabsByNode(nodeId).forEach(async (tabId) => {
-        chrome.tabs.remove(tabId).catch(console.error).then(async () => await unregisterTabForNode(tree, nodeId, tabId));
+        browser.tabs.remove(tabId).catch(console.error).then(async () => await unregisterTabForNode(tree, nodeId, tabId));
       })
     })
    

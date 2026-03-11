@@ -3,11 +3,13 @@ import { initMessaging } from './messaging/router.js';
 import { initWebNavigation } from './navigation/webnavigation.js';
 import { initTabsLifecycle } from './tabs/lifecycle.js';
 import { syncOpenTabs } from './tabs/sync-open-tabs.js';
-import { CommandManager } from '../shared/lib/commands.js';
+import { CommandManager } from '@shared/lib/commands.js';
 import { syncEngine } from './services/sync/engine.js';
-import { initBackendConfig } from '../shared/config/backend.js';
+import { initBackendConfig } from '@shared/config/backend.js';
 import { authOrchestrator } from './services/auth-orchestrator.js';
 import { accountKeeper } from './services/account-keeper.js';
+import { browser } from '@shared/platform/webext.js';
+import { initSpotlightCommand } from './spotlight-command.js';
 
 // Catch unhandled promise rejections so they don't silently disappear
 // in the service worker context.
@@ -25,11 +27,16 @@ void CommandManager.init();
 syncEngine.init();
 authOrchestrator.init();
 accountKeeper.init();
+initSpotlightCommand();
 
-const sidePanel = chrome?.sidePanel;
+const sidePanel = (browser as unknown as {
+  sidePanel?: {
+    setPanelBehavior?: (behavior: { openPanelOnActionClick: boolean }) => Promise<void> | void;
+  };
+})?.sidePanel;
 
 if (sidePanel?.setPanelBehavior) {
-  sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err) => {
+  void Promise.resolve(sidePanel.setPanelBehavior({ openPanelOnActionClick: true })).catch((err: unknown) => {
     console.warn('Failed to set side panel behavior', err);
   });
 }

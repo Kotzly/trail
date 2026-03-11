@@ -1,20 +1,22 @@
-import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '../../shared/types/ids.js';
-import type { TreeViewIntent } from '../../shared/rpc/contracts.js';
-import { NodeMetaPatch, updateNodeMeta, type NodeData } from '../../shared/types/node.js';
+import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '@shared/types/ids.js';
+import type { TreeViewIntent } from '@shared/rpc/contracts.js';
+import { NodeMetaPatch, updateNodeMeta, type NodeData } from '@shared/types/node.js';
 import { tabManager } from '../state/tab-manager.js';
 import { treeStorage } from '../services/tree-storage.js';
 import { redirectDetector } from './redirect-detection.js';
 import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
 import { handleNewTabTab } from '../utils/new-tab.js';
 import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { createUrlKey } from '../../shared/lib/url-key.js';
+import { createUrlKey } from '@shared/lib/url-key.js';
+import { browser, type Browser, type Tab } from '@shared/platform/webext.js';
+import { markNodeVisited } from '../state/node-recency.js';
 
 /**
  * Handle navigation events and add to tree.
  * Always uses multi-tab mode.
  */
 export async function handleNavigation(
-  details: chrome.webNavigation.WebNavigationFramedCallbackDetails,
+  details: Browser.webNavigation.WebNavigationFramedCallbackDetails,
   _transitionType?: string
 ): Promise<void> {
   const { tabId, url, frameId } = details;
@@ -23,9 +25,9 @@ export async function handleNavigation(
   if (tabManager.isIgnoredTab(tabId as TabId)) return;
 
   // Ensure tab still exists
-  let tab: chrome.tabs.Tab;
+  let tab: Tab;
   try {
-    tab = await chrome.tabs.get(tabId);
+    tab = await browser.tabs.get(tabId);
   } catch (e) {
     return; // Tab no longer exists
   }
@@ -103,6 +105,9 @@ export async function handleNavigation(
           } as NodeData;
           didMutate = true;
           tabManager.register(node.id, tabId as TabId, registerOptions(isActiveTab));
+          if (isActiveTab) {
+            markNodeVisited(tree, node.id, lastUsed);
+          }
           if (!isActiveTab && prevCurrentId !== null) {
             tree.setCurrentById(prevCurrentId);
           } else {
@@ -117,6 +122,9 @@ export async function handleNavigation(
           wasNewNodeCreated = true; // New node was created
           // Re-register tab with new node (global) - this automatically unregisters from old node
           tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
+          if (isActiveTab) {
+            markNodeVisited(tree, newNode.id, lastUsed);
+          }
           // Update currentNode to new node only if tab is active
           if (!isActiveTab && prevCurrentId !== null) {
             tree.setCurrentById(prevCurrentId);
@@ -139,6 +147,10 @@ export async function handleNavigation(
       }
       if (isActiveTab) {
         tabManager.touch(tabId as TabId, existingNodeId);
+        const resolvedNodeId = tabManager.nodeByTab(tabId as TabId);
+        if (resolvedNodeId !== undefined) {
+          markNodeVisited(tree, resolvedNodeId, lastUsed);
+        }
       }
     } else {
       // New tab without existing node
@@ -163,11 +175,17 @@ export async function handleNavigation(
         }
         // Register this tab with the existing node - this automatically unregisters from old node if any
         tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
+        if (isActiveTab) {
+          markNodeVisited(tree, newNode.id, lastUsed);
+        }
       } else {
         didMutate = true;
         newNode = tree.navigate(data);
         wasNewNodeCreated = true;
         tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
+        if (isActiveTab) {
+          markNodeVisited(tree, newNode.id, lastUsed);
+        }
         if (!isActiveTab && prevCurrentId !== null) {
           tree.setCurrentById(prevCurrentId);
         } else {

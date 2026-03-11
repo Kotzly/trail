@@ -5,6 +5,7 @@ import { NavigationTreeJSON, TreeMeta, TreeSummary, ArchiveIndexEntry } from "..
 import type { TagDefinition } from "../types/tags.js";
 import type { TrailExportBundle } from "../types/export.js";
 import type { FlagKey, ResolvedFlags } from "../types/flags.js";
+import { type RuntimeMessageSender, type Tab } from '@shared/platform/webext.js';
 
 export const RPC_METHOD = {
     NAVIGATE_TO: 'NAVIGATE_TO',
@@ -34,6 +35,7 @@ export const RPC_METHOD = {
     GET_TREES: 'GET_TREES',
     CLEAR_TREE: 'CLEAR_TREE',
     NEW_TREE: 'NEW_TREE',
+    ARCHIVE_ACTIVE_TREE: 'ARCHIVE_ACTIVE_TREE',
     OPEN_TREE: 'OPEN_TREE',
     RENAME_TREE: 'RENAME_TREE',
     DELETE_ARCHIVED_TREE: 'DELETE_ARCHIVED_TREE',
@@ -70,6 +72,14 @@ export const RPC_METHOD = {
     GET_FLAGS: 'GET_FLAGS',
     SET_FLAG: 'SET_FLAG',
     RESET_FLAGS: 'RESET_FLAGS',
+    GET_SPOTLIGHT_DATA: 'GET_SPOTLIGHT_DATA',
+    SPOTLIGHT_BOOTSTRAP: 'SPOTLIGHT_BOOTSTRAP',
+    SPOTLIGHT_SEARCH: 'SPOTLIGHT_SEARCH',
+    SPOTLIGHT_GET_TREE_PREVIEW: 'SPOTLIGHT_GET_TREE_PREVIEW',
+    SPOTLIGHT_EXECUTE_ACTION: 'SPOTLIGHT_EXECUTE_ACTION',
+    SPOTLIGHT_DISPOSE_SESSION: 'SPOTLIGHT_DISPOSE_SESSION',
+    SPOTLIGHT_EXECUTE_BATCH_ACTION: 'SPOTLIGHT_EXECUTE_BATCH_ACTION',
+    TOGGLE_SPOTLIGHT: 'TOGGLE_SPOTLIGHT',
 } as const;
 
 export type RequestType = typeof RPC_METHOD[keyof typeof RPC_METHOD];
@@ -139,6 +149,7 @@ export type GetTreeMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREE>;
 export type GetTreesMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREES>;
 export type ClearTreeMessage = RequestMessageBase<typeof RPC_METHOD.CLEAR_TREE>;
 export type NewTreeMessage = RequestMessageBase<typeof RPC_METHOD.NEW_TREE, { label: string }>;
+export type ArchiveActiveTreeMessage = RequestMessageBase<typeof RPC_METHOD.ARCHIVE_ACTIVE_TREE>;
 export type OpenTreeMessage = RequestMessageBase<typeof RPC_METHOD.OPEN_TREE, { treeId: string }>;
 export type EnsureTreeLoadedMessage = RequestMessageBase<typeof RPC_METHOD.ENSURE_TREE_LOADED, { treeId: string }>;
 export type SyncTreesMessage = RequestMessageBase<typeof RPC_METHOD.SYNC_TREES>;
@@ -240,6 +251,213 @@ export type GetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.GET_FLAGS>;
 export type SetFlagMessage = RequestMessageBase<typeof RPC_METHOD.SET_FLAG, SetFlagInput>;
 export type ResetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.RESET_FLAGS>;
 
+// ==== Spotlight ====
+
+export type SpotlightSuggestionGroup = 'open-tabs' | 'recently-closed' | 'current-tree' | 'other-trees';
+export type SpotlightSearchSessionId = string;
+export type SpotlightMode = 'discover' | 'search' | 'commands';
+export type SpotlightItemKind = 'node' | 'tree' | 'action';
+export type SpotlightActionSafety = 'safe' | 'destructive';
+export type SpotlightSectionId =
+  | 'continue'
+  | 'actions'
+  | 'pins'
+  | 'open-tabs'
+  | 'recent'
+  | 'current-tree'
+  | 'other-trees'
+  | 'archived-trees'
+  | 'trees'
+  | 'external'
+  | 'matches'
+  | 'scoped-pages'
+  | 'frequent'
+  | 'recent-searches';
+
+export type SpotlightTreeRelation =
+  | 'current'
+  | 'parent'
+  | 'child'
+  | 'sibling'
+  | 'same-branch'
+  | 'other-branch';
+
+export type SpotlightHighlightRange = {
+  start: number;
+  end: number;
+};
+
+export type SpotlightHighlightMap = {
+  title: SpotlightHighlightRange[];
+  url: SpotlightHighlightRange[];
+};
+
+export type SpotlightActionId =
+  | 'open'
+  | 'open-node-in-tree'
+  | 'open-tree'
+  | 'open-url-only'
+  | 'search-default-engine'
+  | 'open-url'
+  | 'copy-url'
+  | 'pin'
+  | 'unpin'
+  | 'close-tab'
+  | 'close-tabs'
+  | 'archive-current-tree'
+  | 'delete-archived-tree'
+  | 'export-tree'
+  | 'new-tree'
+  | 'show-command-help'
+  | 'open-settings'
+  | 'toggle-sidebar'
+  | 'clear-history';
+
+export type SpotlightActionTarget =
+  | { kind: 'node'; nodeId: NodeId; treeId: string }
+  | { kind: 'tree'; treeId: string }
+  | { kind: 'url'; url: string }
+  | { kind: 'search'; query: string }
+  | { kind: 'global' };
+
+export type SpotlightGraphPreviewData = {
+  treeId: string;
+  treeName: string;
+  tree: NavigationTreeJSON;
+  currentNodeId: NodeId | null;
+  openNodeIds: NodeId[];
+  tabStates: Record<NodeId, TabState>;
+  nodeTabCounts: Record<NodeId, number>;
+  nodeRecency: Record<NodeId, number>;
+};
+
+export type SpotlightNodeResult = {
+  kind: 'node';
+  key: string;
+  nodeId: NodeId;
+  title: string;
+  url: string;
+  favicon?: string | undefined;
+  group: SpotlightSuggestionGroup;
+  recency: number;
+  isCurrent: boolean;
+  treeRelation: SpotlightTreeRelation;
+  tabCount: number;
+  pinned: boolean;
+  treeId: string;
+  treeName: string;
+  score: number;
+  groupBadge: 'Open' | 'Recent' | 'Tree' | 'Archived';
+  highlights: SpotlightHighlightMap;
+  why: string[];
+};
+
+export type SpotlightTreeResult = {
+  kind: 'tree';
+  key: string;
+  treeId: string;
+  treeName: string;
+  rootUrl: string;
+  favicon?: string | undefined;
+  recency: number;
+  score: number;
+  groupBadge: 'Archived';
+  highlights: SpotlightHighlightMap;
+  why: string[];
+};
+
+export type SpotlightActionResult = {
+  kind: 'action';
+  key: string;
+  actionId: SpotlightActionId;
+  title: string;
+  subtitle: string;
+  safety: SpotlightActionSafety;
+  shortcutHint: 'Enter';
+  target?: SpotlightActionTarget;
+};
+
+export type SpotlightSearchResult =
+  | SpotlightNodeResult
+  | SpotlightTreeResult
+  | SpotlightActionResult;
+
+export type SpotlightSection = {
+  id: SpotlightSectionId;
+  title: string;
+  items: SpotlightSearchResult[];
+};
+
+export type SpotlightSearchRequest = {
+  sessionId: SpotlightSearchSessionId;
+  query: string;
+  limit: number;
+  requestSeq: number;
+  scopeTreeId?: string;
+};
+
+export type SpotlightExecuteActionRequest = {
+  actionId: SpotlightActionId;
+  target?: SpotlightActionTarget;
+  query?: string;
+};
+
+export type SpotlightBatchActionId = 'batch-copy-urls' | 'batch-close-tabs' | 'batch-pin' | 'batch-unpin';
+
+export type SpotlightExecuteBatchActionRequest = {
+  actionId: SpotlightBatchActionId;
+  targets: SpotlightActionTarget[];
+};
+
+export type SpotlightExecuteActionResponse = {
+  closeSpotlight: boolean;
+  statusText?: string;
+};
+
+export type SpotlightSearchResponse = {
+  requestSeq: number;
+  mode: SpotlightMode;
+  sections: SpotlightSection[];
+};
+
+export type SpotlightGetTreePreviewRequest = {
+  treeId: string;
+};
+
+export type SpotlightBootstrapData = {
+  sessionId: SpotlightSearchSessionId;
+  mode: SpotlightMode;
+  sections: SpotlightSection[];
+  activeTreeId: string;
+  activeTreeName: string;
+  tree: NavigationTreeJSON;
+  currentNodeId: NodeId | null;
+  openNodeIds: NodeId[];
+  nodeRecency: Record<NodeId, number>;
+  nodeTabCounts: Record<NodeId, number>;
+  docCount: number;
+  recentQueries?: string[];
+  flags?: ResolvedFlags;
+  settings: Settings;
+};
+
+/** @deprecated Use SPOTLIGHT_BOOTSTRAP instead. */
+export type GetSpotlightDataMessage = RequestMessageBase<typeof RPC_METHOD.GET_SPOTLIGHT_DATA>;
+export type SpotlightBootstrapMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_BOOTSTRAP, {
+  limit?: number;
+}>;
+export type SpotlightSearchMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_SEARCH, SpotlightSearchRequest>;
+export type SpotlightGetTreePreviewMessage = RequestMessageBase<
+  typeof RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW,
+  SpotlightGetTreePreviewRequest
+>;
+export type SpotlightExecuteActionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION, SpotlightExecuteActionRequest>;
+export type SpotlightDisposeSessionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, {
+  sessionId: SpotlightSearchSessionId;
+}>;
+export type SpotlightExecuteBatchActionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION, SpotlightExecuteBatchActionRequest>;
+export type ToggleSpotlightMessage = RequestMessageBase<typeof RPC_METHOD.TOGGLE_SPOTLIGHT>;
+
 export type RequestMessage = NavigateToMessage |
     PreviewNodeMessage | SetCurrentMessage |
     BeginTempSelectionMessage | PreviewTempSelectionMessage | AcceptTempSelectionMessage |
@@ -250,6 +468,7 @@ export type RequestMessage = NavigateToMessage |
     TreeUpdatedMessage | TreesUpdatedMessage | TagsUpdatedMessage |
     NotifyMessage |
     GetTreeMessage | GetTreesMessage | ClearTreeMessage | NewTreeMessage | OpenTreeMessage | EnsureTreeLoadedMessage | SyncTreesMessage | RenameTreeMessage | DeleteArchivedTreeMessage | ExportTreeMessage |
+    ArchiveActiveTreeMessage |
     OpenInNewTabMessage | ToggleMuteMessage | CloseTabMessage | BulkCloseTabsMessage |
     TogglePinMessage | BulkPinMessage | BulkUnpinMessage |
     AddTagMessage | RemoveTagMessage |
@@ -264,7 +483,15 @@ export type RequestMessage = NavigateToMessage |
     OAuthSilentSyncMessage |
     GetFlagsMessage |
     SetFlagMessage |
-    ResetFlagsMessage;
+    ResetFlagsMessage |
+    GetSpotlightDataMessage |
+    SpotlightBootstrapMessage |
+    SpotlightSearchMessage |
+    SpotlightGetTreePreviewMessage |
+    SpotlightExecuteActionMessage |
+    SpotlightDisposeSessionMessage |
+    SpotlightExecuteBatchActionMessage |
+    ToggleSpotlightMessage;
 
 
 // ==== Responses ====
@@ -309,6 +536,7 @@ export type ResponseDataByType = {
     [RPC_METHOD.GET_TREES]: TreesSnapshot;
     [RPC_METHOD.CLEAR_TREE]: void;
     [RPC_METHOD.NEW_TREE]: void;
+    [RPC_METHOD.ARCHIVE_ACTIVE_TREE]: void;
     [RPC_METHOD.OPEN_TREE]: void;
     [RPC_METHOD.RENAME_TREE]: void;
     [RPC_METHOD.DELETE_ARCHIVED_TREE]: void;
@@ -345,6 +573,14 @@ export type ResponseDataByType = {
     [RPC_METHOD.GET_FLAGS]: ResolvedFlags;
     [RPC_METHOD.SET_FLAG]: ResolvedFlags;
     [RPC_METHOD.RESET_FLAGS]: ResolvedFlags;
+    [RPC_METHOD.GET_SPOTLIGHT_DATA]: SpotlightBootstrapData;
+    [RPC_METHOD.SPOTLIGHT_BOOTSTRAP]: SpotlightBootstrapData;
+    [RPC_METHOD.SPOTLIGHT_SEARCH]: SpotlightSearchResponse;
+    [RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW]: SpotlightGraphPreviewData | null;
+    [RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION]: SpotlightExecuteActionResponse;
+    [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION]: void;
+    [RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION]: SpotlightExecuteActionResponse;
+    [RPC_METHOD.TOGGLE_SPOTLIGHT]: void;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -398,6 +634,7 @@ export const rpc = {
     getTrees(): GetTreesMessage { return { type: RPC_METHOD.GET_TREES } },
     clearTree(): ClearTreeMessage { return { type: RPC_METHOD.CLEAR_TREE } },
     newTree(payload: { label: string }): NewTreeMessage { return { type: RPC_METHOD.NEW_TREE, ...payload } },
+    archiveActiveTree(): ArchiveActiveTreeMessage { return { type: RPC_METHOD.ARCHIVE_ACTIVE_TREE } },
     openTree(payload: { treeId: string }): OpenTreeMessage { return { type: RPC_METHOD.OPEN_TREE, ...payload } },
     ensureTreeLoaded(payload: { treeId: string }): EnsureTreeLoadedMessage { return { type: RPC_METHOD.ENSURE_TREE_LOADED, ...payload } },
     syncTrees(): SyncTreesMessage { return { type: RPC_METHOD.SYNC_TREES } },
@@ -472,13 +709,40 @@ export const rpc = {
     resetFlags(): ResetFlagsMessage {
         return { type: RPC_METHOD.RESET_FLAGS };
     },
+    getSpotlightData(): GetSpotlightDataMessage {
+        return { type: RPC_METHOD.GET_SPOTLIGHT_DATA };
+    },
+    spotlightBootstrap(payload?: { limit?: number }): SpotlightBootstrapMessage {
+        if (payload?.limit === undefined) {
+            return { type: RPC_METHOD.SPOTLIGHT_BOOTSTRAP };
+        }
+        return { type: RPC_METHOD.SPOTLIGHT_BOOTSTRAP, ...payload };
+    },
+    spotlightSearch(payload: SpotlightSearchRequest): SpotlightSearchMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_SEARCH, ...payload };
+    },
+    spotlightGetTreePreview(payload: SpotlightGetTreePreviewRequest): SpotlightGetTreePreviewMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW, ...payload };
+    },
+    spotlightExecuteAction(payload: SpotlightExecuteActionRequest): SpotlightExecuteActionMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION, ...payload };
+    },
+    spotlightDisposeSession(payload: { sessionId: SpotlightSearchSessionId }): SpotlightDisposeSessionMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, ...payload };
+    },
+    spotlightExecuteBatchAction(payload: SpotlightExecuteBatchActionRequest): SpotlightExecuteBatchActionMessage {
+        return { type: RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION, ...payload };
+    },
+    toggleSpotlight(): ToggleSpotlightMessage {
+        return { type: RPC_METHOD.TOGGLE_SPOTLIGHT };
+    },
 }
 
 // ==== message handler ====
 
 export type MessageHandler<T extends RequestType = RequestType> = (
     message: MessageByType<T>,
-    sender: chrome.runtime.MessageSender,
+    sender: RuntimeMessageSender,
 ) => Promise<ResponseMessage<T>> | ResponseMessage<T>;
 
 export type HandlerMap = Partial<{ [K in RequestType]: MessageHandler<K>}>;
@@ -512,7 +776,7 @@ export type TabsForNodeInput = {
 }
 
 export type TabsForNodeData = {
-    tabs: chrome.tabs.Tab[]
+    tabs: Tab[]
 }
 
 export type SaveSettingsInput = {
@@ -557,6 +821,7 @@ export type TreeUpdatedInput = {
     openNodeIds: NodeId[],
     tabStates: Record<NodeId, TabState>,
     nodeTabCounts: Record<NodeId, number>,
+    nodeRecency: Record<NodeId, number>,
     reason: TreeUpdateReason,
     view?: TreeViewIntent,
     editorMode?: EditorModeState,

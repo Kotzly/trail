@@ -65,7 +65,7 @@ type TagEditorValue = {
 ## Design Patterns
 
 1. **Tag definitions live in background**  
-   Tag storage (e.g. chrome.storage or in-memory) is updated by tag-def handlers; sidepanel sends `GET_TAG_DEFS` and subscribes to `TAGS_UPDATED` for sync.
+   Tag storage (e.g. browser.storage via WXT storage wrapper or in-memory) is updated by tag-def handlers; sidepanel sends `GET_TAG_DEFS` and subscribes to `TAGS_UPDATED` for sync.
 
 2. **Node data holds tag ids**  
    `NodeData.tags: Tag[]`; add/remove via `ADD_TAG`/`REMOVE_TAG`; tree is updated and broadcast via `TREE_UPDATED`.

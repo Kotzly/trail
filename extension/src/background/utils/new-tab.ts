@@ -1,8 +1,9 @@
-import type { NodeId, TabId, Title, Url, FaviconUrl } from '../../shared/types/ids.js';
+import type { NodeId, TabId, Title, Url, FaviconUrl } from '@shared/types/ids.js';
 import type { NavigationTree } from '../state/nav-tree.js';
-import type { NodeData } from '../../shared/types/node.js';
+import type { NodeData } from '@shared/types/node.js';
 import { tabManager } from '../state/tab-manager.js';
 import { isNewTabContext, normalizeFaviconUrl } from './url-utils.js';
+import { type Tab } from '@shared/platform/webext.js';
 
 type NewTabHandleOptions = {
   touch: boolean;
@@ -18,7 +19,7 @@ type NewTabHandleResult = {
 
 export function handleNewTabTab(
   tree: NavigationTree,
-  tab: chrome.tabs.Tab,
+  tab: Tab,
   url: Url,
   options: NewTabHandleOptions
 ): NewTabHandleResult {

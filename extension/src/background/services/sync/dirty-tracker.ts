@@ -1,18 +1,12 @@
 /**
  * Persistent dirty set + pending deletes tracker.
- * Backed by `trail_v3_sync` in chrome.storage.local.
+ * Backed by `trail_v3_sync` via WXT storage item.
  *
  * Tracks which trees have local changes that need to be pushed,
  * and which trees need to be deleted on the server.
  */
 
-const SYNC_STATE_KEY = 'trail_v3_sync' as const;
-
-type SyncState = {
-  serverSyncAt: string | null;
-  dirtyIds: string[];
-  pendingDeletes: string[];
-};
+import { syncStateItem, type SyncState } from '@shared/config/storage-items.js';
 
 const DEFAULT_STATE: SyncState = {
   serverSyncAt: null,
@@ -24,14 +18,12 @@ let cached: SyncState | null = null;
 
 async function load(): Promise<SyncState> {
   if (cached) return cached;
-  const result = await chrome.storage.local.get(SYNC_STATE_KEY);
-  const raw = result[SYNC_STATE_KEY];
-  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    const state = raw as Partial<SyncState>;
+  const raw = await syncStateItem.getValue();
+  if (raw && typeof raw === 'object') {
     cached = {
-      serverSyncAt: typeof state.serverSyncAt === 'string' ? state.serverSyncAt : null,
-      dirtyIds: Array.isArray(state.dirtyIds) ? state.dirtyIds.filter((id) => typeof id === 'string') : [],
-      pendingDeletes: Array.isArray(state.pendingDeletes) ? state.pendingDeletes.filter((id) => typeof id === 'string') : [],
+      serverSyncAt: typeof raw.serverSyncAt === 'string' ? raw.serverSyncAt : null,
+      dirtyIds: Array.isArray(raw.dirtyIds) ? raw.dirtyIds.filter((id) => typeof id === 'string') : [],
+      pendingDeletes: Array.isArray(raw.pendingDeletes) ? raw.pendingDeletes.filter((id) => typeof id === 'string') : [],
     };
     return cached;
   }
@@ -41,7 +33,7 @@ async function load(): Promise<SyncState> {
 
 async function persist(): Promise<void> {
   if (!cached) return;
-  await chrome.storage.local.set({ [SYNC_STATE_KEY]: cached });
+  await syncStateItem.setValue(cached);
 }
 
 export const dirtyTracker = {
@@ -112,6 +104,6 @@ export const dirtyTracker = {
   /** Clear everything including serverSyncAt. Used on account switch. */
   async clearAll(): Promise<void> {
     cached = { ...DEFAULT_STATE };
-    await chrome.storage.local.remove(SYNC_STATE_KEY).catch(() => undefined);
+    await syncStateItem.removeValue().catch(() => undefined);
   },
 };
