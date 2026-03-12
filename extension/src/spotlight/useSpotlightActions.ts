@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   executeSpotlightAction,
   exportTree,
@@ -123,6 +123,12 @@ export function useSpotlightActions(
   const [statusText, setStatusText] = useState<string | null>(null);
 
   const drilldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (drilldownTimerRef.current) clearTimeout(drilldownTimerRef.current);
+    };
+  }, []);
 
   const handleExecuteAction = useCallback(
     async (

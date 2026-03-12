@@ -8,9 +8,11 @@ export function useSelectionIndicator(
 ): IndicatorPosition {
   const [pos, setPos] = useState<IndicatorPosition>(null);
   const lastPos = useRef<IndicatorPosition>(null);
+  const selectedKeyRef = useRef(selectedKey);
+  selectedKeyRef.current = selectedKey;
 
   const measure = useCallback(() => {
-    if (!selectedKey || !listRef.current) {
+    if (!selectedKeyRef.current || !listRef.current) {
       lastPos.current = null;
       setPos(null);
       return;
@@ -32,7 +34,7 @@ export function useSelectionIndicator(
     };
     lastPos.current = next;
     setPos(next);
-  }, [selectedKey, listRef]);
+  }, [listRef]);
 
   useLayoutEffect(() => {
     measure();
@@ -47,7 +49,7 @@ export function useSelectionIndicator(
       cancelAnimationFrame(raf);
       container.removeEventListener('scroll', measure);
     };
-  }, [measure, listRef]);
+  }, [measure, listRef, selectedKey]);
 
   // Re-measure when list DOM changes (e.g. section expand/collapse shifts items)
   useEffect(() => {

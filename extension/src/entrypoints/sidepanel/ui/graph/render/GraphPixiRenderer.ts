@@ -1222,7 +1222,7 @@ export class GraphPixiRenderer {
     const start = performance.now();
     this.connectionLayer.clear();
     this.pathLayer.clear();
-    this.particleLayer.removeChildren();
+    for (const child of this.particleLayer.removeChildren()) child.destroy();
     if (!this.data.showConnections) {
       return { connectionsMs: performance.now() - start, visibleConnections: 0 };
     }

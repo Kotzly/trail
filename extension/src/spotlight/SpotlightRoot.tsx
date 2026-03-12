@@ -45,6 +45,12 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const drilldownMemoryRef = useRef<{ drilldownScope: { treeId: string; treeName: string }; savedAt: number } | null>(null);
   const drilldownMemoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (drilldownMemoryTimerRef.current) clearTimeout(drilldownMemoryTimerRef.current);
+    };
+  }, []);
+
   const toggle = useCallback(() => setIsOpen((prev) => !prev), []);
   const close = useCallback(() => { setIsOpen(false); setHelpOpen(false); setDrilldownScope(null); }, []);
 

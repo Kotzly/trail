@@ -1,6 +1,17 @@
 import type { NodeId, Url } from '@shared/types/ids.js';
 import type { SpotlightGraphPreviewData } from './types.js';
 
+function getExtensionOrigin(): string {
+  try {
+    if (typeof globalThis.chrome !== 'undefined' && globalThis.chrome.runtime?.getURL) {
+      return new URL(globalThis.chrome.runtime.getURL('')).origin;
+    }
+  } catch { /* ignore */ }
+  return '*';
+}
+
+const EXTENSION_ORIGIN = getExtensionOrigin();
+
 // ---------------------------------------------------------------------------
 // Message types — discriminated union for all iframe boundary messages
 // ---------------------------------------------------------------------------
@@ -49,11 +60,11 @@ function isSpotlightIPC(data: unknown): data is SpotlightIPCMessage {
 // ---------------------------------------------------------------------------
 
 export function sendToGraph(iframe: HTMLIFrameElement, msg: ParentToGraphMsg): void {
-  iframe.contentWindow?.postMessage(msg, '*');
+  iframe.contentWindow?.postMessage(msg, EXTENSION_ORIGIN);
 }
 
 export function sendToParent(msg: GraphToParentMsg): void {
-  window.parent.postMessage(msg, '*');
+  window.parent.postMessage(msg, EXTENSION_ORIGIN);
 }
 
 // ---------------------------------------------------------------------------

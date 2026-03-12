@@ -6,6 +6,12 @@ import type {
   SpotlightSearchResult,
 } from './types.js';
 
+const IS_MAC = /Mac|iPod|iPhone|iPad/.test(
+  (globalThis.navigator as Navigator & { userAgentData?: { platform: string } })?.userAgentData?.platform
+    ?? globalThis.navigator?.platform
+    ?? '',
+);
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -100,8 +106,7 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
             s.exitDrilldown();
             return;
           }
-          const isMac = navigator.platform.includes('Mac');
-          const clearCombo = isMac ? event.metaKey : event.ctrlKey;
+          const clearCombo = IS_MAC ? event.metaKey : event.ctrlKey;
           if (clearCombo) {
             event.preventDefault();
             event.stopPropagation();
@@ -136,8 +141,7 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           }
           return;
         case 'k': {
-          const isMac = navigator.platform.includes('Mac');
-          if ((isMac && event.metaKey) || (!isMac && event.ctrlKey)) {
+          if ((IS_MAC && event.metaKey) || (!IS_MAC && event.ctrlKey)) {
             event.preventDefault();
             event.stopPropagation();
             if (s.actionMenuActions) {
@@ -151,8 +155,7 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           return;
         }
         case 'l': {
-          const isMacL = navigator.platform.includes('Mac');
-          if ((isMacL && event.metaKey) || (!isMacL && event.ctrlKey)) {
+          if ((IS_MAC && event.metaKey) || (!IS_MAC && event.ctrlKey)) {
             event.preventDefault();
             event.stopPropagation();
             if (s.quickLookItem) {

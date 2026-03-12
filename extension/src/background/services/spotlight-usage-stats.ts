@@ -14,7 +14,8 @@ import {
 
 export class SpotlightUsageStatsService {
   private cache = emptySpotlightUsageStats();
-  private loaded = false;
+  private loadPromise: Promise<void> | null = null;
+  private writeQueue: Promise<void> = Promise.resolve();
 
   async getTargetStats(targetKey: string): Promise<SpotlightUsageTargetStats | null> {
     await this.ensureLoaded();
@@ -23,8 +24,11 @@ export class SpotlightUsageStatsService {
 
   async record(targetKey: string, queryTokens: string[], now = Date.now()): Promise<void> {
     await this.ensureLoaded();
-    this.cache = recordSpotlightSelection(this.cache, targetKey, queryTokens, now);
-    await spotlightUsageStatsItem.setValue(this.cache);
+    this.writeQueue = this.writeQueue.then(async () => {
+      this.cache = recordSpotlightSelection(this.cache, targetKey, queryTokens, now);
+      await spotlightUsageStatsItem.setValue(this.cache);
+    });
+    await this.writeQueue;
   }
 
   async getBoosts(targetKey: string, queryTokens: string[]): Promise<{
@@ -45,8 +49,11 @@ export class SpotlightUsageStatsService {
 
   async recordQuery(query: string): Promise<void> {
     await this.ensureLoaded();
-    this.cache = recordRecentQuery(this.cache, query);
-    await spotlightUsageStatsItem.setValue(this.cache);
+    this.writeQueue = this.writeQueue.then(async () => {
+      this.cache = recordRecentQuery(this.cache, query);
+      await spotlightUsageStatsItem.setValue(this.cache);
+    });
+    await this.writeQueue;
   }
 
   async getRecentQueries(): Promise<string[]> {
@@ -60,15 +67,20 @@ export class SpotlightUsageStatsService {
   }
 
   async clear(): Promise<void> {
-    this.cache = emptySpotlightUsageStats();
-    await spotlightUsageStatsItem.setValue(this.cache);
+    this.writeQueue = this.writeQueue.then(async () => {
+      this.cache = emptySpotlightUsageStats();
+      await spotlightUsageStatsItem.setValue(this.cache);
+    });
+    await this.writeQueue;
   }
 
-  private async ensureLoaded(): Promise<void> {
-    if (this.loaded) return;
-    this.loaded = true;
-    const stored = await spotlightUsageStatsItem.getValue();
-    this.cache = sanitizeSpotlightUsageStats(stored);
+  private ensureLoaded(): Promise<void> {
+    if (!this.loadPromise) {
+      this.loadPromise = spotlightUsageStatsItem.getValue().then((stored) => {
+        this.cache = sanitizeSpotlightUsageStats(stored);
+      });
+    }
+    return this.loadPromise;
   }
 }
 

@@ -85,6 +85,7 @@ export class SpotlightLiveIndexService {
   private pendingNodeRemoves = new Set<NodeId>();
   private hasDelta = false;
   private discardCount = 0;
+  private inflightRebuild: Promise<SpotlightLiveSnapshot> | null = null;
 
   invalidate(): void {
     this.dirty = true;
@@ -126,7 +127,12 @@ export class SpotlightLiveIndexService {
 
   private async ensureFresh(): Promise<void> {
     if (this.dirty || !this.snapshot) {
-      this.snapshot = await this.rebuild();
+      if (!this.inflightRebuild) {
+        this.inflightRebuild = this.rebuild().finally(() => {
+          this.inflightRebuild = null;
+        });
+      }
+      this.snapshot = await this.inflightRebuild;
       this.dirty = false;
       this.hasDelta = false;
       this.pendingNodeUpdates.clear();
@@ -135,39 +141,48 @@ export class SpotlightLiveIndexService {
       return;
     }
     if (this.hasDelta) {
-      await this.applyDelta();
+      this.applyDelta();
       this.hasDelta = false;
     }
   }
 
-  private async applyDelta(): Promise<void> {
-    const snapshot = this.snapshot!;
-    const activeMeta = await treeStorage.getActiveMeta();
-
-    if (snapshot.activeTreeId !== activeMeta.id) {
+  private applyDelta(): void {
+    const prev = this.snapshot!;
+    const activeMeta = treeStorage.cachedMeta;
+    if (!activeMeta || prev.activeTreeId !== activeMeta.id) {
       this.dirty = true;
-      return this.ensureFresh();
+      return;
     }
 
-    const tree = await treeStorage.getOrCreateTree();
+    const tree = treeStorage.cachedTree;
+    if (!tree) {
+      this.dirty = true;
+      return;
+    }
+
     const openNodeSet = new Set(tabManager.openNodes());
-    const nodeRecency = { ...snapshot.nodeRecency };
-    const nodeTabCounts = { ...snapshot.nodeTabCounts };
+    const nodeRecency = { ...prev.nodeRecency };
+    const nodeTabCounts = { ...prev.nodeTabCounts };
     for (const nodeId of openNodeSet) {
       const r = tabManager.getNodeRecency(nodeId);
       if (r > 0) nodeRecency[nodeId] = r;
       nodeTabCounts[nodeId] = tabManager.tabCountForNode(nodeId);
     }
 
+    // Build new collections immutably
+    const newDocsByKey = new Map(prev.docsByKey);
+    let newNodeDocs = [...prev.nodeDocs];
+    const index = prev.index;
+    let discardCount = this.discardCount;
+
     for (const nodeId of this.pendingNodeRemoves) {
       const key = `n:${activeMeta.id}:${nodeId}`;
-      const oldDoc = snapshot.docsByKey.get(key);
+      const oldDoc = newDocsByKey.get(key);
       if (oldDoc) {
-        snapshot.index.discard(key);
-        this.discardCount += 1;
-        snapshot.docsByKey.delete(key);
-        const idx = snapshot.nodeDocs.findIndex((d) => d.key === key);
-        if (idx !== -1) snapshot.nodeDocs.splice(idx, 1);
+        index.discard(key);
+        discardCount += 1;
+        newDocsByKey.delete(key);
+        newNodeDocs = newNodeDocs.filter((d) => d.key !== key);
       }
     }
     this.pendingNodeRemoves.clear();
@@ -183,13 +198,13 @@ export class SpotlightLiveIndexService {
       const newDoc = createNodeDoc(node, {
         treeId: activeMeta.id,
         treeName: activeMeta.label,
-        currentNodeId: snapshot.currentNodeId,
+        currentNodeId: prev.currentNodeId,
         nodeRecency,
         nodeTabCounts,
         openNodeSet,
         pathByNodeId,
       });
-      const oldDoc = snapshot.docsByKey.get(key);
+      const oldDoc = newDocsByKey.get(key);
       const indexDoc: IndexDoc = {
         key,
         title: newDoc.title,
@@ -198,29 +213,35 @@ export class SpotlightLiveIndexService {
         treeName: newDoc.treeName,
       };
       if (oldDoc) {
-        snapshot.index.discard(key);
-        this.discardCount += 1;
-        snapshot.index.add(indexDoc);
-        const idx = snapshot.nodeDocs.findIndex((d) => d.key === key);
-        if (idx !== -1) snapshot.nodeDocs[idx] = newDoc;
+        index.discard(key);
+        discardCount += 1;
+        index.add(indexDoc);
+        newNodeDocs = newNodeDocs.map((d) => (d.key === key ? newDoc : d));
       } else {
-        snapshot.index.add(indexDoc);
-        snapshot.nodeDocs.push(newDoc);
+        index.add(indexDoc);
+        newNodeDocs = [...newNodeDocs, newDoc];
       }
-      snapshot.docsByKey.set(key, newDoc);
+      newDocsByKey.set(key, newDoc);
     }
     this.pendingNodeUpdates.clear();
 
-    if (this.discardCount >= 50) {
-      snapshot.index.vacuum();
-      this.discardCount = 0;
+    if (discardCount >= 50) {
+      index.vacuum();
+      discardCount = 0;
     }
+    this.discardCount = discardCount;
 
-    snapshot.nodeRecency = nodeRecency;
-    snapshot.nodeTabCounts = nodeTabCounts;
-    snapshot.openNodeIds = Array.from(openNodeSet);
     this.version += 1;
-    snapshot.version = this.version;
+    this.snapshot = {
+      ...prev,
+      version: this.version,
+      docsByKey: newDocsByKey,
+      nodeDocs: newNodeDocs,
+      nodeRecency,
+      nodeTabCounts,
+      openNodeIds: Array.from(openNodeSet),
+      index,
+    };
   }
 
   private async rebuild(): Promise<SpotlightLiveSnapshot> {

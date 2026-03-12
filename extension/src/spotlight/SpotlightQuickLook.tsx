@@ -38,7 +38,7 @@ export function SpotlightQuickLook({ item, onClose, onAction }: Props) {
             e.stopPropagation();
             void navigator.clipboard.writeText(item.url).then(
               () => onAction('copy-url', { kind: 'node', nodeId: item.nodeId, treeId: item.treeId }, 'URL copied'),
-              () => {},
+              () => onAction('copy-url', { kind: 'node', nodeId: item.nodeId, treeId: item.treeId }, 'Clipboard unavailable'),
             );
           }
           return;

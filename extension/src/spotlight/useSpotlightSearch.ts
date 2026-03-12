@@ -122,7 +122,10 @@ export function useSpotlightSearch(
       })
       .catch((error) => {
         console.error('Failed to bootstrap spotlight:', error);
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setSessionError('Failed to initialize spotlight');
+          setLoading(false);
+        }
       });
 
     return () => {
@@ -150,7 +153,7 @@ export function useSpotlightSearch(
         .catch(async (error) => {
           if (cancelled) return;
           if (isRecoverableError(error)) {
-            await attemptRecovery(cancelled);
+            await attemptRecovery();
             return;
           }
           console.error('Failed to search spotlight:', error);
@@ -158,13 +161,14 @@ export function useSpotlightSearch(
         });
     }, computeDebounceMs(bootstrapData?.docCount ?? 500));
 
-    async function attemptRecovery(alreadyCancelled: boolean): Promise<void> {
+    async function attemptRecovery(): Promise<void> {
       for (let attempt = 0; attempt < BACKOFF_DELAYS.length; attempt++) {
-        if (alreadyCancelled) return;
+        if (cancelled) return;
         await sleep(BACKOFF_DELAYS[attempt]!);
+        if (cancelled) return;
         try {
           const data = await bootstrapSpotlight(SEARCH_LIMIT);
-          if (alreadyCancelled) return;
+          if (cancelled) return;
           if (data.activeTreeId !== prevActiveTreeIdRef.current) {
             previewCacheRef.current.clear();
           }
@@ -179,7 +183,7 @@ export function useSpotlightSearch(
         }
       }
       // All retries exhausted
-      if (!alreadyCancelled) {
+      if (!cancelled) {
         setSessionError('All session recovery attempts failed');
         setLoading(false);
       }

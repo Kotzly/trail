@@ -39,6 +39,9 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
     setIsDragging(true);
   }, [splitRatio, isNarrow]);
 
+  const splitRatioRef = useRef(splitRatio);
+  splitRatioRef.current = splitRatio;
+
   useEffect(() => {
     if (!isDragging) return;
 
@@ -54,7 +57,7 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
 
     const handleMouseUp = () => {
       setIsDragging(false);
-      try { localStorage.setItem(STORAGE_KEY, splitRatio.toString()); } catch { /* ignore */ }
+      try { localStorage.setItem(STORAGE_KEY, splitRatioRef.current.toString()); } catch { /* ignore */ }
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -68,7 +71,7 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [isDragging, containerRef, splitRatio]);
+  }, [isDragging, containerRef]);
 
   return {
     splitRatio: isNarrow ? null : splitRatio,
