@@ -77,7 +77,7 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
     splitRatio: isNarrow ? null : splitRatio,
     isDragging,
     handleMouseDown,
-    leftStyle: isNarrow ? undefined : { width: `${splitRatio * 100}%`, flex: 'none' as const },
+    leftStyle: isNarrow ? undefined : { width: `${splitRatio * 100}%`, flex: 'none' as const, pointerEvents: isDragging ? 'none' as const : 'auto' as const },
     rightStyle: isNarrow ? undefined : { flex: 1, pointerEvents: isDragging ? 'none' as const : 'auto' as const },
   };
 }

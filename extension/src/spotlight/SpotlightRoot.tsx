@@ -196,16 +196,20 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
 
   const resize = useSpotlightResize(panelsRef);
 
-  if (!hasBeenOpened) return null;
-
+  // Always render the backdrop shell so backdropRef is available for the
+  // keyboard capture-phase listener on the very first open.
   return (
     <div
       ref={backdropRef}
       className="spotlight-backdrop"
-      style={{ pointerEvents: isOpen ? 'auto' : 'none', opacity: isOpen ? 1 : 0 }}
+      style={{
+        pointerEvents: isOpen ? 'auto' : 'none',
+        opacity: isOpen ? 1 : 0,
+        ...(!hasBeenOpened && { display: 'none' }),
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) close(); }}
     >
-      <motion.div
+      {hasBeenOpened && <motion.div
         initial={{ opacity: 0, scale: 0.97, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 380, damping: 28, mass: 0.8 }}
@@ -304,6 +308,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                       void act.handleExecuteAction(aid, { kind: 'node', nodeId, treeId }, aid === 'open-node-in-tree' ? 'Opened in tree' : 'Opened');
                     }}
                     onHoverNode={(treeId, nodeId) => setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId })}
+                    onEscapeKey={close}
                   />
               {preview.graphPreviewLoading && <div className="spotlight-graph-loading" role="status" aria-label="Loading tree preview">Loading tree preview...</div>}
               {preview.previewTreeId && !preview.graphPreviewLoading && !preview.graphPreviewData && <div className="spotlight-empty spotlight-graph-fallback">Preview unavailable</div>}
@@ -324,9 +329,9 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
             <SpotlightQuickLook item={act.quickLookItem} onClose={() => act.setQuickLookItem(null)} onAction={(actionId, target, status) => { act.setQuickLookItem(null); void act.handleExecuteAction(actionId, target, status); }} />
           )}
         </Command>
-      </motion.div>
+      </motion.div>}
 
-      {act.confirmingAction && act.confirmingAction.kind === 'action' && (
+      {hasBeenOpened && act.confirmingAction && act.confirmingAction.kind === 'action' && (
         <div className="spotlight-confirm-overlay" onClick={() => act.setConfirmingAction(null)}>
           <div className="spotlight-confirm-popup" onClick={(e) => e.stopPropagation()}>
             <div className="spotlight-confirm-icon">⚠</div>

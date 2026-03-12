@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { runtimeGetURL } from '@shared/platform/webext.js';
 import type { NodeId, Url } from '@shared/types/ids.js';
 import type { SpotlightGraphPreviewData } from './types.js';
@@ -13,6 +13,7 @@ type SpotlightGraphFrameProps = {
   selectionIntentId: number;
   onNavigate: (treeId: string, nodeId: NodeId, url: Url) => void;
   onHoverNode: (treeId: string, nodeId: NodeId | null) => void;
+  onEscapeKey?: () => void;
 };
 
 export function SpotlightGraphFrame({
@@ -23,10 +24,12 @@ export function SpotlightGraphFrame({
   selectionIntentId,
   onNavigate,
   onHoverNode,
+  onEscapeKey,
 }: SpotlightGraphFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const readyRef = useRef(false);
   const pendingContextRef = useRef<ParentToGraphMsg | null>(null);
+  const [graphReady, setGraphReady] = useState(false);
 
   const sendContext = useCallback((context: ParentToGraphMsg) => {
     const iframe = iframeRef.current;
@@ -40,6 +43,7 @@ export function SpotlightGraphFrame({
       switch (msg.type) {
         case 'GRAPH_READY':
           readyRef.current = true;
+          setGraphReady(true);
           if (pendingContextRef.current) {
             sendContext(pendingContextRef.current);
           }
@@ -50,9 +54,12 @@ export function SpotlightGraphFrame({
         case 'HOVER_NODE':
           onHoverNode(msg.treeId, msg.nodeId);
           break;
+        case 'ESCAPE_KEY':
+          onEscapeKey?.();
+          break;
       }
     });
-  }, [onHoverNode, onNavigate, sendContext]);
+  }, [onHoverNode, onNavigate, onEscapeKey, sendContext]);
 
   useEffect(() => {
     if (!activeTreeId) return;
@@ -73,17 +80,21 @@ export function SpotlightGraphFrame({
   const src = runtimeGetURL('spotlight-graph.html');
 
   return (
-    <iframe
-      ref={iframeRef}
-      src={src}
-      className="spotlight-graph-container"
-      style={{
-        border: 'none',
-        width: '100%',
-        height: '100%',
-        background: 'transparent',
-      }}
-      allow="autoplay"
-    />
+    <>
+      <iframe
+        ref={iframeRef}
+        src={src}
+        className="spotlight-graph-container"
+        style={{
+          border: 'none',
+          width: '100%',
+          height: '100%',
+          opacity: graphReady ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+        }}
+        allow="autoplay"
+      />
+      {!graphReady && <div className="spotlight-graph-shimmer" />}
+    </>
   );
 }

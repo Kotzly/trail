@@ -204,6 +204,9 @@ class NodeVisual {
   private destroyed = false;
   private pendingFaviconUrl: FaviconUrl | null = null;
   private latestFaviconCandidate: FaviconUrl | null = null;
+  /** When true, skip text/favicon rendering on first update to avoid frame drops
+   * when many nodes become visible at once.  Cleared after the first update. */
+  private deferContent = true;
 
   constructor(id: NodeId, fontFamily: string, invalidate: () => void) {
     this.id = id;
@@ -339,6 +342,25 @@ class NodeVisual {
       this.pinIcon.visible = false;
       this.audioIcon.visible = false;
       this.collapseBadge.visible = false;
+      return;
+    }
+
+    // Defer expensive text/favicon rendering for brand-new nodes so the graph
+    // structure (backgrounds + connections) can paint without frame drops.
+    // Content appears on the very next render cycle.
+    if (this.deferContent) {
+      this.deferContent = false;
+      this.textContainer.visible = false;
+      this.faviconBg.visible = false;
+      if (this.faviconSprite) this.faviconSprite.visible = false;
+      this.tabBadge.visible = false;
+      this.pinIcon.visible = false;
+      this.audioIcon.visible = false;
+      this.collapseBadge.visible = false;
+      this.tagDots.visible = false;
+      // Force state keys to empty so the next update will populate everything.
+      this.state = { ...this.state, textKey: '', tagKey: '', faviconKey: '' };
+      this.invalidate();
       return;
     }
 

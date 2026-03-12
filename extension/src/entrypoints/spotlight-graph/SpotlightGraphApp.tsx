@@ -35,6 +35,18 @@ export default function SpotlightGraphApp() {
     clearSearch();
   }, [clearSearch]);
 
+  // Forward Escape key from iframe to parent so Spotlight can handle it
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        sendToParent({ type: 'ESCAPE_KEY' });
+      }
+    };
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, []);
+
   useEffect(() => {
     if (!tree || activePreviewRef.current) return;
     activePreviewRef.current = {

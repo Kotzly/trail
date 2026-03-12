@@ -30,9 +30,10 @@ type SetGraphContextMsg = {
 type GraphReadyMsg = { type: 'GRAPH_READY' };
 type NavigateMsg = { type: 'NAVIGATE'; treeId: string; nodeId: NodeId; url: Url };
 type HoverNodeMsg = { type: 'HOVER_NODE'; treeId: string; nodeId: NodeId | null };
+type EscapeKeyMsg = { type: 'ESCAPE_KEY' };
 
 export type ParentToGraphMsg = SetGraphContextMsg;
-export type GraphToParentMsg = GraphReadyMsg | NavigateMsg | HoverNodeMsg;
+export type GraphToParentMsg = GraphReadyMsg | NavigateMsg | HoverNodeMsg | EscapeKeyMsg;
 export type SpotlightIPCMessage = ParentToGraphMsg | GraphToParentMsg;
 
 // ---------------------------------------------------------------------------
@@ -44,6 +45,7 @@ const KNOWN_TYPES = new Set<string>([
   'GRAPH_READY',
   'NAVIGATE',
   'HOVER_NODE',
+  'ESCAPE_KEY',
 ]);
 
 function isSpotlightIPC(data: unknown): data is SpotlightIPCMessage {
