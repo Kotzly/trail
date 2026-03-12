@@ -388,17 +388,45 @@ export default function SettingsDropdown() {
           <hr className="settings-hr" />
 
           {/* appearance */}
-          <div className="settings-section settings-row">
-            <div className="settings-label">appearance</div>
-            <button
-              className="settings-action"
-              type="button"
-              onClick={() => setThemePickerOpen(true)}
-            >
-              theme studio
-              <Icons.ChevronRight size={14} />
-            </button>
-          </div>
+          {flags?.themeStudio ? (
+            <div className="settings-section settings-row">
+              <div className="settings-label">appearance</div>
+              <button
+                className="settings-action"
+                type="button"
+                onClick={() => setThemePickerOpen(true)}
+              >
+                theme studio
+                <Icons.ChevronRight size={14} />
+              </button>
+            </div>
+          ) : (
+            <div className="settings-section">
+              <div className="settings-label">appearance</div>
+              <Seg
+                value={settings?.theme ?? 'system'}
+                options={['system', 'light', 'dark'] as const}
+                onChange={(v) =>
+                  updateSettings({
+                    theme: v,
+                    customTheme: {
+                      ...(settings?.customTheme ?? {
+                        enabled: false,
+                        dots: [],
+                        harmony: 'floating' as const,
+                        lightness: 50,
+                        opacity: 0.6,
+                        texture: 0,
+                        customColors: [],
+                        accentColor: null,
+                      }),
+                      enabled: false,
+                    },
+                  })
+                }
+              />
+            </div>
+          )}
 
           <hr className="settings-hr" />
 

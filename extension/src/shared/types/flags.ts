@@ -28,6 +28,12 @@ export const FLAG_DEFS = {
     label: 'Recency Ordering V2',
     description: 'Enable stable recency-based branch ordering with hysteresis.',
   },
+  themeStudio: {
+    type: 'boolean',
+    default: false,
+    label: 'Theme Studio',
+    description: 'Enable the full theme studio with color dots, presets, and custom colors.',
+  },
 } as const satisfies Record<string, FlagDef>;
 
 export type FlagKey = keyof typeof FLAG_DEFS;

@@ -10,6 +10,7 @@ export default function Header() {
   const commandState = useStore((state) => state.commandState);
   const metaKey = useStore((state) => state.metaKey);
   const setCommandState = useStore((state) => state.setCommandState);
+  const flags = useStore((state) => state.flags);
   const settingsOpen = useStore((state) => state.ui.settingsOpen);
   const setSettingsOpen = useStore((state) => state.setSettingsOpen);
   const themePickerOpen = useStore((state) => state.ui.themePickerOpen);
@@ -79,16 +80,18 @@ export default function Header() {
         <PinnedDropdown />
         <TreeDropdown />
         <TagFilterDropdown />
-        <button
-          id="themePickerBtn"
-          className="matte-circle-btn orb-button"
-          type="button"
-          aria-label="Theme"
-          data-tooltip="Theme"
-          onClick={() => setThemePickerOpen(!themePickerOpen)}
-        >
-          <Icons.Palette size={20} />
-        </button>
+        {flags?.themeStudio && (
+          <button
+            id="themePickerBtn"
+            className="matte-circle-btn orb-button"
+            type="button"
+            aria-label="Theme"
+            data-tooltip="Theme"
+            onClick={() => setThemePickerOpen(!themePickerOpen)}
+          >
+            <Icons.Palette size={20} />
+          </button>
+        )}
         <button
           id="settingsBtn"
           className="matte-circle-btn orb-button"
