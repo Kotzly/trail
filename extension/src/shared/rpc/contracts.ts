@@ -88,7 +88,7 @@ export type RequestType = typeof RPC_METHOD[keyof typeof RPC_METHOD];
 export type RequestMessageBase<T extends string, P = {}> = { type: T } & P;
 
 export type NavigateToMessage = RequestMessageBase<typeof RPC_METHOD.NAVIGATE_TO, {
-  url: Url;
+  url?: Url;
   nodeId: NodeId;
 }>;
 export type PreviewNodeMessage = RequestMessageBase<typeof RPC_METHOD.PREVIEW_NODE, {
@@ -767,7 +767,7 @@ export type CommandState = {
 }
 
 export type NavigateToData = {
-    url: Url;
+    url?: Url;
     nodeId: NodeId;
 }
 

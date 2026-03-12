@@ -5,11 +5,8 @@ import {
   err,
   rpc,
   type SpotlightActionTarget,
-  type SpotlightBootstrapData,
-  type SpotlightGraphPreviewData,
   type SpotlightSearchResponse,
 } from '@shared/rpc/contracts.js';
-import { settingsManager } from '../../services/settings.js';
 import { spotlightService } from '../../services/spotlight.js';
 import { navigationHandlers } from './navigation-handlers.js';
 import { openTreeAndFocusNode, treeHandlers } from './tree-handlers.js';
@@ -23,19 +20,11 @@ const EMPTY_SENDER = {} as RuntimeMessageSender;
 export const spotlightHandlers = defineRpcHandlers({
   /** @deprecated Use SPOTLIGHT_BOOTSTRAP instead. */
   async [RPC_METHOD.GET_SPOTLIGHT_DATA]() {
-    const bootstrap = await spotlightService.bootstrap(80);
-    return ok({
-      ...bootstrap,
-      settings: settingsManager.get(),
-    } as unknown as SpotlightBootstrapData);
+    return ok(await spotlightService.bootstrap(80));
   },
 
   async [RPC_METHOD.SPOTLIGHT_BOOTSTRAP](message) {
-    const bootstrap = await spotlightService.bootstrap(message.limit ?? 80);
-    return ok({
-      ...bootstrap,
-      settings: settingsManager.get(),
-    } as unknown as SpotlightBootstrapData);
+    return ok(await spotlightService.bootstrap(message.limit ?? 80));
   },
 
   async [RPC_METHOD.SPOTLIGHT_SEARCH](message) {
@@ -75,7 +64,6 @@ export const spotlightHandlers = defineRpcHandlers({
             navigationHandlers[RPC_METHOD.NAVIGATE_TO],
             rpc.navigateTo({
               nodeId: requireNodeTarget(message.target),
-              url: '' as never,
             }),
           );
         case 'open-node-in-tree':

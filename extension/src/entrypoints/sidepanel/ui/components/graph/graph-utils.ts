@@ -19,41 +19,6 @@ export function getPathToNode(root: NavigationNode, targetId: NodeId): Set<NodeI
   return path;
 }
 
-export function getPathBetweenNodes(
-  start: NavigationNode | null,
-  end: NavigationNode | null,
-): Set<NodeId> {
-  if (!start || !end) return new Set();
-  if (start.id === end.id) return new Set([start.id]);
-  const startAncestors = new Map<NodeId, NavigationNode>();
-  let current: NavigationNode | null = start;
-  while (current) {
-    startAncestors.set(current.id, current);
-    current = current.getParent?.() ?? null;
-  }
-  const endPath: NavigationNode[] = [];
-  current = end;
-  let lca: NavigationNode | null = null;
-  while (current) {
-    if (startAncestors.has(current.id)) {
-      lca = current;
-      break;
-    }
-    endPath.push(current);
-    current = current.getParent?.() ?? null;
-  }
-  if (!lca) return new Set([start.id, end.id]);
-  const ids = new Set<NodeId>();
-  current = start;
-  while (current) {
-    ids.add(current.id);
-    if (current.id === lca.id) break;
-    current = current.getParent?.() ?? null;
-  }
-  endPath.forEach((node) => ids.add(node.id));
-  return ids;
-}
-
 type Point = { x: number; y: number };
 
 function orthogonalSegment(

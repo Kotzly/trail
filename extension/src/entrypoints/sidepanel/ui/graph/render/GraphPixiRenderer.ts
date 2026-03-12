@@ -61,8 +61,20 @@ const URL_FONT_SIZE = 10;
 const TAB_BADGE_PADDING_X = 6;
 const TAB_BADGE_PADDING_Y = 3;
 
+const FAVICON_CACHE_MAX = 256;
 const faviconTextureCache = new Map<FaviconUrl, PIXI.Texture>();
 const faviconLoadPromises = new Map<FaviconUrl, Promise<PIXI.Texture | null>>();
+
+function cacheFaviconTexture(url: FaviconUrl, texture: PIXI.Texture): void {
+  if (faviconTextureCache.size >= FAVICON_CACHE_MAX) {
+    const oldest = faviconTextureCache.keys().next().value;
+    if (oldest !== undefined) {
+      faviconTextureCache.get(oldest)?.destroy();
+      faviconTextureCache.delete(oldest);
+    }
+  }
+  faviconTextureCache.set(url, texture);
+}
 const STATUS_ICON_SIZE = 12;
 const STATUS_ICON_STROKE = 2;
 const ICON_VIEWBOX = 24;
@@ -1640,7 +1652,7 @@ function loadFaviconTexture(url: FaviconUrl): Promise<PIXI.Texture | null> {
     image.onload = () => {
       try {
         const texture = PIXI.Texture.from(image);
-        faviconTextureCache.set(url, texture);
+        cacheFaviconTexture(url, texture);
         resolve(texture);
       } catch {
         resolve(null);

@@ -29,7 +29,7 @@ export function getFlag<K extends FlagKey>(key: K): FlagValue<K> {
 }
 
 export async function setFlagOverride<K extends FlagKey>(key: K, value: FlagValue<K>): Promise<void> {
-  overrides[key] = value;
+  overrides = { ...overrides, [key]: value };
   await persistFlags();
 }
 

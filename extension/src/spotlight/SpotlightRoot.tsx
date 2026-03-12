@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { SpotlightGraphFrame } from './SpotlightGraphFrame.js';
 import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from './SpotlightHintRow.js';
 import { SpotlightHelp } from './SpotlightHelp.js';
@@ -35,6 +35,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [selectionIntentId, setSelectionIntentId] = useState(0);
   const [drilldownScope, setDrilldownScope] = useState<{ treeId: string; treeName: string } | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const reducedMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLElement>(null);
   const panelsRef = useRef<HTMLDivElement>(null);
@@ -110,8 +111,10 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       setSelectedKeys(new Set());
       return;
     }
-    const targets = nodes.map((n) => n.kind === 'node' ? { kind: 'node' as const, nodeId: n.nodeId, treeId: n.treeId } : null).filter(Boolean);
-    const response = await executeBatchAction(actionId, targets as Array<{ kind: string; nodeId?: any; treeId?: string }>);
+    const targets = nodes
+      .map((n) => n.kind === 'node' ? { kind: 'node' as const, nodeId: n.nodeId, treeId: n.treeId } : null)
+      .filter((t): t is NonNullable<typeof t> => t !== null);
+    const response = await executeBatchAction(actionId, targets);
     if (response.statusText) act.setStatusText(response.statusText);
     setSelectedKeys(new Set());
   }, [multiSelectedItems, act]);
@@ -210,9 +213,9 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       onClick={(e) => { if (e.target === e.currentTarget) close(); }}
     >
       {hasBeenOpened && <motion.div
-        initial={{ opacity: 0, scale: 0.97, y: -8 }}
+        initial={reducedMotion ? false : { opacity: 0, scale: 0.97, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 28, mass: 0.8 }}
+        transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 380, damping: 28, mass: 0.8 }}
       >
         <Command
           shouldFilter={false} value={selectedKey ?? ''} loop
@@ -237,7 +240,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
 
           {drilldownScope && (
             <div className="spotlight-breadcrumb">
-              <button type="button" className="spotlight-breadcrumb-back" onClick={act.exitDrilldown} tabIndex={-1} aria-label="Exit drilldown">←</button>
+              <button type="button" className="spotlight-breadcrumb-back" onClick={act.exitDrilldown} aria-label="Exit drilldown">←</button>
               <span className="spotlight-breadcrumb-label">{drilldownScope.treeName}</span>
             </div>
           )}
@@ -251,7 +254,10 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           <div ref={panelsRef} className="spotlight-panels spotlight-panels--v3">
             <div className="spotlight-left spotlight-left--v3" data-focus={selectedFocusPane} style={resize.leftStyle}>
               {search.sessionError ? (
-                <div className="spotlight-empty" role="alert">Connection lost. Close and reopen spotlight to retry.</div>
+                <div className="spotlight-empty" role="alert">
+                  Connection lost.
+                  <button type="button" className="spotlight-retry-btn" onClick={search.retryBootstrap}>Retry</button>
+                </div>
               ) : helpOpen ? (
                 <SpotlightHelp open />
               ) : search.loading ? (
@@ -323,7 +329,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
               onClear={() => setSelectedKeys(new Set())}
             />
           )}
-          {act.statusText && <div className="spotlight-status-bar"><span className="spotlight-status">{act.statusText}</span></div>}
+          {act.statusText && <div className="spotlight-status-bar" role="status" aria-live="polite"><span className="spotlight-status">{act.statusText}</span></div>}
           {act.actionMenuActions && <SpotlightActionMenu actions={act.actionMenuActions} onSelect={act.handleActionMenuSelect} onClose={() => act.setActionMenuActions(null)} />}
           {act.quickLookItem && (act.quickLookItem.kind === 'node' || act.quickLookItem.kind === 'tree') && (
             <SpotlightQuickLook item={act.quickLookItem} onClose={() => act.setQuickLookItem(null)} onAction={(actionId, target, status) => { act.setQuickLookItem(null); void act.handleExecuteAction(actionId, target, status); }} />

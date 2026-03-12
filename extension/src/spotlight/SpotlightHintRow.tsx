@@ -32,9 +32,6 @@ export function buildSpotlightHints(query: string): string[] {
   const last = parts[parts.length - 1] ?? '';
   if (!last) return [];
 
-  if ('t:'.startsWith(last.toLowerCase()) && last.length === 1) return ['t:'];
-  if ('p:'.startsWith(last.toLowerCase()) && last.length === 1) return ['p:'];
-  if ('c:'.startsWith(last.toLowerCase()) && last.length === 1) return ['c:'];
   if ('domain:'.startsWith(last)) return ['domain:'];
   if (last.startsWith('tab:')) return ['tab:open', 'tab:closed'];
   if (last.startsWith('tree:')) return ['tree:current', 'tree:other', 'tree:any'];

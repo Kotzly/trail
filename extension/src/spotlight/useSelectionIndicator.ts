@@ -56,11 +56,19 @@ export function useSelectionIndicator(
     const container = listRef.current;
     if (!container) return;
 
+    let pendingRaf = 0;
     const observer = new MutationObserver(() => {
-      requestAnimationFrame(measure);
+      if (pendingRaf) cancelAnimationFrame(pendingRaf);
+      pendingRaf = requestAnimationFrame(() => {
+        pendingRaf = 0;
+        measure();
+      });
     });
     observer.observe(container, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (pendingRaf) cancelAnimationFrame(pendingRaf);
+    };
   }, [measure, listRef]);
 
   return pos;

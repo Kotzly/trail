@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   bootstrapSpotlight,
   disposeSpotlightSession,
@@ -71,6 +71,7 @@ type UseSpotlightSearchReturn = {
   setQuery: (q: string) => void;
   previewCache: LRUMap<string, SpotlightGraphPreviewData>;
   recentQueries: string[];
+  retryBootstrap: () => void;
 };
 
 export function useSpotlightSearch(
@@ -84,9 +85,15 @@ export function useSpotlightSearch(
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
+
+  const retryBootstrap = useCallback(() => {
+    setSessionError(null);
+    setBootstrapAttempt((c) => c + 1);
+  }, []);
 
   const requestSeqRef = useRef(0);
-  const previewCacheRef = useRef(new LRUMap<string, SpotlightGraphPreviewData>(64));
+  const previewCacheRef = useRef(new LRUMap<string, SpotlightGraphPreviewData>(16));
   const prevActiveTreeIdRef = useRef<string | null>(null);
   const currentQueryRef = useRef('');
   currentQueryRef.current = query;
@@ -131,7 +138,7 @@ export function useSpotlightSearch(
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, bootstrapAttempt]);
 
   // Search with debounce
   useEffect(() => {
@@ -238,5 +245,6 @@ export function useSpotlightSearch(
     setQuery,
     previewCache: previewCacheRef.current,
     recentQueries: bootstrapData?.recentQueries ?? [],
+    retryBootstrap,
   };
 }
