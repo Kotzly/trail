@@ -1954,6 +1954,7 @@ export default function GraphCanvas({
           cp2,
           end: { x: endX, y: endY },
           onPath: true, // highlight style for preview
+          style: 'bezier',
           bounds: {
             minX: Math.min(startX, endX, cp1.x, cp2.x),
             minY: Math.min(startY, endY, cp1.y, cp2.y),

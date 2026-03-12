@@ -45,7 +45,7 @@ export type ConnectionSegment = {
   end: { x: number; y: number };
   onPath: boolean;
   bounds: { minX: number; minY: number; maxX: number; maxY: number };
-  style: 'bezier' | 'orthogonal';
+  style: 'bezier' | 'orthogonal' | 'smoothstep';
 };
 
 export type ParticleRenderModel = {

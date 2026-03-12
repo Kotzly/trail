@@ -42,11 +42,16 @@ export function sanitizeSpotlightUsageStats(input: SpotlightUsageStats | null | 
     };
   }
 
-  return pruneSpotlightUsageStats({
+  const result: SpotlightUsageStats = {
     version: 1,
     targets,
-    recentQueries: Array.isArray(input.recentQueries) ? input.recentQueries.filter((q) => typeof q === 'string').slice(0, MAX_RECENT_QUERIES) : undefined,
-  }, Date.now());
+  };
+
+  if (Array.isArray(input.recentQueries)) {
+    result.recentQueries = input.recentQueries.filter((q) => typeof q === 'string').slice(0, MAX_RECENT_QUERIES);
+  }
+
+  return pruneSpotlightUsageStats(result, Date.now());
 }
 
 export function normalizeUsageQueryTokens(tokens: string[]): string[] {
