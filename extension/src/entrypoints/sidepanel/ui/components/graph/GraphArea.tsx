@@ -39,7 +39,7 @@ export default function GraphArea({ onNodeActivate, showControls = true, compact
       settings: state.settings,
       showConnections: state.settings?.showConnections ?? true,
       overlayLodCount: state.overlayEffects.lodCount,
-      adaptivePerformance: state.settings?.adaptivePerformance ?? true,
+      adaptivePerformance: state.flags?.adaptivePerformance ?? false,
       graphView: state.graph.view,
       tool: state.graph.tool,
       selectedNodeIds: state.graph.selectedNodeIds,

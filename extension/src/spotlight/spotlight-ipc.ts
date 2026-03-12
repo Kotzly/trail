@@ -64,7 +64,9 @@ export function sendToGraph(iframe: HTMLIFrameElement, msg: ParentToGraphMsg): v
 }
 
 export function sendToParent(msg: GraphToParentMsg): void {
-  window.parent.postMessage(msg, EXTENSION_ORIGIN);
+  // Parent is an arbitrary web page — must use '*' as targetOrigin.
+  // Security: onGraphMessage validates event.source instead.
+  window.parent.postMessage(msg, '*');
 }
 
 // ---------------------------------------------------------------------------

@@ -34,6 +34,12 @@ export const FLAG_DEFS = {
     label: 'Theme Studio',
     description: 'Enable the full theme studio with color dots, presets, and custom colors.',
   },
+  adaptivePerformance: {
+    type: 'boolean',
+    default: false,
+    label: 'Adaptive Performance',
+    description: 'Automatically degrade graph rendering quality to maintain frame rate on large trees.',
+  },
 } as const satisfies Record<string, FlagDef>;
 
 export type FlagKey = keyof typeof FLAG_DEFS;

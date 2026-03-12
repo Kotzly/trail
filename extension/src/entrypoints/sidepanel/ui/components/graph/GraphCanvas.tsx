@@ -2177,11 +2177,20 @@ export default function GraphCanvas({
     nodeWidth,
   ]);
 
+  const getScaleToFitEntireTree = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return 0.15;
+    const rect = wrapper.getBoundingClientRect();
+    const treeWidth = bounds.maxX - bounds.minX + PADDING * 2;
+    const treeHeight = bounds.maxY - bounds.minY + PADDING * 2;
+    if (treeWidth <= 0 || treeHeight <= 0) return 0.15;
+    return Math.min((rect.width * 0.9) / treeWidth, (rect.height * 0.9) / treeHeight);
+  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY]);
+
   const computeZoomView = useCallback(
     (pointerX: number, pointerY: number, scaleFactor: number): ViewState | null => {
       const { translateX, translateY, scale } = viewRef.current;
-      const fitView = getFitToViewView();
-      const minScale = Math.min(0.15, fitView?.scale ?? 0.15);
+      const minScale = Math.min(0.15, getScaleToFitEntireTree());
       const nextScale = Math.min(3, Math.max(minScale, scale * scaleFactor));
       if (nextScale === scale) return null;
       const canvasX = (pointerX - translateX) / scale;
@@ -2190,7 +2199,7 @@ export default function GraphCanvas({
       const nextTranslateY = pointerY - canvasY * nextScale;
       return { translateX: nextTranslateX, translateY: nextTranslateY, scale: nextScale };
     },
-    [getFitToViewView],
+    [getScaleToFitEntireTree],
   );
 
   const zoomAt = useCallback(
