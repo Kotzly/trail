@@ -161,3 +161,22 @@ export const spotlightUsageStatsItem = storage.defineItem<SpotlightUsageStats | 
   'local:trail_spotlight_usage_stats',
   { fallback: null },
 );
+
+// ── Auth Policy ────────────────────────────────────────────────────
+
+export type CachedAuthPolicy = {
+  authRequired: boolean;
+  fetchedAt: number;
+};
+
+export const authPolicyItem = storage.defineItem<CachedAuthPolicy | null>(
+  'local:trail_auth_policy',
+  { fallback: null },
+);
+
+// ── Guest Welcome ──────────────────────────────────────────────────
+
+export const guestWelcomeDismissedItem = storage.defineItem<boolean>(
+  'local:trail_guest_welcome_dismissed',
+  { fallback: false },
+);

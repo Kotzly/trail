@@ -5,9 +5,12 @@ import ThemePanel from './components/theme/ThemePanel.js';
 import ContextMenus from './components/ContextMenus.js';
 import DeleteTreeConfirmModal from './components/DeleteTreeConfirmModal.js';
 import AuthGate from './components/AuthGate.js';
+import WelcomeGate from './components/WelcomeGate.js';
+import SessionExpiredBanner from './components/SessionExpiredBanner.js';
 import { Toaster } from './components/ui/sonner.js';
 import { useBootstrap } from './hooks/useBootstrap.js';
 import { useAccount } from './hooks/useAccount.js';
+import { useAuthPolicy } from './hooks/useAuthPolicy.js';
 import { useRuntimeMessages } from './hooks/useRuntimeMessages.js';
 import { useShortcuts } from './hooks/useShortcuts.js';
 import TooltipLayer from './components/TooltipLayer.js';
@@ -22,6 +25,7 @@ export default function App() {
 
   useBootstrap();
   useAccount();
+  useAuthPolicy();
   useRuntimeMessages();
   listenSystemTheme();
   useShortcuts(searchInputRef);
@@ -29,15 +33,27 @@ export default function App() {
   const isAuthenticated =
     account.session.status === 'authenticated' && Boolean(account.user);
 
+  const showBlockingAuthGate =
+    !isAuthenticated && account.authRequired;
+
+  const showWelcomeGate =
+    !isAuthenticated && !account.authRequired && !account.guestWelcomeDismissed;
+
+  const showSessionBanner =
+    !isAuthenticated && !account.authRequired && account.sessionExpired;
+
   const containerClass = `container${editorActive ? ' container--editor' : ''}`;
 
   return (
     <div className={containerClass}>
       <Toaster />
-      {!isAuthenticated ? (
+      {showBlockingAuthGate ? (
         <AuthGate />
+      ) : showWelcomeGate ? (
+        <WelcomeGate />
       ) : (
         <>
+          {showSessionBanner && <SessionExpiredBanner />}
           <FloatingControls searchInputRef={searchInputRef} />
           <GraphArea />
           <ThemePanel />

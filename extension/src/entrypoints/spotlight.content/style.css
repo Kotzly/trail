@@ -1341,7 +1341,7 @@ textarea {
 
 /* ─── Light theme ─── */
 
-@media (prefers-color-scheme: light) {
+:host([data-theme="light"]) {
   .spotlight-backdrop {
     background: rgba(255, 255, 255, 0.25);
     color: #1a1a1a;

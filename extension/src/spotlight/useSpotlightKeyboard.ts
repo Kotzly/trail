@@ -63,10 +63,13 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
   const stateRef = useRef(options);
   stateRef.current = options;
 
+  const queryClearedRef = useRef(false);
+  useEffect(() => {
+    queryClearedRef.current = false;
+  }, [options.query]);
+
   useEffect(() => {
     if (!options.isOpen) return;
-    const container = options.containerRef.current;
-    if (!container) return;
 
     const handler = (event: KeyboardEvent) => {
       const s = stateRef.current;
@@ -110,7 +113,10 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           if (clearCombo) {
             event.preventDefault();
             event.stopPropagation();
-            s.setQuery('');
+            if (s.query && !queryClearedRef.current) {
+              queryClearedRef.current = true;
+              s.setQuery('');
+            }
           }
           return;
         }
@@ -134,7 +140,8 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
             s.setHelpOpen(false);
           } else if (s.drilldownScope) {
             s.exitDrilldown();
-          } else if (s.query) {
+          } else if (s.query && !queryClearedRef.current) {
+            queryClearedRef.current = true;
             s.setQuery('');
           } else {
             s.close();
@@ -191,8 +198,8 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
       }
     };
 
-    container.addEventListener('keydown', handler, true);
-    return () => container.removeEventListener('keydown', handler, true);
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
     // Only re-attach when open state or container ref identity changes.
     // All mutable state is read from stateRef inside the handler.
     // eslint-disable-next-line react-hooks/exhaustive-deps

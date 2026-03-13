@@ -8,6 +8,7 @@ import { syncEngine } from './services/sync/engine.js';
 import { initBackendConfig } from '@shared/config/backend.js';
 import { authOrchestrator } from './services/auth-orchestrator.js';
 import { accountKeeper } from './services/account-keeper.js';
+import { authPolicyKeeper } from './services/auth-policy-keeper.js';
 import { browser } from '@shared/platform/webext.js';
 import { initSpotlightCommand } from './spotlight-command.js';
 
@@ -27,6 +28,7 @@ void CommandManager.init();
 syncEngine.init();
 authOrchestrator.init();
 accountKeeper.init();
+void authPolicyKeeper.getPolicy();
 initSpotlightCommand();
 
 const sidePanel = (browser as unknown as {

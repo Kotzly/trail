@@ -80,6 +80,9 @@ export const RPC_METHOD = {
     SPOTLIGHT_DISPOSE_SESSION: 'SPOTLIGHT_DISPOSE_SESSION',
     SPOTLIGHT_EXECUTE_BATCH_ACTION: 'SPOTLIGHT_EXECUTE_BATCH_ACTION',
     TOGGLE_SPOTLIGHT: 'TOGGLE_SPOTLIGHT',
+    GET_LOCAL_TRAIL_DETAIL: 'GET_LOCAL_TRAIL_DETAIL',
+    IMPORT_TRAIL: 'IMPORT_TRAIL',
+    OPEN_FULLVIEW_EDITOR: 'OPEN_FULLVIEW_EDITOR',
 } as const;
 
 export type RequestType = typeof RPC_METHOD[keyof typeof RPC_METHOD];
@@ -458,6 +461,30 @@ export type SpotlightDisposeSessionMessage = RequestMessageBase<typeof RPC_METHO
 export type SpotlightExecuteBatchActionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION, SpotlightExecuteBatchActionRequest>;
 export type ToggleSpotlightMessage = RequestMessageBase<typeof RPC_METHOD.TOGGLE_SPOTLIGHT>;
 
+export type LocalTrailDetail = {
+  id: string;
+  label: string;
+  createdAt: number;
+  savedAt: number;
+  nodeCount: number;
+  rootUrl?: Url | undefined;
+  rootTitle?: Title | undefined;
+  rootFavicon?: FaviconUrl | undefined;
+  tree: NavigationTreeJSON;
+};
+
+export type GetLocalTrailDetailMessage = RequestMessageBase<typeof RPC_METHOD.GET_LOCAL_TRAIL_DETAIL, {
+  treeId: string;
+}>;
+
+export type ImportTrailMessage = RequestMessageBase<typeof RPC_METHOD.IMPORT_TRAIL, {
+  bundle: TrailExportBundle;
+}>;
+
+export type OpenFullviewEditorMessage = RequestMessageBase<typeof RPC_METHOD.OPEN_FULLVIEW_EDITOR, {
+  treeId: string;
+}>;
+
 export type RequestMessage = NavigateToMessage |
     PreviewNodeMessage | SetCurrentMessage |
     BeginTempSelectionMessage | PreviewTempSelectionMessage | AcceptTempSelectionMessage |
@@ -491,7 +518,10 @@ export type RequestMessage = NavigateToMessage |
     SpotlightExecuteActionMessage |
     SpotlightDisposeSessionMessage |
     SpotlightExecuteBatchActionMessage |
-    ToggleSpotlightMessage;
+    ToggleSpotlightMessage |
+    GetLocalTrailDetailMessage |
+    ImportTrailMessage |
+    OpenFullviewEditorMessage;
 
 
 // ==== Responses ====
@@ -581,6 +611,9 @@ export type ResponseDataByType = {
     [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION]: void;
     [RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION]: SpotlightExecuteActionResponse;
     [RPC_METHOD.TOGGLE_SPOTLIGHT]: void;
+    [RPC_METHOD.GET_LOCAL_TRAIL_DETAIL]: LocalTrailDetail;
+    [RPC_METHOD.IMPORT_TRAIL]: { treeId: string };
+    [RPC_METHOD.OPEN_FULLVIEW_EDITOR]: EditorModeState;
 }
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -735,6 +768,15 @@ export const rpc = {
     },
     toggleSpotlight(): ToggleSpotlightMessage {
         return { type: RPC_METHOD.TOGGLE_SPOTLIGHT };
+    },
+    getLocalTrailDetail(payload: { treeId: string }): GetLocalTrailDetailMessage {
+        return { type: RPC_METHOD.GET_LOCAL_TRAIL_DETAIL, ...payload };
+    },
+    importTrail(payload: { bundle: TrailExportBundle }): ImportTrailMessage {
+        return { type: RPC_METHOD.IMPORT_TRAIL, ...payload };
+    },
+    openFullviewEditor(payload: { treeId: string }): OpenFullviewEditorMessage {
+        return { type: RPC_METHOD.OPEN_FULLVIEW_EDITOR, ...payload };
     },
 }
 

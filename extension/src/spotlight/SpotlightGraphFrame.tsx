@@ -87,6 +87,7 @@ export function SpotlightGraphFrame({
         className="spotlight-graph-container"
         style={{
           border: 'none',
+          background: 'transparent',
           width: '100%',
           height: '100%',
           opacity: graphReady ? 1 : 0,

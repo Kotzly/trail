@@ -516,17 +516,28 @@ components:
         refresh_token:
           type: string
 
+    ExtensionConfigMap:
+      type: object
+      additionalProperties:
+        oneOf:
+          - type: boolean
+          - type: number
+          - type: string
+          - type: "null"
+
     AuthSessionStateGuest:
       type: object
-      required: [status]
+      required: [status, config]
       properties:
         status:
           type: string
           enum: [guest]
+        config:
+          $ref: "#/components/schemas/ExtensionConfigMap"
 
     AuthSessionStateAuthenticated:
       type: object
-      required: [status, source, userId]
+      required: [status, source, userId, config]
       properties:
         status:
           type: string
@@ -542,6 +553,8 @@ components:
         authSessionVersion:
           type: integer
           nullable: true
+        config:
+          $ref: "#/components/schemas/ExtensionConfigMap"
 
     AuthSessionState:
       oneOf:
@@ -974,7 +987,7 @@ components:
 
     AccountSnapshot:
       type: object
-      required: [session, user, subscription, billing, plans, onboarding]
+      required: [session, user, subscription, billing, plans, config, onboarding]
       properties:
         session:
           $ref: "#/components/schemas/AuthSession"
@@ -989,6 +1002,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Plan"
+        config:
+          $ref: "#/components/schemas/ExtensionConfigMap"
         onboarding:
           $ref: "#/components/schemas/OnboardingState"
 

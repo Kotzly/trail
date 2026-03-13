@@ -90,8 +90,84 @@
   color: var(--muted-foreground);
 }
 
+.auth-gate__link-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-gate__link-btn:hover {
+  color: var(--foreground);
+}
+
 @keyframes auth-gate-spin {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ── Session Expired Banner ─────────────────────────────── */
+
+.session-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted-foreground);
+  z-index: 50;
+}
+
+.session-banner__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-banner__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease;
+}
+
+.session-banner__action:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.session-banner__action:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.session-banner__dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.session-banner__dismiss:hover {
+  color: var(--foreground);
 }

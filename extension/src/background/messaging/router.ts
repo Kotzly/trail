@@ -32,6 +32,7 @@ import { editorHandlers } from "./handlers/editor-handlers.js";
 import { oauthAuthHandlers } from "./handlers/oauth-auth-handlers.js";
 import { flagsHandlers } from "./handlers/flags-handlers.js";
 import { spotlightHandlers } from "./handlers/spotlight-handlers.js";
+import { accountPageHandlers } from "./handlers/account-page-handlers.js";
 import { browser, type RuntimeMessageSender } from '@shared/platform/webext.js';
 
 type AnyResponse = ResponseMessage<RequestType>;
@@ -146,5 +147,6 @@ export function initMessaging(): void {
     .merge(editorHandlers)
     .merge(flagsHandlers)
     .merge(spotlightHandlers)
+    .merge(accountPageHandlers)
     .listen();
 }

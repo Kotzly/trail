@@ -1,4 +1,5 @@
 import type {
+  AccountConfig,
   AccountError,
   AccountErrorCode,
   AccountSnapshot,
@@ -15,6 +16,7 @@ import {
   initBackendConfig,
 } from '../../../../shared/config/backend.js';
 import {
+  authPolicyItem,
   authSessionItem,
   type StoredAuthSession,
 } from '../../../../shared/config/storage-items.js';
@@ -146,14 +148,14 @@ function isAccountError(error: unknown): error is AccountError {
   return Boolean(error && typeof error === 'object' && 'code' in error && 'message' in error);
 }
 
-function buildGuestSnapshot(plans: Plan[] = []): AccountSnapshot {
+function buildGuestSnapshot(plans: Plan[] = [], config: AccountConfig = {}): AccountSnapshot {
   return {
     session: { status: 'guest' },
     user: null,
     subscription: null,
     billing: { state: 'none' },
     plans,
-    config: {},
+    config,
     onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
   };
 }
@@ -162,12 +164,17 @@ export function createRemoteAccountClient(): AccountClient {
   const getSnapshot = async (): Promise<AccountSnapshot> => {
     const token = await getAccessToken();
     if (!token) {
-      const plans = await requestJson<Plan[]>(
-        BACKEND_CONFIG.endpoints.plans,
-        {},
-        { auth: false },
-      ).catch(() => []);
-      return buildGuestSnapshot(plans);
+      const [plans, policy] = await Promise.all([
+        requestJson<Plan[]>(
+          BACKEND_CONFIG.endpoints.plans,
+          {},
+          { auth: false },
+        ).catch(() => []),
+        authPolicyItem.getValue(),
+      ]);
+      return buildGuestSnapshot(plans, {
+        "auth.extension.required": policy?.authRequired ?? false,
+      });
     }
 
     try {
@@ -185,12 +192,17 @@ export function createRemoteAccountClient(): AccountClient {
       if (isAccountError(error) && error.code === 'auth') {
         // Do NOT clear tokens here — the background authOrchestrator owns
         // token lifecycle and will attempt refresh with the stored refreshToken.
-        const plans = await requestJson<Plan[]>(
-          BACKEND_CONFIG.endpoints.plans,
-          {},
-          { auth: false },
-        ).catch(() => []);
-        return buildGuestSnapshot(plans);
+        const [plans, policy] = await Promise.all([
+          requestJson<Plan[]>(
+            BACKEND_CONFIG.endpoints.plans,
+            {},
+            { auth: false },
+          ).catch(() => []),
+          authPolicyItem.getValue(),
+        ]);
+        return buildGuestSnapshot(plans, {
+          "auth.extension.required": policy?.authRequired ?? false,
+        });
       }
       throw error;
     }

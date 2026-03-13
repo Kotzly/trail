@@ -1,3 +1,5 @@
+import { env } from "@/src/env";
+
 export type ExtensionConfigValue = boolean | number | string | null;
 export type ExtensionConfigMap = Record<string, ExtensionConfigValue>;
 type PlanTier = "free" | "pro" | "teams" | "enterprise";
@@ -32,6 +34,7 @@ const EXTENSION_CONFIG: ExtensionConfig = {
   config: {
     payments: true,
     "feature.trailsSync.minTier": trailsSyncMinTier,
+    "auth.extension.required": env.TRAIL_EXTENSION_AUTH_REQUIRED,
   },
 };
 

@@ -1,4 +1,4 @@
-import type { AccountSnapshot, Plan } from "@shared/types/account.js";
+import type { AccountConfig, AccountSnapshot, Plan } from "@shared/types/account.js";
 import { browser } from '@shared/platform/webext.js';
 import {
   BACKEND_CONFIG,
@@ -7,10 +7,12 @@ import {
 } from "../../shared/config/backend.js";
 import {
   authSessionItem,
+  authPolicyItem,
   accountSnapshotItem,
   type StoredAuthSession,
   type CachedSnapshotEnvelope,
 } from "../../shared/config/storage-items.js";
+import { authPolicyKeeper } from "./auth-policy-keeper.js";
 
 const ALARM_NAME = "trail_account_snapshot_refresh";
 const REFRESH_INTERVAL_MINUTES = 5;
@@ -24,14 +26,14 @@ async function loadAuth(): Promise<StoredAuthSession | null> {
   return authSessionItem.getValue();
 }
 
-function buildGuestSnapshot(plans: Plan[] = []): AccountSnapshot {
+function buildGuestSnapshot(plans: Plan[] = [], config: AccountConfig = {}): AccountSnapshot {
   return {
     session: { status: "guest" },
     user: null,
     subscription: null,
     billing: { state: "none" },
     plans,
-    config: {},
+    config,
     onboarding: { flowId: "activation-v1", status: "pending", seenAt: null },
   };
 }
@@ -73,11 +75,13 @@ async function fetchJson<T>(
 async function fetchSnapshot(): Promise<AccountSnapshot> {
   const auth = await loadAuth();
   if (!auth?.accessToken) {
-    const plans = await fetchJson<Plan[]>(
-      BACKEND_CONFIG.endpoints.plans,
-      { auth: false },
-    ).catch(() => null);
-    return buildGuestSnapshot(plans ?? []);
+    const [plans, policy] = await Promise.all([
+      fetchJson<Plan[]>(BACKEND_CONFIG.endpoints.plans, { auth: false }).catch(() => null),
+      authPolicyKeeper.getPolicy(),
+    ]);
+    return buildGuestSnapshot(plans ?? [], {
+      "auth.extension.required": policy.authRequired,
+    });
   }
 
   try {
@@ -158,7 +162,10 @@ class AccountKeeper {
   }
 
   async clearSnapshot(): Promise<void> {
-    const guest = buildGuestSnapshot();
+    const policy = await authPolicyItem.getValue();
+    const guest = buildGuestSnapshot([], {
+      "auth.extension.required": policy?.authRequired ?? false,
+    });
     const envelope: CachedSnapshotEnvelope = {
       snapshot: guest,
       fetchedAt: Date.now(),

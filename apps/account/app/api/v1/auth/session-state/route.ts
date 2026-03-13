@@ -3,6 +3,7 @@ import { getCookieValue } from "@/src/lib/cookies";
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
 import { verifyUserToken } from "@/src/server/backend/auth/user-auth";
+import { getExtensionConfig } from "@/src/server/backend/extension-config";
 import { jsonNoStore } from "@/src/server/backend/response";
 import { db } from "@trail/db";
 
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
         userId: extension.sub,
         sessionId: extension.sid ?? null,
         authSessionVersion: extension.ver ?? null,
+        ...getExtensionConfig(),
       });
     }
 
@@ -34,6 +36,7 @@ export async function GET(request: Request) {
         source: "web",
         userId: userBearer.sub,
         authSessionVersion: record?.authSessionVersion ?? null,
+        ...getExtensionConfig(),
       });
     }
   }
@@ -51,12 +54,14 @@ export async function GET(request: Request) {
         source: "web",
         userId: user.sub,
         authSessionVersion: record?.authSessionVersion ?? null,
+        ...getExtensionConfig(),
       });
     }
   }
 
   return jsonNoStore({
     status: "guest",
+    ...getExtensionConfig(),
   });
 }
 

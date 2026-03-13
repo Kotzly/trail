@@ -75,6 +75,8 @@ export type AccountState = {
   error: AccountError | null;
   lastSyncedAt: string | null;
   sessionExpired: boolean;
+  authRequired: boolean;
+  guestWelcomeDismissed: boolean;
 };
 
 type StoreState = {
@@ -237,6 +239,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     error: null,
     lastSyncedAt: null,
     sessionExpired: false,
+    authRequired: false,
+    guestWelcomeDismissed: false,
   },
   tree: null,
   treeUpdate: null,
@@ -614,10 +618,13 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         error: null,
         lastSyncedAt: new Date().toISOString(),
         sessionExpired: false,
+        authRequired: typeof snapshot.config?.["auth.extension.required"] === "boolean"
+          ? (snapshot.config["auth.extension.required"] as boolean)
+          : state.account.authRequired,
       },
     })),
   resetAccount: () =>
-    set({
+    set((state) => ({
       account: {
         status: 'idle',
         network: 'online',
@@ -631,8 +638,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         error: null,
         lastSyncedAt: null,
         sessionExpired: false,
+        authRequired: state.account.authRequired,
+        guestWelcomeDismissed: state.account.guestWelcomeDismissed,
       },
-    }),
+    })),
 
   setGraphTool: (tool) => set((state) => ({ graph: { ...state.graph, tool } })),
   setSelectedNodeIds: (ids) =>

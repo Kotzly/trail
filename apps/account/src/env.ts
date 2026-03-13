@@ -80,4 +80,7 @@ export const env = {
   NOWPAYMENTS_API_KEY: readOptionalEnv(process.env.NOWPAYMENTS_API_KEY),
   NOWPAYMENTS_IPN_SECRET: readOptionalEnv(process.env.NOWPAYMENTS_IPN_SECRET),
   NOWPAYMENTS_API_BASE_URL: readOptionalEnv(process.env.NOWPAYMENTS_API_BASE_URL),
+  TRAIL_EXTENSION_AUTH_REQUIRED: readBooleanEnv(
+    process.env.TRAIL_EXTENSION_AUTH_REQUIRED,
+  ),
 };

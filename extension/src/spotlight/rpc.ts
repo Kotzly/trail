@@ -11,6 +11,7 @@ import type {
 import type { NodeId, Url } from '@shared/types/ids.js';
 import type { ResolvedFlags } from '@shared/types/flags.js';
 import type { TrailExportBundle } from '@shared/types/export.js';
+import type { Settings } from '@shared/types/settings.js';
 
 const RPC_VERSION = 2 as const;
 
@@ -108,6 +109,10 @@ export async function executeBatchAction(
     actionId,
     targets,
   });
+}
+
+export async function getSettings(): Promise<Settings> {
+  return sendRpc<Settings>('GET_SETTINGS');
 }
 
 export async function getFlags(): Promise<ResolvedFlags> {

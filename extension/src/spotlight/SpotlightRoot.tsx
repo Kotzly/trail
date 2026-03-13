@@ -14,6 +14,7 @@ import { useSpotlightKeyboard } from './useSpotlightKeyboard.js';
 import { useSelectionIndicator } from './useSelectionIndicator.js';
 import { SpotlightBatchBar } from './SpotlightBatchBar.js';
 import { useSpotlightResize } from './useSpotlightResize.js';
+import { useSpotlightTheme } from './useSpotlightTheme.js';
 import { executeBatchAction } from './rpc.js';
 import type { SpotlightActionId, SpotlightBatchActionId, SpotlightSearchResult } from './types.js';
 import type { SpotlightNodeTarget } from './useSpotlightPreview.js';
@@ -158,6 +159,24 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const graphSelectedNodeId = currentGraphTreeId && selectedNodeTarget?.treeId === currentGraphTreeId ? selectedNodeTarget.nodeId : null;
   const graphHighlightNodeId = currentGraphTreeId && highlightNodeTarget?.treeId === currentGraphTreeId ? highlightNodeTarget.nodeId : null;
 
+  const handleEscapeKey = useCallback(() => {
+    if (act.confirmingAction) {
+      act.setConfirmingAction(null);
+    } else if (act.quickLookItem) {
+      act.setQuickLookItem(null);
+    } else if (act.actionMenuActions) {
+      act.setActionMenuActions(null);
+    } else if (helpOpen) {
+      setHelpOpen(false);
+    } else if (drilldownScope) {
+      act.exitDrilldown();
+    } else if (search.query) {
+      search.setQuery('');
+    } else {
+      close();
+    }
+  }, [act, helpOpen, drilldownScope, search, close]);
+
   const handleToggleSection = useCallback((sectionId: string) => {
     const isCollapsing = !act.collapsedSections.has(sectionId);
     if (isCollapsing && selectedKey) {
@@ -197,6 +216,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     flatItems, selectedKeys, setSelectedKeys, showPreview: true,
   });
 
+  useSpotlightTheme(backdropRef);
   const resize = useSpotlightResize(panelsRef);
 
   // Always render the backdrop shell so backdropRef is available for the
@@ -314,7 +334,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                       void act.handleExecuteAction(aid, { kind: 'node', nodeId, treeId }, aid === 'open-node-in-tree' ? 'Opened in tree' : 'Opened');
                     }}
                     onHoverNode={(treeId, nodeId) => setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId })}
-                    onEscapeKey={close}
+                    onEscapeKey={handleEscapeKey}
                   />
               {preview.graphPreviewLoading && <div className="spotlight-graph-loading" role="status" aria-label="Loading tree preview">Loading tree preview...</div>}
               {preview.previewTreeId && !preview.graphPreviewLoading && !preview.graphPreviewData && <div className="spotlight-empty spotlight-graph-fallback">Preview unavailable</div>}

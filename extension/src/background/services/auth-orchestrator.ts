@@ -8,6 +8,7 @@ import {
 import { notifyUi } from "../messaging/ui-notifications.js";
 import { syncEngine } from "./sync/engine.js";
 import { accountKeeper } from "./account-keeper.js";
+import { authPolicyKeeper } from "./auth-policy-keeper.js";
 import { browser } from '@shared/platform/webext.js';
 
 const AUTH_REFRESH_ALARM = "trail-auth-refresh" as const;
@@ -182,6 +183,7 @@ class AuthOrchestrator {
     }
     logAuth("auth_cleared", { reason });
 
+    void authPolicyKeeper.invalidate();
     await accountKeeper.clearSnapshot();
 
     // On explicit logout, clear all local trees so the next login
@@ -284,6 +286,7 @@ class AuthOrchestrator {
       const refreshed = await refreshWithToken(auth.refreshToken);
       if (refreshed.ok) {
         this.clearLoginRequiredCooldown();
+        void authPolicyKeeper.invalidate();
         void accountKeeper.refreshSnapshot();
         return refreshed;
       }
@@ -356,6 +359,7 @@ class AuthOrchestrator {
 
       if (result.ok) {
         this.clearLoginRequiredCooldown();
+        void authPolicyKeeper.invalidate();
         void accountKeeper.refreshSnapshot();
         logAuth("auth_code_relay_success");
       } else {

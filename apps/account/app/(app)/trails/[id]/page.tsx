@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTrailById } from "@/src/server/trails";
-import EditInExtensionButton from "./EditInExtensionButton";
 import ExportButton from "./ExportButton";
 import NodeInspector from "./NodeInspector";
 
@@ -70,7 +69,6 @@ export default async function TrailDetailPage({
             nodeCount={trail.nodeCount}
             payload={trail.payload}
           />
-          <EditInExtensionButton trailId={trail.id} />
         </div>
       </div>
 
