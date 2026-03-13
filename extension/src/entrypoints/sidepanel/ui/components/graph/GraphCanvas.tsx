@@ -6,11 +6,6 @@ import type {
 } from 'react';
 import type { NodeId } from '@shared/types/ids.js';
 import type { NavigationNode } from '@shared/types/node.js';
-import type { Settings } from '@shared/types/settings.js';
-import type { TabState } from '@shared/types/tabs.js';
-import type { TreeUpdatedInput } from '@shared/rpc/contracts.js';
-import type { TagDefinition } from '@shared/types/tags.js';
-import type { NavigationTree } from '@background/state/nav-tree.js';
 import { navigateTo, setNodeLayoutBatch, reparentNode } from '../../../api/tree.js';
 import { rpc } from '@shared/rpc/contracts.js';
 import { fireAndForget } from '../../../api/background.js';
@@ -35,8 +30,6 @@ import GraphZoomControls from './GraphZoomControls.js';
 import { buildConnections, getPathToNode } from './graph-utils.js';
 import {
   GraphPixiRenderer,
-  type ConnectionQuality,
-  type GraphRenderMetrics,
 } from '../../graph/render/GraphPixiRenderer.js';
 import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
 import { computeGraphGridTransform } from './grid-transform.js';
@@ -45,56 +38,20 @@ import {
   buildPreviewSelection,
   shouldEmitPreview,
 } from './selection-utils.js';
-
-
-type GraphTool = 'hand' | 'select';
-
-type SearchState = {
-  results: NodeId[];
-  index: number;
-  navStep: number;
-  active: boolean;
-};
-
-type ContextMenuState =
-  | {
-      type: 'node';
-      nodeId: NodeId;
-      position: { x: number; y: number };
-    }
-  | {
-      type: 'bulk';
-      nodeIds: NodeId[];
-      position: { x: number; y: number };
-    };
-
-type LayoutUpdate = {
-  nodeId: NodeId;
-  layout: {
-    offsetX?: number;
-    offsetY?: number;
-    radial?: { angleDelta: number; radiusDelta: number };
-  };
-};
-
-type LayoutUpdateMap = Map<NodeId, LayoutUpdate['layout']>;
-
-type DragNodeState = {
-  nodeId: NodeId;
-  startNodeX: number;
-  startNodeY: number;
-  baseOffsetX: number;
-  baseOffsetY: number;
-  radial?: {
-    rootCenterX: number;
-    rootCenterY: number;
-    baseAngle: number;
-    baseRadius: number;
-    ancestorAngle: number;
-    ancestorRadius: number;
-    minRadius: number;
-  };
-};
+import type {
+  GraphCanvasProps,
+  DragNodeState,
+  DragReparentPreview,
+  LayoutUpdateMap,
+  NodeAnimationState,
+  NodeAnimationType,
+  OpenAnimationState,
+  ParticleState,
+  PointerHitTarget,
+  PointerInfo,
+  SelectionBox,
+} from './graph-canvas-types.js';
+import { collectSubtreeIds, buildCollapseScope } from './graph-canvas-utils.js';
 
 const LAYOUT_UPDATE_MS = 80;
 const SELECTION_PREVIEW_MS = 40;
@@ -103,162 +60,9 @@ const SELECTION_PREVIEW_MS = 40;
  *  parent center at which the snap preview activates. */
 const SNAP_RADIUS = 250;
 
-function collectSubtreeIds(node: NavigationNode): Set<NodeId> {
-  const ids = new Set<NodeId>();
-  const walk = (n: NavigationNode) => {
-    ids.add(n.id);
-    for (const child of n.getChildren()) walk(child);
-  };
-  walk(node);
-  return ids;
-}
-
-type DragReparentPreview = {
-  draggedId: NodeId;
-  originalParentId: NodeId;
-  /** The node we'd reparent to on drop — null when detached but not near any target. */
-  targetId: NodeId | null;
-  /** IDs of the dragged subtree (used to exclude from snap candidates). */
-  subtreeIds: Set<NodeId>;
-};
-
-type GraphCanvasProps = {
-  tree: NavigationTree | null;
-  treeUpdate: { reason: TreeUpdatedInput['reason']; at: number } | null;
-  currentNodeId: NodeId | null;
-  openNodeIds: Set<NodeId>;
-  collapsedNodeIds: Set<NodeId>;
-  collapseVersion: number;
-  collapseAction: CollapseAction | null;
-  nodeTabCounts: Record<NodeId, number>;
-  nodeRecency: Record<NodeId, number>;
-  tabStates: Record<NodeId, TabState>;
-  search: SearchState;
-  settings: Settings | null;
-  showConnections: boolean;
-  detailMode: 'full' | 'low' | 'dot';
-  connectionQuality: ConnectionQuality;
-  graphView: ViewState;
-  tool: GraphTool;
-  selectedNodeIds: Set<NodeId>;
-  hoverNodeId: NodeId | null;
-  resetVersion: number;
-  viewIntent: TreeUpdatedInput['view'] | null;
-  tagDefs: Record<string, TagDefinition>;
-  onGraphToolChange: (tool: GraphTool) => void;
-  onSelectedNodeIdsChange: (ids: Set<NodeId>) => void;
-  onClearSelection: () => void;
-  onGraphViewChange: (view: Partial<ViewState>) => void;
-  onSetHoverNodeId: (nodeId: NodeId | null) => void;
-  onOpenContextMenu: (menu: ContextMenuState) => void;
-  onClearViewIntent: () => void;
-  onExpandNodes: (nodeIds: NodeId[]) => void;
-  onRenderMetrics: (metrics: GraphRenderMetrics) => void;
-  editorActive: boolean;
-  pickTarget: { type: 'duplicate'; sourceNodeId: NodeId } | null;
-  onPickTargetComplete: () => void;
-  fullViewEnabled: boolean;
-  recencyOrderingV2Enabled: boolean;
-  showControls: boolean;
-  /** Limit initial zoom so at most ~25×36 nodes are visible (Spotlight mode). */
-  compactInitialView?: boolean;
-  /** When set, called instead of the default navigateTo on node click. */
-  onNodeActivate?: (nodeId: NodeId, url: string) => void;
-};
-
-type SelectionBox = {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-};
-
-type PointerInfo = {
-  clientX: number;
-  clientY: number;
-  button: number;
-  shiftKey: boolean;
-  altKey: boolean;
-  metaKey: boolean;
-  ctrlKey: boolean;
-};
-
-type PointerHitTarget = {
-  nodeId: NodeId;
-  target: 'node' | 'collapse-icon';
-};
-
-type NodeAnimationType = 'enter' | 'exit' | 'move';
-
-type NodeAnimationState = {
-  id: NodeId;
-  type: NodeAnimationType;
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-  startTime: number;
-  duration: number;
-};
-
-type OpenAnimationState = {
-  id: NodeId;
-  from: number;
-  to: number;
-  startTime: number;
-  duration: number;
-};
-
-type ParticleState = {
-  id: string;
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-  life: number;
-  age: number;
-  radius: number;
-};
-
-type CollapseAction = {
-  kind: 'collapse' | 'expand';
-  nodeIds: Set<NodeId>;
-};
-
-type CollapseScope = Map<NodeId, NodeId>;
-
 const BASE_MOTION = createAnimationSpec(150);
 const FAST_MOTION = createAnimationSpec(Math.max(60, Math.round(BASE_MOTION.duration / 2)));
 const OPEN_ANIMATION_DURATION = 240;
-
-const buildCollapseScope = (
-  tree: NavigationTree | null,
-  rootIds: Set<NodeId> | null,
-): CollapseScope => {
-  const scope: CollapseScope = new Map();
-  if (!tree || !rootIds || rootIds.size === 0) return scope;
-  const rootSet = new Set<NodeId>();
-  rootIds.forEach((id) => {
-    const node = tree.findNodeById(id);
-    if (!node) return;
-    rootSet.add(id);
-  });
-  if (rootSet.size === 0) return scope;
-
-  const visit = (node: NavigationNode, rootId: NodeId) => {
-    if (rootSet.has(node.id)) return;
-    scope.set(node.id, rootId);
-    node.getChildren().forEach((child) => visit(child, rootId));
-  };
-
-  rootSet.forEach((rootId) => {
-    const rootNode = tree.findNodeById(rootId);
-    if (!rootNode) return;
-    rootNode.getChildren().forEach((child) => visit(child, rootId));
-  });
-
-  return scope;
-};
 
 export default function GraphCanvas({
   tree,
