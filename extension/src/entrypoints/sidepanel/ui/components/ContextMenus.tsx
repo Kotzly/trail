@@ -309,6 +309,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   }, [updateSubmenuLayout]);
 
   const [pendingDelete, setPendingDelete] = useState<'node' | 'children' | 'withChildren' | null>(null);
+  const [pendingDeleteTagId, setPendingDeleteTagId] = useState<string | null>(null);
   const hasOpenTab = tabs.length > 0;
   const hasTitle = Boolean(node?.data.title && node.data.title.trim().length > 0);
   const hasChildren = node?.getChildren()?.length ? node.getChildren().length > 0 : false;
@@ -558,23 +559,38 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                   >
                     <Icons.Pencil size={12} />
                   </button>
-                  <button
-                    type="button"
-                    className="tag-action-btn danger"
-                    aria-label="Delete tag"
-                    disabled={tag.system}
-                    onClick={async (event) => {
-                      event.stopPropagation();
-                      if (tag.system) return;
-                      try {
-                        await deleteTagDef(tag.id as Tag);
-                      } catch (error) {
-                        console.error('Failed to delete tag:', error);
-                      }
-                    }}
-                  >
-                    <Icons.Trash2 size={12} />
-                  </button>
+                  {pendingDeleteTagId === tag.id ? (
+                    <button
+                      type="button"
+                      className="tag-action-btn danger is-confirming"
+                      aria-label="Confirm delete tag"
+                      onClick={async (event) => {
+                        event.stopPropagation();
+                        try {
+                          await deleteTagDef(tag.id as Tag);
+                        } catch (error) {
+                          console.error('Failed to delete tag:', error);
+                        }
+                        setPendingDeleteTagId(null);
+                      }}
+                    >
+                      <Icons.Check size={12} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="tag-action-btn danger"
+                      aria-label="Delete tag"
+                      disabled={tag.system}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (tag.system) return;
+                        setPendingDeleteTagId(tag.id);
+                      }}
+                    >
+                      <Icons.Trash2 size={12} />
+                    </button>
+                  )}
                 </span>
                 {hasTag ? <Icons.Check size={13} className="tag-check" /> : null}
               </div>
