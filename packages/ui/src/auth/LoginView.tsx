@@ -1,30 +1,10 @@
 "use client";
 
-import type { CSSProperties } from "react";
-
-interface LoginViewProps {
+export interface LoginViewProps {
   error: string | null;
   isLoading: boolean;
   onContinueWithGoogle: () => void;
 }
-
-const mainStyle: CSSProperties = {
-  margin: "0 auto",
-  maxWidth: "420px",
-  padding: "48px 24px",
-  fontFamily: "system-ui, -apple-system, sans-serif",
-  display: "flex",
-  flexDirection: "column",
-  gap: "16px",
-};
-
-const primaryButtonStyle: CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: "8px",
-  border: "1px solid #111827",
-  background: "#111827",
-  color: "#ffffff",
-};
 
 export function LoginView({
   error,
@@ -32,10 +12,10 @@ export function LoginView({
   onContinueWithGoogle,
 }: LoginViewProps) {
   return (
-    <main style={mainStyle}>
-      <header style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <h1 style={{ margin: 0, fontSize: "28px" }}>trail</h1>
-        <p style={{ margin: 0, color: "#4b5563" }}>
+    <main className="mx-auto flex max-w-[420px] flex-col gap-4 px-6 py-12 font-sans">
+      <header className="flex flex-col gap-1">
+        <h1 className="m-0 text-[28px] font-bold">trail</h1>
+        <p className="m-0 text-gray-500">
           Continue with Google to sign in.
         </p>
       </header>
@@ -44,21 +24,16 @@ export function LoginView({
         type="button"
         onClick={onContinueWithGoogle}
         disabled={isLoading}
-        style={{
-          ...primaryButtonStyle,
-          cursor: isLoading ? "not-allowed" : "pointer",
-          opacity: isLoading ? 0.75 : 1,
-        }}
+        className="rounded-lg border border-gray-900 bg-gray-900 px-3 py-2.5 text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-75"
       >
         {isLoading ? "Google..." : "Continue with Google"}
       </button>
 
       {error ? (
-        <p role="alert" style={{ margin: 0, color: "#b91c1c" }}>
+        <p role="alert" className="m-0 text-red-700">
           {error}
         </p>
       ) : null}
     </main>
   );
 }
-
