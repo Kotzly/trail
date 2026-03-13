@@ -1,27 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { spotlightSplitRatioItem } from '@shared/config/storage-items.js';
 
 const MIN_RATIO = 0.3;
 const MAX_RATIO = 0.7;
-const STORAGE_KEY = 'spotlight-split-ratio';
 const NARROW_BREAKPOINT = 800;
 
-function loadRatio(): number {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = parseFloat(stored);
-      if (!Number.isNaN(parsed) && parsed >= MIN_RATIO && parsed <= MAX_RATIO) return parsed;
-    }
-  } catch { /* ignore */ }
-  return 0.38; // default: left panel ~38%
+function loadRatioSync(): number {
+  return 0.38; // default, async load overwrites immediately
 }
 
 export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | null>) {
-  const [splitRatio, setSplitRatio] = useState(loadRatio);
+  const [splitRatio, setSplitRatio] = useState(loadRatioSync);
   const [isDragging, setIsDragging] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
   const startXRef = useRef(0);
   const startRatioRef = useRef(0);
+
+  // Load persisted ratio on mount
+  useEffect(() => {
+    void spotlightSplitRatioItem.getValue().then((stored) => {
+      if (stored >= MIN_RATIO && stored <= MAX_RATIO) {
+        setSplitRatio(stored);
+      }
+    });
+  }, []);
 
   // Detect narrow viewport
   useEffect(() => {
@@ -57,7 +59,7 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
 
     const handleMouseUp = () => {
       setIsDragging(false);
-      try { localStorage.setItem(STORAGE_KEY, splitRatioRef.current.toString()); } catch { /* ignore */ }
+      void spotlightSplitRatioItem.setValue(splitRatioRef.current);
     };
 
     document.addEventListener('mousemove', handleMouseMove);

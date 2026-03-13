@@ -45,6 +45,7 @@ export const siteSettings = defineType({
       name: 'supportEmail',
       title: 'Support Email',
       type: 'string',
+      validation: (rule) => rule.regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, {name: 'email', invert: false}),
     }),
     defineField({
       name: 'defaultSeo',

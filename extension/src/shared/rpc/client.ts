@@ -22,7 +22,7 @@ function createRequestId(): string {
 function toRpcRequestEnvelope<T extends RequestType>(
   message: MessageByType<T>,
 ): RpcRequestEnvelope {
-  const { type, ...rest } = message as unknown as Record<string, unknown>;
+  const { type, ...rest } = message as Record<string, unknown> & { type: string };
   return rpcRequestEnvelopeSchema.parse({
     v: RPC_VERSION,
     kind: "rpc-request",
@@ -53,8 +53,8 @@ function toResponseMessage<T extends RequestType>(
   if (response.success) {
     return {
       success: true,
-      data: response.data as any,
-    };
+      data: response.data,
+    } as ResponseMessage<T>;
   }
   return {
     success: false,

@@ -1,13 +1,12 @@
 import { revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
-
-const SANITY_REVALIDATE_SECRET = process.env.SANITY_REVALIDATE_SECRET;
+import { env } from "../../../lib/env";
 
 export async function POST(req: NextRequest) {
   try {
     const secret = req.nextUrl.searchParams.get("secret");
 
-    if (!SANITY_REVALIDATE_SECRET || secret !== SANITY_REVALIDATE_SECRET) {
+    if (!env.SANITY_REVALIDATE_SECRET || secret !== env.SANITY_REVALIDATE_SECRET) {
       return NextResponse.json(
         { message: "Invalid secret" },
         { status: 401 },

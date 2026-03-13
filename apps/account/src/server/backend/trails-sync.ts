@@ -120,8 +120,10 @@ function normalizeDeviceId(value: string | null | undefined): string | null {
   return normalized.length ? normalized : null;
 }
 
+type DbClient = Awaited<typeof import("@trail/db")>["db"];
+
 async function ensureSyncDevices(params: {
-  db: Awaited<typeof import("@trail/db")>["db"];
+  db: DbClient;
   userId: string;
   primaryDeviceId: string;
   extraDeviceIds?: string[];
@@ -137,51 +139,56 @@ async function ensureSyncDevices(params: {
   }
 
   const deviceIds = Array.from(ids);
-  const existing = await db.device.findMany({
-    where: { id: { in: deviceIds } },
-    select: { id: true, userId: true },
-  });
 
-  const existingById = new Map(existing.map((device) => [device.id, device]));
-  const missing: string[] = [];
-
-  for (const deviceId of deviceIds) {
-    const device = existingById.get(deviceId);
-    if (!device) {
-      missing.push(deviceId);
-      continue;
-    }
-    // Reassign device to the current user when the same device ID appears
-    // under a different account. This handles extension reinstalls and
-    // account switches on the same browser where the device ID persists.
-    if (device.userId !== userId) {
-      console.warn("[trails-sync] device ownership reassigned", {
-        deviceId,
-        previousUserId: device.userId,
-        newUserId: userId,
-      });
-      await db.device.update({
-        where: { id: deviceId },
-        data: { userId },
-      });
-      continue;
-    }
-  }
-
-  if (missing.length) {
-    await db.device.createMany({
-      data: missing.map((deviceId) => ({
-        id: deviceId,
-        userId,
-        lastSeenAt: deviceId === primaryDeviceId ? now : null,
-      })),
-      skipDuplicates: true,
+  // Wrap device operations in a transaction to prevent race conditions
+  // when concurrent requests try to reassign the same device.
+  await db.$transaction(async (tx) => {
+    const existing = await tx.device.findMany({
+      where: { id: { in: deviceIds } },
+      select: { id: true, userId: true },
     });
-  }
 
-  await db.device.update({
-    where: { id: primaryDeviceId },
-    data: { lastSeenAt: now },
+    const existingById = new Map(existing.map((device) => [device.id, device]));
+    const missing: string[] = [];
+
+    for (const deviceId of deviceIds) {
+      const device = existingById.get(deviceId);
+      if (!device) {
+        missing.push(deviceId);
+        continue;
+      }
+      // Reassign device to the current user when the same device ID appears
+      // under a different account. This handles extension reinstalls and
+      // account switches on the same browser where the device ID persists.
+      if (device.userId !== userId) {
+        console.warn("[trails-sync] device ownership reassigned", {
+          deviceId,
+          previousUserId: device.userId,
+          newUserId: userId,
+        });
+        await tx.device.update({
+          where: { id: deviceId },
+          data: { userId },
+        });
+        continue;
+      }
+    }
+
+    if (missing.length) {
+      await tx.device.createMany({
+        data: missing.map((deviceId) => ({
+          id: deviceId,
+          userId,
+          lastSeenAt: deviceId === primaryDeviceId ? now : null,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    await tx.device.update({
+      where: { id: primaryDeviceId },
+      data: { lastSeenAt: now },
+    });
   });
 }
 

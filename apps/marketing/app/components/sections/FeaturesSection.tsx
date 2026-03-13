@@ -10,6 +10,7 @@ import {
 import { Reveal } from "../ui/reveal";
 import { Stagger, StaggerItem } from "../ui/stagger";
 import { parseHeadline } from "../ui/parse-headline";
+import type { BentoFeaturesSectionData, BentoFeature } from "../../../lib/sanity/types";
 
 const iconMap: Record<string, LucideIcon> = {
   capture: Camera,
@@ -18,9 +19,8 @@ const iconMap: Record<string, LucideIcon> = {
   customize: Palette,
 };
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function FeaturesSection({ section }: { section: any }) {
-  const features: any[] = section.features ?? [];
+export function FeaturesSection({ section }: { section: BentoFeaturesSectionData }) {
+  const features: BentoFeature[] = section.features ?? [];
 
   return (
     <section id="features" className="py-24 sm:py-32">
@@ -54,8 +54,8 @@ export function FeaturesSection({ section }: { section: any }) {
           delay={0.4}
           staggerInterval={0.1}
         >
-          {features.map((feature: any) => {
-            const Icon = iconMap[feature.id] ?? Camera;
+          {features.map((feature) => {
+            const Icon = iconMap[feature.id ?? ""] ?? Camera;
             return (
               <StaggerItem key={feature._key ?? feature.id}>
                 <div className="group relative rounded-xl border border-border-subtle bg-surface p-6 transition-all duration-200 hover:border-border-strong hover:bg-elevated hover:shadow-[0_4px_32px_rgba(212,22,108,0.08)] sm:p-8">

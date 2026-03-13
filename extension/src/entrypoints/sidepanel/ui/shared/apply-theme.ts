@@ -1,12 +1,13 @@
 import type { CustomTheme } from '@shared/types/settings.js';
 import type { ThemeId } from '@features/themes/model.js';
 import { generateThemeTokens, THEME_TOKEN_KEYS } from './theme-generator.js';
+import { themeCacheItem } from '@shared/config/storage-items.js';
 
 export function applyTheme(theme: ThemeId, customTheme: CustomTheme): void {
   const root = document.documentElement;
   root.setAttribute('data-theme', theme);
   // Sync cache for instant theme restore on panel reload (avoids FOUC)
-  try { sessionStorage.setItem('trail-theme-cache', theme); } catch { /* quota / security */ }
+  void themeCacheItem.setValue(theme);
   const hasVisualContent = (customTheme?.dots?.length ?? 0) > 0 || (customTheme?.customColors?.length ?? 0) > 0;
   if (!customTheme?.enabled || !hasVisualContent) {
     for (const key of THEME_TOKEN_KEYS) {

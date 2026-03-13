@@ -180,3 +180,15 @@ export const guestWelcomeDismissedItem = storage.defineItem<boolean>(
   'local:trail_guest_welcome_dismissed',
   { fallback: false },
 );
+
+// ── UI State ───────────────────────────────────────────────────────
+
+export const spotlightSplitRatioItem = storage.defineItem<number>(
+  'local:trail_spotlight_split_ratio',
+  { fallback: 0.38 },
+);
+
+export const themeCacheItem = storage.defineItem<string | null>(
+  'session:trail_theme_cache',
+  { fallback: null },
+);

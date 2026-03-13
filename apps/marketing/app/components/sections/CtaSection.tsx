@@ -2,9 +2,9 @@
 
 import { Reveal } from "../ui/reveal";
 import { parseHeadline } from "../ui/parse-headline";
+import type { CtaSectionData } from "../../../lib/sanity/types";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function CtaSection({ section }: { section: any }) {
+export function CtaSection({ section }: { section: CtaSectionData }) {
   return (
     <section id="cta" className="relative py-24 sm:py-32">
       {/* Subtle radial gradient background */}

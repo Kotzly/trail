@@ -24,3 +24,25 @@ export { TrailLoader } from "./components/TrailLoader";
 export { cn } from "./utils/cn";
 
 export { default as tailwindPreset } from "./tailwind-preset";
+
+// Component prop types
+export type { ButtonProps } from "./components/Button";
+export type { CardProps } from "./components/Card";
+export type { BadgeProps } from "./components/Badge";
+export type { TableProps, TableSectionProps, TableRowProps, TableCellProps, TableHeaderCellProps } from "./components/Table";
+export type { FieldProps } from "./components/Field";
+export type { FormMessageProps } from "./components/FormMessage";
+export type { InputProps } from "./components/Input";
+export type { LabelProps } from "./components/Label";
+export type { TextareaProps } from "./components/Textarea";
+export type { SectionHeaderProps } from "./components/SectionHeader";
+export type { PageHeaderProps } from "./components/PageHeader";
+export type { EmptyStateProps } from "./components/EmptyState";
+export type { CalloutProps } from "./components/Callout";
+export type { SkeletonProps } from "./components/Skeleton";
+export type { StatCardProps } from "./components/StatCard";
+export type { StepListProps } from "./components/StepList";
+export type { InfoBannerProps } from "./components/InfoBanner";
+export type { BackgroundArtProps } from "./components/BackgroundArt";
+export type { TrailLogoProps } from "./components/TrailLogo";
+export type { TrailLoaderProps } from "./components/TrailLoader";

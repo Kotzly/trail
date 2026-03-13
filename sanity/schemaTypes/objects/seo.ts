@@ -17,7 +17,7 @@ export const seo = defineType({
       type: 'text',
       rows: 3,
       description: 'Short description for search engine results (max 160 characters)',
-      validation: (rule) => rule.max(200),
+      validation: (rule) => rule.max(160),
     }),
     defineField({
       name: 'ogImage',
