@@ -20,7 +20,7 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.app.json --noEmit",
     "typecheck:ui": "tsc -p tsconfig.app.json --noEmit",
     "generate-icons": "tsx src/shared/utils/generate-icons.ts",
-    "test": "node --import tsx tests/basic.test.ts && node --import tsx tests/architecture-boundaries.test.ts && node --import tsx tests/spotlight-search.test.ts"
+    "test": "node --import tsx tests/basic.test.ts && node --import tsx tests/architecture-boundaries.test.ts && node --import tsx tests/spotlight-search.test.ts && node --import tsx tests/rpc-schema.test.ts"
   },
   "keywords": [],
   "author": "Trail",
