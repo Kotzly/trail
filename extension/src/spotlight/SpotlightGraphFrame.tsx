@@ -11,6 +11,7 @@ type SpotlightGraphFrameProps = {
   selectedNodeId: NodeId | null;
   highlightNodeId: NodeId | null;
   selectionIntentId: number;
+  searchMatchNodeIds?: NodeId[] | undefined;
   onNavigate: (treeId: string, nodeId: NodeId, url: Url) => void;
   onHoverNode: (treeId: string, nodeId: NodeId | null) => void;
   onEscapeKey?: () => void;
@@ -22,6 +23,7 @@ export function SpotlightGraphFrame({
   selectedNodeId,
   highlightNodeId,
   selectionIntentId,
+  searchMatchNodeIds,
   onNavigate,
   onHoverNode,
   onEscapeKey,
@@ -70,12 +72,13 @@ export function SpotlightGraphFrame({
       selectedNodeId,
       highlightNodeId,
       selectionIntentId,
+      ...(searchMatchNodeIds && { searchMatchNodeIds }),
     };
     pendingContextRef.current = nextContext;
     if (readyRef.current) {
       sendContext(nextContext);
     }
-  }, [activeTreeId, highlightNodeId, previewData, selectedNodeId, selectionIntentId, sendContext]);
+  }, [activeTreeId, highlightNodeId, previewData, searchMatchNodeIds, selectedNodeId, selectionIntentId, sendContext]);
 
   const src = runtimeGetURL('spotlight-graph.html');
 

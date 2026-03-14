@@ -159,6 +159,16 @@ export default function SpotlightGraphApp() {
           },
         }));
       }
+
+      // Apply search highlighting from Spotlight query
+      const matchIds = msg.searchMatchNodeIds ?? [];
+      if (matchIds.length > 0) {
+        useStore.setState((state) => ({
+          search: { ...state.search, results: matchIds, active: true, index: 0, navStep: 0 },
+        }));
+      } else if (useStore.getState().search.active) {
+        useStore.getState().clearSearch();
+      }
     });
   }, [applyPreviewData, hoverNodeId, setLocalHighlight]);
 

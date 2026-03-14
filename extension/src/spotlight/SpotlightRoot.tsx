@@ -159,6 +159,18 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const graphSelectedNodeId = currentGraphTreeId && selectedNodeTarget?.treeId === currentGraphTreeId ? selectedNodeTarget.nodeId : null;
   const graphHighlightNodeId = currentGraphTreeId && highlightNodeTarget?.treeId === currentGraphTreeId ? highlightNodeTarget.nodeId : null;
 
+  // Collect nodeIds matching search query for graph highlighting
+  const searchMatchNodeIds = useMemo(() => {
+    if (!currentGraphTreeId || !search.query) return undefined;
+    const ids: import('@shared/types/ids.js').NodeId[] = [];
+    for (const item of flatItems) {
+      if (item.kind === 'node' && item.treeId === currentGraphTreeId) {
+        ids.push(item.nodeId);
+      }
+    }
+    return ids.length > 0 ? ids : undefined;
+  }, [flatItems, currentGraphTreeId, search.query]);
+
   const handleEscapeKey = useCallback(() => {
     if (act.confirmingAction) {
       act.setConfirmingAction(null);
@@ -230,7 +242,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
         opacity: isOpen ? 1 : 0,
         ...(!hasBeenOpened && { display: 'none' }),
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) close(); }}
+      onClick={(e) => { if (e.target === e.currentTarget && !resize.wasDragging.current) close(); }}
     >
       {hasBeenOpened && <motion.div
         initial={reducedMotion ? false : { opacity: 0, scale: 0.97, y: -8 }}
@@ -329,6 +341,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                     activeTreeId={activeTreeId} previewData={preview.graphPreviewData}
                     selectedNodeId={graphSelectedNodeId} highlightNodeId={graphHighlightNodeId}
                     selectionIntentId={selectionIntentId}
+                    searchMatchNodeIds={searchMatchNodeIds}
                     onNavigate={(treeId, nodeId) => {
                       const aid: SpotlightActionId = activeTreeId && treeId !== activeTreeId ? 'open-node-in-tree' : 'open';
                       void act.handleExecuteAction(aid, { kind: 'node', nodeId, treeId }, aid === 'open-node-in-tree' ? 'Opened in tree' : 'Opened');

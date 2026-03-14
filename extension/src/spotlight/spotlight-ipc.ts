@@ -24,6 +24,7 @@ type SetGraphContextMsg = {
   selectedNodeId: NodeId | null;
   highlightNodeId: NodeId | null;
   selectionIntentId: number;
+  searchMatchNodeIds?: NodeId[];
 };
 
 // Graph iframe -> Parent
