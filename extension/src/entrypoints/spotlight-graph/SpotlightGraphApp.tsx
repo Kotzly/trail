@@ -3,9 +3,11 @@ import GraphArea from '@entrypoints/sidepanel/ui/components/graph/GraphArea.js';
 import { useBootstrap } from '@entrypoints/sidepanel/ui/hooks/useBootstrap.js';
 import { listenSystemTheme } from '@entrypoints/sidepanel/ui/hooks/listenSystemTheme.js';
 import { useStore } from '@entrypoints/sidepanel/ui/state/store.js';
+import type { ViewState } from '@entrypoints/sidepanel/ui/state/store.js';
 import { NavigationTreeMapper } from '@shared/lib/mapper.js';
 import type { SpotlightGraphPreviewData } from '../../spotlight/types.js';
 import type { NodeId } from '@shared/types/ids.js';
+import type { TreeViewIntent } from '@shared/rpc/contracts.js';
 import { sendToParent, onParentMessage } from '../../spotlight/spotlight-ipc.js';
 
 export default function SpotlightGraphApp() {
@@ -30,6 +32,8 @@ export default function SpotlightGraphApp() {
   const readyFired = useRef(false);
   const suppressHoverEchoRef = useRef(false);
   const lastHoverSentRef = useRef<string | undefined>(undefined);
+  const viewCacheRef = useRef(new Map<string, ViewState>());
+  const intentCounterRef = useRef(0);
 
   useEffect(() => {
     clearSearch();
@@ -68,7 +72,7 @@ export default function SpotlightGraphApp() {
     }
   }, [currentNodeId, nodeRecency, nodeTabCounts, openNodeIds, tabStates, tree]);
 
-  const applyPreviewData = useCallback((preview: SpotlightGraphPreviewData) => {
+  const applyPreviewData = useCallback((preview: SpotlightGraphPreviewData, view?: TreeViewIntent) => {
     useStore.getState().applyTreeState({
       tree: preview.tree,
       openNodeIds: preview.openNodeIds,
@@ -76,6 +80,7 @@ export default function SpotlightGraphApp() {
       nodeTabCounts: preview.nodeTabCounts,
       nodeRecency: preview.nodeRecency,
       reason: 'tree-switch',
+      ...(view && { view }),
     });
   }, []);
 
@@ -111,8 +116,22 @@ export default function SpotlightGraphApp() {
 
       const previewChanged = currentPreviewTreeIdRef.current !== nextPreview.treeId;
       if (previewChanged) {
+        // Save current view for the outgoing tree
+        const outgoingTreeId = currentPreviewTreeIdRef.current;
+        if (outgoingTreeId) {
+          viewCacheRef.current.set(outgoingTreeId, { ...useStore.getState().graph.view });
+        }
+
         currentPreviewTreeIdRef.current = nextPreview.treeId;
-        applyPreviewData(nextPreview);
+
+        // Determine view intent for the incoming tree
+        const cachedView = viewCacheRef.current.get(nextPreview.treeId);
+        const nextIntentId = ++intentCounterRef.current;
+        const viewIntent: TreeViewIntent = cachedView
+          ? { restoreView: cachedView, intentId: nextIntentId }
+          : { fitToView: true, intentId: nextIntentId };
+
+        applyPreviewData(nextPreview, viewIntent);
       }
 
       selectedNodeIdRef.current = selectedNodeId;

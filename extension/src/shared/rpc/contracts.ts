@@ -854,6 +854,8 @@ export type TreeViewIntentMode = 'force' | 'soft';
 export type TreeViewIntent = {
     focusNodeId?: NodeId;
     fitToView?: boolean;
+    /** Restore exact view coordinates (used by Spotlight tree-switch cache). */
+    restoreView?: { translateX: number; translateY: number; scale: number };
     mode?: TreeViewIntentMode;
     intentId?: number;
 };

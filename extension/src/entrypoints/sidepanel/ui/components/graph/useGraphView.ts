@@ -18,7 +18,7 @@ type UseGraphViewParams = {
   compactInitialView: boolean;
   currentNodeId: NodeId | null;
   root: { id: NodeId } | null;
-  viewIntent: { mode?: string; intentId?: number; fitToView?: boolean; focusNodeId?: NodeId } | null;
+  viewIntent: { mode?: string; intentId?: number; fitToView?: boolean; focusNodeId?: NodeId; restoreView?: ViewState } | null;
   onClearViewIntent: () => void;
   isDraggingNode: boolean;
   searchActive: boolean;
@@ -353,6 +353,17 @@ export function useGraphView({
     if (viewIntent.mode === 'soft' && (isDraggingNode || isPanningRef.current)) return;
     const intentId = viewIntent.intentId ?? 0;
     if (intentId !== 0 && lastViewIntentRef.current === intentId) return;
+    if (viewIntent.restoreView) {
+      lastViewIntentRef.current = intentId;
+      const v = viewIntent.restoreView;
+      cancelViewAnimation();
+      viewRef.current = v;
+      onGraphViewChange(v);
+      rendererRef.current?.setView(v);
+      applyGridTransform(v);
+      onClearViewIntent();
+      return;
+    }
     if (viewIntent.fitToView) {
       lastViewIntentRef.current = intentId;
       fitToView(true);
@@ -365,7 +376,7 @@ export function useGraphView({
       centerOnNode(viewIntent.focusNodeId, true);
       onClearViewIntent();
     }
-  }, [centerOnNode, fitToView, isDraggingNode, isPanningRef, onClearViewIntent, positions, viewIntent]);
+  }, [applyGridTransform, cancelViewAnimation, centerOnNode, fitToView, isDraggingNode, isPanningRef, onClearViewIntent, onGraphViewChange, positions, rendererRef, viewIntent]);
 
   // Reset version handling
   useEffect(() => {
