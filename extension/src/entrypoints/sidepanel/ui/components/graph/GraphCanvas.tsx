@@ -9,7 +9,7 @@ import type { NavigationNode } from '@shared/types/node.js';
 import { navigateTo, setNodeLayoutBatch, reparentNode } from '../../../api/tree.js';
 import { rpc } from '@shared/rpc/contracts.js';
 import { fireAndForget } from '../../../api/background.js';
-import { PADDING, NODE_WIDTH, NODE_HEIGHT, HORIZONTAL_GAP, VERTICAL_GAP } from '../../graph/layout/config.js';
+// Layout config constants used by useGraphView hook.
 import {
   calculateLayout,
   calculateMindmapLayout,
@@ -24,15 +24,15 @@ import {
   incrementalCenterReorder,
   incrementalClusterReorder,
 } from '@shared/lib/recency.js';
-import type { CanvasBounds, LayoutMode, NodePosition, ViewState } from '../../graph/types.js';
-import { getAnimationProgress, lerp } from '../../graph/animation-utils.js';
+import type { CanvasBounds, LayoutMode, NodePosition } from '../../graph/types.js';
+// animation-utils.js used by useGraphAnimation and useGraphView hooks.
 import GraphZoomControls from './GraphZoomControls.js';
 import { buildConnections, getPathToNode } from './graph-utils.js';
 import {
   GraphPixiRenderer,
 } from '../../graph/render/GraphPixiRenderer.js';
 import type { NodeRenderModel } from '../../graph/render/types.js';
-import { computeGraphGridTransform } from './grid-transform.js';
+// grid-transform.js used by useGraphView hook.
 import { browser, runtimeGetURL } from '@shared/platform/webext.js';
 // selection-utils.js is now used via useGraphSelection hook.
 import type {
@@ -46,6 +46,7 @@ import type {
 import { collectSubtreeIds, buildCollapseScope } from './graph-canvas-utils.js';
 import { useGraphSelection } from './useGraphSelection.js';
 import { useGraphAnimation, FAST_MOTION } from './useGraphAnimation.js';
+import { useGraphView } from './useGraphView.js';
 
 const LAYOUT_UPDATE_MS = 80;
 
@@ -100,23 +101,8 @@ export default function GraphCanvas({
   const searchNavStep = search.navStep;
   const effectiveShowConnections = showConnections;
 
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const pixiHostRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<GraphPixiRenderer | null>(null);
-  const viewAnimationRef = useRef<number | null>(null);
-  const viewRef = useRef(graphView);
-  const didInitView = useRef(false);
-  const pendingViewRef = useRef<Partial<ViewState> | null>(null);
-  const viewRafRef = useRef<number | null>(null);
-  const gridVarsRef = useRef({
-    size: '',
-    dotSize: '',
-    offsetX: '',
-    offsetY: '',
-    grainSize: '',
-    grainOffsetX: '',
-    grainOffsetY: '',
-  });
   const emptyPositionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
 
   const positionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
@@ -172,88 +158,8 @@ export default function GraphCanvas({
   const suppressClickRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
   const lastHoverNodeIdRef = useRef<NodeId | null>(null);
-  const lastResetRef = useRef(0);
-  const lastViewIntentRef = useRef<number | null>(null);
-  const lastLayoutModeRef = useRef<LayoutMode | null>(null);
-  const resetStepRef = useRef<{
-    nodeId: NodeId;
-    view: { translateX: number; translateY: number; scale: number };
-  } | null>(null);
 
-  // Selection logic extracted to useGraphSelection hook above.
-
-  const applyGridTransform = useCallback((view: ViewState) => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const grid = computeGraphGridTransform(view);
-    const sizeValue = `${grid.size.toFixed(3)}px`;
-    const dotValue = `${grid.dotSize.toFixed(3)}px`;
-    const offsetXValue = `${grid.offsetX.toFixed(3)}px`;
-    const offsetYValue = `${grid.offsetY.toFixed(3)}px`;
-    const grainSizeValue = `${grid.grainSize.toFixed(3)}px`;
-    const grainOffsetXValue = `${grid.grainOffsetX.toFixed(3)}px`;
-    const grainOffsetYValue = `${grid.grainOffsetY.toFixed(3)}px`;
-    const prev = gridVarsRef.current;
-    if (
-      prev.size === sizeValue &&
-      prev.dotSize === dotValue &&
-      prev.offsetX === offsetXValue &&
-      prev.offsetY === offsetYValue &&
-      prev.grainSize === grainSizeValue &&
-      prev.grainOffsetX === grainOffsetXValue &&
-      prev.grainOffsetY === grainOffsetYValue
-    ) {
-      return;
-    }
-    wrapper.style.setProperty('--graph-grid-size', sizeValue);
-    wrapper.style.setProperty('--graph-grid-dot-size', dotValue);
-    wrapper.style.setProperty('--graph-grid-offset-x', offsetXValue);
-    wrapper.style.setProperty('--graph-grid-offset-y', offsetYValue);
-    wrapper.style.setProperty('--graph-grain-size', grainSizeValue);
-    wrapper.style.setProperty('--graph-grain-offset-x', grainOffsetXValue);
-    wrapper.style.setProperty('--graph-grain-offset-y', grainOffsetYValue);
-    gridVarsRef.current = {
-      size: sizeValue,
-      dotSize: dotValue,
-      offsetX: offsetXValue,
-      offsetY: offsetYValue,
-      grainSize: grainSizeValue,
-      grainOffsetX: grainOffsetXValue,
-      grainOffsetY: grainOffsetYValue,
-    };
-  }, []);
-
-  const scheduleGraphView = useCallback(
-    (view: Partial<ViewState>) => {
-      viewRef.current = { ...viewRef.current, ...view };
-      pendingViewRef.current = { ...(pendingViewRef.current ?? {}), ...view };
-      if (viewRafRef.current !== null) return;
-      viewRafRef.current = window.requestAnimationFrame(() => {
-        const next = pendingViewRef.current;
-        pendingViewRef.current = null;
-        viewRafRef.current = null;
-        if (next) {
-          onGraphViewChange(next);
-          rendererRef.current?.setView(viewRef.current);
-          applyGridTransform(viewRef.current);
-        }
-      });
-    },
-    [applyGridTransform, onGraphViewChange],
-  );
-
-  useEffect(() => {
-    return () => {
-      if (viewRafRef.current !== null) {
-        window.cancelAnimationFrame(viewRafRef.current);
-        viewRafRef.current = null;
-      }
-      if (viewAnimationRef.current !== null) {
-        window.cancelAnimationFrame(viewAnimationRef.current);
-        viewAnimationRef.current = null;
-      }
-    };
-  }, []);
+  // View/camera logic extracted to useGraphView hook (initialized after bounds computation).
 
   const layoutOptions = useMemo(() => deriveLayoutOptions(settings), [settings]);
   const baseLayoutConfig =
@@ -342,44 +248,8 @@ export default function GraphCanvas({
     [collapsedNodeIds, sortChildrenForParentKey],
   );
 
-  useEffect(() => {
-    viewRef.current = graphView;
-    rendererRef.current?.setView(graphView);
-    applyGridTransform(graphView);
-  }, [applyGridTransform, graphView]);
-
-  useEffect(() => {
-    const host = pixiHostRef.current;
-    if (!host) return;
-    const renderer = new GraphPixiRenderer(host);
-    rendererRef.current = renderer;
-    renderer.setView(viewRef.current);
-    renderer.setDetailMode(detailMode);
-    renderer.setConnectionQuality(connectionQuality);
-    renderer.setMetricsListener(onRenderMetrics);
-    applyGridTransform(viewRef.current);
-    return () => {
-      renderer.setMetricsListener(null);
-      renderer.destroy();
-      rendererRef.current = null;
-    };
-  }, [applyGridTransform]);
-
-  useEffect(() => {
-    rendererRef.current?.setSelectedNodeIds(selectedNodeIds);
-  }, [selectedNodeIds]);
-
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const resizeObserver = new ResizeObserver(() => {
-      rendererRef.current?.resizeToHost();
-      rendererRef.current?.setView(viewRef.current);
-      applyGridTransform(viewRef.current);
-    });
-    resizeObserver.observe(wrapper);
-    return () => resizeObserver.disconnect();
-  }, [applyGridTransform]);
+  // View sync, renderer init, selectedNodeIds sync, resize observer
+  // are handled by useGraphView hook + inline renderer effects below.
 
   useEffect(() => {
     const observer = new MutationObserver(() => rendererRef.current?.refreshTheme());
@@ -402,10 +272,6 @@ export default function GraphCanvas({
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    resetStepRef.current = null;
-  }, [currentNodeId]);
 
   const flushLayoutUpdates = useCallback(async (updates: LayoutUpdateMap) => {
     try {
@@ -469,39 +335,7 @@ export default function GraphCanvas({
     };
   }, []);
 
-  const cancelViewAnimation = useCallback(() => {
-    if (viewAnimationRef.current !== null) {
-      window.cancelAnimationFrame(viewAnimationRef.current);
-      viewAnimationRef.current = null;
-    }
-  }, []);
-
-  const animateViewTo = useCallback(
-    (target: ViewState, durationMs: number) => {
-      cancelViewAnimation();
-      const start = performance.now();
-      const from = viewRef.current;
-      const animate = (time: number) => {
-        const progress = getAnimationProgress(time, start, durationMs);
-        const next: ViewState = {
-          translateX: lerp(from.translateX, target.translateX, progress.eased),
-          translateY: lerp(from.translateY, target.translateY, progress.eased),
-          scale: lerp(from.scale, target.scale, progress.eased),
-        };
-        viewRef.current = next;
-        onGraphViewChange(next);
-        rendererRef.current?.setView(next);
-        applyGridTransform(next);
-        if (!progress.done) {
-          viewAnimationRef.current = window.requestAnimationFrame(animate);
-        } else {
-          viewAnimationRef.current = null;
-        }
-      };
-      viewAnimationRef.current = window.requestAnimationFrame(animate);
-    },
-    [applyGridTransform, cancelViewAnimation, onGraphViewChange],
-  );
+  // cancelViewAnimation and animateViewTo provided by useGraphView hook.
 
   const layout = useMemo(() => {
     if (!root) return null;
@@ -801,6 +635,53 @@ export default function GraphCanvas({
     }
     return getCanvasBounds(positions, nodeWidth, nodeHeight);
   }, [layout, nodeHeight, nodeWidth, positions]);
+
+  // --- View / Camera hook (must come after bounds + positions) ---
+  const {
+    wrapperRef, viewRef, applyGridTransform, scheduleGraphView,
+    cancelViewAnimation, animateViewTo, fitToView, centerOnNode, zoomAt, zoom,
+  } = useGraphView({
+    graphView, onGraphViewChange, rendererRef, bounds, positions,
+    nodeWidth, nodeHeight, compactInitialView,
+    currentNodeId, root, viewIntent: viewIntent ?? null, onClearViewIntent,
+    isDraggingNode, searchActive, searchNavStep, focusedSearchId: search.results[search.index],
+    resetVersion, layoutMode: layoutOptions.mode,
+    isPanningRef, isSelectingRef,
+  });
+
+  // --- Renderer init (depends on applyGridTransform from view hook) ---
+  useEffect(() => {
+    const host = pixiHostRef.current;
+    if (!host) return;
+    const renderer = new GraphPixiRenderer(host);
+    rendererRef.current = renderer;
+    renderer.setView(viewRef.current);
+    renderer.setDetailMode(detailMode);
+    renderer.setConnectionQuality(connectionQuality);
+    renderer.setMetricsListener(onRenderMetrics);
+    applyGridTransform(viewRef.current);
+    return () => {
+      renderer.setMetricsListener(null);
+      renderer.destroy();
+      rendererRef.current = null;
+    };
+  }, [applyGridTransform]);
+
+  useEffect(() => {
+    rendererRef.current?.setSelectedNodeIds(selectedNodeIds);
+  }, [selectedNodeIds]);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const resizeObserver = new ResizeObserver(() => {
+      rendererRef.current?.resizeToHost();
+      rendererRef.current?.setView(viewRef.current);
+      applyGridTransform(viewRef.current);
+    });
+    resizeObserver.observe(wrapper);
+    return () => resizeObserver.disconnect();
+  }, [applyGridTransform, viewRef, wrapperRef]);
 
   const displayNodes = useMemo(() => {
     const list = Array.from(positions.values());
@@ -1484,267 +1365,10 @@ export default function GraphCanvas({
     rendererRef.current?.setMetricsListener(onRenderMetrics);
   }, [onRenderMetrics]);
 
-  const getFitToViewView = useCallback(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return null;
-    const rect = wrapper.getBoundingClientRect();
-    const treeWidth = bounds.maxX - bounds.minX + PADDING * 2;
-    const treeHeight = bounds.maxY - bounds.minY + PADDING * 2;
-    if (treeWidth <= 0 || treeHeight <= 0) return null;
+  // getFitToViewView, fitToView, centerOnNode, zoom, zoomAt etc. are provided by useGraphView hook.
 
-    // Scale that fits the entire tree
-    const scaleToFit = Math.min(
-      (rect.width * 0.9) / treeWidth,
-      (rect.height * 0.9) / treeHeight,
-    );
-
-    let scale: number;
-    if (compactInitialView) {
-      // Spotlight mode: show at most ~12 columns × 18 rows of nodes
-      const targetViewportX = 12 * (NODE_WIDTH + HORIZONTAL_GAP);
-      const targetViewportY = 18 * (NODE_HEIGHT + VERTICAL_GAP);
-      const minScale = Math.max(rect.width / targetViewportX, rect.height / targetViewportY);
-      // For small trees scaleToFit > minScale → show all nodes.
-      // For large trees scaleToFit < minScale → zoom in to ~25×36 window.
-      scale = Math.min(Math.max(scaleToFit, minScale), 2);
-    } else {
-      // Default: fit entire tree, cap zoom-in at 5×5 nodes
-      const maxScaleX = rect.width / (5 * (NODE_WIDTH + HORIZONTAL_GAP));
-      const maxScaleY = rect.height / (5 * (NODE_HEIGHT + VERTICAL_GAP));
-      scale = Math.min(scaleToFit, maxScaleX, maxScaleY, 2);
-    }
-
-    const translateX = (rect.width - treeWidth * scale) / 2 - (bounds.minX - PADDING) * scale;
-    const translateY = (rect.height - treeHeight * scale) / 2 - (bounds.minY - PADDING) * scale;
-    return { translateX, translateY, scale };
-  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY, compactInitialView]);
-
-  const fitToView = (animate = false) => {
-    const fitView = getFitToViewView();
-    if (!fitView) return;
-    if (animate) {
-      animateViewTo(fitView, 300);
-    } else {
-      cancelViewAnimation();
-      viewRef.current = fitView;
-      onGraphViewChange(fitView);
-      rendererRef.current?.setView(fitView);
-      applyGridTransform(fitView);
-    }
-  };
-
-  const isViewClose = (
-    a: { translateX: number; translateY: number; scale: number },
-    b: { translateX: number; translateY: number; scale: number },
-  ) => {
-    const translateEpsilon = 0.5;
-    const scaleEpsilon = 0.0005;
-    return (
-      Math.abs(a.translateX - b.translateX) <= translateEpsilon &&
-      Math.abs(a.translateY - b.translateY) <= translateEpsilon &&
-      Math.abs(a.scale - b.scale) <= scaleEpsilon
-    );
-  };
-
-  const getCenteredView = (nodeId: NodeId) => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return null;
-    const pos = positions.get(nodeId);
-    if (!pos) return null;
-    const rect = wrapper.getBoundingClientRect();
-    const scale = viewRef.current.scale;
-    const nodeCenterX = pos.x + nodeWidth / 2;
-    const nodeCenterY = pos.y + nodeHeight / 2;
-    const translateX = rect.width / 2 - nodeCenterX * scale;
-    const translateY = rect.height / 2 - nodeCenterY * scale;
-    return { translateX, translateY, scale };
-  };
-
-  const centerOnNode = (nodeId: NodeId, animate = true): boolean => {
-    const nextView = getCenteredView(nodeId);
-    if (!nextView) return false;
-    if (animate) {
-      animateViewTo(nextView, 300);
-    } else {
-      cancelViewAnimation();
-      viewRef.current = nextView;
-      onGraphViewChange(nextView);
-      rendererRef.current?.setView(nextView);
-      applyGridTransform(nextView);
-    }
-    return true;
-  };
-
-  useLayoutEffect(() => {
-    if (!root) return;
-    const mode = layoutOptions.mode;
-    if (lastLayoutModeRef.current === null) {
-      lastLayoutModeRef.current = mode;
-      return;
-    }
-    if (lastLayoutModeRef.current === mode) return;
-    const targetId = currentNodeId ?? root.id;
-    if (targetId === null || targetId === undefined) return;
-    const centered = centerOnNode(targetId, true);
-    if (centered) {
-      lastLayoutModeRef.current = mode;
-    }
-  }, [currentNodeId, layoutOptions.mode, nodeHeight, nodeWidth, positions, root]);
-
-  useEffect(() => {
-    if (!root || didInitView.current) return;
-    didInitView.current = true;
-    fitToView(false);
-  }, [bounds.height, bounds.width, root]);
-
-  useLayoutEffect(() => {
-    if (!viewIntent) return;
-    if (viewIntent.mode === 'soft' && (isDraggingNode || isPanningRef.current)) return;
-    const intentId = viewIntent.intentId ?? 0;
-    if (intentId !== 0 && lastViewIntentRef.current === intentId) return;
-    if (viewIntent.fitToView) {
-      lastViewIntentRef.current = intentId;
-      fitToView(true);
-      onClearViewIntent();
-      return;
-    }
-    if (viewIntent.focusNodeId) {
-      if (!positions.has(viewIntent.focusNodeId)) return;
-      lastViewIntentRef.current = intentId;
-      centerOnNode(viewIntent.focusNodeId, true);
-      onClearViewIntent();
-    }
-  }, [
-    onClearViewIntent,
-    isDraggingNode,
-    positions,
-    viewIntent,
-    nodeHeight,
-    nodeWidth,
-  ]);
-
-  useEffect(() => {
-    if (!root) return;
-    if (resetVersion === 0) return;
-    if (lastResetRef.current === resetVersion) return;
-    lastResetRef.current = resetVersion;
-    fitToView(true);
-  }, [resetVersion, root]);
-
-  const prevSearchFocusRef = useRef<NodeId | null>(null);
-  const lastSearchNavStepRef = useRef(searchNavStep);
-
-  useLayoutEffect(() => {
-    if (!searchActive) {
-      prevSearchFocusRef.current = null;
-      lastSearchNavStepRef.current = searchNavStep;
-      return;
-    }
-    if (isDraggingNode || isPanningRef.current || isSelectingRef.current) return;
-    if (!root) return;
-    if (!focusedSearchId) return;
-    if (searchNavStep === lastSearchNavStepRef.current) return;
-    if (prevSearchFocusRef.current === focusedSearchId) {
-      lastSearchNavStepRef.current = searchNavStep;
-      return;
-    }
-    prevSearchFocusRef.current = focusedSearchId;
-    lastSearchNavStepRef.current = searchNavStep;
-    centerOnNode(focusedSearchId, true);
-  }, [
-    focusedSearchId,
-    isDraggingNode,
-    root,
-    searchActive,
-    searchNavStep,
-    positions,
-    nodeHeight,
-    nodeWidth,
-  ]);
-
-  const getScaleToFitEntireTree = useCallback(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return 0.15;
-    const rect = wrapper.getBoundingClientRect();
-    const treeWidth = bounds.maxX - bounds.minX + PADDING * 2;
-    const treeHeight = bounds.maxY - bounds.minY + PADDING * 2;
-    if (treeWidth <= 0 || treeHeight <= 0) return 0.15;
-    return Math.min((rect.width * 0.9) / treeWidth, (rect.height * 0.9) / treeHeight);
-  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY]);
-
-  const computeZoomView = useCallback(
-    (pointerX: number, pointerY: number, scaleFactor: number): ViewState | null => {
-      const { translateX, translateY, scale } = viewRef.current;
-      const minScale = Math.min(0.15, getScaleToFitEntireTree());
-      const nextScale = Math.min(3, Math.max(minScale, scale * scaleFactor));
-      if (nextScale === scale) return null;
-      const canvasX = (pointerX - translateX) / scale;
-      const canvasY = (pointerY - translateY) / scale;
-      const nextTranslateX = pointerX - canvasX * nextScale;
-      const nextTranslateY = pointerY - canvasY * nextScale;
-      return { translateX: nextTranslateX, translateY: nextTranslateY, scale: nextScale };
-    },
-    [getScaleToFitEntireTree],
-  );
-
-  const zoomAt = useCallback(
-    (pointerX: number, pointerY: number, scaleFactor: number, animate = false) => {
-      const nextView = computeZoomView(pointerX, pointerY, scaleFactor);
-      if (!nextView) return;
-      if (animate) {
-        animateViewTo(nextView, 180);
-      } else {
-        viewRef.current = nextView;
-        scheduleGraphView(nextView);
-      }
-    },
-    [animateViewTo, computeZoomView, scheduleGraphView],
-  );
-
-  const handleResetZoom = (animate = false) => {
-    const nodeId = currentNodeId;
-    if (!nodeId) {
-      resetStepRef.current = null;
-      fitToView(animate);
-      return;
-    }
-    const nextView = getCenteredView(nodeId);
-    if (!nextView) {
-      resetStepRef.current = null;
-      fitToView(animate);
-      return;
-    }
-    const snapshot = resetStepRef.current;
-    if (snapshot && snapshot.nodeId === nodeId && isViewClose(viewRef.current, snapshot.view)) {
-      resetStepRef.current = null;
-      fitToView(animate);
-      return;
-    }
-    if (animate) {
-      animateViewTo(nextView, 300);
-    } else {
-      cancelViewAnimation();
-      viewRef.current = nextView;
-      onGraphViewChange(nextView);
-      rendererRef.current?.setView(nextView);
-      applyGridTransform(nextView);
-    }
-    resetStepRef.current = { nodeId, view: nextView };
-  };
-
-  const zoom = (direction: 'in' | 'out' | 'reset', animate = false) => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    if (direction === 'reset') {
-      handleResetZoom(animate);
-      return;
-    }
-    const rect = wrapper.getBoundingClientRect();
-    const pointerX = rect.width / 2;
-    const pointerY = rect.height / 2;
-    const scaleFactor = direction === 'in' ? 1.25 : 0.8;
-    zoomAt(pointerX, pointerY, scaleFactor, animate);
-  };
+  // All view/camera functions (fitToView, centerOnNode, zoom, zoomAt, etc.)
+  // and their effects are provided by useGraphView hook.
 
   // finalizeSelection and clearSelectionState are provided by useGraphSelection hook.
 
