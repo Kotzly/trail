@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { z } from "zod";
 import { db } from "@trail/db";
 import type { Prisma } from "@trail/db";
 import { env } from "@/src/env";
@@ -9,11 +10,13 @@ import { isUpgrade, type PlanId } from "@/src/server/backend/subscription/prorat
 
 export const runtime = "nodejs";
 
-type NowPaymentsWebhookPayload = Record<string, unknown> & {
-  order_id?: string;
-  payment_id?: string | number;
-  payment_status?: string;
-};
+const nowPaymentsWebhookSchema = z.looseObject({
+  order_id: z.string().optional(),
+  payment_id: z.union([z.string(), z.number()]).optional(),
+  payment_status: z.string().optional(),
+});
+
+// Type inferred from schema, used in computeSignature and field access below.
 
 function toBufferHex(value: string): Buffer {
   return Buffer.from(value, "hex");
@@ -128,14 +131,22 @@ export async function POST(request: Request) {
   }
 
   const raw = await request.text();
-  let payload: NowPaymentsWebhookPayload | null = null;
+  let parsed: unknown;
   try {
-    payload = JSON.parse(raw) as NowPaymentsWebhookPayload;
+    parsed = JSON.parse(raw);
   } catch {
     return jsonError("invalid_payload", "Invalid webhook payload.", {
       status: 400,
     });
   }
+
+  const result = nowPaymentsWebhookSchema.safeParse(parsed);
+  if (!result.success) {
+    return jsonError("invalid_payload", "Webhook payload failed schema validation.", {
+      status: 400,
+    });
+  }
+  const payload = result.data;
 
   const expected = computeSignature(payload, secret);
   if (!safeEqualHex(sig, expected)) {

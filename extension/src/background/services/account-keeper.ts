@@ -40,7 +40,7 @@ function buildGuestSnapshot(plans: Plan[] = [], config: AccountConfig = {}): Acc
 
 async function fetchJson<T>(
   path: string,
-  options: { auth?: boolean } = {},
+  options: { auth?: boolean; validate?: (data: unknown) => data is T } = {},
 ): Promise<T | null> {
   await initBackendConfig();
   const headers = new Headers({ Accept: "application/json" });
@@ -66,7 +66,14 @@ async function fetchJson<T>(
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = await response.text();
     if (!text) return null;
-    return JSON.parse(text) as T;
+    const parsed: unknown = JSON.parse(text);
+    if (parsed === null || typeof parsed !== 'object') {
+      throw new Error(`Expected JSON object/array, got ${typeof parsed}`);
+    }
+    if (options.validate && !options.validate(parsed)) {
+      throw new Error(`Response failed validation for ${path}`);
+    }
+    return parsed as T;
   } finally {
     globalThis.clearTimeout(timeout);
   }

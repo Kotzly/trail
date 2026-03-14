@@ -39,7 +39,11 @@ async function fetchSessionState(): Promise<SessionStateResponse | null> {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = await response.text();
     if (!text) return null;
-    return JSON.parse(text) as SessionStateResponse;
+    const parsed: unknown = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object' || typeof (parsed as Record<string, unknown>).status !== 'string') {
+      throw new Error('Invalid session state response');
+    }
+    return parsed as SessionStateResponse;
   } finally {
     globalThis.clearTimeout(timeout);
   }
