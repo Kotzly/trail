@@ -2,27 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { env } from "../../../lib/env";
 import { sendMessage } from "../../../lib/telegram";
+import { createRateLimiter } from "../../../lib/rate-limit";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_CONTACT_LENGTH = 100;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 3;
 
-const hits = new Map<string, number[]>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const timestamps = (hits.get(ip) ?? []).filter(
-    (t) => now - t < RATE_LIMIT_WINDOW_MS,
-  );
-  if (timestamps.length >= RATE_LIMIT_MAX) {
-    hits.set(ip, timestamps);
-    return true;
-  }
-  timestamps.push(now);
-  hits.set(ip, timestamps);
-  return false;
-}
+const rateLimiter = createRateLimiter({
+  windowMs: 60_000,
+  maxRequests: 3,
+});
 
 function escapeHtml(text: string): string {
   return text
@@ -37,7 +25,7 @@ export async function POST(req: NextRequest) {
     req.headers.get("x-real-ip") ??
     "unknown";
 
-  if (isRateLimited(ip)) {
+  if (rateLimiter.isLimited(ip)) {
     return NextResponse.json(
       { error: "Too many requests. Try again later." },
       { status: 429 },
