@@ -310,6 +310,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
 
   const [pendingDelete, setPendingDelete] = useState<'node' | 'children' | 'withChildren' | null>(null);
   const [pendingDeleteTagId, setPendingDeleteTagId] = useState<string | null>(null);
+  const [pendingCloseAllTabs, setPendingCloseAllTabs] = useState(false);
   const hasOpenTab = tabs.length > 0;
   const hasTitle = Boolean(node?.data.title && node.data.title.trim().length > 0);
   const hasChildren = node?.getChildren()?.length ? node.getChildren().length > 0 : false;
@@ -454,22 +455,34 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                       </div>
                     ))}
                   </div>
-                  <div
-                    className="graph-context-menu-item"
-                    role="menuitem"
-                    tabIndex={-1}
-                    onClick={() => {
-                      if (tabs.length === 1 && tabs[0]?.id) {
-                        fireAndForget(rpc.closeTab({ nodeId, tabId: tabs[0].id as TabId }));
+                  {pendingCloseAllTabs ? (
+                    <div
+                      className="graph-context-menu-item danger is-confirming"
+                      role="menuitem"
+                      tabIndex={-1}
+                      onClick={() => {
+                        if (tabs.length === 1 && tabs[0]?.id) {
+                          fireAndForget(rpc.closeTab({ nodeId, tabId: tabs[0].id as TabId }));
+                        } else if (tabs.length > 1) {
+                          fireAndForget(rpc.bulkCloseTabs({ nodeIds: [nodeId] }));
+                        }
                         setTabs([]);
-                      } else if (tabs.length > 1) {
-                        fireAndForget(rpc.bulkCloseTabs({ nodeIds: [nodeId] }));
-                        setTabs([]);
-                      }
-                    }}
-                  >
-                    {tabs.length === 1 ? 'Close tab' : 'Close all tabs'}
-                  </div>
+                        setPendingCloseAllTabs(false);
+                        closeContextMenu();
+                      }}
+                    >
+                      Confirm close?
+                    </div>
+                  ) : (
+                    <div
+                      className="graph-context-menu-item"
+                      role="menuitem"
+                      tabIndex={-1}
+                      onClick={() => setPendingCloseAllTabs(true)}
+                    >
+                      {tabs.length === 1 ? 'Close tab' : 'Close all tabs'}
+                    </div>
+                  )}
                 </>
               )}
 
