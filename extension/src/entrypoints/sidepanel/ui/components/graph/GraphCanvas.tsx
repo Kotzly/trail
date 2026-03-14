@@ -34,27 +34,22 @@ import {
 import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
 import { computeGraphGridTransform } from './grid-transform.js';
 import { browser, runtimeGetURL } from '@shared/platform/webext.js';
-import {
-  buildPreviewSelection,
-  shouldEmitPreview,
-} from './selection-utils.js';
+// selection-utils.js is now used via useGraphSelection hook.
 import type {
   GraphCanvasProps,
   DragNodeState,
   DragReparentPreview,
   LayoutUpdateMap,
   NodeAnimationState,
-  NodeAnimationType,
   OpenAnimationState,
   ParticleState,
   PointerHitTarget,
   PointerInfo,
-  SelectionBox,
 } from './graph-canvas-types.js';
 import { collectSubtreeIds, buildCollapseScope } from './graph-canvas-utils.js';
+import { useGraphSelection } from './useGraphSelection.js';
 
 const LAYOUT_UPDATE_MS = 80;
-const SELECTION_PREVIEW_MS = 40;
 
 /** Distance (in world pixels) from the dragged node center to a candidate
  *  parent center at which the snap preview activates. */
@@ -245,12 +240,6 @@ export default function GraphCanvas({
     };
   }, []);
 
-  const selectionBoxRef = useRef<HTMLDivElement | null>(null);
-  const previewSelectionRef = useRef<Set<NodeId>>(new Set());
-  const selectionWorldRectRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
-  const selectionComputeHandleRef = useRef<number | null>(null);
-  const selectionComputeDirtyRef = useRef(false);
-  const selectionPreviewLastRunRef = useRef(0);
   const positionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
   const [isDraggingNode, setIsDraggingNode] = useState(false);
   const [dragPreview, setDragPreview] = useState<LayoutUpdateMap | null>(null);
@@ -278,14 +267,29 @@ export default function GraphCanvas({
     originalParentId: NodeId;
     targetId: NodeId | null;
   } | null>(null);
-  const isSelectingRef = useRef(false);
+  const {
+    selectionBoxRef,
+    isSelectingRef,
+    selectionStartRef,
+    baseSelectionRef,
+    selectionModeRef,
+    selectionDragRef,
+    selectionWorldRectRef,
+    previewSelectionRef,
+    updateSelectionBox,
+    hideSelectionBox,
+    scheduleSelectionPreview,
+    finalizeSelection,
+    clearSelectionState,
+  } = useGraphSelection({
+    rendererRef,
+    positionsRef,
+    onSelectedNodeIdsChange,
+    onClearSelection,
+  });
   const panStartRef = useRef({ x: 0, y: 0 });
   const panPointerStartRef = useRef({ x: 0, y: 0 });
   const panMovedRef = useRef(false);
-  const selectionStartRef = useRef({ x: 0, y: 0 });
-  const baseSelectionRef = useRef<Set<NodeId>>(new Set());
-  const selectionModeRef = useRef<'replace' | 'add' | 'remove'>('replace');
-  const selectionDragRef = useRef(false);
   const suppressClickRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
   const lastHoverNodeIdRef = useRef<NodeId | null>(null);
@@ -297,74 +301,7 @@ export default function GraphCanvas({
     view: { translateX: number; translateY: number; scale: number };
   } | null>(null);
 
-  const cancelSelectionCompute = useCallback(() => {
-    const handle = selectionComputeHandleRef.current;
-    if (handle === null) return;
-    window.clearTimeout(handle);
-    selectionComputeHandleRef.current = null;
-    selectionComputeDirtyRef.current = false;
-  }, []);
-
-  useEffect(() => {
-    return () => cancelSelectionCompute();
-  }, [cancelSelectionCompute]);
-
-  const hideSelectionBox = useCallback(() => {
-    const box = selectionBoxRef.current;
-    if (!box) return;
-    box.style.opacity = '0';
-    box.style.width = '0px';
-    box.style.height = '0px';
-  }, []);
-
-  const updateSelectionBox = useCallback((boxState: SelectionBox) => {
-    const box = selectionBoxRef.current;
-    if (!box) return;
-    box.style.opacity = '1';
-    box.style.left = `${boxState.left}px`;
-    box.style.top = `${boxState.top}px`;
-    box.style.width = `${boxState.width}px`;
-    box.style.height = `${boxState.height}px`;
-  }, []);
-
-  const computeSelectionPreview = useCallback(() => {
-    if (!isSelectingRef.current) return;
-    const renderer = rendererRef.current;
-    const rect = selectionWorldRectRef.current;
-    if (!renderer || !rect) return;
-    const hits = renderer.queryVisibleNodesInWorldRect(rect);
-    const preview = buildPreviewSelection(
-      baseSelectionRef.current,
-      hits,
-      selectionModeRef.current,
-      positionsRef.current,
-    );
-    if (shouldEmitPreview(previewSelectionRef.current, preview)) {
-      previewSelectionRef.current = preview;
-      renderer.setSelectionPreview(preview);
-    }
-  }, []);
-
-  const scheduleSelectionPreview = useCallback(() => {
-    if (selectionComputeHandleRef.current !== null) {
-      selectionComputeDirtyRef.current = true;
-      return;
-    }
-    const now = performance.now();
-    const elapsed = now - selectionPreviewLastRunRef.current;
-    const delay = Math.max(0, SELECTION_PREVIEW_MS - elapsed);
-    const run = () => {
-      selectionComputeHandleRef.current = null;
-      if (!isSelectingRef.current) return;
-      selectionPreviewLastRunRef.current = performance.now();
-      computeSelectionPreview();
-      if (selectionComputeDirtyRef.current) {
-        selectionComputeDirtyRef.current = false;
-        scheduleSelectionPreview();
-      }
-    };
-    selectionComputeHandleRef.current = window.setTimeout(run, delay);
-  }, [computeSelectionPreview]);
+  // Selection logic extracted to useGraphSelection hook above.
 
   const applyGridTransform = useCallback((view: ViewState) => {
     const wrapper = wrapperRef.current;
@@ -2066,45 +2003,7 @@ export default function GraphCanvas({
     zoomAt(pointerX, pointerY, scaleFactor, animate);
   };
 
-  const finalizeSelection = () => {
-    if (!isSelectingRef.current) return;
-    cancelSelectionCompute();
-    if (selectionDragRef.current && selectionWorldRectRef.current) {
-      const renderer = rendererRef.current;
-      const rect = selectionWorldRectRef.current;
-      if (renderer && rect) {
-        const hits = renderer.queryNodesInWorldRect(rect);
-        const preview = buildPreviewSelection(
-          baseSelectionRef.current,
-          hits,
-          selectionModeRef.current,
-          positionsRef.current,
-        );
-        previewSelectionRef.current = preview;
-      }
-    }
-    isSelectingRef.current = false;
-    const finalSelection = new Set(previewSelectionRef.current);
-    const renderer = rendererRef.current;
-    renderer?.clearSelectionPreview();
-    renderer?.setSelectedNodeIds(finalSelection);
-    onSelectedNodeIdsChange(finalSelection);
-    hideSelectionBox();
-    previewSelectionRef.current = new Set();
-    selectionWorldRectRef.current = null;
-  };
-
-  const clearSelectionState = useCallback(() => {
-    cancelSelectionCompute();
-    isSelectingRef.current = false;
-    selectionDragRef.current = false;
-    previewSelectionRef.current = new Set();
-    selectionWorldRectRef.current = null;
-    rendererRef.current?.clearSelectionPreview();
-    rendererRef.current?.setSelectedNodeIds(new Set());
-    onClearSelection();
-    hideSelectionBox();
-  }, [cancelSelectionCompute, hideSelectionBox, onClearSelection]);
+  // finalizeSelection and clearSelectionState are provided by useGraphSelection hook.
 
   const releasePointerCapture = (target: HTMLDivElement | null, pointerId: number | null) => {
     if (!target || pointerId === null) return;
@@ -2182,7 +2081,6 @@ export default function GraphCanvas({
       panPointerStartRef.current = { x: event.clientX, y: event.clientY };
       panMovedRef.current = false;
     } else if (tool === 'select') {
-      cancelSelectionCompute();
       selectionWorldRectRef.current = null;
       rendererRef.current?.clearSelectionPreview();
       const selectionMode = event.altKey ? 'remove' : event.shiftKey ? 'add' : 'replace';
