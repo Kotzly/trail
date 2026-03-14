@@ -3,7 +3,7 @@ import { spotlightSplitRatioItem } from '@shared/config/storage-items.js';
 
 const MIN_RATIO = 0;
 const MAX_RATIO = 1;
-const NARROW_BREAKPOINT = 800;
+const NARROW_BREAKPOINT = 920;
 const SNAP_POINTS = [0, 0.3, 0.5, 0.7, 1.0] as const;
 const SNAP_THRESHOLD = 0.04;
 const HANDLE_PX = 6;
