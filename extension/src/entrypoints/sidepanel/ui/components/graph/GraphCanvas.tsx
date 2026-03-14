@@ -6,7 +6,7 @@ import type {
 } from 'react';
 import type { NodeId } from '@shared/types/ids.js';
 import type { NavigationNode } from '@shared/types/node.js';
-import { navigateTo, setNodeLayoutBatch, reparentNode } from '../../../api/tree.js';
+import { navigateTo, reparentNode } from '../../../api/tree.js';
 import { rpc } from '@shared/rpc/contracts.js';
 import { fireAndForget } from '../../../api/background.js';
 // Layout config constants used by useGraphView hook.
@@ -45,11 +45,10 @@ import type {
 } from './graph-canvas-types.js';
 import { collectSubtreeIds, buildCollapseScope } from './graph-canvas-utils.js';
 import { computeOffsetPositions } from './graph-layout-compute.js';
+import { useLayoutSend } from './useLayoutSend.js';
 import { useGraphSelection } from './useGraphSelection.js';
 import { useGraphAnimation, FAST_MOTION } from './useGraphAnimation.js';
 import { useGraphView } from './useGraphView.js';
-
-const LAYOUT_UPDATE_MS = 80;
 
 /** Distance (in world pixels) from the dragged node center to a candidate
  *  parent center at which the snap preview activates. */
@@ -109,11 +108,7 @@ export default function GraphCanvas({
   const positionsRef = useRef<Map<NodeId, NodePosition>>(new Map());
   const [isDraggingNode, setIsDraggingNode] = useState(false);
   const [dragPreview, setDragPreview] = useState<LayoutUpdateMap | null>(null);
-  const layoutSendRef = useRef<{
-    lastSent: number;
-    timer: number | null;
-    pending: LayoutUpdateMap | null;
-  }>({ lastSent: 0, timer: null, pending: null });
+  const { layoutSendRef, flushLayoutUpdates, queueLayoutUpdates } = useLayoutSend();
   const isPanningRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
   const pointerDownNodeIdRef = useRef<NodeId | null>(null);
@@ -274,67 +269,7 @@ export default function GraphCanvas({
     };
   }, []);
 
-  const flushLayoutUpdates = useCallback(async (updates: LayoutUpdateMap) => {
-    try {
-      await setNodeLayoutBatch(
-        Array.from(updates.entries()).map(([nodeId, layout]) => ({
-          nodeId,
-          ...layout,
-        })),
-      );
-    } catch (error) {
-      console.error('Failed to save node position:', error);
-    }
-  }, []);
-
-  const queueLayoutUpdates = useCallback(
-    (updates: LayoutUpdateMap, immediate = false) => {
-      if (updates.size === 0) return;
-      const state = layoutSendRef.current;
-      if (!state.pending) {
-        state.pending = new Map();
-      }
-      updates.forEach((layout, nodeId) => {
-        state.pending?.set(nodeId, layout);
-      });
-      const now = performance.now();
-      const elapsed = now - state.lastSent;
-      const canSendNow = immediate || elapsed >= LAYOUT_UPDATE_MS;
-      if (canSendNow) {
-        if (state.timer !== null) {
-          window.clearTimeout(state.timer);
-          state.timer = null;
-        }
-        state.lastSent = now;
-        const next = state.pending;
-        state.pending = null;
-        if (next) void flushLayoutUpdates(next);
-        return;
-      }
-      if (state.timer !== null) return;
-      const delay = Math.max(0, LAYOUT_UPDATE_MS - elapsed);
-      state.timer = window.setTimeout(() => {
-        state.timer = null;
-        const next = state.pending;
-        state.pending = null;
-        if (!next) return;
-        state.lastSent = performance.now();
-        void flushLayoutUpdates(next);
-      }, delay);
-    },
-    [flushLayoutUpdates],
-  );
-
-  useEffect(() => {
-    return () => {
-      const state = layoutSendRef.current;
-      if (state.timer !== null) {
-        window.clearTimeout(state.timer);
-        state.timer = null;
-      }
-      state.pending = null;
-    };
-  }, []);
+  // flushLayoutUpdates and queueLayoutUpdates provided by useLayoutSend hook.
 
   // cancelViewAnimation and animateViewTo provided by useGraphView hook.
 
