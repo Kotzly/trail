@@ -66,7 +66,7 @@ export function useLayoutSend() {
     [flushLayoutUpdates],
   );
 
-  // Cleanup pending timer on unmount
+  // Flush pending updates on unmount instead of discarding
   useEffect(() => {
     return () => {
       const state = layoutSendRef.current;
@@ -74,9 +74,13 @@ export function useLayoutSend() {
         window.clearTimeout(state.timer);
         state.timer = null;
       }
+      const pending = state.pending;
       state.pending = null;
+      if (pending) {
+        void flushLayoutUpdates(pending);
+      }
     };
-  }, []);
+  }, [flushLayoutUpdates]);
 
   return { layoutSendRef, flushLayoutUpdates, queueLayoutUpdates };
 }

@@ -25,6 +25,7 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
   const [isNarrow, setIsNarrow] = useState(false);
   const startPosRef = useRef(0);
   const startRatioRef = useRef(0);
+  const dragNarrowRef = useRef(false);
 
   // Load persisted ratio on mount
   useEffect(() => {
@@ -49,7 +50,9 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    startPosRef.current = isNarrowRef.current ? e.clientY : e.clientX;
+    const narrow = isNarrowRef.current;
+    dragNarrowRef.current = narrow;
+    startPosRef.current = narrow ? e.clientY : e.clientX;
     startRatioRef.current = splitRatio;
     setIsDragging(true);
   }, [splitRatio]);
@@ -60,7 +63,7 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
 
   useEffect(() => {
     if (!isDragging) return;
-    const narrow = isNarrowRef.current;
+    const narrow = dragNarrowRef.current;
     const cursor = narrow ? 'row-resize' : 'col-resize';
 
     const handleMouseMove = (e: MouseEvent) => {

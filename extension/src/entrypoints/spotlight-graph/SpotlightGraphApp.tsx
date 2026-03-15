@@ -32,6 +32,8 @@ export default function SpotlightGraphApp() {
   const readyFired = useRef(false);
   const suppressHoverEchoRef = useRef(false);
   const lastHoverSentRef = useRef<string | undefined>(undefined);
+  const hoverNodeIdRef = useRef(hoverNodeId);
+  hoverNodeIdRef.current = hoverNodeId;
   const viewCacheRef = useRef(new Map<string, ViewState>());
   const intentCounterRef = useRef(0);
 
@@ -52,9 +54,10 @@ export default function SpotlightGraphApp() {
   }, []);
 
   useEffect(() => {
-    if (!tree || activePreviewRef.current) return;
-    activePreviewRef.current = {
-      treeId: activeTreeIdRef.current ?? '__active__',
+    if (!tree) return;
+    const treeId = activeTreeIdRef.current ?? '__active__';
+    const snapshot: SpotlightGraphPreviewData = {
+      treeId,
       treeName: '',
       tree: NavigationTreeMapper.toJSON(tree),
       currentNodeId,
@@ -63,8 +66,9 @@ export default function SpotlightGraphApp() {
       nodeTabCounts,
       nodeRecency,
     };
+    activePreviewRef.current = snapshot;
     if (currentPreviewTreeIdRef.current === null) {
-      currentPreviewTreeIdRef.current = activePreviewRef.current.treeId;
+      currentPreviewTreeIdRef.current = treeId;
     }
     if (!readyFired.current) {
       readyFired.current = true;
@@ -138,7 +142,7 @@ export default function SpotlightGraphApp() {
       const nextHighlightNodeId = highlightNodeId ?? selectedNodeId;
       externalHighlightNodeIdRef.current = nextHighlightNodeId;
 
-      if (previewChanged || hoverNodeId !== nextHighlightNodeId) {
+      if (previewChanged || hoverNodeIdRef.current !== nextHighlightNodeId) {
         setLocalHighlight(nextHighlightNodeId);
       }
 
@@ -170,7 +174,7 @@ export default function SpotlightGraphApp() {
         useStore.getState().clearSearch();
       }
     });
-  }, [applyPreviewData, hoverNodeId, setLocalHighlight]);
+  }, [applyPreviewData, setLocalHighlight]);
 
   useEffect(() => {
     if (!readyFired.current) return;

@@ -22,9 +22,10 @@ export function parseRpcRequestEnvelope(
 export function toRequestMessage(
   envelope: RpcRequestEnvelope,
 ): RequestMessage {
+  const { type: _discard, ...safeInput } = envelope.input as Record<string, unknown>;
   return {
     type: envelope.method as RequestType,
-    ...envelope.input,
+    ...safeInput,
   } as RequestMessage;
 }
 

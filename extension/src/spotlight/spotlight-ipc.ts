@@ -95,6 +95,7 @@ export function onParentMessage(
   handler: (msg: ParentToGraphMsg) => void,
 ): () => void {
   const listener = (event: MessageEvent) => {
+    if (EXTENSION_ORIGIN !== '*' && event.origin !== EXTENSION_ORIGIN) return;
     if (!isSpotlightIPC(event.data)) return;
     // Only pass parent-to-graph messages
     if (event.data.type !== 'SET_GRAPH_CONTEXT') return;

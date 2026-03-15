@@ -216,6 +216,9 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     act.toggleSection(sectionId);
   }, [act, selectedKey, search.sections]);
 
+  useSpotlightTheme(backdropRef);
+  const resize = useSpotlightResize(panelsRef);
+
   useSpotlightKeyboard({
     isOpen, containerRef: backdropRef,
     query: search.query, selectedItem, hoveredGraphItem, activeTreeId, hintCandidates, activeHint,
@@ -225,11 +228,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     selectedFocusPane, setSelectedFocusPane, setQuery: search.setQuery, close,
     exitDrilldown: act.exitDrilldown, handleActivate: act.handleActivate, handleApplyHint,
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
-    flatItems, selectedKeys, setSelectedKeys, showPreview: true,
+    flatItems, selectedKeys, setSelectedKeys, showPreview: resize.splitRatio > 0 && resize.splitRatio < 1,
   });
-
-  useSpotlightTheme(backdropRef);
-  const resize = useSpotlightResize(panelsRef);
 
   // Always render the backdrop shell so backdropRef is available for the
   // keyboard capture-phase listener on the very first open.
