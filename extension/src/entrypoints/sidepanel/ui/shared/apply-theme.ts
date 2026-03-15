@@ -66,4 +66,11 @@ export function applyTheme(theme: ThemeId, customTheme: CustomTheme): void {
   root.setAttribute('data-theme', theme);
   void themeCacheItem.setValue(theme);
   applyThemeTokens(root, theme, customTheme, { preserveDefaults: true });
+
+  // Persist resolved theme to localStorage for instant access by inline
+  // scripts in fullview/sidepanel HTML — prevents white flash on load.
+  const effective: 'light' | 'dark' = theme === 'system'
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : theme;
+  try { localStorage.setItem('trail_theme', effective); } catch { /* quota / sandboxed */ }
 }

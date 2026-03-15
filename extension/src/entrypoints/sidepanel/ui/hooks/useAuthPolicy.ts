@@ -13,6 +13,7 @@ export function useAuthPolicy(): void {
       setAccount({
         authRequired: policy?.authRequired ?? false,
         guestWelcomeDismissed: dismissed,
+        authPolicyLoaded: true,
       });
     });
 

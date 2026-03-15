@@ -77,6 +77,7 @@ export type AccountState = {
   sessionExpired: boolean;
   authRequired: boolean;
   guestWelcomeDismissed: boolean;
+  authPolicyLoaded: boolean;
 };
 
 type StoreState = {
@@ -241,6 +242,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     sessionExpired: false,
     authRequired: false,
     guestWelcomeDismissed: false,
+    authPolicyLoaded: false,
   },
   tree: null,
   treeUpdate: null,
@@ -640,6 +642,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         sessionExpired: false,
         authRequired: state.account.authRequired,
         guestWelcomeDismissed: state.account.guestWelcomeDismissed,
+        authPolicyLoaded: state.account.authPolicyLoaded,
       },
     })),
 

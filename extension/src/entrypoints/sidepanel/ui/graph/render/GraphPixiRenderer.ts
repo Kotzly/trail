@@ -309,13 +309,17 @@ class NodeVisual {
 
     const themeChanged = this.state.themeVersion !== themeVersion;
     const openProgressChanged = Math.abs(this.state.openProgress - openProgress) > 0.001;
+    // LOD-dependent changes are already encoded in the respective keys (textKey
+    // includes showUrls/showFavicon, tagKey is '' outside full, faviconKey
+    // includes showFavicon).  Removing the redundant `lod !== lod` check avoids
+    // expensive background/text rebuilds that don't actually change anything.
     const needsStyleUpdate =
-      themeChanged || this.state.styleKey !== nextStyleKey || this.state.lod !== lod || openProgressChanged;
+      themeChanged || this.state.styleKey !== nextStyleKey || openProgressChanged;
     const needsTextUpdate =
-      themeChanged || this.state.textKey !== textKey || this.state.lod !== lod || openProgressChanged || this.state.textResolution !== textResolution;
-    const needsTagUpdate = themeChanged || this.state.tagKey !== tagKey || this.state.lod !== lod;
+      themeChanged || this.state.textKey !== textKey || openProgressChanged || this.state.textResolution !== textResolution;
+    const needsTagUpdate = themeChanged || this.state.tagKey !== tagKey;
     const needsFaviconUpdate =
-      themeChanged || this.state.faviconKey !== faviconKey || this.state.lod !== lod;
+      themeChanged || this.state.faviconKey !== faviconKey;
 
     if (this.state.textResolution !== textResolution) {
       this.titleText.resolution = textResolution;

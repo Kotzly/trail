@@ -92,6 +92,11 @@ export function SpotlightResults({
     paddingEnd: 8,
   });
 
+  // Invalidate cached measurements when rows change (e.g. section collapse)
+  useEffect(() => {
+    virtualizer.measure();
+  }, [rows, virtualizer]);
+
   // Auto-scroll to selected item when selectedKey changes
   useEffect(() => {
     if (!selectedKey) return;

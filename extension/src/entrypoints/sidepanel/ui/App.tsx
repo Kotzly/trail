@@ -4,8 +4,6 @@ import GraphArea from './components/graph/GraphArea.js';
 import ThemePanel from './components/theme/ThemePanel.js';
 import ContextMenus from './components/ContextMenus.js';
 import DeleteTreeConfirmModal from './components/DeleteTreeConfirmModal.js';
-import AuthGate from './components/AuthGate.js';
-import WelcomeGate from './components/WelcomeGate.js';
 import SessionExpiredBanner from './components/SessionExpiredBanner.js';
 import { Toaster } from './components/ui/sonner.js';
 import { useBootstrap } from './hooks/useBootstrap.js';
@@ -70,12 +68,6 @@ export default function App() {
   const isAuthenticated =
     account.session.status === 'authenticated' && Boolean(account.user);
 
-  const showBlockingAuthGate =
-    !isAuthenticated && account.authRequired;
-
-  const showWelcomeGate =
-    !isAuthenticated && !account.authRequired && !account.guestWelcomeDismissed;
-
   const showSessionBanner =
     !isAuthenticated && !account.authRequired && account.sessionExpired;
 
@@ -84,22 +76,14 @@ export default function App() {
   return (
     <div className={containerClass}>
       <Toaster />
-      {showBlockingAuthGate ? (
-        <AuthGate />
-      ) : showWelcomeGate ? (
-        <WelcomeGate />
-      ) : (
-        <>
-          {showSessionBanner && <SessionExpiredBanner />}
-          <FloatingControls searchInputRef={searchInputRef} />
-          <GraphArea />
-          <ThemePanel />
-          <DeleteTreeConfirmModal />
-          <ContextMenus />
-          <TooltipLayer />
-          {IS_FULLVIEW && <SpotlightApp onRegisterToggle={handleRegisterToggle} />}
-        </>
-      )}
+      {showSessionBanner && <SessionExpiredBanner />}
+      <FloatingControls searchInputRef={searchInputRef} />
+      <GraphArea />
+      <ThemePanel />
+      <DeleteTreeConfirmModal />
+      <ContextMenus />
+      <TooltipLayer />
+      {IS_FULLVIEW && <SpotlightApp onRegisterToggle={handleRegisterToggle} />}
     </div>
   );
 }
