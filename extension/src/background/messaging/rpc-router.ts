@@ -62,6 +62,6 @@ export function createRpcErrorEnvelope(
     id: request.id,
     method: request.method,
     success: false,
-    error,
+    error: error || "Unknown error",
   });
 }

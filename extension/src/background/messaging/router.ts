@@ -117,7 +117,12 @@ function createMessageRouter() {
 
   function listen() {
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      dispatchRpcEnvelope(message, sender).then(sendResponse);
+      dispatchRpcEnvelope(message, sender)
+        .catch((e) => createRpcErrorEnvelope(
+          { id: "crash", method: "crash" },
+          e instanceof Error && e.message ? e.message : "Internal error",
+        ))
+        .then(sendResponse);
       return true; // keep channel open for async response
     });
   }

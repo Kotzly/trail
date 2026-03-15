@@ -50,7 +50,14 @@ export const accountPageHandlers = defineRpcHandlers({
     const treeId = uuidv7();
     const now = Date.now();
     const label = bundle.source?.treeLabel ?? 'Imported Trail';
-    const tree = NavigationTreeMapper.fromJSON(bundle.tree);
+
+    let tree;
+    try {
+      tree = NavigationTreeMapper.fromJSON(bundle.tree);
+    } catch {
+      return err('Failed to parse tree data from bundle');
+    }
+
     const root = tree.getRoot();
     const treeJSON = NavigationTreeMapper.toJSON(tree);
     const bestFavicon = findBestTrailFavicon(treeJSON) ?? root?.data.favicon;
