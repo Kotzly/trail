@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { getSettings } from './rpc.js';
-import { settingsItem } from '@shared/config/storage-items.js';
 import type { ThemeId } from '@shared/types/theme.js';
 
 /**
@@ -18,10 +17,9 @@ function resolveEffective(themeId: ThemeId): 'light' | 'dark' {
  * Synchronizes the Spotlight shadow host's `data-theme` attribute with
  * Trail's user-configured theme setting.
  *
- * On mount it immediately applies the OS theme (matching previous
- * `@media (prefers-color-scheme)` behaviour), then fetches the actual
- * setting and corrects if needed. It also watches for live changes
- * via storage and OS media-query events.
+ * Fetches the theme via RPC on mount (safe in content script context —
+ * uses chrome.runtime.sendMessage, not chrome.storage). OS media-query
+ * changes are watched for `theme: 'system'` resolution.
  */
 export function useSpotlightTheme(
   containerRef: React.RefObject<HTMLElement | null>,
@@ -41,7 +39,7 @@ export function useSpotlightTheme(
     // Immediately set based on OS preference (avoids flash before settings load)
     apply();
 
-    // Fetch Trail's actual theme setting
+    // Fetch Trail's actual theme setting via RPC (safe in content script)
     getSettings()
       .then((s) => {
         themeIdRef.current = s.theme;
@@ -51,18 +49,6 @@ export function useSpotlightTheme(
         // Settings unavailable — keep OS-based default
       });
 
-    // Live-sync when user changes theme in Trail's settings panel
-    // Storage watch may be unavailable in content script after extension update
-    let unwatch: (() => void) | null = null;
-    try {
-      unwatch = settingsItem.watch((next) => {
-        if (next?.theme) {
-          themeIdRef.current = next.theme;
-          apply();
-        }
-      });
-    } catch { /* storage unavailable in this context */ }
-
     // Re-resolve when OS theme changes (relevant when themeId = 'system')
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
     const onMediaChange = () => {
@@ -71,7 +57,6 @@ export function useSpotlightTheme(
     mql.addEventListener('change', onMediaChange);
 
     return () => {
-      unwatch?.();
       mql.removeEventListener('change', onMediaChange);
     };
   }, [containerRef]);
