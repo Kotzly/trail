@@ -61,8 +61,8 @@ textarea {
   inset: 0;
   z-index: 2147483647;
   background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(28px) saturate(1.5);
-  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  backdrop-filter: blur(8px) saturate(1.3);
+  -webkit-backdrop-filter: blur(8px) saturate(1.3);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -398,14 +398,14 @@ textarea {
 /* ─── Resize Handle ─── */
 
 .spotlight-resize-handle {
-  width: 6px;
+  width: 10px;
   cursor: col-resize;
   position: relative;
   flex-shrink: 0;
   z-index: 2;
-  transition: background 0.15s;
 }
 
+/* Visible splitter line (thin 2px bar centered in the 10px hitbox) */
 .spotlight-resize-handle::after {
   content: '';
   position: absolute;
@@ -419,10 +419,64 @@ textarea {
   transition: background 0.15s, height 0.15s;
 }
 
-.spotlight-resize-handle:hover::after,
-.spotlight-resize-handle[data-dragging="true"]::after {
-  background: rgba(255, 255, 255, 0.2);
+/* Grip dots indicator (3 stacked dots, visible on hover) */
+.spotlight-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 -5px 0 rgba(255, 255, 255, 0.45),
+    0  5px 0 rgba(255, 255, 255, 0.45);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+/* Hover: accent color + grip dots appear */
+.spotlight-resize-handle:hover::after {
+  background: var(--trail-accent, rgba(120, 160, 255, 0.6));
   height: 48px;
+}
+
+.spotlight-resize-handle:hover::before {
+  opacity: 1;
+}
+
+/* Active (dragging): sustained accent */
+.spotlight-resize-handle[data-dragging="true"]::after {
+  background: var(--trail-accent, rgba(120, 160, 255, 0.8));
+  height: 48px;
+}
+
+.spotlight-resize-handle[data-dragging="true"]::before {
+  opacity: 1;
+}
+
+/* Collapsed state: pointer cursor hints "click to expand" */
+.spotlight-resize-handle[data-collapsed="true"] {
+  cursor: pointer;
+}
+
+/* Dragging always wins — override collapsed pointer */
+.spotlight-resize-handle[data-dragging="true"] {
+  cursor: col-resize;
+}
+
+/* Animated transitions for programmatic ratio changes (snap, double-click, hotkey) */
+.spotlight-panels[data-animating="true"] > .spotlight-left,
+.spotlight-panels[data-animating="true"] > .spotlight-right {
+  transition: width 0.2s ease-out, height 0.2s ease-out, flex 0.2s ease-out;
+}
+
+/* No transition during drag — splitter must follow cursor instantly */
+.spotlight-panels[data-animating="false"] > .spotlight-left,
+.spotlight-panels[data-animating="false"] > .spotlight-right {
+  transition: none;
 }
 
 .spotlight-right--v3 {
@@ -438,7 +492,7 @@ textarea {
 .spotlight-sections {
   position: relative;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 0;
   scrollbar-width: none;
 }
 
@@ -465,6 +519,7 @@ textarea {
 }
 
 .spotlight-section-title,
+.spotlight-section-heading,
 [cmdk-group-heading] {
   padding: 4px 16px;
   font-size: 10px;
@@ -1030,6 +1085,7 @@ textarea {
   border-radius: 6px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
   border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
 }
 
 .spotlight-quicklook-hero-icon {
@@ -1037,6 +1093,13 @@ textarea {
   font-weight: 700;
   color: rgba(255, 255, 255, 0.15);
   user-select: none;
+}
+
+.spotlight-quicklook-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .spotlight-quicklook-info {
@@ -1202,7 +1265,7 @@ textarea {
   /* Horizontal resize bar */
   .spotlight-resize-handle {
     width: 100%;
-    height: 6px;
+    height: 10px;
     cursor: row-resize;
   }
 
@@ -1211,10 +1274,23 @@ textarea {
     height: 2px;
   }
 
+  .spotlight-resize-handle::before {
+    width: 2px;
+    height: 2px;
+    box-shadow:
+      -5px 0 0 rgba(255, 255, 255, 0.45),
+       5px 0 0 rgba(255, 255, 255, 0.45);
+    background-image: none;
+  }
+
   .spotlight-resize-handle:hover::after,
   .spotlight-resize-handle[data-dragging="true"]::after {
     width: 48px;
     height: 2px;
+  }
+
+  .spotlight-resize-handle[data-dragging="true"] {
+    cursor: row-resize;
   }
 }
 
@@ -1461,9 +1537,19 @@ textarea {
     background: rgba(0, 0, 0, 0.08);
   }
 
-  .spotlight-resize-handle:hover::after,
+  .spotlight-resize-handle::before {
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow:
+      0 -5px 0 rgba(0, 0, 0, 0.3),
+      0  5px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  .spotlight-resize-handle:hover::after {
+    background: var(--trail-accent, rgba(60, 100, 220, 0.5));
+  }
+
   .spotlight-resize-handle[data-dragging="true"]::after {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--trail-accent, rgba(60, 100, 220, 0.7));
   }
 
   .spotlight-recent-queries-title {
@@ -1493,6 +1579,7 @@ textarea {
   }
 
   .spotlight-section-title,
+  .spotlight-section-heading,
   [cmdk-group-heading] {
     color: rgba(0, 0, 0, 0.4);
   }

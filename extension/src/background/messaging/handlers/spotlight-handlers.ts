@@ -14,6 +14,9 @@ import { pinHandlers } from './pin-handlers.js';
 import { tabHandlers } from './tab-handlers.js';
 import { browser, openSidebarForTab, type RuntimeMessageSender } from '@shared/platform/webext.js';
 import { spotlightUsageStats } from '../../services/spotlight-usage-stats.js';
+import { thumbnailCache } from '../../services/thumbnail-cache.js';
+import { tabManager } from '../../state/tab-manager.js';
+import type { NodeId } from '@shared/types/ids.js';
 
 const EMPTY_SENDER = {} as RuntimeMessageSender;
 
@@ -186,6 +189,17 @@ export const spotlightHandlers = defineRpcHandlers({
   async [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION](message) {
     spotlightService.dispose(message.sessionId);
     return ok();
+  },
+
+  async [RPC_METHOD.SPOTLIGHT_GET_THUMBNAIL](message) {
+    try {
+      const tabs = tabManager.tabsByNode(message.nodeId as NodeId);
+      if (!tabs || tabs.size === 0) return ok(null);
+      const dataUrl = thumbnailCache.getByTabIds(tabs);
+      return ok(dataUrl ? { dataUrl } : null);
+    } catch {
+      return ok(null);
+    }
   },
 
   async [RPC_METHOD.TOGGLE_SPOTLIGHT]() {

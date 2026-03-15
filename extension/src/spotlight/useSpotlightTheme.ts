@@ -34,7 +34,10 @@ export function useSpotlightTheme(
     const el = containerRef.current;
     if (!el) return;
 
-    const host = (el.getRootNode() as ShadowRoot).host as HTMLElement;
+    const rootNode = el.getRootNode();
+    const host = rootNode instanceof ShadowRoot
+      ? (rootNode.host as HTMLElement)
+      : el;
 
     const apply = () => {
       const effective = resolveEffective(themeIdRef.current);

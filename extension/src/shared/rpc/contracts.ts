@@ -79,6 +79,7 @@ export const RPC_METHOD = {
     SPOTLIGHT_EXECUTE_ACTION: 'SPOTLIGHT_EXECUTE_ACTION',
     SPOTLIGHT_DISPOSE_SESSION: 'SPOTLIGHT_DISPOSE_SESSION',
     SPOTLIGHT_EXECUTE_BATCH_ACTION: 'SPOTLIGHT_EXECUTE_BATCH_ACTION',
+    SPOTLIGHT_GET_THUMBNAIL: 'SPOTLIGHT_GET_THUMBNAIL',
     TOGGLE_SPOTLIGHT: 'TOGGLE_SPOTLIGHT',
     GET_LOCAL_TRAIL_DETAIL: 'GET_LOCAL_TRAIL_DETAIL',
     IMPORT_TRAIL: 'IMPORT_TRAIL',
@@ -459,6 +460,8 @@ export type SpotlightDisposeSessionMessage = RequestMessageBase<typeof RPC_METHO
   sessionId: SpotlightSearchSessionId;
 }>;
 export type SpotlightExecuteBatchActionMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION, SpotlightExecuteBatchActionRequest>;
+export type SpotlightGetThumbnailRequest = { nodeId: NodeId; treeId: string };
+export type SpotlightGetThumbnailMessage = RequestMessageBase<typeof RPC_METHOD.SPOTLIGHT_GET_THUMBNAIL, SpotlightGetThumbnailRequest>;
 export type ToggleSpotlightMessage = RequestMessageBase<typeof RPC_METHOD.TOGGLE_SPOTLIGHT>;
 
 export type LocalTrailDetail = {
@@ -518,6 +521,7 @@ export type RequestMessage = NavigateToMessage |
     SpotlightExecuteActionMessage |
     SpotlightDisposeSessionMessage |
     SpotlightExecuteBatchActionMessage |
+    SpotlightGetThumbnailMessage |
     ToggleSpotlightMessage |
     GetLocalTrailDetailMessage |
     ImportTrailMessage |
@@ -610,6 +614,7 @@ export type ResponseDataByType = {
     [RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION]: SpotlightExecuteActionResponse;
     [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION]: void;
     [RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION]: SpotlightExecuteActionResponse;
+    [RPC_METHOD.SPOTLIGHT_GET_THUMBNAIL]: { dataUrl: string } | null;
     [RPC_METHOD.TOGGLE_SPOTLIGHT]: void;
     [RPC_METHOD.GET_LOCAL_TRAIL_DETAIL]: LocalTrailDetail;
     [RPC_METHOD.IMPORT_TRAIL]: { treeId: string };

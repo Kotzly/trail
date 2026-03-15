@@ -91,6 +91,9 @@ export default defineConfig({
       },
     ],
     host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
+    chrome_url_overrides: {
+      newtab: "fullview.html",
+    },
     side_panel: {
       default_path: "sidepanel/index.html",
     },

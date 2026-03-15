@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { getSpotlightThumbnail } from './rpc.js';
 import type {
   SpotlightActionId,
   SpotlightActionTarget,
@@ -15,6 +16,22 @@ type Props = {
 };
 
 export function SpotlightQuickLook({ item, onClose, onAction }: Props) {
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+
+  // Fetch screenshot thumbnail for the item
+  useEffect(() => {
+    if (item.kind !== 'node') return;
+    let cancelled = false;
+    getSpotlightThumbnail(item.nodeId, item.treeId)
+      .then((result) => {
+        if (!cancelled && result) setThumbnail(result.dataUrl);
+      })
+      .catch(() => {
+        // Silently ignore — fallback UI is shown
+      });
+    return () => { cancelled = true; };
+  }, [item]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       switch (e.key) {
@@ -75,7 +92,15 @@ export function SpotlightQuickLook({ item, onClose, onAction }: Props) {
         </div>
 
         <div className="spotlight-quicklook-hero">
-          <div className="spotlight-quicklook-hero-icon">{domain[0]?.toUpperCase() ?? '?'}</div>
+          {thumbnail ? (
+            <img
+              className="spotlight-quicklook-thumbnail"
+              src={thumbnail}
+              alt={`Preview of ${item.kind === 'node' ? item.title : item.treeName}`}
+            />
+          ) : (
+            <div className="spotlight-quicklook-hero-icon">{domain[0]?.toUpperCase() ?? '?'}</div>
+          )}
         </div>
 
         <div className="spotlight-quicklook-info">

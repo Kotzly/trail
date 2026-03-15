@@ -21,6 +21,8 @@ type UseSpotlightKeyboardOptions = {
   containerRef: React.RefObject<HTMLDivElement | null>;
   query: string;
   selectedItem: SpotlightSearchResult | null;
+  selectedKey: string | null;
+  setSelectedKey: (key: string | null) => void;
   hoveredGraphItem: SpotlightSearchResult | null;
   activeTreeId: string | null;
   hintCandidates: string[];
@@ -43,9 +45,12 @@ type UseSpotlightKeyboardOptions = {
   handleConfirmDestructive: () => Promise<void>;
   setConfirmingAction: (action: SpotlightSearchResult | null) => void;
   flatItems: SpotlightSearchResult[];
+  visibleFlatItems: SpotlightSearchResult[];
   selectedKeys: Set<string>;
   setSelectedKeys: (keys: Set<string>) => void;
   showPreview: boolean;
+  toggleGraphPanel: () => void;
+  stepSnapPoint: (direction: 1 | -1) => void;
 };
 
 /**
@@ -87,6 +92,12 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
             event.stopPropagation();
             void s.handleActivate(s.hoveredGraphItem);
             return;
+          }
+          // Let cmdk or the item's onClick handle Enter for the selected item
+          if (s.selectedItem) {
+            event.preventDefault();
+            event.stopPropagation();
+            void s.handleActivate(s.selectedItem);
           }
           return;
         }
@@ -161,8 +172,9 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           }
           return;
         }
-        case 'l': {
-          if ((IS_MAC && event.metaKey) || (!IS_MAC && event.ctrlKey)) {
+        case 'l':
+        case 'L': {
+          if (((IS_MAC && event.metaKey) || (!IS_MAC && event.ctrlKey)) && event.shiftKey) {
             event.preventDefault();
             event.stopPropagation();
             if (s.quickLookItem) {
@@ -175,22 +187,62 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           }
           return;
         }
+        case '\\': {
+          // Cmd+\ (Mac) or Ctrl+\ (other) — toggle graph panel
+          if ((IS_MAC && event.metaKey) || (!IS_MAC && event.ctrlKey)) {
+            event.preventDefault();
+            event.stopPropagation();
+            s.toggleGraphPanel();
+          }
+          return;
+        }
+        case '[':
+        case ']': {
+          // Cmd+Shift+[ / Cmd+Shift+] — step through snap points
+          const mod = IS_MAC ? event.metaKey : event.ctrlKey;
+          if (mod && event.shiftKey) {
+            event.preventDefault();
+            event.stopPropagation();
+            s.stepSnapPoint(event.key === '[' ? -1 : 1);
+          }
+          return;
+        }
         case 'ArrowDown':
         case 'ArrowUp': {
-          if (!event.shiftKey) return;
           event.preventDefault();
           event.stopPropagation();
-          const currentIdx = s.selectedItem ? s.flatItems.findIndex((i) => i.key === s.selectedItem!.key) : -1;
-          if (currentIdx === -1) return;
-          const nextIdx = event.key === 'ArrowDown'
-            ? Math.min(currentIdx + 1, s.flatItems.length - 1)
-            : Math.max(currentIdx - 1, 0);
-          const nextItem = s.flatItems[nextIdx];
-          if (!nextItem) return;
-          const next = new Set(s.selectedKeys);
-          next.add(s.selectedItem!.key);
-          next.add(nextItem.key);
-          s.setSelectedKeys(next);
+
+          if (event.shiftKey) {
+            // Multi-select: extend selection in the arrow direction
+            const currentIdx = s.selectedItem ? s.flatItems.findIndex((i) => i.key === s.selectedItem!.key) : -1;
+            if (currentIdx === -1) return;
+            const nextIdx = event.key === 'ArrowDown'
+              ? Math.min(currentIdx + 1, s.flatItems.length - 1)
+              : Math.max(currentIdx - 1, 0);
+            const nextItem = s.flatItems[nextIdx];
+            if (!nextItem) return;
+            const next = new Set(s.selectedKeys);
+            next.add(s.selectedItem!.key);
+            next.add(nextItem.key);
+            s.setSelectedKeys(next);
+            s.setSelectedKey(nextItem.key);
+            return;
+          }
+
+          // Normal arrow navigation through visible items (excluding collapsed)
+          const items = s.visibleFlatItems;
+          if (items.length === 0) return;
+          const currentIdx = s.selectedKey
+            ? items.findIndex((i) => i.key === s.selectedKey)
+            : -1;
+          const delta = event.key === 'ArrowDown' ? 1 : -1;
+          const nextIdx = currentIdx === -1
+            ? 0
+            : (currentIdx + delta + items.length) % items.length; // loop
+          const nextItem = items[nextIdx];
+          if (nextItem) {
+            s.setSelectedKey(nextItem.key);
+          }
           return;
         }
         default:

@@ -813,6 +813,7 @@ export class GraphPixiRenderer {
       this.app.ticker?.stop();
       this.isReady = true;
       this.syncResolution();
+      this.resizeToHost();
       this.syncTextResolution();
       this.watchDevicePixelRatio();
       this.updateOrigin();

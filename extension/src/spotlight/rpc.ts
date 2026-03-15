@@ -111,6 +111,13 @@ export async function executeBatchAction(
   });
 }
 
+export async function getSpotlightThumbnail(
+  nodeId: NodeId,
+  treeId: string,
+): Promise<{ dataUrl: string } | null> {
+  return sendRpc<{ dataUrl: string } | null>('SPOTLIGHT_GET_THUMBNAIL', { nodeId, treeId });
+}
+
 export async function getSettings(): Promise<Settings> {
   return sendRpc<Settings>('GET_SETTINGS');
 }

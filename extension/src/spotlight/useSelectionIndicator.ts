@@ -1,19 +1,30 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
 export type IndicatorPosition = { top: number; height: number } | null;
 
+/**
+ * Computes the position of the animated selection indicator relative to the
+ * scrollable list container.
+ *
+ * Instead of observing every DOM mutation (`MutationObserver` on the whole
+ * subtree), we rely on React's render cycle:
+ *   - `selectedKey` changes → immediate re-measure
+ *   - `layoutSignal` changes (sections collapse/expand, item count) → re-measure
+ *   - scroll → passive listener re-measure
+ *
+ * A `ResizeObserver` on the currently selected element covers edge cases where
+ * an item's size changes without the key or layout signal changing.
+ */
 export function useSelectionIndicator(
   listRef: RefObject<HTMLElement | null>,
   selectedKey: string | null,
+  layoutSignal?: string,
 ): IndicatorPosition {
   const [pos, setPos] = useState<IndicatorPosition>(null);
-  const lastPos = useRef<IndicatorPosition>(null);
-  const selectedKeyRef = useRef(selectedKey);
-  selectedKeyRef.current = selectedKey;
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   const measure = useCallback(() => {
-    if (!selectedKeyRef.current || !listRef.current) {
-      lastPos.current = null;
+    if (!selectedKey || !listRef.current) {
       setPos(null);
       return;
     }
@@ -28,48 +39,42 @@ export function useSelectionIndicator(
     const containerRect = container.getBoundingClientRect();
     const selectedRect = selected.getBoundingClientRect();
 
-    const next = {
+    setPos({
       top: selectedRect.top - containerRect.top + container.scrollTop,
       height: selectedRect.height,
-    };
-    lastPos.current = next;
-    setPos(next);
-  }, [listRef]);
+    });
+  }, [listRef, selectedKey]);
 
   useLayoutEffect(() => {
+    if (!selectedKey || !listRef.current) {
+      setPos(null);
+      return;
+    }
+
+    // Synchronous measure, then a deferred re-measure (cmdk may update
+    // data-selected after our layout effect runs).
     measure();
-    // Deferred re-measure: cmdk may update data-selected after our layout effect
     const raf = requestAnimationFrame(measure);
 
     const container = listRef.current;
-    if (!container) return () => cancelAnimationFrame(raf);
-
     container.addEventListener('scroll', measure, { passive: true });
+
+    // Observe selected element for size changes
+    const selected = container.querySelector('[data-selected="true"]') as HTMLElement | null;
+    if (selected) {
+      resizeObserverRef.current?.disconnect();
+      const observer = new ResizeObserver(measure);
+      observer.observe(selected);
+      resizeObserverRef.current = observer;
+    }
+
     return () => {
       cancelAnimationFrame(raf);
       container.removeEventListener('scroll', measure);
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
     };
-  }, [measure, listRef, selectedKey]);
-
-  // Re-measure when list DOM changes (e.g. section expand/collapse shifts items)
-  useEffect(() => {
-    const container = listRef.current;
-    if (!container) return;
-
-    let pendingRaf = 0;
-    const observer = new MutationObserver(() => {
-      if (pendingRaf) cancelAnimationFrame(pendingRaf);
-      pendingRaf = requestAnimationFrame(() => {
-        pendingRaf = 0;
-        measure();
-      });
-    });
-    observer.observe(container, { childList: true, subtree: true });
-    return () => {
-      observer.disconnect();
-      if (pendingRaf) cancelAnimationFrame(pendingRaf);
-    };
-  }, [measure, listRef]);
+  }, [measure, listRef, selectedKey, layoutSignal]);
 
   return pos;
 }
