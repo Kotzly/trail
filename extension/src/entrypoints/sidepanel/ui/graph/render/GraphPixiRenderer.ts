@@ -797,7 +797,10 @@ export class GraphPixiRenderer {
         backgroundAlpha: 0,
         autoDensity: true,
         resolution: window.devicePixelRatio || 1,
-        resizeTo: this.host,
+        // resizeTo intentionally omitted — resize is handled by the
+        // ResizeObserver in GraphCanvas which calls resizeToHost() and
+        // immediately re-renders. PixiJS's built-in resizeTo clears
+        // the canvas without re-rendering (ticker is stopped).
         powerPreference: 'high-performance',
       });
       if (this.destroyed) {

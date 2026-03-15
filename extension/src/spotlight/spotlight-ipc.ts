@@ -95,7 +95,11 @@ export function onParentMessage(
   handler: (msg: ParentToGraphMsg) => void,
 ): () => void {
   const listener = (event: MessageEvent) => {
-    if (EXTENSION_ORIGIN !== '*' && event.origin !== EXTENSION_ORIGIN) return;
+    // Note: cannot check event.origin here — the sender is a content script
+    // running in the web page's browsing context, so event.origin is the
+    // page's origin (e.g. https://google.com), not the extension origin.
+    // Security is handled by the type-discriminant guard + the iframe being
+    // an extension page that only the extension can embed.
     if (!isSpotlightIPC(event.data)) return;
     // Only pass parent-to-graph messages
     if (event.data.type !== 'SET_GRAPH_CONTEXT') return;
