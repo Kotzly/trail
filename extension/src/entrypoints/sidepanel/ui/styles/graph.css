@@ -87,10 +87,7 @@
 }
 
 .graph-canvas canvas {
-  width: 100%;
-  height: 100%;
   display: block;
-  background: var(--trail-app-bg-color, var(--background));
 }
 
 .graph-zoom-controls {

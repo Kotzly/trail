@@ -810,8 +810,6 @@ export class GraphPixiRenderer {
       const canvas = this.app.canvas as HTMLCanvasElement;
       this.canvas = canvas;
       this.host.appendChild(canvas);
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
       this.app.ticker?.stop();
       this.isReady = true;
       this.syncResolution();
