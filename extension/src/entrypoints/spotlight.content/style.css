@@ -208,13 +208,12 @@ textarea {
   min-width: 0;
   min-height: 0;
   margin: 4px 4px 4px 0;
-  contain: paint;
+  contain: layout paint;
 }
 
 .spotlight-graph-container {
   width: 100%;
   height: 100%;
-  transform: translateZ(0);
 }
 
 .spotlight-graph-shimmer {
