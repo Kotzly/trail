@@ -52,12 +52,16 @@ export function useSpotlightTheme(
       });
 
     // Live-sync when user changes theme in Trail's settings panel
-    const unwatch = settingsItem.watch((next) => {
-      if (next?.theme) {
-        themeIdRef.current = next.theme;
-        apply();
-      }
-    });
+    // Storage watch may be unavailable in content script after extension update
+    let unwatch: (() => void) | null = null;
+    try {
+      unwatch = settingsItem.watch((next) => {
+        if (next?.theme) {
+          themeIdRef.current = next.theme;
+          apply();
+        }
+      });
+    } catch { /* storage unavailable in this context */ }
 
     // Re-resolve when OS theme changes (relevant when themeId = 'system')
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
@@ -67,7 +71,7 @@ export function useSpotlightTheme(
     mql.addEventListener('change', onMediaChange);
 
     return () => {
-      unwatch();
+      unwatch?.();
       mql.removeEventListener('change', onMediaChange);
     };
   }, [containerRef]);

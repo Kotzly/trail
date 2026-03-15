@@ -27,13 +27,13 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
   const startRatioRef = useRef(0);
   const dragNarrowRef = useRef(false);
 
-  // Load persisted ratio on mount
+  // Load persisted ratio on mount (storage may be unavailable in content script)
   useEffect(() => {
     void spotlightSplitRatioItem.getValue().then((stored) => {
       if (stored >= MIN_RATIO && stored <= MAX_RATIO) {
         setSplitRatio(stored);
       }
-    });
+    }).catch(() => {});
   }, []);
 
   // Detect narrow viewport
@@ -82,7 +82,7 @@ export function useSpotlightResize(containerRef: React.RefObject<HTMLElement | n
       setIsDragging(false);
       wasDraggingRef.current = true;
       requestAnimationFrame(() => { wasDraggingRef.current = false; });
-      void spotlightSplitRatioItem.setValue(splitRatioRef.current);
+      void spotlightSplitRatioItem.setValue(splitRatioRef.current).catch(() => {});
     };
 
     document.addEventListener('mousemove', handleMouseMove);
