@@ -56,7 +56,10 @@ export default function SpotlightGraphApp() {
   useEffect(() => {
     if (!tree) return;
     const treeId = activeTreeIdRef.current ?? '__active__';
-    const snapshot: SpotlightGraphPreviewData = {
+    // Only rebuild snapshot when tree identity changes, not on every
+    // state mutation (hover, tab state, etc.) to avoid cascade of rerenders.
+    if (activePreviewRef.current && activePreviewRef.current.treeId === treeId) return;
+    activePreviewRef.current = {
       treeId,
       treeName: '',
       tree: NavigationTreeMapper.toJSON(tree),
@@ -66,7 +69,6 @@ export default function SpotlightGraphApp() {
       nodeTabCounts,
       nodeRecency,
     };
-    activePreviewRef.current = snapshot;
     if (currentPreviewTreeIdRef.current === null) {
       currentPreviewTreeIdRef.current = treeId;
     }
