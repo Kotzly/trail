@@ -651,6 +651,53 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   };
 }
 
+/**
+ * Return the base token values that tokens.css defines for a given theme.
+ * Needed because the Spotlight Shadow DOM host has no access to the
+ * tokens.css cascade — these must be applied as inline styles.
+ */
+export function generateBaseTokens(theme: 'light' | 'dark'): Partial<Record<(typeof THEME_TOKEN_KEYS)[number], string>> {
+  const dark = theme === 'dark';
+  return {
+    '--background': dark ? '#09090b' : '#ffffff',
+    '--foreground': dark ? '#fafafa' : '#0f172a',
+    '--card': dark ? '#09090b' : '#ffffff',
+    '--muted': dark ? '#27272a' : '#f1f5f9',
+    '--popover': dark ? '#09090b' : '#ffffff',
+    '--accent': dark ? '#27272a' : '#f1f5f9',
+    '--muted-foreground': dark ? '#a1a1aa' : '#475569',
+    '--ring': dark ? '#d6d6d6' : '#0f172a',
+    '--border': dark ? '#27272a' : '#e2e8f0',
+    '--primary': dark ? '#fafafa' : '#0f172a',
+    '--primary-foreground': dark ? '#09090b' : '#f8fafc',
+    '--secondary': dark ? '#27272a' : '#f1f5f9',
+    '--secondary-foreground': dark ? '#fafafa' : '#0f172a',
+    '--primary-rgb': dark ? '250, 250, 250' : '15, 23, 42',
+    '--destructive': '#ef4444',
+    '--destructive-rgb': '239, 68, 68',
+    '--elev-1': dark
+      ? '0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9)'
+      : '0 2px 6px rgba(20, 24, 40, 0.08)',
+    '--elev-2': dark
+      ? '0 2px 3px rgba(0, 0, 0, 0.55), 0 18px 40px -22px rgba(0, 0, 0, 0.95)'
+      : '0 8px 18px rgba(20, 24, 40, 0.12)',
+    '--elev-3': dark
+      ? '0 3px 5px rgba(0, 0, 0, 0.55), 0 28px 60px -30px rgba(0, 0, 0, 0.95)'
+      : '0 14px 30px rgba(20, 24, 40, 0.18)',
+    '--overlay': dark ? 'rgba(8, 10, 14, 0.5)' : 'rgba(12, 14, 20, 0.12)',
+    '--scrollbar-thumb': dark ? 'rgba(250, 250, 250, 0.2)' : 'rgba(15, 23, 42, 0.24)',
+    '--scrollbar-thumb-hover': dark ? 'rgba(250, 250, 250, 0.36)' : 'rgba(15, 23, 42, 0.4)',
+    '--graph-node-closed-bg': dark ? '#18181b' : '#f1f5f9',
+    '--graph-node-closed-border': dark ? '#27272a' : '#e2e8f0',
+    '--graph-node-closed-title': dark ? '#a1a1aa' : '#475569',
+    '--graph-node-closed-url': dark ? '#71717a' : '#64748b',
+    '--graph-node-active-bg': dark ? '#27272a' : '#f1f5f9',
+    '--graph-node-active-border': dark ? '#d4d4d8' : '#0f172a',
+    '--graph-node-active-title': dark ? '#fafafa' : '#0f172a',
+    '--graph-node-active-url': dark ? '#d4d4d8' : '#0f172a',
+  };
+}
+
 export function resolveHarmonyForCount(count: number, current: ThemeHarmony): ThemeHarmony {
   if (count <= 0) return 'floating';
   const normalized = clamp(count, 1, 3);

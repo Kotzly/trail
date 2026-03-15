@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { getSettings } from './rpc.js';
+import { applyThemeTokens } from '@entrypoints/sidepanel/ui/shared/apply-theme.js';
 import type { ThemeId } from '@shared/types/theme.js';
+import type { CustomTheme } from '@shared/types/settings.js';
 
 /**
  * Resolves a ThemeId ('light' | 'dark' | 'system') to an effective
@@ -14,17 +16,19 @@ function resolveEffective(themeId: ThemeId): 'light' | 'dark' {
 }
 
 /**
- * Synchronizes the Spotlight shadow host's `data-theme` attribute with
- * Trail's user-configured theme setting.
+ * Synchronizes the Spotlight shadow host's theme with Trail's settings.
  *
- * Fetches the theme via RPC on mount (safe in content script context —
- * uses chrome.runtime.sendMessage, not chrome.storage). OS media-query
- * changes are watched for `theme: 'system'` resolution.
+ * - Sets `data-theme` attribute (effective light/dark) for CSS overrides
+ * - Applies THEME_TOKEN_KEYS as inline styles on the host (the Shadow DOM
+ *   has no access to tokens.css, so base tokens must be set explicitly)
+ * - Fetches theme via RPC (safe in content script context)
+ * - Watches OS media-query changes for `theme: 'system'`
  */
 export function useSpotlightTheme(
   containerRef: React.RefObject<HTMLElement | null>,
 ) {
   const themeIdRef = useRef<ThemeId>('system');
+  const customThemeRef = useRef<CustomTheme>(null as unknown as CustomTheme);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -33,7 +37,9 @@ export function useSpotlightTheme(
     const host = (el.getRootNode() as ShadowRoot).host as HTMLElement;
 
     const apply = () => {
-      host.setAttribute('data-theme', resolveEffective(themeIdRef.current));
+      const effective = resolveEffective(themeIdRef.current);
+      host.setAttribute('data-theme', effective);
+      applyThemeTokens(host, effective, customThemeRef.current, { preserveDefaults: false });
     };
 
     // Immediately set based on OS preference (avoids flash before settings load)
@@ -43,10 +49,11 @@ export function useSpotlightTheme(
     getSettings()
       .then((s) => {
         themeIdRef.current = s.theme;
+        customThemeRef.current = s.customTheme;
         apply();
       })
       .catch(() => {
-        // Settings unavailable — keep OS-based default
+        // Settings unavailable — keep OS-based default with base tokens
       });
 
     // Re-resolve when OS theme changes (relevant when themeId = 'system')
