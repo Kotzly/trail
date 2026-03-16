@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { SpotlightRowIcon } from './SpotlightRowIcon.js';
 import { SpotlightRowActions } from './SpotlightRowActions.js';
@@ -96,16 +96,33 @@ export function SpotlightResults({
     virtualizer.measure();
   }, [rows, virtualizer]);
 
-  // Auto-scroll to selected item when selectedKey changes
+  const isHoverRef = useRef(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Auto-scroll to selected item — debounced center on hover, instant on keyboard
   useEffect(() => {
     if (!selectedKey) return;
     const index = rows.findIndex(
       (r) => r.type === 'item' && r.item.key === selectedKey,
     );
-    if (index !== -1) {
+    if (index === -1) return;
+
+    if (isHoverRef.current) {
+      isHoverRef.current = false;
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = setTimeout(() => {
+        virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
+      }, 100);
+    } else {
+      clearTimeout(hoverTimerRef.current);
       virtualizer.scrollToIndex(index, { align: 'auto' });
     }
   }, [selectedKey, rows, virtualizer]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => clearTimeout(hoverTimerRef.current);
+  }, []);
 
   return (
     <div
@@ -203,7 +220,7 @@ export function SpotlightResults({
                     e.dataTransfer.effectAllowed = 'copyLink';
                   }
                 }}
-                onMouseEnter={() => { onSelect(item.key); }}
+                onMouseEnter={() => { isHoverRef.current = true; onSelect(item.key); }}
                 onClick={() => { onSelect(item.key); void onActivate(item); }}
               >
                 <SpotlightRowIcon item={item} />
