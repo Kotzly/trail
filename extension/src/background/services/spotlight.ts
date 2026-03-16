@@ -17,6 +17,7 @@ import {
   type SpotlightSearchSessionId,
   type SpotlightSearchResult,
   type SpotlightSection,
+  type SpotlightSourceBadge,
   type SpotlightSuggestionGroup,
   type SpotlightTreeRelation,
   type SpotlightTreeResult,
@@ -38,19 +39,19 @@ const SESSION_TTL_MS = 15 * 60 * 1000;
 const MAX_RESULTS = 80;
 
 const SECTION_TITLES: Record<SpotlightSection['id'], string> = {
-  'continue': 'Continue',
+  'continue': 'Pick Up Where You Left Off',
   'actions': 'Actions',
-  'pins': 'Pins',
+  'pins': 'Pinned',
   'open-tabs': 'Open Tabs',
   'recent': 'Recent',
-  'current-tree': 'Current Tree',
-  'other-trees': 'Other Tree Pages',
+  'current-tree': 'More in This Tree',
+  'other-trees': 'Other Trees',
   'archived-trees': 'Trees',
-  'trees': 'Trees',
-  'external': 'External',
-  'matches': 'Matches',
+  'trees': 'Your Trees',
+  'external': 'Web',
+  'matches': 'Best Matches',
   'scoped-pages': 'Pages',
-  'frequent': 'Frequently Used',
+  'frequent': 'Visited Often',
   'recent-searches': 'Recent Searches',
 };
 
@@ -224,6 +225,22 @@ export class SpotlightService {
     }
     appendSectionIfAny(sections, 'continue', continueDocs.slice(0, 4));
 
+    const openTabs = await this.mapNodes(
+      snapshot,
+      [...activeNodeDocs].filter((doc) => doc.tabCount > 0).sort(compareNodeDocsByPriority),
+      Math.min(Math.max(limit, 1), 30),
+      seen,
+    );
+    appendSectionIfAny(sections, 'open-tabs', openTabs);
+
+    const pins = await this.mapNodes(
+      snapshot,
+      [...activeNodeDocs].filter((doc) => doc.pinned).sort(compareNodeDocsByPriority),
+      Math.min(Math.max(limit, 1), 8),
+      seen,
+    );
+    appendSectionIfAny(sections, 'pins', pins);
+
     const frequentKeys = await spotlightUsageStats.getTopTargetKeys(5);
     const frequentItems: SpotlightSearchResult[] = [];
     for (const key of frequentKeys) {
@@ -234,14 +251,6 @@ export class SpotlightService {
       }
     }
     appendSectionIfAny(sections, 'frequent', frequentItems);
-
-    const pins = await this.mapNodes(
-      snapshot,
-      [...activeNodeDocs].filter((doc) => doc.pinned).sort(compareNodeDocsByPriority),
-      Math.min(Math.max(limit, 1), 8),
-      seen,
-    );
-    appendSectionIfAny(sections, 'pins', pins);
 
     const currentTree = await this.mapNodes(
       snapshot,
@@ -257,7 +266,7 @@ export class SpotlightService {
       Math.min(Math.max(limit, 1), 8),
       seen,
     );
-    appendSectionIfAny(sections, 'archived-trees', archivedTrees);
+    appendSectionIfAny(sections, 'trees', archivedTrees);
 
     const actionRows = buildGlobalActions().map((action) => toActionResult(action));
     appendSectionIfAny(sections, 'actions', actionRows);
@@ -274,15 +283,17 @@ export class SpotlightService {
     const ranked = await this.rankEntities(snapshot, query, Math.max(searchLimit * 4, 40));
     const sections: SpotlightSection[] = [];
 
-    const currentTreeMatches = ranked
-      .filter((item): item is SpotlightNodeResult => item.kind === 'node' && item.treeId === snapshot.activeTreeId)
-      .slice(0, Math.min(searchLimit, 12));
-    appendSectionIfAny(sections, 'current-tree', currentTreeMatches);
+    const allNodeMatches = ranked
+      .filter((item): item is SpotlightNodeResult => item.kind === 'node')
+      .slice(0, Math.min(searchLimit, 20));
+    appendSectionIfAny(sections, 'matches', allNodeMatches);
 
-    const otherTreeMatches = ranked
-      .filter((item): item is SpotlightNodeResult => item.kind === 'node' && item.treeId !== snapshot.activeTreeId)
-      .slice(0, Math.min(searchLimit, 12));
-    appendSectionIfAny(sections, 'other-trees', otherTreeMatches);
+    const shownKeys = new Set(allNodeMatches.map(item => item.key));
+    const remainingOtherTree = ranked
+      .filter((item): item is SpotlightNodeResult =>
+        item.kind === 'node' && item.treeId !== snapshot.activeTreeId && !shownKeys.has(item.key))
+      .slice(0, Math.min(searchLimit, 8));
+    appendSectionIfAny(sections, 'other-trees', remainingOtherTree);
 
     const treeMatches = ranked
       .filter((item): item is SpotlightTreeResult => item.kind === 'tree')
@@ -492,6 +503,7 @@ export class SpotlightService {
       treeName: doc.treeName,
       score: breakdown.finalScore,
       groupBadge: toGroupBadge(doc.group),
+      sourceBadge: toSourceBadge(doc),
       highlights: {
         title: findRanges(doc.title, needles),
         url: findRanges(doc.url, needles),
@@ -575,6 +587,7 @@ export class SpotlightService {
       treeName: doc.treeName,
       score: rawTextScore,
       groupBadge: toGroupBadge(doc.group),
+      sourceBadge: toSourceBadge(doc),
       highlights: {
         title: findRanges(doc.title, needles),
         url: findRanges(doc.url, needles),
@@ -1154,6 +1167,12 @@ function toGroupBadge(group: SpotlightSuggestionGroup): 'Open' | 'Recent' | 'Tre
     default:
       return 'Archived';
   }
+}
+
+function toSourceBadge(doc: SpotlightLiveNodeDoc): SpotlightSourceBadge {
+  if (doc.tabCount > 0) return 'tab';
+  if (doc.pinned) return 'pin';
+  return 'tree';
 }
 
 function buildWhyChips(

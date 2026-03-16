@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { Search, ChevronRight, FolderOpen } from 'lucide-react';
 import { SpotlightGraphFrame } from './SpotlightGraphFrame.js';
 import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from './SpotlightHintRow.js';
 import { SpotlightHelp } from './SpotlightHelp.js';
@@ -14,9 +15,10 @@ import { useSpotlightKeyboard } from './useSpotlightKeyboard.js';
 import { useSelectionIndicator } from './useSelectionIndicator.js';
 import { SpotlightBatchBar } from './SpotlightBatchBar.js';
 import { useSpotlightResize } from './useSpotlightResize.js';
-import { useSpotlightTheme } from './useSpotlightTheme.js';
 import { executeBatchAction } from './rpc.js';
-import type { SpotlightActionId, SpotlightBatchActionId, SpotlightSearchResult } from './types.js';
+import { SpotlightFooter } from './SpotlightFooter.js';
+import { resolveSpotlightQueryMode } from '@shared/lib/spotlight/query-dsl.js';
+import type { SpotlightActionId, SpotlightBatchActionId, SpotlightMode, SpotlightSearchResult } from './types.js';
 import type { SpotlightNodeTarget } from './useSpotlightPreview.js';
 
 type SpotlightRootProps = { onRegisterToggle: (toggle: () => void) => void };
@@ -36,7 +38,6 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const [selectionIntentId, setSelectionIntentId] = useState(0);
   const [drilldownScope, setDrilldownScope] = useState<{ treeId: string; treeName: string } | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  const reducedMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLElement>(null);
   const panelsRef = useRef<HTMLDivElement>(null);
@@ -46,12 +47,6 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   drilldownScopeRef.current = drilldownScope;
   const drilldownMemoryRef = useRef<{ drilldownScope: { treeId: string; treeName: string }; savedAt: number } | null>(null);
   const drilldownMemoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (drilldownMemoryTimerRef.current) clearTimeout(drilldownMemoryTimerRef.current);
-    };
-  }, []);
 
   const toggle = useCallback(() => setIsOpen((prev) => !prev), []);
   const close = useCallback(() => { setIsOpen(false); setHelpOpen(false); setDrilldownScope(null); }, []);
@@ -71,6 +66,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   );
   const isMultiSelect = selectedKeys.size > 1;
 
+  const spotlightMode = resolveSpotlightQueryMode(search.query).mode as SpotlightMode;
+
   // Clear multi-select when query or sections change
   useEffect(() => { setSelectedKeys(new Set()); }, [search.query, search.sections]);
 
@@ -78,6 +75,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     activeTreeId, drilldownScope, effectiveItem: selectedItem,
     hoveredGraphTarget, sections: search.sections, flatItems, previewCache: search.previewCache,
   });
+  const indicatorPos = useSelectionIndicator(listRef, selectedKey);
 
   const act = useSpotlightActions({
     activeTreeId, query: search.query, close, flatItems,
@@ -86,47 +84,12 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     setHelpOpen, setDrilldownScope,
   });
 
-  // Rebuild layoutSignal with act.collapsedSections (must be after act is defined)
-  const indicatorLayoutSignal = useMemo(
-    () => search.sections.map((s) => `${s.id}:${s.items.length}`).join('|')
-      + '|collapsed:' + [...act.collapsedSections].sort().join(','),
-    [search.sections, act.collapsedSections],
-  );
-
-  const indicatorPos = useSelectionIndicator(listRef, selectedKey, indicatorLayoutSignal);
-
-  // Auto-select first visible item when sections load and nothing is selected
-  useEffect(() => {
-    if (!isOpen) return;
-    const items = search.sections
-      .filter((s) => !act.collapsedSections.has(s.id))
-      .flatMap((s) => s.items);
-    if (items.length > 0 && !selectedKey) {
-      setSelectedKey(items[0]!.key);
-    }
-  }, [isOpen, search.sections, act.collapsedSections, selectedKey]);
-
-  // Visible items: excluding collapsed sections (for arrow key navigation)
-  const visibleFlatItems = useMemo(
-    () => search.sections
-      .filter((s) => !act.collapsedSections.has(s.id))
-      .flatMap((s) => s.items),
-    [search.sections, act.collapsedSections],
-  );
-
   // Echo index O(1) lookup
   const hoveredGraphKey = useMemo(() => {
     if (!hoveredGraphTarget) return null;
     return preview.echoIndex.get(`${hoveredGraphTarget.treeId}:${hoveredGraphTarget.nodeId}`)?.key ?? null;
   }, [hoveredGraphTarget, preview.echoIndex]);
   const hoveredGraphItem = hoveredGraphKey ? itemByKey.get(hoveredGraphKey) ?? null : null;
-
-  // Graph hover → select corresponding item in results list
-  useEffect(() => {
-    if (hoveredGraphKey) {
-      setSelectedKey(hoveredGraphKey);
-    }
-  }, [hoveredGraphKey]);
 
   // Hints
   const hintCandidates = useMemo(() => buildSpotlightHints(search.query), [search.query]);
@@ -146,10 +109,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       setSelectedKeys(new Set());
       return;
     }
-    const targets = nodes
-      .map((n) => n.kind === 'node' ? { kind: 'node' as const, nodeId: n.nodeId, treeId: n.treeId } : null)
-      .filter((t): t is NonNullable<typeof t> => t !== null);
-    const response = await executeBatchAction(actionId, targets);
+    const targets = nodes.map((n) => n.kind === 'node' ? { kind: 'node' as const, nodeId: n.nodeId, treeId: n.treeId } : null).filter(Boolean);
+    const response = await executeBatchAction(actionId, targets as Array<{ kind: string; nodeId?: any; treeId?: string }>);
     if (response.statusText) act.setStatusText(response.statusText);
     setSelectedKeys(new Set());
   }, [multiSelectedItems, act]);
@@ -193,36 +154,6 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const graphSelectedNodeId = currentGraphTreeId && selectedNodeTarget?.treeId === currentGraphTreeId ? selectedNodeTarget.nodeId : null;
   const graphHighlightNodeId = currentGraphTreeId && highlightNodeTarget?.treeId === currentGraphTreeId ? highlightNodeTarget.nodeId : null;
 
-  // Collect nodeIds matching search query for graph highlighting
-  const searchMatchNodeIds = useMemo(() => {
-    if (!currentGraphTreeId || !search.query) return undefined;
-    const ids: import('@shared/types/ids.js').NodeId[] = [];
-    for (const item of flatItems) {
-      if (item.kind === 'node' && item.treeId === currentGraphTreeId) {
-        ids.push(item.nodeId);
-      }
-    }
-    return ids.length > 0 ? ids : undefined;
-  }, [flatItems, currentGraphTreeId, search.query]);
-
-  const handleEscapeKey = useCallback(() => {
-    if (act.confirmingAction) {
-      act.setConfirmingAction(null);
-    } else if (act.quickLookItem) {
-      act.setQuickLookItem(null);
-    } else if (act.actionMenuActions) {
-      act.setActionMenuActions(null);
-    } else if (helpOpen) {
-      setHelpOpen(false);
-    } else if (drilldownScope) {
-      act.exitDrilldown();
-    } else if (search.query) {
-      search.setQuery('');
-    } else {
-      close();
-    }
-  }, [act, helpOpen, drilldownScope, search, close]);
-
   const handleToggleSection = useCallback((sectionId: string) => {
     const isCollapsing = !act.collapsedSections.has(sectionId);
     if (isCollapsing && selectedKey) {
@@ -250,8 +181,10 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     act.toggleSection(sectionId);
   }, [act, selectedKey, search.sections]);
 
-  useSpotlightTheme(backdropRef);
-  const resize = useSpotlightResize(panelsRef);
+  const visibleFlatItems = useMemo(
+    () => search.sections.filter((s) => !act.collapsedSections.has(s.id)).flatMap((s) => s.items),
+    [search.sections, act.collapsedSections],
+  );
 
   useSpotlightKeyboard({
     isOpen, containerRef: backdropRef,
@@ -263,39 +196,46 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     selectedFocusPane, setSelectedFocusPane, setQuery: search.setQuery, close,
     exitDrilldown: act.exitDrilldown, handleActivate: act.handleActivate, handleApplyHint,
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
-    flatItems, visibleFlatItems, selectedKeys, setSelectedKeys,
-    showPreview: resize.splitRatio > 0 && resize.splitRatio < 1,
-    toggleGraphPanel: resize.toggleGraphPanel, stepSnapPoint: resize.stepSnapPoint,
+    flatItems, visibleFlatItems, selectedKeys, setSelectedKeys, showPreview: true,
+    toggleGraphPanel: () => {}, stepSnapPoint: () => {},
   });
 
-  // Always render the backdrop shell so backdropRef is available for the
-  // keyboard capture-phase listener on the very first open.
+  const resize = useSpotlightResize(panelsRef, spotlightMode);
+
+  if (!hasBeenOpened) return null;
+
   return (
     <div
       ref={backdropRef}
       className="spotlight-backdrop"
-      style={{
-        pointerEvents: isOpen ? 'auto' : 'none',
-        opacity: isOpen ? 1 : 0,
-        ...(!hasBeenOpened && { display: 'none' }),
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget && !resize.wasDragging.current) close(); }}
+      style={{ pointerEvents: isOpen ? 'auto' : 'none', opacity: isOpen ? 1 : 0 }}
+      onClick={(e) => { if (e.target === e.currentTarget) close(); }}
     >
-      {hasBeenOpened && <motion.div
-        initial={reducedMotion ? false : { opacity: 0, scale: 0.97, y: -8 }}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 380, damping: 28, mass: 0.8 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 28, mass: 0.8 }}
       >
         <Command
-          shouldFilter={false}
+          shouldFilter={false} value={selectedKey ?? ''} loop
+          onValueChange={(v) => { setSelectedKey(v || null); setHoveredGraphTarget(null); act.setActionMenuActions(null); }}
           className="spotlight-container spotlight-container--v3"
         >
           <div className="spotlight-search spotlight-search--v3">
+            <div className="spotlight-scope-icon" aria-hidden="true">
+              {spotlightMode === 'commands' ? (
+                <ChevronRight size={15} strokeWidth={1.8} />
+              ) : drilldownScope ? (
+                <FolderOpen size={15} strokeWidth={1.8} />
+              ) : (
+                <Search size={15} strokeWidth={1.8} />
+              )}
+            </div>
             <div className="spotlight-input-wrap">
               <Command.Input
                 ref={inputRef} className="spotlight-search-input" autoComplete="off" spellCheck={false}
-                placeholder={drilldownScope ? `Search in ${drilldownScope.treeName}...` : 'Search pages or type > / for commands'}
-                value={search.query} onValueChange={(v) => { search.setQuery(v); act.setStatusText(null); }}
+                placeholder={drilldownScope ? `Search in ${drilldownScope.treeName}...` : 'Search pages or type > for commands'}
+                value={search.query} onValueChange={(v: string) => { search.setQuery(v); act.setStatusText(null); }}
               />
               {ghostSuffix && (
                 <span className="spotlight-ghost" aria-hidden="true">
@@ -307,8 +247,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           </div>
 
           {drilldownScope && (
-            <div className="spotlight-breadcrumb" role="status" aria-live="polite">
-              <button type="button" className="spotlight-breadcrumb-back" onClick={act.exitDrilldown} aria-label="Exit drilldown">←</button>
+            <div className="spotlight-breadcrumb">
+              <button type="button" className="spotlight-breadcrumb-back" onClick={act.exitDrilldown} tabIndex={-1} aria-label="Exit drilldown">←</button>
               <span className="spotlight-breadcrumb-label">{drilldownScope.treeName}</span>
             </div>
           )}
@@ -319,19 +259,16 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
               : !search.loading && search.query && search.sections.length === 0 ? 'No results found' : ''}
           </div>
 
-          <div ref={panelsRef} className="spotlight-panels spotlight-panels--v3" data-animating={resize.isAnimating}>
+          <div ref={panelsRef} className="spotlight-panels spotlight-panels--v3">
             <div className="spotlight-left spotlight-left--v3" data-focus={selectedFocusPane} style={resize.leftStyle}>
               {search.sessionError ? (
-                <div className="spotlight-empty" role="alert">
-                  Connection lost.
-                  <button type="button" className="spotlight-retry-btn" onClick={search.retryBootstrap}>Retry</button>
-                </div>
+                <div className="spotlight-empty" role="alert">Connection lost. Close and reopen spotlight to retry.</div>
               ) : helpOpen ? (
                 <SpotlightHelp open />
               ) : search.loading ? (
                 <div className="spotlight-empty">Loading...</div>
               ) : search.sections.length === 0 && search.query ? (
-                <div className="spotlight-empty" role="status">No results found</div>
+                <Command.Empty className="spotlight-empty">No results found</Command.Empty>
               ) : search.sections.length === 0 && !search.query && search.recentQueries.length > 0 ? (
                 <div className="spotlight-sections spotlight-recent-queries">
                   <div className="spotlight-recent-queries-title">Recent Searches</div>
@@ -346,7 +283,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                   ))}
                 </div>
               ) : search.sections.length === 0 ? (
-                <div className="spotlight-empty" role="status">No results found</div>
+                <Command.Empty className="spotlight-empty">No results found</Command.Empty>
               ) : (
                 <SpotlightResults
                   listRef={listRef}
@@ -369,10 +306,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
               <div
                 className="spotlight-resize-handle"
                 data-dragging={resize.isDragging}
-                data-collapsed={resize.splitRatio === 0 || resize.splitRatio === 1}
                 onMouseDown={resize.handleMouseDown}
-                onDoubleClick={resize.handleDoubleClick}
-                onClick={resize.handleClick}
                 role="separator" aria-orientation="vertical" aria-label="Resize panels"
               />
             )}
@@ -381,13 +315,11 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                     activeTreeId={activeTreeId} previewData={preview.graphPreviewData}
                     selectedNodeId={graphSelectedNodeId} highlightNodeId={graphHighlightNodeId}
                     selectionIntentId={selectionIntentId}
-                    searchMatchNodeIds={searchMatchNodeIds}
                     onNavigate={(treeId, nodeId) => {
                       const aid: SpotlightActionId = activeTreeId && treeId !== activeTreeId ? 'open-node-in-tree' : 'open';
                       void act.handleExecuteAction(aid, { kind: 'node', nodeId, treeId }, aid === 'open-node-in-tree' ? 'Opened in tree' : 'Opened');
                     }}
                     onHoverNode={(treeId, nodeId) => setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId })}
-                    onEscapeKey={handleEscapeKey}
                   />
               {preview.graphPreviewLoading && <div className="spotlight-graph-loading" role="status" aria-label="Loading tree preview">Loading tree preview...</div>}
               {preview.previewTreeId && !preview.graphPreviewLoading && !preview.graphPreviewData && <div className="spotlight-empty spotlight-graph-fallback">Preview unavailable</div>}
@@ -402,15 +334,20 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
               onClear={() => setSelectedKeys(new Set())}
             />
           )}
-          {act.statusText && <div className="spotlight-status-bar" role="status" aria-live="polite"><span className="spotlight-status">{act.statusText}</span></div>}
+          {act.statusText && <div className="spotlight-status-bar"><span className="spotlight-status">{act.statusText}</span></div>}
+          <SpotlightFooter
+            mode={spotlightMode}
+            isMultiSelect={isMultiSelect}
+            focusPane={selectedFocusPane}
+          />
           {act.actionMenuActions && <SpotlightActionMenu actions={act.actionMenuActions} onSelect={act.handleActionMenuSelect} onClose={() => act.setActionMenuActions(null)} />}
           {act.quickLookItem && (act.quickLookItem.kind === 'node' || act.quickLookItem.kind === 'tree') && (
             <SpotlightQuickLook item={act.quickLookItem} onClose={() => act.setQuickLookItem(null)} onAction={(actionId, target, status) => { act.setQuickLookItem(null); void act.handleExecuteAction(actionId, target, status); }} />
           )}
         </Command>
-      </motion.div>}
+      </motion.div>
 
-      {hasBeenOpened && act.confirmingAction && act.confirmingAction.kind === 'action' && (
+      {act.confirmingAction && act.confirmingAction.kind === 'action' && (
         <div className="spotlight-confirm-overlay" onClick={() => act.setConfirmingAction(null)}>
           <div className="spotlight-confirm-popup" onClick={(e) => e.stopPropagation()}>
             <div className="spotlight-confirm-icon">⚠</div>
@@ -426,4 +363,3 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     </div>
   );
 }
-

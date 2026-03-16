@@ -1,6 +1,5 @@
 import { useEffect, useMemo, type ReactNode, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { motion } from 'motion/react';
 import { SpotlightRowIcon } from './SpotlightRowIcon.js';
 import { SpotlightRowActions } from './SpotlightRowActions.js';
 import { highlightText } from './highlight.js';
@@ -120,10 +119,9 @@ export function SpotlightResults({
     >
       <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
         {indicatorPos && (
-          <motion.div
+          <div
             className="spotlight-selection-indicator"
-            animate={{ y: indicatorPos.top, height: indicatorPos.height }}
-            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+            style={{ transform: `translateY(${indicatorPos.top}px)`, height: indicatorPos.height }}
           />
         )}
         {virtualizer.getVirtualItems().map((virtualItem) => {
@@ -216,7 +214,16 @@ export function SpotlightResults({
                 {isSelected && item.kind !== 'action' ? (
                   <SpotlightRowActions item={item} activeTreeId={activeTreeId} onAction={onInlineAction} />
                 ) : (
-                  <div className="spotlight-row-meta">{getItemMeta(item)}</div>
+                  <>
+                    {item.kind !== 'action' && item.groupBadge && (
+                      <span className={`spotlight-source-badge spotlight-source-badge--${badgeVariant(item)}`}>
+                        {item.groupBadge}
+                      </span>
+                    )}
+                    {item.kind === 'action' && (
+                      <div className="spotlight-row-meta">{item.shortcutHint}</div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -251,7 +258,11 @@ function renderItemSubtitle(item: SpotlightSearchResult): ReactNode {
   return item.subtitle;
 }
 
-function getItemMeta(item: SpotlightSearchResult): string {
-  if (item.kind === 'node') return item.group === 'other-trees' ? item.treeName : item.pinned ? 'Pinned' : item.groupBadge;
-  return item.kind === 'tree' ? item.groupBadge : item.shortcutHint;
+function badgeVariant(item: SpotlightSearchResult): string {
+  if (item.kind === 'action') return '';
+  if (item.kind === 'node') {
+    if (item.groupBadge === 'Open') return 'tab';
+    if (item.pinned) return 'pin';
+  }
+  return '';
 }

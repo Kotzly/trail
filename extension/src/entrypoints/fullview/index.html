@@ -4,19 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trail — Full View</title>
-    <script>
-      // Prevent white flash: apply background before CSS module loads.
-      (function() {
-        var t;
-        try { t = localStorage.getItem('trail_theme'); } catch(e) {}
-        if (!t) try { t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch(e) {}
-        if (t) {
-          document.documentElement.setAttribute('data-theme', t);
-          document.documentElement.style.backgroundColor = t === 'dark' ? '#09090b' : '#fff';
-          document.documentElement.style.colorScheme = t;
-        }
-      })();
-    </script>
+    <script src="/apply-theme-early.js"></script>
   </head>
   <body>
     <div id="root"></div>

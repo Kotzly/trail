@@ -1,0 +1,445 @@
+/* ── New Tab: fullscreen Spotlight layout ──
+   Reuses spotlight component classes for inner elements.
+   Only defines the full-page shell and panel structure. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--trail-font-sans, "Inter", system-ui, sans-serif);
+  background-color: var(--trail-app-bg-color, var(--background, #09090b));
+  background-image: var(--trail-app-bg-image, none);
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: var(--foreground, #fafafa);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ─── Root container ─── */
+
+.newtab {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.newtab-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+/* ─── Search bar (top) ─── */
+
+.newtab-search {
+  flex-shrink: 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: transparent;
+}
+
+/* ─── Panel row (fills remaining space) ─── */
+
+.newtab-panels {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ─── Left panel: results list ─── */
+
+.newtab-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* ─── Right panel: graph preview ─── */
+
+.newtab-graph {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background-color: var(--trail-app-bg-color, var(--background, rgba(12, 12, 16, 1)));
+  background-image: var(--trail-app-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  contain: layout paint;
+}
+
+.newtab-graph[data-focus="graph"] {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 220, 120, 0.12),
+    inset 0 0 24px rgba(255, 220, 120, 0.03);
+  transition: box-shadow 0.3s ease;
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 800px) {
+  .newtab-panels {
+    flex-direction: column;
+  }
+
+  .newtab-list {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .spotlight-resize-handle {
+    width: 100%;
+    height: 10px;
+    cursor: row-resize;
+  }
+}
+
+/* ─── Light theme ─── */
+
+[data-theme="light"] body {
+  background-color: var(--trail-app-bg-color, var(--background, #ffffff));
+}
+
+[data-theme="light"] .newtab-search {
+  border-bottom-color: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .newtab-list {
+  border-right-color: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .newtab-graph {
+  background-color: var(--trail-app-bg-color, var(--background, rgba(250, 250, 252, 1)));
+}
+
+[data-theme="light"] .newtab-graph[data-focus="graph"] {
+  box-shadow:
+    inset 0 0 0 1px rgba(180, 140, 40, 0.18),
+    inset 0 0 24px rgba(180, 140, 40, 0.04);
+}
+
+/* ─── Light theme: Spotlight component overrides ───
+   The spotlight CSS uses :host([data-theme="light"]) for Shadow DOM.
+   In the newtab (non-shadow-DOM), we re-declare the critical overrides. */
+
+[data-theme="light"] .spotlight-search {
+  border-bottom-color: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .spotlight-search:focus-within {
+  border-bottom-color: rgba(0, 0, 0, 0.14);
+}
+
+[data-theme="light"] .spotlight-search-input {
+  color: #1a1a1a;
+  caret-color: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="light"] .spotlight-search-input::placeholder {
+  color: rgba(0, 0, 0, 0.32);
+}
+
+[data-theme="light"] .spotlight-scope-icon {
+  color: rgba(0, 0, 0, 0.32);
+}
+
+[data-theme="light"] .spotlight-ghost-suffix {
+  color: rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="light"] .spotlight-breadcrumb {
+  color: rgba(0, 0, 0, 0.5);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .spotlight-breadcrumb-back {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .spotlight-breadcrumb-back:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="light"] .spotlight-section-title,
+[data-theme="light"] .spotlight-section-heading,
+[data-theme="light"] [cmdk-group-heading] {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .spotlight-section + .spotlight-section {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .spotlight-section-toggle:hover {
+  color: rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="light"] .spotlight-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .spotlight-row[data-selected="true"] {
+  background: transparent;
+}
+
+[data-theme="light"] .spotlight-selection-indicator {
+  background: rgba(0, 0, 0, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .spotlight-row-icon {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .spotlight-row[data-selected="true"] .spotlight-row-icon {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="light"] .spotlight-row-title {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+[data-theme="light"] .spotlight-row[data-selected="true"] .spotlight-row-title {
+  color: #000;
+}
+
+[data-theme="light"] .spotlight-row[data-destructive="true"] .spotlight-row-title {
+  color: rgba(200, 40, 20, 0.88);
+}
+
+[data-theme="light"] .spotlight-row-subtitle {
+  color: rgba(0, 0, 0, 0.36);
+}
+
+[data-theme="light"] .spotlight-row[data-selected="true"] .spotlight-row-subtitle {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .spotlight-highlight {
+  background: rgba(250, 204, 21, 0.28);
+  color: #1a1a1a;
+  text-decoration-color: rgba(0, 0, 0, 0.24);
+}
+
+[data-theme="light"] .spotlight-row[data-selected="true"] .spotlight-highlight {
+  text-decoration-color: rgba(0, 0, 0, 0.48);
+}
+
+[data-theme="light"] .spotlight-row-meta {
+  color: rgba(0, 0, 0, 0.36);
+}
+
+[data-theme="light"] .spotlight-row-action-btn {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] .spotlight-row-action-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="light"] .spotlight-row-action-btn--destructive {
+  color: rgba(200, 40, 20, 0.45);
+}
+
+[data-theme="light"] .spotlight-row-action-btn--destructive:hover {
+  background: rgba(220, 50, 30, 0.08);
+  color: rgba(200, 40, 20, 0.8);
+}
+
+[data-theme="light"] .spotlight-source-badge {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.38);
+}
+
+[data-theme="light"] .spotlight-source-badge--tab {
+  background: rgba(40, 100, 200, 0.08);
+  color: rgba(40, 100, 200, 0.65);
+}
+
+[data-theme="light"] .spotlight-source-badge--pin {
+  background: rgba(180, 120, 20, 0.08);
+  color: rgba(180, 120, 20, 0.65);
+}
+
+[data-theme="light"] .spotlight-empty {
+  color: rgba(0, 0, 0, 0.36);
+}
+
+[data-theme="light"] .spotlight-graph-loading {
+  background: rgba(255, 255, 255, 0.5);
+  color: #71717a;
+}
+
+[data-theme="light"] .spotlight-recent-queries-title {
+  color: rgba(0, 0, 0, 0.36);
+}
+
+[data-theme="light"] .spotlight-recent-query-item {
+  color: rgba(0, 0, 0, 0.68);
+}
+
+[data-theme="light"] .spotlight-recent-query-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .spotlight-resize-handle::after {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .spotlight-resize-handle:hover::after {
+  background: var(--trail-accent, rgba(60, 100, 220, 0.5));
+}
+
+[data-theme="light"] .spotlight-resize-handle[data-dragging="true"]::after {
+  background: var(--trail-accent, rgba(60, 100, 220, 0.7));
+}
+
+[data-theme="light"] .spotlight-resize-handle::before {
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 -5px 0 rgba(0, 0, 0, 0.3),
+    0  5px 0 rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .spotlight-footer {
+  color: rgba(0, 0, 0, 0.28);
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .spotlight-footer-kbd {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .spotlight-footer-label {
+  color: rgba(0, 0, 0, 0.24);
+}
+
+[data-theme="light"] .spotlight-status {
+  color: rgba(140, 100, 10, 0.85);
+}
+
+[data-theme="light"] .spotlight-help-title {
+  color: rgba(0, 0, 0, 0.36);
+}
+
+[data-theme="light"] .spotlight-help-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .spotlight-help-item code {
+  color: rgba(0, 0, 0, 0.78);
+}
+
+[data-theme="light"] .spotlight-help-item span {
+  color: rgba(0, 0, 0, 0.32);
+}
+
+[data-theme="light"] .spotlight-help-hint {
+  color: rgba(0, 0, 0, 0.24);
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .spotlight-help-hint kbd {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .spotlight-row[data-multi-selected="true"] {
+  background: rgba(0, 0, 0, 0.04);
+  border-left-color: rgba(180, 120, 20, 0.5);
+}
+
+[data-theme="light"] .spotlight-confirm-overlay {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .spotlight-confirm-popup {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .spotlight-confirm-title {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+[data-theme="light"] .spotlight-confirm-message {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] .spotlight-confirm-btn--cancel {
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="light"] .spotlight-confirm-btn--cancel:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .spotlight-action-menu {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .spotlight-action-menu-item {
+  color: rgba(0, 0, 0, 0.72);
+}
+
+[data-theme="light"] .spotlight-action-menu-item[data-selected="true"] {
+  background: rgba(0, 0, 0, 0.06);
+  color: #000;
+}
+
+[data-theme="light"] .spotlight-quicklook {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .spotlight-quicklook-domain {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] .spotlight-quicklook-title {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+[data-theme="light"] .spotlight-quicklook-url {
+  color: rgba(0, 0, 0, 0.36);
+}
+
+[data-theme="light"] .spotlight-batch-bar {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .spotlight-batch-count {
+  color: rgba(140, 100, 10, 0.85);
+}
+
+[data-theme="light"] .spotlight-batch-btn {
+  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="light"] .spotlight-batch-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #000;
+}

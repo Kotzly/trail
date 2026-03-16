@@ -14,6 +14,7 @@ export type {
   SpotlightSection,
   SpotlightSectionId,
   SpotlightNodeResult,
+  SpotlightSourceBadge,
   SpotlightTreeResult,
   SpotlightGraphPreviewData,
   SpotlightSuggestionGroup,

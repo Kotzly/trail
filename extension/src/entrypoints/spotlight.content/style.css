@@ -127,7 +127,7 @@ textarea {
 .spotlight-search {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   padding: 14px 22px;
   border-radius: 0;
   background: transparent;
@@ -143,6 +143,17 @@ textarea {
   border-bottom-color: rgba(255, 255, 255, 0.14);
 }
 
+/* ─── Scope Icon ─── */
+
+.spotlight-scope-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.28);
+}
 .spotlight-search-input {
   flex: 1;
   background: none;
@@ -388,7 +399,7 @@ textarea {
 }
 
 .spotlight-panels--v3 {
-  min-height: 520px;
+  min-height: 560px;
 }
 
 .spotlight-left--v3 {
@@ -628,6 +639,38 @@ textarea {
   color: rgba(255, 255, 255, 0.62);
 }
 
+/* ─── Source Badge ─── */
+
+.spotlight-source-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 560;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.38);
+  white-space: nowrap;
+}
+
+.spotlight-source-badge--tab {
+  background: rgba(120, 180, 255, 0.1);
+  color: rgba(120, 180, 255, 0.7);
+}
+
+.spotlight-source-badge--pin {
+  background: rgba(255, 200, 100, 0.1);
+  color: rgba(255, 200, 100, 0.7);
+}
+
+.spotlight-source-badge--frequent {
+  background: rgba(160, 120, 255, 0.1);
+  color: rgba(160, 120, 255, 0.7);
+}
+
 /* ─── Row Inline Actions ─── */
 
 .spotlight-row-actions {
@@ -835,6 +878,56 @@ textarea {
 
 .spotlight-status {
   color: rgba(255, 230, 160, 0.85);
+}
+
+/* ─── Footer ─── */
+
+.spotlight-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.28);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.spotlight-footer-hints {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.spotlight-footer-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.spotlight-footer-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-family: inherit;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1;
+}
+
+.spotlight-footer-label {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.24);
 }
 
 /* ─── Destructive confirmation popup ─── */
@@ -1903,5 +1996,44 @@ textarea {
 
   .spotlight-action-menu-hint {
     color: rgba(0, 0, 0, 0.28);
+  }
+
+  .spotlight-footer {
+    color: rgba(0, 0, 0, 0.28);
+    border-top-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .spotlight-footer-kbd {
+    border-color: rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.4);
+  }
+
+  .spotlight-footer-label {
+    color: rgba(0, 0, 0, 0.24);
+  }
+
+  .spotlight-source-badge {
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.38);
+  }
+
+  .spotlight-source-badge--tab {
+    background: rgba(40, 100, 200, 0.08);
+    color: rgba(40, 100, 200, 0.65);
+  }
+
+  .spotlight-source-badge--pin {
+    background: rgba(180, 120, 20, 0.08);
+    color: rgba(180, 120, 20, 0.65);
+  }
+
+  .spotlight-source-badge--frequent {
+    background: rgba(100, 60, 200, 0.08);
+    color: rgba(100, 60, 200, 0.65);
+  }
+
+  .spotlight-scope-icon {
+    color: rgba(0, 0, 0, 0.32);
   }
 }
