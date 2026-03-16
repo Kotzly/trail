@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
 import { Search, ChevronRight, FolderOpen } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { SpotlightGraphFrame } from '../../../spotlight/SpotlightGraphFrame.js';
 import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from '../../../spotlight/SpotlightHintRow.js';
 import { SpotlightHelp } from '../../../spotlight/SpotlightHelp.js';
@@ -13,13 +14,14 @@ import { useSpotlightActions } from '../../../spotlight/useSpotlightActions.js';
 import { useSpotlightKeyboard } from '../../../spotlight/useSpotlightKeyboard.js';
 import { useSelectionIndicator } from '../../../spotlight/useSelectionIndicator.js';
 import { SpotlightBatchBar } from '../../../spotlight/SpotlightBatchBar.js';
-import { useSpotlightResize } from '../../../spotlight/useSpotlightResize.js';
 import { executeBatchAction, executeSpotlightAction } from '../../../spotlight/rpc.js';
 import { SpotlightFooter } from '../../../spotlight/SpotlightFooter.js';
 import { resolveSpotlightQueryMode } from '@shared/lib/spotlight/query-dsl.js';
 import { browser } from '@shared/platform/webext.js';
 import { BookmarksBar } from './BookmarksBar.js';
 import { useBookmarks } from './useBookmarks.js';
+import { DashboardView } from './DashboardView.js';
+import { QuickActions } from './QuickActions.js';
 import type { SpotlightActionId, SpotlightBatchActionId, SpotlightMode, SpotlightSearchResult } from '../../../spotlight/types.js';
 import type { SpotlightNodeTarget } from '../../../spotlight/useSpotlightPreview.js';
 import type { NodeId } from '@shared/types/ids.js';
@@ -35,6 +37,18 @@ const SR_ONLY: React.CSSProperties = {
   overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap',
 };
 
+const DRAG_STORAGE_KEY = 'trail_newtab_island_pos';
+
+function loadDragPos(): { x: number; y: number } | undefined {
+  try {
+    const raw = localStorage.getItem(DRAG_STORAGE_KEY);
+    if (!raw) return undefined;
+    const pos = JSON.parse(raw);
+    if (typeof pos.x === 'number' && typeof pos.y === 'number') return pos;
+  } catch { /* ignore */ }
+  return undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -48,13 +62,12 @@ export function NewTabApp() {
   const [selectionIntentId, setSelectionIntentId] = useState(0);
   const [drilldownScope, setDrilldownScope] = useState<{ treeId: string; treeName: string } | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  const [graphHidden, setGraphHidden] = useState(false);
+  const [graphFocusMode, setGraphFocusMode] = useState(false);
 
   const { bookmarks } = useBookmarks();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLElement>(null);
-  const panelsRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const lastCommittedKeyRef = useRef<string | null>(null);
 
@@ -70,42 +83,50 @@ export function NewTabApp() {
   );
   const isMultiSelect = selectedKeys.size > 1;
   const spotlightMode = resolveSpotlightQueryMode(search.query).mode as SpotlightMode;
+  const isIdle = !search.query && !graphFocusMode;
+
+  // Continue items (first section in discover mode)
+  const continueItems = useMemo(() => {
+    if (search.query) return [];
+    const firstSection = search.sections[0];
+    return firstSection ? firstSection.items.slice(0, 3) : [];
+  }, [search.query, search.sections]);
 
   // Clear multi-select when query or results change
   useEffect(() => { setSelectedKeys(new Set()); }, [search.query, search.sections]);
 
-  // Auto-focus search on mount — aggressive strategy to beat Chrome's address bar
+  // Auto-focus search on mount
   useEffect(() => {
     const input = inputRef.current;
     if (!input) return;
-
-    const attemptFocus = () => {
-      window.focus();
-      input.focus();
-    };
-
+    const attemptFocus = () => { window.focus(); input.focus(); };
     attemptFocus();
-
     const timers = [0, 50, 150, 300].map((delay) =>
-      setTimeout(() => {
-        if (document.activeElement !== input) {
-          attemptFocus();
-        }
-      }, delay),
+      setTimeout(() => { if (document.activeElement !== input) attemptFocus(); }, delay),
     );
-
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  // Listen for TOGGLE_SPOTLIGHT to focus input (Cmd+Shift+K on this tab)
+  // Listen for TOGGLE_SPOTLIGHT
   useEffect(() => {
     const handler = (message: { type?: string }) => {
-      if (message?.type === 'TOGGLE_SPOTLIGHT') {
-        inputRef.current?.focus();
-      }
+      if (message?.type === 'TOGGLE_SPOTLIGHT') inputRef.current?.focus();
     };
     browser.runtime.onMessage.addListener(handler);
     return () => browser.runtime.onMessage.removeListener(handler);
+  }, []);
+
+  // Cmd+G: toggle graph focus mode
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = /Mac|iPod|iPhone|iPad/.test(navigator.platform ?? '') ? e.metaKey : e.ctrlKey;
+      if (mod && e.key === 'g') {
+        e.preventDefault();
+        setGraphFocusMode((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
   }, []);
 
   // ─── Preview ───
@@ -174,7 +195,7 @@ export function NewTabApp() {
   const graphHighlightNodeId = currentGraphTreeId && highlightNodeTarget?.treeId === currentGraphTreeId
     ? highlightNodeTarget.nodeId : null;
 
-  // ─── Visible items (excluding collapsed sections) ───
+  // ─── Visible items ───
   const visibleFlatItems = useMemo(
     () => search.sections.filter((s) => !act.collapsedSections.has(s.id)).flatMap((s) => s.items),
     [search.sections, act.collapsedSections],
@@ -194,10 +215,7 @@ export function NewTabApp() {
             if (idx < 0 || idx >= search.sections.length) continue;
             const candidate = search.sections[idx]!;
             if (act.collapsedSections.has(candidate.id)) continue;
-            if (candidate.items.length > 0) {
-              nearestKey = candidate.items[0]!.key;
-              break;
-            }
+            if (candidate.items.length > 0) { nearestKey = candidate.items[0]!.key; break; }
           }
           if (nearestKey) break;
         }
@@ -212,11 +230,10 @@ export function NewTabApp() {
     void executeSpotlightAction('search-default-engine', { kind: 'search', query });
   }, []);
 
-  // ─── Graph panel toggle ───
-  const toggleGraphPanel = useCallback(() => setGraphHidden((prev) => !prev), []);
-  const stepSnapPoint = useCallback((_dir: 1 | -1) => { /* no-op */ }, []);
-
   // ─── Keyboard ───
+  const toggleGraphPanel = useCallback(() => {}, []);
+  const stepSnapPoint = useCallback((_dir: 1 | -1) => {}, []);
+
   useSpotlightKeyboard({
     isOpen: true, containerRef: rootRef,
     query: search.query, selectedItem, selectedKey, setSelectedKey,
@@ -227,183 +244,214 @@ export function NewTabApp() {
     selectedFocusPane, setSelectedFocusPane, setQuery: search.setQuery, close: NOOP,
     exitDrilldown: act.exitDrilldown, handleActivate: act.handleActivate, handleApplyHint,
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
-    flatItems, visibleFlatItems, selectedKeys, setSelectedKeys, showPreview: !graphHidden,
+    flatItems, visibleFlatItems, selectedKeys, setSelectedKeys, showPreview: true,
     toggleGraphPanel, stepSnapPoint, onSearchWeb: handleSearchWeb,
   });
 
-  // ─── Resize ───
-  const resize = useSpotlightResize(panelsRef, spotlightMode);
-  const showGraph = !graphHidden && spotlightMode !== 'commands';
+  // ─── Island mode class ───
+  const islandClass = graphFocusMode
+    ? 'newtab-island newtab-island--graph-focus'
+    : isIdle
+      ? 'newtab-island newtab-island--idle'
+      : 'newtab-island newtab-island--searching';
+
+  // ─── Drag position ───
+  const savedPos = useRef(loadDragPos());
 
   // ─── Render ───
   return (
     <div className="newtab" ref={rootRef}>
-      <Command
-        shouldFilter={false} value={selectedKey ?? ''} loop
-        onValueChange={(v) => { setSelectedKey(v || null); setHoveredGraphTarget(null); act.setActionMenuActions(null); }}
-        className="newtab-shell"
+      {/* ── Graph: fullscreen background ── */}
+      <div className={`newtab-graph-bg${graphFocusMode ? ' newtab-graph-bg--focus' : ''}`}>
+        <SpotlightGraphFrame
+          activeTreeId={activeTreeId} previewData={preview.graphPreviewData}
+          selectedNodeId={graphSelectedNodeId} highlightNodeId={graphHighlightNodeId}
+          selectionIntentId={selectionIntentId}
+          onNavigate={(treeId, nodeId) => {
+            const aid: SpotlightActionId = activeTreeId && treeId !== activeTreeId ? 'open-node-in-tree' : 'open';
+            void act.handleExecuteAction(aid, { kind: 'node', nodeId, treeId }, aid === 'open-node-in-tree' ? 'Opened in tree' : 'Opened');
+          }}
+          onHoverNode={(treeId, nodeId) => setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId })}
+        />
+      </div>
+
+      {/* ── Floating draggable island ── */}
+      <motion.div
+        drag
+        dragConstraints={rootRef}
+        dragElastic={0.08}
+        dragMomentum={false}
+        initial={savedPos.current ?? false}
+        onDragEnd={(_e, info) => {
+          try {
+            localStorage.setItem(DRAG_STORAGE_KEY, JSON.stringify({ x: info.point.x, y: info.point.y }));
+          } catch { /* ignore */ }
+        }}
+        style={{ height: '100%' }}
       >
-        {/* ── Search bar ── */}
-        <div className="spotlight-search newtab-search">
-          <div className="spotlight-scope-icon" aria-hidden="true">
-            {spotlightMode === 'commands' ? (
-              <ChevronRight size={15} strokeWidth={1.8} />
-            ) : drilldownScope ? (
-              <FolderOpen size={15} strokeWidth={1.8} />
-            ) : (
-              <Search size={15} strokeWidth={1.8} />
-            )}
-          </div>
-          <div className="spotlight-input-wrap">
-            <Command.Input
-              ref={inputRef} className="spotlight-search-input" autoComplete="off" autoFocus spellCheck={false}
-              placeholder={drilldownScope ? `Search in ${drilldownScope.treeName}...` : 'Search pages or type > for commands'}
-              value={search.query} onValueChange={(v: string) => { search.setQuery(v); act.setStatusText(null); }}
-            />
-            {ghostSuffix && (
-              <span className="spotlight-ghost" aria-hidden="true">
-                <span className="spotlight-ghost-mirror">{search.query}</span>
-                <span className="spotlight-ghost-suffix">{ghostSuffix}</span>
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* ── Breadcrumb (drilldown) ── */}
-        {drilldownScope && (
-          <div className="spotlight-breadcrumb">
-            <button type="button" className="spotlight-breadcrumb-back" onClick={act.exitDrilldown} tabIndex={-1} aria-label="Exit drilldown">
-              ←
-            </button>
-            <span className="spotlight-breadcrumb-label">{drilldownScope.treeName}</span>
-          </div>
-        )}
-
-        {/* ── A11y live region ── */}
-        <div aria-live="polite" aria-atomic="true" style={SR_ONLY}>
-          {!search.loading && search.sections.length > 0
-            ? `${flatItems.length} result${flatItems.length === 1 ? '' : 's'} found`
-            : !search.loading && search.query && search.sections.length === 0 ? 'No results found' : ''}
-        </div>
-
-        {/* ── Main panels ── */}
-        <div ref={panelsRef} className="newtab-panels">
-          <div className="newtab-list" data-focus={selectedFocusPane} style={showGraph ? resize.leftStyle : undefined}>
-            {/* ── Bookmarks grid (discover mode) ── */}
-            {!search.query && bookmarks.length > 0 && <BookmarksBar bookmarks={bookmarks} />}
-
-            {search.sessionError ? (
-              <div className="spotlight-empty" role="alert">Connection lost. Reload to retry.</div>
-            ) : helpOpen ? (
-              <SpotlightHelp open />
-            ) : search.loading ? (
-              <div className="spotlight-empty">Loading...</div>
-            ) : search.sections.length === 0 && search.query ? (
-              <Command.Empty className="spotlight-empty">No results found</Command.Empty>
-            ) : search.sections.length === 0 && !search.query && search.recentQueries.length > 0 ? (
-              <div className="spotlight-sections spotlight-recent-queries">
-                <div className="spotlight-recent-queries-title">Recent Searches</div>
-                {search.recentQueries.map((q) => (
-                  <button key={q} type="button" className="spotlight-recent-query-item" onClick={() => search.setQuery(q)}>
-                    <span className="spotlight-recent-query-icon">⌕</span>
-                    <span className="spotlight-recent-query-text">{q}</span>
-                  </button>
-                ))}
-              </div>
-            ) : search.sections.length === 0 ? (
-              <Command.Empty className="spotlight-empty">No results found</Command.Empty>
-            ) : (
-              <SpotlightResults
-                listRef={listRef}
-                sections={search.sections}
-                selectedKey={selectedKey}
-                selectedKeys={selectedKeys}
-                collapsedSections={act.collapsedSections}
-                indicatorPos={indicatorPos}
-                activeTreeId={activeTreeId}
-                drilldownTransition={act.drilldownTransition}
-                onToggleSection={handleToggleSection}
-                onSelect={setSelectedKey}
-                onActivate={act.handleActivate}
-                onInlineAction={act.handleInlineAction}
-              />
-            )}
-          </div>
-
-          {showGraph && resize.splitRatio !== null && (
-            <div
-              className="spotlight-resize-handle"
-              data-dragging={resize.isDragging}
-              onMouseDown={resize.handleMouseDown}
-              role="separator" aria-orientation="vertical" aria-label="Resize panels"
-            />
-          )}
-
-          {showGraph && (
-            <div className="newtab-graph" data-focus={selectedFocusPane} style={resize.rightStyle}>
-              <SpotlightGraphFrame
-                activeTreeId={activeTreeId} previewData={preview.graphPreviewData}
-                selectedNodeId={graphSelectedNodeId} highlightNodeId={graphHighlightNodeId}
-                selectionIntentId={selectionIntentId}
-                onNavigate={(treeId, nodeId) => {
-                  const aid: SpotlightActionId = activeTreeId && treeId !== activeTreeId ? 'open-node-in-tree' : 'open';
-                  void act.handleExecuteAction(aid, { kind: 'node', nodeId, treeId }, aid === 'open-node-in-tree' ? 'Opened in tree' : 'Opened');
-                }}
-                onHoverNode={(treeId, nodeId) => setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId })}
-              />
-              {preview.graphPreviewLoading && (
-                <div className="spotlight-graph-loading" role="status" aria-label="Loading tree preview">
-                  Loading tree preview...
-                </div>
-              )}
-              {preview.previewTreeId && !preview.graphPreviewLoading && !preview.graphPreviewData && (
-                <div className="spotlight-empty spotlight-graph-fallback">Preview unavailable</div>
+        <Command
+          shouldFilter={false} value={selectedKey ?? ''} loop
+          onValueChange={(v) => { setSelectedKey(v || null); setHoveredGraphTarget(null); act.setActionMenuActions(null); }}
+          className={islandClass}
+        >
+          {/* ── Search bar ── */}
+          <motion.div className="spotlight-search newtab-search" layout="position" transition={{ duration: 0.25 }}>
+            <div className="spotlight-scope-icon" aria-hidden="true">
+              {spotlightMode === 'commands' ? (
+                <ChevronRight size={15} strokeWidth={1.8} />
+              ) : drilldownScope ? (
+                <FolderOpen size={15} strokeWidth={1.8} />
+              ) : (
+                <Search size={15} strokeWidth={1.8} />
               )}
             </div>
+            <div className="spotlight-input-wrap">
+              <Command.Input
+                ref={inputRef} className="spotlight-search-input" autoComplete="off" autoFocus spellCheck={false}
+                placeholder={drilldownScope ? `Search in ${drilldownScope.treeName}...` : 'Search pages or type > for commands'}
+                value={search.query} onValueChange={(v: string) => { search.setQuery(v); act.setStatusText(null); }}
+              />
+              {ghostSuffix && (
+                <span className="spotlight-ghost" aria-hidden="true">
+                  <span className="spotlight-ghost-mirror">{search.query}</span>
+                  <span className="spotlight-ghost-suffix">{ghostSuffix}</span>
+                </span>
+              )}
+            </div>
+          </motion.div>
+
+          {/* ── Content: Dashboard (idle) or Results (searching) ── */}
+          <AnimatePresence mode="wait">
+            {isIdle && !graphFocusMode ? (
+              <motion.div
+                key="dashboard"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.2 }}
+              >
+                <QuickActions onAction={(filter) => search.setQuery(filter)} />
+                <DashboardView
+                  bookmarks={bookmarks}
+                  recentQueries={search.recentQueries}
+                  continueItems={continueItems}
+                  onQueryChange={search.setQuery}
+                  onActivate={act.handleActivate}
+                />
+              </motion.div>
+            ) : !graphFocusMode ? (
+              <motion.div
+                key="results"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+              >
+                {/* ── Breadcrumb ── */}
+                {drilldownScope && (
+                  <div className="spotlight-breadcrumb">
+                    <button type="button" className="spotlight-breadcrumb-back" onClick={act.exitDrilldown} tabIndex={-1} aria-label="Exit drilldown">
+                      ←
+                    </button>
+                    <span className="spotlight-breadcrumb-label">{drilldownScope.treeName}</span>
+                  </div>
+                )}
+
+                {/* ── A11y live region ── */}
+                <div aria-live="polite" aria-atomic="true" style={SR_ONLY}>
+                  {!search.loading && search.sections.length > 0
+                    ? `${flatItems.length} result${flatItems.length === 1 ? '' : 's'} found`
+                    : !search.loading && search.query && search.sections.length === 0 ? 'No results found' : ''}
+                </div>
+
+                {/* ── Results list ── */}
+                <div className="newtab-list">
+                  {search.sessionError ? (
+                    <div className="spotlight-empty" role="alert">Connection lost. Reload to retry.</div>
+                  ) : helpOpen ? (
+                    <SpotlightHelp open />
+                  ) : search.loading ? (
+                    <div className="newtab-shimmer" style={{ margin: '12px' }} />
+                  ) : search.sections.length === 0 && search.query ? (
+                    <Command.Empty className="spotlight-empty">No results found</Command.Empty>
+                  ) : search.sections.length === 0 ? (
+                    <Command.Empty className="spotlight-empty">No results found</Command.Empty>
+                  ) : (
+                    <SpotlightResults
+                      listRef={listRef}
+                      sections={search.sections}
+                      selectedKey={selectedKey}
+                      selectedKeys={selectedKeys}
+                      collapsedSections={act.collapsedSections}
+                      indicatorPos={indicatorPos}
+                      activeTreeId={activeTreeId}
+                      drilldownTransition={act.drilldownTransition}
+                      onToggleSection={handleToggleSection}
+                      onSelect={setSelectedKey}
+                      onActivate={act.handleActivate}
+                      onInlineAction={act.handleInlineAction}
+                    />
+                  )}
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          {/* ── Batch bar ── */}
+          {isMultiSelect && (
+            <SpotlightBatchBar
+              selectedItems={multiSelectedItems}
+              activeTreeId={activeTreeId}
+              onExecute={handleBatchExecute}
+              onClear={() => setSelectedKeys(new Set())}
+            />
           )}
-        </div>
 
-        {/* ── Batch bar ── */}
-        {isMultiSelect && (
-          <SpotlightBatchBar
-            selectedItems={multiSelectedItems}
-            activeTreeId={activeTreeId}
-            onExecute={handleBatchExecute}
-            onClear={() => setSelectedKeys(new Set())}
-          />
-        )}
+          {/* ── Status ── */}
+          {act.statusText && (
+            <div className="spotlight-status-bar">
+              <span className="spotlight-status">{act.statusText}</span>
+            </div>
+          )}
 
-        {/* ── Status ── */}
-        {act.statusText && (
-          <div className="spotlight-status-bar">
-            <span className="spotlight-status">{act.statusText}</span>
-          </div>
-        )}
+          {/* ── Footer ── */}
+          {!graphFocusMode && (
+            <SpotlightFooter mode={spotlightMode} isMultiSelect={isMultiSelect} focusPane={selectedFocusPane} showWebSearchHint={search.query.trim().length > 0} />
+          )}
 
-        {/* ── Footer ── */}
-        <SpotlightFooter mode={spotlightMode} isMultiSelect={isMultiSelect} focusPane={selectedFocusPane} showWebSearchHint={search.query.trim().length > 0} />
+          {/* ── Action menu overlay ── */}
+          {act.actionMenuActions && (
+            <SpotlightActionMenu
+              actions={act.actionMenuActions}
+              onSelect={act.handleActionMenuSelect}
+              onClose={() => act.setActionMenuActions(null)}
+            />
+          )}
 
-        {/* ── Action menu overlay ── */}
-        {act.actionMenuActions && (
-          <SpotlightActionMenu
-            actions={act.actionMenuActions}
-            onSelect={act.handleActionMenuSelect}
-            onClose={() => act.setActionMenuActions(null)}
-          />
-        )}
+          {/* ── Quick look overlay ── */}
+          {act.quickLookItem && (act.quickLookItem.kind === 'node' || act.quickLookItem.kind === 'tree') && (
+            <SpotlightQuickLook
+              item={act.quickLookItem}
+              onClose={() => act.setQuickLookItem(null)}
+              onAction={(actionId, target, status) => {
+                act.setQuickLookItem(null);
+                void act.handleExecuteAction(actionId, target, status);
+              }}
+            />
+          )}
+        </Command>
+      </motion.div>
 
-        {/* ── Quick look overlay ── */}
-        {act.quickLookItem && (act.quickLookItem.kind === 'node' || act.quickLookItem.kind === 'tree') && (
-          <SpotlightQuickLook
-            item={act.quickLookItem}
-            onClose={() => act.setQuickLookItem(null)}
-            onAction={(actionId, target, status) => {
-              act.setQuickLookItem(null);
-              void act.handleExecuteAction(actionId, target, status);
-            }}
-          />
-        )}
-      </Command>
+      {/* ── Graph focus exit button ── */}
+      {graphFocusMode && (
+        <button
+          type="button"
+          className="newtab-graph-exit"
+          onClick={() => setGraphFocusMode(false)}
+        >
+          Press Esc or click to exit graph · ⌘G
+        </button>
+      )}
 
       {/* ── Destructive confirmation overlay ── */}
       {act.confirmingAction && act.confirmingAction.kind === 'action' && (

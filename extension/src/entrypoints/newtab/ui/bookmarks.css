@@ -1,0 +1,186 @@
+/* ── Bookmarks: Zen-style card grid with icon + text ── */
+
+.newtab-bookmarks {
+  flex-shrink: 0;
+  padding: 10px 10px 6px;
+}
+
+/* ── Grid: 2 columns, 3 rows visible, scroll for more ── */
+
+.newtab-bookmarks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  max-height: 174px; /* ~3 rows */
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.newtab-bookmarks-grid::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Card: icon left + text right ── */
+
+.newtab-bookmark-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.newtab-bookmark-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ── Favicon ── */
+
+.newtab-bookmark-favicon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.newtab-bookmark-icon {
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.6;
+}
+
+/* ── Label ── */
+
+.newtab-bookmark-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ── Folder: spans full width ── */
+
+.newtab-bookmark-card--folder {
+  grid-column: 1 / -1;
+  position: relative;
+  font-weight: 500;
+}
+
+.newtab-bookmark-chevron {
+  transition: transform 100ms ease;
+}
+
+.newtab-bookmark-chevron--open {
+  transform: rotate(90deg);
+}
+
+/* ── Dropdown ── */
+
+.newtab-bookmark-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  min-width: 200px;
+  max-width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(28, 28, 32, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.newtab-bookmark-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  font: inherit;
+  width: 100%;
+  text-align: left;
+}
+
+.newtab-bookmark-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.newtab-bookmark-dropdown-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.newtab-bookmark-dropdown-empty {
+  padding: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.25);
+  text-align: center;
+}
+
+.newtab-bookmark-dropdown-folder-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 2px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 500;
+}
+
+/* ── Light theme ── */
+
+[data-theme="light"] .newtab-bookmark-card {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .newtab-bookmark-card:hover {
+  background: rgba(0, 0, 0, 0.07);
+  color: rgba(0, 0, 0, 0.85);
+}
+
+[data-theme="light"] .newtab-bookmark-dropdown {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .newtab-bookmark-dropdown-item {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="light"] .newtab-bookmark-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.85);
+}
+
+[data-theme="light"] .newtab-bookmark-dropdown-empty {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .newtab-bookmark-dropdown-folder-label {
+  color: rgba(0, 0, 0, 0.3);
+}

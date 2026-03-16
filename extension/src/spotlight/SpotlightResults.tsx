@@ -108,15 +108,12 @@ export function SpotlightResults({
     if (index === -1) return;
 
     if (isHoverRef.current) {
+      // Don't auto-scroll list on hover — let the user control scroll position
       isHoverRef.current = false;
-      clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = setTimeout(() => {
-        virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
-      }, 100);
-    } else {
-      clearTimeout(hoverTimerRef.current);
-      virtualizer.scrollToIndex(index, { align: 'auto' });
+      return;
     }
+    clearTimeout(hoverTimerRef.current);
+    virtualizer.scrollToIndex(index, { align: 'auto' });
   }, [selectedKey, rows, virtualizer]);
 
   // Cleanup timer on unmount

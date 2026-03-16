@@ -373,7 +373,7 @@ export function useGraphView({
     if (viewIntent.focusNodeId) {
       if (!positions.has(viewIntent.focusNodeId)) return;
       lastViewIntentRef.current = intentId;
-      centerOnNode(viewIntent.focusNodeId, true);
+      centerOnNode(viewIntent.focusNodeId, false);
       onClearViewIntent();
     }
   }, [applyGridTransform, cancelViewAnimation, centerOnNode, fitToView, isDraggingNode, isPanningRef, onClearViewIntent, onGraphViewChange, positions, rendererRef, viewIntent]);
