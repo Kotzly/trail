@@ -74,7 +74,7 @@ export function useGraphView({
   const prevSearchFocusRef = useRef<NodeId | null>(null);
   const lastSearchNavStepRef = useRef(searchNavStep);
   const driftRafRef = useRef<number | null>(null);
-  const driftBaseRef = useRef<{ x: number; y: number } | null>(null);
+  const driftOffsetRef = useRef({ x: 0, y: 0 });
   const driftStartRef = useRef(0);
 
   const applyGridTransform = useCallback((view: ViewState) => {
@@ -108,8 +108,23 @@ export function useGraphView({
     };
   }, []);
 
+  // Fold any active drift visual offset into the canonical viewRef
+  // so subsequent user interaction starts from the visually-correct position.
+  const absorbDriftOffset = useCallback(() => {
+    const { x, y } = driftOffsetRef.current;
+    if (x === 0 && y === 0) return;
+    viewRef.current = {
+      ...viewRef.current,
+      translateX: viewRef.current.translateX + x,
+      translateY: viewRef.current.translateY + y,
+    };
+    driftOffsetRef.current = { x: 0, y: 0 };
+    driftStartRef.current = performance.now();
+  }, []);
+
   const scheduleGraphView = useCallback(
     (view: Partial<ViewState>) => {
+      absorbDriftOffset();
       viewRef.current = { ...viewRef.current, ...view };
       pendingViewRef.current = { ...(pendingViewRef.current ?? {}), ...view };
       if (viewRafRef.current !== null) return;
@@ -124,7 +139,7 @@ export function useGraphView({
         }
       });
     },
-    [applyGridTransform, onGraphViewChange, rendererRef],
+    [absorbDriftOffset, applyGridTransform, onGraphViewChange, rendererRef],
   );
 
   // Cleanup rAF handles on unmount
@@ -161,7 +176,8 @@ export function useGraphView({
       window.cancelAnimationFrame(viewAnimationRef.current);
       viewAnimationRef.current = null;
     }
-  }, []);
+    absorbDriftOffset();
+  }, [absorbDriftOffset]);
 
   const animateViewTo = useCallback(
     (target: ViewState, durationMs: number) => {
@@ -183,10 +199,9 @@ export function useGraphView({
           viewAnimationRef.current = window.requestAnimationFrame(animate);
         } else {
           viewAnimationRef.current = null;
-          if (driftBaseRef.current) {
-            driftBaseRef.current = { x: next.translateX, y: next.translateY };
-            driftStartRef.current = performance.now();
-          }
+          // Reset drift phase so it resumes from 0 offset after animation
+          driftOffsetRef.current = { x: 0, y: 0 };
+          driftStartRef.current = performance.now();
         }
       };
       viewAnimationRef.current = window.requestAnimationFrame(animate);
@@ -274,10 +289,8 @@ export function useGraphView({
       onGraphViewChange(fitView);
       rendererRef.current?.setView(fitView);
       applyGridTransform(fitView);
-      if (driftBaseRef.current) {
-        driftBaseRef.current = { x: fitView.translateX, y: fitView.translateY };
-        driftStartRef.current = performance.now();
-      }
+      driftOffsetRef.current = { x: 0, y: 0 };
+      driftStartRef.current = performance.now();
     }
   }, [animateViewTo, applyGridTransform, cancelViewAnimation, getFitToViewView, onGraphViewChange, rendererRef]);
 
@@ -317,10 +330,8 @@ export function useGraphView({
       onGraphViewChange(nextView);
       rendererRef.current?.setView(nextView);
       applyGridTransform(nextView);
-      if (driftBaseRef.current) {
-        driftBaseRef.current = { x: nextView.translateX, y: nextView.translateY };
-        driftStartRef.current = performance.now();
-      }
+      driftOffsetRef.current = { x: 0, y: 0 };
+      driftStartRef.current = performance.now();
     }
     return true;
   }, [animateViewTo, applyGridTransform, cancelViewAnimation, getCenteredView, onGraphViewChange, rendererRef]);
@@ -415,19 +426,19 @@ export function useGraphView({
         onGraphViewChange(centroidView);
         rendererRef.current?.setView(centroidView);
         applyGridTransform(centroidView);
-        driftBaseRef.current = { x: centroidView.translateX, y: centroidView.translateY };
         driftStartRef.current = performance.now();
         return;
       }
     }
     fitToView(false);
     if (compactInitialView) {
-      driftBaseRef.current = { x: viewRef.current.translateX, y: viewRef.current.translateY };
       driftStartRef.current = performance.now();
     }
   }, [bounds.height, bounds.width, fitToView, root, compactInitialView, getRecencyCentroidView, cancelViewAnimation, onGraphViewChange, rendererRef, applyGridTransform]);
 
-  // Lissajous drift — slow continuous camera movement (newtab only)
+  // Lissajous drift — visual-only offset layer (newtab only).
+  // NEVER writes to viewRef — only shifts the rendered view.
+  // When user interaction starts, absorbDriftOffset folds offset into viewRef.
   useEffect(() => {
     if (!compactInitialView) return;
 
@@ -435,22 +446,19 @@ export function useGraphView({
     const PERIOD_X = 45;     // seconds
     const PERIOD_Y = 35;     // seconds (irrational ratio → no exact repeat)
     const PHASE_Y = Math.PI / 4;
-    let lastOX = 0;
-    let lastOY = 0;
 
     const tick = (now: number) => {
-      // Pause during user interaction or programmatic animation
-      if (isPanningRef.current || isSelectingRef.current || viewAnimationRef.current !== null) {
-        driftBaseRef.current = { x: viewRef.current.translateX, y: viewRef.current.translateY };
-        driftStartRef.current = now;
-        lastOX = 0;
-        lastOY = 0;
+      // Skip before initial view is set
+      if (!didInitView.current) {
         driftRafRef.current = requestAnimationFrame(tick);
         return;
       }
 
-      const base = driftBaseRef.current;
-      if (!base) {
+      // Pause during user interaction or programmatic animation
+      if (isPanningRef.current || isSelectingRef.current || viewAnimationRef.current !== null) {
+        // Reset phase so drift restarts smoothly from 0 when interaction ends
+        driftStartRef.current = now;
+        driftOffsetRef.current = { x: 0, y: 0 };
         driftRafRef.current = requestAnimationFrame(tick);
         return;
       }
@@ -460,18 +468,18 @@ export function useGraphView({
       const ox = AMPLITUDE * Math.sin((t * 2 * Math.PI) / PERIOD_X) * scale;
       const oy = AMPLITUDE * Math.sin((t * 2 * Math.PI) / PERIOD_Y + PHASE_Y) * scale;
 
+      const prev = driftOffsetRef.current;
       // Only update renderer when offset changed visibly (> 0.3px on screen)
-      if (Math.abs(ox - lastOX) > 0.3 || Math.abs(oy - lastOY) > 0.3) {
-        lastOX = ox;
-        lastOY = oy;
-        const view: ViewState = {
-          translateX: base.x + ox,
-          translateY: base.y + oy,
+      if (Math.abs(ox - prev.x) > 0.3 || Math.abs(oy - prev.y) > 0.3) {
+        driftOffsetRef.current = { x: ox, y: oy };
+        const renderView: ViewState = {
+          translateX: viewRef.current.translateX + ox,
+          translateY: viewRef.current.translateY + oy,
           scale,
         };
-        viewRef.current = view;
-        rendererRef.current?.setView(view);
-        applyGridTransform(view);
+        // Only update renderer & grid — do NOT touch viewRef or store
+        rendererRef.current?.setView(renderView);
+        applyGridTransform(renderView);
       }
 
       driftRafRef.current = requestAnimationFrame(tick);
@@ -501,10 +509,8 @@ export function useGraphView({
       onGraphViewChange(v);
       rendererRef.current?.setView(v);
       applyGridTransform(v);
-      if (driftBaseRef.current) {
-        driftBaseRef.current = { x: v.translateX, y: v.translateY };
-        driftStartRef.current = performance.now();
-      }
+      driftOffsetRef.current = { x: 0, y: 0 };
+      driftStartRef.current = performance.now();
       onClearViewIntent();
       return;
     }
@@ -518,10 +524,6 @@ export function useGraphView({
       if (!positions.has(viewIntent.focusNodeId)) return;
       lastViewIntentRef.current = intentId;
       centerOnNode(viewIntent.focusNodeId, false);
-      if (driftBaseRef.current) {
-        driftBaseRef.current = { x: viewRef.current.translateX, y: viewRef.current.translateY };
-        driftStartRef.current = performance.now();
-      }
       onClearViewIntent();
     }
   }, [applyGridTransform, cancelViewAnimation, centerOnNode, fitToView, isDraggingNode, isPanningRef, onClearViewIntent, onGraphViewChange, positions, rendererRef, viewIntent]);
