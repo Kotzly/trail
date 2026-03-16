@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { Command } from 'cmdk';
 import { motion } from 'motion/react';
 import { SpotlightRowIcon } from './SpotlightRowIcon.js';
@@ -34,6 +34,31 @@ export function SpotlightResults({
   onActivate,
   onInlineAction,
 }: SpotlightResultsProps) {
+  const isHoverRef = useRef(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Debounced center-scroll on hover, instant for keyboard
+  useEffect(() => {
+    if (!selectedKey || !listRef.current) return;
+
+    if (isHoverRef.current) {
+      isHoverRef.current = false;
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = setTimeout(() => {
+        const selected = listRef.current?.querySelector('[data-selected="true"]') as HTMLElement | null;
+        selected?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, 100);
+    } else {
+      // Keyboard navigation: cancel any pending hover scroll
+      clearTimeout(hoverTimerRef.current);
+    }
+  }, [selectedKey, listRef]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => clearTimeout(hoverTimerRef.current);
+  }, []);
+
   return (
     <Command.List ref={listRef as React.Ref<HTMLDivElement>} className="spotlight-sections" data-transition={drilldownTransition}>
       {indicatorPos && (
@@ -75,6 +100,7 @@ export function SpotlightResults({
                     e.dataTransfer.effectAllowed = 'copyLink';
                   }
                 }}
+                onMouseEnter={() => { isHoverRef.current = true; }}
                 onSelect={() => { void onActivate(item); }}
               >
                 <SpotlightRowIcon item={item} />
