@@ -1,16 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { shouldApplyHintOnTab } from './SpotlightHintRow.js';
 import { buildClientContextActions } from './SpotlightActionMenu.js';
+import { IS_MAC } from './platform.js';
 import type {
   SpotlightActionResult,
   SpotlightSearchResult,
 } from './types.js';
-
-const IS_MAC = /Mac|iPod|iPhone|iPad/.test(
-  (globalThis.navigator as Navigator & { userAgentData?: { platform: string } })?.userAgentData?.platform
-    ?? globalThis.navigator?.platform
-    ?? '',
-);
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -51,6 +46,7 @@ type UseSpotlightKeyboardOptions = {
   showPreview: boolean;
   toggleGraphPanel: () => void;
   stepSnapPoint: (direction: 1 | -1) => void;
+  onSearchWeb?: ((query: string) => void) | null;
 };
 
 /**
@@ -85,6 +81,14 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
             event.preventDefault();
             event.stopPropagation();
             void s.handleConfirmDestructive();
+            return;
+          }
+          // Cmd+Enter (Mac) / Ctrl+Enter → search web
+          const enterMod = IS_MAC ? event.metaKey : event.ctrlKey;
+          if (enterMod && s.query.trim() && s.onSearchWeb) {
+            event.preventDefault();
+            event.stopPropagation();
+            s.onSearchWeb(s.query.trim());
             return;
           }
           if (s.hoveredGraphItem) {

@@ -14,10 +14,12 @@ import { useSpotlightKeyboard } from '../../../spotlight/useSpotlightKeyboard.js
 import { useSelectionIndicator } from '../../../spotlight/useSelectionIndicator.js';
 import { SpotlightBatchBar } from '../../../spotlight/SpotlightBatchBar.js';
 import { useSpotlightResize } from '../../../spotlight/useSpotlightResize.js';
-import { executeBatchAction } from '../../../spotlight/rpc.js';
+import { executeBatchAction, executeSpotlightAction } from '../../../spotlight/rpc.js';
 import { SpotlightFooter } from '../../../spotlight/SpotlightFooter.js';
 import { resolveSpotlightQueryMode } from '@shared/lib/spotlight/query-dsl.js';
 import { browser } from '@shared/platform/webext.js';
+import { BookmarksBar } from './BookmarksBar.js';
+import { useBookmarks } from './useBookmarks.js';
 import type { SpotlightActionId, SpotlightBatchActionId, SpotlightMode, SpotlightSearchResult } from '../../../spotlight/types.js';
 import type { SpotlightNodeTarget } from '../../../spotlight/useSpotlightPreview.js';
 import type { NodeId } from '@shared/types/ids.js';
@@ -48,6 +50,8 @@ export function NewTabApp() {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [graphHidden, setGraphHidden] = useState(false);
 
+  const { bookmarks } = useBookmarks();
+
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLElement>(null);
   const panelsRef = useRef<HTMLDivElement>(null);
@@ -70,9 +74,27 @@ export function NewTabApp() {
   // Clear multi-select when query or results change
   useEffect(() => { setSelectedKeys(new Set()); }, [search.query, search.sections]);
 
-  // Auto-focus search on mount
+  // Auto-focus search on mount — aggressive strategy to beat Chrome's address bar
   useEffect(() => {
-    requestAnimationFrame(() => inputRef.current?.focus());
+    const input = inputRef.current;
+    if (!input) return;
+
+    const attemptFocus = () => {
+      window.focus();
+      input.focus();
+    };
+
+    attemptFocus();
+
+    const timers = [0, 50, 150, 300].map((delay) =>
+      setTimeout(() => {
+        if (document.activeElement !== input) {
+          attemptFocus();
+        }
+      }, delay),
+    );
+
+    return () => timers.forEach(clearTimeout);
   }, []);
 
   // Listen for TOGGLE_SPOTLIGHT to focus input (Cmd+Shift+K on this tab)
@@ -185,6 +207,11 @@ export function NewTabApp() {
     act.toggleSection(sectionId);
   }, [act, selectedKey, search.sections]);
 
+  // ─── Web search (Cmd+Enter) ───
+  const handleSearchWeb = useCallback((query: string) => {
+    void executeSpotlightAction('search-default-engine', { kind: 'search', query });
+  }, []);
+
   // ─── Graph panel toggle ───
   const toggleGraphPanel = useCallback(() => setGraphHidden((prev) => !prev), []);
   const stepSnapPoint = useCallback((_dir: 1 | -1) => { /* no-op */ }, []);
@@ -201,7 +228,7 @@ export function NewTabApp() {
     exitDrilldown: act.exitDrilldown, handleActivate: act.handleActivate, handleApplyHint,
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
     flatItems, visibleFlatItems, selectedKeys, setSelectedKeys, showPreview: !graphHidden,
-    toggleGraphPanel, stepSnapPoint,
+    toggleGraphPanel, stepSnapPoint, onSearchWeb: handleSearchWeb,
   });
 
   // ─── Resize ───
@@ -229,7 +256,7 @@ export function NewTabApp() {
           </div>
           <div className="spotlight-input-wrap">
             <Command.Input
-              ref={inputRef} className="spotlight-search-input" autoComplete="off" spellCheck={false}
+              ref={inputRef} className="spotlight-search-input" autoComplete="off" autoFocus spellCheck={false}
               placeholder={drilldownScope ? `Search in ${drilldownScope.treeName}...` : 'Search pages or type > for commands'}
               value={search.query} onValueChange={(v: string) => { search.setQuery(v); act.setStatusText(null); }}
             />
@@ -262,6 +289,9 @@ export function NewTabApp() {
         {/* ── Main panels ── */}
         <div ref={panelsRef} className="newtab-panels">
           <div className="newtab-list" data-focus={selectedFocusPane} style={showGraph ? resize.leftStyle : undefined}>
+            {/* ── Bookmarks grid (discover mode) ── */}
+            {!search.query && bookmarks.length > 0 && <BookmarksBar bookmarks={bookmarks} />}
+
             {search.sessionError ? (
               <div className="spotlight-empty" role="alert">Connection lost. Reload to retry.</div>
             ) : helpOpen ? (
@@ -351,7 +381,7 @@ export function NewTabApp() {
         )}
 
         {/* ── Footer ── */}
-        <SpotlightFooter mode={spotlightMode} isMultiSelect={isMultiSelect} focusPane={selectedFocusPane} />
+        <SpotlightFooter mode={spotlightMode} isMultiSelect={isMultiSelect} focusPane={selectedFocusPane} showWebSearchHint={search.query.trim().length > 0} />
 
         {/* ── Action menu overlay ── */}
         {act.actionMenuActions && (

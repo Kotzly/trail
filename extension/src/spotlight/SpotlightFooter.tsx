@@ -1,12 +1,14 @@
+import { IS_MAC } from './platform.js';
 import type { SpotlightMode } from './types.js';
 
 type SpotlightFooterProps = {
   mode: SpotlightMode;
   isMultiSelect: boolean;
   focusPane: 'list' | 'graph';
+  showWebSearchHint?: boolean;
 };
 
-export function SpotlightFooter({ mode, isMultiSelect, focusPane }: SpotlightFooterProps) {
+export function SpotlightFooter({ mode, isMultiSelect, focusPane, showWebSearchHint }: SpotlightFooterProps) {
   return (
     <div className="spotlight-footer">
       <div className="spotlight-footer-hints">
@@ -26,6 +28,12 @@ export function SpotlightFooter({ mode, isMultiSelect, focusPane }: SpotlightFoo
           <span className="spotlight-footer-hint">
             <kbd className="spotlight-footer-kbd">{'\u21E7'}Tab</kbd>
             <span className="spotlight-footer-label">select</span>
+          </span>
+        )}
+        {showWebSearchHint && (
+          <span className="spotlight-footer-hint">
+            <kbd className="spotlight-footer-kbd">{IS_MAC ? '\u2318' : 'Ctrl'}{'\u23CE'}</kbd>
+            <span className="spotlight-footer-label">search web</span>
           </span>
         )}
         <span className="spotlight-footer-hint">

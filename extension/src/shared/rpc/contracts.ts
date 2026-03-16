@@ -276,7 +276,8 @@ export type SpotlightSectionId =
   | 'matches'
   | 'scoped-pages'
   | 'frequent'
-  | 'recent-searches';
+  | 'recent-searches'
+  | 'suggestions';
 
 export type SpotlightTreeRelation =
   | 'current'

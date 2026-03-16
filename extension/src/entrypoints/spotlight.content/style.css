@@ -128,7 +128,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 22px;
+  padding: 14px 18px;
   border-radius: 0;
   background: transparent;
   border: none;
@@ -286,7 +286,7 @@ textarea {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.36);
-  padding: 4px 12px 8px;
+  padding: 4px 10px 8px;
 }
 
 .spotlight-recent-query-item {
@@ -294,7 +294,7 @@ textarea {
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 7px 12px;
+  padding: 7px 10px;
   border: none;
   background: none;
   color: rgba(255, 255, 255, 0.72);
@@ -330,7 +330,7 @@ textarea {
 
 .spotlight-search--v3 {
   border-radius: 0;
-  padding: 15px 22px;
+  padding: 15px 18px;
 }
 
 /* ─── Ghost autocomplete ─── */
@@ -368,7 +368,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px;
+  padding: 6px 18px;
   font-size: 12px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.5);
@@ -532,7 +532,7 @@ textarea {
 .spotlight-section-title,
 .spotlight-section-heading,
 [cmdk-group-heading] {
-  padding: 4px 16px;
+  padding: 4px 18px;
   font-size: 10px;
   font-weight: 560;
   letter-spacing: -0.01em;
@@ -871,7 +871,7 @@ textarea {
 /* ─── Status bar (visible only when status text exists) ─── */
 
 .spotlight-status-bar {
-  padding: 0 12px;
+  padding: 0 18px;
   font-size: 11px;
   font-weight: 460;
 }
@@ -886,7 +886,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 16px;
+  padding: 6px 18px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.28);
   border-top: 1px solid rgba(255, 255, 255, 0.06);

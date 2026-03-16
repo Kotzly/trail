@@ -70,6 +70,7 @@ export default defineConfig({
       "scripting",
       "activeTab",
       "search",
+      "bookmarks",
     ],
     commands: {
       "toggle-spotlight": {

@@ -33,6 +33,7 @@ import {
   type SpotlightLiveTreeDoc,
 } from './spotlight-live-index.js';
 import { spotlightUsageStats } from './spotlight-usage-stats.js';
+import { fetchSearchSuggestions } from './search-suggestions.js';
 import { settingsManager } from './settings.js';
 
 const SESSION_TTL_MS = 15 * 60 * 1000;
@@ -53,6 +54,7 @@ const SECTION_TITLES: Record<SpotlightSection['id'], string> = {
   'scoped-pages': 'Pages',
   'frequent': 'Visited Often',
   'recent-searches': 'Recent Searches',
+  'suggestions': 'Search Suggestions',
 };
 
 type SpotlightSession = {
@@ -299,6 +301,19 @@ export class SpotlightService {
       .filter((item): item is SpotlightTreeResult => item.kind === 'tree')
       .slice(0, Math.min(searchLimit, 8));
     appendSectionIfAny(sections, 'trees', treeMatches);
+
+    const suggestions = await fetchSearchSuggestions(query);
+    const suggestionItems = suggestions
+      .filter(s => s.toLowerCase() !== query.toLowerCase())
+      .map(s => toActionResult({
+        actionId: 'search-default-engine',
+        title: s,
+        subtitle: 'Search suggestion',
+        safety: 'safe',
+        shortcutHint: 'Enter',
+        target: { kind: 'search', query: s },
+      }));
+    appendSectionIfAny(sections, 'suggestions', suggestionItems);
 
     const externalActions = buildExternalActions(query).map((action) => toActionResult(action));
     appendSectionIfAny(sections, 'external', externalActions);
