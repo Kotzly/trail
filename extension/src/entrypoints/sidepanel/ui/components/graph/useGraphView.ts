@@ -16,6 +16,7 @@ type UseGraphViewParams = {
   nodeWidth: number;
   nodeHeight: number;
   compactInitialView: boolean;
+  nodeRecency: Record<string, number>;
   currentNodeId: NodeId | null;
   root: { id: NodeId } | null;
   viewIntent: { mode?: string; intentId?: number; fitToView?: boolean; focusNodeId?: NodeId; restoreView?: ViewState } | null;
@@ -39,6 +40,7 @@ export function useGraphView({
   nodeWidth,
   nodeHeight,
   compactInitialView,
+  nodeRecency,
   currentNodeId,
   root,
   viewIntent,
@@ -71,6 +73,9 @@ export function useGraphView({
   } | null>(null);
   const prevSearchFocusRef = useRef<NodeId | null>(null);
   const lastSearchNavStepRef = useRef(searchNavStep);
+  const driftRafRef = useRef<number | null>(null);
+  const driftBaseRef = useRef<{ x: number; y: number } | null>(null);
+  const driftStartRef = useRef(0);
 
   const applyGridTransform = useCallback((view: ViewState) => {
     const wrapper = wrapperRef.current;
@@ -133,6 +138,10 @@ export function useGraphView({
         window.cancelAnimationFrame(viewAnimationRef.current);
         viewAnimationRef.current = null;
       }
+      if (driftRafRef.current !== null) {
+        window.cancelAnimationFrame(driftRafRef.current);
+        driftRafRef.current = null;
+      }
     };
   }, []);
 
@@ -174,6 +183,10 @@ export function useGraphView({
           viewAnimationRef.current = window.requestAnimationFrame(animate);
         } else {
           viewAnimationRef.current = null;
+          if (driftBaseRef.current) {
+            driftBaseRef.current = { x: next.translateX, y: next.translateY };
+            driftStartRef.current = performance.now();
+          }
         }
       };
       viewAnimationRef.current = window.requestAnimationFrame(animate);
@@ -208,6 +221,48 @@ export function useGraphView({
     return { translateX, translateY, scale };
   }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY, compactInitialView]);
 
+  const getRecencyCentroidView = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || !nodeRecency) return null;
+    const rect = wrapper.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+
+    // Top 8 most-recent nodes that exist in the layout
+    const entries = Object.entries(nodeRecency)
+      .filter(([id, ts]) => ts > 0 && positions.has(Number(id) as NodeId))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+
+    if (entries.length < 3) return null;
+
+    let sumX = 0;
+    let sumY = 0;
+    for (const [id] of entries) {
+      const pos = positions.get(Number(id) as NodeId)!;
+      sumX += pos.x + nodeWidth / 2;
+      sumY += pos.y + nodeHeight / 2;
+    }
+    const centroidX = sumX / entries.length;
+    const centroidY = sumY / entries.length;
+
+    // Same scale logic as compactInitialView in getFitToViewView
+    const treeWidth = bounds.maxX - bounds.minX + PADDING * 2;
+    const treeHeight = bounds.maxY - bounds.minY + PADDING * 2;
+    if (treeWidth <= 0 || treeHeight <= 0) return null;
+    const scaleToFit = Math.min(
+      (rect.width * 0.9) / treeWidth,
+      (rect.height * 0.9) / treeHeight,
+    );
+    const targetViewportX = 12 * (NODE_WIDTH + HORIZONTAL_GAP);
+    const targetViewportY = 18 * (NODE_HEIGHT + VERTICAL_GAP);
+    const minScale = Math.max(rect.width / targetViewportX, rect.height / targetViewportY);
+    const scale = Math.min(Math.max(scaleToFit, minScale), 2);
+
+    const translateX = rect.width / 2 - centroidX * scale;
+    const translateY = rect.height / 2 - centroidY * scale;
+    return { translateX, translateY, scale };
+  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY, nodeHeight, nodeRecency, nodeWidth, positions]);
+
   const fitToView = useCallback((animate = false) => {
     const fitView = getFitToViewView();
     if (!fitView) return;
@@ -219,6 +274,10 @@ export function useGraphView({
       onGraphViewChange(fitView);
       rendererRef.current?.setView(fitView);
       applyGridTransform(fitView);
+      if (driftBaseRef.current) {
+        driftBaseRef.current = { x: fitView.translateX, y: fitView.translateY };
+        driftStartRef.current = performance.now();
+      }
     }
   }, [animateViewTo, applyGridTransform, cancelViewAnimation, getFitToViewView, onGraphViewChange, rendererRef]);
 
@@ -258,6 +317,10 @@ export function useGraphView({
       onGraphViewChange(nextView);
       rendererRef.current?.setView(nextView);
       applyGridTransform(nextView);
+      if (driftBaseRef.current) {
+        driftBaseRef.current = { x: nextView.translateX, y: nextView.translateY };
+        driftStartRef.current = performance.now();
+      }
     }
     return true;
   }, [animateViewTo, applyGridTransform, cancelViewAnimation, getCenteredView, onGraphViewChange, rendererRef]);
@@ -340,12 +403,89 @@ export function useGraphView({
     if (centered) lastLayoutModeRef.current = layoutMode;
   }, [centerOnNode, currentNodeId, layoutMode, positions, root]);
 
-  // Initial fit-to-view
+  // Initial fit-to-view (with recency centroid for compact/newtab mode)
   useEffect(() => {
     if (!root || didInitView.current) return;
     didInitView.current = true;
+    if (compactInitialView) {
+      const centroidView = getRecencyCentroidView();
+      if (centroidView) {
+        cancelViewAnimation();
+        viewRef.current = centroidView;
+        onGraphViewChange(centroidView);
+        rendererRef.current?.setView(centroidView);
+        applyGridTransform(centroidView);
+        driftBaseRef.current = { x: centroidView.translateX, y: centroidView.translateY };
+        driftStartRef.current = performance.now();
+        return;
+      }
+    }
     fitToView(false);
-  }, [bounds.height, bounds.width, fitToView, root]);
+    if (compactInitialView) {
+      driftBaseRef.current = { x: viewRef.current.translateX, y: viewRef.current.translateY };
+      driftStartRef.current = performance.now();
+    }
+  }, [bounds.height, bounds.width, fitToView, root, compactInitialView, getRecencyCentroidView, cancelViewAnimation, onGraphViewChange, rendererRef, applyGridTransform]);
+
+  // Lissajous drift — slow continuous camera movement (newtab only)
+  useEffect(() => {
+    if (!compactInitialView) return;
+
+    const AMPLITUDE = 60;    // px in graph space
+    const PERIOD_X = 45;     // seconds
+    const PERIOD_Y = 35;     // seconds (irrational ratio → no exact repeat)
+    const PHASE_Y = Math.PI / 4;
+    let lastOX = 0;
+    let lastOY = 0;
+
+    const tick = (now: number) => {
+      // Pause during user interaction or programmatic animation
+      if (isPanningRef.current || isSelectingRef.current || viewAnimationRef.current !== null) {
+        driftBaseRef.current = { x: viewRef.current.translateX, y: viewRef.current.translateY };
+        driftStartRef.current = now;
+        lastOX = 0;
+        lastOY = 0;
+        driftRafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const base = driftBaseRef.current;
+      if (!base) {
+        driftRafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const t = (now - driftStartRef.current) / 1000;
+      const scale = viewRef.current.scale;
+      const ox = AMPLITUDE * Math.sin((t * 2 * Math.PI) / PERIOD_X) * scale;
+      const oy = AMPLITUDE * Math.sin((t * 2 * Math.PI) / PERIOD_Y + PHASE_Y) * scale;
+
+      // Only update renderer when offset changed visibly (> 0.3px on screen)
+      if (Math.abs(ox - lastOX) > 0.3 || Math.abs(oy - lastOY) > 0.3) {
+        lastOX = ox;
+        lastOY = oy;
+        const view: ViewState = {
+          translateX: base.x + ox,
+          translateY: base.y + oy,
+          scale,
+        };
+        viewRef.current = view;
+        rendererRef.current?.setView(view);
+        applyGridTransform(view);
+      }
+
+      driftRafRef.current = requestAnimationFrame(tick);
+    };
+
+    driftRafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (driftRafRef.current !== null) {
+        cancelAnimationFrame(driftRafRef.current);
+        driftRafRef.current = null;
+      }
+    };
+  }, [compactInitialView, applyGridTransform, isPanningRef, isSelectingRef, rendererRef]);
 
   // View intent handling
   useLayoutEffect(() => {
@@ -361,6 +501,10 @@ export function useGraphView({
       onGraphViewChange(v);
       rendererRef.current?.setView(v);
       applyGridTransform(v);
+      if (driftBaseRef.current) {
+        driftBaseRef.current = { x: v.translateX, y: v.translateY };
+        driftStartRef.current = performance.now();
+      }
       onClearViewIntent();
       return;
     }
@@ -374,6 +518,10 @@ export function useGraphView({
       if (!positions.has(viewIntent.focusNodeId)) return;
       lastViewIntentRef.current = intentId;
       centerOnNode(viewIntent.focusNodeId, false);
+      if (driftBaseRef.current) {
+        driftBaseRef.current = { x: viewRef.current.translateX, y: viewRef.current.translateY };
+        driftStartRef.current = performance.now();
+      }
       onClearViewIntent();
     }
   }, [applyGridTransform, cancelViewAnimation, centerOnNode, fitToView, isDraggingNode, isPanningRef, onClearViewIntent, onGraphViewChange, positions, rendererRef, viewIntent]);
