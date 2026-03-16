@@ -44,9 +44,29 @@ body {
 
 .newtab-search {
   flex-shrink: 0;
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: transparent;
+  width: 100%;
+  max-width: min(640px, 90vw);
+  margin: 48px auto 16px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.newtab-search:focus-within {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.16),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(255, 220, 120, 0.06);
 }
 
 /* ─── Panel row (fills remaining space) ─── */
@@ -115,7 +135,21 @@ body {
 }
 
 [data-theme="light"] .newtab-search {
-  border-bottom-color: rgba(0, 0, 0, 0.07);
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="light"] .newtab-search:focus-within {
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 0 1px rgba(180, 140, 40, 0.08);
 }
 
 [data-theme="light"] .newtab-list {
@@ -137,11 +171,11 @@ body {
    In the newtab (non-shadow-DOM), we re-declare the critical overrides. */
 
 [data-theme="light"] .spotlight-search {
-  border-bottom-color: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="light"] .spotlight-search:focus-within {
-  border-bottom-color: rgba(0, 0, 0, 0.14);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 [data-theme="light"] .spotlight-search-input {
