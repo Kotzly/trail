@@ -124,36 +124,55 @@ export function NewTabApp() {
     return () => browser.runtime.onMessage.removeListener(handler);
   }, []);
 
-  // Mouse parallax — shifts graph bg opposite to cursor for depth
+  // Mouse parallax — shifts graph bg opposite to cursor for depth.
+  // Loop auto-stops when converged, restarts on next mousemove.
   useEffect(() => {
     const target = { x: 0, y: 0 };
     const current = { x: 0, y: 0 };
     const MAX_X = 20;
     const MAX_Y = 14;
     const EASE = 0.04;
+    const SETTLE_THRESHOLD = 0.1; // px — stop loop when both axes within this
+    let rafId: number | null = null;
+    let running = false;
 
-    const onMove = (e: MouseEvent) => {
-      target.x = (e.clientX / window.innerWidth - 0.5) * -MAX_X * 2;
-      target.y = (e.clientY / window.innerHeight - 0.5) * -MAX_Y * 2;
-    };
-
-    let rafId: number;
     const update = () => {
       current.x += (target.x - current.x) * EASE;
       current.y += (target.y - current.y) * EASE;
+
+      // Stop loop when converged to avoid continuous recomposites
+      if (Math.abs(target.x - current.x) < SETTLE_THRESHOLD && Math.abs(target.y - current.y) < SETTLE_THRESHOLD) {
+        current.x = target.x;
+        current.y = target.y;
+        running = false;
+        rafId = null;
+      } else {
+        rafId = requestAnimationFrame(update);
+      }
+
       const el = graphBgRef.current;
       if (el) {
         el.style.transform = `translate3d(${current.x.toFixed(2)}px, ${current.y.toFixed(2)}px, 0)`;
       }
+    };
+
+    const startLoop = () => {
+      if (running) return;
+      running = true;
       rafId = requestAnimationFrame(update);
     };
 
+    const onMove = (e: MouseEvent) => {
+      target.x = (e.clientX / window.innerWidth - 0.5) * -MAX_X * 2;
+      target.y = (e.clientY / window.innerHeight - 0.5) * -MAX_Y * 2;
+      startLoop();
+    };
+
     window.addEventListener('mousemove', onMove, { passive: true });
-    rafId = requestAnimationFrame(update);
 
     return () => {
       window.removeEventListener('mousemove', onMove);
-      cancelAnimationFrame(rafId);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, []);
 

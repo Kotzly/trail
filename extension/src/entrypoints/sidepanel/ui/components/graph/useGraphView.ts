@@ -76,6 +76,7 @@ export function useGraphView({
   const driftRafRef = useRef<number | null>(null);
   const driftOffsetRef = useRef({ x: 0, y: 0 });
   const driftStartRef = useRef(0);
+  const driftCooldownUntilRef = useRef(0);
 
   const applyGridTransform = useCallback((view: ViewState) => {
     const wrapper = wrapperRef.current;
@@ -111,6 +112,9 @@ export function useGraphView({
   // Fold any active drift visual offset into the canonical viewRef
   // so subsequent user interaction starts from the visually-correct position.
   const absorbDriftOffset = useCallback(() => {
+    const now = performance.now();
+    // Suppress drift for 200ms after any user view change
+    driftCooldownUntilRef.current = now + 200;
     const { x, y } = driftOffsetRef.current;
     if (x === 0 && y === 0) return;
     viewRef.current = {
@@ -119,7 +123,7 @@ export function useGraphView({
       translateY: viewRef.current.translateY + y,
     };
     driftOffsetRef.current = { x: 0, y: 0 };
-    driftStartRef.current = performance.now();
+    driftStartRef.current = now;
   }, []);
 
   const scheduleGraphView = useCallback(
@@ -454,8 +458,12 @@ export function useGraphView({
         return;
       }
 
-      // Pause during user interaction or programmatic animation
-      if (isPanningRef.current || isSelectingRef.current || viewAnimationRef.current !== null) {
+      // Pause during any user interaction (pointer, wheel, programmatic animation)
+      if (
+        isPanningRef.current || isSelectingRef.current
+        || viewAnimationRef.current !== null
+        || now < driftCooldownUntilRef.current
+      ) {
         // Reset phase so drift restarts smoothly from 0 when interaction ends
         driftStartRef.current = now;
         driftOffsetRef.current = { x: 0, y: 0 };
