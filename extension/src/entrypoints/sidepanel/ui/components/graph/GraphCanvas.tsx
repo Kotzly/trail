@@ -45,10 +45,48 @@ import type {
 } from './graph-canvas-types.js';
 import { collectSubtreeIds, buildCollapseScope } from './graph-canvas-utils.js';
 import { computeOffsetPositions } from './graph-layout-compute.js';
+import type { CachedLayoutResult } from '@shared/graph-layout-cache/types.js';
 import { useLayoutSend } from './useLayoutSend.js';
 import { useGraphSelection } from './useGraphSelection.js';
 import { useGraphAnimation, FAST_MOTION } from './useGraphAnimation.js';
 import { useGraphView } from './useGraphView.js';
+
+// ---------------------------------------------------------------------------
+// Offscreen layout cache — read from global set by main.tsx before mount
+// ---------------------------------------------------------------------------
+
+function consumePrefetchedLayout(): CachedLayoutResult | null {
+  const g = globalThis as unknown as { __trailCachedLayout?: CachedLayoutResult | null };
+  const cached = g.__trailCachedLayout ?? null;
+  if (cached) g.__trailCachedLayout = null; // Consume once
+  return cached;
+}
+
+let _prefetchedLayout: CachedLayoutResult | null = consumePrefetchedLayout();
+
+function hydrateFromCache(
+  cached: CachedLayoutResult,
+  root: NavigationNode,
+): { positions: Map<NodeId, NodePosition>; width: number } | null {
+  const nodeMap = new Map<NodeId, NavigationNode>();
+  const queue: NavigationNode[] = [root];
+  while (queue.length > 0) {
+    const node = queue.pop()!;
+    nodeMap.set(node.id, node);
+    for (const child of node.getChildren()) queue.push(child);
+  }
+
+  const positions = new Map<NodeId, NodePosition>();
+  for (const [id, pos] of Object.entries(cached.positions)) {
+    const nodeId = Number(id) as NodeId;
+    const node = nodeMap.get(nodeId);
+    if (node) positions.set(nodeId, { x: pos.x, y: pos.y, node });
+  }
+
+  // Only use cache if most nodes matched (handles minor tree changes)
+  if (positions.size < nodeMap.size * 0.8) return null;
+  return { positions, width: cached.width };
+}
 
 /** Distance (in world pixels) from the dragged node center to a candidate
  *  parent center at which the snap preview activates. */
@@ -275,6 +313,16 @@ export default function GraphCanvas({
 
   const layout = useMemo(() => {
     if (!root) return null;
+
+    // Fast path: use pre-computed layout from offscreen document
+    if (_prefetchedLayout && _prefetchedLayout.layoutMode === layoutOptions.mode) {
+      const hydrated = hydrateFromCache(_prefetchedLayout, root);
+      if (hydrated) {
+        _prefetchedLayout = null; // Consume once to avoid stale reuse
+        return hydrated;
+      }
+    }
+
     switch (layoutOptions.mode) {
       case 'tree':
         return calculateLayout(root, layoutOptions.tree, getVisibleChildren);
@@ -497,7 +545,7 @@ export default function GraphCanvas({
     cancelViewAnimation, animateViewTo, fitToView, centerOnNode, zoomAt, zoom,
   } = useGraphView({
     graphView, onGraphViewChange, rendererRef, bounds, positions,
-    nodeWidth, nodeHeight, compactInitialView,
+    nodeWidth, nodeHeight, compactInitialView, nodeRecency,
     currentNodeId, root, viewIntent: viewIntent ?? null, onClearViewIntent,
     isDraggingNode, searchActive, searchNavStep, focusedSearchId: search.results[search.index],
     resetVersion, layoutMode: layoutOptions.mode,

@@ -50,14 +50,13 @@ function BookmarksCard({
 }: {
   readonly bookmarks: readonly BookmarkItem[];
 }) {
-  const visible = bookmarks.slice(0, 6);
-  if (visible.length === 0) return null;
+  if (bookmarks.length === 0) return null;
 
   return (
     <div className="newtab-bento-card">
       <div className="newtab-bento-card-title">Bookmarks</div>
       <div className="newtab-bento-bookmarks-grid">
-        {visible.map((bm) => (
+        {bookmarks.map((bm) => (
           <a
             key={bm.id}
             href={bm.url ?? '#'}
@@ -88,40 +87,41 @@ function ContinueCard({
   readonly items: SpotlightSearchResult[];
   readonly onActivate: (item: SpotlightSearchResult) => Promise<void>;
 }) {
-  const visible = items.slice(0, 3);
-  if (visible.length === 0) return null;
+  if (items.length === 0) return null;
 
   return (
     <div className="newtab-bento-card">
-      <div className="newtab-bento-card-title">Continue</div>
-      {visible.map((item) => {
-        const url = item.kind === 'node' ? item.url : item.kind === 'tree' ? item.rootUrl : undefined;
-        const title = item.kind === 'action' ? item.title : item.kind === 'node' ? item.title : item.treeName;
-        const subtitle = item.kind === 'action' ? item.subtitle : item.kind === 'node' ? item.url : '';
+      <div className="newtab-bento-card-title">Pick Up Where You Left Off</div>
+      <div className="newtab-bento-continue-list">
+        {items.map((item) => {
+          const url = item.kind === 'node' ? item.url : item.kind === 'tree' ? item.rootUrl : undefined;
+          const title = item.kind === 'action' ? item.title : item.kind === 'node' ? item.title : item.treeName;
+          const subtitle = item.kind === 'action' ? item.subtitle : item.kind === 'node' ? item.url : '';
 
-        return (
-          <button
-            key={item.key}
-            type="button"
-            className="newtab-bento-item"
-            onClick={() => void onActivate(item)}
-          >
-            {url && (
-              <img
-                className="newtab-bento-item-icon"
-                src={getFaviconUrl(url as Url, 16)}
-                alt=""
-                width={16}
-                height={16}
-              />
-            )}
-            <span className="newtab-bento-item-text">
-              <span className="newtab-bento-item-title">{title}</span>
-              {subtitle && <span className="newtab-bento-item-subtitle">{subtitle}</span>}
-            </span>
-          </button>
-        );
-      })}
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className="newtab-bento-item"
+              onClick={() => void onActivate(item)}
+            >
+              {url && (
+                <img
+                  className="newtab-bento-item-icon"
+                  src={getFaviconUrl(url as Url, 16)}
+                  alt=""
+                  width={16}
+                  height={16}
+                />
+              )}
+              <span className="newtab-bento-item-text">
+                <span className="newtab-bento-item-title">{title}</span>
+                {subtitle && <span className="newtab-bento-item-subtitle">{subtitle}</span>}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -169,11 +169,13 @@ export function DashboardView({
   const [greeting, setGreeting] = useState(getGreeting);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTime(getTime());
-      setGreeting(getGreeting());
-    }, 60_000);
-    return () => clearInterval(interval);
+    const tick = () => { setTime(getTime()); setGreeting(getGreeting()); };
+    // Align to next minute boundary for accurate clock display
+    const now = new Date();
+    const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50;
+    const timeout = setTimeout(() => { tick(); interval = setInterval(tick, 60_000); }, msToNextMinute);
+    let interval: ReturnType<typeof setInterval> | undefined;
+    return () => { clearTimeout(timeout); if (interval) clearInterval(interval); };
   }, []);
 
   return (

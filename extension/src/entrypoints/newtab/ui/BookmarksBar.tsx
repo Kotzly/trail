@@ -40,10 +40,11 @@ function DropdownItem({ item }: { item: BookmarkItem }) {
   if (item.children) {
     return <NestedFolder folder={item} />;
   }
+  if (!item.url) return null;
 
   return (
-    <a href={item.url!} className="newtab-bookmark-dropdown-item" title={item.title}>
-      <BookmarkFavicon url={item.url!} size={16} />
+    <a href={item.url} className="newtab-bookmark-dropdown-item" title={item.title}>
+      <BookmarkFavicon url={item.url} size={16} />
       <span className="newtab-bookmark-dropdown-title">{item.title}</span>
     </a>
   );
@@ -69,7 +70,7 @@ function NestedFolder({ folder }: { folder: BookmarkItem }) {
 
 function BookmarkFolder({ item }: { item: BookmarkItem }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLButtonElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   const toggle = useCallback(() => setOpen((prev) => !prev), []);
 
@@ -87,11 +88,13 @@ function BookmarkFolder({ item }: { item: BookmarkItem }) {
   const children = item.children ?? [];
 
   return (
-    <button
+    <div
       ref={ref}
-      type="button"
+      role="button"
+      tabIndex={0}
       className="newtab-bookmark-card newtab-bookmark-card--folder"
       onClick={toggle}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
       title={item.title}
     >
       <ChevronRight size={18} className={`newtab-bookmark-icon newtab-bookmark-chevron${open ? ' newtab-bookmark-chevron--open' : ''}`} />
@@ -106,7 +109,7 @@ function BookmarkFolder({ item }: { item: BookmarkItem }) {
           )}
         </div>
       )}
-    </button>
+    </div>
   );
 }
 

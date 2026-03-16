@@ -13,3 +13,6 @@ if (!rootEl) throw new Error('Missing #root element');
 
 void initBackendConfig();
 createRoot(rootEl).render(<NewTabApp />);
+
+// Clean up ghost autofocus input after React mounts and real input receives focus
+setTimeout(() => document.querySelector('body > input[autofocus]')?.remove(), 500);

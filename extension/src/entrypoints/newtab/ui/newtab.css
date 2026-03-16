@@ -29,6 +29,7 @@ body {
    ═══════════════════════════════════════════════ */
 
 .newtab {
+  --content-w: min(640px, 90vw);
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -41,8 +42,9 @@ body {
 
 .newtab-graph-bg {
   position: absolute;
-  inset: 0;
+  inset: -30px;
   z-index: 0;
+  will-change: transform;
   background-color: var(--trail-app-bg-color, var(--background, rgba(12, 12, 16, 1)));
   background-image: var(--trail-app-bg-image, none);
   background-size: cover;
@@ -96,39 +98,53 @@ body {
 }
 
 /* ═══════════════════════════════════════════════
-   Floating island
+   Centering anchor (invisible, passes clicks to graph)
    ═══════════════════════════════════════════════ */
 
-.newtab-island {
-  position: relative;
+.newtab-island-anchor {
+  position: absolute;
+  inset: 0;
   z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 100%;
   pointer-events: none;
-  transition: justify-content 0.3s ease;
 }
 
-.newtab-island > * {
+.newtab-island-anchor--idle {
+  justify-content: center;
+  padding-bottom: 80px;
+}
+
+.newtab-island-anchor--searching {
+  justify-content: flex-start;
+}
+
+.newtab-island-anchor--graph-focus {
+  justify-content: flex-start;
+  z-index: 4;
+}
+
+/* ═══════════════════════════════════════════════
+   Draggable island (sized to content, catches mouse)
+   ═══════════════════════════════════════════════ */
+
+.newtab-island-drag {
   pointer-events: auto;
 }
 
-/* Idle: centered vertically */
-.newtab-island--idle {
-  justify-content: center;
-  padding-bottom: 80px; /* visual center bias */
+.newtab-island {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--content-w);
 }
 
-/* Searching: aligned to top */
-.newtab-island--searching {
-  justify-content: flex-start;
-}
-
-/* Graph focus: compact pill at top */
-.newtab-island--graph-focus {
-  justify-content: flex-start;
-  z-index: 4;
+.newtab-island-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* ═══════════════════════════════════════════════
@@ -138,7 +154,7 @@ body {
 .newtab-search {
   flex-shrink: 0;
   width: 100%;
-  max-width: min(560px, 90vw);
+  max-width: var(--content-w);
   padding: 12px 18px;
   border-radius: 14px;
   background: rgba(12, 12, 16, 0.7);
@@ -162,7 +178,7 @@ body {
 }
 
 /* Graph focus: compact pill */
-.newtab-island--graph-focus .newtab-search {
+.newtab-island-anchor--graph-focus .newtab-search {
   max-width: 360px;
   margin-top: 16px;
   padding: 8px 14px;
@@ -177,7 +193,7 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: min(560px, 90vw);
+  max-width: var(--content-w);
   max-height: calc(100vh - 200px);
   min-height: 0;
   overflow: hidden;
@@ -198,7 +214,7 @@ body {
 
 .newtab-dashboard {
   width: 100%;
-  max-width: min(560px, 90vw);
+  max-width: var(--content-w);
   margin-top: 16px;
 }
 
@@ -231,6 +247,7 @@ body {
 }
 
 .newtab-bento-card {
+  min-width: 0;
   padding: 14px;
   border-radius: 14px;
   background: rgba(12, 12, 16, 0.6);
@@ -300,6 +317,47 @@ body {
   white-space: nowrap;
 }
 
+/* Multi-line bento items (title + subtitle stacked) */
+.newtab-bento-item-text:has(.newtab-bento-item-title) {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: normal;
+}
+
+.newtab-bento-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bookmarks grid in bento card */
+.newtab-bento-bookmarks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.newtab-bento-bookmarks-grid::-webkit-scrollbar {
+  display: none;
+}
+
+/* Continue items scroll wrapper */
+.newtab-bento-continue-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.newtab-bento-continue-list::-webkit-scrollbar {
+  display: none;
+}
+
 /* Recent search pills */
 .newtab-bento-pills {
   display: flex;
@@ -355,19 +413,6 @@ body {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.newtab-quick-action-kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 10px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
-}
-
 /* ═══════════════════════════════════════════════
    Graph focus exit button
    ═══════════════════════════════════════════════ */
@@ -400,11 +445,16 @@ body {
    Footer
    ═══════════════════════════════════════════════ */
 
-.newtab-island .spotlight-footer {
-  width: 100%;
-  max-width: min(560px, 90vw);
+.newtab > .spotlight-footer {
+  position: fixed;
+  bottom: 16px;
+  left: 24px;
+  z-index: 3;
+  width: auto;
+  max-width: none;
   border-top: none;
-  padding: 6px 14px;
+  padding: 6px 0;
+  pointer-events: auto;
 }
 
 /* ═══════════════════════════════════════════════
@@ -434,7 +484,7 @@ body {
    ═══════════════════════════════════════════════ */
 
 @media (max-width: 600px) {
-  .newtab-island--idle { padding-bottom: 40px; }
+  .newtab-island-anchor--idle { padding-bottom: 40px; }
   .newtab-greeting-time { font-size: 36px; }
   .newtab-bento { grid-template-columns: 1fr; }
 }
@@ -491,7 +541,6 @@ body {
 
 [data-theme="light"] .newtab-quick-action-btn { color: rgba(0, 0, 0, 0.3); background: rgba(0, 0, 0, 0.02); border-color: rgba(0, 0, 0, 0.05); }
 [data-theme="light"] .newtab-quick-action-btn:hover { background: rgba(0, 0, 0, 0.05); color: rgba(0, 0, 0, 0.55); }
-[data-theme="light"] .newtab-quick-action-kbd { border-color: rgba(0, 0, 0, 0.1); color: rgba(0, 0, 0, 0.35); }
 
 [data-theme="light"] .newtab-graph-exit { background: rgba(255, 255, 255, 0.8); color: rgba(0, 0, 0, 0.5); border-color: rgba(0, 0, 0, 0.06); }
 [data-theme="light"] .newtab-graph-exit:hover { background: rgba(255, 255, 255, 0.9); color: rgba(0, 0, 0, 0.7); }

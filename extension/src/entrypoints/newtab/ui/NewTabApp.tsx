@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
 import { Search, ChevronRight, FolderOpen } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useMotionValue } from 'motion/react';
 import { SpotlightGraphFrame } from '../../../spotlight/SpotlightGraphFrame.js';
 import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from '../../../spotlight/SpotlightHintRow.js';
 import { SpotlightHelp } from '../../../spotlight/SpotlightHelp.js';
@@ -18,7 +18,6 @@ import { executeBatchAction, executeSpotlightAction } from '../../../spotlight/r
 import { SpotlightFooter } from '../../../spotlight/SpotlightFooter.js';
 import { resolveSpotlightQueryMode } from '@shared/lib/spotlight/query-dsl.js';
 import { browser } from '@shared/platform/webext.js';
-import { BookmarksBar } from './BookmarksBar.js';
 import { useBookmarks } from './useBookmarks.js';
 import { DashboardView } from './DashboardView.js';
 import { QuickActions } from './QuickActions.js';
@@ -44,7 +43,14 @@ function loadDragPos(): { x: number; y: number } | undefined {
     const raw = localStorage.getItem(DRAG_STORAGE_KEY);
     if (!raw) return undefined;
     const pos = JSON.parse(raw);
-    if (typeof pos.x === 'number' && typeof pos.y === 'number') return pos;
+    if (typeof pos.x === 'number' && typeof pos.y === 'number') {
+      // Reject corrupted values from previous broken info.point save
+      if (Math.abs(pos.x) > 500 || Math.abs(pos.y) > 500) {
+        localStorage.removeItem(DRAG_STORAGE_KEY);
+        return undefined;
+      }
+      return pos;
+    }
   } catch { /* ignore */ }
   return undefined;
 }
@@ -69,6 +75,8 @@ export function NewTabApp() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const graphBgRef = useRef<HTMLDivElement>(null);
   const lastCommittedKeyRef = useRef<string | null>(null);
 
   // ─── Domain hooks ───
@@ -89,7 +97,7 @@ export function NewTabApp() {
   const continueItems = useMemo(() => {
     if (search.query) return [];
     const firstSection = search.sections[0];
-    return firstSection ? firstSection.items.slice(0, 3) : [];
+    return firstSection ? firstSection.items : [];
   }, [search.query, search.sections]);
 
   // Clear multi-select when query or results change
@@ -116,10 +124,43 @@ export function NewTabApp() {
     return () => browser.runtime.onMessage.removeListener(handler);
   }, []);
 
+  // Mouse parallax — shifts graph bg opposite to cursor for depth
+  useEffect(() => {
+    const target = { x: 0, y: 0 };
+    const current = { x: 0, y: 0 };
+    const MAX_X = 20;
+    const MAX_Y = 14;
+    const EASE = 0.04;
+
+    const onMove = (e: MouseEvent) => {
+      target.x = (e.clientX / window.innerWidth - 0.5) * -MAX_X * 2;
+      target.y = (e.clientY / window.innerHeight - 0.5) * -MAX_Y * 2;
+    };
+
+    let rafId: number;
+    const update = () => {
+      current.x += (target.x - current.x) * EASE;
+      current.y += (target.y - current.y) * EASE;
+      const el = graphBgRef.current;
+      if (el) {
+        el.style.transform = `translate3d(${current.x.toFixed(2)}px, ${current.y.toFixed(2)}px, 0)`;
+      }
+      rafId = requestAnimationFrame(update);
+    };
+
+    window.addEventListener('mousemove', onMove, { passive: true });
+    rafId = requestAnimationFrame(update);
+
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
   // Cmd+G: toggle graph focus mode
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const mod = /Mac|iPod|iPhone|iPad/.test(navigator.platform ?? '') ? e.metaKey : e.ctrlKey;
+      const mod = /Mac|iPhone|iPad/.test(navigator.userAgent) ? e.metaKey : e.ctrlKey;
       if (mod && e.key === 'g') {
         e.preventDefault();
         setGraphFocusMode((prev) => !prev);
@@ -248,21 +289,23 @@ export function NewTabApp() {
     toggleGraphPanel, stepSnapPoint, onSearchWeb: handleSearchWeb,
   });
 
-  // ─── Island mode class ───
-  const islandClass = graphFocusMode
-    ? 'newtab-island newtab-island--graph-focus'
+  // ─── Anchor mode class ───
+  const anchorClass = graphFocusMode
+    ? 'newtab-island-anchor newtab-island-anchor--graph-focus'
     : isIdle
-      ? 'newtab-island newtab-island--idle'
-      : 'newtab-island newtab-island--searching';
+      ? 'newtab-island-anchor newtab-island-anchor--idle'
+      : 'newtab-island-anchor newtab-island-anchor--searching';
 
   // ─── Drag position ───
-  const savedPos = useRef(loadDragPos());
+  const [initDragPos] = useState(loadDragPos);
+  const dragX = useMotionValue(initDragPos?.x ?? 0);
+  const dragY = useMotionValue(initDragPos?.y ?? 0);
 
   // ─── Render ───
   return (
     <div className="newtab" ref={rootRef}>
       {/* ── Graph: fullscreen background ── */}
-      <div className={`newtab-graph-bg${graphFocusMode ? ' newtab-graph-bg--focus' : ''}`}>
+      <div ref={graphBgRef} className={`newtab-graph-bg${graphFocusMode ? ' newtab-graph-bg--focus' : ''}`}>
         <SpotlightGraphFrame
           activeTreeId={activeTreeId} previewData={preview.graphPreviewData}
           selectedNodeId={graphSelectedNodeId} highlightNodeId={graphHighlightNodeId}
@@ -275,25 +318,27 @@ export function NewTabApp() {
         />
       </div>
 
-      {/* ── Floating draggable island ── */}
-      <motion.div
-        drag
-        dragConstraints={rootRef}
-        dragElastic={0.08}
-        dragMomentum={false}
-        initial={savedPos.current ?? false}
-        onDragEnd={(_e, info) => {
-          try {
-            localStorage.setItem(DRAG_STORAGE_KEY, JSON.stringify({ x: info.point.x, y: info.point.y }));
-          } catch { /* ignore */ }
-        }}
-        style={{ height: '100%' }}
-      >
-        <Command
-          shouldFilter={false} value={selectedKey ?? ''} loop
-          onValueChange={(v) => { setSelectedKey(v || null); setHoveredGraphTarget(null); act.setActionMenuActions(null); }}
-          className={islandClass}
+      {/* ── Centering anchor (transparent to mouse — clicks go to graph) ── */}
+      <div className={anchorClass} ref={anchorRef}>
+        {/* ── Draggable island (sized to content) ── */}
+        <motion.div
+          drag
+          dragConstraints={anchorRef}
+          dragElastic={0.05}
+          dragMomentum={false}
+          onDragEnd={() => {
+            try {
+              localStorage.setItem(DRAG_STORAGE_KEY, JSON.stringify({ x: dragX.get(), y: dragY.get() }));
+            } catch { /* ignore */ }
+          }}
+          style={{ x: dragX, y: dragY }}
+          className="newtab-island-drag"
         >
+          <Command
+            shouldFilter={false} value={selectedKey ?? ''} loop
+            onValueChange={(v) => { setSelectedKey(v || null); setHoveredGraphTarget(null); act.setActionMenuActions(null); }}
+            className="newtab-island"
+          >
           {/* ── Search bar ── */}
           <motion.div className="spotlight-search newtab-search" layout="position" transition={{ duration: 0.25 }}>
             <div className="spotlight-scope-icon" aria-hidden="true">
@@ -325,6 +370,7 @@ export function NewTabApp() {
             {isIdle && !graphFocusMode ? (
               <motion.div
                 key="dashboard"
+                className="newtab-island-panel"
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.97 }}
@@ -342,6 +388,7 @@ export function NewTabApp() {
             ) : !graphFocusMode ? (
               <motion.div
                 key="results"
+                className="newtab-island-panel"
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
@@ -372,8 +419,6 @@ export function NewTabApp() {
                     <SpotlightHelp open />
                   ) : search.loading ? (
                     <div className="newtab-shimmer" style={{ margin: '12px' }} />
-                  ) : search.sections.length === 0 && search.query ? (
-                    <Command.Empty className="spotlight-empty">No results found</Command.Empty>
                   ) : search.sections.length === 0 ? (
                     <Command.Empty className="spotlight-empty">No results found</Command.Empty>
                   ) : (
@@ -414,11 +459,6 @@ export function NewTabApp() {
             </div>
           )}
 
-          {/* ── Footer ── */}
-          {!graphFocusMode && (
-            <SpotlightFooter mode={spotlightMode} isMultiSelect={isMultiSelect} focusPane={selectedFocusPane} showWebSearchHint={search.query.trim().length > 0} />
-          )}
-
           {/* ── Action menu overlay ── */}
           {act.actionMenuActions && (
             <SpotlightActionMenu
@@ -439,8 +479,14 @@ export function NewTabApp() {
               }}
             />
           )}
-        </Command>
-      </motion.div>
+          </Command>
+        </motion.div>
+      </div>
+
+      {/* ── Footer: fixed bottom-left, outside the island ── */}
+      {!graphFocusMode && (
+        <SpotlightFooter mode={spotlightMode} isMultiSelect={isMultiSelect} focusPane={selectedFocusPane} showWebSearchHint={search.query.trim().length > 0} />
+      )}
 
       {/* ── Graph focus exit button ── */}
       {graphFocusMode && (

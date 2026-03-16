@@ -71,6 +71,7 @@ export default defineConfig({
       "activeTab",
       "search",
       "bookmarks",
+      "offscreen",
     ],
     commands: {
       "toggle-spotlight": {

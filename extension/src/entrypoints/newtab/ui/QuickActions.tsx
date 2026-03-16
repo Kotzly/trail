@@ -13,26 +13,14 @@ type QuickActionsProps = {
 export function QuickActions({ onAction }: QuickActionsProps) {
   return (
     <div className="newtab-quick-actions">
-      <button
-        type="button"
-        className="newtab-quick-action-btn"
-        onClick={() => onAction('bookmarks:')}
-      >
-        <kbd className="newtab-quick-action-kbd">1</kbd> Bookmarks
+      <button type="button" className="newtab-quick-action-btn" onClick={() => onAction('bookmarks:')}>
+        Bookmarks
       </button>
-      <button
-        type="button"
-        className="newtab-quick-action-btn"
-        onClick={() => onAction('trees:')}
-      >
-        <kbd className="newtab-quick-action-kbd">2</kbd> Trails
+      <button type="button" className="newtab-quick-action-btn" onClick={() => onAction('trees:')}>
+        Trails
       </button>
-      <button
-        type="button"
-        className="newtab-quick-action-btn"
-        onClick={() => onAction('>settings')}
-      >
-        <kbd className="newtab-quick-action-kbd">3</kbd> Settings
+      <button type="button" className="newtab-quick-action-btn" onClick={() => onAction('>settings')}>
+        Settings
       </button>
     </div>
   );

@@ -11,6 +11,7 @@ import { accountKeeper } from './services/account-keeper.js';
 import { authPolicyKeeper } from './services/auth-policy-keeper.js';
 import { browser } from '@shared/platform/webext.js';
 import { initSpotlightCommand } from './spotlight-command.js';
+import { initOffscreenGraphManager } from './services/offscreen-graph-manager.js';
 
 // Catch unhandled promise rejections so they don't silently disappear
 // in the service worker context.
@@ -30,6 +31,7 @@ authOrchestrator.init();
 accountKeeper.init();
 void authPolicyKeeper.getPolicy();
 initSpotlightCommand();
+initOffscreenGraphManager();
 
 const sidePanel = (browser as unknown as {
   sidePanel?: {
