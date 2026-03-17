@@ -20,13 +20,6 @@ const SEARCH_LIMIT = 80;
 const BACKOFF_DELAYS = [200, 800, 2000] as const;
 const SESSION_MEMORY_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
-function computeDebounceMs(docCount: number): number {
-  if (docCount < 500) return 0;
-  if (docCount < 2000) return 20;
-  if (docCount < 5000) return 40;
-  return 80;
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -140,33 +133,31 @@ export function useSpotlightSearch(
     };
   }, [isOpen, bootstrapAttempt]);
 
-  // Search with debounce
+  // Search (instant, no debounce)
   useEffect(() => {
     if (!isOpen || !sessionId) return;
 
     let cancelled = false;
-    const timeout = setTimeout(() => {
-      requestSeqRef.current += 1;
-      const requestSeq = requestSeqRef.current;
-      setLoading(true);
+    requestSeqRef.current += 1;
+    const requestSeq = requestSeqRef.current;
+    setLoading(true);
 
-      searchSpotlight(sessionId, query, SEARCH_LIMIT, requestSeq, drilldownScopeTreeId ?? undefined)
-        .then((response) => {
-          if (cancelled) return;
-          if (response.requestSeq !== requestSeqRef.current) return;
-          setSections(response.sections);
-          setLoading(false);
-        })
-        .catch(async (error) => {
-          if (cancelled) return;
-          if (isRecoverableError(error)) {
-            await attemptRecovery();
-            return;
-          }
-          console.error('Failed to search spotlight:', error);
-          if (!cancelled) setLoading(false);
-        });
-    }, computeDebounceMs(bootstrapData?.docCount ?? 500));
+    searchSpotlight(sessionId, query, SEARCH_LIMIT, requestSeq, drilldownScopeTreeId ?? undefined)
+      .then((response) => {
+        if (cancelled) return;
+        if (response.requestSeq !== requestSeqRef.current) return;
+        setSections(response.sections);
+        setLoading(false);
+      })
+      .catch(async (error) => {
+        if (cancelled) return;
+        if (isRecoverableError(error)) {
+          await attemptRecovery();
+          return;
+        }
+        console.error('Failed to search spotlight:', error);
+        if (!cancelled) setLoading(false);
+      });
 
     async function attemptRecovery(): Promise<void> {
       for (let attempt = 0; attempt < BACKOFF_DELAYS.length; attempt++) {
@@ -198,7 +189,6 @@ export function useSpotlightSearch(
 
     return () => {
       cancelled = true;
-      clearTimeout(timeout);
     };
   }, [isOpen, query, sessionId, drilldownScopeTreeId]);
 
