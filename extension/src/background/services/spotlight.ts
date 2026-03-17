@@ -201,15 +201,14 @@ export class SpotlightService {
     const sections: SpotlightSection[] = [];
     const activeNodeDocs = snapshot.nodeDocs.filter((doc) => doc.treeId === snapshot.activeTreeId);
 
-    // "Pick Up Where You Left Off" — show all recently-active open tabs,
-    // not just tree-position relatives. Filter out newtab pages.
-    const recentOpenTabDocs = [...activeNodeDocs]
-      .filter((doc) => doc.tabCount > 0
+    // "Pick Up Where You Left Off" — recently visited nodes sorted by recency.
+    const recentVisitedDocs = [...activeNodeDocs]
+      .filter((doc) => doc.recency > 0
         && !isNewTabUrl(doc.url as Url)
         && !doc.title.toLowerCase().includes('new tab'))
-      .sort(compareNodeDocsByPriority);
+      .sort((a, b) => b.recency - a.recency);
     const continueDocs: SpotlightNodeResult[] = [];
-    for (const doc of recentOpenTabDocs.slice(0, 30)) {
+    for (const doc of recentVisitedDocs.slice(0, 30)) {
       pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, doc, 0, []));
     }
     appendSectionIfAny(sections, 'continue', continueDocs);
