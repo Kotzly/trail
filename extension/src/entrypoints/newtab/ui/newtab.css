@@ -116,9 +116,7 @@ body {
   padding-bottom: 80px;
 }
 
-.newtab-island-anchor--searching {
-  justify-content: flex-start;
-}
+/* --searching no longer used; island always stays centered */
 
 .newtab-island-anchor--graph-focus {
   justify-content: flex-start;
@@ -194,7 +192,7 @@ body {
   flex-direction: column;
   width: 100%;
   max-width: var(--content-w);
-  max-height: calc(100vh - 200px);
+  max-height: 50vh;
   min-height: 0;
   overflow: hidden;
   border-radius: 14px;
@@ -218,10 +216,11 @@ body {
   margin-top: 16px;
 }
 
-/* Greeting */
+/* Greeting (above search bar in idle mode) */
 .newtab-greeting {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  width: 100%;
 }
 
 .newtab-greeting-time {
@@ -395,7 +394,7 @@ body {
   display: flex;
   gap: 6px;
   justify-content: center;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .newtab-quick-action-btn {

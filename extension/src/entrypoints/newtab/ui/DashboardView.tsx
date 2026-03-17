@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import type { BookmarkItem } from './useBookmarks.js';
 import type { SpotlightSearchResult } from '../../../spotlight/types.js';
 import { getFaviconUrl } from '@shared/utils/favicon.js';
@@ -17,33 +16,8 @@ type DashboardViewProps = {
 };
 
 // ---------------------------------------------------------------------------
-// Time helpers
-// ---------------------------------------------------------------------------
-
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
-}
-
-function getTime(): string {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-}
-
-// ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-function Greeting({ time, text }: { readonly time: string; readonly text: string }) {
-  return (
-    <div className="newtab-greeting">
-      <div className="newtab-greeting-time">{time}</div>
-      <div className="newtab-greeting-text">{text}</div>
-    </div>
-  );
-}
 
 function BookmarksCard({
   bookmarks,
@@ -165,22 +139,8 @@ export function DashboardView({
   onQueryChange,
   onActivate,
 }: DashboardViewProps) {
-  const [time, setTime] = useState(getTime);
-  const [greeting, setGreeting] = useState(getGreeting);
-
-  useEffect(() => {
-    const tick = () => { setTime(getTime()); setGreeting(getGreeting()); };
-    // Align to next minute boundary for accurate clock display
-    const now = new Date();
-    const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50;
-    const timeout = setTimeout(() => { tick(); interval = setInterval(tick, 60_000); }, msToNextMinute);
-    let interval: ReturnType<typeof setInterval> | undefined;
-    return () => { clearTimeout(timeout); if (interval) clearInterval(interval); };
-  }, []);
-
   return (
     <div className="newtab-dashboard">
-      <Greeting time={time} text={greeting} />
       <div className="newtab-bento">
         <BookmarksCard bookmarks={bookmarks} />
         <ContinueCard items={continueItems} onActivate={onActivate} />

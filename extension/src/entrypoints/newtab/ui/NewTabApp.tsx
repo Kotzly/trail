@@ -31,6 +31,18 @@ import type { NodeId } from '@shared/types/ids.js';
 
 const NOOP = () => {};
 
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function getTime(): string {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
 const SR_ONLY: React.CSSProperties = {
   position: 'absolute', width: '1px', height: '1px',
   overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap',
@@ -71,6 +83,10 @@ export function NewTabApp() {
   const [graphFocusMode, setGraphFocusMode] = useState(false);
 
   const { bookmarks } = useBookmarks();
+
+  // Clock/greeting state
+  const [time, setTime] = useState(getTime);
+  const [greetingText, setGreetingText] = useState(getGreeting);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLElement>(null);
@@ -113,6 +129,16 @@ export function NewTabApp() {
       setTimeout(() => { if (document.activeElement !== input) attemptFocus(); }, delay),
     );
     return () => timers.forEach(clearTimeout);
+  }, []);
+
+  // Clock tick — aligned to minute boundary
+  useEffect(() => {
+    const tick = () => { setTime(getTime()); setGreetingText(getGreeting()); };
+    const now = new Date();
+    const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50;
+    const timeout = setTimeout(() => { tick(); interval = setInterval(tick, 60_000); }, msToNextMinute);
+    let interval: ReturnType<typeof setInterval> | undefined;
+    return () => { clearTimeout(timeout); if (interval) clearInterval(interval); };
   }, []);
 
   // Listen for TOGGLE_SPOTLIGHT
@@ -311,9 +337,7 @@ export function NewTabApp() {
   // ─── Anchor mode class ───
   const anchorClass = graphFocusMode
     ? 'newtab-island-anchor newtab-island-anchor--graph-focus'
-    : isIdle
-      ? 'newtab-island-anchor newtab-island-anchor--idle'
-      : 'newtab-island-anchor newtab-island-anchor--searching';
+    : 'newtab-island-anchor newtab-island-anchor--idle';
 
   // ─── Drag position ───
   const [initDragPos] = useState(loadDragPos);
@@ -358,6 +382,14 @@ export function NewTabApp() {
             onValueChange={(v) => { setSelectedKey(v || null); setHoveredGraphTarget(null); act.setActionMenuActions(null); }}
             className="newtab-island"
           >
+          {/* ── Greeting ── */}
+          {!graphFocusMode && (
+            <div className="newtab-greeting">
+              <div className="newtab-greeting-time">{time}</div>
+              <div className="newtab-greeting-text">{greetingText}</div>
+            </div>
+          )}
+
           {/* ── Search bar ── */}
           <div className="spotlight-search newtab-search">
             <div className="spotlight-scope-icon" aria-hidden="true">
@@ -387,7 +419,6 @@ export function NewTabApp() {
           {/* ── Content: Dashboard (idle) or Results (searching) ── */}
           {isIdle && !graphFocusMode ? (
             <div className="newtab-island-panel">
-              <QuickActions onAction={(filter) => search.setQuery(filter)} />
               <DashboardView
                 bookmarks={bookmarks}
                 recentQueries={search.recentQueries}
@@ -395,6 +426,7 @@ export function NewTabApp() {
                 onQueryChange={search.setQuery}
                 onActivate={act.handleActivate}
               />
+              <QuickActions onAction={(filter) => search.setQuery(filter)} />
             </div>
           ) : !graphFocusMode ? (
             <div className="newtab-island-panel">
