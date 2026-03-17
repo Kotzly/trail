@@ -10,6 +10,9 @@ import type { NodeId } from '@shared/types/ids.js';
 import type { TreeViewIntent } from '@shared/rpc/contracts.js';
 import { sendToParent, onParentMessage } from '../../spotlight/spotlight-ipc.js';
 
+const urlParams = new URLSearchParams(window.location.search);
+const compactFromUrl = urlParams.get('compact') !== '0';
+
 export default function SpotlightGraphApp() {
   useBootstrap();
   listenSystemTheme();
@@ -224,7 +227,12 @@ export default function SpotlightGraphApp() {
 
   return (
     <div className="container" style={{ width: '100%', height: '100%' }}>
-      <GraphArea onNodeActivate={handleNodeActivate} showControls={false} compactInitialView />
+      <GraphArea
+        onNodeActivate={handleNodeActivate}
+        showControls={false}
+        compactInitialView={compactFromUrl}
+        initialCenterNodeId={compactFromUrl ? currentNodeId ?? undefined : undefined}
+      />
     </div>
   );
 }

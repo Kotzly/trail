@@ -21,6 +21,7 @@ import { browser } from '@shared/platform/webext.js';
 import { useBookmarks } from './useBookmarks.js';
 import { DashboardView } from './DashboardView.js';
 import { QuickActions } from './QuickActions.js';
+import { SearchDefaults } from './SearchDefaults.js';
 import type { SpotlightActionId, SpotlightBatchActionId, SpotlightMode, SpotlightSearchResult } from '../../../spotlight/types.js';
 import type { SpotlightNodeTarget } from '../../../spotlight/useSpotlightPreview.js';
 import type { NodeId } from '@shared/types/ids.js';
@@ -77,7 +78,6 @@ export function NewTabApp() {
   const [selectedFocusPane, setSelectedFocusPane] = useState<'list' | 'graph'>('list');
   const [helpOpen, setHelpOpen] = useState(false);
   const [hoveredGraphTarget, setHoveredGraphTarget] = useState<SpotlightNodeTarget | null>(null);
-  const [selectionIntentId, setSelectionIntentId] = useState(0);
   const [drilldownScope, setDrilldownScope] = useState<{ treeId: string; treeName: string } | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [graphFocusMode, setGraphFocusMode] = useState(false);
@@ -93,7 +93,11 @@ export function NewTabApp() {
   const rootRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const graphBgRef = useRef<HTMLDivElement>(null);
-  const lastCommittedKeyRef = useRef<string | null>(null);
+
+  // ─── Drag position (must be before parallax effect that reads these) ───
+  const [initDragPos] = useState(loadDragPos);
+  const dragX = useMotionValue(initDragPos?.x ?? 0);
+  const dragY = useMotionValue(initDragPos?.y ?? 0);
 
   // ─── Domain hooks ───
   const search = useSpotlightSearch({ isOpen: true, drilldownScopeTreeId: drilldownScope?.treeId ?? null });
@@ -150,26 +154,33 @@ export function NewTabApp() {
     return () => browser.runtime.onMessage.removeListener(handler);
   }, []);
 
-  // Mouse parallax — shifts graph bg opposite to cursor for depth.
-  // Loop auto-stops when converged, restarts on next mousemove.
+  // Mouse parallax + island drag drift — shifts graph bg for depth.
+  // Also drifts graph opposite to island drag position.
+  // Loop auto-stops when converged, restarts on mousemove or drag change.
   useEffect(() => {
-    const target = { x: 0, y: 0 };
+    const mouseTarget = { x: 0, y: 0 };
     const current = { x: 0, y: 0 };
     const MAX_X = 20;
     const MAX_Y = 14;
+    const DRAG_SCALE = -0.08; // inverted: island left → graph right
     const EASE = 0.12;
-    const SETTLE_THRESHOLD = 0.1; // px — stop loop when both axes within this
+    const SETTLE_THRESHOLD = 0.1;
     let rafId: number | null = null;
     let running = false;
 
-    const update = () => {
-      current.x += (target.x - current.x) * EASE;
-      current.y += (target.y - current.y) * EASE;
+    const getTarget = () => ({
+      x: mouseTarget.x + dragX.get() * DRAG_SCALE,
+      y: mouseTarget.y + dragY.get() * DRAG_SCALE * 0.5,
+    });
 
-      // Stop loop when converged to avoid continuous recomposites
-      if (Math.abs(target.x - current.x) < SETTLE_THRESHOLD && Math.abs(target.y - current.y) < SETTLE_THRESHOLD) {
-        current.x = target.x;
-        current.y = target.y;
+    const update = () => {
+      const t = getTarget();
+      current.x += (t.x - current.x) * EASE;
+      current.y += (t.y - current.y) * EASE;
+
+      if (Math.abs(t.x - current.x) < SETTLE_THRESHOLD && Math.abs(t.y - current.y) < SETTLE_THRESHOLD) {
+        current.x = t.x;
+        current.y = t.y;
         running = false;
         rafId = null;
       } else {
@@ -189,18 +200,24 @@ export function NewTabApp() {
     };
 
     const onMove = (e: MouseEvent) => {
-      target.x = (e.clientX / window.innerWidth - 0.5) * -MAX_X * 2;
-      target.y = (e.clientY / window.innerHeight - 0.5) * -MAX_Y * 2;
+      mouseTarget.x = (e.clientX / window.innerWidth - 0.5) * -MAX_X * 2;
+      mouseTarget.y = (e.clientY / window.innerHeight - 0.5) * -MAX_Y * 2;
       startLoop();
     };
 
     window.addEventListener('mousemove', onMove, { passive: true });
 
+    // Subscribe to drag value changes so graph drifts while dragging
+    const unsubX = dragX.on('change', startLoop);
+    const unsubY = dragY.on('change', startLoop);
+
     return () => {
       window.removeEventListener('mousemove', onMove);
+      unsubX();
+      unsubY();
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [dragX, dragY]);
 
   // Cmd+G: toggle graph focus mode
   useEffect(() => {
@@ -264,13 +281,6 @@ export function NewTabApp() {
     if (response.statusText) act.setStatusText(response.statusText);
     setSelectedKeys(new Set());
   }, [multiSelectedItems, act]);
-
-  // ─── Selection intent (for graph sync) ───
-  useEffect(() => {
-    if (selectedKey === lastCommittedKeyRef.current) return;
-    lastCommittedKeyRef.current = selectedKey;
-    setSelectionIntentId((c) => c + 1);
-  }, [selectedKey]);
 
   // ─── Graph node resolution ───
   const selectedNodeTarget = resolveNodeTarget(selectedItem);
@@ -339,11 +349,6 @@ export function NewTabApp() {
     ? 'newtab-island-anchor newtab-island-anchor--graph-focus'
     : 'newtab-island-anchor newtab-island-anchor--idle';
 
-  // ─── Drag position ───
-  const [initDragPos] = useState(loadDragPos);
-  const dragX = useMotionValue(initDragPos?.x ?? 0);
-  const dragY = useMotionValue(initDragPos?.y ?? 0);
-
   // ─── Render ───
   return (
     <div className="newtab" ref={rootRef}>
@@ -352,7 +357,8 @@ export function NewTabApp() {
         <SpotlightGraphFrame
           activeTreeId={activeTreeId} previewData={preview.graphPreviewData}
           selectedNodeId={graphSelectedNodeId} highlightNodeId={graphHighlightNodeId}
-          selectionIntentId={selectionIntentId}
+          selectionIntentId={0}
+          compactInitialView={false}
           onNavigate={(treeId, nodeId) => {
             const aid: SpotlightActionId = activeTreeId && treeId !== activeTreeId ? 'open-node-in-tree' : 'open';
             void act.handleExecuteAction(aid, { kind: 'node', nodeId, treeId }, aid === 'open-node-in-tree' ? 'Opened in tree' : 'Opened');
@@ -449,14 +455,13 @@ export function NewTabApp() {
 
               {/* ── Results list ── */}
               <div className="newtab-list">
+                {search.loading && <div className="newtab-loading-bar" />}
                 {search.sessionError ? (
                   <div className="spotlight-empty" role="alert">Connection lost. Reload to retry.</div>
                 ) : helpOpen ? (
                   <SpotlightHelp open />
-                ) : search.loading ? (
-                  <div className="newtab-shimmer" style={{ margin: '12px' }} />
                 ) : search.sections.length === 0 ? (
-                  <Command.Empty className="spotlight-empty">No results found</Command.Empty>
+                  <SearchDefaults query={search.query} onSetQuery={search.setQuery} />
                 ) : (
                   <SpotlightResults
                     listRef={listRef}

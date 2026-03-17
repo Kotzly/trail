@@ -17,9 +17,11 @@ type GraphAreaProps = {
   showControls?: boolean;
   /** Limit initial zoom to ~25×36 nodes (Spotlight mode). */
   compactInitialView?: boolean;
+  /** When set, center the initial compact view on this node instead of recency centroid. */
+  initialCenterNodeId?: NodeId | undefined;
 };
 
-export default function GraphArea({ onNodeActivate, showControls = true, compactInitialView = false }: GraphAreaProps = {}) {
+export default function GraphArea({ onNodeActivate, showControls = true, compactInitialView = false, initialCenterNodeId }: GraphAreaProps = {}) {
   const [qualityPolicyState, setQualityPolicyState] = React.useState(() =>
     createQualityPolicyState(Date.now()),
   );
@@ -147,6 +149,7 @@ export default function GraphArea({ onNodeActivate, showControls = true, compact
         {...(onNodeActivate ? { onNodeActivate } : {})}
         showControls={showControls}
         compactInitialView={compactInitialView}
+        initialCenterNodeId={initialCenterNodeId}
       />
     </Suspense>
   );

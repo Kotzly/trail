@@ -106,6 +106,8 @@ export type GraphCanvasProps = {
   showControls: boolean;
   /** Limit initial zoom so at most ~25×36 nodes are visible (Spotlight mode). */
   compactInitialView?: boolean;
+  /** When set, center the initial compact view on this node instead of recency centroid. */
+  initialCenterNodeId?: NodeId | undefined;
   /** When set, called instead of the default navigateTo on node click. */
   onNodeActivate?: (nodeId: NodeId, url: string) => void;
 };

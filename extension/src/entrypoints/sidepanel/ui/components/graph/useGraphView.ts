@@ -16,6 +16,7 @@ type UseGraphViewParams = {
   nodeWidth: number;
   nodeHeight: number;
   compactInitialView: boolean;
+  initialCenterNodeId: NodeId | null;
   nodeRecency: Record<string, number>;
   currentNodeId: NodeId | null;
   root: { id: NodeId } | null;
@@ -40,6 +41,7 @@ export function useGraphView({
   nodeWidth,
   nodeHeight,
   compactInitialView,
+  initialCenterNodeId,
   nodeRecency,
   currentNodeId,
   root,
@@ -423,6 +425,22 @@ export function useGraphView({
     if (!root || didInitView.current) return;
     didInitView.current = true;
     if (compactInitialView) {
+      // If a specific node is requested, center on it with the compact scale
+      if (initialCenterNodeId && positions.has(initialCenterNodeId)) {
+        const fitView = getFitToViewView();
+        const centered = getCenteredView(initialCenterNodeId);
+        if (fitView && centered) {
+          const view = { translateX: centered.translateX, translateY: centered.translateY, scale: fitView.scale };
+          cancelViewAnimation();
+          viewRef.current = view;
+          onGraphViewChange(view);
+          rendererRef.current?.setView(view);
+          applyGridTransform(view);
+          driftStartRef.current = performance.now();
+          return;
+        }
+      }
+      // Fall back to recency centroid
       const centroidView = getRecencyCentroidView();
       if (centroidView) {
         cancelViewAnimation();
@@ -438,7 +456,7 @@ export function useGraphView({
     if (compactInitialView) {
       driftStartRef.current = performance.now();
     }
-  }, [bounds.height, bounds.width, fitToView, root, compactInitialView, getRecencyCentroidView, cancelViewAnimation, onGraphViewChange, rendererRef, applyGridTransform]);
+  }, [bounds.height, bounds.width, fitToView, root, compactInitialView, initialCenterNodeId, getRecencyCentroidView, getCenteredView, getFitToViewView, cancelViewAnimation, onGraphViewChange, rendererRef, applyGridTransform, positions]);
 
   // Lissajous drift — visual-only offset layer (newtab only).
   // NEVER writes to viewRef — only shifts the rendered view.

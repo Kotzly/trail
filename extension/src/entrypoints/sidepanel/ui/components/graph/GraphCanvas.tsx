@@ -133,6 +133,7 @@ export default function GraphCanvas({
   recencyOrderingV2Enabled,
   showControls,
   compactInitialView = false,
+  initialCenterNodeId,
   onNodeActivate,
 }: GraphCanvasProps) {
   const searchActive = search.active;
@@ -545,8 +546,8 @@ export default function GraphCanvas({
     cancelViewAnimation, animateViewTo, fitToView, centerOnNode, zoomAt, zoom,
   } = useGraphView({
     graphView, onGraphViewChange, rendererRef, bounds, positions,
-    nodeWidth, nodeHeight, compactInitialView, nodeRecency,
-    currentNodeId, root, viewIntent: viewIntent ?? null, onClearViewIntent,
+    nodeWidth, nodeHeight, compactInitialView, initialCenterNodeId: initialCenterNodeId ?? null,
+    nodeRecency, currentNodeId, root, viewIntent: viewIntent ?? null, onClearViewIntent,
     isDraggingNode, searchActive, searchNavStep, focusedSearchId: search.results[search.index],
     resetVersion, layoutMode: layoutOptions.mode,
     isPanningRef, isSelectingRef,

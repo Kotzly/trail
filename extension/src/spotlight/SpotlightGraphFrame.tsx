@@ -12,6 +12,8 @@ type SpotlightGraphFrameProps = {
   highlightNodeId: NodeId | null;
   selectionIntentId: number;
   searchMatchNodeIds?: NodeId[] | undefined;
+  /** Show full tree (fitToView) instead of compact zoomed-in view. Default: true (compact). */
+  compactInitialView?: boolean;
   onNavigate: (treeId: string, nodeId: NodeId, url: Url) => void;
   onHoverNode: (treeId: string, nodeId: NodeId | null) => void;
   onEscapeKey?: () => void;
@@ -24,6 +26,7 @@ export function SpotlightGraphFrame({
   highlightNodeId,
   selectionIntentId,
   searchMatchNodeIds,
+  compactInitialView = true,
   onNavigate,
   onHoverNode,
   onEscapeKey,
@@ -80,7 +83,8 @@ export function SpotlightGraphFrame({
     }
   }, [activeTreeId, highlightNodeId, previewData, searchMatchNodeIds, selectedNodeId, selectionIntentId, sendContext]);
 
-  const src = runtimeGetURL('spotlight-graph.html');
+  let src = runtimeGetURL('spotlight-graph.html');
+  if (!compactInitialView) src += '?compact=0';
 
   return (
     <>
