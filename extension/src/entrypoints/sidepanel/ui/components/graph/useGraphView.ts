@@ -444,63 +444,9 @@ export function useGraphView({
   // NEVER writes to viewRef — only shifts the rendered view.
   // When user interaction starts, absorbDriftOffset folds offset into viewRef.
   useEffect(() => {
-    if (!compactInitialView) return;
-
-    const AMPLITUDE = 60;    // px in graph space
-    const PERIOD_X = 45;     // seconds
-    const PERIOD_Y = 35;     // seconds (irrational ratio → no exact repeat)
-    const PHASE_Y = Math.PI / 4;
-
-    const tick = (now: number) => {
-      // Skip before initial view is set
-      if (!didInitView.current) {
-        driftRafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-
-      // Pause during any user interaction (pointer, wheel, programmatic animation)
-      if (
-        isPanningRef.current || isSelectingRef.current
-        || viewAnimationRef.current !== null
-        || now < driftCooldownUntilRef.current
-      ) {
-        // Reset phase so drift restarts smoothly from 0 when interaction ends
-        driftStartRef.current = now;
-        driftOffsetRef.current = { x: 0, y: 0 };
-        driftRafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-
-      const t = (now - driftStartRef.current) / 1000;
-      const scale = viewRef.current.scale;
-      const ox = AMPLITUDE * Math.sin((t * 2 * Math.PI) / PERIOD_X) * scale;
-      const oy = AMPLITUDE * Math.sin((t * 2 * Math.PI) / PERIOD_Y + PHASE_Y) * scale;
-
-      const prev = driftOffsetRef.current;
-      // Only update renderer when offset changed visibly (> 0.3px on screen)
-      if (Math.abs(ox - prev.x) > 0.3 || Math.abs(oy - prev.y) > 0.3) {
-        driftOffsetRef.current = { x: ox, y: oy };
-        const renderView: ViewState = {
-          translateX: viewRef.current.translateX + ox,
-          translateY: viewRef.current.translateY + oy,
-          scale,
-        };
-        // Only update renderer & grid — do NOT touch viewRef or store
-        rendererRef.current?.setView(renderView);
-        applyGridTransform(renderView);
-      }
-
-      driftRafRef.current = requestAnimationFrame(tick);
-    };
-
-    driftRafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (driftRafRef.current !== null) {
-        cancelAnimationFrame(driftRafRef.current);
-        driftRafRef.current = null;
-      }
-    };
+    // Lissajous drift disabled — continuous 60fps RAF loop burned CPU/GPU
+    // for a barely-visible ambient effect. Static graph is fine.
+    return;
   }, [compactInitialView, applyGridTransform, isPanningRef, isSelectingRef, rendererRef]);
 
   // View intent handling

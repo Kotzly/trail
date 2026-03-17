@@ -199,33 +199,17 @@ export class SpotlightService {
     const seen = new Set<string>();
     const sections: SpotlightSection[] = [];
     const activeNodeDocs = snapshot.nodeDocs.filter((doc) => doc.treeId === snapshot.activeTreeId);
-    const currentDoc = snapshot.currentNodeId
-      ? activeNodeDocs.find((doc) => doc.nodeId === snapshot.currentNodeId) ?? null
-      : null;
 
+    // "Pick Up Where You Left Off" — show all recently-active open tabs,
+    // not just tree-position relatives. Filter out the newtab page itself.
+    const recentOpenTabDocs = [...activeNodeDocs]
+      .filter((doc) => doc.tabCount > 0 && !doc.url?.endsWith('/newtab.html'))
+      .sort(compareNodeDocsByPriority);
     const continueDocs: SpotlightNodeResult[] = [];
-    if (currentDoc) {
-      pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, currentDoc, 0, []));
-      if (currentDoc.parentId) {
-        const parentDoc = activeNodeDocs.find((doc) => doc.nodeId === currentDoc.parentId) ?? null;
-        if (parentDoc) {
-          pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, parentDoc, 0, []));
-        }
-      }
-      const childDoc = [...activeNodeDocs]
-        .filter((doc) => doc.parentId === currentDoc.nodeId)
-        .sort(compareNodeDocsByPriority)[0];
-      if (childDoc) {
-        pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, childDoc, 0, []));
-      }
-      const siblingDoc = [...activeNodeDocs]
-        .filter((doc) => doc.parentId === currentDoc.parentId && doc.nodeId !== currentDoc.nodeId)
-        .sort(compareNodeDocsByPriority)[0];
-      if (siblingDoc && continueDocs.length < 4) {
-        pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, siblingDoc, 0, []));
-      }
+    for (const doc of recentOpenTabDocs.slice(0, 12)) {
+      pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, doc, 0, []));
     }
-    appendSectionIfAny(sections, 'continue', continueDocs.slice(0, 4));
+    appendSectionIfAny(sections, 'continue', continueDocs);
 
     const openTabs = await this.mapNodes(
       snapshot,

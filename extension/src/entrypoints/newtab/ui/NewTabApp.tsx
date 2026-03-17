@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
 import { Search, ChevronRight, FolderOpen } from 'lucide-react';
-import { AnimatePresence, motion, useMotionValue } from 'motion/react';
+import { motion, useMotionValue } from 'motion/react';
 import { SpotlightGraphFrame } from '../../../spotlight/SpotlightGraphFrame.js';
 import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from '../../../spotlight/SpotlightHintRow.js';
 import { SpotlightHelp } from '../../../spotlight/SpotlightHelp.js';
@@ -131,7 +131,7 @@ export function NewTabApp() {
     const current = { x: 0, y: 0 };
     const MAX_X = 20;
     const MAX_Y = 14;
-    const EASE = 0.04;
+    const EASE = 0.12;
     const SETTLE_THRESHOLD = 0.1; // px — stop loop when both axes within this
     let rafId: number | null = null;
     let running = false;
@@ -359,7 +359,7 @@ export function NewTabApp() {
             className="newtab-island"
           >
           {/* ── Search bar ── */}
-          <motion.div className="spotlight-search newtab-search" layout="position" transition={{ duration: 0.25 }}>
+          <div className="spotlight-search newtab-search">
             <div className="spotlight-scope-icon" aria-hidden="true">
               {spotlightMode === 'commands' ? (
                 <ChevronRight size={15} strokeWidth={1.8} />
@@ -382,84 +382,68 @@ export function NewTabApp() {
                 </span>
               )}
             </div>
-          </motion.div>
+          </div>
 
           {/* ── Content: Dashboard (idle) or Results (searching) ── */}
-          <AnimatePresence mode="wait">
-            {isIdle && !graphFocusMode ? (
-              <motion.div
-                key="dashboard"
-                className="newtab-island-panel"
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.2 }}
-              >
-                <QuickActions onAction={(filter) => search.setQuery(filter)} />
-                <DashboardView
-                  bookmarks={bookmarks}
-                  recentQueries={search.recentQueries}
-                  continueItems={continueItems}
-                  onQueryChange={search.setQuery}
-                  onActivate={act.handleActivate}
-                />
-              </motion.div>
-            ) : !graphFocusMode ? (
-              <motion.div
-                key="results"
-                className="newtab-island-panel"
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.15 }}
-              >
-                {/* ── Breadcrumb ── */}
-                {drilldownScope && (
-                  <div className="spotlight-breadcrumb">
-                    <button type="button" className="spotlight-breadcrumb-back" onClick={act.exitDrilldown} tabIndex={-1} aria-label="Exit drilldown">
-                      ←
-                    </button>
-                    <span className="spotlight-breadcrumb-label">{drilldownScope.treeName}</span>
-                  </div>
+          {isIdle && !graphFocusMode ? (
+            <div className="newtab-island-panel">
+              <QuickActions onAction={(filter) => search.setQuery(filter)} />
+              <DashboardView
+                bookmarks={bookmarks}
+                recentQueries={search.recentQueries}
+                continueItems={continueItems}
+                onQueryChange={search.setQuery}
+                onActivate={act.handleActivate}
+              />
+            </div>
+          ) : !graphFocusMode ? (
+            <div className="newtab-island-panel">
+              {/* ── Breadcrumb ── */}
+              {drilldownScope && (
+                <div className="spotlight-breadcrumb">
+                  <button type="button" className="spotlight-breadcrumb-back" onClick={act.exitDrilldown} tabIndex={-1} aria-label="Exit drilldown">
+                    ←
+                  </button>
+                  <span className="spotlight-breadcrumb-label">{drilldownScope.treeName}</span>
+                </div>
+              )}
+
+              {/* ── A11y live region ── */}
+              <div aria-live="polite" aria-atomic="true" style={SR_ONLY}>
+                {!search.loading && search.sections.length > 0
+                  ? `${flatItems.length} result${flatItems.length === 1 ? '' : 's'} found`
+                  : !search.loading && search.query && search.sections.length === 0 ? 'No results found' : ''}
+              </div>
+
+              {/* ── Results list ── */}
+              <div className="newtab-list">
+                {search.sessionError ? (
+                  <div className="spotlight-empty" role="alert">Connection lost. Reload to retry.</div>
+                ) : helpOpen ? (
+                  <SpotlightHelp open />
+                ) : search.loading ? (
+                  <div className="newtab-shimmer" style={{ margin: '12px' }} />
+                ) : search.sections.length === 0 ? (
+                  <Command.Empty className="spotlight-empty">No results found</Command.Empty>
+                ) : (
+                  <SpotlightResults
+                    listRef={listRef}
+                    sections={search.sections}
+                    selectedKey={selectedKey}
+                    selectedKeys={selectedKeys}
+                    collapsedSections={act.collapsedSections}
+                    indicatorPos={indicatorPos}
+                    activeTreeId={activeTreeId}
+                    drilldownTransition={act.drilldownTransition}
+                    onToggleSection={handleToggleSection}
+                    onSelect={setSelectedKey}
+                    onActivate={act.handleActivate}
+                    onInlineAction={act.handleInlineAction}
+                  />
                 )}
-
-                {/* ── A11y live region ── */}
-                <div aria-live="polite" aria-atomic="true" style={SR_ONLY}>
-                  {!search.loading && search.sections.length > 0
-                    ? `${flatItems.length} result${flatItems.length === 1 ? '' : 's'} found`
-                    : !search.loading && search.query && search.sections.length === 0 ? 'No results found' : ''}
-                </div>
-
-                {/* ── Results list ── */}
-                <div className="newtab-list">
-                  {search.sessionError ? (
-                    <div className="spotlight-empty" role="alert">Connection lost. Reload to retry.</div>
-                  ) : helpOpen ? (
-                    <SpotlightHelp open />
-                  ) : search.loading ? (
-                    <div className="newtab-shimmer" style={{ margin: '12px' }} />
-                  ) : search.sections.length === 0 ? (
-                    <Command.Empty className="spotlight-empty">No results found</Command.Empty>
-                  ) : (
-                    <SpotlightResults
-                      listRef={listRef}
-                      sections={search.sections}
-                      selectedKey={selectedKey}
-                      selectedKeys={selectedKeys}
-                      collapsedSections={act.collapsedSections}
-                      indicatorPos={indicatorPos}
-                      activeTreeId={activeTreeId}
-                      drilldownTransition={act.drilldownTransition}
-                      onToggleSection={handleToggleSection}
-                      onSelect={setSelectedKey}
-                      onActivate={act.handleActivate}
-                      onInlineAction={act.handleInlineAction}
-                    />
-                  )}
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+              </div>
+            </div>
+          ) : null}
 
           {/* ── Batch bar ── */}
           {isMultiSelect && (

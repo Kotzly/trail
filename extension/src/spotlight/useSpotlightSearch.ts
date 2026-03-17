@@ -21,10 +21,10 @@ const BACKOFF_DELAYS = [200, 800, 2000] as const;
 const SESSION_MEMORY_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 function computeDebounceMs(docCount: number): number {
-  if (docCount < 200) return 0;
-  if (docCount < 1000) return 40;
-  if (docCount < 5000) return 80;
-  return 150;
+  if (docCount < 500) return 0;
+  if (docCount < 2000) return 20;
+  if (docCount < 5000) return 40;
+  return 80;
 }
 
 // ---------------------------------------------------------------------------

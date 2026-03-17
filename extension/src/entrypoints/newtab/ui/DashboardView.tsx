@@ -66,10 +66,10 @@ function BookmarksCard({
             {bm.url && (
               <img
                 className="newtab-bento-item-icon"
-                src={getFaviconUrl(bm.url as Url, 16)}
+                src={getFaviconUrl(bm.url as Url, 20)}
                 alt=""
-                width={16}
-                height={16}
+                width={20}
+                height={20}
               />
             )}
             <span className="newtab-bento-item-text">{bm.title}</span>
@@ -108,7 +108,7 @@ function ContinueCard({
               {url && (
                 <img
                   className="newtab-bento-item-icon"
-                  src={getFaviconUrl(url as Url, 16)}
+                  src={getFaviconUrl(url as Url, 20)}
                   alt=""
                   width={16}
                   height={16}
