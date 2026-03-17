@@ -17,18 +17,6 @@ type DashboardViewProps = {
 };
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function domainOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return url;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Time helpers
 // ---------------------------------------------------------------------------
 
@@ -102,13 +90,13 @@ function ContinueCard({
   if (items.length === 0) return null;
 
   return (
-    <div className="newtab-bento-card newtab-bento-card--wide">
+    <div className="newtab-bento-card">
       <div className="newtab-bento-card-title">Pick Up Where You Left Off</div>
-      <div className="newtab-bento-continue-grid">
+      <div className="newtab-bento-continue-list">
         {items.map((item) => {
           const url = item.kind === 'node' ? item.url : item.kind === 'tree' ? item.rootUrl : undefined;
           const title = item.kind === 'action' ? item.title : item.kind === 'node' ? item.title : item.treeName;
-          const subtitle = item.kind === 'action' ? item.subtitle : item.kind === 'node' ? domainOf(item.url) : '';
+          const subtitle = item.kind === 'action' ? item.subtitle : item.kind === 'node' ? item.url : '';
 
           return (
             <button
@@ -194,8 +182,8 @@ export function DashboardView({
     <div className="newtab-dashboard">
       <Greeting time={time} text={greeting} />
       <div className="newtab-bento">
-        <ContinueCard items={continueItems} onActivate={onActivate} />
         <BookmarksCard bookmarks={bookmarks} />
+        <ContinueCard items={continueItems} onActivate={onActivate} />
         <RecentSearchesCard queries={recentQueries} onQueryChange={onQueryChange} />
       </div>
     </div>

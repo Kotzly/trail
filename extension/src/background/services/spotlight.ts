@@ -22,8 +22,9 @@ import {
   type SpotlightTreeRelation,
   type SpotlightTreeResult,
 } from '@shared/rpc/contracts.js';
-import type { NodeId } from '@shared/types/ids.js';
+import type { NodeId, Url } from '@shared/types/ids.js';
 import { getAllFlags } from './flags.js';
+import { isNewTabUrl } from '../utils/url-utils.js';
 import {
   computeGraphBoosts,
   spotlightLiveIndex,
@@ -201,9 +202,11 @@ export class SpotlightService {
     const activeNodeDocs = snapshot.nodeDocs.filter((doc) => doc.treeId === snapshot.activeTreeId);
 
     // "Pick Up Where You Left Off" — show all recently-active open tabs,
-    // not just tree-position relatives. Filter out the newtab page itself.
+    // not just tree-position relatives. Filter out newtab pages.
     const recentOpenTabDocs = [...activeNodeDocs]
-      .filter((doc) => doc.tabCount > 0 && !doc.url?.endsWith('/newtab.html'))
+      .filter((doc) => doc.tabCount > 0
+        && !isNewTabUrl(doc.url as Url)
+        && !doc.title.toLowerCase().includes('new tab'))
       .sort(compareNodeDocsByPriority);
     const continueDocs: SpotlightNodeResult[] = [];
     for (const doc of recentOpenTabDocs.slice(0, 30)) {
