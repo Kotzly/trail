@@ -17,6 +17,18 @@ type DashboardViewProps = {
 };
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function domainOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Time helpers
 // ---------------------------------------------------------------------------
 
@@ -90,13 +102,13 @@ function ContinueCard({
   if (items.length === 0) return null;
 
   return (
-    <div className="newtab-bento-card">
+    <div className="newtab-bento-card newtab-bento-card--wide">
       <div className="newtab-bento-card-title">Pick Up Where You Left Off</div>
-      <div className="newtab-bento-continue-list">
+      <div className="newtab-bento-continue-grid">
         {items.map((item) => {
           const url = item.kind === 'node' ? item.url : item.kind === 'tree' ? item.rootUrl : undefined;
           const title = item.kind === 'action' ? item.title : item.kind === 'node' ? item.title : item.treeName;
-          const subtitle = item.kind === 'action' ? item.subtitle : item.kind === 'node' ? item.url : '';
+          const subtitle = item.kind === 'action' ? item.subtitle : item.kind === 'node' ? domainOf(item.url) : '';
 
           return (
             <button
@@ -110,8 +122,8 @@ function ContinueCard({
                   className="newtab-bento-item-icon"
                   src={getFaviconUrl(url as Url, 20)}
                   alt=""
-                  width={16}
-                  height={16}
+                  width={20}
+                  height={20}
                 />
               )}
               <span className="newtab-bento-item-text">
@@ -182,8 +194,8 @@ export function DashboardView({
     <div className="newtab-dashboard">
       <Greeting time={time} text={greeting} />
       <div className="newtab-bento">
-        <BookmarksCard bookmarks={bookmarks} />
         <ContinueCard items={continueItems} onActivate={onActivate} />
+        <BookmarksCard bookmarks={bookmarks} />
         <RecentSearchesCard queries={recentQueries} onQueryChange={onQueryChange} />
       </div>
     </div>

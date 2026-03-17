@@ -206,7 +206,7 @@ export class SpotlightService {
       .filter((doc) => doc.tabCount > 0 && !doc.url?.endsWith('/newtab.html'))
       .sort(compareNodeDocsByPriority);
     const continueDocs: SpotlightNodeResult[] = [];
-    for (const doc of recentOpenTabDocs.slice(0, 12)) {
+    for (const doc of recentOpenTabDocs.slice(0, 30)) {
       pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, doc, 0, []));
     }
     appendSectionIfAny(sections, 'continue', continueDocs);

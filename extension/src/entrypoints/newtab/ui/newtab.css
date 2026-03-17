@@ -350,17 +350,24 @@ body {
   display: none;
 }
 
-/* Continue items scroll wrapper */
-.newtab-bento-continue-list {
-  display: flex;
-  flex-direction: column;
-  max-height: 200px;
+/* Continue items: 2-column grid for density */
+.newtab-bento-continue-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  max-height: 280px;
   overflow-y: auto;
   scrollbar-width: none;
 }
 
-.newtab-bento-continue-list::-webkit-scrollbar {
+.newtab-bento-continue-grid::-webkit-scrollbar {
   display: none;
+}
+
+@media (max-width: 600px) {
+  .newtab-bento-continue-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Recent search pills */
