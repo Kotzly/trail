@@ -13,6 +13,45 @@ export type GraphSnapshot = {
   readonly showConnections: boolean;
 };
 
+export type SnapshotDiff = {
+  readonly added: readonly NodeRenderModel[];
+  readonly removed: readonly NodeId[];
+  readonly moved: readonly NodeRenderModel[];
+};
+
+export function diffSnapshots(
+  prev: GraphSnapshot,
+  next: GraphSnapshot,
+): SnapshotDiff {
+  const prevById = new Map<NodeId, NodeRenderModel>();
+  for (const node of prev.nodes) prevById.set(node.id, node);
+
+  const nextById = new Map<NodeId, NodeRenderModel>();
+  for (const node of next.nodes) nextById.set(node.id, node);
+
+  const added: NodeRenderModel[] = [];
+  const moved: NodeRenderModel[] = [];
+  const removed: NodeId[] = [];
+
+  for (const node of next.nodes) {
+    const old = prevById.get(node.id);
+    if (!old) {
+      added.push(node);
+    } else if (old.x !== node.x || old.y !== node.y) {
+      moved.push(node);
+    }
+    // Nodes at same position with same id are unchanged — skip
+  }
+
+  for (const node of prev.nodes) {
+    if (!nextById.has(node.id)) {
+      removed.push(node.id);
+    }
+  }
+
+  return { added, removed, moved };
+}
+
 export function createGraphSnapshot(params: {
   version: number;
   nodes: NodeRenderModel[];

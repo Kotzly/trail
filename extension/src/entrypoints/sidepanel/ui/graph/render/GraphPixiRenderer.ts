@@ -17,7 +17,7 @@ import {
 import { diffSelection, shouldEmitPreview } from '../../components/graph/selection-utils.js';
 import { hasRuntimeGetURL, runtimeGetURL } from '@shared/platform/webext.js';
 import { graphProfiler } from './graph-profiler.js';
-import { createGraphSnapshot, type GraphSnapshot } from './graph-snapshot.js';
+import { createGraphSnapshot, diffSnapshots, type GraphSnapshot } from './graph-snapshot.js';
 
 type DynamicGraphState = {
   nodes: NodeRenderModel[];
@@ -1191,6 +1191,60 @@ export class GraphPixiRenderer {
     }
     this.invalidateAll();
     graphProfiler.record('setStaticGraph', performance.now() - start);
+  }
+
+  patchStaticGraph(snapshot: GraphSnapshot) {
+    const start = performance.now();
+    const prevSnapshot: GraphSnapshot = {
+      ...this.data,
+      nodes: Array.from(this.nodeData.values()),
+    };
+    const diff = diffSnapshots(prevSnapshot, snapshot);
+
+    // Update stored data
+    this.data = { ...snapshot, particles: this.particles };
+    this.connections = [...snapshot.connections];
+    this.connectionsDirty = true;
+    this.lastConnectionViewRect = null;
+
+    // Patch nodeData and SpatialIndex incrementally
+    for (const id of diff.removed) {
+      this.nodeData.delete(id);
+      this.index.remove(id);
+      const visual = this.nodeMap.get(id);
+      if (visual) {
+        visual.destroy();
+        this.nodeMap.delete(id);
+      }
+    }
+
+    for (const node of diff.added) {
+      this.nodeData.set(node.id, node);
+      this.index.insert(node.id, {
+        minX: node.x,
+        minY: node.y,
+        maxX: node.x + node.width,
+        maxY: node.y + node.height,
+      });
+    }
+
+    for (const node of diff.moved) {
+      this.nodeData.set(node.id, node);
+      this.index.update(node.id, {
+        minX: node.x,
+        minY: node.y,
+        maxX: node.x + node.width,
+        maxY: node.y + node.height,
+      });
+    }
+
+    // Targeted invalidation (skip full invalidateAll)
+    this.cachedCullingRect = null;
+    this.needsRender = true;
+    this.updateVisible();
+    this.render();
+
+    graphProfiler.record('patchStaticGraph', performance.now() - start);
   }
 
   setDynamicState(state: DynamicGraphState) {
