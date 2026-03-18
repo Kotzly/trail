@@ -153,7 +153,7 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
   const tree = NavigationTreeMapper.fromJSON(treeJSON);
   editorSessionSnapshot = {
     treeId,
-    tree: NavigationTreeMapper.toJSON(tree),
+    tree: structuredClone(NavigationTreeMapper.toJSON(tree)),
   };
 
   const currentTree = await treeStorage.getOrCreateTree();

@@ -43,7 +43,7 @@ export function computeNodeScore(
 export function computeSubtreeScores(
   root: NavigationNode,
   nodeScores: Record<NodeId, number>,
-  getChildren: (node: NavigationNode) => NavigationNode[],
+  getChildren: (node: NavigationNode) => readonly NavigationNode[],
 ): Map<NodeId, number> {
   const result = new Map<NodeId, number>();
 
@@ -122,12 +122,12 @@ function balancedCenterOrder<T>(
  * resist displacement (budget = 1, only moved once per call).
  */
 export function incrementalCenterReorder(
-  children: NavigationNode[],
+  children: readonly NavigationNode[],
   scores: Map<NodeId, number>,
   previousOrder: NodeId[] | null | undefined,
   subtreeSpans?: Map<NodeId, number> | null,
 ): NavigationNode[] {
-  if (children.length <= 1) return children;
+  if (children.length <= 1) return [...children];
 
   const childMap = new Map<NodeId, NavigationNode>();
   for (const child of children) {
@@ -249,12 +249,12 @@ export function incrementalCenterReorder(
  * interchangeably via `reorderFn` in GraphCanvas.
  */
 export function incrementalClusterReorder(
-  children: NavigationNode[],
+  children: readonly NavigationNode[],
   scores: Map<NodeId, number>,
   _previousOrder?: NodeId[] | null,
   _subtreeSpans?: Map<NodeId, number> | null,
 ): NavigationNode[] {
-  if (children.length <= 1) return children;
+  if (children.length <= 1) return [...children];
   return [...children].sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
 }
 

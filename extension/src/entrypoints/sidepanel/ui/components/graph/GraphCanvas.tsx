@@ -263,8 +263,8 @@ export default function GraphCanvas({
     : incrementalCenterReorder;
 
   const sortChildrenForParentKey = useCallback(
-    (parentKey: string, children: NavigationNode[]): NavigationNode[] => {
-      if (!recencyOrderingV2Enabled || !subtreeScores || children.length <= 1) return children;
+    (parentKey: string, children: readonly NavigationNode[]): NavigationNode[] => {
+      if (!recencyOrderingV2Enabled || !subtreeScores || children.length <= 1) return [...children];
       const previousSiblingOrder = previousSiblingOrderRef.current.get(parentKey);
       const sorted = reorderFn(children, subtreeScores, previousSiblingOrder, subtreeSpans);
       previousSiblingOrderRef.current.set(parentKey, sorted.map((child: NavigationNode) => child.id));
@@ -328,12 +328,12 @@ export default function GraphCanvas({
         return calculateLayout(root, layoutOptions.tree, getVisibleChildren);
       case 'mindmap': {
         const sortWithinSide = subtreeScores
-          ? (children: NavigationNode[], side: 'left' | 'right') =>
+          ? (children: readonly NavigationNode[], side: 'left' | 'right') =>
               sortChildrenForParentKey(`${String(root.id)}:${side}`, children)
           : undefined;
         // Stable side assignment: remember which side each child was on
         const splitSides = recencyOrderingV2Enabled
-          ? (children: NavigationNode[], subtreeHeights: Map<NodeId, number>) => {
+          ? (children: readonly NavigationNode[], subtreeHeights: Map<NodeId, number>) => {
               const sideMap = mindmapSideRef.current;
               const left: NavigationNode[] = [];
               const right: NavigationNode[] = [];

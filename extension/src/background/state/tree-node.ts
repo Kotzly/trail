@@ -34,7 +34,7 @@ export class TreeNode<T> implements Timestamped {
     // addChild adds a child to this
     addChild(data: T): TreeNode<T> {
         const child = new TreeNode(data, this);
-        this.children.push(child);
+        this.children = [...this.children, child];
         return child;
     }
 
@@ -50,16 +50,20 @@ export class TreeNode<T> implements Timestamped {
             const prev = child.parent;
             const prevIndex = prev.children.indexOf(child);
             if (prevIndex !== -1) {
-                prev.children.splice(prevIndex, 1);
+                prev.removeChildAt(prevIndex);
             }
         }
 
         child.setParent(this);
         const idx = options?.index;
         if (typeof idx === "number" && idx >= 0 && idx <= this.children.length) {
-            this.children.splice(idx, 0, child);
+            this.children = [
+                ...this.children.slice(0, idx),
+                child,
+                ...this.children.slice(idx),
+            ];
         } else {
-            this.children.push(child);
+            this.children = [...this.children, child];
         }
     }
 
@@ -70,8 +74,8 @@ export class TreeNode<T> implements Timestamped {
         this.children = [];
         for (const child of kids) {
             child.setParent(target);
-            target.children.push(child);
         }
+        target.children = [...target.children, ...kids];
     }
 
     getParent(): TreeNode<T> | null {
@@ -82,15 +86,15 @@ export class TreeNode<T> implements Timestamped {
         if (!this.parent) {
             throw new Error("Node has no parent");
         }
-        
+
         const index = this.parent.children.indexOf(this);
         if (index !== -1) {
-            this.parent.getChildren().splice(index, 1);
+            this.parent.removeChildAt(index);
         }
-        for (const c of this.children) {
+        for (const c of [...this.children]) {
             c.setParent(this.parent);
-            this.parent.children.push(c);
         }
+        this.parent.appendChildren(this.children);
         this.children = [];
         this.parent = null;
     }
@@ -101,7 +105,7 @@ export class TreeNode<T> implements Timestamped {
         if (!this.parent) return;
         const index = this.parent.children.indexOf(this);
         if (index !== -1) {
-            this.parent.children.splice(index, 1);
+            this.parent.removeChildAt(index);
         }
         this.parent = null;
     }
@@ -110,8 +114,22 @@ export class TreeNode<T> implements Timestamped {
         this.parent = parent;
     }
 
-    getChildren(): TreeNode<T>[] {
-        return this.children;
+    getChildren(): readonly TreeNode<T>[] {
+        return Object.freeze([...this.children]);
+    }
+
+    /** Remove the child at the given index, returning a new internal array. */
+    removeChildAt(index: number): void {
+        if (index < 0 || index >= this.children.length) return;
+        this.children = [
+            ...this.children.slice(0, index),
+            ...this.children.slice(index + 1),
+        ];
+    }
+
+    /** Append children from an array (used by deserialization). */
+    appendChildren(nodes: TreeNode<T>[]): void {
+        this.children = [...this.children, ...nodes];
     }
 
     *iter(): IterableIterator<TreeNode<T>> {

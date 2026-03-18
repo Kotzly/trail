@@ -3,7 +3,7 @@ import type { NavigationNode } from '@shared/types/node.js';
 import type { LayoutConfig, NodePosition, CanvasBounds, RadialLayoutConfig } from '../types.js';
 import { PADDING } from './config.js';
 
-type GetChildren = (node: NavigationNode) => NavigationNode[];
+type GetChildren = (node: NavigationNode) => readonly NavigationNode[];
 
 type TidyNode = {
   node: NavigationNode;
@@ -252,8 +252,8 @@ export function calculateMindmapLayout(
   layoutConfig: LayoutConfig,
   getChildren: GetChildren = (node) => node.getChildren?.() ?? [],
   options?: {
-    sortWithinSide?: (children: NavigationNode[], side: 'left' | 'right') => NavigationNode[];
-    splitSides?: (children: NavigationNode[], subtreeHeights: Map<NodeId, number>) => { left: NavigationNode[]; right: NavigationNode[] };
+    sortWithinSide?: (children: readonly NavigationNode[], side: 'left' | 'right') => NavigationNode[];
+    splitSides?: (children: readonly NavigationNode[], subtreeHeights: Map<NodeId, number>) => { left: NavigationNode[]; right: NavigationNode[] };
   },
 ): { positions: Map<NodeId, NodePosition>, width: number } {
   const positions = new Map<NodeId, NodePosition>();

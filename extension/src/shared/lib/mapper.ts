@@ -55,7 +55,7 @@ export class TreeNodeMapper {
       const data = TreeNodeMapper.normalizeNodeData(json);
       const node = new TreeNode(data, parent, json.id);
   
-      node.getChildren().push(...(json.children ?? []).map(child => TreeNodeMapper.fromJSON(child, node)));
+      node.appendChildren((json.children ?? []).map(child => TreeNodeMapper.fromJSON(child, node)));
       return node;
     }
   
