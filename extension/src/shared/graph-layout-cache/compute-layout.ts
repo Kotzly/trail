@@ -1,6 +1,7 @@
 import type { NavigationTreeJSON } from '@shared/types/tree.js';
 import type { Settings } from '@shared/types/settings.js';
 import type { NodePosition } from '@entrypoints/sidepanel/ui/graph/types.js';
+import type { NavigationNode } from '@shared/types/node.js';
 import { NavigationTreeMapper } from '@shared/lib/mapper.js';
 import {
   calculateLayout,
@@ -10,6 +11,7 @@ import {
 } from '@entrypoints/sidepanel/ui/graph/layout/calculator.js';
 import { deriveLayoutOptions } from '@entrypoints/sidepanel/ui/graph/layout/options.js';
 import type { CachedLayoutResult, CachedNodePosition } from './types.js';
+import { computeCollapseSignature } from './types.js';
 import type { NodeId } from '@shared/types/ids.js';
 
 // ---------------------------------------------------------------------------
@@ -20,6 +22,8 @@ export function computeLayoutFromTree(
   treeJSON: NavigationTreeJSON,
   treeId: string,
   settings: Settings | null,
+  collapsedNodeIds?: ReadonlySet<NodeId>,
+  recencyOrdering?: boolean,
 ): CachedLayoutResult | null {
   const tree = NavigationTreeMapper.fromJSON(treeJSON);
   const root = tree.getRoot();
@@ -27,23 +31,32 @@ export function computeLayoutFromTree(
 
   const options = deriveLayoutOptions(settings);
 
-  // Compute layout using default child ordering (no recency reordering —
+  // Build a getVisibleChildren wrapper that filters out collapsed nodes
+  const collapsed = collapsedNodeIds ?? new Set<NodeId>();
+  const getVisibleChildren = collapsed.size > 0
+    ? (node: NavigationNode) => {
+        if (collapsed.has(node.id as NodeId)) return [];
+        return node.getChildren?.() ?? [];
+      }
+    : undefined;
+
+  // Compute layout using default child ordering (no recency reordering --
   // that requires stateful refs from GraphCanvas, which we skip here).
   let result: { positions: Map<NodeId, NodePosition>; width: number };
 
   switch (options.mode) {
     case 'tree':
-      result = calculateLayout(root, options.tree);
+      result = calculateLayout(root, options.tree, getVisibleChildren);
       break;
     case 'mindmap':
-      result = calculateMindmapLayout(root, options.mindmap);
+      result = calculateMindmapLayout(root, options.mindmap, getVisibleChildren);
       break;
     default:
-      result = calculateRadialLayout(root, options.radial, options.tree);
+      result = calculateRadialLayout(root, options.radial, options.tree, getVisibleChildren);
       break;
   }
 
-  // Serialize positions — strip `node` refs, keep only coordinates
+  // Serialize positions -- strip `node` refs, keep only coordinates
   const positions: Record<NodeId, CachedNodePosition> = {};
   let nodeCount = 0;
   for (const [id, pos] of result.positions) {
@@ -61,5 +74,7 @@ export function computeLayoutFromTree(
     positions,
     bounds: { minX: bounds.minX, minY: bounds.minY, maxX: bounds.maxX, maxY: bounds.maxY },
     width: result.width,
+    collapseSignature: computeCollapseSignature(collapsed),
+    recencyOrdering: recencyOrdering ?? false,
   };
 }
