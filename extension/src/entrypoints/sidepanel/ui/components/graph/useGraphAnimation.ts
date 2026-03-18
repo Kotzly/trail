@@ -12,9 +12,13 @@ export const OPEN_ANIMATION_DURATION = 240;
 type UseGraphAnimationParams = {
   nodeWidth: number;
   nodeHeight: number;
+  onTickRender?: () => void;
 };
 
-export function useGraphAnimation({ nodeWidth, nodeHeight }: UseGraphAnimationParams) {
+export function useGraphAnimation({ nodeWidth, nodeHeight, onTickRender }: UseGraphAnimationParams) {
+  const onTickRenderRef = useRef(onTickRender);
+  onTickRenderRef.current = onTickRender;
+
   const animationStatesRef = useRef<Map<NodeId, NodeAnimationState>>(new Map());
   const openAnimationStatesRef = useRef<Map<NodeId, OpenAnimationState>>(new Map());
   const openProgressRef = useRef<Map<NodeId, number>>(new Map());
@@ -88,8 +92,13 @@ export function useGraphAnimation({ nodeWidth, nodeHeight }: UseGraphAnimationPa
           }
         });
       }
+      const tickRender = onTickRenderRef.current;
       if (nodesDirty || openDirty) {
-        invalidateAnimation();
+        if (tickRender) {
+          tickRender();
+        } else {
+          invalidateAnimation();
+        }
       }
       const particles = particleAnimationsRef.current;
       let particlesDirty = false;
@@ -103,12 +112,20 @@ export function useGraphAnimation({ nodeWidth, nodeHeight }: UseGraphAnimationPa
         }
       }
       if (particlesDirty) {
-        invalidateParticles();
+        if (tickRender) {
+          // Only call tickRender for particles if we haven't already called it for nodes
+          if (!nodesDirty && !openDirty) tickRender();
+        } else {
+          invalidateParticles();
+        }
       }
       const needsLoop = states.size > 0 || particles.length > 0 || openStates.size > 0;
       if (needsLoop) {
         animationFrameRef.current = window.requestAnimationFrame(animateTick);
       } else {
+        // Animation ended — reconcile React state once
+        invalidateAnimation();
+        invalidateParticles();
         animationFrameRef.current = null;
         lastAnimationTimeRef.current = null;
         animationNowRef.current = null;
@@ -298,6 +315,7 @@ export function useGraphAnimation({ nodeWidth, nodeHeight }: UseGraphAnimationPa
     animationVersion,
     particleVersion,
     // Refs (read by other hooks/effects)
+    particleAnimationsRef,
     animationStatesRef,
     openAnimationStatesRef,
     openProgressRef,

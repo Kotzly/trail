@@ -32,7 +32,8 @@ import {
   GraphPixiRenderer,
 } from '../../graph/render/GraphPixiRenderer.js';
 import { profileSync } from '../../graph/render/graph-profiler.js';
-import type { NodeRenderModel } from '../../graph/render/types.js';
+import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
+import { easeOutCubic, lerp } from '../../graph/animation-utils.js';
 // grid-transform.js used by useGraphView hook.
 import { browser, runtimeGetURL } from '@shared/platform/webext.js';
 // selection-utils.js is now used via useGraphSelection hook.
@@ -194,6 +195,38 @@ export default function GraphCanvas({
   const activePointerIdRef = useRef<number | null>(null);
   const lastHoverNodeIdRef = useRef<NodeId | null>(null);
 
+  // Snapshot of render state for imperative animation path (populated after useMemos, read from RAF)
+  const latestRenderStateRef = useRef<{
+    visibleDisplayNodes: NodePosition[];
+    positions: Map<NodeId, NodePosition>;
+    display: {
+      titleTruncation: string;
+      showFavicons: boolean;
+      showUrls: boolean;
+      showTagDots: boolean;
+      showTabCounts: boolean;
+      showAudioIndicators: boolean;
+      dimClosedNodes: boolean;
+    };
+    currentNodeId: NodeId | null;
+    openNodeIds: Set<NodeId>;
+    collapsedNodeIds: Set<NodeId>;
+    searchActive: boolean;
+    searchSet: Set<NodeId>;
+    focusedSearchId: NodeId | undefined;
+    hoverNodeId: NodeId | null;
+    tabStates: Record<NodeId, unknown>;
+    nodeTabCounts: Record<NodeId, number>;
+    tagDefs: unknown;
+    nodeWidth: number;
+    nodeHeight: number;
+    effectiveShowConnections: boolean;
+    root: NavigationNode | null;
+    layoutMode: LayoutMode;
+    hideTreeRoot: boolean;
+    pathNodeIds: Set<NodeId> | null;
+  } | null>(null);
+
   // View/camera logic extracted to useGraphView hook (initialized after bounds computation).
 
   const layoutOptions = useMemo(() => deriveLayoutOptions(settings), [settings]);
@@ -203,9 +236,18 @@ export default function GraphCanvas({
   const root = tree?.getRoot() ?? null;
   const { nodeWidth, nodeHeight } = baseLayoutConfig;
 
-  const animation = useGraphAnimation({ nodeWidth, nodeHeight });
+  // Imperative tick render — ref holds the actual implementation (assigned after hook call).
+  // The stable wrapper delegates to handleTickRenderRef.current so the hook always
+  // reads the latest closure which has access to animatedPositionsRef etc.
+  const handleTickRenderRef = useRef<(() => void) | null>(null);
+  const handleTickRender = useCallback(() => {
+    handleTickRenderRef.current?.();
+  }, []);
+
+  const animation = useGraphAnimation({ nodeWidth, nodeHeight, onTickRender: handleTickRender });
   const {
     animationVersion, particleVersion,
+    particleAnimationsRef,
     animationStatesRef, openAnimationStatesRef, openProgressRef,
     animatedPositionsRef, exitNodesRef, prevPositionsRef,
     animationNowRef, prevOpenNodesRef,
@@ -215,6 +257,84 @@ export default function GraphCanvas({
     particleRenderModels,
     animationDuration, animationStagger, openAnimationDuration,
   } = animation;
+
+  // Assign the actual imperative render function now that hook refs are available.
+  // This runs on every render, keeping the closure fresh with latest refs.
+  handleTickRenderRef.current = () => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    const s = latestRenderStateRef.current;
+    if (!s) return;
+
+    // Build renderNodes imperatively (same logic as renderNodes useMemo)
+    const dimmedBySearch = s.searchActive;
+    const nodes: NodeRenderModel[] = s.visibleDisplayNodes.map((pos) => {
+      const id = pos.node.id;
+      const override = animatedPositionsRef.current.get(id);
+      const x = override?.x ?? pos.x;
+      const y = override?.y ?? pos.y;
+      const isOpen = s.openNodeIds.has(id);
+      return {
+        id,
+        node: pos.node,
+        x, y,
+        width: s.nodeWidth,
+        height: s.nodeHeight,
+        isCurrent: s.currentNodeId === id,
+        isOpen,
+        openProgress: s.display.dimClosedNodes
+          ? (openProgressRef.current.get(id) ?? (isOpen ? 1 : 0))
+          : 1,
+        tabCount: s.nodeTabCounts[id] ?? 0,
+        ...(s.tabStates[id] !== undefined ? { tabState: s.tabStates[id] } : {}),
+        isCollapsed: s.collapsedNodeIds.has(id),
+        isSelected: false,
+        isPreview: false,
+        isSearchMatch: s.searchSet.has(id),
+        isSearchFocused: s.focusedSearchId === id,
+        isSearchDimmed: dimmedBySearch && !s.searchSet.has(id),
+        isHoverFocused: s.hoverNodeId === id,
+        display: s.display,
+        tagDefs: s.tagDefs,
+      };
+    });
+
+    // Build connectionPositions imperatively (same logic as connectionPositions useMemo)
+    let connPositions = s.positions;
+    if (animatedPositionsRef.current.size > 0) {
+      const next = new Map<NodeId, NodePosition>();
+      s.positions.forEach((pos, id) => {
+        const override = animatedPositionsRef.current.get(id);
+        if (override) {
+          next.set(id, { ...pos, x: override.x, y: override.y });
+        } else {
+          next.set(id, pos);
+        }
+      });
+      connPositions = next;
+    }
+
+    // Build connections (reuse buildConnections)
+    const conns = s.effectiveShowConnections
+      ? buildConnections(s.root, connPositions, s.pathNodeIds, s.layoutMode, s.hideTreeRoot, s.nodeWidth, s.nodeHeight)
+      : [];
+
+    renderer.setDynamicState({ nodes, connections: conns, showConnections: s.effectiveShowConnections });
+
+    // Build particle render models imperatively
+    const particles: ParticleRenderModel[] = particleAnimationsRef.current.map((p) => {
+      const progress = Math.min(1, p.age / p.life);
+      const eased = easeOutCubic(progress);
+      return {
+        id: p.id,
+        x: lerp(p.startX, p.endX, eased),
+        y: lerp(p.startY, p.endY, eased),
+        radius: p.radius,
+        alpha: Math.max(0, 1 - progress),
+      };
+    });
+    renderer.setParticles(particles);
+  };
 
   const effectiveNodeScores = useMemo(() => {
     if (!recencyOrderingV2Enabled || !root) return null;
@@ -1266,6 +1386,16 @@ export default function GraphCanvas({
     }
     return filtered;
   }, [baseConnections, connectionPositions, dragReparentTarget, layoutOptions.mode, nodeHeight, nodeWidth]);
+
+  // Snapshot render state for imperative animation path.
+  // handleTickRenderRef.current reads this during RAF ticks to bypass React.
+  latestRenderStateRef.current = {
+    visibleDisplayNodes, positions, display, currentNodeId, openNodeIds,
+    collapsedNodeIds, searchActive, searchSet, focusedSearchId, hoverNodeId,
+    tabStates, nodeTabCounts, tagDefs, nodeWidth, nodeHeight,
+    effectiveShowConnections, root, layoutMode: layoutOptions.mode,
+    hideTreeRoot, pathNodeIds,
+  };
 
   // Static graph — fires only when topology/layout changes (staticVersion increments)
   useEffect(() => {
