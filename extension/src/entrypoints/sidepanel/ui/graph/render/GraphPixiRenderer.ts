@@ -1054,7 +1054,9 @@ export class GraphPixiRenderer {
 
   setDynamicState(state: DynamicGraphState) {
     const start = performance.now();
+    const incomingIds = new Set<NodeId>();
     state.nodes.forEach((node) => {
+      incomingIds.add(node.id);
       const prev = this.nodeData.get(node.id);
       this.nodeData.set(node.id, node);
       const rect = {
@@ -1071,6 +1073,15 @@ export class GraphPixiRenderer {
         this.index.update(node.id, rect);
       }
     });
+    // Remove nodes that disappeared (e.g. exit animation finished)
+    for (const [id, visual] of this.nodeMap.entries()) {
+      if (!incomingIds.has(id)) {
+        this.nodeData.delete(id);
+        this.index.remove(id);
+        visual.destroy();
+        this.nodeMap.delete(id);
+      }
+    }
     this.connections = state.connections;
     this.data = { ...this.data, showConnections: state.showConnections };
     this.invalidateVisible();
