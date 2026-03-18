@@ -1055,7 +1055,17 @@ export class GraphPixiRenderer {
   setDynamicState(state: DynamicGraphState) {
     const start = performance.now();
     state.nodes.forEach((node) => {
+      const prev = this.nodeData.get(node.id);
       this.nodeData.set(node.id, node);
+      // Update spatial index when positions change so hit-testing stays accurate
+      if (prev && (prev.x !== node.x || prev.y !== node.y || prev.width !== node.width || prev.height !== node.height)) {
+        this.index.update(node.id, {
+          minX: node.x,
+          minY: node.y,
+          maxX: node.x + node.width,
+          maxY: node.y + node.height,
+        });
+      }
     });
     this.connections = state.connections;
     this.data = { ...this.data, showConnections: state.showConnections };
