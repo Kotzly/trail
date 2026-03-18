@@ -394,12 +394,10 @@ export function NewTabApp() {
       <div className={anchorClass} ref={anchorRef}>
         {/* ── Draggable island (sized to content) ── */}
         <motion.div
-          layout
           drag
           dragConstraints={anchorRef}
           dragElastic={0.05}
           dragMomentum={false}
-          transition={{ layout: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } }}
           onDragEnd={() => {
             try {
               localStorage.setItem(DRAG_STORAGE_KEY, JSON.stringify({ x: dragX.get(), y: dragY.get() }));

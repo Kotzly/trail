@@ -112,8 +112,8 @@ body {
 }
 
 .newtab-island-anchor--idle {
-  justify-content: center;
-  padding-bottom: 80px;
+  justify-content: flex-start;
+  padding-top: 20vh;
 }
 
 /* --searching no longer used; island always stays centered */
