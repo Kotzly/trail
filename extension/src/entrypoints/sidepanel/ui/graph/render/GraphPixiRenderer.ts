@@ -740,6 +740,8 @@ export class GraphPixiRenderer {
   private readonly nodeData = new Map<NodeId, NodeRenderModel>();
   private index = new SpatialIndex<NodeId>(300);
   private connections: ConnectionSegment[] = [];
+  private connectionsDirty = true;
+  private lastConnectionViewRect: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
   private particles: ParticleRenderModel[] = [];
   private view: ViewState = { translateX: 0, translateY: 0, scale: 1 };
   private data: StaticGraphData & { particles: ParticleRenderModel[] } = {
@@ -909,6 +911,8 @@ export class GraphPixiRenderer {
     this.fontFamily = style.fontFamily || this.fontFamily;
     this.themeVersion += 1;
     if (!this.isReady) return;
+    this.connectionsDirty = true;
+    this.lastConnectionViewRect = null;
     this.invalidateAll();
   }
 
@@ -921,6 +925,8 @@ export class GraphPixiRenderer {
   setConnectionQuality(quality: ConnectionQuality) {
     if (this.connectionQuality === quality) return;
     this.connectionQuality = quality;
+    this.connectionsDirty = true;
+    this.lastConnectionViewRect = null;
     this.invalidateAll();
   }
 
@@ -1027,6 +1033,8 @@ export class GraphPixiRenderer {
     const start = performance.now();
     this.data = { ...data, particles: this.particles };
     this.connections = data.connections;
+    this.connectionsDirty = true;
+    this.lastConnectionViewRect = null;
     this.cachedCullingRect = null;
     this.visibleIdsCache = new Set();
     this.nodeData.clear();
@@ -1082,7 +1090,10 @@ export class GraphPixiRenderer {
         this.nodeMap.delete(id);
       }
     }
-    this.connections = state.connections;
+    if (this.connections !== state.connections) {
+      this.connections = state.connections;
+      this.connectionsDirty = true;
+    }
     this.data = { ...this.data, showConnections: state.showConnections };
     this.invalidateVisible();
     graphProfiler.record('setDynamicState', performance.now() - start);
@@ -1197,6 +1208,8 @@ export class GraphPixiRenderer {
   private invalidateAll() {
     if (!this.isReady) return;
     this.cachedCullingRect = null;
+    this.connectionsDirty = true;
+    this.lastConnectionViewRect = null;
     this.needsRender = true;
     this.updateVisible();
     this.render();
@@ -1310,19 +1323,49 @@ export class GraphPixiRenderer {
     maxY: number;
   }): { connectionsMs: number; visibleConnections: number } {
     const start = performance.now();
-    this.connectionLayer.clear();
-    this.pathLayer.clear();
+
+    // Particles always need updating (they move every frame)
     for (const child of this.particleLayer.removeChildren()) child.destroy();
+    this.updateParticles();
+
     if (!this.data.showConnections) {
+      if (this.connectionsDirty) {
+        this.connectionLayer.clear();
+        this.pathLayer.clear();
+        this.connectionsDirty = false;
+      }
       graphProfiler.record('updateConnections', performance.now() - start);
       return { connectionsMs: performance.now() - start, visibleConnections: 0 };
     }
 
     const representativePx = Math.min(this.data.nodeWidth, this.data.nodeHeight) * this.view.scale;
     if (representativePx < LOD_CONN_HIDE_PX) {
+      if (this.connectionsDirty) {
+        this.connectionLayer.clear();
+        this.pathLayer.clear();
+        this.connectionsDirty = false;
+      }
       graphProfiler.record('updateConnections', performance.now() - start);
       return { connectionsMs: performance.now() - start, visibleConnections: 0 };
     }
+
+    // Skip full redraw if connections haven't changed and viewport is same
+    const viewUnchanged = this.lastConnectionViewRect !== null &&
+      this.lastConnectionViewRect.minX === viewRect.minX &&
+      this.lastConnectionViewRect.minY === viewRect.minY &&
+      this.lastConnectionViewRect.maxX === viewRect.maxX &&
+      this.lastConnectionViewRect.maxY === viewRect.maxY;
+
+    if (!this.connectionsDirty && viewUnchanged) {
+      graphProfiler.record('updateConnections', performance.now() - start);
+      return { connectionsMs: performance.now() - start, visibleConnections: this.metrics.visibleConnections };
+    }
+
+    // Full redraw needed
+    this.connectionLayer.clear();
+    this.pathLayer.clear();
+    this.connectionsDirty = false;
+    this.lastConnectionViewRect = { ...viewRect };
 
     // Base connections and "active path" connections can share the same hue (theme-driven),
     // but must be visually distinct so the root -> current path reads as highlighted.
@@ -1438,7 +1481,6 @@ export class GraphPixiRenderer {
       this.pathLayer.stroke();
     }
 
-    this.updateParticles();
     graphProfiler.record('updateConnections', performance.now() - start);
     return {
       connectionsMs: performance.now() - start,
