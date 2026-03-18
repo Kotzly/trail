@@ -16,6 +16,28 @@ function isQuotaError(error: unknown): boolean {
   return msg.includes('QUOTA_BYTES') || msg.includes('quota');
 }
 
+// ---------------------------------------------------------------------------
+// Promise-based mutex for eviction operations
+// ---------------------------------------------------------------------------
+
+let evictionLock: Promise<void> = Promise.resolve();
+
+function withEvictionLock<T>(fn: () => Promise<T>): Promise<T> {
+  let release!: () => void;
+  const next = new Promise<void>(resolve => { release = resolve; });
+  const prev = evictionLock;
+  evictionLock = next;
+
+  const waitStart = Date.now();
+  return prev.then(() => {
+    const waited = Date.now() - waitStart;
+    if (waited > 5000) {
+      console.warn(`withEvictionLock: waited ${waited}ms for lock acquisition`);
+    }
+    return fn();
+  }).finally(() => release());
+}
+
 /**
  * Write key/value pairs to local storage, automatically evicting the oldest
  * non-stub archive to free space if a quota error is encountered.
@@ -40,7 +62,11 @@ export async function quotaAwareSet(
     } catch (error) {
       if (!isQuotaError(error) || attempt === maxRetries) throw error;
       console.warn(`quotaAwareSet: quota error on attempt ${attempt + 1}, evicting oldest archive`);
-      const evicted = await evictOldestArchive();
+      const evicted = await withEvictionLock(async () => {
+        const jitter = Math.random() * 100;
+        await new Promise<void>(r => setTimeout(r, jitter));
+        return evictOldestArchive();
+      });
       if (!evicted) throw error; // nothing left to evict
     }
   }
