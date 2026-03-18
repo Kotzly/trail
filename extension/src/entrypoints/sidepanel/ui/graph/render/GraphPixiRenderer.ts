@@ -200,6 +200,7 @@ class NodeVisual {
   private readonly collapseBadgeBg = new PIXI.Graphics();
   private readonly collapseIcon = new PIXI.Graphics();
   private readonly tagDots = new PIXI.Container();
+  private readonly tagDotPool: PIXI.Graphics[] = [];
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
 
@@ -246,6 +247,12 @@ class NodeVisual {
     this.collapseBadge.addChild(this.collapseBadgeBg);
     this.collapseBadge.addChild(this.collapseIcon);
     this.container.addChild(this.tagDots);
+    for (let i = 0; i < 4; i++) {
+      const dot = new PIXI.Graphics();
+      dot.visible = false;
+      this.tagDots.addChild(dot);
+      this.tagDotPool.push(dot);
+    }
     this.tabBadgeText.anchor.set(0.5, 0.5);
     this.pinIcon.pivot.set(ICON_VIEWBOX, 0);
     this.audioIcon.pivot.set(ICON_VIEWBOX, 0);
@@ -702,26 +709,42 @@ class NodeVisual {
   ) {
     const show = lod === 'full' && model.display.showTagDots;
     this.tagDots.visible = show;
-    this.tagDots.removeChildren();
-    if (!show) return;
+    if (!show) {
+      for (let i = 0; i < this.tagDotPool.length; i++) {
+        this.tagDotPool[i].visible = false;
+      }
+      return;
+    }
     const tags = model.node.data.tags ?? [];
     const maxTags = Math.min(tags.length, 4);
-    if (maxTags === 0) return;
+    if (maxTags === 0) {
+      for (let i = 0; i < this.tagDotPool.length; i++) {
+        this.tagDotPool[i].visible = false;
+      }
+      return;
+    }
     const dotSize = 10;
     const gap = 3;
     let x = model.width - dotSize - 4;
     const y = model.height - dotSize - 4;
+    let poolIdx = 0;
     for (let i = 0; i < maxTags; i += 1) {
       const tagId = tags[i];
       if (!tagId) continue;
       const tagPreset = model.tagDefs[tagId];
       if (!tagPreset) continue;
-      const dot = new PIXI.Graphics();
+      const dot = this.tagDotPool[poolIdx];
+      dot.clear();
       dot.circle(0, 0, dotSize / 2);
       dot.fill({ color: safeColor(tagPreset.color, theme.primary), alpha: 1 });
       dot.position.set(x + dotSize / 2, y + dotSize / 2);
-      this.tagDots.addChild(dot);
+      dot.visible = true;
+      poolIdx++;
       x -= dotSize + gap;
+    }
+    // Hide remaining unused pool items
+    for (let i = poolIdx; i < this.tagDotPool.length; i++) {
+      this.tagDotPool[i].visible = false;
     }
   }
 }
