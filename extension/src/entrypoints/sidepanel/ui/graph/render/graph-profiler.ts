@@ -21,7 +21,8 @@ export type ProfilePhase =
   | 'setStaticGraph'
   | 'setDynamicState'
   | 'updateVisible'
-  | 'updateConnections';
+  | 'updateConnections'
+  | 'patchStaticGraph';
 
 const ALL_PHASES: readonly ProfilePhase[] = [
   'layout',
@@ -30,6 +31,7 @@ const ALL_PHASES: readonly ProfilePhase[] = [
   'computeOffsetPositions',
   'setStaticGraph',
   'setDynamicState',
+  'patchStaticGraph',
   'updateVisible',
   'updateConnections',
 ] as const;
