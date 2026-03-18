@@ -1,5 +1,4 @@
 import type { NodeId } from '@shared/types/ids.js';
-import type { NavigationNode } from '@shared/types/node.js';
 import type { Settings } from '@shared/types/settings.js';
 import type { TabState } from '@shared/types/tabs.js';
 import type { TreeUpdatedInput } from '@shared/rpc/contracts.js';

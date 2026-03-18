@@ -176,7 +176,7 @@ export default function GraphCanvas({
     selectionWorldRectRef,
     previewSelectionRef,
     updateSelectionBox,
-    hideSelectionBox,
+    hideSelectionBox: _hideSelectionBox,
     scheduleSelectionPreview,
     finalizeSelection,
     clearSelectionState,
@@ -542,7 +542,7 @@ export default function GraphCanvas({
   // --- View / Camera hook (must come after bounds + positions) ---
   const {
     wrapperRef, viewRef, applyGridTransform, scheduleGraphView,
-    cancelViewAnimation, animateViewTo, fitToView, centerOnNode, zoomAt, zoom,
+    cancelViewAnimation, animateViewTo: _animateViewTo, fitToView: _fitToView, centerOnNode: _centerOnNode, zoomAt, zoom,
   } = useGraphView({
     graphView, onGraphViewChange, rendererRef, bounds, positions,
     nodeWidth, nodeHeight, compactInitialView, initialCenterNodeId: initialCenterNodeId ?? null,
@@ -922,7 +922,7 @@ export default function GraphCanvas({
       }
     };
 
-    const handleUp = async (upEvent: PointerEvent) => {
+    const handleUp = async (_upEvent: PointerEvent) => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
       window.removeEventListener('pointercancel', handleUp);
