@@ -11,6 +11,7 @@ type DashboardViewProps = {
   readonly bookmarks: readonly BookmarkItem[];
   readonly recentQueries: readonly string[];
   readonly continueItems: SpotlightSearchResult[];
+  readonly loading: boolean;
   readonly onQueryChange: (q: string) => void;
   readonly onActivate: (item: SpotlightSearchResult) => Promise<void>;
 };
@@ -21,13 +22,19 @@ type DashboardViewProps = {
 
 function BookmarksCard({
   bookmarks,
+  stretch,
 }: {
   readonly bookmarks: readonly BookmarkItem[];
+  readonly stretch: boolean;
 }) {
   if (bookmarks.length === 0) return null;
 
+  const cardClass = stretch
+    ? 'newtab-bento-card newtab-bento-card--stretch'
+    : 'newtab-bento-card';
+
   return (
-    <div className="newtab-bento-card">
+    <div className={cardClass}>
       <div className="newtab-bento-card-title">Bookmarks</div>
       <div className="newtab-bento-bookmarks-grid">
         {bookmarks.map((bm) => (
@@ -136,15 +143,20 @@ export function DashboardView({
   bookmarks,
   recentQueries,
   continueItems,
+  loading,
   onQueryChange,
   onActivate,
 }: DashboardViewProps) {
+  const bentoClass = loading
+    ? 'newtab-bento newtab-bento--loading'
+    : 'newtab-bento';
+
   return (
     <div className="newtab-dashboard">
-      <div className="newtab-bento">
-        <BookmarksCard bookmarks={bookmarks} />
-        <ContinueCard items={continueItems} onActivate={onActivate} />
-        <RecentSearchesCard queries={recentQueries} onQueryChange={onQueryChange} />
+      <div className={bentoClass}>
+        <BookmarksCard bookmarks={bookmarks} stretch={loading} />
+        {!loading && <ContinueCard items={continueItems} onActivate={onActivate} />}
+        {!loading && <RecentSearchesCard queries={recentQueries} onQueryChange={onQueryChange} />}
       </div>
     </div>
   );

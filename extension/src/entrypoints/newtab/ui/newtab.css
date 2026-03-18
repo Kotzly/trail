@@ -248,6 +248,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  transition: grid-template-rows 0.3s ease;
 }
 
 /* If last card sits alone in a row (odd position), span full width */
@@ -266,10 +267,21 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .newtab-bento-card--wide {
   grid-column: 1 / -1;
+}
+
+/* Stretch bookmarks to fill bento height when other cards are loading */
+.newtab-bento-card--stretch {
+  grid-column: 1 / -1;
+}
+
+.newtab-bento-card--stretch .newtab-bento-bookmarks-grid {
+  max-height: 400px;
 }
 
 .newtab-bento-card-title {
@@ -361,6 +373,7 @@ body {
   max-height: 200px;
   overflow-y: auto;
   scrollbar-width: none;
+  margin-bottom: -4px;
 }
 
 .newtab-bento-continue-list::-webkit-scrollbar {

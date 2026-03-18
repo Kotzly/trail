@@ -22,7 +22,7 @@ import { useBookmarks } from './useBookmarks.js';
 import { DashboardView } from './DashboardView.js';
 import { QuickActions } from './QuickActions.js';
 import { SearchDefaults } from './SearchDefaults.js';
-import type { SpotlightActionId, SpotlightBatchActionId, SpotlightMode, SpotlightSearchResult } from '../../../spotlight/types.js';
+import type { SpotlightBatchActionId, SpotlightMode, SpotlightSearchResult } from '../../../spotlight/types.js';
 import type { SpotlightNodeTarget } from '../../../spotlight/useSpotlightPreview.js';
 import type { NodeId } from '@shared/types/ids.js';
 
@@ -257,6 +257,20 @@ export function NewTabApp() {
     setHelpOpen, setDrilldownScope,
   });
 
+  // In New Tab, clicking a result from an old tree should just open the URL,
+  // not open the whole tree. Tree context is only via explicit actions.
+  const handleActivateNewTab = useCallback(async (item: SpotlightSearchResult) => {
+    if (item.kind === 'node' && activeTreeId && item.treeId !== activeTreeId) {
+      await act.handleExecuteAction(
+        'open',
+        { kind: 'node', nodeId: item.nodeId, treeId: item.treeId },
+        'Opened',
+      );
+      return;
+    }
+    await act.handleActivate(item);
+  }, [activeTreeId, act]);
+
   // ─── Hints ───
   const hintCandidates = useMemo(() => buildSpotlightHints(search.query), [search.query]);
   const activeHint = hintCandidates[0] ?? null;
@@ -347,7 +361,7 @@ export function NewTabApp() {
     confirmingAction: act.confirmingAction, quickLookItem: act.quickLookItem,
     setQuickLookItem: act.setQuickLookItem, helpOpen, setHelpOpen, drilldownScope,
     selectedFocusPane, setSelectedFocusPane, setQuery: search.setQuery, close: NOOP,
-    exitDrilldown: act.exitDrilldown, handleActivate: act.handleActivate, handleApplyHint,
+    exitDrilldown: act.exitDrilldown, handleActivate: handleActivateNewTab, handleApplyHint,
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
     flatItems, visibleFlatItems, selectedKeys, setSelectedKeys, showPreview: true,
     onSearchWeb: handleSearchWeb,
@@ -369,8 +383,8 @@ export function NewTabApp() {
           selectionIntentId={0}
           compactInitialView={false}
           onNavigate={(treeId, nodeId) => {
-            const aid: SpotlightActionId = activeTreeId && treeId !== activeTreeId ? 'open-node-in-tree' : 'open';
-            void act.handleExecuteAction(aid, { kind: 'node', nodeId, treeId }, aid === 'open-node-in-tree' ? 'Opened in tree' : 'Opened');
+            // In New Tab, always just open the URL -- don't open the whole tree
+            void act.handleExecuteAction('open', { kind: 'node', nodeId, treeId }, 'Opened');
           }}
           onHoverNode={(treeId, nodeId) => setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId })}
         />
@@ -438,8 +452,9 @@ export function NewTabApp() {
                 bookmarks={bookmarks}
                 recentQueries={search.recentQueries}
                 continueItems={continueItems}
+                loading={search.loading}
                 onQueryChange={search.setQuery}
-                onActivate={act.handleActivate}
+                onActivate={handleActivateNewTab}
               />
               <QuickActions onAction={(filter) => search.setQuery(filter)} />
             </div>
@@ -483,7 +498,7 @@ export function NewTabApp() {
                     drilldownTransition={act.drilldownTransition}
                     onToggleSection={handleToggleSection}
                     onSelect={setSelectedKey}
-                    onActivate={act.handleActivate}
+                    onActivate={handleActivateNewTab}
                     onInlineAction={act.handleInlineAction}
                   />
                 )}
