@@ -762,6 +762,7 @@ export class GraphPixiRenderer {
   private selectedNodeIds: Set<NodeId> = new Set();
   private selectionPreviewIds: Set<NodeId> | null = null;
   private lastSelectionPreviewIds: Set<NodeId> | null = null;
+  private hoverNodeId: NodeId | null = null;
   private visibleIdsCache: Set<NodeId> = new Set();
   private origin = { x: 0, y: 0 };
   private cachedCullingRect: WorldRect | null = null;
@@ -955,6 +956,16 @@ export class GraphPixiRenderer {
     this.setSelectionPreview(null);
   }
 
+  queryNearestNode(
+    worldX: number,
+    worldY: number,
+    radius: number,
+    excludeIds?: Set<NodeId>,
+  ): NodeId | null {
+    const result = this.index.queryNearest(worldX, worldY, radius, excludeIds);
+    return result ? result.id : null;
+  }
+
   queryNodesInWorldRect(rect: { minX: number; minY: number; maxX: number; maxY: number }): Set<NodeId> {
     const started = performance.now();
     const hits = this.index.query(rect);
@@ -1029,6 +1040,60 @@ export class GraphPixiRenderer {
     this.metrics.selectionPatchMs = performance.now() - started;
   }
 
+  setHoverNodeId(id: NodeId | null) {
+    const prev = this.hoverNodeId;
+    if (prev === id) return;
+    this.hoverNodeId = id;
+    if (!this.isReady) return;
+    this.patchHoverVisual(prev, id);
+  }
+
+  private patchHoverVisual(prevId: NodeId | null, nextId: NodeId | null) {
+    const ids: NodeId[] = [];
+    if (prevId != null) ids.push(prevId);
+    if (nextId != null) ids.push(nextId);
+    if (ids.length === 0) return;
+
+    const selection = this.getEffectiveSelection();
+    let patchedAny = false;
+    for (const id of ids) {
+      if (!this.visibleIdsCache.has(id)) continue;
+      const node = this.nodeData.get(id);
+      if (!node) continue;
+      const updatedNode = node.isHoverFocused !== (nextId === id)
+        ? { ...node, isHoverFocused: nextId === id }
+        : node;
+      if (updatedNode !== node) {
+        this.nodeData.set(id, updatedNode);
+      }
+      let visual = this.nodeMap.get(id);
+      if (!visual) {
+        visual = new NodeVisual(id, this.fontFamily, this.requestRender);
+        this.nodeMap.set(id, visual);
+        this.nodeLayer.addChild(visual.container);
+      }
+      visual.update(
+        updatedNode,
+        this.view,
+        this.theme,
+        this.origin,
+        this.fontFamily,
+        this.themeVersion,
+        this.detailMode,
+        this.textResolution,
+        selection.has(id),
+        updatedNode.isPreview,
+      );
+      patchedAny = true;
+    }
+
+    if (patchedAny) {
+      this.nodeLayer.sortDirty = true;
+      this.needsRender = true;
+      this.render();
+    }
+  }
+
   setStaticGraph(data: StaticGraphData) {
     const start = performance.now();
     this.data = { ...data, particles: this.particles };
@@ -1066,19 +1131,23 @@ export class GraphPixiRenderer {
     state.nodes.forEach((node) => {
       incomingIds.add(node.id);
       const prev = this.nodeData.get(node.id);
-      this.nodeData.set(node.id, node);
+      // Reconcile isHoverFocused with renderer's hover state
+      const adjustedNode = node.isHoverFocused !== (node.id === this.hoverNodeId)
+        ? { ...node, isHoverFocused: node.id === this.hoverNodeId }
+        : node;
+      this.nodeData.set(adjustedNode.id, adjustedNode);
       const rect = {
-        minX: node.x,
-        minY: node.y,
-        maxX: node.x + node.width,
-        maxY: node.y + node.height,
+        minX: adjustedNode.x,
+        minY: adjustedNode.y,
+        maxX: adjustedNode.x + adjustedNode.width,
+        maxY: adjustedNode.y + adjustedNode.height,
       };
       if (!prev) {
         // New node (e.g. exit animation node added after setStaticGraph) — insert into index
-        this.index.insert(node.id, rect);
-      } else if (prev.x !== node.x || prev.y !== node.y || prev.width !== node.width || prev.height !== node.height) {
+        this.index.insert(adjustedNode.id, rect);
+      } else if (prev.x !== adjustedNode.x || prev.y !== adjustedNode.y || prev.width !== adjustedNode.width || prev.height !== adjustedNode.height) {
         // Position changed — update index entry
-        this.index.update(node.id, rect);
+        this.index.update(adjustedNode.id, rect);
       }
     });
     // Remove nodes that disappeared (e.g. exit animation finished)

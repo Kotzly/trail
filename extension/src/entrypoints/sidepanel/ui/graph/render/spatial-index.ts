@@ -40,6 +40,46 @@ export class SpatialIndex<T> {
     this.items.delete(id);
   }
 
+  queryNearest(
+    cx: number,
+    cy: number,
+    radius: number,
+    excludeIds?: Set<T>,
+  ): { id: T; dist: number } | null {
+    const searchRect: Rect = {
+      minX: cx - radius,
+      minY: cy - radius,
+      maxX: cx + radius,
+      maxY: cy + radius,
+    };
+    const { minCol, maxCol, minRow, maxRow } = this.getCellRange(searchRect);
+    let bestId: T | null = null;
+    let bestDist = Infinity;
+    const seen = new Set<T>();
+    for (let col = minCol; col <= maxCol; col += 1) {
+      for (let row = minRow; row <= maxRow; row += 1) {
+        const key = `${col},${row}`;
+        const cell = this.cells.get(key);
+        if (!cell) continue;
+        cell.forEach((id) => {
+          if (seen.has(id)) return;
+          seen.add(id);
+          if (excludeIds?.has(id)) return;
+          const itemRect = this.items.get(id);
+          if (!itemRect) return;
+          const itemCx = (itemRect.minX + itemRect.maxX) / 2;
+          const itemCy = (itemRect.minY + itemRect.maxY) / 2;
+          const dist = Math.hypot(cx - itemCx, cy - itemCy);
+          if (dist <= radius && dist < bestDist) {
+            bestDist = dist;
+            bestId = id;
+          }
+        });
+      }
+    }
+    return bestId !== null ? { id: bestId, dist: bestDist } : null;
+  }
+
   query(rect: Rect): Set<T> {
     const hits = new Set<T>();
     const { minCol, maxCol, minRow, maxRow } = this.getCellRange(rect);
