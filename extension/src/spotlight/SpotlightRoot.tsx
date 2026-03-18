@@ -254,8 +254,10 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                 <div className="spotlight-empty" role="alert">Connection lost. Close and reopen spotlight to retry.</div>
               ) : helpOpen ? (
                 <SpotlightHelp open />
-              ) : search.sections.length === 0 && search.query ? (
+              ) : search.sections.length === 0 && search.query && !search.loading ? (
                 <Command.Empty className="spotlight-empty">No results found</Command.Empty>
+              ) : search.sections.length === 0 && search.query && search.loading ? (
+                null
               ) : search.sections.length === 0 && !search.query && search.recentQueries.length > 0 ? (
                 <div className="spotlight-sections spotlight-recent-queries">
                   <div className="spotlight-recent-queries-title">Recent Searches</div>
@@ -269,8 +271,10 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
                     </button>
                   ))}
                 </div>
-              ) : search.sections.length === 0 ? (
+              ) : search.sections.length === 0 && !search.loading ? (
                 <Command.Empty className="spotlight-empty">No results found</Command.Empty>
+              ) : search.sections.length === 0 ? (
+                null
               ) : (
                 <SpotlightResults
                   listRef={listRef}

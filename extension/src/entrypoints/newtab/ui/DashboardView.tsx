@@ -22,19 +22,13 @@ type DashboardViewProps = {
 
 function BookmarksCard({
   bookmarks,
-  stretch,
 }: {
   readonly bookmarks: readonly BookmarkItem[];
-  readonly stretch: boolean;
 }) {
   if (bookmarks.length === 0) return null;
 
-  const cardClass = stretch
-    ? 'newtab-bento-card newtab-bento-card--stretch'
-    : 'newtab-bento-card';
-
   return (
-    <div className={cardClass}>
+    <div className="newtab-bento-card newtab-bento-card--bookmarks">
       <div className="newtab-bento-card-title">Bookmarks</div>
       <div className="newtab-bento-bookmarks-grid">
         {bookmarks.map((bm) => (
@@ -63,15 +57,17 @@ function BookmarksCard({
 
 function ContinueCard({
   items,
+  visible,
   onActivate,
 }: {
   readonly items: SpotlightSearchResult[];
+  readonly visible: boolean;
   readonly onActivate: (item: SpotlightSearchResult) => Promise<void>;
 }) {
   if (items.length === 0) return null;
 
   return (
-    <div className="newtab-bento-card">
+    <div className={`newtab-bento-card newtab-bento-card--animated ${visible ? 'newtab-bento-card--visible' : ''}`}>
       <div className="newtab-bento-card-title">Pick Up Where You Left Off</div>
       <div className="newtab-bento-continue-list">
         {items.map((item) => {
@@ -109,15 +105,17 @@ function ContinueCard({
 
 function RecentSearchesCard({
   queries,
+  visible,
   onQueryChange,
 }: {
   readonly queries: readonly string[];
+  readonly visible: boolean;
   readonly onQueryChange: (q: string) => void;
 }) {
   if (queries.length === 0) return null;
 
   return (
-    <div className="newtab-bento-card">
+    <div className={`newtab-bento-card newtab-bento-card--animated ${visible ? 'newtab-bento-card--visible' : ''}`}>
       <div className="newtab-bento-card-title">Recent Searches</div>
       <div className="newtab-bento-pills">
         {queries.map((q) => (
@@ -147,16 +145,14 @@ export function DashboardView({
   onQueryChange,
   onActivate,
 }: DashboardViewProps) {
-  const bentoClass = loading
-    ? 'newtab-bento newtab-bento--loading'
-    : 'newtab-bento';
+  const hasSecondary = !loading && (continueItems.length > 0 || recentQueries.length > 0);
 
   return (
     <div className="newtab-dashboard">
-      <div className={bentoClass}>
-        <BookmarksCard bookmarks={bookmarks} stretch={loading} />
-        {!loading && <ContinueCard items={continueItems} onActivate={onActivate} />}
-        {!loading && <RecentSearchesCard queries={recentQueries} onQueryChange={onQueryChange} />}
+      <div className={`newtab-bento ${hasSecondary ? '' : 'newtab-bento--solo'}`}>
+        <BookmarksCard bookmarks={bookmarks} />
+        <ContinueCard items={continueItems} visible={!loading} onActivate={onActivate} />
+        <RecentSearchesCard queries={recentQueries} visible={!loading} onQueryChange={onQueryChange} />
       </div>
     </div>
   );

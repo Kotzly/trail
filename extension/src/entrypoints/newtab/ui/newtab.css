@@ -140,9 +140,11 @@ body {
 
 .newtab-island-panel {
   width: 100%;
+  height: 348px;            /* Fixed: 340px list + 8px margin-top */
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: hidden;
 }
 
 /* ═══════════════════════════════════════════════
@@ -218,7 +220,10 @@ body {
 .newtab-dashboard {
   width: 100%;
   max-width: var(--content-w);
-  margin-top: 16px;
+  margin-top: 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Greeting (above search bar in idle mode) */
@@ -248,7 +253,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  transition: grid-template-rows 0.3s ease;
+  flex: 1;
 }
 
 /* If last card sits alone in a row (odd position), span full width */
@@ -275,13 +280,30 @@ body {
   grid-column: 1 / -1;
 }
 
-/* Stretch bookmarks to fill bento height when other cards are loading */
-.newtab-bento-card--stretch {
+/* When bookmarks is the only card, stretch to fill bento */
+.newtab-bento--solo .newtab-bento-card--bookmarks {
   grid-column: 1 / -1;
 }
 
-.newtab-bento-card--stretch .newtab-bento-bookmarks-grid {
-  max-height: 400px;
+.newtab-bento--solo .newtab-bento-bookmarks-grid {
+  max-height: none;
+}
+
+/* Animated cards: start hidden, fade in */
+.newtab-bento-card--animated {
+  max-height: 0;
+  padding: 0;
+  opacity: 0;
+  border-color: transparent;
+  overflow: hidden;
+  transition: max-height 0.35s ease, padding 0.35s ease, opacity 0.3s ease 0.1s;
+}
+
+.newtab-bento-card--visible {
+  max-height: 250px;
+  padding: 14px;
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .newtab-bento-card-title {
@@ -373,7 +395,6 @@ body {
   max-height: 200px;
   overflow-y: auto;
   scrollbar-width: none;
-  margin-bottom: -4px;
 }
 
 .newtab-bento-continue-list::-webkit-scrollbar {
@@ -523,7 +544,15 @@ body {
 
 .newtab-list .spotlight-section-heading {
   margin: 0;
-  padding: 0;
+  padding: 4px 12px;
+  box-sizing: border-box;
+  height: 28px;
+}
+
+/* Force consistent row height in virtual list to prevent spacing variance */
+.newtab-list .spotlight-row {
+  box-sizing: border-box;
+  min-height: 34px;
 }
 
 .newtab-search-default-item {
