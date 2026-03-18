@@ -496,6 +496,7 @@ export function NewTabApp() {
                     indicatorPos={indicatorPos}
                     activeTreeId={activeTreeId}
                     drilldownTransition={act.drilldownTransition}
+                    rowHeight={52}
                     onToggleSection={handleToggleSection}
                     onSelect={setSelectedKey}
                     onActivate={handleActivateNewTab}

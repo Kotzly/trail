@@ -23,6 +23,7 @@ type SpotlightResultsProps = {
   indicatorPos: IndicatorPosition;
   activeTreeId: string | null;
   drilldownTransition: string;
+  rowHeight?: number;
   onToggleSection: (id: string) => void;
   onSelect: (key: string) => void;
   onActivate: (item: SpotlightSearchResult) => Promise<void>;
@@ -72,6 +73,7 @@ export function SpotlightResults({
   indicatorPos,
   activeTreeId,
   drilldownTransition,
+  rowHeight = ROW_HEIGHT,
   onToggleSection,
   onSelect,
   onActivate,
@@ -85,7 +87,7 @@ export function SpotlightResults({
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => listRef.current,
-    estimateSize: (index) => (rows[index]!.type === 'header' ? HEADER_HEIGHT : ROW_HEIGHT),
+    estimateSize: (index) => (rows[index]!.type === 'header' ? HEADER_HEIGHT : rowHeight),
     overscan: 8,
     paddingStart: 8,
     paddingEnd: 8,

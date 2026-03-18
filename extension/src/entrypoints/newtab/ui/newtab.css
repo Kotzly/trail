@@ -548,11 +548,6 @@ body {
   height: 28px;
 }
 
-/* Force consistent row height in virtual list to prevent spacing variance */
-.newtab-list .spotlight-row {
-  box-sizing: border-box;
-  min-height: 34px;
-}
 
 .newtab-search-default-item {
   display: flex;
