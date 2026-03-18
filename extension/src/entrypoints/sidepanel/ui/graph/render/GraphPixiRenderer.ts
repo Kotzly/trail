@@ -1057,14 +1057,18 @@ export class GraphPixiRenderer {
     state.nodes.forEach((node) => {
       const prev = this.nodeData.get(node.id);
       this.nodeData.set(node.id, node);
-      // Update spatial index when positions change so hit-testing stays accurate
-      if (prev && (prev.x !== node.x || prev.y !== node.y || prev.width !== node.width || prev.height !== node.height)) {
-        this.index.update(node.id, {
-          minX: node.x,
-          minY: node.y,
-          maxX: node.x + node.width,
-          maxY: node.y + node.height,
-        });
+      const rect = {
+        minX: node.x,
+        minY: node.y,
+        maxX: node.x + node.width,
+        maxY: node.y + node.height,
+      };
+      if (!prev) {
+        // New node (e.g. exit animation node added after setStaticGraph) — insert into index
+        this.index.insert(node.id, rect);
+      } else if (prev.x !== node.x || prev.y !== node.y || prev.width !== node.width || prev.height !== node.height) {
+        // Position changed — update index entry
+        this.index.update(node.id, rect);
       }
     });
     this.connections = state.connections;
