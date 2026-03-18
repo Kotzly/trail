@@ -193,8 +193,7 @@ body {
   flex-direction: column;
   width: 100%;
   max-width: var(--content-w);
-  max-height: 420px;
-  min-height: 280px;
+  height: 340px;
   overflow: hidden;
   border-radius: 14px;
   background: rgba(12, 12, 16, 0.7);
@@ -205,6 +204,11 @@ body {
     0 8px 32px rgba(0, 0, 0, 0.2),
     0 2px 8px rgba(0, 0, 0, 0.12);
   margin-top: 8px;
+}
+
+.newtab-list .spotlight-sections {
+  height: 100%;
+  overflow-y: auto;
 }
 
 /* ═══════════════════════════════════════════════
@@ -501,6 +505,12 @@ body {
   display: flex;
   flex-direction: column;
   padding: 6px;
+  gap: 0;
+}
+
+.newtab-list .spotlight-section-heading {
+  margin: 0;
+  padding: 0;
 }
 
 .newtab-search-default-item {

@@ -249,12 +249,11 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
 
           <div ref={panelsRef} className="spotlight-panels spotlight-panels--v3">
             <div className="spotlight-left spotlight-left--v3" data-focus={selectedFocusPane} style={resize.leftStyle}>
+              {search.loading && <div className="spotlight-loading-bar" />}
               {search.sessionError ? (
                 <div className="spotlight-empty" role="alert">Connection lost. Close and reopen spotlight to retry.</div>
               ) : helpOpen ? (
                 <SpotlightHelp open />
-              ) : search.loading ? (
-                <div className="spotlight-empty">Loading...</div>
               ) : search.sections.length === 0 && search.query ? (
                 <Command.Empty className="spotlight-empty">No results found</Command.Empty>
               ) : search.sections.length === 0 && !search.query && search.recentQueries.length > 0 ? (
