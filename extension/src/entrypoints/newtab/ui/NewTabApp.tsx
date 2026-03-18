@@ -278,7 +278,9 @@ export function NewTabApp() {
     const nodes = multiSelectedItems.filter((i) => i.kind === 'node');
     if (actionId === 'batch-copy-urls') {
       const urls = nodes.map((n) => n.kind === 'node' ? n.url : '').filter(Boolean).join('\n');
-      await navigator.clipboard.writeText(urls);
+      await navigator.clipboard.writeText(urls).catch(() => {
+        console.warn('[clipboard] Write failed — permission may be denied');
+      });
       act.setStatusText(`Copied ${nodes.length} URLs`);
       setSelectedKeys(new Set());
       return;

@@ -42,8 +42,19 @@ export function isNewTabContext(url: Url, title?: string | null): boolean {
 }
 
 
+/** Allowlist: only http(s) URLs are trackable in the tree. */
+export function isTrackableUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function shouldTrackUrl(url: Url): boolean {
-  return !ignoredUrlPatterns.some(pattern => pattern.test(url));
+  if (ignoredUrlPatterns.some(pattern => pattern.test(url))) return false;
+  return isTrackableUrl(url);
 }
 
 export function normalizeFaviconUrl(
