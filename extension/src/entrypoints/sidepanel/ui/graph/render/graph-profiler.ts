@@ -67,11 +67,11 @@ export class GraphProfiler {
     const valid = buf.samples.slice(0, buf.count);
     const sorted = Array.from(valid).sort((a, b) => a - b);
 
-    const p50 = sorted[Math.floor(sorted.length * 0.5)];
-    const p95 = sorted[Math.floor(sorted.length * 0.95)];
+    const p50 = sorted[Math.floor(sorted.length * 0.5)] ?? 0;
+    const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
     // last written sample is one position behind writeIndex
     const lastIndex = (buf.writeIndex - 1 + this.windowSize) % this.windowSize;
-    const last = buf.samples[lastIndex];
+    const last = buf.samples[lastIndex] ?? 0;
 
     return { p50, p95, count: buf.count, last };
   }
