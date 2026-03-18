@@ -9,7 +9,6 @@ import { initBackendConfig } from '@shared/config/backend.js';
 import { authOrchestrator } from './services/auth-orchestrator.js';
 import { accountKeeper } from './services/account-keeper.js';
 import { authPolicyKeeper } from './services/auth-policy-keeper.js';
-import { browser } from '@shared/platform/webext.js';
 import { initSpotlightCommand } from './spotlight-command.js';
 import { initOffscreenGraphManager } from './services/offscreen-graph-manager.js';
 
@@ -33,14 +32,8 @@ void authPolicyKeeper.getPolicy();
 initSpotlightCommand();
 initOffscreenGraphManager();
 
-const sidePanel = (browser as unknown as {
-  sidePanel?: {
-    setPanelBehavior?: (behavior: { openPanelOnActionClick: boolean }) => Promise<void> | void;
-  };
-})?.sidePanel;
-
-if (sidePanel?.setPanelBehavior) {
-  void Promise.resolve(sidePanel.setPanelBehavior({ openPanelOnActionClick: true })).catch((err: unknown) => {
+if (chrome.sidePanel?.setPanelBehavior) {
+  void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err: unknown) => {
     console.warn('Failed to set side panel behavior', err);
   });
 }

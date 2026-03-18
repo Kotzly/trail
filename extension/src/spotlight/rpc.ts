@@ -2,6 +2,7 @@ import { browser } from 'wxt/browser';
 import type {
   SpotlightActionId,
   SpotlightActionTarget,
+  SpotlightBatchActionId,
   SpotlightBootstrapData,
   SpotlightExecuteActionResponse,
   SpotlightGraphPreviewData,
@@ -102,8 +103,8 @@ export async function executeSpotlightAction(
 }
 
 export async function executeBatchAction(
-  actionId: string,
-  targets: Array<{ kind: string; nodeId?: NodeId; treeId?: string; url?: string }>,
+  actionId: SpotlightBatchActionId,
+  targets: SpotlightActionTarget[],
 ): Promise<SpotlightExecuteActionResponse> {
   return sendRpc<SpotlightExecuteActionResponse>('SPOTLIGHT_EXECUTE_BATCH_ACTION', {
     actionId,

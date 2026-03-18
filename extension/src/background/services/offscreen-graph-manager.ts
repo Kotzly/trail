@@ -8,22 +8,14 @@
 
 const OFFSCREEN_URL = 'offscreen-graph.html';
 
-type OffscreenReason = chrome.offscreen.Reason;
-const REASON: OffscreenReason = 'WORKERS' as OffscreenReason;
+const REASON = chrome.offscreen.Reason.WORKERS;
 
 async function hasOffscreenDocument(): Promise<boolean> {
   // chrome.runtime.getContexts is available in Chrome 116+
-  const getContexts = (chrome.runtime as unknown as {
-    getContexts?: (filter: {
-      contextTypes: string[];
-      documentUrls: string[];
-    }) => Promise<Array<{ documentUrl: string }>>;
-  }).getContexts;
+  if (!chrome.runtime.getContexts) return false;
 
-  if (!getContexts) return false;
-
-  const contexts = await getContexts.call(chrome.runtime, {
-    contextTypes: ['OFFSCREEN_DOCUMENT'],
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
     documentUrls: [chrome.runtime.getURL(OFFSCREEN_URL)],
   });
 

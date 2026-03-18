@@ -17,7 +17,7 @@ import { themeCacheItem } from '@shared/config/storage-items.js';
 export function applyThemeTokens(
   target: HTMLElement,
   theme: ThemeId,
-  customTheme: CustomTheme,
+  customTheme: CustomTheme | null,
   opts?: { preserveDefaults?: boolean },
 ): void {
   const preserveDefaults = opts?.preserveDefaults ?? true;

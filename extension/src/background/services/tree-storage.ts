@@ -1,5 +1,5 @@
 import { storage } from 'wxt/utils/storage';
-import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary, ArchiveIndexEntry } from '@shared/types/tree.js';
+import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeStub, TreeSummary, ArchiveIndexEntry } from '@shared/types/tree.js';
 import { isTreeStub } from '@shared/types/tree.js';
 import { NavigationTree } from '../state/nav-tree.js';
 import { NavigationTreeMapper } from '@shared/lib/mapper.js';
@@ -17,9 +17,10 @@ import {
 import type { Title, Url } from '@shared/types/ids.js';
 import type { NodeData } from '@shared/types/node.js';
 
-const archiveIndexBulkItem = archiveIndexItem as unknown as {
-  key: string;
-  setValue: (value: unknown) => Promise<void>;
+/** Adapter to satisfy the BulkEntry item shape (which uses `unknown` for generic bulk writes). */
+const archiveIndexBulkItem: { key: string; setValue: (v: unknown) => Promise<void> } = {
+  get key() { return archiveIndexItem.key; },
+  setValue: (v) => archiveIndexItem.setValue(v as ArchiveIndexEntry[]),
 };
 
 // ---------------------------------------------------------------------------
@@ -86,8 +87,8 @@ function normalizeIndexEntry(raw: unknown): ArchiveIndexEntry | null {
   if (typeof candidate.rootTitle === 'string') entry.rootTitle = candidate.rootTitle;
   if (typeof candidate.rootFavicon === 'string') entry.rootFavicon = candidate.rootFavicon;
   // Preserve stub marker
-  if ('stub' in candidate && (candidate as unknown as { stub?: boolean }).stub === true) {
-    (entry as unknown as { stub: true }).stub = true;
+  if ('stub' in candidate && (candidate as Partial<TreeStub>).stub === true) {
+    return { ...entry, stub: true as const } satisfies TreeStub;
   }
   return entry;
 }

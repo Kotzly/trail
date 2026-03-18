@@ -56,9 +56,8 @@ import { useGraphView } from './useGraphView.js';
 // ---------------------------------------------------------------------------
 
 function consumePrefetchedLayout(): CachedLayoutResult | null {
-  const g = globalThis as unknown as { __trailCachedLayout?: CachedLayoutResult | null };
-  const cached = g.__trailCachedLayout ?? null;
-  if (cached) g.__trailCachedLayout = null; // Consume once
+  const cached = globalThis.__trailCachedLayout ?? null;
+  if (cached) globalThis.__trailCachedLayout = null; // Consume once
   return cached;
 }
 

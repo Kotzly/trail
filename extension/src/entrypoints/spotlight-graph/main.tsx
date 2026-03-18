@@ -7,13 +7,18 @@ import SpotlightGraphApp from './SpotlightGraphApp.js';
 import { readLayoutCache } from '@shared/graph-layout-cache/cache.js';
 import type { CachedLayoutResult } from '@shared/graph-layout-cache/types.js';
 
+declare global {
+  // eslint-disable-next-line no-var -- globalThis augmentation requires var
+  var __trailCachedLayout: CachedLayoutResult | null | undefined;
+}
+
 // Pre-fetch cached layout BEFORE React mounts — ensures it's available
 // synchronously in GraphCanvas.useMemo on first render
 const cachePromise = readLayoutCache('active');
 
 async function mount(): Promise<void> {
   const cached = await cachePromise;
-  (globalThis as unknown as { __trailCachedLayout?: CachedLayoutResult | null }).__trailCachedLayout = cached;
+  globalThis.__trailCachedLayout = cached;
 
   const root = createRoot(document.getElementById('root')!);
   root.render(

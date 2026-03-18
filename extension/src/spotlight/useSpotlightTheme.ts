@@ -28,7 +28,7 @@ export function useSpotlightTheme(
   containerRef: React.RefObject<HTMLElement | null>,
 ) {
   const themeIdRef = useRef<ThemeId>('system');
-  const customThemeRef = useRef<CustomTheme>(null as unknown as CustomTheme);
+  const customThemeRef = useRef<CustomTheme | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;

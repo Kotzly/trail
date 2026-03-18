@@ -109,8 +109,8 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
       setSelectedKeys(new Set());
       return;
     }
-    const targets = nodes.map((n) => n.kind === 'node' ? { kind: 'node' as const, nodeId: n.nodeId, treeId: n.treeId } : null).filter(Boolean);
-    const response = await executeBatchAction(actionId, targets as Array<{ kind: string; nodeId?: any; treeId?: string }>);
+    const targets = nodes.flatMap((n) => n.kind === 'node' ? [{ kind: 'node' as const, nodeId: n.nodeId, treeId: n.treeId }] : []);
+    const response = await executeBatchAction(actionId, targets);
     if (response.statusText) act.setStatusText(response.statusText);
     setSelectedKeys(new Set());
   }, [multiSelectedItems, act]);

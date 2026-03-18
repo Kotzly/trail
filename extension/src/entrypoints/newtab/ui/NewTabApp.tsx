@@ -157,7 +157,11 @@ export function NewTabApp() {
   // Mouse parallax + island drag drift — shifts graph bg for depth.
   // Also drifts graph opposite to island drag position.
   // Loop auto-stops when converged, restarts on mousemove or drag change.
+  // Perf: mousemove throttled to ~30fps; CSS custom properties for GPU compositing.
   useEffect(() => {
+    const el = graphBgRef.current;
+    if (el) el.style.willChange = 'transform';
+
     const mouseTarget = { x: 0, y: 0 };
     const current = { x: 0, y: 0 };
     const MAX_X = 20;
@@ -165,8 +169,10 @@ export function NewTabApp() {
     const DRAG_SCALE = -0.08; // inverted: island left → graph right
     const EASE = 0.12;
     const SETTLE_THRESHOLD = 0.1;
+    const THROTTLE_MS = 33; // ~30fps
     let rafId: number | null = null;
     let running = false;
+    let lastMoveTime = 0;
 
     const getTarget = () => ({
       x: mouseTarget.x + dragX.get() * DRAG_SCALE,
@@ -187,7 +193,6 @@ export function NewTabApp() {
         rafId = requestAnimationFrame(update);
       }
 
-      const el = graphBgRef.current;
       if (el) {
         el.style.transform = `translate3d(${current.x.toFixed(2)}px, ${current.y.toFixed(2)}px, 0)`;
       }
@@ -200,6 +205,10 @@ export function NewTabApp() {
     };
 
     const onMove = (e: MouseEvent) => {
+      const now = performance.now();
+      if (now - lastMoveTime < THROTTLE_MS) return;
+      lastMoveTime = now;
+
       mouseTarget.x = (e.clientX / window.innerWidth - 0.5) * -MAX_X * 2;
       mouseTarget.y = (e.clientY / window.innerHeight - 0.5) * -MAX_Y * 2;
       startLoop();
@@ -216,6 +225,7 @@ export function NewTabApp() {
       unsubX();
       unsubY();
       if (rafId !== null) cancelAnimationFrame(rafId);
+      if (el) el.style.willChange = '';
     };
   }, [dragX, dragY]);
 
@@ -273,7 +283,7 @@ export function NewTabApp() {
       setSelectedKeys(new Set());
       return;
     }
-    const targets: Array<{ kind: string; nodeId: NodeId; treeId: string }> = [];
+    const targets: Array<{ kind: 'node'; nodeId: NodeId; treeId: string }> = [];
     for (const n of nodes) {
       if (n.kind === 'node') targets.push({ kind: 'node', nodeId: n.nodeId, treeId: n.treeId });
     }
