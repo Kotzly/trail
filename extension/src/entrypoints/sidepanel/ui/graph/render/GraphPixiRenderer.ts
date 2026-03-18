@@ -28,6 +28,21 @@ type RenderData = {
   particles: ParticleRenderModel[];
 };
 
+type StaticGraphData = {
+  nodes: NodeRenderModel[];
+  connections: ConnectionSegment[];
+  layoutMode: LayoutMode;
+  nodeWidth: number;
+  nodeHeight: number;
+  showConnections: boolean;
+};
+
+type DynamicGraphState = {
+  nodes: NodeRenderModel[];
+  connections: ConnectionSegment[];
+  showConnections: boolean;
+};
+
 type LODLevel = 'hidden' | 'dot' | 'low' | 'full';
 type DetailMode = 'full' | 'low' | 'dot';
 export type ConnectionQuality = 'full' | 'simplified' | 'thin';
@@ -1018,6 +1033,7 @@ export class GraphPixiRenderer {
     this.metrics.selectionPatchMs = performance.now() - started;
   }
 
+  /** @deprecated Use setStaticGraph + setDynamicState + setParticles instead */
   setData(data: RenderData) {
     const setDataStart = performance.now();
     this.data = data;
@@ -1047,6 +1063,53 @@ export class GraphPixiRenderer {
     }
     this.invalidateAll();
     graphProfiler.record('setData', performance.now() - setDataStart);
+  }
+
+  setStaticGraph(data: StaticGraphData) {
+    const start = performance.now();
+    this.data = { ...data, particles: this.particles };
+    this.connections = data.connections;
+    this.cachedCullingRect = null;
+    this.visibleIdsCache = new Set();
+    this.nodeData.clear();
+    this.index = new SpatialIndex<NodeId>(Math.max(data.nodeWidth, data.nodeHeight) * 3);
+    const ids = new Set<NodeId>();
+    data.nodes.forEach((node) => {
+      this.nodeData.set(node.id, node);
+      ids.add(node.id);
+      this.index.insert(node.id, {
+        minX: node.x,
+        minY: node.y,
+        maxX: node.x + node.width,
+        maxY: node.y + node.height,
+      });
+    });
+    for (const [id, visual] of this.nodeMap.entries()) {
+      if (!ids.has(id)) {
+        visual.destroy();
+        this.nodeMap.delete(id);
+      }
+    }
+    this.invalidateAll();
+    graphProfiler.record('setStaticGraph', performance.now() - start);
+  }
+
+  setDynamicState(state: DynamicGraphState) {
+    const start = performance.now();
+    state.nodes.forEach((node) => {
+      this.nodeData.set(node.id, node);
+    });
+    this.connections = state.connections;
+    this.data = { ...this.data, showConnections: state.showConnections };
+    this.invalidateVisible();
+    graphProfiler.record('setDynamicState', performance.now() - start);
+  }
+
+  setParticles(particles: ParticleRenderModel[]) {
+    this.particles = particles;
+    if (this.isReady) {
+      this.invalidateVisible();
+    }
   }
 
   setView(view: ViewState) {

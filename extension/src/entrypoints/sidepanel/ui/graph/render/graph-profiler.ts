@@ -19,6 +19,8 @@ export type ProfilePhase =
   | 'buildConnections'
   | 'computeOffsetPositions'
   | 'setData'
+  | 'setStaticGraph'
+  | 'setDynamicState'
   | 'updateVisible'
   | 'updateConnections';
 
@@ -28,6 +30,8 @@ const ALL_PHASES: readonly ProfilePhase[] = [
   'buildConnections',
   'computeOffsetPositions',
   'setData',
+  'setStaticGraph',
+  'setDynamicState',
   'updateVisible',
   'updateConnections',
 ] as const;
