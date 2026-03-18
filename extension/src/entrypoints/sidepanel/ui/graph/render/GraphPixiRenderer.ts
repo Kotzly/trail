@@ -1,6 +1,7 @@
 import '../pixi-no-eval-bootstrap.js';
 import * as PIXI from 'pixi.js';
 import { ChevronDown, Pin, Volume2, VolumeX } from 'lucide';
+import type { TextStyleFontWeight } from 'pixi.js';
 import type { FaviconUrl, NodeId } from '@shared/types/ids.js';
 import { getFaviconUrl } from '@shared/utils/favicon.js';
 import { formatUrl } from '../../shared/format.js';
@@ -54,10 +55,6 @@ const FAVICON_ICON = 18;
 
 const TITLE_FONT_SIZE = 12;
 const URL_FONT_SIZE = 10;
-
-const BITMAP_FONT_TITLE = 'TrailTitle';   // 500 weight, size 12
-const BITMAP_FONT_URL = 'TrailUrl';       // 400 weight, size 10
-const BITMAP_FONT_BADGE = 'TrailBadge';   // 700 weight, size 9
 
 const TAB_BADGE_PADDING_X = 6;
 const TAB_BADGE_PADDING_Y = 3;
@@ -175,6 +172,7 @@ type NodeVisualState = {
   faviconKey: string;
   themeVersion: number;
   openProgress: number;
+  textResolution: number;
 };
 
 class NodeVisual {
@@ -183,11 +181,11 @@ class NodeVisual {
   private readonly background = new PIXI.Graphics();
   private readonly faviconBg = new PIXI.Graphics();
   private faviconSprite: PIXI.Sprite | null = null;
-  private readonly titleText = new PIXI.BitmapText({ text: '', style: { fontFamily: BITMAP_FONT_TITLE, fontSize: TITLE_FONT_SIZE } });
-  private readonly urlText = new PIXI.BitmapText({ text: '', style: { fontFamily: BITMAP_FONT_URL, fontSize: URL_FONT_SIZE } });
+  private readonly titleText = new PIXI.Text({ text: '' });
+  private readonly urlText = new PIXI.Text({ text: '' });
   private readonly tabBadge = new PIXI.Container();
   private readonly tabBadgeBg = new PIXI.Graphics();
-  private readonly tabBadgeText = new PIXI.BitmapText({ text: '', style: { fontFamily: BITMAP_FONT_BADGE, fontSize: 9 } });
+  private readonly tabBadgeText = new PIXI.Text({ text: '' });
   private readonly pinIcon = new PIXI.Graphics();
   private readonly audioIcon = new PIXI.Graphics();
   private readonly collapseBadge = new PIXI.Container();
@@ -206,7 +204,9 @@ class NodeVisual {
     faviconKey: '',
     themeVersion: 0,
     openProgress: 1,
+    textResolution: 1,
   };
+  private readonly fonts: { base: string; weight: TextStyleFontWeight };
   private readonly invalidate: () => void;
   private pinIconKey = '';
   private audioIconKey = '';
@@ -219,8 +219,9 @@ class NodeVisual {
    * when many nodes become visible at once.  Cleared after the first update. */
   private deferContent = true;
 
-  constructor(id: NodeId, invalidate: () => void) {
+  constructor(id: NodeId, fontFamily: string, invalidate: () => void) {
     this.id = id;
+    this.fonts = { base: fontFamily, weight: '500' };
     this.invalidate = invalidate;
     this.container.addChild(this.background);
     this.container.addChild(this.fallbackDot);
@@ -263,11 +264,14 @@ class NodeVisual {
     view: ViewState,
     theme: ReturnType<typeof readGraphTheme>,
     origin: { x: number; y: number },
+    fontFamily: string,
     themeVersion: number,
     detailMode: DetailMode,
+    textResolution: number,
     isSelected: boolean,
     isPreview: boolean
   ) {
+    this.fonts.base = fontFamily;
     const lod = resolveNodeLod(model, view, detailMode, isSelected);
 
     const rawOpenProgress = model.display.dimClosedNodes
@@ -317,10 +321,16 @@ class NodeVisual {
     const needsStyleUpdate =
       themeChanged || this.state.styleKey !== nextStyleKey || openProgressChanged;
     const needsTextUpdate =
-      themeChanged || this.state.textKey !== textKey || openProgressChanged;
+      themeChanged || this.state.textKey !== textKey || openProgressChanged || this.state.textResolution !== textResolution;
     const needsTagUpdate = themeChanged || this.state.tagKey !== tagKey;
     const needsFaviconUpdate =
       themeChanged || this.state.faviconKey !== faviconKey;
+
+    if (this.state.textResolution !== textResolution) {
+      this.titleText.resolution = textResolution;
+      this.urlText.resolution = textResolution;
+      this.tabBadgeText.resolution = textResolution;
+    }
 
     this.state = {
       lod,
@@ -330,6 +340,7 @@ class NodeVisual {
       faviconKey,
       themeVersion,
       openProgress,
+      textResolution,
     };
 
     this.container.visible = lod !== 'hidden';
@@ -375,7 +386,7 @@ class NodeVisual {
     }
 
     if (needsTextUpdate) {
-      this.updateText(model, theme, lod, showFavicon);
+      this.updateText(model, theme, lod, fontFamily, showFavicon);
     }
 
     if (needsTagUpdate) {
@@ -470,6 +481,7 @@ class NodeVisual {
     model: NodeRenderModel,
     theme: ReturnType<typeof readGraphTheme>,
     lod: LODLevel,
+    fontFamily: string,
     showFavicon: boolean
   ) {
     const showFull = lod === 'full';
@@ -489,7 +501,13 @@ class NodeVisual {
     const urlColor =
       closedFactor > 0 ? mixColors(openUrlColor, closedUrlColor, closedFactor) : openUrlColor;
 
+    this.titleText.style.fontFamily = fontFamily;
+    this.titleText.style.fontWeight = this.fonts.weight;
+    this.titleText.style.fontSize = TITLE_FONT_SIZE;
     this.titleText.style.fill = titleColor;
+    this.urlText.style.fontFamily = fontFamily;
+    this.urlText.style.fontWeight = '400';
+    this.urlText.style.fontSize = URL_FONT_SIZE;
     this.urlText.style.fill = urlColor;
 
     const title = model.node.data.title || 'Untitled';
@@ -589,8 +607,10 @@ class NodeVisual {
     if (this.tabBadge.visible) {
       const badgeText = `${model.tabCount}x`;
       this.tabBadgeText.text = badgeText;
+      this.tabBadgeText.style.fontSize = 9;
       this.tabBadgeText.style.fill = theme.onPrimary;
-      const metrics = PIXI.BitmapFontManager.measureText(badgeText, this.tabBadgeText.style);
+      this.tabBadgeText.style.fontWeight = '700';
+      const metrics = PIXI.CanvasTextMetrics.measureText(badgeText, this.tabBadgeText.style);
       const badgeWidth = metrics.width + TAB_BADGE_PADDING_X * 2;
       const badgeHeight = metrics.height + TAB_BADGE_PADDING_Y * 2;
       this.tabBadgeBg.clear();
@@ -805,6 +825,7 @@ export class GraphPixiRenderer {
   private fontFamily = '"Inter", system-ui, sans-serif';
   private detailMode: DetailMode = 'full';
   private connectionQuality: ConnectionQuality = 'full';
+  private textResolution = 1;
   private selectedNodeIds: Set<NodeId> = new Set();
   private selectionPreviewIds: Set<NodeId> | null = null;
   private lastSelectionPreviewIds: Set<NodeId> | null = null;
@@ -875,9 +896,9 @@ export class GraphPixiRenderer {
       this.host.appendChild(canvas);
       this.app.ticker?.stop();
       this.isReady = true;
-      this.installBitmapFonts();
       this.syncResolution();
       this.resizeToHost();
+      this.syncTextResolution();
       this.watchDevicePixelRatio();
       this.updateOrigin();
       this.updateWorldTransform();
@@ -937,6 +958,7 @@ export class GraphPixiRenderer {
     if (Math.abs(this.app.renderer.resolution - ratio) < 0.001) return;
     this.app.renderer.resolution = ratio;
     this.app.renderer.resize(this.host.clientWidth, this.host.clientHeight);
+    this.syncTextResolution();
     this.invalidateAll();
   }
 
@@ -945,60 +967,15 @@ export class GraphPixiRenderer {
     this.app.renderer.resize(this.host.clientWidth, this.host.clientHeight);
     this.updateOrigin();
     this.updateWorldTransform();
+    this.syncTextResolution();
     this.invalidateVisible();
   }
 
-  private installBitmapFonts() {
-    const fontRes = Math.max(1, Math.ceil(window.devicePixelRatio || 1));
-    PIXI.BitmapFont.install({
-      name: BITMAP_FONT_TITLE,
-      style: { fontFamily: this.fontFamily, fontSize: TITLE_FONT_SIZE, fontWeight: '500', fill: 0xFFFFFF },
-      chars: PIXI.BitmapFontManager.ASCII,
-      resolution: fontRes,
-      dynamicFill: true,
-    });
-    PIXI.BitmapFont.install({
-      name: BITMAP_FONT_URL,
-      style: { fontFamily: this.fontFamily, fontSize: URL_FONT_SIZE, fontWeight: '400', fill: 0xFFFFFF },
-      chars: PIXI.BitmapFontManager.ASCII,
-      resolution: fontRes,
-      dynamicFill: true,
-    });
-    PIXI.BitmapFont.install({
-      name: BITMAP_FONT_BADGE,
-      style: { fontFamily: this.fontFamily, fontSize: 9, fontWeight: '700', fill: 0xFFFFFF },
-      chars: '0123456789x ',
-      resolution: fontRes,
-      dynamicFill: true,
-    });
-  }
-
-  private reinstallBitmapFonts() {
-    const fontRes = Math.max(1, Math.ceil(window.devicePixelRatio || 1));
-    PIXI.BitmapFont.uninstall(BITMAP_FONT_TITLE);
-    PIXI.BitmapFont.uninstall(BITMAP_FONT_URL);
-    PIXI.BitmapFont.uninstall(BITMAP_FONT_BADGE);
-    PIXI.BitmapFont.install({
-      name: BITMAP_FONT_TITLE,
-      style: { fontFamily: this.fontFamily, fontSize: TITLE_FONT_SIZE, fontWeight: '500', fill: 0xFFFFFF },
-      chars: PIXI.BitmapFontManager.ASCII,
-      resolution: fontRes,
-      dynamicFill: true,
-    });
-    PIXI.BitmapFont.install({
-      name: BITMAP_FONT_URL,
-      style: { fontFamily: this.fontFamily, fontSize: URL_FONT_SIZE, fontWeight: '400', fill: 0xFFFFFF },
-      chars: PIXI.BitmapFontManager.ASCII,
-      resolution: fontRes,
-      dynamicFill: true,
-    });
-    PIXI.BitmapFont.install({
-      name: BITMAP_FONT_BADGE,
-      style: { fontFamily: this.fontFamily, fontSize: 9, fontWeight: '700', fill: 0xFFFFFF },
-      chars: '0123456789x ',
-      resolution: fontRes,
-      dynamicFill: true,
-    });
+  private syncTextResolution() {
+    if (!this.isReady) return;
+    const target = this.view.scale * this.app.renderer.resolution;
+    const next = Math.max(1, Math.min(8, Math.ceil(target)));
+    this.textResolution = next;
   }
 
   refreshTheme() {
@@ -1007,7 +984,6 @@ export class GraphPixiRenderer {
     this.fontFamily = style.fontFamily || this.fontFamily;
     this.themeVersion += 1;
     if (!this.isReady) return;
-    this.reinstallBitmapFonts();
     this.connectionsDirty = true;
     this.lastConnectionViewRect = null;
     this.invalidateAll();
@@ -1109,7 +1085,7 @@ export class GraphPixiRenderer {
       if (!node) return;
       let visual = this.nodeMap.get(id);
       if (!visual) {
-        visual = new NodeVisual(id, this.requestRender);
+        visual = new NodeVisual(id, this.fontFamily, this.requestRender);
         this.nodeMap.set(id, visual);
         this.nodeLayer.addChild(visual.container);
       }
@@ -1118,8 +1094,10 @@ export class GraphPixiRenderer {
         this.view,
         this.theme,
         this.origin,
+        this.fontFamily,
         this.themeVersion,
         this.detailMode,
+        this.textResolution,
         nextSelection.has(id),
         node.isPreview,
       );
@@ -1162,7 +1140,7 @@ export class GraphPixiRenderer {
       }
       let visual = this.nodeMap.get(id);
       if (!visual) {
-        visual = new NodeVisual(id, this.requestRender);
+        visual = new NodeVisual(id, this.fontFamily, this.requestRender);
         this.nodeMap.set(id, visual);
         this.nodeLayer.addChild(visual.container);
       }
@@ -1171,8 +1149,10 @@ export class GraphPixiRenderer {
         this.view,
         this.theme,
         this.origin,
+        this.fontFamily,
         this.themeVersion,
         this.detailMode,
+        this.textResolution,
         selection.has(id),
         updatedNode.isPreview,
       );
@@ -1327,6 +1307,7 @@ export class GraphPixiRenderer {
     if (!this.isReady) return;
     const originChanged = this.updateOrigin();
     this.updateWorldTransform();
+    this.syncTextResolution();
 
     const invalidation = decideViewInvalidation({
       prevView,
@@ -1499,7 +1480,7 @@ export class GraphPixiRenderer {
       if (!node) return;
       let visual = this.nodeMap.get(id);
       if (!visual) {
-        visual = new NodeVisual(id, this.requestRender);
+        visual = new NodeVisual(id, this.fontFamily, this.requestRender);
         this.nodeMap.set(id, visual);
         this.nodeLayer.addChild(visual.container);
       }
@@ -1508,8 +1489,10 @@ export class GraphPixiRenderer {
         this.view,
         this.theme,
         this.origin,
+        this.fontFamily,
         this.themeVersion,
         this.detailMode,
+        this.textResolution,
         selection.has(id),
         node.isPreview
       );
