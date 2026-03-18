@@ -13,6 +13,7 @@ import { sendRpcMessage } from '@shared/rpc/client.js';
 import { rpc } from '@shared/rpc/contracts.js';
 import type { Settings } from '@shared/types/settings.js';
 import type { NavigationTreeJSON } from '@shared/types/tree.js';
+import type { NodeId } from '@shared/types/ids.js';
 
 // ---------------------------------------------------------------------------
 // State
@@ -44,9 +45,9 @@ async function fetchSettings(): Promise<void> {
 
 const ACTIVE_TREE_KEY = 'active';
 
-async function computeAndCache(treeJSON: NavigationTreeJSON): Promise<void> {
+async function computeAndCache(treeJSON: NavigationTreeJSON, collapsedNodeIds?: ReadonlySet<NodeId>): Promise<void> {
   try {
-    const result = computeLayoutFromTree(treeJSON, ACTIVE_TREE_KEY, cachedSettings);
+    const result = computeLayoutFromTree(treeJSON, ACTIVE_TREE_KEY, cachedSettings, collapsedNodeIds, false);
     if (result) {
       await writeLayoutCache(result);
       console.debug(`[offscreen-graph] layout cached (${result.nodeCount} nodes, mode=${result.layoutMode})`);
@@ -56,9 +57,9 @@ async function computeAndCache(treeJSON: NavigationTreeJSON): Promise<void> {
   }
 }
 
-function scheduleCompute(treeJSON: NavigationTreeJSON): void {
+function scheduleCompute(treeJSON: NavigationTreeJSON, collapsedNodeIds?: ReadonlySet<NodeId>): void {
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => void computeAndCache(treeJSON), DEBOUNCE_MS);
+  debounceTimer = setTimeout(() => void computeAndCache(treeJSON, collapsedNodeIds), DEBOUNCE_MS);
 }
 
 // ---------------------------------------------------------------------------
@@ -73,8 +74,9 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
   // TREE_UPDATED — sent as raw RequestMessage { type: 'TREE_UPDATED', tree: ..., ... }
   if (msg.type === 'TREE_UPDATED') {
     const tree = msg.tree as NavigationTreeJSON | undefined;
+    const collapsedIds = msg.collapsedNodeIds as NodeId[] | undefined;
     if (tree) {
-      scheduleCompute(tree);
+      scheduleCompute(tree, collapsedIds ? new Set(collapsedIds) : undefined);
     }
   }
 

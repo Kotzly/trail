@@ -33,6 +33,7 @@ import {
 } from '../../graph/render/GraphPixiRenderer.js';
 import { profileSync } from '../../graph/render/graph-profiler.js';
 import type { ConnectionSegment, NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
+import { createGraphSnapshot, type GraphSnapshot } from '../../graph/render/graph-snapshot.js';
 import type { TabState } from '@shared/types/tabs.js';
 import type { TagDefinition } from '@shared/types/tags.js';
 import { easeOutCubic, lerp } from '../../graph/animation-utils.js';
@@ -50,6 +51,7 @@ import type {
 import { collectSubtreeIds, buildCollapseScope } from './graph-canvas-utils.js';
 import { computeOffsetPositions, computeDragOffsetPositions } from './graph-layout-compute.js';
 import type { CachedLayoutResult } from '@shared/graph-layout-cache/types.js';
+import { computeCollapseSignature } from '@shared/graph-layout-cache/types.js';
 import { useLayoutSend } from './useLayoutSend.js';
 import { useGraphSelection } from './useGraphSelection.js';
 import { useGraphAnimation, FAST_MOTION } from './useGraphAnimation.js';
@@ -199,6 +201,7 @@ export default function GraphCanvas({
   const activePointerIdRef = useRef<number | null>(null);
   const lastHoverNodeIdRef = useRef<NodeId | null>(null);
   const cachedBaseConnectionsRef = useRef<ConnectionSegment[]>([]);
+  const snapshotRef = useRef<GraphSnapshot | null>(null);
 
   // Snapshot of render state for imperative animation path (populated after useMemos, read from RAF)
   const latestRenderStateRef = useRef<{
@@ -230,6 +233,7 @@ export default function GraphCanvas({
     layoutMode: LayoutMode;
     hideTreeRoot: boolean;
     pathNodeIds: Set<NodeId> | null;
+    snapshot: GraphSnapshot;
   } | null>(null);
 
   // View/camera logic extracted to useGraphView hook (initialized after bounds computation).
@@ -424,13 +428,22 @@ export default function GraphCanvas({
 
   const layout = useMemo(() => {
     if (!root) return null;
-
     // Fast path: use pre-computed layout from offscreen document
     if (_prefetchedLayout && _prefetchedLayout.layoutMode === layoutOptions.mode) {
-      const hydrated = hydrateFromCache(_prefetchedLayout, root);
-      if (hydrated) {
-        _prefetchedLayout = null; // Consume once to avoid stale reuse
-        return hydrated;
+      // Validate collapse state and recency ordering match
+      const currentCollapseSignature = computeCollapseSignature(collapsedNodeIds);
+      const cacheCollapseMatch = (_prefetchedLayout.collapseSignature ?? '') === currentCollapseSignature;
+      const cacheRecencyMatch = (_prefetchedLayout.recencyOrdering ?? false) === recencyOrderingV2Enabled;
+
+      if (cacheCollapseMatch && cacheRecencyMatch) {
+        const hydrated = hydrateFromCache(_prefetchedLayout, root);
+        if (hydrated) {
+          _prefetchedLayout = null; // Consume once to avoid stale reuse
+          return hydrated;
+        }
+      } else {
+        // State mismatch -- discard stale cache
+        _prefetchedLayout = null;
       }
     }
 
@@ -1337,6 +1350,24 @@ export default function GraphCanvas({
     [staticVersion, effectiveShowConnections],
   );
 
+  // Build an immutable GraphSnapshot capturing the full static state at layout time.
+  // Re-created only when staticVersion increments (topology/layout/dimensions change).
+  const snapshot = useMemo(
+    () => createGraphSnapshot({
+      version: staticVersion,
+      nodes: renderNodes,
+      basePositions,
+      connections: baseConnections,
+      layoutMode: layoutOptions.mode,
+      nodeWidth,
+      nodeHeight,
+      showConnections: effectiveShowConnections,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [staticVersion],
+  );
+  snapshotRef.current = snapshot;
+
   // Apply path highlight as a flag toggle on cached base connections,
   // then layer drag-reparent preview edge on top.
   const connections = useMemo(() => {
@@ -1408,21 +1439,13 @@ export default function GraphCanvas({
     collapsedNodeIds, searchActive, searchSet, focusedSearchId, hoverNodeId,
     tabStates, nodeTabCounts, tagDefs, nodeWidth, nodeHeight,
     effectiveShowConnections, root, layoutMode: layoutOptions.mode,
-    hideTreeRoot, pathNodeIds,
+    hideTreeRoot, pathNodeIds, snapshot,
   };
 
-  // Static graph — fires only when topology/layout changes (staticVersion increments)
+  // Static graph — fires only when topology/layout changes (snapshot recreated on staticVersion increment)
   useEffect(() => {
-    rendererRef.current?.setStaticGraph({
-      nodes: renderNodes,
-      connections: baseConnections,
-      layoutMode: layoutOptions.mode,
-      nodeWidth,
-      nodeHeight,
-      showConnections: effectiveShowConnections,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [staticVersion]);
+    rendererRef.current?.setStaticGraph(snapshot);
+  }, [snapshot]);
 
   // Dynamic state — fires on animation, search, openProgress changes
   useEffect(() => {
