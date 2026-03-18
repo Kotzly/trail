@@ -6,10 +6,18 @@ import {
   qualityPolicyFromState,
   updateQualityPolicy,
 } from '../../graph/render/quality-policy.js';
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useCallback } from 'react';
 import type { NodeId } from '@shared/types/ids.js';
 
 const GraphCanvas = React.lazy(() => import('./GraphCanvas.js'));
+
+// Prefetch: kick off the dynamic import immediately at module load time.
+// React.lazy's internal import is deferred until first render inside Suspense.
+// By calling import() here, the chunk fetch starts as soon as GraphArea.tsx is parsed,
+// which is at sidepanel boot (it's a static import in App.tsx).
+// The browser deduplicates the import() call -- React.lazy will resolve from cache.
+const _prefetchGraphCanvas = import('./GraphCanvas.js');
+void _prefetchGraphCanvas; // suppress unused-variable lint
 
 type GraphAreaProps = {
   /** When set, called instead of the default navigateTo on node click. */
@@ -25,6 +33,11 @@ export default function GraphArea({ onNodeActivate, showControls = true, compact
   const [qualityPolicyState, setQualityPolicyState] = React.useState(() =>
     createQualityPolicyState(Date.now()),
   );
+
+  const [gestureActive, setGestureActive] = useState(false);
+  const handleGestureActiveChange = useCallback((active: boolean) => {
+    setGestureActive(active);
+  }, []);
 
   const graphState = useStore(
     useShallow((state) => ({
@@ -112,16 +125,20 @@ export default function GraphArea({ onNodeActivate, showControls = true, compact
   const detailMode =
     graphState.overlayLodCount > 0
       ? ('dot' as const)
-      : graphState.adaptivePerformance
-        ? adaptiveQuality.detailMode
-        : ('full' as const);
+      : gestureActive
+        ? ('low' as const)
+        : graphState.adaptivePerformance
+          ? adaptiveQuality.detailMode
+          : ('full' as const);
 
   const connectionQuality =
     graphState.overlayLodCount > 0
       ? ('thin' as const)
-      : graphState.adaptivePerformance
-        ? adaptiveQuality.connectionQuality
-        : ('full' as const);
+      : gestureActive
+        ? ('simplified' as const)
+        : graphState.adaptivePerformance
+          ? adaptiveQuality.connectionQuality
+          : ('full' as const);
 
   const graphActions = useStore(
     useShallow((state) => ({
@@ -146,6 +163,7 @@ export default function GraphArea({ onNodeActivate, showControls = true, compact
         detailMode={detailMode}
         connectionQuality={connectionQuality}
         onRenderMetrics={handleRenderMetrics}
+        onGestureActiveChange={handleGestureActiveChange}
         {...(onNodeActivate ? { onNodeActivate } : {})}
         showControls={showControls}
         compactInitialView={compactInitialView}

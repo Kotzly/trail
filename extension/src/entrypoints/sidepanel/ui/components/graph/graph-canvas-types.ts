@@ -109,6 +109,8 @@ export type GraphCanvasProps = {
   initialCenterNodeId?: NodeId | undefined;
   /** When set, called instead of the default navigateTo on node click. */
   onNodeActivate?: (nodeId: NodeId, url: string) => void;
+  /** Called when gesture active state changes (pan/zoom/wheel in progress). */
+  onGestureActiveChange?: (active: boolean) => void;
 };
 
 export type SelectionBox = {

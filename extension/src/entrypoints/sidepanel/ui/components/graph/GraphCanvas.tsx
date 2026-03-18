@@ -140,6 +140,7 @@ export default function GraphCanvas({
   compactInitialView = false,
   initialCenterNodeId,
   onNodeActivate,
+  onGestureActiveChange,
 }: GraphCanvasProps) {
   const searchActive = search.active;
   const searchNavStep = search.navStep;
@@ -200,6 +201,7 @@ export default function GraphCanvas({
   const suppressClickRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
   const lastHoverNodeIdRef = useRef<NodeId | null>(null);
+  const hoverDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cachedBaseConnectionsRef = useRef<ConnectionSegment[]>([]);
   const snapshotRef = useRef<GraphSnapshot | null>(null);
   const prevSnapshotVersionRef = useRef<number>(0);
@@ -711,8 +713,17 @@ export default function GraphCanvas({
   }, [layout, nodeHeight, nodeWidth, positions]);
 
   // --- View / Camera hook (must come after bounds + positions) ---
+  const [gestureActive, setGestureActive] = useState(false);
+  const onGestureActiveChangeRef = useRef(onGestureActiveChange);
+  useEffect(() => {
+    onGestureActiveChangeRef.current = onGestureActiveChange;
+  }, [onGestureActiveChange]);
+  useEffect(() => {
+    onGestureActiveChangeRef.current?.(gestureActive);
+  }, [gestureActive]);
+
   const {
-    wrapperRef, viewRef, applyGridTransform, scheduleGraphView,
+    wrapperRef, viewRef, applyGridTransform, scheduleGraphView, commitViewOnGestureEnd,
     cancelViewAnimation, animateViewTo: _animateViewTo, fitToView: _fitToView, centerOnNode: _centerOnNode, zoomAt, zoom,
   } = useGraphView({
     graphView, onGraphViewChange, rendererRef, bounds, positions,
@@ -721,6 +732,7 @@ export default function GraphCanvas({
     isDraggingNode, searchActive, searchNavStep, focusedSearchId: search.results[search.index],
     resetVersion, layoutMode: layoutOptions.mode,
     isPanningRef, isSelectingRef,
+    onGestureActiveChange: setGestureActive,
   });
 
   // --- Renderer init (depends on applyGridTransform from view hook) ---
@@ -738,6 +750,11 @@ export default function GraphCanvas({
       renderer.setMetricsListener(null);
       renderer.destroy();
       rendererRef.current = null;
+      // Clean up hover debounce timer
+      if (hoverDebounceRef.current !== null) {
+        clearTimeout(hoverDebounceRef.current);
+        hoverDebounceRef.current = null;
+      }
     };
   }, [applyGridTransform]);
 
@@ -1615,7 +1632,7 @@ export default function GraphCanvas({
           suppressClickRef.current = true;
         }
       }
-      scheduleGraphView({ translateX: nextTranslateX, translateY: nextTranslateY });
+      scheduleGraphView({ translateX: nextTranslateX, translateY: nextTranslateY }, true);
       return;
     }
     if (isSelectingRef.current) {
@@ -1649,7 +1666,16 @@ export default function GraphCanvas({
     const hitNodeId = getPointerNodeId(event);
     if (hitNodeId !== lastHoverNodeIdRef.current) {
       lastHoverNodeIdRef.current = hitNodeId;
-      onSetHoverNodeId(hitNodeId);
+      // Push to renderer immediately for zero-latency visual feedback
+      rendererRef.current?.setHoverNodeId(hitNodeId);
+      // Debounce the Zustand write to avoid triggering React re-renders on every move
+      if (hoverDebounceRef.current !== null) {
+        clearTimeout(hoverDebounceRef.current);
+      }
+      hoverDebounceRef.current = setTimeout(() => {
+        hoverDebounceRef.current = null;
+        onSetHoverNodeId(hitNodeId);
+      }, 80);
     }
   };
 
@@ -1700,6 +1726,7 @@ export default function GraphCanvas({
       isPanningRef.current = false;
       setIsPanning(false);
       panMovedRef.current = false;
+      commitViewOnGestureEnd();
       if (suppressClickRef.current) {
         window.setTimeout(() => {
           suppressClickRef.current = false;
@@ -1781,7 +1808,7 @@ export default function GraphCanvas({
       scheduleGraphView({
         translateX: viewRef.current.translateX - event.deltaX,
         translateY: viewRef.current.translateY - event.deltaY,
-      });
+      }, true);
     }
   }, [cancelViewAnimation, scheduleGraphView, zoomAt]);
 
@@ -1853,6 +1880,11 @@ export default function GraphCanvas({
         onPointerCancel={handlePointerCancel}
         onPointerLeave={() => {
           lastHoverNodeIdRef.current = null;
+          if (hoverDebounceRef.current !== null) {
+            clearTimeout(hoverDebounceRef.current);
+            hoverDebounceRef.current = null;
+          }
+          rendererRef.current?.setHoverNodeId(null);
           onSetHoverNodeId(null);
         }}
         onKeyDown={handleKeyDown}

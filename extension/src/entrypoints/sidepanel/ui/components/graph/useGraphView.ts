@@ -30,6 +30,7 @@ type UseGraphViewParams = {
   layoutMode: LayoutMode;
   isPanningRef: RefObject<boolean>;
   isSelectingRef: RefObject<boolean>;
+  onGestureActiveChange?: (active: boolean) => void;
 };
 
 export function useGraphView({
@@ -55,13 +56,20 @@ export function useGraphView({
   layoutMode,
   isPanningRef,
   isSelectingRef,
+  onGestureActiveChange,
 }: UseGraphViewParams) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const viewAnimationRef = useRef<number | null>(null);
   const viewRef = useRef(graphView);
+  const lastCommittedViewRef = useRef(graphView);
   const didInitView = useRef(false);
   const pendingViewRef = useRef<Partial<ViewState> | null>(null);
   const viewRafRef = useRef<number | null>(null);
+  const wheelIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gestureIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gestureActiveRef = useRef(false);
+  const pendingIsGestureRef = useRef(false);
+  const onGestureActiveChangeRef = useRef(onGestureActiveChange);
   const gridVarsRef = useRef({
     size: '', dotSize: '', offsetX: '', offsetY: '',
     grainSize: '', grainOffsetX: '', grainOffsetY: '',
@@ -79,6 +87,11 @@ export function useGraphView({
   const driftOffsetRef = useRef({ x: 0, y: 0 });
   const driftStartRef = useRef(0);
   const driftCooldownUntilRef = useRef(0);
+
+  // Keep ref in sync with latest prop so callbacks don't need to be in dep arrays
+  useEffect(() => {
+    onGestureActiveChangeRef.current = onGestureActiveChange;
+  }, [onGestureActiveChange]);
 
   const applyGridTransform = useCallback((view: ViewState) => {
     const wrapper = wrapperRef.current;
@@ -128,27 +141,85 @@ export function useGraphView({
     driftStartRef.current = now;
   }, []);
 
+  const commitViewToStore = useCallback(() => {
+    const view = viewRef.current;
+    lastCommittedViewRef.current = view;
+    onGraphViewChange(view);
+  }, [onGraphViewChange]);
+
+  const setGestureActiveState = useCallback((active: boolean) => {
+    gestureActiveRef.current = active;
+    onGestureActiveChangeRef.current?.(active);
+  }, []);
+
+  const scheduleGestureIdle = useCallback(() => {
+    if (gestureIdleTimerRef.current !== null) {
+      clearTimeout(gestureIdleTimerRef.current);
+    }
+    gestureIdleTimerRef.current = setTimeout(() => {
+      gestureIdleTimerRef.current = null;
+      setGestureActiveState(false);
+    }, 200);
+  }, [setGestureActiveState]);
+
   const scheduleGraphView = useCallback(
-    (view: Partial<ViewState>) => {
+    (view: Partial<ViewState>, isGesture = false) => {
       absorbDriftOffset();
       viewRef.current = { ...viewRef.current, ...view };
       pendingViewRef.current = { ...(pendingViewRef.current ?? {}), ...view };
+      // Track whether the pending RAF represents a gesture or not.
+      // If any batched call is a gesture, the whole batch is treated as gesture.
+      pendingIsGestureRef.current = pendingIsGestureRef.current || isGesture;
+
+      if (isGesture) {
+        // Mark gesture active
+        if (!gestureActiveRef.current) {
+          setGestureActiveState(true);
+        }
+        // Wheel-idle: commit view to store after 150ms without a new wheel event
+        if (wheelIdleTimerRef.current !== null) {
+          clearTimeout(wheelIdleTimerRef.current);
+        }
+        wheelIdleTimerRef.current = setTimeout(() => {
+          wheelIdleTimerRef.current = null;
+          commitViewToStore();
+        }, 150);
+        // Gesture-idle: restore quality after 200ms
+        scheduleGestureIdle();
+      }
+
       if (viewRafRef.current !== null) return;
       viewRafRef.current = window.requestAnimationFrame(() => {
         const next = pendingViewRef.current;
+        const wasGesture = pendingIsGestureRef.current;
         pendingViewRef.current = null;
+        pendingIsGestureRef.current = false;
         viewRafRef.current = null;
         if (next) {
-          onGraphViewChange(next);
+          // During gestures, skip the Zustand write (handled by wheel-idle or pointerUp)
+          if (!wasGesture) {
+            onGraphViewChange(next);
+            lastCommittedViewRef.current = { ...lastCommittedViewRef.current, ...next };
+          }
           rendererRef.current?.setView(viewRef.current);
           applyGridTransform(viewRef.current);
         }
       });
     },
-    [absorbDriftOffset, applyGridTransform, onGraphViewChange, rendererRef],
+    [absorbDriftOffset, applyGridTransform, commitViewToStore, onGraphViewChange, rendererRef, scheduleGestureIdle, setGestureActiveState],
   );
 
-  // Cleanup rAF handles on unmount
+  // Commit view on pointerUp (pan end) -- call from GraphCanvas
+  const commitViewOnGestureEnd = useCallback(() => {
+    if (wheelIdleTimerRef.current !== null) {
+      clearTimeout(wheelIdleTimerRef.current);
+      wheelIdleTimerRef.current = null;
+    }
+    commitViewToStore();
+    scheduleGestureIdle();
+  }, [commitViewToStore, scheduleGestureIdle]);
+
+  // Cleanup rAF handles and timers on unmount
   useEffect(() => {
     return () => {
       if (viewRafRef.current !== null) {
@@ -163,7 +234,27 @@ export function useGraphView({
         window.cancelAnimationFrame(driftRafRef.current);
         driftRafRef.current = null;
       }
+      if (wheelIdleTimerRef.current !== null) {
+        clearTimeout(wheelIdleTimerRef.current);
+        wheelIdleTimerRef.current = null;
+      }
+      if (gestureIdleTimerRef.current !== null) {
+        clearTimeout(gestureIdleTimerRef.current);
+        gestureIdleTimerRef.current = null;
+      }
+      pendingIsGestureRef.current = false;
+      // Flush any uncommitted view to store on unmount
+      const current = viewRef.current;
+      const committed = lastCommittedViewRef.current;
+      if (
+        current.translateX !== committed.translateX ||
+        current.translateY !== committed.translateY ||
+        current.scale !== committed.scale
+      ) {
+        onGraphViewChange(current);
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync viewRef from prop changes
@@ -375,7 +466,7 @@ export function useGraphView({
         animateViewTo(nextView, 180);
       } else {
         viewRef.current = nextView;
-        scheduleGraphView(nextView);
+        scheduleGraphView(nextView, true);
       }
     },
     [animateViewTo, computeZoomView, scheduleGraphView],
@@ -534,6 +625,7 @@ export function useGraphView({
     viewRef,
     applyGridTransform,
     scheduleGraphView,
+    commitViewOnGestureEnd,
     cancelViewAnimation,
     animateViewTo,
     fitToView,
