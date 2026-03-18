@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
 import { Search, ChevronRight, FolderOpen } from 'lucide-react';
-import { motion, useMotionValue } from 'motion/react';
+import { AnimatePresence, motion, useMotionValue } from 'motion/react';
 import { SpotlightGraphFrame } from '../../../spotlight/SpotlightGraphFrame.js';
 import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from '../../../spotlight/SpotlightHintRow.js';
 import { SpotlightHelp } from '../../../spotlight/SpotlightHelp.js';
@@ -394,10 +394,12 @@ export function NewTabApp() {
       <div className={anchorClass} ref={anchorRef}>
         {/* ── Draggable island (sized to content) ── */}
         <motion.div
+          layout
           drag
           dragConstraints={anchorRef}
           dragElastic={0.05}
           dragMomentum={false}
+          transition={{ layout: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } }}
           onDragEnd={() => {
             try {
               localStorage.setItem(DRAG_STORAGE_KEY, JSON.stringify({ x: dragX.get(), y: dragY.get() }));
@@ -447,18 +449,27 @@ export function NewTabApp() {
 
           {/* ── Content: Dashboard (idle) or Results (searching) ── */}
           {isIdle && !graphFocusMode ? (
-            <div className={`newtab-island-panel newtab-island-panel--idle ${search.loading ? '' : 'newtab-island-panel--ready'}`}>
-              <div className="newtab-island-panel-content">
-                <DashboardView
-                  bookmarks={bookmarks}
-                  recentQueries={search.recentQueries}
-                  continueItems={continueItems}
-                  onQueryChange={search.setQuery}
-                  onActivate={handleActivateNewTab}
-                />
-                <QuickActions onAction={(filter) => search.setQuery(filter)} />
-              </div>
-            </div>
+            <AnimatePresence>
+              {!search.loading && (
+                <motion.div
+                  key="dashboard"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  style={{ overflow: 'hidden', width: '100%' }}
+                >
+                  <DashboardView
+                    bookmarks={bookmarks}
+                    recentQueries={search.recentQueries}
+                    continueItems={continueItems}
+                    onQueryChange={search.setQuery}
+                    onActivate={handleActivateNewTab}
+                  />
+                  <QuickActions onAction={(filter) => search.setQuery(filter)} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           ) : !graphFocusMode ? (
             <div className="newtab-island-panel">
               {/* ── Breadcrumb ── */}
