@@ -33,6 +33,8 @@ import {
 } from '../../graph/render/GraphPixiRenderer.js';
 import { profileSync } from '../../graph/render/graph-profiler.js';
 import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
+import type { TabState } from '@shared/types/tabs.js';
+import type { TagDefinition } from '@shared/types/tags.js';
 import { easeOutCubic, lerp } from '../../graph/animation-utils.js';
 // grid-transform.js used by useGraphView hook.
 import { browser, runtimeGetURL } from '@shared/platform/webext.js';
@@ -200,7 +202,7 @@ export default function GraphCanvas({
     visibleDisplayNodes: NodePosition[];
     positions: Map<NodeId, NodePosition>;
     display: {
-      titleTruncation: string;
+      titleTruncation: 'start' | 'middle' | 'end';
       showFavicons: boolean;
       showUrls: boolean;
       showTagDots: boolean;
@@ -215,9 +217,9 @@ export default function GraphCanvas({
     searchSet: Set<NodeId>;
     focusedSearchId: NodeId | undefined;
     hoverNodeId: NodeId | null;
-    tabStates: Record<NodeId, unknown>;
+    tabStates: Record<NodeId, TabState | undefined>;
     nodeTabCounts: Record<NodeId, number>;
-    tagDefs: unknown;
+    tagDefs: Record<string, TagDefinition>;
     nodeWidth: number;
     nodeHeight: number;
     effectiveShowConnections: boolean;
