@@ -27,12 +27,12 @@ import {
 import type { CanvasBounds, LayoutMode, NodePosition } from '../../graph/types.js';
 // animation-utils.js used by useGraphAnimation and useGraphView hooks.
 import GraphZoomControls from './GraphZoomControls.js';
-import { buildConnections, getPathToNode } from './graph-utils.js';
+import { applyPathHighlight, buildConnections, getPathToNode } from './graph-utils.js';
 import {
   GraphPixiRenderer,
 } from '../../graph/render/GraphPixiRenderer.js';
 import { profileSync } from '../../graph/render/graph-profiler.js';
-import type { NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
+import type { ConnectionSegment, NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
 import type { TabState } from '@shared/types/tabs.js';
 import type { TagDefinition } from '@shared/types/tags.js';
 import { easeOutCubic, lerp } from '../../graph/animation-utils.js';
@@ -196,6 +196,7 @@ export default function GraphCanvas({
   const suppressClickRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
   const lastHoverNodeIdRef = useRef<NodeId | null>(null);
+  const cachedBaseConnectionsRef = useRef<ConnectionSegment[]>([]);
 
   // Snapshot of render state for imperative animation path (populated after useMemos, read from RAF)
   const latestRenderStateRef = useRef<{
@@ -301,24 +302,9 @@ export default function GraphCanvas({
       };
     });
 
-    // Build connectionPositions imperatively (same logic as connectionPositions useMemo)
-    let connPositions = s.positions;
-    if (animatedPositionsRef.current.size > 0) {
-      const next = new Map<NodeId, NodePosition>();
-      s.positions.forEach((pos, id) => {
-        const override = animatedPositionsRef.current.get(id);
-        if (override) {
-          next.set(id, { ...pos, x: override.x, y: override.y });
-        } else {
-          next.set(id, pos);
-        }
-      });
-      connPositions = next;
-    }
-
-    // Build connections (reuse buildConnections)
+    // Apply path highlight on cached base connections (no rebuild needed)
     const conns = s.effectiveShowConnections
-      ? buildConnections(s.root, connPositions, s.pathNodeIds, s.layoutMode, s.hideTreeRoot, s.nodeWidth, s.nodeHeight)
+      ? applyPathHighlight(cachedBaseConnectionsRef.current, s.pathNodeIds)
       : [];
 
     renderer.setDynamicState({ nodes, connections: conns, showConnections: s.effectiveShowConnections });
@@ -1302,37 +1288,32 @@ export default function GraphCanvas({
   }, [animationVersion, pendingEnterIds, positions]);
 
   const baseConnections = useMemo(
-    () =>
-      effectiveShowConnections
+    () => {
+      const result = effectiveShowConnections
         ? profileSync('buildConnections', () => buildConnections(
             root,
-            connectionPositions,
-            pathNodeIds,
+            positions,
             layoutOptions.mode,
             hideTreeRoot,
             nodeWidth,
             nodeHeight,
           ))
-        : [],
-    [
-      effectiveShowConnections,
-      hideTreeRoot,
-      layoutOptions.mode,
-      nodeHeight,
-      nodeWidth,
-      pathNodeIds,
-      connectionPositions,
-      root,
-    ],
+        : [];
+      cachedBaseConnectionsRef.current = result;
+      return result;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [staticVersion, effectiveShowConnections],
   );
 
-  // During an editor drag-reparent preview, hide the old parent→dragged
-  // connection and show a preview connection from the snap target.
+  // Apply path highlight as a flag toggle on cached base connections,
+  // then layer drag-reparent preview edge on top.
   const connections = useMemo(() => {
-    if (!dragReparentTarget) return baseConnections;
+    const withPath = applyPathHighlight(baseConnections, pathNodeIds);
+    if (!dragReparentTarget) return withPath;
     const { draggedId, originalParentId, targetId } = dragReparentTarget;
     const excludeKey = `${originalParentId}-${draggedId}`;
-    const filtered = baseConnections.filter((c) => c.id !== excludeKey);
+    const filtered = withPath.filter((c) => c.id !== excludeKey);
     if (targetId) {
       const parentPos = connectionPositions.get(targetId);
       const childPos = connectionPositions.get(draggedId);
@@ -1387,7 +1368,7 @@ export default function GraphCanvas({
       }
     }
     return filtered;
-  }, [baseConnections, connectionPositions, dragReparentTarget, layoutOptions.mode, nodeHeight, nodeWidth]);
+  }, [baseConnections, pathNodeIds, connectionPositions, dragReparentTarget, layoutOptions.mode, nodeHeight, nodeWidth]);
 
   // Snapshot render state for imperative animation path.
   // handleTickRenderRef.current reads this during RAF ticks to bypass React.
@@ -1403,7 +1384,7 @@ export default function GraphCanvas({
   useEffect(() => {
     rendererRef.current?.setStaticGraph({
       nodes: renderNodes,
-      connections,
+      connections: baseConnections,
       layoutMode: layoutOptions.mode,
       nodeWidth,
       nodeHeight,

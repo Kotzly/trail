@@ -46,10 +46,23 @@ function orthogonalSegment(
   };
 }
 
+export function applyPathHighlight(
+  baseConnections: ConnectionSegment[],
+  pathNodeIds: Set<NodeId> | null,
+): ConnectionSegment[] {
+  if (!pathNodeIds) return baseConnections;
+  return baseConnections.map(conn => {
+    const [parentId, childId] = conn.id.split('-') as [NodeId, NodeId];
+    const shouldHighlight = pathNodeIds.has(parentId) && pathNodeIds.has(childId);
+    return shouldHighlight !== conn.onPath
+      ? { ...conn, onPath: shouldHighlight }
+      : conn;
+  });
+}
+
 export function buildConnections(
   root: NavigationNode | null,
   positions: Map<NodeId, NodePosition>,
-  pathNodeIds: Set<NodeId> | null,
   layoutMode: LayoutMode,
   hideRoot: boolean,
   nodeWidth: number,
@@ -57,9 +70,6 @@ export function buildConnections(
 ): ConnectionSegment[] {
   if (!root) return [];
   const list: ConnectionSegment[] = [];
-
-  const isOnPath = (parentId: NodeId, childId: NodeId): boolean =>
-    pathNodeIds ? pathNodeIds.has(parentId) && pathNodeIds.has(childId) : false;
 
   const traverse = (node: NavigationNode | null) => {
     if (!node) return;
@@ -91,7 +101,7 @@ export function buildConnections(
             { x: startX, y: busY },
             { x: endX, y: busY },
             { x: endX, y: endY },
-            isOnPath(node.id, e.child.id),
+            false,
           ));
         } else if (normalChildren.length >= 2) {
           const firstChildY = Math.min(...normalChildren.map((e) => e.pos.y));
@@ -106,7 +116,7 @@ export function buildConnections(
               { x: startX, y: busY },
               { x: endX, y: busY },
               { x: endX, y: endY },
-              isOnPath(node.id, e.child.id),
+              false,
             ));
           });
         }
@@ -122,7 +132,7 @@ export function buildConnections(
             { x: startX, y: busY },
             { x: endX, y: busY },
             { x: endX, y: endY },
-            isOnPath(node.id, e.child.id),
+            false,
           ));
         });
       }
@@ -157,7 +167,7 @@ export function buildConnections(
             { x: busX, y: sY },
             { x: busX, y: eY },
             { x: eX, y: eY },
-            isOnPath(node.id, e.child.id),
+            false,
           ));
         } else if (normalEntries.length >= 2) {
           const midX = (sX + normalEntries.reduce((acc, e) => {
@@ -174,7 +184,7 @@ export function buildConnections(
               { x: midX, y: sY },
               { x: midX, y: eY },
               { x: eX, y: eY },
-              isOnPath(node.id, e.child.id),
+              false,
             ));
           });
         }
@@ -190,7 +200,7 @@ export function buildConnections(
             { x: busX, y: sY },
             { x: busX, y: eY },
             { x: eX, y: eY },
-            isOnPath(node.id, e.child.id),
+            false,
           ));
         });
       };
@@ -213,7 +223,7 @@ export function buildConnections(
           cp1,
           cp2,
           end: { x: endX, y: endY },
-          onPath: isOnPath(node.id, e.child.id),
+          onPath: false,
           style: 'bezier',
           bounds: {
             minX: Math.min(startX, endX, cp1.x, cp2.x),
