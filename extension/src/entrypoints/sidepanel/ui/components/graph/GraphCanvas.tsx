@@ -48,7 +48,7 @@ import type {
   PointerInfo,
 } from './graph-canvas-types.js';
 import { collectSubtreeIds, buildCollapseScope } from './graph-canvas-utils.js';
-import { computeOffsetPositions } from './graph-layout-compute.js';
+import { computeOffsetPositions, computeDragOffsetPositions } from './graph-layout-compute.js';
 import type { CachedLayoutResult } from '@shared/graph-layout-cache/types.js';
 import { useLayoutSend } from './useLayoutSend.js';
 import { useGraphSelection } from './useGraphSelection.js';
@@ -165,6 +165,8 @@ export default function GraphCanvas({
   const dragMovedRef = useRef(false);
   const nodeDragJustEndedRef = useRef(false);
   const dragReparentRef = useRef<DragReparentPreview | null>(null);
+  const dragAffectedIdsRef = useRef<Set<NodeId> | null>(null);
+  const prevDragPositionsRef = useRef<Map<NodeId, NodePosition> | null>(null);
   const [dragReparentTarget, setDragReparentTarget] = useState<{
     draggedId: NodeId;
     originalParentId: NodeId;
@@ -296,7 +298,7 @@ export default function GraphCanvas({
         isSearchMatch: s.searchSet.has(id),
         isSearchFocused: s.focusedSearchId === id,
         isSearchDimmed: dimmedBySearch && !s.searchSet.has(id),
-        isHoverFocused: s.hoverNodeId === id,
+        isHoverFocused: false,
         display: s.display,
         tagDefs: s.tagDefs,
       };
@@ -500,9 +502,24 @@ export default function GraphCanvas({
 
   const basePositions = layout?.positions ?? emptyPositionsRef.current;
   const positions = useMemo(
-    () => profileSync('computeOffsetPositions', () => computeOffsetPositions(basePositions, layoutOptions.mode, nodeWidth, nodeHeight, root, dragPreview)),
+    () => profileSync('computeOffsetPositions', () => {
+      const affected = dragAffectedIdsRef.current;
+      const prev = prevDragPositionsRef.current;
+      // Use partial computation during drag when previous positions are available
+      if (dragPreview && affected && prev) {
+        return computeDragOffsetPositions(
+          basePositions, prev, layoutOptions.mode,
+          nodeWidth, nodeHeight, root, dragPreview, affected,
+        );
+      }
+      return computeOffsetPositions(basePositions, layoutOptions.mode, nodeWidth, nodeHeight, root, dragPreview);
+    }),
     [basePositions, dragPreview, layoutOptions.mode, nodeHeight, nodeWidth, root],
   );
+  // Store computed positions for incremental drag updates on next frame
+  if (dragPreview) {
+    prevDragPositionsRef.current = positions;
+  }
   positionsRef.current = positions;
 
   // Track whether the most recent change was a topology/layout change.
@@ -972,6 +989,26 @@ export default function GraphCanvas({
       latestLayouts: new Map(),
     };
 
+    // Pre-compute affected IDs for partial offset computation during drag.
+    // Includes dragged subtrees + ancestors to root (offsets cascade parent->child).
+    {
+      const affected = new Set<NodeId>();
+      for (const entry of nodes) {
+        const draggedNode = tree?.findNodeById(entry.nodeId);
+        if (!draggedNode) continue;
+        // Add subtree
+        const subtree = collectSubtreeIds(draggedNode);
+        subtree.forEach((id) => affected.add(id));
+        // Walk ancestors to root
+        let ancestor = draggedNode.getParent?.();
+        while (ancestor) {
+          affected.add(ancestor.id);
+          ancestor = ancestor.getParent?.();
+        }
+      }
+      dragAffectedIdsRef.current = affected;
+    }
+
     // Initialise reparent preview for single-node editor drags
     if (editorActive && nodes.length === 1) {
       const draggedNode = tree?.findNodeById(nodes[0]!.nodeId);
@@ -1040,17 +1077,10 @@ export default function GraphCanvas({
         const dragCenterX = entry.startNodeX + deltaX + nodeWidth / 2;
         const dragCenterY = entry.startNodeY + deltaY + nodeHeight / 2;
         let bestId: NodeId | null = null;
-        let bestDist = SNAP_RADIUS;
-        positionsRef.current.forEach((pos, id) => {
-          if (rp.subtreeIds.has(id)) return; // skip self & descendants
-          const cx = pos.x + nodeWidth / 2;
-          const cy = pos.y + nodeHeight / 2;
-          const dist = Math.hypot(dragCenterX - cx, dragCenterY - cy);
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestId = id;
-          }
-        });
+        const renderer = rendererRef.current;
+        if (renderer) {
+          bestId = renderer.queryNearestNode(dragCenterX, dragCenterY, SNAP_RADIUS, rp.subtreeIds);
+        }
         if (rp.targetId !== bestId) {
           rp.targetId = bestId;
           setDragReparentTarget({
@@ -1069,6 +1099,8 @@ export default function GraphCanvas({
       const state = dragStateRef.current;
       const didDrag = dragMovedRef.current;
       dragStateRef.current = null;
+      dragAffectedIdsRef.current = null;
+      prevDragPositionsRef.current = null;
       setIsDraggingNode(false);
       if (didDrag) {
         nodeDragJustEndedRef.current = true;
@@ -1243,7 +1275,7 @@ export default function GraphCanvas({
         isSearchMatch,
         isSearchFocused: focusedSearchId === id,
         isSearchDimmed: dimmedBySearch && !isSearchMatch,
-        isHoverFocused: hoverNodeId === id,
+        isHoverFocused: false,
         display,
         tagDefs,
 
@@ -1255,7 +1287,6 @@ export default function GraphCanvas({
     collapsedNodeIds,
     display,
     focusedSearchId,
-    hoverNodeId,
     nodeHeight,
     nodeTabCounts,
     nodeWidth,
