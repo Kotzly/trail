@@ -726,6 +726,53 @@ class NodeVisual {
   }
 }
 
+class GraphicsPool {
+  private readonly pool: PIXI.Graphics[] = [];
+  private activeCount = 0;
+  private readonly parent: PIXI.Container;
+
+  constructor(capacity: number, parent: PIXI.Container) {
+    this.parent = parent;
+    for (let i = 0; i < capacity; i++) {
+      const g = new PIXI.Graphics();
+      g.visible = false;
+      parent.addChild(g);
+      this.pool.push(g);
+    }
+  }
+
+  acquire(): PIXI.Graphics {
+    let g: PIXI.Graphics;
+    if (this.activeCount < this.pool.length) {
+      g = this.pool[this.activeCount];
+    } else {
+      g = new PIXI.Graphics();
+      this.parent.addChild(g);
+      this.pool.push(g);
+    }
+    this.activeCount++;
+    g.visible = true;
+    return g;
+  }
+
+  releaseAll() {
+    for (let i = 0; i < this.activeCount; i++) {
+      const g = this.pool[i];
+      g.clear();
+      g.visible = false;
+    }
+    this.activeCount = 0;
+  }
+
+  destroyAll() {
+    for (const g of this.pool) {
+      g.destroy();
+    }
+    this.pool.length = 0;
+    this.activeCount = 0;
+  }
+}
+
 export class GraphPixiRenderer {
   private readonly host: HTMLDivElement;
   private readonly app: PIXI.Application;
@@ -736,6 +783,7 @@ export class GraphPixiRenderer {
   private readonly pathAlphaFilter = new PIXI.AlphaFilter({ alpha: 1 });
   private readonly nodeLayer = new PIXI.Container();
   private readonly particleLayer = new PIXI.Container();
+  private readonly particlePool = new GraphicsPool(32, this.particleLayer);
   private readonly nodeMap = new Map<NodeId, NodeVisual>();
   private readonly nodeData = new Map<NodeId, NodeRenderModel>();
   private index = new SpatialIndex<NodeId>(300);
@@ -844,6 +892,7 @@ export class GraphPixiRenderer {
     this.nodeMap.clear();
     this.nodeData.clear();
     this.index.clear();
+    this.particlePool.destroyAll();
     if (this.isReady) {
       this.app.destroy(true, { children: true });
       if (this.canvas && this.host.contains(this.canvas)) {
@@ -1394,7 +1443,7 @@ export class GraphPixiRenderer {
     const start = performance.now();
 
     // Particles always need updating (they move every frame)
-    for (const child of this.particleLayer.removeChildren()) child.destroy();
+    this.particlePool.releaseAll();
     this.updateParticles();
 
     if (!this.data.showConnections) {
@@ -1560,13 +1609,13 @@ export class GraphPixiRenderer {
   private updateParticles() {
     if (!this.isReady) return;
     const color = this.theme.connection.path;
-    this.particles.forEach((particle) => {
-      const circle = new PIXI.Graphics();
-      circle.fill({ color, alpha: particle.alpha });
+    for (let i = 0; i < this.particles.length; i++) {
+      const particle = this.particles[i];
+      const circle = this.particlePool.acquire();
       circle.circle(0, 0, particle.radius);
+      circle.fill({ color, alpha: particle.alpha });
       circle.position.set(particle.x - this.origin.x, particle.y - this.origin.y);
-      this.particleLayer.addChild(circle);
-    });
+    }
   }
 
   private getViewRect() {
