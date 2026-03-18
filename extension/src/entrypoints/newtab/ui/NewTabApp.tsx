@@ -447,16 +447,17 @@ export function NewTabApp() {
 
           {/* ── Content: Dashboard (idle) or Results (searching) ── */}
           {isIdle && !graphFocusMode ? (
-            <div className="newtab-island-panel">
-              <DashboardView
-                bookmarks={bookmarks}
-                recentQueries={search.recentQueries}
-                continueItems={continueItems}
-                loading={search.loading}
-                onQueryChange={search.setQuery}
-                onActivate={handleActivateNewTab}
-              />
-              <QuickActions onAction={(filter) => search.setQuery(filter)} />
+            <div className={`newtab-island-panel ${search.loading ? '' : 'newtab-island-panel--ready'}`}>
+              <div className="newtab-island-panel-content">
+                <DashboardView
+                  bookmarks={bookmarks}
+                  recentQueries={search.recentQueries}
+                  continueItems={continueItems}
+                  onQueryChange={search.setQuery}
+                  onActivate={handleActivateNewTab}
+                />
+                <QuickActions onAction={(filter) => search.setQuery(filter)} />
+              </div>
             </div>
           ) : !graphFocusMode ? (
             <div className="newtab-island-panel">

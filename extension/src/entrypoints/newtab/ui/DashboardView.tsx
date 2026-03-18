@@ -11,7 +11,6 @@ type DashboardViewProps = {
   readonly bookmarks: readonly BookmarkItem[];
   readonly recentQueries: readonly string[];
   readonly continueItems: SpotlightSearchResult[];
-  readonly loading: boolean;
   readonly onQueryChange: (q: string) => void;
   readonly onActivate: (item: SpotlightSearchResult) => Promise<void>;
 };
@@ -137,14 +136,11 @@ export function DashboardView({
   bookmarks,
   recentQueries,
   continueItems,
-  loading,
   onQueryChange,
   onActivate,
 }: DashboardViewProps) {
-  if (loading) return null;
-
   return (
-    <div className="newtab-dashboard newtab-dashboard--ready">
+    <div className="newtab-dashboard">
       <div className="newtab-bento">
         <BookmarksCard bookmarks={bookmarks} />
         <ContinueCard items={continueItems} onActivate={onActivate} />

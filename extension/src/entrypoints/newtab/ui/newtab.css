@@ -138,9 +138,31 @@ body {
   width: var(--content-w);
 }
 
+/* Base: search results panel */
 .newtab-island-panel {
   width: 100%;
-  min-height: 348px;        /* At least as tall as results list (340px + 8px margin) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 348px;
+}
+
+/* Idle panel: grid 0fr→1fr for smooth expand when data loads.
+   Search bar stays put, content slides out from underneath. */
+.newtab-island-panel:has(.newtab-island-panel-content) {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s ease;
+  min-height: auto;
+}
+
+.newtab-island-panel--ready {
+  grid-template-rows: 1fr;
+}
+
+.newtab-island-panel-content {
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -225,15 +247,6 @@ body {
   flex-direction: column;
 }
 
-/* Everything fades in together once data is ready */
-.newtab-dashboard--ready {
-  animation: newtab-fade-in 0.25s ease both;
-}
-
-@keyframes newtab-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 /* Greeting (above search bar in idle mode) */
 .newtab-greeting {
