@@ -93,10 +93,13 @@ export function SpotlightResults({
     paddingEnd: 8,
   });
 
-  // Invalidate cached measurements when rows change (e.g. section collapse)
+  // Invalidate cached measurements only on section collapse/expand.
+  // Search result changes are handled by the virtualizer via count + estimateSize.
+  // Calling measure() on every rows change causes items to flash to estimated
+  // positions (42px) before re-measuring (~51px), creating visible overlap.
   useEffect(() => {
     virtualizer.measure();
-  }, [rows, virtualizer]);
+  }, [collapsedSections, virtualizer]);
 
   const isHoverRef = useRef(false);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
