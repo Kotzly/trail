@@ -31,6 +31,7 @@ import { buildConnections, getPathToNode } from './graph-utils.js';
 import {
   GraphPixiRenderer,
 } from '../../graph/render/GraphPixiRenderer.js';
+import { profileSync } from '../../graph/render/graph-profiler.js';
 import type { NodeRenderModel } from '../../graph/render/types.js';
 // grid-transform.js used by useGraphView hook.
 import { browser, runtimeGetURL } from '@shared/platform/webext.js';
@@ -323,58 +324,60 @@ export default function GraphCanvas({
       }
     }
 
-    switch (layoutOptions.mode) {
-      case 'tree':
-        return calculateLayout(root, layoutOptions.tree, getVisibleChildren);
-      case 'mindmap': {
-        const sortWithinSide = subtreeScores
-          ? (children: readonly NavigationNode[], side: 'left' | 'right') =>
-              sortChildrenForParentKey(`${String(root.id)}:${side}`, children)
-          : undefined;
-        // Stable side assignment: remember which side each child was on
-        const splitSides = recencyOrderingV2Enabled
-          ? (children: readonly NavigationNode[], subtreeHeights: Map<NodeId, number>) => {
-              const sideMap = mindmapSideRef.current;
-              const left: NavigationNode[] = [];
-              const right: NavigationNode[] = [];
-              const unassigned: NavigationNode[] = [];
+    return profileSync('layout', () => {
+      switch (layoutOptions.mode) {
+        case 'tree':
+          return calculateLayout(root, layoutOptions.tree, getVisibleChildren);
+        case 'mindmap': {
+          const sortWithinSide = subtreeScores
+            ? (children: readonly NavigationNode[], side: 'left' | 'right') =>
+                sortChildrenForParentKey(`${String(root.id)}:${side}`, children)
+            : undefined;
+          // Stable side assignment: remember which side each child was on
+          const splitSides = recencyOrderingV2Enabled
+            ? (children: readonly NavigationNode[], subtreeHeights: Map<NodeId, number>) => {
+                const sideMap = mindmapSideRef.current;
+                const left: NavigationNode[] = [];
+                const right: NavigationNode[] = [];
+                const unassigned: NavigationNode[] = [];
 
-              for (const child of children) {
-                const stored = sideMap.get(child.id);
-                if (stored === 'left') left.push(child);
-                else if (stored === 'right') right.push(child);
-                else unassigned.push(child);
-              }
-
-              // Assign new children to the lighter side
-              let leftH = left.reduce((s, c) => s + (subtreeHeights.get(c.id) ?? 0), 0);
-              let rightH = right.reduce((s, c) => s + (subtreeHeights.get(c.id) ?? 0), 0);
-              for (const child of unassigned) {
-                const h = subtreeHeights.get(child.id) ?? 0;
-                if (leftH <= rightH) {
-                  left.push(child);
-                  sideMap.set(child.id, 'left');
-                  leftH += h;
-                } else {
-                  right.push(child);
-                  sideMap.set(child.id, 'right');
-                  rightH += h;
+                for (const child of children) {
+                  const stored = sideMap.get(child.id);
+                  if (stored === 'left') left.push(child);
+                  else if (stored === 'right') right.push(child);
+                  else unassigned.push(child);
                 }
+
+                // Assign new children to the lighter side
+                let leftH = left.reduce((s, c) => s + (subtreeHeights.get(c.id) ?? 0), 0);
+                let rightH = right.reduce((s, c) => s + (subtreeHeights.get(c.id) ?? 0), 0);
+                for (const child of unassigned) {
+                  const h = subtreeHeights.get(child.id) ?? 0;
+                  if (leftH <= rightH) {
+                    left.push(child);
+                    sideMap.set(child.id, 'left');
+                    leftH += h;
+                  } else {
+                    right.push(child);
+                    sideMap.set(child.id, 'right');
+                    rightH += h;
+                  }
+                }
+
+                // Persist sides for existing children
+                for (const c of left) sideMap.set(c.id, 'left');
+                for (const c of right) sideMap.set(c.id, 'right');
+
+                return { left, right };
               }
-
-              // Persist sides for existing children
-              for (const c of left) sideMap.set(c.id, 'left');
-              for (const c of right) sideMap.set(c.id, 'right');
-
-              return { left, right };
-            }
-          : undefined;
-        return calculateMindmapLayout(root, layoutOptions.mindmap, getVisibleChildren,
-          { ...(sortWithinSide ? { sortWithinSide } : {}), ...(splitSides ? { splitSides } : {}) });
+            : undefined;
+          return calculateMindmapLayout(root, layoutOptions.mindmap, getVisibleChildren,
+            { ...(sortWithinSide ? { sortWithinSide } : {}), ...(splitSides ? { splitSides } : {}) });
+        }
+        default:
+          return calculateRadialLayout(root, layoutOptions.radial, baseLayoutConfig, getVisibleChildren);
       }
-      default:
-        return calculateRadialLayout(root, layoutOptions.radial, baseLayoutConfig, getVisibleChildren);
-    }
+    });
   }, [
     baseLayoutConfig,
     getVisibleChildren,
@@ -389,7 +392,7 @@ export default function GraphCanvas({
 
   const basePositions = layout?.positions ?? emptyPositionsRef.current;
   const positions = useMemo(
-    () => computeOffsetPositions(basePositions, layoutOptions.mode, nodeWidth, nodeHeight, root, dragPreview),
+    () => profileSync('computeOffsetPositions', () => computeOffsetPositions(basePositions, layoutOptions.mode, nodeWidth, nodeHeight, root, dragPreview)),
     [basePositions, dragPreview, layoutOptions.mode, nodeHeight, nodeWidth, root],
   );
   positionsRef.current = positions;
@@ -1073,7 +1076,7 @@ export default function GraphCanvas({
   };
 
 
-  const renderNodes = useMemo<NodeRenderModel[]>(() => {
+  const renderNodes = useMemo<NodeRenderModel[]>(() => profileSync('renderNodes', () => {
     const dimmedBySearch = searchActive;
     return visibleDisplayNodes.map((pos) => {
       const id = pos.node.id;
@@ -1109,7 +1112,7 @@ export default function GraphCanvas({
 
       };
     });
-  }, [
+  }), [
     animationVersion,
     currentNodeId,
     collapsedNodeIds,
@@ -1150,7 +1153,7 @@ export default function GraphCanvas({
   const baseConnections = useMemo(
     () =>
       effectiveShowConnections
-        ? buildConnections(
+        ? profileSync('buildConnections', () => buildConnections(
             root,
             connectionPositions,
             pathNodeIds,
@@ -1158,7 +1161,7 @@ export default function GraphCanvas({
             hideTreeRoot,
             nodeWidth,
             nodeHeight,
-          )
+          ))
         : [],
     [
       effectiveShowConnections,

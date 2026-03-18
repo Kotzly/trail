@@ -16,6 +16,7 @@ import {
 } from './view-invalidation.js';
 import { diffSelection, shouldEmitPreview } from '../../components/graph/selection-utils.js';
 import { hasRuntimeGetURL, runtimeGetURL } from '@shared/platform/webext.js';
+import { graphProfiler } from './graph-profiler.js';
 
 type RenderData = {
   nodes: NodeRenderModel[];
@@ -1018,6 +1019,7 @@ export class GraphPixiRenderer {
   }
 
   setData(data: RenderData) {
+    const setDataStart = performance.now();
     this.data = data;
     this.particles = data.particles ?? [];
     this.connections = data.connections;
@@ -1044,6 +1046,7 @@ export class GraphPixiRenderer {
       }
     }
     this.invalidateAll();
+    graphProfiler.record('setData', performance.now() - setDataStart);
   }
 
   setView(view: ViewState) {
@@ -1251,6 +1254,7 @@ export class GraphPixiRenderer {
     this.metrics.connectionsMs = connectionsMs;
     this.metrics.visibleNodes = visibleIds.size;
     this.metrics.visibleConnections = visibleConnections;
+    graphProfiler.record('updateVisible', performance.now() - updateStart);
   }
 
   private updateConnections(viewRect: {
@@ -1264,11 +1268,13 @@ export class GraphPixiRenderer {
     this.pathLayer.clear();
     for (const child of this.particleLayer.removeChildren()) child.destroy();
     if (!this.data.showConnections) {
+      graphProfiler.record('updateConnections', performance.now() - start);
       return { connectionsMs: performance.now() - start, visibleConnections: 0 };
     }
 
     const representativePx = Math.min(this.data.nodeWidth, this.data.nodeHeight) * this.view.scale;
     if (representativePx < LOD_CONN_HIDE_PX) {
+      graphProfiler.record('updateConnections', performance.now() - start);
       return { connectionsMs: performance.now() - start, visibleConnections: 0 };
     }
 
@@ -1387,6 +1393,7 @@ export class GraphPixiRenderer {
     }
 
     this.updateParticles();
+    graphProfiler.record('updateConnections', performance.now() - start);
     return {
       connectionsMs: performance.now() - start,
       visibleConnections,
