@@ -1424,7 +1424,7 @@ export default function GraphCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [staticVersion]);
 
-  // Dynamic state — fires on animation, hover, search, openProgress changes
+  // Dynamic state — fires on animation, search, openProgress changes
   useEffect(() => {
     rendererRef.current?.setDynamicState({
       nodes: renderNodes,
@@ -1432,6 +1432,11 @@ export default function GraphCanvas({
       showConnections: effectiveShowConnections,
     });
   }, [renderNodes, connections, effectiveShowConnections]);
+
+  // Hover — push directly to renderer, bypassing renderNodes rebuild
+  useEffect(() => {
+    rendererRef.current?.setHoverNodeId(hoverNodeId);
+  }, [hoverNodeId]);
 
   // Particles — fires on particle updates
   useEffect(() => {
