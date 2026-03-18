@@ -17,15 +17,7 @@ import {
 import { diffSelection, shouldEmitPreview } from '../../components/graph/selection-utils.js';
 import { hasRuntimeGetURL, runtimeGetURL } from '@shared/platform/webext.js';
 import { graphProfiler } from './graph-profiler.js';
-
-type StaticGraphData = {
-  nodes: NodeRenderModel[];
-  connections: ConnectionSegment[];
-  layoutMode: LayoutMode;
-  nodeWidth: number;
-  nodeHeight: number;
-  showConnections: boolean;
-};
+import { createGraphSnapshot, type GraphSnapshot } from './graph-snapshot.js';
 
 type DynamicGraphState = {
   nodes: NodeRenderModel[];
@@ -815,13 +807,17 @@ export class GraphPixiRenderer {
   private lastConnectionViewRect: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
   private particles: ParticleRenderModel[] = [];
   private view: ViewState = { translateX: 0, translateY: 0, scale: 1 };
-  private data: StaticGraphData & { particles: ParticleRenderModel[] } = {
-    nodes: [],
-    connections: [],
-    layoutMode: 'tree',
-    nodeWidth: 180,
-    nodeHeight: 60,
-    showConnections: true,
+  private data: GraphSnapshot & { particles: ParticleRenderModel[] } = {
+    ...createGraphSnapshot({
+      version: 0,
+      nodes: [],
+      basePositions: new Map(),
+      connections: [],
+      layoutMode: 'tree',
+      nodeWidth: 0,
+      nodeHeight: 0,
+      showConnections: false,
+    }),
     particles: [],
   };
   private theme = readGraphTheme({ host: document.body });
@@ -1166,18 +1162,18 @@ export class GraphPixiRenderer {
     }
   }
 
-  setStaticGraph(data: StaticGraphData) {
+  setStaticGraph(snapshot: GraphSnapshot) {
     const start = performance.now();
-    this.data = { ...data, particles: this.particles };
-    this.connections = data.connections;
+    this.data = { ...snapshot, particles: this.particles };
+    this.connections = [...snapshot.connections];
     this.connectionsDirty = true;
     this.lastConnectionViewRect = null;
     this.cachedCullingRect = null;
     this.visibleIdsCache = new Set();
     this.nodeData.clear();
-    this.index = new SpatialIndex<NodeId>(Math.max(data.nodeWidth, data.nodeHeight) * 3);
+    this.index = new SpatialIndex<NodeId>(Math.max(snapshot.nodeWidth, snapshot.nodeHeight) * 3);
     const ids = new Set<NodeId>();
-    data.nodes.forEach((node) => {
+    snapshot.nodes.forEach((node) => {
       this.nodeData.set(node.id, node);
       ids.add(node.id);
       this.index.insert(node.id, {
