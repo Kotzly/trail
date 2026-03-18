@@ -44,8 +44,8 @@ type UseSpotlightKeyboardOptions = {
   selectedKeys: Set<string>;
   setSelectedKeys: (keys: Set<string>) => void;
   showPreview: boolean;
-  toggleGraphPanel: () => void;
-  stepSnapPoint: (direction: 1 | -1) => void;
+  toggleGraphPanel?: (() => void) | undefined;
+  stepSnapPoint?: ((direction: 1 | -1) => void) | undefined;
   onSearchWeb?: ((query: string) => void) | null;
 };
 
@@ -194,6 +194,7 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
         case '\\': {
           // Cmd+\ (Mac) or Ctrl+\ (other) — toggle graph panel
           if ((IS_MAC && event.metaKey) || (!IS_MAC && event.ctrlKey)) {
+            if (!s.toggleGraphPanel) return;
             event.preventDefault();
             event.stopPropagation();
             s.toggleGraphPanel();
@@ -205,6 +206,7 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           // Cmd+Shift+[ / Cmd+Shift+] — step through snap points
           const mod = IS_MAC ? event.metaKey : event.ctrlKey;
           if (mod && event.shiftKey) {
+            if (!s.stepSnapPoint) return;
             event.preventDefault();
             event.stopPropagation();
             s.stepSnapPoint(event.key === '[' ? -1 : 1);

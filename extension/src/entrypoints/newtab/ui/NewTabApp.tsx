@@ -339,9 +339,6 @@ export function NewTabApp() {
   }, []);
 
   // ─── Keyboard ───
-  const toggleGraphPanel = useCallback(() => {}, []);
-  const stepSnapPoint = useCallback((_dir: 1 | -1) => {}, []);
-
   useSpotlightKeyboard({
     isOpen: true, containerRef: rootRef,
     query: search.query, selectedItem, selectedKey, setSelectedKey,
@@ -353,7 +350,7 @@ export function NewTabApp() {
     exitDrilldown: act.exitDrilldown, handleActivate: act.handleActivate, handleApplyHint,
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
     flatItems, visibleFlatItems, selectedKeys, setSelectedKeys, showPreview: true,
-    toggleGraphPanel, stepSnapPoint, onSearchWeb: handleSearchWeb,
+    onSearchWeb: handleSearchWeb,
   });
 
   // ─── Anchor mode class ───

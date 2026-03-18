@@ -15,6 +15,7 @@ import { useSpotlightKeyboard } from './useSpotlightKeyboard.js';
 import { useSelectionIndicator } from './useSelectionIndicator.js';
 import { SpotlightBatchBar } from './SpotlightBatchBar.js';
 import { useSpotlightResize } from './useSpotlightResize.js';
+import { useDrilldownMemory } from './useDrilldownMemory.js';
 import { executeBatchAction } from './rpc.js';
 import { SpotlightFooter } from './SpotlightFooter.js';
 import { resolveSpotlightQueryMode } from '@shared/lib/spotlight/query-dsl.js';
@@ -45,8 +46,7 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const lastCommittedKeyRef = useRef<string | null>(null);
   const drilldownScopeRef = useRef(drilldownScope);
   drilldownScopeRef.current = drilldownScope;
-  const drilldownMemoryRef = useRef<{ drilldownScope: { treeId: string; treeName: string }; savedAt: number } | null>(null);
-  const drilldownMemoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drilldownMemory = useDrilldownMemory();
 
   const toggle = useCallback(() => setIsOpen((prev) => !prev), []);
   const close = useCallback(() => { setIsOpen(false); setHelpOpen(false); setDrilldownScope(null); }, []);
@@ -128,26 +128,13 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   useEffect(() => {
     if (isOpen) {
       requestAnimationFrame(() => inputRef.current?.focus());
-      // Restore drilldown scope from memory if recent
-      const memory = drilldownMemoryRef.current;
-      if (memory && Date.now() - memory.savedAt < 3 * 60 * 1000) {
-        setDrilldownScope(memory.drilldownScope);
-      }
-      drilldownMemoryRef.current = null;
+      const restored = drilldownMemory.restore();
+      if (restored) setDrilldownScope(restored);
       return;
     }
-    // Save drilldown scope before clearing
-    const currentDrilldown = drilldownScopeRef.current;
-    if (currentDrilldown) {
-      drilldownMemoryRef.current = { drilldownScope: currentDrilldown, savedAt: Date.now() };
-      if (drilldownMemoryTimerRef.current) clearTimeout(drilldownMemoryTimerRef.current);
-      drilldownMemoryTimerRef.current = setTimeout(() => {
-        drilldownMemoryRef.current = null;
-        drilldownMemoryTimerRef.current = null;
-      }, 3 * 60 * 1000);
-    }
+    drilldownMemory.save(drilldownScopeRef.current);
     setSelectedKey(null); setHoveredGraphTarget(null); setDrilldownScope(null);
-  }, [isOpen]);
+  }, [isOpen, drilldownMemory]);
 
   // Graph node resolution
   const selectedNodeTarget = resolveNodeTarget(selectedItem);
@@ -199,7 +186,6 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
     exitDrilldown: act.exitDrilldown, handleActivate: act.handleActivate, handleApplyHint,
     handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
     flatItems, visibleFlatItems, selectedKeys, setSelectedKeys, showPreview: true,
-    toggleGraphPanel: () => {}, stepSnapPoint: () => {},
   });
 
   const resize = useSpotlightResize(panelsRef, spotlightMode);
