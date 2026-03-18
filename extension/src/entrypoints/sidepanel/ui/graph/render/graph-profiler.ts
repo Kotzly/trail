@@ -6,7 +6,7 @@
  *
  * Usage:
  *   import { graphProfiler, profileSync } from './graph-profiler.js';
- *   graphProfiler.record('setData', elapsed);
+ *   graphProfiler.record('setStaticGraph', elapsed);
  *   const result = profileSync('layout', () => calculateLayout(...));
  *
  * Console API:
@@ -18,7 +18,6 @@ export type ProfilePhase =
   | 'renderNodes'
   | 'buildConnections'
   | 'computeOffsetPositions'
-  | 'setData'
   | 'setStaticGraph'
   | 'setDynamicState'
   | 'updateVisible'
@@ -29,7 +28,6 @@ const ALL_PHASES: readonly ProfilePhase[] = [
   'renderNodes',
   'buildConnections',
   'computeOffsetPositions',
-  'setData',
   'setStaticGraph',
   'setDynamicState',
   'updateVisible',

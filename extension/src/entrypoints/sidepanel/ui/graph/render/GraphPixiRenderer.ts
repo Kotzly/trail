@@ -18,16 +18,6 @@ import { diffSelection, shouldEmitPreview } from '../../components/graph/selecti
 import { hasRuntimeGetURL, runtimeGetURL } from '@shared/platform/webext.js';
 import { graphProfiler } from './graph-profiler.js';
 
-type RenderData = {
-  nodes: NodeRenderModel[];
-  connections: ConnectionSegment[];
-  layoutMode: LayoutMode;
-  nodeWidth: number;
-  nodeHeight: number;
-  showConnections: boolean;
-  particles: ParticleRenderModel[];
-};
-
 type StaticGraphData = {
   nodes: NodeRenderModel[];
   connections: ConnectionSegment[];
@@ -752,7 +742,7 @@ export class GraphPixiRenderer {
   private connections: ConnectionSegment[] = [];
   private particles: ParticleRenderModel[] = [];
   private view: ViewState = { translateX: 0, translateY: 0, scale: 1 };
-  private data: RenderData = {
+  private data: StaticGraphData & { particles: ParticleRenderModel[] } = {
     nodes: [],
     connections: [],
     layoutMode: 'tree',
@@ -1031,38 +1021,6 @@ export class GraphPixiRenderer {
       this.render();
     }
     this.metrics.selectionPatchMs = performance.now() - started;
-  }
-
-  /** @deprecated Use setStaticGraph + setDynamicState + setParticles instead */
-  setData(data: RenderData) {
-    const setDataStart = performance.now();
-    this.data = data;
-    this.particles = data.particles ?? [];
-    this.connections = data.connections;
-    this.cachedCullingRect = null;
-    this.visibleIdsCache = new Set();
-    this.nodeData.clear();
-    this.index = new SpatialIndex<NodeId>(Math.max(data.nodeWidth, data.nodeHeight) * 3);
-    const ids = new Set<NodeId>();
-    data.nodes.forEach((node) => {
-      this.nodeData.set(node.id, node);
-      ids.add(node.id);
-      const rect = {
-        minX: node.x,
-        minY: node.y,
-        maxX: node.x + node.width,
-        maxY: node.y + node.height,
-      };
-      this.index.insert(node.id, rect);
-    });
-    for (const [id, visual] of this.nodeMap.entries()) {
-      if (!ids.has(id)) {
-        visual.destroy();
-        this.nodeMap.delete(id);
-      }
-    }
-    this.invalidateAll();
-    graphProfiler.record('setData', performance.now() - setDataStart);
   }
 
   setStaticGraph(data: StaticGraphData) {

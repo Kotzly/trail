@@ -397,6 +397,35 @@ export default function GraphCanvas({
   );
   positionsRef.current = positions;
 
+  // Track whether the most recent change was a topology/layout change.
+  // staticVersion increments only when basePositions, layoutMode, nodeWidth, or nodeHeight change.
+  const staticVersionRef = useRef(0);
+  const prevStaticDepsRef = useRef<{
+    layoutMode: LayoutMode;
+    nodeWidth: number;
+    nodeHeight: number;
+    basePositions: Map<NodeId, NodePosition>;
+  } | null>(null);
+
+  const staticVersion = useMemo(() => {
+    const prev = prevStaticDepsRef.current;
+    if (prev === null) {
+      prevStaticDepsRef.current = { layoutMode: layoutOptions.mode, nodeWidth, nodeHeight, basePositions };
+      staticVersionRef.current += 1;
+      return staticVersionRef.current;
+    }
+    const changed =
+      prev.layoutMode !== layoutOptions.mode ||
+      prev.nodeWidth !== nodeWidth ||
+      prev.nodeHeight !== nodeHeight ||
+      prev.basePositions !== basePositions;
+    prevStaticDepsRef.current = { layoutMode: layoutOptions.mode, nodeWidth, nodeHeight, basePositions };
+    if (changed) {
+      staticVersionRef.current += 1;
+    }
+    return staticVersionRef.current;
+  }, [layoutOptions.mode, nodeWidth, nodeHeight, basePositions]);
+
   // Animation helpers (spawnExitParticles, queueNodeAnimation, startEnter, startExit, startMove)
   // are provided by useGraphAnimation hook above.
 
@@ -1238,26 +1267,32 @@ export default function GraphCanvas({
     return filtered;
   }, [baseConnections, connectionPositions, dragReparentTarget, layoutOptions.mode, nodeHeight, nodeWidth]);
 
+  // Static graph — fires only when topology/layout changes (staticVersion increments)
   useEffect(() => {
-    rendererRef.current?.setData({
+    rendererRef.current?.setStaticGraph({
       nodes: renderNodes,
       connections,
       layoutMode: layoutOptions.mode,
       nodeWidth,
       nodeHeight,
       showConnections: effectiveShowConnections,
-      particles: particleRenderModels,
     });
-  }, [
-    connections,
-    effectiveShowConnections,
-    layoutOptions.mode,
-    nodeHeight,
-    nodeWidth,
-    particleRenderModels,
-    particleVersion,
-    renderNodes,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staticVersion]);
+
+  // Dynamic state — fires on animation, hover, search, openProgress changes
+  useEffect(() => {
+    rendererRef.current?.setDynamicState({
+      nodes: renderNodes,
+      connections,
+      showConnections: effectiveShowConnections,
+    });
+  }, [renderNodes, connections, effectiveShowConnections]);
+
+  // Particles — fires on particle updates
+  useEffect(() => {
+    rendererRef.current?.setParticles(particleRenderModels);
+  }, [particleRenderModels, particleVersion]);
 
   useEffect(() => {
     rendererRef.current?.setDetailMode(detailMode);
