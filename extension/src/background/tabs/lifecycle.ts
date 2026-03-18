@@ -98,6 +98,7 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
                 }
             }
         } catch (e) {
+            console.warn('[tab-lifecycle] Tab registration failed:', { tabId, error: String(e) });
             return;
         }
     }

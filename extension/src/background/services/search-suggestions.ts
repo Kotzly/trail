@@ -54,7 +54,8 @@ export async function fetchSearchSuggestions(query: string): Promise<readonly st
     }
 
     return suggestions;
-  } catch {
+  } catch (e) {
+    console.warn('[search-suggestions] Fetch failed:', String(e));
     return [];
   }
 }

@@ -79,7 +79,8 @@ class AuthPolicyKeeper {
         };
         await authPolicyItem.setValue(policy);
         return policy;
-      } catch {
+      } catch (e) {
+        console.warn('[auth-policy] Policy check failed:', String(e));
         return fallback ?? DEFAULT_POLICY;
       }
     })();

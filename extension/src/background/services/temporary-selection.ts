@@ -29,7 +29,8 @@ async function focusTab(tabId: TabId): Promise<boolean> {
     }
     await browser.tabs.update(tabId, { active: true });
     return true;
-  } catch {
+  } catch (e) {
+    console.warn('[temp-selection] Storage operation failed:', String(e));
     return false;
   }
 }

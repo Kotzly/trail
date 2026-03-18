@@ -127,9 +127,9 @@ async function broadcastEditorExitToSite(): Promise<void> {
       browser.tabs.sendMessage(tab.id, {
         type: 'RELAY_TO_SITE',
         payload,
-      }).catch(() => { /* tab has no content script — ignore */ });
+      }).catch((e) => { console.warn('[editor] Content script unavailable for tab:', { tabId: tab.id, error: String(e) }); });
     }
-  } catch { /* ignore */ }
+  } catch (e) { console.warn('[editor] Failed to broadcast editor exit:', String(e)); }
 }
 
 /* ------------------------------------------------------------------ */

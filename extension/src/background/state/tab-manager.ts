@@ -206,7 +206,8 @@ export class TabManager {
       for (const tabId of candidates) {
         const nodeId = this.index.nodeByTab(tabId);
         if (!nodeId) {
-            this.lru.remove(tabId); // self-remova
+            console.warn('[tab-manager] Orphaned LRU entry, removing tab:', tabId);
+            this.lru.remove(tabId); // self-removal
             continue;
         }
         if (tree) {

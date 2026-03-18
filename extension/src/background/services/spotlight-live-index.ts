@@ -535,7 +535,8 @@ function extractDomain(url: string): string {
   if (!url) return '';
   try {
     return new URL(url).hostname.toLowerCase();
-  } catch {
+  } catch (e) {
+    console.warn('[spotlight-index] URL parse failed:', String(e));
     return '';
   }
 }
