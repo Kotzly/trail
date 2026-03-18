@@ -140,11 +140,10 @@ body {
 
 .newtab-island-panel {
   width: 100%;
-  height: 348px;            /* Fixed: 340px list + 8px margin-top */
+  min-height: 348px;        /* At least as tall as results list (340px + 8px margin) */
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow: hidden;
 }
 
 /* ═══════════════════════════════════════════════
