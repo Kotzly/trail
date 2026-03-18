@@ -870,6 +870,10 @@ export class GraphPixiRenderer {
     this.initPromise = this.init();
   }
 
+  get currentSnapshot(): GraphSnapshot {
+    return this.data;
+  }
+
   private async init() {
     try {
       await this.app.init({

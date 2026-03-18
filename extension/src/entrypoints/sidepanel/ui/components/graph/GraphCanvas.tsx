@@ -202,6 +202,7 @@ export default function GraphCanvas({
   const lastHoverNodeIdRef = useRef<NodeId | null>(null);
   const cachedBaseConnectionsRef = useRef<ConnectionSegment[]>([]);
   const snapshotRef = useRef<GraphSnapshot | null>(null);
+  const prevSnapshotVersionRef = useRef<number>(0);
 
   // Snapshot of render state for imperative animation path (populated after useMemos, read from RAF)
   const latestRenderStateRef = useRef<{
@@ -1444,7 +1445,26 @@ export default function GraphCanvas({
 
   // Static graph — fires only when topology/layout changes (snapshot recreated on staticVersion increment)
   useEffect(() => {
-    rendererRef.current?.setStaticGraph(snapshot);
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    const prevVersion = prevSnapshotVersionRef.current;
+    prevSnapshotVersionRef.current = snapshot.version;
+
+    // Use incremental patch when:
+    // 1. We have a previous snapshot (not first render)
+    // 2. Layout mode hasn't changed
+    // 3. Node dimensions haven't changed
+    // These conditions mean the change is collapse/expand or minor topology update
+    if (
+      prevVersion > 0 &&
+      snapshot.layoutMode === renderer.currentSnapshot.layoutMode &&
+      snapshot.nodeWidth === renderer.currentSnapshot.nodeWidth &&
+      snapshot.nodeHeight === renderer.currentSnapshot.nodeHeight
+    ) {
+      renderer.patchStaticGraph(snapshot);
+    } else {
+      renderer.setStaticGraph(snapshot);
+    }
   }, [snapshot]);
 
   // Dynamic state — fires on animation, search, openProgress changes
