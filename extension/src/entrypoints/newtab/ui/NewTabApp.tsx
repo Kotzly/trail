@@ -447,7 +447,7 @@ export function NewTabApp() {
 
           {/* ── Content: Dashboard (idle) or Results (searching) ── */}
           {isIdle && !graphFocusMode ? (
-            <div className={`newtab-island-panel ${search.loading ? '' : 'newtab-island-panel--ready'}`}>
+            <div className={`newtab-island-panel newtab-island-panel--idle ${search.loading ? '' : 'newtab-island-panel--ready'}`}>
               <div className="newtab-island-panel-content">
                 <DashboardView
                   bookmarks={bookmarks}
