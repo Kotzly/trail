@@ -225,6 +225,16 @@ body {
   flex-direction: column;
 }
 
+/* Everything fades in together once data is ready */
+.newtab-dashboard--ready {
+  animation: newtab-fade-in 0.25s ease both;
+}
+
+@keyframes newtab-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Greeting (above search bar in idle mode) */
 .newtab-greeting {
   text-align: center;
@@ -271,38 +281,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: all 0.3s ease;
   overflow: hidden;
 }
 
 .newtab-bento-card--wide {
   grid-column: 1 / -1;
-}
-
-/* When bookmarks is the only card, stretch to fill bento */
-.newtab-bento--solo .newtab-bento-card--bookmarks {
-  grid-column: 1 / -1;
-}
-
-.newtab-bento--solo .newtab-bento-bookmarks-grid {
-  max-height: none;
-}
-
-/* Animated cards: start hidden, fade in */
-.newtab-bento-card--animated {
-  max-height: 0;
-  padding: 0;
-  opacity: 0;
-  border-color: transparent;
-  overflow: hidden;
-  transition: max-height 0.35s ease, padding 0.35s ease, opacity 0.3s ease 0.1s;
-}
-
-.newtab-bento-card--visible {
-  max-height: 250px;
-  padding: 14px;
-  opacity: 1;
-  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .newtab-bento-card-title {
