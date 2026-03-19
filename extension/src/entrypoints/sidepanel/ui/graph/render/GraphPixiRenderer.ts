@@ -220,6 +220,9 @@ class NodeVisual {
   /** When true, skip text/favicon rendering on first update to avoid frame drops
    * when many nodes become visible at once.  Cleared after the first update. */
   private deferContent = true;
+  /** When true, hydration is managed externally via the idle hydration queue
+   *  instead of the immediate next-frame invalidate() pattern. */
+  private useBatchedHydration = false;
 
   constructor(id: NodeId, fontFamily: string, invalidate: () => void) {
     this.id = id;
@@ -259,6 +262,20 @@ class NodeVisual {
   destroy() {
     this.destroyed = true;
     this.container.destroy({ children: true });
+  }
+
+  setBatchedHydration(value: boolean) {
+    this.useBatchedHydration = value;
+  }
+
+  /** Force content rendering for a previously deferred node.
+   *  Called by the idle hydration queue — does NOT trigger invalidate(). */
+  hydrateContent() {
+    if (!this.deferContent) return; // already hydrated
+    this.deferContent = false;
+    // Force state keys to empty so the next update() populates everything
+    this.state = { ...this.state, textKey: "", tagKey: "", faviconKey: "" };
+    // Don't call invalidate() here — the batch processor handles render scheduling
   }
 
   update(
@@ -373,9 +390,15 @@ class NodeVisual {
 
     // Defer expensive text/favicon rendering for brand-new nodes so the graph
     // structure (backgrounds + connections) can paint without frame drops.
-    // Content appears on the very next render cycle.
     if (this.deferContent) {
-      this.deferContent = false;
+      if (!this.useBatchedHydration) {
+        // Small tree: immediate next-frame hydration (existing behavior)
+        this.deferContent = false;
+        this.state = { ...this.state, textKey: "", tagKey: "", faviconKey: "" };
+        this.invalidate();
+      }
+      // Large tree with batched hydration: content stays deferred until
+      // hydrateContent() is called by the idle hydration queue
       this.textContainer.visible = false;
       this.faviconBg.visible = false;
       if (this.faviconSprite) this.faviconSprite.visible = false;
@@ -384,9 +407,6 @@ class NodeVisual {
       this.audioIcon.visible = false;
       this.collapseBadge.visible = false;
       this.tagDots.visible = false;
-      // Force state keys to empty so the next update will populate everything.
-      this.state = { ...this.state, textKey: "", tagKey: "", faviconKey: "" };
-      this.invalidate();
       return;
     }
 
@@ -800,6 +820,9 @@ class GraphicsPool {
 }
 
 export class GraphPixiRenderer {
+  private static readonly HYDRATION_BATCH_SIZE = 30;
+  private static readonly LARGE_TREE_THRESHOLD = 1500;
+
   private readonly host: HTMLDivElement;
   private readonly app: PIXI.Application;
   private readonly world = new PIXI.Container();
@@ -812,6 +835,9 @@ export class GraphPixiRenderer {
   private readonly particlePool = new GraphicsPool(32, this.particleLayer);
   private readonly nodeMap = new Map<NodeId, NodeVisual>();
   private readonly nodeData = new Map<NodeId, NodeRenderModel>();
+  private readonly hydrationQueue: NodeId[] = [];
+  private hydrationIdleHandle: number | null = null;
+  private isGestureActive = false;
   private index = new SpatialIndex<NodeId>(300);
   private connections: ConnectionSegment[] = [];
   private connectionsDirty = true;
@@ -927,6 +953,11 @@ export class GraphPixiRenderer {
 
   destroy() {
     this.destroyed = true;
+    if (this.hydrationIdleHandle !== null) {
+      cancelIdleCallback(this.hydrationIdleHandle);
+      this.hydrationIdleHandle = null;
+    }
+    this.hydrationQueue.length = 0;
     this.unwatchDevicePixelRatio();
     this.nodeMap.forEach((visual) => visual.destroy());
     this.nodeMap.clear();
@@ -1337,6 +1368,12 @@ export class GraphPixiRenderer {
   }
 
   setView(view: ViewState, isGesture = false) {
+    const wasGesture = this.isGestureActive;
+    this.isGestureActive = isGesture;
+    if (wasGesture && !isGesture) {
+      this.scheduleHydration();
+    }
+
     const prevView = this.view;
     this.view = view;
     if (!this.isReady) return;
@@ -1371,6 +1408,59 @@ export class GraphPixiRenderer {
 
     // "full" — update culling rect and recull all nodes
     this.invalidateVisible(invalidation.nextCullingRect);
+  }
+
+  private scheduleHydration() {
+    if (this.hydrationIdleHandle !== null) return;
+    if (this.hydrationQueue.length === 0) return;
+    if (this.isGestureActive) return;
+
+    this.hydrationIdleHandle = requestIdleCallback(
+      (deadline) => {
+        this.hydrationIdleHandle = null;
+        const start = performance.now();
+        let processed = 0;
+
+        while (
+          this.hydrationQueue.length > 0 &&
+          processed < GraphPixiRenderer.HYDRATION_BATCH_SIZE &&
+          (deadline.timeRemaining() > 2 || processed === 0)
+        ) {
+          const nodeId = this.hydrationQueue.shift()!;
+          const visual = this.nodeMap.get(nodeId);
+          const node = this.nodeData.get(nodeId);
+          if (visual && node) {
+            visual.hydrateContent();
+            // Re-run update to populate text/favicon/tags now that deferContent is cleared
+            const selection = this.getEffectiveSelection();
+            visual.update(
+              node,
+              this.view,
+              this.theme,
+              this.origin,
+              this.fontFamily,
+              this.themeVersion,
+              this.detailMode,
+              this.textResolution,
+              selection.has(nodeId),
+              node.isPreview,
+            );
+            processed++;
+          }
+        }
+
+        if (processed > 0) {
+          this.needsRender = true;
+          this.render();
+          graphProfiler.record("deferredHydration", performance.now() - start);
+        }
+
+        if (this.hydrationQueue.length > 0) {
+          this.scheduleHydration();
+        }
+      },
+      { timeout: 100 },
+    );
   }
 
   hitTestScreen(screenX: number, screenY: number, excludeIds?: Set<NodeId>): NodeId | null {
@@ -1517,6 +1607,7 @@ export class GraphPixiRenderer {
     this.cachedCullingRect = paddedRect;
 
     const selection = this.getEffectiveSelection();
+    const isLargeTree = this.nodeData.size >= GraphPixiRenderer.LARGE_TREE_THRESHOLD;
     const visibleIds = this.index.query(paddedRect);
     this.visibleIdsCache = visibleIds;
     visibleIds.forEach((id) => {
@@ -1525,6 +1616,10 @@ export class GraphPixiRenderer {
       let visual = this.nodeMap.get(id);
       if (!visual) {
         visual = new NodeVisual(id, this.fontFamily, this.requestRender);
+        if (isLargeTree) {
+          visual.setBatchedHydration(true);
+          this.hydrationQueue.push(id);
+        }
         this.nodeMap.set(id, visual);
         this.nodeLayer.addChild(visual.container);
       }
@@ -1552,6 +1647,9 @@ export class GraphPixiRenderer {
     this.metrics.connectionsMs = connectionsMs;
     this.metrics.visibleNodes = visibleIds.size;
     this.metrics.visibleConnections = visibleConnections;
+    if (this.hydrationQueue.length > 0 && !this.isGestureActive) {
+      this.scheduleHydration();
+    }
     graphProfiler.record("updateVisible", performance.now() - updateStart);
   }
 
