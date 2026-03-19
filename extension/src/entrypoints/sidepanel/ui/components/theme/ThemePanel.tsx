@@ -47,6 +47,7 @@ export default function ThemePanel() {
         window.clearTimeout(closeTimerRef.current);
         closeTimerRef.current = null;
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
       setIsMounted(true);
       setIsClosing(false);
       return;
@@ -71,6 +72,7 @@ export default function ThemePanel() {
 
   useEffect(() => {
     if (!themePickerOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
     setDraftTheme(settings?.customTheme ?? DEFAULT_THEME);
   }, [settings?.customTheme, themePickerOpen]);
 

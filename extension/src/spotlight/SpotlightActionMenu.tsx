@@ -17,6 +17,7 @@ export function SpotlightActionMenu({ actions, onSelect, onClose }: SpotlightAct
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
     setSelectedIndex(0);
   }, [actions]);
 
@@ -102,6 +103,7 @@ function toActionResult(seed: ActionSeed): SpotlightActionResult {
   };
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- pure utility exported alongside component for co-location
 export function buildClientContextActions(
   item: SpotlightSearchResult,
   activeTreeId: string | null,

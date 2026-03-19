@@ -25,6 +25,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
   const searchTooltip = `Search (${searchShortcut})`;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
     setDraft(search.query);
   }, [search.query]);
 
@@ -57,12 +58,14 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
 
   useEffect(() => {
     if (!hasQuery) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
       setListOpen(false);
     }
   }, [hasQuery]);
 
   useEffect(() => {
     if (search.results.length === 0 && listOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
       setListOpen(false);
     }
   }, [listOpen, search.results.length]);

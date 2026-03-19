@@ -47,6 +47,7 @@ export function useSelectionIndicator(
 
   useLayoutEffect(() => {
     if (!selectedKey || !listRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- layout measurement requires synchronous state update
       setPos(null);
       return;
     }

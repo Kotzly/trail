@@ -74,6 +74,7 @@ export default function TagFilterDropdown() {
       document.removeEventListener("keydown", onKeyDown, true);
       document.removeEventListener("mousedown", onMouseDown, true);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleNavigate is a non-memoized async fn; adding it would cause infinite re-registration on every render
   }, [filteredNodes, setTagFilterOpen, tagFilterOpen]);
 
   const handleNavigate = async (nodeId: NodeId) => {

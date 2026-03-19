@@ -39,6 +39,7 @@ export function useSpotlightResize(
   const startRatioRef = useRef(0);
   const userDraggedRef = useRef(false);
   const splitRatioRef = useRef(splitRatio);
+  // eslint-disable-next-line react-hooks/refs -- sync prop to ref for stable callback access
   splitRatioRef.current = splitRatio;
   const animationRef = useRef<ReturnType<typeof setInterval> | null>(null);
 

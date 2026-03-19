@@ -69,6 +69,7 @@ export function useLayoutSend() {
   // Flush pending updates on unmount instead of discarding
   useEffect(() => {
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- layoutSendRef holds stable mutable state; reading .current in cleanup is safe here
       const state = layoutSendRef.current;
       if (state.timer !== null) {
         window.clearTimeout(state.timer);

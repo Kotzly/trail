@@ -35,6 +35,7 @@ export default function SpotlightGraphApp() {
   const suppressHoverEchoRef = useRef(false);
   const lastHoverSentRef = useRef<string | undefined>(undefined);
   const hoverNodeIdRef = useRef(hoverNodeId);
+  // eslint-disable-next-line react-hooks/refs -- sync prop to ref for stable callback access
   hoverNodeIdRef.current = hoverNodeId;
   const viewCacheRef = useRef(new Map<string, ViewState>());
   const intentCounterRef = useRef(0);

@@ -19,6 +19,7 @@ export const useOverlayEffects = (open: boolean, effects: OverlayEffectInput) =>
   const unregisterOverlay = useStore((state) => state.unregisterOverlay);
   const overlayIdRef = useRef<string | null>(null);
 
+  // eslint-disable-next-line react-hooks/refs -- sync prop to ref for stable callback access
   if (!overlayIdRef.current) {
     overlayIdRef.current = nextOverlayId();
   }

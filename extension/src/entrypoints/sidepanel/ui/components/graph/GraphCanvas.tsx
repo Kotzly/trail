@@ -392,6 +392,7 @@ export default function GraphCanvas({
   useEffect(() => {
     previousSiblingOrderRef.current.clear();
     mindmapSideRef.current.clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mindmapSideRef and previousSiblingOrderRef are refs, intentionally omitted
   }, [recencyOrderingV2Enabled, root?.id]);
 
   // Collapse-filtered children WITHOUT recency sorting (for span pre-pass)
@@ -431,6 +432,7 @@ export default function GraphCanvas({
       );
       return sorted;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- previousSiblingOrderRef is a ref, intentionally omitted
     [recencyOrderingV2Enabled, subtreeScores, subtreeSpans, reorderFn],
   );
 
@@ -611,6 +613,7 @@ export default function GraphCanvas({
     }
 
     return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mindmapSideRef is a ref; collapsedNodeIds and recencyOrderingV2Enabled are captured via getVisibleChildren/sortChildrenForParentKey
   }, [
     baseLayoutConfig,
     getVisibleChildren,
@@ -829,6 +832,7 @@ export default function GraphCanvas({
     if (pendingCollapseAction) {
       lastCollapseVersionRef.current = collapseVersion;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lastCollapseVersionRef and prevPositionsRef are refs, intentionally omitted
   }, [
     animationDuration,
     animationStagger,
@@ -923,6 +927,7 @@ export default function GraphCanvas({
         hoverDebounceRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: viewRef is a ref; detailMode/connectionQuality/onRenderMetrics are applied via separate imperative effects to avoid destroying/recreating the GPU renderer
   }, [applyGridTransform]);
 
   useEffect(() => {
@@ -945,6 +950,7 @@ export default function GraphCanvas({
     const list = Array.from(positions.values());
     exitNodesRef.current.forEach((pos) => list.push(pos));
     return list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- exitNodesRef is a ref; animationVersion is the reactive trigger that causes this to re-run
   }, [positions, animationVersion]);
   const pendingEnterIds = useMemo(() => {
     if (animationStatesRef.current.size === 0) return new Set<NodeId>();
@@ -956,6 +962,7 @@ export default function GraphCanvas({
       }
     });
     return pending;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- animationStatesRef and animationNowRef are refs; animationVersion is the reactive trigger
   }, [animationVersion]);
   const visibleDisplayNodes = useMemo(() => {
     return displayNodes.filter((pos) => !pendingEnterIds.has(pos.node.id));
@@ -1042,6 +1049,7 @@ export default function GraphCanvas({
       invalidateAnimation();
       startAnimationLoop();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- exitNodesRef, openAnimationDuration, openAnimationStatesRef, openProgressRef, prevOpenNodesRef are all refs, intentionally omitted
   }, [display.dimClosedNodes, invalidateAnimation, openNodeIds, positions, startAnimationLoop]);
 
   const handleNodeClick = useCallback(
@@ -1436,6 +1444,7 @@ export default function GraphCanvas({
       window.addEventListener("pointerup", handleUp, { once: true });
       window.addEventListener("pointercancel", handleUp, { once: true });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- layoutSendRef and viewRef are refs; selectedNodeIds intentionally omitted to avoid recreating pointer handlers on every selection change
     [
       basePositions,
       editorActive,
@@ -1516,6 +1525,7 @@ export default function GraphCanvas({
           };
         });
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- animatedPositionsRef and openProgressRef are refs; animationVersion is the reactive trigger that re-evaluates their current values
     [
       animationVersion,
       currentNodeId,
@@ -1552,6 +1562,7 @@ export default function GraphCanvas({
       }
     });
     return next;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- animatedPositionsRef is a ref; animationVersion is the reactive trigger
   }, [animationVersion, pendingEnterIds, positions]);
 
   const baseConnections = useMemo(
@@ -2051,6 +2062,7 @@ export default function GraphCanvas({
         );
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- viewRef and wrapperRef are refs, intentionally omitted
     [cancelViewAnimation, scheduleGraphView, zoomAt],
   );
 
@@ -2062,6 +2074,7 @@ export default function GraphCanvas({
     return () => {
       wrapper.removeEventListener("wheel", onWheel, { capture: true });
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- wrapperRef is a ref, intentionally omitted
   }, [handleWheel, root]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {

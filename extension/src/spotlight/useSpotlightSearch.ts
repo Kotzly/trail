@@ -83,6 +83,7 @@ export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotl
   const previewCacheRef = useRef(new LRUMap<string, SpotlightGraphPreviewData>(16));
   const prevActiveTreeIdRef = useRef<string | null>(null);
   const currentQueryRef = useRef("");
+  // eslint-disable-next-line react-hooks/refs -- sync prop to ref for stable callback access
   currentQueryRef.current = query;
   const sessionMemoryRef = useRef<{ query: string; savedAt: number } | null>(null);
   const memoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -219,6 +220,7 @@ export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotl
     };
   }, [sessionId]);
 
+  // eslint-disable-next-line react-hooks/refs -- sync prop to ref for stable callback access
   return {
     sessionId,
     bootstrapData,
@@ -227,6 +229,7 @@ export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotl
     sessionError,
     query,
     setQuery,
+    // eslint-disable-next-line react-hooks/refs -- exposing cached map to consumers
     previewCache: previewCacheRef.current,
     recentQueries: bootstrapData?.recentQueries ?? [],
     retryBootstrap,

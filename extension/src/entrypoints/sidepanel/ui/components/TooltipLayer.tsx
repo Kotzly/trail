@@ -228,6 +228,7 @@ export default function TooltipLayer() {
   }, [buildTarget, hoverTarget, tooltipsOpen]);
 
   useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- layout measurement requires synchronous state update
     updateTargets();
   }, [updateTargets]);
 
@@ -264,6 +265,7 @@ export default function TooltipLayer() {
   }, [targets, tooltipsOpen]);
 
   useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- layout measurement requires synchronous state update
     updateHoverLayout();
   }, [updateHoverLayout]);
 

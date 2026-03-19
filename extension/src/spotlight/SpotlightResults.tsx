@@ -130,6 +130,7 @@ export function SpotlightResults({
 
   // Cleanup timer on unmount
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hoverTimerRef holds a stable timer id; reading .current in cleanup is safe here
     return () => clearTimeout(hoverTimerRef.current);
   }, []);
 

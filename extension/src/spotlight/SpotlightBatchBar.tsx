@@ -48,6 +48,7 @@ export function SpotlightBatchBar({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- pure utility exported alongside component for co-location
 export function buildBatchActions(
   items: SpotlightSearchResult[],
   activeTreeId: string | null,

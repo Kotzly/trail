@@ -63,6 +63,7 @@ export function useBookmarks(): { bookmarks: readonly BookmarkItem[]; loading: b
   useEffect(() => {
     const api = (browser as BrowserWithBookmarks).bookmarks;
     if (!api?.getTree) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
       setLoading(false);
       return;
     }

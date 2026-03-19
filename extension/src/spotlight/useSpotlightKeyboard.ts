@@ -59,6 +59,7 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
   // Keep a ref that always points at the latest options so the single native
   // listener (attached once per open) never holds a stale closure.
   const stateRef = useRef(options);
+  // eslint-disable-next-line react-hooks/refs -- sync prop to ref for stable callback access
   stateRef.current = options;
 
   const queryClearedRef = useRef(false);

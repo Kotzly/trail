@@ -24,7 +24,7 @@ export default function PinnedDropdown() {
   const pinnedNodes = useMemo(() => {
     if (!pins) return [];
     return Array.from(pins.pinned);
-  }, [pins, tree]);
+  }, [pins]);
 
   useEffect(() => {
     if (!pinnedOpen) return;

@@ -156,6 +156,7 @@ export function useSpotlightPreview(
     let cancelled = false;
 
     if (!previewTreeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
       setGraphPreviewData(null);
       setGraphPreviewLoading(false);
       return;

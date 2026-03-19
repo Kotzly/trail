@@ -15,7 +15,7 @@ async function generateIcons() {
     }),
   );
 
-  console.log("Icons generated successfully");
+  console.info("Icons generated successfully");
 }
 
 generateIcons().catch(console.error);

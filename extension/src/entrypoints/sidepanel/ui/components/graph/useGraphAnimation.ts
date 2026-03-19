@@ -165,6 +165,7 @@ export function useGraphAnimation({
       exitParticleTimeoutsRef.current.forEach((timeoutId) => {
         window.clearTimeout(timeoutId);
       });
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- exitParticleTimeoutsRef holds a stable Map; reading .current in cleanup is safe here
       exitParticleTimeoutsRef.current.clear();
     };
   }, []);

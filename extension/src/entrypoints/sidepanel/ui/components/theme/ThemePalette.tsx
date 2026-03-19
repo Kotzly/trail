@@ -236,6 +236,7 @@ export default function ThemePalette({
 
   useEffect(() => {
     const next = normalizeTheme(value);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
     setDraft(next);
     draftRef.current = next;
   }, [value]);

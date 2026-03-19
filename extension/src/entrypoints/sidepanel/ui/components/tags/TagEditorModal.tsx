@@ -38,6 +38,7 @@ export default function TagEditorModal({
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
     setLabel(initial?.label ?? "");
     setColor(initial?.color ?? TAG_COLOR_OPTIONS[0]);
     setIconId(initial?.iconId ?? TAG_ICON_OPTIONS[0].id);

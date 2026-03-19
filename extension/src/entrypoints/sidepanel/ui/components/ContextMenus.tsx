@@ -109,7 +109,7 @@ export default function ContextMenus() {
       document.removeEventListener("click", onClick);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [closeContextMenu, contextMenu]);
+  }, [closeContextMenu, contextMenu, setHoverNodeId]);
 
   const tagEditorModal = tagEditorState.open ? (
     <TagEditorModal
@@ -306,10 +306,12 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   }, [nodeId]);
 
   useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- layout measurement requires synchronous state update
     updateSubmenuLayout();
   }, [menuStyle.left, menuStyle.top, updateSubmenuLayout]);
 
   useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- layout measurement requires synchronous state update
     updateSubmenuLayout();
   }, [tabs.length, updateSubmenuLayout]);
 
@@ -811,6 +813,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const [pendingDelete, setPendingDelete] = useState<"nodes" | "recursive" | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
     setPendingDelete(null);
   }, [nodeIds, position]);
 

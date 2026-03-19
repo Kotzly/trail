@@ -18,6 +18,7 @@ interface SidebarContextProps {
 
 const SidebarContext = createContext<SidebarContextProps | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook exported alongside component for consumer convenience
 export const useSidebar = () => {
   const context = useContext(SidebarContext);
   if (!context) {
