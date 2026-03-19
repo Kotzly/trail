@@ -839,6 +839,8 @@ export class GraphPixiRenderer {
   private hydrationIdleHandle: number | null = null;
   private isGestureActive = false;
   private index = new SpatialIndex<NodeId>(300);
+  private connectionIndex = new SpatialIndex<string>(500);
+  private connectionById = new Map<string, ConnectionSegment>();
   private connections: ConnectionSegment[] = [];
   private connectionsDirty = true;
   private lastConnectionViewRect: {
@@ -963,6 +965,8 @@ export class GraphPixiRenderer {
     this.nodeMap.clear();
     this.nodeData.clear();
     this.index.clear();
+    this.connectionIndex.clear();
+    this.connectionById.clear();
     this.particlePool.destroyAll();
     if (this.isReady) {
       this.app.destroy(true, { children: true });
@@ -1236,6 +1240,12 @@ export class GraphPixiRenderer {
     this.visibleIdsCache = new Set();
     this.nodeData.clear();
     this.index = new SpatialIndex<NodeId>(Math.max(snapshot.nodeWidth, snapshot.nodeHeight) * 3);
+    this.connectionIndex.clear();
+    this.connectionById.clear();
+    this.connections.forEach((conn) => {
+      this.connectionById.set(conn.id, conn);
+      this.connectionIndex.insert(conn.id, conn.bounds);
+    });
     const ids = new Set<NodeId>();
     snapshot.nodes.forEach((node) => {
       this.nodeData.set(node.id, node);
@@ -1270,6 +1280,12 @@ export class GraphPixiRenderer {
     this.connections = [...snapshot.connections];
     this.connectionsDirty = true;
     this.lastConnectionViewRect = null;
+    this.connectionIndex.clear();
+    this.connectionById.clear();
+    this.connections.forEach((conn) => {
+      this.connectionById.set(conn.id, conn);
+      this.connectionIndex.insert(conn.id, conn.bounds);
+    });
 
     // Patch nodeData and SpatialIndex incrementally
     for (const id of diff.removed) {
@@ -1354,6 +1370,12 @@ export class GraphPixiRenderer {
     if (this.connections !== state.connections) {
       this.connections = state.connections;
       this.connectionsDirty = true;
+      this.connectionIndex.clear();
+      this.connectionById.clear();
+      this.connections.forEach((conn) => {
+        this.connectionById.set(conn.id, conn);
+        this.connectionIndex.insert(conn.id, conn.bounds);
+      });
     }
     this.data = { ...this.data, showConnections: state.showConnections };
     this.invalidateVisible();
@@ -1741,9 +1763,14 @@ export class GraphPixiRenderer {
     this.connectionLayer.setStrokeStyle({ width: baseWidth, color: baseColor });
     this.pathLayer.setStrokeStyle({ width: pathWidth, color: pathColor });
 
+    const queryStart = performance.now();
+    const visibleConnIds = this.connectionIndex.query(viewRect);
+    graphProfiler.record("connectionQuery", performance.now() - queryStart);
+
     let visibleConnections = 0;
-    this.connections.forEach((conn) => {
-      if (!intersects(conn.bounds, viewRect)) return;
+    visibleConnIds.forEach((connId) => {
+      const conn = this.connectionById.get(connId);
+      if (!conn) return;
       if (thinQuality && !radial && !conn.onPath && hashConnectionId(conn.id) % 2 === 0) {
         return;
       }
