@@ -24,10 +24,15 @@ export function useBootstrap(): void {
     (async () => {
       // ---- Critical path: settings + tree only ----
       try {
-        const [settings, treeState] = await Promise.all([getSettings(), getTreeState()]);
+        const [settings, treeState, flags] = await Promise.all([
+          getSettings(),
+          getTreeState(),
+          getFlags(),
+        ]);
         if (!mounted) return;
 
         bootstrapGraph(settings, treeState);
+        setFlags(flags);
         setSettings(settings);
         applyTheme(settings.theme, settings.customTheme);
 
@@ -50,11 +55,6 @@ export function useBootstrap(): void {
 
       // Fire all deferred fetches in parallel, each with independent error handling
       const deferredPromises = [
-        getFlags()
-          .then((flags) => {
-            if (mounted) setFlags(flags);
-          })
-          .catch((e) => console.warn("[bootstrap] flags fetch failed:", e)),
         getTagDefs()
           .then((defs) => {
             if (mounted) setTagDefs(defs);
