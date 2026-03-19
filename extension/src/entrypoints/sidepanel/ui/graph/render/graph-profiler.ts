@@ -25,7 +25,9 @@ export type ProfilePhase =
   | "setDynamicState"
   | "updateVisible"
   | "updateConnections"
-  | "patchStaticGraph";
+  | "patchStaticGraph"
+  | "connectionQuery"
+  | "deferredHydration";
 
 export type CacheHitType = "exact" | "signature-match" | "fallback" | "miss" | "stale";
 
@@ -54,6 +56,8 @@ const ALL_PHASES: readonly ProfilePhase[] = [
   "patchStaticGraph",
   "updateVisible",
   "updateConnections",
+  "connectionQuery",
+  "deferredHydration",
 ] as const;
 
 type PhaseBuffer = {
@@ -157,7 +161,7 @@ export function profileSync<T>(phase: ProfilePhase, fn: () => T): T {
 // ---------------------------------------------------------------------------
 // Console API — call window.__graphMetrics() in Chrome DevTools
 // ---------------------------------------------------------------------------
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/* eslint-disable no-console, @typescript-eslint/no-explicit-any -- DevTools debug utility */
 (window as any).__graphMetrics = () => {
   const stats = graphProfiler.getAllStats();
   const startup = graphProfiler.getStartupMetrics();
@@ -191,3 +195,4 @@ export function profileSync<T>(phase: ProfilePhase, fn: () => T): T {
 
   return { phases: stats, startup };
 };
+/* eslint-enable no-console, @typescript-eslint/no-explicit-any */
