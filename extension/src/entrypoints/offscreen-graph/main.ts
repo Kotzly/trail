@@ -12,6 +12,7 @@ import { writeLayoutCache } from "@shared/graph-layout-cache/cache.js";
 import { sendRpcMessage } from "@shared/rpc/client.js";
 import { rpc } from "@shared/rpc/contracts.js";
 import type { Settings } from "@shared/types/settings.js";
+import type { ResolvedFlags } from "@shared/types/flags.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { NodeId } from "@shared/types/ids.js";
 
@@ -20,6 +21,7 @@ import type { NodeId } from "@shared/types/ids.js";
 // ---------------------------------------------------------------------------
 
 let cachedSettings: Settings | null = null;
+let cachedFlags: ResolvedFlags | null = null;
 let cachedTreeJSON: NavigationTreeJSON | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -41,6 +43,21 @@ async function fetchSettings(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Flags
+// ---------------------------------------------------------------------------
+
+async function fetchFlags(): Promise<void> {
+  try {
+    const response = await sendRpcMessage(rpc.getFlags());
+    if (response.success) {
+      cachedFlags = response.data as ResolvedFlags;
+    }
+  } catch {
+    // Flags unavailable — use defaults
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Layout computation
 // ---------------------------------------------------------------------------
 
@@ -51,12 +68,13 @@ async function computeAndCache(
   collapsedNodeIds?: ReadonlySet<NodeId>,
 ): Promise<void> {
   try {
+    const recencyOrdering = cachedFlags?.recencyOrderingV2 ?? false;
     const result = computeLayoutFromTree(
       treeJSON,
       ACTIVE_TREE_KEY,
       cachedSettings,
       collapsedNodeIds,
-      false,
+      recencyOrdering,
     );
     if (result) {
       await writeLayoutCache(result);
@@ -96,10 +114,10 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
     }
   }
 
-  // SAVE_SETTINGS — settings changed, refetch and recompute layout immediately
+  // SAVE_SETTINGS — settings changed, refetch settings+flags and recompute layout
   if (msg.type === "SAVE_SETTINGS") {
     void (async () => {
-      await fetchSettings();
+      await Promise.all([fetchSettings(), fetchFlags()]);
       if (cachedTreeJSON) {
         await computeAndCache(cachedTreeJSON);
       }
@@ -112,7 +130,7 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
 // ---------------------------------------------------------------------------
 
 async function bootstrap(): Promise<void> {
-  await fetchSettings();
+  await Promise.all([fetchSettings(), fetchFlags()]);
 
   // Fetch the current active tree and pre-compute layout immediately
   try {
