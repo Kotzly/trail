@@ -11,7 +11,8 @@ import {
 } from '@entrypoints/sidepanel/ui/graph/layout/calculator.js';
 import { deriveLayoutOptions } from '@entrypoints/sidepanel/ui/graph/layout/options.js';
 import type { CachedLayoutResult, CachedNodePosition } from './types.js';
-import { computeCollapseSignature } from './types.js';
+import { computeCollapseSignature, computeLayoutSignature } from './types.js';
+import { DEFAULT_LAYOUT_SETTINGS } from '@shared/layout/defaults.js';
 import type { NodeId } from '@shared/types/ids.js';
 
 // ---------------------------------------------------------------------------
@@ -66,6 +67,19 @@ export function computeLayoutFromTree(
 
   const bounds = getCanvasBounds(result.positions, options.tree.nodeWidth, options.tree.nodeHeight);
 
+  const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
+  const density = settings?.graphDensity ?? 'comfortable';
+  const collapseSignature = computeCollapseSignature(collapsed);
+  const layoutSignature = computeLayoutSignature({
+    mode: options.mode,
+    density,
+    tree: { verticalGapScale: layout.tree.verticalGapScale, horizontalGapScale: layout.tree.horizontalGapScale },
+    mindmap: { verticalGapScale: layout.mindmap.verticalGapScale, horizontalGapScale: layout.mindmap.horizontalGapScale },
+    radial: layout.radial,
+    collapseSignature,
+    recencyOrdering: recencyOrdering ?? false,
+  });
+
   return {
     treeId,
     nodeCount,
@@ -74,7 +88,8 @@ export function computeLayoutFromTree(
     positions,
     bounds: { minX: bounds.minX, minY: bounds.minY, maxX: bounds.maxX, maxY: bounds.maxY },
     width: result.width,
-    collapseSignature: computeCollapseSignature(collapsed),
+    collapseSignature,
     recencyOrdering: recencyOrdering ?? false,
+    layoutSignature,
   };
 }
