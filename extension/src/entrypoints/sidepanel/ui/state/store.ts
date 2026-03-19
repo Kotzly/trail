@@ -149,6 +149,8 @@ type StoreState = {
 
 type StoreActions = {
   bootstrap: (settings: Settings, payload: TreeUpdatedInput, meta: MetaKeyPair, isMac: boolean) => void;
+  bootstrapGraph: (settings: Settings, payload: TreeUpdatedInput) => void;
+  setPlatformMeta: (meta: MetaKeyPair, isMac: boolean) => void;
   applyTreeState: (payload: TreeUpdatedInput) => void;
   setTrees: (snapshot: TreesSnapshot) => void;
   setCommandState: (state: CommandState) => void;
@@ -327,6 +329,27 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       isMac,
     });
   },
+
+  bootstrapGraph: (settings, payload) => {
+    const tree = NavigationTreeMapper.fromJSON(payload.tree);
+    const pins = new PinnedManager(tree);
+    const currentId = tree.getCurrentId();
+    const nodeCount = tree.size();
+    set({
+      settings,
+      tree,
+      treeUpdate: { reason: payload.reason, at: Date.now() },
+      pins,
+      tabStates: payload.tabStates,
+      nodeTabCounts: payload.nodeTabCounts,
+      nodeRecency: payload.nodeRecency ?? {},
+      openNodeIds: new Set(payload.openNodeIds),
+      currentNodeId: currentId,
+      nodeCount,
+    });
+  },
+
+  setPlatformMeta: (meta, isMac) => set({ metaKey: meta, isMac }),
 
   applyTreeState: (payload) => {
     const tree = NavigationTreeMapper.fromJSON(payload.tree);

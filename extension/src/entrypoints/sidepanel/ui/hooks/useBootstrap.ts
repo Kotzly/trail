@@ -5,11 +5,13 @@ import { getTreeState, getTrees } from '../../api/tree.js';
 import { getTagDefs } from '../../api/tags.js';
 import { getCommandState } from '../../api/commands.js';
 import { isMac } from '@shared/utils/platform.js';
-import { MetaKeyPair, useStore } from '../state/store.js';
+import type { MetaKeyPair } from '../state/store.js';
+import { useStore } from '../state/store.js';
 import { applyTheme } from '../shared/apply-theme.js';
 
 export function useBootstrap(): void {
-  const bootstrap = useStore((state) => state.bootstrap);
+  const bootstrapGraph = useStore((state) => state.bootstrapGraph);
+  const setPlatformMeta = useStore((state) => state.setPlatformMeta);
   const setCommandState = useStore((state) => state.setCommandState);
   const setEditorMode = useStore((state) => state.setEditorMode);
   const setSettings = useStore((state) => state.setSettings);
@@ -19,38 +21,61 @@ export function useBootstrap(): void {
 
   useEffect(() => {
     let mounted = true;
+
     (async () => {
+      // ---- Critical path: settings + tree only ----
       try {
-        const [settings, flags, treeState, isMacValue, tagDefs, treesSnapshot] = await Promise.all([
+        const [settings, treeState] = await Promise.all([
           getSettings(),
-          getFlags(),
           getTreeState(),
-          isMac(),
-          getTagDefs(),
-          getTrees(),
         ]);
         if (!mounted) return;
-        const metaKey = isMacValue ? { short: '⌘', long: 'cmd' } as MetaKeyPair : { short: '^', long: 'ctrl' } as MetaKeyPair;
-        bootstrap(settings, treeState, metaKey, isMacValue);
+
+        bootstrapGraph(settings, treeState);
         setSettings(settings);
-        setFlags(flags);
-        setTagDefs(tagDefs);
-        setTrees(treesSnapshot);
+        applyTheme(settings.theme, settings.customTheme);
 
         // Restore editor mode if it was active before the sidepanel was closed
         if (treeState.editorMode?.active) {
           setEditorMode(treeState.editorMode);
         }
-
-        applyTheme(settings.theme, settings.customTheme);
-        const commandState = await getCommandState();
-        if (mounted) setCommandState(commandState);
       } catch (error) {
-        console.error('Failed to initialize sidepanel:', error);
+        console.error('[bootstrap] Critical fetch failed, falling back to mount-then-fetch:', error);
+        // Surface already mounted React tree -- it will show loading state
+        // until TREE_UPDATED arrives from background and applyTreeState fires
+        return;
       }
+
+      // ---- Deferred: non-blocking fetches after first paint ----
+      if (!mounted) return;
+
+      // Fire all deferred fetches in parallel, each with independent error handling
+      const deferredPromises = [
+        getFlags()
+          .then((flags) => { if (mounted) setFlags(flags); })
+          .catch((e) => console.warn('[bootstrap] flags fetch failed:', e)),
+        getTagDefs()
+          .then((defs) => { if (mounted) setTagDefs(defs); })
+          .catch((e) => console.warn('[bootstrap] tagDefs fetch failed:', e)),
+        getTrees()
+          .then((snapshot) => { if (mounted) setTrees(snapshot); })
+          .catch((e) => console.warn('[bootstrap] trees fetch failed:', e)),
+        isMac()
+          .then((isMacValue) => {
+            if (!mounted) return;
+            const metaKey: MetaKeyPair = isMacValue
+              ? { short: '\u2318', long: 'cmd' }
+              : { short: '^', long: 'ctrl' };
+            setPlatformMeta(metaKey, isMacValue);
+          })
+          .catch((e) => console.warn('[bootstrap] platform meta failed:', e)),
+        getCommandState()
+          .then((state) => { if (mounted) setCommandState(state); })
+          .catch((e) => console.warn('[bootstrap] commandState fetch failed:', e)),
+      ];
+      await Promise.allSettled(deferredPromises);
     })();
-    return () => {
-      mounted = false;
-    };
-  }, [bootstrap, setCommandState, setEditorMode, setFlags, setSettings, setTagDefs, setTrees]);
+
+    return () => { mounted = false; };
+  }, [bootstrapGraph, setPlatformMeta, setCommandState, setEditorMode, setFlags, setSettings, setTagDefs, setTrees]);
 }
