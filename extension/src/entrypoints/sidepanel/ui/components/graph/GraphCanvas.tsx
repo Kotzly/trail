@@ -31,7 +31,7 @@ import { applyPathHighlight, buildConnections, getPathToNode } from './graph-uti
 import {
   GraphPixiRenderer,
 } from '../../graph/render/GraphPixiRenderer.js';
-import { profileSync } from '../../graph/render/graph-profiler.js';
+import { graphProfiler, profileSync, STARTUP_T0 } from '../../graph/render/graph-profiler.js';
 import type { ConnectionSegment, NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
 import { createGraphSnapshot, type GraphSnapshot } from '../../graph/render/graph-snapshot.js';
 import type { TabState } from '@shared/types/tabs.js';
@@ -51,7 +51,8 @@ import type {
 import { collectSubtreeIds, buildCollapseScope } from './graph-canvas-utils.js';
 import { computeOffsetPositions, computeDragOffsetPositions } from './graph-layout-compute.js';
 import type { CachedLayoutResult } from '@shared/graph-layout-cache/types.js';
-import { computeCollapseSignature } from '@shared/graph-layout-cache/types.js';
+import { computeCollapseSignature, computeLayoutSignature } from '@shared/graph-layout-cache/types.js';
+import { DEFAULT_LAYOUT_SETTINGS } from '@shared/layout/defaults.js';
 import { useLayoutSend } from './useLayoutSend.js';
 import { useGraphSelection } from './useGraphSelection.js';
 import { useGraphAnimation, FAST_MOTION } from './useGraphAnimation.js';
@@ -68,6 +69,7 @@ function consumePrefetchedLayout(): CachedLayoutResult | null {
 }
 
 let _prefetchedLayout: CachedLayoutResult | null = consumePrefetchedLayout();
+let _bootstrapRecorded = false;
 
 function hydrateFromCache(
   cached: CachedLayoutResult,
@@ -431,26 +433,66 @@ export default function GraphCanvas({
 
   const layout = useMemo(() => {
     if (!root) return null;
-    // Fast path: use pre-computed layout from offscreen document
-    if (_prefetchedLayout && _prefetchedLayout.layoutMode === layoutOptions.mode) {
-      // Validate collapse state and recency ordering match
-      const currentCollapseSignature = computeCollapseSignature(collapsedNodeIds);
-      const cacheCollapseMatch = (_prefetchedLayout.collapseSignature ?? '') === currentCollapseSignature;
-      const cacheRecencyMatch = (_prefetchedLayout.recencyOrdering ?? false) === recencyOrderingV2Enabled;
 
-      if (cacheCollapseMatch && cacheRecencyMatch) {
-        const hydrated = hydrateFromCache(_prefetchedLayout, root);
-        if (hydrated) {
-          _prefetchedLayout = null; // Consume once to avoid stale reuse
-          return hydrated;
-        }
-      } else {
-        // State mismatch -- discard stale cache
-        _prefetchedLayout = null;
-      }
+    const layoutStart = performance.now();
+
+    // Record bootstrap timing once when tree first becomes available
+    if (!_bootstrapRecorded) {
+      _bootstrapRecorded = true;
+      graphProfiler.recordStartup('bootstrapMs', performance.now() - STARTUP_T0);
     }
 
-    return profileSync('layout', () => {
+    // Build current layout signature for cache comparison
+    const currentCollapseSignature = computeCollapseSignature(collapsedNodeIds);
+    const settingsLayout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
+    const density = settings?.graphDensity ?? 'comfortable';
+    const currentSignature = computeLayoutSignature({
+      mode: layoutOptions.mode,
+      density,
+      tree: { verticalGapScale: settingsLayout.tree.verticalGapScale, horizontalGapScale: settingsLayout.tree.horizontalGapScale },
+      mindmap: { verticalGapScale: settingsLayout.mindmap.verticalGapScale, horizontalGapScale: settingsLayout.mindmap.horizontalGapScale },
+      radial: settingsLayout.radial,
+      collapseSignature: currentCollapseSignature,
+      recencyOrdering: recencyOrderingV2Enabled,
+    });
+
+    // Fast path: use pre-computed layout from offscreen document
+    if (_prefetchedLayout) {
+      const cachedSig = _prefetchedLayout.layoutSignature;
+      if (cachedSig && cachedSig === currentSignature) {
+        const hydrated = hydrateFromCache(_prefetchedLayout, root);
+        if (hydrated) {
+          _prefetchedLayout = null;
+          graphProfiler.recordStartup('cacheHitType', 'exact');
+          graphProfiler.recordStartup('layoutMs', performance.now() - layoutStart);
+          graphProfiler.recordStartup('nodeCount', hydrated.positions.size);
+          graphProfiler.recordStartup('layoutMode', layoutOptions.mode);
+          return hydrated;
+        }
+      }
+      // Signature missing (old cache format) — fall back to field-by-field check
+      if (!cachedSig && _prefetchedLayout.layoutMode === layoutOptions.mode) {
+        const cacheCollapseMatch = (_prefetchedLayout.collapseSignature ?? '') === currentCollapseSignature;
+        const cacheRecencyMatch = (_prefetchedLayout.recencyOrdering ?? false) === recencyOrderingV2Enabled;
+        if (cacheCollapseMatch && cacheRecencyMatch) {
+          const hydrated = hydrateFromCache(_prefetchedLayout, root);
+          if (hydrated) {
+            _prefetchedLayout = null;
+            graphProfiler.recordStartup('cacheHitType', 'fallback');
+            graphProfiler.recordStartup('layoutMs', performance.now() - layoutStart);
+            graphProfiler.recordStartup('nodeCount', hydrated.positions.size);
+            graphProfiler.recordStartup('layoutMode', layoutOptions.mode);
+            return hydrated;
+          }
+        }
+      }
+      // Cache miss — stale or incompatible
+      graphProfiler.recordStartup('cacheHitType', _prefetchedLayout ? 'stale' : 'miss');
+      _prefetchedLayout = null;
+    }
+
+    // No cache hit — compute layout from scratch
+    const result = profileSync('layout', () => {
       switch (layoutOptions.mode) {
         case 'tree':
           return calculateLayout(root, layoutOptions.tree, getVisibleChildren);
@@ -504,6 +546,15 @@ export default function GraphCanvas({
           return calculateRadialLayout(root, layoutOptions.radial, baseLayoutConfig, getVisibleChildren);
       }
     });
+
+    graphProfiler.recordStartup('layoutMs', performance.now() - layoutStart);
+    graphProfiler.recordStartup('nodeCount', result?.positions.size ?? 0);
+    graphProfiler.recordStartup('layoutMode', layoutOptions.mode);
+    if (graphProfiler.getStartupMetrics().cacheHitType === null) {
+      graphProfiler.recordStartup('cacheHitType', 'miss');
+    }
+
+    return result;
   }, [
     baseLayoutConfig,
     getVisibleChildren,
@@ -512,9 +563,21 @@ export default function GraphCanvas({
     layoutOptions.radial,
     layoutOptions.tree,
     root,
+    settings,
     sortChildrenForParentKey,
     subtreeScores,
   ]);
+
+  // Record first-render timing once after the first layout resolves
+  const firstRenderRecordedRef = useRef(false);
+  useEffect(() => {
+    if (layout && !firstRenderRecordedRef.current) {
+      firstRenderRecordedRef.current = true;
+      requestAnimationFrame(() => {
+        graphProfiler.recordStartup('firstRenderMs', performance.now() - STARTUP_T0);
+      });
+    }
+  }, [layout]);
 
   const basePositions = layout?.positions ?? emptyPositionsRef.current;
   const positions = useMemo(
