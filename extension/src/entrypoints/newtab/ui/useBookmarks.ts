@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { browser } from '@shared/platform/webext.js';
+import { useEffect, useState } from "react";
+import { browser } from "@shared/platform/webext.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -31,15 +31,15 @@ type BrowserWithBookmarks = typeof browser & {
 
 function mapNode(node: BrowserBookmarkNode): BookmarkItem | null {
   const isFolder = !node.url && Array.isArray(node.children);
-  const isLink = typeof node.url === 'string';
+  const isLink = typeof node.url === "string";
   if (!isFolder && !isLink) return null;
 
   return {
     id: node.id,
-    title: node.title || (isLink ? hostnameOf(node.url!) : 'Folder'),
+    title: node.title || (isLink ? hostnameOf(node.url!) : "Folder"),
     url: isLink ? node.url! : null,
     children: isFolder
-      ? (node.children ?? []).map(mapNode).filter(Boolean) as BookmarkItem[]
+      ? ((node.children ?? []).map(mapNode).filter(Boolean) as BookmarkItem[])
       : null,
   };
 }
@@ -67,12 +67,11 @@ export function useBookmarks(): { bookmarks: readonly BookmarkItem[]; loading: b
       return;
     }
 
-    api.getTree()
+    api
+      .getTree()
       .then((tree) => {
         const barFolder = tree[0]?.children?.[0];
-        const items = (barFolder?.children ?? [])
-          .map(mapNode)
-          .filter(Boolean) as BookmarkItem[];
+        const items = (barFolder?.children ?? []).map(mapNode).filter(Boolean) as BookmarkItem[];
         setBookmarks(items);
       })
       .catch(() => {

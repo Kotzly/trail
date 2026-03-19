@@ -1,6 +1,4 @@
-import {
-  ALLOWED_SITE_MATCH_PATTERNS,
-} from "../shared/config/site-origins";
+import { ALLOWED_SITE_MATCH_PATTERNS } from "../shared/config/site-origins";
 import { mountContentUi } from "./content-ui/mount";
 
 export default defineContentScript({

@@ -1,11 +1,11 @@
-import type { FaviconUrl, TabId, Title, Url } from '@shared/types/ids.js';
-import { tabManager } from '../state/tab-manager.js';
-import { treeStorage } from '../services/tree-storage.js';
-import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
-import { resolveTabUrl } from '../utils/tab-utils.js';
-import { createUrlKey } from '@shared/lib/url-key.js';
-import { type Browser, type Tab } from '@shared/platform/webext.js';
+import type { FaviconUrl, TabId, Title, Url } from "@shared/types/ids.js";
+import { tabManager } from "../state/tab-manager.js";
+import { treeStorage } from "../services/tree-storage.js";
+import { notifyTreeUpdate } from "../messaging/notifications.js";
+import { normalizeFaviconUrl, shouldTrackUrl } from "../utils/url-utils.js";
+import { resolveTabUrl } from "../utils/tab-utils.js";
+import { createUrlKey } from "@shared/lib/url-key.js";
+import { type Browser, type Tab } from "@shared/platform/webext.js";
 
 /**
  * Sync tab title and favicon changes to node.
@@ -13,7 +13,7 @@ import { type Browser, type Tab } from '@shared/platform/webext.js';
 export async function syncTabTitleFavicon(
   tabId: TabId,
   changeInfo: Browser.tabs.OnUpdatedInfo,
-  tab: Tab
+  tab: Tab,
 ): Promise<void> {
   if (!changeInfo.title && !changeInfo.favIconUrl) return;
 
@@ -35,16 +35,18 @@ export async function syncTabTitleFavicon(
   }
 
   if (changeInfo.favIconUrl) {
-    const normalized = normalizeFaviconUrl(tabUrl as Url, changeInfo.favIconUrl as FaviconUrl | undefined);
+    const normalized = normalizeFaviconUrl(
+      tabUrl as Url,
+      changeInfo.favIconUrl as FaviconUrl | undefined,
+    );
     if (normalized !== undefined) {
       node.data.favicon = normalized;
     }
   }
 
   treeStorage.cacheTree(tree);
-  await notifyTreeUpdate(tree, 'tabs');
+  await notifyTreeUpdate(tree, "tabs");
 }
-
 
 /**
  * Sync tab audio state changes (muted, audible).
@@ -53,7 +55,7 @@ export async function syncTabTitleFavicon(
 export async function syncTabAudioState(
   tabId: TabId,
   changeInfo: Browser.tabs.OnUpdatedInfo,
-  tab: Tab
+  _tab: Tab,
 ): Promise<void> {
   if (!changeInfo.audible && !changeInfo.mutedInfo) return;
   const nodeId = tabManager.nodeByTab(tabId);
@@ -61,5 +63,5 @@ export async function syncTabAudioState(
 
   const tree = await treeStorage.getOrCreateTree();
   if (!tree) return;
-  await notifyTreeUpdate(tree, 'tabs');  
+  await notifyTreeUpdate(tree, "tabs");
 }

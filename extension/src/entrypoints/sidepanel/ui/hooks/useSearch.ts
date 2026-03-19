@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react';
-import type { NodeId } from '@shared/types/ids.js';
-import { useStore } from '../state/store.js';
-
+import { useCallback, useEffect, useRef } from "react";
+import type { NodeId } from "@shared/types/ids.js";
+import { useStore } from "../state/store.js";
 
 export function useSearch() {
   const tree = useStore((state) => state.tree);
@@ -27,8 +26,8 @@ export function useSearch() {
       results.length === 0
         ? 0
         : isSameQuery
-        ? Math.min(Math.max(searchIndexRef.current, 0), maxIndex)
-        : maxIndex;
+          ? Math.min(Math.max(searchIndexRef.current, 0), maxIndex)
+          : maxIndex;
     setSearchResults(results, nextIndex);
     if (!isSameQuery && results.length > 0) {
       setSearchIndex(nextIndex);

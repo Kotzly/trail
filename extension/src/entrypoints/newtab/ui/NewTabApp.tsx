@@ -1,30 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Command } from 'cmdk';
-import { Search, ChevronRight, FolderOpen } from 'lucide-react';
-import { AnimatePresence, motion, useMotionValue } from 'motion/react';
-import { SpotlightGraphFrame } from '../../../spotlight/SpotlightGraphFrame.js';
-import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from '../../../spotlight/SpotlightHintRow.js';
-import { SpotlightHelp } from '../../../spotlight/SpotlightHelp.js';
-import { SpotlightActionMenu } from '../../../spotlight/SpotlightActionMenu.js';
-import { SpotlightQuickLook } from '../../../spotlight/SpotlightQuickLook.js';
-import { SpotlightResults } from '../../../spotlight/SpotlightResults.js';
-import { useSpotlightSearch } from '../../../spotlight/useSpotlightSearch.js';
-import { useSpotlightPreview, resolveNodeTarget } from '../../../spotlight/useSpotlightPreview.js';
-import { useSpotlightActions } from '../../../spotlight/useSpotlightActions.js';
-import { useSpotlightKeyboard } from '../../../spotlight/useSpotlightKeyboard.js';
-import { useSelectionIndicator } from '../../../spotlight/useSelectionIndicator.js';
-import { SpotlightBatchBar } from '../../../spotlight/SpotlightBatchBar.js';
-import { executeBatchAction, executeSpotlightAction } from '../../../spotlight/rpc.js';
-import { SpotlightFooter } from '../../../spotlight/SpotlightFooter.js';
-import { resolveSpotlightQueryMode } from '@shared/lib/spotlight/query-dsl.js';
-import { browser } from '@shared/platform/webext.js';
-import { useBookmarks } from './useBookmarks.js';
-import { DashboardView } from './DashboardView.js';
-import { QuickActions } from './QuickActions.js';
-import { SearchDefaults } from './SearchDefaults.js';
-import type { SpotlightBatchActionId, SpotlightMode, SpotlightSearchResult } from '../../../spotlight/types.js';
-import type { SpotlightNodeTarget } from '../../../spotlight/useSpotlightPreview.js';
-import type { NodeId } from '@shared/types/ids.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Command } from "cmdk";
+import { Search, ChevronRight, FolderOpen } from "lucide-react";
+import { AnimatePresence, motion, useMotionValue } from "motion/react";
+import { SpotlightGraphFrame } from "../../../spotlight/SpotlightGraphFrame.js";
+import {
+  applySpotlightHint,
+  buildSpotlightHints,
+  computeGhostSuffix,
+} from "../../../spotlight/SpotlightHintRow.js";
+import { SpotlightHelp } from "../../../spotlight/SpotlightHelp.js";
+import { SpotlightActionMenu } from "../../../spotlight/SpotlightActionMenu.js";
+import { SpotlightQuickLook } from "../../../spotlight/SpotlightQuickLook.js";
+import { SpotlightResults } from "../../../spotlight/SpotlightResults.js";
+import { useSpotlightSearch } from "../../../spotlight/useSpotlightSearch.js";
+import {
+  useSpotlightPreview,
+  resolveNodeTarget,
+  type SpotlightNodeTarget,
+} from "../../../spotlight/useSpotlightPreview.js";
+import { useSpotlightActions } from "../../../spotlight/useSpotlightActions.js";
+import { useSpotlightKeyboard } from "../../../spotlight/useSpotlightKeyboard.js";
+import { useSelectionIndicator } from "../../../spotlight/useSelectionIndicator.js";
+import { SpotlightBatchBar } from "../../../spotlight/SpotlightBatchBar.js";
+import { executeBatchAction, executeSpotlightAction } from "../../../spotlight/rpc.js";
+import { SpotlightFooter } from "../../../spotlight/SpotlightFooter.js";
+import { resolveSpotlightQueryMode } from "@shared/lib/spotlight/query-dsl.js";
+import { browser } from "@shared/platform/webext.js";
+import { useBookmarks } from "./useBookmarks.js";
+import { DashboardView } from "./DashboardView.js";
+import { QuickActions } from "./QuickActions.js";
+import { SearchDefaults } from "./SearchDefaults.js";
+import type {
+  SpotlightBatchActionId,
+  SpotlightMode,
+  SpotlightSearchResult,
+} from "../../../spotlight/types.js";
+import type { NodeId } from "@shared/types/ids.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -34,29 +45,33 @@ const NOOP = () => {};
 
 function getGreeting(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
 }
 
 function getTime(): string {
   const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
 const SR_ONLY: React.CSSProperties = {
-  position: 'absolute', width: '1px', height: '1px',
-  overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap',
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  overflow: "hidden",
+  clip: "rect(0,0,0,0)",
+  whiteSpace: "nowrap",
 };
 
-const DRAG_STORAGE_KEY = 'trail_newtab_island_pos';
+const DRAG_STORAGE_KEY = "trail_newtab_island_pos";
 
 function loadDragPos(): { x: number; y: number } | undefined {
   try {
     const raw = localStorage.getItem(DRAG_STORAGE_KEY);
     if (!raw) return undefined;
     const pos = JSON.parse(raw);
-    if (typeof pos.x === 'number' && typeof pos.y === 'number') {
+    if (typeof pos.x === "number" && typeof pos.y === "number") {
       // Reject corrupted values from previous broken info.point save
       if (Math.abs(pos.x) > 500 || Math.abs(pos.y) > 500) {
         localStorage.removeItem(DRAG_STORAGE_KEY);
@@ -64,7 +79,9 @@ function loadDragPos(): { x: number; y: number } | undefined {
       }
       return pos;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return undefined;
 }
 
@@ -75,10 +92,12 @@ function loadDragPos(): { x: number; y: number } | undefined {
 export function NewTabApp() {
   // ─── State ───
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [selectedFocusPane, setSelectedFocusPane] = useState<'list' | 'graph'>('list');
+  const [selectedFocusPane, setSelectedFocusPane] = useState<"list" | "graph">("list");
   const [helpOpen, setHelpOpen] = useState(false);
   const [hoveredGraphTarget, setHoveredGraphTarget] = useState<SpotlightNodeTarget | null>(null);
-  const [drilldownScope, setDrilldownScope] = useState<{ treeId: string; treeName: string } | null>(null);
+  const [drilldownScope, setDrilldownScope] = useState<{ treeId: string; treeName: string } | null>(
+    null,
+  );
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [graphFocusMode, setGraphFocusMode] = useState(false);
 
@@ -100,13 +119,19 @@ export function NewTabApp() {
   const dragY = useMotionValue(initDragPos?.y ?? 0);
 
   // ─── Domain hooks ───
-  const search = useSpotlightSearch({ isOpen: true, drilldownScopeTreeId: drilldownScope?.treeId ?? null });
+  const search = useSpotlightSearch({
+    isOpen: true,
+    drilldownScopeTreeId: drilldownScope?.treeId ?? null,
+  });
   const activeTreeId = search.bootstrapData?.activeTreeId ?? null;
   const flatItems = useMemo(() => search.sections.flatMap((s) => s.items), [search.sections]);
   const itemByKey = useMemo(() => new Map(flatItems.map((item) => [item.key, item])), [flatItems]);
-  const selectedItem = selectedKey ? itemByKey.get(selectedKey) ?? null : null;
+  const selectedItem = selectedKey ? (itemByKey.get(selectedKey) ?? null) : null;
   const multiSelectedItems = useMemo(
-    () => Array.from(selectedKeys).map((k) => itemByKey.get(k)).filter(Boolean) as SpotlightSearchResult[],
+    () =>
+      Array.from(selectedKeys)
+        .map((k) => itemByKey.get(k))
+        .filter(Boolean) as SpotlightSearchResult[],
     [selectedKeys, itemByKey],
   );
   const isMultiSelect = selectedKeys.size > 1;
@@ -121,34 +146,50 @@ export function NewTabApp() {
   }, [search.query, search.sections]);
 
   // Clear multi-select when query or results change
-  useEffect(() => { setSelectedKeys(new Set()); }, [search.query, search.sections]);
+  useEffect(() => {
+    setSelectedKeys(new Set());
+  }, [search.query, search.sections]);
 
   // Auto-focus search on mount
   useEffect(() => {
     const input = inputRef.current;
     if (!input) return;
-    const attemptFocus = () => { window.focus(); input.focus(); };
+    const attemptFocus = () => {
+      window.focus();
+      input.focus();
+    };
     attemptFocus();
     const timers = [0, 50, 150, 300].map((delay) =>
-      setTimeout(() => { if (document.activeElement !== input) attemptFocus(); }, delay),
+      setTimeout(() => {
+        if (document.activeElement !== input) attemptFocus();
+      }, delay),
     );
     return () => timers.forEach(clearTimeout);
   }, []);
 
   // Clock tick — aligned to minute boundary
   useEffect(() => {
-    const tick = () => { setTime(getTime()); setGreetingText(getGreeting()); };
+    const tick = () => {
+      setTime(getTime());
+      setGreetingText(getGreeting());
+    };
     const now = new Date();
     const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50;
-    const timeout = setTimeout(() => { tick(); interval = setInterval(tick, 60_000); }, msToNextMinute);
+    const timeout = setTimeout(() => {
+      tick();
+      interval = setInterval(tick, 60_000);
+    }, msToNextMinute);
     let interval: ReturnType<typeof setInterval> | undefined;
-    return () => { clearTimeout(timeout); if (interval) clearInterval(interval); };
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
   }, []);
 
   // Listen for TOGGLE_SPOTLIGHT
   useEffect(() => {
     const handler = (message: { type?: string }) => {
-      if (message?.type === 'TOGGLE_SPOTLIGHT') inputRef.current?.focus();
+      if (message?.type === "TOGGLE_SPOTLIGHT") inputRef.current?.focus();
     };
     browser.runtime.onMessage.addListener(handler);
     return () => browser.runtime.onMessage.removeListener(handler);
@@ -160,7 +201,7 @@ export function NewTabApp() {
   // Perf: mousemove throttled to ~30fps; CSS custom properties for GPU compositing.
   useEffect(() => {
     const el = graphBgRef.current;
-    if (el) el.style.willChange = 'transform';
+    if (el) el.style.willChange = "transform";
 
     const mouseTarget = { x: 0, y: 0 };
     const current = { x: 0, y: 0 };
@@ -184,7 +225,10 @@ export function NewTabApp() {
       current.x += (t.x - current.x) * EASE;
       current.y += (t.y - current.y) * EASE;
 
-      if (Math.abs(t.x - current.x) < SETTLE_THRESHOLD && Math.abs(t.y - current.y) < SETTLE_THRESHOLD) {
+      if (
+        Math.abs(t.x - current.x) < SETTLE_THRESHOLD &&
+        Math.abs(t.y - current.y) < SETTLE_THRESHOLD
+      ) {
         current.x = t.x;
         current.y = t.y;
         running = false;
@@ -214,18 +258,18 @@ export function NewTabApp() {
       startLoop();
     };
 
-    window.addEventListener('mousemove', onMove, { passive: true });
+    window.addEventListener("mousemove", onMove, { passive: true });
 
     // Subscribe to drag value changes so graph drifts while dragging
-    const unsubX = dragX.on('change', startLoop);
-    const unsubY = dragY.on('change', startLoop);
+    const unsubX = dragX.on("change", startLoop);
+    const unsubY = dragY.on("change", startLoop);
 
     return () => {
-      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener("mousemove", onMove);
       unsubX();
       unsubY();
       if (rafId !== null) cancelAnimationFrame(rafId);
-      if (el) el.style.willChange = '';
+      if (el) el.style.willChange = "";
     };
   }, [dragX, dragY]);
 
@@ -233,89 +277,122 @@ export function NewTabApp() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = /Mac|iPhone|iPad/.test(navigator.userAgent) ? e.metaKey : e.ctrlKey;
-      if (mod && e.key === 'g') {
+      if (mod && e.key === "g") {
         e.preventDefault();
         setGraphFocusMode((prev) => !prev);
       }
     };
-    window.addEventListener('keydown', handler, true);
-    return () => window.removeEventListener('keydown', handler, true);
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
   }, []);
 
   // ─── Preview ───
   const preview = useSpotlightPreview({
-    activeTreeId, drilldownScope, effectiveItem: selectedItem,
-    hoveredGraphTarget, sections: search.sections, flatItems, previewCache: search.previewCache,
+    activeTreeId,
+    drilldownScope,
+    effectiveItem: selectedItem,
+    hoveredGraphTarget,
+    sections: search.sections,
+    flatItems,
+    previewCache: search.previewCache,
   });
   const indicatorPos = useSelectionIndicator(listRef, selectedKey);
 
   // ─── Actions ───
   const act = useSpotlightActions({
-    activeTreeId, query: search.query, close: NOOP, flatItems,
-    previewCache: search.previewCache, setGraphPreviewData: preview.setGraphPreviewData,
-    setGraphPreviewLoading: preview.setGraphPreviewLoading, setQuery: search.setQuery,
-    setHelpOpen, setDrilldownScope,
+    activeTreeId,
+    query: search.query,
+    close: NOOP,
+    flatItems,
+    previewCache: search.previewCache,
+    setGraphPreviewData: preview.setGraphPreviewData,
+    setGraphPreviewLoading: preview.setGraphPreviewLoading,
+    setQuery: search.setQuery,
+    setHelpOpen,
+    setDrilldownScope,
   });
 
   // In New Tab, clicking a result from an old tree should just open the URL,
   // not open the whole tree. Tree context is only via explicit actions.
-  const handleActivateNewTab = useCallback(async (item: SpotlightSearchResult) => {
-    if (item.kind === 'node' && activeTreeId && item.treeId !== activeTreeId) {
-      await act.handleExecuteAction(
-        'open',
-        { kind: 'node', nodeId: item.nodeId, treeId: item.treeId },
-        'Opened',
-      );
-      return;
-    }
-    await act.handleActivate(item);
-  }, [activeTreeId, act]);
+  const handleActivateNewTab = useCallback(
+    async (item: SpotlightSearchResult) => {
+      if (item.kind === "node" && activeTreeId && item.treeId !== activeTreeId) {
+        await act.handleExecuteAction(
+          "open",
+          { kind: "node", nodeId: item.nodeId, treeId: item.treeId },
+          "Opened",
+        );
+        return;
+      }
+      await act.handleActivate(item);
+    },
+    [activeTreeId, act],
+  );
 
   // ─── Hints ───
   const hintCandidates = useMemo(() => buildSpotlightHints(search.query), [search.query]);
   const activeHint = hintCandidates[0] ?? null;
-  const ghostSuffix = useMemo(() => computeGhostSuffix(search.query, activeHint), [search.query, activeHint]);
-  const handleApplyHint = useCallback((hint: string) => {
-    search.setQuery(applySpotlightHint(search.query, hint));
-    act.setStatusText(null);
-  }, [search, act]);
+  const ghostSuffix = useMemo(
+    () => computeGhostSuffix(search.query, activeHint),
+    [search.query, activeHint],
+  );
+  const handleApplyHint = useCallback(
+    (hint: string) => {
+      search.setQuery(applySpotlightHint(search.query, hint));
+      act.setStatusText(null);
+    },
+    [search, act],
+  );
 
   // ─── Graph echo ───
   const hoveredGraphKey = useMemo(() => {
     if (!hoveredGraphTarget) return null;
-    return preview.echoIndex.get(`${hoveredGraphTarget.treeId}:${hoveredGraphTarget.nodeId}`)?.key ?? null;
+    return (
+      preview.echoIndex.get(`${hoveredGraphTarget.treeId}:${hoveredGraphTarget.nodeId}`)?.key ??
+      null
+    );
   }, [hoveredGraphTarget, preview.echoIndex]);
-  const hoveredGraphItem = hoveredGraphKey ? itemByKey.get(hoveredGraphKey) ?? null : null;
+  const hoveredGraphItem = hoveredGraphKey ? (itemByKey.get(hoveredGraphKey) ?? null) : null;
 
   // ─── Batch ───
-  const handleBatchExecute = useCallback(async (actionId: SpotlightBatchActionId) => {
-    const nodes = multiSelectedItems.filter((i) => i.kind === 'node');
-    if (actionId === 'batch-copy-urls') {
-      const urls = nodes.map((n) => n.kind === 'node' ? n.url : '').filter(Boolean).join('\n');
-      await navigator.clipboard.writeText(urls).catch(() => {
-        console.warn('[clipboard] Write failed — permission may be denied');
-      });
-      act.setStatusText(`Copied ${nodes.length} URLs`);
+  const handleBatchExecute = useCallback(
+    async (actionId: SpotlightBatchActionId) => {
+      const nodes = multiSelectedItems.filter((i) => i.kind === "node");
+      if (actionId === "batch-copy-urls") {
+        const urls = nodes
+          .map((n) => (n.kind === "node" ? n.url : ""))
+          .filter(Boolean)
+          .join("\n");
+        await navigator.clipboard.writeText(urls).catch(() => {
+          console.warn("[clipboard] Write failed — permission may be denied");
+        });
+        act.setStatusText(`Copied ${nodes.length} URLs`);
+        setSelectedKeys(new Set());
+        return;
+      }
+      const targets: Array<{ kind: "node"; nodeId: NodeId; treeId: string }> = [];
+      for (const n of nodes) {
+        if (n.kind === "node") targets.push({ kind: "node", nodeId: n.nodeId, treeId: n.treeId });
+      }
+      const response = await executeBatchAction(actionId, targets);
+      if (response.statusText) act.setStatusText(response.statusText);
       setSelectedKeys(new Set());
-      return;
-    }
-    const targets: Array<{ kind: 'node'; nodeId: NodeId; treeId: string }> = [];
-    for (const n of nodes) {
-      if (n.kind === 'node') targets.push({ kind: 'node', nodeId: n.nodeId, treeId: n.treeId });
-    }
-    const response = await executeBatchAction(actionId, targets);
-    if (response.statusText) act.setStatusText(response.statusText);
-    setSelectedKeys(new Set());
-  }, [multiSelectedItems, act]);
+    },
+    [multiSelectedItems, act],
+  );
 
   // ─── Graph node resolution ───
   const selectedNodeTarget = resolveNodeTarget(selectedItem);
   const highlightNodeTarget = hoveredGraphTarget ?? resolveNodeTarget(selectedItem);
   const currentGraphTreeId = preview.previewTreeId ?? activeTreeId;
-  const graphSelectedNodeId = currentGraphTreeId && selectedNodeTarget?.treeId === currentGraphTreeId
-    ? selectedNodeTarget.nodeId : null;
-  const graphHighlightNodeId = currentGraphTreeId && highlightNodeTarget?.treeId === currentGraphTreeId
-    ? highlightNodeTarget.nodeId : null;
+  const graphSelectedNodeId =
+    currentGraphTreeId && selectedNodeTarget?.treeId === currentGraphTreeId
+      ? selectedNodeTarget.nodeId
+      : null;
+  const graphHighlightNodeId =
+    currentGraphTreeId && highlightNodeTarget?.treeId === currentGraphTreeId
+      ? highlightNodeTarget.nodeId
+      : null;
 
   // ─── Visible items ───
   const visibleFlatItems = useMemo(
@@ -324,69 +401,104 @@ export function NewTabApp() {
   );
 
   // ─── Section toggle ───
-  const handleToggleSection = useCallback((sectionId: string) => {
-    const isCollapsing = !act.collapsedSections.has(sectionId);
-    if (isCollapsing && selectedKey) {
-      const section = search.sections.find((s) => s.id === sectionId);
-      if (section?.items.some((item) => item.key === selectedKey)) {
-        const sectionIndex = search.sections.findIndex((s) => s.id === sectionId);
-        let nearestKey: string | null = null;
-        for (let offset = 1; offset < search.sections.length; offset++) {
-          for (const dir of [1, -1] as const) {
-            const idx = sectionIndex + offset * dir;
-            if (idx < 0 || idx >= search.sections.length) continue;
-            const candidate = search.sections[idx]!;
-            if (act.collapsedSections.has(candidate.id)) continue;
-            if (candidate.items.length > 0) { nearestKey = candidate.items[0]!.key; break; }
+  const handleToggleSection = useCallback(
+    (sectionId: string) => {
+      const isCollapsing = !act.collapsedSections.has(sectionId);
+      if (isCollapsing && selectedKey) {
+        const section = search.sections.find((s) => s.id === sectionId);
+        if (section?.items.some((item) => item.key === selectedKey)) {
+          const sectionIndex = search.sections.findIndex((s) => s.id === sectionId);
+          let nearestKey: string | null = null;
+          for (let offset = 1; offset < search.sections.length; offset++) {
+            for (const dir of [1, -1] as const) {
+              const idx = sectionIndex + offset * dir;
+              if (idx < 0 || idx >= search.sections.length) continue;
+              const candidate = search.sections[idx]!;
+              if (act.collapsedSections.has(candidate.id)) continue;
+              if (candidate.items.length > 0) {
+                nearestKey = candidate.items[0]!.key;
+                break;
+              }
+            }
+            if (nearestKey) break;
           }
-          if (nearestKey) break;
+          setSelectedKey(nearestKey);
         }
-        setSelectedKey(nearestKey);
       }
-    }
-    act.toggleSection(sectionId);
-  }, [act, selectedKey, search.sections]);
+      act.toggleSection(sectionId);
+    },
+    [act, selectedKey, search.sections],
+  );
 
   // ─── Web search (Cmd+Enter) ───
   const handleSearchWeb = useCallback((query: string) => {
-    void executeSpotlightAction('search-default-engine', { kind: 'search', query });
+    void executeSpotlightAction("search-default-engine", { kind: "search", query });
   }, []);
 
   // ─── Keyboard ───
   useSpotlightKeyboard({
-    isOpen: true, containerRef: rootRef,
-    query: search.query, selectedItem, selectedKey, setSelectedKey,
-    hoveredGraphItem, activeTreeId, hintCandidates, activeHint,
-    actionMenuActions: act.actionMenuActions, setActionMenuActions: act.setActionMenuActions,
-    confirmingAction: act.confirmingAction, quickLookItem: act.quickLookItem,
-    setQuickLookItem: act.setQuickLookItem, helpOpen, setHelpOpen, drilldownScope,
-    selectedFocusPane, setSelectedFocusPane, setQuery: search.setQuery, close: NOOP,
-    exitDrilldown: act.exitDrilldown, handleActivate: handleActivateNewTab, handleApplyHint,
-    handleConfirmDestructive: act.handleConfirmDestructive, setConfirmingAction: act.setConfirmingAction,
-    flatItems, visibleFlatItems, selectedKeys, setSelectedKeys, showPreview: true,
+    isOpen: true,
+    containerRef: rootRef,
+    query: search.query,
+    selectedItem,
+    selectedKey,
+    setSelectedKey,
+    hoveredGraphItem,
+    activeTreeId,
+    hintCandidates,
+    activeHint,
+    actionMenuActions: act.actionMenuActions,
+    setActionMenuActions: act.setActionMenuActions,
+    confirmingAction: act.confirmingAction,
+    quickLookItem: act.quickLookItem,
+    setQuickLookItem: act.setQuickLookItem,
+    helpOpen,
+    setHelpOpen,
+    drilldownScope,
+    selectedFocusPane,
+    setSelectedFocusPane,
+    setQuery: search.setQuery,
+    close: NOOP,
+    exitDrilldown: act.exitDrilldown,
+    handleActivate: handleActivateNewTab,
+    handleApplyHint,
+    handleConfirmDestructive: act.handleConfirmDestructive,
+    setConfirmingAction: act.setConfirmingAction,
+    flatItems,
+    visibleFlatItems,
+    selectedKeys,
+    setSelectedKeys,
+    showPreview: true,
     onSearchWeb: handleSearchWeb,
   });
 
   // ─── Anchor mode class ───
   const anchorClass = graphFocusMode
-    ? 'newtab-island-anchor newtab-island-anchor--graph-focus'
-    : 'newtab-island-anchor newtab-island-anchor--idle';
+    ? "newtab-island-anchor newtab-island-anchor--graph-focus"
+    : "newtab-island-anchor newtab-island-anchor--idle";
 
   // ─── Render ───
   return (
     <div className="newtab" ref={rootRef}>
       {/* ── Graph: fullscreen background ── */}
-      <div ref={graphBgRef} className={`newtab-graph-bg${graphFocusMode ? ' newtab-graph-bg--focus' : ''}`}>
+      <div
+        ref={graphBgRef}
+        className={`newtab-graph-bg${graphFocusMode ? "newtab-graph-bg--focus" : ""}`}
+      >
         <SpotlightGraphFrame
-          activeTreeId={activeTreeId} previewData={preview.graphPreviewData}
-          selectedNodeId={graphSelectedNodeId} highlightNodeId={graphHighlightNodeId}
+          activeTreeId={activeTreeId}
+          previewData={preview.graphPreviewData}
+          selectedNodeId={graphSelectedNodeId}
+          highlightNodeId={graphHighlightNodeId}
           selectionIntentId={0}
           compactInitialView={false}
           onNavigate={(treeId, nodeId) => {
             // In New Tab, always just open the URL -- don't open the whole tree
-            void act.handleExecuteAction('open', { kind: 'node', nodeId, treeId }, 'Opened');
+            void act.handleExecuteAction("open", { kind: "node", nodeId, treeId }, "Opened");
           }}
-          onHoverNode={(treeId, nodeId) => setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId })}
+          onHoverNode={(treeId, nodeId) =>
+            setHoveredGraphTarget(nodeId === null ? null : { treeId, nodeId })
+          }
         />
       </div>
 
@@ -400,167 +512,206 @@ export function NewTabApp() {
           dragMomentum={false}
           onDragEnd={() => {
             try {
-              localStorage.setItem(DRAG_STORAGE_KEY, JSON.stringify({ x: dragX.get(), y: dragY.get() }));
-            } catch { /* ignore */ }
+              localStorage.setItem(
+                DRAG_STORAGE_KEY,
+                JSON.stringify({ x: dragX.get(), y: dragY.get() }),
+              );
+            } catch {
+              /* ignore */
+            }
           }}
           style={{ x: dragX, y: dragY }}
           className="newtab-island-drag"
         >
           <Command
-            shouldFilter={false} value={selectedKey ?? ''} loop
-            onValueChange={(v) => { setSelectedKey(v || null); setHoveredGraphTarget(null); act.setActionMenuActions(null); }}
+            shouldFilter={false}
+            value={selectedKey ?? ""}
+            loop
+            onValueChange={(v) => {
+              setSelectedKey(v || null);
+              setHoveredGraphTarget(null);
+              act.setActionMenuActions(null);
+            }}
             className="newtab-island"
           >
-          {/* ── Greeting ── */}
-          {!graphFocusMode && (
-            <div className="newtab-greeting">
-              <div className="newtab-greeting-time">{time}</div>
-              <div className="newtab-greeting-text">{greetingText}</div>
-            </div>
-          )}
-
-          {/* ── Search bar ── */}
-          <div className="spotlight-search newtab-search">
-            <div className="spotlight-scope-icon" aria-hidden="true">
-              {spotlightMode === 'commands' ? (
-                <ChevronRight size={15} strokeWidth={1.8} />
-              ) : drilldownScope ? (
-                <FolderOpen size={15} strokeWidth={1.8} />
-              ) : (
-                <Search size={15} strokeWidth={1.8} />
-              )}
-            </div>
-            <div className="spotlight-input-wrap">
-              <Command.Input
-                ref={inputRef} className="spotlight-search-input" autoComplete="off" autoFocus spellCheck={false}
-                placeholder={drilldownScope ? `Search in ${drilldownScope.treeName}...` : 'Search pages or type > for commands'}
-                value={search.query} onValueChange={(v: string) => { search.setQuery(v); act.setStatusText(null); }}
-              />
-              {ghostSuffix && (
-                <span className="spotlight-ghost" aria-hidden="true">
-                  <span className="spotlight-ghost-mirror">{search.query}</span>
-                  <span className="spotlight-ghost-suffix">{ghostSuffix}</span>
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* ── Content: Dashboard (idle) or Results (searching) ── */}
-          {isIdle && !graphFocusMode ? (
-            <AnimatePresence>
-              {!search.loading && (
-                <motion.div
-                  key="dashboard"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                  style={{ overflow: 'hidden', width: '100%' }}
-                >
-                  <DashboardView
-                    bookmarks={bookmarks}
-                    recentQueries={search.recentQueries}
-                    continueItems={continueItems}
-                    onQueryChange={search.setQuery}
-                    onActivate={handleActivateNewTab}
-                  />
-                  <QuickActions onAction={(filter) => search.setQuery(filter)} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          ) : !graphFocusMode ? (
-            <div className="newtab-island-panel">
-              {/* ── Breadcrumb ── */}
-              {drilldownScope && (
-                <div className="spotlight-breadcrumb">
-                  <button type="button" className="spotlight-breadcrumb-back" onClick={act.exitDrilldown} tabIndex={-1} aria-label="Exit drilldown">
-                    ←
-                  </button>
-                  <span className="spotlight-breadcrumb-label">{drilldownScope.treeName}</span>
-                </div>
-              )}
-
-              {/* ── A11y live region ── */}
-              <div aria-live="polite" aria-atomic="true" style={SR_ONLY}>
-                {!search.loading && search.sections.length > 0
-                  ? `${flatItems.length} result${flatItems.length === 1 ? '' : 's'} found`
-                  : !search.loading && search.query && search.sections.length === 0 ? 'No results found' : ''}
+            {/* ── Greeting ── */}
+            {!graphFocusMode && (
+              <div className="newtab-greeting">
+                <div className="newtab-greeting-time">{time}</div>
+                <div className="newtab-greeting-text">{greetingText}</div>
               </div>
+            )}
 
-              {/* ── Results list ── */}
-              <div className="newtab-list">
-                {search.loading && <div className="newtab-loading-bar" />}
-                {search.sessionError ? (
-                  <div className="spotlight-empty" role="alert">Connection lost. Reload to retry.</div>
-                ) : helpOpen ? (
-                  <SpotlightHelp open />
-                ) : search.sections.length === 0 ? (
-                  <SearchDefaults query={search.query} onSetQuery={search.setQuery} />
+            {/* ── Search bar ── */}
+            <div className="spotlight-search newtab-search">
+              <div className="spotlight-scope-icon" aria-hidden="true">
+                {spotlightMode === "commands" ? (
+                  <ChevronRight size={15} strokeWidth={1.8} />
+                ) : drilldownScope ? (
+                  <FolderOpen size={15} strokeWidth={1.8} />
                 ) : (
-                  <SpotlightResults
-                    listRef={listRef}
-                    sections={search.sections}
-                    selectedKey={selectedKey}
-                    selectedKeys={selectedKeys}
-                    collapsedSections={act.collapsedSections}
-                    indicatorPos={indicatorPos}
-                    activeTreeId={activeTreeId}
-                    drilldownTransition={act.drilldownTransition}
-                    rowHeight={52}
-                    onToggleSection={handleToggleSection}
-                    onSelect={setSelectedKey}
-                    onActivate={handleActivateNewTab}
-                    onInlineAction={act.handleInlineAction}
-                  />
+                  <Search size={15} strokeWidth={1.8} />
+                )}
+              </div>
+              <div className="spotlight-input-wrap">
+                <Command.Input
+                  ref={inputRef}
+                  className="spotlight-search-input"
+                  autoComplete="off"
+                  autoFocus
+                  spellCheck={false}
+                  placeholder={
+                    drilldownScope
+                      ? `Search in ${drilldownScope.treeName}...`
+                      : "Search pages or type > for commands"
+                  }
+                  value={search.query}
+                  onValueChange={(v: string) => {
+                    search.setQuery(v);
+                    act.setStatusText(null);
+                  }}
+                />
+                {ghostSuffix && (
+                  <span className="spotlight-ghost" aria-hidden="true">
+                    <span className="spotlight-ghost-mirror">{search.query}</span>
+                    <span className="spotlight-ghost-suffix">{ghostSuffix}</span>
+                  </span>
                 )}
               </div>
             </div>
-          ) : null}
 
-          {/* ── Batch bar ── */}
-          {isMultiSelect && (
-            <SpotlightBatchBar
-              selectedItems={multiSelectedItems}
-              activeTreeId={activeTreeId}
-              onExecute={handleBatchExecute}
-              onClear={() => setSelectedKeys(new Set())}
-            />
-          )}
+            {/* ── Content: Dashboard (idle) or Results (searching) ── */}
+            {isIdle && !graphFocusMode ? (
+              <AnimatePresence>
+                {!search.loading && (
+                  <motion.div
+                    key="dashboard"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                    style={{ overflow: "hidden", width: "100%" }}
+                  >
+                    <DashboardView
+                      bookmarks={bookmarks}
+                      recentQueries={search.recentQueries}
+                      continueItems={continueItems}
+                      onQueryChange={search.setQuery}
+                      onActivate={handleActivateNewTab}
+                    />
+                    <QuickActions onAction={(filter) => search.setQuery(filter)} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            ) : !graphFocusMode ? (
+              <div className="newtab-island-panel">
+                {/* ── Breadcrumb ── */}
+                {drilldownScope && (
+                  <div className="spotlight-breadcrumb">
+                    <button
+                      type="button"
+                      className="spotlight-breadcrumb-back"
+                      onClick={act.exitDrilldown}
+                      tabIndex={-1}
+                      aria-label="Exit drilldown"
+                    >
+                      ←
+                    </button>
+                    <span className="spotlight-breadcrumb-label">{drilldownScope.treeName}</span>
+                  </div>
+                )}
 
-          {/* ── Status ── */}
-          {act.statusText && (
-            <div className="spotlight-status-bar">
-              <span className="spotlight-status">{act.statusText}</span>
-            </div>
-          )}
+                {/* ── A11y live region ── */}
+                <div aria-live="polite" aria-atomic="true" style={SR_ONLY}>
+                  {!search.loading && search.sections.length > 0
+                    ? `${flatItems.length} result${flatItems.length === 1 ? "" : "s"} found`
+                    : !search.loading && search.query && search.sections.length === 0
+                      ? "No results found"
+                      : ""}
+                </div>
 
-          {/* ── Action menu overlay ── */}
-          {act.actionMenuActions && (
-            <SpotlightActionMenu
-              actions={act.actionMenuActions}
-              onSelect={act.handleActionMenuSelect}
-              onClose={() => act.setActionMenuActions(null)}
-            />
-          )}
+                {/* ── Results list ── */}
+                <div className="newtab-list">
+                  {search.loading && <div className="newtab-loading-bar" />}
+                  {search.sessionError ? (
+                    <div className="spotlight-empty" role="alert">
+                      Connection lost. Reload to retry.
+                    </div>
+                  ) : helpOpen ? (
+                    <SpotlightHelp open />
+                  ) : search.sections.length === 0 ? (
+                    <SearchDefaults query={search.query} onSetQuery={search.setQuery} />
+                  ) : (
+                    <SpotlightResults
+                      listRef={listRef}
+                      sections={search.sections}
+                      selectedKey={selectedKey}
+                      selectedKeys={selectedKeys}
+                      collapsedSections={act.collapsedSections}
+                      indicatorPos={indicatorPos}
+                      activeTreeId={activeTreeId}
+                      drilldownTransition={act.drilldownTransition}
+                      rowHeight={52}
+                      onToggleSection={handleToggleSection}
+                      onSelect={setSelectedKey}
+                      onActivate={handleActivateNewTab}
+                      onInlineAction={act.handleInlineAction}
+                    />
+                  )}
+                </div>
+              </div>
+            ) : null}
 
-          {/* ── Quick look overlay ── */}
-          {act.quickLookItem && (act.quickLookItem.kind === 'node' || act.quickLookItem.kind === 'tree') && (
-            <SpotlightQuickLook
-              item={act.quickLookItem}
-              onClose={() => act.setQuickLookItem(null)}
-              onAction={(actionId, target, status) => {
-                act.setQuickLookItem(null);
-                void act.handleExecuteAction(actionId, target, status);
-              }}
-            />
-          )}
+            {/* ── Batch bar ── */}
+            {isMultiSelect && (
+              <SpotlightBatchBar
+                selectedItems={multiSelectedItems}
+                activeTreeId={activeTreeId}
+                onExecute={handleBatchExecute}
+                onClear={() => setSelectedKeys(new Set())}
+              />
+            )}
+
+            {/* ── Status ── */}
+            {act.statusText && (
+              <div className="spotlight-status-bar">
+                <span className="spotlight-status">{act.statusText}</span>
+              </div>
+            )}
+
+            {/* ── Action menu overlay ── */}
+            {act.actionMenuActions && (
+              <SpotlightActionMenu
+                actions={act.actionMenuActions}
+                onSelect={act.handleActionMenuSelect}
+                onClose={() => act.setActionMenuActions(null)}
+              />
+            )}
+
+            {/* ── Quick look overlay ── */}
+            {act.quickLookItem &&
+              (act.quickLookItem.kind === "node" || act.quickLookItem.kind === "tree") && (
+                <SpotlightQuickLook
+                  item={act.quickLookItem}
+                  onClose={() => act.setQuickLookItem(null)}
+                  onAction={(actionId, target, status) => {
+                    act.setQuickLookItem(null);
+                    void act.handleExecuteAction(actionId, target, status);
+                  }}
+                />
+              )}
           </Command>
         </motion.div>
       </div>
 
       {/* ── Footer: fixed bottom-left, outside the island ── */}
       {!graphFocusMode && (
-        <SpotlightFooter mode={spotlightMode} isMultiSelect={isMultiSelect} focusPane={selectedFocusPane} showWebSearchHint={search.query.trim().length > 0} />
+        <SpotlightFooter
+          mode={spotlightMode}
+          isMultiSelect={isMultiSelect}
+          focusPane={selectedFocusPane}
+          showWebSearchHint={search.query.trim().length > 0}
+        />
       )}
 
       {/* ── Graph focus exit button ── */}
@@ -575,15 +726,27 @@ export function NewTabApp() {
       )}
 
       {/* ── Destructive confirmation overlay ── */}
-      {act.confirmingAction && act.confirmingAction.kind === 'action' && (
+      {act.confirmingAction && act.confirmingAction.kind === "action" && (
         <div className="spotlight-confirm-overlay" onClick={() => act.setConfirmingAction(null)}>
           <div className="spotlight-confirm-popup" onClick={(e) => e.stopPropagation()}>
             <div className="spotlight-confirm-icon">⚠</div>
             <div className="spotlight-confirm-title">{act.confirmingAction.title}</div>
             <div className="spotlight-confirm-message">This action cannot be undone.</div>
             <div className="spotlight-confirm-buttons">
-              <button type="button" className="spotlight-confirm-btn spotlight-confirm-btn--cancel" onClick={() => act.setConfirmingAction(null)}>Cancel</button>
-              <button type="button" className="spotlight-confirm-btn spotlight-confirm-btn--confirm" onClick={() => void act.handleConfirmDestructive()}>Confirm</button>
+              <button
+                type="button"
+                className="spotlight-confirm-btn spotlight-confirm-btn--cancel"
+                onClick={() => act.setConfirmingAction(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="spotlight-confirm-btn spotlight-confirm-btn--confirm"
+                onClick={() => void act.handleConfirmDestructive()}
+              >
+                Confirm
+              </button>
             </div>
           </div>
         </div>

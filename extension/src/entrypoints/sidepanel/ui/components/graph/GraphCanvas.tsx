@@ -1,14 +1,19 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type {
-  KeyboardEvent as ReactKeyboardEvent,
-  MouseEvent as ReactMouseEvent,
-  PointerEvent as ReactPointerEvent,
-} from 'react';
-import type { NodeId } from '@shared/types/ids.js';
-import type { NavigationNode } from '@shared/types/node.js';
-import { navigateTo, reparentNode } from '../../../api/tree.js';
-import { rpc } from '@shared/rpc/contracts.js';
-import { fireAndForget } from '../../../api/background.js';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import type { NodeId } from "@shared/types/ids.js";
+import type { NavigationNode } from "@shared/types/node.js";
+import { navigateTo, reparentNode } from "../../../api/tree.js";
+import { rpc } from "@shared/rpc/contracts.js";
+import { fireAndForget } from "../../../api/background.js";
 // Layout config constants used by useGraphView hook.
 import {
   calculateLayout,
@@ -16,29 +21,31 @@ import {
   calculateRadialLayout,
   getCanvasBounds,
   computeSubtreeSpans,
-} from '../../graph/layout/calculator.js';
-import { deriveLayoutOptions } from '../../graph/layout/options.js';
+} from "../../graph/layout/calculator.js";
+import { deriveLayoutOptions } from "../../graph/layout/options.js";
 import {
   computeSubtreeScores,
   computeNodeScore,
   incrementalCenterReorder,
   incrementalClusterReorder,
-} from '@shared/lib/recency.js';
-import type { CanvasBounds, LayoutMode, NodePosition } from '../../graph/types.js';
+} from "@shared/lib/recency.js";
+import type { CanvasBounds, LayoutMode, NodePosition } from "../../graph/types.js";
 // animation-utils.js used by useGraphAnimation and useGraphView hooks.
-import GraphZoomControls from './GraphZoomControls.js';
-import { applyPathHighlight, buildConnections, getPathToNode } from './graph-utils.js';
-import {
-  GraphPixiRenderer,
-} from '../../graph/render/GraphPixiRenderer.js';
-import { graphProfiler, profileSync, STARTUP_T0 } from '../../graph/render/graph-profiler.js';
-import type { ConnectionSegment, NodeRenderModel, ParticleRenderModel } from '../../graph/render/types.js';
-import { createGraphSnapshot, type GraphSnapshot } from '../../graph/render/graph-snapshot.js';
-import type { TabState } from '@shared/types/tabs.js';
-import type { TagDefinition } from '@shared/types/tags.js';
-import { easeOutCubic, lerp } from '../../graph/animation-utils.js';
+import GraphZoomControls from "./GraphZoomControls.js";
+import { applyPathHighlight, buildConnections, getPathToNode } from "./graph-utils.js";
+import { GraphPixiRenderer } from "../../graph/render/GraphPixiRenderer.js";
+import { graphProfiler, profileSync, STARTUP_T0 } from "../../graph/render/graph-profiler.js";
+import type {
+  ConnectionSegment,
+  NodeRenderModel,
+  ParticleRenderModel,
+} from "../../graph/render/types.js";
+import { createGraphSnapshot, type GraphSnapshot } from "../../graph/render/graph-snapshot.js";
+import type { TabState } from "@shared/types/tabs.js";
+import type { TagDefinition } from "@shared/types/tags.js";
+import { easeOutCubic, lerp } from "../../graph/animation-utils.js";
 // grid-transform.js used by useGraphView hook.
-import { browser, runtimeGetURL } from '@shared/platform/webext.js';
+import { browser, runtimeGetURL } from "@shared/platform/webext.js";
 // selection-utils.js is now used via useGraphSelection hook.
 import type {
   GraphCanvasProps,
@@ -47,16 +54,19 @@ import type {
   LayoutUpdateMap,
   PointerHitTarget,
   PointerInfo,
-} from './graph-canvas-types.js';
-import { collectSubtreeIds, buildCollapseScope } from './graph-canvas-utils.js';
-import { computeOffsetPositions, computeDragOffsetPositions } from './graph-layout-compute.js';
-import type { CachedLayoutResult } from '@shared/graph-layout-cache/types.js';
-import { computeCollapseSignature, computeLayoutSignature } from '@shared/graph-layout-cache/types.js';
-import { DEFAULT_LAYOUT_SETTINGS } from '@shared/layout/defaults.js';
-import { useLayoutSend } from './useLayoutSend.js';
-import { useGraphSelection } from './useGraphSelection.js';
-import { useGraphAnimation, FAST_MOTION } from './useGraphAnimation.js';
-import { useGraphView } from './useGraphView.js';
+} from "./graph-canvas-types.js";
+import { collectSubtreeIds, buildCollapseScope } from "./graph-canvas-utils.js";
+import { computeOffsetPositions, computeDragOffsetPositions } from "./graph-layout-compute.js";
+import {
+  computeCollapseSignature,
+  computeLayoutSignature,
+  type CachedLayoutResult,
+} from "@shared/graph-layout-cache/types.js";
+import { DEFAULT_LAYOUT_SETTINGS } from "@shared/layout/defaults.js";
+import { useLayoutSend } from "./useLayoutSend.js";
+import { useGraphSelection } from "./useGraphSelection.js";
+import { useGraphAnimation, FAST_MOTION } from "./useGraphAnimation.js";
+import { useGraphView } from "./useGraphView.js";
 
 // ---------------------------------------------------------------------------
 // Offscreen layout cache — read from global set by main.tsx before mount
@@ -213,7 +223,7 @@ export default function GraphCanvas({
     visibleDisplayNodes: NodePosition[];
     positions: Map<NodeId, NodePosition>;
     display: {
-      titleTruncation: 'start' | 'middle' | 'end';
+      titleTruncation: "start" | "middle" | "end";
       showFavicons: boolean;
       showUrls: boolean;
       showTagDots: boolean;
@@ -245,7 +255,7 @@ export default function GraphCanvas({
 
   const layoutOptions = useMemo(() => deriveLayoutOptions(settings), [settings]);
   const baseLayoutConfig =
-    layoutOptions.mode === 'mindmap' ? layoutOptions.mindmap : layoutOptions.tree;
+    layoutOptions.mode === "mindmap" ? layoutOptions.mindmap : layoutOptions.tree;
   const hideTreeRoot = settings?.layout?.tree?.hideRoot ?? false;
   const root = tree?.getRoot() ?? null;
   const { nodeWidth, nodeHeight } = baseLayoutConfig;
@@ -260,16 +270,29 @@ export default function GraphCanvas({
 
   const animation = useGraphAnimation({ nodeWidth, nodeHeight, onTickRender: handleTickRender });
   const {
-    animationVersion, particleVersion,
+    animationVersion,
+    particleVersion,
     particleAnimationsRef,
-    animationStatesRef, openAnimationStatesRef, openProgressRef,
-    animatedPositionsRef, exitNodesRef, prevPositionsRef,
-    animationNowRef, prevOpenNodesRef,
-    previousSiblingOrderRef, mindmapSideRef, lastCollapseVersionRef,
-    invalidateAnimation, startAnimationLoop,
-    startEnter, startExit, startMove,
+    animationStatesRef,
+    openAnimationStatesRef,
+    openProgressRef,
+    animatedPositionsRef,
+    exitNodesRef,
+    prevPositionsRef,
+    animationNowRef,
+    prevOpenNodesRef,
+    previousSiblingOrderRef,
+    mindmapSideRef,
+    lastCollapseVersionRef,
+    invalidateAnimation,
+    startAnimationLoop,
+    startEnter,
+    startExit,
+    startMove,
     particleRenderModels,
-    animationDuration, animationStagger, openAnimationDuration,
+    animationDuration,
+    animationStagger,
+    openAnimationDuration,
   } = animation;
 
   // Assign the actual imperative render function now that hook refs are available.
@@ -291,7 +314,8 @@ export default function GraphCanvas({
       return {
         id,
         node: pos.node,
-        x, y,
+        x,
+        y,
         width: s.nodeWidth,
         height: s.nodeHeight,
         isCurrent: s.currentNodeId === id,
@@ -318,7 +342,11 @@ export default function GraphCanvas({
       ? applyPathHighlight(cachedBaseConnectionsRef.current, s.pathNodeIds)
       : [];
 
-    renderer.setDynamicState({ nodes, connections: conns, showConnections: s.effectiveShowConnections });
+    renderer.setDynamicState({
+      nodes,
+      connections: conns,
+      showConnections: s.effectiveShowConnections,
+    });
 
     // Build particle render models imperatively
     const particles: ParticleRenderModel[] = particleAnimationsRef.current.map((p) => {
@@ -341,12 +369,12 @@ export default function GraphCanvas({
     const next = {} as Record<NodeId, number>;
     root.forEach((node) => {
       const lastVisited =
-        typeof node.data.lastVisitedAt === 'number' && Number.isFinite(node.data.lastVisitedAt)
+        typeof node.data.lastVisitedAt === "number" && Number.isFinite(node.data.lastVisitedAt)
           ? Number(node.data.lastVisitedAt)
           : Number(node.timestamp);
       const liveRecency = nodeRecency[node.id] ?? 0;
       const bestRecency = Math.max(lastVisited, liveRecency);
-      const visitCount = typeof node.data.visitCount === 'number' ? node.data.visitCount : 0;
+      const visitCount = typeof node.data.visitCount === "number" ? node.data.visitCount : 0;
       next[node.id] = computeNodeScore(visitCount, bestRecency, now);
     });
     return next;
@@ -354,7 +382,11 @@ export default function GraphCanvas({
 
   const subtreeScores = useMemo(() => {
     if (!root || !recencyOrderingV2Enabled || !effectiveNodeScores) return null;
-    return computeSubtreeScores(root, effectiveNodeScores, (n: NavigationNode) => n.getChildren?.() ?? []);
+    return computeSubtreeScores(
+      root,
+      effectiveNodeScores,
+      (n: NavigationNode) => n.getChildren?.() ?? [],
+    );
   }, [effectiveNodeScores, root, recencyOrderingV2Enabled]);
 
   useEffect(() => {
@@ -376,18 +408,27 @@ export default function GraphCanvas({
     if (!root || !subtreeScores || !recencyOrderingV2Enabled) return null;
     const baseSep = Math.max(baseLayoutConfig.nodeWidth + baseLayoutConfig.horizontalGap, 1);
     return computeSubtreeSpans(root, getBaseVisibleChildren, baseSep);
-  }, [root, subtreeScores, getBaseVisibleChildren, baseLayoutConfig.nodeWidth, baseLayoutConfig.horizontalGap, recencyOrderingV2Enabled]);
+  }, [
+    root,
+    subtreeScores,
+    getBaseVisibleChildren,
+    baseLayoutConfig.nodeWidth,
+    baseLayoutConfig.horizontalGap,
+    recencyOrderingV2Enabled,
+  ]);
 
-  const reorderFn = layoutOptions.mode === 'radial'
-    ? incrementalClusterReorder
-    : incrementalCenterReorder;
+  const reorderFn =
+    layoutOptions.mode === "radial" ? incrementalClusterReorder : incrementalCenterReorder;
 
   const sortChildrenForParentKey = useCallback(
     (parentKey: string, children: readonly NavigationNode[]): NavigationNode[] => {
       if (!recencyOrderingV2Enabled || !subtreeScores || children.length <= 1) return [...children];
       const previousSiblingOrder = previousSiblingOrderRef.current.get(parentKey);
       const sorted = reorderFn(children, subtreeScores, previousSiblingOrder, subtreeSpans);
-      previousSiblingOrderRef.current.set(parentKey, sorted.map((child: NavigationNode) => child.id));
+      previousSiblingOrderRef.current.set(
+        parentKey,
+        sorted.map((child: NavigationNode) => child.id),
+      );
       return sorted;
     },
     [recencyOrderingV2Enabled, subtreeScores, subtreeSpans, reorderFn],
@@ -409,7 +450,7 @@ export default function GraphCanvas({
     const observer = new MutationObserver(() => rendererRef.current?.refreshTheme());
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-theme', 'style'],
+      attributeFilter: ["data-theme", "style"],
     });
     return () => observer.disconnect();
   }, []);
@@ -439,18 +480,24 @@ export default function GraphCanvas({
     // Record bootstrap timing once when tree first becomes available
     if (!_bootstrapRecorded) {
       _bootstrapRecorded = true;
-      graphProfiler.recordStartup('bootstrapMs', performance.now() - STARTUP_T0);
+      graphProfiler.recordStartup("bootstrapMs", performance.now() - STARTUP_T0);
     }
 
     // Build current layout signature for cache comparison
     const currentCollapseSignature = computeCollapseSignature(collapsedNodeIds);
     const settingsLayout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
-    const density = settings?.graphDensity ?? 'comfortable';
+    const density = settings?.graphDensity ?? "comfortable";
     const currentSignature = computeLayoutSignature({
       mode: layoutOptions.mode,
       density,
-      tree: { verticalGapScale: settingsLayout.tree.verticalGapScale, horizontalGapScale: settingsLayout.tree.horizontalGapScale },
-      mindmap: { verticalGapScale: settingsLayout.mindmap.verticalGapScale, horizontalGapScale: settingsLayout.mindmap.horizontalGapScale },
+      tree: {
+        verticalGapScale: settingsLayout.tree.verticalGapScale,
+        horizontalGapScale: settingsLayout.tree.horizontalGapScale,
+      },
+      mindmap: {
+        verticalGapScale: settingsLayout.mindmap.verticalGapScale,
+        horizontalGapScale: settingsLayout.mindmap.horizontalGapScale,
+      },
       radial: settingsLayout.radial,
       collapseSignature: currentCollapseSignature,
       recencyOrdering: recencyOrderingV2Enabled,
@@ -463,42 +510,44 @@ export default function GraphCanvas({
         const hydrated = hydrateFromCache(_prefetchedLayout, root);
         if (hydrated) {
           _prefetchedLayout = null;
-          graphProfiler.recordStartup('cacheHitType', 'exact');
-          graphProfiler.recordStartup('layoutMs', performance.now() - layoutStart);
-          graphProfiler.recordStartup('nodeCount', hydrated.positions.size);
-          graphProfiler.recordStartup('layoutMode', layoutOptions.mode);
+          graphProfiler.recordStartup("cacheHitType", "exact");
+          graphProfiler.recordStartup("layoutMs", performance.now() - layoutStart);
+          graphProfiler.recordStartup("nodeCount", hydrated.positions.size);
+          graphProfiler.recordStartup("layoutMode", layoutOptions.mode);
           return hydrated;
         }
       }
       // Signature missing (old cache format) — fall back to field-by-field check
       if (!cachedSig && _prefetchedLayout.layoutMode === layoutOptions.mode) {
-        const cacheCollapseMatch = (_prefetchedLayout.collapseSignature ?? '') === currentCollapseSignature;
-        const cacheRecencyMatch = (_prefetchedLayout.recencyOrdering ?? false) === recencyOrderingV2Enabled;
+        const cacheCollapseMatch =
+          (_prefetchedLayout.collapseSignature ?? "") === currentCollapseSignature;
+        const cacheRecencyMatch =
+          (_prefetchedLayout.recencyOrdering ?? false) === recencyOrderingV2Enabled;
         if (cacheCollapseMatch && cacheRecencyMatch) {
           const hydrated = hydrateFromCache(_prefetchedLayout, root);
           if (hydrated) {
             _prefetchedLayout = null;
-            graphProfiler.recordStartup('cacheHitType', 'fallback');
-            graphProfiler.recordStartup('layoutMs', performance.now() - layoutStart);
-            graphProfiler.recordStartup('nodeCount', hydrated.positions.size);
-            graphProfiler.recordStartup('layoutMode', layoutOptions.mode);
+            graphProfiler.recordStartup("cacheHitType", "fallback");
+            graphProfiler.recordStartup("layoutMs", performance.now() - layoutStart);
+            graphProfiler.recordStartup("nodeCount", hydrated.positions.size);
+            graphProfiler.recordStartup("layoutMode", layoutOptions.mode);
             return hydrated;
           }
         }
       }
       // Cache miss — stale or incompatible
-      graphProfiler.recordStartup('cacheHitType', _prefetchedLayout ? 'stale' : 'miss');
+      graphProfiler.recordStartup("cacheHitType", _prefetchedLayout ? "stale" : "miss");
       _prefetchedLayout = null;
     }
 
     // No cache hit — compute layout from scratch
-    const result = profileSync('layout', () => {
+    const result = profileSync("layout", () => {
       switch (layoutOptions.mode) {
-        case 'tree':
+        case "tree":
           return calculateLayout(root, layoutOptions.tree, getVisibleChildren);
-        case 'mindmap': {
+        case "mindmap": {
           const sortWithinSide = subtreeScores
-            ? (children: readonly NavigationNode[], side: 'left' | 'right') =>
+            ? (children: readonly NavigationNode[], side: "left" | "right") =>
                 sortChildrenForParentKey(`${String(root.id)}:${side}`, children)
             : undefined;
           // Stable side assignment: remember which side each child was on
@@ -511,8 +560,8 @@ export default function GraphCanvas({
 
                 for (const child of children) {
                   const stored = sideMap.get(child.id);
-                  if (stored === 'left') left.push(child);
-                  else if (stored === 'right') right.push(child);
+                  if (stored === "left") left.push(child);
+                  else if (stored === "right") right.push(child);
                   else unassigned.push(child);
                 }
 
@@ -523,35 +572,42 @@ export default function GraphCanvas({
                   const h = subtreeHeights.get(child.id) ?? 0;
                   if (leftH <= rightH) {
                     left.push(child);
-                    sideMap.set(child.id, 'left');
+                    sideMap.set(child.id, "left");
                     leftH += h;
                   } else {
                     right.push(child);
-                    sideMap.set(child.id, 'right');
+                    sideMap.set(child.id, "right");
                     rightH += h;
                   }
                 }
 
                 // Persist sides for existing children
-                for (const c of left) sideMap.set(c.id, 'left');
-                for (const c of right) sideMap.set(c.id, 'right');
+                for (const c of left) sideMap.set(c.id, "left");
+                for (const c of right) sideMap.set(c.id, "right");
 
                 return { left, right };
               }
             : undefined;
-          return calculateMindmapLayout(root, layoutOptions.mindmap, getVisibleChildren,
-            { ...(sortWithinSide ? { sortWithinSide } : {}), ...(splitSides ? { splitSides } : {}) });
+          return calculateMindmapLayout(root, layoutOptions.mindmap, getVisibleChildren, {
+            ...(sortWithinSide ? { sortWithinSide } : {}),
+            ...(splitSides ? { splitSides } : {}),
+          });
         }
         default:
-          return calculateRadialLayout(root, layoutOptions.radial, baseLayoutConfig, getVisibleChildren);
+          return calculateRadialLayout(
+            root,
+            layoutOptions.radial,
+            baseLayoutConfig,
+            getVisibleChildren,
+          );
       }
     });
 
-    graphProfiler.recordStartup('layoutMs', performance.now() - layoutStart);
-    graphProfiler.recordStartup('nodeCount', result?.positions.size ?? 0);
-    graphProfiler.recordStartup('layoutMode', layoutOptions.mode);
+    graphProfiler.recordStartup("layoutMs", performance.now() - layoutStart);
+    graphProfiler.recordStartup("nodeCount", result?.positions.size ?? 0);
+    graphProfiler.recordStartup("layoutMode", layoutOptions.mode);
     if (graphProfiler.getStartupMetrics().cacheHitType === null) {
-      graphProfiler.recordStartup('cacheHitType', 'miss');
+      graphProfiler.recordStartup("cacheHitType", "miss");
     }
 
     return result;
@@ -574,25 +630,39 @@ export default function GraphCanvas({
     if (layout && !firstRenderRecordedRef.current) {
       firstRenderRecordedRef.current = true;
       requestAnimationFrame(() => {
-        graphProfiler.recordStartup('firstRenderMs', performance.now() - STARTUP_T0);
+        graphProfiler.recordStartup("firstRenderMs", performance.now() - STARTUP_T0);
       });
     }
   }, [layout]);
 
   const basePositions = layout?.positions ?? emptyPositionsRef.current;
   const positions = useMemo(
-    () => profileSync('computeOffsetPositions', () => {
-      const affected = dragAffectedIdsRef.current;
-      const prev = prevDragPositionsRef.current;
-      // Use partial computation during drag when previous positions are available
-      if (dragPreview && affected && prev) {
-        return computeDragOffsetPositions(
-          basePositions, prev, layoutOptions.mode,
-          nodeWidth, nodeHeight, root, dragPreview, affected,
+    () =>
+      profileSync("computeOffsetPositions", () => {
+        const affected = dragAffectedIdsRef.current;
+        const prev = prevDragPositionsRef.current;
+        // Use partial computation during drag when previous positions are available
+        if (dragPreview && affected && prev) {
+          return computeDragOffsetPositions(
+            basePositions,
+            prev,
+            layoutOptions.mode,
+            nodeWidth,
+            nodeHeight,
+            root,
+            dragPreview,
+            affected,
+          );
+        }
+        return computeOffsetPositions(
+          basePositions,
+          layoutOptions.mode,
+          nodeWidth,
+          nodeHeight,
+          root,
+          dragPreview,
         );
-      }
-      return computeOffsetPositions(basePositions, layoutOptions.mode, nodeWidth, nodeHeight, root, dragPreview);
-    }),
+      }),
     [basePositions, dragPreview, layoutOptions.mode, nodeHeight, nodeWidth, root],
   );
   // Store computed positions for incremental drag updates on next frame
@@ -614,7 +684,12 @@ export default function GraphCanvas({
   const staticVersion = useMemo(() => {
     const prev = prevStaticDepsRef.current;
     if (prev === null) {
-      prevStaticDepsRef.current = { layoutMode: layoutOptions.mode, nodeWidth, nodeHeight, basePositions };
+      prevStaticDepsRef.current = {
+        layoutMode: layoutOptions.mode,
+        nodeWidth,
+        nodeHeight,
+        basePositions,
+      };
       staticVersionRef.current += 1;
       return staticVersionRef.current;
     }
@@ -623,7 +698,12 @@ export default function GraphCanvas({
       prev.nodeWidth !== nodeWidth ||
       prev.nodeHeight !== nodeHeight ||
       prev.basePositions !== basePositions;
-    prevStaticDepsRef.current = { layoutMode: layoutOptions.mode, nodeWidth, nodeHeight, basePositions };
+    prevStaticDepsRef.current = {
+      layoutMode: layoutOptions.mode,
+      nodeWidth,
+      nodeHeight,
+      basePositions,
+    };
     if (changed) {
       staticVersionRef.current += 1;
     }
@@ -699,8 +779,7 @@ export default function GraphCanvas({
     };
     current.forEach((pos, id) => {
       if (enteringIds.has(id)) {
-        const isExpandNode =
-          pendingCollapseAction?.kind === 'expand' && collapseScope?.has(id);
+        const isExpandNode = pendingCollapseAction?.kind === "expand" && collapseScope?.has(id);
         const parent = pos.node.getParent?.();
         const parentPos = parent ? current.get(parent.id) : undefined;
         const startCenter = parentPos
@@ -721,12 +800,12 @@ export default function GraphCanvas({
       }
     });
 
-    const isDelete = treeUpdate?.reason === 'delete';
+    const isDelete = treeUpdate?.reason === "delete";
     const popDuration = Math.max(120, Math.round(animationDuration * 0.4));
     prev.forEach((pos, id) => {
       if (!exitingIds.has(id)) return;
       const collapseRootId =
-        pendingCollapseAction?.kind === 'collapse' ? collapseScope?.get(id) : undefined;
+        pendingCollapseAction?.kind === "collapse" ? collapseScope?.get(id) : undefined;
       if (collapseRootId) {
         const endCenter = getCollapseCenter(collapseRootId, {
           x: pos.x + nodeWidth / 2,
@@ -786,15 +865,40 @@ export default function GraphCanvas({
   }, [gestureActive]);
 
   const {
-    wrapperRef, viewRef, applyGridTransform, scheduleGraphView, commitViewOnGestureEnd,
-    cancelViewAnimation, animateViewTo: _animateViewTo, fitToView: _fitToView, centerOnNode: _centerOnNode, zoomAt, zoom,
+    wrapperRef,
+    viewRef,
+    applyGridTransform,
+    scheduleGraphView,
+    commitViewOnGestureEnd,
+    cancelViewAnimation,
+    animateViewTo: _animateViewTo,
+    fitToView: _fitToView,
+    centerOnNode: _centerOnNode,
+    zoomAt,
+    zoom,
   } = useGraphView({
-    graphView, onGraphViewChange, rendererRef, bounds, positions,
-    nodeWidth, nodeHeight, compactInitialView, initialCenterNodeId: initialCenterNodeId ?? null,
-    nodeRecency, currentNodeId, root, viewIntent: viewIntent ?? null, onClearViewIntent,
-    isDraggingNode, searchActive, searchNavStep, focusedSearchId: search.results[search.index],
-    resetVersion, layoutMode: layoutOptions.mode,
-    isPanningRef, isSelectingRef,
+    graphView,
+    onGraphViewChange,
+    rendererRef,
+    bounds,
+    positions,
+    nodeWidth,
+    nodeHeight,
+    compactInitialView,
+    initialCenterNodeId: initialCenterNodeId ?? null,
+    nodeRecency,
+    currentNodeId,
+    root,
+    viewIntent: viewIntent ?? null,
+    onClearViewIntent,
+    isDraggingNode,
+    searchActive,
+    searchNavStep,
+    focusedSearchId: search.results[search.index],
+    resetVersion,
+    layoutMode: layoutOptions.mode,
+    isPanningRef,
+    isSelectingRef,
     onGestureActiveChange: setGestureActive,
   });
 
@@ -847,7 +951,7 @@ export default function GraphCanvas({
     const now = animationNowRef.current ?? performance.now();
     const pending = new Set<NodeId>();
     animationStatesRef.current.forEach((state, id) => {
-      if (state.type === 'enter' && state.startTime > now) {
+      if (state.type === "enter" && state.startTime > now) {
         pending.add(id);
       }
     });
@@ -860,7 +964,7 @@ export default function GraphCanvas({
   const focusedSearchId = search.results[search.index];
   const display = useMemo(
     () => ({
-      titleTruncation: settings?.titleTruncation ?? 'end',
+      titleTruncation: settings?.titleTruncation ?? "end",
       showFavicons: settings?.showFavicons ?? true,
       showUrls: settings?.showUrls ?? true,
       showTagDots: settings?.showTagDots ?? true,
@@ -940,25 +1044,48 @@ export default function GraphCanvas({
     }
   }, [display.dimClosedNodes, invalidateAnimation, openNodeIds, positions, startAnimationLoop]);
 
-  const handleNodeClick = useCallback(async (node: NavigationNode) => {
-    if (dragMovedRef.current) {
-      dragMovedRef.current = false;
-      return;
-    }
-
-    // Pick-target mode: clicking a node completes the operation
-    if (pickTarget) {
-      if (pickTarget.type === 'duplicate') {
-        fireAndForget(rpc.duplicateSubtree({
-          nodeId: pickTarget.sourceNodeId,
-          targetParentId: node.id,
-        }));
+  const handleNodeClick = useCallback(
+    async (node: NavigationNode) => {
+      if (dragMovedRef.current) {
+        dragMovedRef.current = false;
+        return;
       }
-      onPickTargetComplete();
-      return;
-    }
 
-    if (tool === 'hand') {
+      // Pick-target mode: clicking a node completes the operation
+      if (pickTarget) {
+        if (pickTarget.type === "duplicate") {
+          fireAndForget(
+            rpc.duplicateSubtree({
+              nodeId: pickTarget.sourceNodeId,
+              targetParentId: node.id,
+            }),
+          );
+        }
+        onPickTargetComplete();
+        return;
+      }
+
+      if (tool === "hand") {
+        try {
+          if (onNodeActivate) {
+            onNodeActivate(node.id, node.data.url);
+          } else {
+            await navigateTo(node);
+          }
+        } catch (error) {
+          console.error("Failed to navigate:", error);
+        }
+        return;
+      }
+
+      if (tool !== "select") return;
+
+      if (editorActive) {
+        onSelectedNodeIdsChange(new Set([node.id]));
+        return;
+      }
+
+      onClearSelection();
       try {
         if (onNodeActivate) {
           onNodeActivate(node.id, node.data.url);
@@ -966,362 +1093,375 @@ export default function GraphCanvas({
           await navigateTo(node);
         }
       } catch (error) {
-        console.error('Failed to navigate:', error);
+        console.error("Failed to navigate:", error);
       }
-      return;
-    }
+    },
+    [
+      editorActive,
+      onClearSelection,
+      onNodeActivate,
+      onPickTargetComplete,
+      onSelectedNodeIdsChange,
+      pickTarget,
+      tool,
+    ],
+  );
 
-    if (tool !== 'select') return;
-
-    if (editorActive) {
-      onSelectedNodeIdsChange(new Set([node.id]));
-      return;
-    }
-
-    onClearSelection();
-    try {
-      if (onNodeActivate) {
-        onNodeActivate(node.id, node.data.url);
-      } else {
-        await navigateTo(node);
-      }
-    } catch (error) {
-      console.error('Failed to navigate:', error);
-    }
-  }, [editorActive, onClearSelection, onNodeActivate, onPickTargetComplete, onSelectedNodeIdsChange, pickTarget, tool]);
-
-  const handleNodePointerDown = useCallback((node: NavigationNode, info: PointerInfo) => {
-    if (info.button !== 0) return;
-    if (info.shiftKey) return;
-    if (info.altKey) return;
-    if (info.metaKey || info.ctrlKey) return;
-    if (layoutOptions.mode === 'radial' && node.isRoot?.()) return;
-    const dragCandidates: NavigationNode[] = [];
-    if (tree && selectedNodeIds.size > 1 && selectedNodeIds.has(node.id)) {
-      selectedNodeIds.forEach((id) => {
-        const candidate = tree.findNodeById(id);
-        if (!candidate) return;
-        let parent = candidate.getParent?.();
-        let hasSelectedAncestor = false;
-        while (parent) {
-          if (selectedNodeIds.has(parent.id)) {
-            hasSelectedAncestor = true;
-            break;
+  const handleNodePointerDown = useCallback(
+    (node: NavigationNode, info: PointerInfo) => {
+      if (info.button !== 0) return;
+      if (info.shiftKey) return;
+      if (info.altKey) return;
+      if (info.metaKey || info.ctrlKey) return;
+      if (layoutOptions.mode === "radial" && node.isRoot?.()) return;
+      const dragCandidates: NavigationNode[] = [];
+      if (tree && selectedNodeIds.size > 1 && selectedNodeIds.has(node.id)) {
+        selectedNodeIds.forEach((id) => {
+          const candidate = tree.findNodeById(id);
+          if (!candidate) return;
+          let parent = candidate.getParent?.();
+          let hasSelectedAncestor = false;
+          while (parent) {
+            if (selectedNodeIds.has(parent.id)) {
+              hasSelectedAncestor = true;
+              break;
+            }
+            parent = parent.getParent?.();
           }
-          parent = parent.getParent?.();
-        }
-        if (!hasSelectedAncestor) dragCandidates.push(candidate);
-      });
-    } else {
-      dragCandidates.push(node);
-    }
-    const dragNodes =
-      layoutOptions.mode === 'radial'
-        ? dragCandidates.filter((candidate) => !candidate.isRoot?.())
-        : dragCandidates;
-    if (dragNodes.length === 0) return;
-    const nodes: DragNodeState[] = [];
-    let rootCenterX = 0;
-    let rootCenterY = 0;
-    if (layoutOptions.mode === 'radial') {
-      if (!root) return;
-      const rootPos = basePositions.get(root.id);
-      if (!rootPos) return;
-      rootCenterX = rootPos.x + nodeWidth / 2;
-      rootCenterY = rootPos.y + nodeHeight / 2;
-    }
-    for (const dragNode of dragNodes) {
-      const startPos = positions.get(dragNode.id);
-      if (!startPos) continue;
-      const startLayout = dragNode.data.layout;
-      const baseOffsetX = typeof startLayout?.offsetX === 'number' ? startLayout.offsetX : 0;
-      const baseOffsetY = typeof startLayout?.offsetY === 'number' ? startLayout.offsetY : 0;
-      const entry: DragNodeState = {
-        nodeId: dragNode.id,
-        startNodeX: startPos.x,
-        startNodeY: startPos.y,
-        baseOffsetX,
-        baseOffsetY,
-      };
-      if (layoutOptions.mode === 'radial') {
-        const basePos = basePositions.get(dragNode.id);
-        if (!basePos) continue;
-        const baseCenterX = basePos.x + nodeWidth / 2;
-        const baseCenterY = basePos.y + nodeHeight / 2;
-        const baseDx = baseCenterX - rootCenterX;
-        const baseDy = baseCenterY - rootCenterY;
-        const baseAngle = Math.atan2(baseDy, baseDx);
-        const baseRadius = Math.hypot(baseDx, baseDy);
-        let ancestorAngle = 0;
-        let ancestorRadius = 0;
-        let parent = dragNode.getParent?.();
-        while (parent) {
-          const radial = parent.data.layout?.radial;
-          ancestorAngle += radial?.angleDelta ?? 0;
-          ancestorRadius += radial?.radiusDelta ?? 0;
-          parent = parent.getParent?.();
-        }
-        entry.radial = {
-          rootCenterX,
-          rootCenterY,
-          baseAngle,
-          baseRadius,
-          ancestorAngle,
-          ancestorRadius,
-          minRadius: nodeWidth * 0.35,
-        };
-      }
-      nodes.push(entry);
-    }
-    if (nodes.length === 0) return;
-    dragMovedRef.current = false;
-    dragStateRef.current = {
-      startX: info.clientX,
-      startY: info.clientY,
-      mode: layoutOptions.mode,
-      nodes,
-      latestLayouts: new Map(),
-    };
-
-    // Pre-compute affected IDs for partial offset computation during drag.
-    // Includes dragged subtrees + ancestors to root (offsets cascade parent->child).
-    {
-      const affected = new Set<NodeId>();
-      for (const entry of nodes) {
-        const draggedNode = tree?.findNodeById(entry.nodeId);
-        if (!draggedNode) continue;
-        // Add subtree
-        const subtree = collectSubtreeIds(draggedNode);
-        subtree.forEach((id) => affected.add(id));
-        // Walk ancestors to root
-        let ancestor = draggedNode.getParent?.();
-        while (ancestor) {
-          affected.add(ancestor.id);
-          ancestor = ancestor.getParent?.();
-        }
-      }
-      dragAffectedIdsRef.current = affected;
-    }
-
-    // Initialise reparent preview for single-node editor drags
-    if (editorActive && nodes.length === 1) {
-      const draggedNode = tree?.findNodeById(nodes[0]!.nodeId);
-      const originalParent = draggedNode?.getParent?.();
-      if (draggedNode && originalParent) {
-        dragReparentRef.current = {
-          draggedId: draggedNode.id,
-          originalParentId: originalParent.id,
-          targetId: null,
-          subtreeIds: collectSubtreeIds(draggedNode),
-        };
-      }
-    }
-
-    const handleMove = (moveEvent: PointerEvent) => {
-      const state = dragStateRef.current;
-      if (!state) return;
-      const { scale } = viewRef.current;
-      const deltaX = (moveEvent.clientX - state.startX) / scale;
-      const deltaY = (moveEvent.clientY - state.startY) / scale;
-      if (!dragMovedRef.current && Math.hypot(deltaX, deltaY) > 3) {
-        dragMovedRef.current = true;
-        setIsDraggingNode(true);
-        suppressClickRef.current = true;
-      }
-      if (!dragMovedRef.current) return;
-      if (state.mode === 'radial') {
-        const layouts: LayoutUpdateMap = new Map();
-        state.nodes.forEach((entry) => {
-          if (!entry.radial) return;
-          const targetCenterX = entry.startNodeX + deltaX + nodeWidth / 2;
-          const targetCenterY = entry.startNodeY + deltaY + nodeHeight / 2;
-          const desiredDx = targetCenterX - entry.radial.rootCenterX;
-          const desiredDy = targetCenterY - entry.radial.rootCenterY;
-          const desiredAngle = Math.atan2(desiredDy, desiredDx);
-          const desiredRadius = Math.max(entry.radial.minRadius, Math.hypot(desiredDx, desiredDy));
-          const totalAngleDelta = desiredAngle - entry.radial.baseAngle;
-          const totalRadiusDelta = desiredRadius - entry.radial.baseRadius;
-          const nodeAngleDelta = totalAngleDelta - entry.radial.ancestorAngle;
-          const nodeRadiusDelta = totalRadiusDelta - entry.radial.ancestorRadius;
-          layouts.set(entry.nodeId, { radial: { angleDelta: nodeAngleDelta, radiusDelta: nodeRadiusDelta } });
+          if (!hasSelectedAncestor) dragCandidates.push(candidate);
         });
-        state.latestLayouts = layouts;
-        if (layouts.size > 0) {
-          setDragPreview(layouts);
-          queueLayoutUpdates(layouts);
-        }
       } else {
-        const layouts: LayoutUpdateMap = new Map();
-        state.nodes.forEach((entry) => {
-          const offsetX = entry.baseOffsetX + deltaX;
-          const offsetY = entry.baseOffsetY + deltaY;
-          layouts.set(entry.nodeId, { offsetX, offsetY });
-        });
-        state.latestLayouts = layouts;
-        if (layouts.size > 0) {
-          setDragPreview(layouts);
-          queueLayoutUpdates(layouts);
-        }
+        dragCandidates.push(node);
       }
-
-      // --- Snap-to-parent proximity detection (editor mode) ---
-      const rp = dragReparentRef.current;
-      if (rp) {
-        const entry = state.nodes[0]!;
-        const dragCenterX = entry.startNodeX + deltaX + nodeWidth / 2;
-        const dragCenterY = entry.startNodeY + deltaY + nodeHeight / 2;
-        let bestId: NodeId | null = null;
-        const renderer = rendererRef.current;
-        if (renderer) {
-          bestId = renderer.queryNearestNode(dragCenterX, dragCenterY, SNAP_RADIUS, rp.subtreeIds);
-        }
-        if (rp.targetId !== bestId) {
-          rp.targetId = bestId;
-          setDragReparentTarget({
-            draggedId: rp.draggedId,
-            originalParentId: rp.originalParentId,
-            targetId: bestId,
-          });
-        }
+      const dragNodes =
+        layoutOptions.mode === "radial"
+          ? dragCandidates.filter((candidate) => !candidate.isRoot?.())
+          : dragCandidates;
+      if (dragNodes.length === 0) return;
+      const nodes: DragNodeState[] = [];
+      let rootCenterX = 0;
+      let rootCenterY = 0;
+      if (layoutOptions.mode === "radial") {
+        if (!root) return;
+        const rootPos = basePositions.get(root.id);
+        if (!rootPos) return;
+        rootCenterX = rootPos.x + nodeWidth / 2;
+        rootCenterY = rootPos.y + nodeHeight / 2;
       }
-    };
-
-    const handleUp = async (_upEvent: PointerEvent) => {
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
-      window.removeEventListener('pointercancel', handleUp);
-      const state = dragStateRef.current;
-      const didDrag = dragMovedRef.current;
-      dragStateRef.current = null;
-      dragAffectedIdsRef.current = null;
-      prevDragPositionsRef.current = null;
-      setIsDraggingNode(false);
-      if (didDrag) {
-        nodeDragJustEndedRef.current = true;
-        suppressClickRef.current = true;
-        window.setTimeout(() => {
-          suppressClickRef.current = false;
-        }, 0);
-      }
-      if (!state) {
-        dragMovedRef.current = false;
-        setDragPreview(null);
-        dragReparentRef.current = null;
-        setDragReparentTarget(null);
-        return;
-      }
-      if (!didDrag) {
-        setDragPreview(null);
-        dragReparentRef.current = null;
-        setDragReparentTarget(null);
-        return;
-      }
-
-      // Editor mode: use snap-based reparent preview
-      const rp = dragReparentRef.current;
-      dragReparentRef.current = null;
-      setDragReparentTarget(null);
-
-      if (rp) {
-        // Cancel any pending throttled layout updates
-        const sendState = layoutSendRef.current;
-        if (sendState.timer !== null) {
-          window.clearTimeout(sendState.timer);
-          sendState.timer = null;
-        }
-        sendState.pending = null;
-
-        if (rp.targetId) {
-          // Drop onto snap target → reparent
-          setDragPreview(null);
-          dragMovedRef.current = false;
-
-          // Clear stale layout offsets on the local tree
-          if (tree) {
-            const clearLayout = (n: NavigationNode) => {
-              if (n.data.layout) {
-                const { layout: _, ...rest } = n.data;
-                n.data = rest as typeof n.data;
-              }
-              for (const child of n.getChildren()) clearLayout(child);
-            };
-            const draggedNode = tree.findNodeById(rp.draggedId);
-            if (draggedNode) clearLayout(draggedNode);
+      for (const dragNode of dragNodes) {
+        const startPos = positions.get(dragNode.id);
+        if (!startPos) continue;
+        const startLayout = dragNode.data.layout;
+        const baseOffsetX = typeof startLayout?.offsetX === "number" ? startLayout.offsetX : 0;
+        const baseOffsetY = typeof startLayout?.offsetY === "number" ? startLayout.offsetY : 0;
+        const entry: DragNodeState = {
+          nodeId: dragNode.id,
+          startNodeX: startPos.x,
+          startNodeY: startPos.y,
+          baseOffsetX,
+          baseOffsetY,
+        };
+        if (layoutOptions.mode === "radial") {
+          const basePos = basePositions.get(dragNode.id);
+          if (!basePos) continue;
+          const baseCenterX = basePos.x + nodeWidth / 2;
+          const baseCenterY = basePos.y + nodeHeight / 2;
+          const baseDx = baseCenterX - rootCenterX;
+          const baseDy = baseCenterY - rootCenterY;
+          const baseAngle = Math.atan2(baseDy, baseDx);
+          const baseRadius = Math.hypot(baseDx, baseDy);
+          let ancestorAngle = 0;
+          let ancestorRadius = 0;
+          let parent = dragNode.getParent?.();
+          while (parent) {
+            const radial = parent.data.layout?.radial;
+            ancestorAngle += radial?.angleDelta ?? 0;
+            ancestorRadius += radial?.radiusDelta ?? 0;
+            parent = parent.getParent?.();
           }
-
-          try {
-            await reparentNode(rp.draggedId, rp.targetId);
-          } catch (error) {
-            console.error('Reparent failed:', error);
-          }
-          return;
-        } else {
-          // No snap target → cancel drag, snap back to original position
-          setDragPreview(null);
-          dragMovedRef.current = false;
-          return;
+          entry.radial = {
+            rootCenterX,
+            rootCenterY,
+            baseAngle,
+            baseRadius,
+            ancestorAngle,
+            ancestorRadius,
+            minRadius: nodeWidth * 0.35,
+          };
         }
+        nodes.push(entry);
       }
-
-      const latestLayouts = state.latestLayouts;
-      if (latestLayouts.size > 0) {
-        const sendState = layoutSendRef.current;
-        if (sendState.timer !== null) {
-          window.clearTimeout(sendState.timer);
-          sendState.timer = null;
-        }
-        sendState.pending = null;
-        sendState.lastSent = performance.now();
-        await flushLayoutUpdates(latestLayouts);
-
-        // Apply the flushed layout values directly to the sidepanel tree's
-        // node data so positions stay correct when dragPreview is cleared.
-        // SET_NODE_LAYOUT only updates the background tree silently; without
-        // this the sidepanel tree retains stale offsets and nodes snap back.
-        if (tree) {
-          latestLayouts.forEach((layout, nodeId) => {
-            const treeNode = tree.findNodeById(nodeId);
-            if (!treeNode) return;
-            const prev = treeNode.data.layout;
-            const prevOffsetX = prev?.offsetX ?? 0;
-            const prevOffsetY = prev?.offsetY ?? 0;
-            treeNode.data = {
-              ...treeNode.data,
-              layout: {
-                offsetX: typeof layout.offsetX === 'number' ? layout.offsetX : prevOffsetX,
-                offsetY: typeof layout.offsetY === 'number' ? layout.offsetY : prevOffsetY,
-                ...(layout.radial
-                  ? { radial: layout.radial }
-                  : prev?.radial
-                    ? { radial: prev.radial }
-                    : {}),
-              },
-            };
-          });
-        }
-
-      }
-      setDragPreview(null);
+      if (nodes.length === 0) return;
       dragMovedRef.current = false;
-    };
+      dragStateRef.current = {
+        startX: info.clientX,
+        startY: info.clientY,
+        mode: layoutOptions.mode,
+        nodes,
+        latestLayouts: new Map(),
+      };
 
-    window.addEventListener('pointermove', handleMove);
-    window.addEventListener('pointerup', handleUp, { once: true });
-    window.addEventListener('pointercancel', handleUp, { once: true });
-  }, [basePositions, editorActive, flushLayoutUpdates, layoutOptions.mode, nodeHeight, nodeWidth, positions, queueLayoutUpdates, root, tree]);
+      // Pre-compute affected IDs for partial offset computation during drag.
+      // Includes dragged subtrees + ancestors to root (offsets cascade parent->child).
+      {
+        const affected = new Set<NodeId>();
+        for (const entry of nodes) {
+          const draggedNode = tree?.findNodeById(entry.nodeId);
+          if (!draggedNode) continue;
+          // Add subtree
+          const subtree = collectSubtreeIds(draggedNode);
+          subtree.forEach((id) => affected.add(id));
+          // Walk ancestors to root
+          let ancestor = draggedNode.getParent?.();
+          while (ancestor) {
+            affected.add(ancestor.id);
+            ancestor = ancestor.getParent?.();
+          }
+        }
+        dragAffectedIdsRef.current = affected;
+      }
+
+      // Initialise reparent preview for single-node editor drags
+      if (editorActive && nodes.length === 1) {
+        const draggedNode = tree?.findNodeById(nodes[0]!.nodeId);
+        const originalParent = draggedNode?.getParent?.();
+        if (draggedNode && originalParent) {
+          dragReparentRef.current = {
+            draggedId: draggedNode.id,
+            originalParentId: originalParent.id,
+            targetId: null,
+            subtreeIds: collectSubtreeIds(draggedNode),
+          };
+        }
+      }
+
+      const handleMove = (moveEvent: PointerEvent) => {
+        const state = dragStateRef.current;
+        if (!state) return;
+        const { scale } = viewRef.current;
+        const deltaX = (moveEvent.clientX - state.startX) / scale;
+        const deltaY = (moveEvent.clientY - state.startY) / scale;
+        if (!dragMovedRef.current && Math.hypot(deltaX, deltaY) > 3) {
+          dragMovedRef.current = true;
+          setIsDraggingNode(true);
+          suppressClickRef.current = true;
+        }
+        if (!dragMovedRef.current) return;
+        if (state.mode === "radial") {
+          const layouts: LayoutUpdateMap = new Map();
+          state.nodes.forEach((entry) => {
+            if (!entry.radial) return;
+            const targetCenterX = entry.startNodeX + deltaX + nodeWidth / 2;
+            const targetCenterY = entry.startNodeY + deltaY + nodeHeight / 2;
+            const desiredDx = targetCenterX - entry.radial.rootCenterX;
+            const desiredDy = targetCenterY - entry.radial.rootCenterY;
+            const desiredAngle = Math.atan2(desiredDy, desiredDx);
+            const desiredRadius = Math.max(
+              entry.radial.minRadius,
+              Math.hypot(desiredDx, desiredDy),
+            );
+            const totalAngleDelta = desiredAngle - entry.radial.baseAngle;
+            const totalRadiusDelta = desiredRadius - entry.radial.baseRadius;
+            const nodeAngleDelta = totalAngleDelta - entry.radial.ancestorAngle;
+            const nodeRadiusDelta = totalRadiusDelta - entry.radial.ancestorRadius;
+            layouts.set(entry.nodeId, {
+              radial: { angleDelta: nodeAngleDelta, radiusDelta: nodeRadiusDelta },
+            });
+          });
+          state.latestLayouts = layouts;
+          if (layouts.size > 0) {
+            setDragPreview(layouts);
+            queueLayoutUpdates(layouts);
+          }
+        } else {
+          const layouts: LayoutUpdateMap = new Map();
+          state.nodes.forEach((entry) => {
+            const offsetX = entry.baseOffsetX + deltaX;
+            const offsetY = entry.baseOffsetY + deltaY;
+            layouts.set(entry.nodeId, { offsetX, offsetY });
+          });
+          state.latestLayouts = layouts;
+          if (layouts.size > 0) {
+            setDragPreview(layouts);
+            queueLayoutUpdates(layouts);
+          }
+        }
+
+        // --- Snap-to-parent proximity detection (editor mode) ---
+        const rp = dragReparentRef.current;
+        if (rp) {
+          const entry = state.nodes[0]!;
+          const dragCenterX = entry.startNodeX + deltaX + nodeWidth / 2;
+          const dragCenterY = entry.startNodeY + deltaY + nodeHeight / 2;
+          let bestId: NodeId | null = null;
+          const renderer = rendererRef.current;
+          if (renderer) {
+            bestId = renderer.queryNearestNode(
+              dragCenterX,
+              dragCenterY,
+              SNAP_RADIUS,
+              rp.subtreeIds,
+            );
+          }
+          if (rp.targetId !== bestId) {
+            rp.targetId = bestId;
+            setDragReparentTarget({
+              draggedId: rp.draggedId,
+              originalParentId: rp.originalParentId,
+              targetId: bestId,
+            });
+          }
+        }
+      };
+
+      const handleUp = async (_upEvent: PointerEvent) => {
+        window.removeEventListener("pointermove", handleMove);
+        window.removeEventListener("pointerup", handleUp);
+        window.removeEventListener("pointercancel", handleUp);
+        const state = dragStateRef.current;
+        const didDrag = dragMovedRef.current;
+        dragStateRef.current = null;
+        dragAffectedIdsRef.current = null;
+        prevDragPositionsRef.current = null;
+        setIsDraggingNode(false);
+        if (didDrag) {
+          nodeDragJustEndedRef.current = true;
+          suppressClickRef.current = true;
+          window.setTimeout(() => {
+            suppressClickRef.current = false;
+          }, 0);
+        }
+        if (!state) {
+          dragMovedRef.current = false;
+          setDragPreview(null);
+          dragReparentRef.current = null;
+          setDragReparentTarget(null);
+          return;
+        }
+        if (!didDrag) {
+          setDragPreview(null);
+          dragReparentRef.current = null;
+          setDragReparentTarget(null);
+          return;
+        }
+
+        // Editor mode: use snap-based reparent preview
+        const rp = dragReparentRef.current;
+        dragReparentRef.current = null;
+        setDragReparentTarget(null);
+
+        if (rp) {
+          // Cancel any pending throttled layout updates
+          const sendState = layoutSendRef.current;
+          if (sendState.timer !== null) {
+            window.clearTimeout(sendState.timer);
+            sendState.timer = null;
+          }
+          sendState.pending = null;
+
+          if (rp.targetId) {
+            // Drop onto snap target → reparent
+            setDragPreview(null);
+            dragMovedRef.current = false;
+
+            // Clear stale layout offsets on the local tree
+            if (tree) {
+              const clearLayout = (n: NavigationNode) => {
+                if (n.data.layout) {
+                  const { layout: _, ...rest } = n.data;
+                  n.data = rest as typeof n.data;
+                }
+                for (const child of n.getChildren()) clearLayout(child);
+              };
+              const draggedNode = tree.findNodeById(rp.draggedId);
+              if (draggedNode) clearLayout(draggedNode);
+            }
+
+            try {
+              await reparentNode(rp.draggedId, rp.targetId);
+            } catch (error) {
+              console.error("Reparent failed:", error);
+            }
+            return;
+          } else {
+            // No snap target → cancel drag, snap back to original position
+            setDragPreview(null);
+            dragMovedRef.current = false;
+            return;
+          }
+        }
+
+        const latestLayouts = state.latestLayouts;
+        if (latestLayouts.size > 0) {
+          const sendState = layoutSendRef.current;
+          if (sendState.timer !== null) {
+            window.clearTimeout(sendState.timer);
+            sendState.timer = null;
+          }
+          sendState.pending = null;
+          sendState.lastSent = performance.now();
+          await flushLayoutUpdates(latestLayouts);
+
+          // Apply the flushed layout values directly to the sidepanel tree's
+          // node data so positions stay correct when dragPreview is cleared.
+          // SET_NODE_LAYOUT only updates the background tree silently; without
+          // this the sidepanel tree retains stale offsets and nodes snap back.
+          if (tree) {
+            latestLayouts.forEach((layout, nodeId) => {
+              const treeNode = tree.findNodeById(nodeId);
+              if (!treeNode) return;
+              const prev = treeNode.data.layout;
+              const prevOffsetX = prev?.offsetX ?? 0;
+              const prevOffsetY = prev?.offsetY ?? 0;
+              treeNode.data = {
+                ...treeNode.data,
+                layout: {
+                  offsetX: typeof layout.offsetX === "number" ? layout.offsetX : prevOffsetX,
+                  offsetY: typeof layout.offsetY === "number" ? layout.offsetY : prevOffsetY,
+                  ...(layout.radial
+                    ? { radial: layout.radial }
+                    : prev?.radial
+                      ? { radial: prev.radial }
+                      : {}),
+                },
+              };
+            });
+          }
+        }
+        setDragPreview(null);
+        dragMovedRef.current = false;
+      };
+
+      window.addEventListener("pointermove", handleMove);
+      window.addEventListener("pointerup", handleUp, { once: true });
+      window.addEventListener("pointercancel", handleUp, { once: true });
+    },
+    [
+      basePositions,
+      editorActive,
+      flushLayoutUpdates,
+      layoutOptions.mode,
+      nodeHeight,
+      nodeWidth,
+      positions,
+      queueLayoutUpdates,
+      root,
+      tree,
+    ],
+  );
 
   const handleNodeContextMenu = useCallback(
     (node: NavigationNode, clientX: number, clientY: number) => {
       if (selectedNodeIds.size > 0) {
         onOpenContextMenu({
-          type: 'bulk',
+          type: "bulk",
           nodeIds: Array.from(selectedNodeIds),
           position: { x: clientX, y: clientY },
         });
         return;
       }
       onOpenContextMenu({
-        type: 'node',
+        type: "node",
         nodeId: node.id,
         position: { x: clientX, y: clientY },
       });
@@ -1332,65 +1472,67 @@ export default function GraphCanvas({
   const handleWrapperContextMenu = (clientX: number, clientY: number) => {
     if (selectedNodeIds.size === 0) return;
     onOpenContextMenu({
-      type: 'bulk',
+      type: "bulk",
       nodeIds: Array.from(selectedNodeIds),
       position: { x: clientX, y: clientY },
     });
   };
 
-
-  const renderNodes = useMemo<NodeRenderModel[]>(() => profileSync('renderNodes', () => {
-    const dimmedBySearch = searchActive;
-    return visibleDisplayNodes.map((pos) => {
-      const id = pos.node.id;
-      const override = animatedPositionsRef.current.get(id);
-      const x = override?.x ?? pos.x;
-      const y = override?.y ?? pos.y;
-      const tabState = tabStates[id];
-      const isOpen = openNodeIds.has(id);
-      const isSearchMatch = searchSet.has(id);
-      return {
-        id,
-        node: pos.node,
-        x,
-        y,
-        width: nodeWidth,
-        height: nodeHeight,
-        isCurrent: currentNodeId === id,
-        isOpen,
-        openProgress: display.dimClosedNodes
-          ? openProgressRef.current.get(id) ?? (isOpen ? 1 : 0)
-          : 1,
-        tabCount: nodeTabCounts[id] ?? 0,
-        ...(tabState !== undefined ? { tabState } : {}),
-        isCollapsed: collapsedNodeIds.has(id),
-        isSelected: false,
-        isPreview: false,
-        isSearchMatch,
-        isSearchFocused: focusedSearchId === id,
-        isSearchDimmed: dimmedBySearch && !isSearchMatch,
-        isHoverFocused: false,
-        display,
-        tagDefs,
-
-      };
-    });
-  }), [
-    animationVersion,
-    currentNodeId,
-    collapsedNodeIds,
-    display,
-    focusedSearchId,
-    nodeHeight,
-    nodeTabCounts,
-    nodeWidth,
-    openNodeIds,
-    searchActive,
-    searchSet,
-    tabStates,
-    tagDefs,
-    visibleDisplayNodes,
-  ]);
+  const renderNodes = useMemo<NodeRenderModel[]>(
+    () =>
+      profileSync("renderNodes", () => {
+        const dimmedBySearch = searchActive;
+        return visibleDisplayNodes.map((pos) => {
+          const id = pos.node.id;
+          const override = animatedPositionsRef.current.get(id);
+          const x = override?.x ?? pos.x;
+          const y = override?.y ?? pos.y;
+          const tabState = tabStates[id];
+          const isOpen = openNodeIds.has(id);
+          const isSearchMatch = searchSet.has(id);
+          return {
+            id,
+            node: pos.node,
+            x,
+            y,
+            width: nodeWidth,
+            height: nodeHeight,
+            isCurrent: currentNodeId === id,
+            isOpen,
+            openProgress: display.dimClosedNodes
+              ? (openProgressRef.current.get(id) ?? (isOpen ? 1 : 0))
+              : 1,
+            tabCount: nodeTabCounts[id] ?? 0,
+            ...(tabState !== undefined ? { tabState } : {}),
+            isCollapsed: collapsedNodeIds.has(id),
+            isSelected: false,
+            isPreview: false,
+            isSearchMatch,
+            isSearchFocused: focusedSearchId === id,
+            isSearchDimmed: dimmedBySearch && !isSearchMatch,
+            isHoverFocused: false,
+            display,
+            tagDefs,
+          };
+        });
+      }),
+    [
+      animationVersion,
+      currentNodeId,
+      collapsedNodeIds,
+      display,
+      focusedSearchId,
+      nodeHeight,
+      nodeTabCounts,
+      nodeWidth,
+      openNodeIds,
+      searchActive,
+      searchSet,
+      tabStates,
+      tagDefs,
+      visibleDisplayNodes,
+    ],
+  );
 
   // particleRenderModels is provided by useGraphAnimation hook.
   const pathNodeIds = useMemo(() => {
@@ -1415,14 +1557,16 @@ export default function GraphCanvas({
   const baseConnections = useMemo(
     () => {
       const result = effectiveShowConnections
-        ? profileSync('buildConnections', () => buildConnections(
-            root,
-            positions,
-            layoutOptions.mode,
-            hideTreeRoot,
-            nodeWidth,
-            nodeHeight,
-          ))
+        ? profileSync("buildConnections", () =>
+            buildConnections(
+              root,
+              positions,
+              layoutOptions.mode,
+              hideTreeRoot,
+              nodeWidth,
+              nodeHeight,
+            ),
+          )
         : [];
       cachedBaseConnectionsRef.current = result;
       return result;
@@ -1434,16 +1578,17 @@ export default function GraphCanvas({
   // Build an immutable GraphSnapshot capturing the full static state at layout time.
   // Re-created only when staticVersion increments (topology/layout/dimensions change).
   const snapshot = useMemo(
-    () => createGraphSnapshot({
-      version: staticVersion,
-      nodes: renderNodes,
-      basePositions,
-      connections: baseConnections,
-      layoutMode: layoutOptions.mode,
-      nodeWidth,
-      nodeHeight,
-      showConnections: effectiveShowConnections,
-    }),
+    () =>
+      createGraphSnapshot({
+        version: staticVersion,
+        nodes: renderNodes,
+        basePositions,
+        connections: baseConnections,
+        layoutMode: layoutOptions.mode,
+        nodeWidth,
+        nodeHeight,
+        showConnections: effectiveShowConnections,
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [staticVersion],
   );
@@ -1462,12 +1607,12 @@ export default function GraphCanvas({
       const childPos = connectionPositions.get(draggedId);
       if (parentPos && childPos) {
         let startX: number, startY: number, endX: number, endY: number;
-        if (layoutOptions.mode === 'tree') {
+        if (layoutOptions.mode === "tree") {
           startX = parentPos.x + nodeWidth / 2;
           startY = parentPos.y + nodeHeight;
           endX = childPos.x + nodeWidth / 2;
           endY = childPos.y;
-        } else if (layoutOptions.mode === 'mindmap') {
+        } else if (layoutOptions.mode === "mindmap") {
           const childOnRight = childPos.x >= parentPos.x;
           startX = parentPos.x + (childOnRight ? nodeWidth : 0);
           startY = parentPos.y + nodeHeight / 2;
@@ -1483,10 +1628,10 @@ export default function GraphCanvas({
         const midY = (startY + endY) / 2;
         let cp1: { x: number; y: number };
         let cp2: { x: number; y: number };
-        if (layoutOptions.mode === 'tree') {
+        if (layoutOptions.mode === "tree") {
           cp1 = { x: startX, y: midY };
           cp2 = { x: endX, y: midY };
-        } else if (layoutOptions.mode === 'mindmap') {
+        } else if (layoutOptions.mode === "mindmap") {
           cp1 = { x: midX, y: startY };
           cp2 = { x: midX, y: endY };
         } else {
@@ -1500,7 +1645,7 @@ export default function GraphCanvas({
           cp2,
           end: { x: endX, y: endY },
           onPath: true, // highlight style for preview
-          style: 'bezier',
+          style: "bezier",
           bounds: {
             minX: Math.min(startX, endX, cp1.x, cp2.x),
             minY: Math.min(startY, endY, cp1.y, cp2.y),
@@ -1511,16 +1656,40 @@ export default function GraphCanvas({
       }
     }
     return filtered;
-  }, [baseConnections, pathNodeIds, connectionPositions, dragReparentTarget, layoutOptions.mode, nodeHeight, nodeWidth]);
+  }, [
+    baseConnections,
+    pathNodeIds,
+    connectionPositions,
+    dragReparentTarget,
+    layoutOptions.mode,
+    nodeHeight,
+    nodeWidth,
+  ]);
 
   // Snapshot render state for imperative animation path.
   // handleTickRenderRef.current reads this during RAF ticks to bypass React.
   latestRenderStateRef.current = {
-    visibleDisplayNodes, positions, display, currentNodeId, openNodeIds,
-    collapsedNodeIds, searchActive, searchSet, focusedSearchId, hoverNodeId,
-    tabStates, nodeTabCounts, tagDefs, nodeWidth, nodeHeight,
-    effectiveShowConnections, root, layoutMode: layoutOptions.mode,
-    hideTreeRoot, pathNodeIds, snapshot,
+    visibleDisplayNodes,
+    positions,
+    display,
+    currentNodeId,
+    openNodeIds,
+    collapsedNodeIds,
+    searchActive,
+    searchSet,
+    focusedSearchId,
+    hoverNodeId,
+    tabStates,
+    nodeTabCounts,
+    tagDefs,
+    nodeWidth,
+    nodeHeight,
+    effectiveShowConnections,
+    root,
+    layoutMode: layoutOptions.mode,
+    hideTreeRoot,
+    pathNodeIds,
+    snapshot,
   };
 
   // Static graph — fires only when topology/layout changes (snapshot recreated on staticVersion increment)
@@ -1639,8 +1808,8 @@ export default function GraphCanvas({
     const hitTarget = getPointerTarget(event);
     pointerDownTargetRef.current = hitTarget;
     const hitNodeId = hitTarget?.nodeId ?? null;
-    pointerDownNodeIdRef.current = hitTarget?.target === 'node' ? hitNodeId : null;
-    if (hitTarget?.target === 'collapse-icon') {
+    pointerDownNodeIdRef.current = hitTarget?.target === "node" ? hitNodeId : null;
+    if (hitTarget?.target === "collapse-icon") {
       return;
     }
     if (hitNodeId && tree) {
@@ -1651,7 +1820,7 @@ export default function GraphCanvas({
       }
     }
 
-    if (tool === 'hand') {
+    if (tool === "hand") {
       isPanningRef.current = true;
       setIsPanning(true);
       panStartRef.current = {
@@ -1660,20 +1829,19 @@ export default function GraphCanvas({
       };
       panPointerStartRef.current = { x: event.clientX, y: event.clientY };
       panMovedRef.current = false;
-    } else if (tool === 'select') {
+    } else if (tool === "select") {
       selectionWorldRectRef.current = null;
       rendererRef.current?.clearSelectionPreview();
-      const selectionMode = event.altKey ? 'remove' : event.shiftKey ? 'add' : 'replace';
+      const selectionMode = event.altKey ? "remove" : event.shiftKey ? "add" : "replace";
       selectionModeRef.current = selectionMode;
-      if (selectionMode === 'replace') {
+      if (selectionMode === "replace") {
         clearSelectionState();
       }
       isSelectingRef.current = true;
       const startX = event.clientX - rect.left;
       const startY = event.clientY - rect.top;
       selectionStartRef.current = { x: startX, y: startY };
-      baseSelectionRef.current =
-        selectionMode === 'replace' ? new Set() : new Set(selectedNodeIds);
+      baseSelectionRef.current = selectionMode === "replace" ? new Set() : new Set(selectedNodeIds);
       updateSelectionBox({ left: startX, top: startY, width: 0, height: 0 });
       previewSelectionRef.current = new Set(baseSelectionRef.current);
     }
@@ -1750,9 +1918,9 @@ export default function GraphCanvas({
     activePointerIdRef.current = null;
     const downTarget = pointerDownTargetRef.current;
     pointerDownTargetRef.current = null;
-    if (downTarget?.target === 'collapse-icon') {
+    if (downTarget?.target === "collapse-icon") {
       const hitTarget = getPointerTarget(event);
-      if (hitTarget?.target === 'collapse-icon' && hitTarget.nodeId === downTarget.nodeId) {
+      if (hitTarget?.target === "collapse-icon" && hitTarget.nodeId === downTarget.nodeId) {
         onExpandNodes([hitTarget.nodeId]);
       }
       return;
@@ -1810,7 +1978,8 @@ export default function GraphCanvas({
     if (!isPanningRef.current && !isSelectingRef.current) {
       const nodeId = pointerDownNodeIdRef.current;
       pointerDownNodeIdRef.current = null;
-      const wasDraggingNode = dragStateRef.current !== null || dragMovedRef.current || isDraggingNode;
+      const wasDraggingNode =
+        dragStateRef.current !== null || dragMovedRef.current || isDraggingNode;
       if (wasDraggingNode) {
         return;
       }
@@ -1853,58 +2022,68 @@ export default function GraphCanvas({
     pointerDownNodeIdRef.current = null;
   };
 
-  const handleWheel = useCallback((event: WheelEvent) => {
-    event.preventDefault();
-    cancelViewAnimation();
-    const rect = wrapperRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const pointerX = event.clientX - rect.left;
-    const pointerY = event.clientY - rect.top;
-    const isTrackpadPinch = event.ctrlKey;
-    const hasModifier = event.altKey || event.metaKey;
-    const isMouseWheel = event.deltaMode === 1 || event.deltaMode === 2;
-    const shouldZoom = isTrackpadPinch || hasModifier || isMouseWheel;
-    if (shouldZoom) {
-      const scaleFactor = isMouseWheel ? (event.deltaY > 0 ? 0.85 : 1.18) : 1 - event.deltaY * 0.005;
-      zoomAt(pointerX, pointerY, scaleFactor);
-    } else {
-      scheduleGraphView({
-        translateX: viewRef.current.translateX - event.deltaX,
-        translateY: viewRef.current.translateY - event.deltaY,
-      }, true);
-    }
-  }, [cancelViewAnimation, scheduleGraphView, zoomAt]);
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
+      event.preventDefault();
+      cancelViewAnimation();
+      const rect = wrapperRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const pointerX = event.clientX - rect.left;
+      const pointerY = event.clientY - rect.top;
+      const isTrackpadPinch = event.ctrlKey;
+      const hasModifier = event.altKey || event.metaKey;
+      const isMouseWheel = event.deltaMode === 1 || event.deltaMode === 2;
+      const shouldZoom = isTrackpadPinch || hasModifier || isMouseWheel;
+      if (shouldZoom) {
+        const scaleFactor = isMouseWheel
+          ? event.deltaY > 0
+            ? 0.85
+            : 1.18
+          : 1 - event.deltaY * 0.005;
+        zoomAt(pointerX, pointerY, scaleFactor);
+      } else {
+        scheduleGraphView(
+          {
+            translateX: viewRef.current.translateX - event.deltaX,
+            translateY: viewRef.current.translateY - event.deltaY,
+          },
+          true,
+        );
+      }
+    },
+    [cancelViewAnimation, scheduleGraphView, zoomAt],
+  );
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     const onWheel = (event: WheelEvent) => handleWheel(event);
-    wrapper.addEventListener('wheel', onWheel, { passive: false, capture: true });
+    wrapper.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => {
-      wrapper.removeEventListener('wheel', onWheel, { capture: true });
+      wrapper.removeEventListener("wheel", onWheel, { capture: true });
     };
   }, [handleWheel, root]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const code = event.code;
-    if (code === 'Equal' || code === 'NumpadAdd') {
+    if (code === "Equal" || code === "NumpadAdd") {
       event.preventDefault();
-      zoom('in', true);
-    } else if (code === 'Minus' || code === 'NumpadSubtract') {
+      zoom("in", true);
+    } else if (code === "Minus" || code === "NumpadSubtract") {
       event.preventDefault();
-      zoom('out', true);
-    } else if (code === 'Digit0' || code === 'Numpad0') {
+      zoom("out", true);
+    } else if (code === "Digit0" || code === "Numpad0") {
       event.preventDefault();
-      zoom('reset', true);
-    } else if (code === 'KeyH') {
+      zoom("reset", true);
+    } else if (code === "KeyH") {
       event.preventDefault();
-      onGraphToolChange('hand');
+      onGraphToolChange("hand");
       clearSelectionState();
-    } else if (code === 'KeyV') {
+    } else if (code === "KeyV") {
       event.preventDefault();
-      onGraphToolChange('select');
+      onGraphToolChange("select");
       clearSelectionState();
-    } else if (event.key === 'Escape') {
+    } else if (event.key === "Escape") {
       event.preventDefault();
       if (pickTarget) {
         onPickTargetComplete();
@@ -1913,8 +2092,6 @@ export default function GraphCanvas({
       clearSelectionState();
     }
   };
-
-
 
   const handleBackgroundClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
@@ -1934,7 +2111,7 @@ export default function GraphCanvas({
   return (
     <div className="stack-container" id="stackContainer">
       <div
-        className={`graph-wrapper${isDraggingNode ? ' is-dragging' : ''}`}
+        className={`graph-wrapper${isDraggingNode ? "is-dragging" : ""}`}
         ref={wrapperRef}
         tabIndex={0}
         onPointerDown={handlePointerDown}
@@ -1968,21 +2145,21 @@ export default function GraphCanvas({
         onClick={handleBackgroundClick}
         style={{
           cursor: pickTarget
-            ? 'crosshair'
-            : tool === 'hand'
+            ? "crosshair"
+            : tool === "hand"
               ? isPanning
-                ? 'grabbing'
-                : 'grab'
+                ? "grabbing"
+                : "grab"
               : hoverNodeId
-                ? 'pointer'
-                : 'default',
+                ? "pointer"
+                : "default",
         }}
       >
         <div className="graph-canvas" ref={pixiHostRef} />
         <div
           ref={selectionBoxRef}
           className="graph-selection-box"
-          style={{ opacity: 0, width: '0px', height: '0px' }}
+          style={{ opacity: 0, width: "0px", height: "0px" }}
         />
         {showControls && (
           <GraphZoomControls
@@ -1995,7 +2172,7 @@ export default function GraphCanvas({
             fullViewEnabled={fullViewEnabled}
             onOpenFullView={async () => {
               try {
-                const fullViewUrl = runtimeGetURL('fullview.html');
+                const fullViewUrl = runtimeGetURL("fullview.html");
                 const existing = await browser.tabs.query({ url: fullViewUrl });
                 const tab = existing.find((t) => t.active) ?? existing[0];
                 if (tab?.id != null) {
@@ -2008,7 +2185,7 @@ export default function GraphCanvas({
                   await browser.tabs.create({ url: fullViewUrl, active: true });
                 }
               } catch (error) {
-                console.error('Failed to open full view:', error);
+                console.error("Failed to open full view:", error);
               }
             }}
           />
@@ -2016,7 +2193,9 @@ export default function GraphCanvas({
         {pickTarget && (
           <div className="graph-pick-hint" data-graph-ui="true">
             <span>Click a node to duplicate to</span>
-            <button type="button" onClick={onPickTargetComplete}>Cancel</button>
+            <button type="button" onClick={onPickTargetComplete}>
+              Cancel
+            </button>
           </div>
         )}
       </div>

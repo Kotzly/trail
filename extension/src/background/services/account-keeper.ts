@@ -1,10 +1,6 @@
 import type { AccountConfig, AccountSnapshot, Plan } from "@shared/types/account.js";
-import { browser } from '@shared/platform/webext.js';
-import {
-  BACKEND_CONFIG,
-  buildBackendUrl,
-  initBackendConfig,
-} from "../../shared/config/backend.js";
+import { browser } from "@shared/platform/webext.js";
+import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
 import {
   authSessionItem,
   authPolicyItem,
@@ -53,10 +49,7 @@ async function fetchJson<T>(
   }
 
   const controller = new AbortController();
-  const timeout = globalThis.setTimeout(
-    () => controller.abort(),
-    BACKEND_CONFIG.timeoutMs,
-  );
+  const timeout = globalThis.setTimeout(() => controller.abort(), BACKEND_CONFIG.timeoutMs);
 
   try {
     const response = await fetch(buildBackendUrl(path), {
@@ -67,7 +60,7 @@ async function fetchJson<T>(
     const text = await response.text();
     if (!text) return null;
     const parsed: unknown = JSON.parse(text);
-    if (parsed === null || typeof parsed !== 'object') {
+    if (parsed === null || typeof parsed !== "object") {
       throw new Error(`Expected JSON object/array, got ${typeof parsed}`);
     }
     if (options.validate && !options.validate(parsed)) {
@@ -92,15 +85,12 @@ async function fetchSnapshot(): Promise<AccountSnapshot> {
   }
 
   try {
-    const snapshot = await fetchJson<AccountSnapshot>(
-      BACKEND_CONFIG.endpoints.account,
-    );
+    const snapshot = await fetchJson<AccountSnapshot>(BACKEND_CONFIG.endpoints.account);
     if (!snapshot) throw new Error("empty account response");
     if (!snapshot.plans || snapshot.plans.length === 0) {
-      const plans = await fetchJson<Plan[]>(
-        BACKEND_CONFIG.endpoints.plans,
-        { auth: false },
-      ).catch(() => null);
+      const plans = await fetchJson<Plan[]>(BACKEND_CONFIG.endpoints.plans, { auth: false }).catch(
+        () => null,
+      );
       return { ...snapshot, plans: plans ?? [] };
     }
     return snapshot;

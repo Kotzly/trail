@@ -1,5 +1,5 @@
-import { settingsManager } from '../../services/settings.js';
-import { RPC_METHOD, defineRpcHandlers, ok } from '@shared/rpc/contracts.js';
+import { settingsManager } from "../../services/settings.js";
+import { RPC_METHOD, defineRpcHandlers, ok } from "@shared/rpc/contracts.js";
 
 export const settingsHandlers = defineRpcHandlers({
   async [RPC_METHOD.GET_SETTINGS]() {

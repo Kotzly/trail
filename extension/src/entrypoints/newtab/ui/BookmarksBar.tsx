@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronRight, Folder, Globe } from 'lucide-react';
-import { getFaviconUrl } from '@shared/utils/favicon.js';
-import type { Url } from '@shared/types/ids.js';
-import type { BookmarkItem } from './useBookmarks.js';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronRight, Folder, Globe } from "lucide-react";
+import { getFaviconUrl } from "@shared/utils/favicon.js";
+import type { Url } from "@shared/types/ids.js";
+import type { BookmarkItem } from "./useBookmarks.js";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -81,8 +81,8 @@ function BookmarkFolder({ item }: { item: BookmarkItem }) {
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler, true);
-    return () => document.removeEventListener('mousedown', handler, true);
+    document.addEventListener("mousedown", handler, true);
+    return () => document.removeEventListener("mousedown", handler, true);
   }, [open]);
 
   const children = item.children ?? [];
@@ -94,10 +94,18 @@ function BookmarkFolder({ item }: { item: BookmarkItem }) {
       tabIndex={0}
       className="newtab-bookmark-card newtab-bookmark-card--folder"
       onClick={toggle}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle();
+        }
+      }}
       title={item.title}
     >
-      <ChevronRight size={18} className={`newtab-bookmark-icon newtab-bookmark-chevron${open ? ' newtab-bookmark-chevron--open' : ''}`} />
+      <ChevronRight
+        size={18}
+        className={`newtab-bookmark-icon newtab-bookmark-chevron${open ? "newtab-bookmark-chevron--open" : ""}`}
+      />
       <span className="newtab-bookmark-label">{item.title}</span>
 
       {open && (

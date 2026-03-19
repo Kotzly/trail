@@ -1,5 +1,5 @@
-export type AdaptiveDetailMode = 'full' | 'low' | 'dot';
-export type AdaptiveConnectionQuality = 'full' | 'simplified' | 'thin';
+export type AdaptiveDetailMode = "full" | "low" | "dot";
+export type AdaptiveConnectionQuality = "full" | "simplified" | "thin";
 
 export type QualityPolicySample = {
   frameMs: number;
@@ -34,18 +34,18 @@ function percentile(values: number[], p: number): number {
 }
 
 function toResult(level: AdaptiveDetailMode): QualityPolicyResult {
-  if (level === 'dot') {
-    return { detailMode: 'dot', connectionQuality: 'thin' };
+  if (level === "dot") {
+    return { detailMode: "dot", connectionQuality: "thin" };
   }
-  if (level === 'low') {
-    return { detailMode: 'low', connectionQuality: 'simplified' };
+  if (level === "low") {
+    return { detailMode: "low", connectionQuality: "simplified" };
   }
-  return { detailMode: 'full', connectionQuality: 'full' };
+  return { detailMode: "full", connectionQuality: "full" };
 }
 
 export function createQualityPolicyState(now = Date.now()): QualityPolicyState {
   return {
-    level: 'full',
+    level: "full",
     ewmaMs: 16,
     historyMs: [],
     lastTransitionAt: now,
@@ -70,18 +70,18 @@ export function updateQualityPolicy(
   let level = prev.level;
   const canTransition = now - prev.lastTransitionAt >= HYSTERESIS_MS;
 
-  if (level === 'full') {
+  if (level === "full") {
     if (scoreMs >= 34 || (scoreMs >= 22 && canTransition)) {
-      level = scoreMs >= 34 ? 'dot' : 'low';
+      level = scoreMs >= 34 ? "dot" : "low";
     }
-  } else if (level === 'low') {
+  } else if (level === "low") {
     if (scoreMs >= 30 && canTransition) {
-      level = 'dot';
+      level = "dot";
     } else if (scoreMs <= 14 && canTransition) {
-      level = 'full';
+      level = "full";
     }
-  } else if (level === 'dot' && scoreMs <= 18 && canTransition) {
-    level = 'low';
+  } else if (level === "dot" && scoreMs <= 18 && canTransition) {
+    level = "low";
   }
 
   const transitioned = level !== prev.level;

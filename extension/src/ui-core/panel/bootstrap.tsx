@@ -1,15 +1,14 @@
-import { createRoot } from 'react-dom/client';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { createRoot } from "react-dom/client";
+import { QueryClientProvider } from "@tanstack/react-query";
 
-import App from '@entrypoints/sidepanel/ui/App.js';
-import ErrorBoundary from '@entrypoints/sidepanel/ui/components/ErrorBoundary.js';
-import { initBackendConfig } from '@shared/config/backend.js';
-import { queryClient } from '@entrypoints/sidepanel/ui/query/client.js';
-import { browser } from '@shared/platform/webext.js';
-import type { CachedLayoutResult } from '@shared/graph-layout-cache/types.js';
+import App from "@entrypoints/sidepanel/ui/App.js";
+import ErrorBoundary from "@entrypoints/sidepanel/ui/components/ErrorBoundary.js";
+import { initBackendConfig } from "@shared/config/backend.js";
+import { queryClient } from "@entrypoints/sidepanel/ui/query/client.js";
+import { browser } from "@shared/platform/webext.js";
+import type { CachedLayoutResult } from "@shared/graph-layout-cache/types.js";
 
 declare global {
-  // eslint-disable-next-line no-var -- globalThis augmentation requires var
   var __trailCachedLayout: CachedLayoutResult | null | undefined;
 }
 
@@ -20,7 +19,7 @@ export type MountPanelAppOptions = {
 };
 
 export function mountPanelApp(options: MountPanelAppOptions = {}): void {
-  const { rootId = 'root', connectPortName, cachedLayout } = options;
+  const { rootId = "root", connectPortName, cachedLayout } = options;
 
   if (connectPortName) {
     browser.runtime.connect({ name: connectPortName });

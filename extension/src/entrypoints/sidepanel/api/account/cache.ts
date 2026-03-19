@@ -1,15 +1,15 @@
-import type { AccountSnapshot } from '@shared/types/account.js';
+import type { AccountSnapshot } from "@shared/types/account.js";
 import {
   accountSnapshotItem,
   type CachedSnapshotEnvelope,
-} from '../../../../shared/config/storage-items.js';
+} from "../../../../shared/config/storage-items.js";
 
 // Re-export so existing callers that import the type from here keep working.
 export type { CachedSnapshotEnvelope };
 
 export async function loadCachedSnapshotWithAge(): Promise<CachedSnapshotEnvelope | null> {
   const stored = await accountSnapshotItem.getValue();
-  if (!stored || !stored.snapshot || typeof stored.fetchedAt !== 'number') {
+  if (!stored || !stored.snapshot || typeof stored.fetchedAt !== "number") {
     return null;
   }
   return stored;

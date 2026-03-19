@@ -1,13 +1,9 @@
-import { useCallback, useEffect, useRef } from 'react';
-import type { RefObject } from 'react';
-import type { NodeId } from '@shared/types/ids.js';
-import type { NodePosition } from '../../graph/types.js';
-import type { GraphPixiRenderer } from '../../graph/render/GraphPixiRenderer.js';
-import type { SelectionBox } from './graph-canvas-types.js';
-import {
-  buildPreviewSelection,
-  shouldEmitPreview,
-} from './selection-utils.js';
+import { useCallback, useEffect, useRef, type RefObject } from "react";
+import type { NodeId } from "@shared/types/ids.js";
+import type { NodePosition } from "../../graph/types.js";
+import type { GraphPixiRenderer } from "../../graph/render/GraphPixiRenderer.js";
+import type { SelectionBox } from "./graph-canvas-types.js";
+import { buildPreviewSelection, shouldEmitPreview } from "./selection-utils.js";
 
 const SELECTION_PREVIEW_MS = 40;
 
@@ -26,14 +22,19 @@ export function useGraphSelection({
 }: UseGraphSelectionParams) {
   const selectionBoxRef = useRef<HTMLDivElement | null>(null);
   const previewSelectionRef = useRef<Set<NodeId>>(new Set());
-  const selectionWorldRectRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
+  const selectionWorldRectRef = useRef<{
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  } | null>(null);
   const selectionComputeHandleRef = useRef<number | null>(null);
   const selectionComputeDirtyRef = useRef(false);
   const selectionPreviewLastRunRef = useRef(0);
   const isSelectingRef = useRef(false);
   const selectionStartRef = useRef({ x: 0, y: 0 });
   const baseSelectionRef = useRef<Set<NodeId>>(new Set());
-  const selectionModeRef = useRef<'replace' | 'add' | 'remove'>('replace');
+  const selectionModeRef = useRef<"replace" | "add" | "remove">("replace");
   const selectionDragRef = useRef(false);
 
   const cancelSelectionCompute = useCallback(() => {
@@ -51,15 +52,15 @@ export function useGraphSelection({
   const hideSelectionBox = useCallback(() => {
     const box = selectionBoxRef.current;
     if (!box) return;
-    box.style.opacity = '0';
-    box.style.width = '0px';
-    box.style.height = '0px';
+    box.style.opacity = "0";
+    box.style.width = "0px";
+    box.style.height = "0px";
   }, []);
 
   const updateSelectionBox = useCallback((boxState: SelectionBox) => {
     const box = selectionBoxRef.current;
     if (!box) return;
-    box.style.opacity = '1';
+    box.style.opacity = "1";
     box.style.left = `${boxState.left}px`;
     box.style.top = `${boxState.top}px`;
     box.style.width = `${boxState.width}px`;
@@ -99,7 +100,7 @@ export function useGraphSelection({
       computeSelectionPreview();
       if (selectionComputeDirtyRef.current) {
         selectionComputeDirtyRef.current = false;
-        scheduleSelectionPreview();
+        scheduleSelectionPreview(); // eslint-disable-line react-hooks/immutability -- intentional recursive scheduling
       }
     };
     selectionComputeHandleRef.current = window.setTimeout(run, delay);
@@ -131,7 +132,13 @@ export function useGraphSelection({
     hideSelectionBox();
     previewSelectionRef.current = new Set();
     selectionWorldRectRef.current = null;
-  }, [cancelSelectionCompute, hideSelectionBox, onSelectedNodeIdsChange, rendererRef, positionsRef]);
+  }, [
+    cancelSelectionCompute,
+    hideSelectionBox,
+    onSelectedNodeIdsChange,
+    rendererRef,
+    positionsRef,
+  ]);
 
   const clearSelectionState = useCallback(() => {
     cancelSelectionCompute();

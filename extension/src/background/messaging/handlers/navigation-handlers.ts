@@ -1,15 +1,14 @@
-import type { TabId } from '@shared/types/ids.js';
-import { RPC_METHOD, defineRpcHandlers } from '@shared/rpc/contracts.js';
-import { tabManager } from '../../state/tab-manager.js';
-import { treeStorage } from '../../services/tree-storage.js';
-import { notifyTreeUpdate } from '../notifications.js';
-import { ok, err } from '@shared/rpc/contracts.js';
-import { getActiveTab } from '../../tabs/lifecycle.js';
-import { tempSelectionManager } from '../../services/temporary-selection.js';
-import { syncOpenTabs } from '../../tabs/sync-open-tabs.js';
-import { getEditorState } from './editor-handlers.js';
-import { browser } from '@shared/platform/webext.js';
-import { markNodeVisited } from '../../state/node-recency.js';
+import type { TabId } from "@shared/types/ids.js";
+import { RPC_METHOD, defineRpcHandlers, ok, err } from "@shared/rpc/contracts.js";
+import { tabManager } from "../../state/tab-manager.js";
+import { treeStorage } from "../../services/tree-storage.js";
+import { notifyTreeUpdate } from "../notifications.js";
+import { getActiveTab } from "../../tabs/lifecycle.js";
+import { tempSelectionManager } from "../../services/temporary-selection.js";
+import { syncOpenTabs } from "../../tabs/sync-open-tabs.js";
+import { getEditorState } from "./editor-handlers.js";
+import { browser } from "@shared/platform/webext.js";
+import { markNodeVisited } from "../../state/node-recency.js";
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
@@ -19,7 +18,7 @@ async function focusTab(tabId: TabId): Promise<boolean> {
     }
     await browser.tabs.update(tabId, { active: true });
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -28,14 +27,14 @@ export const navigationHandlers = defineRpcHandlers({
   async [RPC_METHOD.NAVIGATE_TO](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err('Node not found');
+    if (!node) return err("Node not found");
 
     if (getEditorState().active) {
       tree.setCurrentById(message.nodeId);
       treeStorage.cacheTree(tree);
-      await notifyTreeUpdate(tree, 'set-current', {
+      await notifyTreeUpdate(tree, "set-current", {
         focusNodeId: message.nodeId,
-        mode: 'force',
+        mode: "force",
       });
       return ok();
     }
@@ -58,7 +57,10 @@ export const navigationHandlers = defineRpcHandlers({
           markNodeVisited(tree, message.nodeId);
           tree.setCurrentById(message.nodeId);
           treeStorage.cacheTree(tree);
-          await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
+          await notifyTreeUpdate(tree, "set-current", {
+            focusNodeId: message.nodeId,
+            mode: "force",
+          });
           return ok();
         }
         tabManager.unregister(nextTabId as TabId);
@@ -73,7 +75,7 @@ export const navigationHandlers = defineRpcHandlers({
         markNodeVisited(tree, message.nodeId);
         tree.setCurrentById(message.nodeId);
         treeStorage.cacheTree(tree);
-        await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
+        await notifyTreeUpdate(tree, "set-current", { focusNodeId: message.nodeId, mode: "force" });
         return ok();
       }
       tabManager.unregister(tabId as TabId);
@@ -95,7 +97,7 @@ export const navigationHandlers = defineRpcHandlers({
 
     tree.setCurrentById(message.nodeId);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
+    await notifyTreeUpdate(tree, "set-current", { focusNodeId: message.nodeId, mode: "force" });
 
     return ok();
   },
@@ -107,7 +109,7 @@ export const navigationHandlers = defineRpcHandlers({
 
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err('Node not found');
+    if (!node) return err("Node not found");
 
     const tabsArray = tabManager.getTabsByRecency(message.nodeId);
     if (tabsArray.length === 0) {
@@ -132,7 +134,7 @@ export const navigationHandlers = defineRpcHandlers({
       );
       return ok({ sessionId });
     } catch (error) {
-      return err(error instanceof Error ? error.message : 'Failed to begin temp selection');
+      return err(error instanceof Error ? error.message : "Failed to begin temp selection");
     }
   },
 
@@ -145,7 +147,7 @@ export const navigationHandlers = defineRpcHandlers({
       );
       return ok(result);
     } catch (error) {
-      return err(error instanceof Error ? error.message : 'Failed to preview temp selection');
+      return err(error instanceof Error ? error.message : "Failed to preview temp selection");
     }
   },
 
@@ -154,16 +156,18 @@ export const navigationHandlers = defineRpcHandlers({
       await tempSelectionManager.accept(message.sessionId, message.nodeId);
       return ok();
     } catch (error) {
-      return err(error instanceof Error ? error.message : 'Failed to accept temp selection');
+      return err(error instanceof Error ? error.message : "Failed to accept temp selection");
     }
   },
 
   async [RPC_METHOD.CANCEL_TEMP_SELECTION](message) {
     try {
-      await tempSelectionManager.cancel(message.sessionId, { keepSession: message.keepSession } as { keepSession?: boolean });
+      await tempSelectionManager.cancel(message.sessionId, { keepSession: message.keepSession } as {
+        keepSession?: boolean;
+      });
       return ok();
     } catch (error) {
-      return err(error instanceof Error ? error.message : 'Failed to cancel temp selection');
+      return err(error instanceof Error ? error.message : "Failed to cancel temp selection");
     }
   },
 
@@ -175,14 +179,14 @@ export const navigationHandlers = defineRpcHandlers({
   async [RPC_METHOD.SET_CURRENT](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err('Node not found');
+    if (!node) return err("Node not found");
 
     if (getEditorState().active) {
       tree.setCurrentById(message.nodeId);
       treeStorage.cacheTree(tree);
-      await notifyTreeUpdate(tree, 'set-current', {
+      await notifyTreeUpdate(tree, "set-current", {
         focusNodeId: message.nodeId,
-        mode: 'force',
+        mode: "force",
       });
       return ok();
     }
@@ -199,7 +203,7 @@ export const navigationHandlers = defineRpcHandlers({
         markNodeVisited(tree, message.nodeId);
         tree.setCurrentById(message.nodeId);
         treeStorage.cacheTree(tree);
-        await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
+        await notifyTreeUpdate(tree, "set-current", { focusNodeId: message.nodeId, mode: "force" });
         return ok();
       }
       tabManager.unregister(tabId as TabId);
@@ -221,7 +225,7 @@ export const navigationHandlers = defineRpcHandlers({
 
     tree.setCurrentById(message.nodeId);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'set-current', { focusNodeId: message.nodeId, mode: 'force' });
+    await notifyTreeUpdate(tree, "set-current", { focusNodeId: message.nodeId, mode: "force" });
     return ok();
   },
 
@@ -232,16 +236,17 @@ export const navigationHandlers = defineRpcHandlers({
 
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err('Node not found');
+    if (!node) return err("Node not found");
 
     const tab = await browser.tabs.create({ url: node.data.url, active: false });
     if (tab.id !== undefined) {
       const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
-      const registerOptions = lastUsed === undefined ? { touch: false } : { touch: false, lastUsed };
+      const registerOptions =
+        lastUsed === undefined ? { touch: false } : { touch: false, lastUsed };
       tabManager.register(message.nodeId, tab.id as TabId, registerOptions);
     }
 
-    await notifyTreeUpdate(tree, 'tabs');
+    await notifyTreeUpdate(tree, "tabs");
     return ok();
   },
 });

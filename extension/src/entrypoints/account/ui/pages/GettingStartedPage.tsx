@@ -1,4 +1,4 @@
-import type { RouteParams } from '../router.js';
+import type { RouteParams } from "../router.js";
 
 export default function GettingStartedPage(_props: RouteParams) {
   return (
@@ -9,9 +9,8 @@ export default function GettingStartedPage(_props: RouteParams) {
         <div className="getting-started__section">
           <h2 className="getting-started__heading">Welcome to Trail</h2>
           <p className="getting-started__text">
-            Trail maps your browsing into a visual tree. Every link you click
-            grows the tree, giving you a bird's-eye view of how you explore the
-            web.
+            Trail maps your browsing into a visual tree. Every link you click grows the tree, giving
+            you a bird's-eye view of how you explore the web.
           </p>
         </div>
 
@@ -29,7 +28,7 @@ export default function GettingStartedPage(_props: RouteParams) {
         <div className="getting-started__section">
           <h2 className="getting-started__heading">Need help?</h2>
           <p className="getting-started__text">
-            Visit{' '}
+            Visit{" "}
             <a
               href="https://gettrail.net/support"
               target="_blank"
@@ -37,7 +36,7 @@ export default function GettingStartedPage(_props: RouteParams) {
               className="getting-started__link"
             >
               gettrail.net/support
-            </a>{' '}
+            </a>{" "}
             for documentation and support.
           </p>
         </div>

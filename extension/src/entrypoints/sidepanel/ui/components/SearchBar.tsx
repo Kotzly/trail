@@ -1,7 +1,6 @@
-import type { RefObject } from 'react';
-import { useSearch } from '../hooks/useSearch.js';
-import { Icons } from './Icon.js';
-
+import type { RefObject } from "react";
+import { useSearch } from "../hooks/useSearch.js";
+import { Icons } from "./Icon.js";
 
 type SearchBarProps = {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -25,7 +24,7 @@ export default function SearchBar({ inputRef }: SearchBarProps) {
           onChange={(event) => performSearch(event.target.value)}
         />
         <button
-          className={`search-clear ${hasQuery ? '' : 'hidden'}`}
+          className={`search-clear ${hasQuery ? "" : "hidden"}`}
           id="searchClear"
           type="button"
           aria-label="Clear search"
@@ -35,13 +34,13 @@ export default function SearchBar({ inputRef }: SearchBarProps) {
           <Icons.X size={16} />
         </button>
       </div>
-      <div className={`search-results ${hasQuery ? '' : 'hidden'}`} id="searchResults">
+      <div className={`search-results ${hasQuery ? "" : "hidden"}`} id="searchResults">
         <span className="search-count" id="searchCount">
           {!hasQuery
-            ? '0 results found'
+            ? "0 results found"
             : search.results.length === 0
-            ? 'No results'
-            : `${search.index + 1} of ${search.results.length}`}
+              ? "No results"
+              : `${search.index + 1} of ${search.results.length}`}
         </span>
         <div className="search-nav">
           <button

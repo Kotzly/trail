@@ -4,10 +4,10 @@
  * positions, and render models without requiring React hooks or refs.
  */
 
-import type { NodeId } from '@shared/types/ids.js';
-import type { NavigationNode } from '@shared/types/node.js';
-import type { LayoutMode, NodePosition } from '../../graph/types.js';
-import type { LayoutUpdateMap } from './graph-canvas-types.js';
+import type { NodeId } from "@shared/types/ids.js";
+import type { NavigationNode } from "@shared/types/node.js";
+import type { LayoutMode, NodePosition } from "../../graph/types.js";
+import type { LayoutUpdateMap } from "./graph-canvas-types.js";
 
 /**
  * Apply user-defined offsets (drag offsets, manual repositioning) to base
@@ -24,18 +24,20 @@ export function computeOffsetPositions(
 ): Map<NodeId, NodePosition> {
   if (basePositions.size === 0) return basePositions;
 
-  if (mode !== 'radial') {
+  if (mode !== "radial") {
     const offsetCache = new Map<NodeId, { x: number; y: number }>();
     const computeOffset = (node: NavigationNode): { x: number; y: number } => {
       if (offsetCache.has(node.id)) return offsetCache.get(node.id)!;
       const parent = node.getParent?.();
       const parentOffset = parent ? computeOffset(parent) : { x: 0, y: 0 };
       const layoutData = node.data.layout;
-      const offsetX = typeof layoutData?.offsetX === 'number' ? layoutData.offsetX : 0;
-      const offsetY = typeof layoutData?.offsetY === 'number' ? layoutData.offsetY : 0;
+      const offsetX = typeof layoutData?.offsetX === "number" ? layoutData.offsetX : 0;
+      const offsetY = typeof layoutData?.offsetY === "number" ? layoutData.offsetY : 0;
       const previewLayout = dragPreview?.get(node.id);
-      const previewOffsetX = typeof previewLayout?.offsetX === 'number' ? previewLayout.offsetX : null;
-      const previewOffsetY = typeof previewLayout?.offsetY === 'number' ? previewLayout.offsetY : null;
+      const previewOffsetX =
+        typeof previewLayout?.offsetX === "number" ? previewLayout.offsetX : null;
+      const previewOffsetY =
+        typeof previewLayout?.offsetY === "number" ? previewLayout.offsetY : null;
       const extra = {
         x: previewOffsetX !== null ? previewOffsetX - offsetX : 0,
         y: previewOffsetY !== null ? previewOffsetY - offsetY : 0,
@@ -67,12 +69,14 @@ export function computeOffsetPositions(
     const parent = node.getParent?.();
     const parentOffset = parent ? computeRadialOffset(parent) : { angle: 0, radius: 0 };
     const radial = node.data.layout?.radial;
-    const angleDelta = typeof radial?.angleDelta === 'number' ? radial.angleDelta : 0;
-    const radiusDelta = typeof radial?.radiusDelta === 'number' ? radial.radiusDelta : 0;
+    const angleDelta = typeof radial?.angleDelta === "number" ? radial.angleDelta : 0;
+    const radiusDelta = typeof radial?.radiusDelta === "number" ? radial.radiusDelta : 0;
     const previewLayout = dragPreview?.get(node.id);
     const previewRadial = previewLayout?.radial;
-    const previewAngle = typeof previewRadial?.angleDelta === 'number' ? previewRadial.angleDelta : null;
-    const previewRadius = typeof previewRadial?.radiusDelta === 'number' ? previewRadial.radiusDelta : null;
+    const previewAngle =
+      typeof previewRadial?.angleDelta === "number" ? previewRadial.angleDelta : null;
+    const previewRadius =
+      typeof previewRadial?.radiusDelta === "number" ? previewRadial.radiusDelta : null;
     const extra = {
       angle: previewAngle !== null ? previewAngle - angleDelta : 0,
       radius: previewRadius !== null ? previewRadius - radiusDelta : 0,
@@ -124,18 +128,20 @@ export function computeDragOffsetPositions(
   // Start from a shallow copy of previous positions — unaffected nodes stay as-is
   const next = new Map(prevPositions);
 
-  if (mode !== 'radial') {
+  if (mode !== "radial") {
     const offsetCache = new Map<NodeId, { x: number; y: number }>();
     const computeOffset = (node: NavigationNode): { x: number; y: number } => {
       if (offsetCache.has(node.id)) return offsetCache.get(node.id)!;
       const parent = node.getParent?.();
       const parentOffset = parent ? computeOffset(parent) : { x: 0, y: 0 };
       const layoutData = node.data.layout;
-      const offsetX = typeof layoutData?.offsetX === 'number' ? layoutData.offsetX : 0;
-      const offsetY = typeof layoutData?.offsetY === 'number' ? layoutData.offsetY : 0;
+      const offsetX = typeof layoutData?.offsetX === "number" ? layoutData.offsetX : 0;
+      const offsetY = typeof layoutData?.offsetY === "number" ? layoutData.offsetY : 0;
       const previewLayout = dragPreview.get(node.id);
-      const previewOffsetX = typeof previewLayout?.offsetX === 'number' ? previewLayout.offsetX : null;
-      const previewOffsetY = typeof previewLayout?.offsetY === 'number' ? previewLayout.offsetY : null;
+      const previewOffsetX =
+        typeof previewLayout?.offsetX === "number" ? previewLayout.offsetX : null;
+      const previewOffsetY =
+        typeof previewLayout?.offsetY === "number" ? previewLayout.offsetY : null;
       const extra = {
         x: previewOffsetX !== null ? previewOffsetX - offsetX : 0,
         y: previewOffsetY !== null ? previewOffsetY - offsetY : 0,
@@ -168,12 +174,14 @@ export function computeDragOffsetPositions(
     const parent = node.getParent?.();
     const parentOffset = parent ? computeRadialOffset(parent) : { angle: 0, radius: 0 };
     const radial = node.data.layout?.radial;
-    const angleDelta = typeof radial?.angleDelta === 'number' ? radial.angleDelta : 0;
-    const radiusDelta = typeof radial?.radiusDelta === 'number' ? radial.radiusDelta : 0;
+    const angleDelta = typeof radial?.angleDelta === "number" ? radial.angleDelta : 0;
+    const radiusDelta = typeof radial?.radiusDelta === "number" ? radial.radiusDelta : 0;
     const previewLayout = dragPreview.get(node.id);
     const previewRadial = previewLayout?.radial;
-    const previewAngle = typeof previewRadial?.angleDelta === 'number' ? previewRadial.angleDelta : null;
-    const previewRadius = typeof previewRadial?.radiusDelta === 'number' ? previewRadial.radiusDelta : null;
+    const previewAngle =
+      typeof previewRadial?.angleDelta === "number" ? previewRadial.angleDelta : null;
+    const previewRadius =
+      typeof previewRadial?.radiusDelta === "number" ? previewRadial.radiusDelta : null;
     const extra = {
       angle: previewAngle !== null ? previewAngle - angleDelta : 0,
       radius: previewRadius !== null ? previewRadius - radiusDelta : 0,

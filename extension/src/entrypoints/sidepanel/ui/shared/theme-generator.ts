@@ -1,17 +1,17 @@
-import type { CustomTheme, ThemeDot, ThemeHarmony } from '@shared/types/settings.js';
-import type { ThemeId } from '@features/themes/model.js';
+import type { CustomTheme, ThemeDot, ThemeHarmony } from "@shared/types/settings.js";
+import type { ThemeId } from "@features/themes/model.js";
 
 type HslColor = { h: number; s: number; l: number };
 type RgbColor = { r: number; g: number; b: number };
 type RgbaColor = { r: number; g: number; b: number; a: number };
 
 const HARMONY_ORDER: Array<{ type: ThemeHarmony; angles: number[] }> = [
-  { type: 'complementary', angles: [180] },
-  { type: 'singleAnalogous', angles: [310] },
-  { type: 'splitComplementary', angles: [150, 210] },
-  { type: 'analogous', angles: [50, 310] },
-  { type: 'triadic', angles: [120, 240] },
-  { type: 'floating', angles: [] },
+  { type: "complementary", angles: [180] },
+  { type: "singleAnalogous", angles: [310] },
+  { type: "splitComplementary", angles: [150, 210] },
+  { type: "analogous", angles: [50, 310] },
+  { type: "triadic", angles: [120, 240] },
+  { type: "floating", angles: [] },
 ];
 
 const PICKER_BASE_SIZE = 380;
@@ -22,51 +22,49 @@ const PICKER_CENTER = PICKER_RECT_SIZE / 2;
 const PICKER_RADIUS = (PICKER_RECT_SIZE - PICKER_PADDING) / 2;
 
 export const THEME_TOKEN_KEYS = [
-  '--background',
-  '--card',
-  '--muted',
-  '--popover',
-  '--accent',
-  '--foreground',
-  '--muted-foreground',
-  '--ring',
-  '--border',
-  '--primary',
-  '--primary-foreground',
-  '--secondary',
-  '--secondary-foreground',
-  '--primary-rgb',
-  '--destructive',
-  '--destructive-rgb',
-  '--elev-1',
-  '--elev-2',
-  '--elev-3',
-  '--glass',
-  '--glass-strong',
-  '--glass-border',
-  '--glass-inset',
-  '--glass-ink',
-  '--on-primary-soft',
-  '--overlay',
-  '--scrollbar-thumb',
-  '--scrollbar-thumb-hover',
-  '--graph-node-closed-bg',
-  '--graph-node-closed-border',
-  '--graph-node-closed-title',
-  '--graph-node-closed-url',
-  '--graph-node-active-bg',
-  '--graph-node-active-border',
-  '--graph-node-active-title',
-  '--graph-node-active-url',
-  '--trail-app-bg-color',
-  '--trail-app-bg-image',
-  '--trail-grain-opacity',
-  '--trail-grid-dot',
+  "--background",
+  "--card",
+  "--muted",
+  "--popover",
+  "--accent",
+  "--foreground",
+  "--muted-foreground",
+  "--ring",
+  "--border",
+  "--primary",
+  "--primary-foreground",
+  "--secondary",
+  "--secondary-foreground",
+  "--primary-rgb",
+  "--destructive",
+  "--destructive-rgb",
+  "--elev-1",
+  "--elev-2",
+  "--elev-3",
+  "--glass",
+  "--glass-strong",
+  "--glass-border",
+  "--glass-inset",
+  "--glass-ink",
+  "--on-primary-soft",
+  "--overlay",
+  "--scrollbar-thumb",
+  "--scrollbar-thumb-hover",
+  "--graph-node-closed-bg",
+  "--graph-node-closed-border",
+  "--graph-node-closed-title",
+  "--graph-node-closed-url",
+  "--graph-node-active-bg",
+  "--graph-node-active-border",
+  "--graph-node-active-title",
+  "--graph-node-active-url",
+  "--trail-app-bg-color",
+  "--trail-app-bg-image",
+  "--trail-grain-opacity",
+  "--trail-grid-dot",
 ] as const;
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
-const clamp01 = (value: number) => clamp(value, 0, 1);
 
 const OPACITY_MIN = 0.35;
 const OPACITY_MAX = 0.9;
@@ -75,16 +73,16 @@ const CUSTOM_COLOR_LIMIT = 4;
 const toRgb = (value: number) => Math.round(clamp(value, 0, 255));
 
 const rgbToHex = ({ r, g, b }: RgbColor) =>
-  `#${toRgb(r).toString(16).padStart(2, '0')}${toRgb(g)
+  `#${toRgb(r).toString(16).padStart(2, "0")}${toRgb(g)
     .toString(16)
-    .padStart(2, '0')}${toRgb(b).toString(16).padStart(2, '0')}`;
+    .padStart(2, "0")}${toRgb(b).toString(16).padStart(2, "0")}`;
 
 const hexToRgb = (value: string): RgbColor => {
-  const normalized = value.replace('#', '').trim();
+  const normalized = value.replace("#", "").trim();
   if (normalized.length === 3) {
-    const rChar = normalized[0] ?? '0';
-    const gChar = normalized[1] ?? '0';
-    const bChar = normalized[2] ?? '0';
+    const rChar = normalized[0] ?? "0";
+    const gChar = normalized[1] ?? "0";
+    const bChar = normalized[2] ?? "0";
     const r = parseInt(rChar + rChar, 16);
     const g = parseInt(gChar + gChar, 16);
     const b = parseInt(bChar + bChar, 16);
@@ -100,11 +98,11 @@ const hexToRgb = (value: string): RgbColor => {
 };
 
 const hexToRgba = (value: string): RgbaColor | null => {
-  const normalized = value.replace('#', '').trim();
+  const normalized = value.replace("#", "").trim();
   if (normalized.length === 3 || normalized.length === 4) {
-    const rChar = normalized[0] ?? '0';
-    const gChar = normalized[1] ?? '0';
-    const bChar = normalized[2] ?? '0';
+    const rChar = normalized[0] ?? "0";
+    const gChar = normalized[1] ?? "0";
+    const bChar = normalized[2] ?? "0";
     const aChar = normalized[3];
     const r = parseInt(rChar + rChar, 16);
     const g = parseInt(gChar + gChar, 16);
@@ -139,7 +137,7 @@ const rgbToHsl = ({ r, g, b }: RgbColor): HslColor => {
       h = (rNorm - gNorm) / delta + 4;
     }
   }
-  h = Math.round(((h * 60) + 360) % 360);
+  h = Math.round((h * 60 + 360) % 360);
   const l = (max + min) / 2;
   const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
   return { h, s: s * 100, l: l * 100 };
@@ -219,21 +217,21 @@ const buildZenGradient = (colors: string[], useCustomColors: boolean): string | 
         const position = (index / (colors.length - 1)) * 100;
         return `${color} ${position}%`;
       })
-      .join(', ');
+      .join(", ");
     return `linear-gradient(${rotation}deg, ${stops})`;
   }
   if (colors.length === 2) {
     return [
       `linear-gradient(${rotation}deg, ${colors[1]} 0%, transparent 100%)`,
       `linear-gradient(${rotation + 180}deg, ${colors[0]} 0%, transparent 100%)`,
-    ].join(', ');
+    ].join(", ");
   }
   if (colors.length === 3) {
     return [
       `linear-gradient(-5deg, ${colors[2]} 10%, transparent 80%)`,
       `radial-gradient(circle at 95% 0%, ${colors[1]} 0%, transparent 75%)`,
       `radial-gradient(circle at 0% 0%, ${colors[0]} 10%, transparent 70%)`,
-    ].join(', ');
+    ].join(", ");
   }
   return null;
 };
@@ -275,7 +273,7 @@ const getAutoAccentRgb = (custom: CustomTheme, scheme: ThemeId): RgbColor => {
   const palette = stops.map(parsePaletteColor);
   const paletteRgb = palette.map((color) => ({ r: color.r, g: color.g, b: color.b }));
   const mode = getResolvedScheme(scheme);
-  const isDark = mode === 'dark';
+  const isDark = mode === "dark";
   const baseSurfaceRgb = isDark ? { r: 23, g: 23, b: 26 } : { r: 240, g: 240, b: 244 };
   const opacity = clamp(custom.opacity, OPACITY_MIN, OPACITY_MAX);
   const blendedRgb = palette.map((color) => blendPaletteColor(color, baseSurfaceRgb, opacity));
@@ -309,45 +307,45 @@ export function clampDotPosition(dot: ThemeDot): ThemeDot {
   };
 }
 
-export type HarmonyAction = 'add' | 'remove' | 'update';
+export type HarmonyAction = "add" | "remove" | "update";
 
 const getHarmonyByType = (type?: ThemeHarmony) =>
   HARMONY_ORDER.find((harmony) => harmony.type === type);
 
-const getHarmonyForAction = (
-  numDots: number,
-  action: HarmonyAction,
-  useHarmony?: ThemeHarmony
-) => {
+const getHarmonyForAction = (numDots: number, action: HarmonyAction, useHarmony?: ThemeHarmony) => {
   if (useHarmony) {
     const selected = getHarmonyByType(useHarmony);
     if (selected) {
-      if (action === 'remove') {
+      if (action === "remove") {
         if (numDots <= 0) {
-          return getHarmonyByType('floating');
+          return getHarmonyByType("floating");
         }
-        return HARMONY_ORDER.find((harmony) => harmony.angles.length === selected.angles.length - 1);
+        return HARMONY_ORDER.find(
+          (harmony) => harmony.angles.length === selected.angles.length - 1,
+        );
       }
-      if (action === 'add') {
-        return HARMONY_ORDER.find((harmony) => harmony.angles.length === selected.angles.length + 1);
+      if (action === "add") {
+        return HARMONY_ORDER.find(
+          (harmony) => harmony.angles.length === selected.angles.length + 1,
+        );
       }
       return selected;
     }
   }
 
-  if (action === 'remove') {
+  if (action === "remove") {
     let harmony = HARMONY_ORDER.find((item) => item.angles.length === numDots);
-    if (harmony?.type === 'analogous' && numDots === 1) {
-      harmony = getHarmonyByType('singleAnalogous');
+    if (harmony?.type === "analogous" && numDots === 1) {
+      harmony = getHarmonyByType("singleAnalogous");
     }
     return harmony;
   }
 
-  if (action === 'add') {
+  if (action === "add") {
     return HARMONY_ORDER.find((item) => item.angles.length + 1 === numDots);
   }
 
-  if (action === 'update') {
+  if (action === "update") {
     return HARMONY_ORDER.find((item) => item.angles.length + 1 === numDots);
   }
 
@@ -357,16 +355,16 @@ const getHarmonyForAction = (
 export function calculateCompliments(
   dots: ThemeDot[],
   action: HarmonyAction,
-  useHarmony?: ThemeHarmony
+  useHarmony?: ThemeHarmony,
 ): { dots: ThemeDot[]; harmony: ThemeHarmony } {
   if (dots.length === 0) {
-    return { dots: [], harmony: useHarmony ?? 'floating' };
+    return { dots: [], harmony: useHarmony ?? "floating" };
   }
 
-  const numDots = dots.length + (action === 'add' ? 1 : action === 'remove' ? -1 : 0);
-  const harmony = getHarmonyForAction(numDots, action, useHarmony) ?? getHarmonyByType('floating');
+  const numDots = dots.length + (action === "add" ? 1 : action === "remove" ? -1 : 0);
+  const harmony = getHarmonyForAction(numDots, action, useHarmony) ?? getHarmonyByType("floating");
   const angles = harmony?.angles ?? [];
-  const resolvedHarmony = harmony?.type ?? 'floating';
+  const resolvedHarmony = harmony?.type ?? "floating";
 
   if (angles.length === 0) {
     return { dots: dots.map(clampDotPosition), harmony: resolvedHarmony };
@@ -415,16 +413,16 @@ export const getDotLightness = (dot: ThemeDot) => {
 
 export function getColorFromPosition(
   dot: ThemeDot,
-  lightness: number
+  lightness: number,
 ): { rgb: RgbColor; hex: string } {
   const { angle, normalizedDistance, type } = getDotPolar(dot);
   const baseLightness = Math.round((1 - normalizedDistance) * 100);
   let saturation = 90 + (1 - normalizedDistance) * 10;
   let resolvedLightness = baseLightness;
-  if (type === 'explicit-lightness') {
+  if (type === "explicit-lightness") {
     saturation = normalizedDistance * 100;
     resolvedLightness = clamp(lightness, 0, 100);
-  } else if (type === 'explicit-black-white') {
+  } else if (type === "explicit-black-white") {
     saturation = 0;
     resolvedLightness = baseLightness;
   }
@@ -436,11 +434,11 @@ export function getDotColors(dots: ThemeDot[], lightness: number): string[] {
   return dots.map((dot) => getColorFromPosition(dot, lightness).hex);
 }
 
-const getResolvedScheme = (scheme: ThemeId): 'light' | 'dark' => {
-  if (scheme === 'light') return 'light';
-  if (scheme === 'dark') return 'dark';
-  if (typeof window === 'undefined') return 'light';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+const getResolvedScheme = (scheme: ThemeId): "light" | "dark" => {
+  if (scheme === "light") return "light";
+  if (scheme === "dark") return "dark";
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
 
 const toHslString = (color: HslColor) => rgbToHex(hslToRgb(color));
@@ -450,7 +448,7 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const palette = paletteStops.map(parsePaletteColor);
   const fallbackRgb = { r: 59, g: 59, b: 64 };
   const mode = getResolvedScheme(scheme);
-  const isDark = mode === 'dark';
+  const isDark = mode === "dark";
   const baseSurfaceRgb = isDark ? { r: 23, g: 23, b: 26 } : { r: 240, g: 240, b: 244 };
   const opacity = clamp(custom.opacity, OPACITY_MIN, OPACITY_MAX);
   const blendedRgb = palette.map((color) => blendPaletteColor(color, baseSurfaceRgb, opacity));
@@ -463,7 +461,7 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
       g: acc.g + color.g,
       b: acc.b + color.b,
     }),
-    { r: 0, g: 0, b: 0 }
+    { r: 0, g: 0, b: 0 },
   );
   const averaged = {
     r: averageRgb.r / averageSource.length,
@@ -572,11 +570,11 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
 
   const surfaceRgb = hexToRgb(surface);
   const surfaceContainerRgb = hexToRgb(surfaceContainer);
-  const onSurfaceRgb = hexToRgb(onSurface);
-
   const appBackgroundColor = gradientBase ?? surface;
-  const appBackgroundImage = gradientImage ?? 'none';
-  const backgroundRgb = appBackgroundColor.startsWith('#') ? hexToRgb(appBackgroundColor) : surfaceRgb;
+  const appBackgroundImage = gradientImage ?? "none";
+  const backgroundRgb = appBackgroundColor.startsWith("#")
+    ? hexToRgb(appBackgroundColor)
+    : surfaceRgb;
   const backgroundLuminance = getLuminance(backgroundRgb);
   const gridContrastRgb = getContrastText(backgroundRgb);
   const gridAlpha = backgroundLuminance > 0.6 ? 0.18 : backgroundLuminance < 0.35 ? 0.28 : 0.22;
@@ -585,19 +583,18 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const glassInk = rgbToHex(glassInkRgb);
   const primarySoftRgb = blendColors(primaryRgbResolved, backgroundRgb, 45);
   const primarySoftInk = rgbToHex(getContrastText(primarySoftRgb));
-  const overlayAlpha =
-    backgroundLuminance > 0.6 ? 0.12 : backgroundLuminance < 0.35 ? 0.45 : 0.28;
+  const overlayAlpha = backgroundLuminance > 0.6 ? 0.12 : backgroundLuminance < 0.35 ? 0.45 : 0.28;
   const overlay = `rgba(8, 10, 14, ${overlayAlpha})`;
 
   const mdElev1 = isDark
-    ? '0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9)'
-    : '0 2px 6px rgba(20, 24, 40, 0.08)';
+    ? "0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9)"
+    : "0 2px 6px rgba(20, 24, 40, 0.08)";
   const mdElev2 = isDark
-    ? '0 2px 3px rgba(0, 0, 0, 0.55), 0 18px 40px -22px rgba(0, 0, 0, 0.95)'
-    : '0 8px 18px rgba(20, 24, 40, 0.12)';
+    ? "0 2px 3px rgba(0, 0, 0, 0.55), 0 18px 40px -22px rgba(0, 0, 0, 0.95)"
+    : "0 8px 18px rgba(20, 24, 40, 0.12)";
   const mdElev3 = isDark
-    ? '0 3px 5px rgba(0, 0, 0, 0.55), 0 28px 60px -30px rgba(0, 0, 0, 0.95)'
-    : '0 14px 30px rgba(20, 24, 40, 0.18)';
+    ? "0 3px 5px rgba(0, 0, 0, 0.55), 0 28px 60px -30px rgba(0, 0, 0, 0.95)"
+    : "0 14px 30px rgba(20, 24, 40, 0.18)";
 
   const closedBg = surfaceContainer;
   const closedBorder = outlineVariant;
@@ -610,44 +607,42 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
   const activeUrl = primary;
 
   return {
-    '--background': surface,
-    '--card': surfaceContainer,
-    '--muted': surfaceContainerHigh,
-    '--popover': surfaceContainerLow,
-    '--accent': surfaceVariant,
-    '--foreground': onSurface,
-    '--muted-foreground': onSurfaceVariant,
-    '--ring': outline,
-    '--border': outlineVariant,
-    '--primary': primary,
-    '--primary-foreground': onPrimary,
-    '--secondary': primaryContainer,
-    '--secondary-foreground': onPrimaryContainer,
-    '--primary-rgb': rgbToCssTuple(primaryRgbResolved),
-    '--destructive': error,
-    '--destructive-rgb': rgbToCssTuple(errorRgb),
-    '--elev-1': mdElev1,
-    '--elev-2': mdElev2,
-    '--elev-3': mdElev3,
-    '--glass-ink': glassInk,
-    '--on-primary-soft': primarySoftInk,
-    '--overlay': overlay,
-    '--scrollbar-thumb': `rgba(${rgbToCssTuple(primaryRgbResolved)}, ${isDark ? 0.2 : 0.24})`,
-    '--scrollbar-thumb-hover': `rgba(${rgbToCssTuple(primaryRgbResolved)}, ${
-      isDark ? 0.36 : 0.4
-    })`,
-    '--graph-node-closed-bg': closedBg,
-    '--graph-node-closed-border': closedBorder,
-    '--graph-node-closed-title': closedTitle,
-    '--graph-node-closed-url': closedUrl,
-    '--graph-node-active-bg': activeBg,
-    '--graph-node-active-border': activeBorder,
-    '--graph-node-active-title': activeTitle,
-    '--graph-node-active-url': activeUrl,
-    '--trail-app-bg-color': appBackgroundColor,
-    '--trail-app-bg-image': appBackgroundImage,
-    '--trail-grain-opacity': String(clamp(custom.texture ?? 0, 0, 1)),
-    '--trail-grid-dot': gridDot,
+    "--background": surface,
+    "--card": surfaceContainer,
+    "--muted": surfaceContainerHigh,
+    "--popover": surfaceContainerLow,
+    "--accent": surfaceVariant,
+    "--foreground": onSurface,
+    "--muted-foreground": onSurfaceVariant,
+    "--ring": outline,
+    "--border": outlineVariant,
+    "--primary": primary,
+    "--primary-foreground": onPrimary,
+    "--secondary": primaryContainer,
+    "--secondary-foreground": onPrimaryContainer,
+    "--primary-rgb": rgbToCssTuple(primaryRgbResolved),
+    "--destructive": error,
+    "--destructive-rgb": rgbToCssTuple(errorRgb),
+    "--elev-1": mdElev1,
+    "--elev-2": mdElev2,
+    "--elev-3": mdElev3,
+    "--glass-ink": glassInk,
+    "--on-primary-soft": primarySoftInk,
+    "--overlay": overlay,
+    "--scrollbar-thumb": `rgba(${rgbToCssTuple(primaryRgbResolved)}, ${isDark ? 0.2 : 0.24})`,
+    "--scrollbar-thumb-hover": `rgba(${rgbToCssTuple(primaryRgbResolved)}, ${isDark ? 0.36 : 0.4})`,
+    "--graph-node-closed-bg": closedBg,
+    "--graph-node-closed-border": closedBorder,
+    "--graph-node-closed-title": closedTitle,
+    "--graph-node-closed-url": closedUrl,
+    "--graph-node-active-bg": activeBg,
+    "--graph-node-active-border": activeBorder,
+    "--graph-node-active-title": activeTitle,
+    "--graph-node-active-url": activeUrl,
+    "--trail-app-bg-color": appBackgroundColor,
+    "--trail-app-bg-image": appBackgroundImage,
+    "--trail-grain-opacity": String(clamp(custom.texture ?? 0, 0, 1)),
+    "--trail-grid-dot": gridDot,
   };
 }
 
@@ -656,56 +651,58 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
  * Needed because the Spotlight Shadow DOM host has no access to the
  * tokens.css cascade — these must be applied as inline styles.
  */
-export function generateBaseTokens(theme: 'light' | 'dark'): Partial<Record<(typeof THEME_TOKEN_KEYS)[number], string>> {
-  const dark = theme === 'dark';
+export function generateBaseTokens(
+  theme: "light" | "dark",
+): Partial<Record<(typeof THEME_TOKEN_KEYS)[number], string>> {
+  const dark = theme === "dark";
   return {
-    '--background': dark ? '#09090b' : '#ffffff',
-    '--foreground': dark ? '#fafafa' : '#0f172a',
-    '--card': dark ? '#09090b' : '#ffffff',
-    '--muted': dark ? '#27272a' : '#f1f5f9',
-    '--popover': dark ? '#09090b' : '#ffffff',
-    '--accent': dark ? '#27272a' : '#f1f5f9',
-    '--muted-foreground': dark ? '#a1a1aa' : '#475569',
-    '--ring': dark ? '#d6d6d6' : '#0f172a',
-    '--border': dark ? '#27272a' : '#e2e8f0',
-    '--primary': dark ? '#fafafa' : '#0f172a',
-    '--primary-foreground': dark ? '#09090b' : '#f8fafc',
-    '--secondary': dark ? '#27272a' : '#f1f5f9',
-    '--secondary-foreground': dark ? '#fafafa' : '#0f172a',
-    '--primary-rgb': dark ? '250, 250, 250' : '15, 23, 42',
-    '--destructive': '#ef4444',
-    '--destructive-rgb': '239, 68, 68',
-    '--elev-1': dark
-      ? '0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9)'
-      : '0 2px 6px rgba(20, 24, 40, 0.08)',
-    '--elev-2': dark
-      ? '0 2px 3px rgba(0, 0, 0, 0.55), 0 18px 40px -22px rgba(0, 0, 0, 0.95)'
-      : '0 8px 18px rgba(20, 24, 40, 0.12)',
-    '--elev-3': dark
-      ? '0 3px 5px rgba(0, 0, 0, 0.55), 0 28px 60px -30px rgba(0, 0, 0, 0.95)'
-      : '0 14px 30px rgba(20, 24, 40, 0.18)',
-    '--overlay': dark ? 'rgba(8, 10, 14, 0.5)' : 'rgba(12, 14, 20, 0.12)',
-    '--scrollbar-thumb': dark ? 'rgba(250, 250, 250, 0.2)' : 'rgba(15, 23, 42, 0.24)',
-    '--scrollbar-thumb-hover': dark ? 'rgba(250, 250, 250, 0.36)' : 'rgba(15, 23, 42, 0.4)',
-    '--graph-node-closed-bg': dark ? '#18181b' : '#f1f5f9',
-    '--graph-node-closed-border': dark ? '#27272a' : '#e2e8f0',
-    '--graph-node-closed-title': dark ? '#a1a1aa' : '#475569',
-    '--graph-node-closed-url': dark ? '#71717a' : '#64748b',
-    '--graph-node-active-bg': dark ? '#27272a' : '#f1f5f9',
-    '--graph-node-active-border': dark ? '#d4d4d8' : '#0f172a',
-    '--graph-node-active-title': dark ? '#fafafa' : '#0f172a',
-    '--graph-node-active-url': dark ? '#d4d4d8' : '#0f172a',
+    "--background": dark ? "#09090b" : "#ffffff",
+    "--foreground": dark ? "#fafafa" : "#0f172a",
+    "--card": dark ? "#09090b" : "#ffffff",
+    "--muted": dark ? "#27272a" : "#f1f5f9",
+    "--popover": dark ? "#09090b" : "#ffffff",
+    "--accent": dark ? "#27272a" : "#f1f5f9",
+    "--muted-foreground": dark ? "#a1a1aa" : "#475569",
+    "--ring": dark ? "#d6d6d6" : "#0f172a",
+    "--border": dark ? "#27272a" : "#e2e8f0",
+    "--primary": dark ? "#fafafa" : "#0f172a",
+    "--primary-foreground": dark ? "#09090b" : "#f8fafc",
+    "--secondary": dark ? "#27272a" : "#f1f5f9",
+    "--secondary-foreground": dark ? "#fafafa" : "#0f172a",
+    "--primary-rgb": dark ? "250, 250, 250" : "15, 23, 42",
+    "--destructive": "#ef4444",
+    "--destructive-rgb": "239, 68, 68",
+    "--elev-1": dark
+      ? "0 1px 2px rgba(0, 0, 0, 0.55), 0 10px 24px -16px rgba(0, 0, 0, 0.9)"
+      : "0 2px 6px rgba(20, 24, 40, 0.08)",
+    "--elev-2": dark
+      ? "0 2px 3px rgba(0, 0, 0, 0.55), 0 18px 40px -22px rgba(0, 0, 0, 0.95)"
+      : "0 8px 18px rgba(20, 24, 40, 0.12)",
+    "--elev-3": dark
+      ? "0 3px 5px rgba(0, 0, 0, 0.55), 0 28px 60px -30px rgba(0, 0, 0, 0.95)"
+      : "0 14px 30px rgba(20, 24, 40, 0.18)",
+    "--overlay": dark ? "rgba(8, 10, 14, 0.5)" : "rgba(12, 14, 20, 0.12)",
+    "--scrollbar-thumb": dark ? "rgba(250, 250, 250, 0.2)" : "rgba(15, 23, 42, 0.24)",
+    "--scrollbar-thumb-hover": dark ? "rgba(250, 250, 250, 0.36)" : "rgba(15, 23, 42, 0.4)",
+    "--graph-node-closed-bg": dark ? "#18181b" : "#f1f5f9",
+    "--graph-node-closed-border": dark ? "#27272a" : "#e2e8f0",
+    "--graph-node-closed-title": dark ? "#a1a1aa" : "#475569",
+    "--graph-node-closed-url": dark ? "#71717a" : "#64748b",
+    "--graph-node-active-bg": dark ? "#27272a" : "#f1f5f9",
+    "--graph-node-active-border": dark ? "#d4d4d8" : "#0f172a",
+    "--graph-node-active-title": dark ? "#fafafa" : "#0f172a",
+    "--graph-node-active-url": dark ? "#d4d4d8" : "#0f172a",
   };
 }
 
 export function resolveHarmonyForCount(count: number, current: ThemeHarmony): ThemeHarmony {
-  if (count <= 0) return 'floating';
+  if (count <= 0) return "floating";
   const normalized = clamp(count, 1, 3);
   const valid: ThemeHarmony[] =
     normalized === 1
-      ? ['floating']
+      ? ["floating"]
       : normalized === 2
-      ? ['complementary', 'singleAnalogous']
-      : ['splitComplementary', 'analogous', 'triadic'];
-  return valid.includes(current) ? current : valid[0] ?? 'floating';
+        ? ["complementary", "singleAnalogous"]
+        : ["splitComplementary", "analogous", "triadic"];
+  return valid.includes(current) ? current : (valid[0] ?? "floating");
 }

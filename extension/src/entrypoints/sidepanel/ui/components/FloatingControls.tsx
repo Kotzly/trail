@@ -1,14 +1,12 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import type { RefObject } from 'react';
-import { redo, undo } from '../../api/commands.js';
-import { useStore } from '../state/store.js';
-import { Icons } from './Icon.js';
-import FloatingSearch from './FloatingSearch.js';
-import PinnedDropdown from './PinnedDropdown.js';
-import TreeDropdown from './TreeDropdown.js';
-import TagFilterDropdown from './tags/TagFilterDropdown.js';
-import SettingsDropdown from './SettingsPopover.js';
-
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { redo, undo } from "../../api/commands.js";
+import { useStore } from "../state/store.js";
+import { Icons } from "./Icon.js";
+import FloatingSearch from "./FloatingSearch.js";
+import PinnedDropdown from "./PinnedDropdown.js";
+import TreeDropdown from "./TreeDropdown.js";
+import TagFilterDropdown from "./tags/TagFilterDropdown.js";
+import SettingsDropdown from "./SettingsPopover.js";
 
 type FloatingControlsProps = {
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -27,8 +25,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   const rightRef = useRef<HTMLDivElement | null>(null);
   const leftBaselineRef = useRef(0);
 
-  const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : 'Ctrl+Z';
-  const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : 'Ctrl+Shift+Z';
+  const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : "Ctrl+Z";
+  const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : "Ctrl+Shift+Z";
   const undoTooltip = commandState?.nextUndoDesc
     ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
     : `Undo (${undoShortcut})`;
@@ -41,7 +39,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       const state = await undo();
       setCommandState(state);
     } catch (error) {
-      console.error('Failed to undo:', error);
+      console.error("Failed to undo:", error);
     }
   };
 
@@ -50,7 +48,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       const state = await redo();
       setCommandState(state);
     } catch (error) {
-      console.error('Failed to redo:', error);
+      console.error("Failed to redo:", error);
     }
   };
 
@@ -70,7 +68,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
       }
       const baseLeft = leftBaselineRef.current || leftWidth;
       const styles = window.getComputedStyle(container);
-      const gapValue = styles.columnGap || styles.gap || '0';
+      const gapValue = styles.columnGap || styles.gap || "0";
       const gap = Number.parseFloat(gapValue) || 0;
       const needsCompact = searchExpanded && baseLeft + rightWidth + gap > containerWidth;
       if (needsCompact !== isCompact) {
@@ -90,8 +88,8 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   return (
     <div
       ref={controlsRef}
-      className={`floating-controls${controlsCompact ? ' is-compact' : ''}`}
-      data-search-expanded={searchExpanded ? 'true' : 'false'}
+      className={`floating-controls${controlsCompact ? "is-compact" : ""}`}
+      data-search-expanded={searchExpanded ? "true" : "false"}
     >
       <div ref={leftRef} className="floating-controls-left">
         <div className="floating-island">

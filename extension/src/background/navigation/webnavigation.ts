@@ -1,6 +1,5 @@
-
-import { handleNavigation } from './navigation-handler.js';
-import { browser, type Browser } from '@shared/platform/webext.js';
+import { handleNavigation } from "./navigation-handler.js";
+import { browser, type Browser } from "@shared/platform/webext.js";
 
 /**
  * Initialize webNavigation event listeners.

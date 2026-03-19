@@ -1,23 +1,24 @@
-import '../pixi-no-eval-bootstrap.js';
-import * as PIXI from 'pixi.js';
-import { ChevronDown, Pin, Volume2, VolumeX } from 'lucide';
-import type { TextStyleFontWeight } from 'pixi.js';
-import type { FaviconUrl, NodeId } from '@shared/types/ids.js';
-import { getFaviconUrl } from '@shared/utils/favicon.js';
-import { formatUrl } from '../../shared/format.js';
-import type { LayoutMode, ViewState } from '../types.js';
-import type { ConnectionSegment, GraphDisplayOptions, NodeRenderModel, ParticleRenderModel } from './types.js';
-import { SpatialIndex } from './spatial-index.js';
-import { readGraphTheme } from './theme.js';
-import {
-  decideViewInvalidation,
-  worldRectFromView,
-  type WorldRect,
-} from './view-invalidation.js';
-import { diffSelection, shouldEmitPreview } from '../../components/graph/selection-utils.js';
-import { hasRuntimeGetURL, runtimeGetURL } from '@shared/platform/webext.js';
-import { graphProfiler } from './graph-profiler.js';
-import { createGraphSnapshot, diffSnapshots, type GraphSnapshot } from './graph-snapshot.js';
+import "../pixi-no-eval-bootstrap.js";
+import * as PIXI from "pixi.js";
+import { ChevronDown, Pin, Volume2, VolumeX } from "lucide";
+import type { TextStyleFontWeight } from "pixi.js";
+import type { FaviconUrl, NodeId } from "@shared/types/ids.js";
+import { getFaviconUrl } from "@shared/utils/favicon.js";
+import { formatUrl } from "../../shared/format.js";
+import type { ViewState } from "../types.js";
+import type {
+  ConnectionSegment,
+  GraphDisplayOptions,
+  NodeRenderModel,
+  ParticleRenderModel,
+} from "./types.js";
+import { SpatialIndex } from "./spatial-index.js";
+import { readGraphTheme } from "./theme.js";
+import { decideViewInvalidation, worldRectFromView, type WorldRect } from "./view-invalidation.js";
+import { diffSelection, shouldEmitPreview } from "../../components/graph/selection-utils.js";
+import { hasRuntimeGetURL, runtimeGetURL } from "@shared/platform/webext.js";
+import { graphProfiler } from "./graph-profiler.js";
+import { createGraphSnapshot, diffSnapshots, type GraphSnapshot } from "./graph-snapshot.js";
 
 type DynamicGraphState = {
   nodes: NodeRenderModel[];
@@ -25,9 +26,9 @@ type DynamicGraphState = {
   showConnections: boolean;
 };
 
-type LODLevel = 'hidden' | 'dot' | 'low' | 'full';
-type DetailMode = 'full' | 'low' | 'dot';
-export type ConnectionQuality = 'full' | 'simplified' | 'thin';
+type LODLevel = "hidden" | "dot" | "low" | "full";
+type DetailMode = "full" | "low" | "dot";
+export type ConnectionQuality = "full" | "simplified" | "thin";
 
 export type GraphRenderMetrics = {
   updateVisibleMs: number;
@@ -48,7 +49,7 @@ const LOD_CONN_HIDE_PX = -1; // disabled
 
 const NODE_RADIUS = 12;
 const NODE_PADDING_X = 12;
-const NODE_PADDING_Y = 8;
+const _NODE_PADDING_Y = 8;
 const NODE_GAP = 10;
 const FAVICON_SIZE = 28;
 const FAVICON_ICON = 18;
@@ -82,7 +83,7 @@ const COLLAPSE_BADGE_MARGIN = 8;
 const COLLAPSE_ICON_SIZE = 12;
 const COLLAPSE_ICON_STROKE = 2;
 const COLLAPSE_ICON_SCALE = COLLAPSE_ICON_SIZE / ICON_VIEWBOX;
-const COLLAPSE_ICON_NAME = 'ChevronDown';
+const COLLAPSE_ICON_NAME = "ChevronDown";
 
 type LucideNode = Array<[string, Record<string, string | number | undefined>]>;
 
@@ -97,18 +98,18 @@ function resolveNodeLod(
   model: NodeRenderModel,
   view: ViewState,
   detailMode: DetailMode,
-  isSelected: boolean
+  isSelected: boolean,
 ): LODLevel {
   const scale = view.scale;
   const pixelSize = Math.min(model.width, model.height) * scale;
   const forceDetail =
     model.isCurrent || isSelected || model.isSearchFocused || model.isHoverFocused;
-  let lod: LODLevel = 'full';
-  if (!forceDetail && pixelSize < LOD_HIDE_PX) lod = 'hidden';
-  else if (!forceDetail && pixelSize < LOD_DOT_PX) lod = 'dot';
-  else if (!forceDetail && pixelSize < LOD_LOW_PX) lod = 'low';
-  if (detailMode === 'low' && lod === 'full') lod = 'low';
-  if (detailMode === 'dot' && lod !== 'hidden') lod = 'dot';
+  let lod: LODLevel = "full";
+  if (!forceDetail && pixelSize < LOD_HIDE_PX) lod = "hidden";
+  else if (!forceDetail && pixelSize < LOD_DOT_PX) lod = "dot";
+  else if (!forceDetail && pixelSize < LOD_LOW_PX) lod = "low";
+  if (detailMode === "low" && lod === "full") lod = "low";
+  if (detailMode === "dot" && lod !== "hidden") lod = "dot";
   return lod;
 }
 
@@ -120,41 +121,41 @@ function getLucideSvg(iconName: string, color: number, strokeWidth: number): str
 
 function buildLucideSvg(node: LucideNode, stroke: string, size: number, strokeWidth: number) {
   const attrs = {
-    xmlns: 'http://www.w3.org/2000/svg',
+    xmlns: "http://www.w3.org/2000/svg",
     width: String(size),
     height: String(size),
-    viewBox: '0 0 24 24',
-    fill: 'none',
+    viewBox: "0 0 24 24",
+    fill: "none",
     stroke,
-    'stroke-width': String(strokeWidth),
-    'stroke-linecap': 'round',
-    'stroke-linejoin': 'round',
+    "stroke-width": String(strokeWidth),
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
   };
   const parts = [
     `<svg ${toAttrString(attrs)}>`,
     ...node.map(([tag, tagAttrs]) => `<${tag} ${toAttrString(tagAttrs)} />`),
-    '</svg>',
+    "</svg>",
   ];
-  return parts.join('');
+  return parts.join("");
 }
 
 function toAttrString(attrs: Record<string, string | number | undefined>) {
   return Object.entries(attrs)
     .filter(([, value]) => value !== undefined)
     .map(([key, value]) => `${key}="${escapeXml(String(value))}"`)
-    .join(' ');
+    .join(" ");
 }
 
 function escapeXml(value: string) {
   return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
 
 function colorToHex(color: number) {
-  return `#${color.toString(16).padStart(6, '0')}`;
+  return `#${color.toString(16).padStart(6, "0")}`;
 }
 
 function getCollapseBadgeRect(width: number, height: number) {
@@ -181,11 +182,11 @@ class NodeVisual {
   private readonly background = new PIXI.Graphics();
   private readonly faviconBg = new PIXI.Graphics();
   private faviconSprite: PIXI.Sprite | null = null;
-  private readonly titleText = new PIXI.Text({ text: '' });
-  private readonly urlText = new PIXI.Text({ text: '' });
+  private readonly titleText = new PIXI.Text({ text: "" });
+  private readonly urlText = new PIXI.Text({ text: "" });
   private readonly tabBadge = new PIXI.Container();
   private readonly tabBadgeBg = new PIXI.Graphics();
-  private readonly tabBadgeText = new PIXI.Text({ text: '' });
+  private readonly tabBadgeText = new PIXI.Text({ text: "" });
   private readonly pinIcon = new PIXI.Graphics();
   private readonly audioIcon = new PIXI.Graphics();
   private readonly collapseBadge = new PIXI.Container();
@@ -197,21 +198,21 @@ class NodeVisual {
   private readonly textContainer = new PIXI.Container();
 
   private state: NodeVisualState = {
-    lod: 'full',
-    styleKey: '',
-    textKey: '',
-    tagKey: '',
-    faviconKey: '',
+    lod: "full",
+    styleKey: "",
+    textKey: "",
+    tagKey: "",
+    faviconKey: "",
     themeVersion: 0,
     openProgress: 1,
     textResolution: 1,
   };
   private readonly fonts: { base: string; weight: TextStyleFontWeight };
   private readonly invalidate: () => void;
-  private pinIconKey = '';
-  private audioIconKey = '';
-  private collapseBadgeKey = '';
-  private collapseIconKey = '';
+  private pinIconKey = "";
+  private audioIconKey = "";
+  private collapseBadgeKey = "";
+  private collapseIconKey = "";
   private destroyed = false;
   private pendingFaviconUrl: FaviconUrl | null = null;
   private latestFaviconCandidate: FaviconUrl | null = null;
@@ -221,7 +222,7 @@ class NodeVisual {
 
   constructor(id: NodeId, fontFamily: string, invalidate: () => void) {
     this.id = id;
-    this.fonts = { base: fontFamily, weight: '500' };
+    this.fonts = { base: fontFamily, weight: "500" };
     this.invalidate = invalidate;
     this.container.addChild(this.background);
     this.container.addChild(this.fallbackDot);
@@ -269,48 +270,49 @@ class NodeVisual {
     detailMode: DetailMode,
     textResolution: number,
     isSelected: boolean,
-    isPreview: boolean
+    isPreview: boolean,
   ) {
     this.fonts.base = fontFamily;
     const lod = resolveNodeLod(model, view, detailMode, isSelected);
 
-    const rawOpenProgress = model.display.dimClosedNodes
-      ? model.openProgress
-      : 1;
+    const rawOpenProgress = model.display.dimClosedNodes ? model.openProgress : 1;
     const openProgress = Math.min(1, Math.max(0, rawOpenProgress ?? (model.isOpen ? 1 : 0)));
 
     const nextStyleKey = [
-      model.isCurrent ? 'c' : 'n',
-      model.isOpen ? 'o' : 'x',
-      isSelected ? 's' : 'n',
-      isPreview ? 'p' : 'n',
-      model.isSearchMatch ? 'm' : 'n',
-      model.isSearchFocused ? 'f' : 'n',
-      model.isHoverFocused ? 'h' : 'n',
-      model.tabState?.sound.muted ? 'u' : 'n',
-      model.display.dimClosedNodes && !model.isOpen ? 'd' : 'n',
-    ].join('');
+      model.isCurrent ? "c" : "n",
+      model.isOpen ? "o" : "x",
+      isSelected ? "s" : "n",
+      isPreview ? "p" : "n",
+      model.isSearchMatch ? "m" : "n",
+      model.isSearchFocused ? "f" : "n",
+      model.isHoverFocused ? "h" : "n",
+      model.tabState?.sound.muted ? "u" : "n",
+      model.display.dimClosedNodes && !model.isOpen ? "d" : "n",
+    ].join("");
 
-    const showFull = lod === 'full';
-    const showLow = lod === 'low';
+    const showFull = lod === "full";
+    const showLow = lod === "low";
     const showFavicon = model.display.showFavicons && (showFull || showLow);
     const showUrls = model.display.showUrls && showFull;
-    const title = lod === 'dot' ? '' : model.node.data.title || 'Untitled';
-    const url = lod === 'dot' ? '' : model.node.data.url ? formatUrl(model.node.data.url) : '';
+    const title = lod === "dot" ? "" : model.node.data.title || "Untitled";
+    const url = lod === "dot" ? "" : model.node.data.url ? formatUrl(model.node.data.url) : "";
     const textKey =
-      lod === 'dot'
-        ? 'dot'
-        : `${title}|${url}|${model.display.titleTruncation}|${showUrls ? 'u' : 'n'}|${showFavicon ? 'f' : 'n'}`;
+      lod === "dot"
+        ? "dot"
+        : `${title}|${url}|${model.display.titleTruncation}|${showUrls ? "u" : "n"}|${showFavicon ? "f" : "n"}`;
     const tagKey =
-      lod === 'full' && model.display.showTagDots && model.node.data.tags?.length
-        ? model.node.data.tags.join(',')
-        : '';
-    const rawFavicon = lod === 'dot' ? null : showFavicon && model.node.data.url
-      ? getFaviconUrl(model.node.data.url)
-      : null;
+      lod === "full" && model.display.showTagDots && model.node.data.tags?.length
+        ? model.node.data.tags.join(",")
+        : "";
+    const rawFavicon =
+      lod === "dot"
+        ? null
+        : showFavicon && model.node.data.url
+          ? getFaviconUrl(model.node.data.url)
+          : null;
     const safeFavicon = rawFavicon && isSafeFavicon(rawFavicon) ? rawFavicon : null;
     const cachedFavicon = safeFavicon ? getCachedFaviconTexture(safeFavicon) : null;
-    const faviconKey = `${showFavicon ? '1' : '0'}|${safeFavicon ?? 'none'}|${cachedFavicon ? '1' : '0'}`;
+    const faviconKey = `${showFavicon ? "1" : "0"}|${safeFavicon ?? "none"}|${cachedFavicon ? "1" : "0"}`;
 
     const themeChanged = this.state.themeVersion !== themeVersion;
     const openProgressChanged = Math.abs(this.state.openProgress - openProgress) > 0.001;
@@ -321,10 +323,12 @@ class NodeVisual {
     const needsStyleUpdate =
       themeChanged || this.state.styleKey !== nextStyleKey || openProgressChanged;
     const needsTextUpdate =
-      themeChanged || this.state.textKey !== textKey || openProgressChanged || this.state.textResolution !== textResolution;
+      themeChanged ||
+      this.state.textKey !== textKey ||
+      openProgressChanged ||
+      this.state.textResolution !== textResolution;
     const needsTagUpdate = themeChanged || this.state.tagKey !== tagKey;
-    const needsFaviconUpdate =
-      themeChanged || this.state.faviconKey !== faviconKey;
+    const needsFaviconUpdate = themeChanged || this.state.faviconKey !== faviconKey;
 
     if (this.state.textResolution !== textResolution) {
       this.titleText.resolution = textResolution;
@@ -343,8 +347,8 @@ class NodeVisual {
       textResolution,
     };
 
-    this.container.visible = lod !== 'hidden';
-    if (lod === 'hidden') return;
+    this.container.visible = lod !== "hidden";
+    if (lod === "hidden") return;
 
     this.container.alpha = model.isSearchDimmed ? 0.3 : 1;
     this.container.position.set(model.x - origin.x, model.y - origin.y);
@@ -354,7 +358,7 @@ class NodeVisual {
       this.drawBackground(model, theme, lod, isSelected, isPreview);
     }
 
-    if (lod === 'dot') {
+    if (lod === "dot") {
       this.textContainer.visible = false;
       this.tagDots.visible = false;
       this.faviconBg.visible = false;
@@ -380,7 +384,7 @@ class NodeVisual {
       this.collapseBadge.visible = false;
       this.tagDots.visible = false;
       // Force state keys to empty so the next update will populate everything.
-      this.state = { ...this.state, textKey: '', tagKey: '', faviconKey: '' };
+      this.state = { ...this.state, textKey: "", tagKey: "", faviconKey: "" };
       this.invalidate();
       return;
     }
@@ -405,7 +409,7 @@ class NodeVisual {
     theme: ReturnType<typeof readGraphTheme>,
     lod: LODLevel,
     isSelected: boolean,
-    isPreview: boolean
+    isPreview: boolean,
   ) {
     const selected = isSelected || model.isSearchMatch || model.isSearchFocused;
     const preview = isPreview && !isSelected;
@@ -427,7 +431,11 @@ class NodeVisual {
           : mixColors(closedBase, theme.surface, 0.96);
         backgroundColor = desaturateColor(toned, 0.75);
       }
-      let borderColor = closed ? theme.closed.border : isActive ? theme.active.border : theme.outline;
+      let borderColor = closed
+        ? theme.closed.border
+        : isActive
+          ? theme.active.border
+          : theme.outline;
       let borderWidth = isActive ? 2 : 1;
       const useDashedBorder = closed && !(selected || isHover || preview || isMuted);
 
@@ -445,11 +453,17 @@ class NodeVisual {
     const openStyle = computeStyle(false);
     const closedStyle = computeStyle(true);
     const backgroundColor =
-      closedFactor > 0 ? mixColors(openStyle.backgroundColor, closedStyle.backgroundColor, closedFactor) : openStyle.backgroundColor;
+      closedFactor > 0
+        ? mixColors(openStyle.backgroundColor, closedStyle.backgroundColor, closedFactor)
+        : openStyle.backgroundColor;
     const borderColor =
-      closedFactor > 0 ? mixColors(openStyle.borderColor, closedStyle.borderColor, closedFactor) : openStyle.borderColor;
-    const borderWidth = openStyle.borderWidth + (closedStyle.borderWidth - openStyle.borderWidth) * closedFactor;
-    const useDashedBorder = closedFactor > 0.85 ? closedStyle.useDashedBorder : openStyle.useDashedBorder;
+      closedFactor > 0
+        ? mixColors(openStyle.borderColor, closedStyle.borderColor, closedFactor)
+        : openStyle.borderColor;
+    const borderWidth =
+      openStyle.borderWidth + (closedStyle.borderWidth - openStyle.borderWidth) * closedFactor;
+    const useDashedBorder =
+      closedFactor > 0.85 ? closedStyle.useDashedBorder : openStyle.useDashedBorder;
 
     this.background.clear();
     const radius = NODE_RADIUS;
@@ -482,10 +496,10 @@ class NodeVisual {
     theme: ReturnType<typeof readGraphTheme>,
     lod: LODLevel,
     fontFamily: string,
-    showFavicon: boolean
+    showFavicon: boolean,
   ) {
-    const showFull = lod === 'full';
-    const showLow = lod === 'low';
+    const showFull = lod === "full";
+    const showLow = lod === "low";
     const showUrls = model.display.showUrls && showFull;
     const showTitle = showFull || showLow;
     const rawOpenProgress = model.display.dimClosedNodes ? model.openProgress : 1;
@@ -506,18 +520,18 @@ class NodeVisual {
     this.titleText.style.fontSize = TITLE_FONT_SIZE;
     this.titleText.style.fill = titleColor;
     this.urlText.style.fontFamily = fontFamily;
-    this.urlText.style.fontWeight = '400';
+    this.urlText.style.fontWeight = "400";
     this.urlText.style.fontSize = URL_FONT_SIZE;
     this.urlText.style.fill = urlColor;
 
-    const title = model.node.data.title || 'Untitled';
-    const url = model.node.data.url ? formatUrl(model.node.data.url) : '';
+    const title = model.node.data.title || "Untitled";
+    const url = model.node.data.url ? formatUrl(model.node.data.url) : "";
     const maxTitleChars = Math.max(10, Math.floor((model.width - 70) / 6.5));
     const displayTitle = truncateTitle(title, model.display.titleTruncation, maxTitleChars);
     const displayUrl = truncateTitle(url, model.display.titleTruncation, maxTitleChars);
 
-    this.titleText.text = showTitle ? displayTitle : '';
-    this.urlText.text = showUrls ? displayUrl : '';
+    this.titleText.text = showTitle ? displayTitle : "";
+    this.urlText.text = showUrls ? displayUrl : "";
 
     const contentX = NODE_PADDING_X + (showFavicon ? FAVICON_SIZE + NODE_GAP : 0);
     const textBlockHeight = showUrls ? TITLE_FONT_SIZE + URL_FONT_SIZE + 4 : TITLE_FONT_SIZE;
@@ -535,7 +549,7 @@ class NodeVisual {
     _lod: LODLevel,
     showFavicon: boolean,
     faviconUrl: FaviconUrl | null,
-    cachedTexture: PIXI.Texture | null
+    cachedTexture: PIXI.Texture | null,
   ) {
     this.faviconBg.visible = showFavicon;
     if (!showFavicon) {
@@ -562,11 +576,7 @@ class NodeVisual {
     if (this.faviconSprite) this.faviconSprite.visible = false;
   }
 
-  private applyFaviconTexture(
-    texture: PIXI.Texture,
-    faviconX: number,
-    faviconY: number
-  ) {
+  private applyFaviconTexture(texture: PIXI.Texture, faviconX: number, faviconY: number) {
     if (!this.faviconSprite) {
       this.faviconSprite = new PIXI.Sprite(texture);
       this.container.addChild(this.faviconSprite);
@@ -578,14 +588,14 @@ class NodeVisual {
     this.faviconSprite.height = FAVICON_ICON;
     this.faviconSprite.position.set(
       faviconX + (FAVICON_SIZE - FAVICON_ICON) / 2,
-      faviconY + (FAVICON_SIZE - FAVICON_ICON) / 2
+      faviconY + (FAVICON_SIZE - FAVICON_ICON) / 2,
     );
   }
 
   private requestFaviconLoad(faviconUrl: FaviconUrl) {
     if (this.pendingFaviconUrl === faviconUrl) return;
     this.pendingFaviconUrl = faviconUrl;
-    void loadFaviconTexture(faviconUrl).then((texture) => {
+    void loadFaviconTexture(faviconUrl).then((_texture) => {
       if (this.destroyed || this.latestFaviconCandidate !== faviconUrl) {
         this.pendingFaviconUrl = null;
         return;
@@ -598,9 +608,9 @@ class NodeVisual {
   private updateBadges(
     model: NodeRenderModel,
     theme: ReturnType<typeof readGraphTheme>,
-    lod: LODLevel
+    lod: LODLevel,
   ) {
-    const showFull = lod === 'full';
+    const showFull = lod === "full";
     const showBadges = showFull;
 
     this.tabBadge.visible = showBadges && model.display.showTabCounts && model.tabCount > 1;
@@ -609,7 +619,7 @@ class NodeVisual {
       this.tabBadgeText.text = badgeText;
       this.tabBadgeText.style.fontSize = 9;
       this.tabBadgeText.style.fill = theme.onPrimary;
-      this.tabBadgeText.style.fontWeight = '700';
+      this.tabBadgeText.style.fontWeight = "700";
       const metrics = PIXI.CanvasTextMetrics.measureText(badgeText, this.tabBadgeText.style);
       const badgeWidth = metrics.width + TAB_BADGE_PADDING_X * 2;
       const badgeHeight = metrics.height + TAB_BADGE_PADDING_Y * 2;
@@ -627,7 +637,7 @@ class NodeVisual {
     if (showPin) {
       const pinKey = `Pin|${theme.onSurfaceVariant}|${STATUS_ICON_STROKE}`;
       if (this.pinIconKey !== pinKey) {
-        const svg = getLucideSvg('Pin', theme.onSurfaceVariant, STATUS_ICON_STROKE);
+        const svg = getLucideSvg("Pin", theme.onSurfaceVariant, STATUS_ICON_STROKE);
         if (svg) {
           this.pinIcon.clear();
           this.pinIcon.svg(svg);
@@ -640,7 +650,7 @@ class NodeVisual {
       this.pinIcon.visible = false;
     }
     if (showAudio) {
-      const iconName = model.tabState?.sound.muted ? 'VolumeX' : 'Volume2';
+      const iconName = model.tabState?.sound.muted ? "VolumeX" : "Volume2";
       const audioKey = `${iconName}|${theme.primary}|${STATUS_ICON_STROKE}`;
       if (this.audioIconKey !== audioKey) {
         const svg = getLucideSvg(iconName, theme.primary, STATUS_ICON_STROKE);
@@ -663,7 +673,7 @@ class NodeVisual {
   private updateCollapseBadge(
     model: NodeRenderModel,
     theme: ReturnType<typeof readGraphTheme>,
-    showBadges: boolean
+    showBadges: boolean,
   ) {
     const show = showBadges && model.isCollapsed;
     this.collapseBadge.visible = show;
@@ -697,13 +707,13 @@ class NodeVisual {
   private updateTags(
     model: NodeRenderModel,
     theme: ReturnType<typeof readGraphTheme>,
-    lod: LODLevel
+    lod: LODLevel,
   ) {
-    const show = lod === 'full' && model.display.showTagDots;
+    const show = lod === "full" && model.display.showTagDots;
     this.tagDots.visible = show;
     if (!show) {
       for (let i = 0; i < this.tagDotPool.length; i++) {
-        this.tagDotPool[i].visible = false;
+        this.tagDotPool[i]!.visible = false;
       }
       return;
     }
@@ -711,7 +721,7 @@ class NodeVisual {
     const maxTags = Math.min(tags.length, 4);
     if (maxTags === 0) {
       for (let i = 0; i < this.tagDotPool.length; i++) {
-        this.tagDotPool[i].visible = false;
+        this.tagDotPool[i]!.visible = false;
       }
       return;
     }
@@ -725,7 +735,7 @@ class NodeVisual {
       if (!tagId) continue;
       const tagPreset = model.tagDefs[tagId];
       if (!tagPreset) continue;
-      const dot = this.tagDotPool[poolIdx];
+      const dot = this.tagDotPool[poolIdx]!;
       dot.clear();
       dot.circle(0, 0, dotSize / 2);
       dot.fill({ color: safeColor(tagPreset.color, theme.primary), alpha: 1 });
@@ -736,7 +746,7 @@ class NodeVisual {
     }
     // Hide remaining unused pool items
     for (let i = poolIdx; i < this.tagDotPool.length; i++) {
-      this.tagDotPool[i].visible = false;
+      this.tagDotPool[i]!.visible = false;
     }
   }
 }
@@ -759,7 +769,7 @@ class GraphicsPool {
   acquire(): PIXI.Graphics {
     let g: PIXI.Graphics;
     if (this.activeCount < this.pool.length) {
-      g = this.pool[this.activeCount];
+      g = this.pool[this.activeCount]!;
     } else {
       g = new PIXI.Graphics();
       this.parent.addChild(g);
@@ -772,7 +782,7 @@ class GraphicsPool {
 
   releaseAll() {
     for (let i = 0; i < this.activeCount; i++) {
-      const g = this.pool[i];
+      const g = this.pool[i]!;
       g.clear();
       g.visible = false;
     }
@@ -804,7 +814,12 @@ export class GraphPixiRenderer {
   private index = new SpatialIndex<NodeId>(300);
   private connections: ConnectionSegment[] = [];
   private connectionsDirty = true;
-  private lastConnectionViewRect: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
+  private lastConnectionViewRect: {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  } | null = null;
   private particles: ParticleRenderModel[] = [];
   private view: ViewState = { translateX: 0, translateY: 0, scale: 1 };
   private data: GraphSnapshot & { particles: ParticleRenderModel[] } = {
@@ -813,7 +828,7 @@ export class GraphPixiRenderer {
       nodes: [],
       basePositions: new Map(),
       connections: [],
-      layoutMode: 'tree',
+      layoutMode: "tree",
       nodeWidth: 0,
       nodeHeight: 0,
       showConnections: false,
@@ -823,8 +838,8 @@ export class GraphPixiRenderer {
   private theme = readGraphTheme({ host: document.body });
   private themeVersion = 0;
   private fontFamily = '"Inter", system-ui, sans-serif';
-  private detailMode: DetailMode = 'full';
-  private connectionQuality: ConnectionQuality = 'full';
+  private detailMode: DetailMode = "full";
+  private connectionQuality: ConnectionQuality = "full";
   private textResolution = 1;
   private selectedNodeIds: Set<NodeId> = new Set();
   private selectionPreviewIds: Set<NodeId> | null = null;
@@ -885,7 +900,7 @@ export class GraphPixiRenderer {
         // ResizeObserver in GraphCanvas which calls resizeToHost() and
         // immediately re-renders. PixiJS's built-in resizeTo clears
         // the canvas without re-rendering (ticker is stopped).
-        powerPreference: 'high-performance',
+        powerPreference: "high-performance",
       });
       if (this.destroyed) {
         this.app.destroy(true, { children: true });
@@ -904,7 +919,7 @@ export class GraphPixiRenderer {
       this.updateWorldTransform();
       this.refreshTheme();
     } catch (error) {
-      console.error('Failed to initialize Pixi renderer:', error);
+      console.error("Failed to initialize Pixi renderer:", error);
     }
   }
 
@@ -933,7 +948,7 @@ export class GraphPixiRenderer {
 
   private watchDevicePixelRatio() {
     this.unwatchDevicePixelRatio();
-    if (typeof window === 'undefined' || !('matchMedia' in window)) return;
+    if (typeof window === "undefined" || !("matchMedia" in window)) return;
     const ratio = Math.max(1, window.devicePixelRatio || 1);
     this.dppxMediaQuery = window.matchMedia(`(resolution: ${ratio}dppx)`);
     this.dppxMediaQueryListener = () => {
@@ -941,12 +956,12 @@ export class GraphPixiRenderer {
       this.syncResolution();
       this.watchDevicePixelRatio();
     };
-    this.dppxMediaQuery.addEventListener('change', this.dppxMediaQueryListener);
+    this.dppxMediaQuery.addEventListener("change", this.dppxMediaQueryListener);
   }
 
   private unwatchDevicePixelRatio() {
     if (this.dppxMediaQuery && this.dppxMediaQueryListener) {
-      this.dppxMediaQuery.removeEventListener('change', this.dppxMediaQueryListener);
+      this.dppxMediaQuery.removeEventListener("change", this.dppxMediaQueryListener);
     }
     this.dppxMediaQuery = null;
     this.dppxMediaQueryListener = null;
@@ -1038,14 +1053,24 @@ export class GraphPixiRenderer {
     return result ? result.id : null;
   }
 
-  queryNodesInWorldRect(rect: { minX: number; minY: number; maxX: number; maxY: number }): Set<NodeId> {
+  queryNodesInWorldRect(rect: {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  }): Set<NodeId> {
     const started = performance.now();
     const hits = this.index.query(rect);
     this.metrics.selectionQueryMs = performance.now() - started;
     return hits;
   }
 
-  queryVisibleNodesInWorldRect(rect: { minX: number; minY: number; maxX: number; maxY: number }): Set<NodeId> {
+  queryVisibleNodesInWorldRect(rect: {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  }): Set<NodeId> {
     const started = performance.now();
     const hits = new Set<NodeId>();
     this.visibleIdsCache.forEach((id) => {
@@ -1068,7 +1093,10 @@ export class GraphPixiRenderer {
     return this.selectionPreviewIds ?? this.selectedNodeIds;
   }
 
-  private patchSelectionVisuals(prevSelection: ReadonlySet<NodeId>, nextSelection: ReadonlySet<NodeId>) {
+  private patchSelectionVisuals(
+    prevSelection: ReadonlySet<NodeId>,
+    nextSelection: ReadonlySet<NodeId>,
+  ) {
     const started = performance.now();
     const { added, removed, changedCount } = diffSelection(prevSelection, nextSelection);
     this.metrics.selectionChangedCount = changedCount;
@@ -1132,9 +1160,8 @@ export class GraphPixiRenderer {
       if (!this.visibleIdsCache.has(id)) continue;
       const node = this.nodeData.get(id);
       if (!node) continue;
-      const updatedNode = node.isHoverFocused !== (nextId === id)
-        ? { ...node, isHoverFocused: nextId === id }
-        : node;
+      const updatedNode =
+        node.isHoverFocused !== (nextId === id) ? { ...node, isHoverFocused: nextId === id } : node;
       if (updatedNode !== node) {
         this.nodeData.set(id, updatedNode);
       }
@@ -1194,7 +1221,7 @@ export class GraphPixiRenderer {
       }
     }
     this.invalidateAll();
-    graphProfiler.record('setStaticGraph', performance.now() - start);
+    graphProfiler.record("setStaticGraph", performance.now() - start);
   }
 
   patchStaticGraph(snapshot: GraphSnapshot) {
@@ -1248,7 +1275,7 @@ export class GraphPixiRenderer {
     this.updateVisible();
     this.render();
 
-    graphProfiler.record('patchStaticGraph', performance.now() - start);
+    graphProfiler.record("patchStaticGraph", performance.now() - start);
   }
 
   setDynamicState(state: DynamicGraphState) {
@@ -1258,9 +1285,10 @@ export class GraphPixiRenderer {
       incomingIds.add(node.id);
       const prev = this.nodeData.get(node.id);
       // Reconcile isHoverFocused with renderer's hover state
-      const adjustedNode = node.isHoverFocused !== (node.id === this.hoverNodeId)
-        ? { ...node, isHoverFocused: node.id === this.hoverNodeId }
-        : node;
+      const adjustedNode =
+        node.isHoverFocused !== (node.id === this.hoverNodeId)
+          ? { ...node, isHoverFocused: node.id === this.hoverNodeId }
+          : node;
       this.nodeData.set(adjustedNode.id, adjustedNode);
       const rect = {
         minX: adjustedNode.x,
@@ -1271,7 +1299,12 @@ export class GraphPixiRenderer {
       if (!prev) {
         // New node (e.g. exit animation node added after setStaticGraph) — insert into index
         this.index.insert(adjustedNode.id, rect);
-      } else if (prev.x !== adjustedNode.x || prev.y !== adjustedNode.y || prev.width !== adjustedNode.width || prev.height !== adjustedNode.height) {
+      } else if (
+        prev.x !== adjustedNode.x ||
+        prev.y !== adjustedNode.y ||
+        prev.width !== adjustedNode.width ||
+        prev.height !== adjustedNode.height
+      ) {
         // Position changed — update index entry
         this.index.update(adjustedNode.id, rect);
       }
@@ -1291,7 +1324,7 @@ export class GraphPixiRenderer {
     }
     this.data = { ...this.data, showConnections: state.showConnections };
     this.invalidateVisible();
-    graphProfiler.record('setDynamicState', performance.now() - start);
+    graphProfiler.record("setDynamicState", performance.now() - start);
   }
 
   setParticles(particles: ParticleRenderModel[]) {
@@ -1319,7 +1352,7 @@ export class GraphPixiRenderer {
       originChanged,
     });
 
-    if (invalidation.decision === 'translate-only') {
+    if (invalidation.decision === "translate-only") {
       this.needsRender = true;
       this.render();
       return;
@@ -1335,8 +1368,8 @@ export class GraphPixiRenderer {
 
   hitTestTargetScreen(
     screenX: number,
-    screenY: number
-  ): { nodeId: NodeId; target: 'node' | 'collapse-icon' } | null {
+    screenY: number,
+  ): { nodeId: NodeId; target: "node" | "collapse-icon" } | null {
     const world = this.screenToWorld(screenX, screenY);
     const nodeId = this.hitTestWorld(world.x, world.y);
     if (!nodeId) return null;
@@ -1349,10 +1382,10 @@ export class GraphPixiRenderer {
       const maxX = minX + rect.size;
       const maxY = minY + rect.size;
       if (world.x >= minX && world.x <= maxX && world.y >= minY && world.y <= maxY) {
-        return { nodeId, target: 'collapse-icon' };
+        return { nodeId, target: "collapse-icon" };
       }
     }
-    return { nodeId, target: 'node' };
+    return { nodeId, target: "node" };
   }
 
   screenToWorld(screenX: number, screenY: number) {
@@ -1397,7 +1430,7 @@ export class GraphPixiRenderer {
     if (!model.isCollapsed) return false;
     const selection = this.getEffectiveSelection();
     const lod = resolveNodeLod(model, this.view, this.detailMode, selection.has(model.id));
-    return lod === 'full' || lod === 'low';
+    return lod === "full" || lod === "low";
   }
 
   private invalidateAll() {
@@ -1451,7 +1484,7 @@ export class GraphPixiRenderer {
     this.world.scale.set(this.view.scale);
     this.world.position.set(
       this.view.translateX + this.origin.x * this.view.scale,
-      this.view.translateY + this.origin.y * this.view.scale
+      this.view.translateY + this.origin.y * this.view.scale,
     );
   }
 
@@ -1463,13 +1496,12 @@ export class GraphPixiRenderer {
       this.host.clientHeight || 1,
     );
     const padding = 200 / this.view.scale;
-    const paddedRect =
-      cullingRect ?? {
-        minX: viewRect.minX - padding,
-        minY: viewRect.minY - padding,
-        maxX: viewRect.maxX + padding,
-        maxY: viewRect.maxY + padding,
-      };
+    const paddedRect = cullingRect ?? {
+      minX: viewRect.minX - padding,
+      minY: viewRect.minY - padding,
+      maxX: viewRect.maxX + padding,
+      maxY: viewRect.maxY + padding,
+    };
     this.cachedCullingRect = paddedRect;
 
     const selection = this.getEffectiveSelection();
@@ -1494,7 +1526,7 @@ export class GraphPixiRenderer {
         this.detailMode,
         this.textResolution,
         selection.has(id),
-        node.isPreview
+        node.isPreview,
       );
     });
     for (const [id, visual] of this.nodeMap.entries()) {
@@ -1508,15 +1540,13 @@ export class GraphPixiRenderer {
     this.metrics.connectionsMs = connectionsMs;
     this.metrics.visibleNodes = visibleIds.size;
     this.metrics.visibleConnections = visibleConnections;
-    graphProfiler.record('updateVisible', performance.now() - updateStart);
+    graphProfiler.record("updateVisible", performance.now() - updateStart);
   }
 
-  private updateConnections(viewRect: {
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-  }): { connectionsMs: number; visibleConnections: number } {
+  private updateConnections(viewRect: { minX: number; minY: number; maxX: number; maxY: number }): {
+    connectionsMs: number;
+    visibleConnections: number;
+  } {
     const start = performance.now();
 
     // Particles always need updating (they move every frame)
@@ -1529,7 +1559,7 @@ export class GraphPixiRenderer {
         this.pathLayer.clear();
         this.connectionsDirty = false;
       }
-      graphProfiler.record('updateConnections', performance.now() - start);
+      graphProfiler.record("updateConnections", performance.now() - start);
       return { connectionsMs: performance.now() - start, visibleConnections: 0 };
     }
 
@@ -1540,20 +1570,24 @@ export class GraphPixiRenderer {
         this.pathLayer.clear();
         this.connectionsDirty = false;
       }
-      graphProfiler.record('updateConnections', performance.now() - start);
+      graphProfiler.record("updateConnections", performance.now() - start);
       return { connectionsMs: performance.now() - start, visibleConnections: 0 };
     }
 
     // Skip full redraw if connections haven't changed and viewport is same
-    const viewUnchanged = this.lastConnectionViewRect !== null &&
+    const viewUnchanged =
+      this.lastConnectionViewRect !== null &&
       this.lastConnectionViewRect.minX === viewRect.minX &&
       this.lastConnectionViewRect.minY === viewRect.minY &&
       this.lastConnectionViewRect.maxX === viewRect.maxX &&
       this.lastConnectionViewRect.maxY === viewRect.maxY;
 
     if (!this.connectionsDirty && viewUnchanged) {
-      graphProfiler.record('updateConnections', performance.now() - start);
-      return { connectionsMs: performance.now() - start, visibleConnections: this.metrics.visibleConnections };
+      graphProfiler.record("updateConnections", performance.now() - start);
+      return {
+        connectionsMs: performance.now() - start,
+        visibleConnections: this.metrics.visibleConnections,
+      };
     }
 
     // Full redraw needed
@@ -1564,32 +1598,32 @@ export class GraphPixiRenderer {
 
     // Base connections and "active path" connections can share the same hue (theme-driven),
     // but must be visually distinct so the root -> current path reads as highlighted.
-    const radial = this.data.layoutMode === 'radial';
-    const thinQuality = this.connectionQuality === 'thin';
+    const radial = this.data.layoutMode === "radial";
+    const thinQuality = this.connectionQuality === "thin";
     const baseColor = this.theme.connection.base;
     const pathColor = this.theme.connection.path;
     const baseWidth =
-      this.connectionQuality === 'full'
+      this.connectionQuality === "full"
         ? 2 / this.view.scale
-        : this.connectionQuality === 'simplified'
+        : this.connectionQuality === "simplified"
           ? 1.5 / this.view.scale
           : 1 / this.view.scale;
     const pathWidth =
-      this.connectionQuality === 'full'
+      this.connectionQuality === "full"
         ? 2.8 / this.view.scale
-        : this.connectionQuality === 'simplified'
+        : this.connectionQuality === "simplified"
           ? 2.1 / this.view.scale
           : 1.6 / this.view.scale;
     const baseAlpha =
-      this.connectionQuality === 'full'
+      this.connectionQuality === "full"
         ? 0.22
-        : this.connectionQuality === 'simplified'
+        : this.connectionQuality === "simplified"
           ? 0.18
           : 0.14;
     const pathAlpha =
-      this.connectionQuality === 'full'
+      this.connectionQuality === "full"
         ? 0.85
-        : this.connectionQuality === 'simplified'
+        : this.connectionQuality === "simplified"
           ? 0.75
           : 0.62;
     this.connectionAlphaFilter.alpha = baseAlpha;
@@ -1600,12 +1634,7 @@ export class GraphPixiRenderer {
     let visibleConnections = 0;
     this.connections.forEach((conn) => {
       if (!intersects(conn.bounds, viewRect)) return;
-      if (
-        thinQuality &&
-        !radial &&
-        !conn.onPath &&
-        hashConnectionId(conn.id) % 2 === 0
-      ) {
+      if (thinQuality && !radial && !conn.onPath && hashConnectionId(conn.id) % 2 === 0) {
         return;
       }
 
@@ -1616,7 +1645,7 @@ export class GraphPixiRenderer {
       const endX = conn.end.x - this.origin.x;
       const endY = conn.end.y - this.origin.y;
 
-      if (conn.style === 'orthogonal') {
+      if (conn.style === "orthogonal") {
         const cp1X = conn.cp1.x - this.origin.x;
         const cp1Y = conn.cp1.y - this.origin.y;
         const cp2X = conn.cp2.x - this.origin.x;
@@ -1633,9 +1662,10 @@ export class GraphPixiRenderer {
         } else if (isLShape) {
           const seg1 = Math.hypot(cp1X - startX, cp1Y - startY);
           const seg2 = Math.hypot(endX - cp1X, endY - cp1Y);
-          const r = this.connectionQuality === 'full'
-            ? Math.min(16 / this.view.scale, seg1 / 2, seg2 / 2)
-            : 0;
+          const r =
+            this.connectionQuality === "full"
+              ? Math.min(16 / this.view.scale, seg1 / 2, seg2 / 2)
+              : 0;
           layer.moveTo(startX, startY);
           if (r > 0.5) {
             layer.arcTo(cp1X, cp1Y, endX, endY, r);
@@ -1643,7 +1673,7 @@ export class GraphPixiRenderer {
             layer.lineTo(cp1X, cp1Y);
           }
           layer.lineTo(endX, endY);
-        } else if (this.connectionQuality === 'full') {
+        } else if (this.connectionQuality === "full") {
           const seg1 = Math.hypot(cp1X - startX, cp1Y - startY);
           const seg2 = Math.hypot(cp2X - cp1X, cp2Y - cp1Y);
           const seg3 = Math.hypot(endX - cp2X, endY - cp2Y);
@@ -1660,7 +1690,7 @@ export class GraphPixiRenderer {
         }
       } else {
         layer.moveTo(startX, startY);
-        if (this.connectionQuality === 'full') {
+        if (this.connectionQuality === "full") {
           const cp1X = conn.cp1.x - this.origin.x;
           const cp1Y = conn.cp1.y - this.origin.y;
           const cp2X = conn.cp2.x - this.origin.x;
@@ -1676,7 +1706,7 @@ export class GraphPixiRenderer {
       this.pathLayer.stroke();
     }
 
-    graphProfiler.record('updateConnections', performance.now() - start);
+    graphProfiler.record("updateConnections", performance.now() - start);
     return {
       connectionsMs: performance.now() - start,
       visibleConnections,
@@ -1687,7 +1717,7 @@ export class GraphPixiRenderer {
     if (!this.isReady) return;
     const color = this.theme.connection.path;
     for (let i = 0; i < this.particles.length; i++) {
-      const particle = this.particles[i];
+      const particle = this.particles[i]!;
       const circle = this.particlePool.acquire();
       circle.circle(0, 0, particle.radius);
       circle.fill({ color, alpha: particle.alpha });
@@ -1713,7 +1743,10 @@ export class GraphPixiRenderer {
   }
 }
 
-function intersects(a: { minX: number; minY: number; maxX: number; maxY: number }, b: { minX: number; minY: number; maxX: number; maxY: number }) {
+function intersects(
+  a: { minX: number; minY: number; maxX: number; maxY: number },
+  b: { minX: number; minY: number; maxX: number; maxY: number },
+) {
   return !(a.maxX < b.minX || a.minX > b.maxX || a.maxY < b.minY || a.minY > b.maxY);
 }
 
@@ -1725,15 +1758,19 @@ function hashConnectionId(id: string): number {
   return Math.abs(hash);
 }
 
-function truncateTitle(text: string, mode: GraphDisplayOptions['titleTruncation'], maxChars: number): string {
+function truncateTitle(
+  text: string,
+  mode: GraphDisplayOptions["titleTruncation"],
+  maxChars: number,
+): string {
   if (text.length <= maxChars) return text;
-  if (maxChars <= 1) return '…';
-  const ellipsis = '…';
+  if (maxChars <= 1) return "…";
+  const ellipsis = "…";
   const available = maxChars - 1;
-  if (mode === 'start') {
+  if (mode === "start") {
     return `${ellipsis}${text.slice(text.length - available)}`;
   }
-  if (mode === 'middle') {
+  if (mode === "middle") {
     const left = Math.ceil(available / 2);
     const right = Math.floor(available / 2);
     return `${text.slice(0, left)}${ellipsis}${text.slice(text.length - right)}`;
@@ -1754,7 +1791,7 @@ function drawDashedLine(
   y2: number,
   dash: number,
   gap: number,
-  state: DashState
+  state: DashState,
 ) {
   const dx = x2 - x1;
   const dy = y2 - y1;
@@ -1792,7 +1829,7 @@ function drawDashedArc(
   endAngle: number,
   dash: number,
   gap: number,
-  state: DashState
+  state: DashState,
 ) {
   if (radius <= 0) return;
   const delta = endAngle - startAngle;
@@ -1828,7 +1865,7 @@ function drawDashedRoundedRect(
   height: number,
   radius: number,
   dash: number,
-  gap: number
+  gap: number,
 ) {
   const r = Math.max(0, Math.min(radius, width / 2, height / 2));
   const right = x + width;
@@ -1854,9 +1891,9 @@ function drawDashedRoundedRect(
 }
 
 function isSafeFavicon(url: FaviconUrl): boolean {
-  if (url.startsWith('data:') || url.startsWith('blob:')) return true;
-  if (url.startsWith('http://') || url.startsWith('https://')) return true;
-  if (url.startsWith('chrome-extension://')) {
+  if (url.startsWith("data:") || url.startsWith("blob:")) return true;
+  if (url.startsWith("http://") || url.startsWith("https://")) return true;
+  if (url.startsWith("chrome-extension://")) {
     const base = getExtensionBaseUrl();
     return base ? url.startsWith(base) : false;
   }
@@ -1943,8 +1980,8 @@ function loadFaviconTexture(url: FaviconUrl): Promise<PIXI.Texture | null> {
   if (existing) return existing;
   const promise = new Promise<PIXI.Texture | null>((resolve) => {
     const image = new Image();
-    image.decoding = 'async';
-    image.crossOrigin = 'anonymous';
+    image.decoding = "async";
+    image.crossOrigin = "anonymous";
     image.onload = () => {
       try {
         const texture = PIXI.Texture.from(image);
@@ -1969,7 +2006,7 @@ function loadFaviconTexture(url: FaviconUrl): Promise<PIXI.Texture | null> {
 function getExtensionBaseUrl(): string | null {
   try {
     if (hasRuntimeGetURL()) {
-      return runtimeGetURL('');
+      return runtimeGetURL("");
     }
   } catch {
     // ignore

@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  bootstrapSpotlight,
-  disposeSpotlightSession,
-  searchSpotlight,
-} from './rpc.js';
-import { LRUMap } from './lru-map.js';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { bootstrapSpotlight, disposeSpotlightSession, searchSpotlight } from "./rpc.js";
+import { LRUMap } from "./lru-map.js";
 import type {
   SpotlightBootstrapData,
   SpotlightGraphPreviewData,
   SpotlightSearchSessionId,
   SpotlightSection,
-} from './types.js';
+} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -25,16 +21,16 @@ const SESSION_MEMORY_TTL_MS = 3 * 60 * 1000; // 3 minutes
 // ---------------------------------------------------------------------------
 
 function isConnectionError(error: unknown): boolean {
-  const msg = (error as Error)?.message ?? '';
+  const msg = (error as Error)?.message ?? "";
   return (
-    msg.includes('Could not establish connection')
-    || msg.includes('Extension context invalidated')
-    || msg.includes('Receiving end does not exist')
+    msg.includes("Could not establish connection") ||
+    msg.includes("Extension context invalidated") ||
+    msg.includes("Receiving end does not exist")
   );
 }
 
 function isSessionExpired(error: unknown): boolean {
-  return (error as Error)?.message === 'SESSION_EXPIRED';
+  return (error as Error)?.message === "SESSION_EXPIRED";
 }
 
 function isRecoverableError(error: unknown): boolean {
@@ -67,15 +63,13 @@ type UseSpotlightSearchReturn = {
   retryBootstrap: () => void;
 };
 
-export function useSpotlightSearch(
-  options: UseSpotlightSearchOptions,
-): UseSpotlightSearchReturn {
+export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotlightSearchReturn {
   const { isOpen, drilldownScopeTreeId } = options;
 
   const [bootstrapData, setBootstrapData] = useState<SpotlightBootstrapData | null>(null);
   const [sessionId, setSessionId] = useState<SpotlightSearchSessionId | null>(null);
   const [sections, setSections] = useState<SpotlightSection[]>([]);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
@@ -88,7 +82,7 @@ export function useSpotlightSearch(
   const requestSeqRef = useRef(0);
   const previewCacheRef = useRef(new LRUMap<string, SpotlightGraphPreviewData>(16));
   const prevActiveTreeIdRef = useRef<string | null>(null);
-  const currentQueryRef = useRef('');
+  const currentQueryRef = useRef("");
   currentQueryRef.current = query;
   const sessionMemoryRef = useRef<{ query: string; savedAt: number } | null>(null);
   const memoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -121,9 +115,9 @@ export function useSpotlightSearch(
         sessionMemoryRef.current = null;
       })
       .catch((error) => {
-        console.error('Failed to bootstrap spotlight:', error);
+        console.error("Failed to bootstrap spotlight:", error);
         if (!cancelled) {
-          setSessionError('Failed to initialize spotlight');
+          setSessionError("Failed to initialize spotlight");
           setLoading(false);
         }
       });
@@ -155,7 +149,7 @@ export function useSpotlightSearch(
           await attemptRecovery();
           return;
         }
-        console.error('Failed to search spotlight:', error);
+        console.error("Failed to search spotlight:", error);
         if (!cancelled) setLoading(false);
       });
 
@@ -182,7 +176,7 @@ export function useSpotlightSearch(
       }
       // All retries exhausted
       if (!cancelled) {
-        setSessionError('All session recovery attempts failed');
+        setSessionError("All session recovery attempts failed");
         setLoading(false);
       }
     }
@@ -207,7 +201,7 @@ export function useSpotlightSearch(
       }, SESSION_MEMORY_TTL_MS);
     }
 
-    setQuery('');
+    setQuery("");
     requestSeqRef.current += 1;
 
     const activeSession = sessionId;

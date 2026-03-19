@@ -1,9 +1,9 @@
-import type { AccountConfig, Plan, PlanTier, Subscription } from '../types/account.js';
+import type { AccountConfig, Plan, PlanTier, Subscription } from "../types/account.js";
 
-const FEATURE_CONFIG_PREFIX = 'feature.';
-const FEATURE_MIN_TIER_SUFFIX = '.minTier';
+const FEATURE_CONFIG_PREFIX = "feature.";
+const FEATURE_MIN_TIER_SUFFIX = ".minTier";
 
-const DEFAULT_TIER: PlanTier = 'free';
+const DEFAULT_TIER: PlanTier = "free";
 
 function tierRank(plans: readonly Plan[], tier: PlanTier): number {
   const plan = plans.find((p) => p.tier === tier);
@@ -21,7 +21,7 @@ export function hasTierAccess(
 
 export function resolveCurrentTier(subscription: Subscription | null): PlanTier {
   const tier = subscription?.planId;
-  return typeof tier === 'string' && tier.trim() ? tier.trim() : DEFAULT_TIER;
+  return typeof tier === "string" && tier.trim() ? tier.trim() : DEFAULT_TIER;
 }
 
 export function getFeatureMinTier(
@@ -31,7 +31,7 @@ export function getFeatureMinTier(
 ): PlanTier {
   const key = `${FEATURE_CONFIG_PREFIX}${featureKey}${FEATURE_MIN_TIER_SUFFIX}`;
   const value = config[key];
-  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
 export function getFeatureAccess(params: {

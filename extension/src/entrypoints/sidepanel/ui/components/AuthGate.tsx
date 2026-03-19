@@ -1,8 +1,7 @@
-
-import TrailLogo from './TrailLogo.js';
-import { useAuthPortalFlow } from '../hooks/useAuthPortalFlow.js';
-import { useStore } from '../state/store.js';
-import { Icons } from './Icon.js';
+import TrailLogo from "./TrailLogo.js";
+import { useAuthPortalFlow } from "../hooks/useAuthPortalFlow.js";
+import { useStore } from "../state/store.js";
+import { Icons } from "./Icon.js";
 
 /**
  * Full-screen auth gate — blocks the entire extension UI when the user
@@ -22,11 +21,11 @@ export default function AuthGate() {
         <TrailLogo className="auth-gate__logo" animated label="Trail" />
 
         <h1 className="auth-gate__title">
-          {sessionExpired ? 'Session expired' : 'Sign in to start'}
+          {sessionExpired ? "Session expired" : "Sign in to start"}
         </h1>
         <p className="auth-gate__subtitle">
           {sessionExpired ? (
-            'Your session has expired. Sign in again to continue.'
+            "Your session has expired. Sign in again to continue."
           ) : (
             <>
               Trail maps your browsing into a visual tree.
@@ -53,7 +52,7 @@ export default function AuthGate() {
               Checking web session…
             </>
           ) : (
-            'Continue with Trail'
+            "Continue with Trail"
           )}
         </button>
 

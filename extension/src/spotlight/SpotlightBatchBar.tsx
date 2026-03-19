@@ -1,4 +1,8 @@
-import type { SpotlightNodeResult, SpotlightSearchResult, SpotlightBatchActionId } from './types.js';
+import type {
+  SpotlightNodeResult,
+  SpotlightSearchResult,
+  SpotlightBatchActionId,
+} from "./types.js";
 
 type BatchAction = {
   id: SpotlightBatchActionId;
@@ -13,7 +17,12 @@ type SpotlightBatchBarProps = {
   onClear: () => void;
 };
 
-export function SpotlightBatchBar({ selectedItems, activeTreeId, onExecute, onClear }: SpotlightBatchBarProps) {
+export function SpotlightBatchBar({
+  selectedItems,
+  activeTreeId,
+  onExecute,
+  onClear,
+}: SpotlightBatchBarProps) {
   const actions = buildBatchActions(selectedItems, activeTreeId);
 
   return (
@@ -43,26 +52,30 @@ export function buildBatchActions(
   items: SpotlightSearchResult[],
   activeTreeId: string | null,
 ): BatchAction[] {
-  const nodes = items.filter((i): i is SpotlightNodeResult => i.kind === 'node');
+  const nodes = items.filter((i): i is SpotlightNodeResult => i.kind === "node");
   if (nodes.length === 0) return [];
 
   const actions: BatchAction[] = [];
   const allInActiveTree = activeTreeId !== null && nodes.every((n) => n.treeId === activeTreeId);
 
-  actions.push({ id: 'batch-copy-urls', title: `Copy ${nodes.length} URLs`, destructive: false });
+  actions.push({ id: "batch-copy-urls", title: `Copy ${nodes.length} URLs`, destructive: false });
 
   if (allInActiveTree) {
     const tabNodes = nodes.filter((n) => n.tabCount > 0);
     if (tabNodes.length === nodes.length) {
-      actions.push({ id: 'batch-close-tabs', title: `Close ${tabNodes.length} tabs`, destructive: true });
+      actions.push({
+        id: "batch-close-tabs",
+        title: `Close ${tabNodes.length} tabs`,
+        destructive: true,
+      });
     }
 
     const allUnpinned = nodes.every((n) => !n.pinned);
     const allPinned = nodes.every((n) => n.pinned);
     if (allUnpinned) {
-      actions.push({ id: 'batch-pin', title: `Pin ${nodes.length}`, destructive: false });
+      actions.push({ id: "batch-pin", title: `Pin ${nodes.length}`, destructive: false });
     } else if (allPinned) {
-      actions.push({ id: 'batch-unpin', title: `Unpin ${nodes.length}`, destructive: false });
+      actions.push({ id: "batch-unpin", title: `Unpin ${nodes.length}`, destructive: false });
     }
   }
 

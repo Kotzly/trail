@@ -1,13 +1,16 @@
-import type { NodeId } from '@shared/types/ids.js';
-import type { Settings } from '@shared/types/settings.js';
-import type { TabState } from '@shared/types/tabs.js';
-import type { TreeUpdatedInput } from '@shared/rpc/contracts.js';
-import type { TagDefinition } from '@shared/types/tags.js';
-import type { NavigationTree } from '@background/state/nav-tree.js';
-import type { ConnectionQuality, GraphRenderMetrics } from '../../graph/render/GraphPixiRenderer.js';
-import type { ViewState } from '../../graph/types.js';
+import type { NodeId } from "@shared/types/ids.js";
+import type { Settings } from "@shared/types/settings.js";
+import type { TabState } from "@shared/types/tabs.js";
+import type { TreeUpdatedInput } from "@shared/rpc/contracts.js";
+import type { TagDefinition } from "@shared/types/tags.js";
+import type { NavigationTree } from "@background/state/nav-tree.js";
+import type {
+  ConnectionQuality,
+  GraphRenderMetrics,
+} from "../../graph/render/GraphPixiRenderer.js";
+import type { ViewState } from "../../graph/types.js";
 
-export type GraphTool = 'hand' | 'select';
+export type GraphTool = "hand" | "select";
 
 export type SearchState = {
   results: NodeId[];
@@ -18,12 +21,12 @@ export type SearchState = {
 
 export type ContextMenuState =
   | {
-      type: 'node';
+      type: "node";
       nodeId: NodeId;
       position: { x: number; y: number };
     }
   | {
-      type: 'bulk';
+      type: "bulk";
       nodeIds: NodeId[];
       position: { x: number; y: number };
     };
@@ -37,7 +40,7 @@ export type LayoutUpdate = {
   };
 };
 
-export type LayoutUpdateMap = Map<NodeId, LayoutUpdate['layout']>;
+export type LayoutUpdateMap = Map<NodeId, LayoutUpdate["layout"]>;
 
 export type DragNodeState = {
   nodeId: NodeId;
@@ -67,7 +70,7 @@ export type DragReparentPreview = {
 
 export type GraphCanvasProps = {
   tree: NavigationTree | null;
-  treeUpdate: { reason: TreeUpdatedInput['reason']; at: number } | null;
+  treeUpdate: { reason: TreeUpdatedInput["reason"]; at: number } | null;
   currentNodeId: NodeId | null;
   openNodeIds: Set<NodeId>;
   collapsedNodeIds: Set<NodeId>;
@@ -79,14 +82,14 @@ export type GraphCanvasProps = {
   search: SearchState;
   settings: Settings | null;
   showConnections: boolean;
-  detailMode: 'full' | 'low' | 'dot';
+  detailMode: "full" | "low" | "dot";
   connectionQuality: ConnectionQuality;
   graphView: ViewState;
   tool: GraphTool;
   selectedNodeIds: Set<NodeId>;
   hoverNodeId: NodeId | null;
   resetVersion: number;
-  viewIntent: TreeUpdatedInput['view'] | null;
+  viewIntent: TreeUpdatedInput["view"] | null;
   tagDefs: Record<string, TagDefinition>;
   onGraphToolChange: (tool: GraphTool) => void;
   onSelectedNodeIdsChange: (ids: Set<NodeId>) => void;
@@ -98,7 +101,7 @@ export type GraphCanvasProps = {
   onExpandNodes: (nodeIds: NodeId[]) => void;
   onRenderMetrics: (metrics: GraphRenderMetrics) => void;
   editorActive: boolean;
-  pickTarget: { type: 'duplicate'; sourceNodeId: NodeId } | null;
+  pickTarget: { type: "duplicate"; sourceNodeId: NodeId } | null;
   onPickTargetComplete: () => void;
   fullViewEnabled: boolean;
   recencyOrderingV2Enabled: boolean;
@@ -132,10 +135,10 @@ export type PointerInfo = {
 
 export type PointerHitTarget = {
   nodeId: NodeId;
-  target: 'node' | 'collapse-icon';
+  target: "node" | "collapse-icon";
 };
 
-export type NodeAnimationType = 'enter' | 'exit' | 'move';
+export type NodeAnimationType = "enter" | "exit" | "move";
 
 export type NodeAnimationState = {
   id: NodeId;
@@ -168,7 +171,7 @@ export type ParticleState = {
 };
 
 export type CollapseAction = {
-  kind: 'collapse' | 'expand';
+  kind: "collapse" | "expand";
   nodeIds: Set<NodeId>;
 };
 

@@ -1,26 +1,38 @@
-import { RPC_METHOD, defineRpcHandlers, ok, err, type TreeUpdatedInput, type TreesSnapshot, type TreeViewIntent } from '@shared/rpc/contracts.js';
-import { getEditorState } from './editor-handlers.js';
-import { treeStorage } from '../../services/tree-storage.js';
-import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from '../notifications.js';
-import { tabManager } from '../../state/tab-manager.js';
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
-import { CommandManager } from '@shared/lib/commands.js';
-import type { Description, FaviconUrl, NodeId, TabId, Title, Url } from '@shared/types/ids.js';
-import { NavigationTree } from '../../state/nav-tree.js';
-import { ForEacher } from '@shared/types/foreach.js';
-import { updateNodeData, updateNodeMeta, type NodeData, type NavigationNode } from '@shared/types/node.js';
-import { normalizeFaviconUrl, shouldTrackUrl } from '../../utils/url-utils.js';
-import { tempSelectionManager } from '../../services/temporary-selection.js';
-import { syncEngine } from '../../services/sync/engine.js';
-import { dirtyTracker } from '../../services/sync/dirty-tracker.js';
-import { loadTree } from '../../services/tree-loader.js';
-import { editorSyncMarkDirty } from '../../services/editor-sync.js';
-import type { TreeMeta } from '@shared/types/tree.js';
-import type { TrailExportBundle } from '@shared/types/export.js';
-import { EXPORT_SCHEMA } from '@shared/types/export.js';
-import { settingsManager } from '../../services/settings.js';
-import { saveOpenTabs, getOpenTabs, clearOpenTabs } from '../../services/tab-restoration.js';
-import { browser, type Tab } from '@shared/platform/webext.js';
+import {
+  RPC_METHOD,
+  defineRpcHandlers,
+  ok,
+  err,
+  type TreeUpdatedInput,
+  type TreesSnapshot,
+  type TreeViewIntent,
+} from "@shared/rpc/contracts.js";
+import { getEditorState } from "./editor-handlers.js";
+import { treeStorage } from "../../services/tree-storage.js";
+import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from "../notifications.js";
+import { tabManager } from "../../state/tab-manager.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import { CommandManager } from "@shared/lib/commands.js";
+import type { Description, FaviconUrl, NodeId, TabId, Title, Url } from "@shared/types/ids.js";
+import { NavigationTree } from "../../state/nav-tree.js";
+import { type ForEacher } from "@shared/types/foreach.js";
+import {
+  updateNodeData,
+  updateNodeMeta,
+  type NodeData,
+  type NavigationNode,
+} from "@shared/types/node.js";
+import { normalizeFaviconUrl, shouldTrackUrl } from "../../utils/url-utils.js";
+import { tempSelectionManager } from "../../services/temporary-selection.js";
+import { syncEngine } from "../../services/sync/engine.js";
+import { dirtyTracker } from "../../services/sync/dirty-tracker.js";
+import { loadTree } from "../../services/tree-loader.js";
+import { editorSyncMarkDirty } from "../../services/editor-sync.js";
+import type { TreeMeta, NavigationTreeJSON } from "@shared/types/tree.js";
+import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
+import { settingsManager } from "../../services/settings.js";
+import { saveOpenTabs, getOpenTabs, clearOpenTabs } from "../../services/tab-restoration.js";
+import { browser, type Tab } from "@shared/platform/webext.js";
 
 /** Mark editor sync dirty if currently in editor mode. */
 function maybeEditorDirty(): void {
@@ -39,24 +51,21 @@ function reassignTabsForRedirects(redirects: Array<{ from: NodeId; to: NodeId }>
 
 function getDeleteFocusView(
   tree: NavigationTree,
-  prevCurrentId: NodeId | null
+  prevCurrentId: NodeId | null,
 ): TreeViewIntent | undefined {
   const nextCurrentId = tree.getCurrentId();
   if (!nextCurrentId || nextCurrentId === prevCurrentId) return undefined;
-  return { focusNodeId: nextCurrentId, mode: 'force' };
+  return { focusNodeId: nextCurrentId, mode: "force" };
 }
 
 function snapshot(tree: NavigationTree, description: string): void {
-  CommandManager.saveSnapshot(
-    NavigationTreeMapper.toJSON(tree),
-    description as Description,
-  );
+  CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), description as Description);
 }
 
 function collectTabIdsForNodes(nodeIds: ForEacher<NodeId>): TabId[] {
   const tabIds: TabId[] = [];
-  nodeIds.forEach(nodeId => {
-    tabManager.tabsByNode(nodeId).forEach(tabId => tabIds.push(tabId as TabId));
+  nodeIds.forEach((nodeId) => {
+    tabManager.tabsByNode(nodeId).forEach((tabId) => tabIds.push(tabId as TabId));
   });
   return Array.from(new Set(tabIds));
 }
@@ -74,7 +83,7 @@ async function closeTabs(tabIds: TabId[], context: string): Promise<boolean> {
 
 async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
   const tabIds = collectTabIdsForNodes(nodeIds);
-  await closeTabs(tabIds, 'nodes');
+  await closeTabs(tabIds, "nodes");
 }
 
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
@@ -89,9 +98,11 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
     tree: NavigationTreeMapper.toJSON(await treeStorage.getOrCreateTree()),
     openNodeIds: openNodes,
     tabStates: await getTabStates(),
-    nodeTabCounts: Object.fromEntries(openNodes.map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)])),
+    nodeTabCounts: Object.fromEntries(
+      openNodes.map((nodeId) => [nodeId, tabManager.tabCountForNode(nodeId)]),
+    ),
     nodeRecency,
-    reason: 'sync',
+    reason: "sync",
   };
   if (editorMode.active) {
     snapshot.editorMode = editorMode;
@@ -110,7 +121,11 @@ function buildNodeDataFromTab(tab: Tab): NodeData | null {
   const urlCandidate = tab.url;
   const pendingCandidate = tab.pendingUrl;
   let rawUrl = urlCandidate || pendingCandidate;
-  if (!shouldTrackUrl(rawUrl as Url) && pendingCandidate && shouldTrackUrl(pendingCandidate as Url)) {
+  if (
+    !shouldTrackUrl(rawUrl as Url) &&
+    pendingCandidate &&
+    shouldTrackUrl(pendingCandidate as Url)
+  ) {
     rawUrl = pendingCandidate;
   }
   const url = rawUrl as Url;
@@ -166,7 +181,7 @@ async function switchTree(
     const currentMeta = await treeStorage.getActiveMeta();
     const currentTree = await treeStorage.getOrCreateTree();
     const openUrls: string[] = [];
-    tabManager.openNodes().forEach(nodeId => {
+    tabManager.openNodes().forEach((nodeId) => {
       const node = currentTree.findNodeById(nodeId);
       if (node?.data.url) openUrls.push(node.data.url);
     });
@@ -191,10 +206,8 @@ async function switchTree(
     preferredFocusNodeId !== undefined && preferredFocusNodeId !== null
       ? nextTree.findNodeById(preferredFocusNodeId)
       : null;
-  const preferredFocusUrl = preferredFocusNode?.data.url
-    ?? rootUrl
-    ?? nextTree.getRoot()?.data.url
-    ?? null;
+  const preferredFocusUrl =
+    preferredFocusNode?.data.url ?? rootUrl ?? nextTree.getRoot()?.data.url ?? null;
 
   if (savedUrls && savedUrls.length > 0) {
     let treeChanged = false;
@@ -224,7 +237,9 @@ async function switchTree(
       const fallbackUrl = preferredFocusUrl;
       let tab: Tab;
       try {
-        tab = await browser.tabs.create(fallbackUrl ? { url: fallbackUrl, active: true } : { active: true });
+        tab = await browser.tabs.create(
+          fallbackUrl ? { url: fallbackUrl, active: true } : { active: true },
+        );
       } catch {
         tab = await browser.tabs.create({});
       }
@@ -249,9 +264,11 @@ async function switchTree(
     // No saved tabs — original behaviour: open single preferred tab
     let created: Tab;
     try {
-      created = await browser.tabs.create(preferredFocusUrl ? { url: preferredFocusUrl, active: true } : { active: true });
+      created = await browser.tabs.create(
+        preferredFocusUrl ? { url: preferredFocusUrl, active: true } : { active: true },
+      );
     } catch (error) {
-      console.error('Failed to open root tab for tree switch:', error);
+      console.error("Failed to open root tab for tree switch:", error);
       created = await browser.tabs.create({});
     }
     if (preferredFocusNode) {
@@ -270,14 +287,14 @@ async function switchTree(
 
   const defaultView: TreeViewIntent = {
     fitToView: true,
-    mode: 'force' as const,
+    mode: "force" as const,
     ...(focusNodeId ? { focusNodeId } : {}),
   };
   const view = viewOverride === null ? undefined : (viewOverride ?? defaultView);
-  await notifyTreeUpdate(nextTree, 'tree-switch', view);
+  await notifyTreeUpdate(nextTree, "tree-switch", view);
   await treeStorage.flushSaveNow();
 
-  const closed = await closeTabs(tabsToClose, 'tree switch');
+  const closed = await closeTabs(tabsToClose, "tree switch");
   if (closed) {
     tabManager.clearIgnoredTabs(tabsToClose);
   }
@@ -287,19 +304,19 @@ async function switchTree(
 
 export async function openTreeAndFocusNode(treeId: string, nodeId: NodeId): Promise<void> {
   const loaded = await loadTree(treeId);
-  if (!loaded) throw new Error('Tree not found');
+  if (!loaded) throw new Error("Tree not found");
 
   const current = await treeStorage.getOrCreateTree();
   if (current.getRoot()) {
-    snapshot(current, 'Open node in tree');
+    snapshot(current, "Open node in tree");
   }
   await treeStorage.archiveActiveTree();
   const record = await treeStorage.takeArchivedTree(treeId);
-  if (!record) throw new Error('Tree not found');
+  if (!record) throw new Error("Tree not found");
 
   const nextTree = NavigationTreeMapper.fromJSON(record.tree);
   const targetNode = nextTree.findNodeById(nodeId);
-  if (!targetNode) throw new Error('Node not found');
+  if (!targetNode) throw new Error("Node not found");
 
   const meta: TreeMeta = {
     id: record.id,
@@ -326,13 +343,13 @@ export const treeHandlers = defineRpcHandlers({
   async [RPC_METHOD.CLEAR_TREE]() {
     const tree = await treeStorage.getOrCreateTree();
     if (tree.getRoot()) {
-      snapshot(tree, 'Clear history');
+      snapshot(tree, "Clear history");
     }
     tree.clear();
     treeStorage.cacheTree(tree);
 
     await closeTabsForNodes(tabManager.openNodes());
-    await notifyTreeUpdate(tree, 'tree-reset');
+    await notifyTreeUpdate(tree, "tree-reset");
     await treeStorage.flushSaveNow();
     return ok();
   },
@@ -340,7 +357,7 @@ export const treeHandlers = defineRpcHandlers({
   async [RPC_METHOD.NEW_TREE](message) {
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
-      snapshot(current, 'New tree');
+      snapshot(current, "New tree");
     }
     await treeStorage.archiveActiveTree();
     const meta = treeStorage.createMeta(message.label);
@@ -352,10 +369,10 @@ export const treeHandlers = defineRpcHandlers({
   async [RPC_METHOD.ARCHIVE_ACTIVE_TREE]() {
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
-      snapshot(current, 'Archive active tree');
+      snapshot(current, "Archive active tree");
     }
     await treeStorage.archiveActiveTree();
-    const meta = treeStorage.createMeta('Untitled Tree');
+    const meta = treeStorage.createMeta("Untitled Tree");
     const nextTree = new NavigationTree();
     await switchTree(nextTree, meta, null, null);
     return ok();
@@ -364,15 +381,15 @@ export const treeHandlers = defineRpcHandlers({
   async [RPC_METHOD.OPEN_TREE](message) {
     // Use tree-loader (handles active tree, archive blob, cloud fetch)
     const loaded = await loadTree(message.treeId);
-    if (!loaded) return err('Tree not found');
+    if (!loaded) return err("Tree not found");
 
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
-      snapshot(current, 'Open tree');
+      snapshot(current, "Open tree");
     }
     await treeStorage.archiveActiveTree();
     const record = await treeStorage.takeArchivedTree(message.treeId);
-    if (!record) return err('Tree not found');
+    if (!record) return err("Tree not found");
     const nextTree = NavigationTreeMapper.fromJSON(record.tree);
     const meta: TreeMeta = {
       id: record.id,
@@ -392,7 +409,7 @@ export const treeHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.SYNC_TREES]() {
-    await syncEngine.syncNow('manual');
+    await syncEngine.syncNow("manual");
     return ok();
   },
 
@@ -406,9 +423,9 @@ export const treeHandlers = defineRpcHandlers({
 
   async [RPC_METHOD.DELETE_ARCHIVED_TREE](message) {
     const active = await treeStorage.getActiveMeta();
-    if (active.id === message.treeId) return err('Cannot delete active tree');
+    if (active.id === message.treeId) return err("Cannot delete active tree");
     const removed = await treeStorage.deleteArchivedTree(message.treeId);
-    if (!removed) return err('Tree not found');
+    if (!removed) return err("Tree not found");
     // Queue for server-side soft-delete on next sync
     await dirtyTracker.queueDelete(message.treeId);
     await clearOpenTabs(message.treeId);
@@ -417,12 +434,12 @@ export const treeHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.EXPORT_TREE](message) {
-    let treeJSON: import('../../../shared/types/tree.js').NavigationTreeJSON;
+    let treeJSON: NavigationTreeJSON;
     let label: string;
 
     if (message.treeId) {
       const record = await treeStorage.getFullArchiveRecord(message.treeId);
-      if (!record) return err('Tree not found');
+      if (!record) return err("Tree not found");
       treeJSON = record.tree;
       label = record.label;
     } else {
@@ -438,7 +455,7 @@ export const treeHandlers = defineRpcHandlers({
       source: {
         treeId: message.treeId ?? (await treeStorage.getActiveMeta()).id,
         treeLabel: label,
-        origin: 'extension',
+        origin: "extension",
       },
       tree: treeJSON,
       meta: {
@@ -451,78 +468,78 @@ export const treeHandlers = defineRpcHandlers({
 
   async [RPC_METHOD.DELETE_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
-    if (!tree.findNodeById(message.nodeId)) return err('Node not found');
+    if (!tree.findNodeById(message.nodeId)) return err("Node not found");
     const prevCurrentId = tree.getCurrentId();
-    snapshot(tree, 'Delete node');
+    snapshot(tree, "Delete node");
     const result = tree.deleteNode(message.nodeId);
-    if (result.removed.length === 0) return err('Node not found');
-    await closeTabsForNodes(result.removed.map(node => node.id));
+    if (result.removed.length === 0) return err("Node not found");
+    await closeTabsForNodes(result.removed.map((node) => node.id));
     reassignTabsForRedirects(result.redirects);
     treeStorage.cacheTree(tree);
     maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
-    await notifyTreeUpdate(tree, 'delete', view);
+    await notifyTreeUpdate(tree, "delete", view);
     return ok();
   },
 
   async [RPC_METHOD.DELETE_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
-    if (!tree.findNodeById(message.nodeId)) return err('Node not found');
+    if (!tree.findNodeById(message.nodeId)) return err("Node not found");
     const prevCurrentId = tree.getCurrentId();
-    snapshot(tree, 'Delete children');
+    snapshot(tree, "Delete children");
     const removed = tree.deleteChildren(message.nodeId);
-    if (removed.length === 0) return err('Node not found');
-    await closeTabsForNodes(removed.map(node => node.id));
+    if (removed.length === 0) return err("Node not found");
+    await closeTabsForNodes(removed.map((node) => node.id));
     treeStorage.cacheTree(tree);
     maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
-    await notifyTreeUpdate(tree, 'delete', view);
+    await notifyTreeUpdate(tree, "delete", view);
     return ok();
   },
 
   async [RPC_METHOD.DELETE_WITH_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
-    if (!tree.findNodeById(message.nodeId)) return err('Node not found');
+    if (!tree.findNodeById(message.nodeId)) return err("Node not found");
     const prevCurrentId = tree.getCurrentId();
-    snapshot(tree, 'Delete subtree');
+    snapshot(tree, "Delete subtree");
     const removed = tree.deleteSubtree(message.nodeId);
-    if (removed.length === 0) return err('Node not found');
-    await closeTabsForNodes(removed.map(node => node.id));
+    if (removed.length === 0) return err("Node not found");
+    await closeTabsForNodes(removed.map((node) => node.id));
     treeStorage.cacheTree(tree);
     maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
-    await notifyTreeUpdate(tree, 'delete', view);
+    await notifyTreeUpdate(tree, "delete", view);
     return ok();
   },
 
   async [RPC_METHOD.BULK_DELETE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
-    snapshot(tree, 'Delete selection');
+    snapshot(tree, "Delete selection");
     const removedIds: NodeId[] = [];
 
     for (const id of message.nodeIds) {
       const removed = tree.deleteSubtree(id);
-      removedIds.push(...removed.map(node => node.id));
+      removedIds.push(...removed.map((node) => node.id));
     }
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
     maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
-    await notifyTreeUpdate(tree, 'delete', view);
+    await notifyTreeUpdate(tree, "delete", view);
     return ok();
   },
 
   async [RPC_METHOD.BULK_DELETE_NODES](message) {
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
-    snapshot(tree, 'Delete selected nodes');
+    snapshot(tree, "Delete selected nodes");
     const removedIds: NodeId[] = [];
 
     for (const id of message.nodeIds) {
       const result = tree.deleteNode(id);
-      removedIds.push(...result.removed.map(node => node.id));
+      removedIds.push(...result.removed.map((node) => node.id));
       reassignTabsForRedirects(result.redirects);
     }
 
@@ -530,14 +547,14 @@ export const treeHandlers = defineRpcHandlers({
     treeStorage.cacheTree(tree);
     maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
-    await notifyTreeUpdate(tree, 'delete', view);
+    await notifyTreeUpdate(tree, "delete", view);
     return ok();
   },
 
   async [RPC_METHOD.BULK_DELETE_RECURSIVE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const prevCurrentId = tree.getCurrentId();
-    snapshot(tree, 'Delete selected nodes recursively');
+    snapshot(tree, "Delete selected nodes recursively");
     const removedIds: NodeId[] = [];
     const selectedIds = new Set<NodeId>(message.nodeIds);
     const candidates: NodeId[] = [];
@@ -547,12 +564,12 @@ export const treeHandlers = defineRpcHandlers({
       if (!node) continue;
       if (node.isRoot()) {
         const removed = tree.deleteSubtree(id);
-        removedIds.push(...removed.map(n => n.id));
+        removedIds.push(...removed.map((n) => n.id));
         await closeTabsForNodes(removedIds);
         treeStorage.cacheTree(tree);
         maybeEditorDirty();
         const view = getDeleteFocusView(tree, prevCurrentId);
-        await notifyTreeUpdate(tree, 'delete', view);
+        await notifyTreeUpdate(tree, "delete", view);
         return ok();
       }
       candidates.push(id);
@@ -576,25 +593,25 @@ export const treeHandlers = defineRpcHandlers({
 
     for (const id of topLevelIds) {
       const removed = tree.deleteSubtree(id);
-      removedIds.push(...removed.map(node => node.id));
+      removedIds.push(...removed.map((node) => node.id));
     }
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
     maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
-    await notifyTreeUpdate(tree, 'delete', view);
+    await notifyTreeUpdate(tree, "delete", view);
     return ok();
   },
 
   async [RPC_METHOD.SET_NODE_LAYOUT](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err('Node not found');
+    if (!node) return err("Node not found");
     const existingLayout = node.data.layout ?? { offsetX: 0, offsetY: 0 };
     const nextLayout = {
-      offsetX: typeof message.offsetX === 'number' ? message.offsetX : existingLayout.offsetX,
-      offsetY: typeof message.offsetY === 'number' ? message.offsetY : existingLayout.offsetY,
+      offsetX: typeof message.offsetX === "number" ? message.offsetX : existingLayout.offsetX,
+      offsetY: typeof message.offsetY === "number" ? message.offsetY : existingLayout.offsetY,
       ...(message.radial
         ? { radial: message.radial }
         : existingLayout.radial
@@ -602,9 +619,9 @@ export const treeHandlers = defineRpcHandlers({
           : {}),
     };
     const hasChanges =
-      typeof message.offsetX === 'number' ||
-      typeof message.offsetY === 'number' ||
-      typeof message.radial !== 'undefined';
+      typeof message.offsetX === "number" ||
+      typeof message.offsetY === "number" ||
+      typeof message.radial !== "undefined";
     if (!hasChanges) return ok();
     node.data = updateNodeData(node.data, { layout: nextLayout });
     treeStorage.cacheTree(tree);
@@ -621,21 +638,17 @@ export const treeHandlers = defineRpcHandlers({
       if (!node) continue;
 
       const hasChanges =
-        typeof layoutUpdate.offsetX === 'number' ||
-        typeof layoutUpdate.offsetY === 'number' ||
-        typeof layoutUpdate.radial !== 'undefined';
+        typeof layoutUpdate.offsetX === "number" ||
+        typeof layoutUpdate.offsetY === "number" ||
+        typeof layoutUpdate.radial !== "undefined";
       if (!hasChanges) continue;
 
       const existingLayout = node.data.layout ?? { offsetX: 0, offsetY: 0 };
       const nextLayout = {
         offsetX:
-          typeof layoutUpdate.offsetX === 'number'
-            ? layoutUpdate.offsetX
-            : existingLayout.offsetX,
+          typeof layoutUpdate.offsetX === "number" ? layoutUpdate.offsetX : existingLayout.offsetX,
         offsetY:
-          typeof layoutUpdate.offsetY === 'number'
-            ? layoutUpdate.offsetY
-            : existingLayout.offsetY,
+          typeof layoutUpdate.offsetY === "number" ? layoutUpdate.offsetY : existingLayout.offsetY,
         ...(layoutUpdate.radial
           ? { radial: layoutUpdate.radial }
           : existingLayout.radial
@@ -667,7 +680,7 @@ export const treeHandlers = defineRpcHandlers({
     if (!changed) return ok();
     treeStorage.cacheTree(tree);
     maybeEditorDirty();
-    await notifyTreeUpdate(tree, 'layout');
+    await notifyTreeUpdate(tree, "layout");
     return ok();
   },
 });

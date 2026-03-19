@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
-import { sendRpcMessage } from '@shared/rpc/client.js';
-import { rpc } from '@shared/rpc/contracts.js';
+import { useCallback, useState } from "react";
+import { sendRpcMessage } from "@shared/rpc/client.js";
+import { rpc } from "@shared/rpc/contracts.js";
 
 type ExportButtonProps = {
   treeId: string;
@@ -8,7 +8,7 @@ type ExportButtonProps = {
 };
 
 function sanitizeFilename(name: string): string {
-  return name.replace(/[/\\?%*:|"<>]/g, '_').trim() || 'trail';
+  return name.replace(/[/\\?%*:|"<>]/g, "_").trim() || "trail";
 }
 
 export default function ExportButton({ treeId, label }: ExportButtonProps) {
@@ -20,15 +20,15 @@ export default function ExportButton({ treeId, label }: ExportButtonProps) {
     try {
       const response = await sendRpcMessage(rpc.exportTree({ treeId }));
       if (!response.success) {
-        console.error('Export failed:', response.error);
+        console.error("Export failed:", response.error);
         return;
       }
 
       const json = JSON.stringify(response.data);
-      const blob = new Blob([json], { type: 'application/json' });
+      const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
 
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `${sanitizeFilename(label)}.trail.json`;
       document.body.appendChild(a);
@@ -36,7 +36,7 @@ export default function ExportButton({ treeId, label }: ExportButtonProps) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Export failed:', err);
+      console.error("Export failed:", err);
     } finally {
       setExporting(false);
     }
@@ -63,7 +63,7 @@ export default function ExportButton({ treeId, label }: ExportButtonProps) {
         <polyline points="7 10 12 15 17 10" />
         <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
-      {exporting ? 'Exporting...' : 'Export JSON'}
+      {exporting ? "Exporting..." : "Export JSON"}
     </button>
   );
 }

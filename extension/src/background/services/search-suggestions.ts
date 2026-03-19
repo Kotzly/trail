@@ -1,7 +1,7 @@
 const CACHE_TTL_MS = 30_000;
 const MIN_QUERY_LENGTH = 2;
 const MAX_SUGGESTIONS = 5;
-const GOOGLE_SUGGEST_URL = 'https://www.google.com/complete/search?client=chrome&q=';
+const GOOGLE_SUGGEST_URL = "https://www.google.com/complete/search?client=chrome&q=";
 
 type CacheEntry = {
   readonly suggestions: readonly string[];
@@ -44,7 +44,7 @@ export async function fetchSearchSuggestions(query: string): Promise<readonly st
 
     const raw: unknown[] = data[1];
     const suggestions = raw
-      .filter((item): item is string => typeof item === 'string')
+      .filter((item): item is string => typeof item === "string")
       .slice(0, MAX_SUGGESTIONS);
 
     cache.set(query, { suggestions, timestamp: now });
@@ -55,7 +55,7 @@ export async function fetchSearchSuggestions(query: string): Promise<readonly st
 
     return suggestions;
   } catch (e) {
-    console.warn('[search-suggestions] Fetch failed:', String(e));
+    console.warn("[search-suggestions] Fetch failed:", String(e));
     return [];
   }
 }

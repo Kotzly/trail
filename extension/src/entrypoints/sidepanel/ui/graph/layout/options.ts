@@ -1,13 +1,13 @@
-import type { Settings } from '@shared/types/settings.js';
-import { DEFAULT_LAYOUT_SETTINGS } from '@shared/layout/defaults.js';
-import type { LayoutConfig, RadialLayoutConfig } from '../types.js';
-import { HORIZONTAL_GAP, NODE_HEIGHT, NODE_WIDTH, VERTICAL_GAP } from './config.js';
+import type { Settings } from "@shared/types/settings.js";
+import { DEFAULT_LAYOUT_SETTINGS } from "@shared/layout/defaults.js";
+import type { LayoutConfig, RadialLayoutConfig } from "../types.js";
+import { HORIZONTAL_GAP, NODE_HEIGHT, NODE_WIDTH, VERTICAL_GAP } from "./config.js";
 
 const clamp = (value: number, min: number, max: number): number =>
   Number.isFinite(value) ? Math.min(Math.max(value, min), max) : min;
 
 type LayoutOptions = {
-  mode: Settings['layout']['mode'];
+  mode: Settings["layout"]["mode"];
   tree: LayoutConfig;
   mindmap: LayoutConfig;
   radial: RadialLayoutConfig;
@@ -15,8 +15,8 @@ type LayoutOptions = {
 
 export function deriveLayoutOptions(settings: Settings | null | undefined): LayoutOptions {
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
-  const density = settings?.graphDensity ?? 'comfortable';
-  const densityScale = density === 'compact' ? 0.9 : density === 'spacious' ? 1.1 : 1;
+  const density = settings?.graphDensity ?? "comfortable";
+  const densityScale = density === "compact" ? 0.9 : density === "spacious" ? 1.1 : 1;
 
   const treeSettings = layout.tree ?? DEFAULT_LAYOUT_SETTINGS.tree;
   const mindmapSettings = layout.mindmap ?? DEFAULT_LAYOUT_SETTINGS.mindmap;

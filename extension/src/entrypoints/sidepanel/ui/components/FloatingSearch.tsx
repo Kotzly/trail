@@ -1,10 +1,9 @@
-import type { RefObject } from 'react';
-import React, { useEffect, useState } from 'react';
-import type { NodeId } from '@shared/types/ids.js';
-import { useSearch } from '../hooks/useSearch.js';
-import { useStore } from '../state/store.js';
-import { Icons } from './Icon.js';
-import SearchResultsList from './SearchResultsList.js';
+import React, { useEffect, useState, type RefObject } from "react";
+import type { NodeId } from "@shared/types/ids.js";
+import { useSearch } from "../hooks/useSearch.js";
+import { useStore } from "../state/store.js";
+import { Icons } from "./Icon.js";
+import SearchResultsList from "./SearchResultsList.js";
 
 type FloatingSearchProps = {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -13,21 +12,16 @@ type FloatingSearchProps = {
 
 export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingSearchProps) {
   const metaKey = useStore((state) => state.metaKey);
-  const {
-    search,
-    performSearch,
-    clearSearch,
-    nextResult,
-    prevResult,
-    selectResult,
-  } = useSearch();
+  const { search, performSearch, clearSearch, nextResult, prevResult, selectResult } = useSearch();
   const tree = useStore((state) => state.tree);
   const [draft, setDraft] = useState(search.query);
   const [listOpen, setListOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const hasQuery = search.query.length > 0;
   const expanded = hasQuery || focused;
-  const searchShortcut = metaKey ? `${metaKey.short}+F / ${metaKey.short}+K / /` : 'Ctrl+F / Ctrl+K / /';
+  const searchShortcut = metaKey
+    ? `${metaKey.short}+F / ${metaKey.short}+K / /`
+    : "Ctrl+F / Ctrl+K / /";
   const searchTooltip = `Search (${searchShortcut})`;
 
   useEffect(() => {
@@ -45,7 +39,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
   }, [draft, performSearch, search.query]);
 
   const handleClear = (shouldFocus = true) => {
-    setDraft('');
+    setDraft("");
     setListOpen(false);
     clearSearch();
     if (shouldFocus) {
@@ -92,7 +86,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
 
   return (
     <div
-      className={`floating-search${expanded ? ' expanded' : ''}${hasQuery ? ' has-query' : ''}${listOpen ? ' list-open' : ''}`}
+      className={`floating-search${expanded ? "expanded" : ""}${hasQuery ? "has-query" : ""}${listOpen ? "list-open" : ""}`}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(event) => {
         const nextTarget = event.relatedTarget as Node | null;
@@ -101,7 +95,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
         }
       }}
       onKeyDown={(event) => {
-        if (event.key === 'Escape') {
+        if (event.key === "Escape") {
           event.preventDefault();
           handleCollapse();
         }
@@ -117,7 +111,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter') {
+              if (event.key === "Enter") {
                 event.preventDefault();
                 nextResult();
               }
@@ -150,12 +144,12 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
             <div className="floating-search-results">
               <span className="floating-search-count">
                 {search.results.length === 0
-                  ? 'No matches'
+                  ? "No matches"
                   : `${search.index + 1} of ${search.results.length}`}
               </span>
               <div className="floating-search-nav">
                 <button
-                  className={`floating-search-nav-btn${listOpen ? ' is-active' : ''}`}
+                  className={`floating-search-nav-btn${listOpen ? "is-active" : ""}`}
                   type="button"
                   aria-label="Results list"
                   data-tooltip="Results list"

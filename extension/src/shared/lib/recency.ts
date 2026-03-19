@@ -1,5 +1,5 @@
-import type { NodeId } from '../types/ids.js';
-import type { NavigationNode } from '../types/node.js';
+import type { NodeId } from "../types/ids.js";
+import type { NavigationNode } from "../types/node.js";
 
 // ---------------------------------------------------------------------------
 // Scoring constants
@@ -20,14 +20,11 @@ export const SCORE_RECENCY_DECAY_MS = 2 * 60 * 60 * 1000; // 2 hours
  * Compute a combined score from visit count and recency.
  * Frequency dominates for stability; recency gives a gentle nudge.
  */
-export function computeNodeScore(
-  visitCount: number,
-  lastVisitedAt: number,
-  now: number,
-): number {
+export function computeNodeScore(visitCount: number, lastVisitedAt: number, now: number): number {
   const freqScore = Math.log2(1 + visitCount) * SCORE_FREQ_WEIGHT;
   const age = now - lastVisitedAt;
-  const recencyBonus = age <= 0 ? 1 : age >= SCORE_RECENCY_DECAY_MS ? 0 : 1 - age / SCORE_RECENCY_DECAY_MS;
+  const recencyBonus =
+    age <= 0 ? 1 : age >= SCORE_RECENCY_DECAY_MS ? 0 : 1 - age / SCORE_RECENCY_DECAY_MS;
   return freqScore + recencyBonus * SCORE_RECENCY_WEIGHT;
 }
 
@@ -71,10 +68,7 @@ export const computeSubtreeRecency = computeSubtreeScores;
  * Balanced center-weighted ordering using subtree spans as weights.
  * Only used for initial placement when there's no previous order to preserve.
  */
-function balancedCenterOrder<T>(
-  items: T[],
-  getSpan: (item: T) => number,
-): T[] {
+function balancedCenterOrder<T>(items: T[], getSpan: (item: T) => number): T[] {
   const len = items.length;
   if (len <= 2) return items;
 

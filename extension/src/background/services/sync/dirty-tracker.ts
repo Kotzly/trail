@@ -6,7 +6,7 @@
  * and which trees need to be deleted on the server.
  */
 
-import { syncStateItem, type SyncState } from '@shared/config/storage-items.js';
+import { syncStateItem, type SyncState } from "@shared/config/storage-items.js";
 
 const DEFAULT_STATE: SyncState = {
   serverSyncAt: null,
@@ -19,11 +19,15 @@ let cached: SyncState | null = null;
 async function load(): Promise<SyncState> {
   if (cached) return cached;
   const raw = await syncStateItem.getValue();
-  if (raw && typeof raw === 'object') {
+  if (raw && typeof raw === "object") {
     cached = {
-      serverSyncAt: typeof raw.serverSyncAt === 'string' ? raw.serverSyncAt : null,
-      dirtyIds: Array.isArray(raw.dirtyIds) ? raw.dirtyIds.filter((id) => typeof id === 'string') : [],
-      pendingDeletes: Array.isArray(raw.pendingDeletes) ? raw.pendingDeletes.filter((id) => typeof id === 'string') : [],
+      serverSyncAt: typeof raw.serverSyncAt === "string" ? raw.serverSyncAt : null,
+      dirtyIds: Array.isArray(raw.dirtyIds)
+        ? raw.dirtyIds.filter((id) => typeof id === "string")
+        : [],
+      pendingDeletes: Array.isArray(raw.pendingDeletes)
+        ? raw.pendingDeletes.filter((id) => typeof id === "string")
+        : [],
     };
     return cached;
   }

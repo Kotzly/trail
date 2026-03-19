@@ -1,10 +1,9 @@
-import { useStore } from '../state/store.js';
-
+import { useStore } from "../state/store.js";
 
 export default function TabInfo() {
   const nodeTabCounts = useStore((state) => state.nodeTabCounts);
   const total = Object.values(nodeTabCounts).reduce((sum, count) => sum + count, 0);
-  const label = total === 1 ? '1 tab' : `${total} tabs`;
+  const label = total === 1 ? "1 tab" : `${total} tabs`;
 
   return (
     <div className="tab-info" id="tabInfo">

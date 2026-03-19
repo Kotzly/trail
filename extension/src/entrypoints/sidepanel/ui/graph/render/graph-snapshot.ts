@@ -1,6 +1,6 @@
-import type { NodeId } from '@shared/types/ids.js';
-import type { NodeRenderModel, ConnectionSegment } from './types.js';
-import type { LayoutMode, NodePosition } from '../types.js';
+import type { NodeId } from "@shared/types/ids.js";
+import type { NodeRenderModel, ConnectionSegment } from "./types.js";
+import type { LayoutMode, NodePosition } from "../types.js";
 
 export type GraphSnapshot = {
   readonly version: number;
@@ -19,10 +19,7 @@ export type SnapshotDiff = {
   readonly moved: readonly NodeRenderModel[];
 };
 
-export function diffSnapshots(
-  prev: GraphSnapshot,
-  next: GraphSnapshot,
-): SnapshotDiff {
+export function diffSnapshots(prev: GraphSnapshot, next: GraphSnapshot): SnapshotDiff {
   const prevById = new Map<NodeId, NodeRenderModel>();
   for (const node of prev.nodes) prevById.set(node.id, node);
 

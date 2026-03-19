@@ -50,7 +50,7 @@
 }
 
 .graph-wrapper::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -66,13 +66,14 @@
 }
 
 .graph-wrapper::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: var(--trail-grain-opacity, 0);
   background-image: var(--trail-grain-image);
-  background-size: var(--graph-grain-size, var(--trail-grain-size, 220px 220px)) var(--graph-grain-size, var(--trail-grain-size, 220px 220px));
+  background-size: var(--graph-grain-size, var(--trail-grain-size, 220px 220px))
+    var(--graph-grain-size, var(--trail-grain-size, 220px 220px));
   background-position: var(--graph-grain-offset-x, 0px) var(--graph-grain-offset-y, 0px);
   mix-blend-mode: var(--trail-grain-blend-mode, overlay);
   z-index: 1;
@@ -115,7 +116,10 @@
   -webkit-backdrop-filter: var(--glass-blur);
   color: var(--glass-ink-muted);
   cursor: pointer;
-  transition: all 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    all 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .graph-control-btn:hover {
@@ -134,8 +138,6 @@
   width: 18px;
   height: 18px;
 }
-
-
 
 .graph-zoom-divider {
   height: 1px;
@@ -179,7 +181,9 @@
   font-size: 12px;
   padding: 2px 6px;
   border-radius: 4px;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .graph-pick-hint button:hover {

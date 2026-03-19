@@ -1,14 +1,14 @@
-import type { NavigationTree } from '@background/state/nav-tree.js';
-import type { Tag } from '@shared/types/ids.js';
-import type { NavigationNode } from '@shared/types/node.js';
+import type { NavigationTree } from "@background/state/nav-tree.js";
+import type { Tag } from "@shared/types/ids.js";
+import type { NavigationNode } from "@shared/types/node.js";
 
 export type TagCounts = Map<Tag, number>;
 
 function sortNodes(a: NavigationNode, b: NavigationNode): number {
   const delta = Number(b.timestamp) - Number(a.timestamp);
   if (delta !== 0) return delta;
-  const aTitle = a.data.title ?? '';
-  const bTitle = b.data.title ?? '';
+  const aTitle = a.data.title ?? "";
+  const bTitle = b.data.title ?? "";
   return aTitle.localeCompare(bTitle);
 }
 

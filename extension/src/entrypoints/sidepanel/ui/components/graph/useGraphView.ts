@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
-import type { RefObject } from 'react';
-import type { NodeId } from '@shared/types/ids.js';
-import type { CanvasBounds, LayoutMode, NodePosition, ViewState } from '../../graph/types.js';
-import { PADDING, NODE_WIDTH, NODE_HEIGHT, HORIZONTAL_GAP, VERTICAL_GAP } from '../../graph/layout/config.js';
-import { getAnimationProgress, lerp } from '../../graph/animation-utils.js';
-import { computeGraphGridTransform } from './grid-transform.js';
-import type { GraphPixiRenderer } from '../../graph/render/GraphPixiRenderer.js';
+import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import type { NodeId } from "@shared/types/ids.js";
+import type { CanvasBounds, LayoutMode, NodePosition, ViewState } from "../../graph/types.js";
+import {
+  PADDING,
+  NODE_WIDTH,
+  NODE_HEIGHT,
+  HORIZONTAL_GAP,
+  VERTICAL_GAP,
+} from "../../graph/layout/config.js";
+import { getAnimationProgress, lerp } from "../../graph/animation-utils.js";
+import { computeGraphGridTransform } from "./grid-transform.js";
+import type { GraphPixiRenderer } from "../../graph/render/GraphPixiRenderer.js";
 
 type UseGraphViewParams = {
   graphView: ViewState;
@@ -20,7 +25,13 @@ type UseGraphViewParams = {
   nodeRecency: Record<string, number>;
   currentNodeId: NodeId | null;
   root: { id: NodeId } | null;
-  viewIntent: { mode?: string; intentId?: number; fitToView?: boolean; focusNodeId?: NodeId; restoreView?: ViewState } | null;
+  viewIntent: {
+    mode?: string;
+    intentId?: number;
+    fitToView?: boolean;
+    focusNodeId?: NodeId;
+    restoreView?: ViewState;
+  } | null;
   onClearViewIntent: () => void;
   isDraggingNode: boolean;
   searchActive: boolean;
@@ -71,8 +82,13 @@ export function useGraphView({
   const pendingIsGestureRef = useRef(false);
   const onGestureActiveChangeRef = useRef(onGestureActiveChange);
   const gridVarsRef = useRef({
-    size: '', dotSize: '', offsetX: '', offsetY: '',
-    grainSize: '', grainOffsetX: '', grainOffsetY: '',
+    size: "",
+    dotSize: "",
+    offsetX: "",
+    offsetY: "",
+    grainSize: "",
+    grainOffsetX: "",
+    grainOffsetY: "",
   });
   const lastResetRef = useRef(0);
   const lastViewIntentRef = useRef<number | null>(null);
@@ -106,21 +122,30 @@ export function useGraphView({
     const grainOffsetYValue = `${grid.grainOffsetY.toFixed(3)}px`;
     const prev = gridVarsRef.current;
     if (
-      prev.size === sizeValue && prev.dotSize === dotValue &&
-      prev.offsetX === offsetXValue && prev.offsetY === offsetYValue &&
-      prev.grainSize === grainSizeValue && prev.grainOffsetX === grainOffsetXValue &&
+      prev.size === sizeValue &&
+      prev.dotSize === dotValue &&
+      prev.offsetX === offsetXValue &&
+      prev.offsetY === offsetYValue &&
+      prev.grainSize === grainSizeValue &&
+      prev.grainOffsetX === grainOffsetXValue &&
       prev.grainOffsetY === grainOffsetYValue
-    ) return;
-    wrapper.style.setProperty('--graph-grid-size', sizeValue);
-    wrapper.style.setProperty('--graph-grid-dot-size', dotValue);
-    wrapper.style.setProperty('--graph-grid-offset-x', offsetXValue);
-    wrapper.style.setProperty('--graph-grid-offset-y', offsetYValue);
-    wrapper.style.setProperty('--graph-grain-size', grainSizeValue);
-    wrapper.style.setProperty('--graph-grain-offset-x', grainOffsetXValue);
-    wrapper.style.setProperty('--graph-grain-offset-y', grainOffsetYValue);
+    )
+      return;
+    wrapper.style.setProperty("--graph-grid-size", sizeValue);
+    wrapper.style.setProperty("--graph-grid-dot-size", dotValue);
+    wrapper.style.setProperty("--graph-grid-offset-x", offsetXValue);
+    wrapper.style.setProperty("--graph-grid-offset-y", offsetYValue);
+    wrapper.style.setProperty("--graph-grain-size", grainSizeValue);
+    wrapper.style.setProperty("--graph-grain-offset-x", grainOffsetXValue);
+    wrapper.style.setProperty("--graph-grain-offset-y", grainOffsetYValue);
     gridVarsRef.current = {
-      size: sizeValue, dotSize: dotValue, offsetX: offsetXValue, offsetY: offsetYValue,
-      grainSize: grainSizeValue, grainOffsetX: grainOffsetXValue, grainOffsetY: grainOffsetYValue,
+      size: sizeValue,
+      dotSize: dotValue,
+      offsetX: offsetXValue,
+      offsetY: offsetYValue,
+      grainSize: grainSizeValue,
+      grainOffsetX: grainOffsetXValue,
+      grainOffsetY: grainOffsetYValue,
     };
   }, []);
 
@@ -206,7 +231,15 @@ export function useGraphView({
         }
       });
     },
-    [absorbDriftOffset, applyGridTransform, commitViewToStore, onGraphViewChange, rendererRef, scheduleGestureIdle, setGestureActiveState],
+    [
+      absorbDriftOffset,
+      applyGridTransform,
+      commitViewToStore,
+      onGraphViewChange,
+      rendererRef,
+      scheduleGestureIdle,
+      setGestureActiveState,
+    ],
   );
 
   // Commit view on pointerUp (pan end) -- call from GraphCanvas
@@ -313,10 +346,7 @@ export function useGraphView({
     const treeWidth = bounds.maxX - bounds.minX + PADDING * 2;
     const treeHeight = bounds.maxY - bounds.minY + PADDING * 2;
     if (treeWidth <= 0 || treeHeight <= 0) return null;
-    const scaleToFit = Math.min(
-      (rect.width * 0.9) / treeWidth,
-      (rect.height * 0.9) / treeHeight,
-    );
+    const scaleToFit = Math.min((rect.width * 0.9) / treeWidth, (rect.height * 0.9) / treeHeight);
     let scale: number;
     if (compactInitialView) {
       const targetViewportX = 12 * (NODE_WIDTH + HORIZONTAL_GAP);
@@ -361,10 +391,7 @@ export function useGraphView({
     const treeWidth = bounds.maxX - bounds.minX + PADDING * 2;
     const treeHeight = bounds.maxY - bounds.minY + PADDING * 2;
     if (treeWidth <= 0 || treeHeight <= 0) return null;
-    const scaleToFit = Math.min(
-      (rect.width * 0.9) / treeWidth,
-      (rect.height * 0.9) / treeHeight,
-    );
+    const scaleToFit = Math.min((rect.width * 0.9) / treeWidth, (rect.height * 0.9) / treeHeight);
     const targetViewportX = 12 * (NODE_WIDTH + HORIZONTAL_GAP);
     const targetViewportY = 18 * (NODE_HEIGHT + VERTICAL_GAP);
     const minScale = Math.max(rect.width / targetViewportX, rect.height / targetViewportY);
@@ -373,37 +400,59 @@ export function useGraphView({
     const translateX = rect.width / 2 - centroidX * scale;
     const translateY = rect.height / 2 - centroidY * scale;
     return { translateX, translateY, scale };
-  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY, nodeHeight, nodeRecency, nodeWidth, positions]);
+  }, [
+    bounds.maxX,
+    bounds.maxY,
+    bounds.minX,
+    bounds.minY,
+    nodeHeight,
+    nodeRecency,
+    nodeWidth,
+    positions,
+  ]);
 
-  const fitToView = useCallback((animate = false) => {
-    const fitView = getFitToViewView();
-    if (!fitView) return;
-    if (animate) {
-      animateViewTo(fitView, 300);
-    } else {
-      cancelViewAnimation();
-      viewRef.current = fitView;
-      onGraphViewChange(fitView);
-      rendererRef.current?.setView(fitView);
-      applyGridTransform(fitView);
-      driftOffsetRef.current = { x: 0, y: 0 };
-      driftStartRef.current = performance.now();
-    }
-  }, [animateViewTo, applyGridTransform, cancelViewAnimation, getFitToViewView, onGraphViewChange, rendererRef]);
+  const fitToView = useCallback(
+    (animate = false) => {
+      const fitView = getFitToViewView();
+      if (!fitView) return;
+      if (animate) {
+        animateViewTo(fitView, 300);
+      } else {
+        cancelViewAnimation();
+        viewRef.current = fitView;
+        onGraphViewChange(fitView);
+        rendererRef.current?.setView(fitView);
+        applyGridTransform(fitView);
+        driftOffsetRef.current = { x: 0, y: 0 };
+        driftStartRef.current = performance.now();
+      }
+    },
+    [
+      animateViewTo,
+      applyGridTransform,
+      cancelViewAnimation,
+      getFitToViewView,
+      onGraphViewChange,
+      rendererRef,
+    ],
+  );
 
-  const getCenteredView = useCallback((nodeId: NodeId) => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return null;
-    const pos = positions.get(nodeId);
-    if (!pos) return null;
-    const rect = wrapper.getBoundingClientRect();
-    const scale = viewRef.current.scale;
-    const nodeCenterX = pos.x + nodeWidth / 2;
-    const nodeCenterY = pos.y + nodeHeight / 2;
-    const translateX = rect.width / 2 - nodeCenterX * scale;
-    const translateY = rect.height / 2 - nodeCenterY * scale;
-    return { translateX, translateY, scale };
-  }, [nodeHeight, nodeWidth, positions]);
+  const getCenteredView = useCallback(
+    (nodeId: NodeId) => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return null;
+      const pos = positions.get(nodeId);
+      if (!pos) return null;
+      const rect = wrapper.getBoundingClientRect();
+      const scale = viewRef.current.scale;
+      const nodeCenterX = pos.x + nodeWidth / 2;
+      const nodeCenterY = pos.y + nodeHeight / 2;
+      const translateX = rect.width / 2 - nodeCenterX * scale;
+      const translateY = rect.height / 2 - nodeCenterY * scale;
+      return { translateX, translateY, scale };
+    },
+    [nodeHeight, nodeWidth, positions],
+  );
 
   const isViewClose = (
     a: { translateX: number; translateY: number; scale: number },
@@ -416,22 +465,32 @@ export function useGraphView({
     );
   };
 
-  const centerOnNode = useCallback((nodeId: NodeId, animate = true): boolean => {
-    const nextView = getCenteredView(nodeId);
-    if (!nextView) return false;
-    if (animate) {
-      animateViewTo(nextView, 300);
-    } else {
-      cancelViewAnimation();
-      viewRef.current = nextView;
-      onGraphViewChange(nextView);
-      rendererRef.current?.setView(nextView);
-      applyGridTransform(nextView);
-      driftOffsetRef.current = { x: 0, y: 0 };
-      driftStartRef.current = performance.now();
-    }
-    return true;
-  }, [animateViewTo, applyGridTransform, cancelViewAnimation, getCenteredView, onGraphViewChange, rendererRef]);
+  const centerOnNode = useCallback(
+    (nodeId: NodeId, animate = true): boolean => {
+      const nextView = getCenteredView(nodeId);
+      if (!nextView) return false;
+      if (animate) {
+        animateViewTo(nextView, 300);
+      } else {
+        cancelViewAnimation();
+        viewRef.current = nextView;
+        onGraphViewChange(nextView);
+        rendererRef.current?.setView(nextView);
+        applyGridTransform(nextView);
+        driftOffsetRef.current = { x: 0, y: 0 };
+        driftStartRef.current = performance.now();
+      }
+      return true;
+    },
+    [
+      animateViewTo,
+      applyGridTransform,
+      cancelViewAnimation,
+      getCenteredView,
+      onGraphViewChange,
+      rendererRef,
+    ],
+  );
 
   const getScaleToFitEntireTree = useCallback(() => {
     const wrapper = wrapperRef.current;
@@ -472,38 +531,68 @@ export function useGraphView({
     [animateViewTo, computeZoomView, scheduleGraphView],
   );
 
-  const zoom = useCallback((direction: 'in' | 'out' | 'reset', animate = false) => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    if (direction === 'reset') {
-      // Reset zoom logic
-      const nodeId = currentNodeId;
-      if (!nodeId) { resetStepRef.current = null; fitToView(animate); return; }
-      const nextView = getCenteredView(nodeId);
-      if (!nextView) { resetStepRef.current = null; fitToView(animate); return; }
-      const snapshot = resetStepRef.current;
-      if (snapshot && snapshot.nodeId === nodeId && isViewClose(viewRef.current, snapshot.view)) {
-        resetStepRef.current = null; fitToView(animate); return;
+  const zoom = useCallback(
+    (direction: "in" | "out" | "reset", animate = false) => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      if (direction === "reset") {
+        // Reset zoom logic
+        const nodeId = currentNodeId;
+        if (!nodeId) {
+          resetStepRef.current = null;
+          fitToView(animate);
+          return;
+        }
+        const nextView = getCenteredView(nodeId);
+        if (!nextView) {
+          resetStepRef.current = null;
+          fitToView(animate);
+          return;
+        }
+        const snapshot = resetStepRef.current;
+        if (snapshot && snapshot.nodeId === nodeId && isViewClose(viewRef.current, snapshot.view)) {
+          resetStepRef.current = null;
+          fitToView(animate);
+          return;
+        }
+        if (animate) {
+          animateViewTo(nextView, 300);
+        } else {
+          cancelViewAnimation();
+          viewRef.current = nextView;
+          onGraphViewChange(nextView);
+          rendererRef.current?.setView(nextView);
+          applyGridTransform(nextView);
+        }
+        resetStepRef.current = { nodeId, view: nextView };
+        return;
       }
-      if (animate) { animateViewTo(nextView, 300); }
-      else {
-        cancelViewAnimation(); viewRef.current = nextView;
-        onGraphViewChange(nextView); rendererRef.current?.setView(nextView); applyGridTransform(nextView);
-      }
-      resetStepRef.current = { nodeId, view: nextView };
-      return;
-    }
-    const rect = wrapper.getBoundingClientRect();
-    const pointerX = rect.width / 2;
-    const pointerY = rect.height / 2;
-    const scaleFactor = direction === 'in' ? 1.25 : 0.8;
-    zoomAt(pointerX, pointerY, scaleFactor, animate);
-  }, [animateViewTo, applyGridTransform, cancelViewAnimation, currentNodeId, fitToView, getCenteredView, onGraphViewChange, rendererRef, zoomAt]);
+      const rect = wrapper.getBoundingClientRect();
+      const pointerX = rect.width / 2;
+      const pointerY = rect.height / 2;
+      const scaleFactor = direction === "in" ? 1.25 : 0.8;
+      zoomAt(pointerX, pointerY, scaleFactor, animate);
+    },
+    [
+      animateViewTo,
+      applyGridTransform,
+      cancelViewAnimation,
+      currentNodeId,
+      fitToView,
+      getCenteredView,
+      onGraphViewChange,
+      rendererRef,
+      zoomAt,
+    ],
+  );
 
   // Center on node when layout mode changes
   useLayoutEffect(() => {
     if (!root) return;
-    if (lastLayoutModeRef.current === null) { lastLayoutModeRef.current = layoutMode; return; }
+    if (lastLayoutModeRef.current === null) {
+      lastLayoutModeRef.current = layoutMode;
+      return;
+    }
     if (lastLayoutModeRef.current === layoutMode) return;
     const targetId = currentNodeId ?? root.id;
     if (targetId === null || targetId === undefined) return;
@@ -521,7 +610,11 @@ export function useGraphView({
         const fitView = getFitToViewView();
         const centered = getCenteredView(initialCenterNodeId);
         if (fitView && centered) {
-          const view = { translateX: centered.translateX, translateY: centered.translateY, scale: fitView.scale };
+          const view = {
+            translateX: centered.translateX,
+            translateY: centered.translateY,
+            scale: fitView.scale,
+          };
           cancelViewAnimation();
           viewRef.current = view;
           onGraphViewChange(view);
@@ -547,7 +640,22 @@ export function useGraphView({
     if (compactInitialView) {
       driftStartRef.current = performance.now();
     }
-  }, [bounds.height, bounds.width, fitToView, root, compactInitialView, initialCenterNodeId, getRecencyCentroidView, getCenteredView, getFitToViewView, cancelViewAnimation, onGraphViewChange, rendererRef, applyGridTransform, positions]);
+  }, [
+    bounds.height,
+    bounds.width,
+    fitToView,
+    root,
+    compactInitialView,
+    initialCenterNodeId,
+    getRecencyCentroidView,
+    getCenteredView,
+    getFitToViewView,
+    cancelViewAnimation,
+    onGraphViewChange,
+    rendererRef,
+    applyGridTransform,
+    positions,
+  ]);
 
   // Lissajous drift — visual-only offset layer (newtab only).
   // NEVER writes to viewRef — only shifts the rendered view.
@@ -561,7 +669,7 @@ export function useGraphView({
   // View intent handling
   useLayoutEffect(() => {
     if (!viewIntent) return;
-    if (viewIntent.mode === 'soft' && (isDraggingNode || isPanningRef.current)) return;
+    if (viewIntent.mode === "soft" && (isDraggingNode || isPanningRef.current)) return;
     const intentId = viewIntent.intentId ?? 0;
     if (intentId !== 0 && lastViewIntentRef.current === intentId) return;
     if (viewIntent.restoreView) {
@@ -589,7 +697,19 @@ export function useGraphView({
       centerOnNode(viewIntent.focusNodeId, false);
       onClearViewIntent();
     }
-  }, [applyGridTransform, cancelViewAnimation, centerOnNode, fitToView, isDraggingNode, isPanningRef, onClearViewIntent, onGraphViewChange, positions, rendererRef, viewIntent]);
+  }, [
+    applyGridTransform,
+    cancelViewAnimation,
+    centerOnNode,
+    fitToView,
+    isDraggingNode,
+    isPanningRef,
+    onClearViewIntent,
+    onGraphViewChange,
+    positions,
+    rendererRef,
+    viewIntent,
+  ]);
 
   // Reset version handling
   useEffect(() => {
@@ -618,7 +738,17 @@ export function useGraphView({
     prevSearchFocusRef.current = focusedSearchId;
     lastSearchNavStepRef.current = searchNavStep;
     centerOnNode(focusedSearchId, true);
-  }, [centerOnNode, focusedSearchId, isDraggingNode, isPanningRef, isSelectingRef, root, searchActive, searchNavStep, positions]);
+  }, [
+    centerOnNode,
+    focusedSearchId,
+    isDraggingNode,
+    isPanningRef,
+    isSelectingRef,
+    root,
+    searchActive,
+    searchNavStep,
+    positions,
+  ]);
 
   return {
     wrapperRef,

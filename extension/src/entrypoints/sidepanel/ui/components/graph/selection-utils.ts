@@ -1,6 +1,6 @@
-import type { NodeId } from '@shared/types/ids.js';
+import type { NodeId } from "@shared/types/ids.js";
 
-export type SelectionMode = 'replace' | 'add' | 'remove';
+export type SelectionMode = "replace" | "add" | "remove";
 type NodeIdLookup = { has(id: NodeId): boolean };
 
 export function buildPreviewSelection(
@@ -9,8 +9,8 @@ export function buildPreviewSelection(
   mode: SelectionMode,
   activeIds: NodeIdLookup,
 ): Set<NodeId> {
-  const preview = mode === 'replace' ? new Set<NodeId>() : new Set<NodeId>(base);
-  if (mode === 'remove') {
+  const preview = mode === "replace" ? new Set<NodeId>() : new Set<NodeId>(base);
+  if (mode === "remove") {
     hits.forEach((id) => {
       if (!activeIds.has(id)) return;
       preview.delete(id);
@@ -24,7 +24,10 @@ export function buildPreviewSelection(
   return preview;
 }
 
-export function diffSelection(prev: ReadonlySet<NodeId>, next: ReadonlySet<NodeId>): {
+export function diffSelection(
+  prev: ReadonlySet<NodeId>,
+  next: ReadonlySet<NodeId>,
+): {
   added: Set<NodeId>;
   removed: Set<NodeId>;
   changedCount: number;

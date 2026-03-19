@@ -1,7 +1,7 @@
-import type { NodeId } from '@shared/types/ids.js';
-import type { NavigationNode } from '@shared/types/node.js';
-import type { LayoutMode, NodePosition } from '../../graph/types.js';
-import type { ConnectionSegment } from '../../graph/render/types.js';
+import type { NodeId } from "@shared/types/ids.js";
+import type { NavigationNode } from "@shared/types/node.js";
+import type { LayoutMode, NodePosition } from "../../graph/types.js";
+import type { ConnectionSegment } from "../../graph/render/types.js";
 
 export function getPathToNode(root: NavigationNode, targetId: NodeId): Set<NodeId> {
   const path = new Set<NodeId>();
@@ -36,7 +36,7 @@ function orthogonalSegment(
     cp2,
     end,
     onPath,
-    style: 'orthogonal',
+    style: "orthogonal",
     bounds: {
       minX: Math.min(start.x, end.x, cp1.x, cp2.x),
       minY: Math.min(start.y, end.y, cp1.y, cp2.y),
@@ -51,12 +51,10 @@ export function applyPathHighlight(
   pathNodeIds: Set<NodeId> | null,
 ): ConnectionSegment[] {
   if (!pathNodeIds) return baseConnections;
-  return baseConnections.map(conn => {
-    const [parentId, childId] = conn.id.split('-') as [NodeId, NodeId];
+  return baseConnections.map((conn) => {
+    const [parentId, childId] = conn.id.split("-") as unknown as [NodeId, NodeId];
     const shouldHighlight = pathNodeIds.has(parentId) && pathNodeIds.has(childId);
-    return shouldHighlight !== conn.onPath
-      ? { ...conn, onPath: shouldHighlight }
-      : conn;
+    return shouldHighlight !== conn.onPath ? { ...conn, onPath: shouldHighlight } : conn;
   });
 }
 
@@ -81,7 +79,7 @@ export function buildConnections(
       .map((child) => ({ child, pos: positions.get(child.id) }))
       .filter((e): e is { child: NavigationNode; pos: NodePosition } => !!e.pos);
 
-    if (childEntries.length > 0 && layoutMode === 'tree') {
+    if (childEntries.length > 0 && layoutMode === "tree") {
       const hidden = hideRoot && node.isRoot();
       if (!hidden) {
         const startX = parentPos.x + nodeWidth / 2;
@@ -95,14 +93,16 @@ export function buildConnections(
           const endX = e.pos.x + nodeWidth / 2;
           const endY = e.pos.y;
           const busY = (startY + endY) / 2;
-          list.push(orthogonalSegment(
-            `${node.id}-${e.child.id}`,
-            { x: startX, y: startY },
-            { x: startX, y: busY },
-            { x: endX, y: busY },
-            { x: endX, y: endY },
-            false,
-          ));
+          list.push(
+            orthogonalSegment(
+              `${node.id}-${e.child.id}`,
+              { x: startX, y: startY },
+              { x: startX, y: busY },
+              { x: endX, y: busY },
+              { x: endX, y: endY },
+              false,
+            ),
+          );
         } else if (normalChildren.length >= 2) {
           const firstChildY = Math.min(...normalChildren.map((e) => e.pos.y));
           const busY = (startY + firstChildY) / 2;
@@ -110,14 +110,16 @@ export function buildConnections(
           normalChildren.forEach((e) => {
             const endX = e.pos.x + nodeWidth / 2;
             const endY = e.pos.y;
-            list.push(orthogonalSegment(
-              `${node.id}-${e.child.id}`,
-              { x: startX, y: startY },
-              { x: startX, y: busY },
-              { x: endX, y: busY },
-              { x: endX, y: endY },
-              false,
-            ));
+            list.push(
+              orthogonalSegment(
+                `${node.id}-${e.child.id}`,
+                { x: startX, y: startY },
+                { x: startX, y: busY },
+                { x: endX, y: busY },
+                { x: endX, y: endY },
+                false,
+              ),
+            );
           });
         }
 
@@ -126,17 +128,19 @@ export function buildConnections(
           const endX = e.pos.x + nodeWidth / 2;
           const endY = e.pos.y + nodeHeight;
           const busY = (oStartY + endY) / 2;
-          list.push(orthogonalSegment(
-            `${node.id}-${e.child.id}`,
-            { x: startX, y: oStartY },
-            { x: startX, y: busY },
-            { x: endX, y: busY },
-            { x: endX, y: endY },
-            false,
-          ));
+          list.push(
+            orthogonalSegment(
+              `${node.id}-${e.child.id}`,
+              { x: startX, y: oStartY },
+              { x: startX, y: busY },
+              { x: endX, y: busY },
+              { x: endX, y: endY },
+              false,
+            ),
+          );
         });
       }
-    } else if (childEntries.length > 0 && layoutMode === 'mindmap') {
+    } else if (childEntries.length > 0 && layoutMode === "mindmap") {
       const rightChildren = childEntries.filter((e) => e.pos.x >= parentPos.x);
       const leftChildren = childEntries.filter((e) => e.pos.x < parentPos.x);
 
@@ -146,14 +150,10 @@ export function buildConnections(
         const sY = parentPos.y + nodeHeight / 2;
 
         const normalEntries = entries.filter((e) =>
-          direction === 1
-            ? e.pos.x >= parentPos.x + nodeWidth
-            : e.pos.x + nodeWidth <= parentPos.x,
+          direction === 1 ? e.pos.x >= parentPos.x + nodeWidth : e.pos.x + nodeWidth <= parentPos.x,
         );
         const outlierEntries = entries.filter((e) =>
-          direction === 1
-            ? e.pos.x < parentPos.x + nodeWidth
-            : e.pos.x + nodeWidth > parentPos.x,
+          direction === 1 ? e.pos.x < parentPos.x + nodeWidth : e.pos.x + nodeWidth > parentPos.x,
         );
 
         if (normalEntries.length === 1) {
@@ -161,31 +161,41 @@ export function buildConnections(
           const eX = e.pos.x + (direction === 1 ? 0 : nodeWidth);
           const eY = e.pos.y + nodeHeight / 2;
           const busX = (sX + eX) / 2;
-          list.push(orthogonalSegment(
-            `${node.id}-${e.child.id}`,
-            { x: sX, y: sY },
-            { x: busX, y: sY },
-            { x: busX, y: eY },
-            { x: eX, y: eY },
-            false,
-          ));
+          list.push(
+            orthogonalSegment(
+              `${node.id}-${e.child.id}`,
+              { x: sX, y: sY },
+              { x: busX, y: sY },
+              { x: busX, y: eY },
+              { x: eX, y: eY },
+              false,
+            ),
+          );
         } else if (normalEntries.length >= 2) {
-          const midX = (sX + normalEntries.reduce((acc, e) => {
-            const edge = e.pos.x + (direction === 1 ? 0 : nodeWidth);
-            return direction === 1 ? Math.min(acc, edge) : Math.max(acc, edge);
-          }, direction === 1 ? Infinity : -Infinity)) / 2;
+          const midX =
+            (sX +
+              normalEntries.reduce(
+                (acc, e) => {
+                  const edge = e.pos.x + (direction === 1 ? 0 : nodeWidth);
+                  return direction === 1 ? Math.min(acc, edge) : Math.max(acc, edge);
+                },
+                direction === 1 ? Infinity : -Infinity,
+              )) /
+            2;
 
           normalEntries.forEach((e) => {
             const eX = e.pos.x + (direction === 1 ? 0 : nodeWidth);
             const eY = e.pos.y + nodeHeight / 2;
-            list.push(orthogonalSegment(
-              `${node.id}-${e.child.id}`,
-              { x: sX, y: sY },
-              { x: midX, y: sY },
-              { x: midX, y: eY },
-              { x: eX, y: eY },
-              false,
-            ));
+            list.push(
+              orthogonalSegment(
+                `${node.id}-${e.child.id}`,
+                { x: sX, y: sY },
+                { x: midX, y: sY },
+                { x: midX, y: eY },
+                { x: eX, y: eY },
+                false,
+              ),
+            );
           });
         }
 
@@ -194,14 +204,16 @@ export function buildConnections(
           const eX = e.pos.x + (direction === 1 ? nodeWidth : 0);
           const eY = e.pos.y + nodeHeight / 2;
           const busX = (oSX + eX) / 2;
-          list.push(orthogonalSegment(
-            `${node.id}-${e.child.id}`,
-            { x: oSX, y: sY },
-            { x: busX, y: sY },
-            { x: busX, y: eY },
-            { x: eX, y: eY },
-            false,
-          ));
+          list.push(
+            orthogonalSegment(
+              `${node.id}-${e.child.id}`,
+              { x: oSX, y: sY },
+              { x: busX, y: sY },
+              { x: busX, y: eY },
+              { x: eX, y: eY },
+              false,
+            ),
+          );
         });
       };
 
@@ -224,7 +236,7 @@ export function buildConnections(
           cp2,
           end: { x: endX, y: endY },
           onPath: false,
-          style: 'bezier',
+          style: "bezier",
           bounds: {
             minX: Math.min(startX, endX, cp1.x, cp2.x),
             minY: Math.min(startY, endY, cp1.y, cp2.y),

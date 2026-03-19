@@ -1,16 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import type { AccountError } from '@shared/types/account.js';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { AccountError } from "@shared/types/account.js";
 import {
   getAccountSnapshot,
   normalizeAccountError,
   requestOauthInteractiveLoginFromBackground,
   requestOauthSilentSyncFromBackground,
-} from '../../api/account.js';
-import { useStore } from '../state/store.js';
-import { accountKeys } from '../query/account-keys.js';
-import { showUiToast } from '../notifications/sonner-adapter.js';
-
+} from "../../api/account.js";
+import { useStore } from "../state/store.js";
+import { accountKeys } from "../query/account-keys.js";
+import { showUiToast } from "../notifications/sonner-adapter.js";
 
 type AuthFlowState = {
   busy: boolean;
@@ -34,7 +33,7 @@ export function useAuthPortalFlow(): AuthFlowState {
   const silentAttemptedRef = useRef(false);
 
   const syncAccountSnapshot = useCallback(async () => {
-    setAccount({ status: 'loading', error: null });
+    setAccount({ status: "loading", error: null });
     const snapshot = await queryClient.fetchQuery({
       queryKey: accountKeys.snapshot(),
       queryFn: getAccountSnapshot,
@@ -50,7 +49,7 @@ export function useAuthPortalFlow(): AuthFlowState {
     while (Date.now() - startedAt < timeoutMs) {
       try {
         const silent = await requestOauthSilentSyncFromBackground();
-        if (!silent.ok && silent.reason !== 'login_required') {
+        if (!silent.ok && silent.reason !== "login_required") {
           return false;
         }
 
@@ -59,7 +58,7 @@ export function useAuthPortalFlow(): AuthFlowState {
           queryFn: getAccountSnapshot,
           staleTime: 0,
         });
-        if (snapshot.session.status === 'authenticated' && snapshot.user) {
+        if (snapshot.session.status === "authenticated" && snapshot.user) {
           setAccountSnapshot(snapshot);
           void queryClient.invalidateQueries({ queryKey: accountKeys.snapshot() });
           return true;
@@ -78,20 +77,20 @@ export function useAuthPortalFlow(): AuthFlowState {
     if (busy) return;
     setBusy(true);
     setError(null);
-    setNotice('Opening sign-in…');
-    setAccount({ status: 'loading', error: null });
+    setNotice("Opening sign-in…");
+    setAccount({ status: "loading", error: null });
 
     try {
       const result = await requestOauthInteractiveLoginFromBackground();
       if (!result.ok) {
-        throw new Error(result.reason || 'Sign-in failed');
+        throw new Error(result.reason || "Sign-in failed");
       }
 
-      if (result.reason === 'opened_login_tab') {
-        setNotice('Waiting for sign in…');
+      if (result.reason === "opened_login_tab") {
+        setNotice("Waiting for sign in…");
         const completed = await waitForWebsiteLogin();
         if (!completed) {
-          throw new Error('Sign-in did not complete in time');
+          throw new Error("Sign-in did not complete in time");
         }
         setNotice(null);
       } else {
@@ -103,14 +102,14 @@ export function useAuthPortalFlow(): AuthFlowState {
       const normalized = normalizeAccountError(err);
       showUiToast({
         message: normalized.message,
-        icon: 'AlertTriangle',
+        icon: "AlertTriangle",
         durationMs: 5000,
       });
       setError(normalized);
       setAccount({
-        status: 'error',
+        status: "error",
         error: normalized,
-        network: normalized.code === 'network' ? 'offline' : 'online',
+        network: normalized.code === "network" ? "offline" : "online",
       });
       setNotice(null);
     } finally {
@@ -125,7 +124,7 @@ export function useAuthPortalFlow(): AuthFlowState {
     silentAttemptedRef.current = true;
 
     setSilentSyncing(true);
-    setNotice('Checking web session…');
+    setNotice("Checking web session…");
     try {
       const result = await requestOauthSilentSyncFromBackground();
       if (!result.ok) {

@@ -1,32 +1,41 @@
-import type { SpotlightActionId, SpotlightActionTarget, SpotlightSearchResult } from './types.js';
+import type { SpotlightActionId, SpotlightActionTarget, SpotlightSearchResult } from "./types.js";
 
 type Props = {
   item: SpotlightSearchResult;
   activeTreeId: string | null;
-  onAction: (actionId: SpotlightActionId, target: SpotlightActionTarget, statusText: string) => void;
+  onAction: (
+    actionId: SpotlightActionId,
+    target: SpotlightActionTarget,
+    statusText: string,
+  ) => void;
 };
 
 export function SpotlightRowActions({ item, activeTreeId, onAction }: Props) {
-  if (item.kind === 'action') return null;
+  if (item.kind === "action") return null;
 
   const stop = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
   };
 
-  const fire = (e: React.MouseEvent, actionId: SpotlightActionId, target: SpotlightActionTarget, status: string) => {
+  const fire = (
+    e: React.MouseEvent,
+    actionId: SpotlightActionId,
+    target: SpotlightActionTarget,
+    status: string,
+  ) => {
     stop(e);
     onAction(actionId, target, status);
   };
 
-  if (item.kind === 'tree') {
+  if (item.kind === "tree") {
     return (
       <div className="spotlight-row-actions">
         <button
           type="button"
           className="spotlight-row-action-btn"
           title="Export tree"
-          onClick={(e) => fire(e, 'export-tree', { kind: 'tree', treeId: item.treeId }, 'Exported')}
+          onClick={(e) => fire(e, "export-tree", { kind: "tree", treeId: item.treeId }, "Exported")}
         >
           <ExportIcon />
         </button>
@@ -45,8 +54,18 @@ export function SpotlightRowActions({ item, activeTreeId, onAction }: Props) {
         onClick={(e) => {
           stop(e);
           void navigator.clipboard.writeText(item.url).then(
-            () => onAction('copy-url', { kind: 'node', nodeId: item.nodeId, treeId: item.treeId }, 'URL copied'),
-            () => onAction('copy-url', { kind: 'node', nodeId: item.nodeId, treeId: item.treeId }, 'Clipboard unavailable'),
+            () =>
+              onAction(
+                "copy-url",
+                { kind: "node", nodeId: item.nodeId, treeId: item.treeId },
+                "URL copied",
+              ),
+            () =>
+              onAction(
+                "copy-url",
+                { kind: "node", nodeId: item.nodeId, treeId: item.treeId },
+                "Clipboard unavailable",
+              ),
           );
         }}
       >
@@ -56,13 +75,13 @@ export function SpotlightRowActions({ item, activeTreeId, onAction }: Props) {
         <button
           type="button"
           className="spotlight-row-action-btn"
-          title={item.pinned ? 'Unpin' : 'Pin'}
+          title={item.pinned ? "Unpin" : "Pin"}
           onClick={(e) =>
             fire(
               e,
-              item.pinned ? 'unpin' : 'pin',
-              { kind: 'node', nodeId: item.nodeId, treeId: item.treeId },
-              item.pinned ? 'Unpinned' : 'Pinned',
+              item.pinned ? "unpin" : "pin",
+              { kind: "node", nodeId: item.nodeId, treeId: item.treeId },
+              item.pinned ? "Unpinned" : "Pinned",
             )
           }
         >
@@ -77,9 +96,9 @@ export function SpotlightRowActions({ item, activeTreeId, onAction }: Props) {
           onClick={(e) =>
             fire(
               e,
-              item.tabCount > 1 ? 'close-tabs' : 'close-tab',
-              { kind: 'node', nodeId: item.nodeId, treeId: item.treeId },
-              'Tab closed',
+              item.tabCount > 1 ? "close-tabs" : "close-tab",
+              { kind: "node", nodeId: item.nodeId, treeId: item.treeId },
+              "Tab closed",
             )
           }
         >

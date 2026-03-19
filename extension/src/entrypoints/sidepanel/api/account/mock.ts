@@ -10,44 +10,44 @@ import type {
   PortalLink,
   Subscription,
   User,
-} from '../../../../shared/types/account.js';
-import type { Url } from '@shared/types/ids.js';
-import type { AccountClient, CompleteOnboardingInput } from '../account.js';
+} from "../../../../shared/types/account.js";
+import type { Url } from "@shared/types/ids.js";
+import type { AccountClient, CompleteOnboardingInput } from "../account.js";
 
 const DEFAULT_DELAY_MS = 240;
 
 const plans: Plan[] = [
   {
-    id: 'free',
-    name: 'Free',
-    tier: 'free',
+    id: "free",
+    name: "Free",
+    tier: "free",
     priceMonthly: 0,
     priceYearly: 0,
-    currency: 'USD',
-    features: ['Basic navigation history', 'Up to 3 trees', 'Local-only data'],
+    currency: "USD",
+    features: ["Basic navigation history", "Up to 3 trees", "Local-only data"],
     limits: { maxTrees: 3, maxDevices: 1, maxHistoryDays: 7 },
     rank: 0,
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    tier: 'pro',
+    id: "pro",
+    name: "Pro",
+    tier: "pro",
     priceMonthly: 8,
     priceYearly: 72,
-    currency: 'USD',
-    features: ['Unlimited trees', 'Sync across devices', 'Priority rendering'],
+    currency: "USD",
+    features: ["Unlimited trees", "Sync across devices", "Priority rendering"],
     limits: { maxTrees: 999, maxDevices: 5, maxHistoryDays: 90 },
     highlight: true,
     rank: 1,
   },
   {
-    id: 'teams',
-    name: 'Teams',
-    tier: 'teams',
+    id: "teams",
+    name: "Teams",
+    tier: "teams",
     priceMonthly: 16,
     priceYearly: 144,
-    currency: 'USD',
-    features: ['Shared workspaces', 'Team analytics', 'Admin controls'],
+    currency: "USD",
+    features: ["Shared workspaces", "Team analytics", "Admin controls"],
     limits: { maxTrees: 999, maxDevices: 15, maxHistoryDays: 180 },
     rank: 2,
   },
@@ -62,10 +62,10 @@ type MockState = {
 };
 
 const state: MockState = {
-  session: { status: 'guest' },
+  session: { status: "guest" },
   user: null,
   subscription: null,
-  billing: { state: 'none' },
+  billing: { state: "none" },
   onboardingSeenAt: null,
 };
 
@@ -82,10 +82,10 @@ function addDays(days: number): string {
 }
 
 function ensureNetwork(): void {
-  if (typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine) {
+  if (typeof navigator !== "undefined" && "onLine" in navigator && !navigator.onLine) {
     const err: AccountError = {
-      code: 'network',
-      message: 'No network connection',
+      code: "network",
+      message: "No network connection",
       retryable: true,
     };
     throw err;
@@ -93,10 +93,10 @@ function ensureNetwork(): void {
 }
 
 function requireAuth(): void {
-  if (state.session.status !== 'authenticated' || !state.user) {
+  if (state.session.status !== "authenticated" || !state.user) {
     const err: AccountError = {
-      code: 'auth',
-      message: 'Sign in to manage your subscription',
+      code: "auth",
+      message: "Sign in to manage your subscription",
       retryable: false,
     };
     throw err;
@@ -105,9 +105,9 @@ function requireAuth(): void {
 
 function buildMockOnboarding(): OnboardingState {
   if (state.onboardingSeenAt) {
-    return { flowId: 'activation-v1', status: 'completed', seenAt: state.onboardingSeenAt };
+    return { flowId: "activation-v1", status: "completed", seenAt: state.onboardingSeenAt };
   }
-  return { flowId: 'activation-v1', status: 'pending', seenAt: null };
+  return { flowId: "activation-v1", status: "pending", seenAt: null };
 }
 
 function snapshot(): AccountSnapshot {
@@ -124,9 +124,13 @@ function snapshot(): AccountSnapshot {
   };
 }
 
-function buildSubscription(planId: string, interval: PlanInterval, status: Subscription['status']): Subscription {
+function buildSubscription(
+  planId: string,
+  interval: PlanInterval,
+  status: Subscription["status"],
+): Subscription {
   const now = nowIso();
-  const days = interval === 'year' ? 365 : 30;
+  const days = interval === "year" ? 365 : 30;
   return {
     id: `sub_${Math.random().toString(16).slice(2)}`,
     planId,
@@ -135,7 +139,7 @@ function buildSubscription(planId: string, interval: PlanInterval, status: Subsc
     currentPeriodStart: now,
     currentPeriodEnd: addDays(days),
     cancelAtPeriodEnd: false,
-    trialEndsAt: status === 'trialing' ? addDays(14) : null,
+    trialEndsAt: status === "trialing" ? addDays(14) : null,
     canceledAt: null,
   };
 }
@@ -147,53 +151,35 @@ function buildPortalLink(path: string): PortalLink {
   };
 }
 
-function signInMockUser(email = 'demo@trail.app'): AccountSnapshot {
-  const name = email.split('@')[0] ?? 'User';
-  state.session = {
-    status: 'authenticated',
-    accessToken: `mock_${Math.random().toString(16).slice(2)}`,
-    expiresAt: addDays(30),
-  };
-  state.user = {
-    id: `user_${Math.random().toString(16).slice(2)}`,
-    email,
-    displayName: name.charAt(0).toUpperCase() + name.slice(1),
-    createdAt: nowIso(),
-  };
-  state.subscription = buildSubscription('pro', 'month', 'trialing');
-  state.billing = updateBilling('pro', 'trialing');
-  return snapshot();
-}
-
-function updateBilling(planId: string, status: Subscription['status']): BillingStatus {
-  const paidPlan = planId !== 'free';
+function updateBilling(planId: string, status: Subscription["status"]): BillingStatus {
+  const paidPlan = planId !== "free";
   if (!paidPlan) {
-    return { state: 'none' };
+    return { state: "none" };
   }
-  if (status === 'trialing') {
-    return { state: 'trialing', nextChargeAt: addDays(14), paymentMethod: null };
+  if (status === "trialing") {
+    return { state: "trialing", nextChargeAt: addDays(14), paymentMethod: null };
   }
-  if (status === 'past_due') {
+  if (status === "past_due") {
     return {
-      state: 'past_due',
+      state: "past_due",
       lastChargeAt: addDays(-3),
       nextChargeAt: addDays(3),
-      failureReason: 'Card declined',
-      paymentMethod: { brand: 'Visa', last4: '0421', expMonth: 11, expYear: 2027 },
+      failureReason: "Card declined",
+      paymentMethod: { brand: "Visa", last4: "0421", expMonth: 11, expYear: 2027 },
     };
   }
-  if (status === 'canceled') {
+  if (status === "canceled") {
     return {
-      state: 'canceled',
+      state: "canceled",
       lastChargeAt: addDays(-12),
-      paymentMethod: { brand: 'Visa', last4: '0421', expMonth: 11, expYear: 2027 },
+      paymentMethod: { brand: "Visa", last4: "0421", expMonth: 11, expYear: 2027 },
     };
   }
   return {
-    state: 'ok',
+    state: "ok",
     lastChargeAt: addDays(-5),
     nextChargeAt: addDays(25),
-    paymentMethod: { brand: 'Visa', last4: '0421', expMonth: 11, expYear: 2027 },
+    paymentMethod: { brand: "Visa", last4: "0421", expMonth: 11, expYear: 2027 },
   };
 }
 
@@ -224,17 +210,17 @@ export function createMockAccountClient(): AccountClient {
       const target = plans.find((plan) => plan.id === input.planId);
       if (!target) {
         const err: AccountError = {
-          code: 'validation',
-          message: 'Plan not found',
+          code: "validation",
+          message: "Plan not found",
           retryable: false,
         };
         throw err;
       }
 
-      const status: Subscription['status'] = 'active';
+      const status: Subscription["status"] = "active";
       state.subscription = buildSubscription(target.id, input.interval, status);
       state.billing = updateBilling(target.id, status);
-      return buildPortalLink('/checkout');
+      return buildPortalLink("/checkout");
     },
 
     async getBillingStatus(): Promise<BillingStatus | null> {
@@ -247,7 +233,7 @@ export function createMockAccountClient(): AccountClient {
       ensureNetwork();
       requireAuth();
       await sleep(DEFAULT_DELAY_MS / 2);
-      return buildPortalLink('/billing');
+      return buildPortalLink("/billing");
     },
 
     async getSnapshot(): Promise<AccountSnapshot> {

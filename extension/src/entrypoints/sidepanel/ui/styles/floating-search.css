@@ -47,7 +47,11 @@
   pointer-events: none;
   margin-top: 0;
   overflow: hidden;
-  transition: grid-template-rows 180ms ease, opacity 160ms ease, transform 180ms ease, margin-top 180ms ease;
+  transition:
+    grid-template-rows 180ms ease,
+    opacity 160ms ease,
+    transform 180ms ease,
+    margin-top 180ms ease;
   will-change: transform, opacity;
 }
 
@@ -65,7 +69,11 @@
   pointer-events: none;
   margin-top: 0;
   overflow: hidden;
-  transition: grid-template-rows 180ms ease, opacity 160ms ease, transform 180ms ease, margin-top 180ms ease;
+  transition:
+    grid-template-rows 180ms ease,
+    opacity 160ms ease,
+    transform 180ms ease,
+    margin-top 180ms ease;
   will-change: transform, opacity;
 }
 
@@ -183,7 +191,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .floating-search-close:hover {
@@ -253,7 +264,10 @@
   box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .floating-search-nav-btn:hover {
@@ -321,7 +335,10 @@
   box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .floating-search-item:hover {
@@ -411,7 +428,11 @@
   cursor: pointer;
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  transition: background 0.15s ease, transform 0.12s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .floating-search-action-btn:hover:not(:disabled) {
@@ -428,9 +449,14 @@
 .search-orb {
   position: relative;
   flex-shrink: 0;
-  transition: transform 140ms ease, background 140ms ease, color 140ms ease;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
 }
 
 .floating-search.has-query .search-orb {
-  box-shadow: var(--elev-2), 0 0 0 2px rgba(var(--primary-rgb), 0.35);
+  box-shadow:
+    var(--elev-2),
+    0 0 0 2px rgba(var(--primary-rgb), 0.35);
 }

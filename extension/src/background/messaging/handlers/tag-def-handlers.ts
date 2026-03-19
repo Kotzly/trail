@@ -1,11 +1,10 @@
-import { RPC_METHOD, defineRpcHandlers, err, ok } from '@shared/rpc/contracts.js';
-import type { Tag } from '@shared/types/ids.js';
-import type { TagDefinition } from '@shared/types/tags.js';
-import { tagStorage } from '../../services/tag-storage.js';
-import { treeStorage } from '../../services/tree-storage.js';
-import { notifyTreeUpdate } from '../notifications.js';
-import { rpc } from '@shared/rpc/contracts.js';
-import { sendRuntimeMessage } from '../send-message.js';
+import { RPC_METHOD, defineRpcHandlers, err, ok, rpc } from "@shared/rpc/contracts.js";
+import type { Tag } from "@shared/types/ids.js";
+import type { TagDefinition } from "@shared/types/tags.js";
+import { tagStorage } from "../../services/tag-storage.js";
+import { treeStorage } from "../../services/tree-storage.js";
+import { notifyTreeUpdate } from "../notifications.js";
+import { sendRuntimeMessage } from "../send-message.js";
 
 async function broadcastTagDefs(defs?: TagDefinition[]): Promise<void> {
   const tagDefs = defs ?? (await tagStorage.getAll());
@@ -22,7 +21,7 @@ async function removeTagFromTree(tagId: Tag): Promise<boolean> {
   }
   if (changed) {
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'tags');
+    await notifyTreeUpdate(tree, "tags");
   }
   return changed;
 }
@@ -35,9 +34,9 @@ export const tagDefHandlers = defineRpcHandlers({
 
   async [RPC_METHOD.UPSERT_TAG_DEF](message) {
     const tagDef = message.tagDef as TagDefinition;
-    if (!tagDef?.id) return err('Tag id is required');
-    if (!tagDef.label || tagDef.label.trim().length === 0) return err('Tag label is required');
-    if (tagDef.label.trim().length > 20) return err('Tag label must be 20 chars or less');
+    if (!tagDef?.id) return err("Tag id is required");
+    if (!tagDef.label || tagDef.label.trim().length === 0) return err("Tag label is required");
+    if (tagDef.label.trim().length > 20) return err("Tag label must be 20 chars or less");
     await tagStorage.upsert({ ...tagDef, label: tagDef.label.trim() });
     await broadcastTagDefs();
     return ok();

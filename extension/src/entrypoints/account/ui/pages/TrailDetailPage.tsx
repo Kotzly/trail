@@ -1,18 +1,18 @@
-import type { RouteParams } from '../router.js';
-import { useLocalTrailDetail } from '../hooks/useLocalTrailDetail.js';
-import MetaCard from '../components/MetaCard.js';
-import EditInGraphButton from '../components/EditInGraphButton.js';
-import ExportButton from '../components/ExportButton.js';
+import type { RouteParams } from "../router.js";
+import { useLocalTrailDetail } from "../hooks/useLocalTrailDetail.js";
+import MetaCard from "../components/MetaCard.js";
+import EditInGraphButton from "../components/EditInGraphButton.js";
+import ExportButton from "../components/ExportButton.js";
 
 function formatFull(timestamp: number): string {
   const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return '\u2014';
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+  if (Number.isNaN(date.getTime())) return "\u2014";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
@@ -65,7 +65,7 @@ export default function TrailDetailPage({ params }: RouteParams) {
         </a>
         <div className="account-error">
           <p className="account-error__text">
-            {error ? `Failed to load trail: ${error.message}` : 'Trail not found'}
+            {error ? `Failed to load trail: ${error.message}` : "Trail not found"}
           </p>
         </div>
       </div>
@@ -103,9 +103,7 @@ export default function TrailDetailPage({ params }: RouteParams) {
           ) : null}
           <h1 className="trail-detail__label">{trail.label}</h1>
         </div>
-        {trail.rootTitle && (
-          <p className="trail-detail__root-title">{trail.rootTitle}</p>
-        )}
+        {trail.rootTitle && <p className="trail-detail__root-title">{trail.rootTitle}</p>}
       </div>
 
       <div className="trail-detail__actions">
@@ -117,7 +115,7 @@ export default function TrailDetailPage({ params }: RouteParams) {
         <MetaCard label="Nodes" value={String(trail.nodeCount)} />
         <MetaCard
           label="Root URL"
-          value={trail.rootUrl ?? '\u2014'}
+          value={trail.rootUrl ?? "\u2014"}
           href={trail.rootUrl ?? undefined}
         />
         <MetaCard label="Created" value={formatFull(trail.createdAt)} />

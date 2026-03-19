@@ -1,21 +1,21 @@
 // background/service-worker.ts
-import { initMessaging } from './messaging/router.js';
-import { initWebNavigation } from './navigation/webnavigation.js';
-import { initTabsLifecycle } from './tabs/lifecycle.js';
-import { syncOpenTabs } from './tabs/sync-open-tabs.js';
-import { CommandManager } from '@shared/lib/commands.js';
-import { syncEngine } from './services/sync/engine.js';
-import { initBackendConfig } from '@shared/config/backend.js';
-import { authOrchestrator } from './services/auth-orchestrator.js';
-import { accountKeeper } from './services/account-keeper.js';
-import { authPolicyKeeper } from './services/auth-policy-keeper.js';
-import { initSpotlightCommand } from './spotlight-command.js';
-import { initOffscreenGraphManager } from './services/offscreen-graph-manager.js';
+import { initMessaging } from "./messaging/router.js";
+import { initWebNavigation } from "./navigation/webnavigation.js";
+import { initTabsLifecycle } from "./tabs/lifecycle.js";
+import { syncOpenTabs } from "./tabs/sync-open-tabs.js";
+import { CommandManager } from "@shared/lib/commands.js";
+import { syncEngine } from "./services/sync/engine.js";
+import { initBackendConfig } from "@shared/config/backend.js";
+import { authOrchestrator } from "./services/auth-orchestrator.js";
+import { accountKeeper } from "./services/account-keeper.js";
+import { authPolicyKeeper } from "./services/auth-policy-keeper.js";
+import { initSpotlightCommand } from "./spotlight-command.js";
+import { initOffscreenGraphManager } from "./services/offscreen-graph-manager.js";
 
 // Catch unhandled promise rejections so they don't silently disappear
 // in the service worker context.
-self.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-  console.error('Unhandled rejection in service worker:', event.reason);
+self.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
+  console.error("Unhandled rejection in service worker:", event.reason);
 });
 
 // Initialize all modules
@@ -34,7 +34,7 @@ initOffscreenGraphManager();
 
 if (chrome.sidePanel?.setPanelBehavior) {
   void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err: unknown) => {
-    console.warn('Failed to set side panel behavior', err);
+    console.warn("Failed to set side panel behavior", err);
   });
 }
 

@@ -17,17 +17,17 @@
 export const STARTUP_T0 = performance.now();
 
 export type ProfilePhase =
-  | 'layout'
-  | 'renderNodes'
-  | 'buildConnections'
-  | 'computeOffsetPositions'
-  | 'setStaticGraph'
-  | 'setDynamicState'
-  | 'updateVisible'
-  | 'updateConnections'
-  | 'patchStaticGraph';
+  | "layout"
+  | "renderNodes"
+  | "buildConnections"
+  | "computeOffsetPositions"
+  | "setStaticGraph"
+  | "setDynamicState"
+  | "updateVisible"
+  | "updateConnections"
+  | "patchStaticGraph";
 
-export type CacheHitType = 'exact' | 'signature-match' | 'fallback' | 'miss' | 'stale';
+export type CacheHitType = "exact" | "signature-match" | "fallback" | "miss" | "stale";
 
 export type StartupMetrics = {
   /** ms from module load to bootstrapGraph completing (store primed with tree) */
@@ -45,15 +45,15 @@ export type StartupMetrics = {
 };
 
 const ALL_PHASES: readonly ProfilePhase[] = [
-  'layout',
-  'renderNodes',
-  'buildConnections',
-  'computeOffsetPositions',
-  'setStaticGraph',
-  'setDynamicState',
-  'patchStaticGraph',
-  'updateVisible',
-  'updateConnections',
+  "layout",
+  "renderNodes",
+  "buildConnections",
+  "computeOffsetPositions",
+  "setStaticGraph",
+  "setDynamicState",
+  "patchStaticGraph",
+  "updateVisible",
+  "updateConnections",
 ] as const;
 
 type PhaseBuffer = {
@@ -110,8 +110,14 @@ export class GraphProfiler {
     return { p50, p95, count: buf.count, last };
   }
 
-  getAllStats(): Record<ProfilePhase, { p50: number; p95: number; count: number; last: number } | null> {
-    const result = {} as Record<ProfilePhase, { p50: number; p95: number; count: number; last: number } | null>;
+  getAllStats(): Record<
+    ProfilePhase,
+    { p50: number; p95: number; count: number; last: number } | null
+  > {
+    const result = {} as Record<
+      ProfilePhase,
+      { p50: number; p95: number; count: number; last: number } | null
+    >;
     for (const phase of ALL_PHASES) {
       result[phase] = this.getStats(phase);
     }
@@ -151,6 +157,7 @@ export function profileSync<T>(phase: ProfilePhase, fn: () => T): T {
 // ---------------------------------------------------------------------------
 // Console API — call window.__graphMetrics() in Chrome DevTools
 // ---------------------------------------------------------------------------
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (window as any).__graphMetrics = () => {
   const stats = graphProfiler.getAllStats();
   const startup = graphProfiler.getStartupMetrics();
@@ -165,19 +172,21 @@ export function profileSync<T>(phase: ProfilePhase, fn: () => T): T {
         last: `${data.last.toFixed(2)}ms`,
       };
     } else {
-      table[phase] = { p50: '-', p95: '-', samples: 0, last: '-' };
+      table[phase] = { p50: "-", p95: "-", samples: 0, last: "-" };
     }
   }
   console.table(table);
 
-  console.log('\n--- Startup Metrics ---');
+  console.log("\n--- Startup Metrics ---");
   console.table({
-    'Bootstrap': { value: startup.bootstrapMs != null ? `${startup.bootstrapMs.toFixed(1)}ms` : '-' },
-    'First Render': { value: startup.firstRenderMs != null ? `${startup.firstRenderMs.toFixed(1)}ms` : '-' },
-    'Layout': { value: startup.layoutMs != null ? `${startup.layoutMs.toFixed(1)}ms` : '-' },
-    'Cache Hit': { value: startup.cacheHitType ?? '-' },
-    'Nodes': { value: startup.nodeCount ?? '-' },
-    'Mode': { value: startup.layoutMode ?? '-' },
+    Bootstrap: { value: startup.bootstrapMs != null ? `${startup.bootstrapMs.toFixed(1)}ms` : "-" },
+    "First Render": {
+      value: startup.firstRenderMs != null ? `${startup.firstRenderMs.toFixed(1)}ms` : "-",
+    },
+    Layout: { value: startup.layoutMs != null ? `${startup.layoutMs.toFixed(1)}ms` : "-" },
+    "Cache Hit": { value: startup.cacheHitType ?? "-" },
+    Nodes: { value: startup.nodeCount ?? "-" },
+    Mode: { value: startup.layoutMode ?? "-" },
   });
 
   return { phases: stats, startup };

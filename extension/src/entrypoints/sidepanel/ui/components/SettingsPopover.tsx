@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Settings } from '@shared/types/settings.js';
-import type { Url } from '@shared/types/ids.js';
-import { getBackendConfig, initBackendConfig } from '@shared/config/backend.js';
-import { DEFAULT_LAYOUT_SETTINGS } from '@shared/layout/defaults.js';
-import { saveSettings } from '../../api/settings.js';
-import { setFlag, resetFlags } from '../../api/flags.js';
-import { FLAG_DEFS, type FlagDef, type FlagKey } from '@shared/types/flags.js';
-import { experimentsUnlockedItem } from '@shared/config/storage-items.js';
-import { applyTheme } from '../shared/apply-theme.js';
-import { useStore } from '../state/store.js';
-import { useOverlayEffects } from '../state/overlay-effects.js';
-import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
-import { Icons } from './Icon.js';
-import { cn } from '../lib/utils.js';
-import { toast } from 'sonner';
-import { browser } from '@shared/platform/webext.js';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Settings } from "@shared/types/settings.js";
+import type { Url } from "@shared/types/ids.js";
+import { getBackendConfig, initBackendConfig } from "@shared/config/backend.js";
+import { DEFAULT_LAYOUT_SETTINGS } from "@shared/layout/defaults.js";
+import { saveSettings } from "../../api/settings.js";
+import { setFlag, resetFlags } from "../../api/flags.js";
+import { FLAG_DEFS, type FlagDef, type FlagKey } from "@shared/types/flags.js";
+import { experimentsUnlockedItem } from "@shared/config/storage-items.js";
+import { applyTheme } from "../shared/apply-theme.js";
+import { useStore } from "../state/store.js";
+import { useOverlayEffects } from "../state/overlay-effects.js";
+import { useAnchoredDropdown } from "../hooks/useAnchoredDropdown.js";
+import { Icons } from "./Icon.js";
+import { cn } from "../lib/utils.js";
+import { toast } from "sonner";
+import { browser } from "@shared/platform/webext.js";
 
 const UNLOCK_CLICKS = 7;
 const UNLOCK_WINDOW_MS = 3000;
@@ -30,7 +30,7 @@ function FlagToggle({
   value: unknown;
   onToggle: (key: FlagKey, value: unknown) => void;
 }) {
-  if (def.type === 'boolean') {
+  if (def.type === "boolean") {
     return (
       <label className="settings-section settings-row" htmlFor={`flag-${flagKey}`}>
         <div className="settings-label-group">
@@ -50,25 +50,21 @@ function FlagToggle({
       </label>
     );
   }
-  if (def.type === 'variant') {
+  if (def.type === "variant") {
     return (
       <div className="settings-section">
         <div className="settings-label-group">
           <div className="settings-label">{def.label}</div>
           <div className="settings-description">{def.description}</div>
         </div>
-        <Seg
-          value={String(value)}
-          options={def.variants}
-          onChange={(v) => onToggle(flagKey, v)}
-        />
+        <Seg value={String(value)} options={def.variants} onChange={(v) => onToggle(flagKey, v)} />
       </div>
     );
   }
   return null;
 }
 
-type LayoutMode = Settings['layout']['mode'];
+type LayoutMode = Settings["layout"]["mode"];
 
 function Seg<T extends string>({
   value,
@@ -85,7 +81,7 @@ function Seg<T extends string>({
         <button
           key={opt}
           type="button"
-          className={cn('settings-seg-btn', value === opt && 'active')}
+          className={cn("settings-seg-btn", value === opt && "active")}
           onClick={() => onChange(opt)}
         >
           {opt}
@@ -113,9 +109,12 @@ export default function SettingsDropdown() {
   const clickTimestamps = useRef<number[]>([]);
 
   useEffect(() => {
-    experimentsUnlockedItem.getValue().then((unlocked) => {
-      if (unlocked) setExperimentsUnlocked(true);
-    }).catch(() => {});
+    experimentsUnlockedItem
+      .getValue()
+      .then((unlocked) => {
+        if (unlocked) setExperimentsUnlocked(true);
+      })
+      .catch(() => {});
   }, []);
 
   const handleGearClick = () => {
@@ -129,7 +128,7 @@ export default function SettingsDropdown() {
       clickTimestamps.current = [];
       setExperimentsUnlocked(true);
       experimentsUnlockedItem.setValue(true).catch(() => {});
-      toast('Experiments unlocked');
+      toast("Experiments unlocked");
     }
   };
 
@@ -138,7 +137,7 @@ export default function SettingsDropdown() {
       const updated = await setFlag(key, value);
       setFlags(updated);
     } catch (error) {
-      console.error('Failed to set flag:', error);
+      console.error("Failed to set flag:", error);
     }
   };
 
@@ -147,14 +146,14 @@ export default function SettingsDropdown() {
       const updated = await resetFlags();
       setFlags(updated);
     } catch (error) {
-      console.error('Failed to reset flags:', error);
+      console.error("Failed to reset flags:", error);
     }
   };
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
-  useOverlayEffects(settingsOpen, { kind: 'dropdown' });
+  useOverlayEffects(settingsOpen, { kind: "dropdown" });
   useAnchoredDropdown({ open: settingsOpen, dropdownRef });
 
   // Use `inert` instead of `aria-hidden` so focus is never trapped inside a hidden ancestor.
@@ -162,16 +161,16 @@ export default function SettingsDropdown() {
     const el = dropdownRef.current;
     if (!el) return;
     if (settingsOpen) {
-      el.removeAttribute('inert');
+      el.removeAttribute("inert");
     } else {
-      el.setAttribute('inert', '');
+      el.setAttribute("inert", "");
     }
   }, [settingsOpen]);
 
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
 
-  const settingsShortcut = metaKey ? `${metaKey.short}+,` : 'Ctrl+,';
-  const tooltipsShortcut = metaKey ? `${metaKey.short}+/` : 'Ctrl+/';
+  const settingsShortcut = metaKey ? `${metaKey.short}+,` : "Ctrl+,";
+  const tooltipsShortcut = metaKey ? `${metaKey.short}+/` : "Ctrl+/";
   const settingsLabel = `Settings (${settingsShortcut})`;
   const settingsTooltip = `Settings (${settingsShortcut}) • Tooltips (${tooltipsShortcut})`;
 
@@ -188,7 +187,7 @@ export default function SettingsDropdown() {
     try {
       await saveSettings(toSave);
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      console.error("Failed to save settings:", error);
     }
   }, []);
 
@@ -218,7 +217,7 @@ export default function SettingsDropdown() {
     if (!settingsOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.preventDefault();
         setSettingsOpen(false);
       }
@@ -232,11 +231,11 @@ export default function SettingsDropdown() {
       setSettingsOpen(false);
     };
 
-    document.addEventListener('keydown', onKeyDown, true);
-    document.addEventListener('mousedown', onMouseDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("mousedown", onMouseDown, true);
     return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-      document.removeEventListener('mousedown', onMouseDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("mousedown", onMouseDown, true);
     };
   }, [settingsOpen, setSettingsOpen]);
 
@@ -264,8 +263,8 @@ export default function SettingsDropdown() {
       const baseUrl = getBackendConfig().baseUrl;
       await browser.tabs.create({ url: `${baseUrl}` as Url, active: true });
     } catch (error) {
-      console.error('Failed to open dashboard:', error);
-      window?.open('https://app.gettrail.net', '_blank');
+      console.error("Failed to open dashboard:", error);
+      window?.open("https://app.gettrail.net", "_blank");
     } finally {
       setDashboardBusy(false);
     }
@@ -285,10 +284,7 @@ export default function SettingsDropdown() {
         <Icons.Settings size={18} />
       </button>
 
-      <div
-        ref={dropdownRef}
-        className={`settings-dropdown${settingsOpen ? '' : ' hidden'}`}
-      >
+      <div ref={dropdownRef} className={`settings-dropdown${settingsOpen ? "" : "hidden"}`}>
         {/* header */}
         <div className="settings-dropdown-header">
           <span className="settings-dropdown-title">settings</span>
@@ -309,13 +305,13 @@ export default function SettingsDropdown() {
             <div className="settings-label">layout mode</div>
             <Seg
               value={layout.mode}
-              options={['mindmap', 'tree', 'radial'] as const}
+              options={["mindmap", "tree", "radial"] as const}
               onChange={updateLayoutMode}
             />
           </div>
 
           {/* hide root (tree only) */}
-          {layout.mode === 'tree' && (
+          {layout.mode === "tree" && (
             <>
               <hr className="settings-hr" />
               <label className="settings-section settings-row" htmlFor="hide-root-toggle">
@@ -363,8 +359,8 @@ export default function SettingsDropdown() {
           <div className="settings-section">
             <div className="settings-label">title truncation</div>
             <Seg
-              value={settings?.titleTruncation ?? 'middle'}
-              options={['start', 'middle', 'end'] as const}
+              value={settings?.titleTruncation ?? "middle"}
+              options={["start", "middle", "end"] as const}
               onChange={(v) => updateSettings({ titleTruncation: v })}
             />
           </div>
@@ -388,8 +384,8 @@ export default function SettingsDropdown() {
             <div className="settings-section">
               <div className="settings-label">appearance</div>
               <Seg
-                value={settings?.theme ?? 'system'}
-                options={['system', 'light', 'dark'] as const}
+                value={settings?.theme ?? "system"}
+                options={["system", "light", "dark"] as const}
                 onChange={(v) =>
                   updateSettings({
                     theme: v,
@@ -397,7 +393,7 @@ export default function SettingsDropdown() {
                       ...(settings?.customTheme ?? {
                         enabled: false,
                         dots: [],
-                        harmony: 'floating' as const,
+                        harmony: "floating" as const,
                         lightness: 50,
                         opacity: 0.6,
                         texture: 0,
@@ -423,7 +419,7 @@ export default function SettingsDropdown() {
               onClick={() => void handleOpenDashboard()}
               disabled={dashboardBusy}
             >
-              {dashboardBusy ? 'opening…' : 'open'}
+              {dashboardBusy ? "opening…" : "open"}
               <Icons.ExternalLink size={13} />
             </button>
           </div>

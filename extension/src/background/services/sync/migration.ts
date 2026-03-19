@@ -12,11 +12,11 @@
  * remain unchanged — no data migration is needed for them.
  */
 
-import { storage } from 'wxt/utils/storage';
-import { migrationDoneItem, syncStateItem } from '@shared/config/storage-items.js';
+import { storage } from "wxt/utils/storage";
+import { migrationDoneItem, syncStateItem } from "@shared/config/storage-items.js";
 
-const V2_SERVER_AT_KEY = 'local:trail_sync_server_at' as const;
-const V2_TOMBSTONES_KEY = 'local:trail_sync_tombstones' as const;
+const V2_SERVER_AT_KEY = "local:trail_sync_server_at" as const;
+const V2_TOMBSTONES_KEY = "local:trail_sync_tombstones" as const;
 
 export async function migrateV2ToV3(): Promise<void> {
   const done = await migrationDoneItem.getValue();
@@ -31,15 +31,14 @@ export async function migrateV2ToV3(): Promise<void> {
     }
 
     const serverSyncAtRaw = await storage.getItem<string>(V2_SERVER_AT_KEY);
-    const serverSyncAt = typeof serverSyncAtRaw === 'string'
-      ? serverSyncAtRaw
-      : new Date(0).toISOString();
+    const serverSyncAt =
+      typeof serverSyncAtRaw === "string" ? serverSyncAtRaw : new Date(0).toISOString();
 
     // Extract pending deletes from v2 tombstones
     const tombstonesRaw = await storage.getItem<Array<{ id?: string }>>(V2_TOMBSTONES_KEY);
     const tombstones = Array.isArray(tombstonesRaw) ? tombstonesRaw : [];
     const pendingDeletes = tombstones
-      .map((t) => (typeof t?.id === 'string' ? t.id : ''))
+      .map((t) => (typeof t?.id === "string" ? t.id : ""))
       .filter(Boolean);
 
     // Write v3 sync state
@@ -56,7 +55,7 @@ export async function migrateV2ToV3(): Promise<void> {
 
     // Sync migration v2→v3 completed.
   } catch (error) {
-    console.error('Sync migration v2→v3 failed:', error);
+    console.error("Sync migration v2→v3 failed:", error);
     // Mark done anyway to prevent repeated failures
     await migrationDoneItem.setValue(true).catch(() => {});
   }

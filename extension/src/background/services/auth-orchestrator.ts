@@ -9,7 +9,7 @@ import { notifyUi } from "../messaging/ui-notifications.js";
 import { syncEngine } from "./sync/engine.js";
 import { accountKeeper } from "./account-keeper.js";
 import { authPolicyKeeper } from "./auth-policy-keeper.js";
-import { browser } from '@shared/platform/webext.js';
+import { browser } from "@shared/platform/webext.js";
 
 const AUTH_REFRESH_ALARM = "trail-auth-refresh" as const;
 const AUTH_REFRESH_INTERVAL_MINUTES = 2;
@@ -62,9 +62,10 @@ async function getOrCreateDeviceId(): Promise<string> {
     return existing;
   }
 
-  const next = typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const next =
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   await oauthDeviceIdItem.setValue(next);
   return next;
 }
@@ -100,7 +101,7 @@ async function exchangeAuthorizationCode(input: {
     };
   }
 
-  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
+  const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
   const accessToken = typeof payload?.access_token === "string" ? payload.access_token : "";
   const refreshToken = typeof payload?.refresh_token === "string" ? payload.refresh_token : "";
   const expiresAt = typeof payload?.expires_at === "string" ? payload.expires_at : "";
@@ -139,7 +140,7 @@ async function refreshWithToken(refreshToken: string): Promise<AuthFlowResult> {
     };
   }
 
-  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
+  const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
   const accessToken = typeof payload?.access_token === "string" ? payload.access_token : "";
   const nextRefreshToken = typeof payload?.refresh_token === "string" ? payload.refresh_token : "";
   const expiresAt = typeof payload?.expires_at === "string" ? payload.expires_at : "";
@@ -174,7 +175,9 @@ class AuthOrchestrator {
     this.loginRequiredCooldownUntil = 0;
   }
 
-  private async clearAuth(reason: "web_logout" | "login_required" | "refresh_invalid"): Promise<void> {
+  private async clearAuth(
+    reason: "web_logout" | "login_required" | "refresh_invalid",
+  ): Promise<void> {
     await saveAuth(null);
     if (reason === "login_required") {
       this.markLoginRequiredCooldown();
@@ -269,9 +272,11 @@ class AuthOrchestrator {
     }
   }
 
-  private async executeSilentSync(input: {
-    skipCooldown?: boolean;
-  } = {}): Promise<AuthFlowResult> {
+  private async executeSilentSync(
+    input: {
+      skipCooldown?: boolean;
+    } = {},
+  ): Promise<AuthFlowResult> {
     if (!input.skipCooldown && this.isCooldownActive()) {
       return { ok: false, reason: "login_required" };
     }
@@ -310,10 +315,7 @@ class AuthOrchestrator {
         return result;
       }
 
-      if (
-        result.reason !== "login_required" &&
-        result.reason !== "refresh_invalid"
-      ) {
+      if (result.reason !== "login_required" && result.reason !== "refresh_invalid") {
         notifyUi({
           message: "Sign-in failed. Please try again.",
           icon: "AlertTriangle",

@@ -1,9 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { NodeId } from '@shared/types/ids.js';
-import type { NodePosition } from '../../graph/types.js';
-import type { ParticleRenderModel } from '../../graph/render/types.js';
-import type { NodeAnimationState, OpenAnimationState, ParticleState } from './graph-canvas-types.js';
-import { createAnimationSpec, easeOutCubic, getAnimationProgress, lerp } from '../../graph/animation-utils.js';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { NodeId } from "@shared/types/ids.js";
+import type { NodePosition } from "../../graph/types.js";
+import type { ParticleRenderModel } from "../../graph/render/types.js";
+import type {
+  NodeAnimationState,
+  OpenAnimationState,
+  ParticleState,
+} from "./graph-canvas-types.js";
+import {
+  createAnimationSpec,
+  easeOutCubic,
+  getAnimationProgress,
+  lerp,
+} from "../../graph/animation-utils.js";
 
 export const BASE_MOTION = createAnimationSpec(150);
 export const FAST_MOTION = createAnimationSpec(Math.max(60, Math.round(BASE_MOTION.duration / 2)));
@@ -15,7 +24,11 @@ type UseGraphAnimationParams = {
   onTickRender?: () => void;
 };
 
-export function useGraphAnimation({ nodeWidth, nodeHeight, onTickRender }: UseGraphAnimationParams) {
+export function useGraphAnimation({
+  nodeWidth,
+  nodeHeight,
+  onTickRender,
+}: UseGraphAnimationParams) {
   const onTickRenderRef = useRef(onTickRender);
   onTickRenderRef.current = onTickRender;
 
@@ -32,7 +45,7 @@ export function useGraphAnimation({ nodeWidth, nodeHeight, onTickRender }: UseGr
   const animationNowRef = useRef<number | null>(null);
   const prevOpenNodesRef = useRef<Set<NodeId>>(new Set());
   const previousSiblingOrderRef = useRef<Map<string, NodeId[]>>(new Map());
-  const mindmapSideRef = useRef<Map<NodeId, 'left' | 'right'>>(new Map());
+  const mindmapSideRef = useRef<Map<NodeId, "left" | "right">>(new Map());
   const lastCollapseVersionRef = useRef<number>(-1);
 
   const [animationVersion, setAnimationVersion] = useState(0);
@@ -51,7 +64,8 @@ export function useGraphAnimation({ nodeWidth, nodeHeight, onTickRender }: UseGr
 
   const animateTick = useCallback(
     function animateTick(time: number) {
-      const deltaTime = lastAnimationTimeRef.current === null ? 16 : time - lastAnimationTimeRef.current;
+      const deltaTime =
+        lastAnimationTimeRef.current === null ? 16 : time - lastAnimationTimeRef.current;
       lastAnimationTimeRef.current = time;
       animationNowRef.current = time;
       const states = animationStatesRef.current;
@@ -70,7 +84,7 @@ export function useGraphAnimation({ nodeWidth, nodeHeight, onTickRender }: UseGr
         if (progress.done) {
           states.delete(id);
           animatedPositionsRef.current.delete(id);
-          if (state.type === 'exit') {
+          if (state.type === "exit") {
             exitNodesRef.current.delete(id);
           }
         }
@@ -207,7 +221,7 @@ export function useGraphAnimation({ nodeWidth, nodeHeight, onTickRender }: UseGr
       const startY = startCenter.y - nodeHeight / 2;
       const state: NodeAnimationState = {
         id,
-        type: 'enter',
+        type: "enter",
         startX,
         startY,
         endX: pos.x,
@@ -237,7 +251,7 @@ export function useGraphAnimation({ nodeWidth, nodeHeight, onTickRender }: UseGr
       const endY = endCenter.y - nodeHeight / 2;
       const state: NodeAnimationState = {
         id,
-        type: 'exit',
+        type: "exit",
         startX,
         startY,
         endX,
@@ -281,7 +295,7 @@ export function useGraphAnimation({ nodeWidth, nodeHeight, onTickRender }: UseGr
       animationStatesRef.current.delete(id);
       const state: NodeAnimationState = {
         id,
-        type: 'move',
+        type: "move",
         startX: fromX,
         startY: fromY,
         endX: toX,
@@ -295,7 +309,6 @@ export function useGraphAnimation({ nodeWidth, nodeHeight, onTickRender }: UseGr
   );
 
   const particleRenderModels = (() => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks -- used inside hook return
     return particleAnimationsRef.current.map((particle): ParticleRenderModel => {
       const progress = Math.min(1, particle.age / particle.life);
       const eased = easeOutCubic(progress);

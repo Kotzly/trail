@@ -4,9 +4,9 @@
  * Round-trip guarantee: fromCompact(toCompact(tree)) deep-equals tree.
  */
 
-import type { NodeId, Timestamp, Url, Title, FaviconUrl, Tag } from '../types/ids.js';
-import type { NodeData, NavigationNodeJSON } from '../types/node.js';
-import type { NavigationTreeJSON } from '../types/tree.js';
+import type { NodeId, Timestamp, Url, Title, FaviconUrl, Tag } from "../types/ids.js";
+import type { NodeData, NavigationNodeJSON } from "../types/node.js";
+import type { NavigationTreeJSON } from "../types/tree.js";
 import {
   CI,
   CI_V1,
@@ -17,7 +17,7 @@ import {
   type CompactNodeTupleV3,
   type CompactTreeJSON,
   type CompactTreeJSONV3,
-} from '../types/compact-tree.js';
+} from "../types/compact-tree.js";
 
 // ---------------------------------------------------------------------------
 // Tree-level conversion
@@ -87,13 +87,15 @@ function nodeToTuple(node: NavigationNodeJSON): CompactNodeTupleV3 {
     flags,
     d.tags as string[],
     layout,
-    typeof d.lastVisitedAt === 'number' && Number.isFinite(d.lastVisitedAt) ? d.lastVisitedAt : null,
-    typeof d.visitCount === 'number' && Number.isFinite(d.visitCount) ? d.visitCount : null,
+    typeof d.lastVisitedAt === "number" && Number.isFinite(d.lastVisitedAt)
+      ? d.lastVisitedAt
+      : null,
+    typeof d.visitCount === "number" && Number.isFinite(d.visitCount) ? d.visitCount : null,
     node.children.map(nodeToTuple),
   ];
 }
 
-function parseLayout(layoutArr: number[] | null): NodeData['layout'] | undefined {
+function parseLayout(layoutArr: number[] | null): NodeData["layout"] | undefined {
   if (!layoutArr) return undefined;
   const base = { offsetX: layoutArr[0]!, offsetY: layoutArr[1]! };
   if (layoutArr.length >= 4) {
@@ -120,16 +122,16 @@ function tupleToNodeV3(tuple: CompactNodeTupleV3): NavigationNodeJSON {
   }
 
   if (layout) {
-    (data as { layout?: NodeData['layout'] }).layout = layout;
+    (data as { layout?: NodeData["layout"] }).layout = layout;
   }
 
   const lastVisitedAt = tuple[CI.LAST_VISITED_AT];
-  if (typeof lastVisitedAt === 'number' && Number.isFinite(lastVisitedAt)) {
+  if (typeof lastVisitedAt === "number" && Number.isFinite(lastVisitedAt)) {
     (data as { lastVisitedAt?: Timestamp }).lastVisitedAt = lastVisitedAt as Timestamp;
   }
 
   const visitCount = tuple[CI.VISIT_COUNT];
-  if (typeof visitCount === 'number' && Number.isFinite(visitCount) && visitCount > 0) {
+  if (typeof visitCount === "number" && Number.isFinite(visitCount) && visitCount > 0) {
     (data as { visitCount?: number }).visitCount = visitCount;
   }
 
@@ -159,11 +161,11 @@ function tupleToNodeV2(tuple: CompactNodeTupleV2): NavigationNodeJSON {
   }
 
   if (layout) {
-    (data as { layout?: NodeData['layout'] }).layout = layout;
+    (data as { layout?: NodeData["layout"] }).layout = layout;
   }
 
   const lastVisitedAt = tuple[CI_V2.LAST_VISITED_AT];
-  if (typeof lastVisitedAt === 'number' && Number.isFinite(lastVisitedAt)) {
+  if (typeof lastVisitedAt === "number" && Number.isFinite(lastVisitedAt)) {
     (data as { lastVisitedAt?: Timestamp }).lastVisitedAt = lastVisitedAt as Timestamp;
   }
 
@@ -193,7 +195,7 @@ function tupleToNodeV1(tuple: CompactNodeTupleV1): NavigationNodeJSON {
   }
 
   if (layout) {
-    (data as { layout?: NodeData['layout'] }).layout = layout;
+    (data as { layout?: NodeData["layout"] }).layout = layout;
   }
 
   return {

@@ -5,31 +5,31 @@ import type {
   AccountSnapshot,
   BillingStatus,
   CheckoutInput,
+  OnboardingState,
   Plan,
   PortalLink,
   Subscription,
   User,
-} from '../../../../shared/types/account.js';
+} from "../../../../shared/types/account.js";
 import {
   BACKEND_CONFIG,
   buildBackendUrl,
   initBackendConfig,
-} from '../../../../shared/config/backend.js';
+} from "../../../../shared/config/backend.js";
 import {
   authPolicyItem,
   authSessionItem,
   type StoredAuthSession,
-} from '../../../../shared/config/storage-items.js';
-import type { AccountClient, CompleteOnboardingInput } from '../account.js';
-import { browser } from '@shared/platform/webext.js';
+} from "../../../../shared/config/storage-items.js";
+import type { AccountClient, CompleteOnboardingInput } from "../account.js";
 
-const ERROR_CODES: AccountErrorCode[] = ['network', 'auth', 'payment', 'validation', 'unknown'];
+const ERROR_CODES: AccountErrorCode[] = ["network", "auth", "payment", "validation", "unknown"];
 
 async function loadAuth(): Promise<StoredAuthSession | null> {
   try {
     return await authSessionItem.getValue();
   } catch (error) {
-    console.error('Account auth: failed to load session', error);
+    console.error("Account auth: failed to load session", error);
     return null;
   }
 }
@@ -46,14 +46,16 @@ async function getAccessToken(): Promise<string | null> {
 }
 
 function normalizeErrorCode(value: unknown, fallback: AccountErrorCode): AccountErrorCode {
-  if (typeof value !== 'string') return fallback;
-  return (ERROR_CODES as readonly string[]).includes(value) ? (value as AccountErrorCode) : fallback;
+  if (typeof value !== "string") return fallback;
+  return (ERROR_CODES as readonly string[]).includes(value)
+    ? (value as AccountErrorCode)
+    : fallback;
 }
 
 function buildNetworkError(): AccountError {
   return {
-    code: 'network',
-    message: 'Network error',
+    code: "network",
+    message: "Network error",
     retryable: true,
   };
 }
@@ -61,12 +63,12 @@ function buildNetworkError(): AccountError {
 async function buildHttpError(response: Response): Promise<AccountError> {
   const fallbackCode: AccountErrorCode =
     response.status === 401
-      ? 'auth'
+      ? "auth"
       : response.status === 400
-        ? 'validation'
+        ? "validation"
         : response.status === 402
-          ? 'payment'
-          : 'unknown';
+          ? "payment"
+          : "unknown";
   const retryable = response.status >= 500;
   try {
     const payload = (await response.json()) as {
@@ -76,13 +78,13 @@ async function buildHttpError(response: Response): Promise<AccountError> {
       details?: unknown;
     };
     const message =
-      typeof payload.message === 'string' ? payload.message : `Request failed (${response.status})`;
+      typeof payload.message === "string" ? payload.message : `Request failed (${response.status})`;
     const err: AccountError = {
       code: normalizeErrorCode(payload.code, fallbackCode),
       message,
-      retryable: typeof payload.retryable === 'boolean' ? payload.retryable : retryable,
+      retryable: typeof payload.retryable === "boolean" ? payload.retryable : retryable,
     };
-    if (typeof payload.details === 'string') {
+    if (typeof payload.details === "string") {
       err.details = payload.details;
     }
     return err;
@@ -104,13 +106,13 @@ async function requestJson<T>(
   const controller = new AbortController();
   const timeout = globalThis.setTimeout(() => controller.abort(), BACKEND_CONFIG.timeoutMs);
   const headers = new Headers(init.headers ?? {});
-  headers.set('Accept', 'application/json');
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+  headers.set("Accept", "application/json");
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
   if (options.auth !== false) {
     const token = await getAccessToken();
-    if (token) headers.set('Authorization', `Bearer ${token}`);
+    if (token) headers.set("Authorization", `Bearer ${token}`);
   }
   try {
     const response = await fetch(buildBackendUrl(path), {
@@ -127,15 +129,15 @@ async function requestJson<T>(
     try {
       return JSON.parse(text) as T;
     } catch (error) {
-      console.error('Account API: failed to parse response', error);
+      console.error("Account API: failed to parse response", error);
       throw {
-        code: 'unknown',
-        message: 'Invalid server response',
+        code: "unknown",
+        message: "Invalid server response",
         retryable: true,
       } as AccountError;
     }
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && 'message' in error) {
+    if (error && typeof error === "object" && "code" in error && "message" in error) {
       throw error;
     }
     throw buildNetworkError();
@@ -145,18 +147,18 @@ async function requestJson<T>(
 }
 
 function isAccountError(error: unknown): error is AccountError {
-  return Boolean(error && typeof error === 'object' && 'code' in error && 'message' in error);
+  return Boolean(error && typeof error === "object" && "code" in error && "message" in error);
 }
 
 function buildGuestSnapshot(plans: Plan[] = [], config: AccountConfig = {}): AccountSnapshot {
   return {
-    session: { status: 'guest' },
+    session: { status: "guest" },
     user: null,
     subscription: null,
-    billing: { state: 'none' },
+    billing: { state: "none" },
     plans,
     config,
-    onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
+    onboarding: { flowId: "activation-v1", status: "pending", seenAt: null },
   };
 }
 
@@ -165,11 +167,7 @@ export function createRemoteAccountClient(): AccountClient {
     const token = await getAccessToken();
     if (!token) {
       const [plans, policy] = await Promise.all([
-        requestJson<Plan[]>(
-          BACKEND_CONFIG.endpoints.plans,
-          {},
-          { auth: false },
-        ).catch(() => []),
+        requestJson<Plan[]>(BACKEND_CONFIG.endpoints.plans, {}, { auth: false }).catch(() => []),
         authPolicyItem.getValue(),
       ]);
       return buildGuestSnapshot(plans, {
@@ -181,7 +179,11 @@ export function createRemoteAccountClient(): AccountClient {
       const snapshot = await requestJson<AccountSnapshot>(BACKEND_CONFIG.endpoints.account);
       if (!snapshot.plans || snapshot.plans.length === 0) {
         try {
-          const plans = await requestJson<Plan[]>(BACKEND_CONFIG.endpoints.plans, {}, { auth: false });
+          const plans = await requestJson<Plan[]>(
+            BACKEND_CONFIG.endpoints.plans,
+            {},
+            { auth: false },
+          );
           return { ...snapshot, plans };
         } catch {
           return snapshot;
@@ -189,15 +191,11 @@ export function createRemoteAccountClient(): AccountClient {
       }
       return snapshot;
     } catch (error) {
-      if (isAccountError(error) && error.code === 'auth') {
+      if (isAccountError(error) && error.code === "auth") {
         // Do NOT clear tokens here — the background authOrchestrator owns
         // token lifecycle and will attempt refresh with the stored refreshToken.
         const [plans, policy] = await Promise.all([
-          requestJson<Plan[]>(
-            BACKEND_CONFIG.endpoints.plans,
-            {},
-            { auth: false },
-          ).catch(() => []),
+          requestJson<Plan[]>(BACKEND_CONFIG.endpoints.plans, {}, { auth: false }).catch(() => []),
           authPolicyItem.getValue(),
         ]);
         return buildGuestSnapshot(plans, {
@@ -224,16 +222,15 @@ export function createRemoteAccountClient(): AccountClient {
     getSnapshot,
     startCheckout: async (input: CheckoutInput): Promise<PortalLink> =>
       requestJson<PortalLink>(BACKEND_CONFIG.endpoints.checkout, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(input),
       }),
     createBillingPortalLink: async (): Promise<PortalLink> =>
-      requestJson<PortalLink>(BACKEND_CONFIG.endpoints.billingPortal, { method: 'POST' }),
+      requestJson<PortalLink>(BACKEND_CONFIG.endpoints.billingPortal, { method: "POST" }),
     completeOnboarding: async (input: CompleteOnboardingInput) => {
-      const result = await requestJson<{ onboarding: import('../../../../shared/types/account.js').OnboardingState }>(
-        BACKEND_CONFIG.endpoints.onboarding,
-        { method: 'POST', body: JSON.stringify(input) },
-      );
+      const result = await requestJson<{
+        onboarding: OnboardingState;
+      }>(BACKEND_CONFIG.endpoints.onboarding, { method: "POST", body: JSON.stringify(input) });
       return result.onboarding;
     },
   };

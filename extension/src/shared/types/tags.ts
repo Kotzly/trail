@@ -1,4 +1,4 @@
-import type { Tag } from './ids.js';
+import type { Tag } from "./ids.js";
 
 export type TagDefinition = {
   id: Tag;

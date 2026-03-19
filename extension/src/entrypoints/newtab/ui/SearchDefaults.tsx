@@ -1,5 +1,5 @@
-import { Search, Globe, Bookmark, Network, FolderOpen } from 'lucide-react';
-import { executeSpotlightAction } from '../../../spotlight/rpc.js';
+import { Search, Globe, Bookmark, Network, FolderOpen } from "lucide-react";
+import { executeSpotlightAction } from "../../../spotlight/rpc.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,37 +27,37 @@ export function SearchDefaults({ query, onSetQuery }: SearchDefaultsProps) {
 
   const actions: DefaultAction[] = [
     {
-      id: 'web',
+      id: "web",
       icon: <Globe size={15} strokeWidth={1.8} />,
-      label: trimmed ? `Search "${trimmed}" on the web` : 'Search on the web',
+      label: trimmed ? `Search "${trimmed}" on the web` : "Search on the web",
       onSelect: () => {
-        void executeSpotlightAction('search-default-engine', { kind: 'search', query: trimmed });
+        void executeSpotlightAction("search-default-engine", { kind: "search", query: trimmed });
       },
     },
     {
-      id: 'bookmarks',
+      id: "bookmarks",
       icon: <Bookmark size={15} strokeWidth={1.8} />,
-      label: trimmed ? `Find "${trimmed}" in bookmarks` : 'Browse bookmarks',
-      onSelect: () => onSetQuery(trimmed ? `bookmarks:${trimmed}` : 'bookmarks:'),
+      label: trimmed ? `Find "${trimmed}" in bookmarks` : "Browse bookmarks",
+      onSelect: () => onSetQuery(trimmed ? `bookmarks:${trimmed}` : "bookmarks:"),
     },
     {
-      id: 'trails',
+      id: "trails",
       icon: <Network size={15} strokeWidth={1.8} />,
-      label: trimmed ? `Find "${trimmed}" in trails` : 'Browse trails',
-      onSelect: () => onSetQuery(trimmed ? `trees:${trimmed}` : 'trees:'),
+      label: trimmed ? `Find "${trimmed}" in trails` : "Browse trails",
+      onSelect: () => onSetQuery(trimmed ? `trees:${trimmed}` : "trees:"),
     },
     {
-      id: 'tabs',
+      id: "tabs",
       icon: <FolderOpen size={15} strokeWidth={1.8} />,
-      label: trimmed ? `Find "${trimmed}" in open tabs` : 'Show open tabs',
-      onSelect: () => onSetQuery(trimmed ? `tabs:${trimmed}` : 'tabs:'),
+      label: trimmed ? `Find "${trimmed}" in open tabs` : "Show open tabs",
+      onSelect: () => onSetQuery(trimmed ? `tabs:${trimmed}` : "tabs:"),
     },
     {
-      id: 'commands',
+      id: "commands",
       icon: <Search size={15} strokeWidth={1.8} />,
-      label: 'Run a command',
-      sublabel: 'Type > to see available commands',
-      onSelect: () => onSetQuery('>'),
+      label: "Run a command",
+      sublabel: "Type > to see available commands",
+      onSelect: () => onSetQuery(">"),
     },
   ];
 

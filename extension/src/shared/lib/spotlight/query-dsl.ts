@@ -1,6 +1,6 @@
-import type { SpotlightSuggestionGroup } from '@shared/rpc/contracts.js';
+import type { SpotlightSuggestionGroup } from "@shared/rpc/contracts.js";
 
-export type SpotlightField = 'domain' | 'tab' | 'tree' | 'group' | 'is';
+export type SpotlightField = "domain" | "tab" | "tree" | "group" | "is";
 
 export type SpotlightToken = {
   raw: string;
@@ -18,35 +18,29 @@ export type SpotlightQueryAst = {
   clauses: SpotlightQueryClause[];
 };
 
-export type SpotlightQueryMode = 'discover' | 'search' | 'commands';
+export type SpotlightQueryMode = "discover" | "search" | "commands";
 
-const VALID_FIELDS: ReadonlySet<SpotlightField> = new Set([
-  'domain',
-  'tab',
-  'tree',
-  'group',
-  'is',
-]);
+const VALID_FIELDS: ReadonlySet<SpotlightField> = new Set(["domain", "tab", "tree", "group", "is"]);
 
-const VALID_TAB_VALUES = new Set(['open', 'closed']);
-const VALID_TREE_VALUES = new Set(['current', 'other', 'any']);
+const VALID_TAB_VALUES = new Set(["open", "closed"]);
+const VALID_TREE_VALUES = new Set(["current", "other", "any"]);
 const VALID_GROUP_VALUES = new Set<SpotlightSuggestionGroup>([
-  'open-tabs',
-  'recently-closed',
-  'current-tree',
-  'other-trees',
+  "open-tabs",
+  "recently-closed",
+  "current-tree",
+  "other-trees",
 ]);
-const VALID_IS_VALUES = new Set(['current']);
+const VALID_IS_VALUES = new Set(["current"]);
 
 export function tokenizeSpotlightQuery(input: string): SpotlightToken[] {
   const chunks = splitRawTokens(input);
   const out: SpotlightToken[] = [];
 
   for (const chunk of chunks) {
-    if (chunk === '|') {
+    if (chunk === "|") {
       out.push({
-        raw: '|',
-        value: '|',
+        raw: "|",
+        value: "|",
         negated: false,
         exact: false,
       });
@@ -62,7 +56,7 @@ export function tokenizeSpotlightQuery(input: string): SpotlightToken[] {
     }
 
     let negated = false;
-    if (token.startsWith('-') && token.length > 1) {
+    if (token.startsWith("-") && token.length > 1) {
       negated = true;
       token = token.slice(1);
     }
@@ -101,7 +95,7 @@ export function parseSpotlightQuery(input: string): SpotlightQueryAst {
   let current: SpotlightQueryClause = { terms: [] };
 
   for (const token of tokens) {
-    if (token.raw === '|') {
+    if (token.raw === "|") {
       if (current.terms.length > 0) {
         clauses.push(current);
       }
@@ -120,15 +114,18 @@ export function parseSpotlightQuery(input: string): SpotlightQueryAst {
   };
 }
 
-export function resolveSpotlightQueryMode(input: string): { mode: SpotlightQueryMode; normalizedQuery: string } {
+export function resolveSpotlightQueryMode(input: string): {
+  mode: SpotlightQueryMode;
+  normalizedQuery: string;
+} {
   const trimmed = input.trim();
   if (!trimmed) {
-    return { mode: 'discover', normalizedQuery: '' };
+    return { mode: "discover", normalizedQuery: "" };
   }
-  if (trimmed.startsWith('>')) {
-    return { mode: 'commands', normalizedQuery: trimmed.slice(1).trim() };
+  if (trimmed.startsWith(">")) {
+    return { mode: "commands", normalizedQuery: trimmed.slice(1).trim() };
   }
-  return { mode: 'search', normalizedQuery: trimmed };
+  return { mode: "search", normalizedQuery: trimmed };
 }
 
 function splitRawTokens(input: string): string[] {
@@ -144,8 +141,8 @@ function splitRawTokens(input: string): string[] {
       continue;
     }
 
-    if (ch === '|') {
-      out.push('|');
+    if (ch === "|") {
+      out.push("|");
       i += 1;
       continue;
     }
@@ -161,7 +158,7 @@ function splitRawTokens(input: string): string[] {
       } else {
         // Unclosed quote: degrade to plain token without throwing.
         let k = i;
-        while (k < input.length && !/\s/.test(input[k] ?? '')) {
+        while (k < input.length && !/\s/.test(input[k] ?? "")) {
           k += 1;
         }
         out.push(input.slice(i, k));
@@ -173,7 +170,7 @@ function splitRawTokens(input: string): string[] {
     let j = i;
     while (j < input.length) {
       const cur = input[j];
-      if (!cur || /\s/.test(cur) || cur === '|') break;
+      if (!cur || /\s/.test(cur) || cur === "|") break;
       j += 1;
     }
     out.push(input.slice(i, j));
@@ -184,7 +181,7 @@ function splitRawTokens(input: string): string[] {
 }
 
 function parseFieldToken(token: string): { field: SpotlightField; value: string } | null {
-  const colon = token.indexOf(':');
+  const colon = token.indexOf(":");
   if (colon <= 0 || colon === token.length - 1) {
     return null;
   }
@@ -199,16 +196,16 @@ function parseFieldToken(token: string): { field: SpotlightField; value: string 
 
   const field = fieldRaw as SpotlightField;
 
-  if (field === 'tab' && !VALID_TAB_VALUES.has(valueRaw)) {
+  if (field === "tab" && !VALID_TAB_VALUES.has(valueRaw)) {
     return null;
   }
-  if (field === 'tree' && !VALID_TREE_VALUES.has(valueRaw)) {
+  if (field === "tree" && !VALID_TREE_VALUES.has(valueRaw)) {
     return null;
   }
-  if (field === 'group' && !VALID_GROUP_VALUES.has(valueRaw as SpotlightSuggestionGroup)) {
+  if (field === "group" && !VALID_GROUP_VALUES.has(valueRaw as SpotlightSuggestionGroup)) {
     return null;
   }
-  if (field === 'is' && !VALID_IS_VALUES.has(valueRaw)) {
+  if (field === "is" && !VALID_IS_VALUES.has(valueRaw)) {
     return null;
   }
 

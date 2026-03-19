@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { TagDefinition } from '@shared/types/tags.js';
-import { TAG_COLOR_OPTIONS } from './tag-palette.js';
-import { TAG_ICON_OPTIONS } from './tag-icons.js';
-import { TagIcon } from './TagIcon.js';
-import { Icons } from '../Icon.js';
-import { createPortal } from 'react-dom';
-import { useOverlayEffects } from '../../state/overlay-effects.js';
+import { useEffect, useMemo, useState } from "react";
+import type { TagDefinition } from "@shared/types/tags.js";
+import { TAG_COLOR_OPTIONS } from "./tag-palette.js";
+import { TAG_ICON_OPTIONS } from "./tag-icons.js";
+import { TagIcon } from "./TagIcon.js";
+import { Icons } from "../Icon.js";
+import { createPortal } from "react-dom";
+import { useOverlayEffects } from "../../state/overlay-effects.js";
 
-
-type TagEditorMode = 'create' | 'edit';
+type TagEditorMode = "create" | "edit";
 
 export type TagEditorValue = {
   label: string;
@@ -31,15 +30,15 @@ export default function TagEditorModal({
   onSubmit,
   onCancel,
 }: TagEditorModalProps) {
-  useOverlayEffects(open, { lod: true, blur: true, kind: 'modal' });
+  useOverlayEffects(open, { lod: true, blur: true, kind: "modal" });
 
-  const [label, setLabel] = useState(initial?.label ?? '');
+  const [label, setLabel] = useState(initial?.label ?? "");
   const [color, setColor] = useState(initial?.color ?? TAG_COLOR_OPTIONS[0]);
   const [iconId, setIconId] = useState(initial?.iconId ?? TAG_ICON_OPTIONS[0].id);
 
   useEffect(() => {
     if (!open) return;
-    setLabel(initial?.label ?? '');
+    setLabel(initial?.label ?? "");
     setColor(initial?.color ?? TAG_COLOR_OPTIONS[0]);
     setIconId(initial?.iconId ?? TAG_ICON_OPTIONS[0].id);
   }, [open, initial]);
@@ -47,31 +46,31 @@ export default function TagEditorModal({
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.preventDefault();
         onCancel();
       }
-      if (event.key === 'Enter') {
+      if (event.key === "Enter") {
         const trimmed = label.trim();
         if (trimmed.length === 0 || trimmed.length > 20) return;
         event.preventDefault();
         onSubmit({ label: trimmed, color, iconId });
       }
     };
-    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
     return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
     };
   }, [color, iconId, label, onCancel, onSubmit, open]);
 
   const trimmedLabel = label.trim();
   const isValid = trimmedLabel.length > 0 && trimmedLabel.length <= 20;
-  const title = mode === 'create' ? 'New Tag' : 'Edit Tag';
-  const submitLabel = mode === 'create' ? 'Create' : 'Save';
+  const title = mode === "create" ? "New Tag" : "Edit Tag";
+  const submitLabel = mode === "create" ? "Create" : "Save";
   const remaining = useMemo(() => 20 - trimmedLabel.length, [trimmedLabel.length]);
 
   if (!open) return null;
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
 
   return createPortal(
     <div className="tag-editor-overlay lod-enabler blur-enabler" onClick={onCancel}>
@@ -95,7 +94,7 @@ export default function TagEditorModal({
               onChange={(event) => setLabel(event.target.value)}
               autoFocus
             />
-            <span className={`tag-editor-count ${remaining < 0 ? 'invalid' : ''}`}>
+            <span className={`tag-editor-count ${remaining < 0 ? "invalid" : ""}`}>
               {remaining}
             </span>
           </div>
@@ -108,7 +107,7 @@ export default function TagEditorModal({
               <button
                 key={option}
                 type="button"
-                className={`tag-editor-color ${option === color ? 'selected' : ''}`}
+                className={`tag-editor-color ${option === color ? "selected" : ""}`}
                 style={{ backgroundColor: option }}
                 onClick={() => setColor(option)}
                 aria-label={`Select color ${option}`}
@@ -124,7 +123,7 @@ export default function TagEditorModal({
               <button
                 key={option.id}
                 type="button"
-                className={`tag-editor-icon ${option.id === iconId ? 'selected' : ''}`}
+                className={`tag-editor-icon ${option.id === iconId ? "selected" : ""}`}
                 onClick={() => setIconId(option.id)}
                 aria-label={`Select icon ${option.label}`}
               >
@@ -138,7 +137,7 @@ export default function TagEditorModal({
           <span className="tag-dot tag-editor-preview-dot" style={{ background: color }}>
             <TagIcon id={iconId} size={12} />
           </span>
-          <span className="tag-editor-preview-label">{trimmedLabel || 'Tag name'}</span>
+          <span className="tag-editor-preview-label">{trimmedLabel || "Tag name"}</span>
         </div>
 
         <div className="tag-editor-actions">

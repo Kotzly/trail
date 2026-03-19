@@ -7,14 +7,13 @@
  */
 import {
   RPC_METHOD,
-  rpc,
+  defineRpcHandlers,
   type SiteMessageForwardResponse,
   type ResponseMessage,
+  type SiteMessageForwardMessage,
   ok,
   err,
 } from "../../../shared/rpc/contracts.js";
-import { defineRpcHandlers } from "@shared/rpc/contracts.js";
-import type { SiteMessageForwardMessage } from "@shared/rpc/contracts.js";
 import {
   getEditorState,
   enterEditorMode,
@@ -23,7 +22,7 @@ import {
 } from "./editor-handlers.js";
 import { authOrchestrator } from "../../services/auth-orchestrator.js";
 import { authSessionItem } from "@shared/config/storage-items.js";
-import { browser } from '@shared/platform/webext.js';
+import { browser } from "@shared/platform/webext.js";
 
 // ---------------------------------------------------------------------------
 // Auth state helpers

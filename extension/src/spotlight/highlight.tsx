@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import type { SpotlightHighlightRange } from './types.js';
+import type { ReactNode } from "react";
+import type { SpotlightHighlightRange } from "./types.js";
 
 export function highlightText(text: string, ranges: SpotlightHighlightRange[]): ReactNode {
   if (!ranges.length) return text;

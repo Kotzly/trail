@@ -1,6 +1,6 @@
-import type { Url } from './ids.js';
+import type { Url } from "./ids.js";
 
-export type PlanInterval = 'month' | 'year';
+export type PlanInterval = "month" | "year";
 /** Arbitrary tier identifier — defined by the backend, not hardcoded. */
 export type PlanTier = string;
 
@@ -25,12 +25,12 @@ export type Plan = {
 };
 
 export type SubscriptionStatus =
-  | 'trialing'
-  | 'active'
-  | 'past_due'
-  | 'paused'
-  | 'canceled'
-  | 'expired';
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "paused"
+  | "canceled"
+  | "expired";
 
 export type Subscription = {
   id: string;
@@ -45,13 +45,13 @@ export type Subscription = {
 };
 
 export type BillingState =
-  | 'none'
-  | 'trialing'
-  | 'ok'
-  | 'past_due'
-  | 'unpaid'
-  | 'grace'
-  | 'canceled';
+  | "none"
+  | "trialing"
+  | "ok"
+  | "past_due"
+  | "unpaid"
+  | "grace"
+  | "canceled";
 
 export type PaymentMethod = {
   brand: string;
@@ -78,7 +78,7 @@ export type User = {
 };
 
 export type AuthSession = {
-  status: 'guest' | 'authenticated';
+  status: "guest" | "authenticated";
   accessToken?: string | null;
   refreshToken?: string | null;
   expiresAt?: string | null;
@@ -87,8 +87,8 @@ export type AuthSession = {
 export type AccountConfigValue = boolean | number | string | null;
 export type AccountConfig = Record<string, AccountConfigValue>;
 
-export type OnboardingFlowId = 'activation-v1';
-export type OnboardingStatus = 'pending' | 'completed';
+export type OnboardingFlowId = "activation-v1";
+export type OnboardingStatus = "pending" | "completed";
 
 export type OnboardingState = {
   flowId: OnboardingFlowId;
@@ -118,7 +118,7 @@ export type CheckoutInput = {
   cancelUrl?: Url;
 };
 
-export type AccountErrorCode = 'network' | 'auth' | 'payment' | 'validation' | 'unknown';
+export type AccountErrorCode = "network" | "auth" | "payment" | "validation" | "unknown";
 
 export type AccountError = {
   code: AccountErrorCode;

@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect } from "react";
 
 const DRILLDOWN_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
@@ -32,13 +32,16 @@ export function useDrilldownMemory(): DrilldownMemory {
     savedScope.current = null;
   }, []);
 
-  const save = useCallback((scope: DrilldownScope | null) => {
-    clear();
-    if (scope) {
-      savedScope.current = scope;
-      timerRef.current = setTimeout(clear, DRILLDOWN_TTL_MS);
-    }
-  }, [clear]);
+  const save = useCallback(
+    (scope: DrilldownScope | null) => {
+      clear();
+      if (scope) {
+        savedScope.current = scope;
+        timerRef.current = setTimeout(clear, DRILLDOWN_TTL_MS);
+      }
+    },
+    [clear],
+  );
 
   const restore = useCallback(() => {
     const scope = savedScope.current;

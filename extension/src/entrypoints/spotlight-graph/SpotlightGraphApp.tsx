@@ -1,21 +1,20 @@
-import { useEffect, useCallback, useRef } from 'react';
-import GraphArea from '@entrypoints/sidepanel/ui/components/graph/GraphArea.js';
-import { useBootstrap } from '@entrypoints/sidepanel/ui/hooks/useBootstrap.js';
-import { listenSystemTheme } from '@entrypoints/sidepanel/ui/hooks/listenSystemTheme.js';
-import { useStore } from '@entrypoints/sidepanel/ui/state/store.js';
-import type { ViewState } from '@entrypoints/sidepanel/ui/state/store.js';
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
-import type { SpotlightGraphPreviewData } from '../../spotlight/types.js';
-import type { NodeId } from '@shared/types/ids.js';
-import type { TreeViewIntent } from '@shared/rpc/contracts.js';
-import { sendToParent, onParentMessage } from '../../spotlight/spotlight-ipc.js';
+import { useEffect, useCallback, useRef } from "react";
+import GraphArea from "@entrypoints/sidepanel/ui/components/graph/GraphArea.js";
+import { useBootstrap } from "@entrypoints/sidepanel/ui/hooks/useBootstrap.js";
+import { useSystemThemeListener } from "@entrypoints/sidepanel/ui/hooks/useSystemThemeListener.js";
+import { useStore, type ViewState } from "@entrypoints/sidepanel/ui/state/store.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import type { SpotlightGraphPreviewData } from "../../spotlight/types.js";
+import type { NodeId, Url } from "@shared/types/ids.js";
+import type { TreeViewIntent } from "@shared/rpc/contracts.js";
+import { sendToParent, onParentMessage } from "../../spotlight/spotlight-ipc.js";
 
 const urlParams = new URLSearchParams(window.location.search);
-const compactFromUrl = urlParams.get('compact') !== '0';
+const compactFromUrl = urlParams.get("compact") !== "0";
 
 export default function SpotlightGraphApp() {
   useBootstrap();
-  listenSystemTheme();
+  useSystemThemeListener();
 
   const tree = useStore((state) => state.tree);
   const currentNodeId = useStore((state) => state.currentNodeId);
@@ -47,24 +46,24 @@ export default function SpotlightGraphApp() {
   // Forward Escape key from iframe to parent so Spotlight can handle it
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.preventDefault();
-        sendToParent({ type: 'ESCAPE_KEY' });
+        sendToParent({ type: "ESCAPE_KEY" });
       }
     };
-    window.addEventListener('keydown', handler, true);
-    return () => window.removeEventListener('keydown', handler, true);
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
   }, []);
 
   useEffect(() => {
     if (!tree) return;
-    const treeId = activeTreeIdRef.current ?? '__active__';
+    const treeId = activeTreeIdRef.current ?? "__active__";
     // Only rebuild snapshot when tree identity changes, not on every
     // state mutation (hover, tab state, etc.) to avoid cascade of rerenders.
     if (activePreviewRef.current && activePreviewRef.current.treeId === treeId) return;
     activePreviewRef.current = {
       treeId,
-      treeName: '',
+      treeName: "",
       tree: NavigationTreeMapper.toJSON(tree),
       currentNodeId,
       openNodeIds: Array.from(openNodeIds),
@@ -77,21 +76,24 @@ export default function SpotlightGraphApp() {
     }
     if (!readyFired.current) {
       readyFired.current = true;
-      sendToParent({ type: 'GRAPH_READY' });
+      sendToParent({ type: "GRAPH_READY" });
     }
   }, [currentNodeId, nodeRecency, nodeTabCounts, openNodeIds, tabStates, tree]);
 
-  const applyPreviewData = useCallback((preview: SpotlightGraphPreviewData, view?: TreeViewIntent) => {
-    useStore.getState().applyTreeState({
-      tree: preview.tree,
-      openNodeIds: preview.openNodeIds,
-      tabStates: preview.tabStates,
-      nodeTabCounts: preview.nodeTabCounts,
-      nodeRecency: preview.nodeRecency,
-      reason: 'tree-switch',
-      ...(view && { view }),
-    });
-  }, []);
+  const applyPreviewData = useCallback(
+    (preview: SpotlightGraphPreviewData, view?: TreeViewIntent) => {
+      useStore.getState().applyTreeState({
+        tree: preview.tree,
+        openNodeIds: preview.openNodeIds,
+        tabStates: preview.tabStates,
+        nodeTabCounts: preview.nodeTabCounts,
+        nodeRecency: preview.nodeRecency,
+        reason: "tree-switch",
+        ...(view && { view }),
+      });
+    },
+    [],
+  );
 
   const setLocalHighlight = useCallback((nodeId: NodeId | null) => {
     suppressHoverEchoRef.current = true;
@@ -100,21 +102,15 @@ export default function SpotlightGraphApp() {
 
   useEffect(() => {
     return onParentMessage((msg) => {
-      const {
-        activeTreeId,
-        previewData,
-        selectedNodeId,
-        highlightNodeId,
-        selectionIntentId,
-      } = msg;
+      const { activeTreeId, previewData, selectedNodeId, highlightNodeId, selectionIntentId } = msg;
 
       activeTreeIdRef.current = activeTreeId;
-      if (activePreviewRef.current?.treeId === '__active__') {
+      if (activePreviewRef.current?.treeId === "__active__") {
         activePreviewRef.current = {
           ...activePreviewRef.current,
           treeId: activeTreeId,
         };
-        if (currentPreviewTreeIdRef.current === '__active__') {
+        if (currentPreviewTreeIdRef.current === "__active__") {
           currentPreviewTreeIdRef.current = activeTreeId;
         }
       }
@@ -152,9 +148,9 @@ export default function SpotlightGraphApp() {
       }
 
       if (
-        selectionIntentId !== 0
-        && selectionIntentId !== lastSelectionIntentRef.current
-        && selectedNodeId !== null
+        selectionIntentId !== 0 &&
+        selectionIntentId !== lastSelectionIntentRef.current &&
+        selectedNodeId !== null
       ) {
         lastSelectionIntentRef.current = selectionIntentId;
         useStore.setState((state) => ({
@@ -162,7 +158,7 @@ export default function SpotlightGraphApp() {
             ...state.graph,
             viewIntent: {
               focusNodeId: selectedNodeId,
-              mode: 'soft',
+              mode: "soft",
               intentId: selectionIntentId,
             },
           },
@@ -196,7 +192,7 @@ export default function SpotlightGraphApp() {
       const payloadKey = `${previewTreeId}:null`;
       if (lastHoverSentRef.current !== payloadKey) {
         lastHoverSentRef.current = payloadKey;
-        sendToParent({ type: 'HOVER_NODE', treeId: previewTreeId, nodeId: null });
+        sendToParent({ type: "HOVER_NODE", treeId: previewTreeId, nodeId: null });
       }
       if (baselineHighlight !== null) {
         setLocalHighlight(baselineHighlight);
@@ -208,7 +204,7 @@ export default function SpotlightGraphApp() {
       const payloadKey = `${previewTreeId}:null`;
       if (lastHoverSentRef.current !== payloadKey) {
         lastHoverSentRef.current = payloadKey;
-        sendToParent({ type: 'HOVER_NODE', treeId: previewTreeId, nodeId: null });
+        sendToParent({ type: "HOVER_NODE", treeId: previewTreeId, nodeId: null });
       }
       return;
     }
@@ -216,22 +212,27 @@ export default function SpotlightGraphApp() {
     const payloadKey = `${previewTreeId}:${hoverNodeId}`;
     if (lastHoverSentRef.current === payloadKey) return;
     lastHoverSentRef.current = payloadKey;
-    sendToParent({ type: 'HOVER_NODE', treeId: previewTreeId, nodeId: hoverNodeId });
+    sendToParent({ type: "HOVER_NODE", treeId: previewTreeId, nodeId: hoverNodeId });
   }, [hoverNodeId, setLocalHighlight]);
 
   const handleNodeActivate = useCallback((nodeId: NodeId, url: string) => {
     const previewTreeId = currentPreviewTreeIdRef.current ?? activeTreeIdRef.current;
     if (!previewTreeId) return;
-    sendToParent({ type: 'NAVIGATE', treeId: previewTreeId, nodeId, url: url as import('@shared/types/ids.js').Url });
+    sendToParent({
+      type: "NAVIGATE",
+      treeId: previewTreeId,
+      nodeId,
+      url: url as Url,
+    });
   }, []);
 
   return (
-    <div className="container" style={{ width: '100%', height: '100%' }}>
+    <div className="container" style={{ width: "100%", height: "100%" }}>
       <GraphArea
         onNodeActivate={handleNodeActivate}
         showControls={false}
         compactInitialView={compactFromUrl}
-        initialCenterNodeId={compactFromUrl ? currentNodeId ?? undefined : undefined}
+        initialCenterNodeId={compactFromUrl ? (currentNodeId ?? undefined) : undefined}
       />
     </div>
   );

@@ -22,4 +22,4 @@ export type {
   SpotlightHighlightMap,
   SpotlightHighlightRange,
   SpotlightBatchActionId,
-} from '@shared/rpc/contracts.js';
+} from "@shared/rpc/contracts.js";

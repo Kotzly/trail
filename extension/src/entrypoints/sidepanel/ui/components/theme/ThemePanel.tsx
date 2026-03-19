@@ -1,17 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import type { Settings, CustomTheme } from '@shared/types/settings.js';
-import { saveSettings } from '../../../api/settings.js';
-import { useStore } from '../../state/store.js';
-import { useOverlayEffects } from '../../state/overlay-effects.js';
-import ThemePalette from './ThemePalette.js';
-import { applyTheme } from '../../shared/apply-theme.js';
-
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import type { Settings, CustomTheme } from "@shared/types/settings.js";
+import { saveSettings } from "../../../api/settings.js";
+import { useStore } from "../../state/store.js";
+import { useOverlayEffects } from "../../state/overlay-effects.js";
+import ThemePalette from "./ThemePalette.js";
+import { applyTheme } from "../../shared/apply-theme.js";
 
 const DEFAULT_THEME: CustomTheme = {
   enabled: false,
   dots: [],
-  harmony: 'floating',
+  harmony: "floating",
   lightness: 50,
   opacity: 0.6,
   texture: 0,
@@ -34,7 +33,7 @@ export default function ThemePanel() {
   const [isClosing, setIsClosing] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
 
-  useOverlayEffects(isMounted, { lod: true, blur: true, kind: 'modal' });
+  useOverlayEffects(isMounted, { lod: true, blur: true, kind: "modal" });
 
   const [draftTheme, setDraftTheme] = useState<CustomTheme>(settings?.customTheme ?? DEFAULT_THEME);
   const pendingSaveRef = useRef<Settings | null>(null);
@@ -86,7 +85,7 @@ export default function ThemePanel() {
     try {
       await saveSettings(next);
     } catch (error) {
-      console.error('Failed to save theme settings:', error);
+      console.error("Failed to save theme settings:", error);
     }
   }, []);
 
@@ -100,7 +99,7 @@ export default function ThemePanel() {
         void flushPendingSave();
       }, 240);
     },
-    [flushPendingSave]
+    [flushPendingSave],
   );
 
   useEffect(() => {
@@ -120,7 +119,7 @@ export default function ThemePanel() {
         applyTheme(settings.theme, nextTheme);
       });
     },
-    [settings]
+    [settings],
   );
 
   const handleCommit = useCallback(
@@ -134,11 +133,11 @@ export default function ThemePanel() {
       applyTheme(nextSettings.theme, nextTheme);
       scheduleSave(nextSettings);
     },
-    [scheduleSave, setSettings, settings]
+    [scheduleSave, setSettings, settings],
   );
 
   const handleSchemeChange = useCallback(
-    (nextScheme: Settings['theme']) => {
+    (nextScheme: Settings["theme"]) => {
       if (!settings) return;
       const nextSettings = withTheme(settings, { theme: nextScheme });
       if (!nextSettings) return;
@@ -146,7 +145,7 @@ export default function ThemePanel() {
       applyTheme(nextScheme, nextSettings.customTheme);
       scheduleSave(nextSettings);
     },
-    [scheduleSave, setSettings, settings]
+    [scheduleSave, setSettings, settings],
   );
 
   const handleClose = useCallback(() => {
@@ -159,29 +158,29 @@ export default function ThemePanel() {
   useEffect(() => {
     if (!isMounted) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.preventDefault();
         handleClose();
       }
     };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => document.removeEventListener('keydown', onKeyDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [handleClose, isMounted]);
 
-  if (!isMounted || typeof document === 'undefined') return null;
+  if (!isMounted || typeof document === "undefined") return null;
 
   return createPortal(
     <div
-      className={`modal-overlay theme-panel-overlay lod-enabler blur-enabler ${isClosing ? 'closing' : ''}`}
+      className={`modal-overlay theme-panel-overlay lod-enabler blur-enabler ${isClosing ? "closing" : ""}`}
       onClick={handleClose}
     >
       <div
-        className={`theme-panel ${isClosing ? 'closing' : ''}`}
+        className={`theme-panel ${isClosing ? "closing" : ""}`}
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <ThemePalette
-          scheme={settings?.theme ?? 'system'}
+          scheme={settings?.theme ?? "system"}
           value={draftTheme}
           onSchemeChange={handleSchemeChange}
           onPreview={handlePreview}
@@ -189,6 +188,6 @@ export default function ThemePanel() {
         />
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

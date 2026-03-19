@@ -1,10 +1,9 @@
-import { redo, undo } from '../../api/commands.js';
-import { useStore } from '../state/store.js';
-import { Icons } from './Icon.js';
-import PinnedDropdown from './PinnedDropdown.js';
-import TreeDropdown from './TreeDropdown.js';
-import TagFilterDropdown from './tags/TagFilterDropdown.js';
-
+import { redo, undo } from "../../api/commands.js";
+import { useStore } from "../state/store.js";
+import { Icons } from "./Icon.js";
+import PinnedDropdown from "./PinnedDropdown.js";
+import TreeDropdown from "./TreeDropdown.js";
+import TagFilterDropdown from "./tags/TagFilterDropdown.js";
 
 export default function Header() {
   const commandState = useStore((state) => state.commandState);
@@ -16,10 +15,10 @@ export default function Header() {
   const themePickerOpen = useStore((state) => state.ui.themePickerOpen);
   const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
 
-  const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : 'Ctrl+Z';
-  const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : 'Ctrl+Shift+Z';
-  const settingsShortcut = metaKey ? `${metaKey.short}+,` : 'Ctrl+,';
-  const tooltipsShortcut = metaKey ? `${metaKey.short}+/` : 'Ctrl+/';
+  const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : "Ctrl+Z";
+  const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : "Ctrl+Shift+Z";
+  const settingsShortcut = metaKey ? `${metaKey.short}+,` : "Ctrl+,";
+  const tooltipsShortcut = metaKey ? `${metaKey.short}+/` : "Ctrl+/";
   const undoTooltip = commandState?.nextUndoDesc
     ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
     : `Undo (${undoShortcut})`;
@@ -34,7 +33,7 @@ export default function Header() {
       const state = await undo();
       setCommandState(state);
     } catch (error) {
-      console.error('Failed to undo:', error);
+      console.error("Failed to undo:", error);
     }
   };
 
@@ -43,7 +42,7 @@ export default function Header() {
       const state = await redo();
       setCommandState(state);
     } catch (error) {
-      console.error('Failed to redo:', error);
+      console.error("Failed to redo:", error);
     }
   };
 

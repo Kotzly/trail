@@ -1,5 +1,5 @@
 import { RPC_METHOD, defineRpcHandlers, err, ok } from "@shared/rpc/contracts.js";
-import { browser, openSidebarForTab, type RuntimePort } from '@shared/platform/webext.js';
+import { browser, openSidebarForTab, type RuntimePort } from "@shared/platform/webext.js";
 
 /* ------------------------------------------------------------------ */
 /*  Sidepanel liveness tracking via persistent Port                    */
@@ -29,7 +29,7 @@ export const panelHandlers = defineRpcHandlers({
 
     try {
       const result = await openSidebarForTab(tabId);
-      if (result.mode === 'unavailable') {
+      if (result.mode === "unavailable") {
         return err("Sidebar API unavailable");
       }
       return ok();

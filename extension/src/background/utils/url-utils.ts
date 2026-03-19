@@ -1,5 +1,5 @@
-import type { FaviconUrl, Url } from '@shared/types/ids.js';
-import { getFaviconUrl } from '@shared/utils/favicon.js';
+import type { FaviconUrl, Url } from "@shared/types/ids.js";
+import { getFaviconUrl } from "@shared/utils/favicon.js";
 export { getFaviconUrl };
 
 const ignoredUrlPatterns: RegExp[] = [
@@ -9,7 +9,7 @@ const ignoredUrlPatterns: RegExp[] = [
   /^tel:/,
   /^data:/,
   /^chrome-extension:/,
-]
+];
 
 const blockedFaviconUrlPatterns: RegExp[] = [
   /^chrome:\/\/favicon2/i,
@@ -18,7 +18,6 @@ const blockedFaviconUrlPatterns: RegExp[] = [
   /^chrome-extension:\/\/[^/]+\/_favicon\//i,
   /^about:blank(?:[#?].*)?$/i,
 ];
-
 
 const ntpUrlPatterns: ReadonlyArray<RegExp> = [
   /^(?<scheme>[a-z][a-z0-9+.-]*):\/\/(?<page>newtab|new-tab-page)\/?(?:[?#].*)?$/i,
@@ -38,30 +37,29 @@ export function isNewTabUrl(url: Url): boolean {
 export function isNewTabContext(url: Url, title?: string | null): boolean {
   if (isNewTabUrl(url)) return true;
   if (!title) return false;
-  return title.toLowerCase().includes('new tab');
+  return title.toLowerCase().includes("new tab");
 }
-
 
 /** Allowlist: only http(s) URLs are trackable in the tree. */
 export function isTrackableUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
   } catch {
     return false;
   }
 }
 
 export function shouldTrackUrl(url: Url): boolean {
-  if (ignoredUrlPatterns.some(pattern => pattern.test(url))) return false;
+  if (ignoredUrlPatterns.some((pattern) => pattern.test(url))) return false;
   return isTrackableUrl(url);
 }
 
 export function normalizeFaviconUrl(
   pageUrl: Url | null | undefined,
-  faviconUrl?: FaviconUrl | null
+  faviconUrl?: FaviconUrl | null,
 ): FaviconUrl | undefined {
-  if (faviconUrl && !blockedFaviconUrlPatterns.some(pattern => pattern.test(faviconUrl))) {
+  if (faviconUrl && !blockedFaviconUrlPatterns.some((pattern) => pattern.test(faviconUrl))) {
     return faviconUrl as FaviconUrl;
   }
   if (pageUrl) {

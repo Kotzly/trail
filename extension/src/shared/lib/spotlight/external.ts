@@ -1,6 +1,5 @@
 const HAS_SCHEME_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
-const BARE_HOST_RE =
-  /^(localhost(?::\d+)?|(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?)(?:[/?#][^\s]*)?$/i;
+const BARE_HOST_RE = /^(localhost(?::\d+)?|(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?)(?:[/?#][^\s]*)?$/i;
 
 export function normalizeSpotlightSearchQuery(input: string): string | null {
   const trimmed = input.trim();
@@ -25,7 +24,7 @@ export function normalizeSpotlightUrlCandidate(input: string): string | null {
 
   try {
     const url = new URL(candidate);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
       return null;
     }
     return url.toString();

@@ -1,19 +1,23 @@
-import type { NavigationTreeJSON } from '@shared/types/tree.js';
-import type { Settings } from '@shared/types/settings.js';
-import type { NodePosition } from '@entrypoints/sidepanel/ui/graph/types.js';
-import type { NavigationNode } from '@shared/types/node.js';
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
+import type { NavigationTreeJSON } from "@shared/types/tree.js";
+import type { Settings } from "@shared/types/settings.js";
+import type { NodePosition } from "@entrypoints/sidepanel/ui/graph/types.js";
+import type { NavigationNode } from "@shared/types/node.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import {
   calculateLayout,
   calculateMindmapLayout,
   calculateRadialLayout,
   getCanvasBounds,
-} from '@entrypoints/sidepanel/ui/graph/layout/calculator.js';
-import { deriveLayoutOptions } from '@entrypoints/sidepanel/ui/graph/layout/options.js';
-import type { CachedLayoutResult, CachedNodePosition } from './types.js';
-import { computeCollapseSignature, computeLayoutSignature } from './types.js';
-import { DEFAULT_LAYOUT_SETTINGS } from '@shared/layout/defaults.js';
-import type { NodeId } from '@shared/types/ids.js';
+} from "@entrypoints/sidepanel/ui/graph/layout/calculator.js";
+import { deriveLayoutOptions } from "@entrypoints/sidepanel/ui/graph/layout/options.js";
+import {
+  computeCollapseSignature,
+  computeLayoutSignature,
+  type CachedLayoutResult,
+  type CachedNodePosition,
+} from "./types.js";
+import { DEFAULT_LAYOUT_SETTINGS } from "@shared/layout/defaults.js";
+import type { NodeId } from "@shared/types/ids.js";
 
 // ---------------------------------------------------------------------------
 // Pure layout computation from serialized tree data
@@ -34,22 +38,23 @@ export function computeLayoutFromTree(
 
   // Build a getVisibleChildren wrapper that filters out collapsed nodes
   const collapsed = collapsedNodeIds ?? new Set<NodeId>();
-  const getVisibleChildren = collapsed.size > 0
-    ? (node: NavigationNode) => {
-        if (collapsed.has(node.id as NodeId)) return [];
-        return node.getChildren?.() ?? [];
-      }
-    : undefined;
+  const getVisibleChildren =
+    collapsed.size > 0
+      ? (node: NavigationNode) => {
+          if (collapsed.has(node.id as NodeId)) return [];
+          return node.getChildren?.() ?? [];
+        }
+      : undefined;
 
   // Compute layout using default child ordering (no recency reordering --
   // that requires stateful refs from GraphCanvas, which we skip here).
   let result: { positions: Map<NodeId, NodePosition>; width: number };
 
   switch (options.mode) {
-    case 'tree':
+    case "tree":
       result = calculateLayout(root, options.tree, getVisibleChildren);
       break;
-    case 'mindmap':
+    case "mindmap":
       result = calculateMindmapLayout(root, options.mindmap, getVisibleChildren);
       break;
     default:
@@ -68,13 +73,19 @@ export function computeLayoutFromTree(
   const bounds = getCanvasBounds(result.positions, options.tree.nodeWidth, options.tree.nodeHeight);
 
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
-  const density = settings?.graphDensity ?? 'comfortable';
+  const density = settings?.graphDensity ?? "comfortable";
   const collapseSignature = computeCollapseSignature(collapsed);
   const layoutSignature = computeLayoutSignature({
     mode: options.mode,
     density,
-    tree: { verticalGapScale: layout.tree.verticalGapScale, horizontalGapScale: layout.tree.horizontalGapScale },
-    mindmap: { verticalGapScale: layout.mindmap.verticalGapScale, horizontalGapScale: layout.mindmap.horizontalGapScale },
+    tree: {
+      verticalGapScale: layout.tree.verticalGapScale,
+      horizontalGapScale: layout.tree.horizontalGapScale,
+    },
+    mindmap: {
+      verticalGapScale: layout.mindmap.verticalGapScale,
+      horizontalGapScale: layout.mindmap.horizontalGapScale,
+    },
     radial: layout.radial,
     collapseSignature,
     recencyOrdering: recencyOrdering ?? false,

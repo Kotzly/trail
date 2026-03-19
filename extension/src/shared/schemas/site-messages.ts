@@ -39,8 +39,7 @@ export const SiteMessageType = {
   AUTH_CODE_RELAY: "AUTH_CODE_RELAY",
 } as const;
 
-export type SiteMessageTypeName =
-  (typeof SiteMessageType)[keyof typeof SiteMessageType];
+export type SiteMessageTypeName = (typeof SiteMessageType)[keyof typeof SiteMessageType];
 
 // ---------------------------------------------------------------------------
 // Extension → Site message types

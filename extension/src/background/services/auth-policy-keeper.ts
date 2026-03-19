@@ -1,12 +1,5 @@
-import {
-  BACKEND_CONFIG,
-  buildBackendUrl,
-  initBackendConfig,
-} from "../../shared/config/backend.js";
-import {
-  authPolicyItem,
-  type CachedAuthPolicy,
-} from "../../shared/config/storage-items.js";
+import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
+import { authPolicyItem, type CachedAuthPolicy } from "../../shared/config/storage-items.js";
 
 const POLICY_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -23,25 +16,23 @@ type SessionStateResponse = {
 async function fetchSessionState(): Promise<SessionStateResponse | null> {
   await initBackendConfig();
   const controller = new AbortController();
-  const timeout = globalThis.setTimeout(
-    () => controller.abort(),
-    BACKEND_CONFIG.timeoutMs,
-  );
+  const timeout = globalThis.setTimeout(() => controller.abort(), BACKEND_CONFIG.timeoutMs);
 
   try {
-    const response = await fetch(
-      buildBackendUrl(BACKEND_CONFIG.endpoints.authSessionState),
-      {
-        headers: { Accept: "application/json" },
-        signal: controller.signal,
-      },
-    );
+    const response = await fetch(buildBackendUrl(BACKEND_CONFIG.endpoints.authSessionState), {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = await response.text();
     if (!text) return null;
     const parsed: unknown = JSON.parse(text);
-    if (!parsed || typeof parsed !== 'object' || typeof (parsed as Record<string, unknown>).status !== 'string') {
-      throw new Error('Invalid session state response');
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      typeof (parsed as Record<string, unknown>).status !== "string"
+    ) {
+      throw new Error("Invalid session state response");
     }
     return parsed as SessionStateResponse;
   } finally {
@@ -60,9 +51,7 @@ class AuthPolicyKeeper {
     return this.refreshPolicy(cached);
   }
 
-  async refreshPolicy(
-    fallback?: CachedAuthPolicy | null,
-  ): Promise<CachedAuthPolicy> {
+  async refreshPolicy(fallback?: CachedAuthPolicy | null): Promise<CachedAuthPolicy> {
     if (this.inFlight) return this.inFlight;
 
     this.inFlight = (async (): Promise<CachedAuthPolicy> => {
@@ -80,7 +69,7 @@ class AuthPolicyKeeper {
         await authPolicyItem.setValue(policy);
         return policy;
       } catch (e) {
-        console.warn('[auth-policy] Policy check failed:', String(e));
+        console.warn("[auth-policy] Policy check failed:", String(e));
         return fallback ?? DEFAULT_POLICY;
       }
     })();

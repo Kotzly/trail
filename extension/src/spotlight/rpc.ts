@@ -1,4 +1,4 @@
-import { browser } from 'wxt/browser';
+import { browser } from "wxt/browser";
 import type {
   SpotlightActionId,
   SpotlightActionTarget,
@@ -8,11 +8,11 @@ import type {
   SpotlightGraphPreviewData,
   SpotlightSearchResponse,
   SpotlightSearchSessionId,
-} from './types.js';
-import type { NodeId, Url } from '@shared/types/ids.js';
-import type { ResolvedFlags } from '@shared/types/flags.js';
-import type { TrailExportBundle } from '@shared/types/export.js';
-import type { Settings } from '@shared/types/settings.js';
+} from "./types.js";
+import type { NodeId, Url } from "@shared/types/ids.js";
+import type { ResolvedFlags } from "@shared/types/flags.js";
+import type { TrailExportBundle } from "@shared/types/export.js";
+import type { Settings } from "@shared/types/settings.js";
 
 const RPC_VERSION = 2 as const;
 
@@ -24,7 +24,7 @@ function createRpcId(): string {
 
 type RpcEnvelope = {
   v: typeof RPC_VERSION;
-  kind: 'rpc-request';
+  kind: "rpc-request";
   id: string;
   method: string;
   input: Record<string, unknown>;
@@ -33,7 +33,7 @@ type RpcEnvelope = {
 function buildEnvelope(method: string, input: Record<string, unknown> = {}): RpcEnvelope {
   return {
     v: RPC_VERSION,
-    kind: 'rpc-request',
+    kind: "rpc-request",
     id: createRpcId(),
     method,
     input,
@@ -56,7 +56,7 @@ async function sendRpc<T>(method: string, input: Record<string, unknown> = {}): 
 }
 
 export async function bootstrapSpotlight(limit = 80): Promise<SpotlightBootstrapData> {
-  return sendRpc<SpotlightBootstrapData>('SPOTLIGHT_BOOTSTRAP', { limit });
+  return sendRpc<SpotlightBootstrapData>("SPOTLIGHT_BOOTSTRAP", { limit });
 }
 
 export async function searchSpotlight(
@@ -66,7 +66,7 @@ export async function searchSpotlight(
   requestSeq: number,
   scopeTreeId?: string,
 ): Promise<SpotlightSearchResponse> {
-  return sendRpc<SpotlightSearchResponse>('SPOTLIGHT_SEARCH', {
+  return sendRpc<SpotlightSearchResponse>("SPOTLIGHT_SEARCH", {
     sessionId,
     query,
     limit,
@@ -76,19 +76,21 @@ export async function searchSpotlight(
 }
 
 export async function disposeSpotlightSession(sessionId: SpotlightSearchSessionId): Promise<void> {
-  await sendRpc<void>('SPOTLIGHT_DISPOSE_SESSION', { sessionId });
+  await sendRpc<void>("SPOTLIGHT_DISPOSE_SESSION", { sessionId });
 }
 
-export async function getSpotlightTreePreview(treeId: string): Promise<SpotlightGraphPreviewData | null> {
-  return sendRpc<SpotlightGraphPreviewData | null>('SPOTLIGHT_GET_TREE_PREVIEW', { treeId });
+export async function getSpotlightTreePreview(
+  treeId: string,
+): Promise<SpotlightGraphPreviewData | null> {
+  return sendRpc<SpotlightGraphPreviewData | null>("SPOTLIGHT_GET_TREE_PREVIEW", { treeId });
 }
 
 export async function navigateToNode(nodeId: NodeId, url: Url): Promise<void> {
-  await sendRpc<void>('NAVIGATE_TO', { nodeId, url });
+  await sendRpc<void>("NAVIGATE_TO", { nodeId, url });
 }
 
 export async function openTree(treeId: string): Promise<void> {
-  await sendRpc<void>('OPEN_TREE', { treeId });
+  await sendRpc<void>("OPEN_TREE", { treeId });
 }
 
 export async function executeSpotlightAction(
@@ -99,14 +101,14 @@ export async function executeSpotlightAction(
   const input: Record<string, unknown> = { actionId };
   if (target) input.target = target;
   if (query !== undefined) input.query = query;
-  return sendRpc<SpotlightExecuteActionResponse>('SPOTLIGHT_EXECUTE_ACTION', input);
+  return sendRpc<SpotlightExecuteActionResponse>("SPOTLIGHT_EXECUTE_ACTION", input);
 }
 
 export async function executeBatchAction(
   actionId: SpotlightBatchActionId,
   targets: SpotlightActionTarget[],
 ): Promise<SpotlightExecuteActionResponse> {
-  return sendRpc<SpotlightExecuteActionResponse>('SPOTLIGHT_EXECUTE_BATCH_ACTION', {
+  return sendRpc<SpotlightExecuteActionResponse>("SPOTLIGHT_EXECUTE_BATCH_ACTION", {
     actionId,
     targets,
   });
@@ -116,19 +118,19 @@ export async function getSpotlightThumbnail(
   nodeId: NodeId,
   treeId: string,
 ): Promise<{ dataUrl: string } | null> {
-  return sendRpc<{ dataUrl: string } | null>('SPOTLIGHT_GET_THUMBNAIL', { nodeId, treeId });
+  return sendRpc<{ dataUrl: string } | null>("SPOTLIGHT_GET_THUMBNAIL", { nodeId, treeId });
 }
 
 export async function getSettings(): Promise<Settings> {
-  return sendRpc<Settings>('GET_SETTINGS');
+  return sendRpc<Settings>("GET_SETTINGS");
 }
 
 export async function getFlags(): Promise<ResolvedFlags> {
-  return sendRpc<ResolvedFlags>('GET_FLAGS');
+  return sendRpc<ResolvedFlags>("GET_FLAGS");
 }
 
 export async function exportTree(treeId?: string): Promise<TrailExportBundle> {
   const input: Record<string, unknown> = {};
   if (treeId) input.treeId = treeId;
-  return sendRpc<TrailExportBundle>('EXPORT_TREE', input);
+  return sendRpc<TrailExportBundle>("EXPORT_TREE", input);
 }

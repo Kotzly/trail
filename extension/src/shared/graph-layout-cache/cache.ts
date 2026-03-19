@@ -1,10 +1,10 @@
-import type { CachedLayoutResult } from './types.js';
+import type { CachedLayoutResult } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // chrome.storage.session helpers for layout cache
 // ---------------------------------------------------------------------------
 
-const PREFIX = 'graph-layout:';
+const PREFIX = "graph-layout:";
 
 function storageKey(treeId: string, layoutSignature?: string): string {
   // Without signature: base key (for consumers that don't know state yet)

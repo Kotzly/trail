@@ -1,16 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createNewTree, deleteArchivedTree, ensureTreeLoaded, exportTree, openTree, renameTree, syncTrees } from '../../api/tree.js';
-import { getBackendConfig, initBackendConfig } from '@shared/config/backend.js';
-import { useStore } from '../state/store.js';
-import { useOverlayEffects } from '../state/overlay-effects.js';
-import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
-import { Icons } from './Icon.js';
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  createNewTree,
+  deleteArchivedTree,
+  ensureTreeLoaded,
+  exportTree,
+  openTree,
+  renameTree,
+  syncTrees,
+} from "../../api/tree.js";
+import { getBackendConfig, initBackendConfig } from "@shared/config/backend.js";
+import { useStore } from "../state/store.js";
+import { useOverlayEffects } from "../state/overlay-effects.js";
+import { useAnchoredDropdown } from "../hooks/useAnchoredDropdown.js";
+import { Icons } from "./Icon.js";
 
-import type { FaviconUrl, Title, Url } from '@shared/types/ids.js';
-import { getFaviconUrl } from '@shared/utils/favicon.js';
-import { createPortal } from 'react-dom';
-import { toast } from 'sonner';
-import { browser } from '@shared/platform/webext.js';
+import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
+import { getFaviconUrl } from "@shared/utils/favicon.js";
+import type { TrailExportBundle } from "@shared/types/export.js";
+import { createPortal } from "react-dom";
+import { toast } from "sonner";
+import { browser } from "@shared/platform/webext.js";
 
 type TreeItem = {
   id: string;
@@ -24,7 +33,7 @@ type TreeItem = {
 };
 
 function formatHost(url?: Url): string {
-  if (!url) return '';
+  if (!url) return "";
   try {
     return new URL(url).hostname;
   } catch {
@@ -33,29 +42,29 @@ function formatHost(url?: Url): string {
 }
 
 function formatDate(ts?: number): string {
-  if (!ts) return '';
+  if (!ts) return "";
   try {
     const date = new Date(ts);
-    if (Number.isNaN(date.getTime())) return '';
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
     }).format(date);
   } catch {
-    return '';
+    return "";
   }
 }
 
 function sanitizeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9_\-. ]/g, '_').trim() || 'trail';
+  return name.replace(/[^a-zA-Z0-9_\-. ]/g, "_").trim() || "trail";
 }
 
-function downloadBundle(bundle: import('../../../../shared/types/export.js').TrailExportBundle): void {
-  const label = bundle.source.treeLabel ?? 'trail';
+function downloadBundle(bundle: TrailExportBundle): void {
+  const label = bundle.source.treeLabel ?? "trail";
   const json = JSON.stringify(bundle);
-  const blob = new Blob([json], { type: 'application/json' });
+  const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = `${sanitizeFilename(label)}.trail.json`;
   document.body.appendChild(a);
@@ -70,10 +79,10 @@ export default function TreeDropdown() {
   const setTreesOpen = useStore((state) => state.setTreesOpen);
   const closeAllPopups = useStore((state) => state.closeAllPopups);
   const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
-  const treesShortcut = 'Shift+T';
+  const treesShortcut = "Shift+T";
   const nodeCount = useStore((state) => state.nodeCount);
 
-  useOverlayEffects(treesOpen, { kind: 'dropdown' });
+  useOverlayEffects(treesOpen, { kind: "dropdown" });
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -91,38 +100,36 @@ export default function TreeDropdown() {
   const archivedTrees = useMemo(() => {
     return [...trees.archived]
       .sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))
-      .map(
-        (entry) => {
-          const item: TreeItem = {
-            id: entry.id,
-            label: entry.label,
-            nodeCount: entry.nodeCount,
-            savedAt: entry.savedAt,
-            ...(entry.rootUrl != null && { rootUrl: entry.rootUrl }),
-            ...(entry.rootTitle != null && { rootTitle: entry.rootTitle }),
-            ...(entry.rootFavicon != null && { rootFavicon: entry.rootFavicon }),
-          };
-          if ('stub' in entry && (entry as { stub?: boolean }).stub) {
-            item.stub = true;
-          }
-          return item;
-        },
-      );
+      .map((entry) => {
+        const item: TreeItem = {
+          id: entry.id,
+          label: entry.label,
+          nodeCount: entry.nodeCount,
+          savedAt: entry.savedAt,
+          ...(entry.rootUrl != null && { rootUrl: entry.rootUrl }),
+          ...(entry.rootTitle != null && { rootTitle: entry.rootTitle }),
+          ...(entry.rootFavicon != null && { rootFavicon: entry.rootFavicon }),
+        };
+        if ("stub" in entry && (entry as { stub?: boolean }).stub) {
+          item.stub = true;
+        }
+        return item;
+      });
   }, [trees.archived]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
   const editing = editingId !== null;
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [labelDraft, setLabelDraft] = useState('');
+  const [labelDraft, setLabelDraft] = useState("");
   const [creating, setCreating] = useState(false);
   const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
+  const [_syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (!treesOpen) {
       setEditingId(null);
-      setDraft('');
+      setDraft("");
       return;
     }
 
@@ -132,7 +139,7 @@ export default function TreeDropdown() {
         setSyncing(true);
         await syncTrees();
       } catch (error) {
-        console.warn('Failed to sync trees:', error);
+        console.warn("Failed to sync trees:", error);
       } finally {
         if (!cancelled) {
           setSyncing(false);
@@ -150,8 +157,8 @@ export default function TreeDropdown() {
     if (!treesOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea') return;
-      if (event.key === 'Escape') {
+      if (tag === "input" || tag === "textarea") return;
+      if (event.key === "Escape") {
         event.preventDefault();
         setTreesOpen(false);
       }
@@ -163,11 +170,11 @@ export default function TreeDropdown() {
       if (triggerRef.current?.contains(target)) return;
       setTreesOpen(false);
     };
-    document.addEventListener('keydown', onKeyDown, true);
-    document.addEventListener('mousedown', onMouseDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("mousedown", onMouseDown, true);
     return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-      document.removeEventListener('mousedown', onMouseDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("mousedown", onMouseDown, true);
     };
   }, [setTreesOpen, treesOpen]);
 
@@ -184,20 +191,20 @@ export default function TreeDropdown() {
 
   const commitEdit = async () => {
     if (!editingId) return;
-    const nextLabel = draft.trim() || 'Unnamed Tree';
+    const nextLabel = draft.trim() || "Unnamed Tree";
     try {
       await renameTree(editingId, nextLabel);
     } catch (error) {
-      console.error('Failed to rename tree:', error);
+      console.error("Failed to rename tree:", error);
     } finally {
       setEditingId(null);
-      setDraft('');
+      setDraft("");
     }
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setDraft('');
+    setDraft("");
   };
 
   const handleOpen = async (tree: TreeItem) => {
@@ -208,7 +215,7 @@ export default function TreeDropdown() {
       }
       await openTree(tree.id);
     } catch (error) {
-      console.error('Failed to open tree:', error);
+      console.error("Failed to open tree:", error);
     } finally {
       setLoadingTreeId(null);
       setTreesOpen(false);
@@ -219,7 +226,7 @@ export default function TreeDropdown() {
     try {
       await deleteArchivedTree(treeId);
     } catch (error) {
-      console.error('Failed to delete saved tree:', error);
+      console.error("Failed to delete saved tree:", error);
     }
   };
 
@@ -227,9 +234,9 @@ export default function TreeDropdown() {
     try {
       const bundle = await exportTree(treeId);
       downloadBundle(bundle);
-      toast.success('Exported as JSON');
+      toast.success("Exported as JSON");
     } catch (error) {
-      console.error('Failed to export tree:', error);
+      console.error("Failed to export tree:", error);
     }
   };
 
@@ -239,17 +246,17 @@ export default function TreeDropdown() {
       const baseUrl = getBackendConfig().baseUrl;
       await browser.tabs.create({ url: `${baseUrl}/trails/${treeId}`, active: true });
     } catch (error) {
-      console.error('Failed to open trail editor:', error);
+      console.error("Failed to open trail editor:", error);
     }
   };
 
   const handleNewTree = async () => {
     try {
-      const label = labelDraft.trim() || 'Unnamed Tree';
+      const label = labelDraft.trim() || "Unnamed Tree";
       setCreating(true);
       await createNewTree(label);
     } catch (error) {
-      console.error('Failed to create new tree:', error);
+      console.error("Failed to create new tree:", error);
     } finally {
       setCreating(false);
     }
@@ -273,7 +280,7 @@ export default function TreeDropdown() {
       <div
         ref={dropdownRef}
         id="treesDropdown"
-        className={`trees-dropdown ${treesOpen ? '' : 'hidden'}`}
+        className={`trees-dropdown ${treesOpen ? "" : "hidden"}`}
         aria-hidden={!treesOpen}
       >
         <div className="trees-dropdown-header">
@@ -302,11 +309,11 @@ export default function TreeDropdown() {
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
+                      if (event.key === "Enter") {
                         event.preventDefault();
                         void commitEdit();
                       }
-                      if (event.key === 'Escape') {
+                      if (event.key === "Escape") {
                         event.preventDefault();
                         cancelEdit();
                       }
@@ -321,7 +328,9 @@ export default function TreeDropdown() {
                     {activeTree.label}
                   </div>
                 )}
-                <div className="trees-dropdown-item-meta">active now · {activeTree.nodeCount} nodes</div>
+                <div className="trees-dropdown-item-meta">
+                  active now · {activeTree.nodeCount} nodes
+                </div>
               </div>
               {editingId !== activeTree.id ? (
                 <div className="trees-dropdown-item-actions">
@@ -364,7 +373,7 @@ export default function TreeDropdown() {
               aria-label="New tree"
               data-tooltip="New tree"
               onClick={() => {
-                setLabelDraft('');
+                setLabelDraft("");
                 closeAllPopups();
                 setConfirmOpen(true);
               }}
@@ -384,17 +393,17 @@ export default function TreeDropdown() {
               const host = formatHost(tree.rootUrl);
               const date = formatDate(tree.savedAt);
               const meta = [
-                tree.stub ? 'cloud' : null,
-                host || tree.rootTitle || 'Untitled',
+                tree.stub ? "cloud" : null,
+                host || tree.rootTitle || "Untitled",
                 `${tree.nodeCount} nodes`,
                 date,
               ]
                 .filter(Boolean)
-                .join(' · ');
+                .join(" · ");
               return (
                 <div
                   key={tree.id}
-                  className={`trees-dropdown-item${isLoading ? ' loading' : ''}`}
+                  className={`trees-dropdown-item${isLoading ? "loading" : ""}`}
                   onClick={() => !isLoading && void handleOpen(tree)}
                 >
                   {isLoading ? (
@@ -406,7 +415,11 @@ export default function TreeDropdown() {
                       <Icons.Cloud size={14} />
                     </div>
                   ) : tree.rootUrl ? (
-                    <img className="trees-dropdown-item-favicon" alt="" src={getFaviconUrl(tree.rootUrl)} />
+                    <img
+                      className="trees-dropdown-item-favicon"
+                      alt=""
+                      src={getFaviconUrl(tree.rootUrl)}
+                    />
                   ) : (
                     <div className="trees-dropdown-item-favicon placeholder">
                       <Icons.Bookmark size={14} />
@@ -420,11 +433,11 @@ export default function TreeDropdown() {
                         value={draft}
                         onChange={(event) => setDraft(event.target.value)}
                         onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
+                          if (event.key === "Enter") {
                             event.preventDefault();
                             void commitEdit();
                           }
-                          if (event.key === 'Escape') {
+                          if (event.key === "Escape") {
                             event.preventDefault();
                             cancelEdit();
                           }
@@ -532,24 +545,24 @@ function ConfirmOverlay({
   onCancel,
   onConfirm,
 }: ConfirmOverlayProps) {
-  useOverlayEffects(open, { lod: true, blur: true, kind: 'modal' });
+  useOverlayEffects(open, { lod: true, blur: true, kind: "modal" });
 
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.preventDefault();
         onCancel();
       }
     };
-    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
     return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
     };
   }, [onCancel, open]);
 
   if (!open) return null;
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
   return createPortal(
     <div
       className="confirm-overlay lod-enabler blur-enabler"
@@ -562,7 +575,7 @@ function ConfirmOverlay({
         onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="confirm-title">
-          {confirmNewTree ? 'create a new tree?' : 'name your new tree'}
+          {confirmNewTree ? "create a new tree?" : "name your new tree"}
         </div>
         <input
           className="confirm-input"
@@ -571,7 +584,7 @@ function ConfirmOverlay({
           placeholder="Unnamed Tree"
           onChange={(event) => onLabelChange(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') {
+            if (event.key === "Enter") {
               event.preventDefault();
               onConfirm();
             }
@@ -579,11 +592,16 @@ function ConfirmOverlay({
           autoFocus
         />
         <div className="confirm-actions">
-          <button className="confirm-btn ghost" type="button" onClick={onCancel} disabled={creating}>
+          <button
+            className="confirm-btn ghost"
+            type="button"
+            onClick={onCancel}
+            disabled={creating}
+          >
             Cancel
           </button>
           <button className="confirm-btn" type="button" onClick={onConfirm} disabled={creating}>
-            {creating ? 'Creating…' : 'Create'}
+            {creating ? "Creating…" : "Create"}
           </button>
         </div>
       </div>

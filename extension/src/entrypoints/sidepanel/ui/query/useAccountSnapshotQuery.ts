@@ -5,7 +5,6 @@ import { accountKeys } from "./account-keys.js";
 import { useStore } from "../state/store.js";
 import { loadCachedSnapshotWithAge } from "../../api/account/cache.js";
 import type { AccountSnapshot } from "@shared/types/account.js";
-import { browser } from '@shared/platform/webext.js';
 
 const ONBOARDING_POLL_MS = 2500;
 const SNAPSHOT_STALE_MS = 5 * 60_000;
@@ -16,14 +15,10 @@ type CachedInitial = {
 };
 
 export function useAccountSnapshotQuery() {
-  const onboardingStatus = useStore(
-    (state) => state.account.onboarding.status,
-  );
+  const onboardingStatus = useStore((state) => state.account.onboarding.status);
   const sessionStatus = useStore((state) => state.account.session.status);
 
-  const [cached, setCached] = useState<CachedInitial | null | undefined>(
-    undefined,
-  );
+  const [cached, setCached] = useState<CachedInitial | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;

@@ -1,29 +1,39 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { RefObject } from 'react';
-import type { NodeId, TabId, Tag, Url } from '@shared/types/ids.js';
-import { getFaviconUrl } from '@shared/utils/favicon.js';
-import type { TagDefinition } from '@shared/types/tags.js';
-import { rpc } from '@shared/rpc/contracts.js';
-import { fireAndForget } from '../../api/background.js';
-import { navigateTo, setCurrentNode } from '../../api/tree.js';
-import { getTabsForNodeMessage } from '../../api/tabs.js';
-import { useStore } from '../state/store.js';
-import { useOverlayEffects } from '../state/overlay-effects.js';
-import TagEditorModal from './tags/TagEditorModal.js';
-import { TagIcon } from './tags/TagIcon.js';
-import { deleteTagDef, upsertTagDef } from '../../api/tags.js';
-import { Icons } from './Icon.js';
-import { getIncludedRootId } from '../shared/delete-tree.js';
-import { getNearestCollapsedAncestorId } from '../graph/collapse-utils.js';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
+import type { NodeId, TabId, Tag, Url } from "@shared/types/ids.js";
+import { getFaviconUrl } from "@shared/utils/favicon.js";
+import type { TagDefinition } from "@shared/types/tags.js";
+import { rpc } from "@shared/rpc/contracts.js";
+import { fireAndForget } from "../../api/background.js";
+import { navigateTo, setCurrentNode } from "../../api/tree.js";
+import { getTabsForNodeMessage } from "../../api/tabs.js";
+import { useStore } from "../state/store.js";
+import { useOverlayEffects } from "../state/overlay-effects.js";
+import TagEditorModal from "./tags/TagEditorModal.js";
+import { TagIcon } from "./tags/TagIcon.js";
+import { deleteTagDef, upsertTagDef } from "../../api/tags.js";
+import { Icons } from "./Icon.js";
+import { getIncludedRootId } from "../shared/delete-tree.js";
+import { getNearestCollapsedAncestorId } from "../graph/collapse-utils.js";
 
-import { toast } from 'sonner';
-import { browser, type Tab } from '@shared/platform/webext.js';
+import { toast } from "sonner";
+import { browser, type Tab } from "@shared/platform/webext.js";
 
 type MenuPosition = { left: number; top: number; maxHeight: number };
 
 const SUBMENU_MIN_WIDTH = 160;
 
-function useMenuPosition(menuRef: RefObject<HTMLDivElement | null>, position: { x: number; y: number }) {
+function useMenuPosition(
+  menuRef: RefObject<HTMLDivElement | null>,
+  position: { x: number; y: number },
+) {
   const [menuStyle, setMenuStyle] = useState<MenuPosition>({
     left: position.x,
     top: position.y,
@@ -33,7 +43,6 @@ function useMenuPosition(menuRef: RefObject<HTMLDivElement | null>, position: { 
   const updatePosition = useCallback(() => {
     const menu = menuRef.current;
     if (!menu) return;
-    const rect = menu.getBoundingClientRect();
     const menuWidth = menu.offsetWidth;
     const menuHeight = menu.offsetHeight;
     const padding = 8;
@@ -55,10 +64,10 @@ function useMenuPosition(menuRef: RefObject<HTMLDivElement | null>, position: { 
     if (!menu) return;
     const observer = new ResizeObserver(() => updatePosition());
     observer.observe(menu);
-    window.addEventListener('resize', updatePosition);
+    window.addEventListener("resize", updatePosition);
     return () => {
       observer.disconnect();
-      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener("resize", updatePosition);
     };
   }, [menuRef, updatePosition]);
 
@@ -73,32 +82,32 @@ export default function ContextMenus() {
   const [tagEditorState, setTagEditorState] = useState<{
     open: boolean;
     nodeId: NodeId | null;
-    mode: 'create' | 'edit';
+    mode: "create" | "edit";
     initial: TagDefinition | null;
-  }>({ open: false, nodeId: null, mode: 'create', initial: null });
+  }>({ open: false, nodeId: null, mode: "create", initial: null });
 
-  useOverlayEffects(Boolean(contextMenu), { kind: 'context' });
+  useOverlayEffects(Boolean(contextMenu), { kind: "context" });
 
   useEffect(() => {
     if (!contextMenu) return;
     const onClick = (event: MouseEvent) => {
       const target = event.target as Node | null;
       if (!target) return;
-      if ((target as HTMLElement).closest('.graph-context-menu')) return;
+      if ((target as HTMLElement).closest(".graph-context-menu")) return;
       setHoverNodeId(null);
       closeContextMenu();
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setHoverNodeId(null);
         closeContextMenu();
       }
     };
-    document.addEventListener('click', onClick);
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener("click", onClick);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener('click', onClick);
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener("click", onClick);
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [closeContextMenu, contextMenu]);
 
@@ -107,10 +116,12 @@ export default function ContextMenus() {
       open={tagEditorState.open}
       mode={tagEditorState.mode}
       initial={tagEditorState.initial}
-      onCancel={() => setTagEditorState({ open: false, nodeId: null, mode: 'create', initial: null })}
+      onCancel={() =>
+        setTagEditorState({ open: false, nodeId: null, mode: "create", initial: null })
+      }
       onSubmit={async (value) => {
         try {
-          if (tagEditorState.mode === 'edit' && tagEditorState.initial) {
+          if (tagEditorState.mode === "edit" && tagEditorState.initial) {
             const updated: TagDefinition = {
               ...tagEditorState.initial,
               label: value.label,
@@ -121,7 +132,7 @@ export default function ContextMenus() {
             await upsertTagDef(updated);
           } else {
             if (!tagEditorState.nodeId) {
-              setTagEditorState({ open: false, nodeId: null, mode: 'create', initial: null });
+              setTagEditorState({ open: false, nodeId: null, mode: "create", initial: null });
               return;
             }
             const id = `custom-${Date.now().toString(36)}-${Math.random()
@@ -140,9 +151,9 @@ export default function ContextMenus() {
             fireAndForget(rpc.addTag({ nodeId: tagEditorState.nodeId, tagId: id }));
           }
         } catch (error) {
-          console.error('Failed to save tag:', error);
+          console.error("Failed to save tag:", error);
         } finally {
-          setTagEditorState({ open: false, nodeId: null, mode: 'create', initial: null });
+          setTagEditorState({ open: false, nodeId: null, mode: "create", initial: null });
         }
       }}
     />
@@ -152,7 +163,7 @@ export default function ContextMenus() {
     return tagEditorModal;
   }
 
-  if (contextMenu.type === 'node') {
+  if (contextMenu.type === "node") {
     const node = tree?.findNodeById(contextMenu.nodeId);
     if (!node) return null;
     return (
@@ -164,7 +175,7 @@ export default function ContextMenus() {
             setTagEditorState({
               open: true,
               nodeId: contextMenu.nodeId,
-              mode: 'create',
+              mode: "create",
               initial: null,
             });
             closeContextMenu();
@@ -173,7 +184,7 @@ export default function ContextMenus() {
             setTagEditorState({
               open: true,
               nodeId: null,
-              mode: 'edit',
+              mode: "edit",
               initial: tag,
             });
             closeContextMenu();
@@ -214,7 +225,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const node = tree?.findNodeById(nodeId);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuStyle = useMenuPosition(menuRef, position);
-  const menuVars = { '--menu-max-height': `${menuStyle.maxHeight}px` } as React.CSSProperties;
+  const menuVars = { "--menu-max-height": `${menuStyle.maxHeight}px` } as React.CSSProperties;
   const [submenuLeft, setSubmenuLeft] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [checkedTabId, setCheckedTabId] = useState<number | null>(null);
@@ -240,16 +251,16 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     const availableWidth = shouldFlip ? spaceLeft : spaceRight;
     const shouldOverlap = availableWidth < SUBMENU_MIN_WIDTH;
     setSubmenuLeft(shouldFlip);
-    menu.classList.toggle('submenu-overlap', shouldOverlap);
+    menu.classList.toggle("submenu-overlap", shouldOverlap);
     const maxSubmenuWidth = shouldOverlap
       ? Math.min(rect.width, window.innerWidth - padding * 2)
       : availableWidth;
 
-    const items = menu.querySelectorAll<HTMLElement>('.graph-context-menu-item.has-submenu');
+    const items = menu.querySelectorAll<HTMLElement>(".graph-context-menu-item.has-submenu");
     items.forEach((item) => {
-      const submenu = item.querySelector<HTMLElement>('.graph-context-submenu');
+      const submenu = item.querySelector<HTMLElement>(".graph-context-submenu");
       if (!submenu) return;
-      submenu.style.setProperty('--submenu-offset-y', '0px');
+      submenu.style.setProperty("--submenu-offset-y", "0px");
       submenu.style.maxWidth = `${maxSubmenuWidth}px`;
       submenu.style.minWidth = `${Math.min(SUBMENU_MIN_WIDTH, maxSubmenuWidth)}px`;
       const submenuRect = submenu.getBoundingClientRect();
@@ -260,25 +271,24 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       if (overflowBottom > 0) {
         const maxShift = Math.max(0, itemRect.top - maxTop);
         const shift = Math.min(overflowBottom, maxShift);
-        submenu.style.setProperty('--submenu-offset-y', `${-shift}px`);
+        submenu.style.setProperty("--submenu-offset-y", `${-shift}px`);
       } else if (itemRect.top < maxTop) {
         const shiftDown = maxTop - itemRect.top;
-        submenu.style.setProperty('--submenu-offset-y', `${shiftDown}px`);
+        submenu.style.setProperty("--submenu-offset-y", `${shiftDown}px`);
       }
     });
 
-    const tabsList = menu.querySelector<HTMLElement>('.graph-context-tabs');
+    const tabsList = menu.querySelector<HTMLElement>(".graph-context-tabs");
     if (tabsList) {
       const availableHeight = Math.max(0, window.innerHeight - padding * 2);
       const staticHeight = menuHeight - tabsList.offsetHeight;
       const maxTabsHeight = Math.max(96, availableHeight - staticHeight - padding);
-      const row = tabsList.querySelector<HTMLElement>('.graph-context-tab-item');
+      const row = tabsList.querySelector<HTMLElement>(".graph-context-tab-item");
       const rowHeight = row?.getBoundingClientRect().height ?? 44;
       const gap = 6;
       const listPadding = 6;
       const visibleRows = 5;
-      const targetHeight =
-        rowHeight * visibleRows + gap * (visibleRows - 1) + listPadding * 2;
+      const targetHeight = rowHeight * visibleRows + gap * (visibleRows - 1) + listPadding * 2;
       tabsList.style.maxHeight = `${Math.max(96, Math.min(targetHeight, maxTabsHeight))}px`;
     }
   }, []);
@@ -289,7 +299,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
       .then((res) => {
         if (mounted) setTabs(res);
       })
-      .catch((error) => console.error('Failed to get tabs for node:', error));
+      .catch((error) => console.error("Failed to get tabs for node:", error));
     return () => {
       mounted = false;
     };
@@ -304,11 +314,13 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   }, [tabs.length, updateSubmenuLayout]);
 
   useEffect(() => {
-    window.addEventListener('resize', updateSubmenuLayout);
-    return () => window.removeEventListener('resize', updateSubmenuLayout);
+    window.addEventListener("resize", updateSubmenuLayout);
+    return () => window.removeEventListener("resize", updateSubmenuLayout);
   }, [updateSubmenuLayout]);
 
-  const [pendingDelete, setPendingDelete] = useState<'node' | 'children' | 'withChildren' | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<"node" | "children" | "withChildren" | null>(
+    null,
+  );
   const [pendingDeleteTagId, setPendingDeleteTagId] = useState<string | null>(null);
   const [pendingCloseAllTabs, setPendingCloseAllTabs] = useState(false);
   const hasOpenTab = tabs.length > 0;
@@ -323,7 +335,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     <>
       <div
         ref={menuRef}
-        className={`graph-context-menu${submenuLeft ? ' submenu-left' : ''}`}
+        className={`graph-context-menu${submenuLeft ? "submenu-left" : ""}`}
         role="menu"
         style={{
           left: `${menuStyle.left}px`,
@@ -374,7 +386,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                         key={tab.id}
                         role="menuitem"
                         tabIndex={-1}
-                        className={`graph-context-tab-item${checkedTabId === tab.id ? ' is-checked' : ''}`}
+                        className={`graph-context-tab-item${checkedTabId === tab.id ? "is-checked" : ""}`}
                         onMouseEnter={() => {
                           setHoverNodeId(nodeId);
                         }}
@@ -392,16 +404,22 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                           try {
                             await browser.tabs.update(tab.id, { active: true });
                           } catch (error) {
-                            console.error('Failed to focus tab:', error);
+                            console.error("Failed to focus tab:", error);
                           }
                         }}
                       >
                         <div className="graph-context-tab-info">
                           {tab.url ? (
-                            <img className="graph-context-tab-favicon" src={getFaviconUrl(tab.url as Url)} alt="" />
+                            <img
+                              className="graph-context-tab-favicon"
+                              src={getFaviconUrl(tab.url as Url)}
+                              alt=""
+                            />
                           ) : null}
                           <div className="graph-context-tab-text">
-                            <div className="graph-context-tab-title">{tab.title || 'Untitled tab'}</div>
+                            <div className="graph-context-tab-title">
+                              {tab.title || "Untitled tab"}
+                            </div>
                             {tab.url ? (
                               <div className="graph-context-tab-url">{tab.url}</div>
                             ) : null}
@@ -414,29 +432,36 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                           <button
                             type="button"
                             className="graph-context-tab-action"
-                            aria-label={tab.mutedInfo?.muted ? 'Unmute tab' : 'Mute tab'}
+                            aria-label={tab.mutedInfo?.muted ? "Unmute tab" : "Mute tab"}
                             onClick={(event) => {
                               event.stopPropagation();
                               if (!tab.id) return;
-                              fireAndForget(
-                                rpc.toggleMute({ nodeId, tabId: tab.id as TabId }),
-                              );
+                              fireAndForget(rpc.toggleMute({ nodeId, tabId: tab.id as TabId }));
                               setTabs((prev) =>
                                 prev.map((item) =>
                                   item.id === tab.id
-                                    ? {
+                                    ? ({
                                         ...item,
                                         mutedInfo: {
                                           muted: !item.mutedInfo?.muted,
-                                          reason: (item.mutedInfo?.reason as "user" | "capture" | "extension" | undefined) ?? undefined,
+                                          reason:
+                                            (item.mutedInfo?.reason as
+                                              | "user"
+                                              | "capture"
+                                              | "extension"
+                                              | undefined) ?? undefined,
                                         },
-                                      } as typeof item
+                                      } as typeof item)
                                     : item,
-                                )
+                                ),
                               );
                             }}
                           >
-                            {tab.mutedInfo?.muted ? <Icons.VolumeX size={14} /> : <Icons.Volume2 size={14} />}
+                            {tab.mutedInfo?.muted ? (
+                              <Icons.VolumeX size={14} />
+                            ) : (
+                              <Icons.Volume2 size={14} />
+                            )}
                           </button>
                           <button
                             type="button"
@@ -480,7 +505,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                       tabIndex={-1}
                       onClick={() => setPendingCloseAllTabs(true)}
                     >
-                      {tabs.length === 1 ? 'Close tab' : 'Close all tabs'}
+                      {tabs.length === 1 ? "Close tab" : "Close all tabs"}
                     </div>
                   )}
                 </>
@@ -490,271 +515,274 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
             </>
           ) : null}
 
-      <div
-        className="graph-context-menu-item"
-        role="menuitem"
-        tabIndex={-1}
-        onClick={() => {
-          fireAndForget(rpc.togglePin({ nodeId }));
-          closeContextMenu();
-        }}
-      >
-        {node.data.pinned ? 'Unpin' : 'Pin'}
-      </div>
-      {hasChildren && !isCollapsed ? (
-        <div
-          className="graph-context-menu-item"
-          role="menuitem"
-          tabIndex={-1}
-          onClick={() => {
-            const nextCollapsed = new Set(collapsedNodeIds);
-            nextCollapsed.add(nodeId);
-            const targetId = getNearestCollapsedAncestorId(tree, currentNodeId, nextCollapsed);
-            if (targetId && targetId !== currentNodeId) {
-              void setCurrentNode(targetId);
-            }
-            collapseNodes([nodeId]);
-            closeContextMenu();
-          }}
-        >
-          Collapse node
-        </div>
-      ) : null}
-      {isCollapsed ? (
-        <div
-          className="graph-context-menu-item"
-          role="menuitem"
-          tabIndex={-1}
-          onClick={() => {
-            expandNodes([nodeId]);
-            closeContextMenu();
-          }}
-        >
-          Expand node
-        </div>
-      ) : null}
+          <div
+            className="graph-context-menu-item"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => {
+              fireAndForget(rpc.togglePin({ nodeId }));
+              closeContextMenu();
+            }}
+          >
+            {node.data.pinned ? "Unpin" : "Pin"}
+          </div>
+          {hasChildren && !isCollapsed ? (
+            <div
+              className="graph-context-menu-item"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => {
+                const nextCollapsed = new Set(collapsedNodeIds);
+                nextCollapsed.add(nodeId);
+                const targetId = getNearestCollapsedAncestorId(tree, currentNodeId, nextCollapsed);
+                if (targetId && targetId !== currentNodeId) {
+                  void setCurrentNode(targetId);
+                }
+                collapseNodes([nodeId]);
+                closeContextMenu();
+              }}
+            >
+              Collapse node
+            </div>
+          ) : null}
+          {isCollapsed ? (
+            <div
+              className="graph-context-menu-item"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => {
+                expandNodes([nodeId]);
+                closeContextMenu();
+              }}
+            >
+              Expand node
+            </div>
+          ) : null}
 
-      <div className="graph-context-menu-item has-submenu" role="menuitem" tabIndex={-1}>
-        Tags <span className="submenu-arrow">›</span>
-        <div className="graph-context-submenu" role="menu">
-          {tagDefsList.map((tag) => {
-            const hasTag = node.data.tags?.includes(tag.id as Tag);
-            return (
+          <div className="graph-context-menu-item has-submenu" role="menuitem" tabIndex={-1}>
+            Tags <span className="submenu-arrow">›</span>
+            <div className="graph-context-submenu" role="menu">
+              {tagDefsList.map((tag) => {
+                const hasTag = node.data.tags?.includes(tag.id as Tag);
+                return (
+                  <div
+                    key={tag.id as string}
+                    className="graph-context-menu-item tag-option"
+                    role="menuitemcheckbox"
+                    aria-checked={Boolean(hasTag)}
+                    tabIndex={-1}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (hasTag) {
+                        fireAndForget(rpc.removeTag({ nodeId, tagId: tag.id as Tag }));
+                      } else {
+                        fireAndForget(rpc.addTag({ nodeId, tagId: tag.id as Tag }));
+                      }
+                      closeContextMenu();
+                    }}
+                  >
+                    <span
+                      className="tag-dot"
+                      style={{ background: tag.color } as React.CSSProperties}
+                    >
+                      <TagIcon id={tag.iconId} size={9} />
+                    </span>
+                    <span className="tag-option-label">{tag.label}</span>
+                    <span className="tag-actions">
+                      <button
+                        type="button"
+                        className="tag-action-btn"
+                        aria-label="Edit tag"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onEditTag(tag);
+                        }}
+                      >
+                        <Icons.Pencil size={12} />
+                      </button>
+                      {pendingDeleteTagId === tag.id ? (
+                        <button
+                          type="button"
+                          className="tag-action-btn danger is-confirming"
+                          aria-label="Confirm delete tag"
+                          onClick={async (event) => {
+                            event.stopPropagation();
+                            try {
+                              await deleteTagDef(tag.id as Tag);
+                            } catch (error) {
+                              console.error("Failed to delete tag:", error);
+                            }
+                            setPendingDeleteTagId(null);
+                          }}
+                        >
+                          <Icons.Check size={12} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="tag-action-btn danger"
+                          aria-label="Delete tag"
+                          disabled={tag.system}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (tag.system) return;
+                            setPendingDeleteTagId(tag.id);
+                          }}
+                        >
+                          <Icons.Trash2 size={12} />
+                        </button>
+                      )}
+                    </span>
+                    {hasTag ? <Icons.Check size={13} className="tag-check" /> : null}
+                  </div>
+                );
+              })}
               <div
-                key={tag.id as string}
-                className="graph-context-menu-item tag-option"
-                role="menuitemcheckbox"
-                aria-checked={Boolean(hasTag)}
+                className="graph-context-menu-item tag-option tag-option-new"
+                role="menuitem"
                 tabIndex={-1}
                 onClick={(event) => {
                   event.stopPropagation();
-                  if (hasTag) {
-                    fireAndForget(rpc.removeTag({ nodeId, tagId: tag.id as Tag }));
-                  } else {
-                    fireAndForget(rpc.addTag({ nodeId, tagId: tag.id as Tag }));
-                  }
+                  onCreateTag();
+                }}
+              >
+                <span className="tag-dot tag-dot-new">
+                  <Icons.Plus size={9} />
+                </span>
+                <span className="tag-option-label">New Tag...</span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="graph-context-menu-item"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(node.data.url);
+                toast.success("URL copied");
+              } catch (error) {
+                console.error("Failed to copy URL:", error);
+              }
+              closeContextMenu();
+            }}
+          >
+            Copy URL
+          </div>
+          {hasTitle && (
+            <div
+              className="graph-context-menu-item"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(node.data.title || "Untitled");
+                  toast.success("Title copied");
+                } catch (error) {
+                  console.error("Failed to copy title:", error);
+                }
+                closeContextMenu();
+              }}
+            >
+              Copy title
+            </div>
+          )}
+
+          {!isRoot && (
+            <div
+              className="graph-context-menu-item"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => {
+                setPickTarget({ type: "duplicate", sourceNodeId: nodeId });
+                closeContextMenu();
+              }}
+            >
+              Duplicate at…
+            </div>
+          )}
+
+          <div className="graph-context-menu-divider" role="separator" />
+
+          {!isRoot &&
+            (pendingDelete === "node" ? (
+              <div
+                className="graph-context-menu-item danger is-confirming"
+                role="menuitem"
+                tabIndex={-1}
+                onClick={() => {
+                  fireAndForget(rpc.deleteNode({ nodeId }));
                   closeContextMenu();
                 }}
               >
-                <span className="tag-dot" style={{ background: tag.color } as React.CSSProperties}>
-                  <TagIcon id={tag.iconId} size={9} />
-                </span>
-                <span className="tag-option-label">{tag.label}</span>
-                <span className="tag-actions">
-                  <button
-                    type="button"
-                    className="tag-action-btn"
-                    aria-label="Edit tag"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onEditTag(tag);
-                    }}
-                  >
-                    <Icons.Pencil size={12} />
-                  </button>
-                  {pendingDeleteTagId === tag.id ? (
-                    <button
-                      type="button"
-                      className="tag-action-btn danger is-confirming"
-                      aria-label="Confirm delete tag"
-                      onClick={async (event) => {
-                        event.stopPropagation();
-                        try {
-                          await deleteTagDef(tag.id as Tag);
-                        } catch (error) {
-                          console.error('Failed to delete tag:', error);
-                        }
-                        setPendingDeleteTagId(null);
-                      }}
-                    >
-                      <Icons.Check size={12} />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="tag-action-btn danger"
-                      aria-label="Delete tag"
-                      disabled={tag.system}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (tag.system) return;
-                        setPendingDeleteTagId(tag.id);
-                      }}
-                    >
-                      <Icons.Trash2 size={12} />
-                    </button>
-                  )}
-                </span>
-                {hasTag ? <Icons.Check size={13} className="tag-check" /> : null}
+                Confirm delete?
               </div>
-            );
-          })}
-          <div
-            className="graph-context-menu-item tag-option tag-option-new"
-            role="menuitem"
-            tabIndex={-1}
-            onClick={(event) => {
-              event.stopPropagation();
-              onCreateTag();
-            }}
-          >
-            <span className="tag-dot tag-dot-new"><Icons.Plus size={9} /></span>
-            <span className="tag-option-label">New Tag...</span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="graph-context-menu-item"
-        role="menuitem"
-        tabIndex={-1}
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(node.data.url);
-            toast.success('URL copied');
-          } catch (error) {
-            console.error('Failed to copy URL:', error);
-          }
-          closeContextMenu();
-        }}
-      >
-        Copy URL
-      </div>
-      {hasTitle && (
-        <div
-          className="graph-context-menu-item"
-          role="menuitem"
-          tabIndex={-1}
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(node.data.title || 'Untitled');
-              toast.success('Title copied');
-            } catch (error) {
-              console.error('Failed to copy title:', error);
-            }
-            closeContextMenu();
-          }}
-        >
-          Copy title
-        </div>
-      )}
-
-      {!isRoot && (
-        <div
-          className="graph-context-menu-item"
-          role="menuitem"
-          tabIndex={-1}
-          onClick={() => {
-            setPickTarget({ type: 'duplicate', sourceNodeId: nodeId });
-            closeContextMenu();
-          }}
-        >
-          Duplicate at…
-        </div>
-      )}
-
-      <div className="graph-context-menu-divider" role="separator" />
-
-      {!isRoot && (
-        pendingDelete === 'node' ? (
-          <div
-            className="graph-context-menu-item danger is-confirming"
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
-              fireAndForget(rpc.deleteNode({ nodeId }));
-              closeContextMenu();
-            }}
-          >
-            Confirm delete?
-          </div>
-        ) : (
-          <div
-            className="graph-context-menu-item danger"
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => setPendingDelete('node')}
-          >
-            Delete node
-          </div>
-        )
-      )}
-      {hasChildren && (
-        pendingDelete === 'children' ? (
-          <div
-            className="graph-context-menu-item danger is-confirming"
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
-              fireAndForget(rpc.deleteChildren({ nodeId }));
-              closeContextMenu();
-            }}
-          >
-            Confirm delete?
-          </div>
-        ) : (
-          <div
-            className="graph-context-menu-item danger"
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => setPendingDelete('children')}
-          >
-            Delete children
-          </div>
-        )
-      )}
-      {pendingDelete === 'withChildren' ? (
-        <div
-          className="graph-context-menu-item danger is-confirming"
-          role="menuitem"
-          tabIndex={-1}
-          onClick={() => {
-            if (isRoot) {
-              openDeleteTreeConfirm(nodeId);
-              return;
-            }
-            fireAndForget(rpc.deleteWithChildren({ nodeId }));
-            closeContextMenu();
-          }}
-        >
-          Confirm delete?
-        </div>
-      ) : (
-        <div
-          className="graph-context-menu-item danger"
-          role="menuitem"
-          tabIndex={-1}
-          onClick={() => {
-            if (isRoot) {
-              openDeleteTreeConfirm(nodeId);
-              return;
-            }
-            setPendingDelete('withChildren');
-          }}
-        >
-          {isRoot && !hasChildren ? 'Delete tree' : 'Delete with children'}
-        </div>
-      )}
+            ) : (
+              <div
+                className="graph-context-menu-item danger"
+                role="menuitem"
+                tabIndex={-1}
+                onClick={() => setPendingDelete("node")}
+              >
+                Delete node
+              </div>
+            ))}
+          {hasChildren &&
+            (pendingDelete === "children" ? (
+              <div
+                className="graph-context-menu-item danger is-confirming"
+                role="menuitem"
+                tabIndex={-1}
+                onClick={() => {
+                  fireAndForget(rpc.deleteChildren({ nodeId }));
+                  closeContextMenu();
+                }}
+              >
+                Confirm delete?
+              </div>
+            ) : (
+              <div
+                className="graph-context-menu-item danger"
+                role="menuitem"
+                tabIndex={-1}
+                onClick={() => setPendingDelete("children")}
+              >
+                Delete children
+              </div>
+            ))}
+          {pendingDelete === "withChildren" ? (
+            <div
+              className="graph-context-menu-item danger is-confirming"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => {
+                if (isRoot) {
+                  openDeleteTreeConfirm(nodeId);
+                  return;
+                }
+                fireAndForget(rpc.deleteWithChildren({ nodeId }));
+                closeContextMenu();
+              }}
+            >
+              Confirm delete?
+            </div>
+          ) : (
+            <div
+              className="graph-context-menu-item danger"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => {
+                if (isRoot) {
+                  openDeleteTreeConfirm(nodeId);
+                  return;
+                }
+                setPendingDelete("withChildren");
+              }}
+            >
+              {isRoot && !hasChildren ? "Delete tree" : "Delete with children"}
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -769,7 +797,7 @@ type BulkMenuProps = {
 function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuStyle = useMenuPosition(menuRef, position);
-  const menuVars = { '--menu-max-height': `${menuStyle.maxHeight}px` } as React.CSSProperties;
+  const menuVars = { "--menu-max-height": `${menuStyle.maxHeight}px` } as React.CSSProperties;
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const clearSelection = useStore((state) => state.clearSelection);
   const tree = useStore((state) => state.tree);
@@ -780,9 +808,11 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const editorActive = useStore((state) => state.editorMode.active);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
-  const [pendingDelete, setPendingDelete] = useState<'nodes' | 'recursive' | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<"nodes" | "recursive" | null>(null);
 
-  useEffect(() => { setPendingDelete(null); }, [nodeIds, position]);
+  useEffect(() => {
+    setPendingDelete(null);
+  }, [nodeIds, position]);
 
   const selectedNodes = useMemo(() => {
     if (!tree) return [];
@@ -843,162 +873,167 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       }}
     >
       <div className="graph-context-menu-content">
-      <div className="graph-context-menu-header" role="presentation">{nodeIds.length} nodes selected</div>
-      <div className="graph-context-menu-divider" role="separator" />
-      <div
-        className="graph-context-menu-item"
-        role="menuitem"
-        tabIndex={-1}
-        onClick={() => {
-          fireAndForget(rpc.bulkPin({ nodeIds }));
-          clearSelection();
-          closeContextMenu();
-        }}
-      >
-        Pin selected
-      </div>
-      <div
-        className="graph-context-menu-item"
-        role="menuitem"
-        tabIndex={-1}
-        onClick={() => {
-          fireAndForget(rpc.bulkUnpin({ nodeIds }));
-          clearSelection();
-          closeContextMenu();
-        }}
-      >
-        Unpin selected
-      </div>
-      <div
-        className={`graph-context-menu-item${collapseCandidates.length === 0 ? ' is-disabled' : ''}`}
-        role="menuitem"
-        tabIndex={-1}
-        aria-disabled={collapseCandidates.length === 0}
-        onClick={() => {
-          if (collapseCandidates.length === 0) return;
-          const nextCollapsed = new Set(collapsedNodeIds);
-          collapseCandidates.forEach((node) => nextCollapsed.add(node.id));
-          const targetId = getNearestCollapsedAncestorId(tree, currentNodeId, nextCollapsed);
-          if (targetId && targetId !== currentNodeId) {
-            void setCurrentNode(targetId);
-          }
-          collapseNodes(collapseCandidates.map((node) => node.id));
-          clearSelection();
-          closeContextMenu();
-        }}
-      >
-        Collapse selected
-      </div>
-      <div
-        className={`graph-context-menu-item${expandCandidates.length === 0 ? ' is-disabled' : ''}`}
-        role="menuitem"
-        tabIndex={-1}
-        aria-disabled={expandCandidates.length === 0}
-        onClick={() => {
-          if (expandCandidates.length === 0) return;
-          expandNodes(expandCandidates.map((node) => node.id));
-          clearSelection();
-          closeContextMenu();
-        }}
-      >
-        Expand selected
-      </div>
-      <div className="graph-context-menu-item has-submenu" role="menuitem" tabIndex={-1}>
-        Tags <span className="submenu-arrow">›</span>
-        <div className="graph-context-submenu" role="menu">
-          {tagDefsList.map((tag) => {
-            const count = tagCounts.get(tag.id as Tag) ?? 0;
-            const allSelected = selectedNodes.length > 0 && count === selectedNodes.length;
-            const someSelected = count > 0 && count < selectedNodes.length;
-            return (
-              <div
-                key={tag.id as string}
-                className="graph-context-menu-item tag-option"
-                role="menuitemcheckbox"
-                aria-checked={allSelected ? true : someSelected ? 'mixed' : false}
-                tabIndex={-1}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  toggleTagForSelection(tag.id as Tag);
-                }}
-              >
-                <span className="tag-dot" style={{ background: tag.color } as React.CSSProperties}>
-                  <TagIcon id={tag.iconId} size={9} />
-                </span>
-                <span className="tag-option-label">{tag.label}</span>
-                {allSelected ? <Icons.Check size={13} className="tag-check" /> : null}
-                {someSelected ? <Icons.Minus size={12} className="tag-check partial" /> : null}
-              </div>
-            );
-          })}
+        <div className="graph-context-menu-header" role="presentation">
+          {nodeIds.length} nodes selected
         </div>
-      </div>
-      {!editorActive ? (
+        <div className="graph-context-menu-divider" role="separator" />
         <div
           className="graph-context-menu-item"
           role="menuitem"
           tabIndex={-1}
           onClick={() => {
-            fireAndForget(rpc.bulkCloseTabs({ nodeIds }));
+            fireAndForget(rpc.bulkPin({ nodeIds }));
             clearSelection();
             closeContextMenu();
           }}
         >
-          Close selected tabs
+          Pin selected
         </div>
-      ) : null}
-      <div className="graph-context-menu-divider" role="separator" />
-      {pendingDelete === 'nodes' ? (
         <div
-          className="graph-context-menu-item danger is-confirming"
+          className="graph-context-menu-item"
           role="menuitem"
           tabIndex={-1}
           onClick={() => {
-            fireAndForget(rpc.bulkDeleteNodes({ nodeIds }));
+            fireAndForget(rpc.bulkUnpin({ nodeIds }));
             clearSelection();
             closeContextMenu();
           }}
         >
-          Confirm delete?
+          Unpin selected
         </div>
-      ) : (
         <div
-          className="graph-context-menu-item danger"
+          className={`graph-context-menu-item${collapseCandidates.length === 0 ? "is-disabled" : ""}`}
           role="menuitem"
           tabIndex={-1}
-          onClick={() => setPendingDelete('nodes')}
-        >
-          Delete nodes
-        </div>
-      )}
-      {pendingDelete === 'recursive' ? (
-        <div
-          className="graph-context-menu-item danger is-confirming"
-          role="menuitem"
-          tabIndex={-1}
+          aria-disabled={collapseCandidates.length === 0}
           onClick={() => {
-            const rootId = getIncludedRootId(tree, nodeIds);
-            if (rootId) {
-              openDeleteTreeConfirm(rootId);
-              return;
+            if (collapseCandidates.length === 0) return;
+            const nextCollapsed = new Set(collapsedNodeIds);
+            collapseCandidates.forEach((node) => nextCollapsed.add(node.id));
+            const targetId = getNearestCollapsedAncestorId(tree, currentNodeId, nextCollapsed);
+            if (targetId && targetId !== currentNodeId) {
+              void setCurrentNode(targetId);
             }
-            fireAndForget(rpc.bulkDeleteRecursive({ nodeIds }));
+            collapseNodes(collapseCandidates.map((node) => node.id));
             clearSelection();
             closeContextMenu();
           }}
         >
-          Confirm delete?
+          Collapse selected
         </div>
-      ) : (
         <div
-          className="graph-context-menu-item danger"
+          className={`graph-context-menu-item${expandCandidates.length === 0 ? "is-disabled" : ""}`}
           role="menuitem"
           tabIndex={-1}
-          onClick={() => setPendingDelete('recursive')}
+          aria-disabled={expandCandidates.length === 0}
+          onClick={() => {
+            if (expandCandidates.length === 0) return;
+            expandNodes(expandCandidates.map((node) => node.id));
+            clearSelection();
+            closeContextMenu();
+          }}
         >
-          Delete nodes recursively
+          Expand selected
         </div>
-      )}
+        <div className="graph-context-menu-item has-submenu" role="menuitem" tabIndex={-1}>
+          Tags <span className="submenu-arrow">›</span>
+          <div className="graph-context-submenu" role="menu">
+            {tagDefsList.map((tag) => {
+              const count = tagCounts.get(tag.id as Tag) ?? 0;
+              const allSelected = selectedNodes.length > 0 && count === selectedNodes.length;
+              const someSelected = count > 0 && count < selectedNodes.length;
+              return (
+                <div
+                  key={tag.id as string}
+                  className="graph-context-menu-item tag-option"
+                  role="menuitemcheckbox"
+                  aria-checked={allSelected ? true : someSelected ? "mixed" : false}
+                  tabIndex={-1}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleTagForSelection(tag.id as Tag);
+                  }}
+                >
+                  <span
+                    className="tag-dot"
+                    style={{ background: tag.color } as React.CSSProperties}
+                  >
+                    <TagIcon id={tag.iconId} size={9} />
+                  </span>
+                  <span className="tag-option-label">{tag.label}</span>
+                  {allSelected ? <Icons.Check size={13} className="tag-check" /> : null}
+                  {someSelected ? <Icons.Minus size={12} className="tag-check partial" /> : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {!editorActive ? (
+          <div
+            className="graph-context-menu-item"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => {
+              fireAndForget(rpc.bulkCloseTabs({ nodeIds }));
+              clearSelection();
+              closeContextMenu();
+            }}
+          >
+            Close selected tabs
+          </div>
+        ) : null}
+        <div className="graph-context-menu-divider" role="separator" />
+        {pendingDelete === "nodes" ? (
+          <div
+            className="graph-context-menu-item danger is-confirming"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => {
+              fireAndForget(rpc.bulkDeleteNodes({ nodeIds }));
+              clearSelection();
+              closeContextMenu();
+            }}
+          >
+            Confirm delete?
+          </div>
+        ) : (
+          <div
+            className="graph-context-menu-item danger"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => setPendingDelete("nodes")}
+          >
+            Delete nodes
+          </div>
+        )}
+        {pendingDelete === "recursive" ? (
+          <div
+            className="graph-context-menu-item danger is-confirming"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => {
+              const rootId = getIncludedRootId(tree, nodeIds);
+              if (rootId) {
+                openDeleteTreeConfirm(rootId);
+                return;
+              }
+              fireAndForget(rpc.bulkDeleteRecursive({ nodeIds }));
+              clearSelection();
+              closeContextMenu();
+            }}
+          >
+            Confirm delete?
+          </div>
+        ) : (
+          <div
+            className="graph-context-menu-item danger"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => setPendingDelete("recursive")}
+          >
+            Delete nodes recursively
+          </div>
+        )}
       </div>
     </div>
   );

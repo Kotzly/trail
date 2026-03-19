@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import AccountSidebar from './AccountSidebar.js';
+import type { ReactNode } from "react";
+import AccountSidebar from "./AccountSidebar.js";
 
 type AccountLayoutProps = {
   children: ReactNode;

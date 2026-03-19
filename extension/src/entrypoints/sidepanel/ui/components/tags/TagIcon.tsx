@@ -1,6 +1,4 @@
-import type { TagIconId } from './tag-icons.js';
-import { getTagIcon } from './tag-icons.js';
-
+import { getTagIcon, type TagIconId } from "./tag-icons.js";
 
 type TagIconProps = {
   id: TagIconId | string;
@@ -14,5 +12,6 @@ export function TagIcon({ id, size = 12, className }: TagIconProps) {
   if (className !== undefined) {
     props.className = className;
   }
+  // eslint-disable-next-line react-hooks/static-components -- Icon is dynamic by design
   return <Icon {...props} />;
 }

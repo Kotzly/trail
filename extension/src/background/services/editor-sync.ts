@@ -1,10 +1,10 @@
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
-import { treeStorage } from './tree-storage.js';
-import { syncApi, SyncApiError } from './sync/api.js';
-import { dirtyTracker } from './sync/dirty-tracker.js';
-import { sendRuntimeMessage } from '../messaging/send-message.js';
-import { rpc, type SyncStatus } from '@shared/rpc/contracts.js';
-import { findBestTrailFavicon } from '@shared/lib/tree-favicon.js';
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import { treeStorage } from "./tree-storage.js";
+import { syncApi, SyncApiError } from "./sync/api.js";
+import { dirtyTracker } from "./sync/dirty-tracker.js";
+import { sendRuntimeMessage } from "../messaging/send-message.js";
+import { rpc, type SyncStatus } from "@shared/rpc/contracts.js";
+import { findBestTrailFavicon } from "@shared/lib/tree-favicon.js";
 
 /* ------------------------------------------------------------------ */
 /*  Editor Sync Service                                                */
@@ -19,9 +19,7 @@ import { findBestTrailFavicon } from '@shared/lib/tree-favicon.js';
 const SYNC_DEBOUNCE_MS = 3000;
 const RETRY_BACKOFFS = [2000, 4000, 8000] as const;
 
-export type EditorSyncFlushResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type EditorSyncFlushResult = { ok: true } | { ok: false; error: string };
 
 type SyncState = {
   treeId: string | null;
@@ -35,7 +33,7 @@ type SyncState = {
 const state: SyncState = {
   treeId: null,
   dirty: false,
-  status: 'idle',
+  status: "idle",
   timer: null,
   inFlight: null,
   retryCount: 0,
@@ -86,10 +84,10 @@ async function patchTree(treeId: string): Promise<EditorSyncFlushResult> {
       console.warn(`EditorSync: PATCH /trails/${treeId} failed: ${error.message}`);
       return { ok: false, error: error.message };
     }
-    console.warn('EditorSync: network error during PATCH', error);
+    console.warn("EditorSync: network error during PATCH", error);
     return {
       ok: false,
-      error: error instanceof Error ? error.message : 'Network error during PATCH',
+      error: error instanceof Error ? error.message : "Network error during PATCH",
     };
   }
 }
@@ -97,16 +95,16 @@ async function patchTree(treeId: string): Promise<EditorSyncFlushResult> {
 async function performSync(): Promise<EditorSyncFlushResult> {
   const { treeId } = state;
   if (!treeId) {
-    return { ok: false, error: 'Editor sync is not active' };
+    return { ok: false, error: "Editor sync is not active" };
   }
 
-  broadcastStatus('saving');
+  broadcastStatus("saving");
 
   const result = await patchTree(treeId);
   if (result.ok) {
     state.dirty = false;
     state.retryCount = 0;
-    broadcastStatus('saved');
+    broadcastStatus("saved");
     return result;
   }
 
@@ -114,26 +112,26 @@ async function performSync(): Promise<EditorSyncFlushResult> {
   if (state.retryCount < RETRY_BACKOFFS.length) {
     const delay = RETRY_BACKOFFS[state.retryCount]!;
     state.retryCount += 1;
-    broadcastStatus('saving');
+    broadcastStatus("saving");
     scheduleSync(delay);
     return result;
   }
 
   // All retries exhausted
-  broadcastStatus('error');
+  broadcastStatus("error");
   return result;
 }
 
 async function flushSyncWithRetries(treeId: string): Promise<EditorSyncFlushResult> {
-  broadcastStatus('saving');
-  let lastError = 'Editor sync failed';
+  broadcastStatus("saving");
+  let lastError = "Editor sync failed";
 
   for (let attempt = 0; attempt <= RETRY_BACKOFFS.length; attempt += 1) {
     const result = await patchTree(treeId);
     if (result.ok) {
       state.dirty = false;
       state.retryCount = 0;
-      broadcastStatus('saved');
+      broadcastStatus("saved");
       return result;
     }
 
@@ -144,7 +142,7 @@ async function flushSyncWithRetries(treeId: string): Promise<EditorSyncFlushResu
   }
 
   state.retryCount = RETRY_BACKOFFS.length;
-  broadcastStatus('error');
+  broadcastStatus("error");
   return { ok: false, error: lastError };
 }
 
@@ -180,7 +178,7 @@ export function editorSyncStart(treeId: string): void {
   clearTimer();
   state.treeId = treeId;
   state.dirty = false;
-  state.status = 'idle';
+  state.status = "idle";
   state.retryCount = 0;
   state.inFlight = null;
 }
@@ -223,13 +221,13 @@ export function editorSyncStop(): void {
   clearTimer();
   state.treeId = null;
   state.dirty = false;
-  state.status = 'idle';
+  state.status = "idle";
   state.retryCount = 0;
   state.inFlight = null;
 }
 
 export function editorSyncRetry(): void {
-  if (!state.treeId || state.status !== 'error') return;
+  if (!state.treeId || state.status !== "error") return;
   state.retryCount = 0;
   state.dirty = true;
   scheduleSync(0);

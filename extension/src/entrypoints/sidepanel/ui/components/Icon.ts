@@ -57,7 +57,7 @@ import {
   ZoomIn,
   ZoomOut,
   Zap,
-} from 'lucide-react';
+} from "lucide-react";
 
 export const Icons = {
   AlertTriangle,

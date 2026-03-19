@@ -36,7 +36,9 @@
   font: inherit;
   font-size: 13px;
   line-height: 1.2;
-  transition: background 100ms ease, color 100ms ease;
+  transition:
+    background 100ms ease,
+    color 100ms ease;
 }
 
 .newtab-bookmark-card:hover {

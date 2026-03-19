@@ -1,16 +1,16 @@
-import { useEffect, useRef } from 'react';
-import { getSettings } from './rpc.js';
-import { applyThemeTokens } from '@entrypoints/sidepanel/ui/shared/apply-theme.js';
-import type { ThemeId } from '@shared/types/theme.js';
-import type { CustomTheme } from '@shared/types/settings.js';
+import { useEffect, useRef } from "react";
+import { getSettings } from "./rpc.js";
+import { applyThemeTokens } from "@entrypoints/sidepanel/ui/shared/apply-theme.js";
+import type { ThemeId } from "@shared/types/theme.js";
+import type { CustomTheme } from "@shared/types/settings.js";
 
 /**
  * Resolves a ThemeId ('light' | 'dark' | 'system') to an effective
  * 'light' or 'dark' value suitable for the `data-theme` attribute.
  */
-function resolveEffective(themeId: ThemeId): 'light' | 'dark' {
-  if (themeId === 'system') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+function resolveEffective(themeId: ThemeId): "light" | "dark" {
+  if (themeId === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
   return themeId;
 }
@@ -24,10 +24,8 @@ function resolveEffective(themeId: ThemeId): 'light' | 'dark' {
  * - Fetches theme via RPC (safe in content script context)
  * - Watches OS media-query changes for `theme: 'system'`
  */
-export function useSpotlightTheme(
-  containerRef: React.RefObject<HTMLElement | null>,
-) {
-  const themeIdRef = useRef<ThemeId>('system');
+export function useSpotlightTheme(containerRef: React.RefObject<HTMLElement | null>) {
+  const themeIdRef = useRef<ThemeId>("system");
   const customThemeRef = useRef<CustomTheme | null>(null);
 
   useEffect(() => {
@@ -35,13 +33,11 @@ export function useSpotlightTheme(
     if (!el) return;
 
     const rootNode = el.getRootNode();
-    const host = rootNode instanceof ShadowRoot
-      ? (rootNode.host as HTMLElement)
-      : el;
+    const host = rootNode instanceof ShadowRoot ? (rootNode.host as HTMLElement) : el;
 
     const apply = () => {
       const effective = resolveEffective(themeIdRef.current);
-      host.setAttribute('data-theme', effective);
+      host.setAttribute("data-theme", effective);
       applyThemeTokens(host, effective, customThemeRef.current, { preserveDefaults: false });
     };
 
@@ -60,14 +56,14 @@ export function useSpotlightTheme(
       });
 
     // Re-resolve when OS theme changes (relevant when themeId = 'system')
-    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
     const onMediaChange = () => {
-      if (themeIdRef.current === 'system') apply();
+      if (themeIdRef.current === "system") apply();
     };
-    mql.addEventListener('change', onMediaChange);
+    mql.addEventListener("change", onMediaChange);
 
     return () => {
-      mql.removeEventListener('change', onMediaChange);
+      mql.removeEventListener("change", onMediaChange);
     };
   }, [containerRef]);
 }

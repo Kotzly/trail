@@ -1,22 +1,22 @@
-import { useStore } from '../../state/store.js';
-import { useShallow } from 'zustand/react/shallow';
-import type { GraphRenderMetrics } from '../../graph/render/GraphPixiRenderer.js';
+import { useStore } from "../../state/store.js";
+import { useShallow } from "zustand/react/shallow";
+import type { GraphRenderMetrics } from "../../graph/render/GraphPixiRenderer.js";
 import {
   createQualityPolicyState,
   qualityPolicyFromState,
   updateQualityPolicy,
-} from '../../graph/render/quality-policy.js';
-import React, { Suspense, useState, useCallback } from 'react';
-import type { NodeId } from '@shared/types/ids.js';
+} from "../../graph/render/quality-policy.js";
+import React, { Suspense, useState, useCallback } from "react";
+import type { NodeId } from "@shared/types/ids.js";
 
-const GraphCanvas = React.lazy(() => import('./GraphCanvas.js'));
+const GraphCanvas = React.lazy(() => import("./GraphCanvas.js"));
 
 // Prefetch: kick off the dynamic import immediately at module load time.
 // React.lazy's internal import is deferred until first render inside Suspense.
 // By calling import() here, the chunk fetch starts as soon as GraphArea.tsx is parsed,
 // which is at sidepanel boot (it's a static import in App.tsx).
 // The browser deduplicates the import() call -- React.lazy will resolve from cache.
-const _prefetchGraphCanvas = import('./GraphCanvas.js');
+const _prefetchGraphCanvas = import("./GraphCanvas.js");
 void _prefetchGraphCanvas; // suppress unused-variable lint
 
 type GraphAreaProps = {
@@ -29,7 +29,12 @@ type GraphAreaProps = {
   initialCenterNodeId?: NodeId | undefined;
 };
 
-export default function GraphArea({ onNodeActivate, showControls = true, compactInitialView = false, initialCenterNodeId }: GraphAreaProps = {}) {
+export default function GraphArea({
+  onNodeActivate,
+  showControls = true,
+  compactInitialView = false,
+  initialCenterNodeId,
+}: GraphAreaProps = {}) {
   const [qualityPolicyState, setQualityPolicyState] = React.useState(() =>
     createQualityPolicyState(Date.now()),
   );
@@ -82,7 +87,7 @@ export default function GraphArea({ onNodeActivate, showControls = true, compact
     (metrics: GraphRenderMetrics) => {
       if (!graphState.adaptivePerformance) {
         setQualityPolicyState((prev) =>
-          prev.level === 'full' ? prev : createQualityPolicyState(Date.now()),
+          prev.level === "full" ? prev : createQualityPolicyState(Date.now()),
         );
         return;
       }
@@ -99,10 +104,10 @@ export default function GraphArea({ onNodeActivate, showControls = true, compact
         );
 
         if (
-          typeof window !== 'undefined' &&
+          typeof window !== "undefined" &&
           (window as { __TRAIL_GRAPH_POLICY_DEBUG?: boolean }).__TRAIL_GRAPH_POLICY_DEBUG
         ) {
-          console.debug('[graph-policy]', {
+          console.debug("[graph-policy]", {
             scoreMs: Number(scoreMs.toFixed(2)),
             frameMs: Number(frameMs.toFixed(2)),
             level: next.level,
@@ -124,21 +129,19 @@ export default function GraphArea({ onNodeActivate, showControls = true, compact
 
   const detailMode =
     graphState.overlayLodCount > 0
-      ? ('dot' as const)
+      ? ("dot" as const)
       : gestureActive
-        ? ('low' as const)
+        ? ("low" as const)
         : graphState.adaptivePerformance
           ? adaptiveQuality.detailMode
-          : ('full' as const);
+          : ("full" as const);
 
   const connectionQuality =
     graphState.overlayLodCount > 0
-      ? ('thin' as const)
-      : gestureActive
-        ? ('simplified' as const)
-        : graphState.adaptivePerformance
-          ? adaptiveQuality.connectionQuality
-          : ('full' as const);
+      ? ("thin" as const)
+      : graphState.adaptivePerformance
+        ? adaptiveQuality.connectionQuality
+        : ("full" as const);
 
   const graphActions = useStore(
     useShallow((state) => ({

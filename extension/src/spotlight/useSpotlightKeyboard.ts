@@ -1,11 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { shouldApplyHintOnTab } from './SpotlightHintRow.js';
-import { buildClientContextActions } from './SpotlightActionMenu.js';
-import { IS_MAC } from './platform.js';
-import type {
-  SpotlightActionResult,
-  SpotlightSearchResult,
-} from './types.js';
+import { useEffect, useRef } from "react";
+import { shouldApplyHintOnTab } from "./SpotlightHintRow.js";
+import { buildClientContextActions } from "./SpotlightActionMenu.js";
+import { IS_MAC } from "./platform.js";
+import type { SpotlightActionResult, SpotlightSearchResult } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -30,8 +27,8 @@ type UseSpotlightKeyboardOptions = {
   helpOpen: boolean;
   setHelpOpen: (open: boolean) => void;
   drilldownScope: { treeId: string; treeName: string } | null;
-  selectedFocusPane: 'list' | 'graph';
-  setSelectedFocusPane: (pane: 'list' | 'graph') => void;
+  selectedFocusPane: "list" | "graph";
+  setSelectedFocusPane: (pane: "list" | "graph") => void;
   setQuery: (q: string) => void;
   close: () => void;
   exitDrilldown: () => void;
@@ -76,7 +73,7 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
       const s = stateRef.current;
 
       switch (event.key) {
-        case 'Enter': {
+        case "Enter": {
           if (s.confirmingAction) {
             event.preventDefault();
             event.stopPropagation();
@@ -105,20 +102,20 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           }
           return;
         }
-        case 'Tab':
+        case "Tab":
           if (shouldApplyHintOnTab(s.query, s.hintCandidates) && s.activeHint) {
             event.preventDefault();
             event.stopPropagation();
             s.handleApplyHint(s.activeHint);
             return;
           }
-          if (s.selectedFocusPane === 'list' && !s.showPreview) return;
+          if (s.selectedFocusPane === "list" && !s.showPreview) return;
           event.preventDefault();
           event.stopPropagation();
-          s.setSelectedFocusPane(s.selectedFocusPane === 'list' ? 'graph' : 'list');
+          s.setSelectedFocusPane(s.selectedFocusPane === "list" ? "graph" : "list");
           return;
-        case 'Backspace': {
-          if (s.drilldownScope && s.query === '') {
+        case "Backspace": {
+          if (s.drilldownScope && s.query === "") {
             event.preventDefault();
             event.stopPropagation();
             s.exitDrilldown();
@@ -130,19 +127,19 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
             event.stopPropagation();
             if (s.query && !queryClearedRef.current) {
               queryClearedRef.current = true;
-              s.setQuery('');
+              s.setQuery("");
             }
           }
           return;
         }
-        case '?':
+        case "?":
           if (!event.metaKey && !event.ctrlKey) {
             event.preventDefault();
             event.stopPropagation();
             s.setHelpOpen(!s.helpOpen);
           }
           return;
-        case 'Escape':
+        case "Escape":
           event.preventDefault();
           event.stopPropagation();
           if (s.confirmingAction) {
@@ -157,12 +154,12 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
             s.exitDrilldown();
           } else if (s.query && !queryClearedRef.current) {
             queryClearedRef.current = true;
-            s.setQuery('');
+            s.setQuery("");
           } else {
             s.close();
           }
           return;
-        case 'k': {
+        case "k": {
           if ((IS_MAC && event.metaKey) || (!IS_MAC && event.ctrlKey)) {
             event.preventDefault();
             event.stopPropagation();
@@ -176,8 +173,8 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           }
           return;
         }
-        case 'l':
-        case 'L': {
+        case "l":
+        case "L": {
           if (((IS_MAC && event.metaKey) || (!IS_MAC && event.ctrlKey)) && event.shiftKey) {
             event.preventDefault();
             event.stopPropagation();
@@ -185,13 +182,16 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
               s.setQuickLookItem(null);
               return;
             }
-            if (s.selectedItem && (s.selectedItem.kind === 'node' || s.selectedItem.kind === 'tree')) {
+            if (
+              s.selectedItem &&
+              (s.selectedItem.kind === "node" || s.selectedItem.kind === "tree")
+            ) {
               s.setQuickLookItem(s.selectedItem);
             }
           }
           return;
         }
-        case '\\': {
+        case "\\": {
           // Cmd+\ (Mac) or Ctrl+\ (other) — toggle graph panel
           if ((IS_MAC && event.metaKey) || (!IS_MAC && event.ctrlKey)) {
             if (!s.toggleGraphPanel) return;
@@ -201,30 +201,33 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           }
           return;
         }
-        case '[':
-        case ']': {
+        case "[":
+        case "]": {
           // Cmd+Shift+[ / Cmd+Shift+] — step through snap points
           const mod = IS_MAC ? event.metaKey : event.ctrlKey;
           if (mod && event.shiftKey) {
             if (!s.stepSnapPoint) return;
             event.preventDefault();
             event.stopPropagation();
-            s.stepSnapPoint(event.key === '[' ? -1 : 1);
+            s.stepSnapPoint(event.key === "[" ? -1 : 1);
           }
           return;
         }
-        case 'ArrowDown':
-        case 'ArrowUp': {
+        case "ArrowDown":
+        case "ArrowUp": {
           event.preventDefault();
           event.stopPropagation();
 
           if (event.shiftKey) {
             // Multi-select: extend selection in the arrow direction
-            const currentIdx = s.selectedItem ? s.flatItems.findIndex((i) => i.key === s.selectedItem!.key) : -1;
+            const currentIdx = s.selectedItem
+              ? s.flatItems.findIndex((i) => i.key === s.selectedItem!.key)
+              : -1;
             if (currentIdx === -1) return;
-            const nextIdx = event.key === 'ArrowDown'
-              ? Math.min(currentIdx + 1, s.flatItems.length - 1)
-              : Math.max(currentIdx - 1, 0);
+            const nextIdx =
+              event.key === "ArrowDown"
+                ? Math.min(currentIdx + 1, s.flatItems.length - 1)
+                : Math.max(currentIdx - 1, 0);
             const nextItem = s.flatItems[nextIdx];
             if (!nextItem) return;
             const next = new Set(s.selectedKeys);
@@ -238,13 +241,10 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
           // Normal arrow navigation through visible items (excluding collapsed)
           const items = s.visibleFlatItems;
           if (items.length === 0) return;
-          const currentIdx = s.selectedKey
-            ? items.findIndex((i) => i.key === s.selectedKey)
-            : -1;
-          const delta = event.key === 'ArrowDown' ? 1 : -1;
-          const nextIdx = currentIdx === -1
-            ? 0
-            : (currentIdx + delta + items.length) % items.length; // loop
+          const currentIdx = s.selectedKey ? items.findIndex((i) => i.key === s.selectedKey) : -1;
+          const delta = event.key === "ArrowDown" ? 1 : -1;
+          const nextIdx =
+            currentIdx === -1 ? 0 : (currentIdx + delta + items.length) % items.length; // loop
           const nextItem = items[nextIdx];
           if (nextItem) {
             s.setSelectedKey(nextItem.key);
@@ -256,10 +256,9 @@ export function useSpotlightKeyboard(options: UseSpotlightKeyboardOptions): void
       }
     };
 
-    window.addEventListener('keydown', handler, true);
-    return () => window.removeEventListener('keydown', handler, true);
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
     // Only re-attach when open state or container ref identity changes.
     // All mutable state is read from stateRef inside the handler.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.isOpen, options.containerRef]);
 }

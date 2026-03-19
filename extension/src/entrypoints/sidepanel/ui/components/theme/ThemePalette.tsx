@@ -1,16 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CustomTheme, ThemeDot, ThemeHarmony } from '@shared/types/settings.js';
-import type { ThemeId } from '@features/themes/model.js';
-import { Icons } from '../Icon.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CustomTheme, ThemeDot, ThemeHarmony } from "@shared/types/settings.js";
+import type { ThemeId } from "@features/themes/model.js";
+import { Icons } from "../Icon.js";
 import {
   calculateCompliments,
   getAutoAccentColor,
   getColorFromPosition,
   getDotLightness,
   resolveHarmonyForCount,
-} from '../../shared/theme-generator.js';
-import { PRESET_PAGES, type ThemePreset } from './theme-presets.js';
-
+} from "../../shared/theme-generator.js";
+import { PRESET_PAGES, type ThemePreset } from "./theme-presets.js";
 
 type ThemePaletteProps = {
   scheme: ThemeId;
@@ -25,7 +24,7 @@ const DEFAULT_PRIMARY: ThemeDot = { x: 0.5, y: 0.5 };
 const DEFAULT_THEME: CustomTheme = {
   enabled: false,
   dots: [],
-  harmony: 'floating',
+  harmony: "floating",
   lightness: 50,
   opacity: 0.6,
   texture: 0,
@@ -33,30 +32,30 @@ const DEFAULT_THEME: CustomTheme = {
   accentColor: null,
 };
 
-const DOT_TYPES: Array<ThemeDot['type']> = ['explicit-lightness', 'explicit-black-white'];
+const DOT_TYPES: Array<ThemeDot["type"]> = ["explicit-lightness", "explicit-black-white"];
 const CUSTOM_COLOR_LIMIT = 4;
 
 const HARMONY_LABELS: Record<ThemeHarmony, string> = {
-  floating: 'Floating',
-  complementary: 'Complementary',
-  singleAnalogous: 'Analogous',
-  splitComplementary: 'Split',
-  analogous: 'Analogous',
-  triadic: 'Triadic',
+  floating: "Floating",
+  complementary: "Complementary",
+  singleAnalogous: "Analogous",
+  splitComplementary: "Split",
+  analogous: "Analogous",
+  triadic: "Triadic",
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 const OPACITY_MIN = 0.35;
 const OPACITY_MAX = 0.9;
 
-const LINE_PATH = 'M 51.373 27.395 L 367.037 27.395';
+const LINE_PATH = "M 51.373 27.395 L 367.037 27.395";
 const SINE_PATH =
-  'M 51.373 27.395 C 60.14 -8.503 68.906 -8.503 77.671 27.395 C 86.438 63.293 95.205 63.293 103.971 27.395 C 112.738 -8.503 121.504 -8.503 130.271 27.395 C 139.037 63.293 147.803 63.293 156.57 27.395 C 165.335 -8.503 174.101 -8.503 182.868 27.395 C 191.634 63.293 200.4 63.293 209.167 27.395 C 217.933 -8.503 226.7 -8.503 235.467 27.395 C 244.233 63.293 252.999 63.293 261.765 27.395 C 270.531 -8.503 279.297 -8.503 288.064 27.395 C 296.83 63.293 305.596 63.293 314.363 27.395 C 323.13 -8.503 331.896 -8.503 340.662 27.395 M 314.438 27.395 C 323.204 -8.503 331.97 -8.503 340.737 27.395 C 349.503 63.293 358.27 63.293 367.037 27.395';
+  "M 51.373 27.395 C 60.14 -8.503 68.906 -8.503 77.671 27.395 C 86.438 63.293 95.205 63.293 103.971 27.395 C 112.738 -8.503 121.504 -8.503 130.271 27.395 C 139.037 63.293 147.803 63.293 156.57 27.395 C 165.335 -8.503 174.101 -8.503 182.868 27.395 C 191.634 63.293 200.4 63.293 209.167 27.395 C 217.933 -8.503 226.7 -8.503 235.467 27.395 C 244.233 63.293 252.999 63.293 261.765 27.395 C 270.531 -8.503 279.297 -8.503 288.064 27.395 C 296.83 63.293 305.596 63.293 314.363 27.395 C 323.13 -8.503 331.896 -8.503 340.662 27.395 M 314.438 27.395 C 323.204 -8.503 331.97 -8.503 340.737 27.395 C 349.503 63.293 358.27 63.293 367.037 27.395";
 
 type WavePoint =
-  | { type: 'M'; x: number; y: number }
-  | { type: 'L'; x: number; y: number }
-  | { type: 'C'; x1: number; y1: number; x2: number; y2: number; x: number; y: number };
+  | { type: "M"; x: number; y: number }
+  | { type: "L"; x: number; y: number }
+  | { type: "C"; x1: number; y1: number; x2: number; y2: number; x: number; y: number };
 
 const parseWavePath = (path: string): WavePoint[] => {
   const points: WavePoint[] = [];
@@ -66,18 +65,18 @@ const parseWavePath = (path: string): WavePoint[] => {
     const type = command.charAt(0);
     const coordsStr = command.slice(1).trim();
     const coords = coordsStr.split(/[\s,]+/).map(Number);
-    if (type === 'M') {
-      points.push({ type: 'M', x: coords[0] ?? 0, y: coords[1] ?? 0 });
+    if (type === "M") {
+      points.push({ type: "M", x: coords[0] ?? 0, y: coords[1] ?? 0 });
       return;
     }
-    if (type === 'L') {
-      points.push({ type: 'L', x: coords[0] ?? 0, y: coords[1] ?? 0 });
+    if (type === "L") {
+      points.push({ type: "L", x: coords[0] ?? 0, y: coords[1] ?? 0 });
       return;
     }
-    if (type === 'C' && coords.length >= 6 && coords.length % 6 === 0) {
+    if (type === "C" && coords.length >= 6 && coords.length % 6 === 0) {
       for (let i = 0; i < coords.length; i += 6) {
         points.push({
-          type: 'C',
+          type: "C",
           x1: coords[i] ?? 0,
           y1: coords[i + 1] ?? 0,
           x2: coords[i + 2] ?? 0,
@@ -99,14 +98,14 @@ const interpolateWavePath = (progress: number) => {
   if (progress >= 0.999) return SINE_PATH;
   const referenceY = 27.3;
   const t = progress;
-  let pathData = '';
+  let pathData = "";
   SINE_POINTS.forEach((point) => {
-    if (point.type === 'M') {
+    if (point.type === "M") {
       const y = referenceY + (point.y - referenceY) * t;
       pathData += `M ${point.x} ${y} `;
       return;
     }
-    if (point.type === 'L') {
+    if (point.type === "L") {
       pathData += `L ${point.x} ${point.y} `;
       return;
     }
@@ -120,7 +119,7 @@ const interpolateWavePath = (progress: number) => {
 
 const getLightnessFromDot = (dot: ThemeDot) => getDotLightness(dot);
 
-const shouldSyncLightness = (dot: ThemeDot) => dot.type !== 'explicit-lightness';
+const shouldSyncLightness = (dot: ThemeDot) => dot.type !== "explicit-lightness";
 
 const clampToCircle = (x: number, y: number) => {
   const cx = 0.5;
@@ -139,12 +138,12 @@ const normalizeHexInput = (value: string, fallback: string) => {
   const trimmed = value.trim();
   const hexMatch = trimmed.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/);
   if (hexMatch) {
-    const hex = hexMatch[1] ?? '';
+    const hex = hexMatch[1] ?? "";
     if (hex.length === 3) {
       return `#${hex
-        .split('')
+        .split("")
         .map((char) => `${char}${char}`)
-        .join('')}`;
+        .join("")}`;
     }
     if (hex.length === 8) {
       return `#${hex.slice(0, 6)}`;
@@ -155,7 +154,7 @@ const normalizeHexInput = (value: string, fallback: string) => {
 };
 
 const buildDots = (primary: ThemeDot, harmony: ThemeHarmony) => {
-  const result = calculateCompliments([primary], 'update', harmony);
+  const result = calculateCompliments([primary], "update", harmony);
   return result.dots;
 };
 
@@ -175,25 +174,28 @@ const normalizeTheme = (theme: CustomTheme | null | undefined): CustomTheme => {
     .slice(0, 3);
   const rawCustomColors = Array.isArray(next.customColors) ? next.customColors : [];
   next.customColors = rawCustomColors
-    .map((color) => (typeof color === 'string' ? color.trim() : ''))
+    .map((color) => (typeof color === "string" ? color.trim() : ""))
     .filter((color) => color.length > 0)
     .slice(0, CUSTOM_COLOR_LIMIT);
   next.lightness = clamp(
-    typeof next.lightness === 'number' ? next.lightness : DEFAULT_THEME.lightness,
+    typeof next.lightness === "number" ? next.lightness : DEFAULT_THEME.lightness,
     0,
-    100
+    100,
   );
   next.opacity = clamp(
-    typeof next.opacity === 'number' ? next.opacity : DEFAULT_THEME.opacity,
+    typeof next.opacity === "number" ? next.opacity : DEFAULT_THEME.opacity,
     OPACITY_MIN,
-    OPACITY_MAX
+    OPACITY_MAX,
   );
   next.texture = clamp(
-    typeof next.texture === 'number' ? next.texture : DEFAULT_THEME.texture,
+    typeof next.texture === "number" ? next.texture : DEFAULT_THEME.texture,
     0,
-    1
+    1,
   );
-  if (typeof next.accentColor !== 'string' || !/^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(next.accentColor)) {
+  if (
+    typeof next.accentColor !== "string" ||
+    !/^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(next.accentColor)
+  ) {
     next.accentColor = null;
   }
   return next;
@@ -210,7 +212,7 @@ export default function ThemePalette({
 }: ThemePaletteProps) {
   const [draft, setDraft] = useState<CustomTheme>(() => normalizeTheme(value));
   const [pageIndex, setPageIndex] = useState(0);
-  const [customColor, setCustomColor] = useState('#484848');
+  const [customColor, setCustomColor] = useState("#484848");
   const [customOpacity, setCustomOpacity] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const gradientRef = useRef<HTMLDivElement | null>(null);
@@ -249,19 +251,16 @@ export default function ThemePalette({
     }, 100);
   }, []);
 
-  const updateDotsVisual = useCallback(
-    (next: CustomTheme) => {
-      next.dots.forEach((dot, index) => {
-        const el = dotRefs.current[index];
-        if (!el) return;
-        const { hex } = getColorFromPosition(dot, next.lightness);
-        el.style.left = `${dot.x * 100}%`;
-        el.style.top = `${dot.y * 100}%`;
-        el.style.setProperty('--zen-theme-picker-dot-color', hex);
-      });
-    },
-    []
-  );
+  const updateDotsVisual = useCallback((next: CustomTheme) => {
+    next.dots.forEach((dot, index) => {
+      const el = dotRefs.current[index];
+      if (!el) return;
+      const { hex } = getColorFromPosition(dot, next.lightness);
+      el.style.left = `${dot.x * 100}%`;
+      el.style.top = `${dot.y * 100}%`;
+      el.style.setProperty("--zen-theme-picker-dot-color", hex);
+    });
+  }, []);
 
   const updateTextureHandle = useCallback((texture: number) => {
     if (!textureHandleRef.current) return;
@@ -283,20 +282,20 @@ export default function ThemePalette({
           : (opacity - OPACITY_MIN) / (OPACITY_MAX - OPACITY_MIN);
     const path = interpolateWavePath(normalized);
     if (wavePathRef.current) {
-      wavePathRef.current.setAttribute('d', path);
+      wavePathRef.current.setAttribute("d", path);
       if (waveStopEndRef.current && waveStopMidRef.current) {
         const offset = `${normalized * 100}%`;
-        waveStopMidRef.current.setAttribute('offset', offset);
-        waveStopEndRef.current.setAttribute('offset', offset);
+        waveStopMidRef.current.setAttribute("offset", offset);
+        waveStopEndRef.current.setAttribute("offset", offset);
         wavePathRef.current.style.stroke =
           path === LINE_PATH
-            ? waveStopEndRef.current.getAttribute('stop-color') ?? ''
-            : 'url(#zen-theme-picker-wave-gradient)';
+            ? (waveStopEndRef.current.getAttribute("stop-color") ?? "")
+            : "url(#zen-theme-picker-wave-gradient)";
       }
     }
     if (opacitySliderRef.current) {
-      opacitySliderRef.current.style.setProperty('--zen-thumb-height', `${40 + normalized * 15}px`);
-      opacitySliderRef.current.style.setProperty('--zen-thumb-width', `${10 + normalized * 15}px`);
+      opacitySliderRef.current.style.setProperty("--zen-thumb-height", `${40 + normalized * 15}px`);
+      opacitySliderRef.current.style.setProperty("--zen-thumb-width", `${10 + normalized * 15}px`);
     }
   }, []);
 
@@ -318,15 +317,15 @@ export default function ThemePalette({
   const triggerDotBounce = useCallback(() => {
     dotRefs.current.forEach((el) => {
       if (!el) return;
-      el.classList.remove('bounce');
+      el.classList.remove("bounce");
       void el.offsetWidth;
-      el.classList.add('bounce');
+      el.classList.add("bounce");
     });
     if (bounceTimerRef.current !== null) {
       window.clearTimeout(bounceTimerRef.current);
     }
     bounceTimerRef.current = window.setTimeout(() => {
-      dotRefs.current.forEach((el) => el?.classList.remove('bounce'));
+      dotRefs.current.forEach((el) => el?.classList.remove("bounce"));
       bounceTimerRef.current = null;
     }, 520);
   }, []);
@@ -339,7 +338,7 @@ export default function ThemePalette({
       updateDotsVisual(normalized);
       onCommit(normalized);
     },
-    [onCommit, updateDotsVisual]
+    [onCommit, updateDotsVisual],
   );
 
   const previewTheme = useCallback(
@@ -349,13 +348,13 @@ export default function ThemePalette({
       updateDotsVisual(normalized);
       onPreview(normalized);
     },
-    [onPreview, updateDotsVisual]
+    [onPreview, updateDotsVisual],
   );
 
   const handleAdd = useCallback(() => {
     if (customMode) return;
     if (draft.dots.length === 0 || draft.dots.length >= 3) return;
-    const result = calculateCompliments(draft.dots, 'add', draft.harmony);
+    const result = calculateCompliments(draft.dots, "add", draft.harmony);
     commitTheme({ ...draft, dots: result.dots, harmony: result.harmony, enabled: true });
   }, [commitTheme, customMode, draft]);
 
@@ -368,7 +367,7 @@ export default function ThemePalette({
       return;
     }
     const primary = trimmed[0] ?? DEFAULT_PRIMARY;
-    const result = calculateCompliments(trimmed, 'remove');
+    const result = calculateCompliments(trimmed, "remove");
     const nextLightness = shouldSyncLightness(primary)
       ? getLightnessFromDot(primary)
       : draft.lightness;
@@ -394,7 +393,7 @@ export default function ThemePalette({
         return;
       }
       const primary = nextDots[0] ?? DEFAULT_PRIMARY;
-      const result = calculateCompliments(nextDots, 'remove');
+      const result = calculateCompliments(nextDots, "remove");
       const nextLightness = shouldSyncLightness(primary)
         ? getLightnessFromDot(primary)
         : current.lightness;
@@ -406,7 +405,7 @@ export default function ThemePalette({
         enabled: true,
       });
     },
-    [commitTheme, customMode]
+    [commitTheme, customMode],
   );
 
   const handleToggleHarmony = useCallback(() => {
@@ -414,11 +413,18 @@ export default function ThemePalette({
     const count = draft.dots.length;
     if (count <= 1) return;
     const options: ThemeHarmony[] =
-      count === 2 ? ['complementary', 'singleAnalogous'] : ['splitComplementary', 'analogous', 'triadic'];
+      count === 2
+        ? ["complementary", "singleAnalogous"]
+        : ["splitComplementary", "analogous", "triadic"];
     const currentIndex = Math.max(0, options.indexOf(draft.harmony));
     const nextHarmony = options[(currentIndex + 1) % options.length] ?? draft.harmony;
     const primary = getPrimaryDot(draft);
-    commitTheme({ ...draft, dots: buildDots(primary, nextHarmony), harmony: nextHarmony, enabled: true });
+    commitTheme({
+      ...draft,
+      dots: buildDots(primary, nextHarmony),
+      harmony: nextHarmony,
+      enabled: true,
+    });
     triggerDotBounce();
   }, [commitTheme, customMode, draft, triggerDotBounce]);
 
@@ -428,13 +434,13 @@ export default function ThemePalette({
       const primary: ThemeDot = {
         x: preset.position.x,
         y: preset.position.y,
-        type: preset.type ?? 'explicit-lightness',
+        type: preset.type ?? "explicit-lightness",
       };
-      const resolvedType = primary.type ?? 'explicit-lightness';
+      const resolvedType = primary.type ?? "explicit-lightness";
       const harmony = resolveHarmonyForCount(preset.numDots, preset.algo);
       const dots = buildDots(primary, harmony);
       const nextLightness =
-        resolvedType === 'explicit-lightness' ? preset.lightness : getLightnessFromDot(primary);
+        resolvedType === "explicit-lightness" ? preset.lightness : getLightnessFromDot(primary);
       commitTheme({
         ...draft,
         dots,
@@ -443,7 +449,7 @@ export default function ThemePalette({
         enabled: true,
       });
     },
-    [commitTheme, customMode, draft]
+    [commitTheme, customMode, draft],
   );
 
   const handlePointerDown = useCallback(
@@ -457,10 +463,10 @@ export default function ThemePalette({
       draggingRef.current = true;
       dragPointerId.current = event.pointerId;
       setIsDragging(true);
-      dotRefs.current[0]?.classList.add('dragging');
+      dotRefs.current[0]?.classList.add("dragging");
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [customMode]
+    [customMode],
   );
 
   const handlePointerMove = useCallback(
@@ -474,7 +480,7 @@ export default function ThemePalette({
       const clamped = clampToCircle(x, y);
       const primary = { ...getPrimaryDot(draftRef.current), ...clamped };
       const seedDots = [primary, ...draftRef.current.dots.slice(1)];
-      const result = calculateCompliments(seedDots, 'update', draftRef.current.harmony);
+      const result = calculateCompliments(seedDots, "update", draftRef.current.harmony);
       const nextLightness = shouldSyncLightness(primary)
         ? getLightnessFromDot(primary)
         : draftRef.current.lightness;
@@ -486,7 +492,7 @@ export default function ThemePalette({
         enabled: true,
       });
     },
-    [customMode, previewTheme]
+    [customMode, previewTheme],
   );
 
   const handlePointerUp = useCallback(
@@ -497,11 +503,11 @@ export default function ThemePalette({
       draggingRef.current = false;
       dragPointerId.current = null;
       setIsDragging(false);
-      dotRefs.current[0]?.classList.remove('dragging');
+      dotRefs.current[0]?.classList.remove("dragging");
       markRecentlyDragged();
       commitTheme(draftRef.current);
     },
-    [commitTheme, customMode, markRecentlyDragged]
+    [commitTheme, customMode, markRecentlyDragged],
   );
 
   const handleTexturePointerDown = useCallback((event: React.PointerEvent) => {
@@ -526,7 +532,7 @@ export default function ThemePalette({
       updateTextureHandle(texture);
       previewTheme({ ...draftRef.current, texture, enabled: true });
     },
-    [previewTheme, updateTextureHandle]
+    [previewTheme, updateTextureHandle],
   );
 
   const handleTexturePointerUp = useCallback(
@@ -535,7 +541,7 @@ export default function ThemePalette({
       texturePointerId.current = null;
       commitTheme(draftRef.current);
     },
-    [commitTheme]
+    [commitTheme],
   );
 
   const handlePadClick = useCallback(
@@ -556,7 +562,7 @@ export default function ThemePalette({
           : resolveHarmonyForCount(draftRef.current.dots.length, draftRef.current.harmony);
       const primary = { ...getPrimaryDot(draftRef.current), ...clamped };
       const seedDots = [primary, ...draftRef.current.dots.slice(1)];
-      const result = calculateCompliments(seedDots, 'update', harmony);
+      const result = calculateCompliments(seedDots, "update", harmony);
       const nextLightness = shouldSyncLightness(primary)
         ? getLightnessFromDot(primary)
         : draftRef.current.lightness;
@@ -569,7 +575,7 @@ export default function ThemePalette({
       });
       triggerDotBounce();
     },
-    [commitTheme, customMode, triggerDotBounce]
+    [commitTheme, customMode, triggerDotBounce],
   );
 
   const handleScheme = (next: ThemeId) => {
@@ -597,13 +603,13 @@ export default function ThemePalette({
     if (opacity < 1) {
       const hexOpacity = Math.round(opacity * 255)
         .toString(16)
-        .padStart(2, '0')
+        .padStart(2, "0")
         .toUpperCase();
-      if (color.startsWith('#') && color.length === 7) {
+      if (color.startsWith("#") && color.length === 7) {
         color += hexOpacity;
       }
     }
-    if (!color.startsWith('#') && /^[0-9A-Fa-f]{3,6}$/.test(color)) {
+    if (!color.startsWith("#") && /^[0-9A-Fa-f]{3,6}$/.test(color)) {
       color = `#${color}`;
     }
     const nextColors = [color, ...(draft.customColors ?? [])].slice(0, CUSTOM_COLOR_LIMIT);
@@ -619,19 +625,21 @@ export default function ThemePalette({
   };
 
   const derivedAccent = useMemo(
-    () => normalizeHexInput(getAutoAccentColor({ ...draft, enabled: true }, scheme), '#ffffff'),
-    [draft, scheme]
+    () => normalizeHexInput(getAutoAccentColor({ ...draft, enabled: true }, scheme), "#ffffff"),
+    [draft, scheme],
   );
 
-  const accentValue = draft.accentColor ? normalizeHexInput(draft.accentColor, derivedAccent) : derivedAccent;
+  const accentValue = draft.accentColor
+    ? normalizeHexInput(draft.accentColor, derivedAccent)
+    : derivedAccent;
 
   const schemeButtons = useMemo(
     () => [
-      { id: 'system' as ThemeId, icon: Icons.Sparkles, label: 'Auto' },
-      { id: 'light' as ThemeId, icon: Icons.Sun, label: 'Light' },
-      { id: 'dark' as ThemeId, icon: Icons.MoonStar, label: 'Dark' },
+      { id: "system" as ThemeId, icon: Icons.Sparkles, label: "Auto" },
+      { id: "light" as ThemeId, icon: Icons.Sun, label: "Light" },
+      { id: "dark" as ThemeId, icon: Icons.MoonStar, label: "Dark" },
     ],
-    []
+    [],
   );
 
   return (
@@ -642,7 +650,7 @@ export default function ThemePalette({
             <button
               key={id}
               type="button"
-              className={`zen-theme-picker-scheme-btn ${scheme === id ? 'active' : ''}`}
+              className={`zen-theme-picker-scheme-btn ${scheme === id ? "active" : ""}`}
               title={label}
               onClick={() => handleScheme(id)}
             >
@@ -651,27 +659,31 @@ export default function ThemePalette({
           ))}
         </div>
         <div className="zen-theme-picker-actions">
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={customMode || draft.dots.length === 0 || draft.dots.length >= 3}
-            >
-              <Icons.Plus size={14} />
-            </button>
-            <button type="button" onClick={handleRemove} disabled={customMode || draft.dots.length === 0}>
-              <Icons.Minus size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={handleToggleHarmony}
-              disabled={customMode || draft.dots.length <= 1}
-              title={HARMONY_LABELS[draft.harmony]}
-            >
-              <Icons.CirclePile size={14} />
-            </button>
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={customMode || draft.dots.length === 0 || draft.dots.length >= 3}
+          >
+            <Icons.Plus size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={customMode || draft.dots.length === 0}
+          >
+            <Icons.Minus size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleHarmony}
+            disabled={customMode || draft.dots.length <= 1}
+            title={HARMONY_LABELS[draft.harmony]}
+          >
+            <Icons.CirclePile size={14} />
+          </button>
         </div>
         <div
-          className={`zen-theme-picker-pad ${isDragging ? 'is-dragging' : ''}${customMode ? ' is-disabled' : ''}`}
+          className={`zen-theme-picker-pad ${isDragging ? "is-dragging" : ""}${customMode ? "is-disabled" : ""}`}
           ref={gradientRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -686,9 +698,13 @@ export default function ThemePalette({
                 ref={(el) => {
                   dotRefs.current[index] = el;
                 }}
-                className={`zen-theme-picker-dot ${index === 0 ? 'primary' : ''}`}
+                className={`zen-theme-picker-dot ${index === 0 ? "primary" : ""}`}
                 onContextMenu={(event) => handleDotContextMenu(event, index)}
-                style={{ left: `${dot.x * 100}%`, top: `${dot.y * 100}%`, ['--zen-theme-picker-dot-color' as string]: hex }}
+                style={{
+                  left: `${dot.x * 100}%`,
+                  top: `${dot.y * 100}%`,
+                  ["--zen-theme-picker-dot-color" as string]: hex,
+                }}
               />
             );
           })}
@@ -708,7 +724,10 @@ export default function ThemePalette({
           <Icons.ChevronLeft size={14} />
         </button>
         <div className="zen-theme-picker-pages-viewport">
-          <div className="zen-theme-picker-pages-track" style={{ transform: `translateX(-${pageIndex * 100}%)` }}>
+          <div
+            className="zen-theme-picker-pages-track"
+            style={{ transform: `translateX(-${pageIndex * 100}%)` }}
+          >
             {PRESET_PAGES.map((page, index) => (
               <div className="zen-theme-picker-page" key={`page-${index}`}>
                 {page.map((preset, presetIndex) => {
@@ -747,7 +766,11 @@ export default function ThemePalette({
       <div className="zen-theme-picker-controls">
         <div className="zen-theme-picker-opacity">
           <div className="zen-theme-picker-wave">
-            <svg viewBox="51.373 -8.503 315.664 71.796" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid meet">
+            <svg
+              viewBox="51.373 -8.503 315.664 71.796"
+              xmlns="http://www.w3.org/2000/svg"
+              preserveAspectRatio="xMinYMid meet"
+            >
               <path
                 ref={wavePathRef}
                 d={LINE_PATH}
@@ -758,10 +781,26 @@ export default function ThemePalette({
                 style={{ strokeWidth: 8 }}
               />
               <defs>
-                <linearGradient id="zen-theme-picker-wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="var(--foreground)" stopOpacity="0.6" />
-                <stop ref={waveStopMidRef} offset="0%" stopColor="var(--foreground)" stopOpacity="0.6" />
-                <stop ref={waveStopEndRef} offset="100%" stopColor="var(--foreground)" stopOpacity="0.35" />
+                <linearGradient
+                  id="zen-theme-picker-wave-gradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop offset="0%" stopColor="var(--foreground)" stopOpacity="0.6" />
+                  <stop
+                    ref={waveStopMidRef}
+                    offset="0%"
+                    stopColor="var(--foreground)"
+                    stopOpacity="0.6"
+                  />
+                  <stop
+                    ref={waveStopEndRef}
+                    offset="100%"
+                    stopColor="var(--foreground)"
+                    stopOpacity="0.35"
+                  />
                 </linearGradient>
               </defs>
             </svg>
@@ -813,7 +852,7 @@ export default function ThemePalette({
             />
             <button
               type="button"
-              className={`zen-theme-picker-accent-btn ${draft.accentColor ? '' : 'active'}`}
+              className={`zen-theme-picker-accent-btn ${draft.accentColor ? "" : "active"}`}
               onClick={handleAccentAuto}
             >
               Auto
@@ -866,7 +905,7 @@ export default function ThemePalette({
             >
               <span
                 className="zen-theme-picker-custom-swatch"
-                style={{ ['--zen-theme-picker-dot-color' as string]: color }}
+                style={{ ["--zen-theme-picker-dot-color" as string]: color }}
               />
               <span className="zen-theme-picker-custom-list-item-label">{color}</span>
               <button

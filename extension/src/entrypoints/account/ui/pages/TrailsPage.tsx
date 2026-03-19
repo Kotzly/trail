@@ -1,23 +1,20 @@
-import { useState, useMemo } from 'react';
-import type { RouteParams } from '../router.js';
-import { useLocalTrails, type LocalTrailSummary } from '../hooks/useLocalTrails.js';
-import TrailCard from '../components/TrailCard.js';
+import { useState, useMemo } from "react";
+import type { RouteParams } from "../router.js";
+import { useLocalTrails, type LocalTrailSummary } from "../hooks/useLocalTrails.js";
+import TrailCard from "../components/TrailCard.js";
 
-type SortOption = 'newest' | 'oldest' | 'name' | 'nodes';
+type SortOption = "newest" | "oldest" | "name" | "nodes";
 
-function sortTrails(
-  trails: LocalTrailSummary[],
-  sort: SortOption,
-): LocalTrailSummary[] {
+function sortTrails(trails: LocalTrailSummary[], sort: SortOption): LocalTrailSummary[] {
   return [...trails].sort((a, b) => {
     switch (sort) {
-      case 'newest':
+      case "newest":
         return b.savedAt - a.savedAt;
-      case 'oldest':
+      case "oldest":
         return a.savedAt - b.savedAt;
-      case 'name':
+      case "name":
         return a.label.localeCompare(b.label);
-      case 'nodes':
+      case "nodes":
         return b.nodeCount - a.nodeCount;
     }
   });
@@ -25,8 +22,8 @@ function sortTrails(
 
 export default function TrailsPage(_props: RouteParams) {
   const { trails, isLoading, error } = useLocalTrails();
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<SortOption>('newest');
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortOption>("newest");
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -61,9 +58,7 @@ export default function TrailsPage(_props: RouteParams) {
           <h1 className="account-page__title">Trails</h1>
         </div>
         <div className="account-error">
-          <p className="account-error__text">
-            Failed to load trails: {error.message}
-          </p>
+          <p className="account-error__text">Failed to load trails: {error.message}</p>
         </div>
       </div>
     );
@@ -81,8 +76,7 @@ export default function TrailsPage(_props: RouteParams) {
         <div className="account-empty">
           <p className="account-empty__heading">No trails yet</p>
           <p className="account-empty__text">
-            Start browsing with the Trail extension and your trails will appear
-            here automatically.
+            Start browsing with the Trail extension and your trails will appear here automatically.
           </p>
         </div>
       </div>
@@ -143,9 +137,7 @@ export default function TrailsPage(_props: RouteParams) {
       ) : (
         <div className="account-empty">
           <p className="account-empty__heading">No matching trails</p>
-          <p className="account-empty__text">
-            Try adjusting your search query.
-          </p>
+          <p className="account-empty__text">Try adjusting your search query.</p>
         </div>
       )}
     </div>

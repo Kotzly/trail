@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useAuthPortalFlow } from '../hooks/useAuthPortalFlow.js';
-import { Icons } from './Icon.js';
+import { useState } from "react";
+import { useAuthPortalFlow } from "../hooks/useAuthPortalFlow.js";
+import { Icons } from "./Icon.js";
 
 export default function SessionExpiredBanner() {
   const [dismissed, setDismissed] = useState(false);
@@ -23,7 +23,7 @@ export default function SessionExpiredBanner() {
             Signing in…
           </>
         ) : (
-          'Sign in'
+          "Sign in"
         )}
       </button>
       <button

@@ -1,14 +1,14 @@
 "use client";
 
-import React from 'react';
+import React from "react";
 
-type LiquidGlassVariant = 'search' | 'list' | 'item';
+type LiquidGlassVariant = "search" | "list" | "item";
 
 type LiquidGlassSurfaceProps = React.HTMLAttributes<HTMLDivElement> & {
   variant?: LiquidGlassVariant;
   selected?: boolean;
   interactive?: boolean;
-  as?: 'div';
+  as?: "div";
 };
 
 export function LiquidGlassFilterDefs() {
@@ -72,35 +72,30 @@ export const LiquidGlassSurface = React.forwardRef<HTMLDivElement, LiquidGlassSu
   function LiquidGlassSurface(
     {
       children,
-      className = '',
-      variant = 'item',
+      className = "",
+      variant = "item",
       selected = false,
       interactive = false,
-      as = 'div',
+      as = "div",
       ...rest
     },
     ref,
   ) {
     const Component = as;
-    const classes = [
-      'liquid-glass-surface',
-      `liquid-glass-surface--${variant}`,
-      className,
-    ]
+    const classes = ["liquid-glass-surface", `liquid-glass-surface--${variant}`, className]
       .filter(Boolean)
-      .join(' ');
+      .join(" ");
 
     return (
       <Component
         {...rest}
         ref={ref}
         className={classes}
-        data-selected={selected ? 'true' : undefined}
-        data-interactive={interactive ? 'true' : undefined}
+        data-selected={selected ? "true" : undefined}
+        data-interactive={interactive ? "true" : undefined}
       >
         {children}
       </Component>
     );
   },
 );
-

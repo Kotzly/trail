@@ -1,6 +1,5 @@
-import React, { Component } from 'react';
-import type { ErrorInfo, ReactNode } from 'react';
-import TrailLogo from './TrailLogo.js';
+import React, { Component, type ErrorInfo, type ReactNode } from "react";
+import TrailLogo from "./TrailLogo.js";
 
 type Props = {
   children: ReactNode;
@@ -22,7 +21,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error('Trail ErrorBoundary caught:', error, info.componentStack);
+    console.error("Trail ErrorBoundary caught:", error, info.componentStack);
   }
 
   private handleReload = (): void => {
@@ -46,26 +45,20 @@ export default class ErrorBoundary extends Component<Props, State> {
             Reloading usually fixes it.
           </p>
 
-          <button
-            className="error-boundary__btn"
-            type="button"
-            onClick={this.handleReload}
-          >
+          <button className="error-boundary__btn" type="button" onClick={this.handleReload}>
             Reload Trail
           </button>
 
           <button
             className="error-boundary__btn"
             type="button"
-            onClick={() => window.open('https://gettrail.net/support', '_blank')}
+            onClick={() => window.open("https://gettrail.net/support", "_blank")}
           >
             Contact Support
           </button>
 
           {this.state.error ? (
-            <p className="error-boundary__detail">
-              {this.state.error.message}
-            </p>
+            <p className="error-boundary__detail">{this.state.error.message}</p>
           ) : null}
         </div>
       </div>

@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { getSpotlightTreePreview } from './rpc.js';
-import { LRUMap } from './lru-map.js';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { getSpotlightTreePreview } from "./rpc.js";
+import { type LRUMap } from "./lru-map.js";
 import type {
   SpotlightGraphPreviewData,
   SpotlightSearchResult,
   SpotlightSection,
-} from './types.js';
-import type { NodeId } from '@shared/types/ids.js';
+} from "./types.js";
+import type { NodeId } from "@shared/types/ids.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -23,10 +23,10 @@ export type SpotlightNodeTarget = {
 
 export function resolveNodeTarget(item: SpotlightSearchResult | null): SpotlightNodeTarget | null {
   if (!item) return null;
-  if (item.kind === 'node') {
+  if (item.kind === "node") {
     return { treeId: item.treeId, nodeId: item.nodeId };
   }
-  if (item.kind === 'action' && item.target?.kind === 'node') {
+  if (item.kind === "action" && item.target?.kind === "node") {
     return { treeId: item.target.treeId, nodeId: item.target.nodeId };
   }
   return null;
@@ -34,9 +34,9 @@ export function resolveNodeTarget(item: SpotlightSearchResult | null): Spotlight
 
 export function resolvePreviewTreeId(item: SpotlightSearchResult | null): string | null {
   if (!item) return null;
-  if (item.kind === 'node') return item.treeId;
-  if (item.kind === 'tree') return item.treeId;
-  if (item.target?.kind === 'node' || item.target?.kind === 'tree') {
+  if (item.kind === "node") return item.treeId;
+  if (item.kind === "tree") return item.treeId;
+  if (item.target?.kind === "node" || item.target?.kind === "tree") {
     return item.target.treeId;
   }
   return null;
@@ -60,8 +60,15 @@ function prefetchPreviews(
   for (const section of sections) {
     for (const item of section.items) {
       if (treeIds.length >= PREFETCH_LIMIT) return;
-      const treeId = item.kind === 'node' ? item.treeId : item.kind === 'tree' ? item.treeId : null;
-      if (!treeId || treeId === activeTreeId || cache.has(treeId) || seen.has(treeId) || inflight.has(treeId)) continue;
+      const treeId = item.kind === "node" ? item.treeId : item.kind === "tree" ? item.treeId : null;
+      if (
+        !treeId ||
+        treeId === activeTreeId ||
+        cache.has(treeId) ||
+        seen.has(treeId) ||
+        inflight.has(treeId)
+      )
+        continue;
       seen.add(treeId);
       treeIds.push(treeId);
     }
@@ -173,7 +180,7 @@ export function useSpotlightPreview(
         }
       })
       .catch((error) => {
-        console.error('Failed to load spotlight graph preview:', error);
+        console.error("Failed to load spotlight graph preview:", error);
         if (!cancelled) {
           setGraphPreviewData(null);
         }
@@ -205,8 +212,13 @@ export function useSpotlightPreview(
     for (const offset of [1, 2]) {
       const nextItem = flatItems[currentIndex + offset];
       if (!nextItem) continue;
-      const treeId = nextItem.kind === 'node' || nextItem.kind === 'tree' ? nextItem.treeId : null;
-      if (treeId && treeId !== activeTreeId && !previewCache.has(treeId) && !inflightRef.current.has(treeId)) {
+      const treeId = nextItem.kind === "node" || nextItem.kind === "tree" ? nextItem.treeId : null;
+      if (
+        treeId &&
+        treeId !== activeTreeId &&
+        !previewCache.has(treeId) &&
+        !inflightRef.current.has(treeId)
+      ) {
         candidateTreeIds.push(treeId);
       }
     }
@@ -218,9 +230,13 @@ export function useSpotlightPreview(
         if (previewCache.has(treeId) || inflightRef.current.has(treeId)) continue;
         inflightRef.current.add(treeId);
         void getSpotlightTreePreview(treeId)
-          .then((preview) => { if (preview) previewCache.set(treeId, preview); })
+          .then((preview) => {
+            if (preview) previewCache.set(treeId, preview);
+          })
           .catch(() => undefined)
-          .finally(() => { inflightRef.current.delete(treeId); });
+          .finally(() => {
+            inflightRef.current.delete(treeId);
+          });
       }
     }, 150);
 

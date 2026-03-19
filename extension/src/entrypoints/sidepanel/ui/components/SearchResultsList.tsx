@@ -1,10 +1,9 @@
-import { memo, useMemo, useState, type ReactNode } from 'react';
-import type { FaviconUrl, NodeId, Timestamp, Url } from '@shared/types/ids.js';
-import { getFaviconUrl } from '@shared/utils/favicon.js';
-import type { NavigationTree } from '@background/state/nav-tree.js';
-import { formatTime, formatUrl } from '../shared/format.js';
-import { Icons } from './Icon.js';
-
+import { memo, useMemo, useState, type ReactNode } from "react";
+import type { FaviconUrl, NodeId, Timestamp, Url } from "@shared/types/ids.js";
+import { getFaviconUrl } from "@shared/utils/favicon.js";
+import type { NavigationTree } from "@background/state/nav-tree.js";
+import { formatTime, formatUrl } from "../shared/format.js";
+import { Icons } from "./Icon.js";
 
 type SearchResultsListProps = {
   tree: NavigationTree | null;
@@ -38,7 +37,7 @@ export default function SearchResultsList({
       const favicon = node.data.favicon;
       next.push({
         id,
-        title: node.data.title || 'Untitled',
+        title: node.data.title || "Untitled",
         url: node.data.url,
         timestamp: node.timestamp,
         ...(favicon !== undefined ? { favicon } : {}),
@@ -85,7 +84,7 @@ const SearchResultRow = memo(function SearchResultRow({
 
   return (
     <button
-      className={`floating-search-item${isActive ? ' is-active' : ''}`}
+      className={`floating-search-item${isActive ? "is-active" : ""}`}
       type="button"
       onClick={() => onSelect(item.id)}
     >
@@ -109,7 +108,7 @@ function renderHighlight(text: string, query: string): ReactNode {
   const tokens = query.trim().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return text;
   const escaped = tokens.map(escapeRegExp);
-  const pattern = new RegExp(`(${escaped.join('|')})`, 'ig');
+  const pattern = new RegExp(`(${escaped.join("|")})`, "ig");
   const parts = text.split(pattern);
   return parts.map((part, index) => {
     const match = tokens.some((token) => token.toLowerCase() === part.toLowerCase());
@@ -123,5 +122,5 @@ function renderHighlight(text: string, query: string): ReactNode {
 }
 
 function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

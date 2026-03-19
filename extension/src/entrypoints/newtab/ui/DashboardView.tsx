@@ -1,7 +1,7 @@
-import type { BookmarkItem } from './useBookmarks.js';
-import type { SpotlightSearchResult } from '../../../spotlight/types.js';
-import { getFaviconUrl } from '@shared/utils/favicon.js';
-import type { Url } from '@shared/types/ids.js';
+import type { BookmarkItem } from "./useBookmarks.js";
+import type { SpotlightSearchResult } from "../../../spotlight/types.js";
+import { getFaviconUrl } from "@shared/utils/favicon.js";
+import type { Url } from "@shared/types/ids.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,11 +19,7 @@ type DashboardViewProps = {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function BookmarksCard({
-  bookmarks,
-}: {
-  readonly bookmarks: readonly BookmarkItem[];
-}) {
+function BookmarksCard({ bookmarks }: { readonly bookmarks: readonly BookmarkItem[] }) {
   if (bookmarks.length === 0) return null;
 
   return (
@@ -31,12 +27,7 @@ function BookmarksCard({
       <div className="newtab-bento-card-title">Bookmarks</div>
       <div className="newtab-bento-bookmarks-grid">
         {bookmarks.map((bm) => (
-          <a
-            key={bm.id}
-            href={bm.url ?? '#'}
-            className="newtab-bento-item"
-            title={bm.title}
-          >
+          <a key={bm.id} href={bm.url ?? "#"} className="newtab-bento-item" title={bm.title}>
             {bm.url && (
               <img
                 className="newtab-bento-item-icon"
@@ -68,9 +59,12 @@ function ContinueCard({
       <div className="newtab-bento-card-title">Pick Up Where You Left Off</div>
       <div className="newtab-bento-continue-list">
         {items.map((item) => {
-          const url = item.kind === 'node' ? item.url : item.kind === 'tree' ? item.rootUrl : undefined;
-          const title = item.kind === 'action' ? item.title : item.kind === 'node' ? item.title : item.treeName;
-          const subtitle = item.kind === 'action' ? item.subtitle : item.kind === 'node' ? item.url : '';
+          const url =
+            item.kind === "node" ? item.url : item.kind === "tree" ? item.rootUrl : undefined;
+          const title =
+            item.kind === "action" ? item.title : item.kind === "node" ? item.title : item.treeName;
+          const subtitle =
+            item.kind === "action" ? item.subtitle : item.kind === "node" ? item.url : "";
 
           return (
             <button

@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
-import { RPC_METHOD, type RequestMessage } from '@shared/rpc/contracts.js';
-import { getCommandState } from '../../api/commands.js';
-import { useStore } from '../state/store.js';
-import { showUiToast } from '../notifications/sonner-adapter.js';
-import { browser } from '@shared/platform/webext.js';
+import { useEffect } from "react";
+import { RPC_METHOD, type RequestMessage } from "@shared/rpc/contracts.js";
+import { getCommandState } from "../../api/commands.js";
+import { useStore } from "../state/store.js";
+import { showUiToast } from "../notifications/sonner-adapter.js";
+import { browser } from "@shared/platform/webext.js";
 
 export function useRuntimeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
@@ -19,17 +19,17 @@ export function useRuntimeMessages(): void {
         applyTreeState(message);
 
         // Sync editor mode state from tree update reason
-        if (message.reason === 'editor-enter') {
+        if (message.reason === "editor-enter") {
           // The treeId is conveyed by the background; for now derive from the
           // current tree's root or leave as null until a direct update.
           setEditorMode({ active: true, treeId: null });
-        } else if (message.reason === 'editor-exit') {
+        } else if (message.reason === "editor-exit") {
           setEditorMode({ active: false, treeId: null });
         }
 
         getCommandState()
           .then((state) => setCommandState(state))
-          .catch((error) => console.error('Failed to fetch command state:', error));
+          .catch((error) => console.error("Failed to fetch command state:", error));
         return;
       }
       if (message.type === RPC_METHOD.TAGS_UPDATED) {
@@ -42,10 +42,10 @@ export function useRuntimeMessages(): void {
       }
       if (message.type === RPC_METHOD.SYNC_STATUS_UPDATED) {
         setSyncStatus(message.status);
-        if (message.status === 'error') {
+        if (message.status === "error") {
           showUiToast({
-            message: 'Sync failed. Check your connection and try again.',
-            icon: 'AlertTriangle',
+            message: "Sync failed. Check your connection and try again.",
+            icon: "AlertTriangle",
             durationMs: 5000,
           });
         }

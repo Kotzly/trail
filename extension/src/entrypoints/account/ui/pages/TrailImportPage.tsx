@@ -1,8 +1,7 @@
-import { useCallback, useRef, useState } from 'react';
-import type { RouteParams } from '../router.js';
-import { navigate } from '../router.js';
-import { useImportTrail } from '../hooks/useImportTrail.js';
-import { EXPORT_SCHEMA, type TrailExportBundle } from '@shared/types/export.js';
+import { useCallback, useRef, useState } from "react";
+import { navigate, type RouteParams } from "../router.js";
+import { useImportTrail } from "../hooks/useImportTrail.js";
+import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 
 type PreviewData = {
   label: string;
@@ -14,15 +13,15 @@ type PreviewData = {
 };
 
 type ImportState =
-  | { step: 'idle' }
-  | { step: 'preview'; bundle: TrailExportBundle; preview: PreviewData; fileName: string }
-  | { step: 'importing' }
-  | { step: 'done'; treeId: string }
-  | { step: 'error'; message: string };
+  | { step: "idle" }
+  | { step: "preview"; bundle: TrailExportBundle; preview: PreviewData; fileName: string }
+  | { step: "importing" }
+  | { step: "done"; treeId: string }
+  | { step: "error"; message: string };
 
 export default function TrailImportPage(_props: RouteParams) {
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [state, setState] = useState<ImportState>({ step: 'idle' });
+  const [state, setState] = useState<ImportState>({ step: "idle" });
   const [dragOver, setDragOver] = useState(false);
   const { importTrail } = useImportTrail();
 
@@ -33,17 +32,17 @@ export default function TrailImportPage(_props: RouteParams) {
 
       if (parsed.schema !== EXPORT_SCHEMA) {
         setState({
-          step: 'error',
-          message: `Invalid file: expected schema "${EXPORT_SCHEMA}", got "${String(parsed.schema ?? 'none')}".`,
+          step: "error",
+          message: `Invalid file: expected schema "${EXPORT_SCHEMA}", got "${String(parsed.schema ?? "none")}".`,
         });
         return;
       }
 
       const tree = parsed.tree as Record<string, unknown> | undefined;
-      if (!tree || typeof tree !== 'object' || !('root' in tree)) {
+      if (!tree || typeof tree !== "object" || !("root" in tree)) {
         setState({
-          step: 'error',
-          message: 'Invalid file: missing or invalid tree data.',
+          step: "error",
+          message: "Invalid file: missing or invalid tree data.",
         });
         return;
       }
@@ -55,37 +54,34 @@ export default function TrailImportPage(_props: RouteParams) {
 
       const preview: PreviewData = {
         label:
-          (typeof source.treeLabel === 'string' && source.treeLabel) ||
-          (typeof rootData?.title === 'string' && rootData.title) ||
-          'Unnamed Trail',
+          (typeof source.treeLabel === "string" && source.treeLabel) ||
+          (typeof rootData?.title === "string" && rootData.title) ||
+          "Unnamed Trail",
         nodeCount:
-          typeof meta.nodeCount === 'number'
+          typeof meta.nodeCount === "number"
             ? meta.nodeCount
-            : typeof tree.nodeCount === 'number'
+            : typeof tree.nodeCount === "number"
               ? (tree.nodeCount as number)
               : 0,
-        rootUrl: typeof rootData?.url === 'string' ? rootData.url : null,
-        rootTitle: typeof rootData?.title === 'string' ? rootData.title : null,
+        rootUrl: typeof rootData?.url === "string" ? rootData.url : null,
+        rootTitle: typeof rootData?.title === "string" ? rootData.title : null,
         exportedAt:
-          typeof parsed.exportedAt === 'number'
+          typeof parsed.exportedAt === "number"
             ? new Date(parsed.exportedAt as number).toLocaleString()
             : null,
-        origin: typeof source.origin === 'string' ? source.origin : null,
+        origin: typeof source.origin === "string" ? source.origin : null,
       };
 
       setState({
-        step: 'preview',
+        step: "preview",
         bundle: parsed as unknown as TrailExportBundle,
         preview,
         fileName: file.name,
       });
     } catch (err) {
       setState({
-        step: 'error',
-        message:
-          err instanceof SyntaxError
-            ? 'Invalid JSON file.'
-            : 'Failed to read file.',
+        step: "error",
+        message: err instanceof SyntaxError ? "Invalid JSON file." : "Failed to read file.",
       });
     }
   }, []);
@@ -109,19 +105,19 @@ export default function TrailImportPage(_props: RouteParams) {
   );
 
   const handleImport = useCallback(async () => {
-    if (state.step !== 'preview') return;
-    setState({ step: 'importing' });
+    if (state.step !== "preview") return;
+    setState({ step: "importing" });
     try {
       const treeId = await importTrail(state.bundle);
-      setState({ step: 'done', treeId });
+      setState({ step: "done", treeId });
     } catch {
-      setState({ step: 'error', message: 'Import failed. Please try again.' });
+      setState({ step: "error", message: "Import failed. Please try again." });
     }
   }, [state, importTrail]);
 
   const reset = useCallback(() => {
-    setState({ step: 'idle' });
-    if (fileRef.current) fileRef.current.value = '';
+    setState({ step: "idle" });
+    if (fileRef.current) fileRef.current.value = "";
   }, []);
 
   return (
@@ -145,15 +141,15 @@ export default function TrailImportPage(_props: RouteParams) {
       <div className="import-heading">
         <h1 className="account-page__title">Import trail</h1>
         <p className="import-heading__subtitle">
-          Upload a <code className="import-heading__code">.trail.json</code> file
-          to import it locally.
+          Upload a <code className="import-heading__code">.trail.json</code> file to import it
+          locally.
         </p>
       </div>
 
-      {(state.step === 'idle' || state.step === 'error') && (
+      {(state.step === "idle" || state.step === "error") && (
         <>
           <div
-            className={`import-dropzone${dragOver ? ' import-dropzone--active' : ''}`}
+            className={`import-dropzone${dragOver ? "import-dropzone--active" : ""}`}
             onDragOver={(e) => {
               e.preventDefault();
               setDragOver(true);
@@ -176,9 +172,7 @@ export default function TrailImportPage(_props: RouteParams) {
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
-            <p className="import-dropzone__text">
-              drag &amp; drop a file here, or
-            </p>
+            <p className="import-dropzone__text">drag &amp; drop a file here, or</p>
             <label className="account-btn account-btn--secondary import-dropzone__label">
               choose file
               <input
@@ -191,27 +185,21 @@ export default function TrailImportPage(_props: RouteParams) {
             </label>
           </div>
 
-          {state.step === 'error' && (
-            <div className="import-error">{state.message}</div>
-          )}
+          {state.step === "error" && <div className="import-error">{state.message}</div>}
         </>
       )}
 
-      {state.step === 'preview' && (
+      {state.step === "preview" && (
         <div className="import-preview">
           <div className="import-preview__card">
             <div className="import-preview__header">
               <div className="import-preview__identity">
-                <h2 className="import-preview__label">
-                  {state.preview.label}
-                </h2>
-                <p className="import-preview__filename">
-                  from {state.fileName}
-                </p>
+                <h2 className="import-preview__label">{state.preview.label}</h2>
+                <p className="import-preview__filename">from {state.fileName}</p>
               </div>
               <span className="trail-card__badge">
                 {state.preview.nodeCount} node
-                {state.preview.nodeCount === 1 ? '' : 's'}
+                {state.preview.nodeCount === 1 ? "" : "s"}
               </span>
             </div>
 
@@ -219,33 +207,25 @@ export default function TrailImportPage(_props: RouteParams) {
               {state.preview.rootUrl && (
                 <div>
                   <span className="import-preview__meta-label">Root URL</span>
-                  <p className="import-preview__meta-value">
-                    {state.preview.rootUrl}
-                  </p>
+                  <p className="import-preview__meta-value">{state.preview.rootUrl}</p>
                 </div>
               )}
               {state.preview.rootTitle && (
                 <div>
                   <span className="import-preview__meta-label">Root title</span>
-                  <p className="import-preview__meta-value">
-                    {state.preview.rootTitle}
-                  </p>
+                  <p className="import-preview__meta-value">{state.preview.rootTitle}</p>
                 </div>
               )}
               {state.preview.exportedAt && (
                 <div>
                   <span className="import-preview__meta-label">Exported</span>
-                  <p className="import-preview__meta-value">
-                    {state.preview.exportedAt}
-                  </p>
+                  <p className="import-preview__meta-value">{state.preview.exportedAt}</p>
                 </div>
               )}
               {state.preview.origin && (
                 <div>
                   <span className="import-preview__meta-label">Origin</span>
-                  <p className="import-preview__meta-value">
-                    {state.preview.origin}
-                  </p>
+                  <p className="import-preview__meta-value">{state.preview.origin}</p>
                 </div>
               )}
             </div>
@@ -259,18 +239,14 @@ export default function TrailImportPage(_props: RouteParams) {
             >
               Import
             </button>
-            <button
-              type="button"
-              className="account-btn account-btn--secondary"
-              onClick={reset}
-            >
+            <button type="button" className="account-btn account-btn--secondary" onClick={reset}>
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {state.step === 'importing' && (
+      {state.step === "importing" && (
         <div className="import-status">
           <svg
             className="account-spinner"
@@ -287,11 +263,9 @@ export default function TrailImportPage(_props: RouteParams) {
         </div>
       )}
 
-      {state.step === 'done' && (
+      {state.step === "done" && (
         <div className="import-done">
-          <div className="import-done__message">
-            Trail imported successfully!
-          </div>
+          <div className="import-done__message">Trail imported successfully!</div>
           <div className="import-done__actions">
             <button
               type="button"
@@ -300,11 +274,7 @@ export default function TrailImportPage(_props: RouteParams) {
             >
               View trail
             </button>
-            <button
-              type="button"
-              className="account-btn account-btn--secondary"
-              onClick={reset}
-            >
+            <button type="button" className="account-btn account-btn--secondary" onClick={reset}>
               Import another
             </button>
           </div>

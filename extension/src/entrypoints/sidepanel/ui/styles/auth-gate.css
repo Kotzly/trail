@@ -58,7 +58,9 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
 .auth-gate__btn:hover:not(:disabled) {

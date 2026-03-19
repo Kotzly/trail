@@ -1,7 +1,7 @@
-import type { Tag } from '@shared/types/ids.js';
-import type { TagDefinition } from '@shared/types/tags.js';
-import { rpc } from '@shared/rpc/contracts.js';
-import { sendMessage } from './background.js';
+import type { Tag } from "@shared/types/ids.js";
+import type { TagDefinition } from "@shared/types/tags.js";
+import { rpc } from "@shared/rpc/contracts.js";
+import { sendMessage } from "./background.js";
 
 export async function getTagDefs(): Promise<TagDefinition[]> {
   const response = await sendMessage(rpc.getTagDefs());

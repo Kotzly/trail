@@ -22,14 +22,16 @@ export function emptySpotlightUsageStats(): SpotlightUsageStats {
   };
 }
 
-export function sanitizeSpotlightUsageStats(input: SpotlightUsageStats | null | undefined): SpotlightUsageStats {
-  if (!input || input.version !== 1 || typeof input.targets !== 'object') {
+export function sanitizeSpotlightUsageStats(
+  input: SpotlightUsageStats | null | undefined,
+): SpotlightUsageStats {
+  if (!input || input.version !== 1 || typeof input.targets !== "object") {
     return emptySpotlightUsageStats();
   }
 
   const targets: Record<string, SpotlightUsageTargetStats> = {};
   for (const [key, value] of Object.entries(input.targets)) {
-    if (!value || typeof value !== 'object') continue;
+    if (!value || typeof value !== "object") continue;
     const count = Number((value as SpotlightUsageTargetStats).count);
     const lastSelectedAt = Number((value as SpotlightUsageTargetStats).lastSelectedAt);
     const tokenCounts = sanitizeTokenCounts((value as SpotlightUsageTargetStats).tokenCounts);
@@ -48,7 +50,9 @@ export function sanitizeSpotlightUsageStats(input: SpotlightUsageStats | null | 
   };
 
   if (Array.isArray(input.recentQueries)) {
-    result.recentQueries = input.recentQueries.filter((q) => typeof q === 'string').slice(0, MAX_RECENT_QUERIES);
+    result.recentQueries = input.recentQueries
+      .filter((q) => typeof q === "string")
+      .slice(0, MAX_RECENT_QUERIES);
   }
 
   return pruneSpotlightUsageStats(result, Date.now());
@@ -90,7 +94,9 @@ export function recordSpotlightSelection(
   return pruneSpotlightUsageStats(next, now);
 }
 
-export function getSelectionFrequencyBoost(entry: SpotlightUsageTargetStats | null | undefined): number {
+export function getSelectionFrequencyBoost(
+  entry: SpotlightUsageTargetStats | null | undefined,
+): number {
   if (!entry) return 0;
   return Math.min(Math.log2(1 + Math.max(entry.count, 0)), 2);
 }
@@ -112,7 +118,10 @@ export function getSelectionTokenAffinityBoost(
   return Math.min(total, 1.5);
 }
 
-export function pruneSpotlightUsageStats(stats: SpotlightUsageStats, now: number): SpotlightUsageStats {
+export function pruneSpotlightUsageStats(
+  stats: SpotlightUsageStats,
+  now: number,
+): SpotlightUsageStats {
   const cleaned = emptySpotlightUsageStats();
   const entries = Object.entries(stats.targets)
     .filter(([, value]) => now - value.lastSelectedAt <= STALE_TARGET_AGE_MS)
@@ -138,7 +147,7 @@ const MAX_RECENT_QUERIES = 10;
 
 export function recordRecentQuery(stats: SpotlightUsageStats, query: string): SpotlightUsageStats {
   const trimmed = query.trim();
-  if (!trimmed || trimmed.startsWith('>') || trimmed.startsWith('/')) return stats;
+  if (!trimmed || trimmed.startsWith(">") || trimmed.startsWith("/")) return stats;
   const filtered = (stats.recentQueries ?? []).filter((q) => q !== trimmed);
   return {
     ...stats,
@@ -157,7 +166,9 @@ export function getTopTargetKeys(stats: SpotlightUsageStats, limit: number): str
     .map(([key]) => key);
 }
 
-function sanitizeTokenCounts(input: Record<string, number> | null | undefined): Record<string, number> {
+function sanitizeTokenCounts(
+  input: Record<string, number> | null | undefined,
+): Record<string, number> {
   const normalized = Object.entries(input ?? {})
     .map(([key, value]) => [key.trim().toLowerCase(), Number(value)] as const)
     .filter(([key, value]) => key.length >= 2 && Number.isFinite(value) && value > 0)

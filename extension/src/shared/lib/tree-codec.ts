@@ -5,10 +5,9 @@
  * Active tree stays as plain NavigationTreeJSON for fast read/write.
  */
 
-import { gzipSync, gunzipSync } from 'fflate';
-import { toCompact, fromCompact } from './compact-mapper.js';
-import type { NavigationTreeJSON } from '../types/tree.js';
-import { browser } from '@shared/platform/webext.js';
+import { gzipSync, gunzipSync } from "fflate";
+import { toCompact, fromCompact } from "./compact-mapper.js";
+import type { NavigationTreeJSON } from "../types/tree.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

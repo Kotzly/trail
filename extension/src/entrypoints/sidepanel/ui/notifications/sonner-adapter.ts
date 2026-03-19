@@ -1,4 +1,4 @@
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
 const VALID_DURATIONS = new Set<number>([1000, 3000, 5000, 10000, 15000]);
 
@@ -8,7 +8,7 @@ export type UiToastNotification = {
   durationMs?: number;
 };
 
-export type ToastKind = 'success' | 'error' | 'info' | 'default';
+export type ToastKind = "success" | "error" | "info" | "default";
 
 export type ToastApi = {
   success: (message: string, options?: { duration?: number }) => void;
@@ -25,15 +25,15 @@ const sonnerToastApi: ToastApi = {
 };
 
 export function normalizeToastDuration(durationMs?: number): number {
-  if (typeof durationMs !== 'number') return 3000;
+  if (typeof durationMs !== "number") return 3000;
   return VALID_DURATIONS.has(durationMs) ? durationMs : 3000;
 }
 
 export function mapIconToToastKind(icon?: string): ToastKind {
-  if (icon === 'Check' || icon === 'CheckCircle2') return 'success';
-  if (icon === 'AlertTriangle' || icon === 'X' || icon === 'XCircle') return 'error';
-  if (icon === 'Info') return 'info';
-  return 'default';
+  if (icon === "Check" || icon === "CheckCircle2") return "success";
+  if (icon === "AlertTriangle" || icon === "X" || icon === "XCircle") return "error";
+  if (icon === "Info") return "info";
+  return "default";
 }
 
 export function showUiToast(
@@ -44,18 +44,17 @@ export function showUiToast(
   const kind = mapIconToToastKind(notification.icon);
   const options = { duration };
 
-  if (kind === 'success') {
+  if (kind === "success") {
     toastApi.success(notification.message, options);
     return;
   }
-  if (kind === 'error') {
+  if (kind === "error") {
     toastApi.error(notification.message, options);
     return;
   }
-  if (kind === 'info') {
+  if (kind === "info") {
     toastApi.info(notification.message, options);
     return;
   }
   toastApi.default(notification.message, options);
 }
-

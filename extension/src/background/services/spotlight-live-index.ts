@@ -1,19 +1,19 @@
-import MiniSearch from '../../shared/vendor/minisearch.js';
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
-import type { NavigationNode } from '@shared/types/node.js';
-import type { ArchiveIndexEntry } from '@shared/types/tree.js';
-import type { NodeId } from '@shared/types/ids.js';
+import MiniSearch from "../../shared/vendor/minisearch.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import type { NavigationNode } from "@shared/types/node.js";
+import type { ArchiveIndexEntry } from "@shared/types/tree.js";
+import type { NodeId } from "@shared/types/ids.js";
 import type {
   SpotlightGraphPreviewData,
   SpotlightSuggestionGroup,
   SpotlightTreeRelation,
-} from '@shared/rpc/contracts.js';
-import { treeStorage } from './tree-storage.js';
-import { tabManager } from '../state/tab-manager.js';
-import { loadTree } from './tree-loader.js';
+} from "@shared/rpc/contracts.js";
+import { treeStorage } from "./tree-storage.js";
+import { tabManager } from "../state/tab-manager.js";
+import { loadTree } from "./tree-loader.js";
 
 export type SpotlightLiveNodeDoc = {
-  kind: 'node';
+  kind: "node";
   key: string;
   treeId: string;
   treeName: string;
@@ -36,7 +36,7 @@ export type SpotlightLiveNodeDoc = {
 };
 
 export type SpotlightLiveTreeDoc = {
-  kind: 'tree';
+  kind: "tree";
   key: string;
   treeId: string;
   treeName: string;
@@ -45,7 +45,7 @@ export type SpotlightLiveTreeDoc = {
   recency: number;
   domain: string;
   haystack: string;
-  group: 'other-trees';
+  group: "other-trees";
 };
 
 export type SpotlightLiveDoc = SpotlightLiveNodeDoc | SpotlightLiveTreeDoc;
@@ -67,7 +67,7 @@ export type SpotlightLiveSnapshot = {
   nodeTabCounts: Record<NodeId, number>;
 };
 
-const SEARCH_FIELDS = ['title', 'url', 'domain', 'treeName'] as const;
+const SEARCH_FIELDS = ["title", "url", "domain", "treeName"] as const;
 
 type IndexDoc = {
   key: string;
@@ -289,10 +289,12 @@ export class SpotlightLiveIndexService {
     for (const doc of treeDocs) {
       docsByKey.set(doc.key, doc);
     }
-    const archiveRecords = await Promise.all(archiveEntries.map(async (entry) => ({
-      entry,
-      record: await loadTree(entry.id),
-    })));
+    const archiveRecords = await Promise.all(
+      archiveEntries.map(async (entry) => ({
+        entry,
+        record: await loadTree(entry.id),
+      })),
+    );
     for (const { entry, record } of archiveRecords) {
       if (!record) continue;
       previewsByTreeId.set(entry.id, createPreviewData(record.id, record.label, record.tree));
@@ -314,7 +316,7 @@ export class SpotlightLiveIndexService {
           nodeTabCounts: archiveNodeTabCounts,
           openNodeSet: archiveOpenNodeSet,
           pathByNodeId: archivePathByNodeId,
-          groupOverride: 'other-trees',
+          groupOverride: "other-trees",
         });
         nodeDocs.push(doc);
         docsByKey.set(doc.key, doc);
@@ -323,13 +325,13 @@ export class SpotlightLiveIndexService {
 
     const index = new MiniSearch({
       fields: [...SEARCH_FIELDS],
-      idField: 'key',
-      storeFields: ['key'],
+      idField: "key",
+      storeFields: ["key"],
       searchOptions: {
         boost: { title: 4, domain: 3, treeName: 2, url: 1 },
         prefix: true,
         fuzzy: 0.25,
-        combineWith: 'AND',
+        combineWith: "AND",
       },
     });
 
@@ -364,7 +366,7 @@ export class SpotlightLiveIndexService {
       previewsByTreeId,
       tree: treeJSON,
       currentNodeId,
-      currentPath: currentNodeId ? pathByNodeId.get(currentNodeId) ?? [] : [],
+      currentPath: currentNodeId ? (pathByNodeId.get(currentNodeId) ?? []) : [],
       openNodeIds,
       nodeRecency,
       nodeTabCounts,
@@ -377,22 +379,23 @@ export function computeTreeRelation(
   currentNodeId: NodeId | null,
   currentPath: NodeId[],
 ): SpotlightTreeRelation {
-  if (!currentNodeId || currentPath.length === 0) return 'other-branch';
-  if (doc.nodeId === currentNodeId) return 'current';
-  if (doc.childIds.includes(currentNodeId)) return 'parent';
-  if (doc.parentId === currentNodeId) return 'child';
+  if (!currentNodeId || currentPath.length === 0) return "other-branch";
+  if (doc.nodeId === currentNodeId) return "current";
+  if (doc.childIds.includes(currentNodeId)) return "parent";
+  if (doc.parentId === currentNodeId) return "child";
 
-  const currentParentId = currentPath.length > 1 ? currentPath[currentPath.length - 2] ?? null : null;
+  const currentParentId =
+    currentPath.length > 1 ? (currentPath[currentPath.length - 2] ?? null) : null;
   if (doc.parentId === currentParentId && currentParentId !== null) {
-    return 'sibling';
+    return "sibling";
   }
 
   const lcaDepth = getLowestCommonAncestorDepth(doc.path, currentPath);
-  if (lcaDepth === 0) return 'other-branch';
+  if (lcaDepth === 0) return "other-branch";
   if (isAncestorPath(doc.path, currentPath) || isAncestorPath(currentPath, doc.path)) {
-    return 'same-branch';
+    return "same-branch";
   }
-  return 'other-branch';
+  return "other-branch";
 }
 
 export function computeGraphBoosts(
@@ -402,24 +405,24 @@ export function computeGraphBoosts(
   currentPath: NodeId[],
 ): { graphProximityBoost: number; branchAffinityBoost: number; relation: SpotlightTreeRelation } {
   if (doc.treeId !== activeTreeId) {
-    return { graphProximityBoost: 0, branchAffinityBoost: 0, relation: 'other-branch' };
+    return { graphProximityBoost: 0, branchAffinityBoost: 0, relation: "other-branch" };
   }
   const relation = computeTreeRelation(doc, currentNodeId, currentPath);
   switch (relation) {
-    case 'current':
+    case "current":
       return { graphProximityBoost: 0, branchAffinityBoost: 0, relation };
-    case 'parent':
-    case 'child':
+    case "parent":
+    case "child":
       return { graphProximityBoost: 3, branchAffinityBoost: 1.2, relation };
-    case 'sibling':
+    case "sibling":
       return { graphProximityBoost: 2.2, branchAffinityBoost: 0.9, relation };
-    case 'same-branch': {
+    case "same-branch": {
       const distance = Math.abs(doc.path.length - currentPath.length);
       return distance <= 2
         ? { graphProximityBoost: 1.6, branchAffinityBoost: 0.8, relation }
         : { graphProximityBoost: 1.0, branchAffinityBoost: 0.5, relation };
     }
-    case 'other-branch':
+    case "other-branch":
     default:
       return { graphProximityBoost: currentNodeId ? 0.4 : 0, branchAffinityBoost: 0, relation };
   }
@@ -440,27 +443,24 @@ function createNodeDoc(
 ): SpotlightLiveNodeDoc {
   const recency = options.nodeRecency[node.id] ?? node.data.lastVisitedAt ?? node.timestamp ?? 0;
   const isOpen = options.openNodeSet.has(node.id);
-  const group: SpotlightSuggestionGroup = options.groupOverride
-    ?? (isOpen
-      ? 'open-tabs'
-      : recency > 0
-        ? 'recently-closed'
-        : 'current-tree');
+  const group: SpotlightSuggestionGroup =
+    options.groupOverride ??
+    (isOpen ? "open-tabs" : recency > 0 ? "recently-closed" : "current-tree");
   const path = options.pathByNodeId.get(node.id) ?? [node.id];
   return {
-    kind: 'node',
+    kind: "node",
     key: `n:${options.treeId}:${node.id}`,
     treeId: options.treeId,
     treeName: options.treeName,
     nodeId: node.id,
-    title: node.data.title || 'Untitled',
+    title: node.data.title || "Untitled",
     url: node.data.url,
     ...(node.data.favicon ? { favicon: node.data.favicon as string } : {}),
     group,
     recency,
     isCurrent: options.currentNodeId === node.id,
     tabCount: options.nodeTabCounts[node.id] ?? 0,
-    visitCount: typeof node.data.visitCount === 'number' ? node.data.visitCount : 0,
+    visitCount: typeof node.data.visitCount === "number" ? node.data.visitCount : 0,
     pinned: Boolean(node.data.pinned),
     domain: extractDomain(node.data.url),
     parentId: node.getParent()?.id ?? null,
@@ -468,7 +468,7 @@ function createNodeDoc(
     path,
     depth: Math.max(0, path.length - 1),
     haystack: buildHaystack([
-      node.data.title || 'Untitled',
+      node.data.title || "Untitled",
       node.data.url,
       extractDomain(node.data.url),
       options.treeName,
@@ -476,7 +476,9 @@ function createNodeDoc(
   };
 }
 
-function buildTreeNodeRecencyMap(tree: ReturnType<typeof NavigationTreeMapper.fromJSON>): Record<NodeId, number> {
+function buildTreeNodeRecencyMap(
+  tree: ReturnType<typeof NavigationTreeMapper.fromJSON>,
+): Record<NodeId, number> {
   const nodeRecency = {} as Record<NodeId, number>;
   for (const node of tree.iter()) {
     const recency = node.data.lastVisitedAt ?? node.timestamp ?? 0;
@@ -487,7 +489,11 @@ function buildTreeNodeRecencyMap(tree: ReturnType<typeof NavigationTreeMapper.fr
   return nodeRecency;
 }
 
-function createPreviewData(treeId: string, treeName: string, tree: ReturnType<typeof NavigationTreeMapper.toJSON>): SpotlightGraphPreviewData {
+function createPreviewData(
+  treeId: string,
+  treeName: string,
+  tree: ReturnType<typeof NavigationTreeMapper.toJSON>,
+): SpotlightGraphPreviewData {
   const previewTree = NavigationTreeMapper.fromJSON(tree);
   const nodeRecency = buildTreeNodeRecencyMap(previewTree);
   return {
@@ -511,10 +517,10 @@ function collectPaths(node: NavigationNode, prefix: NodeId[], out: Map<NodeId, N
 }
 
 function createTreeDoc(entry: ArchiveIndexEntry): SpotlightLiveTreeDoc {
-  const rootUrl = entry.rootUrl || '';
+  const rootUrl = entry.rootUrl || "";
   const domain = extractDomain(rootUrl);
   return {
-    kind: 'tree',
+    kind: "tree",
     key: `t:${entry.id}`,
     treeId: entry.id,
     treeName: entry.label,
@@ -523,21 +529,21 @@ function createTreeDoc(entry: ArchiveIndexEntry): SpotlightLiveTreeDoc {
     recency: entry.savedAt ?? 0,
     domain,
     haystack: buildHaystack([entry.label, rootUrl, domain]),
-    group: 'other-trees',
+    group: "other-trees",
   };
 }
 
 function buildHaystack(parts: string[]): string {
-  return parts.join(' ').trim().toLowerCase();
+  return parts.join(" ").trim().toLowerCase();
 }
 
 function extractDomain(url: string): string {
-  if (!url) return '';
+  if (!url) return "";
   try {
     return new URL(url).hostname.toLowerCase();
   } catch (e) {
-    console.warn('[spotlight-index] URL parse failed:', String(e));
-    return '';
+    console.warn("[spotlight-index] URL parse failed:", String(e));
+    return "";
   }
 }
 

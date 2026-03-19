@@ -13,30 +13,34 @@
  * Tree pulls happen on-demand (user opens a tree), NOT during sync cycle.
  */
 
-import { uuidv7 } from '@shared/lib/uuid.js';
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
-import { findBestTrailFavicon } from '@shared/lib/tree-favicon.js';
-import type { NavigationTreeJSON, TreeLabelSource, TreeMeta, TreeRecord, TreeSummary, ArchiveIndexEntry } from '@shared/types/tree.js';
-import type { FaviconUrl, Title, Url } from '@shared/types/ids.js';
-import { notifyTreesUpdate } from '../../messaging/notifications.js';
-import { treeStorage } from '../tree-storage.js';
-import { syncApi, SyncApiError, isAuthenticated } from './api.js';
-import type { IndexSyncMeta } from './api.js';
-import { dirtyTracker } from './dirty-tracker.js';
-import { migrateV2ToV3 } from './migration.js';
-import { browser } from '@shared/platform/webext.js';
+import { uuidv7 } from "@shared/lib/uuid.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import { findBestTrailFavicon } from "@shared/lib/tree-favicon.js";
+import type {
+  TreeLabelSource,
+  TreeRecord,
+  TreeSummary,
+  ArchiveIndexEntry,
+} from "@shared/types/tree.js";
+import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
+import { notifyTreesUpdate } from "../../messaging/notifications.js";
+import { treeStorage } from "../tree-storage.js";
+import { syncApi, SyncApiError, isAuthenticated, type IndexSyncMeta } from "./api.js";
+import { dirtyTracker } from "./dirty-tracker.js";
+import { migrateV2ToV3 } from "./migration.js";
+import { browser } from "@shared/platform/webext.js";
 import {
   activeTreeItem,
   activeTreeMetaItem,
   archiveIndexItem,
   syncDeviceIdItem,
-} from '../../../shared/config/storage-items.js';
+} from "../../../shared/config/storage-items.js";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const SYNC_ALARM_NAME = 'trail-sync-v3' as const;
+const SYNC_ALARM_NAME = "trail-sync-v3" as const;
 const SYNC_ALARM_MINUTES = 1;
 const MUTATION_DEBOUNCE_MS = 3000;
 
@@ -46,15 +50,15 @@ const BACKOFF_SCHEDULE = [2000, 4000, 8000, 16000, 32000, 60000] as const;
 /*  State types                                                        */
 /* ------------------------------------------------------------------ */
 
-type SyncState = 'idle' | 'syncing' | 'backoff';
+type SyncState = "idle" | "syncing" | "backoff";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
 function normalizeLabelSource(value: unknown): TreeLabelSource {
-  if (value === 'user' || value === 'auto' || value === 'system') return value;
-  return 'system';
+  if (value === "user" || value === "auto" || value === "system") return value;
+  return "system";
 }
 
 function toIso(timestamp: number): string {
@@ -91,7 +95,7 @@ function metaToSummary(meta: IndexSyncMeta): ArchiveIndexEntry {
 /* ------------------------------------------------------------------ */
 
 class SyncEngine {
-  private state: SyncState = 'idle';
+  private state: SyncState = "idle";
   private initialized = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private inFlight: Promise<void> | null = null;
@@ -114,7 +118,7 @@ class SyncEngine {
     // Periodic alarm
     browser.alarms?.onAlarm.addListener((alarm) => {
       if (alarm.name !== SYNC_ALARM_NAME) return;
-      void this.syncNow('alarm');
+      void this.syncNow("alarm");
     });
     browser.alarms?.create(SYNC_ALARM_NAME, { periodInMinutes: SYNC_ALARM_MINUTES });
 
@@ -125,9 +129,9 @@ class SyncEngine {
   /**
    * Trigger a sync now. Deduplicates concurrent calls.
    */
-  async syncNow(_trigger: 'manual' | 'alarm' | 'scheduled' = 'manual'): Promise<void> {
+  async syncNow(_trigger: "manual" | "alarm" | "scheduled" = "manual"): Promise<void> {
     if (this.inFlight) return this.inFlight;
-    this.state = 'syncing';
+    this.state = "syncing";
     this.inFlight = this.performSyncCycle().finally(() => {
       this.inFlight = null;
     });
@@ -140,7 +144,7 @@ class SyncEngine {
   async resetForAccountSwitch(): Promise<void> {
     this.cancelTimer();
     this.inFlight = null;
-    this.state = 'idle';
+    this.state = "idle";
     this.backoffAttempt = 0;
 
     await dirtyTracker.clearAll();
@@ -163,7 +167,7 @@ class SyncEngine {
     // Skip the entire cycle when the user is not authenticated.
     // This avoids unnecessary work and pointless 401 errors.
     if (!(await isAuthenticated())) {
-      this.state = 'idle';
+      this.state = "idle";
       return;
     }
 
@@ -191,7 +195,7 @@ class SyncEngine {
           await syncApi.deleteTree(treeId);
           await dirtyTracker.clearDelete(treeId);
         } catch (error) {
-          if (error instanceof SyncApiError && error.kind === 'not_found') {
+          if (error instanceof SyncApiError && error.kind === "not_found") {
             await dirtyTracker.clearDelete(treeId);
           } else {
             throw error;
@@ -211,17 +215,17 @@ class SyncEngine {
 
       // Success: reset backoff
       this.backoffAttempt = 0;
-      this.state = 'idle';
+      this.state = "idle";
     } catch (error) {
       if (error instanceof SyncApiError) {
         if (!error.retryable) {
           // Non-retryable errors (auth, feature lock): stop syncing
-          this.state = 'idle';
+          this.state = "idle";
           return;
         }
       }
       // Enter backoff
-      this.state = 'backoff';
+      this.state = "backoff";
       const delay = BACKOFF_SCHEDULE[Math.min(this.backoffAttempt, BACKOFF_SCHEDULE.length - 1)]!;
       this.backoffAttempt += 1;
       this.schedule(delay);
@@ -384,7 +388,7 @@ class SyncEngine {
     this.cancelTimer();
     this.timer = setTimeout(() => {
       this.timer = null;
-      void this.syncNow('scheduled');
+      void this.syncNow("scheduled");
     }, delayMs);
   }
 
@@ -401,7 +405,7 @@ class SyncEngine {
 
   private async getOrCreateDeviceId(): Promise<string> {
     const existing = await syncDeviceIdItem.getValue();
-    if (typeof existing === 'string' && existing) return existing;
+    if (typeof existing === "string" && existing) return existing;
     const generated = uuidv7();
     await syncDeviceIdItem.setValue(generated);
     return generated;

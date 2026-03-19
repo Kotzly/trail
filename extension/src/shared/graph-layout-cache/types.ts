@@ -1,4 +1,4 @@
-import type { NodeId } from '@shared/types/ids.js';
+import type { NodeId } from "@shared/types/ids.js";
 
 // ---------------------------------------------------------------------------
 // Cached layout positions — stored in chrome.storage.session
@@ -44,7 +44,7 @@ export type CachedLayoutResult = {
 export function computeCollapseSignature(collapsedNodeIds: Iterable<NodeId>): string {
   const ids = [...collapsedNodeIds];
   ids.sort((a, b) => a - b);
-  return ids.join(',');
+  return ids.join(",");
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +83,6 @@ export function computeLayoutSignature(params: LayoutSignatureParams): string {
     `m:${mindmap.verticalGapScale},${mindmap.horizontalGapScale}`,
     `r:${radial.angleWeightExp},${radial.minSpanFactor},${radial.minSpanAbs},${radial.requiredScale},${radial.depthGapBase},${radial.depthGapGrowth}`,
     `c:${collapseSignature}`,
-    `o:${recencyOrdering ? '1' : '0'}`,
-  ].join('|');
+    `o:${recencyOrdering ? "1" : "0"}`,
+  ].join("|");
 }

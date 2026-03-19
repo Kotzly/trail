@@ -1,9 +1,8 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { runtimeGetURL } from '@shared/platform/webext.js';
-import type { NodeId, Url } from '@shared/types/ids.js';
-import type { SpotlightGraphPreviewData } from './types.js';
-import { sendToGraph, onGraphMessage } from './spotlight-ipc.js';
-import type { ParentToGraphMsg } from './spotlight-ipc.js';
+import { useEffect, useRef, useCallback, useState } from "react";
+import { runtimeGetURL } from "@shared/platform/webext.js";
+import type { NodeId, Url } from "@shared/types/ids.js";
+import type { SpotlightGraphPreviewData } from "./types.js";
+import { sendToGraph, onGraphMessage, type ParentToGraphMsg } from "./spotlight-ipc.js";
 
 type SpotlightGraphFrameProps = {
   activeTreeId: string | null;
@@ -46,20 +45,20 @@ export function SpotlightGraphFrame({
     const source = iframeRef.current?.contentWindow ?? null;
     return onGraphMessage(source, (msg) => {
       switch (msg.type) {
-        case 'GRAPH_READY':
+        case "GRAPH_READY":
           readyRef.current = true;
           setGraphReady(true);
           if (pendingContextRef.current) {
             sendContext(pendingContextRef.current);
           }
           break;
-        case 'NAVIGATE':
+        case "NAVIGATE":
           onNavigate(msg.treeId, msg.nodeId, msg.url);
           break;
-        case 'HOVER_NODE':
+        case "HOVER_NODE":
           onHoverNode(msg.treeId, msg.nodeId);
           break;
-        case 'ESCAPE_KEY':
+        case "ESCAPE_KEY":
           onEscapeKey?.();
           break;
       }
@@ -69,7 +68,7 @@ export function SpotlightGraphFrame({
   useEffect(() => {
     if (!activeTreeId) return;
     const nextContext: ParentToGraphMsg = {
-      type: 'SET_GRAPH_CONTEXT',
+      type: "SET_GRAPH_CONTEXT",
       activeTreeId,
       previewData,
       selectedNodeId,
@@ -81,10 +80,18 @@ export function SpotlightGraphFrame({
     if (readyRef.current) {
       sendContext(nextContext);
     }
-  }, [activeTreeId, highlightNodeId, previewData, searchMatchNodeIds, selectedNodeId, selectionIntentId, sendContext]);
+  }, [
+    activeTreeId,
+    highlightNodeId,
+    previewData,
+    searchMatchNodeIds,
+    selectedNodeId,
+    selectionIntentId,
+    sendContext,
+  ]);
 
-  let src = runtimeGetURL('spotlight-graph.html');
-  if (!compactInitialView) src += '?compact=0';
+  let src = runtimeGetURL("spotlight-graph.html");
+  if (!compactInitialView) src += "?compact=0";
 
   return (
     <>
@@ -93,12 +100,12 @@ export function SpotlightGraphFrame({
         src={src}
         className="spotlight-graph-container"
         style={{
-          border: 'none',
-          background: 'transparent',
-          width: '100%',
-          height: '100%',
+          border: "none",
+          background: "transparent",
+          width: "100%",
+          height: "100%",
           opacity: graphReady ? 1 : 0,
-          transition: 'opacity 0.1s ease',
+          transition: "opacity 0.1s ease",
         }}
         allow="autoplay"
       />

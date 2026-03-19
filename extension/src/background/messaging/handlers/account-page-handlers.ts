@@ -4,20 +4,20 @@ import {
   ok,
   err,
   type LocalTrailDetail,
-} from '@shared/rpc/contracts.js';
-import { treeStorage } from '../../services/tree-storage.js';
-import { loadTree } from '../../services/tree-loader.js';
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
-import { findBestTrailFavicon } from '@shared/lib/tree-favicon.js';
-import { uuidv7 } from '@shared/lib/uuid.js';
-import { EXPORT_SCHEMA } from '@shared/types/export.js';
-import type { FaviconUrl } from '@shared/types/ids.js';
-import { enterEditorMode } from './editor-handlers.js';
+} from "@shared/rpc/contracts.js";
+import { treeStorage } from "../../services/tree-storage.js";
+import { loadTree } from "../../services/tree-loader.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import { findBestTrailFavicon } from "@shared/lib/tree-favicon.js";
+import { uuidv7 } from "@shared/lib/uuid.js";
+import { EXPORT_SCHEMA } from "@shared/types/export.js";
+import type { FaviconUrl } from "@shared/types/ids.js";
+import { enterEditorMode } from "./editor-handlers.js";
 
 export const accountPageHandlers = defineRpcHandlers({
   async [RPC_METHOD.GET_LOCAL_TRAIL_DETAIL](message) {
     const record = await loadTree(message.treeId);
-    if (!record) return err('Tree not found');
+    if (!record) return err("Tree not found");
 
     const favicon = findBestTrailFavicon(record.tree) ?? record.rootFavicon;
 
@@ -44,18 +44,18 @@ export const accountPageHandlers = defineRpcHandlers({
     }
 
     if (!bundle.tree) {
-      return err('Bundle is missing tree data');
+      return err("Bundle is missing tree data");
     }
 
     const treeId = uuidv7();
     const now = Date.now();
-    const label = bundle.source?.treeLabel ?? 'Imported Trail';
+    const label = bundle.source?.treeLabel ?? "Imported Trail";
 
     let tree;
     try {
       tree = NavigationTreeMapper.fromJSON(bundle.tree);
     } catch {
-      return err('Failed to parse tree data from bundle');
+      return err("Failed to parse tree data from bundle");
     }
 
     const root = tree.getRoot();
@@ -65,7 +65,7 @@ export const accountPageHandlers = defineRpcHandlers({
     const summary = {
       id: treeId,
       label,
-      labelSource: 'system' as const,
+      labelSource: "system" as const,
       labelUpdatedAt: now,
       createdAt: now,
       nodeCount: tree.size(),
@@ -85,10 +85,10 @@ export const accountPageHandlers = defineRpcHandlers({
 
   async [RPC_METHOD.OPEN_FULLVIEW_EDITOR](message) {
     const record = await loadTree(message.treeId);
-    if (!record) return err('Tree not found');
+    if (!record) return err("Tree not found");
 
     const result = await enterEditorMode(message.treeId);
-    if (typeof result === 'string') return err(result);
+    if (typeof result === "string") return err(result);
 
     return ok(result);
   },

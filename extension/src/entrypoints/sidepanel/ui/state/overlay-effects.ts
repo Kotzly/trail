@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { useStore, type OverlayEffects, type OverlayKind } from './store.js';
+import { useEffect, useRef } from "react";
+import { useStore, type OverlayEffects, type OverlayKind } from "./store.js";
 
 export type OverlayEffectInput = {
   lod?: boolean;

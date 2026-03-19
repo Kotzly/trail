@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from "react";
 
 export type IndicatorPosition = { top: number; height: number } | null;
 
@@ -57,7 +57,7 @@ export function useSelectionIndicator(
     const raf = requestAnimationFrame(measure);
 
     const container = listRef.current;
-    container.addEventListener('scroll', measure, { passive: true });
+    container.addEventListener("scroll", measure, { passive: true });
 
     // Observe selected element for size changes
     const selected = container.querySelector('[data-selected="true"]') as HTMLElement | null;
@@ -70,7 +70,7 @@ export function useSelectionIndicator(
 
     return () => {
       cancelAnimationFrame(raf);
-      container.removeEventListener('scroll', measure);
+      container.removeEventListener("scroll", measure);
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
     };

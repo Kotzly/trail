@@ -1,4 +1,4 @@
-import { hasRuntimeGetURL, runtimeGetURL } from '@shared/platform/webext.js';
+import { hasRuntimeGetURL, runtimeGetURL } from "@shared/platform/webext.js";
 type RuntimeDebugConfig = {
   runId: string;
   serverEndpoint: string;
@@ -25,7 +25,7 @@ async function loadRuntimeDebugConfig(): Promise<RuntimeDebugConfig | null> {
     }
 
     try {
-      const url = runtimeGetURL('runtime-debug.json');
+      const url = runtimeGetURL("runtime-debug.json");
       const response = await fetch(url, { cache: "no-store" });
       if (!response.ok) {
         return null;

@@ -53,7 +53,9 @@
   cursor: pointer;
   font-size: 13px;
   color: var(--foreground);
-  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), background 150ms ease;
+  transition:
+    transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 150ms ease;
   transform-origin: center;
 }
 
@@ -213,7 +215,9 @@
   color: var(--glass-ink);
   opacity: 0;
   transform: scale(0.6);
-  transition: opacity 0.14s ease, transform 0.18s ease;
+  transition:
+    opacity 0.14s ease,
+    transform 0.18s ease;
   box-shadow: var(--glass-inset);
 }
 
@@ -249,7 +253,10 @@
   box-shadow: var(--glass-inset);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .graph-context-tab-action:hover {
@@ -293,7 +300,10 @@
   -webkit-backdrop-filter: var(--glass-blur);
   animation: context-menu-open 150ms cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top left;
-  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 120ms ease;
   transform: scale(0.98);
 }
 

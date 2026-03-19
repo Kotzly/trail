@@ -1,4 +1,4 @@
-import { Color } from 'pixi.js';
+import { Color } from "pixi.js";
 
 export type GraphTheme = {
   surface: number;
@@ -75,63 +75,57 @@ export function readGraphTheme(source: ThemeSource): GraphTheme {
   const style = getComputedStyle(source.host);
   // Single connection color for all edge types. Default to `--primary` so it tracks theme changes.
   const connectionColor = parseColor(
-    style.getPropertyValue('--graph-connection'),
-    parseColor(style.getPropertyValue('--primary'), DEFAULT_THEME.connection.path),
+    style.getPropertyValue("--graph-connection"),
+    parseColor(style.getPropertyValue("--primary"), DEFAULT_THEME.connection.path),
   );
   const theme: GraphTheme = {
-    surface: parseColor(style.getPropertyValue('--background'), DEFAULT_THEME.surface),
-    surfaceContainer: parseColor(
-      style.getPropertyValue('--card'),
-      DEFAULT_THEME.surfaceContainer
-    ),
+    surface: parseColor(style.getPropertyValue("--background"), DEFAULT_THEME.surface),
+    surfaceContainer: parseColor(style.getPropertyValue("--card"), DEFAULT_THEME.surfaceContainer),
     surfaceContainerHigh: parseColor(
-      style.getPropertyValue('--muted'),
-      DEFAULT_THEME.surfaceContainerHigh
+      style.getPropertyValue("--muted"),
+      DEFAULT_THEME.surfaceContainerHigh,
     ),
-    outline: parseColor(style.getPropertyValue('--border'), DEFAULT_THEME.outline),
-    primary: parseColor(style.getPropertyValue('--primary'), DEFAULT_THEME.primary),
+    outline: parseColor(style.getPropertyValue("--border"), DEFAULT_THEME.outline),
+    primary: parseColor(style.getPropertyValue("--primary"), DEFAULT_THEME.primary),
     primaryContainer: parseColor(
-      style.getPropertyValue('--secondary'),
-      DEFAULT_THEME.primaryContainer
+      style.getPropertyValue("--secondary"),
+      DEFAULT_THEME.primaryContainer,
     ),
-    onSurface: parseColor(style.getPropertyValue('--foreground'), DEFAULT_THEME.onSurface),
+    onSurface: parseColor(style.getPropertyValue("--foreground"), DEFAULT_THEME.onSurface),
     onSurfaceVariant: parseColor(
-      style.getPropertyValue('--muted-foreground'),
-      DEFAULT_THEME.onSurfaceVariant
+      style.getPropertyValue("--muted-foreground"),
+      DEFAULT_THEME.onSurfaceVariant,
     ),
-    onPrimary: parseColor(style.getPropertyValue('--primary-foreground'), DEFAULT_THEME.onPrimary),
+    onPrimary: parseColor(style.getPropertyValue("--primary-foreground"), DEFAULT_THEME.onPrimary),
     active: {
       background: parseColor(
-        style.getPropertyValue('--graph-node-active-bg'),
-        DEFAULT_THEME.active.background
+        style.getPropertyValue("--graph-node-active-bg"),
+        DEFAULT_THEME.active.background,
       ),
       border: parseColor(
-        style.getPropertyValue('--graph-node-active-border'),
-        DEFAULT_THEME.active.border
+        style.getPropertyValue("--graph-node-active-border"),
+        DEFAULT_THEME.active.border,
       ),
       title: parseColor(
-        style.getPropertyValue('--graph-node-active-title'),
-        DEFAULT_THEME.active.title
+        style.getPropertyValue("--graph-node-active-title"),
+        DEFAULT_THEME.active.title,
       ),
-      url: parseColor(style.getPropertyValue('--graph-node-active-url'), DEFAULT_THEME.active.url),
+      url: parseColor(style.getPropertyValue("--graph-node-active-url"), DEFAULT_THEME.active.url),
     },
     closed: {
       background: parseColor(
-        style.getPropertyValue('--graph-node-closed-bg'),
-        DEFAULT_THEME.closed.background
+        style.getPropertyValue("--graph-node-closed-bg"),
+        DEFAULT_THEME.closed.background,
       ),
       border: parseColor(
-        style.getPropertyValue('--graph-node-closed-border'),
-        DEFAULT_THEME.closed.border
+        style.getPropertyValue("--graph-node-closed-border"),
+        DEFAULT_THEME.closed.border,
       ),
       title: parseColor(
-        style.getPropertyValue('--graph-node-closed-title'),
-        DEFAULT_THEME.closed.title
+        style.getPropertyValue("--graph-node-closed-title"),
+        DEFAULT_THEME.closed.title,
       ),
-      url: parseColor(
-        style.getPropertyValue('--graph-node-closed-url'),
-        DEFAULT_THEME.closed.url
-      ),
+      url: parseColor(style.getPropertyValue("--graph-node-closed-url"), DEFAULT_THEME.closed.url),
     },
     connection: {
       base: connectionColor,

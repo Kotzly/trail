@@ -1,4 +1,4 @@
-import type { ViewState } from '../../graph/types.js';
+import type { ViewState } from "../../graph/types.js";
 
 const GRID_BASE_SIZE = 20;
 const GRID_BASE_DOT_SIZE = 1.5;

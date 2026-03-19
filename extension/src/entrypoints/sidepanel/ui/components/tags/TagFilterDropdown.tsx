@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useRef } from 'react';
-import type { NodeId, Tag, Url } from '@shared/types/ids.js';
-import { getFaviconUrl } from '@shared/utils/favicon.js';
-import type { TagDefinition } from '@shared/types/tags.js';
-import { navigateTo } from '../../../api/tree.js';
-import { useStore } from '../../state/store.js';
-import { useOverlayEffects } from '../../state/overlay-effects.js';
-import { useAnchoredDropdown } from '../../hooks/useAnchoredDropdown.js';
-import { Icons } from '../Icon.js';
-import { TagIcon } from './TagIcon.js';
-import { collectTagCounts, collectTaggedNodes, filterNodesByTags } from './tag-filter-utils.js';
-
+import { useEffect, useMemo, useRef } from "react";
+import type { NodeId, Tag, Url } from "@shared/types/ids.js";
+import { getFaviconUrl } from "@shared/utils/favicon.js";
+import type { TagDefinition } from "@shared/types/tags.js";
+import { navigateTo } from "../../../api/tree.js";
+import { useStore } from "../../state/store.js";
+import { useOverlayEffects } from "../../state/overlay-effects.js";
+import { useAnchoredDropdown } from "../../hooks/useAnchoredDropdown.js";
+import { Icons } from "../Icon.js";
+import { TagIcon } from "./TagIcon.js";
+import { collectTagCounts, collectTaggedNodes, filterNodesByTags } from "./tag-filter-utils.js";
 
 export default function TagFilterDropdown() {
   const tree = useStore((state) => state.tree);
@@ -20,9 +19,9 @@ export default function TagFilterDropdown() {
   const toggleTagFilterTag = useStore((state) => state.toggleTagFilterTag);
   const setTagFilterSelected = useStore((state) => state.setTagFilterSelected);
   const clearTagFilter = useStore((state) => state.clearTagFilter);
-  const tagFilterShortcut = 'Shift+F';
+  const tagFilterShortcut = "Shift+F";
 
-  useOverlayEffects(tagFilterOpen, { kind: 'dropdown' });
+  useOverlayEffects(tagFilterOpen, { kind: "dropdown" });
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -48,13 +47,13 @@ export default function TagFilterDropdown() {
     if (!tagFilterOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea') return;
-      if (event.key === 'Escape') {
+      if (tag === "input" || tag === "textarea") return;
+      if (event.key === "Escape") {
         event.preventDefault();
         setTagFilterOpen(false);
         return;
       }
-      if (event.key === 'Enter') {
+      if (event.key === "Enter") {
         event.preventDefault();
         const node = filteredNodes[0];
         if (node) void handleNavigate(node.id);
@@ -69,11 +68,11 @@ export default function TagFilterDropdown() {
       setTagFilterOpen(false);
     };
 
-    document.addEventListener('keydown', onKeyDown, true);
-    document.addEventListener('mousedown', onMouseDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("mousedown", onMouseDown, true);
     return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-      document.removeEventListener('mousedown', onMouseDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("mousedown", onMouseDown, true);
     };
   }, [filteredNodes, setTagFilterOpen, tagFilterOpen]);
 
@@ -83,7 +82,7 @@ export default function TagFilterDropdown() {
     try {
       await navigateTo(node);
     } catch (error) {
-      console.error('TagFilterDropdown: navigateTo failed', error);
+      console.error("TagFilterDropdown: navigateTo failed", error);
     } finally {
       setTagFilterOpen(false);
     }
@@ -126,7 +125,7 @@ export default function TagFilterDropdown() {
       <div
         ref={dropdownRef}
         id="tagFilterDropdown"
-        className={`tag-filter-dropdown ${tagFilterOpen ? '' : 'hidden'}`}
+        className={`tag-filter-dropdown ${tagFilterOpen ? "" : "hidden"}`}
         aria-hidden={!tagFilterOpen}
       >
         <div className="tag-filter-header">
@@ -156,11 +155,14 @@ export default function TagFilterDropdown() {
               return (
                 <button
                   key={tag.id as string}
-                  className={`tag-filter-tag${isSelected ? ' selected' : ''}`}
+                  className={`tag-filter-tag${isSelected ? "selected" : ""}`}
                   type="button"
                   onClick={() => toggleTagFilterTag(tag.id as Tag)}
                 >
-                  <span className="tag-pill" style={{ '--tag-color': tag.color } as React.CSSProperties}>
+                  <span
+                    className="tag-pill"
+                    style={{ "--tag-color": tag.color } as React.CSSProperties}
+                  >
                     <TagIcon id={tag.iconId} size={10} />
                     {tag.label}
                   </span>
@@ -184,7 +186,7 @@ export default function TagFilterDropdown() {
             </div>
           ) : (
             filteredNodes.map((node) => {
-              const title = node.data.title || 'Untitled';
+              const title = node.data.title || "Untitled";
               const url = node.data.url;
               const hostname = safeHostname(url);
               const nodeTags = node.data.tags ?? [];
@@ -195,7 +197,11 @@ export default function TagFilterDropdown() {
                   onClick={() => void handleNavigate(node.id)}
                 >
                   {node.data.url ? (
-                    <img className="tag-filter-node-favicon" alt="" src={getFaviconUrl(node.data.url)} />
+                    <img
+                      className="tag-filter-node-favicon"
+                      alt=""
+                      src={getFaviconUrl(node.data.url)}
+                    />
                   ) : (
                     <div className="tag-filter-node-favicon placeholder">
                       <Icons.Tag size={12} />
@@ -212,10 +218,12 @@ export default function TagFilterDropdown() {
                             <span
                               key={tagId as string}
                               className="tag-pill tag-pill-sm"
-                              style={{ '--tag-color': def?.color ?? '#667085' } as React.CSSProperties}
+                              style={
+                                { "--tag-color": def?.color ?? "#667085" } as React.CSSProperties
+                              }
                               title={def?.label ?? (tagId as string)}
                             >
-                              <TagIcon id={def?.iconId ?? 'Tag'} size={8} />
+                              <TagIcon id={def?.iconId ?? "Tag"} size={8} />
                               {def?.label ?? (tagId as string)}
                             </span>
                           );
@@ -234,7 +242,7 @@ export default function TagFilterDropdown() {
 }
 
 function safeHostname(url: Url): string {
-  if (!url) return '';
+  if (!url) return "";
   try {
     return new URL(url).hostname;
   } catch {

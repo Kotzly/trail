@@ -4,25 +4,25 @@ import {
   ok,
   err,
   type EditorModeState,
-} from '../../../shared/rpc/contracts.js';
-import { treeStorage } from '../../services/tree-storage.js';
-import { notifyTreeUpdate } from '../notifications.js';
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
-import { CommandManager } from '@shared/lib/commands.js';
-import type { Description, NodeId } from '@shared/types/ids.js';
-import type { NavigationTree } from '../../state/nav-tree.js';
-import type { NavigationNode, NodeData } from '@shared/types/node.js';
-import { TreeNode } from '../../state/tree-node.js';
-import { loadTree } from '../../services/tree-loader.js';
+} from "../../../shared/rpc/contracts.js";
+import { treeStorage } from "../../services/tree-storage.js";
+import { notifyTreeUpdate } from "../notifications.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import { CommandManager } from "@shared/lib/commands.js";
+import type { Description, NodeId } from "@shared/types/ids.js";
+import type { NavigationTree } from "../../state/nav-tree.js";
+import type { NavigationNode, NodeData } from "@shared/types/node.js";
+import { type TreeNode } from "../../state/tree-node.js";
+import { loadTree } from "../../services/tree-loader.js";
 import {
   editorSyncStart,
   editorSyncMarkDirty,
   editorSyncFlush,
   editorSyncStop,
-} from '../../services/editor-sync.js';
-import { isAllowedSiteOrigin } from '@shared/config/site-origins.js';
-import type { NavigationTreeJSON } from '@shared/types/tree.js';
-import { browser } from '@shared/platform/webext.js';
+} from "../../services/editor-sync.js";
+import { isAllowedSiteOrigin } from "@shared/config/site-origins.js";
+import type { NavigationTreeJSON } from "@shared/types/tree.js";
+import { browser } from "@shared/platform/webext.js";
 
 /* ------------------------------------------------------------------ */
 /*  Editor mode tracking (in-memory, background service worker)        */
@@ -53,21 +53,14 @@ function toErrorMessage(error: unknown, fallback: string): string {
 }
 
 function snapshot(tree: NavigationTree, description: string): void {
-  CommandManager.saveSnapshot(
-    NavigationTreeMapper.toJSON(tree),
-    description as Description,
-  );
+  CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), description as Description);
 }
 
 /**
  * Check if `candidateId` is a descendant of `ancestorId` in the tree.
  * Returns true if moving to `candidateId` would create a cycle.
  */
-function isDescendant(
-  tree: NavigationTree,
-  ancestorId: NodeId,
-  candidateId: NodeId,
-): boolean {
+function isDescendant(tree: NavigationTree, ancestorId: NodeId, candidateId: NodeId): boolean {
   let node = tree.findNodeById(candidateId);
   while (node) {
     if (node.id === ancestorId) return true;
@@ -109,8 +102,8 @@ async function broadcastEditorExitToSite(): Promise<void> {
   try {
     const tabs = await browser.tabs.query({});
     const payload = {
-      source: 'trail-extension',
-      type: 'EDITOR_MODE_EXITED',
+      source: "trail-extension",
+      type: "EDITOR_MODE_EXITED",
       editorMode: false,
     };
     for (const tab of tabs) {
@@ -124,12 +117,21 @@ async function broadcastEditorExitToSite(): Promise<void> {
       }
       if (!isAllowedSiteOrigin(origin)) continue;
 
-      browser.tabs.sendMessage(tab.id, {
-        type: 'RELAY_TO_SITE',
-        payload,
-      }).catch((e) => { console.warn('[editor] Content script unavailable for tab:', { tabId: tab.id, error: String(e) }); });
+      browser.tabs
+        .sendMessage(tab.id, {
+          type: "RELAY_TO_SITE",
+          payload,
+        })
+        .catch((e) => {
+          console.warn("[editor] Content script unavailable for tab:", {
+            tabId: tab.id,
+            error: String(e),
+          });
+        });
     }
-  } catch (e) { console.warn('[editor] Failed to broadcast editor exit:', String(e)); }
+  } catch (e) {
+    console.warn("[editor] Failed to broadcast editor exit:", String(e));
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -142,7 +144,7 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
 
   if (!record) {
     editorSessionSnapshot = null;
-    return 'Tree not found. Try syncing first by opening the trees dropdown.';
+    return "Tree not found. Try syncing first by opening the trees dropdown.";
   }
 
   const treeJSON = record.tree;
@@ -157,7 +159,7 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
   };
 
   const currentTree = await treeStorage.getOrCreateTree();
-  snapshot(currentTree, 'Enter editor mode');
+  snapshot(currentTree, "Enter editor mode");
 
   CommandManager.clearHistory();
   editorState = { active: true, treeId };
@@ -171,20 +173,18 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
   treeStorage.cacheTree(tree);
 
   if (isActiveTree) {
-    await notifyTreeUpdate(tree, 'editor-enter');
+    await notifyTreeUpdate(tree, "editor-enter");
   } else {
-    await notifyTreeUpdate(tree, 'editor-enter', {
+    await notifyTreeUpdate(tree, "editor-enter", {
       fitToView: true,
-      mode: 'force',
+      mode: "force",
     });
   }
 
   return editorState;
 }
 
-export type EditorModeActionResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type EditorModeActionResult = { ok: true } | { ok: false; error: string };
 
 async function finalizeEditorExit(): Promise<EditorModeState> {
   const wasEditingNonActive = treeStorage.isEditingNonActiveTree;
@@ -203,12 +203,12 @@ async function finalizeEditorExit(): Promise<EditorModeState> {
   const tree = await treeStorage.getOrCreateTree();
 
   if (wasEditingNonActive) {
-    await notifyTreeUpdate(tree, 'editor-exit', {
+    await notifyTreeUpdate(tree, "editor-exit", {
       fitToView: true,
-      mode: 'force',
+      mode: "force",
     });
   } else {
-    await notifyTreeUpdate(tree, 'editor-exit');
+    await notifyTreeUpdate(tree, "editor-exit");
   }
 
   void broadcastEditorExitToSite();
@@ -238,7 +238,7 @@ export async function cancelEditorMode(): Promise<EditorModeActionResult> {
   if (!editorSessionSnapshot || editorSessionSnapshot.treeId !== editorState.treeId) {
     return {
       ok: false,
-      error: 'Editor session snapshot is missing',
+      error: "Editor session snapshot is missing",
     };
   }
 
@@ -262,7 +262,7 @@ export async function cancelEditorMode(): Promise<EditorModeActionResult> {
   } catch (error) {
     return {
       ok: false,
-      error: toErrorMessage(error, 'Failed to rollback editor session'),
+      error: toErrorMessage(error, "Failed to rollback editor session"),
     };
   }
 }
@@ -270,7 +270,7 @@ export async function cancelEditorMode(): Promise<EditorModeActionResult> {
 export const editorHandlers = defineRpcHandlers({
   async [RPC_METHOD.ENTER_EDITOR_MODE](message) {
     const result = await enterEditorMode(message.treeId);
-    return typeof result === 'string' ? err(result) : ok(result);
+    return typeof result === "string" ? err(result) : ok(result);
   },
 
   async [RPC_METHOD.EXIT_EDITOR_MODE]() {
@@ -284,20 +284,20 @@ export const editorHandlers = defineRpcHandlers({
   async [RPC_METHOD.REPARENT_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err('Node not found');
+    if (!node) return err("Node not found");
 
     const newParent = tree.findNodeById(message.newParentId);
-    if (!newParent) return err('New parent not found');
+    if (!newParent) return err("New parent not found");
 
-    if (node.isRoot()) return err('Cannot reparent root node');
+    if (node.isRoot()) return err("Cannot reparent root node");
 
     if (isDescendant(tree, message.nodeId, message.newParentId)) {
-      return err('Cannot reparent to a descendant');
+      return err("Cannot reparent to a descendant");
     }
 
     if (node.getParent()?.id === message.newParentId) return ok();
 
-    snapshot(tree, 'Reparent node');
+    snapshot(tree, "Reparent node");
 
     newParent.attachChild(node);
 
@@ -316,9 +316,9 @@ export const editorHandlers = defineRpcHandlers({
 
     if (editorState.active) editorSyncMarkDirty();
 
-    await notifyTreeUpdate(tree, 'reparent', {
+    await notifyTreeUpdate(tree, "reparent", {
       focusNodeId: message.nodeId,
-      mode: 'soft',
+      mode: "soft",
     });
 
     return ok();
@@ -327,21 +327,24 @@ export const editorHandlers = defineRpcHandlers({
   async [RPC_METHOD.DUPLICATE_SUBTREE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err('Node not found');
+    if (!node) return err("Node not found");
 
     const targetParent = tree.findNodeById(message.targetParentId);
-    if (!targetParent) return err('Target parent not found');
+    if (!targetParent) return err("Target parent not found");
 
     const currentParent = node.getParent();
     if (currentParent?.id === message.targetParentId) {
-      return err('Cannot duplicate to the same parent');
+      return err("Cannot duplicate to the same parent");
     }
 
-    if (message.nodeId === message.targetParentId || isDescendant(tree, message.nodeId, message.targetParentId)) {
-      return err('Cannot duplicate into own subtree');
+    if (
+      message.nodeId === message.targetParentId ||
+      isDescendant(tree, message.nodeId, message.targetParentId)
+    ) {
+      return err("Cannot duplicate into own subtree");
     }
 
-    snapshot(tree, 'Duplicate subtree');
+    snapshot(tree, "Duplicate subtree");
 
     cloneSubtree(node, targetParent, tree);
 
@@ -351,16 +354,16 @@ export const editorHandlers = defineRpcHandlers({
 
     if (editorState.active) editorSyncMarkDirty();
 
-    await notifyTreeUpdate(refreshed, 'duplicate', {
+    await notifyTreeUpdate(refreshed, "duplicate", {
       focusNodeId: message.targetParentId,
-      mode: 'soft',
+      mode: "soft",
     });
 
     return ok();
   },
 
   async [RPC_METHOD.EDITOR_SYNC_RETRY]() {
-    const { editorSyncRetry } = await import('../../services/editor-sync.js');
+    const { editorSyncRetry } = await import("../../services/editor-sync.js");
     editorSyncRetry();
     return ok();
   },

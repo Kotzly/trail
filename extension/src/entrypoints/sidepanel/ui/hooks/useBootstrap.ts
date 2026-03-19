@@ -1,13 +1,12 @@
-import { useEffect } from 'react';
-import { getSettings } from '../../api/settings.js';
-import { getFlags } from '../../api/flags.js';
-import { getTreeState, getTrees } from '../../api/tree.js';
-import { getTagDefs } from '../../api/tags.js';
-import { getCommandState } from '../../api/commands.js';
-import { isMac } from '@shared/utils/platform.js';
-import type { MetaKeyPair } from '../state/store.js';
-import { useStore } from '../state/store.js';
-import { applyTheme } from '../shared/apply-theme.js';
+import { useEffect } from "react";
+import { getSettings } from "../../api/settings.js";
+import { getFlags } from "../../api/flags.js";
+import { getTreeState, getTrees } from "../../api/tree.js";
+import { getTagDefs } from "../../api/tags.js";
+import { getCommandState } from "../../api/commands.js";
+import { isMac } from "@shared/utils/platform.js";
+import { useStore, type MetaKeyPair } from "../state/store.js";
+import { applyTheme } from "../shared/apply-theme.js";
 
 export function useBootstrap(): void {
   const bootstrapGraph = useStore((state) => state.bootstrapGraph);
@@ -25,10 +24,7 @@ export function useBootstrap(): void {
     (async () => {
       // ---- Critical path: settings + tree only ----
       try {
-        const [settings, treeState] = await Promise.all([
-          getSettings(),
-          getTreeState(),
-        ]);
+        const [settings, treeState] = await Promise.all([getSettings(), getTreeState()]);
         if (!mounted) return;
 
         bootstrapGraph(settings, treeState);
@@ -40,7 +36,10 @@ export function useBootstrap(): void {
           setEditorMode(treeState.editorMode);
         }
       } catch (error) {
-        console.error('[bootstrap] Critical fetch failed, falling back to mount-then-fetch:', error);
+        console.error(
+          "[bootstrap] Critical fetch failed, falling back to mount-then-fetch:",
+          error,
+        );
         // Surface already mounted React tree -- it will show loading state
         // until TREE_UPDATED arrives from background and applyTreeState fires
         return;
@@ -52,30 +51,49 @@ export function useBootstrap(): void {
       // Fire all deferred fetches in parallel, each with independent error handling
       const deferredPromises = [
         getFlags()
-          .then((flags) => { if (mounted) setFlags(flags); })
-          .catch((e) => console.warn('[bootstrap] flags fetch failed:', e)),
+          .then((flags) => {
+            if (mounted) setFlags(flags);
+          })
+          .catch((e) => console.warn("[bootstrap] flags fetch failed:", e)),
         getTagDefs()
-          .then((defs) => { if (mounted) setTagDefs(defs); })
-          .catch((e) => console.warn('[bootstrap] tagDefs fetch failed:', e)),
+          .then((defs) => {
+            if (mounted) setTagDefs(defs);
+          })
+          .catch((e) => console.warn("[bootstrap] tagDefs fetch failed:", e)),
         getTrees()
-          .then((snapshot) => { if (mounted) setTrees(snapshot); })
-          .catch((e) => console.warn('[bootstrap] trees fetch failed:', e)),
+          .then((snapshot) => {
+            if (mounted) setTrees(snapshot);
+          })
+          .catch((e) => console.warn("[bootstrap] trees fetch failed:", e)),
         isMac()
           .then((isMacValue) => {
             if (!mounted) return;
             const metaKey: MetaKeyPair = isMacValue
-              ? { short: '\u2318', long: 'cmd' }
-              : { short: '^', long: 'ctrl' };
+              ? { short: "\u2318", long: "cmd" }
+              : { short: "^", long: "ctrl" };
             setPlatformMeta(metaKey, isMacValue);
           })
-          .catch((e) => console.warn('[bootstrap] platform meta failed:', e)),
+          .catch((e) => console.warn("[bootstrap] platform meta failed:", e)),
         getCommandState()
-          .then((state) => { if (mounted) setCommandState(state); })
-          .catch((e) => console.warn('[bootstrap] commandState fetch failed:', e)),
+          .then((state) => {
+            if (mounted) setCommandState(state);
+          })
+          .catch((e) => console.warn("[bootstrap] commandState fetch failed:", e)),
       ];
       await Promise.allSettled(deferredPromises);
     })();
 
-    return () => { mounted = false; };
-  }, [bootstrapGraph, setPlatformMeta, setCommandState, setEditorMode, setFlags, setSettings, setTagDefs, setTrees]);
+    return () => {
+      mounted = false;
+    };
+  }, [
+    bootstrapGraph,
+    setPlatformMeta,
+    setCommandState,
+    setEditorMode,
+    setFlags,
+    setSettings,
+    setTagDefs,
+    setTrees,
+  ]);
 }

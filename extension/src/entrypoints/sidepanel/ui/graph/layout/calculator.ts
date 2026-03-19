@@ -1,7 +1,7 @@
-import type { NodeId } from '@shared/types/ids.js';
-import type { NavigationNode } from '@shared/types/node.js';
-import type { LayoutConfig, NodePosition, CanvasBounds, RadialLayoutConfig } from '../types.js';
-import { PADDING } from './config.js';
+import type { NodeId } from "@shared/types/ids.js";
+import type { NavigationNode } from "@shared/types/node.js";
+import type { LayoutConfig, NodePosition, CanvasBounds, RadialLayoutConfig } from "../types.js";
+import { PADDING } from "./config.js";
 
 type GetChildren = (node: NavigationNode) => readonly NavigationNode[];
 
@@ -129,7 +129,7 @@ function computeTidyBreadths(root: TidyNode, baseSeparation: number): void {
       vop = nextRight(vop) ?? vop;
       vop.ancestor = v;
 
-      const shift = (vim.prelim + sim) - (vip.prelim + sip) + separation(vim, vip);
+      const shift = vim.prelim + sim - (vip.prelim + sip) + separation(vim, vip);
       if (shift > 0) {
         const a = ancestor(vim, v, defaultAncestor);
         moveSubtree(a, v, shift);
@@ -195,12 +195,11 @@ function computeTidyBreadths(root: TidyNode, baseSeparation: number): void {
   secondWalk(root, 0);
 }
 
-
 export function calculateLayout(
   root: NavigationNode,
   layoutConfig: LayoutConfig,
   getChildren: GetChildren = (node) => node.getChildren?.() ?? [],
-): { positions: Map<NodeId, NodePosition>, width: number } {
+): { positions: Map<NodeId, NodePosition>; width: number } {
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
   const tidyRoot = createTidyTree(root, getChildren);
@@ -252,10 +251,16 @@ export function calculateMindmapLayout(
   layoutConfig: LayoutConfig,
   getChildren: GetChildren = (node) => node.getChildren?.() ?? [],
   options?: {
-    sortWithinSide?: (children: readonly NavigationNode[], side: 'left' | 'right') => NavigationNode[];
-    splitSides?: (children: readonly NavigationNode[], subtreeHeights: Map<NodeId, number>) => { left: NavigationNode[]; right: NavigationNode[] };
+    sortWithinSide?: (
+      children: readonly NavigationNode[],
+      side: "left" | "right",
+    ) => NavigationNode[];
+    splitSides?: (
+      children: readonly NavigationNode[],
+      subtreeHeights: Map<NodeId, number>,
+    ) => { left: NavigationNode[]; right: NavigationNode[] };
   },
-): { positions: Map<NodeId, NodePosition>, width: number } {
+): { positions: Map<NodeId, NodePosition>; width: number } {
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight, verticalGap, horizontalGap } = layoutConfig;
   const subtreeHeights = new Map<NodeId, number>();
@@ -309,8 +314,8 @@ export function calculateMindmapLayout(
 
   if (options?.sortWithinSide) {
     const sortFn = options.sortWithinSide;
-    leftChildren.splice(0, leftChildren.length, ...sortFn(leftChildren, 'left'));
-    rightChildren.splice(0, rightChildren.length, ...sortFn(rightChildren, 'right'));
+    leftChildren.splice(0, leftChildren.length, ...sortFn(leftChildren, "left"));
+    rightChildren.splice(0, rightChildren.length, ...sortFn(rightChildren, "right"));
   }
 
   const rootX = 0;
@@ -378,7 +383,7 @@ export function calculateRadialLayout(
   layoutConfig: RadialLayoutConfig,
   baseLayout: LayoutConfig,
   getChildren: GetChildren = (node) => node.getChildren?.() ?? [],
-): { positions: Map<NodeId, NodePosition>, width: number } {
+): { positions: Map<NodeId, NodePosition>; width: number } {
   const positions = new Map<NodeId, NodePosition>();
   const { nodeWidth, nodeHeight } = baseLayout;
 
@@ -534,7 +539,7 @@ export function calculateRadialLayout(
       vop = nextRight(vop) ?? vop;
       vop.ancestor = v;
 
-      const shift = (vim.prelim + sim) - (vip.prelim + sip) + separation(vim, vip);
+      const shift = vim.prelim + sim - (vip.prelim + sip) + separation(vim, vip);
       if (shift > 0) {
         const a = ancestor(vim, v, defaultAncestor);
         moveSubtree(a, v, shift);
@@ -685,7 +690,6 @@ export function calculateRadialLayout(
   return { positions, width: maxRadius * 2 + nodeWidth };
 }
 
-
 /**
  * Pre-compute exact visual span (tidy-tree width) for every subtree.
  *
@@ -728,7 +732,7 @@ export function computeSubtreeSpans(
 export function getCanvasBounds(
   positions: Map<NodeId, NodePosition>,
   nodeWidth: number,
-  nodeHeight: number
+  nodeHeight: number,
 ): CanvasBounds {
   if (positions.size === 0) {
     return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 };

@@ -24,44 +24,46 @@
   word-break: break-word;
   opacity: 0;
   transform: translateY(4px) scale(0.98);
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
 }
 
-.tooltip-bubble[data-visible='true'] {
+.tooltip-bubble[data-visible="true"] {
   opacity: 1;
   transform: translateY(0) scale(1);
 }
 
 .tooltip-bubble::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 0;
   height: 0;
   border: var(--tooltip-arrow-size) solid transparent;
 }
 
-.tooltip-bubble[data-placement='bottom']::before {
+.tooltip-bubble[data-placement="bottom"]::before {
   top: calc(var(--tooltip-arrow-size) * -2);
   left: var(--tooltip-arrow-offset-x, 50%);
   transform: translateX(-50%);
   border-bottom-color: color-mix(in srgb, var(--glass-strong) 92%, transparent);
 }
 
-.tooltip-bubble[data-placement='top']::before {
+.tooltip-bubble[data-placement="top"]::before {
   bottom: calc(var(--tooltip-arrow-size) * -2);
   left: var(--tooltip-arrow-offset-x, 50%);
   transform: translateX(-50%);
   border-top-color: color-mix(in srgb, var(--glass-strong) 92%, transparent);
 }
 
-.tooltip-bubble[data-placement='right']::before {
+.tooltip-bubble[data-placement="right"]::before {
   left: calc(var(--tooltip-arrow-size) * -2);
   top: var(--tooltip-arrow-offset-y, 50%);
   transform: translateY(-50%);
   border-right-color: color-mix(in srgb, var(--glass-strong) 92%, transparent);
 }
 
-.tooltip-bubble[data-placement='left']::before {
+.tooltip-bubble[data-placement="left"]::before {
   right: calc(var(--tooltip-arrow-size) * -2);
   top: var(--tooltip-arrow-offset-y, 50%);
   transform: translateY(-50%);
@@ -104,7 +106,7 @@
 }
 
 .tooltip-panel::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
@@ -160,7 +162,10 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .tooltip-panel-close:hover {

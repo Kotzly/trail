@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
-import { sendRpcMessage } from '@shared/rpc/client.js';
-import { rpc } from '@shared/rpc/contracts.js';
+import { useCallback, useState } from "react";
+import { sendRpcMessage } from "@shared/rpc/client.js";
+import { rpc } from "@shared/rpc/contracts.js";
 
 export default function AuthRequiredPanel() {
   const [busy, setBusy] = useState(false);
@@ -11,7 +11,7 @@ export default function AuthRequiredPanel() {
     try {
       await sendRpcMessage(rpc.oauthInteractiveLogin());
     } catch (err) {
-      console.error('Sign-in failed:', err);
+      console.error("Sign-in failed:", err);
     } finally {
       setBusy(false);
     }
@@ -44,7 +44,7 @@ export default function AuthRequiredPanel() {
         onClick={() => void handleSignIn()}
         disabled={busy}
       >
-        {busy ? 'Signing in...' : 'Sign in'}
+        {busy ? "Signing in..." : "Sign in"}
       </button>
     </div>
   );

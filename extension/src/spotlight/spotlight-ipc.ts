@@ -1,13 +1,15 @@
-import type { NodeId, Url } from '@shared/types/ids.js';
-import type { SpotlightGraphPreviewData } from './types.js';
+import type { NodeId, Url } from "@shared/types/ids.js";
+import type { SpotlightGraphPreviewData } from "./types.js";
 
 function getExtensionOrigin(): string {
   try {
-    if (typeof globalThis.chrome !== 'undefined' && globalThis.chrome.runtime?.getURL) {
-      return new URL(globalThis.chrome.runtime.getURL('')).origin;
+    if (typeof globalThis.chrome !== "undefined" && globalThis.chrome.runtime?.getURL) {
+      return new URL(globalThis.chrome.runtime.getURL("")).origin;
     }
-  } catch { /* ignore */ }
-  return '*';
+  } catch {
+    /* ignore */
+  }
+  return "*";
 }
 
 const EXTENSION_ORIGIN = getExtensionOrigin();
@@ -18,7 +20,7 @@ const EXTENSION_ORIGIN = getExtensionOrigin();
 
 // Parent -> Graph iframe
 type SetGraphContextMsg = {
-  type: 'SET_GRAPH_CONTEXT';
+  type: "SET_GRAPH_CONTEXT";
   activeTreeId: string;
   previewData: SpotlightGraphPreviewData | null;
   selectedNodeId: NodeId | null;
@@ -28,10 +30,10 @@ type SetGraphContextMsg = {
 };
 
 // Graph iframe -> Parent
-type GraphReadyMsg = { type: 'GRAPH_READY' };
-type NavigateMsg = { type: 'NAVIGATE'; treeId: string; nodeId: NodeId; url: Url };
-type HoverNodeMsg = { type: 'HOVER_NODE'; treeId: string; nodeId: NodeId | null };
-type EscapeKeyMsg = { type: 'ESCAPE_KEY' };
+type GraphReadyMsg = { type: "GRAPH_READY" };
+type NavigateMsg = { type: "NAVIGATE"; treeId: string; nodeId: NodeId; url: Url };
+type HoverNodeMsg = { type: "HOVER_NODE"; treeId: string; nodeId: NodeId | null };
+type EscapeKeyMsg = { type: "ESCAPE_KEY" };
 
 export type ParentToGraphMsg = SetGraphContextMsg;
 export type GraphToParentMsg = GraphReadyMsg | NavigateMsg | HoverNodeMsg | EscapeKeyMsg;
@@ -42,19 +44,19 @@ export type SpotlightIPCMessage = ParentToGraphMsg | GraphToParentMsg;
 // ---------------------------------------------------------------------------
 
 const KNOWN_TYPES = new Set<string>([
-  'SET_GRAPH_CONTEXT',
-  'GRAPH_READY',
-  'NAVIGATE',
-  'HOVER_NODE',
-  'ESCAPE_KEY',
+  "SET_GRAPH_CONTEXT",
+  "GRAPH_READY",
+  "NAVIGATE",
+  "HOVER_NODE",
+  "ESCAPE_KEY",
 ]);
 
 function isSpotlightIPC(data: unknown): data is SpotlightIPCMessage {
   return (
-    typeof data === 'object'
-    && data !== null
-    && typeof (data as Record<string, unknown>).type === 'string'
-    && KNOWN_TYPES.has((data as Record<string, unknown>).type as string)
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as Record<string, unknown>).type === "string" &&
+    KNOWN_TYPES.has((data as Record<string, unknown>).type as string)
   );
 }
 
@@ -69,7 +71,7 @@ export function sendToGraph(iframe: HTMLIFrameElement, msg: ParentToGraphMsg): v
 export function sendToParent(msg: GraphToParentMsg): void {
   // Parent is an arbitrary web page — must use '*' as targetOrigin.
   // Security: onGraphMessage validates event.source instead.
-  window.parent.postMessage(msg, '*');
+  window.parent.postMessage(msg, "*");
 }
 
 // ---------------------------------------------------------------------------
@@ -84,16 +86,14 @@ export function onGraphMessage(
     if (event.source !== source) return;
     if (!isSpotlightIPC(event.data)) return;
     // Only pass graph-to-parent messages
-    if (event.data.type === 'SET_GRAPH_CONTEXT') return;
+    if (event.data.type === "SET_GRAPH_CONTEXT") return;
     handler(event.data as GraphToParentMsg);
   };
-  window.addEventListener('message', listener);
-  return () => window.removeEventListener('message', listener);
+  window.addEventListener("message", listener);
+  return () => window.removeEventListener("message", listener);
 }
 
-export function onParentMessage(
-  handler: (msg: ParentToGraphMsg) => void,
-): () => void {
+export function onParentMessage(handler: (msg: ParentToGraphMsg) => void): () => void {
   const listener = (event: MessageEvent) => {
     // Note: cannot check event.origin here — the sender is a content script
     // running in the web page's browsing context, so event.origin is the
@@ -102,9 +102,9 @@ export function onParentMessage(
     // an extension page that only the extension can embed.
     if (!isSpotlightIPC(event.data)) return;
     // Only pass parent-to-graph messages
-    if (event.data.type !== 'SET_GRAPH_CONTEXT') return;
+    if (event.data.type !== "SET_GRAPH_CONTEXT") return;
     handler(event.data as ParentToGraphMsg);
   };
-  window.addEventListener('message', listener);
-  return () => window.removeEventListener('message', listener);
+  window.addEventListener("message", listener);
+  return () => window.removeEventListener("message", listener);
 }

@@ -7,14 +7,14 @@
  * `.getValue()` / `.setValue()` / `.watch()` per item.
  */
 
-import { storage } from 'wxt/utils/storage';
-import type { NavigationTreeJSON, TreeMeta, ArchiveIndexEntry } from '../types/tree.js';
-import type { Settings } from '../types/settings.js';
-import type { PersistedFlagState } from '../types/flags.js';
-import type { TagDefinition } from '../types/tags.js';
-import type { AccountSnapshot } from '../types/account.js';
-import type { BackendConfigOverride } from './backend.js';
-import type { SpotlightUsageStats } from '../lib/spotlight/usage-stats.js';
+import { storage } from "wxt/utils/storage";
+import type { NavigationTreeJSON, TreeMeta, ArchiveIndexEntry } from "../types/tree.js";
+import type { Settings } from "../types/settings.js";
+import type { PersistedFlagState } from "../types/flags.js";
+import type { TagDefinition } from "../types/tags.js";
+import type { AccountSnapshot } from "../types/account.js";
+import type { BackendConfigOverride } from "./backend.js";
+import type { SpotlightUsageStats } from "../lib/spotlight/usage-stats.js";
 
 // ── Auth ────────────────────────────────────────────────────────────
 
@@ -26,39 +26,35 @@ export type StoredAuthSession = {
 };
 
 export const authSessionItem = storage.defineItem<StoredAuthSession | null>(
-  'local:trail_auth_session',
+  "local:trail_auth_session",
   { fallback: null },
 );
 
-export const oauthDeviceIdItem = storage.defineItem<string | null>(
-  'local:trail_oauth_device_id',
-  { fallback: null },
-);
+export const oauthDeviceIdItem = storage.defineItem<string | null>("local:trail_oauth_device_id", {
+  fallback: null,
+});
 
 /** Backwards-compat re-export (raw key without area prefix). */
-export const AUTH_STORAGE_KEY = 'trail_auth_session' as const;
+export const AUTH_STORAGE_KEY = "trail_auth_session" as const;
 
 // ── Tree ────────────────────────────────────────────────────────────
 
-export const activeTreeItem = storage.defineItem<NavigationTreeJSON | null>(
-  'local:trail_tree',
-  { fallback: null },
-);
+export const activeTreeItem = storage.defineItem<NavigationTreeJSON | null>("local:trail_tree", {
+  fallback: null,
+});
 
-export const activeTreeMetaItem = storage.defineItem<TreeMeta | null>(
-  'local:trail_tree_meta',
-  { fallback: null },
-);
+export const activeTreeMetaItem = storage.defineItem<TreeMeta | null>("local:trail_tree_meta", {
+  fallback: null,
+});
 
 export const archiveIndexItem = storage.defineItem<ArchiveIndexEntry[]>(
-  'local:trail_tree_archives',
+  "local:trail_tree_archives",
   { fallback: [] },
 );
 
-export const treeSavedAtItem = storage.defineItem<number | null>(
-  'local:trail_tree_saved_at',
-  { fallback: null },
-);
+export const treeSavedAtItem = storage.defineItem<number | null>("local:trail_tree_saved_at", {
+  fallback: null,
+});
 
 // ── Archive blobs (dynamic keys) ────────────────────────────────────
 
@@ -75,46 +71,39 @@ export type SyncState = {
   pendingDeletes: string[];
 };
 
-export const syncStateItem = storage.defineItem<SyncState | null>(
-  'local:trail_v3_sync',
-  { fallback: null },
-);
+export const syncStateItem = storage.defineItem<SyncState | null>("local:trail_v3_sync", {
+  fallback: null,
+});
 
-export const syncDeviceIdItem = storage.defineItem<string | null>(
-  'local:trail_sync_device_id',
-  { fallback: null },
-);
+export const syncDeviceIdItem = storage.defineItem<string | null>("local:trail_sync_device_id", {
+  fallback: null,
+});
 
-export const migrationDoneItem = storage.defineItem<boolean>(
-  'local:trail_v3_migration_done',
-  { fallback: false },
-);
+export const migrationDoneItem = storage.defineItem<boolean>("local:trail_v3_migration_done", {
+  fallback: false,
+});
 
 // ── Settings ────────────────────────────────────────────────────────
 
-export const settingsItem = storage.defineItem<Settings | null>(
-  'local:trail_settings',
-  { fallback: null },
-);
+export const settingsItem = storage.defineItem<Settings | null>("local:trail_settings", {
+  fallback: null,
+});
 
 // ── Flags ───────────────────────────────────────────────────────────
 
-export const flagsItem = storage.defineItem<PersistedFlagState | null>(
-  'local:trail_flags',
-  { fallback: null },
-);
+export const flagsItem = storage.defineItem<PersistedFlagState | null>("local:trail_flags", {
+  fallback: null,
+});
 
-export const experimentsUnlockedItem = storage.defineItem<boolean>(
-  'local:trail_flags_unlocked',
-  { fallback: false },
-);
+export const experimentsUnlockedItem = storage.defineItem<boolean>("local:trail_flags_unlocked", {
+  fallback: false,
+});
 
 // ── Tags (sync area) ───────────────────────────────────────────────
 
-export const tagDefsItem = storage.defineItem<TagDefinition[] | null>(
-  'sync:trail_tag_defs',
-  { fallback: null },
-);
+export const tagDefsItem = storage.defineItem<TagDefinition[] | null>("sync:trail_tag_defs", {
+  fallback: null,
+});
 
 // ── Undo / Redo ─────────────────────────────────────────────────────
 
@@ -125,14 +114,14 @@ export type CommandHistory = {
 };
 
 export const undoHistoryItem = storage.defineItem<CommandHistory | null>(
-  'local:trail_undo_history',
+  "local:trail_undo_history",
   { fallback: null },
 );
 
 // ── Tab restoration ─────────────────────────────────────────────────
 
 export const openTabsItem = storage.defineItem<Record<string, string[]>>(
-  'local:trail_tree_open_tabs',
+  "local:trail_tree_open_tabs",
   { fallback: {} },
 );
 
@@ -144,21 +133,21 @@ export type CachedSnapshotEnvelope = {
 };
 
 export const accountSnapshotItem = storage.defineItem<CachedSnapshotEnvelope | null>(
-  'local:trail_account_snapshot',
+  "local:trail_account_snapshot",
   { fallback: null },
 );
 
 // ── Backend config ──────────────────────────────────────────────────
 
 export const backendConfigItem = storage.defineItem<BackendConfigOverride | null>(
-  'local:trail_backend_config',
+  "local:trail_backend_config",
   { fallback: null },
 );
 
 // ── Spotlight ───────────────────────────────────────────────────────
 
 export const spotlightUsageStatsItem = storage.defineItem<SpotlightUsageStats | null>(
-  'local:trail_spotlight_usage_stats',
+  "local:trail_spotlight_usage_stats",
   { fallback: null },
 );
 
@@ -170,25 +159,24 @@ export type CachedAuthPolicy = {
 };
 
 export const authPolicyItem = storage.defineItem<CachedAuthPolicy | null>(
-  'local:trail_auth_policy',
+  "local:trail_auth_policy",
   { fallback: null },
 );
 
 // ── Guest Welcome ──────────────────────────────────────────────────
 
 export const guestWelcomeDismissedItem = storage.defineItem<boolean>(
-  'local:trail_guest_welcome_dismissed',
+  "local:trail_guest_welcome_dismissed",
   { fallback: false },
 );
 
 // ── UI State ───────────────────────────────────────────────────────
 
 export const spotlightSplitRatioItem = storage.defineItem<number>(
-  'local:trail_spotlight_split_ratio',
+  "local:trail_spotlight_split_ratio",
   { fallback: 0.38 },
 );
 
-export const themeCacheItem = storage.defineItem<string | null>(
-  'session:trail_theme_cache',
-  { fallback: null },
-);
+export const themeCacheItem = storage.defineItem<string | null>("session:trail_theme_cache", {
+  fallback: null,
+});

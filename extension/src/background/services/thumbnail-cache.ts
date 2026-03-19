@@ -1,4 +1,4 @@
-import { browser } from '@shared/platform/webext.js';
+import { browser } from "@shared/platform/webext.js";
 
 // ---------------------------------------------------------------------------
 // LRU Screenshot Cache — captures visible tabs on activation, serves to QuickLook
@@ -47,18 +47,18 @@ class ThumbnailCache {
       const tab = await browser.tabs.get(tabId);
       if (!tab?.active || tab.windowId == null) return;
 
-      const url = tab.url ?? '';
+      const url = tab.url ?? "";
       if (
-        url.startsWith('chrome://') ||
-        url.startsWith('chrome-extension://') ||
-        url.startsWith('about:') ||
-        url.startsWith('moz-extension://')
+        url.startsWith("chrome://") ||
+        url.startsWith("chrome-extension://") ||
+        url.startsWith("about:") ||
+        url.startsWith("moz-extension://")
       ) {
         return;
       }
 
       const dataUrl = await browser.tabs.captureVisibleTab(tab.windowId, {
-        format: 'jpeg',
+        format: "jpeg",
         quality: 25,
       });
       this.set(tabId, dataUrl);

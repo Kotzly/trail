@@ -8,16 +8,16 @@ import type {
   PortalLink,
   Subscription,
   User,
-} from '../../../shared/types/account.js';
-import { BACKEND_CONFIG, initBackendConfig } from '@shared/config/backend.js';
-import { createMockAccountClient } from './account/mock.js';
-import { createRemoteAccountClient } from './account/remote.js';
-import { sendMessage } from './background.js';
-import { rpc } from '@shared/rpc/contracts.js';
+} from "../../../shared/types/account.js";
+import { BACKEND_CONFIG, initBackendConfig } from "@shared/config/backend.js";
+import { createMockAccountClient } from "./account/mock.js";
+import { createRemoteAccountClient } from "./account/remote.js";
+import { sendMessage } from "./background.js";
+import { rpc } from "@shared/rpc/contracts.js";
 
 export type CompleteOnboardingInput = {
-  action: 'complete' | 'skip';
-  source: 'extension' | 'web';
+  action: "complete" | "skip";
+  source: "extension" | "web";
 };
 
 export type AccountClient = {
@@ -32,7 +32,7 @@ export type AccountClient = {
 };
 
 function createDefaultClient(): AccountClient {
-  return BACKEND_CONFIG.mode === 'mock' ? createMockAccountClient() : createRemoteAccountClient();
+  return BACKEND_CONFIG.mode === "mock" ? createMockAccountClient() : createRemoteAccountClient();
 }
 
 let accountClient: AccountClient = createDefaultClient();
@@ -86,9 +86,7 @@ export async function createBillingPortalLink(): Promise<PortalLink> {
   return (await getActiveAccountClient()).createBillingPortalLink();
 }
 
-export async function completeOnboarding(
-  input: CompleteOnboardingInput,
-): Promise<OnboardingState> {
+export async function completeOnboarding(input: CompleteOnboardingInput): Promise<OnboardingState> {
   return (await getActiveAccountClient()).completeOnboarding(input);
 }
 
@@ -115,28 +113,28 @@ export async function requestOauthSilentSyncFromBackground(): Promise<{
 }
 
 export function normalizeAccountError(error: unknown): AccountError {
-  if (error && typeof error === 'object' && 'code' in error && 'message' in error) {
+  if (error && typeof error === "object" && "code" in error && "message" in error) {
     const err = error as AccountError;
     const normalized: AccountError = {
-      code: err.code ?? 'unknown',
-      message: err.message ?? 'Unknown error',
+      code: err.code ?? "unknown",
+      message: err.message ?? "Unknown error",
       retryable: err.retryable ?? true,
     };
-    if (typeof err.details === 'string') {
+    if (typeof err.details === "string") {
       normalized.details = err.details;
     }
     return normalized;
   }
   if (error instanceof Error) {
     return {
-      code: 'unknown',
+      code: "unknown",
       message: error.message,
       retryable: true,
     };
   }
   return {
-    code: 'unknown',
-    message: 'Something went wrong',
+    code: "unknown",
+    message: "Something went wrong",
     retryable: true,
   };
 }

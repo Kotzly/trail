@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect } from 'react';
-import type { RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, type RefObject } from "react";
 
 type AnchoredDropdownOptions = {
   open: boolean;
@@ -7,11 +6,15 @@ type AnchoredDropdownOptions = {
   padding?: number;
 };
 
-export function useAnchoredDropdown({ open, dropdownRef, padding = 8 }: AnchoredDropdownOptions): void {
+export function useAnchoredDropdown({
+  open,
+  dropdownRef,
+  padding = 8,
+}: AnchoredDropdownOptions): void {
   const updateShift = useCallback(() => {
     const dropdown = dropdownRef.current;
-    if (!dropdown || typeof window === 'undefined') return;
-    dropdown.style.setProperty('--dropdown-shift', '0px');
+    if (!dropdown || typeof window === "undefined") return;
+    dropdown.style.setProperty("--dropdown-shift", "0px");
     const rect = dropdown.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const safe = padding;
@@ -22,7 +25,7 @@ export function useAnchoredDropdown({ open, dropdownRef, padding = 8 }: Anchored
     if (rect.left + shift < safe) {
       shift += safe - (rect.left + shift);
     }
-    dropdown.style.setProperty('--dropdown-shift', `${shift}px`);
+    dropdown.style.setProperty("--dropdown-shift", `${shift}px`);
   }, [dropdownRef, padding]);
 
   useLayoutEffect(() => {
@@ -32,13 +35,13 @@ export function useAnchoredDropdown({ open, dropdownRef, padding = 8 }: Anchored
 
   useEffect(() => {
     const dropdown = dropdownRef.current;
-    if (!open || !dropdown || typeof window === 'undefined') return;
+    if (!open || !dropdown || typeof window === "undefined") return;
     const observer = new ResizeObserver(() => updateShift());
     observer.observe(dropdown);
-    window.addEventListener('resize', updateShift);
+    window.addEventListener("resize", updateShift);
     return () => {
       observer.disconnect();
-      window.removeEventListener('resize', updateShift);
+      window.removeEventListener("resize", updateShift);
     };
   }, [open, updateShift, dropdownRef]);
 }

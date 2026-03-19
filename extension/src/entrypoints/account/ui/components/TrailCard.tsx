@@ -1,4 +1,4 @@
-import type { LocalTrailSummary } from '../hooks/useLocalTrails.js';
+import type { LocalTrailSummary } from "../hooks/useLocalTrails.js";
 
 type TrailCardProps = {
   trail: LocalTrailSummary;
@@ -10,12 +10,12 @@ function formatRelative(timestamp: number): string {
   const seconds = Math.floor(diff / 1000);
 
   if (seconds < 0) {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
+    return new Date(timestamp).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
     });
   }
-  if (seconds < 60) return 'just now';
+  if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
@@ -24,10 +24,10 @@ function formatRelative(timestamp: number): string {
   if (days < 30) return `${days}d ago`;
 
   const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
   });
 }
 
@@ -50,13 +50,11 @@ export default function TrailCard({ trail }: TrailCardProps) {
           <span className="trail-card__label">{trail.label}</span>
         </div>
         <span className="trail-card__badge">
-          {trail.nodeCount} node{trail.nodeCount === 1 ? '' : 's'}
+          {trail.nodeCount} node{trail.nodeCount === 1 ? "" : "s"}
         </span>
       </div>
 
-      {trail.rootTitle && (
-        <p className="trail-card__title">{trail.rootTitle}</p>
-      )}
+      {trail.rootTitle && <p className="trail-card__title">{trail.rootTitle}</p>}
 
       <div className="trail-card__footer">
         <time>{formatRelative(trail.savedAt)}</time>

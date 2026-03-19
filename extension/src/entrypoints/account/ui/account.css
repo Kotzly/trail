@@ -51,7 +51,9 @@
   font-size: 13px;
   color: var(--muted-foreground);
   text-decoration: none;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .account-sidebar__link:hover {
@@ -101,7 +103,9 @@
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
 .account-btn:disabled {
@@ -516,7 +520,9 @@
   border-radius: 8px;
   background: var(--card);
   text-align: center;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
 }
 
 .import-dropzone--active {

@@ -1,15 +1,22 @@
-import { create } from 'zustand';
-import type { NodeId, Tag } from '@shared/types/ids.js';
-import type { Settings } from '@shared/types/settings.js';
-import type { TabState } from '@shared/types/tabs.js';
-import type { CommandState, EditorModeState, SyncStatus, TreeUpdateReason, TreeUpdatedInput, TreesSnapshot } from '@shared/rpc/contracts.js';
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
-import type { NavigationTree } from '@background/state/nav-tree.js';
-import { PinnedManager } from '@background/state/pinned.js';
-import type { TagDefinition } from '@shared/types/tags.js';
-import type { TreeMeta, TreeSummary } from '@shared/types/tree.js';
-import type { ResolvedFlags } from '@shared/types/flags.js';
-import { getCollapsedAncestorIds } from '../graph/collapse-utils.js';
+import { create } from "zustand";
+import type { NodeId, Tag } from "@shared/types/ids.js";
+import type { Settings } from "@shared/types/settings.js";
+import type { TabState } from "@shared/types/tabs.js";
+import type {
+  CommandState,
+  EditorModeState,
+  SyncStatus,
+  TreeUpdateReason,
+  TreeUpdatedInput,
+  TreesSnapshot,
+} from "@shared/rpc/contracts.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import type { NavigationTree } from "@background/state/nav-tree.js";
+import { PinnedManager } from "@background/state/pinned.js";
+import type { TagDefinition } from "@shared/types/tags.js";
+import type { TreeMeta, TreeSummary } from "@shared/types/tree.js";
+import type { ResolvedFlags } from "@shared/types/flags.js";
+import { getCollapsedAncestorIds } from "../graph/collapse-utils.js";
 import type {
   AccountError,
   AccountConfig,
@@ -20,11 +27,11 @@ import type {
   Plan,
   Subscription,
   User,
-} from '../../../../shared/types/account.js';
+} from "../../../../shared/types/account.js";
 
-export type MetaKeyPair = { short: '^'; long: 'ctrl' } | { short: '⌘'; long: 'cmd' };
+export type MetaKeyPair = { short: "^"; long: "ctrl" } | { short: "⌘"; long: "cmd" };
 
-type GraphTool = 'hand' | 'select';
+type GraphTool = "hand" | "select";
 
 export type ViewState = {
   translateX: number;
@@ -34,18 +41,18 @@ export type ViewState = {
 
 type ContextMenuState =
   | {
-      type: 'node';
+      type: "node";
       nodeId: NodeId;
       position: { x: number; y: number };
     }
   | {
-      type: 'bulk';
+      type: "bulk";
       nodeIds: NodeId[];
       position: { x: number; y: number };
     }
   | null;
 
-export type OverlayKind = 'modal' | 'dropdown' | 'context' | 'panel';
+export type OverlayKind = "modal" | "dropdown" | "context" | "panel";
 
 export type OverlayEffects = {
   lod: boolean;
@@ -59,8 +66,8 @@ type OverlayEffectsState = {
   blurCount: number;
 };
 
-type AccountStatus = 'idle' | 'loading' | 'ready' | 'error';
-type NetworkStatus = 'online' | 'offline' | 'degraded';
+type AccountStatus = "idle" | "loading" | "ready" | "error";
+type NetworkStatus = "online" | "offline" | "degraded";
 
 export type AccountState = {
   status: AccountStatus;
@@ -132,17 +139,17 @@ type StoreState = {
     selectedNodeIds: Set<NodeId>;
     view: ViewState;
     resetVersion: number;
-    viewIntent: TreeUpdatedInput['view'] | null;
+    viewIntent: TreeUpdatedInput["view"] | null;
     hoverNodeId: NodeId | null;
     collapsedNodeIds: Set<NodeId>;
     collapsedByTree: Map<NodeId, Set<NodeId>>;
     collapseVersion: number;
-    collapseAction: { kind: 'collapse' | 'expand'; nodeIds: Set<NodeId> } | null;
+    collapseAction: { kind: "collapse" | "expand"; nodeIds: Set<NodeId> } | null;
   };
   editorMode: EditorModeState;
   syncStatus: SyncStatus;
   contextMenu: ContextMenuState;
-  pickTarget: { type: 'duplicate'; sourceNodeId: NodeId } | null;
+  pickTarget: { type: "duplicate"; sourceNodeId: NodeId } | null;
   metaKey: MetaKeyPair | null;
   isMac: boolean;
 };
@@ -191,14 +198,14 @@ type StoreActions = {
   closeContextMenu: () => void;
   clearViewIntent: () => void;
   setEditorMode: (state: EditorModeState) => void;
-  setPickTarget: (target: StoreState['pickTarget']) => void;
+  setPickTarget: (target: StoreState["pickTarget"]) => void;
   clearPickTarget: () => void;
   setSyncStatus: (status: SyncStatus) => void;
 };
 
-type PopupKey = keyof StoreState['ui'];
+type PopupKey = keyof StoreState["ui"];
 
-const closeUiPopups = (ui: StoreState['ui']): StoreState['ui'] => ({
+const closeUiPopups = (ui: StoreState["ui"]): StoreState["ui"] => ({
   ...ui,
   settingsOpen: false,
   themePickerOpen: false,
@@ -208,7 +215,7 @@ const closeUiPopups = (ui: StoreState['ui']): StoreState['ui'] => ({
   tooltipsOpen: ui.tooltipsOpen,
 });
 
-const openUiPopup = (ui: StoreState['ui'], key: PopupKey): StoreState['ui'] => ({
+const openUiPopup = (ui: StoreState["ui"], key: PopupKey): StoreState["ui"] => ({
   ...closeUiPopups(ui),
   [key]: true,
 });
@@ -225,19 +232,19 @@ const pruneCollapsedNodes = (tree: NavigationTree | null, collapsed: Set<NodeId>
   return next;
 };
 
-export const useStore = create<StoreState & StoreActions>((set, get) => ({
+export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   settings: null,
   flags: null,
   account: {
-    status: 'idle',
-    network: 'online',
-    session: { status: 'guest' },
+    status: "idle",
+    network: "online",
+    session: { status: "guest" },
     config: {},
     user: null,
     subscription: null,
-    billing: { state: 'none' },
+    billing: { state: "none" },
     plans: [],
-    onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
+    onboarding: { flowId: "activation-v1", status: "pending", seenAt: null },
     error: null,
     lastSyncedAt: null,
     sessionExpired: false,
@@ -265,7 +272,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     selected: new Set<Tag>(),
   },
   search: {
-    query: '',
+    query: "",
     results: [],
     index: 0,
     navStep: 0,
@@ -290,7 +297,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     tooltipsOpen: false,
   },
   graph: {
-    tool: 'select',
+    tool: "select",
     selectedNodeIds: new Set<NodeId>(),
     view: { translateX: 0, translateY: 0, scale: 1 },
     resetVersion: 0,
@@ -302,7 +309,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     collapseAction: null,
   },
   editorMode: { active: false, treeId: null },
-  syncStatus: 'idle' as SyncStatus,
+  syncStatus: "idle" as SyncStatus,
   contextMenu: null,
   pickTarget: null,
   metaKey: null,
@@ -336,8 +343,11 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     const nodeCount = tree.size();
     set((state) => {
       const nextViewIntent = payload.view ?? state.graph.viewIntent;
-      const shouldResetTransient = payload.reason === 'tree-switch' || payload.reason === 'tree-reset';
-      const resolvedViewIntent = shouldResetTransient ? nextViewIntent ?? null : nextViewIntent ?? state.graph.viewIntent;
+      const shouldResetTransient =
+        payload.reason === "tree-switch" || payload.reason === "tree-reset";
+      const resolvedViewIntent = shouldResetTransient
+        ? (nextViewIntent ?? null)
+        : (nextViewIntent ?? state.graph.viewIntent);
       // Save/restore per-tree collapse state on tree-switch
       let nextCollapsedByTree = state.graph.collapsedByTree;
       let nextCollapsedNodeIds: Set<NodeId>;
@@ -360,7 +370,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         autoExpandIds.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion;
       const collapseAction =
         autoExpandIds.length > 0
-          ? ({ kind: 'expand', nodeIds: new Set<NodeId>(autoExpandIds) } as const)
+          ? ({ kind: "expand", nodeIds: new Set<NodeId>(autoExpandIds) } as const)
           : state.graph.collapseAction;
       if (autoExpandIds.length > 0) {
         autoExpandIds.forEach((id) => nextCollapsedNodeIds.delete(id));
@@ -394,7 +404,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         ...(shouldResetTransient
           ? {
               search: {
-                query: '',
+                query: "",
                 results: [],
                 index: 0,
                 navStep: 0,
@@ -427,7 +437,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       return {
         tagDefs,
         tagDefsList: defs,
-        tagFilter: selectedChanged ? { ...state.tagFilter, selected: nextSelected } : state.tagFilter,
+        tagFilter: selectedChanged
+          ? { ...state.tagFilter, selected: nextSelected }
+          : state.tagFilter,
       };
     }),
   upsertTagDef: (def) =>
@@ -468,7 +480,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       if (!active) {
         return {
           search: {
-            query: '',
+            query: "",
             results: [],
             index: 0,
             navStep: 0,
@@ -477,8 +489,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           },
         };
       }
-      const base =
-        baseCurrentId ?? state.search.baseCurrentId ?? state.currentNodeId ?? null;
+      const base = baseCurrentId ?? state.search.baseCurrentId ?? state.currentNodeId ?? null;
       return {
         search: {
           ...state.search,
@@ -515,7 +526,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   clearSearch: () =>
     set({
       search: {
-        query: '',
+        query: "",
         results: [],
         index: 0,
         navStep: 0,
@@ -529,35 +540,34 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   setSettingsOpen: (open) =>
     set((state) =>
       open
-        ? { ui: openUiPopup(state.ui, 'settingsOpen'), contextMenu: null }
+        ? { ui: openUiPopup(state.ui, "settingsOpen"), contextMenu: null }
         : { ui: { ...state.ui, settingsOpen: false } },
     ),
   setThemePickerOpen: (open) =>
     set((state) =>
       open
-        ? { ui: openUiPopup(state.ui, 'themePickerOpen'), contextMenu: null }
+        ? { ui: openUiPopup(state.ui, "themePickerOpen"), contextMenu: null }
         : { ui: { ...state.ui, themePickerOpen: false } },
     ),
   setPinnedOpen: (open) =>
     set((state) =>
       open
-        ? { ui: openUiPopup(state.ui, 'pinnedOpen'), contextMenu: null }
+        ? { ui: openUiPopup(state.ui, "pinnedOpen"), contextMenu: null }
         : { ui: { ...state.ui, pinnedOpen: false } },
     ),
   setTreesOpen: (open) =>
     set((state) =>
       open
-        ? { ui: openUiPopup(state.ui, 'treesOpen'), contextMenu: null }
+        ? { ui: openUiPopup(state.ui, "treesOpen"), contextMenu: null }
         : { ui: { ...state.ui, treesOpen: false } },
     ),
   setTagFilterOpen: (open) =>
     set((state) =>
       open
-        ? { ui: openUiPopup(state.ui, 'tagFilterOpen'), contextMenu: null }
+        ? { ui: openUiPopup(state.ui, "tagFilterOpen"), contextMenu: null }
         : { ui: { ...state.ui, tagFilterOpen: false } },
     ),
-  setTooltipsOpen: (open) =>
-    set((state) => ({ ui: { ...state.ui, tooltipsOpen: open } })),
+  setTooltipsOpen: (open) => set((state) => ({ ui: { ...state.ui, tooltipsOpen: open } })),
   closeAllPopups: () => set((state) => ({ ui: closeUiPopups(state.ui), contextMenu: null })),
   openDeleteTreeConfirm: (rootId) =>
     set((state) => ({
@@ -572,7 +582,12 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   registerOverlay: (id, effects) =>
     set((state) => {
       const prev = state.overlayEffects.entries[id];
-      if (prev && prev.lod === effects.lod && prev.blur === effects.blur && prev.kind === effects.kind) {
+      if (
+        prev &&
+        prev.lod === effects.lod &&
+        prev.blur === effects.blur &&
+        prev.kind === effects.kind
+      ) {
         return state;
       }
       const entries = { ...state.overlayEffects.entries, [id]: effects };
@@ -616,28 +631,29 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         ...snapshot,
         config: snapshot.config ?? state.account.config,
         onboarding: snapshot.onboarding ?? state.account.onboarding,
-        status: 'ready',
-        network: 'online',
+        status: "ready",
+        network: "online",
         error: null,
         lastSyncedAt: new Date().toISOString(),
         sessionExpired: false,
-        authRequired: typeof snapshot.config?.["auth.extension.required"] === "boolean"
-          ? (snapshot.config["auth.extension.required"] as boolean)
-          : state.account.authRequired,
+        authRequired:
+          typeof snapshot.config?.["auth.extension.required"] === "boolean"
+            ? (snapshot.config["auth.extension.required"] as boolean)
+            : state.account.authRequired,
       },
     })),
   resetAccount: () =>
     set((state) => ({
       account: {
-        status: 'idle',
-        network: 'online',
-        session: { status: 'guest' },
+        status: "idle",
+        network: "online",
+        session: { status: "guest" },
         config: {},
         user: null,
         subscription: null,
-        billing: { state: 'none' },
+        billing: { state: "none" },
         plans: [],
-        onboarding: { flowId: 'activation-v1', status: 'pending', seenAt: null },
+        onboarding: { flowId: "activation-v1", status: "pending", seenAt: null },
         error: null,
         lastSyncedAt: null,
         sessionExpired: false,
@@ -680,7 +696,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           ...state.graph,
           collapsedNodeIds: next,
           collapseVersion: state.graph.collapseVersion + 1,
-          collapseAction: { kind: 'collapse', nodeIds: new Set(changed) },
+          collapseAction: { kind: "collapse", nodeIds: new Set(changed) },
         },
       };
     }),
@@ -700,7 +716,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           ...state.graph,
           collapsedNodeIds: next,
           collapseVersion: state.graph.collapseVersion + 1,
-          collapseAction: { kind: 'expand', nodeIds: new Set(changed) },
+          collapseAction: { kind: "expand", nodeIds: new Set(changed) },
         },
       };
     }),

@@ -1,13 +1,12 @@
-import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { rpc } from '@shared/rpc/contracts.js';
-import { fireAndForget } from '../../api/background.js';
-import { createNewTree } from '../../api/tree.js';
-import { useOverlayEffects } from '../state/overlay-effects.js';
-import { useStore } from '../state/store.js';
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
+import { rpc } from "@shared/rpc/contracts.js";
+import { fireAndForget } from "../../api/background.js";
+import { createNewTree } from "../../api/tree.js";
+import { useOverlayEffects } from "../state/overlay-effects.js";
+import { useStore } from "../state/store.js";
 
-
-const DEFAULT_NEW_TREE_LABEL = 'Unnamed Tree';
+const DEFAULT_NEW_TREE_LABEL = "Unnamed Tree";
 
 export default function DeleteTreeConfirmModal() {
   const { open, rootId } = useStore((state) => state.deleteTreeConfirm);
@@ -15,7 +14,7 @@ export default function DeleteTreeConfirmModal() {
   const clearSelection = useStore((state) => state.clearSelection);
   const close = useStore((state) => state.closeDeleteTreeConfirm);
 
-  useOverlayEffects(open, { lod: true, blur: true, kind: 'modal' });
+  useOverlayEffects(open, { lod: true, blur: true, kind: "modal" });
 
   const currentRootId = tree?.getRoot?.()?.id ?? null;
   const canAct = open && rootId !== null && rootId === currentRootId;
@@ -29,19 +28,19 @@ export default function DeleteTreeConfirmModal() {
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.preventDefault();
         close();
       }
     };
-    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
     return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
     };
   }, [close, open]);
 
   if (!open) return null;
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
 
   const handleDelete = () => {
     if (!canAct || !rootId) return;

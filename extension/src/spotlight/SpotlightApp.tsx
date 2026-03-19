@@ -1,4 +1,4 @@
-import { SpotlightRoot } from './SpotlightRoot.js';
+import { SpotlightRoot } from "./SpotlightRoot.js";
 
 type SpotlightAppProps = {
   onRegisterToggle: (toggle: () => void) => void;

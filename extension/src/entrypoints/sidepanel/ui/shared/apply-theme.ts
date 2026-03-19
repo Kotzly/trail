@@ -1,7 +1,7 @@
-import type { CustomTheme } from '@shared/types/settings.js';
-import type { ThemeId } from '@features/themes/model.js';
-import { generateThemeTokens, generateBaseTokens, THEME_TOKEN_KEYS } from './theme-generator.js';
-import { themeCacheItem } from '@shared/config/storage-items.js';
+import type { CustomTheme } from "@shared/types/settings.js";
+import type { ThemeId } from "@features/themes/model.js";
+import { generateThemeTokens, generateBaseTokens, THEME_TOKEN_KEYS } from "./theme-generator.js";
+import { themeCacheItem } from "@shared/config/storage-items.js";
 
 /**
  * Apply theme CSS tokens to an arbitrary element.
@@ -21,11 +21,15 @@ export function applyThemeTokens(
   opts?: { preserveDefaults?: boolean },
 ): void {
   const preserveDefaults = opts?.preserveDefaults ?? true;
-  const effective: 'light' | 'dark' = theme === 'system'
-    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    : theme;
+  const effective: "light" | "dark" =
+    theme === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
 
-  const hasVisualContent = (customTheme?.dots?.length ?? 0) > 0 || (customTheme?.customColors?.length ?? 0) > 0;
+  const hasVisualContent =
+    (customTheme?.dots?.length ?? 0) > 0 || (customTheme?.customColors?.length ?? 0) > 0;
   if (!customTheme?.enabled || !hasVisualContent) {
     if (preserveDefaults) {
       // Sidepanel: clear inline tokens, rely on tokens.css
@@ -63,14 +67,21 @@ export function applyThemeTokens(
  */
 export function applyTheme(theme: ThemeId, customTheme: CustomTheme): void {
   const root = document.documentElement;
-  root.setAttribute('data-theme', theme);
+  root.setAttribute("data-theme", theme);
   void themeCacheItem.setValue(theme);
   applyThemeTokens(root, theme, customTheme, { preserveDefaults: true });
 
   // Persist resolved theme to localStorage for instant access by inline
   // scripts in fullview/sidepanel HTML — prevents white flash on load.
-  const effective: 'light' | 'dark' = theme === 'system'
-    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    : theme;
-  try { localStorage.setItem('trail_theme', effective); } catch { /* quota / sandboxed */ }
+  const effective: "light" | "dark" =
+    theme === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
+  try {
+    localStorage.setItem("trail_theme", effective);
+  } catch {
+    /* quota / sandboxed */
+  }
 }

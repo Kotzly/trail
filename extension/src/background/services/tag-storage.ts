@@ -1,9 +1,7 @@
-import type { Tag } from '@shared/types/ids.js';
-import type { TagDefinition } from '@shared/types/tags.js';
-import { DEFAULT_TAG_DEFS } from '@shared/data/tag-presets.js';
-import { tagDefsItem } from '@shared/config/storage-items.js';
-import { browser } from '@shared/platform/webext.js';
-
+import type { Tag } from "@shared/types/ids.js";
+import type { TagDefinition } from "@shared/types/tags.js";
+import { DEFAULT_TAG_DEFS } from "@shared/data/tag-presets.js";
+import { tagDefsItem } from "@shared/config/storage-items.js";
 /** browser.storage.sync per-item limit is 8,192 bytes. Stay safely under. */
 const SYNC_ITEM_BYTE_LIMIT = 8_192;
 const MAX_TAG_COUNT = 50;
@@ -15,14 +13,14 @@ function estimateJsonBytes(value: unknown): number {
 function normalizeTagDefs(raw: unknown): TagDefinition[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .filter((item) => item && typeof item === 'object')
+    .filter((item) => item && typeof item === "object")
     .map((item) => item as TagDefinition)
     .filter(
       (item) =>
-        typeof item.id === 'string' &&
-        typeof item.label === 'string' &&
-        typeof item.color === 'string' &&
-        typeof item.iconId === 'string',
+        typeof item.id === "string" &&
+        typeof item.label === "string" &&
+        typeof item.color === "string" &&
+        typeof item.iconId === "string",
     )
     .map((item) => ({
       ...item,
@@ -52,7 +50,7 @@ class TagStorageService {
         this.cached = defs;
         return defs;
       } catch (error) {
-        console.error('TagStorageService.getAll: Error loading tags:', error);
+        console.error("TagStorageService.getAll: Error loading tags:", error);
         this.cached = DEFAULT_TAG_DEFS.slice();
         return this.cached;
       } finally {
@@ -75,14 +73,16 @@ class TagStorageService {
       next[index] = normalized;
     } else {
       if (next.length >= MAX_TAG_COUNT) {
-        console.warn(`TagStorageService: max tag limit (${MAX_TAG_COUNT}) reached, ignoring upsert`);
+        console.warn(
+          `TagStorageService: max tag limit (${MAX_TAG_COUNT}) reached, ignoring upsert`,
+        );
         return;
       }
       next.push(normalized);
     }
 
     if (estimateJsonBytes(next) > SYNC_ITEM_BYTE_LIMIT) {
-      console.warn('TagStorageService: tag data exceeds storage.sync item limit, ignoring upsert');
+      console.warn("TagStorageService: tag data exceeds storage.sync item limit, ignoring upsert");
       return;
     }
 

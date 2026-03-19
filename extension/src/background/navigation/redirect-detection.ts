@@ -1,4 +1,4 @@
-import type { TabId, Url, UrlWithTimestamp } from '@shared/types/ids.js';
+import type { TabId, UrlWithTimestamp } from "@shared/types/ids.js";
 
 // Track last URL per tab for redirect detection
 export class RedirectDetector {
@@ -22,7 +22,7 @@ export class RedirectDetector {
     const lastUrl = this.lastTabUrl.get(tabId);
     if (!lastUrl || lastUrl.url === url.url) return false;
 
-    return (url.timestamp - lastUrl.timestamp < RedirectDetector.REDIRECT_THRESHOLD_MS)
+    return url.timestamp - lastUrl.timestamp < RedirectDetector.REDIRECT_THRESHOLD_MS;
   }
 
   // Clear URL tracking for a tab.

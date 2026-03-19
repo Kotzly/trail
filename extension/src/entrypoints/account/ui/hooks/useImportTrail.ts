@@ -1,7 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { sendRpcMessage } from '@shared/rpc/client.js';
-import { rpc } from '@shared/rpc/contracts.js';
-import type { TrailExportBundle } from '@shared/types/export.js';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { sendRpcMessage } from "@shared/rpc/client.js";
+import { rpc } from "@shared/rpc/contracts.js";
+import type { TrailExportBundle } from "@shared/types/export.js";
 
 async function importTrail(bundle: TrailExportBundle): Promise<string> {
   const response = await sendRpcMessage(rpc.importTrail({ bundle }));
@@ -17,7 +17,7 @@ export function useImportTrail() {
   const mutation = useMutation({
     mutationFn: importTrail,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['local-trails'] });
+      void queryClient.invalidateQueries({ queryKey: ["local-trails"] });
     },
   });
 

@@ -1,22 +1,21 @@
-import { useEffect, useMemo, useRef } from 'react';
-import type { NodeId } from '@shared/types/ids.js';
-import { getFaviconUrl } from '@shared/utils/favicon.js';
-import { navigateTo } from '../../api/tree.js';
-import { useStore } from '../state/store.js';
-import { useOverlayEffects } from '../state/overlay-effects.js';
-import { useAnchoredDropdown } from '../hooks/useAnchoredDropdown.js';
-import { Icons } from './Icon.js';
-
+import { useEffect, useMemo, useRef } from "react";
+import type { NodeId } from "@shared/types/ids.js";
+import { getFaviconUrl } from "@shared/utils/favicon.js";
+import { navigateTo } from "../../api/tree.js";
+import { useStore } from "../state/store.js";
+import { useOverlayEffects } from "../state/overlay-effects.js";
+import { useAnchoredDropdown } from "../hooks/useAnchoredDropdown.js";
+import { Icons } from "./Icon.js";
 
 export default function PinnedDropdown() {
   const pins = useStore((state) => state.pins);
   const tree = useStore((state) => state.tree);
   const pinnedOpen = useStore((state) => state.ui.pinnedOpen);
   const setPinnedOpen = useStore((state) => state.setPinnedOpen);
-  const pinnedShortcut = 'Shift+P';
+  const pinnedShortcut = "Shift+P";
   const pinnedTooltip = `Pinned pages (${pinnedShortcut})`;
 
-  useOverlayEffects(pinnedOpen, { kind: 'dropdown' });
+  useOverlayEffects(pinnedOpen, { kind: "dropdown" });
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -32,14 +31,14 @@ export default function PinnedDropdown() {
 
     const onKeyDown = (event: KeyboardEvent) => {
       const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea') return;
+      if (tag === "input" || tag === "textarea") return;
 
       switch (event.key) {
-        case 'Escape':
+        case "Escape":
           event.preventDefault();
           setPinnedOpen(false);
           return;
-        case 'Enter': {
+        case "Enter": {
           event.preventDefault();
           const node = pinnedNodes[0];
           if (node) void navigateTo(node).finally(() => setPinnedOpen(false));
@@ -58,11 +57,11 @@ export default function PinnedDropdown() {
       setPinnedOpen(false);
     };
 
-    document.addEventListener('keydown', onKeyDown, true);
-    document.addEventListener('mousedown', onMouseDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("mousedown", onMouseDown, true);
     return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
-      document.removeEventListener('mousedown', onMouseDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("mousedown", onMouseDown, true);
     };
   }, [pinnedNodes, pinnedOpen, setPinnedOpen]);
 
@@ -72,7 +71,7 @@ export default function PinnedDropdown() {
     try {
       await navigateTo(node);
     } catch (error) {
-      console.error('PinnedDropdown: navigateTo failed', error);
+      console.error("PinnedDropdown: navigateTo failed", error);
     } finally {
       setPinnedOpen(false);
     }
@@ -94,7 +93,7 @@ export default function PinnedDropdown() {
       <div
         ref={dropdownRef}
         id="pinnedDropdown"
-        className={`pinned-dropdown ${pinnedOpen ? '' : 'hidden'}`}
+        className={`pinned-dropdown ${pinnedOpen ? "" : "hidden"}`}
         aria-hidden={!pinnedOpen}
       >
         <div className="pinned-dropdown-header">
@@ -129,20 +128,24 @@ export default function PinnedDropdown() {
                 onClick={() => void handleNavigate(node.id as NodeId)}
               >
                 {node.data.url ? (
-                  <img className="pinned-dropdown-item-favicon" alt="" src={getFaviconUrl(node.data.url)} />
+                  <img
+                    className="pinned-dropdown-item-favicon"
+                    alt=""
+                    src={getFaviconUrl(node.data.url)}
+                  />
                 ) : (
                   <div className="pinned-dropdown-item-favicon placeholder">
                     <Icons.Pin size={14} />
                   </div>
                 )}
                 <div className="pinned-dropdown-item-info">
-                  <div className="pinned-dropdown-item-title">{node.data.title || 'Untitled'}</div>
+                  <div className="pinned-dropdown-item-title">{node.data.title || "Untitled"}</div>
                   <div className="pinned-dropdown-item-url">
                     {(() => {
                       try {
                         return new URL(node.data.url).hostname;
                       } catch {
-                        return node.data.url || '';
+                        return node.data.url || "";
                       }
                     })()}
                   </div>

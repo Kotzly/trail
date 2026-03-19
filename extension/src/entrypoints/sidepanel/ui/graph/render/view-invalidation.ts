@@ -1,4 +1,4 @@
-import type { ViewState } from '../types.js';
+import type { ViewState } from "../types.js";
 
 export type WorldRect = {
   minX: number;
@@ -7,7 +7,7 @@ export type WorldRect = {
   maxY: number;
 };
 
-export type ViewInvalidationDecision = 'full' | 'translate-only';
+export type ViewInvalidationDecision = "full" | "translate-only";
 
 export type ViewInvalidationInput = {
   prevView: ViewState | null;
@@ -55,32 +55,28 @@ export function decideViewInvalidation(input: ViewInvalidationInput): {
   nextViewRect: WorldRect;
   nextCullingRect: WorldRect;
 } {
-  const nextViewRect = worldRectFromView(
-    input.nextView,
-    input.viewportWidth,
-    input.viewportHeight,
-  );
+  const nextViewRect = worldRectFromView(input.nextView, input.viewportWidth, input.viewportHeight);
   const padding = 200 / input.nextView.scale;
   const nextCullingRect = expandWorldRect(nextViewRect, padding);
 
   if (input.forceFull || input.originChanged) {
-    return { decision: 'full', nextViewRect, nextCullingRect };
+    return { decision: "full", nextViewRect, nextCullingRect };
   }
 
   const prevView = input.prevView;
   if (!prevView || !input.cachedCullingRect) {
-    return { decision: 'full', nextViewRect, nextCullingRect };
+    return { decision: "full", nextViewRect, nextCullingRect };
   }
 
   const epsilon = input.scaleEpsilon ?? 0.0005;
   const scaleChanged = Math.abs(prevView.scale - input.nextView.scale) > epsilon;
   if (scaleChanged) {
-    return { decision: 'full', nextViewRect, nextCullingRect };
+    return { decision: "full", nextViewRect, nextCullingRect };
   }
 
   if (!rectContainsRect(input.cachedCullingRect, nextViewRect)) {
-    return { decision: 'full', nextViewRect, nextCullingRect };
+    return { decision: "full", nextViewRect, nextCullingRect };
   }
 
-  return { decision: 'translate-only', nextViewRect, nextCullingRect };
+  return { decision: "translate-only", nextViewRect, nextCullingRect };
 }

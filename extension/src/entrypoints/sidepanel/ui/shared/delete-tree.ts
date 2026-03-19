@@ -1,5 +1,5 @@
-import type { NavigationTree } from '@background/state/nav-tree.js';
-import type { NodeId } from '@shared/types/ids.js';
+import type { NavigationTree } from "@background/state/nav-tree.js";
+import type { NodeId } from "@shared/types/ids.js";
 
 export function getIncludedRootId(
   tree: NavigationTree | null,

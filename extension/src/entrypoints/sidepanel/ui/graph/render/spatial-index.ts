@@ -139,4 +139,3 @@ export class SpatialIndex<T> {
 function intersects(a: Rect, b: Rect): boolean {
   return !(a.maxX < b.minX || a.minX > b.maxX || a.maxY < b.minY || a.minY > b.maxY);
 }
-

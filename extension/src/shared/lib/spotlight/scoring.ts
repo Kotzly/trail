@@ -1,5 +1,5 @@
-import type { NodeId } from '@shared/types/ids.js';
-import type { SpotlightSuggestionGroup } from '@shared/rpc/contracts.js';
+import type { NodeId } from "@shared/types/ids.js";
+import type { SpotlightSuggestionGroup } from "@shared/rpc/contracts.js";
 
 const RECENCY_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 const RECENCY_MAX = 2.5;
@@ -58,15 +58,22 @@ export function scoreSpotlightCandidate(
   const textScore = normalizeTextScore(query.textScore);
   const exactPrefixTitleBoost = candidate.exactPrefixMatch ? EXACT_PREFIX_TITLE_BOOST : 0;
   const recencyScore = computeRecencyScore(candidate.recency, now);
-  const openTabBoost = candidate.group === 'open-tabs' ? OPEN_TAB_BOOST : 0;
-  const tabCountBoost = Math.min(Math.log2(1 + Math.max(candidate.tabCount, 0)), 3) * TAB_COUNT_MULTIPLIER;
-  const currentTreeBoost = candidate.group === 'current-tree' ? CURRENT_TREE_BOOST : 0;
+  const openTabBoost = candidate.group === "open-tabs" ? OPEN_TAB_BOOST : 0;
+  const tabCountBoost =
+    Math.min(Math.log2(1 + Math.max(candidate.tabCount, 0)), 3) * TAB_COUNT_MULTIPLIER;
+  const currentTreeBoost = candidate.group === "current-tree" ? CURRENT_TREE_BOOST : 0;
   const graphProximityBoost = clampScore(candidate.graphProximityBoost ?? 0, 0, 3);
   const branchAffinityBoost = clampScore(candidate.branchAffinityBoost ?? 0, 0, 1.2);
-  const exactDomainBoost = hasDomainBoost(candidate.domain, query.queryDomains) ? EXACT_DOMAIN_BOOST : 0;
+  const exactDomainBoost = hasDomainBoost(candidate.domain, query.queryDomains)
+    ? EXACT_DOMAIN_BOOST
+    : 0;
   const exactUrlBoost = hasUrlBoost(candidate.url, query.queryUrls) ? EXACT_URL_BOOST : 0;
   const selectionFrequencyBoost = clampScore(candidate.selectionFrequencyBoost ?? 0, 0, 2);
-  const selectionTokenAffinityBoost = clampScore(candidate.selectionTokenAffinityBoost ?? 0, 0, 1.5);
+  const selectionTokenAffinityBoost = clampScore(
+    candidate.selectionTokenAffinityBoost ?? 0,
+    0,
+    1.5,
+  );
   const currentNodePenalty = candidate.isCurrent ? CURRENT_NODE_PENALTY : 0;
 
   const finalScore =
@@ -140,7 +147,7 @@ function hasUrlBoost(url: string, queryUrls: string[]): boolean {
 function normalizeUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    parsed.hash = '';
+    parsed.hash = "";
     const searchParams = new URLSearchParams(parsed.search);
     const keys = Array.from(searchParams.keys()).sort();
     const normalizedSearch = new URLSearchParams();
@@ -150,7 +157,7 @@ function normalizeUrl(url: string): string {
         normalizedSearch.append(key, value);
       }
     }
-    parsed.search = normalizedSearch.toString() ? `?${normalizedSearch.toString()}` : '';
+    parsed.search = normalizedSearch.toString() ? `?${normalizedSearch.toString()}` : "";
     return parsed.toString();
   } catch {
     return url;

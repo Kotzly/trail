@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { useStore } from '../state/store.js';
-import { useOverlayEffects } from '../state/overlay-effects.js';
-import { Icons } from './Icon.js';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useStore } from "../state/store.js";
+import { useOverlayEffects } from "../state/overlay-effects.js";
+import { Icons } from "./Icon.js";
 
-
-type Placement = 'top' | 'bottom' | 'left' | 'right';
+type Placement = "top" | "bottom" | "left" | "right";
 
 type TooltipTarget = {
   id: string;
@@ -41,22 +40,22 @@ const TOOLTIP_GAP = 8;
 const ARROW_PADDING = 12;
 
 const FALLBACKS: Record<Placement, Placement[]> = {
-  top: ['bottom', 'right', 'left'],
-  bottom: ['top', 'right', 'left'],
-  left: ['right', 'top', 'bottom'],
-  right: ['left', 'top', 'bottom'],
+  top: ["bottom", "right", "left"],
+  bottom: ["top", "right", "left"],
+  left: ["right", "top", "bottom"],
+  right: ["left", "top", "bottom"],
 };
 
-const PLACEMENTS: Placement[] = ['top', 'bottom', 'left', 'right'];
+const PLACEMENTS: Placement[] = ["top", "bottom", "left", "right"];
 
 function isVisible(element: HTMLElement) {
   if (!element.isConnected) return false;
-  if (element.getAttribute('aria-hidden') === 'true') return false;
+  if (element.getAttribute("aria-hidden") === "true") return false;
   const rect = element.getBoundingClientRect();
   if (rect.width === 0 && rect.height === 0) return false;
   const style = window.getComputedStyle(element);
-  if (style.display === 'none' || style.visibility === 'hidden') return false;
-  if (style.opacity === '0') return false;
+  if (style.display === "none" || style.visibility === "hidden") return false;
+  if (style.opacity === "0") return false;
   return true;
 }
 
@@ -81,7 +80,7 @@ function normalizePlacement(value: string | null): Placement {
   if (value && PLACEMENTS.includes(value as Placement)) {
     return value as Placement;
   }
-  return 'bottom';
+  return "bottom";
 }
 
 function computeBasePosition(
@@ -93,22 +92,22 @@ function computeBasePosition(
   const centerY = targetRect.top + targetRect.height / 2;
 
   switch (placement) {
-    case 'top':
+    case "top":
       return {
         left: centerX - tooltipRect.width / 2,
         top: targetRect.top - TOOLTIP_GAP - tooltipRect.height,
       };
-    case 'bottom':
+    case "bottom":
       return {
         left: centerX - tooltipRect.width / 2,
         top: targetRect.bottom + TOOLTIP_GAP,
       };
-    case 'left':
+    case "left":
       return {
         left: targetRect.left - TOOLTIP_GAP - tooltipRect.width,
         top: centerY - tooltipRect.height / 2,
       };
-    case 'right':
+    case "right":
       return {
         left: targetRect.right + TOOLTIP_GAP,
         top: centerY - tooltipRect.height / 2,
@@ -181,26 +180,26 @@ export default function TooltipLayer() {
   const idRef = useRef(0);
   const idMapRef = useRef<WeakMap<HTMLElement, string>>(new WeakMap());
 
-  useOverlayEffects(tooltipsOpen, { lod: true, blur: true, kind: 'panel' });
+  useOverlayEffects(tooltipsOpen, { lod: true, blur: true, kind: "panel" });
 
   const getIdFor = useCallback((element: HTMLElement) => {
     const existing = idMapRef.current.get(element);
     if (existing) return existing;
-    const next = `tooltip-${idRef.current += 1}`;
+    const next = `tooltip-${(idRef.current += 1)}`;
     idMapRef.current.set(element, next);
     return next;
   }, []);
 
   const buildTarget = useCallback(
     (element: HTMLElement): TooltipTarget | null => {
-      const text = element.getAttribute('data-tooltip');
+      const text = element.getAttribute("data-tooltip");
       if (!text) return null;
       const trimmed = text.trim();
       if (!trimmed) return null;
       return {
         id: getIdFor(element),
         text: trimmed,
-        placement: normalizePlacement(element.getAttribute('data-tooltip-position')),
+        placement: normalizePlacement(element.getAttribute("data-tooltip-position")),
         element,
       };
     },
@@ -208,9 +207,9 @@ export default function TooltipLayer() {
   );
 
   const updateTargets = useCallback(() => {
-    if (typeof document === 'undefined') return;
+    if (typeof document === "undefined") return;
     if (tooltipsOpen) {
-      const elements = Array.from(document.querySelectorAll<HTMLElement>('[data-tooltip]'));
+      const elements = Array.from(document.querySelectorAll<HTMLElement>("[data-tooltip]"));
       const next = elements
         .filter((element) => isVisible(element))
         .map((element) => buildTarget(element))
@@ -239,7 +238,7 @@ export default function TooltipLayer() {
     }
     const target = targets[0];
     const bubble = hoverBubbleRef.current;
-    if (!target || !bubble || typeof window === 'undefined') {
+    if (!target || !bubble || typeof window === "undefined") {
       setHoverLayout(null);
       return;
     }
@@ -270,18 +269,18 @@ export default function TooltipLayer() {
 
   useEffect(() => {
     if (tooltipsOpen) return;
-    window.addEventListener('resize', updateHoverLayout);
-    window.addEventListener('scroll', updateHoverLayout, true);
+    window.addEventListener("resize", updateHoverLayout);
+    window.addEventListener("scroll", updateHoverLayout, true);
     return () => {
-      window.removeEventListener('resize', updateHoverLayout);
-      window.removeEventListener('scroll', updateHoverLayout, true);
+      window.removeEventListener("resize", updateHoverLayout);
+      window.removeEventListener("scroll", updateHoverLayout, true);
     };
   }, [tooltipsOpen, updateHoverLayout]);
 
   useEffect(() => {
     if (tooltipsOpen) return;
     const handlePointerOver = (event: PointerEvent) => {
-      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-tooltip]');
+      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-tooltip]");
       if (!target) {
         setHoverTarget(null);
         return;
@@ -290,7 +289,7 @@ export default function TooltipLayer() {
     };
 
     const handlePointerOut = (event: PointerEvent) => {
-      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-tooltip]');
+      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-tooltip]");
       if (!target) return;
       const related = event.relatedTarget as HTMLElement | null;
       if (related && target.contains(related)) return;
@@ -298,42 +297,42 @@ export default function TooltipLayer() {
     };
 
     const handleFocusIn = (event: FocusEvent) => {
-      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-tooltip]');
+      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-tooltip]");
       if (!target) return;
       setHoverTarget(target);
     };
 
     const handleFocusOut = (event: FocusEvent) => {
-      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-tooltip]');
+      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-tooltip]");
       if (!target) return;
       const related = event.relatedTarget as HTMLElement | null;
       if (related && target.contains(related)) return;
       setHoverTarget((current) => (current === target ? null : current));
     };
 
-    document.addEventListener('pointerover', handlePointerOver);
-    document.addEventListener('pointerout', handlePointerOut);
-    document.addEventListener('focusin', handleFocusIn);
-    document.addEventListener('focusout', handleFocusOut);
+    document.addEventListener("pointerover", handlePointerOver);
+    document.addEventListener("pointerout", handlePointerOut);
+    document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
 
     return () => {
-      document.removeEventListener('pointerover', handlePointerOver);
-      document.removeEventListener('pointerout', handlePointerOut);
-      document.removeEventListener('focusin', handleFocusIn);
-      document.removeEventListener('focusout', handleFocusOut);
+      document.removeEventListener("pointerover", handlePointerOver);
+      document.removeEventListener("pointerout", handlePointerOut);
+      document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
     };
   }, [tooltipsOpen]);
 
   useEffect(() => {
     if (!tooltipsOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.preventDefault();
         setTooltipsOpen(false);
       }
     };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => document.removeEventListener('keydown', onKeyDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [setTooltipsOpen, tooltipsOpen]);
 
   useEffect(() => {
@@ -345,19 +344,19 @@ export default function TooltipLayer() {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['data-tooltip', 'style', 'class', 'aria-hidden'],
+        attributeFilter: ["data-tooltip", "style", "class", "aria-hidden"],
       });
     }
-    window.addEventListener('resize', updateTargets);
-    window.addEventListener('scroll', updateTargets, true);
+    window.addEventListener("resize", updateTargets);
+    window.addEventListener("scroll", updateTargets, true);
     return () => {
       observer.disconnect();
-      window.removeEventListener('resize', updateTargets);
-      window.removeEventListener('scroll', updateTargets, true);
+      window.removeEventListener("resize", updateTargets);
+      window.removeEventListener("scroll", updateTargets, true);
     };
   }, [hoverTarget, tooltipsOpen, updateTargets]);
 
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
 
   if (tooltipsOpen) {
     const seen = new Set<string>();
@@ -383,9 +382,11 @@ export default function TooltipLayer() {
         >
           <div className="tooltip-panel-header">
             <div>
-              <div id="tooltip-panel-title" className="tooltip-panel-title">Tooltips</div>
+              <div id="tooltip-panel-title" className="tooltip-panel-title">
+                Tooltips
+              </div>
               <div className="tooltip-panel-subtitle">
-                {items.length === 0 ? 'No tooltips available.' : `${items.length} tips available.`}
+                {items.length === 0 ? "No tooltips available." : `${items.length} tips available.`}
               </div>
             </div>
             <button
@@ -421,8 +422,8 @@ export default function TooltipLayer() {
     ? {
         left: `${hoverLayout.left}px`,
         top: `${hoverLayout.top}px`,
-        ['--tooltip-arrow-offset-x' as string]: `${hoverLayout.arrowOffsetX}px`,
-        ['--tooltip-arrow-offset-y' as string]: `${hoverLayout.arrowOffsetY}px`,
+        ["--tooltip-arrow-offset-x" as string]: `${hoverLayout.arrowOffsetX}px`,
+        ["--tooltip-arrow-offset-y" as string]: `${hoverLayout.arrowOffsetY}px`,
       }
     : undefined;
 
@@ -432,7 +433,7 @@ export default function TooltipLayer() {
         ref={hoverBubbleRef}
         className="tooltip-bubble"
         data-placement={hoverLayout?.placement ?? hoverItem.placement}
-        data-visible={hoverLayout ? 'true' : 'false'}
+        data-visible={hoverLayout ? "true" : "false"}
         style={bubbleStyle}
       >
         {hoverItem.text}

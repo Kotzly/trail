@@ -157,7 +157,9 @@
   font-weight: 500;
   cursor: pointer;
   text-transform: capitalize;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .settings-seg-btn:hover {
@@ -186,7 +188,9 @@
   border-radius: 7px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .settings-action:hover:not(:disabled) {
@@ -235,7 +239,9 @@
   border-radius: 50%;
   background: var(--foreground);
   opacity: 0.6;
-  transition: transform 0.15s, opacity 0.15s;
+  transition:
+    transform 0.15s,
+    opacity 0.15s;
 }
 
 .settings-toggle-input:checked + .settings-toggle-control {

@@ -1,9 +1,5 @@
-import { browser } from '@shared/platform/webext.js';
-import type {
-  MessageByType,
-  RequestType,
-  ResponseMessage,
-} from "./contracts.js";
+import { browser } from "@shared/platform/webext.js";
+import type { MessageByType, RequestType, ResponseMessage } from "./contracts.js";
 import {
   RPC_VERSION,
   rpcRequestEnvelopeSchema,
@@ -66,17 +62,13 @@ export function sendRpcMessage<T extends RequestType>(
   message: MessageByType<T>,
 ): Promise<ResponseMessage<T>> {
   const request = toRpcRequestEnvelope(message);
-  return browser.runtime
-    .sendMessage(request)
-    .then((rawResponse: unknown) => {
-      const envelope = parseRpcResponseEnvelope(rawResponse);
-      return toResponseMessage<T>(request, envelope);
-    });
+  return browser.runtime.sendMessage(request).then((rawResponse: unknown) => {
+    const envelope = parseRpcResponseEnvelope(rawResponse);
+    return toResponseMessage<T>(request, envelope);
+  });
 }
 
-export function fireAndForgetRpcMessage<T extends RequestType>(
-  message: MessageByType<T>,
-): void {
+export function fireAndForgetRpcMessage<T extends RequestType>(message: MessageByType<T>): void {
   void sendRpcMessage(message).catch((error) => {
     console.error("Failed to send RPC message:", message.type, error);
   });

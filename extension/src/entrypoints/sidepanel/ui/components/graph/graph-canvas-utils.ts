@@ -1,7 +1,7 @@
-import type { NodeId } from '@shared/types/ids.js';
-import type { NavigationNode } from '@shared/types/node.js';
-import type { NavigationTree } from '@background/state/nav-tree.js';
-import type { CollapseScope } from './graph-canvas-types.js';
+import type { NodeId } from "@shared/types/ids.js";
+import type { NavigationNode } from "@shared/types/node.js";
+import type { NavigationTree } from "@background/state/nav-tree.js";
+import type { CollapseScope } from "./graph-canvas-types.js";
 
 export function collectSubtreeIds(node: NavigationNode): Set<NodeId> {
   const ids = new Set<NodeId>();

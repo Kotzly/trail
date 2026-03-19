@@ -1,4 +1,4 @@
-import { useCurrentPath } from '../router.js';
+import { useCurrentPath } from "../router.js";
 
 type NavItem = {
   label: string;
@@ -6,16 +6,16 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { label: 'Trails', path: '/trails' },
-  { label: 'Settings', path: '/settings' },
-  { label: 'Billing', path: '/billing' },
-  { label: 'Activity', path: '/activity' },
-  { label: 'Getting Started', path: '/getting-started' },
+  { label: "Trails", path: "/trails" },
+  { label: "Settings", path: "/settings" },
+  { label: "Billing", path: "/billing" },
+  { label: "Activity", path: "/activity" },
+  { label: "Getting Started", path: "/getting-started" },
 ];
 
 function isActive(currentPath: string, itemPath: string): boolean {
-  if (itemPath === '/trails') {
-    return currentPath === '/trails' || currentPath.startsWith('/trails/');
+  if (itemPath === "/trails") {
+    return currentPath === "/trails" || currentPath.startsWith("/trails/");
   }
   return currentPath === itemPath;
 }
@@ -35,7 +35,7 @@ export default function AccountSidebar() {
             <li key={item.path}>
               <a
                 href={`#${item.path}`}
-                className={`account-sidebar__link${active ? ' account-sidebar__link--active' : ''}`}
+                className={`account-sidebar__link${active ? "account-sidebar__link--active" : ""}`}
               >
                 {item.label}
               </a>

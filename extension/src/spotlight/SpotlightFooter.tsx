@@ -1,38 +1,46 @@
-import { IS_MAC } from './platform.js';
-import type { SpotlightMode } from './types.js';
+import { IS_MAC } from "./platform.js";
+import type { SpotlightMode } from "./types.js";
 
 type SpotlightFooterProps = {
   mode: SpotlightMode;
   isMultiSelect: boolean;
-  focusPane: 'list' | 'graph';
+  focusPane: "list" | "graph";
   showWebSearchHint?: boolean;
 };
 
-export function SpotlightFooter({ mode, isMultiSelect, focusPane, showWebSearchHint }: SpotlightFooterProps) {
+export function SpotlightFooter({
+  mode,
+  isMultiSelect,
+  focusPane,
+  showWebSearchHint,
+}: SpotlightFooterProps) {
   return (
     <div className="spotlight-footer">
       <div className="spotlight-footer-hints">
         <span className="spotlight-footer-hint">
-          <kbd className="spotlight-footer-kbd">{'\u2191\u2193'}</kbd>
+          <kbd className="spotlight-footer-kbd">{"\u2191\u2193"}</kbd>
           <span className="spotlight-footer-label">navigate</span>
         </span>
         <span className="spotlight-footer-hint">
-          <kbd className="spotlight-footer-kbd">{'\u23CE'}</kbd>
+          <kbd className="spotlight-footer-kbd">{"\u23CE"}</kbd>
           <span className="spotlight-footer-label">open</span>
         </span>
         <span className="spotlight-footer-hint">
           <kbd className="spotlight-footer-kbd">Tab</kbd>
-          <span className="spotlight-footer-label">{focusPane === 'list' ? 'graph' : 'list'}</span>
+          <span className="spotlight-footer-label">{focusPane === "list" ? "graph" : "list"}</span>
         </span>
         {!isMultiSelect && (
           <span className="spotlight-footer-hint">
-            <kbd className="spotlight-footer-kbd">{'\u21E7'}Tab</kbd>
+            <kbd className="spotlight-footer-kbd">{"\u21E7"}Tab</kbd>
             <span className="spotlight-footer-label">select</span>
           </span>
         )}
         {showWebSearchHint && (
           <span className="spotlight-footer-hint">
-            <kbd className="spotlight-footer-kbd">{IS_MAC ? '\u2318' : 'Ctrl'}{'\u23CE'}</kbd>
+            <kbd className="spotlight-footer-kbd">
+              {IS_MAC ? "\u2318" : "Ctrl"}
+              {"\u23CE"}
+            </kbd>
             <span className="spotlight-footer-label">search web</span>
           </span>
         )}
@@ -41,7 +49,7 @@ export function SpotlightFooter({ mode, isMultiSelect, focusPane, showWebSearchH
           <span className="spotlight-footer-label">help</span>
         </span>
       </div>
-      {mode !== 'commands' && (
+      {mode !== "commands" && (
         <div className="spotlight-footer-hints">
           <span className="spotlight-footer-hint">
             <kbd className="spotlight-footer-kbd">&gt;</kbd>

@@ -1,4 +1,4 @@
-import { spotlightUsageStatsItem } from '@shared/config/storage-items.js';
+import { spotlightUsageStatsItem } from "@shared/config/storage-items.js";
 import {
   emptySpotlightUsageStats,
   getSelectionFrequencyBoost,
@@ -10,7 +10,7 @@ import {
   recordSpotlightSelection,
   sanitizeSpotlightUsageStats,
   type SpotlightUsageTargetStats,
-} from '@shared/lib/spotlight/usage-stats.js';
+} from "@shared/lib/spotlight/usage-stats.js";
 
 export class SpotlightUsageStatsService {
   private cache = emptySpotlightUsageStats();
@@ -31,7 +31,10 @@ export class SpotlightUsageStatsService {
     await this.writeQueue;
   }
 
-  async getBoosts(targetKey: string, queryTokens: string[]): Promise<{
+  async getBoosts(
+    targetKey: string,
+    queryTokens: string[],
+  ): Promise<{
     selectionFrequencyBoost: number;
     selectionTokenAffinityBoost: number;
   }> {

@@ -1,19 +1,18 @@
-import { useEffect } from 'react';
-import type { RefObject } from 'react';
-import type { NodeId } from '@shared/types/ids.js';
-import type { LayoutMode } from '@shared/types/settings.js';
-import { rpc } from '@shared/rpc/contracts.js';
-import { redo, undo } from '../../api/commands.js';
-import { fireAndForget } from '../../api/background.js';
-import { navigateTo, setCurrentNode } from '../../api/tree.js';
-import { saveSettings } from '../../api/settings.js';
-import { useStore } from '../state/store.js';
-import { getIncludedRootId } from '../shared/delete-tree.js';
+import { useEffect, type RefObject } from "react";
+import type { NodeId } from "@shared/types/ids.js";
+import type { LayoutMode } from "@shared/types/settings.js";
+import { rpc } from "@shared/rpc/contracts.js";
+import { redo, undo } from "../../api/commands.js";
+import { fireAndForget } from "../../api/background.js";
+import { navigateTo, setCurrentNode } from "../../api/tree.js";
+import { saveSettings } from "../../api/settings.js";
+import { useStore } from "../state/store.js";
+import { getIncludedRootId } from "../shared/delete-tree.js";
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName.toLowerCase();
-  if (tag === 'input' || tag === 'textarea' || target.isContentEditable) return true;
+  if (tag === "input" || tag === "textarea" || target.isContentEditable) return true;
   return Boolean(target.closest('[contenteditable="true"]'));
 };
 
@@ -58,7 +57,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         return [];
       };
 
-      const moveFocus = async (direction: 'parent' | 'child' | 'prev' | 'next') => {
+      const moveFocus = async (direction: "parent" | "child" | "prev" | "next") => {
         const tree = state.tree;
         if (!tree) return;
         const baseId = getFocusBaseId();
@@ -67,9 +66,9 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         if (!node) return;
 
         let next = null;
-        if (direction === 'parent') {
+        if (direction === "parent") {
           next = node.getParent?.() ?? null;
-        } else if (direction === 'child') {
+        } else if (direction === "child") {
           next = node.getChildren?.()[0] ?? null;
         } else {
           const parent = node.getParent?.() ?? null;
@@ -77,7 +76,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
           const siblings = parent.getChildren?.() ?? [];
           const idx = siblings.findIndex((entry) => entry.id === node.id);
           if (idx === -1) return;
-          if (direction === 'prev') {
+          if (direction === "prev") {
             next = idx > 0 ? siblings[idx - 1] : null;
           } else {
             next = idx < siblings.length - 1 ? siblings[idx + 1] : null;
@@ -88,7 +87,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         try {
           await setCurrentNode(next.id);
         } catch (error) {
-          console.error('Failed to set current node:', error);
+          console.error("Failed to set current node:", error);
         }
       };
 
@@ -102,7 +101,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         try {
           await navigateTo(node);
         } catch (error) {
-          console.error('Failed to navigate:', error);
+          console.error("Failed to navigate:", error);
         }
       };
 
@@ -121,14 +120,10 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
           fireAndForget(rpc.togglePin({ nodeId }));
           return;
         }
-        const nodes = nodeIds
-          .map((id) => tree.findNodeById(id))
-          .filter((node) => Boolean(node));
+        const nodes = nodeIds.map((id) => tree.findNodeById(id)).filter((node) => Boolean(node));
         if (nodes.length === 0) return;
         const allPinned = nodes.every((node) => node?.data.pinned);
-        fireAndForget(
-          allPinned ? rpc.bulkUnpin({ nodeIds }) : rpc.bulkPin({ nodeIds }),
-        );
+        fireAndForget(allPinned ? rpc.bulkUnpin({ nodeIds }) : rpc.bulkPin({ nodeIds }));
       };
 
       const deleteNodes = (nodeIds: NodeId[], recursive: boolean) => {
@@ -142,15 +137,11 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
           const [nodeId] = nodeIds;
           if (!nodeId) return;
           fireAndForget(
-            recursive
-              ? rpc.deleteWithChildren({ nodeId })
-              : rpc.deleteNode({ nodeId }),
+            recursive ? rpc.deleteWithChildren({ nodeId }) : rpc.deleteNode({ nodeId }),
           );
         } else {
           fireAndForget(
-            recursive
-              ? rpc.bulkDeleteRecursive({ nodeIds })
-              : rpc.bulkDeleteNodes({ nodeIds }),
+            recursive ? rpc.bulkDeleteRecursive({ nodeIds }) : rpc.bulkDeleteNodes({ nodeIds }),
           );
         }
         state.clearSelection();
@@ -167,11 +158,11 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         state.setSelectedNodeIds(ids);
       };
 
-      const togglePopup = (key: 'pinnedOpen' | 'treesOpen' | 'tagFilterOpen') => {
+      const togglePopup = (key: "pinnedOpen" | "treesOpen" | "tagFilterOpen") => {
         const isOpen = state.ui[key];
-        if (key === 'pinnedOpen') {
+        if (key === "pinnedOpen") {
           state.setPinnedOpen(!isOpen);
-        } else if (key === 'treesOpen') {
+        } else if (key === "treesOpen") {
           state.setTreesOpen(!isOpen);
         } else {
           state.setTagFilterOpen(!isOpen);
@@ -184,9 +175,9 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
 
       const cycleLayoutMode = () => {
         if (!state.settings) return;
-        const order: LayoutMode[] = ['tree', 'mindmap', 'radial'];
-        const current = state.settings.layout.mode ?? 'tree';
-        const next = order[(order.indexOf(current) + 1) % order.length] ?? 'tree';
+        const order: LayoutMode[] = ["tree", "mindmap", "radial"];
+        const current = state.settings.layout.mode ?? "tree";
+        const next = order[(order.indexOf(current) + 1) % order.length] ?? "tree";
         const nextSettings = {
           ...state.settings,
           layout: { ...state.settings.layout, mode: next },
@@ -205,7 +196,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         void saveSettings(nextSettings);
       };
 
-      if (metaKey && code === 'Slash') {
+      if (metaKey && code === "Slash") {
         event.preventDefault();
         state.setTooltipsOpen(!state.ui.tooltipsOpen);
         return;
@@ -213,7 +204,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
 
       if (isEditable) return;
 
-      if (metaKey && code === 'KeyZ') {
+      if (metaKey && code === "KeyZ") {
         event.preventDefault();
         const canRedo = state.commandState?.canRedo ?? false;
         const canUndo = state.commandState?.canUndo ?? false;
@@ -226,12 +217,12 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
           const commandState = event.shiftKey ? await redo() : await undo();
           state.setCommandState(commandState);
         } catch (error) {
-          console.error('Failed to update command state:', error);
+          console.error("Failed to update command state:", error);
         }
         return;
       }
 
-      if (!isMac && metaKey && code === 'KeyY') {
+      if (!isMac && metaKey && code === "KeyY") {
         event.preventDefault();
         const canRedo = state.commandState?.canRedo ?? false;
         if (!canRedo) return;
@@ -239,30 +230,30 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
           const commandState = await redo();
           state.setCommandState(commandState);
         } catch (error) {
-          console.error('Failed to update command state:', error);
+          console.error("Failed to update command state:", error);
         }
         return;
       }
 
-      if (metaKey && (code === 'KeyF' || code === 'KeyK')) {
+      if (metaKey && (code === "KeyF" || code === "KeyK")) {
         event.preventDefault();
         focusSearch();
         return;
       }
 
-      if (!metaKey && !event.altKey && code === 'Slash') {
+      if (!metaKey && !event.altKey && code === "Slash") {
         event.preventDefault();
         focusSearch();
         return;
       }
 
-      if (metaKey && code === 'Comma') {
+      if (metaKey && code === "Comma") {
         event.preventDefault();
         toggleSettings();
         return;
       }
 
-      if (metaKey && code === 'KeyA') {
+      if (metaKey && code === "KeyA") {
         event.preventDefault();
         if (event.shiftKey) {
           state.clearSelection();
@@ -272,7 +263,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         return;
       }
 
-      if (!metaKey && !event.altKey && !event.ctrlKey && key === 'Escape') {
+      if (!metaKey && !event.altKey && !event.ctrlKey && key === "Escape") {
         event.preventDefault();
         state.closeAllPopups();
         state.closeContextMenu();
@@ -291,35 +282,35 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         Boolean(state.contextMenu);
 
       if (!metaKey && !event.altKey && !event.ctrlKey) {
-        if (event.shiftKey && code === 'KeyP') {
+        if (event.shiftKey && code === "KeyP") {
           if (editorActive) {
             event.preventDefault();
             return;
           }
           event.preventDefault();
-          togglePopup('pinnedOpen');
+          togglePopup("pinnedOpen");
           return;
         }
-        if (event.shiftKey && code === 'KeyT') {
+        if (event.shiftKey && code === "KeyT") {
           event.preventDefault();
-          togglePopup('treesOpen');
+          togglePopup("treesOpen");
           return;
         }
-        if (event.shiftKey && code === 'KeyF') {
+        if (event.shiftKey && code === "KeyF") {
           if (editorActive) {
             event.preventDefault();
             return;
           }
           event.preventDefault();
-          togglePopup('tagFilterOpen');
+          togglePopup("tagFilterOpen");
           return;
         }
-        if (event.shiftKey && code === 'KeyL') {
+        if (event.shiftKey && code === "KeyL") {
           event.preventDefault();
           cycleLayoutMode();
           return;
         }
-        if (event.shiftKey && code === 'KeyC') {
+        if (event.shiftKey && code === "KeyC") {
           event.preventDefault();
           toggleConnections();
           return;
@@ -327,13 +318,13 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
 
         if (overlayOpen) return;
 
-        if (code === 'KeyP') {
+        if (code === "KeyP") {
           event.preventDefault();
           togglePinned(getTargetNodeIds());
           return;
         }
 
-        if (key === 'Enter') {
+        if (key === "Enter") {
           if (editorActive) {
             event.preventDefault();
             return;
@@ -343,35 +334,35 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
           return;
         }
 
-        if (key === 'Delete' || key === 'Backspace') {
+        if (key === "Delete" || key === "Backspace") {
           event.preventDefault();
           deleteNodes(getTargetNodeIds(), event.shiftKey);
           return;
         }
 
-        if (!event.shiftKey && key === 'ArrowUp') {
+        if (!event.shiftKey && key === "ArrowUp") {
           event.preventDefault();
-          await moveFocus('parent');
+          await moveFocus("parent");
           return;
         }
-        if (!event.shiftKey && key === 'ArrowDown') {
+        if (!event.shiftKey && key === "ArrowDown") {
           event.preventDefault();
-          await moveFocus('child');
+          await moveFocus("child");
           return;
         }
-        if (!event.shiftKey && key === 'ArrowLeft') {
+        if (!event.shiftKey && key === "ArrowLeft") {
           event.preventDefault();
-          await moveFocus('prev');
+          await moveFocus("prev");
           return;
         }
-        if (!event.shiftKey && key === 'ArrowRight') {
+        if (!event.shiftKey && key === "ArrowRight") {
           event.preventDefault();
-          await moveFocus('next');
+          await moveFocus("next");
           return;
         }
       }
 
-      if (metaKey && key === 'Enter') {
+      if (metaKey && key === "Enter") {
         if (editorActive) {
           event.preventDefault();
           return;
@@ -381,9 +372,9 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
       }
     };
 
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [searchInputRef]);
 }

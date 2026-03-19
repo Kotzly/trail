@@ -6,7 +6,7 @@
 // per extension, so we check before creating.
 // ---------------------------------------------------------------------------
 
-const OFFSCREEN_URL = 'offscreen-graph.html';
+const OFFSCREEN_URL = "offscreen-graph.html";
 
 const REASON = chrome.offscreen.Reason.WORKERS;
 
@@ -29,12 +29,12 @@ async function ensureOffscreenDocument(): Promise<void> {
     await chrome.offscreen.createDocument({
       url: OFFSCREEN_URL,
       reasons: [REASON],
-      justification: 'Pre-compute graph layout positions for instant display',
+      justification: "Pre-compute graph layout positions for instant display",
     });
-    console.debug('[offscreen-graph-manager] offscreen document created');
+    console.debug("[offscreen-graph-manager] offscreen document created");
   } catch (err) {
     // May fail if another offscreen document exists or API unavailable
-    console.warn('[offscreen-graph-manager] failed to create offscreen document:', err);
+    console.warn("[offscreen-graph-manager] failed to create offscreen document:", err);
   }
 }
 

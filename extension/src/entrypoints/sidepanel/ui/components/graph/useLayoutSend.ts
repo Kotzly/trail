@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { setNodeLayoutBatch } from '../../../api/tree.js';
-import type { LayoutUpdateMap } from './graph-canvas-types.js';
+import { useCallback, useEffect, useRef } from "react";
+import { setNodeLayoutBatch } from "../../../api/tree.js";
+import type { LayoutUpdateMap } from "./graph-canvas-types.js";
 
 const LAYOUT_UPDATE_MS = 80;
 
@@ -24,7 +24,7 @@ export function useLayoutSend() {
         })),
       );
     } catch (error) {
-      console.error('Failed to save node position:', error);
+      console.error("Failed to save node position:", error);
     }
   }, []);
 

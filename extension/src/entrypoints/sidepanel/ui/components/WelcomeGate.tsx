@@ -1,7 +1,7 @@
-import TrailLogo from './TrailLogo.js';
-import { useAuthPortalFlow } from '../hooks/useAuthPortalFlow.js';
-import { guestWelcomeDismissedItem } from '@shared/config/storage-items.js';
-import { Icons } from './Icon.js';
+import TrailLogo from "./TrailLogo.js";
+import { useAuthPortalFlow } from "../hooks/useAuthPortalFlow.js";
+import { guestWelcomeDismissedItem } from "@shared/config/storage-items.js";
+import { Icons } from "./Icon.js";
 
 export default function WelcomeGate() {
   const { busy, silentSyncing, notice, startAuthFlow } = useAuthPortalFlow();
@@ -39,15 +39,11 @@ export default function WelcomeGate() {
               Checking web session…
             </>
           ) : (
-            'Continue with Trail'
+            "Continue with Trail"
           )}
         </button>
 
-        <button
-          className="auth-gate__link-btn"
-          type="button"
-          onClick={handleDismiss}
-        >
+        <button className="auth-gate__link-btn" type="button" onClick={handleDismiss}>
           Sign in later
         </button>
 

@@ -1,12 +1,12 @@
 type BooleanFlagDef = {
-  type: 'boolean';
+  type: "boolean";
   default: boolean;
   label: string;
   description: string;
 };
 
 type VariantFlagDef<V extends string = string> = {
-  type: 'variant';
+  type: "variant";
   default: V;
   variants: readonly V[];
   label: string;
@@ -17,39 +17,39 @@ export type FlagDef = BooleanFlagDef | VariantFlagDef;
 
 export const FLAG_DEFS = {
   fullView: {
-    type: 'boolean',
+    type: "boolean",
     default: false,
-    label: 'Full View',
+    label: "Full View",
     description: 'Show the "Open full view" button in the graph toolbar.',
   },
   recencyOrderingV2: {
-    type: 'boolean',
+    type: "boolean",
     default: false,
-    label: 'Recency Ordering V2',
-    description: 'Enable stable recency-based branch ordering with hysteresis.',
+    label: "Recency Ordering V2",
+    description: "Enable stable recency-based branch ordering with hysteresis.",
   },
   themeStudio: {
-    type: 'boolean',
+    type: "boolean",
     default: false,
-    label: 'Theme Studio',
-    description: 'Enable the full theme studio with color dots, presets, and custom colors.',
+    label: "Theme Studio",
+    description: "Enable the full theme studio with color dots, presets, and custom colors.",
   },
   adaptivePerformance: {
-    type: 'boolean',
+    type: "boolean",
     default: false,
-    label: 'Adaptive Performance',
-    description: 'Automatically degrade graph rendering quality to maintain frame rate on large trees.',
+    label: "Adaptive Performance",
+    description:
+      "Automatically degrade graph rendering quality to maintain frame rate on large trees.",
   },
 } as const satisfies Record<string, FlagDef>;
 
 export type FlagKey = keyof typeof FLAG_DEFS;
 
-export type FlagValue<K extends FlagKey> =
-  (typeof FLAG_DEFS)[K] extends { type: 'boolean' }
-    ? boolean
-    : (typeof FLAG_DEFS)[K] extends { type: 'variant'; variants: readonly (infer V)[] }
-      ? V
-      : never;
+export type FlagValue<K extends FlagKey> = (typeof FLAG_DEFS)[K] extends { type: "boolean" }
+  ? boolean
+  : (typeof FLAG_DEFS)[K] extends { type: "variant"; variants: readonly (infer V)[] }
+    ? V
+    : never;
 
 export type ResolvedFlags = { [K in FlagKey]: FlagValue<K> };
 
@@ -64,7 +64,7 @@ function resolveSingleFlag(def: FlagDef, override: unknown): unknown {
   if (override === undefined || typeof override !== typeof def.default) {
     return def.default;
   }
-  if (def.type === 'variant') {
+  if (def.type === "variant") {
     return (def.variants as readonly string[]).includes(override as string)
       ? override
       : def.default;

@@ -1,27 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  executeSpotlightAction,
-  exportTree,
-  getSpotlightTreePreview,
-} from './rpc.js';
-import { LRUMap } from './lru-map.js';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { executeSpotlightAction, exportTree, getSpotlightTreePreview } from "./rpc.js";
+import type { LRUMap } from "./lru-map.js";
+import type { TrailExportBundle } from "@shared/types/export.js";
 import type {
   SpotlightActionId,
   SpotlightActionResult,
   SpotlightGraphPreviewData,
   SpotlightSearchResult,
-} from './types.js';
+} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Helpers (module-level, only used by handleActivate for export-tree)
 // ---------------------------------------------------------------------------
 
-function downloadBundle(bundle: import('@shared/types/export.js').TrailExportBundle): void {
-  const label = bundle.source.treeLabel ?? 'trail';
+function downloadBundle(bundle: TrailExportBundle): void {
+  const label = bundle.source.treeLabel ?? "trail";
   const json = JSON.stringify(bundle);
-  const blob = new Blob([json], { type: 'application/json' });
+  const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
+  const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = `${sanitizeFilename(label)}.trail.json`;
   document.body.appendChild(anchor);
@@ -31,23 +28,23 @@ function downloadBundle(bundle: import('@shared/types/export.js').TrailExportBun
 }
 
 function sanitizeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9_\-. ]/g, '_').trim() || 'trail';
+  return name.replace(/[^a-zA-Z0-9_\-. ]/g, "_").trim() || "trail";
 }
 
 function resolveCopyUrlItem(
-  action: Extract<SpotlightSearchResult, { kind: 'action' }>,
+  action: Extract<SpotlightSearchResult, { kind: "action" }>,
   items: SpotlightSearchResult[],
-): Extract<SpotlightSearchResult, { kind: 'node' }> | null {
+): Extract<SpotlightSearchResult, { kind: "node" }> | null {
   const target = action.target;
-  if (!target || target.kind !== 'node') return null;
+  if (!target || target.kind !== "node") return null;
   const item = items.find((candidate) => {
     return (
-      candidate.kind === 'node'
-      && candidate.nodeId === target.nodeId
-      && candidate.treeId === target.treeId
+      candidate.kind === "node" &&
+      candidate.nodeId === target.nodeId &&
+      candidate.treeId === target.treeId
     );
   });
-  return item?.kind === 'node' ? item : null;
+  return item?.kind === "node" ? item : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -76,7 +73,7 @@ type UseSpotlightActionsReturn = {
   setConfirmingAction: (action: SpotlightSearchResult | null) => void;
   quickLookItem: SpotlightSearchResult | null;
   setQuickLookItem: (item: SpotlightSearchResult | null) => void;
-  drilldownTransition: 'idle' | 'entering' | 'exiting';
+  drilldownTransition: "idle" | "entering" | "exiting";
   predrilldownQuery: string;
   collapsedSections: Set<string>;
   statusText: string | null;
@@ -117,9 +114,11 @@ export function useSpotlightActions(
   const [actionMenuActions, setActionMenuActions] = useState<SpotlightActionResult[] | null>(null);
   const [confirmingAction, setConfirmingAction] = useState<SpotlightSearchResult | null>(null);
   const [quickLookItem, setQuickLookItem] = useState<SpotlightSearchResult | null>(null);
-  const [predrilldownQuery, setPredrilldownQuery] = useState('');
+  const [predrilldownQuery, setPredrilldownQuery] = useState("");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [drilldownTransition, setDrilldownTransition] = useState<'idle' | 'entering' | 'exiting'>('idle');
+  const [drilldownTransition, setDrilldownTransition] = useState<"idle" | "entering" | "exiting">(
+    "idle",
+  );
   const [statusText, setStatusText] = useState<string | null>(null);
 
   const drilldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -146,7 +145,7 @@ export function useSpotlightActions(
         if (response.closeSpotlight) close();
       } catch (error) {
         console.error(`Failed to execute spotlight action ${actionId}:`, error);
-        setStatusText('Action failed');
+        setStatusText("Action failed");
       }
     },
     [close, query],
@@ -163,7 +162,7 @@ export function useSpotlightActions(
         setStatusText(response.statusText ?? nextStatusText);
       } catch (error) {
         console.error(`Failed to execute inline action ${actionId}:`, error);
-        setStatusText('Action failed');
+        setStatusText("Action failed");
       }
     },
     [query],
@@ -171,14 +170,14 @@ export function useSpotlightActions(
 
   const exitDrilldown = useCallback(() => {
     if (drilldownTimerRef.current) clearTimeout(drilldownTimerRef.current);
-    setDrilldownTransition('exiting');
+    setDrilldownTransition("exiting");
     const restored = predrilldownQuery;
     drilldownTimerRef.current = setTimeout(() => {
       setDrilldownScope(null);
-      setPredrilldownQuery('');
+      setPredrilldownQuery("");
       setQuery(restored);
       setGraphPreviewData(null);
-      setDrilldownTransition('idle');
+      setDrilldownTransition("idle");
     }, 220);
   }, [predrilldownQuery, setQuery, setGraphPreviewData, setDrilldownScope]);
 
@@ -194,83 +193,98 @@ export function useSpotlightActions(
     });
   }, []);
 
-  const handleActivate = useCallback(async (item: SpotlightSearchResult) => {
-    setStatusText(null);
-    setConfirmingAction(null);
+  const handleActivate = useCallback(
+    async (item: SpotlightSearchResult) => {
+      setStatusText(null);
+      setConfirmingAction(null);
 
-    if (item.kind === 'action') {
-      if (item.actionId === 'show-command-help') {
-        setHelpOpen(true);
-        return;
-      }
-      if (item.safety === 'destructive') {
-        setConfirmingAction(item);
-        return;
-      }
-      if (item.actionId === 'copy-url') {
-        const targetItem = resolveCopyUrlItem(item, flatItems);
-        if (targetItem) {
+      if (item.kind === "action") {
+        if (item.actionId === "show-command-help") {
+          setHelpOpen(true);
+          return;
+        }
+        if (item.safety === "destructive") {
+          setConfirmingAction(item);
+          return;
+        }
+        if (item.actionId === "copy-url") {
+          const targetItem = resolveCopyUrlItem(item, flatItems);
+          if (targetItem) {
+            try {
+              await navigator.clipboard.writeText(targetItem.url);
+              setStatusText("URL copied");
+              close();
+            } catch (error) {
+              console.error("Failed to copy URL:", error);
+              setStatusText("Clipboard unavailable");
+            }
+          }
+          return;
+        }
+        if (item.actionId === "export-tree") {
           try {
-            await navigator.clipboard.writeText(targetItem.url);
-            setStatusText('URL copied');
+            const treeId = item.target?.kind === "tree" ? item.target.treeId : undefined;
+            const bundle = await exportTree(treeId);
+            downloadBundle(bundle);
+            setStatusText("Tree exported");
             close();
           } catch (error) {
-            console.error('Failed to copy URL:', error);
-            setStatusText('Clipboard unavailable');
+            console.error("Failed to export tree:", error);
+            setStatusText("Export failed");
           }
+          return;
         }
-        return;
-      }
-      if (item.actionId === 'export-tree') {
-        try {
-          const treeId = item.target?.kind === 'tree' ? item.target.treeId : undefined;
-          const bundle = await exportTree(treeId);
-          downloadBundle(bundle);
-          setStatusText('Tree exported');
-          close();
-        } catch (error) {
-          console.error('Failed to export tree:', error);
-          setStatusText('Export failed');
-        }
+
+        await handleExecuteAction(item.actionId, item.target, "Done");
         return;
       }
 
-      await handleExecuteAction(item.actionId, item.target, 'Done');
-      return;
-    }
+      if (item.kind === "tree") {
+        if (drilldownTimerRef.current) clearTimeout(drilldownTimerRef.current);
+        setDrilldownTransition("entering");
+        setPredrilldownQuery(query);
+        setDrilldownScope({ treeId: item.treeId, treeName: item.treeName });
+        setQuery("");
+        drilldownTimerRef.current = setTimeout(() => setDrilldownTransition("idle"), 250);
 
-    if (item.kind === 'tree') {
-      if (drilldownTimerRef.current) clearTimeout(drilldownTimerRef.current);
-      setDrilldownTransition('entering');
-      setPredrilldownQuery(query);
-      setDrilldownScope({ treeId: item.treeId, treeName: item.treeName });
-      setQuery('');
-      drilldownTimerRef.current = setTimeout(() => setDrilldownTransition('idle'), 250);
-
-      const cached = previewCache.get(item.treeId);
-      if (cached) {
-        setGraphPreviewData(cached);
-      } else {
-        setGraphPreviewLoading(true);
-        void getSpotlightTreePreview(item.treeId).then((preview) => {
-          if (preview) {
-            previewCache.set(item.treeId, preview);
-            setGraphPreviewData(preview);
-          }
-          setGraphPreviewLoading(false);
-        });
+        const cached = previewCache.get(item.treeId);
+        if (cached) {
+          setGraphPreviewData(cached);
+        } else {
+          setGraphPreviewLoading(true);
+          void getSpotlightTreePreview(item.treeId).then((preview) => {
+            if (preview) {
+              previewCache.set(item.treeId, preview);
+              setGraphPreviewData(preview);
+            }
+            setGraphPreviewLoading(false);
+          });
+        }
+        return;
       }
-      return;
-    }
 
-    const actionId: SpotlightActionId =
-      activeTreeId && item.treeId !== activeTreeId ? 'open-node-in-tree' : 'open';
-    await handleExecuteAction(
-      actionId,
-      { kind: 'node', nodeId: item.nodeId, treeId: item.treeId },
-      actionId === 'open-node-in-tree' ? 'Opened in tree' : 'Opened',
-    );
-  }, [activeTreeId, close, flatItems, handleExecuteAction, previewCache, query, setDrilldownScope, setGraphPreviewData, setGraphPreviewLoading, setHelpOpen, setQuery]);
+      const actionId: SpotlightActionId =
+        activeTreeId && item.treeId !== activeTreeId ? "open-node-in-tree" : "open";
+      await handleExecuteAction(
+        actionId,
+        { kind: "node", nodeId: item.nodeId, treeId: item.treeId },
+        actionId === "open-node-in-tree" ? "Opened in tree" : "Opened",
+      );
+    },
+    [
+      activeTreeId,
+      close,
+      flatItems,
+      handleExecuteAction,
+      previewCache,
+      query,
+      setDrilldownScope,
+      setGraphPreviewData,
+      setGraphPreviewLoading,
+      setHelpOpen,
+      setQuery,
+    ],
+  );
 
   const handleActionMenuSelect = useCallback(
     (action: SpotlightActionResult) => {
@@ -281,10 +295,10 @@ export function useSpotlightActions(
   );
 
   const handleConfirmDestructive = useCallback(async () => {
-    if (!confirmingAction || confirmingAction.kind !== 'action') return;
+    if (!confirmingAction || confirmingAction.kind !== "action") return;
     const action = confirmingAction;
     setConfirmingAction(null);
-    await handleExecuteAction(action.actionId, action.target, 'Done');
+    await handleExecuteAction(action.actionId, action.target, "Done");
   }, [confirmingAction, handleExecuteAction]);
 
   return {
