@@ -7,7 +7,7 @@ export type WorldRect = {
   maxY: number;
 };
 
-export type ViewInvalidationDecision = "full" | "translate-only";
+export type ViewInvalidationDecision = "full" | "translate-only" | "transform-only";
 
 export type ViewInvalidationInput = {
   prevView: ViewState | null;
@@ -18,6 +18,8 @@ export type ViewInvalidationInput = {
   forceFull?: boolean;
   originChanged?: boolean;
   scaleEpsilon?: number;
+  isGesture?: boolean;
+  overscanPadding?: number;
 };
 
 export function worldRectFromView(
@@ -56,7 +58,8 @@ export function decideViewInvalidation(input: ViewInvalidationInput): {
   nextCullingRect: WorldRect;
 } {
   const nextViewRect = worldRectFromView(input.nextView, input.viewportWidth, input.viewportHeight);
-  const padding = 200 / input.nextView.scale;
+  const overscanPx = input.overscanPadding ?? 600;
+  const padding = (input.isGesture ? overscanPx : 200) / input.nextView.scale;
   const nextCullingRect = expandWorldRect(nextViewRect, padding);
 
   if (input.forceFull || input.originChanged) {
@@ -70,6 +73,18 @@ export function decideViewInvalidation(input: ViewInvalidationInput): {
 
   const epsilon = input.scaleEpsilon ?? 0.0005;
   const scaleChanged = Math.abs(prevView.scale - input.nextView.scale) > epsilon;
+
+  // During gesture: if viewport still within cached overscan rect, skip reculling entirely
+  if (input.isGesture && input.cachedCullingRect) {
+    const withinOverscan = rectContainsRect(input.cachedCullingRect, nextViewRect);
+    if (withinOverscan && !scaleChanged) {
+      return { decision: "transform-only", nextViewRect, nextCullingRect: input.cachedCullingRect };
+    }
+    // Scale changed during gesture or left overscan — need full recull with new overscan
+    return { decision: "full", nextViewRect, nextCullingRect };
+  }
+
+  // Non-gesture path (unchanged)
   if (scaleChanged) {
     return { decision: "full", nextViewRect, nextCullingRect };
   }
