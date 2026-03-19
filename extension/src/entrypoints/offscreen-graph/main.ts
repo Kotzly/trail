@@ -20,6 +20,7 @@ import type { NodeId } from '@shared/types/ids.js';
 // ---------------------------------------------------------------------------
 
 let cachedSettings: Settings | null = null;
+let cachedTreeJSON: NavigationTreeJSON | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 const DEBOUNCE_MS = 300;
@@ -76,13 +77,19 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
     const tree = msg.tree as NavigationTreeJSON | undefined;
     const collapsedIds = msg.collapsedNodeIds as NodeId[] | undefined;
     if (tree) {
+      cachedTreeJSON = tree;
       scheduleCompute(tree, collapsedIds ? new Set(collapsedIds) : undefined);
     }
   }
 
-  // SAVE_SETTINGS — settings changed, refetch
+  // SAVE_SETTINGS — settings changed, refetch and recompute layout immediately
   if (msg.type === 'SAVE_SETTINGS') {
-    void fetchSettings();
+    void (async () => {
+      await fetchSettings();
+      if (cachedTreeJSON) {
+        await computeAndCache(cachedTreeJSON);
+      }
+    })();
   }
 });
 
@@ -99,6 +106,7 @@ async function bootstrap(): Promise<void> {
     if (response.success) {
       const data = response.data as { tree?: NavigationTreeJSON };
       if (data.tree) {
+        cachedTreeJSON = data.tree;
         await computeAndCache(data.tree);
       }
     }
