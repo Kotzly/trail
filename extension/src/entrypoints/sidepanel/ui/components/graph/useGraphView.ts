@@ -226,7 +226,7 @@ export function useGraphView({
             onGraphViewChange(next);
             lastCommittedViewRef.current = { ...lastCommittedViewRef.current, ...next };
           }
-          rendererRef.current?.setView(viewRef.current);
+          rendererRef.current?.setView(viewRef.current, wasGesture);
           applyGridTransform(viewRef.current);
         }
       });

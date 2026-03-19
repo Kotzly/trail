@@ -39,6 +39,7 @@ export type GraphRenderMetrics = {
   selectionQueryMs: number;
   selectionPatchMs: number;
   selectionChangedCount: number;
+  skippedFullInvalidationCount: number;
 };
 
 const LOD_HIDE_PX = -1; // disabled
@@ -864,6 +865,7 @@ export class GraphPixiRenderer {
     selectionQueryMs: 0,
     selectionPatchMs: 0,
     selectionChangedCount: 0,
+    skippedFullInvalidationCount: 0,
   };
   private metricsListener: ((metrics: GraphRenderMetrics) => void) | null = null;
   private readonly requestRender = () => {
@@ -1334,7 +1336,7 @@ export class GraphPixiRenderer {
     }
   }
 
-  setView(view: ViewState) {
+  setView(view: ViewState, isGesture = false) {
     const prevView = this.view;
     this.view = view;
     if (!this.isReady) return;
@@ -1350,7 +1352,16 @@ export class GraphPixiRenderer {
       cachedCullingRect: this.cachedCullingRect,
       forceFull: this.cachedCullingRect === null,
       originChanged,
+      isGesture,
     });
+
+    if (invalidation.decision === "transform-only") {
+      // Cheapest path: only PIXI world transform changed, skip updateVisible entirely
+      this.metrics.skippedFullInvalidationCount += 1;
+      this.needsRender = true;
+      this.render();
+      return;
+    }
 
     if (invalidation.decision === "translate-only") {
       this.needsRender = true;
@@ -1358,6 +1369,7 @@ export class GraphPixiRenderer {
       return;
     }
 
+    // "full" — update culling rect and recull all nodes
     this.invalidateVisible(invalidation.nextCullingRect);
   }
 
