@@ -13,6 +13,9 @@
  *   window.__graphMetrics()   // prints table + returns raw stats
  */
 
+/** Timestamp at module load — used as t0 for startup metrics. */
+export const STARTUP_T0 = performance.now();
+
 export type ProfilePhase =
   | 'layout'
   | 'renderNodes'
@@ -23,6 +26,23 @@ export type ProfilePhase =
   | 'updateVisible'
   | 'updateConnections'
   | 'patchStaticGraph';
+
+export type CacheHitType = 'exact' | 'signature-match' | 'fallback' | 'miss' | 'stale';
+
+export type StartupMetrics = {
+  /** ms from module load to bootstrapGraph completing (store primed with tree) */
+  bootstrapMs: number | null;
+  /** ms from module load to first PIXI render completing */
+  firstRenderMs: number | null;
+  /** ms for layout computation (0 if cache hit) */
+  layoutMs: number | null;
+  /** Type of cache hit on startup */
+  cacheHitType: CacheHitType | null;
+  /** Number of nodes in the tree at startup */
+  nodeCount: number | null;
+  /** Layout mode used at startup */
+  layoutMode: string | null;
+};
 
 const ALL_PHASES: readonly ProfilePhase[] = [
   'layout',
@@ -42,9 +62,19 @@ type PhaseBuffer = {
   count: number;
 };
 
+const EMPTY_STARTUP: StartupMetrics = {
+  bootstrapMs: null,
+  firstRenderMs: null,
+  layoutMs: null,
+  cacheHitType: null,
+  nodeCount: null,
+  layoutMode: null,
+};
+
 export class GraphProfiler {
   private readonly windowSize: number;
   private readonly buffers = new Map<ProfilePhase, PhaseBuffer>();
+  private _startup: StartupMetrics = { ...EMPTY_STARTUP };
 
   constructor(windowSize = 60) {
     this.windowSize = windowSize;
@@ -88,8 +118,18 @@ export class GraphProfiler {
     return result;
   }
 
+  recordStartup(field: keyof StartupMetrics, value: number | string): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this._startup as any)[field] = value;
+  }
+
+  getStartupMetrics(): StartupMetrics {
+    return { ...this._startup };
+  }
+
   reset(): void {
     this.buffers.clear();
+    this._startup = { ...EMPTY_STARTUP };
   }
 }
 
@@ -113,6 +153,8 @@ export function profileSync<T>(phase: ProfilePhase, fn: () => T): T {
 // ---------------------------------------------------------------------------
 (window as any).__graphMetrics = () => {
   const stats = graphProfiler.getAllStats();
+  const startup = graphProfiler.getStartupMetrics();
+
   const table: Record<string, { p50: string; p95: string; samples: number; last: string }> = {};
   for (const [phase, data] of Object.entries(stats)) {
     if (data) {
@@ -127,5 +169,16 @@ export function profileSync<T>(phase: ProfilePhase, fn: () => T): T {
     }
   }
   console.table(table);
-  return stats;
+
+  console.log('\n--- Startup Metrics ---');
+  console.table({
+    'Bootstrap': { value: startup.bootstrapMs != null ? `${startup.bootstrapMs.toFixed(1)}ms` : '-' },
+    'First Render': { value: startup.firstRenderMs != null ? `${startup.firstRenderMs.toFixed(1)}ms` : '-' },
+    'Layout': { value: startup.layoutMs != null ? `${startup.layoutMs.toFixed(1)}ms` : '-' },
+    'Cache Hit': { value: startup.cacheHitType ?? '-' },
+    'Nodes': { value: startup.nodeCount ?? '-' },
+    'Mode': { value: startup.layoutMode ?? '-' },
+  });
+
+  return { phases: stats, startup };
 };
