@@ -5,12 +5,6 @@ import ErrorBoundary from '@entrypoints/sidepanel/ui/components/ErrorBoundary.js
 import { queryClient } from '@entrypoints/sidepanel/ui/query/client.js';
 import SpotlightGraphApp from './SpotlightGraphApp.js';
 import { readLayoutCache } from '@shared/graph-layout-cache/cache.js';
-import type { CachedLayoutResult } from '@shared/graph-layout-cache/types.js';
-
-declare global {
-  // eslint-disable-next-line no-var -- globalThis augmentation requires var
-  var __trailCachedLayout: CachedLayoutResult | null | undefined;
-}
 
 // Pre-fetch cached layout BEFORE React mounts — ensures it's available
 // synchronously in GraphCanvas.useMemo on first render
