@@ -56,6 +56,13 @@ const FORBIDDEN_PATHS = [
   'src/apps/sidepanel/ui/components/AuthGate.tsx',
   'src/apps/sidepanel/ui/components/WelcomeGate.tsx',
   'src/shared/debug',
+  'src/apps/newtab/ui/BookmarksBar.tsx',
+  'src/apps/sidepanel/ui/components/SearchBar.tsx',
+  'src/apps/sidepanel/ui/components/TabInfo.tsx',
+  'src/apps/sidepanel/ui/components/ui/demo.tsx',
+  'src/apps/sidepanel/ui/components/ui/sidebar.tsx',
+  'src/apps/sidepanel/ui/components/ui/sidebar-utils.ts',
+  'src/ui/components/liquid-glass.tsx',
 ];
 
 const FORBIDDEN_IMPORT_PATTERNS = [
