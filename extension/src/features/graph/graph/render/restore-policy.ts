@@ -88,8 +88,8 @@ export function sortRestoreQueue(entries: readonly RestoreEntry[]): RestoreEntry
     const mid = tier5Distances.length >> 1;
     medianDistance =
       tier5Distances.length % 2 === 0
-        ? (tier5Distances[mid - 1] + tier5Distances[mid]) / 2
-        : tier5Distances[mid];
+        ? (tier5Distances[mid - 1]! + tier5Distances[mid]!) / 2
+        : tier5Distances[mid]!;
   }
 
   // Create a copy with resolved tier-5/6 priorities
