@@ -22,6 +22,12 @@ import {
 import { hasRuntimeGetURL, runtimeGetURL } from "@shared/platform/webext.js";
 import { graphProfiler } from "./graph-profiler.js";
 import { createGraphSnapshot, diffSnapshots, type GraphSnapshot } from "./graph-snapshot.js";
+import {
+  sortRestoreQueue,
+  computeBatchBudget,
+  computeRestorePriority,
+  type RestoreEntry,
+} from "./restore-policy.js";
 
 type DynamicGraphState = {
   nodes: NodeRenderModel[];
@@ -223,10 +229,6 @@ class NodeVisual {
   /** When true, skip text/favicon rendering on first update to avoid frame drops
    * when many nodes become visible at once.  Cleared after the first update. */
   private deferContent = true;
-  /** When true, hydration is managed externally via the idle hydration queue
-   *  instead of the immediate next-frame invalidate() pattern. */
-  private useBatchedHydration = false;
-
   constructor(id: NodeId, fontFamily: string, invalidate: () => void) {
     this.id = id;
     this.fonts = { base: fontFamily, weight: "500" };
@@ -265,10 +267,6 @@ class NodeVisual {
   destroy() {
     this.destroyed = true;
     this.container.destroy({ children: true });
-  }
-
-  setBatchedHydration(value: boolean) {
-    this.useBatchedHydration = value;
   }
 
   /** Force content rendering for a previously deferred node.
@@ -393,15 +391,8 @@ class NodeVisual {
 
     // Defer expensive text/favicon rendering for brand-new nodes so the graph
     // structure (backgrounds + connections) can paint without frame drops.
+    // Content stays deferred until hydrateContent() is called by the restore queue.
     if (this.deferContent) {
-      if (!this.useBatchedHydration) {
-        // Small tree: immediate next-frame hydration (existing behavior)
-        this.deferContent = false;
-        this.state = { ...this.state, textKey: "", tagKey: "", faviconKey: "" };
-        this.invalidate();
-      }
-      // Large tree with batched hydration: content stays deferred until
-      // hydrateContent() is called by the idle hydration queue
       this.textContainer.visible = false;
       this.faviconBg.visible = false;
       if (this.faviconSprite) this.faviconSprite.visible = false;
@@ -823,9 +814,6 @@ class GraphicsPool {
 }
 
 export class GraphPixiRenderer {
-  private static readonly HYDRATION_BATCH_SIZE = 30;
-  private static readonly LARGE_TREE_THRESHOLD = 1500;
-
   private readonly host: HTMLDivElement;
   private readonly app: PIXI.Application;
   private readonly world = new PIXI.Container();
@@ -838,8 +826,10 @@ export class GraphPixiRenderer {
   private readonly particlePool = new GraphicsPool(32, this.particleLayer);
   private readonly nodeMap = new Map<NodeId, NodeVisual>();
   private readonly nodeData = new Map<NodeId, NodeRenderModel>();
-  private readonly hydrationQueue: NodeId[] = [];
-  private hydrationIdleHandle: number | null = null;
+  private restoreQueue: RestoreEntry[] = [];
+  private restoreIdleHandle: number | null = null;
+  private textResolutionFrozen = false;
+  private pendingRestoreSort = false;
   private isGestureActive = false;
   private index = new SpatialIndex<NodeId>(300);
   private connectionIndex = new SpatialIndex<string>(500);
@@ -958,11 +948,11 @@ export class GraphPixiRenderer {
 
   destroy() {
     this.destroyed = true;
-    if (this.hydrationIdleHandle !== null) {
-      cancelIdleCallback(this.hydrationIdleHandle);
-      this.hydrationIdleHandle = null;
+    if (this.restoreIdleHandle !== null) {
+      cancelIdleCallback(this.restoreIdleHandle);
+      this.restoreIdleHandle = null;
     }
-    this.hydrationQueue.length = 0;
+    this.restoreQueue = [];
     this.unwatchDevicePixelRatio();
     this.nodeMap.forEach((visual) => visual.destroy());
     this.nodeMap.clear();
@@ -1028,6 +1018,11 @@ export class GraphPixiRenderer {
 
   private syncTextResolution() {
     if (!this.isReady) return;
+    if (this.isGestureActive) {
+      this.textResolutionFrozen = true;
+      return;
+    }
+    if (this.textResolutionFrozen) return;
     const target = this.view.scale * this.app.renderer.resolution;
     const next = Math.max(1, Math.min(8, Math.ceil(target)));
     this.textResolution = next;
@@ -1396,7 +1391,9 @@ export class GraphPixiRenderer {
     const wasGesture = this.isGestureActive;
     this.isGestureActive = isGesture;
     if (wasGesture && !isGesture) {
-      this.scheduleHydration();
+      this.textResolutionFrozen = false;
+      this.syncTextResolution();
+      this.scheduleRestore();
     }
 
     const prevView = this.view;
@@ -1435,23 +1432,25 @@ export class GraphPixiRenderer {
     this.invalidateVisible(invalidation.nextCullingRect);
   }
 
-  private scheduleHydration() {
-    if (this.hydrationIdleHandle !== null) return;
-    if (this.hydrationQueue.length === 0) return;
+  private scheduleRestore() {
+    if (this.restoreIdleHandle !== null) return;
+    if (this.restoreQueue.length === 0) return;
     if (this.isGestureActive) return;
 
-    this.hydrationIdleHandle = requestIdleCallback(
+    this.restoreIdleHandle = requestIdleCallback(
       (deadline) => {
-        this.hydrationIdleHandle = null;
+        this.restoreIdleHandle = null;
         const start = performance.now();
+        const { batchSize, deadlineMs } = computeBatchBudget(this.nodeData.size);
         let processed = 0;
 
         while (
-          this.hydrationQueue.length > 0 &&
-          processed < GraphPixiRenderer.HYDRATION_BATCH_SIZE &&
-          (deadline.timeRemaining() > 2 || processed === 0)
+          this.restoreQueue.length > 0 &&
+          processed < batchSize &&
+          (deadline.timeRemaining() > deadlineMs || processed === 0)
         ) {
-          const nodeId = this.hydrationQueue.shift()!;
+          const entry = this.restoreQueue.shift()!;
+          const nodeId = entry.nodeId;
           const visual = this.nodeMap.get(nodeId);
           const node = this.nodeData.get(nodeId);
           if (visual && node) {
@@ -1480,8 +1479,12 @@ export class GraphPixiRenderer {
           graphProfiler.record("deferredHydration", performance.now() - start);
         }
 
-        if (this.hydrationQueue.length > 0) {
-          this.scheduleHydration();
+        if (this.restoreQueue.length > 0) {
+          this.scheduleRestore();
+        } else if (this.textResolutionFrozen) {
+          this.textResolutionFrozen = false;
+          this.syncTextResolution();
+          this.invalidateVisible();
         }
       },
       { timeout: 100 },
@@ -1632,7 +1635,10 @@ export class GraphPixiRenderer {
     this.cachedCullingRect = paddedRect;
 
     const selection = this.getEffectiveSelection();
-    const isLargeTree = this.nodeData.size >= GraphPixiRenderer.LARGE_TREE_THRESHOLD;
+    const viewportCenter = {
+      x: (viewRect.minX + viewRect.maxX) / 2,
+      y: (viewRect.minY + viewRect.maxY) / 2,
+    };
     const visibleIds = this.index.query(paddedRect);
     this.visibleIdsCache = visibleIds;
     visibleIds.forEach((id) => {
@@ -1641,10 +1647,16 @@ export class GraphPixiRenderer {
       let visual = this.nodeMap.get(id);
       if (!visual) {
         visual = new NodeVisual(id, this.fontFamily, this.requestRender);
-        if (isLargeTree) {
-          visual.setBatchedHydration(true);
-          this.hydrationQueue.push(id);
-        }
+        const { priority, distance } = computeRestorePriority(
+          id,
+          node,
+          viewportCenter,
+          this.selectedNodeIds,
+          null,
+          null,
+        );
+        this.restoreQueue.push({ nodeId: id, priority, distance });
+        this.pendingRestoreSort = true;
         this.nodeMap.set(id, visual);
         this.nodeLayer.addChild(visual.container);
       }
@@ -1672,8 +1684,12 @@ export class GraphPixiRenderer {
     this.metrics.connectionsMs = connectionsMs;
     this.metrics.visibleNodes = visibleIds.size;
     this.metrics.visibleConnections = visibleConnections;
-    if (this.hydrationQueue.length > 0 && !this.isGestureActive) {
-      this.scheduleHydration();
+    if (this.restoreQueue.length > 0 && !this.isGestureActive) {
+      if (this.pendingRestoreSort) {
+        this.restoreQueue = sortRestoreQueue(this.restoreQueue);
+        this.pendingRestoreSort = false;
+      }
+      this.scheduleRestore();
     }
     graphProfiler.record("updateVisible", performance.now() - updateStart);
   }
