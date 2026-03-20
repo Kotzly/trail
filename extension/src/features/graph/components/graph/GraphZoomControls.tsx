@@ -1,4 +1,5 @@
 import { Icons } from "@apps/sidepanel/ui/components/Icon.js";
+import { cn } from "../../../../ui/lib/utils.js";
 
 type GraphZoomControlsProps = {
   tool: "hand" | "select";
@@ -18,7 +19,7 @@ export default function GraphZoomControls({
   return (
     <div className="graph-zoom-controls" data-graph-ui="true">
       <button
-        className={`graph-control-btn ${tool === "select" ? "active" : ""}`}
+        className={cn("graph-control-btn", tool === "select" && "active")}
         data-tool="select"
         aria-label="Select tool (V) - Select nodes"
         data-tooltip="Select tool (V)"
@@ -28,7 +29,7 @@ export default function GraphZoomControls({
         <Icons.MousePointer2 size={18} />
       </button>
       <button
-        className={`graph-control-btn ${tool === "hand" ? "active" : ""}`}
+        className={cn("graph-control-btn", tool === "hand" && "active")}
         data-tool="hand"
         aria-label="Hand tool (H) - Pan"
         data-tooltip="Hand tool (H)"

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "../../../ui/lib/utils.js";
 import { Command } from "cmdk";
 import { Search, ChevronRight, FolderOpen } from "lucide-react";
 import { AnimatePresence, motion, useMotionValue } from "motion/react";
@@ -487,7 +488,7 @@ export function NewTabApp() {
       {/* ── Graph: fullscreen background ── */}
       <div
         ref={graphBgRef}
-        className={`newtab-graph-bg${graphFocusMode ? "newtab-graph-bg--focus" : ""}`}
+        className={cn("newtab-graph-bg", graphFocusMode && "newtab-graph-bg--focus")}
       >
         <SpotlightGraphFrame
           activeTreeId={activeTreeId}

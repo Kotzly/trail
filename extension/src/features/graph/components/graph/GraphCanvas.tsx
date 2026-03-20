@@ -9,6 +9,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { cn } from "../../../../ui/lib/utils.js";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNode } from "@shared/types/node.js";
 import { navigateTo, reparentNode } from "@apps/sidepanel/api/tree.js";
@@ -2124,7 +2125,7 @@ export default function GraphCanvas({
   return (
     <div className="stack-container" id="stackContainer">
       <div
-        className={`graph-wrapper${isDraggingNode ? "is-dragging" : ""}`}
+        className={cn("graph-wrapper", isDraggingNode && "is-dragging")}
         ref={wrapperRef}
         tabIndex={0}
         onPointerDown={handlePointerDown}

@@ -6,6 +6,7 @@ import { navigateTo } from "../../../api/tree.js";
 import { useStore } from "../../state/store.js";
 import { useOverlayEffects } from "../../state/overlay-effects.js";
 import { useAnchoredDropdown } from "../../hooks/useAnchoredDropdown.js";
+import { cn } from "../../lib/utils.js";
 import { Icons } from "../Icon.js";
 import { TagIcon } from "./TagIcon.js";
 import { collectTagCounts, collectTaggedNodes, filterNodesByTags } from "./tag-filter-utils.js";
@@ -126,7 +127,7 @@ export default function TagFilterDropdown() {
       <div
         ref={dropdownRef}
         id="tagFilterDropdown"
-        className={`tag-filter-dropdown ${tagFilterOpen ? "" : "hidden"}`}
+        className={cn("tag-filter-dropdown", !tagFilterOpen && "hidden")}
         aria-hidden={!tagFilterOpen}
       >
         <div className="tag-filter-header">
@@ -156,7 +157,7 @@ export default function TagFilterDropdown() {
               return (
                 <button
                   key={tag.id as string}
-                  className={`tag-filter-tag${isSelected ? "selected" : ""}`}
+                  className={cn("tag-filter-tag", isSelected && "selected")}
                   type="button"
                   onClick={() => toggleTagFilterTag(tag.id as Tag)}
                 >

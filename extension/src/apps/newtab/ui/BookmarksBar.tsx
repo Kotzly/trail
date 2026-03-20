@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { cn } from "../../../ui/lib/utils.js";
 import { ChevronRight, Folder, Globe } from "lucide-react";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import type { Url } from "@shared/types/ids.js";
@@ -104,7 +105,7 @@ function BookmarkFolder({ item }: { item: BookmarkItem }) {
     >
       <ChevronRight
         size={18}
-        className={`newtab-bookmark-icon newtab-bookmark-chevron${open ? "newtab-bookmark-chevron--open" : ""}`}
+        className={cn("newtab-bookmark-icon newtab-bookmark-chevron", open && "newtab-bookmark-chevron--open")}
       />
       <span className="newtab-bookmark-label">{item.title}</span>
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState, type RefObject } from "react";
 import type { NodeId } from "@shared/types/ids.js";
 import { useSearch } from "../hooks/useSearch.js";
 import { useStore } from "../state/store.js";
+import { cn } from "../lib/utils.js";
 import { Icons } from "./Icon.js";
 import SearchResultsList from "./SearchResultsList.js";
 
@@ -89,7 +90,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
 
   return (
     <div
-      className={`floating-search${expanded ? "expanded" : ""}${hasQuery ? "has-query" : ""}${listOpen ? "list-open" : ""}`}
+      className={cn("floating-search", expanded && "expanded", hasQuery && "has-query", listOpen && "list-open")}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(event) => {
         const nextTarget = event.relatedTarget as Node | null;
@@ -152,7 +153,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
               </span>
               <div className="floating-search-nav">
                 <button
-                  className={`floating-search-nav-btn${listOpen ? "is-active" : ""}`}
+                  className={cn("floating-search-nav-btn", listOpen && "is-active")}
                   type="button"
                   aria-label="Results list"
                   data-tooltip="Results list"

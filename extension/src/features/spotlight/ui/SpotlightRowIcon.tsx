@@ -1,3 +1,4 @@
+import { cn } from "../../../ui/lib/utils.js";
 import {
   Archive,
   Copy,
@@ -71,7 +72,7 @@ export function SpotlightRowIcon({ item }: SpotlightRowIconProps) {
   const isDestructive = item.safety === "destructive";
 
   return (
-    <span className={`spotlight-row-icon${isDestructive ? "spotlight-row-icon--destructive" : ""}`}>
+    <span className={cn("spotlight-row-icon", isDestructive && "spotlight-row-icon--destructive")}>
       <Icon size={16} />
     </span>
   );

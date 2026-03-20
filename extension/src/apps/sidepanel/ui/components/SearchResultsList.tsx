@@ -3,6 +3,7 @@ import type { FaviconUrl, NodeId, Timestamp, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import type { NavigationTree } from "@background/state/nav-tree.js";
 import { formatTime, formatUrl } from "../shared/format.js";
+import { cn } from "../lib/utils.js";
 import { Icons } from "./Icon.js";
 
 type SearchResultsListProps = {
@@ -84,7 +85,7 @@ const SearchResultRow = memo(function SearchResultRow({
 
   return (
     <button
-      className={`floating-search-item${isActive ? "is-active" : ""}`}
+      className={cn("floating-search-item", isActive && "is-active")}
       type="button"
       onClick={() => onSelect(item.id)}
     >

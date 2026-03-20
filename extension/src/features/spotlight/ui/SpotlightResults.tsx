@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
+import { cn } from "../../../ui/lib/utils.js";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { SpotlightRowIcon } from "./SpotlightRowIcon.js";
 import { SpotlightRowActions } from "./SpotlightRowActions.js";
@@ -206,7 +207,7 @@ export function SpotlightResults({
               }}
             >
               <div
-                className={`spotlight-row spotlight-row--${item.kind}`}
+                className={cn("spotlight-row", `spotlight-row--${item.kind}`)}
                 data-selected={isSelected}
                 data-destructive={item.kind === "action" && item.safety === "destructive"}
                 data-multi-selected={selectedKeys.has(item.key)}
@@ -254,7 +255,7 @@ export function SpotlightResults({
                   <>
                     {item.kind !== "action" && item.groupBadge && (
                       <span
-                        className={`spotlight-source-badge spotlight-source-badge--${badgeVariant(item)}`}
+                        className={cn("spotlight-source-badge", `spotlight-source-badge--${badgeVariant(item)}`)}
                       >
                         {item.groupBadge}
                       </span>

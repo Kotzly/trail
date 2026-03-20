@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { cn } from "../../../../ui/lib/utils.js";
 import { navigate, type RouteParams } from "../router.js";
 import { useImportTrail } from "../hooks/useImportTrail.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
@@ -149,7 +150,7 @@ export default function TrailImportPage(_props: RouteParams) {
       {(state.step === "idle" || state.step === "error") && (
         <>
           <div
-            className={`import-dropzone${dragOver ? "import-dropzone--active" : ""}`}
+            className={cn("import-dropzone", dragOver && "import-dropzone--active")}
             onDragOver={(e) => {
               e.preventDefault();
               setDragOver(true);

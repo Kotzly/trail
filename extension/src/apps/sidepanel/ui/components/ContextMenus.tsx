@@ -11,6 +11,7 @@ import type { NodeId, TabId, Tag, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import type { TagDefinition } from "@shared/types/tags.js";
 import { rpc } from "@shared/rpc/contracts.js";
+import { cn } from "../lib/utils.js";
 import { fireAndForget } from "../../api/background.js";
 import { navigateTo, setCurrentNode } from "../../api/tree.js";
 import { getTabsForNodeMessage } from "../../api/tabs.js";
@@ -337,7 +338,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
     <>
       <div
         ref={menuRef}
-        className={`graph-context-menu${submenuLeft ? "submenu-left" : ""}`}
+        className={cn("graph-context-menu", submenuLeft && "submenu-left")}
         role="menu"
         style={{
           left: `${menuStyle.left}px`,
@@ -388,7 +389,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                         key={tab.id}
                         role="menuitem"
                         tabIndex={-1}
-                        className={`graph-context-tab-item${checkedTabId === tab.id ? "is-checked" : ""}`}
+                        className={cn("graph-context-tab-item", checkedTabId === tab.id && "is-checked")}
                         onMouseEnter={() => {
                           setHoverNodeId(nodeId);
                         }}
@@ -905,7 +906,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           Unpin selected
         </div>
         <div
-          className={`graph-context-menu-item${collapseCandidates.length === 0 ? "is-disabled" : ""}`}
+          className={cn("graph-context-menu-item", collapseCandidates.length === 0 && "is-disabled")}
           role="menuitem"
           tabIndex={-1}
           aria-disabled={collapseCandidates.length === 0}
@@ -925,7 +926,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           Collapse selected
         </div>
         <div
-          className={`graph-context-menu-item${expandCandidates.length === 0 ? "is-disabled" : ""}`}
+          className={cn("graph-context-menu-item", expandCandidates.length === 0 && "is-disabled")}
           role="menuitem"
           tabIndex={-1}
           aria-disabled={expandCandidates.length === 0}

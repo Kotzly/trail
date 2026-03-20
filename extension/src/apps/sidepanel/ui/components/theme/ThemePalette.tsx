@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CustomTheme, ThemeDot, ThemeHarmony } from "@shared/types/settings.js";
 import type { ThemeId } from "@features/themes/model.js";
+import { cn } from "../../lib/utils.js";
 import { Icons } from "../Icon.js";
 import {
   calculateCompliments,
@@ -651,7 +652,7 @@ export default function ThemePalette({
             <button
               key={id}
               type="button"
-              className={`zen-theme-picker-scheme-btn ${scheme === id ? "active" : ""}`}
+              className={cn("zen-theme-picker-scheme-btn", scheme === id && "active")}
               title={label}
               onClick={() => handleScheme(id)}
             >
@@ -684,7 +685,7 @@ export default function ThemePalette({
           </button>
         </div>
         <div
-          className={`zen-theme-picker-pad ${isDragging ? "is-dragging" : ""}${customMode ? "is-disabled" : ""}`}
+          className={cn("zen-theme-picker-pad", isDragging && "is-dragging", customMode && "is-disabled")}
           ref={gradientRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -699,7 +700,7 @@ export default function ThemePalette({
                 ref={(el) => {
                   dotRefs.current[index] = el;
                 }}
-                className={`zen-theme-picker-dot ${index === 0 ? "primary" : ""}`}
+                className={cn("zen-theme-picker-dot", index === 0 && "primary")}
                 onContextMenu={(event) => handleDotContextMenu(event, index)}
                 style={{
                   left: `${dot.x * 100}%`,
@@ -853,7 +854,7 @@ export default function ThemePalette({
             />
             <button
               type="button"
-              className={`zen-theme-picker-accent-btn ${draft.accentColor ? "" : "active"}`}
+              className={cn("zen-theme-picker-accent-btn", !draft.accentColor && "active")}
               onClick={handleAccentAuto}
             >
               Auto

@@ -12,6 +12,7 @@ import { getBackendConfig, initBackendConfig } from "@shared/config/backend.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { useAnchoredDropdown } from "../hooks/useAnchoredDropdown.js";
+import { cn } from "../lib/utils.js";
 import { Icons } from "./Icon.js";
 
 import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
@@ -280,7 +281,7 @@ export default function TreeDropdown() {
       <div
         ref={dropdownRef}
         id="treesDropdown"
-        className={`trees-dropdown ${treesOpen ? "" : "hidden"}`}
+        className={cn("trees-dropdown", !treesOpen && "hidden")}
         aria-hidden={!treesOpen}
       >
         <div className="trees-dropdown-header">
@@ -403,7 +404,7 @@ export default function TreeDropdown() {
               return (
                 <div
                   key={tree.id}
-                  className={`trees-dropdown-item${isLoading ? "loading" : ""}`}
+                  className={cn("trees-dropdown-item", isLoading && "loading")}
                   onClick={() => !isLoading && void handleOpen(tree)}
                 >
                   {isLoading ? (

@@ -5,6 +5,7 @@ import { navigateTo } from "../../api/tree.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { useAnchoredDropdown } from "../hooks/useAnchoredDropdown.js";
+import { cn } from "../lib/utils.js";
 import { Icons } from "./Icon.js";
 
 export default function PinnedDropdown() {
@@ -93,7 +94,7 @@ export default function PinnedDropdown() {
       <div
         ref={dropdownRef}
         id="pinnedDropdown"
-        className={`pinned-dropdown ${pinnedOpen ? "" : "hidden"}`}
+        className={cn("pinned-dropdown", !pinnedOpen && "hidden")}
         aria-hidden={!pinnedOpen}
       >
         <div className="pinned-dropdown-header">

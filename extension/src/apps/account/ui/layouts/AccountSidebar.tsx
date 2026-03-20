@@ -1,4 +1,5 @@
 import { useCurrentPath } from "../router.js";
+import { cn } from "../../../../ui/lib/utils.js";
 
 type NavItem = {
   label: string;
@@ -35,7 +36,7 @@ export default function AccountSidebar() {
             <li key={item.path}>
               <a
                 href={`#${item.path}`}
-                className={`account-sidebar__link${active ? "account-sidebar__link--active" : ""}`}
+                className={cn("account-sidebar__link", active && "account-sidebar__link--active")}
               >
                 {item.label}
               </a>

@@ -4,6 +4,7 @@ import type { Settings, CustomTheme } from "@shared/types/settings.js";
 import { saveSettings } from "../../../api/settings.js";
 import { useStore } from "../../state/store.js";
 import { useOverlayEffects } from "../../state/overlay-effects.js";
+import { cn } from "../../lib/utils.js";
 import ThemePalette from "./ThemePalette.js";
 import { applyTheme } from "../../shared/apply-theme.js";
 
@@ -173,11 +174,11 @@ export default function ThemePanel() {
 
   return createPortal(
     <div
-      className={`modal-overlay theme-panel-overlay lod-enabler blur-enabler ${isClosing ? "closing" : ""}`}
+      className={cn("modal-overlay theme-panel-overlay lod-enabler blur-enabler", isClosing && "closing")}
       onClick={handleClose}
     >
       <div
-        className={`theme-panel ${isClosing ? "closing" : ""}`}
+        className={cn("theme-panel", isClosing && "closing")}
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >

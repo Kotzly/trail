@@ -3,6 +3,7 @@ import type { TagDefinition } from "@shared/types/tags.js";
 import { TAG_COLOR_OPTIONS } from "./tag-palette.js";
 import { TAG_ICON_OPTIONS } from "./tag-icons.js";
 import { TagIcon } from "./TagIcon.js";
+import { cn } from "../../lib/utils.js";
 import { Icons } from "../Icon.js";
 import { createPortal } from "react-dom";
 import { useOverlayEffects } from "../../state/overlay-effects.js";
@@ -95,7 +96,7 @@ export default function TagEditorModal({
               onChange={(event) => setLabel(event.target.value)}
               autoFocus
             />
-            <span className={`tag-editor-count ${remaining < 0 ? "invalid" : ""}`}>
+            <span className={cn("tag-editor-count", remaining < 0 && "invalid")}>
               {remaining}
             </span>
           </div>
@@ -108,7 +109,7 @@ export default function TagEditorModal({
               <button
                 key={option}
                 type="button"
-                className={`tag-editor-color ${option === color ? "selected" : ""}`}
+                className={cn("tag-editor-color", option === color && "selected")}
                 style={{ backgroundColor: option }}
                 onClick={() => setColor(option)}
                 aria-label={`Select color ${option}`}
@@ -124,7 +125,7 @@ export default function TagEditorModal({
               <button
                 key={option.id}
                 type="button"
-                className={`tag-editor-icon ${option.id === iconId ? "selected" : ""}`}
+                className={cn("tag-editor-icon", option.id === iconId && "selected")}
                 onClick={() => setIconId(option.id)}
                 aria-label={`Select icon ${option.label}`}
               >
