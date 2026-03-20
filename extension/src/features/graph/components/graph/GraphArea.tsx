@@ -113,6 +113,9 @@ export default function GraphArea({
             level: next.level,
             visibleNodes: metrics.visibleNodes,
             visibleConnections: metrics.visibleConnections,
+            restoreBacklog: metrics.restoreBacklog,
+            restoreBatchMs: Number(metrics.restoreBatchMs.toFixed(2)),
+            restoredNodeCount: metrics.restoredNodeCount,
           });
         }
 
