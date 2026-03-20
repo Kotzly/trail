@@ -78,6 +78,15 @@ export default [
         "warn",
         { allowConstantExport: true },
       ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "JSXAttribute[name.name='className'] > JSXExpressionContainer > TemplateLiteral",
+          message:
+            "Use cn() instead of template literals for className — formatters can strip spaces and silently break class composition.",
+        },
+      ],
     },
   },
 
