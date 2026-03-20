@@ -284,7 +284,7 @@ export default function SettingsDropdown() {
         <Icons.Settings size={18} />
       </button>
 
-      <div ref={dropdownRef} className={`settings-dropdown${settingsOpen ? "" : "hidden"}`}>
+      <div ref={dropdownRef} className={cn("settings-dropdown", !settingsOpen && "hidden")}>
         {/* header */}
         <div className="settings-dropdown-header">
           <span className="settings-dropdown-title">settings</span>

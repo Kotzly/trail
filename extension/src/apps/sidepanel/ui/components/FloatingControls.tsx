@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { cn } from "../lib/utils.js";
 import { redo, undo } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
@@ -88,7 +89,7 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   return (
     <div
       ref={controlsRef}
-      className={`floating-controls${controlsCompact ? "is-compact" : ""}`}
+      className={cn("floating-controls", controlsCompact && "is-compact")}
       data-search-expanded={searchExpanded ? "true" : "false"}
     >
       <div ref={leftRef} className="floating-controls-left">
