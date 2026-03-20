@@ -53,6 +53,9 @@ const FORBIDDEN_PATHS = [
   'src/entrypoints/sidepanel/ui',
   'src/entrypoints/spotlight.content',
   'src/entrypoints/spotlight-graph/SpotlightGraphApp.tsx',
+  'src/apps/sidepanel/ui/components/AuthGate.tsx',
+  'src/apps/sidepanel/ui/components/WelcomeGate.tsx',
+  'src/shared/debug',
 ];
 
 const FORBIDDEN_IMPORT_PATTERNS = [
