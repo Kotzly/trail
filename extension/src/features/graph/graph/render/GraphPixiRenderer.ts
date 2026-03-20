@@ -70,19 +70,28 @@ const URL_FONT_SIZE = 10;
 const TAB_BADGE_PADDING_X = 6;
 const TAB_BADGE_PADDING_Y = 3;
 
-const FAVICON_CACHE_MAX = 256;
+let faviconCacheLimit = 256;
 const faviconTextureCache = new Map<FaviconUrl, PIXI.Texture>();
 const faviconLoadPromises = new Map<FaviconUrl, Promise<PIXI.Texture | null>>();
 
 function cacheFaviconTexture(url: FaviconUrl, texture: PIXI.Texture): void {
-  if (faviconTextureCache.size >= FAVICON_CACHE_MAX) {
+  // LRU: delete first so re-insert moves to end
+  if (faviconTextureCache.has(url)) {
+    faviconTextureCache.delete(url);
+  }
+  // Evict least-recently-used (front of map) until within limit
+  while (faviconTextureCache.size >= faviconCacheLimit) {
     const oldest = faviconTextureCache.keys().next().value;
-    if (oldest !== undefined) {
-      faviconTextureCache.get(oldest)?.destroy();
-      faviconTextureCache.delete(oldest);
-    }
+    if (oldest === undefined) break;
+    faviconTextureCache.get(oldest)?.destroy();
+    faviconTextureCache.delete(oldest);
   }
   faviconTextureCache.set(url, texture);
+}
+
+function updateFaviconCacheLimit(visibleNodeCount: number): void {
+  // At least 256, scale to 1.5x visible nodes (pad for scrolling headroom)
+  faviconCacheLimit = Math.max(256, Math.ceil(visibleNodeCount * 1.5));
 }
 const STATUS_ICON_SIZE = 12;
 const STATUS_ICON_STROKE = 2;
@@ -219,6 +228,7 @@ class NodeVisual {
   };
   private readonly fonts: { base: string; weight: TextStyleFontWeight };
   private readonly invalidate: () => void;
+  private readonly onFaviconReady: () => void;
   private pinIconKey = "";
   private audioIconKey = "";
   private collapseBadgeKey = "";
@@ -229,10 +239,11 @@ class NodeVisual {
   /** When true, skip text/favicon rendering on first update to avoid frame drops
    * when many nodes become visible at once.  Cleared after the first update. */
   private deferContent = true;
-  constructor(id: NodeId, fontFamily: string, invalidate: () => void) {
+  constructor(id: NodeId, fontFamily: string, invalidate: () => void, onFaviconReady: () => void) {
     this.id = id;
     this.fonts = { base: fontFamily, weight: "500" };
     this.invalidate = invalidate;
+    this.onFaviconReady = onFaviconReady;
     this.container.addChild(this.background);
     this.container.addChild(this.fallbackDot);
     this.container.addChild(this.faviconBg);
@@ -616,7 +627,7 @@ class NodeVisual {
         return;
       }
       this.pendingFaviconUrl = null;
-      this.invalidate();
+      this.onFaviconReady();
     });
   }
 
@@ -871,6 +882,8 @@ export class GraphPixiRenderer {
   private origin = { x: 0, y: 0 };
   private cachedCullingRect: WorldRect | null = null;
   private needsRender = false;
+  private faviconReadyQueue: NodeId[] = [];
+  private faviconFlushHandle: ReturnType<typeof requestAnimationFrame> | null = null;
   private destroyed = false;
   private isReady = false;
   private canvas: HTMLCanvasElement | null = null;
@@ -893,6 +906,30 @@ export class GraphPixiRenderer {
     if (this.destroyed) return;
     this.invalidateVisible();
   };
+
+  private queueFaviconReady(nodeId: NodeId): void {
+    this.faviconReadyQueue.push(nodeId);
+    if (this.faviconFlushHandle !== null) return;
+    this.faviconFlushHandle = requestAnimationFrame(() => {
+      this.faviconFlushHandle = null;
+      if (this.destroyed || this.faviconReadyQueue.length === 0) return;
+      const selection = this.getEffectiveSelection();
+      for (const id of this.faviconReadyQueue) {
+        const visual = this.nodeMap.get(id);
+        const node = this.nodeData.get(id);
+        if (visual && node) {
+          visual.update(
+            node, this.view, this.theme, this.origin, this.fontFamily,
+            this.themeVersion, this.detailMode, this.textResolution,
+            selection.has(id), node.isPreview,
+          );
+        }
+      }
+      this.faviconReadyQueue = [];
+      this.needsRender = true;
+      this.render();
+    });
+  }
 
   constructor(host: HTMLDivElement) {
     this.host = host;
@@ -952,6 +989,11 @@ export class GraphPixiRenderer {
       cancelIdleCallback(this.restoreIdleHandle);
       this.restoreIdleHandle = null;
     }
+    if (this.faviconFlushHandle !== null) {
+      cancelAnimationFrame(this.faviconFlushHandle);
+      this.faviconFlushHandle = null;
+    }
+    this.faviconReadyQueue = [];
     this.restoreQueue = [];
     this.unwatchDevicePixelRatio();
     this.nodeMap.forEach((visual) => visual.destroy());
@@ -1148,7 +1190,7 @@ export class GraphPixiRenderer {
       if (!node) return;
       let visual = this.nodeMap.get(id);
       if (!visual) {
-        visual = new NodeVisual(id, this.fontFamily, this.requestRender);
+        visual = new NodeVisual(id, this.fontFamily, this.requestRender, () => this.queueFaviconReady(id));
         this.nodeMap.set(id, visual);
         this.nodeLayer.addChild(visual.container);
       }
@@ -1202,7 +1244,7 @@ export class GraphPixiRenderer {
       }
       let visual = this.nodeMap.get(id);
       if (!visual) {
-        visual = new NodeVisual(id, this.fontFamily, this.requestRender);
+        visual = new NodeVisual(id, this.fontFamily, this.requestRender, () => this.queueFaviconReady(id));
         this.nodeMap.set(id, visual);
         this.nodeLayer.addChild(visual.container);
       }
@@ -1641,12 +1683,13 @@ export class GraphPixiRenderer {
     };
     const visibleIds = this.index.query(paddedRect);
     this.visibleIdsCache = visibleIds;
+    updateFaviconCacheLimit(visibleIds.size);
     visibleIds.forEach((id) => {
       const node = this.nodeData.get(id);
       if (!node) return;
       let visual = this.nodeMap.get(id);
       if (!visual) {
-        visual = new NodeVisual(id, this.fontFamily, this.requestRender);
+        visual = new NodeVisual(id, this.fontFamily, this.requestRender, () => this.queueFaviconReady(id));
         const { priority, distance } = computeRestorePriority(
           id,
           node,
@@ -2119,11 +2162,16 @@ function safeColor(value: string, fallback: number): number {
 }
 
 function getCachedFaviconTexture(url: FaviconUrl): PIXI.Texture | null {
-  return faviconTextureCache.get(url) ?? null;
+  const tex = faviconTextureCache.get(url);
+  if (!tex) return null;
+  // LRU: move to end by delete + re-set
+  faviconTextureCache.delete(url);
+  faviconTextureCache.set(url, tex);
+  return tex;
 }
 
 function loadFaviconTexture(url: FaviconUrl): Promise<PIXI.Texture | null> {
-  const cached = faviconTextureCache.get(url);
+  const cached = getCachedFaviconTexture(url);
   if (cached) return Promise.resolve(cached);
   const existing = faviconLoadPromises.get(url);
   if (existing) return existing;
