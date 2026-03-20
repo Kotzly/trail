@@ -93,6 +93,9 @@ function updateFaviconCacheLimit(visibleNodeCount: number): void {
   // At least 256, scale to 1.5x visible nodes (pad for scrolling headroom)
   faviconCacheLimit = Math.max(256, Math.ceil(visibleNodeCount * 1.5));
 }
+
+const badgeMetricsCache = new Map<string, { width: number; height: number }>();
+
 const STATUS_ICON_SIZE = 12;
 const STATUS_ICON_STROKE = 2;
 const ICON_VIEWBOX = 24;
@@ -646,9 +649,14 @@ class NodeVisual {
       this.tabBadgeText.style.fontSize = 9;
       this.tabBadgeText.style.fill = theme.onPrimary;
       this.tabBadgeText.style.fontWeight = "700";
-      const metrics = PIXI.CanvasTextMetrics.measureText(badgeText, this.tabBadgeText.style);
-      const badgeWidth = metrics.width + TAB_BADGE_PADDING_X * 2;
-      const badgeHeight = metrics.height + TAB_BADGE_PADDING_Y * 2;
+      let measured = badgeMetricsCache.get(badgeText);
+      if (!measured) {
+        const metrics = PIXI.CanvasTextMetrics.measureText(badgeText, this.tabBadgeText.style);
+        measured = { width: metrics.width, height: metrics.height };
+        badgeMetricsCache.set(badgeText, measured);
+      }
+      const badgeWidth = measured.width + TAB_BADGE_PADDING_X * 2;
+      const badgeHeight = measured.height + TAB_BADGE_PADDING_Y * 2;
       this.tabBadgeBg.clear();
       this.tabBadgeBg.roundRect(0, 0, badgeWidth, badgeHeight, 6);
       this.tabBadgeBg.fill({ color: theme.primary, alpha: 1 });
