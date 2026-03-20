@@ -14,7 +14,7 @@ import type { PersistedFlagState } from "../types/flags.js";
 import type { TagDefinition } from "../types/tags.js";
 import type { AccountSnapshot } from "../types/account.js";
 import type { BackendConfigOverride } from "./backend.js";
-import type { SpotlightUsageStats } from "../lib/spotlight/usage-stats.js";
+import type { SpotlightUsageStats } from "@features/spotlight/model/usage-stats.js";
 
 // ── Auth ────────────────────────────────────────────────────────────
 

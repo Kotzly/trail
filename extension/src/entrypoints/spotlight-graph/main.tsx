@@ -1,9 +1,9 @@
 import "@ui/panel/styles.css";
 import { createRoot } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
-import ErrorBoundary from "@entrypoints/sidepanel/ui/components/ErrorBoundary.js";
-import { queryClient } from "@entrypoints/sidepanel/ui/query/client.js";
-import SpotlightGraphApp from "./SpotlightGraphApp.js";
+import ErrorBoundary from "@apps/sidepanel/ui/components/ErrorBoundary.js";
+import { queryClient } from "@apps/sidepanel/ui/query/client.js";
+import SpotlightGraphApp from "@apps/spotlight-graph/SpotlightGraphApp.js";
 import { readLayoutCache } from "@shared/graph-layout-cache/cache.js";
 
 // Pre-fetch cached layout BEFORE React mounts — ensures it's available

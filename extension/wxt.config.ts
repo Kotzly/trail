@@ -31,7 +31,8 @@ export default defineConfig({
   }),
   alias: {
     "@entrypoints": resolve("src/entrypoints"),
-    "@ui": resolve("src/ui-core"),
+    "@apps": resolve("src/apps"),
+    "@ui": resolve("src/ui"),
     "@features": resolve("src/features"),
     "@background": resolve("src/background"),
     "@content": resolve("src/content"),

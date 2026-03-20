@@ -1,6 +1,6 @@
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { Settings } from "@shared/types/settings.js";
-import type { NodePosition } from "@entrypoints/sidepanel/ui/graph/types.js";
+import type { NodePosition } from "@features/graph/graph/types.js";
 import type { NavigationNode } from "@shared/types/node.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import {
@@ -8,8 +8,8 @@ import {
   calculateMindmapLayout,
   calculateRadialLayout,
   getCanvasBounds,
-} from "@entrypoints/sidepanel/ui/graph/layout/calculator.js";
-import { deriveLayoutOptions } from "@entrypoints/sidepanel/ui/graph/layout/options.js";
+} from "@features/graph/graph/layout/calculator.js";
+import { deriveLayoutOptions } from "@features/graph/graph/layout/options.js";
 import {
   computeCollapseSignature,
   computeLayoutSignature,

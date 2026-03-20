@@ -5,12 +5,12 @@
   "tsx": true,
   "tailwind": {
     "config": "tailwind.config.cjs",
-    "css": "src/entrypoints/sidepanel/ui/tailwind.css",
+    "css": "src/apps/sidepanel/ui/tailwind.css",
     "baseColor": "neutral",
     "cssVariables": true
   },
   "aliases": {
-    "components": "@entrypoints/sidepanel/ui/components",
-    "utils": "@entrypoints/sidepanel/ui/lib/utils"
+    "components": "@ui/components",
+    "utils": "@ui/lib/utils"
   }
 }

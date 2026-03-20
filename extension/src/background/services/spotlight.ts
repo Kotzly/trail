@@ -1,9 +1,12 @@
-import { parseSpotlightQuery, type SpotlightToken } from "@shared/lib/spotlight/query-dsl.js";
-import { scoreSpotlightCandidate } from "@shared/lib/spotlight/scoring.js";
+import {
+  parseSpotlightQuery,
+  type SpotlightToken,
+} from "@features/spotlight/model/query-dsl.js";
+import { scoreSpotlightCandidate } from "@features/spotlight/model/scoring.js";
 import {
   normalizeSpotlightSearchQuery,
   normalizeSpotlightUrlCandidate,
-} from "@shared/lib/spotlight/external.js";
+} from "@features/spotlight/model/external.js";
 import {
   type SpotlightActionId,
   type SpotlightActionResult,

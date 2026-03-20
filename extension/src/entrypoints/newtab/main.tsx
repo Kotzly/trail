@@ -1,12 +1,12 @@
 import "@shared/styles/inter.css";
-import "@entrypoints/sidepanel/ui/styles/tokens.css";
-import "@entrypoints/spotlight.content/style.css";
-import "./ui/newtab.css";
-import "./ui/bookmarks.css";
+import "@apps/sidepanel/ui/styles/tokens.css";
+import "@entrypoints/spotlight-content/style.css";
+import "@apps/newtab/ui/newtab.css";
+import "@apps/newtab/ui/bookmarks.css";
 
 import { createRoot } from "react-dom/client";
 import { initBackendConfig } from "@shared/config/backend.js";
-import { NewTabApp } from "./ui/NewTabApp.js";
+import { NewTabApp } from "@apps/newtab/ui/NewTabApp.js";
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Missing #root element");

@@ -10,7 +10,7 @@ import {
   recordSpotlightSelection,
   sanitizeSpotlightUsageStats,
   type SpotlightUsageTargetStats,
-} from "@shared/lib/spotlight/usage-stats.js";
+} from "@features/spotlight/model/usage-stats.js";
 
 export class SpotlightUsageStatsService {
   private cache = emptySpotlightUsageStats();
