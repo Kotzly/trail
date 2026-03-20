@@ -49,6 +49,9 @@ export type GraphRenderMetrics = {
   selectionPatchMs: number;
   selectionChangedCount: number;
   skippedFullInvalidationCount: number;
+  restoreBacklog: number;
+  restoreBatchMs: number;
+  restoredNodeCount: number;
 };
 
 const LOD_HIDE_PX = -1; // disabled
@@ -908,6 +911,9 @@ export class GraphPixiRenderer {
     selectionPatchMs: 0,
     selectionChangedCount: 0,
     skippedFullInvalidationCount: 0,
+    restoreBacklog: 0,
+    restoreBatchMs: 0,
+    restoredNodeCount: 0,
   };
   private metricsListener: ((metrics: GraphRenderMetrics) => void) | null = null;
   private readonly requestRender = () => {
@@ -1490,6 +1496,7 @@ export class GraphPixiRenderer {
     this.restoreIdleHandle = requestIdleCallback(
       (deadline) => {
         this.restoreIdleHandle = null;
+        const restoreStart = performance.now();
         const start = performance.now();
         const { batchSize, deadlineMs } = computeBatchBudget(this.nodeData.size);
         let processed = 0;
@@ -1522,6 +1529,10 @@ export class GraphPixiRenderer {
             processed++;
           }
         }
+
+        this.metrics.restoreBatchMs = performance.now() - restoreStart;
+        this.metrics.restoredNodeCount = processed;
+        this.metrics.restoreBacklog = this.restoreQueue.length;
 
         if (processed > 0) {
           this.needsRender = true;
@@ -1669,6 +1680,9 @@ export class GraphPixiRenderer {
   }
 
   private updateVisible(cullingRect?: WorldRect) {
+    this.metrics.restoreBatchMs = 0;
+    this.metrics.restoredNodeCount = 0;
+    this.metrics.restoreBacklog = this.restoreQueue.length;
     const updateStart = performance.now();
     const viewRect = worldRectFromView(
       this.view,
