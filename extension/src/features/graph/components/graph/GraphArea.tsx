@@ -11,6 +11,10 @@ import type { NodeId } from "@shared/types/ids.js";
 
 const GraphCanvas = React.lazy(() => import("./GraphCanvas.js"));
 
+function GraphSkeleton() {
+  return <div className="skeleton-block skeleton-graph-fallback" />;
+}
+
 const NODE_COUNT_LOW_THRESHOLD = 500;
 const NODE_COUNT_DOT_THRESHOLD = 2000;
 
@@ -179,7 +183,7 @@ export default function GraphArea({
   );
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<GraphSkeleton />}>
       <GraphCanvas
         {...graphState}
         {...graphActions}

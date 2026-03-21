@@ -19,6 +19,15 @@ import { useStore } from "./state/store.js";
 import { sessionBannerDismissedItem } from "@shared/config/storage-items.js";
 import OnboardingHints from "./components/OnboardingHints.js";
 
+function BootstrapSkeleton() {
+  return (
+    <div className="skeleton-bootstrap">
+      <div className="skeleton-block skeleton-bootstrap__header" />
+      <div className="skeleton-block skeleton-bootstrap__graph" />
+    </div>
+  );
+}
+
 function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
   return (
     <div
@@ -105,6 +114,15 @@ export default function App() {
       sessionBannerDismissedItem.setValue(false).catch(() => {});
     }
   }, [account.sessionExpired]);
+
+  if (bootstrapStatus === "loading") {
+    return (
+      <div className="container">
+        <Toaster />
+        <BootstrapSkeleton />
+      </div>
+    );
+  }
 
   if (bootstrapStatus === "degraded") {
     return (
