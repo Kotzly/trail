@@ -54,11 +54,11 @@ export type GraphRenderMetrics = {
   restoredNodeCount: number;
 };
 
-const LOD_HIDE_PX = -1; // disabled
+const LOD_HIDE_PX = 4;
 const LOD_DOT_PX = 12;
 const LOD_LOW_PX = 32;
-/** Paths/connections are not drawn when typical node size on screen is below this (must be < LOD_HIDE_PX). */
-const LOD_CONN_HIDE_PX = -1; // disabled
+/** Paths/connections are not drawn when typical node size on screen is below this. */
+const LOD_CONN_HIDE_PX = 6;
 
 const NODE_RADIUS = 12;
 const NODE_PADDING_X = 12;

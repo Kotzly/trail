@@ -13,8 +13,12 @@
  *   window.__graphMetrics()   // prints table + returns raw stats
  */
 
+import { createLogger } from "@shared/lib/logger.js";
+
 /** Timestamp at module load — used as t0 for startup metrics. */
 export const STARTUP_T0 = performance.now();
+
+const budgetLog = createLogger("perf-budget");
 
 export type ProfilePhase =
   | "layout"
@@ -44,7 +48,19 @@ export type StartupMetrics = {
   nodeCount: number | null;
   /** Layout mode used at startup */
   layoutMode: string | null;
+  /** ms from module load to sidepanel first paint (bootstrap ready) */
+  sidepanelPaintMs: number | null;
+  /** ms for a spotlight search query */
+  spotlightQueryMs: number | null;
 };
+
+type BudgetMetricKey = "sidepanelPaintMs" | "firstRenderMs" | "spotlightQueryMs";
+
+export const BUDGET_THRESHOLDS: Record<BudgetMetricKey, number> = {
+  sidepanelPaintMs: 500,
+  firstRenderMs: 1000,
+  spotlightQueryMs: 100,
+} as const;
 
 const ALL_PHASES: readonly ProfilePhase[] = [
   "layout",
@@ -73,6 +89,8 @@ const EMPTY_STARTUP: StartupMetrics = {
   cacheHitType: null,
   nodeCount: null,
   layoutMode: null,
+  sidepanelPaintMs: null,
+  spotlightQueryMs: null,
 };
 
 export class GraphProfiler {
@@ -131,6 +149,16 @@ export class GraphProfiler {
   recordStartup(field: keyof StartupMetrics, value: number | string): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (this._startup as any)[field] = value;
+    if (typeof value === "number") {
+      this.checkBudget(field, value);
+    }
+  }
+
+  private checkBudget(metric: string, value: number): void {
+    const threshold = BUDGET_THRESHOLDS[metric as BudgetMetricKey];
+    if (threshold != null && value > threshold) {
+      budgetLog.warn("budget breach", { metric, value: Math.round(value), threshold });
+    }
   }
 
   getStartupMetrics(): StartupMetrics {
@@ -191,6 +219,12 @@ export function profileSync<T>(phase: ProfilePhase, fn: () => T): T {
     "Cache Hit": { value: startup.cacheHitType ?? "-" },
     Nodes: { value: startup.nodeCount ?? "-" },
     Mode: { value: startup.layoutMode ?? "-" },
+    "Sidepanel Paint": {
+      value: startup.sidepanelPaintMs != null ? `${startup.sidepanelPaintMs.toFixed(1)}ms` : "-",
+    },
+    "Spotlight Query": {
+      value: startup.spotlightQueryMs != null ? `${startup.spotlightQueryMs.toFixed(1)}ms` : "-",
+    },
   });
 
   return { phases: stats, startup };

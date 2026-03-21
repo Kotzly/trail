@@ -7,6 +7,7 @@ import { getCommandState } from "../../api/commands.js";
 import { isMac } from "@shared/utils/platform.js";
 import { useStore, type MetaKeyPair } from "../state/store.js";
 import { applyTheme } from "../shared/apply-theme.js";
+import { graphProfiler, STARTUP_T0 } from "@features/graph/graph/render/graph-profiler.js";
 
 export type BootstrapStatus = "loading" | "degraded" | "ready";
 
@@ -70,6 +71,7 @@ export function useBootstrap(): {
         }
 
         setBootstrapStatus("ready");
+        graphProfiler.recordStartup("sidepanelPaintMs", performance.now() - STARTUP_T0);
       } catch (error) {
         console.error(
           "[bootstrap] Critical fetch failed:",

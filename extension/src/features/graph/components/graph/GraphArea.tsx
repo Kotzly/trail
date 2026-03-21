@@ -11,6 +11,9 @@ import type { NodeId } from "@shared/types/ids.js";
 
 const GraphCanvas = React.lazy(() => import("./GraphCanvas.js"));
 
+const NODE_COUNT_LOW_THRESHOLD = 500;
+const NODE_COUNT_DOT_THRESHOLD = 2000;
+
 // Prefetch: kick off the dynamic import immediately at module load time.
 // React.lazy's internal import is deferred until first render inside Suspense.
 // By calling import() here, the chunk fetch starts as soon as GraphArea.tsx is parsed,
@@ -130,7 +133,20 @@ export default function GraphArea({
     [qualityPolicyState],
   );
 
-  const detailMode =
+  // Node-count quality floor: large trees start at reduced quality
+  const nodeCount = graphState.tree?.size() ?? 0;
+  const nodeCountFloor: "full" | "low" | "dot" =
+    nodeCount >= NODE_COUNT_DOT_THRESHOLD
+      ? "dot"
+      : nodeCount >= NODE_COUNT_LOW_THRESHOLD
+        ? "low"
+        : "full";
+
+  const DETAIL_RANK = { dot: 0, low: 1, full: 2 } as const;
+  const worstDetail = (a: "full" | "low" | "dot", b: "full" | "low" | "dot") =>
+    DETAIL_RANK[a] <= DETAIL_RANK[b] ? a : b;
+
+  const baseDetailMode =
     graphState.overlayLodCount > 0
       ? ("dot" as const)
       : gestureActive
@@ -138,6 +154,8 @@ export default function GraphArea({
         : graphState.adaptivePerformance
           ? adaptiveQuality.detailMode
           : ("full" as const);
+
+  const detailMode = worstDetail(baseDetailMode, nodeCountFloor);
 
   const connectionQuality =
     graphState.overlayLodCount > 0

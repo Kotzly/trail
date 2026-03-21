@@ -36,7 +36,7 @@ export const FLAG_DEFS = {
   },
   adaptivePerformance: {
     type: "boolean",
-    default: false,
+    default: true,
     label: "Adaptive Performance",
     description:
       "Automatically degrade graph rendering quality to maintain frame rate on large trees.",
