@@ -8,6 +8,7 @@ import { useOverlayEffects } from "../../state/overlay-effects.js";
 import { useAnchoredDropdown } from "../../hooks/useAnchoredDropdown.js";
 import { cn } from "../../lib/utils.js";
 import { Icons } from "../Icon.js";
+import { showOperationError } from "../../shared/show-operation-error.js";
 import { TagIcon } from "./TagIcon.js";
 import { collectTagCounts, collectTaggedNodes, filterNodesByTags } from "./tag-filter-utils.js";
 
@@ -84,7 +85,7 @@ export default function TagFilterDropdown() {
     try {
       await navigateTo(node);
     } catch (error) {
-      console.error("TagFilterDropdown: navigateTo failed", error);
+      showOperationError("Open page", error);
     } finally {
       setTagFilterOpen(false);
     }

@@ -26,6 +26,7 @@ import { getNearestCollapsedAncestorId } from "@features/graph/graph/collapse-ut
 
 import { toast } from "sonner";
 import { browser, type Tab } from "@shared/platform/webext.js";
+import { showOperationError } from "../shared/show-operation-error.js";
 
 type MenuPosition = { left: number; top: number; maxHeight: number };
 
@@ -152,7 +153,7 @@ export default function ContextMenus() {
             fireAndForget(rpc.addTag({ nodeId: tagEditorState.nodeId, tagId: id }));
           }
         } catch (error) {
-          console.error("Failed to save tag:", error);
+          showOperationError("Save tag", error);
         } finally {
           setTagEditorState({ open: false, nodeId: null, mode: "create", initial: null });
         }
@@ -353,9 +354,13 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                 className="graph-context-menu-item"
                 role="menuitem"
                 tabIndex={-1}
-                onClick={() => {
-                  void navigateTo(node);
-                  closeContextMenu();
+                onClick={async () => {
+                  try {
+                    await navigateTo(node);
+                    closeContextMenu();
+                  } catch (error) {
+                    showOperationError("Open page", error);
+                  }
                 }}
               >
                 Open in this tab
@@ -613,7 +618,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                             try {
                               await deleteTagDef(tag.id as Tag);
                             } catch (error) {
-                              console.error("Failed to delete tag:", error);
+                              showOperationError("Delete tag", error);
                             }
                             setPendingDeleteTagId(null);
                           }}
@@ -666,7 +671,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                 await navigator.clipboard.writeText(node.data.url);
                 toast.success("URL copied");
               } catch (error) {
-                console.error("Failed to copy URL:", error);
+                showOperationError("Copy URL", error);
               }
               closeContextMenu();
             }}
@@ -683,7 +688,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                   await navigator.clipboard.writeText(node.data.title || "Untitled");
                   toast.success("Title copied");
                 } catch (error) {
-                  console.error("Failed to copy title:", error);
+                  showOperationError("Copy title", error);
                 }
                 closeContextMenu();
               }}

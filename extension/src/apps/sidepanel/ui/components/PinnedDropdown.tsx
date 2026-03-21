@@ -7,6 +7,7 @@ import { useOverlayEffects } from "../state/overlay-effects.js";
 import { useAnchoredDropdown } from "../hooks/useAnchoredDropdown.js";
 import { cn } from "../lib/utils.js";
 import { Icons } from "./Icon.js";
+import { showOperationError } from "../shared/show-operation-error.js";
 
 export default function PinnedDropdown() {
   const pins = useStore((state) => state.pins);
@@ -42,7 +43,16 @@ export default function PinnedDropdown() {
         case "Enter": {
           event.preventDefault();
           const node = pinnedNodes[0];
-          if (node) void navigateTo(node).finally(() => setPinnedOpen(false));
+          if (node) {
+            void (async () => {
+              try {
+                await navigateTo(node);
+                setPinnedOpen(false);
+              } catch (error) {
+                showOperationError("Open page", error);
+              }
+            })();
+          }
           return;
         }
         default:
@@ -71,10 +81,9 @@ export default function PinnedDropdown() {
     if (!node) return;
     try {
       await navigateTo(node);
-    } catch (error) {
-      console.error("PinnedDropdown: navigateTo failed", error);
-    } finally {
       setPinnedOpen(false);
+    } catch (error) {
+      showOperationError("Open page", error);
     }
   };
 

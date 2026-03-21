@@ -21,6 +21,7 @@ import type { TrailExportBundle } from "@shared/types/export.js";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { browser } from "@shared/platform/webext.js";
+import { showOperationError } from "../shared/show-operation-error.js";
 
 type TreeItem = {
   id: string;
@@ -140,7 +141,7 @@ export default function TreeDropdown() {
         setSyncing(true);
         await syncTrees();
       } catch (error) {
-        console.warn("Failed to sync trees:", error);
+        showOperationError("Sync", error);
       } finally {
         if (!cancelled) {
           setSyncing(false);
@@ -196,7 +197,7 @@ export default function TreeDropdown() {
     try {
       await renameTree(editingId, nextLabel);
     } catch (error) {
-      console.error("Failed to rename tree:", error);
+      showOperationError("Rename", error);
     } finally {
       setEditingId(null);
       setDraft("");
@@ -216,7 +217,7 @@ export default function TreeDropdown() {
       }
       await openTree(tree.id);
     } catch (error) {
-      console.error("Failed to open tree:", error);
+      showOperationError("Open tree", error);
     } finally {
       setLoadingTreeId(null);
       setTreesOpen(false);
@@ -227,7 +228,7 @@ export default function TreeDropdown() {
     try {
       await deleteArchivedTree(treeId);
     } catch (error) {
-      console.error("Failed to delete saved tree:", error);
+      showOperationError("Delete tree", error);
     }
   };
 
@@ -237,7 +238,7 @@ export default function TreeDropdown() {
       downloadBundle(bundle);
       toast.success("Exported as JSON");
     } catch (error) {
-      console.error("Failed to export tree:", error);
+      showOperationError("Export", error);
     }
   };
 
@@ -247,7 +248,7 @@ export default function TreeDropdown() {
       const baseUrl = getBackendConfig().baseUrl;
       await browser.tabs.create({ url: `${baseUrl}/trails/${treeId}`, active: true });
     } catch (error) {
-      console.error("Failed to open trail editor:", error);
+      showOperationError("Open editor", error);
     }
   };
 
@@ -257,7 +258,7 @@ export default function TreeDropdown() {
       setCreating(true);
       await createNewTree(label);
     } catch (error) {
-      console.error("Failed to create new tree:", error);
+      showOperationError("Create tree", error);
     } finally {
       setCreating(false);
     }
