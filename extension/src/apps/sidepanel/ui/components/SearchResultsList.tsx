@@ -1,4 +1,5 @@
-import { memo, useMemo, useState, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { FaviconUrl, NodeId, Timestamp, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import type { NavigationTree } from "@background/state/nav-tree.js";
@@ -22,6 +23,8 @@ type SearchResultItem = {
   timestamp: Timestamp;
 };
 
+const ROW_HEIGHT = 52;
+
 export default function SearchResultsList({
   tree,
   results,
@@ -29,6 +32,8 @@ export default function SearchResultsList({
   query,
   onSelect,
 }: SearchResultsListProps) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
   const items = useMemo<SearchResultItem[]>(() => {
     if (!tree) return [];
     const next: SearchResultItem[] = [];
@@ -47,21 +52,61 @@ export default function SearchResultsList({
     return next;
   }, [results, tree]);
 
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 5,
+  });
+
+  // Scroll active item into view on keyboard navigation
+  useEffect(() => {
+    if (activeId == null) return;
+    const idx = items.findIndex((item) => item.id === activeId);
+    if (idx >= 0) virtualizer.scrollToIndex(idx, { align: "auto" });
+  }, [activeId, items, virtualizer]);
+
   if (items.length === 0) {
     return <div className="floating-search-list-empty">No results</div>;
   }
 
   return (
-    <div className="floating-search-list">
-      {items.map((item) => (
-        <SearchResultRow
-          key={item.id}
-          item={item}
-          query={query}
-          isActive={activeId === item.id}
-          onSelect={onSelect}
-        />
-      ))}
+    <div
+      ref={parentRef}
+      className="floating-search-list"
+      style={{ overflow: "auto" }}
+    >
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const item = items[virtualRow.index];
+          if (!item) return null;
+          return (
+            <div
+              key={item.id}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <SearchResultRow
+                item={item}
+                query={query}
+                isActive={activeId === item.id}
+                onSelect={onSelect}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
