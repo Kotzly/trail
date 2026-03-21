@@ -111,7 +111,27 @@ export function NewTabApp() {
   // ─── Session expired banner state ───
   const [sessionExpired, setSessionExpired] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
-  const [sessionDismissed, setSessionDismissed] = useState(false);
+  const [sessionDismissed, setSessionDismissed] = useState(true); // start hidden, load from storage
+
+  // Load dismiss state from localStorage (24h expiry)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("trail_session_banner_dismissed_at");
+      if (raw) {
+        const dismissedAt = Number(raw);
+        const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+        if (Date.now() - dismissedAt < ONE_DAY_MS) return; // still within 24h — stay dismissed
+      }
+      setSessionDismissed(false);
+    } catch {
+      setSessionDismissed(false);
+    }
+  }, []);
+
+  const dismissBanner = useCallback(() => {
+    setSessionDismissed(true);
+    try { localStorage.setItem("trail_session_banner_dismissed_at", String(Date.now())); } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -547,6 +567,64 @@ export function NewTabApp() {
         />
       </div>
 
+      {/* ── Session expired banner (outside island, top of screen) ── */}
+      {sessionExpired && !sessionDismissed && (
+        <div
+          className="newtab-session-banner"
+          style={{
+            position: "fixed",
+            top: "12px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "6px 16px",
+            background: "rgba(255, 165, 0, 0.15)",
+            backdropFilter: "blur(12px)",
+            borderRadius: "8px",
+            fontSize: "12px",
+            zIndex: 100,
+            color: "var(--color-text-primary, #ccc)",
+          }}
+        >
+          <span>Session expired — sign in to sync</span>
+          <button
+            type="button"
+            onClick={() => void handleSignIn()}
+            disabled={authBusy}
+            style={{
+              background: "none",
+              border: "1px solid currentColor",
+              borderRadius: "4px",
+              padding: "2px 8px",
+              cursor: "pointer",
+              fontSize: "11px",
+              color: "inherit",
+              opacity: 0.9,
+            }}
+          >
+            {authBusy ? "Opening..." : "Sign in"}
+          </button>
+          <button
+            type="button"
+            onClick={dismissBanner}
+            aria-label="Dismiss"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "16px",
+              opacity: 0.5,
+              padding: "0 2px",
+              color: "inherit",
+            }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* ── Centering anchor (transparent to mouse — clicks go to graph) ── */}
       <div className={anchorClass} ref={anchorRef}>
         {/* ── Draggable island (sized to content) ── */}
@@ -579,60 +657,6 @@ export function NewTabApp() {
             }}
             className="newtab-island"
           >
-            {/* ── Session expired banner ── */}
-            {sessionExpired && !sessionDismissed && (
-              <div
-                className="newtab-session-banner"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "6px 12px",
-                  background: "rgba(255, 165, 0, 0.12)",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  marginBottom: "8px",
-                }}
-              >
-                <span className="newtab-session-banner__text">Session expired — sign in to sync</span>
-                <button
-                  className="newtab-session-banner__action"
-                  type="button"
-                  onClick={() => void handleSignIn()}
-                  disabled={authBusy}
-                  style={{
-                    background: "none",
-                    border: "1px solid currentColor",
-                    borderRadius: "4px",
-                    padding: "2px 8px",
-                    cursor: "pointer",
-                    fontSize: "11px",
-                    color: "inherit",
-                    opacity: 0.9,
-                  }}
-                >
-                  {authBusy ? "Opening..." : "Sign in"}
-                </button>
-                <button
-                  className="newtab-session-banner__dismiss"
-                  type="button"
-                  onClick={() => setSessionDismissed(true)}
-                  aria-label="Dismiss"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "16px",
-                    opacity: 0.5,
-                    padding: "0 2px",
-                    color: "inherit",
-                  }}
-                >
-                  &times;
-                </button>
-              </div>
-            )}
-
             {/* ── Greeting ── */}
             {!graphFocusMode && (
               <div className="newtab-greeting">
