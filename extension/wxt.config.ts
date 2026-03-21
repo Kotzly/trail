@@ -31,7 +31,8 @@ export default defineConfig({
   }),
   alias: {
     "@entrypoints": resolve("src/entrypoints"),
-    "@ui": resolve("src/ui-core"),
+    "@apps": resolve("src/apps"),
+    "@ui": resolve("src/ui"),
     "@features": resolve("src/features"),
     "@background": resolve("src/background"),
     "@content": resolve("src/content"),
@@ -52,7 +53,7 @@ export default defineConfig({
     name: "Trail - Visual Browsing History",
     description:
       "Your browsing sessions, reimagined.",
-    version: "0.9.1",
+    version: "1.0.0",
     homepage_url: "https://gettrail.net",
     icons: {
       "16": "icons/trail-16.png",
@@ -60,6 +61,8 @@ export default defineConfig({
       "48": "icons/trail-48.png",
       "128": "icons/trail-128.png",
     },
+    // activeTab: required by captureVisibleTab in thumbnail-cache.ts
+    // See SEC-02 audit (2026-03-21) for full permission justification
     permissions: [
       "sidePanel",
       "storage",
@@ -67,9 +70,9 @@ export default defineConfig({
       "webNavigation",
       "favicon",
       "alarms",
-      "scripting",
       "activeTab",
-      "search",
+      "bookmarks",
+      "offscreen",
     ],
     commands: {
       "toggle-spotlight": {
@@ -91,6 +94,9 @@ export default defineConfig({
       },
     ],
     host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
+    chrome_url_overrides: {
+      newtab: "newtab.html",
+    },
     side_panel: {
       default_path: "sidepanel/index.html",
     },

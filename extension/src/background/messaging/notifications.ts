@@ -1,13 +1,17 @@
-import type { TabId, NodeId } from '@shared/types/ids.js';
-import { tabManager } from '../state/tab-manager.js';
-import type { TabSoundState, TabState } from '@shared/types/tabs.js';
-import { rpc, type TreeUpdateReason, type TreeViewIntent, type TreesSnapshot } from '@shared/rpc/contracts.js';
-import { NavigationTreeMapper } from '@shared/lib/mapper.js';
-import { NavigationTree } from '../state/nav-tree.js';
-import { sendRuntimeMessage } from './send-message.js';
-import { browser } from '@shared/platform/webext.js';
-import { spotlightLiveIndex } from '../services/spotlight-live-index.js';
-
+import type { TabId, NodeId } from "@shared/types/ids.js";
+import { tabManager } from "../state/tab-manager.js";
+import type { TabSoundState, TabState } from "@shared/types/tabs.js";
+import {
+  rpc,
+  type TreeUpdateReason,
+  type TreeViewIntent,
+  type TreesSnapshot,
+} from "@shared/rpc/contracts.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import { type NavigationTree } from "../state/nav-tree.js";
+import { sendRuntimeMessage } from "./send-message.js";
+import { browser } from "@shared/platform/webext.js";
+import { spotlightLiveIndex } from "../services/spotlight-live-index.js";
 
 // Get tab states for all open tabs.
 export async function getTabStates(): Promise<Record<NodeId, TabState>> {
@@ -39,22 +43,23 @@ let viewIntentCounter = 0;
 
 const DEBOUNCE_MS = 200;
 const IMMEDIATE_REASONS: ReadonlySet<TreeUpdateReason> = new Set<TreeUpdateReason>([
-  'set-current',
-  'tree-switch',
-  'tree-reset',
-  'layout',
-  'delete',
-  'undo',
-  'pins',
-  'tags',
-  'reparent',
-  'duplicate',
-  'editor-enter',
-  'editor-exit',
+  "set-current",
+  "tree-switch",
+  "tree-reset",
+  "layout",
+  "delete",
+  "undo",
+  "pins",
+  "tags",
+  "reparent",
+  "duplicate",
+  "editor-enter",
+  "editor-exit",
 ]);
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingArgs: { tree: NavigationTree; reason: TreeUpdateReason; view?: TreeViewIntent } | null = null;
+let pendingArgs: { tree: NavigationTree; reason: TreeUpdateReason; view?: TreeViewIntent } | null =
+  null;
 
 async function sendTreeNotification(
   tree: NavigationTree,
@@ -64,7 +69,9 @@ async function sendTreeNotification(
   const openNodes = Array.from(tabManager.openNodes());
   const tabStates = await getTabStates();
 
-  const nodeTabCounts = Object.fromEntries(openNodes.map(nodeId => [nodeId, tabManager.tabCountForNode(nodeId)]));
+  const nodeTabCounts = Object.fromEntries(
+    openNodes.map((nodeId) => [nodeId, tabManager.tabCountForNode(nodeId)]),
+  );
   const nodeRecency: Record<string, number> = {};
   for (const nodeId of openNodes) {
     const r = tabManager.getNodeRecency(nodeId);
@@ -75,13 +82,13 @@ async function sendTreeNotification(
     : undefined;
 
   const payload = rpc.treeUpdated({
-      tree: NavigationTreeMapper.toJSON(tree),
-      openNodeIds: openNodes,
-      tabStates: tabStates,
-      nodeTabCounts: nodeTabCounts,
-      nodeRecency,
-      reason,
-      ...(nextView ? { view: nextView } : {}),
+    tree: NavigationTreeMapper.toJSON(tree),
+    openNodeIds: openNodes,
+    tabStates: tabStates,
+    nodeTabCounts: nodeTabCounts,
+    nodeRecency,
+    reason,
+    ...(nextView ? { view: nextView } : {}),
   });
 
   sendRuntimeMessage(payload);
@@ -89,7 +96,7 @@ async function sendTreeNotification(
 
 export async function notifyTreeUpdate(
   tree: NavigationTree,
-  reason: TreeUpdateReason = 'sync',
+  reason: TreeUpdateReason = "sync",
   view?: TreeViewIntent,
 ): Promise<void> {
   spotlightLiveIndex.invalidate();

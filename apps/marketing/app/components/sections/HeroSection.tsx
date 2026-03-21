@@ -3,11 +3,11 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { parseHeadline } from "../ui/parse-headline";
+import type { HeroSectionData } from "../../../lib/sanity/types";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function HeroSection({ section }: { section: any }) {
+export function HeroSection({ section }: { section: HeroSectionData }) {
   const cta = section.ctas?.[0];
   const videoUrl: string | undefined = section.video?.asset?.url;
   const posterUrl: string | undefined = section.poster?.asset?.url;

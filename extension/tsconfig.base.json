@@ -6,7 +6,8 @@
     "baseUrl": ".",
     "paths": {
       "@entrypoints/*": ["src/entrypoints/*"],
-      "@ui/*": ["src/ui-core/*"],
+      "@apps/*": ["src/apps/*"],
+      "@ui/*": ["src/ui/*"],
       "@features/*": ["src/features/*"],
       "@background/*": ["src/background/*"],
       "@content/*": ["src/content/*"],

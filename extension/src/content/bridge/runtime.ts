@@ -1,6 +1,5 @@
-import { isAllowedSiteOrigin } from '@shared/config/site-origins.js';
-import { browser, type RuntimeMessageSender } from '@shared/platform/webext.js';
-
+import { isAllowedSiteOrigin } from "@shared/config/site-origins.js";
+import { browser, type RuntimeMessageSender } from "@shared/platform/webext.js";
 
 /**
  * Content script for Trail.
@@ -31,9 +30,7 @@ type SiteForwardMessage = {
   requestId: string;
 };
 
-type RequestMessage =
-  | OpenPanelMessage
-  | SiteForwardMessage;
+type RequestMessage = OpenPanelMessage | SiteForwardMessage;
 
 type RequestType = RequestMessage["type"];
 
@@ -128,33 +125,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isValidUUID(value: unknown): value is string {
   if (typeof value !== "string") return false;
   // RFC 4122 UUID pattern (v4-like, loose)
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    value,
-  );
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
 /**
  * Validate that `data` looks like a valid site → extension message.
  * Returns the validated object or null.
  */
-function validateSiteMessage(
-  data: unknown,
-):
-  | {
-      source: typeof SITE_SOURCE;
-      type: string;
-      requestId: string;
-      timestamp: number;
-      [key: string]: unknown;
-    }
-  | null {
+function validateSiteMessage(data: unknown): {
+  source: typeof SITE_SOURCE;
+  type: string;
+  requestId: string;
+  timestamp: number;
+  [key: string]: unknown;
+} | null {
   if (!isRecord(data)) return null;
   if (data.source !== SITE_SOURCE) return null;
   if (typeof data.type !== "string") return null;
   if (!KNOWN_SITE_TYPES.has(data.type)) return null;
   if (!isValidUUID(data.requestId)) return null;
-  if (typeof data.timestamp !== "number" || !Number.isFinite(data.timestamp))
-    return null;
+  if (typeof data.timestamp !== "number" || !Number.isFinite(data.timestamp)) return null;
   return data as {
     source: typeof SITE_SOURCE;
     type: string;
@@ -177,9 +167,7 @@ const RPC_VERSION = 2 as const;
 
 function shouldIgnoreRuntimeError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return IGNORED_ERROR_FRAGMENTS.some((fragment) =>
-    message.includes(fragment),
-  );
+  return IGNORED_ERROR_FRAGMENTS.some((fragment) => message.includes(fragment));
 }
 
 function createRpcId(): string {
@@ -245,10 +233,7 @@ function sendMessage<T extends RequestType>(
 // Extension → Site postMessage helper
 // ---------------------------------------------------------------------------
 
-function postExtensionMessage(
-  payload: Record<string, unknown>,
-  origin: string,
-): void {
+function postExtensionMessage(payload: Record<string, unknown>, origin: string): void {
   const message = {
     source: EXTENSION_SOURCE,
     timestamp: Date.now(),
@@ -298,8 +283,7 @@ function handleSiteMessage(event: MessageEvent): void {
         );
       })
       .catch((error) => {
-        const message =
-          error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         postExtensionMessage(
           { type: "OPEN_TRAIL_PANEL_ACK", requestId, ok: false, error: message },
           origin,
@@ -318,10 +302,7 @@ function handleSiteMessage(event: MessageEvent): void {
   sendMessage(rpc.siteMessageForward(type, payload, requestId))
     .then((response) => {
       if (response.success && response.data?.responsePayload) {
-        postExtensionMessage(
-          { ...response.data.responsePayload, requestId },
-          origin,
-        );
+        postExtensionMessage({ ...response.data.responsePayload, requestId }, origin);
       }
     })
     .catch((error) => {
@@ -362,9 +343,7 @@ function handleBackgroundRelay(): void {
       }
 
       const expectedType =
-        typeof message.expectResponseType === "string"
-          ? message.expectResponseType
-          : null;
+        typeof message.expectResponseType === "string" ? message.expectResponseType : null;
       const timeoutMs =
         typeof message.timeoutMs === "number" && Number.isFinite(message.timeoutMs)
           ? Math.max(250, Math.floor(message.timeoutMs))
@@ -376,8 +355,7 @@ function handleBackgroundRelay(): void {
         return false;
       }
 
-      const relayRequestId =
-        typeof payload.requestId === "string" ? payload.requestId : null;
+      const relayRequestId = typeof payload.requestId === "string" ? payload.requestId : null;
       if (!relayRequestId) {
         sendResponse({ success: false, error: "missing_request_id" });
         return false;

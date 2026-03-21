@@ -27,7 +27,7 @@ jobs:
 
       - name: Audit
         run: pnpm audit --prod
-        continue-on-error: true
+        continue-on-error: false
 
   audit-extension:
     runs-on: ubuntu-latest
@@ -50,4 +50,4 @@ jobs:
 
       - name: Audit
         run: pnpm audit --prod
-        continue-on-error: true
+        continue-on-error: false

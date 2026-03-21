@@ -1,18 +1,12 @@
 import { HeroSection } from "./sections/HeroSection";
 import { FeaturesSection } from "./sections/FeaturesSection";
 import { CtaSection } from "./sections/CtaSection";
+import type { SanitySection } from "../../lib/sanity/types";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type SanitySection = {
-  _type: string;
-  _key: string;
-  [key: string]: any;
-};
-
-const sectionMap: Record<string, React.ComponentType<{ section: any }>> = {
-  heroSection: HeroSection,
-  bentoFeaturesSection: FeaturesSection,
-  ctaSection: CtaSection,
+const sectionMap: Record<string, React.ComponentType<{ section: SanitySection }>> = {
+  heroSection: HeroSection as React.ComponentType<{ section: SanitySection }>,
+  bentoFeaturesSection: FeaturesSection as React.ComponentType<{ section: SanitySection }>,
+  ctaSection: CtaSection as React.ComponentType<{ section: SanitySection }>,
 };
 
 export function SectionRenderer({ sections }: { sections: SanitySection[] }) {

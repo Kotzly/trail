@@ -9,9 +9,9 @@
  *   PATCH  /trails/:id     – editor partial update
  */
 
-import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from '@shared/config/backend.js';
-import { authSessionItem, type StoredAuthSession } from '@shared/config/storage-items.js';
-import type { NavigationTreeJSON, TreeLabelSource } from '@shared/types/tree.js';
+import { buildBackendUrl, BACKEND_CONFIG, initBackendConfig } from "@shared/config/backend.js";
+import { authSessionItem, type StoredAuthSession } from "@shared/config/storage-items.js";
+import type { NavigationTreeJSON, TreeLabelSource } from "@shared/types/tree.js";
 
 /* ------------------------------------------------------------------ */
 /*  Response types                                                     */
@@ -75,13 +75,13 @@ export type DeleteTreeResponse = {
 /* ------------------------------------------------------------------ */
 
 export type ApiErrorKind =
-  | 'unauthorized'
-  | 'feature_locked'
-  | 'not_found'
-  | 'network'
-  | 'timeout'
-  | 'server_error'
-  | 'invalid_response';
+  | "unauthorized"
+  | "feature_locked"
+  | "not_found"
+  | "network"
+  | "timeout"
+  | "server_error"
+  | "invalid_response";
 
 export class SyncApiError extends Error {
   constructor(
@@ -90,11 +90,11 @@ export class SyncApiError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = 'SyncApiError';
+    this.name = "SyncApiError";
   }
 
   get retryable(): boolean {
-    return this.kind === 'server_error' || this.kind === 'network' || this.kind === 'timeout';
+    return this.kind === "server_error" || this.kind === "network" || this.kind === "timeout";
   }
 }
 
@@ -111,7 +111,9 @@ async function loadAuthSession(): Promise<StoredAuthSession | null> {
 async function getAccessToken(): Promise<string | null> {
   const session = await loadAuthSession();
   if (!session) return null;
-  return typeof session.accessToken === 'string' && session.accessToken ? session.accessToken : null;
+  return typeof session.accessToken === "string" && session.accessToken
+    ? session.accessToken
+    : null;
 }
 
 /**
@@ -121,7 +123,7 @@ async function getAccessToken(): Promise<string | null> {
  */
 export async function isAuthenticated(): Promise<boolean> {
   const session = await loadAuthSession();
-  if (!session || typeof session.accessToken !== 'string' || !session.accessToken) {
+  if (!session || typeof session.accessToken !== "string" || !session.accessToken) {
     return false;
   }
   if (session.expiresAt) {
@@ -137,15 +139,11 @@ export async function isAuthenticated(): Promise<boolean> {
 /*  Request helper                                                     */
 /* ------------------------------------------------------------------ */
 
-async function apiRequest<T>(
-  method: string,
-  path: string,
-  body?: unknown,
-): Promise<T> {
+async function apiRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
   await initBackendConfig();
   const token = await getAccessToken();
   if (!token) {
-    throw new SyncApiError('unauthorized', 401, 'No auth token');
+    throw new SyncApiError("unauthorized", 401, "No auth token");
   }
 
   const controller = new AbortController();
@@ -157,37 +155,41 @@ async function apiRequest<T>(
       method,
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       signal: controller.signal,
     });
   } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new SyncApiError('timeout', null, 'Request timed out');
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new SyncApiError("timeout", null, "Request timed out");
     }
-    throw new SyncApiError('network', null, error instanceof Error ? error.message : 'Network error');
+    throw new SyncApiError(
+      "network",
+      null,
+      error instanceof Error ? error.message : "Network error",
+    );
   } finally {
     clearTimeout(timeout);
   }
 
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
-      throw new SyncApiError('unauthorized', response.status, 'Unauthorized');
+      throw new SyncApiError("unauthorized", response.status, "Unauthorized");
     }
     if (response.status === 402) {
-      throw new SyncApiError('feature_locked', 402, 'Feature locked');
+      throw new SyncApiError("feature_locked", 402, "Feature locked");
     }
     if (response.status === 404) {
-      throw new SyncApiError('not_found', 404, 'Not found');
+      throw new SyncApiError("not_found", 404, "Not found");
     }
-    throw new SyncApiError('server_error', response.status, `HTTP ${response.status}`);
+    throw new SyncApiError("server_error", response.status, `HTTP ${response.status}`);
   }
 
   const json = await response.json().catch(() => null);
   if (!json) {
-    throw new SyncApiError('invalid_response', response.status, 'Invalid JSON response');
+    throw new SyncApiError("invalid_response", response.status, "Invalid JSON response");
   }
 
   return json as T;
@@ -202,7 +204,7 @@ export const syncApi = {
    * Index sync: sends deviceId + clientSyncAt, receives metadata-only updates.
    */
   async syncIndex(deviceId: string, clientSyncAt: string): Promise<IndexSyncResponse> {
-    return apiRequest<IndexSyncResponse>('POST', '/trails/sync', {
+    return apiRequest<IndexSyncResponse>("POST", "/trails/sync", {
       deviceId,
       clientSyncAt,
     });
@@ -228,34 +230,37 @@ export const syncApi = {
     deletedAt: string | null;
   }): Promise<PushTreeResponse> {
     const { id, ...body } = params;
-    return apiRequest<PushTreeResponse>('PUT', `/trails/${id}`, body);
+    return apiRequest<PushTreeResponse>("PUT", `/trails/${id}`, body);
   },
 
   /**
    * Pull a single tree from the server (full payload).
    */
   async pullTree(treeId: string): Promise<PullTreeResponse> {
-    return apiRequest<PullTreeResponse>('GET', `/trails/${treeId}`);
+    return apiRequest<PullTreeResponse>("GET", `/trails/${treeId}`);
   },
 
   /**
    * Soft-delete a tree on the server.
    */
   async deleteTree(treeId: string): Promise<DeleteTreeResponse> {
-    return apiRequest<DeleteTreeResponse>('DELETE', `/trails/${treeId}`);
+    return apiRequest<DeleteTreeResponse>("DELETE", `/trails/${treeId}`);
   },
 
   /**
    * Partial update (editor real-time save).
    */
-  async patchTree(treeId: string, data: {
-    payload: NavigationTreeJSON;
-    nodeCount: number;
-    rootUrl: string | null;
-    rootTitle: string | null;
-    rootFavicon: string | null;
-    savedAt: string;
-  }): Promise<PatchTreeResponse> {
-    return apiRequest<PatchTreeResponse>('PATCH', `/trails/${treeId}`, data);
+  async patchTree(
+    treeId: string,
+    data: {
+      payload: NavigationTreeJSON;
+      nodeCount: number;
+      rootUrl: string | null;
+      rootTitle: string | null;
+      rootFavicon: string | null;
+      savedAt: string;
+    },
+  ): Promise<PatchTreeResponse> {
+    return apiRequest<PatchTreeResponse>("PATCH", `/trails/${treeId}`, data);
   },
 };

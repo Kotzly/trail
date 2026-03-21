@@ -83,14 +83,21 @@ export function verifySignedExtensionToken(
   }
 
   try {
-    const payload = JSON.parse(fromBase64Url(payloadPart)) as ExtensionTokenPayload;
-    if (!payload?.sub || typeof payload.sub !== "string") {
-      return null;
-    }
-    if (typeof payload.exp !== "number" || payload.exp * 1000 < Date.now()) {
-      return null;
-    }
-    return payload;
+    const raw: unknown = JSON.parse(fromBase64Url(payloadPart));
+    if (!raw || typeof raw !== "object") return null;
+    const candidate = raw as Record<string, unknown>;
+    if (typeof candidate.sub !== "string" || !candidate.sub) return null;
+    if (typeof candidate.iat !== "number") return null;
+    if (typeof candidate.exp !== "number" || candidate.exp * 1000 < Date.now()) return null;
+    if (candidate.sid !== undefined && typeof candidate.sid !== "string") return null;
+    if (candidate.ver !== undefined && typeof candidate.ver !== "number") return null;
+    return {
+      sub: candidate.sub,
+      iat: candidate.iat,
+      exp: candidate.exp,
+      ...(typeof candidate.sid === "string" ? { sid: candidate.sid } : {}),
+      ...(typeof candidate.ver === "number" ? { ver: candidate.ver } : {}),
+    };
   } catch {
     return null;
   }

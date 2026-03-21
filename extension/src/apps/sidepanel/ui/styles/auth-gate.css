@@ -1,0 +1,175 @@
+/* ── Auth Gate ─────────────────────────────────────────────── */
+
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--trail-font-sans, "Inter", system-ui, sans-serif);
+}
+
+.auth-gate__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 320px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.auth-gate__logo {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 8px;
+}
+
+.auth-gate__title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.auth-gate__subtitle {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+.auth-gate__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 20px;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.auth-gate__btn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--ring);
+}
+
+.auth-gate__btn:active:not(:disabled) {
+  background: var(--muted);
+}
+
+.auth-gate__btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.auth-gate__google-icon {
+  flex-shrink: 0;
+}
+
+.auth-gate__spinner {
+  animation: auth-gate-spin 800ms linear infinite;
+}
+
+.auth-gate__notice {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+}
+
+.auth-gate__link-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-gate__link-btn:hover {
+  color: var(--foreground);
+}
+
+@keyframes auth-gate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Session Expired Banner ─────────────────────────────── */
+
+.session-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted-foreground);
+  z-index: 50;
+}
+
+.session-banner__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-banner__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease;
+}
+
+.session-banner__action:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.session-banner__action:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.session-banner__dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.session-banner__dismiss:hover {
+  color: var(--foreground);
+}

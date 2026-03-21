@@ -1,1 +1,1 @@
-import "./ui/main";
+import "@apps/fullview/ui/main.js";

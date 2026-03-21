@@ -1,8 +1,8 @@
 export type TabSoundState = {
-    muted?: boolean;
-    audible?: boolean;
-}
+  muted?: boolean;
+  audible?: boolean;
+};
 
 export type TabState = {
-    sound: TabSoundState;
-}
+  sound: TabSoundState;
+};

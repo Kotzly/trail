@@ -1,6 +1,6 @@
-import type { Url } from '@shared/types/ids.js';
-import { shouldTrackUrl } from './url-utils.js';
-import { type Tab } from '@shared/platform/webext.js';
+import type { Url } from "@shared/types/ids.js";
+import { shouldTrackUrl } from "./url-utils.js";
+import { type Tab } from "@shared/platform/webext.js";
 
 export function resolveTabUrl(tab: Tab): Url | null {
   const urlCandidate = tab.url ?? null;

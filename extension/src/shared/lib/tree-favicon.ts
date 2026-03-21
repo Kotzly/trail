@@ -1,6 +1,6 @@
-import type { NavigationTreeJSON } from '../types/tree.js';
-import type { NavigationNodeJSON } from '../types/node.js';
-import type { FaviconUrl } from '../types/ids.js';
+import type { NavigationTreeJSON } from "../types/tree.js";
+import type { NavigationNodeJSON } from "../types/node.js";
+import type { FaviconUrl } from "../types/ids.js";
 
 type DomainInfo = {
   domain: string;
@@ -14,7 +14,7 @@ type DomainInfo = {
  * Все остальное (chrome-extension://, chrome://, data:, etc.) -- приватное.
  */
 function isPublicFaviconUrl(url: string): boolean {
-  return url.startsWith('https://') || url.startsWith('http://');
+  return url.startsWith("https://") || url.startsWith("http://");
 }
 
 /**
@@ -35,26 +35,23 @@ function extractDomain(url: string): string | null {
  * Формат: https://www.google.com/s2/favicons?domain=<domain>&sz=32
  */
 function createGoogleFaviconUrl(domain: string): FaviconUrl {
-  const url = new URL('https://www.google.com/s2/favicons');
-  url.searchParams.set('domain', domain);
-  url.searchParams.set('sz', '32');
+  const url = new URL("https://www.google.com/s2/favicons");
+  url.searchParams.set("domain", domain);
+  url.searchParams.set("sz", "32");
   return url.toString() as FaviconUrl;
 }
 
 /**
  * Рекурсивно обходит узел дерева и собирает информацию о доменах.
  */
-function traverseNode(
-  node: NavigationNodeJSON,
-  domainMap: Map<string, DomainInfo>
-): void {
+function traverseNode(node: NavigationNodeJSON, domainMap: Map<string, DomainInfo>): void {
   const url = node.data?.url;
-  if (url && typeof url === 'string') {
+  if (url && typeof url === "string") {
     const domain = extractDomain(url);
     if (domain) {
       const favicon = node.data?.favicon;
       const publicFavicon =
-        favicon && typeof favicon === 'string' && isPublicFaviconUrl(favicon)
+        favicon && typeof favicon === "string" && isPublicFaviconUrl(favicon)
           ? (favicon as FaviconUrl)
           : null;
 
@@ -94,9 +91,7 @@ function traverseNode(
  * @param tree JSON представление дерева навигации
  * @returns Favicon URL (публичный) или null если дерево пустое
  */
-export function findBestTrailFavicon(
-  tree: NavigationTreeJSON
-): FaviconUrl | null {
+export function findBestTrailFavicon(tree: NavigationTreeJSON): FaviconUrl | null {
   if (!tree.root) return null;
 
   const domainMap = new Map<string, DomainInfo>();
@@ -105,9 +100,7 @@ export function findBestTrailFavicon(
   if (domainMap.size === 0) return null;
 
   // Сортируем домены по частоте (убывание)
-  const domains = Array.from(domainMap.values()).sort(
-    (a, b) => b.count - a.count
-  );
+  const domains = Array.from(domainMap.values()).sort((a, b) => b.count - a.count);
 
   // Ищем самый частый домен с публичным favicon
   for (const info of domains) {

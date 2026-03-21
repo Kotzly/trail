@@ -1,4 +1,3 @@
-
 // messaging/router.ts
 import {
   RPC_METHOD,
@@ -10,7 +9,7 @@ import {
   type ResponseMessage,
 } from "../../shared/rpc/contracts.js";
 import { defineRpcHandlers } from "@shared/rpc/contracts.js";
-import type { RpcRequestEnvelope, RpcResponseEnvelope } from "@shared/rpc/schema.js";
+import type { RpcResponseEnvelope } from "@shared/rpc/schema.js";
 import {
   createRpcErrorEnvelope,
   parseRpcRequestEnvelope,
@@ -32,13 +31,13 @@ import { editorHandlers } from "./handlers/editor-handlers.js";
 import { oauthAuthHandlers } from "./handlers/oauth-auth-handlers.js";
 import { flagsHandlers } from "./handlers/flags-handlers.js";
 import { spotlightHandlers } from "./handlers/spotlight-handlers.js";
-import { browser, type RuntimeMessageSender } from '@shared/platform/webext.js';
+import { accountPageHandlers } from "./handlers/account-page-handlers.js";
+import { browser, type RuntimeMessageSender } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("rpc-router");
 
 type AnyResponse = ResponseMessage<RequestType>;
-type AnyHandler = (
-  message: RequestMessage,
-  sender: RuntimeMessageSender,
-) => Promise<AnyResponse> | AnyResponse;
 
 function err(error: string): Err {
   return { success: false, error };
@@ -55,8 +54,9 @@ const outboundOnlyHandlers = defineRpcHandlers({
     err("TAGS_UPDATED is outbound-only"),
   [RPC_METHOD.NOTIFY]: async (): Promise<ResponseMessage<typeof RPC_METHOD.NOTIFY>> =>
     err("NOTIFY is outbound-only"),
-  [RPC_METHOD.SYNC_STATUS_UPDATED]: async (): Promise<ResponseMessage<typeof RPC_METHOD.SYNC_STATUS_UPDATED>> =>
-    err("SYNC_STATUS_UPDATED is outbound-only"),
+  [RPC_METHOD.SYNC_STATUS_UPDATED]: async (): Promise<
+    ResponseMessage<typeof RPC_METHOD.SYNC_STATUS_UPDATED>
+  > => err("SYNC_STATUS_UPDATED is outbound-only"),
 } satisfies HandlerMap);
 
 function createMessageRouter() {
@@ -85,7 +85,7 @@ function createMessageRouter() {
     try {
       return await fn(message, sender);
     } catch (e: unknown) {
-      console.error("Message handler crashed:", message.type, e);
+      log.error("Message handler crashed", { type: message.type, error: e instanceof Error ? e.message : String(e) });
       return err(e instanceof Error ? e.message : "Unknown error");
     }
   }
@@ -116,7 +116,14 @@ function createMessageRouter() {
 
   function listen() {
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      dispatchRpcEnvelope(message, sender).then(sendResponse);
+      dispatchRpcEnvelope(message, sender)
+        .catch((e) =>
+          createRpcErrorEnvelope(
+            { id: "crash", method: "crash" },
+            e instanceof Error && e.message ? e.message : "Internal error",
+          ),
+        )
+        .then(sendResponse);
       return true; // keep channel open for async response
     });
   }
@@ -146,5 +153,6 @@ export function initMessaging(): void {
     .merge(editorHandlers)
     .merge(flagsHandlers)
     .merge(spotlightHandlers)
+    .merge(accountPageHandlers)
     .listen();
 }

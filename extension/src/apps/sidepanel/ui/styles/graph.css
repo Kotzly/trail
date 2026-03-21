@@ -1,0 +1,192 @@
+.stack-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  min-width: 0;
+  position: relative;
+}
+
+.stack-container:has(.graph-wrapper) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.stack-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.stack-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stack-container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.graph-wrapper {
+  --graph-grid-dot: var(--trail-grid-dot, color-mix(in srgb, var(--border) 60%, transparent));
+  /* Edge/path color. Keep a single hue for connections and derive it from the active theme. */
+  --graph-connection: var(--primary);
+  --graph-grid-size: 20px;
+  --graph-grid-dot-size: 1.5px;
+  --graph-grid-offset-x: 0px;
+  --graph-grid-offset-y: 0px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: var(--trail-app-bg-color, var(--background));
+  background-image: var(--trail-app-bg-image, none);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  isolation: isolate;
+  touch-action: none;
+}
+
+.graph-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 1;
+  background-image: radial-gradient(
+    circle,
+    var(--graph-grid-dot) var(--graph-grid-dot-size),
+    transparent var(--graph-grid-dot-size)
+  );
+  background-size: var(--graph-grid-size) var(--graph-grid-size);
+  background-position: var(--graph-grid-offset-x) var(--graph-grid-offset-y);
+  z-index: 0;
+}
+
+.graph-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--trail-grain-opacity, 0);
+  background-image: var(--trail-grain-image);
+  background-size: var(--graph-grain-size, var(--trail-grain-size, 220px 220px))
+    var(--graph-grain-size, var(--trail-grain-size, 220px 220px));
+  background-position: var(--graph-grain-offset-x, 0px) var(--graph-grain-offset-y, 0px);
+  mix-blend-mode: var(--trail-grain-blend-mode, overlay);
+  z-index: 1;
+}
+
+.graph-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  touch-action: none;
+  z-index: 2;
+}
+
+.graph-canvas canvas {
+  display: block;
+}
+
+.graph-zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+}
+
+.graph-control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass);
+  border: var(--glass-border);
+  border-radius: 10px;
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--glass-ink-muted);
+  cursor: pointer;
+  transition:
+    all 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.graph-control-btn:hover {
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--glass-ink);
+}
+
+.graph-control-btn.active {
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  color: var(--on-primary-soft);
+}
+
+.graph-zoom-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.graph-zoom-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.graph-selection-box {
+  position: absolute;
+  border: 2px solid var(--primary);
+  background: rgba(var(--primary-rgb), 0.1);
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 4px;
+}
+
+.graph-pick-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  font-size: 12px;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.graph-pick-hint button {
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.graph-pick-hint button:hover {
+  background: var(--card);
+  color: var(--foreground);
+}

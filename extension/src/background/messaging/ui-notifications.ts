@@ -1,5 +1,5 @@
-import { rpc } from '@shared/rpc/contracts.js';
-import { sendRuntimeMessage } from './send-message.js';
+import { rpc } from "@shared/rpc/contracts.js";
+import { sendRuntimeMessage } from "./send-message.js";
 
 export type UiNotificationPayload = {
   message: string;

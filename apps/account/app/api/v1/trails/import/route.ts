@@ -80,32 +80,33 @@ export async function POST(request: Request) {
   const rootTitle = typeof rootData?.title === "string" ? rootData.title : null;
   const rootFavicon = typeof rootData?.favicon === "string" ? rootData.favicon : null;
 
-  // Ensure the sentinel "import" device exists for this user
-  await db.device.upsert({
-    where: { id: IMPORT_DEVICE_ID },
-    create: { id: IMPORT_DEVICE_ID, userId },
-    update: { userId },
-  });
-
   const now = new Date();
   const trailId = randomUUID();
 
-  // Create the trail record
-  const trail = await db.trail.create({
-    data: {
-      id: trailId,
-      userId,
-      deviceId: IMPORT_DEVICE_ID,
-      label,
-      labelSource,
-      labelUpdatedAt: now,
-      savedAt: now,
-      nodeCount,
-      rootUrl,
-      rootTitle,
-      rootFavicon,
-      payload: tree as object,
-    },
+  // Ensure device + create trail atomically to prevent race conditions
+  const trail = await db.$transaction(async (tx) => {
+    await tx.device.upsert({
+      where: { id: IMPORT_DEVICE_ID },
+      create: { id: IMPORT_DEVICE_ID, userId },
+      update: { userId },
+    });
+
+    return tx.trail.create({
+      data: {
+        id: trailId,
+        userId,
+        deviceId: IMPORT_DEVICE_ID,
+        label,
+        labelSource,
+        labelUpdatedAt: now,
+        savedAt: now,
+        nodeCount,
+        rootUrl,
+        rootTitle,
+        rootFavicon,
+        payload: tree as object,
+      },
+    });
   });
 
   return jsonNoStore({ id: trail.id }, { status: 201 });

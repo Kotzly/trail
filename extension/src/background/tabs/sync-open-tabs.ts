@@ -1,11 +1,14 @@
-import type { FaviconUrl, NodeId, TabId, Title, Url } from '@shared/types/ids.js';
-import { tabManager } from '../state/tab-manager.js';
-import { treeStorage } from '../services/tree-storage.js';
-import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from '../utils/url-utils.js';
-import { handleNewTabTab } from '../utils/new-tab.js';
-import type { NodeData } from '@shared/types/node.js';
-import { browser } from '@shared/platform/webext.js';
+import type { FaviconUrl, NodeId, TabId, Title, Url } from "@shared/types/ids.js";
+import { tabManager } from "../state/tab-manager.js";
+import { treeStorage } from "../services/tree-storage.js";
+import { notifyTreeUpdate } from "../messaging/notifications.js";
+import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from "../utils/url-utils.js";
+import { handleNewTabTab } from "../utils/new-tab.js";
+import type { NodeData } from "@shared/types/node.js";
+import { browser } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("sync-open-tabs");
 
 let syncPromise: Promise<void> | null = null;
 
@@ -43,9 +46,11 @@ export async function syncOpenTabs(): Promise<void> {
       touched.push({ tabId, nodeId: node.id, lastAccessed: tab.lastAccessed ?? 0 });
     });
 
-    touched.sort((a, b) => a.lastAccessed - b.lastAccessed).forEach((entry) => {
-      tabManager.touch(entry.tabId, entry.nodeId, entry.lastAccessed);
-    });
+    touched
+      .sort((a, b) => a.lastAccessed - b.lastAccessed)
+      .forEach((entry) => {
+        tabManager.touch(entry.tabId, entry.nodeId, entry.lastAccessed);
+      });
 
     const prevCurrentId = tree.getCurrentId();
     const [activeTab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
@@ -55,8 +60,7 @@ export async function syncOpenTabs(): Promise<void> {
         handleNewTabTab(tree, activeTab, activeUrl, { touch: true, setCurrent: true });
       } else if (shouldTrackUrl(activeUrl)) {
         const activeTabId = activeTab.id as TabId;
-        const existingId =
-          tabManager.nodeByTab(activeTabId) || tree.findByUrl(activeUrl)?.id;
+        const existingId = tabManager.nodeByTab(activeTabId) || tree.findByUrl(activeUrl)?.id;
         if (existingId) {
           tree.setCurrentById(existingId);
         } else {
@@ -88,10 +92,10 @@ export async function syncOpenTabs(): Promise<void> {
       treeStorage.cacheTree(tree);
     }
 
-    await notifyTreeUpdate(tree, 'tabs');
+    await notifyTreeUpdate(tree, "tabs");
   })()
     .catch((error) => {
-      console.error('Failed to sync open tabs:', error);
+      log.error("Failed to sync open tabs", { error: error instanceof Error ? error.message : String(error) });
     })
     .finally(() => {
       syncPromise = null;

@@ -3,18 +3,18 @@ import {
   parseSpotlightQuery,
   resolveSpotlightQueryMode,
   tokenizeSpotlightQuery,
-} from '../src/shared/lib/spotlight/query-dsl.js';
-import { scoreSpotlightCandidate } from '../src/shared/lib/spotlight/scoring.js';
+} from '../src/features/spotlight/model/query-dsl.js';
+import { scoreSpotlightCandidate } from '../src/features/spotlight/model/scoring.js';
 import {
   emptySpotlightUsageStats,
   recordSpotlightSelection,
   getSelectionFrequencyBoost,
   getSelectionTokenAffinityBoost,
-} from '../src/shared/lib/spotlight/usage-stats.js';
+} from '../src/features/spotlight/model/usage-stats.js';
 import {
   normalizeSpotlightSearchQuery,
   normalizeSpotlightUrlCandidate,
-} from '../src/shared/lib/spotlight/external.js';
+} from '../src/features/spotlight/model/external.js';
 import type { NodeId } from '../src/shared/types/ids.js';
 
 function testDslAndOr(): void {

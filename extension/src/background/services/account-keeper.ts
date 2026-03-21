@@ -1,44 +1,40 @@
-import type { AccountSnapshot, Plan } from "@shared/types/account.js";
-import { browser } from '@shared/platform/webext.js';
-import {
-  BACKEND_CONFIG,
-  buildBackendUrl,
-  initBackendConfig,
-} from "../../shared/config/backend.js";
+import type { AccountConfig, AccountSnapshot, Plan } from "@shared/types/account.js";
+import { browser } from "@shared/platform/webext.js";
+import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
 import {
   authSessionItem,
+  authPolicyItem,
   accountSnapshotItem,
   type StoredAuthSession,
   type CachedSnapshotEnvelope,
 } from "../../shared/config/storage-items.js";
+import { authPolicyKeeper } from "./auth-policy-keeper.js";
+import { createLogger } from "@shared/lib/logger.js";
 
 const ALARM_NAME = "trail_account_snapshot_refresh";
 const REFRESH_INTERVAL_MINUTES = 5;
 
-function log(_message: string, _payload?: Record<string, unknown>): void {
-  // Intentionally silent in production. Enable for local debugging:
-  // console.info("[account-keeper]", _message, _payload);
-}
+const log = createLogger("account-keeper");
 
 async function loadAuth(): Promise<StoredAuthSession | null> {
   return authSessionItem.getValue();
 }
 
-function buildGuestSnapshot(plans: Plan[] = []): AccountSnapshot {
+function buildGuestSnapshot(plans: Plan[] = [], config: AccountConfig = {}): AccountSnapshot {
   return {
     session: { status: "guest" },
     user: null,
     subscription: null,
     billing: { state: "none" },
     plans,
-    config: {},
+    config,
     onboarding: { flowId: "activation-v1", status: "pending", seenAt: null },
   };
 }
 
 async function fetchJson<T>(
   path: string,
-  options: { auth?: boolean } = {},
+  options: { auth?: boolean; validate?: (data: unknown) => data is T } = {},
 ): Promise<T | null> {
   await initBackendConfig();
   const headers = new Headers({ Accept: "application/json" });
@@ -51,10 +47,7 @@ async function fetchJson<T>(
   }
 
   const controller = new AbortController();
-  const timeout = globalThis.setTimeout(
-    () => controller.abort(),
-    BACKEND_CONFIG.timeoutMs,
-  );
+  const timeout = globalThis.setTimeout(() => controller.abort(), BACKEND_CONFIG.timeoutMs);
 
   try {
     const response = await fetch(buildBackendUrl(path), {
@@ -64,7 +57,14 @@ async function fetchJson<T>(
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = await response.text();
     if (!text) return null;
-    return JSON.parse(text) as T;
+    const parsed: unknown = JSON.parse(text);
+    if (parsed === null || typeof parsed !== "object") {
+      throw new Error(`Expected JSON object/array, got ${typeof parsed}`);
+    }
+    if (options.validate && !options.validate(parsed)) {
+      throw new Error(`Response failed validation for ${path}`);
+    }
+    return parsed as T;
   } finally {
     globalThis.clearTimeout(timeout);
   }
@@ -73,23 +73,22 @@ async function fetchJson<T>(
 async function fetchSnapshot(): Promise<AccountSnapshot> {
   const auth = await loadAuth();
   if (!auth?.accessToken) {
-    const plans = await fetchJson<Plan[]>(
-      BACKEND_CONFIG.endpoints.plans,
-      { auth: false },
-    ).catch(() => null);
-    return buildGuestSnapshot(plans ?? []);
+    const [plans, policy] = await Promise.all([
+      fetchJson<Plan[]>(BACKEND_CONFIG.endpoints.plans, { auth: false }).catch(() => null),
+      authPolicyKeeper.getPolicy(),
+    ]);
+    return buildGuestSnapshot(plans ?? [], {
+      "auth.extension.required": policy.authRequired,
+    });
   }
 
   try {
-    const snapshot = await fetchJson<AccountSnapshot>(
-      BACKEND_CONFIG.endpoints.account,
-    );
+    const snapshot = await fetchJson<AccountSnapshot>(BACKEND_CONFIG.endpoints.account);
     if (!snapshot) throw new Error("empty account response");
     if (!snapshot.plans || snapshot.plans.length === 0) {
-      const plans = await fetchJson<Plan[]>(
-        BACKEND_CONFIG.endpoints.plans,
-        { auth: false },
-      ).catch(() => null);
+      const plans = await fetchJson<Plan[]>(BACKEND_CONFIG.endpoints.plans, { auth: false }).catch(
+        () => null,
+      );
       return { ...snapshot, plans: plans ?? [] };
     }
     return snapshot;
@@ -137,9 +136,9 @@ class AccountKeeper {
           fetchedAt: Date.now(),
         };
         await saveToStorage(envelope);
-        log("snapshot_cached");
+        log.debug("Snapshot cached");
       } catch (error) {
-        log("snapshot_cache_failed", {
+        log.warn("Snapshot cache failed", {
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -158,13 +157,16 @@ class AccountKeeper {
   }
 
   async clearSnapshot(): Promise<void> {
-    const guest = buildGuestSnapshot();
+    const policy = await authPolicyItem.getValue();
+    const guest = buildGuestSnapshot([], {
+      "auth.extension.required": policy?.authRequired ?? false,
+    });
     const envelope: CachedSnapshotEnvelope = {
       snapshot: guest,
       fetchedAt: Date.now(),
     };
     await saveToStorage(envelope);
-    log("snapshot_cleared_to_guest");
+    log.debug("Snapshot cleared to guest");
   }
 }
 

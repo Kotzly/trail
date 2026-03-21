@@ -62,6 +62,8 @@ pens/
 .wxt/
 extension/public/backend-preset.json
 .output/
+extension/.meta/logs/
+extension/.meta/claude/
 **/**/next-env.d.ts
 .superset/
 backend-preset.json

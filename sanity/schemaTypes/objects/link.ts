@@ -15,7 +15,7 @@ export const link = defineType({
       name: 'href',
       title: 'URL',
       type: 'string',
-      validation: (rule) => rule.required(),
+      validation: (rule) => rule.required().regex(/^(https?:\/\/|\/|#)/, {name: 'url', invert: false}),
     }),
     defineField({
       name: 'isExternal',

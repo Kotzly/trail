@@ -1,0 +1,257 @@
+.floating-controls {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--controls-gap);
+  z-index: 900;
+  pointer-events: none;
+  --controls-gap: clamp(6px, 2vw, 12px);
+  --cluster-gap: clamp(6px, 1.6vw, 10px);
+  --orb-gap: clamp(2px, calc(-2px + 1.5vw), 8px);
+  --orb-size: clamp(36px, calc(28px + 2vw), 44px);
+  --orb-icon: clamp(14px, calc(10px + 1vw), 18px);
+}
+
+.floating-controls-left,
+.floating-controls-right {
+  display: flex;
+  gap: var(--cluster-gap);
+  align-items: flex-start;
+  pointer-events: auto;
+}
+
+.floating-controls-left {
+  min-width: 0;
+  max-width: 100%;
+  transition:
+    max-width 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.floating-controls.is-compact {
+  gap: 8px;
+}
+
+.floating-controls.is-compact .floating-controls-left {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.floating-controls-right {
+  flex-direction: row-reverse;
+}
+
+.floating-island {
+  display: flex;
+  gap: var(--orb-gap);
+  pointer-events: auto;
+}
+
+.matte-circle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--orb-size);
+  height: var(--orb-size);
+  border-radius: 50%;
+  border: var(--glass-border);
+  background: var(--glass);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+  color: var(--glass-ink-muted);
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    background 0.12s ease,
+    box-shadow 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.matte-circle-btn:hover {
+  background: var(--glass-strong);
+  color: var(--glass-ink);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  transform: translateY(-1px);
+}
+
+.matte-circle-btn:focus-visible {
+  outline: 2px solid rgba(var(--primary-rgb), 0.35);
+  outline-offset: 2px;
+}
+
+.matte-circle-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.matte-circle-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.matte-circle-btn svg {
+  width: var(--orb-icon);
+  height: var(--orb-icon);
+}
+
+.matte-circle-btn.orb-button {
+  animation: orb-in 180ms ease-out;
+}
+
+@keyframes orb-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(6px);
+  cursor: default;
+  pointer-events: auto;
+  touch-action: none;
+  animation: confirm-overlay-in 0.18s ease-out;
+}
+
+.confirm-dialog {
+  min-width: 260px;
+  max-width: 320px;
+  background: var(--glass-strong);
+  border: var(--glass-border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  position: relative;
+  overflow: hidden;
+  animation: confirm-dialog-in 0.2s ease-out;
+}
+
+.confirm-dialog::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border-top: 2px solid var(--glass-highlight);
+  border-left: 1px solid var(--glass-highlight-soft);
+  border-right: 1px solid var(--glass-highlight);
+  pointer-events: none;
+}
+
+.confirm-title {
+  font-size: 13px;
+  color: var(--foreground);
+  margin-bottom: 14px;
+}
+
+.confirm-input {
+  width: 100%;
+  border: var(--glass-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: var(--glass);
+  color: var(--foreground);
+  margin-bottom: 12px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-btn {
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--primary) 40%, transparent);
+  color: var(--primary-foreground);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease,
+    border-color 0.15s ease;
+}
+
+.confirm-btn.danger {
+  border-color: color-mix(in srgb, var(--destructive) 50%, transparent);
+  background: color-mix(in srgb, var(--destructive) 42%, transparent);
+  color: var(--primary-foreground);
+}
+
+.confirm-btn.danger:hover {
+  background: color-mix(in srgb, var(--destructive) 58%, transparent);
+  border-color: color-mix(in srgb, var(--destructive) 65%, transparent);
+}
+
+.confirm-btn:hover {
+  background: color-mix(in srgb, var(--primary) 55%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+}
+
+.confirm-btn:active {
+  transform: scale(0.98);
+}
+
+.confirm-btn.ghost {
+  background: var(--glass);
+  border: var(--glass-border);
+  color: var(--muted-foreground);
+  box-shadow: var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.confirm-btn.ghost:hover {
+  background: var(--glass-strong);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--foreground);
+}
+
+@keyframes confirm-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes confirm-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

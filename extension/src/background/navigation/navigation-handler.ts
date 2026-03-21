@@ -1,15 +1,25 @@
-import { now, UrlWithTimestamp, type FaviconUrl, type TabId, type Title, type Url } from '@shared/types/ids.js';
-import type { TreeViewIntent } from '@shared/rpc/contracts.js';
-import { NodeMetaPatch, updateNodeMeta, type NodeData } from '@shared/types/node.js';
-import { tabManager } from '../state/tab-manager.js';
-import { treeStorage } from '../services/tree-storage.js';
-import { redirectDetector } from './redirect-detection.js';
-import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from '../utils/url-utils.js';
-import { handleNewTabTab } from '../utils/new-tab.js';
-import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { createUrlKey } from '@shared/lib/url-key.js';
-import { browser, type Browser, type Tab } from '@shared/platform/webext.js';
-import { markNodeVisited } from '../state/node-recency.js';
+import {
+  now,
+  type UrlWithTimestamp,
+  type FaviconUrl,
+  type TabId,
+  type Title,
+  type Url,
+} from "@shared/types/ids.js";
+import type { TreeViewIntent } from "@shared/rpc/contracts.js";
+import { type NodeMetaPatch, updateNodeMeta, type NodeData } from "@shared/types/node.js";
+import { tabManager } from "../state/tab-manager.js";
+import { treeStorage } from "../services/tree-storage.js";
+import { redirectDetector } from "./redirect-detection.js";
+import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from "../utils/url-utils.js";
+import { handleNewTabTab } from "../utils/new-tab.js";
+import { notifyTreeUpdate } from "../messaging/notifications.js";
+import { createUrlKey } from "@shared/lib/url-key.js";
+import { browser, type Browser, type Tab } from "@shared/platform/webext.js";
+import { markNodeVisited } from "../state/node-recency.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("navigation");
 
 /**
  * Handle navigation events and add to tree.
@@ -17,7 +27,7 @@ import { markNodeVisited } from '../state/node-recency.js';
  */
 export async function handleNavigation(
   details: Browser.webNavigation.WebNavigationFramedCallbackDetails,
-  _transitionType?: string
+  _transitionType?: string,
 ): Promise<void> {
   const { tabId, url, frameId } = details;
   // Only track main frame navigations
@@ -28,7 +38,7 @@ export async function handleNavigation(
   let tab: Tab;
   try {
     tab = await browser.tabs.get(tabId);
-  } catch (e) {
+  } catch {
     return; // Tab no longer exists
   }
 
@@ -46,11 +56,11 @@ export async function handleNavigation(
         }
         const currentId = tree.getCurrentId();
         const view: TreeViewIntent | undefined =
-          tab.active && currentId !== null ? { focusNodeId: currentId, mode: 'force' } : undefined;
-        await notifyTreeUpdate(tree, 'tabs', view);
+          tab.active && currentId !== null ? { focusNodeId: currentId, mode: "force" } : undefined;
+        await notifyTreeUpdate(tree, "tabs", view);
       }
     } catch (error) {
-      console.error("[navigation-handler] new tab navigation error:", error);
+      log.error("New tab navigation error", { error: error instanceof Error ? error.message : String(error) });
     }
     return;
   }
@@ -62,13 +72,16 @@ export async function handleNavigation(
     // CRITICAL: Only update currentNode if this tab is active (user navigated)
     // If tab is not active, it was created programmatically - don't switch focus
     const isActiveTab = tab.active;
-    
+
     // Track whether we create a new node (vs reusing existing)
     let wasNewNodeCreated = false;
     let didUpdateCurrent = false;
 
     // Track URL for about:blank redirect detection
-    redirectDetector.recordTabUrl(tabId as TabId, { url: url as Url, timestamp: now() } as UrlWithTimestamp);
+    redirectDetector.recordTabUrl(
+      tabId as TabId,
+      { url: url as Url, timestamp: now() } as UrlWithTimestamp,
+    );
 
     // Check if this tab is already registered to a node (global)
     const existingNodeId = tabManager.nodeByTab(tabId as TabId);
@@ -80,10 +93,10 @@ export async function handleNavigation(
       pinned: false, // todo: check pinned.
       tags: [],
     } as NodeData;
-    const metaPatch = { title: data.title, favicon: data.favicon} as NodeMetaPatch;
+    const metaPatch = { title: data.title, favicon: data.favicon } as NodeMetaPatch;
     const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
     const registerOptions = (touch: boolean) =>
-      (lastUsed === undefined ? { touch } : { touch, lastUsed });
+      lastUsed === undefined ? { touch } : { touch, lastUsed };
 
     // Use GLOBAL tree - shared across all windows
     const tree = await treeStorage.getOrCreateTree();
@@ -157,7 +170,7 @@ export async function handleNavigation(
       let newNode;
 
       // First, try to find existing node with this URL globally
-      let existingNodeInWindow = tree.findByUrl(url as Url);
+      const existingNodeInWindow = tree.findByUrl(url as Url);
 
       // If found existing node, use it instead of creating new
       if (existingNodeInWindow) {
@@ -192,25 +205,23 @@ export async function handleNavigation(
           didUpdateCurrent = true;
         }
       }
-    
-
     }
 
     if (didMutate || didUpdateCurrent) {
       treeStorage.cacheTree(tree);
     }
-    
+
     // Only notify if tab is active OR if we created a new node (not just reused existing)
     // This prevents unnecessary UI updates for programmatic tab creation
     // For inactive tabs, only notify if a new node was actually created
     if (isActiveTab || wasNewNodeCreated) {
-      const reason = isActiveTab ? 'navigate' : 'sync';
+      const reason = isActiveTab ? "navigate" : "sync";
       const currentId = tree.getCurrentId();
       const view: TreeViewIntent | undefined =
-        isActiveTab && currentId !== null ? { focusNodeId: currentId, mode: 'force' } : undefined;
+        isActiveTab && currentId !== null ? { focusNodeId: currentId, mode: "force" } : undefined;
       await notifyTreeUpdate(tree, reason, view);
     }
   } catch (error) {
-    console.error("[navigation-handler] navigation error:", error);
+    log.error("Navigation error", { error: error instanceof Error ? error.message : String(error) });
   }
 }

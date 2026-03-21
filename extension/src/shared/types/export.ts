@@ -5,18 +5,18 @@
  * (no whitespace) for size efficiency while remaining human-readable.
  */
 
-import type { NavigationTreeJSON } from './tree.js';
+import type { NavigationTreeJSON } from "./tree.js";
 
 export type TrailExportBundle = {
   /** Schema version for forward compatibility. */
-  schema: 'trail.export.v1';
+  schema: "trail.export.v1";
   /** Unix timestamp (ms) when the export was created. */
   exportedAt: number;
   /** Origin metadata. */
   source: {
     treeId?: string;
     treeLabel?: string;
-    origin: 'dashboard' | 'extension';
+    origin: "dashboard" | "extension";
   };
   /** Full tree in standard keyed JSON format (not compact). */
   tree: NavigationTreeJSON;
@@ -26,4 +26,4 @@ export type TrailExportBundle = {
   };
 };
 
-export const EXPORT_SCHEMA = 'trail.export.v1' as const;
+export const EXPORT_SCHEMA = "trail.export.v1" as const;

@@ -1,5 +1,5 @@
-import type { NodeId } from '../types/ids.js';
-import type { NavigationNode } from '../types/node.js';
+import type { NodeId } from "../types/ids.js";
+import type { NavigationNode } from "../types/node.js";
 
 // ---------------------------------------------------------------------------
 // Scoring constants
@@ -20,14 +20,11 @@ export const SCORE_RECENCY_DECAY_MS = 2 * 60 * 60 * 1000; // 2 hours
  * Compute a combined score from visit count and recency.
  * Frequency dominates for stability; recency gives a gentle nudge.
  */
-export function computeNodeScore(
-  visitCount: number,
-  lastVisitedAt: number,
-  now: number,
-): number {
+export function computeNodeScore(visitCount: number, lastVisitedAt: number, now: number): number {
   const freqScore = Math.log2(1 + visitCount) * SCORE_FREQ_WEIGHT;
   const age = now - lastVisitedAt;
-  const recencyBonus = age <= 0 ? 1 : age >= SCORE_RECENCY_DECAY_MS ? 0 : 1 - age / SCORE_RECENCY_DECAY_MS;
+  const recencyBonus =
+    age <= 0 ? 1 : age >= SCORE_RECENCY_DECAY_MS ? 0 : 1 - age / SCORE_RECENCY_DECAY_MS;
   return freqScore + recencyBonus * SCORE_RECENCY_WEIGHT;
 }
 
@@ -43,7 +40,7 @@ export function computeNodeScore(
 export function computeSubtreeScores(
   root: NavigationNode,
   nodeScores: Record<NodeId, number>,
-  getChildren: (node: NavigationNode) => NavigationNode[],
+  getChildren: (node: NavigationNode) => readonly NavigationNode[],
 ): Map<NodeId, number> {
   const result = new Map<NodeId, number>();
 
@@ -71,10 +68,7 @@ export const computeSubtreeRecency = computeSubtreeScores;
  * Balanced center-weighted ordering using subtree spans as weights.
  * Only used for initial placement when there's no previous order to preserve.
  */
-function balancedCenterOrder<T>(
-  items: T[],
-  getSpan: (item: T) => number,
-): T[] {
+function balancedCenterOrder<T>(items: T[], getSpan: (item: T) => number): T[] {
   const len = items.length;
   if (len <= 2) return items;
 
@@ -122,12 +116,12 @@ function balancedCenterOrder<T>(
  * resist displacement (budget = 1, only moved once per call).
  */
 export function incrementalCenterReorder(
-  children: NavigationNode[],
+  children: readonly NavigationNode[],
   scores: Map<NodeId, number>,
   previousOrder: NodeId[] | null | undefined,
   subtreeSpans?: Map<NodeId, number> | null,
 ): NavigationNode[] {
-  if (children.length <= 1) return children;
+  if (children.length <= 1) return [...children];
 
   const childMap = new Map<NodeId, NavigationNode>();
   for (const child of children) {
@@ -249,12 +243,12 @@ export function incrementalCenterReorder(
  * interchangeably via `reorderFn` in GraphCanvas.
  */
 export function incrementalClusterReorder(
-  children: NavigationNode[],
+  children: readonly NavigationNode[],
   scores: Map<NodeId, number>,
   _previousOrder?: NodeId[] | null,
   _subtreeSpans?: Map<NodeId, number> | null,
 ): NavigationNode[] {
-  if (children.length <= 1) return children;
+  if (children.length <= 1) return [...children];
   return [...children].sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
 }
 

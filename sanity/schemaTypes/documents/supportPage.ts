@@ -42,6 +42,7 @@ export const supportPage = defineType({
       title: 'Contact Email',
       type: 'string',
       initialValue: 'support@gettrail.net',
+      validation: (rule) => rule.regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, {name: 'email', invert: false}),
     }),
   ],
   preview: {

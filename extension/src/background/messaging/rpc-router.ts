@@ -1,8 +1,4 @@
-import type {
-  RequestMessage,
-  RequestType,
-  ResponseMessage,
-} from "../../shared/rpc/contracts.js";
+import type { RequestMessage, RequestType, ResponseMessage } from "../../shared/rpc/contracts.js";
 import {
   RPC_VERSION,
   rpcRequestEnvelopeSchema,
@@ -11,20 +7,17 @@ import {
   type RpcResponseEnvelope,
 } from "../../shared/rpc/schema.js";
 
-export function parseRpcRequestEnvelope(
-  raw: unknown,
-): RpcRequestEnvelope | null {
+export function parseRpcRequestEnvelope(raw: unknown): RpcRequestEnvelope | null {
   const parsed = rpcRequestEnvelopeSchema.safeParse(raw);
   if (!parsed.success) return null;
   return parsed.data;
 }
 
-export function toRequestMessage(
-  envelope: RpcRequestEnvelope,
-): RequestMessage {
+export function toRequestMessage(envelope: RpcRequestEnvelope): RequestMessage {
+  const { type: _discard, ...safeInput } = envelope.input as Record<string, unknown>;
   return {
     type: envelope.method as RequestType,
-    ...envelope.input,
+    ...safeInput,
   } as RequestMessage;
 }
 
@@ -62,6 +55,6 @@ export function createRpcErrorEnvelope(
     id: request.id,
     method: request.method,
     success: false,
-    error,
+    error: error || "Unknown error",
   });
 }

@@ -2,70 +2,28 @@ import { PrismaClient } from "./generated/client";
 export { Prisma } from "./generated/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
-import fs from "node:fs";
-import path from "node:path";
-import dotenv from "dotenv";
 
 const globalForPrisma = globalThis as {
   prisma?: PrismaClient;
   prismaPool?: Pool;
 };
 
-const envCandidates = [
-  "DATABASE_URL",
-];
-
-const isValidDatabaseUrl = (value: string | undefined | null) => {
-  if (!value) return false;
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "postgres:" || parsed.protocol === "postgresql:";
-  } catch {
-    return false;
-  }
-};
-
-const resolveDatabaseUrl = () => {
-  for (const key of envCandidates) {
-    const candidate = process.env[key];
-    if (isValidDatabaseUrl(candidate)) {
-      return candidate as string;
-    }
-  }
-  return null;
-};
-
-let databaseUrl = resolveDatabaseUrl();
-
-// todo: remove file env checks
-if (!databaseUrl) {
-  const candidates = [
-    ".env.local",
-    ".env",
-    "apps/account/.env.local",
-    "apps/account/.env",
-    "apps/api/.env.local",
-    "apps/api/.env",
-    "packages/db/.env.local",
-    "packages/db/.env"
-  ];
-
-  for (const candidate of candidates) {
-    const resolved = path.resolve(process.cwd(), candidate);
-    if (fs.existsSync(resolved)) {
-      dotenv.config({ path: resolved });
-      databaseUrl = resolveDatabaseUrl();
-      if (databaseUrl) {
-        break;
-      }
-    }
-  }
-}
+const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error(
-    "Missing database connection string. Set DATABASE_URL."
+    "Missing database connection string. Set DATABASE_URL environment variable."
   );
+}
+
+try {
+  const parsed = new URL(databaseUrl);
+  if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
+    throw new Error("DATABASE_URL must use postgres:// or postgresql:// protocol.");
+  }
+} catch (err) {
+  if (err instanceof Error && err.message.includes("protocol")) throw err;
+  throw new Error("DATABASE_URL is not a valid URL.");
 }
 
 const pool =

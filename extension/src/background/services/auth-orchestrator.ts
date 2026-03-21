@@ -8,7 +8,11 @@ import {
 import { notifyUi } from "../messaging/ui-notifications.js";
 import { syncEngine } from "./sync/engine.js";
 import { accountKeeper } from "./account-keeper.js";
-import { browser } from '@shared/platform/webext.js';
+import { authPolicyKeeper } from "./auth-policy-keeper.js";
+import { browser } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("auth-orchestrator");
 
 const AUTH_REFRESH_ALARM = "trail-auth-refresh" as const;
 const AUTH_REFRESH_INTERVAL_MINUTES = 2;
@@ -31,9 +35,8 @@ type AuthFlowResult =
   | { ok: true; reason: AuthSuccessReason }
   | { ok: false; reason: AuthFailureReason };
 
-function logAuth(_message: string, _payload?: Record<string, unknown>): void {
-  // Intentionally silent in production. Enable for local debugging:
-  // console.info("[auth-orchestrator]", _message, _payload);
+function logAuth(message: string, payload?: Record<string, unknown>): void {
+  log.debug(message, payload);
 }
 
 function isAccessTokenExpired(expiresAt?: string | null): boolean {
@@ -61,9 +64,10 @@ async function getOrCreateDeviceId(): Promise<string> {
     return existing;
   }
 
-  const next = typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const next =
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   await oauthDeviceIdItem.setValue(next);
   return next;
 }
@@ -99,7 +103,7 @@ async function exchangeAuthorizationCode(input: {
     };
   }
 
-  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
+  const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
   const accessToken = typeof payload?.access_token === "string" ? payload.access_token : "";
   const refreshToken = typeof payload?.refresh_token === "string" ? payload.refresh_token : "";
   const expiresAt = typeof payload?.expires_at === "string" ? payload.expires_at : "";
@@ -138,7 +142,7 @@ async function refreshWithToken(refreshToken: string): Promise<AuthFlowResult> {
     };
   }
 
-  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
+  const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
   const accessToken = typeof payload?.access_token === "string" ? payload.access_token : "";
   const nextRefreshToken = typeof payload?.refresh_token === "string" ? payload.refresh_token : "";
   const expiresAt = typeof payload?.expires_at === "string" ? payload.expires_at : "";
@@ -173,7 +177,9 @@ class AuthOrchestrator {
     this.loginRequiredCooldownUntil = 0;
   }
 
-  private async clearAuth(reason: "web_logout" | "login_required" | "refresh_invalid"): Promise<void> {
+  private async clearAuth(
+    reason: "web_logout" | "login_required" | "refresh_invalid",
+  ): Promise<void> {
     await saveAuth(null);
     if (reason === "login_required") {
       this.markLoginRequiredCooldown();
@@ -182,6 +188,7 @@ class AuthOrchestrator {
     }
     logAuth("auth_cleared", { reason });
 
+    void authPolicyKeeper.invalidate();
     await accountKeeper.clearSnapshot();
 
     // On explicit logout, clear all local trees so the next login
@@ -267,9 +274,11 @@ class AuthOrchestrator {
     }
   }
 
-  private async executeSilentSync(input: {
-    skipCooldown?: boolean;
-  } = {}): Promise<AuthFlowResult> {
+  private async executeSilentSync(
+    input: {
+      skipCooldown?: boolean;
+    } = {},
+  ): Promise<AuthFlowResult> {
     if (!input.skipCooldown && this.isCooldownActive()) {
       return { ok: false, reason: "login_required" };
     }
@@ -284,6 +293,7 @@ class AuthOrchestrator {
       const refreshed = await refreshWithToken(auth.refreshToken);
       if (refreshed.ok) {
         this.clearLoginRequiredCooldown();
+        void authPolicyKeeper.invalidate();
         void accountKeeper.refreshSnapshot();
         return refreshed;
       }
@@ -307,10 +317,7 @@ class AuthOrchestrator {
         return result;
       }
 
-      if (
-        result.reason !== "login_required" &&
-        result.reason !== "refresh_invalid"
-      ) {
+      if (result.reason !== "login_required" && result.reason !== "refresh_invalid") {
         notifyUi({
           message: "Sign-in failed. Please try again.",
           icon: "AlertTriangle",
@@ -356,6 +363,7 @@ class AuthOrchestrator {
 
       if (result.ok) {
         this.clearLoginRequiredCooldown();
+        void authPolicyKeeper.invalidate();
         void accountKeeper.refreshSnapshot();
         logAuth("auth_code_relay_success");
       } else {

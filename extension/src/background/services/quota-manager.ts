@@ -5,15 +5,43 @@
  * (replaced with a TreeStub) and the write is retried.
  */
 
-import { storage } from 'wxt/utils/storage';
-import type { TreeSummary, ArchiveIndexEntry, TreeStub } from '@shared/types/tree.js';
-import { isTreeStub } from '@shared/types/tree.js';
-import { archiveIndexItem, archiveBlobKey } from '@shared/config/storage-items.js';
-import { browser } from '@shared/platform/webext.js';
+import { storage } from "wxt/utils/storage";
+import { isTreeStub, type TreeSummary, type TreeStub } from "@shared/types/tree.js";
+import { archiveIndexItem, archiveBlobKey } from "@shared/config/storage-items.js";
+import { notifyUi } from "../messaging/ui-notifications.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("quota-manager");
 
 function isQuotaError(error: unknown): boolean {
   const msg = String(error);
-  return msg.includes('QUOTA_BYTES') || msg.includes('quota');
+  return msg.includes("QUOTA_BYTES") || msg.includes("quota");
+}
+
+// ---------------------------------------------------------------------------
+// Promise-based mutex for eviction operations
+// ---------------------------------------------------------------------------
+
+let evictionLock: Promise<void> = Promise.resolve();
+
+function withEvictionLock<T>(fn: () => Promise<T>): Promise<T> {
+  let release!: () => void;
+  const next = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const prev = evictionLock;
+  evictionLock = next;
+
+  const waitStart = Date.now();
+  return prev
+    .then(() => {
+      const waited = Date.now() - waitStart;
+      if (waited > 5000) {
+        log.warn("Eviction lock acquisition slow", { waitedMs: waited });
+      }
+      return fn();
+    })
+    .finally(() => release());
 }
 
 /**
@@ -39,8 +67,12 @@ export async function quotaAwareSet(
       return;
     } catch (error) {
       if (!isQuotaError(error) || attempt === maxRetries) throw error;
-      console.warn(`quotaAwareSet: quota error on attempt ${attempt + 1}, evicting oldest archive`);
-      const evicted = await evictOldestArchive();
+      log.warn("Quota error, evicting oldest archive", { attempt: attempt + 1 });
+      const evicted = await withEvictionLock(async () => {
+        const jitter = Math.random() * 100;
+        await new Promise<void>((r) => setTimeout(r, jitter));
+        return evictOldestArchive();
+      });
       if (!evicted) throw error; // nothing left to evict
     }
   }
@@ -48,7 +80,7 @@ export async function quotaAwareSet(
 
 async function writeBulk(entries: BulkEntry[]): Promise<void> {
   for (const entry of entries) {
-    if ('item' in entry) {
+    if ("item" in entry) {
       await entry.item.setValue(entry.value);
     } else {
       await storage.setItem(entry.key, entry.value);
@@ -81,7 +113,7 @@ export async function evictOldestArchive(): Promise<boolean> {
   if (oldestIdx < 0) return false;
 
   const target = index[oldestIdx]! as TreeSummary;
-  console.warn(`quotaManager: evicting archive "${target.label}" (${target.id}), savedAt=${new Date(target.savedAt).toISOString()}`);
+  log.warn("Evicting archive", { treeId: target.id, label: target.label, savedAt: new Date(target.savedAt).toISOString() });
 
   // Replace with stub in the index
   const stub: TreeStub = { ...target, stub: true };
@@ -91,6 +123,13 @@ export async function evictOldestArchive(): Promise<boolean> {
   // Write updated index and remove the blob
   await archiveIndexItem.setValue(nextIndex);
   await storage.removeItem(archiveBlobKey(target.id));
+
+  // Notify any open UI surfaces about eviction
+  notifyUi({
+    message: `Archived tree "${target.label}" moved to cloud to save space`,
+    icon: "AlertTriangle",
+    durationMs: 5000,
+  });
 
   return true;
 }

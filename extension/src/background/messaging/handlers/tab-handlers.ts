@@ -1,14 +1,14 @@
-import type { NodeId, TabId } from '@shared/types/ids.js';
-import { RPC_METHOD, defineRpcHandlers } from '@shared/rpc/contracts.js';
-import { tabManager } from '../../state/tab-manager.js';
-import { notifyTreeUpdate } from '../notifications.js';
-import { treeStorage } from '../../services/tree-storage.js';
-import { ok, err } from '@shared/rpc/contracts.js';
-import { NavigationTree } from '../../state/nav-tree.js';
-import { getEditorState } from './editor-handlers.js';
-import { browser, type Tab } from '@shared/platform/webext.js';
+import type { NodeId, TabId } from "@shared/types/ids.js";
+import { RPC_METHOD, defineRpcHandlers, ok, err } from "@shared/rpc/contracts.js";
+import { tabManager } from "../../state/tab-manager.js";
+import { notifyTreeUpdate } from "../notifications.js";
+import { treeStorage } from "../../services/tree-storage.js";
+import { type NavigationTree } from "../../state/nav-tree.js";
+import { getEditorState } from "./editor-handlers.js";
+import { browser, type Tab } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
 
-
+const log = createLogger("tab-handlers");
 
 export const tabHandlers = defineRpcHandlers({
   async [RPC_METHOD.GET_TABS_FOR_NODE](message) {
@@ -20,7 +20,7 @@ export const tabHandlers = defineRpcHandlers({
           return await browser.tabs.get(tabId as TabId);
         } catch (error) {
           tabManager.unregister(tabId as TabId);
-          console.error('Failed to get tab:', error);
+          log.error("Failed to get tab", { error: error instanceof Error ? error.message : String(error) });
           return null;
         }
       }),
@@ -37,7 +37,7 @@ export const tabHandlers = defineRpcHandlers({
     const { nodeId, tabId } = message;
 
     const tabsForNode = tabManager.tabsByNode(nodeId);
-    if (!tabsForNode?.has(tabId)) return err('Tab not found');
+    if (!tabsForNode?.has(tabId)) return err("Tab not found");
 
     try {
       const tab = await browser.tabs.get(tabId);
@@ -56,13 +56,13 @@ export const tabHandlers = defineRpcHandlers({
 
     const { nodeId, tabId } = message;
     const tabsForNode = tabManager.tabsByNode(nodeId);
-    if (!tabsForNode?.has(tabId)) return err('Tab not found');
+    if (!tabsForNode?.has(tabId)) return err("Tab not found");
 
     const tree = await treeStorage.getOrCreateTree();
     try {
       await browser.tabs.remove(tabId);
       await unregisterTabForNode(tree, nodeId, tabId);
-      await notifyTreeUpdate(tree, 'tabs');
+      await notifyTreeUpdate(tree, "tabs");
       return ok();
     } catch (e) {
       return err((e as Error).message);
@@ -78,18 +78,25 @@ export const tabHandlers = defineRpcHandlers({
     const { nodeIds } = message;
     nodeIds.forEach(async (nodeId) => {
       tabManager.tabsByNode(nodeId).forEach(async (tabId) => {
-        browser.tabs.remove(tabId).catch(console.error).then(async () => await unregisterTabForNode(tree, nodeId, tabId));
-      })
-    })
-   
-    await notifyTreeUpdate(tree, 'tabs');
+        browser.tabs
+          .remove(tabId)
+          .catch((e) => log.error("Failed to remove tab", { error: e instanceof Error ? e.message : String(e) }))
+          .then(async () => await unregisterTabForNode(tree, nodeId, tabId));
+      });
+    });
+
+    await notifyTreeUpdate(tree, "tabs");
     return ok();
   },
 });
 
-async function unregisterTabForNode(tree: NavigationTree, nodeId: NodeId, tabId: TabId): Promise<void> {
+async function unregisterTabForNode(
+  tree: NavigationTree,
+  nodeId: NodeId,
+  tabId: TabId,
+): Promise<void> {
   tabManager.unregister(tabId);
   if (tabManager.tabCountForNode(nodeId) === 0) {
-    await notifyTreeUpdate(tree, 'tabs');
+    await notifyTreeUpdate(tree, "tabs");
   }
 }

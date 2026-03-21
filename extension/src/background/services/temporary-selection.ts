@@ -1,9 +1,12 @@
-import type { NodeId, TabId, Url } from '@shared/types/ids.js';
-import type { TempSelectionOptions } from '@shared/rpc/contracts.js';
-import { tabManager } from '../state/tab-manager.js';
-import { treeStorage } from './tree-storage.js';
-import { notifyTreeUpdate } from '../messaging/notifications.js';
-import { browser, type Tab } from '@shared/platform/webext.js';
+import type { NodeId, TabId, Url } from "@shared/types/ids.js";
+import type { TempSelectionOptions } from "@shared/rpc/contracts.js";
+import { tabManager } from "../state/tab-manager.js";
+import { treeStorage } from "./tree-storage.js";
+import { notifyTreeUpdate } from "../messaging/notifications.js";
+import { browser, type Tab } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("temp-selection");
 
 type SessionId = string;
 
@@ -29,7 +32,8 @@ async function focusTab(tabId: TabId): Promise<boolean> {
     }
     await browser.tabs.update(tabId, { active: true });
     return true;
-  } catch {
+  } catch (e) {
+    log.warn("Focus tab failed", { error: String(e) });
     return false;
   }
 }
@@ -56,7 +60,7 @@ export class TemporaryTabSelectionManager {
 
     const activeTab = await getActiveTab();
     const activeTabId = activeTab?.id as TabId | undefined;
-    const fallbackBase = activeTabId ? tabManager.nodeByTab(activeTabId) ?? null : null;
+    const fallbackBase = activeTabId ? (tabManager.nodeByTab(activeTabId) ?? null) : null;
 
     const sessionId = this.makeSessionId();
     const session: TempSelectionState = {
@@ -73,14 +77,18 @@ export class TemporaryTabSelectionManager {
     return sessionId;
   }
 
-  async preview(sessionId: SessionId, nodeId: NodeId, tabId?: TabId): Promise<{ previewedTabId: TabId | null }> {
+  async preview(
+    sessionId: SessionId,
+    nodeId: NodeId,
+    tabId?: TabId,
+  ): Promise<{ previewedTabId: TabId | null }> {
     const session = this.sessions.get(sessionId);
-    if (!session) throw new Error('Temp selection session not found');
+    if (!session) throw new Error("Temp selection session not found");
     session.previewNodeId = nodeId;
 
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(nodeId);
-    if (!node) throw new Error('Node not found');
+    if (!node) throw new Error("Node not found");
 
     if (tabId !== undefined) {
       const resolvedNode = tabManager.nodeByTab(tabId as TabId);
@@ -100,7 +108,7 @@ export class TemporaryTabSelectionManager {
     if (tabsArray.length === 0) {
       session.previewTabId = null;
       if (!session.options.allowPreviewWithoutTabs) {
-        throw new Error('No open tabs to preview');
+        throw new Error("No open tabs to preview");
       }
       return { previewedTabId: null };
     }
@@ -122,7 +130,7 @@ export class TemporaryTabSelectionManager {
 
   async accept(sessionId: SessionId, nodeId?: NodeId): Promise<void> {
     const session = this.sessions.get(sessionId);
-    if (!session) throw new Error('Temp selection session not found');
+    if (!session) throw new Error("Temp selection session not found");
     const resolvedNodeId = nodeId ?? session.previewNodeId;
     if (!resolvedNodeId) {
       this.end(sessionId);
@@ -131,7 +139,7 @@ export class TemporaryTabSelectionManager {
 
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(resolvedNodeId);
-    if (!node) throw new Error('Node not found');
+    if (!node) throw new Error("Node not found");
 
     const previewTabId = session.previewTabId;
     if (previewTabId && tabManager.nodeByTab(previewTabId) === resolvedNodeId) {
@@ -139,7 +147,10 @@ export class TemporaryTabSelectionManager {
       tabManager.touch(previewTabId, resolvedNodeId);
       tree.setCurrentById(resolvedNodeId);
       treeStorage.cacheTree(tree);
-      await notifyTreeUpdate(tree, 'temp-selection', { focusNodeId: resolvedNodeId, mode: 'force' });
+      await notifyTreeUpdate(tree, "temp-selection", {
+        focusNodeId: resolvedNodeId,
+        mode: "force",
+      });
       this.end(sessionId);
       return;
     }
@@ -151,7 +162,10 @@ export class TemporaryTabSelectionManager {
         tabManager.touch(tabId as TabId, resolvedNodeId);
         tree.setCurrentById(resolvedNodeId);
         treeStorage.cacheTree(tree);
-        await notifyTreeUpdate(tree, 'temp-selection', { focusNodeId: resolvedNodeId, mode: 'force' });
+        await notifyTreeUpdate(tree, "temp-selection", {
+          focusNodeId: resolvedNodeId,
+          mode: "force",
+        });
         this.end(sessionId);
         return;
       }
@@ -170,7 +184,7 @@ export class TemporaryTabSelectionManager {
 
     tree.setCurrentById(resolvedNodeId);
     treeStorage.cacheTree(tree);
-    await notifyTreeUpdate(tree, 'temp-selection', { focusNodeId: resolvedNodeId, mode: 'force' });
+    await notifyTreeUpdate(tree, "temp-selection", { focusNodeId: resolvedNodeId, mode: "force" });
     this.end(sessionId);
   }
 

@@ -1,9 +1,12 @@
-import { parseSpotlightQuery, type SpotlightToken } from '@shared/lib/spotlight/query-dsl.js';
-import { scoreSpotlightCandidate } from '@shared/lib/spotlight/scoring.js';
+import {
+  parseSpotlightQuery,
+  type SpotlightToken,
+} from "@features/spotlight/model/query-dsl.js";
+import { scoreSpotlightCandidate } from "@features/spotlight/model/scoring.js";
 import {
   normalizeSpotlightSearchQuery,
   normalizeSpotlightUrlCandidate,
-} from '@shared/lib/spotlight/external.js';
+} from "@features/spotlight/model/external.js";
 import {
   type SpotlightActionId,
   type SpotlightActionResult,
@@ -17,12 +20,14 @@ import {
   type SpotlightSearchSessionId,
   type SpotlightSearchResult,
   type SpotlightSection,
+  type SpotlightSourceBadge,
   type SpotlightSuggestionGroup,
   type SpotlightTreeRelation,
   type SpotlightTreeResult,
-} from '@shared/rpc/contracts.js';
-import type { NodeId } from '@shared/types/ids.js';
-import { getAllFlags } from './flags.js';
+} from "@shared/rpc/contracts.js";
+import type { NodeId, Url } from "@shared/types/ids.js";
+import { getAllFlags } from "./flags.js";
+import { isNewTabUrl } from "../utils/url-utils.js";
 import {
   computeGraphBoosts,
   spotlightLiveIndex,
@@ -30,28 +35,31 @@ import {
   type SpotlightLiveNodeDoc,
   type SpotlightLiveSnapshot,
   type SpotlightLiveTreeDoc,
-} from './spotlight-live-index.js';
-import { spotlightUsageStats } from './spotlight-usage-stats.js';
-import { settingsManager } from './settings.js';
+} from "./spotlight-live-index.js";
+import { spotlightUsageStats } from "./spotlight-usage-stats.js";
+import { fetchSearchSuggestions } from "./search-suggestions.js";
+import { settingsManager } from "./settings.js";
+import { recordMetric } from "@shared/lib/perf-metrics.js";
 
 const SESSION_TTL_MS = 15 * 60 * 1000;
 const MAX_RESULTS = 80;
 
-const SECTION_TITLES: Record<SpotlightSection['id'], string> = {
-  'continue': 'Continue',
-  'actions': 'Actions',
-  'pins': 'Pins',
-  'open-tabs': 'Open Tabs',
-  'recent': 'Recent',
-  'current-tree': 'Current Tree',
-  'other-trees': 'Other Tree Pages',
-  'archived-trees': 'Trees',
-  'trees': 'Trees',
-  'external': 'External',
-  'matches': 'Matches',
-  'scoped-pages': 'Pages',
-  'frequent': 'Frequently Used',
-  'recent-searches': 'Recent Searches',
+const SECTION_TITLES: Record<SpotlightSection["id"], string> = {
+  continue: "Pick Up Where You Left Off",
+  actions: "Actions",
+  pins: "Pinned",
+  "open-tabs": "Open Tabs",
+  recent: "Recent",
+  "current-tree": "More in This Tree",
+  "other-trees": "Other Trees",
+  "archived-trees": "Trees",
+  trees: "Your Trees",
+  external: "Web",
+  matches: "Best Matches",
+  "scoped-pages": "Pages",
+  frequent: "Visited Often",
+  "recent-searches": "Recent Searches",
+  suggestions: "Search Suggestions",
 };
 
 type SpotlightSession = {
@@ -69,8 +77,8 @@ export class SpotlightService {
     await spotlightLiveIndex.buildInitialIndex();
     const snapshot = await spotlightLiveIndex.getSnapshot();
     const session = this.createSession(snapshot.version);
-    const mode: SpotlightMode = 'discover';
-    const sections = await this.buildSections(snapshot, mode, '', limit);
+    const mode: SpotlightMode = "discover";
+    const sections = await this.buildSections(snapshot, mode, "", limit);
 
     const recentQueries = await spotlightUsageStats.getRecentQueries();
 
@@ -99,16 +107,28 @@ export class SpotlightService {
     requestSeq: number,
     scopeTreeId?: string,
   ): Promise<SpotlightSearchResponse> {
+    const searchStart = performance.now();
+
     this.pruneExpiredSessions();
     const session = this.sessions.get(sessionId);
     if (!session) {
-      throw new Error('SESSION_EXPIRED');
+      throw new Error("SESSION_EXPIRED");
     }
 
     session.lastTouchedAt = Date.now();
     const snapshot = await spotlightLiveIndex.getSnapshot();
     const { mode, normalizedQuery, kindFilter } = resolveSpotlightMode(query);
-    const sections = await this.buildSections(snapshot, mode, normalizedQuery, limit, scopeTreeId, kindFilter);
+    const sections = await this.buildSections(
+      snapshot,
+      mode,
+      normalizedQuery,
+      limit,
+      scopeTreeId,
+      kindFilter,
+    );
+
+    const queryMs = performance.now() - searchStart;
+    recordMetric("spotlightQueryMs", queryMs);
 
     return {
       requestSeq,
@@ -173,15 +193,15 @@ export class SpotlightService {
     scopeTreeId?: string,
     kindFilter?: SpotlightKindFilter,
   ): Promise<SpotlightSection[]> {
-    if (mode === 'commands') {
+    if (mode === "commands") {
       return this.buildCommandSections(snapshot, query);
     }
     if (scopeTreeId) {
-      return mode === 'discover'
+      return mode === "discover"
         ? this.buildScopedDiscoverSections(snapshot, scopeTreeId, limit)
         : this.buildScopedSearchSections(snapshot, scopeTreeId, query, limit);
     }
-    if (mode === 'discover') {
+    if (mode === "discover") {
       const sections = await this.buildDiscoverSections(snapshot, limit);
       return kindFilter ? filterSectionsByKind(sections, kindFilter) : sections;
     }
@@ -196,44 +216,29 @@ export class SpotlightService {
     const seen = new Set<string>();
     const sections: SpotlightSection[] = [];
     const activeNodeDocs = snapshot.nodeDocs.filter((doc) => doc.treeId === snapshot.activeTreeId);
-    const currentDoc = snapshot.currentNodeId
-      ? activeNodeDocs.find((doc) => doc.nodeId === snapshot.currentNodeId) ?? null
-      : null;
 
+    // "Pick Up Where You Left Off" — recently visited nodes sorted by recency.
+    const recentVisitedDocs = [...activeNodeDocs]
+      .filter(
+        (doc) =>
+          doc.recency > 0 &&
+          !isNewTabUrl(doc.url as Url) &&
+          !doc.title.toLowerCase().includes("new tab"),
+      )
+      .sort((a, b) => b.recency - a.recency);
     const continueDocs: SpotlightNodeResult[] = [];
-    if (currentDoc) {
-      pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, currentDoc, 0, []));
-      if (currentDoc.parentId) {
-        const parentDoc = activeNodeDocs.find((doc) => doc.nodeId === currentDoc.parentId) ?? null;
-        if (parentDoc) {
-          pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, parentDoc, 0, []));
-        }
-      }
-      const childDoc = [...activeNodeDocs]
-        .filter((doc) => doc.parentId === currentDoc.nodeId)
-        .sort(compareNodeDocsByPriority)[0];
-      if (childDoc) {
-        pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, childDoc, 0, []));
-      }
-      const siblingDoc = [...activeNodeDocs]
-        .filter((doc) => doc.parentId === currentDoc.parentId && doc.nodeId !== currentDoc.nodeId)
-        .sort(compareNodeDocsByPriority)[0];
-      if (siblingDoc && continueDocs.length < 4) {
-        pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, siblingDoc, 0, []));
-      }
+    for (const doc of recentVisitedDocs.slice(0, 30)) {
+      pushUnique(seen, continueDocs, await this.toNodeResult(snapshot, doc, 0, []));
     }
-    appendSectionIfAny(sections, 'continue', continueDocs.slice(0, 4));
+    appendSectionIfAny(sections, "continue", continueDocs);
 
-    const frequentKeys = await spotlightUsageStats.getTopTargetKeys(5);
-    const frequentItems: SpotlightSearchResult[] = [];
-    for (const key of frequentKeys) {
-      const doc = snapshot.docsByKey.get(key);
-      if (!doc || seen.has(doc.key)) continue;
-      if (doc.kind === 'node') {
-        pushUnique(seen, frequentItems, await this.toNodeResult(snapshot, doc, 0, []) as SpotlightSearchResult);
-      }
-    }
-    appendSectionIfAny(sections, 'frequent', frequentItems);
+    const openTabs = await this.mapNodes(
+      snapshot,
+      [...activeNodeDocs].filter((doc) => doc.tabCount > 0).sort(compareNodeDocsByPriority),
+      Math.min(Math.max(limit, 1), 30),
+      seen,
+    );
+    appendSectionIfAny(sections, "open-tabs", openTabs);
 
     const pins = await this.mapNodes(
       snapshot,
@@ -241,7 +246,22 @@ export class SpotlightService {
       Math.min(Math.max(limit, 1), 8),
       seen,
     );
-    appendSectionIfAny(sections, 'pins', pins);
+    appendSectionIfAny(sections, "pins", pins);
+
+    const frequentKeys = await spotlightUsageStats.getTopTargetKeys(5);
+    const frequentItems: SpotlightSearchResult[] = [];
+    for (const key of frequentKeys) {
+      const doc = snapshot.docsByKey.get(key);
+      if (!doc || seen.has(doc.key)) continue;
+      if (doc.kind === "node") {
+        pushUnique(
+          seen,
+          frequentItems,
+          (await this.toNodeResult(snapshot, doc, 0, [])) as SpotlightSearchResult,
+        );
+      }
+    }
+    appendSectionIfAny(sections, "frequent", frequentItems);
 
     const currentTree = await this.mapNodes(
       snapshot,
@@ -249,7 +269,7 @@ export class SpotlightService {
       Math.min(Math.max(limit, 1), 10),
       seen,
     );
-    appendSectionIfAny(sections, 'current-tree', currentTree);
+    appendSectionIfAny(sections, "current-tree", currentTree);
 
     const archivedTrees = await this.mapTrees(
       snapshot,
@@ -257,10 +277,10 @@ export class SpotlightService {
       Math.min(Math.max(limit, 1), 8),
       seen,
     );
-    appendSectionIfAny(sections, 'archived-trees', archivedTrees);
+    appendSectionIfAny(sections, "trees", archivedTrees);
 
     const actionRows = buildGlobalActions().map((action) => toActionResult(action));
-    appendSectionIfAny(sections, 'actions', actionRows);
+    appendSectionIfAny(sections, "actions", actionRows);
 
     return sections;
   }
@@ -274,29 +294,48 @@ export class SpotlightService {
     const ranked = await this.rankEntities(snapshot, query, Math.max(searchLimit * 4, 40));
     const sections: SpotlightSection[] = [];
 
-    const currentTreeMatches = ranked
-      .filter((item): item is SpotlightNodeResult => item.kind === 'node' && item.treeId === snapshot.activeTreeId)
-      .slice(0, Math.min(searchLimit, 12));
-    appendSectionIfAny(sections, 'current-tree', currentTreeMatches);
+    const allNodeMatches = ranked
+      .filter((item): item is SpotlightNodeResult => item.kind === "node")
+      .slice(0, Math.min(searchLimit, 20));
+    appendSectionIfAny(sections, "matches", allNodeMatches);
 
-    const otherTreeMatches = ranked
-      .filter((item): item is SpotlightNodeResult => item.kind === 'node' && item.treeId !== snapshot.activeTreeId)
-      .slice(0, Math.min(searchLimit, 12));
-    appendSectionIfAny(sections, 'other-trees', otherTreeMatches);
+    const shownKeys = new Set(allNodeMatches.map((item) => item.key));
+    const remainingOtherTree = ranked
+      .filter(
+        (item): item is SpotlightNodeResult =>
+          item.kind === "node" && item.treeId !== snapshot.activeTreeId && !shownKeys.has(item.key),
+      )
+      .slice(0, Math.min(searchLimit, 8));
+    appendSectionIfAny(sections, "other-trees", remainingOtherTree);
 
     const treeMatches = ranked
-      .filter((item): item is SpotlightTreeResult => item.kind === 'tree')
+      .filter((item): item is SpotlightTreeResult => item.kind === "tree")
       .slice(0, Math.min(searchLimit, 8));
-    appendSectionIfAny(sections, 'trees', treeMatches);
+    appendSectionIfAny(sections, "trees", treeMatches);
+
+    const suggestions = await fetchSearchSuggestions(query);
+    const suggestionItems = suggestions
+      .filter((s) => s.toLowerCase() !== query.toLowerCase())
+      .map((s) =>
+        toActionResult({
+          actionId: "search-default-engine",
+          title: s,
+          subtitle: "Search suggestion",
+          safety: "safe",
+          shortcutHint: "Enter",
+          target: { kind: "search", query: s },
+        }),
+      );
+    appendSectionIfAny(sections, "suggestions", suggestionItems);
 
     const externalActions = buildExternalActions(query).map((action) => toActionResult(action));
-    appendSectionIfAny(sections, 'external', externalActions);
+    appendSectionIfAny(sections, "external", externalActions);
 
     const topEntity = ranked[0] ?? null;
     const contextualActions = buildContextualActions(topEntity, snapshot.activeTreeId);
     appendSectionIfAny(
       sections,
-      'actions',
+      "actions",
       contextualActions.map((action) => toActionResult(action)).slice(0, 4),
     );
 
@@ -318,12 +357,16 @@ export class SpotlightService {
       Math.min(Math.max(limit, 1), 40),
       seen,
     );
-    appendSectionIfAny(sections, 'scoped-pages', pages);
+    appendSectionIfAny(sections, "scoped-pages", pages);
 
     const treeDoc = snapshot.treeDocs.find((d) => d.treeId === scopeTreeId);
     if (treeDoc) {
       const actions = buildScopedTreeActions(treeDoc);
-      appendSectionIfAny(sections, 'actions', actions.map((a) => toActionResult(a)));
+      appendSectionIfAny(
+        sections,
+        "actions",
+        actions.map((a) => toActionResult(a)),
+      );
     }
 
     return sections;
@@ -340,14 +383,20 @@ export class SpotlightService {
     const sections: SpotlightSection[] = [];
 
     const scopedMatches = ranked
-      .filter((item): item is SpotlightNodeResult => item.kind === 'node' && item.treeId === scopeTreeId)
+      .filter(
+        (item): item is SpotlightNodeResult => item.kind === "node" && item.treeId === scopeTreeId,
+      )
       .slice(0, searchLimit);
-    appendSectionIfAny(sections, 'matches', scopedMatches);
+    appendSectionIfAny(sections, "matches", scopedMatches);
 
     const treeDoc = snapshot.treeDocs.find((d) => d.treeId === scopeTreeId);
     if (treeDoc) {
       const actions = buildScopedTreeActions(treeDoc);
-      appendSectionIfAny(sections, 'actions', actions.map((a) => toActionResult(a)));
+      appendSectionIfAny(
+        sections,
+        "actions",
+        actions.map((a) => toActionResult(a)),
+      );
     }
 
     return sections;
@@ -356,20 +405,22 @@ export class SpotlightService {
   private buildCommandSections(snapshot: SpotlightLiveSnapshot, query: string): SpotlightSection[] {
     const q = query.trim().toLowerCase();
     const currentDoc = snapshot.currentNodeId
-      ? snapshot.nodeDocs.find(
+      ? (snapshot.nodeDocs.find(
           (doc) => doc.treeId === snapshot.activeTreeId && doc.nodeId === snapshot.currentNodeId,
-        ) ?? null
+        ) ?? null)
       : null;
     const actions = [
       ...buildGlobalActions(),
       ...buildCommandActionsForCurrentNode(currentDoc),
     ].filter((action) => matchesCommandQuery(action, q));
 
-    return [{
-      id: 'actions',
-      title: SECTION_TITLES.actions,
-      items: actions.map((action) => toActionResult(action)),
-    }];
+    return [
+      {
+        id: "actions",
+        title: SECTION_TITLES.actions,
+        items: actions.map((action) => toActionResult(action)),
+      },
+    ];
   }
 
   private async rankEntities(
@@ -383,20 +434,22 @@ export class SpotlightService {
     const queryUrls = extractQueryUrls(tokens);
     const needles = collectHighlightNeedles(tokens);
     const queryTokens = collectPositivePlainTokens(tokens);
-    const firstPositiveToken = queryTokens[0]?.toLowerCase() ?? '';
+    const firstPositiveToken = queryTokens[0]?.toLowerCase() ?? "";
     const textScores = new Map<string, number>();
 
     for (const clause of ast.clauses) {
       const positiveTerms = clause.terms.filter((term) => !term.negated && !term.field);
-      const clauseCandidates = positiveTerms.length > 0
-        ? (snapshot.index.search(
-            positiveTerms.map((term) => term.value).join(' '),
-            { combineWith: 'AND', prefix: true, fuzzy: 0.25 },
-          ) as Array<{ key?: string; id?: string; score: number }>)
-        : Array.from(snapshot.docsByKey.keys()).map((key) => ({ key, score: 0 }));
+      const clauseCandidates =
+        positiveTerms.length > 0
+          ? (snapshot.index.search(positiveTerms.map((term) => term.value).join(" "), {
+              combineWith: "AND",
+              prefix: true,
+              fuzzy: 0.25,
+            }) as Array<{ key?: string; id?: string; score: number }>)
+          : Array.from(snapshot.docsByKey.keys()).map((key) => ({ key, score: 0 }));
 
       for (const candidate of clauseCandidates) {
-        const docKey = 'key' in candidate ? candidate.key : candidate.id;
+        const docKey = "key" in candidate ? candidate.key : candidate.id;
         if (!docKey) continue;
         const doc = snapshot.docsByKey.get(docKey);
         if (!doc) continue;
@@ -412,7 +465,7 @@ export class SpotlightService {
       Array.from(textScores.entries()).map(async ([key, rawTextScore]) => {
         const doc = snapshot.docsByKey.get(key);
         if (!doc) return null;
-        if (doc.kind === 'node') {
+        if (doc.kind === "node") {
           return this.toRankedNode(
             snapshot,
             doc,
@@ -424,7 +477,15 @@ export class SpotlightService {
             needles,
           );
         }
-        return this.toRankedTree(doc, rawTextScore, queryDomains, queryUrls, queryTokens, firstPositiveToken, needles);
+        return this.toRankedTree(
+          doc,
+          rawTextScore,
+          queryDomains,
+          queryUrls,
+          queryTokens,
+          firstPositiveToken,
+          needles,
+        );
       }),
     );
 
@@ -455,28 +516,33 @@ export class SpotlightService {
       snapshot.currentNodeId,
       snapshot.currentPath,
     );
-    const breakdown = scoreSpotlightCandidate({
-      nodeId: doc.nodeId,
-      title: doc.title,
-      url: doc.url,
-      domain: doc.domain,
-      group: doc.group,
-      recency: doc.recency,
-      isCurrent: doc.isCurrent,
-      tabCount: doc.tabCount,
-      exactPrefixMatch: Boolean(firstPositiveToken) && doc.title.toLowerCase().startsWith(firstPositiveToken),
-      graphProximityBoost: graph.graphProximityBoost,
-      branchAffinityBoost: graph.branchAffinityBoost,
-      selectionFrequencyBoost: usage.selectionFrequencyBoost,
-      selectionTokenAffinityBoost: usage.selectionTokenAffinityBoost,
-    }, {
-      textScore: rawTextScore,
-      queryDomains,
-      queryUrls,
-    }, Date.now());
+    const breakdown = scoreSpotlightCandidate(
+      {
+        nodeId: doc.nodeId,
+        title: doc.title,
+        url: doc.url,
+        domain: doc.domain,
+        group: doc.group,
+        recency: doc.recency,
+        isCurrent: doc.isCurrent,
+        tabCount: doc.tabCount,
+        exactPrefixMatch:
+          Boolean(firstPositiveToken) && doc.title.toLowerCase().startsWith(firstPositiveToken),
+        graphProximityBoost: graph.graphProximityBoost,
+        branchAffinityBoost: graph.branchAffinityBoost,
+        selectionFrequencyBoost: usage.selectionFrequencyBoost,
+        selectionTokenAffinityBoost: usage.selectionTokenAffinityBoost,
+      },
+      {
+        textScore: rawTextScore,
+        queryDomains,
+        queryUrls,
+      },
+      Date.now(),
+    );
 
     return {
-      kind: 'node',
+      kind: "node",
       key: doc.key,
       nodeId: doc.nodeId,
       title: doc.title,
@@ -492,6 +558,7 @@ export class SpotlightService {
       treeName: doc.treeName,
       score: breakdown.finalScore,
       groupBadge: toGroupBadge(doc.group),
+      sourceBadge: toSourceBadge(doc),
       highlights: {
         title: findRanges(doc.title, needles),
         url: findRanges(doc.url, needles),
@@ -510,26 +577,31 @@ export class SpotlightService {
     needles: string[],
   ): Promise<SpotlightTreeResult> {
     const usage = await spotlightUsageStats.getBoosts(doc.key, queryTokens);
-    const breakdown = scoreSpotlightCandidate({
-      nodeId: 0 as NodeId,
-      title: doc.treeName,
-      url: doc.rootUrl,
-      domain: doc.domain,
-      group: doc.group,
-      recency: doc.recency,
-      isCurrent: false,
-      tabCount: 0,
-      exactPrefixMatch: Boolean(firstPositiveToken) && doc.treeName.toLowerCase().startsWith(firstPositiveToken),
-      selectionFrequencyBoost: usage.selectionFrequencyBoost,
-      selectionTokenAffinityBoost: usage.selectionTokenAffinityBoost,
-    }, {
-      textScore: rawTextScore,
-      queryDomains,
-      queryUrls,
-    }, Date.now());
+    const breakdown = scoreSpotlightCandidate(
+      {
+        nodeId: 0 as NodeId,
+        title: doc.treeName,
+        url: doc.rootUrl,
+        domain: doc.domain,
+        group: doc.group,
+        recency: doc.recency,
+        isCurrent: false,
+        tabCount: 0,
+        exactPrefixMatch:
+          Boolean(firstPositiveToken) && doc.treeName.toLowerCase().startsWith(firstPositiveToken),
+        selectionFrequencyBoost: usage.selectionFrequencyBoost,
+        selectionTokenAffinityBoost: usage.selectionTokenAffinityBoost,
+      },
+      {
+        textScore: rawTextScore,
+        queryDomains,
+        queryUrls,
+      },
+      Date.now(),
+    );
 
     return {
-      kind: 'tree',
+      kind: "tree",
       key: doc.key,
       treeId: doc.treeId,
       treeName: doc.treeName,
@@ -537,7 +609,7 @@ export class SpotlightService {
       favicon: doc.favicon,
       recency: doc.recency,
       score: breakdown.finalScore,
-      groupBadge: 'Archived',
+      groupBadge: "Archived",
       highlights: {
         title: findRanges(doc.treeName, needles),
         url: findRanges(doc.rootUrl, needles),
@@ -559,7 +631,7 @@ export class SpotlightService {
       snapshot.currentPath,
     );
     return {
-      kind: 'node',
+      kind: "node",
       key: doc.key,
       nodeId: doc.nodeId,
       title: doc.title,
@@ -575,6 +647,7 @@ export class SpotlightService {
       treeName: doc.treeName,
       score: rawTextScore,
       groupBadge: toGroupBadge(doc.group),
+      sourceBadge: toSourceBadge(doc),
       highlights: {
         title: findRanges(doc.title, needles),
         url: findRanges(doc.url, needles),
@@ -610,7 +683,7 @@ export class SpotlightService {
     for (const doc of docs) {
       if (seen.has(doc.key)) continue;
       items.push({
-        kind: 'tree',
+        kind: "tree",
         key: doc.key,
         treeId: doc.treeId,
         treeName: doc.treeName,
@@ -618,9 +691,9 @@ export class SpotlightService {
         favicon: doc.favicon,
         recency: doc.recency,
         score: 0,
-        groupBadge: 'Archived',
+        groupBadge: "Archived",
         highlights: { title: [], url: [] },
-        why: ['archived'],
+        why: ["archived"],
       });
       seen.add(doc.key);
       if (items.length >= limit) break;
@@ -629,7 +702,7 @@ export class SpotlightService {
   }
 }
 
-type SpotlightKindFilter = 'node' | 'tree' | null;
+type SpotlightKindFilter = "node" | "tree" | null;
 
 type SpotlightModeResult = {
   mode: SpotlightMode;
@@ -639,27 +712,27 @@ type SpotlightModeResult = {
 
 function resolveSpotlightMode(query: string): SpotlightModeResult {
   const trimmed = query.trim();
-  if (!trimmed) return { mode: 'discover', normalizedQuery: '', kindFilter: null };
-  if (trimmed.startsWith('>') || trimmed.startsWith('/')) {
-    return { mode: 'commands', normalizedQuery: trimmed.slice(1).trim(), kindFilter: null };
+  if (!trimmed) return { mode: "discover", normalizedQuery: "", kindFilter: null };
+  if (trimmed.startsWith(">") || trimmed.startsWith("/")) {
+    return { mode: "commands", normalizedQuery: trimmed.slice(1).trim(), kindFilter: null };
   }
   const kindMatch = /^([tpc]):(.*)$/i.exec(trimmed);
   if (kindMatch) {
     const prefix = kindMatch[1]!.toLowerCase();
     const rest = kindMatch[2]!.trim();
-    if (prefix === 'c') {
-      return { mode: 'commands', normalizedQuery: rest, kindFilter: null };
+    if (prefix === "c") {
+      return { mode: "commands", normalizedQuery: rest, kindFilter: null };
     }
-    const kindFilter: SpotlightKindFilter = prefix === 't' ? 'tree' : 'node';
-    if (!rest) return { mode: 'discover', normalizedQuery: '', kindFilter };
-    return { mode: 'search', normalizedQuery: rest, kindFilter };
+    const kindFilter: SpotlightKindFilter = prefix === "t" ? "tree" : "node";
+    if (!rest) return { mode: "discover", normalizedQuery: "", kindFilter };
+    return { mode: "search", normalizedQuery: rest, kindFilter };
   }
-  return { mode: 'search', normalizedQuery: trimmed, kindFilter: null };
+  return { mode: "search", normalizedQuery: trimmed, kindFilter: null };
 }
 
 function filterSectionsByKind(
   sections: SpotlightSection[],
-  kindFilter: 'node' | 'tree',
+  kindFilter: "node" | "tree",
 ): SpotlightSection[] {
   return sections
     .map((section) => ({
@@ -671,7 +744,7 @@ function filterSectionsByKind(
 
 function appendSectionIfAny(
   sections: SpotlightSection[],
-  id: SpotlightSection['id'],
+  id: SpotlightSection["id"],
   items: SpotlightSearchResult[],
 ): void {
   if (items.length === 0) return;
@@ -695,17 +768,17 @@ function compareNodeDocsByPriority(a: SpotlightLiveNodeDoc, b: SpotlightLiveNode
 }
 
 const COMMAND_ALIASES: Record<string, readonly string[]> = {
-  'new-tree': ['create', 'add', 'new'],
-  'archive-current-tree': ['archive', 'delete', 'remove', 'hide'],
-  'export-tree': ['export', 'download', 'save', 'backup'],
-  'show-command-help': ['help', 'shortcuts', 'keys'],
-  'open-settings': ['settings', 'preferences', 'config', 'options'],
-  'toggle-sidebar': ['sidebar', 'panel', 'toggle'],
-  'clear-history': ['clear', 'reset', 'wipe', 'clean'],
-  'pin': ['pin', 'bookmark', 'star'],
-  'unpin': ['unpin', 'unbookmark', 'unstar'],
-  'close-tab': ['close', 'kill', 'shut'],
-  'close-tabs': ['close-all', 'kill-all'],
+  "new-tree": ["create", "add", "new"],
+  "archive-current-tree": ["archive", "delete", "remove", "hide"],
+  "export-tree": ["export", "download", "save", "backup"],
+  "show-command-help": ["help", "shortcuts", "keys"],
+  "open-settings": ["settings", "preferences", "config", "options"],
+  "toggle-sidebar": ["sidebar", "panel", "toggle"],
+  "clear-history": ["clear", "reset", "wipe", "clean"],
+  pin: ["pin", "bookmark", "star"],
+  unpin: ["unpin", "unbookmark", "unstar"],
+  "close-tab": ["close", "kill", "shut"],
+  "close-tabs": ["close-all", "kill-all"],
 };
 
 function matchesCommandQuery(action: ActionSeed, query: string): boolean {
@@ -720,60 +793,60 @@ function matchesCommandQuery(action: ActionSeed, query: string): boolean {
 function buildGlobalActions(): ActionSeed[] {
   return [
     {
-      actionId: 'new-tree',
-      title: 'New tree',
-      subtitle: 'Archive current context and start a fresh tree',
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'global' },
+      actionId: "new-tree",
+      title: "New tree",
+      subtitle: "Archive current context and start a fresh tree",
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "global" },
     },
     {
-      actionId: 'archive-current-tree',
-      title: 'Archive current tree',
-      subtitle: 'Move the active tree into archived trees',
-      safety: 'destructive',
-      shortcutHint: 'Enter',
-      target: { kind: 'global' },
+      actionId: "archive-current-tree",
+      title: "Archive current tree",
+      subtitle: "Move the active tree into archived trees",
+      safety: "destructive",
+      shortcutHint: "Enter",
+      target: { kind: "global" },
     },
     {
-      actionId: 'export-tree',
-      title: 'Export current tree',
-      subtitle: 'Download the active tree as JSON',
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'global' },
+      actionId: "export-tree",
+      title: "Export current tree",
+      subtitle: "Download the active tree as JSON",
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "global" },
     },
     {
-      actionId: 'show-command-help',
-      title: 'Show command help',
-      subtitle: 'Open search syntax and command mode help',
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'global' },
+      actionId: "show-command-help",
+      title: "Show command help",
+      subtitle: "Open search syntax and command mode help",
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "global" },
     },
     {
-      actionId: 'open-settings',
-      title: 'Open settings',
-      subtitle: 'Open Trail extension settings',
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'global' },
+      actionId: "open-settings",
+      title: "Open settings",
+      subtitle: "Open Trail extension settings",
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "global" },
     },
     {
-      actionId: 'toggle-sidebar',
-      title: 'Toggle sidebar',
-      subtitle: 'Show or hide the Trail sidebar',
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'global' },
+      actionId: "toggle-sidebar",
+      title: "Toggle sidebar",
+      subtitle: "Show or hide the Trail sidebar",
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "global" },
     },
     {
-      actionId: 'clear-history',
-      title: 'Clear search history',
-      subtitle: 'Reset all usage statistics and recent queries',
-      safety: 'destructive',
-      shortcutHint: 'Enter',
-      target: { kind: 'global' },
+      actionId: "clear-history",
+      title: "Clear search history",
+      subtitle: "Reset all usage statistics and recent queries",
+      safety: "destructive",
+      shortcutHint: "Enter",
+      target: { kind: "global" },
     },
   ];
 }
@@ -782,22 +855,22 @@ function buildCommandActionsForCurrentNode(currentDoc: SpotlightLiveNodeDoc | nu
   if (!currentDoc) return [];
   const actions: ActionSeed[] = [
     {
-      actionId: currentDoc.pinned ? 'unpin' : 'pin',
-      title: currentDoc.pinned ? 'Unpin current page' : 'Pin current page',
+      actionId: currentDoc.pinned ? "unpin" : "pin",
+      title: currentDoc.pinned ? "Unpin current page" : "Pin current page",
       subtitle: currentDoc.title,
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'node', nodeId: currentDoc.nodeId, treeId: currentDoc.treeId },
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "node", nodeId: currentDoc.nodeId, treeId: currentDoc.treeId },
     },
   ];
   if (currentDoc.tabCount > 0) {
     actions.push({
-      actionId: currentDoc.tabCount > 1 ? 'close-tabs' : 'close-tab',
-      title: currentDoc.tabCount > 1 ? 'Close tabs for current page' : 'Close current tab',
+      actionId: currentDoc.tabCount > 1 ? "close-tabs" : "close-tab",
+      title: currentDoc.tabCount > 1 ? "Close tabs for current page" : "Close current tab",
       subtitle: currentDoc.title,
-      safety: 'destructive',
-      shortcutHint: 'Enter',
-      target: { kind: 'node', nodeId: currentDoc.nodeId, treeId: currentDoc.treeId },
+      safety: "destructive",
+      shortcutHint: "Enter",
+      target: { kind: "node", nodeId: currentDoc.nodeId, treeId: currentDoc.treeId },
     });
   }
   return actions;
@@ -809,51 +882,51 @@ function buildContextualActions(
 ): ActionSeed[] {
   if (!result) return [];
 
-  if (result.kind === 'node') {
+  if (result.kind === "node") {
     const isForeign = result.treeId !== activeTreeId;
     const actions: ActionSeed[] = [
       {
-        actionId: isForeign ? 'open-node-in-tree' : 'open',
-        title: isForeign ? 'Open in tree' : 'Open',
+        actionId: isForeign ? "open-node-in-tree" : "open",
+        title: isForeign ? "Open in tree" : "Open",
         subtitle: isForeign ? `${result.treeName} • ${result.title}` : result.title,
-        safety: 'safe',
-        shortcutHint: 'Enter',
-        target: { kind: 'node', nodeId: result.nodeId, treeId: result.treeId },
+        safety: "safe",
+        shortcutHint: "Enter",
+        target: { kind: "node", nodeId: result.nodeId, treeId: result.treeId },
       },
       {
-        actionId: 'open-url-only',
-        title: 'Open URL only',
+        actionId: "open-url-only",
+        title: "Open URL only",
         subtitle: result.url,
-        safety: 'safe',
-        shortcutHint: 'Enter',
-        target: { kind: 'url', url: result.url },
+        safety: "safe",
+        shortcutHint: "Enter",
+        target: { kind: "url", url: result.url },
       },
       {
-        actionId: 'copy-url',
-        title: 'Copy URL',
+        actionId: "copy-url",
+        title: "Copy URL",
         subtitle: result.url,
-        safety: 'safe',
-        shortcutHint: 'Enter',
-        target: { kind: 'node', nodeId: result.nodeId, treeId: result.treeId },
+        safety: "safe",
+        shortcutHint: "Enter",
+        target: { kind: "node", nodeId: result.nodeId, treeId: result.treeId },
       },
     ];
     if (!isForeign) {
       actions.push({
-        actionId: result.pinned ? 'unpin' : 'pin',
-        title: result.pinned ? 'Unpin page' : 'Pin page',
+        actionId: result.pinned ? "unpin" : "pin",
+        title: result.pinned ? "Unpin page" : "Pin page",
         subtitle: result.title,
-        safety: 'safe',
-        shortcutHint: 'Enter',
-        target: { kind: 'node', nodeId: result.nodeId, treeId: result.treeId },
+        safety: "safe",
+        shortcutHint: "Enter",
+        target: { kind: "node", nodeId: result.nodeId, treeId: result.treeId },
       });
       if (result.tabCount > 0) {
         actions.push({
-          actionId: result.tabCount > 1 ? 'close-tabs' : 'close-tab',
-          title: result.tabCount > 1 ? 'Close tabs for page' : 'Close tab',
+          actionId: result.tabCount > 1 ? "close-tabs" : "close-tab",
+          title: result.tabCount > 1 ? "Close tabs for page" : "Close tab",
           subtitle: result.title,
-          safety: 'destructive',
-          shortcutHint: 'Enter',
-          target: { kind: 'node', nodeId: result.nodeId, treeId: result.treeId },
+          safety: "destructive",
+          shortcutHint: "Enter",
+          target: { kind: "node", nodeId: result.nodeId, treeId: result.treeId },
         });
       }
     }
@@ -862,28 +935,28 @@ function buildContextualActions(
 
   return [
     {
-      actionId: 'open-tree',
-      title: 'Open tree',
+      actionId: "open-tree",
+      title: "Open tree",
       subtitle: result.treeName,
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'tree', treeId: result.treeId },
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "tree", treeId: result.treeId },
     },
     {
-      actionId: 'export-tree',
-      title: 'Export tree',
+      actionId: "export-tree",
+      title: "Export tree",
       subtitle: result.treeName,
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'tree', treeId: result.treeId },
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "tree", treeId: result.treeId },
     },
     {
-      actionId: 'delete-archived-tree',
-      title: 'Delete archived tree',
+      actionId: "delete-archived-tree",
+      title: "Delete archived tree",
       subtitle: result.treeName,
-      safety: 'destructive',
-      shortcutHint: 'Enter',
-      target: { kind: 'tree', treeId: result.treeId },
+      safety: "destructive",
+      shortcutHint: "Enter",
+      target: { kind: "tree", treeId: result.treeId },
     },
   ];
 }
@@ -891,28 +964,28 @@ function buildContextualActions(
 function buildScopedTreeActions(treeDoc: SpotlightLiveTreeDoc): ActionSeed[] {
   return [
     {
-      actionId: 'open-tree',
-      title: 'Open tree',
+      actionId: "open-tree",
+      title: "Open tree",
       subtitle: treeDoc.treeName,
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'tree', treeId: treeDoc.treeId },
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "tree", treeId: treeDoc.treeId },
     },
     {
-      actionId: 'export-tree',
-      title: 'Export tree',
+      actionId: "export-tree",
+      title: "Export tree",
       subtitle: treeDoc.treeName,
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'tree', treeId: treeDoc.treeId },
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "tree", treeId: treeDoc.treeId },
     },
     {
-      actionId: 'delete-archived-tree',
-      title: 'Delete archived tree',
+      actionId: "delete-archived-tree",
+      title: "Delete archived tree",
       subtitle: treeDoc.treeName,
-      safety: 'destructive',
-      shortcutHint: 'Enter',
-      target: { kind: 'tree', treeId: treeDoc.treeId },
+      safety: "destructive",
+      shortcutHint: "Enter",
+      target: { kind: "tree", treeId: treeDoc.treeId },
     },
   ];
 }
@@ -925,21 +998,21 @@ function buildExternalActions(query: string): ActionSeed[] {
   const normalizedUrl = normalizeSpotlightUrlCandidate(normalizedQuery);
   if (normalizedUrl) {
     actions.push({
-      actionId: 'open-url',
-      title: 'Open URL',
+      actionId: "open-url",
+      title: "Open URL",
       subtitle: normalizedUrl,
-      safety: 'safe',
-      shortcutHint: 'Enter',
-      target: { kind: 'url', url: normalizedUrl },
+      safety: "safe",
+      shortcutHint: "Enter",
+      target: { kind: "url", url: normalizedUrl },
     });
   }
   actions.push({
-    actionId: 'search-default-engine',
-    title: 'Search with default engine',
+    actionId: "search-default-engine",
+    title: "Search with default engine",
     subtitle: normalizedQuery,
-    safety: 'safe',
-    shortcutHint: 'Enter',
-    target: { kind: 'search', query: normalizedQuery },
+    safety: "safe",
+    shortcutHint: "Enter",
+    target: { kind: "search", query: normalizedQuery },
   });
   return actions;
 }
@@ -949,14 +1022,14 @@ type ActionSeed = {
   title: string;
   subtitle: string;
   safety: SpotlightActionSafety;
-  shortcutHint: 'Enter';
+  shortcutHint: "Enter";
   target?: SpotlightActionTarget;
 };
 
 function toActionResult(seed: ActionSeed): SpotlightActionResult {
   return {
-    kind: 'action',
-    key: `a:${seed.actionId}:${actionTargetKey(seed.actionId, seed.target) ?? 'global'}`,
+    kind: "action",
+    key: `a:${seed.actionId}:${actionTargetKey(seed.actionId, seed.target) ?? "global"}`,
     actionId: seed.actionId,
     title: seed.title,
     subtitle: seed.subtitle,
@@ -966,30 +1039,33 @@ function toActionResult(seed: ActionSeed): SpotlightActionResult {
   };
 }
 
-function actionTargetKey(actionId: SpotlightActionId, target?: SpotlightActionTarget): string | null {
+function actionTargetKey(
+  actionId: SpotlightActionId,
+  target?: SpotlightActionTarget,
+): string | null {
   if (!target) return `a:${actionId}:global`;
   switch (target.kind) {
-    case 'node':
+    case "node":
       return `n:${target.treeId}:${target.nodeId}`;
-    case 'tree':
+    case "tree":
       return `t:${target.treeId}`;
-    case 'url':
+    case "url":
       return `u:${target.url}`;
-    case 'search':
+    case "search":
       return `s:${target.query}`;
-    case 'global':
+    case "global":
     default:
       return `a:${actionId}:global`;
   }
 }
 
 function getEntityLabel(item: SpotlightNodeResult | SpotlightTreeResult): string {
-  return item.kind === 'node' ? item.title : item.treeName;
+  return item.kind === "node" ? item.title : item.treeName;
 }
 
 function matchesClause(doc: SpotlightLiveDoc, terms: SpotlightToken[]): boolean {
   for (const term of terms) {
-    if (term.raw === '|') continue;
+    if (term.raw === "|") continue;
     if (term.field) {
       const matched = matchesField(doc, term.field, term.value);
       if (term.negated ? matched : !matched) return false;
@@ -1004,26 +1080,26 @@ function matchesClause(doc: SpotlightLiveDoc, terms: SpotlightToken[]): boolean 
 
 function matchesField(
   doc: SpotlightLiveDoc,
-  field: SpotlightToken['field'],
+  field: SpotlightToken["field"],
   value: string,
 ): boolean {
   if (!field) return false;
   switch (field) {
-    case 'domain':
+    case "domain":
       return doc.domain === value || doc.domain.endsWith(`.${value}`);
-    case 'tab':
-      if (value === 'open') return doc.kind === 'node' && doc.group === 'open-tabs';
-      if (value === 'closed') return doc.kind === 'tree' || doc.group !== 'open-tabs';
+    case "tab":
+      if (value === "open") return doc.kind === "node" && doc.group === "open-tabs";
+      if (value === "closed") return doc.kind === "tree" || doc.group !== "open-tabs";
       return false;
-    case 'tree':
-      if (value === 'any') return true;
-      if (value === 'current') return doc.kind === 'node' && doc.group !== 'other-trees';
-      if (value === 'other') return doc.kind === 'tree' || doc.group === 'other-trees';
+    case "tree":
+      if (value === "any") return true;
+      if (value === "current") return doc.kind === "node" && doc.group !== "other-trees";
+      if (value === "other") return doc.kind === "tree" || doc.group === "other-trees";
       return false;
-    case 'group':
+    case "group":
       return doc.group === value;
-    case 'is':
-      return value === 'current' && doc.kind === 'node' ? doc.isCurrent : false;
+    case "is":
+      return value === "current" && doc.kind === "node" ? doc.isCurrent : false;
     default:
       return false;
   }
@@ -1033,7 +1109,7 @@ function extractQueryDomains(tokens: SpotlightToken[]): string[] {
   const values = new Set<string>();
   for (const token of tokens) {
     if (token.negated) continue;
-    if (token.field === 'domain') {
+    if (token.field === "domain") {
       values.add(token.value.toLowerCase());
       continue;
     }
@@ -1074,7 +1150,7 @@ function collectHighlightNeedles(tokens: SpotlightToken[]): string[] {
 
 function collectPositivePlainTokens(tokens: SpotlightToken[]): string[] {
   return tokens
-    .filter((token) => !token.negated && !token.field && token.raw !== '|')
+    .filter((token) => !token.negated && !token.field && token.raw !== "|")
     .map((token) => token.value.trim().toLowerCase())
     .filter((token) => token.length >= 2)
     .slice(0, 5);
@@ -1142,18 +1218,24 @@ function findRanges(text: string, needles: string[]): Array<{ start: number; end
   return merged;
 }
 
-function toGroupBadge(group: SpotlightSuggestionGroup): 'Open' | 'Recent' | 'Tree' | 'Archived' {
+function toGroupBadge(group: SpotlightSuggestionGroup): "Open" | "Recent" | "Tree" | "Archived" {
   switch (group) {
-    case 'open-tabs':
-      return 'Open';
-    case 'recently-closed':
-      return 'Recent';
-    case 'current-tree':
-      return 'Tree';
-    case 'other-trees':
+    case "open-tabs":
+      return "Open";
+    case "recently-closed":
+      return "Recent";
+    case "current-tree":
+      return "Tree";
+    case "other-trees":
     default:
-      return 'Archived';
+      return "Archived";
   }
+}
+
+function toSourceBadge(doc: SpotlightLiveNodeDoc): SpotlightSourceBadge {
+  if (doc.tabCount > 0) return "tab";
+  if (doc.pinned) return "pin";
+  return "tree";
 }
 
 function buildWhyChips(
@@ -1164,29 +1246,29 @@ function buildWhyChips(
   pinned: boolean,
 ): string[] {
   const chips: string[] = [];
-  if (pinned) chips.push('pinned');
-  if (breakdown?.exactPrefixTitleBoost) chips.push('prefix match');
-  if (group === 'open-tabs') chips.push('open');
-  if (group === 'recently-closed') chips.push('recent');
-  if (group === 'current-tree') chips.push('current tree');
-  if (group === 'other-trees') chips.push('other tree');
+  if (pinned) chips.push("pinned");
+  if (breakdown?.exactPrefixTitleBoost) chips.push("prefix match");
+  if (group === "open-tabs") chips.push("open");
+  if (group === "recently-closed") chips.push("recent");
+  if (group === "current-tree") chips.push("current tree");
+  if (group === "other-trees") chips.push("other tree");
   if (
-    relation === 'parent'
-    || relation === 'child'
-    || relation === 'sibling'
-    || relation === 'same-branch'
+    relation === "parent" ||
+    relation === "child" ||
+    relation === "sibling" ||
+    relation === "same-branch"
   ) {
-    chips.push('close in graph');
+    chips.push("close in graph");
   }
-  if ((breakdown?.selectionFrequencyBoost ?? 0) > 0.2) chips.push('picked often');
+  if ((breakdown?.selectionFrequencyBoost ?? 0) > 0.2) chips.push("picked often");
   if (tabCount > 1) chips.push(`${tabCount} tabs`);
   return chips;
 }
 
 function buildTreeWhyChips(breakdown: ReturnType<typeof scoreSpotlightCandidate>): string[] {
-  const chips = ['archived'];
-  if (breakdown.exactPrefixTitleBoost) chips.push('prefix match');
-  if (breakdown.selectionFrequencyBoost > 0.2) chips.push('picked often');
+  const chips = ["archived"];
+  if (breakdown.exactPrefixTitleBoost) chips.push("prefix match");
+  if (breakdown.selectionFrequencyBoost > 0.2) chips.push("picked often");
   return chips;
 }
 

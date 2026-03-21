@@ -3,11 +3,10 @@ import { shouldTrackUrl } from "../../utils/url-utils.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { notifyTreeUpdate } from "../notifications.js";
-import { RPC_METHOD, defineRpcHandlers } from "@shared/rpc/contracts.js";
-import { ok, err } from "@shared/rpc/contracts.js";
+import { RPC_METHOD, defineRpcHandlers, ok, err } from "@shared/rpc/contracts.js";
 import type { FaviconUrl, TabId, Title, Url } from "@shared/types/ids.js";
 import { createUrlKey } from "@shared/lib/url-key.js";
-import { type RuntimeMessageSender, type Tab } from '@shared/platform/webext.js';
+import { type RuntimeMessageSender } from "@shared/platform/webext.js";
 
 function getSenderTabId(sender: RuntimeMessageSender): TabId | null {
   const id = sender.tab?.id;
@@ -40,7 +39,7 @@ export const contentHandlers = defineRpcHandlers({
       node.data.favicon = favicon;
       tree.refreshSearchEntry(node.id);
       treeStorage.cacheTree(tree);
-      await notifyTreeUpdate(tree, 'sync');
+      await notifyTreeUpdate(tree, "sync");
       return ok();
     }
 
@@ -53,10 +52,14 @@ export const contentHandlers = defineRpcHandlers({
       node.data.title = title;
       tree.refreshSearchEntry(node.id);
       treeStorage.cacheTree(tree);
-      await notifyTreeUpdate(tree, 'sync');
+      await notifyTreeUpdate(tree, "sync");
       return ok();
     }
 
-    return message.favicon ? handleFaviconChange(message.favicon) : message.title ? handleTitleChange(message.title) : err("No favicon or title");
+    return message.favicon
+      ? handleFaviconChange(message.favicon)
+      : message.title
+        ? handleTitleChange(message.title)
+        : err("No favicon or title");
   },
 });

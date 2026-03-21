@@ -1,9 +1,9 @@
-import type { NodeId, TabId, Title, Url, FaviconUrl } from '@shared/types/ids.js';
-import type { NavigationTree } from '../state/nav-tree.js';
-import type { NodeData } from '@shared/types/node.js';
-import { tabManager } from '../state/tab-manager.js';
-import { isNewTabContext, normalizeFaviconUrl } from './url-utils.js';
-import { type Tab } from '@shared/platform/webext.js';
+import type { NodeId, TabId, Title, Url, FaviconUrl } from "@shared/types/ids.js";
+import type { NavigationTree } from "../state/nav-tree.js";
+import type { NodeData } from "@shared/types/node.js";
+import { tabManager } from "../state/tab-manager.js";
+import { isNewTabContext, normalizeFaviconUrl } from "./url-utils.js";
+import { type Tab } from "@shared/platform/webext.js";
 
 type NewTabHandleOptions = {
   touch: boolean;
@@ -21,7 +21,7 @@ export function handleNewTabTab(
   tree: NavigationTree,
   tab: Tab,
   url: Url,
-  options: NewTabHandleOptions
+  options: NewTabHandleOptions,
 ): NewTabHandleResult {
   if (!isNewTabContext(url, tab.title)) {
     return { handled: false, rootId: null, didMutate: false, didUpdateCurrent: false };
