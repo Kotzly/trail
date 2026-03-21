@@ -325,6 +325,7 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
   const [pendingDelete, setPendingDelete] = useState<"node" | "children" | "withChildren" | null>(
     null,
   );
+  const [deletingNode, setDeletingNode] = useState(false);
   const [pendingDeleteTagId, setPendingDeleteTagId] = useState<string | null>(null);
   const [pendingCloseAllTabs, setPendingCloseAllTabs] = useState(false);
   const hasOpenTab = tabs.length > 0;
@@ -720,6 +721,8 @@ function NodeContextMenu({ nodeId, position, onCreateTag, onEditTag }: NodeMenuP
                 role="menuitem"
                 tabIndex={-1}
                 onClick={() => {
+                  if (deletingNode) return;
+                  setDeletingNode(true);
                   fireAndForget(rpc.deleteNode({ nodeId }));
                   closeContextMenu();
                 }}
@@ -817,6 +820,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
   const [pendingDelete, setPendingDelete] = useState<"nodes" | "recursive" | null>(null);
+  const [deletingBulk, setDeletingBulk] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
@@ -998,6 +1002,8 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
             role="menuitem"
             tabIndex={-1}
             onClick={() => {
+              if (deletingBulk) return;
+              setDeletingBulk(true);
               fireAndForget(rpc.bulkDeleteNodes({ nodeIds }));
               clearSelection();
               closeContextMenu();
@@ -1021,6 +1027,8 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
             role="menuitem"
             tabIndex={-1}
             onClick={() => {
+              if (deletingBulk) return;
+              setDeletingBulk(true);
               const rootId = getIncludedRootId(tree, nodeIds);
               if (rootId) {
                 openDeleteTreeConfirm(rootId);

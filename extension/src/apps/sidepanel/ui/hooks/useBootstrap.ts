@@ -37,6 +37,7 @@ export function useBootstrap(): {
   const [bootstrapStatus, setBootstrapStatus] = useState<BootstrapStatus>("loading");
   const [retryCount, setRetryCount] = useState(0);
   const autoRetryScheduled = useRef(false);
+  const bootstrapInFlight = useRef(false);
 
   const retryBootstrap = useCallback(() => {
     setBootstrapStatus("loading");
@@ -47,6 +48,9 @@ export function useBootstrap(): {
     let mounted = true;
 
     (async () => {
+      if (bootstrapInFlight.current) return;
+      bootstrapInFlight.current = true;
+
       // ---- Critical path: settings + tree only ----
       try {
         const [settings, treeState, flags] = await withTimeout(
@@ -72,7 +76,10 @@ export function useBootstrap(): {
           error,
         );
 
-        if (!mounted) return;
+        if (!mounted) {
+          bootstrapInFlight.current = false;
+          return;
+        }
 
         // First failure (retryCount === 0 and no auto-retry yet): schedule auto-retry after 5s
         if (retryCount === 0 && !autoRetryScheduled.current) {
@@ -82,11 +89,13 @@ export function useBootstrap(): {
               setRetryCount(1);
             }
           }, 5000);
+          bootstrapInFlight.current = false;
           return;
         }
 
         // Second or later failure: show degraded state
         setBootstrapStatus("degraded");
+        bootstrapInFlight.current = false;
         return;
       }
 
@@ -121,10 +130,12 @@ export function useBootstrap(): {
           .catch((e) => console.warn("[bootstrap] commandState fetch failed:", e)),
       ];
       await Promise.allSettled(deferredPromises);
+      bootstrapInFlight.current = false;
     })();
 
     return () => {
       mounted = false;
+      bootstrapInFlight.current = false;
     };
   }, [
     retryCount,

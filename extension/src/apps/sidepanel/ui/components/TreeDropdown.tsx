@@ -124,6 +124,8 @@ export default function TreeDropdown() {
   const editing = editingId !== null;
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [labelDraft, setLabelDraft] = useState("");
+  const [renamePending, setRenamePending] = useState(false);
+  const [deletePending, setDeletePending] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
   const [unavailableTreeIds, setUnavailableTreeIds] = useState<Set<string>>(new Set());
@@ -194,12 +196,15 @@ export default function TreeDropdown() {
 
   const commitEdit = async () => {
     if (!editingId) return;
+    if (renamePending) return;
     const nextLabel = draft.trim() || "Unnamed Tree";
     try {
+      setRenamePending(true);
       await renameTree(editingId, nextLabel);
     } catch (error) {
       showOperationError("Rename", error);
     } finally {
+      setRenamePending(false);
       setEditingId(null);
       setDraft("");
     }
@@ -233,10 +238,14 @@ export default function TreeDropdown() {
   };
 
   const handleDeleteArchived = async (treeId: string) => {
+    if (deletePending === treeId) return;
     try {
+      setDeletePending(treeId);
       await deleteArchivedTree(treeId);
     } catch (error) {
       showOperationError("Delete tree", error);
+    } finally {
+      setDeletePending(null);
     }
   };
 
@@ -508,6 +517,7 @@ export default function TreeDropdown() {
                         type="button"
                         aria-label="Delete tree"
                         data-tooltip="Delete tree"
+                        disabled={deletePending === tree.id}
                         onClick={(event) => {
                           event.stopPropagation();
                           void handleDeleteArchived(tree.id);
