@@ -7,7 +7,7 @@ export function Toaster() {
       position="bottom-right"
       visibleToasts={4}
       richColors
-      closeButton={false}
+      closeButton={true}
     />
   );
 }
