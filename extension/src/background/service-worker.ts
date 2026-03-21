@@ -11,11 +11,14 @@ import { accountKeeper } from "./services/account-keeper.js";
 import { authPolicyKeeper } from "./services/auth-policy-keeper.js";
 import { initSpotlightCommand } from "./spotlight-command.js";
 import { initOffscreenGraphManager } from "./services/offscreen-graph-manager.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("service-worker");
 
 // Catch unhandled promise rejections so they don't silently disappear
 // in the service worker context.
 self.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-  console.error("Unhandled rejection in service worker:", event.reason);
+  log.error("Unhandled rejection in service worker", { error: event.reason instanceof Error ? event.reason.message : String(event.reason) });
 });
 
 // Initialize all modules
@@ -34,7 +37,7 @@ initOffscreenGraphManager();
 
 if (chrome.sidePanel?.setPanelBehavior) {
   void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err: unknown) => {
-    console.warn("Failed to set side panel behavior", err);
+    log.warn("Failed to set side panel behavior", { error: err instanceof Error ? err.message : String(err) });
   });
 }
 

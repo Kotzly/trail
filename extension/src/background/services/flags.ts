@@ -6,6 +6,9 @@ import {
   resolveFlags,
 } from "../../shared/types/flags.js";
 import { flagsItem } from "@shared/config/storage-items.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("flags");
 
 let overrides: Partial<Record<string, unknown>> = {};
 
@@ -16,7 +19,7 @@ export async function initFlags(): Promise<void> {
       overrides = persisted.overrides ?? {};
     }
   } catch (error) {
-    console.error("initFlags: failed to load flags:", error);
+    log.error("Failed to load flags", { error: error instanceof Error ? error.message : String(error) });
   }
 }
 
@@ -44,8 +47,8 @@ export async function resetAllFlags(): Promise<void> {
 async function persistFlags(): Promise<void> {
   const state: PersistedFlagState = { v: 1, overrides: { ...overrides } };
   await flagsItem.setValue(state).catch((error) => {
-    console.error("persistFlags: failed to save flags:", error);
+    log.error("Failed to save flags", { error: error instanceof Error ? error.message : String(error) });
   });
 }
 
-initFlags().catch(console.error);
+initFlags().catch((e) => log.error("Init failed", { error: e instanceof Error ? e.message : String(e) }));

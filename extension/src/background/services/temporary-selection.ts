@@ -4,6 +4,9 @@ import { tabManager } from "../state/tab-manager.js";
 import { treeStorage } from "./tree-storage.js";
 import { notifyTreeUpdate } from "../messaging/notifications.js";
 import { browser, type Tab } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("temp-selection");
 
 type SessionId = string;
 
@@ -30,7 +33,7 @@ async function focusTab(tabId: TabId): Promise<boolean> {
     await browser.tabs.update(tabId, { active: true });
     return true;
   } catch (e) {
-    console.warn("[temp-selection] Storage operation failed:", String(e));
+    log.warn("Focus tab failed", { error: String(e) });
     return false;
   }
 }

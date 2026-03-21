@@ -24,6 +24,9 @@ import { isAllowedSiteOrigin } from "@shared/config/site-origins.js";
 import { editorStateItem } from "@shared/config/storage-items.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import { browser } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("editor");
 
 /* ------------------------------------------------------------------ */
 /*  Editor mode tracking (in-memory, background service worker)        */
@@ -134,14 +137,14 @@ async function broadcastEditorExitToSite(): Promise<void> {
           payload,
         })
         .catch((e) => {
-          console.warn("[editor] Content script unavailable for tab:", {
-            tabId: tab.id,
+          log.warn("Content script unavailable for tab", {
+            tabId: String(tab.id),
             error: String(e),
           });
         });
     }
   } catch (e) {
-    console.warn("[editor] Failed to broadcast editor exit:", String(e));
+    log.warn("Failed to broadcast editor exit", { error: String(e) });
   }
 }
 

@@ -33,6 +33,9 @@ import { flagsHandlers } from "./handlers/flags-handlers.js";
 import { spotlightHandlers } from "./handlers/spotlight-handlers.js";
 import { accountPageHandlers } from "./handlers/account-page-handlers.js";
 import { browser, type RuntimeMessageSender } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("rpc-router");
 
 type AnyResponse = ResponseMessage<RequestType>;
 
@@ -82,7 +85,7 @@ function createMessageRouter() {
     try {
       return await fn(message, sender);
     } catch (e: unknown) {
-      console.error("Message handler crashed:", message.type, e);
+      log.error("Message handler crashed", { type: message.type, error: e instanceof Error ? e.message : String(e) });
       return err(e instanceof Error ? e.message : "Unknown error");
     }
   }

@@ -6,6 +6,9 @@ import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from "../utils/u
 import { handleNewTabTab } from "../utils/new-tab.js";
 import type { NodeData } from "@shared/types/node.js";
 import { browser } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("sync-open-tabs");
 
 let syncPromise: Promise<void> | null = null;
 
@@ -92,7 +95,7 @@ export async function syncOpenTabs(): Promise<void> {
     await notifyTreeUpdate(tree, "tabs");
   })()
     .catch((error) => {
-      console.error("Failed to sync open tabs:", error);
+      log.error("Failed to sync open tabs", { error: error instanceof Error ? error.message : String(error) });
     })
     .finally(() => {
       syncPromise = null;

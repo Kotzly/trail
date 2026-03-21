@@ -5,6 +5,9 @@ import { dirtyTracker } from "./sync/dirty-tracker.js";
 import { sendRuntimeMessage } from "../messaging/send-message.js";
 import { rpc, type SyncStatus } from "@shared/rpc/contracts.js";
 import { findBestTrailFavicon } from "@shared/lib/tree-favicon.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("editor-sync");
 
 /* ------------------------------------------------------------------ */
 /*  Editor Sync Service                                                */
@@ -81,10 +84,10 @@ async function patchTree(treeId: string): Promise<EditorSyncFlushResult> {
     return { ok: true };
   } catch (error) {
     if (error instanceof SyncApiError) {
-      console.warn(`EditorSync: PATCH /trails/${treeId} failed: ${error.message}`);
+      log.warn("PATCH failed", { treeId, error: error.message });
       return { ok: false, error: error.message };
     }
-    console.warn("EditorSync: network error during PATCH", error);
+    log.warn("Network error during PATCH", { error: error instanceof Error ? error.message : String(error) });
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Network error during PATCH",

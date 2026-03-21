@@ -24,6 +24,9 @@ import {
 } from "../../shared/config/storage-items.js";
 import type { Title, Url } from "@shared/types/ids.js";
 import type { NodeData } from "@shared/types/node.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("tree-storage");
 
 /** Adapter to satisfy the BulkEntry item shape (which uses `unknown` for generic bulk writes). */
 const archiveIndexBulkItem: { key: string; setValue: (v: unknown) => Promise<void> } = {
@@ -206,7 +209,7 @@ function withTreeLock<T>(fn: () => Promise<T>): Promise<T> {
     .then(() => {
       const waited = Date.now() - waitStart;
       if (waited > 5000) {
-        console.warn(`withTreeLock: waited ${waited}ms for lock acquisition`);
+        log.warn("Lock acquisition slow", { waitedMs: waited });
       }
       return fn();
     })
@@ -284,7 +287,7 @@ class TreeStorageService {
         this.cachedTree = NavigationTreeMapper.fromJSON(json);
         return this.cachedTree;
       } catch (error) {
-        console.error("TreeStorageService.getTree: Error loading tree:", error);
+        log.error("Error loading tree", { error: error instanceof Error ? error.message : String(error) });
         const tree = new NavigationTree();
         tree.navigate({
           url: "chrome://newtab/" as Url,
@@ -315,7 +318,7 @@ class TreeStorageService {
           return normalized;
         }
       } catch (error) {
-        console.error("TreeStorageService.getActiveMeta: Error loading meta:", error);
+        log.error("Error loading meta", { error: error instanceof Error ? error.message : String(error) });
       }
 
       const createdAt = Date.now();
@@ -330,7 +333,7 @@ class TreeStorageService {
       try {
         await activeTreeMetaItem.setValue(meta);
       } catch (error) {
-        console.error("TreeStorageService.getActiveMeta: Error saving meta:", error);
+        log.error("Error saving default meta", { error: error instanceof Error ? error.message : String(error) });
       }
       return meta;
     })();
@@ -356,7 +359,7 @@ class TreeStorageService {
     try {
       await activeTreeMetaItem.setValue(meta);
     } catch (error) {
-      console.error("TreeStorageService.setActiveMeta: Error saving meta:", error);
+      log.error("Error saving meta", { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -400,7 +403,7 @@ class TreeStorageService {
         await this.saveTreeToChrome(tree);
         await this.setActiveSavedAt(Date.now());
       } catch (error) {
-        console.error("TreeStorageService.flushSaveNow: Error saving tree:", error);
+        log.error("Error flushing tree save", { error: error instanceof Error ? error.message : String(error) });
         this.dirty = true;
         this.scheduleSave();
       }
@@ -432,7 +435,7 @@ class TreeStorageService {
           return this.cachedSavedAt;
         }
       } catch (error) {
-        console.error("TreeStorageService.getActiveSavedAt: Error loading savedAt:", error);
+        log.error("Error loading savedAt", { error: error instanceof Error ? error.message : String(error) });
       }
 
       const now = Date.now();
@@ -440,7 +443,7 @@ class TreeStorageService {
       try {
         await treeSavedAtItem.setValue(now);
       } catch (error) {
-        console.error("TreeStorageService.getActiveSavedAt: Error saving default savedAt:", error);
+        log.error("Error saving default savedAt", { error: error instanceof Error ? error.message : String(error) });
       }
       return now;
     })();
@@ -467,7 +470,7 @@ class TreeStorageService {
         this.cachedIndex = list;
         return list;
       } catch (error) {
-        console.error("TreeStorageService.getArchiveIndex: Error loading index:", error);
+        log.error("Error loading archive index", { error: error instanceof Error ? error.message : String(error) });
         this.cachedIndex = [];
         return this.cachedIndex;
       } finally {
@@ -490,7 +493,7 @@ class TreeStorageService {
       try {
         await archiveIndexItem.setValue(index);
       } catch (error) {
-        console.error("TreeStorageService.setArchiveIndex: Error saving index:", error);
+        log.error("Error saving archive index", { error: error instanceof Error ? error.message : String(error) });
       }
     });
   }
@@ -507,7 +510,7 @@ class TreeStorageService {
       if (!bytes) return null;
       return decodeTree(bytes);
     } catch (error) {
-      console.error(`TreeStorageService.getArchiveTree(${treeId}): decode error`, error);
+      log.error("Archive tree decode error", { treeId, error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -526,7 +529,7 @@ class TreeStorageService {
     try {
       await storage.removeItem(archiveBlobKey(treeId));
     } catch (error) {
-      console.error(`TreeStorageService.deleteArchiveBlob(${treeId}): Error:`, error);
+      log.error("Error deleting archive blob", { treeId, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -568,7 +571,7 @@ class TreeStorageService {
       try {
         await quotaAwareSet(entries);
       } catch (error) {
-        console.error("TreeStorageService.setArchives: Error writing:", error);
+        log.error("Error writing archives", { error: error instanceof Error ? error.message : String(error) });
       }
 
       const removedIds = [...prevIds].filter((id) => !nextIds.has(id));
@@ -578,7 +581,7 @@ class TreeStorageService {
             await storage.removeItem(archiveBlobKey(id));
           }
         } catch (error) {
-          console.error("TreeStorageService.setArchives: Error cleaning old blobs:", error);
+          log.error("Error cleaning old archive blobs", { error: error instanceof Error ? error.message : String(error) });
         }
       }
     });
@@ -609,7 +612,7 @@ class TreeStorageService {
           { key: archiveBlobKey(record.id), value: blob },
         ]);
       } catch (error) {
-        console.error("TreeStorageService.archiveActiveTree: Error saving:", error);
+        log.error("Error archiving active tree", { error: error instanceof Error ? error.message : String(error) });
       }
       return record;
     });
@@ -633,7 +636,7 @@ class TreeStorageService {
         await archiveIndexItem.setValue(nextIndex);
         await storage.removeItem(archiveBlobKey(treeId));
       } catch (error) {
-        console.error("TreeStorageService.takeArchivedTree: Error removing:", error);
+        log.error("Error taking archived tree", { error: error instanceof Error ? error.message : String(error) });
       }
 
       return { ...summary, tree };
@@ -664,7 +667,7 @@ class TreeStorageService {
       try {
         await archiveIndexItem.setValue(index);
       } catch (error) {
-        console.error("TreeStorageService.unstubArchiveEntry: Error:", error);
+        log.error("Error unstubbing archive entry", { error: error instanceof Error ? error.message : String(error) });
       }
     });
   }
@@ -697,7 +700,7 @@ class TreeStorageService {
         try {
           await archiveIndexItem.setValue(index);
         } catch (error) {
-          console.error("TreeStorageService.renameTree: Error saving index:", error);
+          log.error("Error saving renamed tree index", { error: error instanceof Error ? error.message : String(error) });
         }
       }
     });
@@ -713,7 +716,7 @@ class TreeStorageService {
           await storage.removeItem(archiveBlobKey(e.id));
         }
       } catch (error) {
-        console.error("TreeStorageService.clearArchivesOnly: Error:", error);
+        log.error("Error clearing archives", { error: error instanceof Error ? error.message : String(error) });
       }
 
       this.cachedIndex = null;
@@ -734,7 +737,7 @@ class TreeStorageService {
           await storage.removeItem(archiveBlobKey(e.id));
         }
       } catch (error) {
-        console.error("TreeStorageService.clearAllTrees: Error:", error);
+        log.error("Error clearing all trees", { error: error instanceof Error ? error.message : String(error) });
       }
 
       this.cachedTree = null;
@@ -764,7 +767,7 @@ class TreeStorageService {
         await archiveIndexItem.setValue(next);
         await storage.removeItem(archiveBlobKey(treeId));
       } catch (error) {
-        console.error("TreeStorageService.deleteArchivedTree: Error:", error);
+        log.error("Error deleting archived tree", { error: error instanceof Error ? error.message : String(error) });
       }
       return true;
     });
@@ -803,7 +806,7 @@ class TreeStorageService {
           { key: archiveBlobKey(treeId), value: serializeBlob(encodeTree(treeJSON)) },
         ]);
       } catch (error) {
-        console.error("TreeStorageService.updateArchivedTree: Error:", error);
+        log.error("Error updating archived tree", { error: error instanceof Error ? error.message : String(error) });
       }
     });
   }
@@ -844,7 +847,7 @@ class TreeStorageService {
       await writeBulkDirect(entries);
       this.cachedIndex = summaries;
     } catch (error) {
-      console.error("TreeStorageService.ensureMigrated: Migration error:", error);
+      log.error("Migration error", { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -867,7 +870,7 @@ class TreeStorageService {
     try {
       await treeSavedAtItem.setValue(savedAt);
     } catch (error) {
-      console.error("TreeStorageService.setActiveSavedAt: Error saving savedAt:", error);
+      log.error("Error saving savedAt", { error: error instanceof Error ? error.message : String(error) });
     }
   }
 }

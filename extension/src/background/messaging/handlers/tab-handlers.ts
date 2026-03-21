@@ -6,6 +6,9 @@ import { treeStorage } from "../../services/tree-storage.js";
 import { type NavigationTree } from "../../state/nav-tree.js";
 import { getEditorState } from "./editor-handlers.js";
 import { browser, type Tab } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("tab-handlers");
 
 export const tabHandlers = defineRpcHandlers({
   async [RPC_METHOD.GET_TABS_FOR_NODE](message) {
@@ -17,7 +20,7 @@ export const tabHandlers = defineRpcHandlers({
           return await browser.tabs.get(tabId as TabId);
         } catch (error) {
           tabManager.unregister(tabId as TabId);
-          console.error("Failed to get tab:", error);
+          log.error("Failed to get tab", { error: error instanceof Error ? error.message : String(error) });
           return null;
         }
       }),
@@ -77,7 +80,7 @@ export const tabHandlers = defineRpcHandlers({
       tabManager.tabsByNode(nodeId).forEach(async (tabId) => {
         browser.tabs
           .remove(tabId)
-          .catch(console.error)
+          .catch((e) => log.error("Failed to remove tab", { error: e instanceof Error ? e.message : String(e) }))
           .then(async () => await unregisterTabForNode(tree, nodeId, tabId));
       });
     });

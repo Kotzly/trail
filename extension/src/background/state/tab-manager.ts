@@ -3,6 +3,9 @@ import { type NavigationTree } from "./nav-tree.js";
 import { TabIndex } from "./tab-index.js";
 import { LruManager } from "./tab-lru.js";
 import { browser } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("tab-manager");
 
 export class TabManager {
   private index: TabIndex;
@@ -207,7 +210,7 @@ export class TabManager {
     for (const tabId of candidates) {
       const nodeId = this.index.nodeByTab(tabId);
       if (!nodeId) {
-        console.warn("[tab-manager] Orphaned LRU entry, removing tab:", tabId);
+        log.warn("Orphaned LRU entry, removing tab", { tabId: String(tabId) });
         this.lru.remove(tabId); // self-removal
         continue;
       }

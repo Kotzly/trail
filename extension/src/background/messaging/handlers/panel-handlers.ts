@@ -1,5 +1,8 @@
 import { RPC_METHOD, defineRpcHandlers, err, ok } from "@shared/rpc/contracts.js";
 import { browser, openSidebarForTab, type RuntimePort } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("panel");
 
 /* ------------------------------------------------------------------ */
 /*  Sidepanel liveness tracking via persistent Port                    */
@@ -34,7 +37,7 @@ export const panelHandlers = defineRpcHandlers({
       }
       return ok();
     } catch (error) {
-      console.warn("OPEN_PANEL failed", { tabId, error });
+      log.warn("OPEN_PANEL failed", { tabId: String(tabId), error: error instanceof Error ? error.message : String(error) });
       const message = error instanceof Error ? error.message : "Failed to open side panel";
       if (message.toLowerCase().includes("already open")) return ok();
       return err(message);

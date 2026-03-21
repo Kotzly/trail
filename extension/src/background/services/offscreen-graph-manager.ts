@@ -7,6 +7,9 @@
 // ---------------------------------------------------------------------------
 
 import { notifyUi } from "../messaging/ui-notifications.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("offscreen-graph");
 
 const OFFSCREEN_URL = "offscreen-graph.html";
 let offscreenFailNotified = false;
@@ -34,10 +37,10 @@ async function ensureOffscreenDocument(): Promise<void> {
       reasons: [REASON],
       justification: "Pre-compute graph layout positions for instant display",
     });
-    console.debug("[offscreen-graph-manager] offscreen document created");
+    log.debug("Offscreen document created");
   } catch (err) {
     // May fail if another offscreen document exists or API unavailable
-    console.warn("[offscreen-graph-manager] failed to create offscreen document:", err);
+    log.warn("Failed to create offscreen document", { error: err instanceof Error ? err.message : String(err) });
     if (!offscreenFailNotified) {
       offscreenFailNotified = true;
       notifyUi({

@@ -1,4 +1,7 @@
 import type { NodeId, TabId } from "@shared/types/ids.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("tab-index");
 
 export class TabIndex {
   private tabToNode: Map<TabId, NodeId>;
@@ -13,14 +16,14 @@ export class TabIndex {
     const tabs = this.nodeToTabs.get(nodeId);
 
     if (!tabs) {
-      console.warn(`Node ${nodeId} has no tab set, but removing tab ${tabId}`);
+      log.warn("Node has no tab set, but removing tab", { nodeId, tabId: String(tabId) });
       this.tabToNode.delete(tabId);
       return;
     }
 
     const existed = tabs.delete(tabId);
     if (!existed) {
-      console.warn(`Tab ${tabId} was not present in node ${nodeId}`);
+      log.warn("Tab was not present in node", { tabId: String(tabId), nodeId });
     }
 
     if (tabs.size === 0) this.nodeToTabs.delete(nodeId);

@@ -9,6 +9,9 @@ import type {
   SpotlightTreeRelation,
 } from "@shared/rpc/contracts.js";
 import { treeStorage } from "./tree-storage.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("spotlight-index");
 import { tabManager } from "../state/tab-manager.js";
 import { loadTree } from "./tree-loader.js";
 
@@ -542,7 +545,7 @@ function extractDomain(url: string): string {
   try {
     return new URL(url).hostname.toLowerCase();
   } catch (e) {
-    console.warn("[spotlight-index] URL parse failed:", String(e));
+    log.warn("URL parse failed", { error: String(e) });
     return "";
   }
 }

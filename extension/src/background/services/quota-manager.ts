@@ -9,6 +9,9 @@ import { storage } from "wxt/utils/storage";
 import { isTreeStub, type TreeSummary, type TreeStub } from "@shared/types/tree.js";
 import { archiveIndexItem, archiveBlobKey } from "@shared/config/storage-items.js";
 import { notifyUi } from "../messaging/ui-notifications.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("quota-manager");
 
 function isQuotaError(error: unknown): boolean {
   const msg = String(error);
@@ -34,7 +37,7 @@ function withEvictionLock<T>(fn: () => Promise<T>): Promise<T> {
     .then(() => {
       const waited = Date.now() - waitStart;
       if (waited > 5000) {
-        console.warn(`withEvictionLock: waited ${waited}ms for lock acquisition`);
+        log.warn("Eviction lock acquisition slow", { waitedMs: waited });
       }
       return fn();
     })
@@ -64,7 +67,7 @@ export async function quotaAwareSet(
       return;
     } catch (error) {
       if (!isQuotaError(error) || attempt === maxRetries) throw error;
-      console.warn(`quotaAwareSet: quota error on attempt ${attempt + 1}, evicting oldest archive`);
+      log.warn("Quota error, evicting oldest archive", { attempt: attempt + 1 });
       const evicted = await withEvictionLock(async () => {
         const jitter = Math.random() * 100;
         await new Promise<void>((r) => setTimeout(r, jitter));
@@ -110,9 +113,7 @@ export async function evictOldestArchive(): Promise<boolean> {
   if (oldestIdx < 0) return false;
 
   const target = index[oldestIdx]! as TreeSummary;
-  console.warn(
-    `quotaManager: evicting archive "${target.label}" (${target.id}), savedAt=${new Date(target.savedAt).toISOString()}`,
-  );
+  log.warn("Evicting archive", { treeId: target.id, label: target.label, savedAt: new Date(target.savedAt).toISOString() });
 
   // Replace with stub in the index
   const stub: TreeStub = { ...target, stub: true };

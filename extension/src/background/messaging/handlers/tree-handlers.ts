@@ -33,6 +33,9 @@ import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { settingsManager } from "../../services/settings.js";
 import { saveOpenTabs, getOpenTabs, clearOpenTabs } from "../../services/tab-restoration.js";
 import { browser, type Tab } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("tree-handlers");
 
 /** Mark editor sync dirty if currently in editor mode. */
 function maybeEditorDirty(): void {
@@ -76,7 +79,7 @@ async function closeTabs(tabIds: TabId[], context: string): Promise<boolean> {
     await browser.tabs.remove(tabIds);
     return true;
   } catch (error) {
-    console.error(`Failed to close tabs for ${context}:`, error);
+    log.error("Failed to close tabs", { context, error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -268,7 +271,7 @@ async function switchTree(
         preferredFocusUrl ? { url: preferredFocusUrl, active: true } : { active: true },
       );
     } catch (error) {
-      console.error("Failed to open root tab for tree switch:", error);
+      log.error("Failed to open root tab for tree switch", { error: error instanceof Error ? error.message : String(error) });
       created = await browser.tabs.create({});
     }
     if (preferredFocusNode) {

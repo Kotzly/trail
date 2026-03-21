@@ -1,5 +1,8 @@
 import { BACKEND_CONFIG, buildBackendUrl, initBackendConfig } from "../../shared/config/backend.js";
 import { authPolicyItem, type CachedAuthPolicy } from "../../shared/config/storage-items.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("auth-policy");
 
 const POLICY_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -69,7 +72,7 @@ class AuthPolicyKeeper {
         await authPolicyItem.setValue(policy);
         return policy;
       } catch (e) {
-        console.warn("[auth-policy] Policy check failed:", String(e));
+        log.warn("Policy check failed", { error: String(e) });
         return fallback ?? DEFAULT_POLICY;
       }
     })();

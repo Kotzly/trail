@@ -17,6 +17,9 @@ import { notifyTreeUpdate } from "../messaging/notifications.js";
 import { createUrlKey } from "@shared/lib/url-key.js";
 import { browser, type Browser, type Tab } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../state/node-recency.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("navigation");
 
 /**
  * Handle navigation events and add to tree.
@@ -57,7 +60,7 @@ export async function handleNavigation(
         await notifyTreeUpdate(tree, "tabs", view);
       }
     } catch (error) {
-      console.error("[navigation-handler] new tab navigation error:", error);
+      log.error("New tab navigation error", { error: error instanceof Error ? error.message : String(error) });
     }
     return;
   }
@@ -219,6 +222,6 @@ export async function handleNavigation(
       await notifyTreeUpdate(tree, reason, view);
     }
   } catch (error) {
-    console.error("[navigation-handler] navigation error:", error);
+    log.error("Navigation error", { error: error instanceof Error ? error.message : String(error) });
   }
 }

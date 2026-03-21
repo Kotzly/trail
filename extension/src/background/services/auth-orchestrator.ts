@@ -10,6 +10,9 @@ import { syncEngine } from "./sync/engine.js";
 import { accountKeeper } from "./account-keeper.js";
 import { authPolicyKeeper } from "./auth-policy-keeper.js";
 import { browser } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("auth-orchestrator");
 
 const AUTH_REFRESH_ALARM = "trail-auth-refresh" as const;
 const AUTH_REFRESH_INTERVAL_MINUTES = 2;
@@ -32,9 +35,8 @@ type AuthFlowResult =
   | { ok: true; reason: AuthSuccessReason }
   | { ok: false; reason: AuthFailureReason };
 
-function logAuth(_message: string, _payload?: Record<string, unknown>): void {
-  // Intentionally silent in production. Enable for local debugging:
-  // console.info("[auth-orchestrator]", _message, _payload);
+function logAuth(message: string, payload?: Record<string, unknown>): void {
+  log.debug(message, payload);
 }
 
 function isAccessTokenExpired(expiresAt?: string | null): boolean {

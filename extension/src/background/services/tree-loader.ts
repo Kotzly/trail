@@ -13,6 +13,9 @@ import { isTreeStub, type TreeRecord } from "@shared/types/tree.js";
 import type { Url, Title, FaviconUrl } from "@shared/types/ids.js";
 import { treeStorage } from "./tree-storage.js";
 import { syncApi, SyncApiError, type PullTreeResponse } from "./sync/api.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("tree-loader");
 
 /**
  * Load a tree by ID, trying local sources first then falling back to cloud.
@@ -76,7 +79,7 @@ async function fetchFromCloud(treeId: string): Promise<TreeRecord | null> {
     if (error instanceof SyncApiError && error.kind === "unauthorized") {
       return null;
     }
-    console.warn(`TreeLoader: failed to fetch tree ${treeId} from cloud`, error);
+    log.warn("Failed to fetch tree from cloud", { treeId, error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }

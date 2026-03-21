@@ -1,4 +1,7 @@
 import { searchSuggestionsEnabledItem } from "@shared/config/storage-items.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("search-suggestions");
 
 const CACHE_TTL_MS = 30_000;
 const MIN_QUERY_LENGTH = 2;
@@ -60,7 +63,7 @@ export async function fetchSearchSuggestions(query: string): Promise<readonly st
 
     return suggestions;
   } catch (e) {
-    console.warn("[search-suggestions] Fetch failed:", String(e));
+    log.warn("Fetch failed", { error: String(e) });
     return [];
   }
 }

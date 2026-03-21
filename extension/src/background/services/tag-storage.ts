@@ -2,6 +2,9 @@ import type { Tag } from "@shared/types/ids.js";
 import type { TagDefinition } from "@shared/types/tags.js";
 import { DEFAULT_TAG_DEFS } from "@shared/data/tag-presets.js";
 import { tagDefsItem } from "@shared/config/storage-items.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("tag-storage");
 /** browser.storage.sync per-item limit is 8,192 bytes. Stay safely under. */
 const SYNC_ITEM_BYTE_LIMIT = 8_192;
 const MAX_TAG_COUNT = 50;
@@ -50,7 +53,7 @@ class TagStorageService {
         this.cached = defs;
         return defs;
       } catch (error) {
-        console.error("TagStorageService.getAll: Error loading tags:", error);
+        log.error("Error loading tags", { error: error instanceof Error ? error.message : String(error) });
         this.cached = DEFAULT_TAG_DEFS.slice();
         return this.cached;
       } finally {
@@ -73,16 +76,14 @@ class TagStorageService {
       next[index] = normalized;
     } else {
       if (next.length >= MAX_TAG_COUNT) {
-        console.warn(
-          `TagStorageService: max tag limit (${MAX_TAG_COUNT}) reached, ignoring upsert`,
-        );
+        log.warn("Max tag limit reached, ignoring upsert", { limit: MAX_TAG_COUNT });
         return;
       }
       next.push(normalized);
     }
 
     if (estimateJsonBytes(next) > SYNC_ITEM_BYTE_LIMIT) {
-      console.warn("TagStorageService: tag data exceeds storage.sync item limit, ignoring upsert");
+      log.warn("Tag data exceeds storage.sync item limit, ignoring upsert");
       return;
     }
 

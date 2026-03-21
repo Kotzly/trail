@@ -253,7 +253,7 @@ export const siteMessageHandlers = defineRpcHandlers({
       const result = await handler(payload, requestId);
       return ok(result);
     } catch (e) {
-      console.error("[site-message] handler error:", siteMessageType, e);
+      log.error("Handler error", { type: siteMessageType, error: e instanceof Error ? e.message : String(e) });
       return err(e instanceof Error ? e.message : "Unknown error");
     }
   },

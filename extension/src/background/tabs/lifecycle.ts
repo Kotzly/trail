@@ -10,6 +10,9 @@ import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from "../utils/u
 import { handleNewTabTab } from "../utils/new-tab.js";
 import { browser, type Browser, type Tab } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../state/node-recency.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("tab-lifecycle");
 
 async function onTabCreated(tab: Tab): Promise<void> {
   if (!tab.id) return;
@@ -98,7 +101,7 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
         }
       }
     } catch (e) {
-      console.warn("[tab-lifecycle] Tab registration failed:", { tabId, error: String(e) });
+      log.warn("Tab registration failed", { tabId: String(tabId), error: String(e) });
       return;
     }
   }

@@ -9,14 +9,12 @@ import {
   type CachedSnapshotEnvelope,
 } from "../../shared/config/storage-items.js";
 import { authPolicyKeeper } from "./auth-policy-keeper.js";
+import { createLogger } from "@shared/lib/logger.js";
 
 const ALARM_NAME = "trail_account_snapshot_refresh";
 const REFRESH_INTERVAL_MINUTES = 5;
 
-function log(_message: string, _payload?: Record<string, unknown>): void {
-  // Intentionally silent in production. Enable for local debugging:
-  // console.info("[account-keeper]", _message, _payload);
-}
+const log = createLogger("account-keeper");
 
 async function loadAuth(): Promise<StoredAuthSession | null> {
   return authSessionItem.getValue();
@@ -138,9 +136,9 @@ class AccountKeeper {
           fetchedAt: Date.now(),
         };
         await saveToStorage(envelope);
-        log("snapshot_cached");
+        log.debug("Snapshot cached");
       } catch (error) {
-        log("snapshot_cache_failed", {
+        log.warn("Snapshot cache failed", {
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -168,7 +166,7 @@ class AccountKeeper {
       fetchedAt: Date.now(),
     };
     await saveToStorage(envelope);
-    log("snapshot_cleared_to_guest");
+    log.debug("Snapshot cleared to guest");
   }
 }
 

@@ -2,6 +2,9 @@ import { THEME_IDS } from "@features/themes/model.js";
 import type { CustomTheme, Settings, ThemeHarmony, ThemeDotType } from "@shared/types/settings.js";
 import { DEFAULT_LAYOUT_SETTINGS } from "@shared/layout/defaults.js";
 import { settingsItem } from "@shared/config/storage-items.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("settings");
 
 const DEFAULT_CUSTOM_THEME: CustomTheme = {
   enabled: false,
@@ -163,7 +166,7 @@ class SettingsManager {
       const stored = await settingsItem.getValue();
       this.settings = mergeDefaults(stored);
     } catch (error) {
-      console.error("SettingsManager.loadSettings: Error loading settings:", error);
+      log.error("Error loading settings", { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
     return this.settings;
@@ -174,7 +177,7 @@ class SettingsManager {
     try {
       await settingsItem.setValue(this.settings);
     } catch (error) {
-      console.error("SettingsManager.saveSettings: Error saving settings:", error);
+      log.error("Error saving settings", { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -187,4 +190,4 @@ class SettingsManager {
 }
 
 export const settingsManager = new SettingsManager();
-settingsManager.init().catch(console.error);
+settingsManager.init().catch((e) => log.error("Init failed", { error: e instanceof Error ? e.message : String(e) }));
