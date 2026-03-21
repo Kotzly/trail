@@ -61,6 +61,8 @@ export default defineConfig({
       "48": "icons/trail-48.png",
       "128": "icons/trail-128.png",
     },
+    // activeTab: required by captureVisibleTab in thumbnail-cache.ts
+    // See SEC-02 audit (2026-03-21) for full permission justification
     permissions: [
       "sidePanel",
       "storage",
@@ -68,9 +70,7 @@ export default defineConfig({
       "webNavigation",
       "favicon",
       "alarms",
-      "scripting",
       "activeTab",
-      "search",
       "bookmarks",
       "offscreen",
     ],
