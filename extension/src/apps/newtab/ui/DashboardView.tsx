@@ -126,6 +126,77 @@ function RecentSearchesCard({
 // Main component
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
+
+function EmptyState() {
+  return (
+    <div
+      className="newtab-empty-state"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "32px 16px",
+        textAlign: "center",
+        gap: "12px",
+        opacity: 0.7,
+      }}
+    >
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ opacity: 0.5 }}
+      >
+        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+        <path d="M2 17l10 5 10-5" />
+        <path d="M2 12l10 5 10-5" />
+      </svg>
+      <div style={{ fontSize: "13px", color: "var(--color-text-secondary, #999)" }}>
+        Start browsing to grow your trail
+      </div>
+      <button
+        type="button"
+        style={{
+          marginTop: "4px",
+          padding: "6px 16px",
+          fontSize: "12px",
+          borderRadius: "6px",
+          border: "1px solid var(--color-border, rgba(128,128,128,0.2))",
+          background: "var(--color-bg-secondary, rgba(128,128,128,0.08))",
+          color: "var(--color-text-primary, #ccc)",
+          cursor: "pointer",
+        }}
+        onClick={() => {
+          try {
+            if (typeof chrome !== "undefined" && chrome.sidePanel?.open) {
+              chrome.windows.getCurrent().then((win) => {
+                if (win.id != null) chrome.sidePanel.open({ windowId: win.id });
+              });
+            }
+          } catch {
+            // Ignore — sidepanel API might not be available
+          }
+        }}
+      >
+        Open sidepanel
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 export function DashboardView({
   bookmarks,
   recentQueries,
@@ -133,6 +204,17 @@ export function DashboardView({
   onQueryChange,
   onActivate,
 }: DashboardViewProps) {
+  const isEmpty =
+    bookmarks.length === 0 && continueItems.length === 0 && recentQueries.length === 0;
+
+  if (isEmpty) {
+    return (
+      <div className="newtab-dashboard">
+        <EmptyState />
+      </div>
+    );
+  }
+
   return (
     <div className="newtab-dashboard">
       <div className="newtab-bento">
