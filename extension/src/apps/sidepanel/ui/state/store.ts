@@ -67,7 +67,7 @@ type OverlayEffectsState = {
 };
 
 type AccountStatus = "idle" | "loading" | "ready" | "error";
-type NetworkStatus = "online" | "offline" | "degraded";
+type NetworkStatus = "online" | "offline";
 
 export type AccountState = {
   status: AccountStatus;
