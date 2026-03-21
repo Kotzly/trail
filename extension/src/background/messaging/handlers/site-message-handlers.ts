@@ -23,6 +23,23 @@ import {
 import { authOrchestrator } from "../../services/auth-orchestrator.js";
 import { authSessionItem } from "@shared/config/storage-items.js";
 import { browser } from "@shared/platform/webext.js";
+import { createLogger } from "@shared/lib/logger.js";
+import {
+  EnterEditorModeMessage as EnterEditorSchema,
+  AuthCodeRelayMessage as AuthCodeRelaySchema,
+} from "../../../shared/schemas/site-messages.js";
+import type { z } from "zod";
+
+const log = createLogger("site-msg");
+
+// ---------------------------------------------------------------------------
+// Payload validation schemas (only for message types with typed fields)
+// ---------------------------------------------------------------------------
+
+const payloadSchemas: Partial<Record<string, z.ZodType>> = {
+  ENTER_EDITOR_MODE: EnterEditorSchema,
+  AUTH_CODE_RELAY: AuthCodeRelaySchema,
+};
 
 // ---------------------------------------------------------------------------
 // Auth state helpers
@@ -82,7 +99,7 @@ const innerHandlers: Record<string, InnerHandler> = {
   },
 
   ENTER_EDITOR_MODE: async (payload, _requestId) => {
-    const treeId = typeof payload.treeId === "string" ? payload.treeId : "";
+    const treeId = payload.treeId as string;
     if (!treeId) {
       return {
         responsePayload: {
@@ -161,9 +178,11 @@ const innerHandlers: Record<string, InnerHandler> = {
   },
 
   AUTH_CODE_RELAY: async (payload, _requestId) => {
-    const code = typeof payload.code === "string" ? payload.code : "";
-    const codeVerifier = typeof payload.codeVerifier === "string" ? payload.codeVerifier : "";
-    const redirectUri = typeof payload.redirectUri === "string" ? payload.redirectUri : "";
+    const { code, codeVerifier, redirectUri } = payload as {
+      code: string;
+      codeVerifier: string;
+      redirectUri: string;
+    };
 
     if (!code || !codeVerifier || !redirectUri) {
       return {
@@ -206,6 +225,28 @@ export const siteMessageHandlers = defineRpcHandlers({
 
     if (!handler) {
       return err(`Site message type not yet handled: ${siteMessageType}`);
+    }
+
+    // Validate payload for types with typed fields
+    const schema = payloadSchemas[siteMessageType];
+    if (schema) {
+      const fullMessage = {
+        source: "trail-site" as const,
+        type: siteMessageType,
+        requestId,
+        timestamp: Date.now(),
+        ...payload,
+      };
+      const parsed = schema.safeParse(fullMessage);
+      if (!parsed.success) {
+        log.warn("Payload validation failed", {
+          type: siteMessageType,
+          issues: parsed.error.issues,
+        });
+        return err(
+          `Invalid payload for ${siteMessageType}: ${parsed.error.issues[0]?.message ?? "unknown"}`,
+        );
+      }
     }
 
     try {
