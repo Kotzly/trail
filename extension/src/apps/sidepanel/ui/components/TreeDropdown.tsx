@@ -126,6 +126,7 @@ export default function TreeDropdown() {
   const [labelDraft, setLabelDraft] = useState("");
   const [creating, setCreating] = useState(false);
   const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
+  const [unavailableTreeIds, setUnavailableTreeIds] = useState<Set<string>>(new Set());
   const [_syncing, setSyncing] = useState(false);
 
   useEffect(() => {
@@ -210,14 +211,21 @@ export default function TreeDropdown() {
   };
 
   const handleOpen = async (tree: TreeItem) => {
-    try {
-      if (tree.stub) {
-        setLoadingTreeId(tree.id);
+    if (tree.stub) {
+      setLoadingTreeId(tree.id);
+      try {
         await ensureTreeLoaded(tree.id);
+      } catch (loadError) {
+        showOperationError("Load tree from cloud", loadError);
+        setUnavailableTreeIds((prev) => new Set(prev).add(tree.id));
+        setLoadingTreeId(null);
+        return; // Don't try to open — keep dropdown open
       }
+    }
+    try {
       await openTree(tree.id);
-    } catch (error) {
-      showOperationError("Open tree", error);
+    } catch (openError) {
+      showOperationError("Open tree", openError);
     } finally {
       setLoadingTreeId(null);
       setTreesOpen(false);
@@ -392,10 +400,11 @@ export default function TreeDropdown() {
           ) : (
             archivedTrees.map((tree) => {
               const isLoading = loadingTreeId === tree.id;
+              const isUnavailable = unavailableTreeIds.has(tree.id);
               const host = formatHost(tree.rootUrl);
               const date = formatDate(tree.savedAt);
               const meta = [
-                tree.stub ? "cloud" : null,
+                tree.stub ? (isUnavailable ? "unavailable" : "cloud") : null,
                 host || tree.rootTitle || "Untitled",
                 `${tree.nodeCount} nodes`,
                 date,
@@ -405,8 +414,12 @@ export default function TreeDropdown() {
               return (
                 <div
                   key={tree.id}
-                  className={cn("trees-dropdown-item", isLoading && "loading")}
-                  onClick={() => !isLoading && void handleOpen(tree)}
+                  className={cn(
+                    "trees-dropdown-item",
+                    isLoading && "loading",
+                    isUnavailable && "unavailable",
+                  )}
+                  onClick={() => !isLoading && !isUnavailable && void handleOpen(tree)}
                 >
                   {isLoading ? (
                     <div className="trees-dropdown-item-favicon placeholder">
@@ -414,7 +427,9 @@ export default function TreeDropdown() {
                     </div>
                   ) : tree.stub ? (
                     <div className="trees-dropdown-item-favicon placeholder">
-                      <Icons.Cloud size={14} />
+                      {isUnavailable
+                        ? <Icons.CloudOff size={14} />
+                        : <Icons.Cloud size={14} />}
                     </div>
                   ) : tree.rootUrl ? (
                     <img

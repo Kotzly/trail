@@ -8,6 +8,7 @@
 import { storage } from "wxt/utils/storage";
 import { isTreeStub, type TreeSummary, type TreeStub } from "@shared/types/tree.js";
 import { archiveIndexItem, archiveBlobKey } from "@shared/config/storage-items.js";
+import { notifyUi } from "../messaging/ui-notifications.js";
 
 function isQuotaError(error: unknown): boolean {
   const msg = String(error);
@@ -121,6 +122,13 @@ export async function evictOldestArchive(): Promise<boolean> {
   // Write updated index and remove the blob
   await archiveIndexItem.setValue(nextIndex);
   await storage.removeItem(archiveBlobKey(target.id));
+
+  // Notify any open UI surfaces about eviction
+  notifyUi({
+    message: `Archived tree "${target.label}" moved to cloud to save space`,
+    icon: "AlertTriangle",
+    durationMs: 5000,
+  });
 
   return true;
 }
