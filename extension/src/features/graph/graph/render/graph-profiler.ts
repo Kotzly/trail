@@ -157,7 +157,9 @@ export class GraphProfiler {
   private checkBudget(metric: string, value: number): void {
     const threshold = BUDGET_THRESHOLDS[metric as BudgetMetricKey];
     if (threshold != null && value > threshold) {
-      budgetLog.warn("budget breach", { metric, value: Math.round(value), threshold });
+      budgetLog.warn(
+        `budget breach: ${metric} = ${Math.round(value)}ms (threshold: ${threshold}ms)`,
+      );
     }
   }
 
