@@ -56,6 +56,7 @@ type UseSpotlightSearchReturn = {
   sections: SpotlightSection[];
   loading: boolean;
   sessionError: string | null;
+  sessionExpiredFinal: boolean;
   query: string;
   setQuery: (q: string) => void;
   previewCache: LRUMap<string, SpotlightGraphPreviewData>;
@@ -72,10 +73,12 @@ export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotl
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [sessionExpiredFinal, setSessionExpiredFinal] = useState(false);
   const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
 
   const retryBootstrap = useCallback(() => {
     setSessionError(null);
+    setSessionExpiredFinal(false);
     setBootstrapAttempt((c) => c + 1);
   }, []);
 
@@ -106,6 +109,7 @@ export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotl
         setBootstrapData(data);
         setSessionId(data.sessionId);
         setSections(data.sections);
+        setSessionExpiredFinal(false);
         setLoading(false);
 
         // Restore query from session memory if recent
@@ -147,14 +151,14 @@ export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotl
       .catch(async (error) => {
         if (cancelled) return;
         if (isRecoverableError(error)) {
-          await attemptRecovery();
+          await attemptRecovery(error);
           return;
         }
         console.error("Failed to search spotlight:", error);
         if (!cancelled) setLoading(false);
       });
 
-    async function attemptRecovery(): Promise<void> {
+    async function attemptRecovery(originalError: unknown): Promise<void> {
       for (let attempt = 0; attempt < BACKOFF_DELAYS.length; attempt++) {
         if (cancelled) return;
         await sleep(BACKOFF_DELAYS[attempt]!);
@@ -178,6 +182,9 @@ export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotl
       // All retries exhausted
       if (!cancelled) {
         setSessionError("All session recovery attempts failed");
+        if (isSessionExpired(originalError)) {
+          setSessionExpiredFinal(true);
+        }
         setLoading(false);
       }
     }
@@ -203,6 +210,7 @@ export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotl
     }
 
     setQuery("");
+    setSessionExpiredFinal(false);
     requestSeqRef.current += 1;
 
     const activeSession = sessionId;
@@ -227,6 +235,7 @@ export function useSpotlightSearch(options: UseSpotlightSearchOptions): UseSpotl
     sections,
     loading,
     sessionError,
+    sessionExpiredFinal,
     query,
     setQuery,
     // eslint-disable-next-line react-hooks/refs -- exposing cached map to consumers

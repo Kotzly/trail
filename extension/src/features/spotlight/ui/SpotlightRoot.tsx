@@ -23,6 +23,7 @@ import { useDrilldownMemory } from "./useDrilldownMemory.js";
 import { executeBatchAction } from "./rpc.js";
 import { SpotlightFooter } from "./SpotlightFooter.js";
 import { resolveSpotlightQueryMode } from "@features/spotlight/model/query-dsl.js";
+import { browser } from "@shared/platform/webext.js";
 import type {
   SpotlightActionId,
   SpotlightBatchActionId,
@@ -376,9 +377,30 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
             >
               {search.loading && <div className="spotlight-loading-bar" />}
               {search.sessionError ? (
-                <div className="spotlight-empty" role="alert">
-                  Connection lost. Close and reopen spotlight to retry.
-                </div>
+                search.sessionExpiredFinal ? (
+                  <div className="spotlight-empty spotlight-session-expired" role="alert">
+                    <span>Session expired.</span>
+                    <button
+                      type="button"
+                      className="spotlight-session-signin"
+                      onClick={() => {
+                        void (async () => {
+                          const { getBackendConfig, initBackendConfig } = await import("@shared/config/backend.js");
+                          await initBackendConfig();
+                          const baseUrl = getBackendConfig().baseUrl;
+                          void browser.tabs.create({ url: `${baseUrl}/account`, active: true });
+                        })();
+                      }}
+                      style={{ background: "none", border: "1px solid currentColor", borderRadius: "4px", padding: "2px 10px", cursor: "pointer", fontSize: "12px", color: "inherit", marginLeft: "6px", opacity: 0.85 }}
+                    >
+                      Sign in
+                    </button>
+                  </div>
+                ) : (
+                  <div className="spotlight-empty" role="alert">
+                    Connection lost. Close and reopen spotlight to retry.
+                  </div>
+                )
               ) : helpOpen ? (
                 <SpotlightHelp open />
               ) : search.sections.length === 0 && search.query && !search.loading ? (

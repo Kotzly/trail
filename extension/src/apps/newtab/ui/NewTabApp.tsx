@@ -30,6 +30,7 @@ import {
 import { SpotlightFooter } from "@features/spotlight/ui/SpotlightFooter.js";
 import { resolveSpotlightQueryMode } from "@features/spotlight/model/query-dsl.js";
 import { browser } from "@shared/platform/webext.js";
+import { authSessionItem } from "@shared/config/storage-items.js";
 import { useBookmarks } from "./useBookmarks.js";
 import { DashboardView } from "./DashboardView.js";
 import { QuickActions } from "./QuickActions.js";
@@ -106,6 +107,45 @@ export function NewTabApp() {
   const [graphFocusMode, setGraphFocusMode] = useState(false);
 
   const { bookmarks } = useBookmarks();
+
+  // ─── Session expired banner state ───
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [sessionDismissed, setSessionDismissed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    // Check initial state
+    authSessionItem.getValue().then((session) => {
+      if (cancelled) return;
+      if (!session || !session.accessToken) setSessionExpired(true);
+    });
+    // Watch for changes
+    const unwatch = authSessionItem.watch((newVal) => {
+      if (cancelled) return;
+      if (!newVal || !newVal.accessToken) {
+        setSessionExpired(true);
+      } else {
+        setSessionExpired(false);
+      }
+    });
+    return () => { cancelled = true; unwatch(); };
+  }, []);
+
+  const handleSignIn = useCallback(async () => {
+    if (authBusy) return;
+    setAuthBusy(true);
+    try {
+      const { getBackendConfig, initBackendConfig } = await import("@shared/config/backend.js");
+      await initBackendConfig();
+      const baseUrl = getBackendConfig().baseUrl;
+      await browser.tabs.create({ url: `${baseUrl}/account`, active: true });
+    } catch {
+      // If we can't open the account page, just ignore
+    } finally {
+      setAuthBusy(false);
+    }
+  }, [authBusy]);
 
   // Clock/greeting state
   const [time, setTime] = useState(getTime);
@@ -539,6 +579,60 @@ export function NewTabApp() {
             }}
             className="newtab-island"
           >
+            {/* ── Session expired banner ── */}
+            {sessionExpired && !sessionDismissed && (
+              <div
+                className="newtab-session-banner"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "6px 12px",
+                  background: "rgba(255, 165, 0, 0.12)",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  marginBottom: "8px",
+                }}
+              >
+                <span className="newtab-session-banner__text">Session expired — sign in to sync</span>
+                <button
+                  className="newtab-session-banner__action"
+                  type="button"
+                  onClick={() => void handleSignIn()}
+                  disabled={authBusy}
+                  style={{
+                    background: "none",
+                    border: "1px solid currentColor",
+                    borderRadius: "4px",
+                    padding: "2px 8px",
+                    cursor: "pointer",
+                    fontSize: "11px",
+                    color: "inherit",
+                    opacity: 0.9,
+                  }}
+                >
+                  {authBusy ? "Opening..." : "Sign in"}
+                </button>
+                <button
+                  className="newtab-session-banner__dismiss"
+                  type="button"
+                  onClick={() => setSessionDismissed(true)}
+                  aria-label="Dismiss"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "16px",
+                    opacity: 0.5,
+                    padding: "0 2px",
+                    color: "inherit",
+                  }}
+                >
+                  &times;
+                </button>
+              </div>
+            )}
+
             {/* ── Greeting ── */}
             {!graphFocusMode && (
               <div className="newtab-greeting">
@@ -639,9 +733,33 @@ export function NewTabApp() {
                 <div className="newtab-list">
                   {search.loading && <div className="newtab-loading-bar" />}
                   {search.sessionError ? (
-                    <div className="spotlight-empty" role="alert">
-                      Connection lost. Reload to retry.
-                    </div>
+                    search.sessionExpiredFinal ? (
+                      <div className="spotlight-empty spotlight-session-expired" role="alert">
+                        <span>Session expired.</span>
+                        <button
+                          type="button"
+                          onClick={() => void handleSignIn()}
+                          disabled={authBusy}
+                          style={{
+                            background: "none",
+                            border: "1px solid currentColor",
+                            borderRadius: "4px",
+                            padding: "2px 10px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            color: "inherit",
+                            marginLeft: "6px",
+                            opacity: 0.85,
+                          }}
+                        >
+                          {authBusy ? "Opening..." : "Sign in"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="spotlight-empty" role="alert">
+                        Connection lost. Reload to retry.
+                      </div>
+                    )
                   ) : helpOpen ? (
                     <SpotlightHelp open />
                   ) : search.sections.length === 0 ? (
