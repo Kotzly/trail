@@ -8,6 +8,8 @@ import { isMac } from "@shared/utils/platform.js";
 import { useStore, type MetaKeyPair } from "../state/store.js";
 import { applyTheme } from "../shared/apply-theme.js";
 import { graphProfiler, STARTUP_T0 } from "@features/graph/graph/render/graph-profiler.js";
+import { fireAndForget } from "../../api/background.js";
+import { RPC_METHOD } from "@shared/rpc/contracts.js";
 
 export type BootstrapStatus = "loading" | "degraded" | "ready";
 
@@ -103,6 +105,9 @@ export function useBootstrap(): {
 
       // ---- Deferred: non-blocking fetches after first paint ----
       if (!mounted) return;
+
+      // Pre-warm spotlight search index in background (fire-and-forget)
+      fireAndForget({ type: RPC_METHOD.SPOTLIGHT_BOOTSTRAP });
 
       // Fire all deferred fetches in parallel, each with independent error handling
       const deferredPromises = [

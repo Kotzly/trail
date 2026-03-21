@@ -39,6 +39,7 @@ import {
 import { spotlightUsageStats } from "./spotlight-usage-stats.js";
 import { fetchSearchSuggestions } from "./search-suggestions.js";
 import { settingsManager } from "./settings.js";
+import { recordMetric } from "@shared/lib/perf-metrics.js";
 
 const SESSION_TTL_MS = 15 * 60 * 1000;
 const MAX_RESULTS = 80;
@@ -106,6 +107,8 @@ export class SpotlightService {
     requestSeq: number,
     scopeTreeId?: string,
   ): Promise<SpotlightSearchResponse> {
+    const searchStart = performance.now();
+
     this.pruneExpiredSessions();
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -123,6 +126,9 @@ export class SpotlightService {
       scopeTreeId,
       kindFilter,
     );
+
+    const queryMs = performance.now() - searchStart;
+    recordMetric("spotlightQueryMs", queryMs);
 
     return {
       requestSeq,

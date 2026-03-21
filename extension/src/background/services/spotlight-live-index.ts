@@ -80,6 +80,8 @@ type IndexDoc = {
   treeName: string;
 };
 
+const ARCHIVE_REBUILD_CAP = 10;
+
 export class SpotlightLiveIndexService {
   private snapshot: SpotlightLiveSnapshot | null = null;
   private dirty = true;
@@ -99,6 +101,23 @@ export class SpotlightLiveIndexService {
 
   async buildInitialIndex(): Promise<void> {
     await this.ensureFresh();
+  }
+
+  preWarm(): void {
+    if (this.snapshot && !this.dirty) return; // already warm
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(
+        () => {
+          this.buildInitialIndex().catch(() => {});
+        },
+        { timeout: 3000 },
+      );
+    } else {
+      // Fallback for service worker (no requestIdleCallback)
+      setTimeout(() => {
+        this.buildInitialIndex().catch(() => {});
+      }, 500);
+    }
   }
 
   upsertNode(nodeId: NodeId): void {
@@ -288,12 +307,16 @@ export class SpotlightLiveIndexService {
 
     const previewsByTreeId = new Map<string, SpotlightGraphPreviewData>();
     const archiveEntries = await treeStorage.getArchivedSummaries();
-    const treeDocs = archiveEntries.map((entry) => createTreeDoc(entry));
+    // Sort by savedAt descending (most recent first), cap at ARCHIVE_REBUILD_CAP
+    const cappedEntries = [...archiveEntries]
+      .sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))
+      .slice(0, ARCHIVE_REBUILD_CAP);
+    const treeDocs = cappedEntries.map((entry) => createTreeDoc(entry));
     for (const doc of treeDocs) {
       docsByKey.set(doc.key, doc);
     }
     const archiveRecords = await Promise.all(
-      archiveEntries.map(async (entry) => ({
+      cappedEntries.map(async (entry) => ({
         entry,
         record: await loadTree(entry.id),
       })),
