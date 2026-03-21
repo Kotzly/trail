@@ -25,7 +25,7 @@
     "format:check": "prettier --check 'src/**/*.{ts,tsx,css,json}'",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
     "generate-icons": "tsx src/shared/utils/generate-icons.ts",
-    "test": "node --import tsx tests/basic.test.ts && node --import tsx tests/architecture-boundaries.test.ts && node --import tsx tests/spotlight-search.test.ts && node --import tsx tests/rpc-schema.test.ts && node --import tsx tests/layout-signature.test.ts"
+    "test": "node --import tsx tests/basic.test.ts && node --import tsx tests/architecture-boundaries.test.ts && node --import tsx tests/spotlight-search.test.ts && node --import tsx tests/rpc-schema.test.ts && node --import tsx tests/layout-signature.test.ts && node --import tsx tests/smoke-e2e.test.ts && node --import tsx tests/ui-interaction.test.ts"
   },
   "keywords": [],
   "author": "Trail",
