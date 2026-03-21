@@ -143,6 +143,23 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
             </button>
           ) : null}
         </div>
+        {expanded && focused && (
+          <div
+            className="floating-search-hints"
+            style={{
+              display: "flex",
+              gap: 10,
+              padding: "2px 8px",
+              fontSize: 10,
+              color: "var(--color-text-muted, #888)",
+              opacity: 0.7,
+            }}
+          >
+            <span><kbd style={{ fontWeight: 600, opacity: 0.9 }}>Enter</kbd> next</span>
+            <span><kbd style={{ fontWeight: 600, opacity: 0.9 }}>&#8593;&#8595;</kbd> navigate</span>
+            <span><kbd style={{ fontWeight: 600, opacity: 0.9 }}>Esc</kbd> close</span>
+          </div>
+        )}
         <div className="floating-search-island" aria-hidden={!hasQuery}>
           <div className="floating-search-results-panel">
             <div className="floating-search-results">
