@@ -156,11 +156,45 @@ function testLegacyImportsAreGone(): void {
   console.log('  import boundaries: OK');
 }
 
+function testProdManifestNoDev(): void {
+  const manifestPath = join(ROOT, '.output', 'chrome-mv3', 'manifest.json');
+
+  if (!existsSync(manifestPath)) {
+    console.log('  prod manifest no-dev: SKIPPED (not built)');
+    return;
+  }
+
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const hostPermissions: string[] = manifest.host_permissions ?? [];
+
+  const devPatterns = hostPermissions.filter(
+    (hp) =>
+      hp.includes('localhost') ||
+      hp.includes('127.0.0.1') ||
+      hp.startsWith('http://'),
+  );
+
+  assert.deepEqual(
+    devPatterns,
+    [],
+    `prod manifest must not contain dev origins: ${devPatterns.join(', ')}`,
+  );
+
+  assert.deepEqual(
+    hostPermissions,
+    ['https://gettrail.net/*', 'https://app.gettrail.net/*'],
+    'host_permissions must be exactly the production origins',
+  );
+
+  console.log('  prod manifest no-dev: OK');
+}
+
 function run(): void {
   console.log('Running architecture-boundaries.test.ts...');
   testPackageRootHygiene();
   testEntrypointsStayThin();
   testLegacyImportsAreGone();
+  testProdManifestNoDev();
 }
 
 run();
