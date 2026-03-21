@@ -34,6 +34,16 @@ export function collectTaggedNodes(tree: NavigationTree | null): NavigationNode[
   return results.sort(sortNodes);
 }
 
+export function collectUntaggedNodes(tree: NavigationTree | null): NavigationNode[] {
+  if (!tree) return [];
+  const results: NavigationNode[] = [];
+  for (const node of tree.iter()) {
+    const tags = node.data.tags ?? [];
+    if (tags.length === 0) results.push(node);
+  }
+  return results.sort(sortNodes);
+}
+
 export function filterNodesByTags(
   tree: NavigationTree | null,
   selected: Set<Tag>,

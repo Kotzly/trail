@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { NodeId, Tag, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import type { TagDefinition } from "@shared/types/tags.js";
@@ -11,7 +11,7 @@ import { cn } from "../../lib/utils.js";
 import { Icons } from "../Icon.js";
 import { showOperationError } from "../../shared/show-operation-error.js";
 import { TagIcon } from "./TagIcon.js";
-import { collectTagCounts, collectTaggedNodes, filterNodesByTags } from "./tag-filter-utils.js";
+import { collectTagCounts, collectTaggedNodes, collectUntaggedNodes, filterNodesByTags } from "./tag-filter-utils.js";
 
 export default function TagFilterDropdown() {
   const tree = useStore((state) => state.tree);
@@ -48,9 +48,14 @@ export default function TagFilterDropdown() {
     [tagCounts, tagDefsList],
   );
   const taggedNodes = useMemo(() => collectTaggedNodes(tree), [tree]);
+  const untaggedNodes = useMemo(() => collectUntaggedNodes(tree), [tree]);
+  const [untaggedMode, setUntaggedMode] = useState(false);
   const filteredNodes = useMemo(
-    () => (selected.size > 0 ? filterNodesByTags(tree, selected) : taggedNodes),
-    [taggedNodes, selected, tree],
+    () => {
+      if (untaggedMode) return untaggedNodes;
+      return selected.size > 0 ? filterNodesByTags(tree, selected) : taggedNodes;
+    },
+    [taggedNodes, untaggedNodes, selected, tree, untaggedMode],
   );
 
   useEffect(() => {
@@ -143,6 +148,45 @@ export default function TagFilterDropdown() {
           </div>
         </div>
 
+        {!showEmptyTags && (
+          <div className="tag-filter-presets" style={{ display: "flex", gap: "6px", padding: "4px 10px 2px" }}>
+            <button
+              type="button"
+              className="tag-filter-preset-btn"
+              style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "4px", background: "var(--color-bg-tertiary, rgba(128,128,128,0.1))", border: "none", cursor: "pointer", color: "var(--color-text-secondary, #aaa)" }}
+              onClick={() => {
+                setUntaggedMode(false);
+                const allTags = new Set(usedTags.map((t) => t.id as Tag));
+                setTagFilterSelected(allTags);
+              }}
+            >
+              All tagged
+            </button>
+            <button
+              type="button"
+              className="tag-filter-preset-btn"
+              style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "4px", background: "var(--color-bg-tertiary, rgba(128,128,128,0.1))", border: "none", cursor: "pointer", color: "var(--color-text-secondary, #aaa)" }}
+              onClick={() => {
+                clearTagFilter();
+                setUntaggedMode(true);
+              }}
+            >
+              Untagged
+            </button>
+            <button
+              type="button"
+              className="tag-filter-preset-btn"
+              style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "4px", background: "var(--color-bg-tertiary, rgba(128,128,128,0.1))", border: "none", cursor: "pointer", color: "var(--color-text-secondary, #aaa)" }}
+              onClick={() => {
+                setUntaggedMode(false);
+                clearTagFilter();
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
         {showEmptyTags ? null : (
           <div className="tag-filter-strip">
             {usedTags.map((tag) => {
@@ -152,7 +196,10 @@ export default function TagFilterDropdown() {
                   key={tag.id as string}
                   className={cn("tag-filter-tag", isSelected && "selected")}
                   type="button"
-                  onClick={() => toggleTagFilterTag(tag.id as Tag)}
+                  onClick={() => {
+                    setUntaggedMode(false);
+                    toggleTagFilterTag(tag.id as Tag);
+                  }}
                 >
                   <span
                     className="tag-pill"

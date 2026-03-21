@@ -58,6 +58,24 @@ function formatDate(ts?: number): string {
   }
 }
 
+function formatRelativeTime(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    const then = new Date(iso).getTime();
+    if (Number.isNaN(then)) return "";
+    const diffMs = Date.now() - then;
+    if (diffMs < 0) return "just now";
+    const diffMin = Math.floor(diffMs / 60_000);
+    if (diffMin < 1) return "just now";
+    if (diffMin < 60) return `${diffMin} min ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr} hr ago`;
+    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
+  } catch {
+    return "";
+  }
+}
+
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9_\-. ]/g, "_").trim() || "trail";
 }
@@ -84,6 +102,7 @@ export default function TreeDropdown() {
   const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
   const treesShortcut = "Shift+T";
   const nodeCount = useStore((state) => state.nodeCount);
+  const lastSyncedAt = useStore((state) => state.account.lastSyncedAt);
 
   useOverlayEffects(treesOpen, { kind: "dropdown" });
 
@@ -331,7 +350,11 @@ export default function TreeDropdown() {
                   </div>
                 )}
                 <div className="trees-dropdown-item-meta">
-                  active now · {activeTree.nodeCount} nodes
+                  {[
+                    "active now",
+                    `${activeTree.nodeCount} nodes`,
+                    lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : null,
+                  ].filter(Boolean).join(" \u00b7 ")}
                 </div>
               </div>
               {editingId !== activeTree.id ? (
@@ -396,6 +419,7 @@ export default function TreeDropdown() {
               const host = formatHost(tree.rootUrl);
               const date = formatDate(tree.savedAt);
               const meta = [
+                "archived",
                 tree.stub ? (isUnavailable ? "unavailable" : "cloud") : null,
                 host || tree.rootTitle || "Untitled",
                 `${tree.nodeCount} nodes`,
