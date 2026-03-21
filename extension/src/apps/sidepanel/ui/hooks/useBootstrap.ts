@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getSettings } from "../../api/settings.js";
 import { getFlags } from "../../api/flags.js";
 import { getTreeState, getTrees } from "../../api/tree.js";
@@ -8,7 +8,23 @@ import { isMac } from "@shared/utils/platform.js";
 import { useStore, type MetaKeyPair } from "../state/store.js";
 import { applyTheme } from "../shared/apply-theme.js";
 
-export function useBootstrap(): void {
+export type BootstrapStatus = "loading" | "degraded" | "ready";
+
+const BOOTSTRAP_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Bootstrap timed out")), ms),
+    ),
+  ]);
+}
+
+export function useBootstrap(): {
+  bootstrapStatus: BootstrapStatus;
+  retryBootstrap: () => void;
+} {
   const bootstrapGraph = useStore((state) => state.bootstrapGraph);
   const setPlatformMeta = useStore((state) => state.setPlatformMeta);
   const setCommandState = useStore((state) => state.setCommandState);
@@ -18,17 +34,25 @@ export function useBootstrap(): void {
   const setTagDefs = useStore((state) => state.setTagDefs);
   const setTrees = useStore((state) => state.setTrees);
 
+  const [bootstrapStatus, setBootstrapStatus] = useState<BootstrapStatus>("loading");
+  const [retryCount, setRetryCount] = useState(0);
+  const autoRetryScheduled = useRef(false);
+
+  const retryBootstrap = useCallback(() => {
+    setBootstrapStatus("loading");
+    setRetryCount((c) => c + 1);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
 
     (async () => {
       // ---- Critical path: settings + tree only ----
       try {
-        const [settings, treeState, flags] = await Promise.all([
-          getSettings(),
-          getTreeState(),
-          getFlags(),
-        ]);
+        const [settings, treeState, flags] = await withTimeout(
+          Promise.all([getSettings(), getTreeState(), getFlags()]),
+          BOOTSTRAP_TIMEOUT_MS,
+        );
         if (!mounted) return;
 
         bootstrapGraph(settings, treeState);
@@ -40,13 +64,29 @@ export function useBootstrap(): void {
         if (treeState.editorMode?.active) {
           setEditorMode(treeState.editorMode);
         }
+
+        setBootstrapStatus("ready");
       } catch (error) {
         console.error(
-          "[bootstrap] Critical fetch failed, falling back to mount-then-fetch:",
+          "[bootstrap] Critical fetch failed:",
           error,
         );
-        // Surface already mounted React tree -- it will show loading state
-        // until TREE_UPDATED arrives from background and applyTreeState fires
+
+        if (!mounted) return;
+
+        // First failure (retryCount === 0 and no auto-retry yet): schedule auto-retry after 5s
+        if (retryCount === 0 && !autoRetryScheduled.current) {
+          autoRetryScheduled.current = true;
+          setTimeout(() => {
+            if (mounted) {
+              setRetryCount(1);
+            }
+          }, 5000);
+          return;
+        }
+
+        // Second or later failure: show degraded state
+        setBootstrapStatus("degraded");
         return;
       }
 
@@ -87,6 +127,7 @@ export function useBootstrap(): void {
       mounted = false;
     };
   }, [
+    retryCount,
     bootstrapGraph,
     setPlatformMeta,
     setCommandState,
@@ -96,4 +137,6 @@ export function useBootstrap(): void {
     setTagDefs,
     setTrees,
   ]);
+
+  return { bootstrapStatus, retryBootstrap };
 }
