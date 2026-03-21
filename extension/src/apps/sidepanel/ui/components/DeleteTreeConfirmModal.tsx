@@ -13,6 +13,8 @@ export default function DeleteTreeConfirmModal() {
   const tree = useStore((state) => state.tree);
   const clearSelection = useStore((state) => state.clearSelection);
   const close = useStore((state) => state.closeDeleteTreeConfirm);
+  const treeLabel = useStore((state) => state.trees.active?.label ?? "this tree");
+  const nodeCount = useStore((state) => state.nodeCount);
 
   useOverlayEffects(open, { lod: true, blur: true, kind: "modal" });
 
@@ -67,7 +69,10 @@ export default function DeleteTreeConfirmModal() {
         onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="confirm-title">
-          This will delete the entire tree. What do you want to do?
+          Delete &ldquo;{treeLabel}&rdquo;?
+        </div>
+        <div className="confirm-description" style={{ fontSize: "12px", color: "var(--color-text-secondary, #999)", marginTop: "4px", lineHeight: 1.4 }}>
+          This removes all {nodeCount} page{nodeCount === 1 ? "" : "s"} in this tree. This cannot be undone.
         </div>
         <div className="confirm-actions">
           <button className="confirm-btn ghost" type="button" onClick={close}>
@@ -77,7 +82,7 @@ export default function DeleteTreeConfirmModal() {
             Create new tree
           </button>
           <button className="confirm-btn danger" type="button" onClick={handleDelete}>
-            Delete this tree
+            Delete &ldquo;{treeLabel}&rdquo;
           </button>
         </div>
       </div>
