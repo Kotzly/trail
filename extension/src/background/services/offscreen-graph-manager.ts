@@ -6,7 +6,10 @@
 // per extension, so we check before creating.
 // ---------------------------------------------------------------------------
 
+import { notifyUi } from "../messaging/ui-notifications.js";
+
 const OFFSCREEN_URL = "offscreen-graph.html";
+let offscreenFailNotified = false;
 
 const REASON = chrome.offscreen.Reason.WORKERS;
 
@@ -35,6 +38,14 @@ async function ensureOffscreenDocument(): Promise<void> {
   } catch (err) {
     // May fail if another offscreen document exists or API unavailable
     console.warn("[offscreen-graph-manager] failed to create offscreen document:", err);
+    if (!offscreenFailNotified) {
+      offscreenFailNotified = true;
+      notifyUi({
+        message: "Using basic layout mode",
+        icon: "AlertTriangle",
+        durationMs: 5000,
+      });
+    }
   }
 }
 

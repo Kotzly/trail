@@ -45,6 +45,8 @@ import { createGraphSnapshot, type GraphSnapshot } from "../../graph/render/grap
 import type { TabState } from "@shared/types/tabs.js";
 import type { TagDefinition } from "@shared/types/tags.js";
 import { easeOutCubic, lerp } from "../../graph/animation-utils.js";
+import { toast } from "sonner";
+import { invalidateLayoutCache } from "@shared/graph-layout-cache/cache.js";
 // grid-transform.js used by useGraphView hook.
 import { browser, runtimeGetURL } from "@shared/platform/webext.js";
 // selection-utils.js is now used via useGraphSelection hook.
@@ -510,7 +512,15 @@ export default function GraphCanvas({
     if (_prefetchedLayout) {
       const cachedSig = _prefetchedLayout.layoutSignature;
       if (cachedSig && cachedSig === currentSignature) {
-        const hydrated = hydrateFromCache(_prefetchedLayout, root);
+        let hydrated: { positions: Map<NodeId, NodePosition>; width: number } | null = null;
+        try {
+          hydrated = hydrateFromCache(_prefetchedLayout, root);
+        } catch (cacheError) {
+          console.error("[GraphCanvas] Cache hydration failed, clearing corrupt entry:", cacheError);
+          toast.warning("Layout cache was corrupted and has been reset");
+          void invalidateLayoutCache(_prefetchedLayout.treeId);
+          _prefetchedLayout = null;
+        }
         if (hydrated) {
           _prefetchedLayout = null;
           graphProfiler.recordStartup("cacheHitType", "exact");
@@ -521,13 +531,21 @@ export default function GraphCanvas({
         }
       }
       // Signature missing (old cache format) — fall back to field-by-field check
-      if (!cachedSig && _prefetchedLayout.layoutMode === layoutOptions.mode) {
+      if (!cachedSig && _prefetchedLayout?.layoutMode === layoutOptions.mode) {
         const cacheCollapseMatch =
           (_prefetchedLayout.collapseSignature ?? "") === currentCollapseSignature;
         const cacheRecencyMatch =
           (_prefetchedLayout.recencyOrdering ?? false) === recencyOrderingV2Enabled;
         if (cacheCollapseMatch && cacheRecencyMatch) {
-          const hydrated = hydrateFromCache(_prefetchedLayout, root);
+          let hydrated: { positions: Map<NodeId, NodePosition>; width: number } | null = null;
+          try {
+            hydrated = hydrateFromCache(_prefetchedLayout, root);
+          } catch (cacheError) {
+            console.error("[GraphCanvas] Cache hydration failed, clearing corrupt entry:", cacheError);
+            toast.warning("Layout cache was corrupted and has been reset");
+            void invalidateLayoutCache(_prefetchedLayout.treeId);
+            _prefetchedLayout = null;
+          }
           if (hydrated) {
             _prefetchedLayout = null;
             graphProfiler.recordStartup("cacheHitType", "fallback");
