@@ -12,6 +12,7 @@ import { getBackendConfig, initBackendConfig } from "@shared/config/backend.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { useAnchoredDropdown } from "../hooks/useAnchoredDropdown.js";
+import { useOverlayBehavior } from "../hooks/useOverlayBehavior.js";
 import { cn } from "../lib/utils.js";
 import { Icons } from "./Icon.js";
 
@@ -90,6 +91,13 @@ export default function TreeDropdown() {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   useAnchoredDropdown({ open: treesOpen, dropdownRef });
+  useOverlayBehavior({
+    open: treesOpen,
+    onClose: () => setTreesOpen(false),
+    containerRef: dropdownRef,
+    triggerRef,
+    skipEscWhenEditing: true,
+  });
 
   const activeTree = trees.active
     ? ({
@@ -157,31 +165,6 @@ export default function TreeDropdown() {
       cancelled = true;
     };
   }, [treesOpen]);
-
-  useEffect(() => {
-    if (!treesOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea") return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setTreesOpen(false);
-      }
-    };
-    const onMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (dropdownRef.current?.contains(target)) return;
-      if (triggerRef.current?.contains(target)) return;
-      setTreesOpen(false);
-    };
-    document.addEventListener("keydown", onKeyDown, true);
-    document.addEventListener("mousedown", onMouseDown, true);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown, true);
-      document.removeEventListener("mousedown", onMouseDown, true);
-    };
-  }, [setTreesOpen, treesOpen]);
 
   useEffect(() => {
     if (!editing) return;

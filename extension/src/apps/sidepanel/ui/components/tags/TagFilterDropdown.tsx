@@ -6,6 +6,7 @@ import { navigateTo } from "../../../api/tree.js";
 import { useStore } from "../../state/store.js";
 import { useOverlayEffects } from "../../state/overlay-effects.js";
 import { useAnchoredDropdown } from "../../hooks/useAnchoredDropdown.js";
+import { useOverlayBehavior } from "../../hooks/useOverlayBehavior.js";
 import { cn } from "../../lib/utils.js";
 import { Icons } from "../Icon.js";
 import { showOperationError } from "../../shared/show-operation-error.js";
@@ -28,6 +29,13 @@ export default function TagFilterDropdown() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   useAnchoredDropdown({ open: tagFilterOpen, dropdownRef });
+  useOverlayBehavior({
+    open: tagFilterOpen,
+    onClose: () => setTagFilterOpen(false),
+    containerRef: dropdownRef,
+    triggerRef,
+    skipEscWhenEditing: true,
+  });
 
   const tagCounts = useMemo(() => collectTagCounts(tree), [tree]);
   const tagDefMap = useMemo(() => {
@@ -50,34 +58,18 @@ export default function TagFilterDropdown() {
     const onKeyDown = (event: KeyboardEvent) => {
       const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase();
       if (tag === "input" || tag === "textarea") return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setTagFilterOpen(false);
-        return;
-      }
       if (event.key === "Enter") {
         event.preventDefault();
         const node = filteredNodes[0];
         if (node) void handleNavigate(node.id);
       }
     };
-
-    const onMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (dropdownRef.current?.contains(target)) return;
-      if (triggerRef.current?.contains(target)) return;
-      setTagFilterOpen(false);
-    };
-
     document.addEventListener("keydown", onKeyDown, true);
-    document.addEventListener("mousedown", onMouseDown, true);
     return () => {
       document.removeEventListener("keydown", onKeyDown, true);
-      document.removeEventListener("mousedown", onMouseDown, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handleNavigate is a non-memoized async fn; adding it would cause infinite re-registration on every render
-  }, [filteredNodes, setTagFilterOpen, tagFilterOpen]);
+  }, [filteredNodes, tagFilterOpen]);
 
   const handleNavigate = async (nodeId: NodeId) => {
     const node = tree?.findNodeById(nodeId);
