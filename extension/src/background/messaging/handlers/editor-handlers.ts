@@ -21,6 +21,7 @@ import {
   editorSyncStop,
 } from "../../services/editor-sync.js";
 import { isAllowedSiteOrigin } from "@shared/config/site-origins.js";
+import { editorStateItem } from "@shared/config/storage-items.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import { browser } from "@shared/platform/webext.js";
 
@@ -29,6 +30,16 @@ import { browser } from "@shared/platform/webext.js";
 /* ------------------------------------------------------------------ */
 
 let editorState: EditorModeState = { active: false, treeId: null };
+let editorStateLoaded = false;
+
+async function ensureEditorStateLoaded(): Promise<void> {
+  if (editorStateLoaded) return;
+  editorStateLoaded = true;
+  const stored = await editorStateItem.getValue();
+  if (stored && stored.active && stored.treeId) {
+    editorState = stored;
+  }
+}
 
 type EditorSessionSnapshot = {
   treeId: string;
@@ -163,6 +174,7 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
 
   CommandManager.clearHistory();
   editorState = { active: true, treeId };
+  void editorStateItem.setValue(editorState);
 
   editorSyncStart(treeId);
 
@@ -197,6 +209,7 @@ async function finalizeEditorExit(): Promise<EditorModeState> {
   }
 
   editorState = { active: false, treeId: null };
+  void editorStateItem.setValue(editorState);
   editorSessionSnapshot = null;
   CommandManager.clearHistory();
 
@@ -368,3 +381,6 @@ export const editorHandlers = defineRpcHandlers({
     return ok();
   },
 });
+
+// Restore editor state from chrome.storage.session on SW startup
+void ensureEditorStateLoaded();

@@ -15,6 +15,7 @@ import type { TagDefinition } from "../types/tags.js";
 import type { AccountSnapshot } from "../types/account.js";
 import type { BackendConfigOverride } from "./backend.js";
 import type { SpotlightUsageStats } from "@features/spotlight/model/usage-stats.js";
+import type { EditorModeState } from "../rpc/contracts.js";
 
 // ── Auth ────────────────────────────────────────────────────────────
 
@@ -180,3 +181,10 @@ export const spotlightSplitRatioItem = storage.defineItem<number>(
 export const themeCacheItem = storage.defineItem<string | null>("session:trail_theme_cache", {
   fallback: null,
 });
+
+// ── Editor State (session-scoped) ────────────────────────────────────
+
+export const editorStateItem = storage.defineItem<EditorModeState>(
+  "session:trail_editor_state",
+  { fallback: { active: false, treeId: null } },
+);
