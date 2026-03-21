@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import FloatingControls from "./components/FloatingControls.js";
 import GraphArea from "@features/graph/components/graph/GraphArea.js";
 import ThemePanel from "./components/theme/ThemePanel.js";
@@ -16,6 +16,7 @@ import TooltipLayer from "./components/TooltipLayer.js";
 
 import { useSystemThemeListener } from "./hooks/useSystemThemeListener.js";
 import { useStore } from "./state/store.js";
+import { sessionBannerDismissedItem } from "@shared/config/storage-items.js";
 
 function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
   return (
@@ -109,6 +110,13 @@ export default function App() {
   const isAuthenticated = account.session.status === "authenticated" && Boolean(account.user);
 
   const showSessionBanner = !isAuthenticated && !account.authRequired && account.sessionExpired;
+
+  // Clear session banner dismiss when auth is restored so banner reappears on next expiry
+  useEffect(() => {
+    if (!account.sessionExpired) {
+      sessionBannerDismissedItem.setValue(false).catch(() => {});
+    }
+  }, [account.sessionExpired]);
 
   const containerClass = `container${editorActive ? " container--editor" : ""}`;
 

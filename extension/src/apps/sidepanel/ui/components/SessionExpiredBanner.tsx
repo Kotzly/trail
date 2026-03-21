@@ -1,10 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthPortalFlow } from "../hooks/useAuthPortalFlow.js";
 import { Icons } from "./Icon.js";
+import { sessionBannerDismissedItem } from "@shared/config/storage-items.js";
 
 export default function SessionExpiredBanner() {
   const [dismissed, setDismissed] = useState(false);
   const { busy, startAuthFlow } = useAuthPortalFlow();
+
+  // Load persisted dismiss state on mount
+  useEffect(() => {
+    let cancelled = false;
+    sessionBannerDismissedItem
+      .getValue()
+      .then((val) => {
+        if (!cancelled && val) setDismissed(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Watch for storage changes (e.g., if another panel instance dismisses)
+  useEffect(() => {
+    const unwatch = sessionBannerDismissedItem.watch((val) => {
+      setDismissed(Boolean(val));
+    });
+    return unwatch;
+  }, []);
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    sessionBannerDismissedItem.setValue(true).catch(() => {});
+  };
 
   if (dismissed) return null;
 
@@ -29,7 +57,7 @@ export default function SessionExpiredBanner() {
       <button
         className="session-banner__dismiss"
         type="button"
-        onClick={() => setDismissed(true)}
+        onClick={handleDismiss}
         aria-label="Dismiss"
       >
         <Icons.X size={14} />
