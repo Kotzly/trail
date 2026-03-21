@@ -108,6 +108,7 @@ export default function SettingsDropdown() {
   const saveTimerRef = useRef<number | null>(null);
   const pendingSaveRef = useRef<Settings | null>(null);
   const [dashboardBusy, setDashboardBusy] = useState(false);
+  const [dataOpen, setDataOpen] = useState(false);
 
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
   const [experimentsUnlocked, setExperimentsUnlocked] = useState(false);
@@ -422,6 +423,59 @@ export default function SettingsDropdown() {
               {dashboardBusy ? "opening…" : "open"}
               <Icons.ExternalLink size={13} />
             </button>
+          </div>
+
+          <hr className="settings-hr" />
+
+          <div className="settings-section">
+            <button
+              type="button"
+              className="settings-label"
+              onClick={() => setDataOpen(!dataOpen)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                width: "100%",
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                color: "inherit",
+                font: "inherit",
+              }}
+            >
+              your data
+              <Icons.ChevronRight
+                size={12}
+                style={{
+                  transform: dataOpen ? "rotate(90deg)" : "none",
+                  transition: "transform 0.15s ease",
+                  opacity: 0.5,
+                }}
+              />
+            </button>
+            {dataOpen && (
+              <div
+                className="settings-your-data"
+                style={{
+                  fontSize: "11px",
+                  lineHeight: 1.5,
+                  color: "var(--color-text-secondary, #999)",
+                  marginTop: "6px",
+                  paddingLeft: "2px",
+                }}
+              >
+                <div style={{ marginBottom: "4px" }}>
+                  <strong style={{ color: "var(--color-text-primary, #ccc)", fontWeight: 500 }}>Synced to cloud:</strong>{" "}
+                  trees, tags, settings
+                </div>
+                <div>
+                  <strong style={{ color: "var(--color-text-primary, #ccc)", fontWeight: 500 }}>Stays local:</strong>{" "}
+                  layout cache, theme, search history
+                </div>
+              </div>
+            )}
           </div>
 
           {experimentsUnlocked && flags && (
