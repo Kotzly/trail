@@ -1,3 +1,5 @@
+import { searchSuggestionsEnabledItem } from "@shared/config/storage-items.js";
+
 const CACHE_TTL_MS = 30_000;
 const MIN_QUERY_LENGTH = 2;
 const MAX_SUGGESTIONS = 5;
@@ -29,6 +31,9 @@ function getCached(query: string, now: number): readonly string[] | null {
 }
 
 export async function fetchSearchSuggestions(query: string): Promise<readonly string[]> {
+  const enabled = await searchSuggestionsEnabledItem.getValue();
+  if (!enabled) return [];
+
   if (query.length < MIN_QUERY_LENGTH) return [];
 
   const now = Date.now();

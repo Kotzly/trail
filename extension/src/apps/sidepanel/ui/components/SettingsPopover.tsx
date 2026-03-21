@@ -6,11 +6,15 @@ import { DEFAULT_LAYOUT_SETTINGS } from "@shared/layout/defaults.js";
 import { saveSettings } from "../../api/settings.js";
 import { setFlag, resetFlags } from "../../api/flags.js";
 import { FLAG_DEFS, type FlagDef, type FlagKey } from "@shared/types/flags.js";
-import { experimentsUnlockedItem } from "@shared/config/storage-items.js";
+import {
+  experimentsUnlockedItem,
+  searchSuggestionsEnabledItem,
+} from "@shared/config/storage-items.js";
 import { applyTheme } from "../shared/apply-theme.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { useAnchoredDropdown } from "../hooks/useAnchoredDropdown.js";
+import { useOverlayBehavior } from "../hooks/useOverlayBehavior.js";
 import { Icons } from "./Icon.js";
 import { cn } from "../lib/utils.js";
 import { toast } from "sonner";
@@ -105,10 +109,15 @@ export default function SettingsDropdown() {
   const pendingSaveRef = useRef<Settings | null>(null);
   const [dashboardBusy, setDashboardBusy] = useState(false);
 
+  const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
   const [experimentsUnlocked, setExperimentsUnlocked] = useState(false);
   const clickTimestamps = useRef<number[]>([]);
 
   useEffect(() => {
+    searchSuggestionsEnabledItem
+      .getValue()
+      .then((v) => setSuggestionsEnabled(v ?? true))
+      .catch(() => {});
     experimentsUnlockedItem
       .getValue()
       .then((unlocked) => {
@@ -156,16 +165,12 @@ export default function SettingsDropdown() {
   useOverlayEffects(settingsOpen, { kind: "dropdown" });
   useAnchoredDropdown({ open: settingsOpen, dropdownRef });
 
-  // Use `inert` instead of `aria-hidden` so focus is never trapped inside a hidden ancestor.
-  useEffect(() => {
-    const el = dropdownRef.current;
-    if (!el) return;
-    if (settingsOpen) {
-      el.removeAttribute("inert");
-    } else {
-      el.setAttribute("inert", "");
-    }
-  }, [settingsOpen]);
+  useOverlayBehavior({
+    open: settingsOpen,
+    onClose: () => setSettingsOpen(false),
+    containerRef: dropdownRef,
+    triggerRef,
+  });
 
   const layout = settings?.layout ?? DEFAULT_LAYOUT_SETTINGS;
 
@@ -210,34 +215,6 @@ export default function SettingsDropdown() {
     },
     [flushPendingSave],
   );
-
-  // ── Keyboard + click-outside ──
-
-  useEffect(() => {
-    if (!settingsOpen) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setSettingsOpen(false);
-      }
-    };
-
-    const onMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (dropdownRef.current?.contains(target)) return;
-      if (triggerRef.current?.contains(target)) return;
-      setSettingsOpen(false);
-    };
-
-    document.addEventListener("keydown", onKeyDown, true);
-    document.addEventListener("mousedown", onMouseDown, true);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown, true);
-      document.removeEventListener("mousedown", onMouseDown, true);
-    };
-  }, [settingsOpen, setSettingsOpen]);
 
   // ── Helpers ──
 
@@ -364,6 +341,29 @@ export default function SettingsDropdown() {
               onChange={(v) => updateSettings({ titleTruncation: v })}
             />
           </div>
+
+          <hr className="settings-hr" />
+
+          {/* search suggestions */}
+          <label className="settings-section settings-row" htmlFor="search-suggestions-toggle">
+            <div className="settings-label-group">
+              <div className="settings-label">search suggestions</div>
+              <div className="settings-description">queries sent to Google for suggestions</div>
+            </div>
+            <div className="settings-toggle-switch">
+              <input
+                id="search-suggestions-toggle"
+                className="settings-toggle-input"
+                type="checkbox"
+                checked={suggestionsEnabled}
+                onChange={(e) => {
+                  setSuggestionsEnabled(e.target.checked);
+                  searchSuggestionsEnabledItem.setValue(e.target.checked).catch(() => {});
+                }}
+              />
+              <span className="settings-toggle-control" aria-hidden="true" />
+            </div>
+          </label>
 
           <hr className="settings-hr" />
 

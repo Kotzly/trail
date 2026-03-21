@@ -182,6 +182,20 @@ export const themeCacheItem = storage.defineItem<string | null>("session:trail_t
   fallback: null,
 });
 
+// ── Search suggestions ───────────────────────────────────────────────
+
+export const searchSuggestionsEnabledItem = storage.defineItem<boolean>(
+  "local:searchSuggestionsEnabled",
+  { fallback: true },
+);
+
+// ── Session Banner ──────────────────────────────────────────────────
+
+export const sessionBannerDismissedItem = storage.defineItem<boolean>(
+  "session:trail_session_banner_dismissed",
+  { fallback: false },
+);
+
 // ── Editor State (session-scoped) ────────────────────────────────────
 
 export const editorStateItem = storage.defineItem<EditorModeState>(
