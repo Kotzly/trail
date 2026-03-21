@@ -196,6 +196,13 @@ export const sessionBannerDismissedItem = storage.defineItem<boolean>(
   { fallback: false },
 );
 
+// ── Onboarding ──────────────────────────────────────────────────────
+
+export const hasSeenOnboardingItem = storage.defineItem<boolean>(
+  "local:trail_has_seen_onboarding",
+  { fallback: false },
+);
+
 // ── Editor State (session-scoped) ────────────────────────────────────
 
 export const editorStateItem = storage.defineItem<EditorModeState>(

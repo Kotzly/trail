@@ -17,6 +17,7 @@ import TooltipLayer from "./components/TooltipLayer.js";
 import { useSystemThemeListener } from "./hooks/useSystemThemeListener.js";
 import { useStore } from "./state/store.js";
 import { sessionBannerDismissedItem } from "@shared/config/storage-items.js";
+import OnboardingHints from "./components/OnboardingHints.js";
 
 function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
   return (
@@ -125,6 +126,7 @@ export default function App() {
       <Toaster />
       {showSessionBanner && <SessionExpiredBanner />}
       <FloatingControls searchInputRef={searchInputRef} />
+      <OnboardingHints />
       <GraphArea />
       <ThemePanel />
       <DeleteTreeConfirmModal />
