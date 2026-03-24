@@ -13,20 +13,60 @@ type OAuthClientConfig = {
   allowedRedirectPatterns: Array<{
     scheme: string;
     hostname?: string;
-    hostnamePattern?: RegExp;
   }>;
 };
+
+/**
+ * Build the explicit allowlist of *.chromiumapp.org hostnames for the
+ * Chrome extension identity API callback.
+ *
+ * Production: set OAUTH_ALLOWED_EXTENSION_HOSTS (comma-separated) to the
+ * actual CWS extension host(s), e.g. "abcdefghij...chromiumapp.org".
+ * Development: "trail-dev.chromiumapp.org" is included automatically.
+ */
+function getAllowedExtensionHosts(): string[] {
+  const hosts: string[] = [];
+
+  const envHosts = process.env.OAUTH_ALLOWED_EXTENSION_HOSTS;
+  if (envHosts) {
+    for (const raw of envHosts.split(",")) {
+      const h = raw.trim().toLowerCase();
+      if (h && h.endsWith(".chromiumapp.org")) {
+        hosts.push(h);
+      }
+    }
+  }
+
+  // In non-production environments, include the dev extension host
+  if (process.env.NODE_ENV !== "production") {
+    const devHost = "trail-dev.chromiumapp.org";
+    if (!hosts.includes(devHost)) {
+      hosts.push(devHost);
+    }
+  }
+
+  return hosts;
+}
+
+const ALLOWED_EXTENSION_HOSTS = new Set(getAllowedExtensionHosts());
 
 const OAUTH_CLIENTS: Record<string, OAuthClientConfig> = {
   "trail-extension": {
     allowedRedirectPatterns: [
-      // Chrome extension identity API callback (e.g., trail-dev.chromiumapp.org)
-      { scheme: "https:", hostnamePattern: /^[a-z0-9-]+\.chromiumapp\.org$/ },
+      // Chrome extension identity API callbacks — explicit per-extension-ID hosts only
+      ...Array.from(ALLOWED_EXTENSION_HOSTS).map((hostname) => ({
+        scheme: "https:" as const,
+        hostname,
+      })),
       // Production web callback
       { scheme: "https:", hostname: "app.gettrail.net" },
       // Local development
-      { scheme: "http:", hostname: "localhost" },
-      { scheme: "http:", hostname: "127.0.0.1" },
+      ...(process.env.NODE_ENV !== "production"
+        ? [
+            { scheme: "http:" as const, hostname: "localhost" },
+            { scheme: "http:" as const, hostname: "127.0.0.1" },
+          ]
+        : []),
     ],
   },
 };
@@ -40,13 +80,7 @@ function isAllowedRedirectUri(clientId: string, value: string): boolean {
   try {
     const url = new URL(value);
     for (const pattern of client.allowedRedirectPatterns) {
-      if (url.protocol !== pattern.scheme) {
-        continue;
-      }
-      if (pattern.hostname && url.hostname === pattern.hostname) {
-        return true;
-      }
-      if (pattern.hostnamePattern && pattern.hostnamePattern.test(url.hostname)) {
+      if (url.protocol === pattern.scheme && url.hostname === pattern.hostname) {
         return true;
       }
     }

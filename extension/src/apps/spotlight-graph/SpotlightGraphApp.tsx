@@ -5,7 +5,7 @@ import { useSystemThemeListener } from "@apps/sidepanel/ui/hooks/useSystemThemeL
 import { useStore, type ViewState } from "@apps/sidepanel/ui/state/store.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import type { SpotlightGraphPreviewData } from "@features/spotlight/ui/types.js";
-import type { NodeId, Url } from "@shared/types/ids.js";
+import type { NodeId } from "@shared/types/ids.js";
 import type { TreeViewIntent } from "@shared/rpc/contracts.js";
 import { sendToParent, onParentMessage } from "@features/spotlight/ui/spotlight-ipc.js";
 
@@ -216,14 +216,13 @@ export default function SpotlightGraphApp() {
     sendToParent({ type: "HOVER_NODE", treeId: previewTreeId, nodeId: hoverNodeId });
   }, [hoverNodeId, setLocalHighlight]);
 
-  const handleNodeActivate = useCallback((nodeId: NodeId, url: string) => {
+  const handleNodeActivate = useCallback((nodeId: NodeId, _url: string) => {
     const previewTreeId = currentPreviewTreeIdRef.current ?? activeTreeIdRef.current;
     if (!previewTreeId) return;
     sendToParent({
       type: "NAVIGATE",
       treeId: previewTreeId,
       nodeId,
-      url: url as Url,
     });
   }, []);
 

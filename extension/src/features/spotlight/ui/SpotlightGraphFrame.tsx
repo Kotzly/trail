@@ -1,8 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { runtimeGetURL } from "@shared/platform/webext.js";
-import type { NodeId, Url } from "@shared/types/ids.js";
+import type { NodeId } from "@shared/types/ids.js";
 import type { SpotlightGraphPreviewData } from "./types.js";
-import { sendToGraph, onGraphMessage, type ParentToGraphMsg } from "./spotlight-ipc.js";
+import {
+  sendToGraph,
+  onGraphMessage,
+  establishChannel,
+  type ParentToGraphMsg,
+} from "./spotlight-ipc.js";
 
 type SpotlightGraphFrameProps = {
   activeTreeId: string | null;
@@ -13,7 +18,7 @@ type SpotlightGraphFrameProps = {
   searchMatchNodeIds?: NodeId[] | undefined;
   /** Show full tree (fitToView) instead of compact zoomed-in view. Default: true (compact). */
   compactInitialView?: boolean;
-  onNavigate: (treeId: string, nodeId: NodeId, url: Url) => void;
+  onNavigate: (treeId: string, nodeId: NodeId) => void;
   onHoverNode: (treeId: string, nodeId: NodeId | null) => void;
   onEscapeKey?: () => void;
 };
@@ -33,6 +38,7 @@ export function SpotlightGraphFrame({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const readyRef = useRef(false);
   const pendingContextRef = useRef<ParentToGraphMsg | null>(null);
+  const channelCleanupRef = useRef<(() => void) | null>(null);
   const [graphReady, setGraphReady] = useState(false);
 
   const sendContext = useCallback((context: ParentToGraphMsg) => {
@@ -41,19 +47,27 @@ export function SpotlightGraphFrame({
     sendToGraph(iframe, context);
   }, []);
 
-  useEffect(() => {
-    const source = iframeRef.current?.contentWindow ?? null;
-    return onGraphMessage(source, (msg) => {
+  // Handle graph-to-parent messages (shared handler for both postMessage and
+  // MessageChannel paths).
+  const handleGraphMsg = useCallback(
+    (msg: import("./spotlight-ipc.js").GraphToParentMsg) => {
       switch (msg.type) {
-        case "GRAPH_READY":
+        case "GRAPH_READY": {
           readyRef.current = true;
           setGraphReady(true);
+          // Establish private MessageChannel now that the iframe is ready
+          const iframe = iframeRef.current;
+          if (iframe) {
+            channelCleanupRef.current?.();
+            channelCleanupRef.current = establishChannel(iframe, handleGraphMsg);
+          }
           if (pendingContextRef.current) {
             sendContext(pendingContextRef.current);
           }
           break;
+        }
         case "NAVIGATE":
-          onNavigate(msg.treeId, msg.nodeId, msg.url);
+          onNavigate(msg.treeId, msg.nodeId);
           break;
         case "HOVER_NODE":
           onHoverNode(msg.treeId, msg.nodeId);
@@ -62,8 +76,22 @@ export function SpotlightGraphFrame({
           onEscapeKey?.();
           break;
       }
-    });
-  }, [onHoverNode, onNavigate, onEscapeKey, sendContext]);
+    },
+    [onHoverNode, onNavigate, onEscapeKey, sendContext],
+  );
+
+  // Listen for initial messages via window.postMessage (before channel is up)
+  useEffect(() => {
+    const source = iframeRef.current?.contentWindow ?? null;
+    return onGraphMessage(source, handleGraphMsg);
+  }, [handleGraphMsg]);
+
+  // Clean up MessageChannel on unmount
+  useEffect(() => {
+    return () => {
+      channelCleanupRef.current?.();
+    };
+  }, []);
 
   useEffect(() => {
     if (!activeTreeId) return;

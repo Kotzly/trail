@@ -96,11 +96,13 @@ async function revokeCurrentSession(request: Request): Promise<void> {
   await Promise.all(promises);
 }
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  // GET only clears local cookies – server-side session revocation is done
-  // exclusively via POST to prevent cross-site (CSRF) logout attacks.
-  return buildLogoutResponse(NextResponse.redirect(new URL("/", url.origin)));
+export async function GET() {
+  // GET must NOT clear cookies or mutate state — doing so enables CSRF logout
+  // attacks (e.g. <img src="/auth/logout">). All logout must go through POST.
+  return new NextResponse("Method Not Allowed. Use POST to log out.", {
+    status: 405,
+    headers: { Allow: "POST" },
+  });
 }
 
 export async function POST(request: Request) {
