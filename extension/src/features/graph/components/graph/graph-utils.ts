@@ -52,7 +52,7 @@ export function applyPathHighlight(
 ): ConnectionSegment[] {
   if (!pathNodeIds) return baseConnections;
   return baseConnections.map((conn) => {
-    const [parentId, childId] = conn.id.split("-") as unknown as [NodeId, NodeId];
+    const [parentId, childId] = conn.id.split("::") as unknown as [NodeId, NodeId];
     const shouldHighlight = pathNodeIds.has(parentId) && pathNodeIds.has(childId);
     return shouldHighlight !== conn.onPath ? { ...conn, onPath: shouldHighlight } : conn;
   });
@@ -95,7 +95,7 @@ export function buildConnections(
           const busY = (startY + endY) / 2;
           list.push(
             orthogonalSegment(
-              `${node.id}-${e.child.id}`,
+              `${node.id}::${e.child.id}`,
               { x: startX, y: startY },
               { x: startX, y: busY },
               { x: endX, y: busY },
@@ -112,7 +112,7 @@ export function buildConnections(
             const endY = e.pos.y;
             list.push(
               orthogonalSegment(
-                `${node.id}-${e.child.id}`,
+                `${node.id}::${e.child.id}`,
                 { x: startX, y: startY },
                 { x: startX, y: busY },
                 { x: endX, y: busY },
@@ -130,7 +130,7 @@ export function buildConnections(
           const busY = (oStartY + endY) / 2;
           list.push(
             orthogonalSegment(
-              `${node.id}-${e.child.id}`,
+              `${node.id}::${e.child.id}`,
               { x: startX, y: oStartY },
               { x: startX, y: busY },
               { x: endX, y: busY },
@@ -163,7 +163,7 @@ export function buildConnections(
           const busX = (sX + eX) / 2;
           list.push(
             orthogonalSegment(
-              `${node.id}-${e.child.id}`,
+              `${node.id}::${e.child.id}`,
               { x: sX, y: sY },
               { x: busX, y: sY },
               { x: busX, y: eY },
@@ -188,7 +188,7 @@ export function buildConnections(
             const eY = e.pos.y + nodeHeight / 2;
             list.push(
               orthogonalSegment(
-                `${node.id}-${e.child.id}`,
+                `${node.id}::${e.child.id}`,
                 { x: sX, y: sY },
                 { x: midX, y: sY },
                 { x: midX, y: eY },
@@ -206,7 +206,7 @@ export function buildConnections(
           const busX = (oSX + eX) / 2;
           list.push(
             orthogonalSegment(
-              `${node.id}-${e.child.id}`,
+              `${node.id}::${e.child.id}`,
               { x: oSX, y: sY },
               { x: busX, y: sY },
               { x: busX, y: eY },
@@ -230,7 +230,7 @@ export function buildConnections(
         const cp1 = { x: midX, y: startY };
         const cp2 = { x: midX, y: endY };
         list.push({
-          id: `${node.id}-${e.child.id}`,
+          id: `${node.id}::${e.child.id}`,
           start: { x: startX, y: startY },
           cp1,
           cp2,

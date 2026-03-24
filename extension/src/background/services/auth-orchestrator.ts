@@ -135,10 +135,17 @@ async function refreshWithToken(refreshToken: string): Promise<AuthFlowResult> {
     }),
   }).catch(() => null);
 
-  if (!response || !response.ok) {
+  if (!response) {
+    return { ok: false, reason: "network_error" };
+  }
+
+  if (!response.ok) {
+    // Only treat 4xx as credential invalidation (refresh_invalid).
+    // 5xx and other errors are transient — allow retry without logging out.
+    const isClientError = response.status >= 400 && response.status < 500;
     return {
       ok: false,
-      reason: response ? "refresh_invalid" : "network_error",
+      reason: isClientError ? "refresh_invalid" : "network_error",
     };
   }
 

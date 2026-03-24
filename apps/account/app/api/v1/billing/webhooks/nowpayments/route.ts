@@ -164,6 +164,7 @@ export async function POST(request: Request) {
     where: { orderId },
     select: {
       orderId: true,
+      status: true,
       userId: true,
       planId: true,
       interval: true,
@@ -186,7 +187,30 @@ export async function POST(request: Request) {
   const mapped = mapPaymentStatus(paymentStatus);
   const now = new Date();
 
+  // Terminal-state guard: skip re-processing if this checkout already reached a final state.
+  // This prevents re-delivered webhooks from applying subscription transitions repeatedly.
+  const TERMINAL_STATUSES = ["SUCCEEDED", "REFUNDED", "FAILED"] as const;
+  if (TERMINAL_STATUSES.includes(session.status as (typeof TERMINAL_STATUSES)[number])) {
+    return jsonNoStore({ ok: true });
+  }
+
   await db.$transaction(async (tx) => {
+    // Deduplicate by provider payment ID: if another checkout already recorded this
+    // payment, skip processing to avoid double-applying the same payment.
+    if (paymentId) {
+      const duplicate = await tx.billingCheckoutSession.findFirst({
+        where: {
+          nowpaymentsPaymentId: paymentId,
+          orderId: { not: orderId },
+          status: { in: ["SUCCEEDED", "REFUNDED", "FAILED"] },
+        },
+        select: { orderId: true },
+      });
+      if (duplicate) {
+        return;
+      }
+    }
+
     await tx.billingCheckoutSession.update({
       where: { orderId },
       data: {

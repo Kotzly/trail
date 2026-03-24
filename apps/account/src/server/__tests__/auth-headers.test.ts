@@ -1,4 +1,4 @@
-import { getBearerToken } from "../auth-headers";
+import { getBearerToken } from "../backend/auth/headers";
 
 function headersWithAuthorization(value: string): Headers {
   return new Headers({ authorization: value });

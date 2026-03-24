@@ -7,6 +7,7 @@ import type {
 } from "@/src/server/backend/billing/provider";
 import { BillingProviderError } from "@/src/server/backend/billing/provider";
 import { getBillingStatusFromSubscription } from "@/src/server/backend/billing/subscription-status";
+import { validateRedirectUrl } from "@/src/server/backend/billing/validate-redirect-url";
 import { db } from "@trail/db";
 import { addInterval } from "@/src/server/backend/subscription/period";
 
@@ -69,7 +70,7 @@ export function createManualBillingProvider(): BillingProvider {
       if (env.BILLING_TEST_MODE) {
         await activateTestSubscription(input);
         return {
-          url: input.successUrl?.trim() || billingUrl(),
+          url: validateRedirectUrl(input.successUrl, billingUrl()),
           expiresAt: null,
         };
       }

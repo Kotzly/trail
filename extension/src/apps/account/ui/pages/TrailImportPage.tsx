@@ -3,6 +3,23 @@ import { cn } from "../../../../ui/lib/utils.js";
 import { navigate, type RouteParams } from "../router.js";
 import { useImportTrail } from "../hooks/useImportTrail.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
+import { isNavigationTreeJSON } from "@shared/types/tree.js";
+
+function isTrailExportBundle(value: unknown): value is TrailExportBundle {
+  if (!value || typeof value !== "object") return false;
+  const obj = value as Record<string, unknown>;
+  if (obj.schema !== EXPORT_SCHEMA) return false;
+  if (typeof obj.exportedAt !== "number") return false;
+  if (!obj.source || typeof obj.source !== "object") return false;
+  const source = obj.source as Record<string, unknown>;
+  if (typeof source.origin !== "string") return false;
+  if (!obj.tree || typeof obj.tree !== "object") return false;
+  if (!isNavigationTreeJSON(obj.tree)) return false;
+  if (!obj.meta || typeof obj.meta !== "object") return false;
+  const meta = obj.meta as Record<string, unknown>;
+  if (typeof meta.nodeCount !== "number") return false;
+  return true;
+}
 
 type PreviewData = {
   label: string;
@@ -31,51 +48,35 @@ export default function TrailImportPage(_props: RouteParams) {
       const text = await file.text();
       const parsed = JSON.parse(text) as Record<string, unknown>;
 
-      if (parsed.schema !== EXPORT_SCHEMA) {
+      if (!isTrailExportBundle(parsed)) {
+        const schemaHint = parsed.schema === EXPORT_SCHEMA
+          ? "missing or invalid tree, source, or meta fields"
+          : `expected schema "${EXPORT_SCHEMA}", got "${String(parsed.schema ?? "none")}"`;
         setState({
           step: "error",
-          message: `Invalid file: expected schema "${EXPORT_SCHEMA}", got "${String(parsed.schema ?? "none")}".`,
+          message: `Invalid trail file: ${schemaHint}.`,
         });
         return;
       }
 
-      const tree = parsed.tree as Record<string, unknown> | undefined;
-      if (!tree || typeof tree !== "object" || !("root" in tree)) {
-        setState({
-          step: "error",
-          message: "Invalid file: missing or invalid tree data.",
-        });
-        return;
-      }
-
-      const source = (parsed.source ?? {}) as Record<string, unknown>;
-      const meta = (parsed.meta ?? {}) as Record<string, unknown>;
-      const rootNode = tree.root as Record<string, unknown> | null;
-      const rootData = (rootNode?.data as Record<string, unknown>) ?? null;
+      const bundle = parsed as TrailExportBundle;
+      const rootData = (bundle.tree.root?.data as Record<string, unknown>) ?? null;
 
       const preview: PreviewData = {
         label:
-          (typeof source.treeLabel === "string" && source.treeLabel) ||
+          bundle.source.treeLabel ||
           (typeof rootData?.title === "string" && rootData.title) ||
           "Unnamed Trail",
-        nodeCount:
-          typeof meta.nodeCount === "number"
-            ? meta.nodeCount
-            : typeof tree.nodeCount === "number"
-              ? (tree.nodeCount as number)
-              : 0,
+        nodeCount: bundle.meta.nodeCount,
         rootUrl: typeof rootData?.url === "string" ? rootData.url : null,
         rootTitle: typeof rootData?.title === "string" ? rootData.title : null,
-        exportedAt:
-          typeof parsed.exportedAt === "number"
-            ? new Date(parsed.exportedAt as number).toLocaleString()
-            : null,
-        origin: typeof source.origin === "string" ? source.origin : null,
+        exportedAt: new Date(bundle.exportedAt).toLocaleString(),
+        origin: bundle.source.origin,
       };
 
       setState({
         step: "preview",
-        bundle: parsed as unknown as TrailExportBundle,
+        bundle,
         preview,
         fileName: file.name,
       });

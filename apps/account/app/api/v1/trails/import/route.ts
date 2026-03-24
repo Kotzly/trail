@@ -8,7 +8,9 @@ import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 
-const IMPORT_DEVICE_ID = "import" as const;
+function importDeviceId(userId: string): string {
+  return `import:${userId}`;
+}
 const EXPORT_SCHEMA = "trail.export.v1" as const;
 
 type TrailLabelSource = "USER" | "AUTO" | "SYSTEM";
@@ -84,18 +86,19 @@ export async function POST(request: Request) {
   const trailId = randomUUID();
 
   // Ensure device + create trail atomically to prevent race conditions
+  const deviceId = importDeviceId(userId);
   const trail = await db.$transaction(async (tx) => {
     await tx.device.upsert({
-      where: { id: IMPORT_DEVICE_ID },
-      create: { id: IMPORT_DEVICE_ID, userId },
-      update: { userId },
+      where: { id: deviceId },
+      create: { id: deviceId, userId },
+      update: {},
     });
 
     return tx.trail.create({
       data: {
         id: trailId,
         userId,
-        deviceId: IMPORT_DEVICE_ID,
+        deviceId,
         label,
         labelSource,
         labelUpdatedAt: now,

@@ -7,6 +7,33 @@ import TrailLogo from "@/components/TrailLogo";
 
 const SITE_SOURCE = "trail-site" as const;
 const RELAY_TIMEOUT_MS = 5_000;
+const DEFAULT_NEXT_PATH = "/trails";
+
+/** Reject dangerous schemes and ensure the URL is a safe relative path or same-origin. */
+function sanitizeNextUrl(raw: string | null): string {
+  const value = raw?.trim();
+  if (!value) return DEFAULT_NEXT_PATH;
+
+  // Block javascript:, data:, vbscript:, and any other non-http(s) scheme
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value) && !/^https?:/i.test(value)) {
+    return DEFAULT_NEXT_PATH;
+  }
+
+  // Allow relative paths (starting with /)
+  if (value.startsWith("/")) return value;
+
+  // Allow same-origin absolute URLs when running in a browser
+  if (typeof window !== "undefined" && /^https?:/i.test(value)) {
+    try {
+      const parsed = new URL(value);
+      if (parsed.origin === window.location.origin) return parsed.pathname + parsed.search + parsed.hash;
+    } catch {
+      // malformed — fall through
+    }
+  }
+
+  return DEFAULT_NEXT_PATH;
+}
 
 type RelayStatus = "connecting" | "connected";
 
@@ -18,7 +45,7 @@ function ExtensionRelayInner() {
   const code = searchParams.get("code");
   const codeVerifier = searchParams.get("codeVerifier");
   const redirectUri = searchParams.get("redirectUri");
-  const next = searchParams.get("next") ?? "/trails";
+  const next = sanitizeNextUrl(searchParams.get("next"));
 
   useEffect(() => {
     if (!code || !codeVerifier || !redirectUri) {

@@ -4,6 +4,7 @@ import { createHmac } from "crypto";
 const dbMocks = vi.hoisted(() => {
   const billingCheckoutSession = {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     update: vi.fn(),
   };
   const userSubscription = {
@@ -61,6 +62,7 @@ function sig(payload: unknown, secret: string): string {
 describe("nowpayments webhook", () => {
   beforeEach(() => {
     dbMocks.db.billingCheckoutSession.findUnique.mockReset();
+    dbMocks.db.billingCheckoutSession.findFirst.mockReset();
     dbMocks.db.billingCheckoutSession.update.mockReset();
     dbMocks.db.userSubscription.findUnique.mockReset();
     dbMocks.db.userSubscription.upsert.mockReset();
@@ -113,11 +115,13 @@ describe("nowpayments webhook", () => {
 
     dbMocks.db.billingCheckoutSession.findUnique.mockResolvedValue({
       orderId: "order-1",
+      status: "PENDING",
       userId: "user-1",
       planId: "pro",
       interval: "year",
       requestedInterval: "year",
     });
+    dbMocks.db.billingCheckoutSession.findFirst.mockResolvedValue(null);
     dbMocks.db.billingCheckoutSession.update.mockResolvedValue({});
     dbMocks.db.userSubscription.findUnique.mockResolvedValue(null);
     dbMocks.db.userSubscription.upsert.mockResolvedValue({});

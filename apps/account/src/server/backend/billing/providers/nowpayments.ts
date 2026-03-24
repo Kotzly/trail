@@ -13,6 +13,7 @@ import { listPlans } from "@/src/server/backend/account-snapshot";
 import { getBillingStatusFromSubscription } from "@/src/server/backend/billing/subscription-status";
 import { addInterval } from "@/src/server/backend/subscription/period";
 import { isUpgrade, proratedUpgradeChargeCents, type PlanId } from "@/src/server/backend/subscription/proration";
+import { validateRedirectUrl } from "@/src/server/backend/billing/validate-redirect-url";
 
 type NowPaymentsInvoiceResponse = {
   invoice_url?: string;
@@ -232,8 +233,9 @@ async function createNowPaymentsInvoice(
   const amount = pricing.amountCents / 100;
   const currency = pricing.currency;
   const planName = pricing.planName;
-  const successUrl = input.successUrl?.trim() || billingUrl();
-  const cancelUrl = input.cancelUrl?.trim() || billingUrl();
+  const fallback = billingUrl();
+  const successUrl = validateRedirectUrl(input.successUrl, fallback);
+  const cancelUrl = validateRedirectUrl(input.cancelUrl, fallback);
   const orderId = randomUUID();
   const amountCents = pricing.amountCents;
 

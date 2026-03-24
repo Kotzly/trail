@@ -5,12 +5,6 @@ export function getBearerToken(headers: Headers): string | null {
     return null;
   }
 
-  const parts = authHeader.trim().split(/\s+/);
-  const scheme = parts[0] ?? "";
-  const token = parts[1] ?? "";
-  if (scheme.toLowerCase() !== "bearer" || !token) {
-    return null;
-  }
-
-  return token;
+  const match = authHeader.match(/^\s*Bearer\s+(\S+)\s*$/i);
+  return match?.[1] ?? null;
 }

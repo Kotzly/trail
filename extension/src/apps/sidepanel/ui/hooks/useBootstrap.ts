@@ -16,12 +16,19 @@ export type BootstrapStatus = "loading" | "degraded" | "ready";
 const BOOTSTRAP_TIMEOUT_MS = 10_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Bootstrap timed out")), ms),
-    ),
-  ]);
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Bootstrap timed out")), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 export function useBootstrap(): {
@@ -40,6 +47,7 @@ export function useBootstrap(): {
   const [bootstrapStatus, setBootstrapStatus] = useState<BootstrapStatus>("loading");
   const [retryCount, setRetryCount] = useState(0);
   const autoRetryScheduled = useRef(false);
+  const autoRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bootstrapInFlight = useRef(false);
 
   const retryBootstrap = useCallback(() => {
@@ -88,7 +96,7 @@ export function useBootstrap(): {
         // First failure (retryCount === 0 and no auto-retry yet): schedule auto-retry after 5s
         if (retryCount === 0 && !autoRetryScheduled.current) {
           autoRetryScheduled.current = true;
-          setTimeout(() => {
+          autoRetryTimer.current = setTimeout(() => {
             if (mounted) {
               setRetryCount(1);
             }
@@ -143,6 +151,10 @@ export function useBootstrap(): {
     return () => {
       mounted = false;
       bootstrapInFlight.current = false;
+      if (autoRetryTimer.current !== null) {
+        clearTimeout(autoRetryTimer.current);
+        autoRetryTimer.current = null;
+      }
     };
   }, [
     retryCount,

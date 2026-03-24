@@ -41,7 +41,11 @@ export function matchRoute(hash: string, routes: readonly RouteDefinition[]): Ma
       route.paramNames.forEach((name, i) => {
         const value = match[i + 1];
         if (value !== undefined) {
-          params[name] = decodeURIComponent(value);
+          try {
+            params[name] = decodeURIComponent(value);
+          } catch {
+            params[name] = value;
+          }
         }
       });
       return { route, params };

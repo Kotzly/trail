@@ -210,56 +210,68 @@ export async function exchangeOAuthAuthorizationCode(input: {
   const refreshTokenHash = sha256Hex(refreshToken);
   const refreshExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
-  const session = await db.$transaction(async (tx) => {
-    await tx.oAuthAuthorizationCode.update({
-      where: { id: record.id },
-      data: { usedAt: now() },
-    });
+  let session;
+  try {
+    session = await db.$transaction(async (tx) => {
+      // Atomically consume the auth code — WHERE guard prevents double-redemption
+      const consumed = await tx.oAuthAuthorizationCode.updateMany({
+        where: { id: record.id, usedAt: null, expiresAt: { gt: now() } },
+        data: { usedAt: now() },
+      });
+      if (consumed.count === 0) {
+        throw new Error("AUTH_CODE_ALREADY_USED");
+      }
 
-    const current = await tx.extensionDeviceSession.findUnique({
-      where: {
-        userId_deviceId: {
-          userId: record.userId,
-          deviceId,
-        },
-      },
-    });
-
-    const deviceSession = !current
-      ? await tx.extensionDeviceSession.create({
-          data: {
+      const current = await tx.extensionDeviceSession.findUnique({
+        where: {
+          userId_deviceId: {
             userId: record.userId,
             deviceId,
-            status: "ACTIVE",
-            sessionVersion: 1,
-            lastSeenAt: now(),
           },
-        })
-      : await tx.extensionDeviceSession.update({
-          where: { id: current.id },
-          data: {
-            status: "ACTIVE",
-            revokedAt: null,
-            lastSeenAt: now(),
-            ...(current.status !== "ACTIVE" || current.revokedAt
-              ? { sessionVersion: { increment: 1 } }
-              : {}),
-          },
-        });
+        },
+      });
 
-    await tx.oAuthRefreshToken.create({
-      data: {
-        tokenHash: refreshTokenHash,
-        userId: record.userId,
-        deviceSessionId: deviceSession.id,
-        clientId,
-        scope: record.scope,
-        expiresAt: refreshExpiresAt,
-      },
+      const deviceSession = !current
+        ? await tx.extensionDeviceSession.create({
+            data: {
+              userId: record.userId,
+              deviceId,
+              status: "ACTIVE",
+              sessionVersion: 1,
+              lastSeenAt: now(),
+            },
+          })
+        : await tx.extensionDeviceSession.update({
+            where: { id: current.id },
+            data: {
+              status: "ACTIVE",
+              revokedAt: null,
+              lastSeenAt: now(),
+              ...(current.status !== "ACTIVE" || current.revokedAt
+                ? { sessionVersion: { increment: 1 } }
+                : {}),
+            },
+          });
+
+      await tx.oAuthRefreshToken.create({
+        data: {
+          tokenHash: refreshTokenHash,
+          userId: record.userId,
+          deviceSessionId: deviceSession.id,
+          clientId,
+          scope: record.scope,
+          expiresAt: refreshExpiresAt,
+        },
+      });
+
+      return deviceSession;
     });
-
-    return deviceSession;
-  });
+  } catch (err) {
+    if (err instanceof Error && err.message === "AUTH_CODE_ALREADY_USED") {
+      return { ok: false, reason: "invalid_grant" } as const;
+    }
+    throw err;
+  }
 
   const access = await issueAccessToken({
     userId: record.userId,
@@ -323,23 +335,39 @@ export async function refreshOAuthToken(input: {
   const nextRefreshHash = sha256Hex(nextRefreshToken);
   const nextRefreshExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
-  await db.$transaction(async (tx) => {
-    await tx.oAuthRefreshToken.update({
-      where: { id: record.id },
-      data: { usedAt: now(), revokedAt: now() },
-    });
+  try {
+    await db.$transaction(async (tx) => {
+      // Atomically consume the refresh token — WHERE guard prevents double-rotation
+      const consumed = await tx.oAuthRefreshToken.updateMany({
+        where: {
+          id: record.id,
+          usedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: now() },
+        },
+        data: { usedAt: now(), revokedAt: now() },
+      });
+      if (consumed.count === 0) {
+        throw new Error("REFRESH_TOKEN_ALREADY_USED");
+      }
 
-    await tx.oAuthRefreshToken.create({
-      data: {
-        tokenHash: nextRefreshHash,
-        userId: record.userId,
-        deviceSessionId: record.deviceSessionId,
-        clientId,
-        scope: record.scope,
-        expiresAt: nextRefreshExpiresAt,
-      },
+      await tx.oAuthRefreshToken.create({
+        data: {
+          tokenHash: nextRefreshHash,
+          userId: record.userId,
+          deviceSessionId: record.deviceSessionId,
+          clientId,
+          scope: record.scope,
+          expiresAt: nextRefreshExpiresAt,
+        },
+      });
     });
-  });
+  } catch (err) {
+    if (err instanceof Error && err.message === "REFRESH_TOKEN_ALREADY_USED") {
+      return { ok: false, reason: "invalid_grant" } as const;
+    }
+    throw err;
+  }
 
   const access = await issueAccessToken({
     userId: record.userId,
