@@ -19,6 +19,10 @@ const extensionAuthMocks = vi.hoisted(() => ({
   verifyExtensionToken: vi.fn(),
 }));
 
+const extensionConfigMocks = vi.hoisted(() => ({
+  getExtensionConfig: vi.fn().mockReturnValue({ config: {} }),
+}));
+
 const userAuthMocks = vi.hoisted(() => ({
   verifyUserToken: vi.fn(),
 }));
@@ -41,6 +45,10 @@ vi.mock("@/src/server/backend/oauth", () => ({
 
 vi.mock("@/src/server/backend/auth/extension-auth", () => ({
   ...extensionAuthMocks,
+}));
+
+vi.mock("@/src/server/backend/extension-config", () => ({
+  ...extensionConfigMocks,
 }));
 
 vi.mock("@/src/server/backend/auth/user-auth", () => ({
@@ -273,6 +281,7 @@ describe("v1 oauth auth flow", () => {
       userId: "user-1",
       sessionId: "ext-session-1",
       authSessionVersion: 7,
+      config: {},
     });
   });
 
@@ -293,6 +302,7 @@ describe("v1 oauth auth flow", () => {
       source: "web",
       userId: "user-2",
       authSessionVersion: 3,
+      config: {},
     });
   });
 
@@ -307,6 +317,7 @@ describe("v1 oauth auth flow", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       status: "guest",
+      config: {},
     });
   });
 });

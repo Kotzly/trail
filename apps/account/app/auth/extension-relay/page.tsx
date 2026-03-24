@@ -19,6 +19,10 @@ function sanitizeNextUrl(raw: string | null): string {
     return DEFAULT_NEXT_PATH;
   }
 
+  // Block protocol-relative URLs (e.g. //evil.com) which bypass scheme checks
+  // but redirect to external origins.
+  if (value.startsWith("//")) return DEFAULT_NEXT_PATH;
+
   // Allow relative paths (starting with /)
   if (value.startsWith("/")) return value;
 

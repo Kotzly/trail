@@ -187,14 +187,27 @@ export async function POST(request: Request) {
   const mapped = mapPaymentStatus(paymentStatus);
   const now = new Date();
 
-  // Terminal-state guard: skip re-processing if this checkout already reached a final state.
-  // This prevents re-delivered webhooks from applying subscription transitions repeatedly.
-  const TERMINAL_STATUSES = ["SUCCEEDED", "REFUNDED", "FAILED"] as const;
-  if (TERMINAL_STATUSES.includes(session.status as (typeof TERMINAL_STATUSES)[number])) {
-    return jsonNoStore({ ok: true });
-  }
-
   await db.$transaction(async (tx) => {
+    // Atomically claim the session: only proceed if the session is NOT in a terminal state.
+    // This prevents concurrent webhook deliveries from both applying subscription mutations.
+    const { count: claimed } = await tx.billingCheckoutSession.updateMany({
+      where: {
+        orderId,
+        status: { notIn: ["SUCCEEDED", "REFUNDED", "FAILED"] },
+      },
+      data: {
+        status: "WEBHOOK_RECEIVED",
+        paymentStatus,
+        ...(paymentId ? { nowpaymentsPaymentId: paymentId } : {}),
+        lastPayload: payload as Prisma.InputJsonValue,
+      },
+    });
+
+    // Session already reached a terminal state — another webhook got there first.
+    if (claimed === 0) {
+      return;
+    }
+
     // Deduplicate by provider payment ID: if another checkout already recorded this
     // payment, skip processing to avoid double-applying the same payment.
     if (paymentId) {
@@ -210,16 +223,6 @@ export async function POST(request: Request) {
         return;
       }
     }
-
-    await tx.billingCheckoutSession.update({
-      where: { orderId },
-      data: {
-        status: "WEBHOOK_RECEIVED",
-        paymentStatus,
-        ...(paymentId ? { nowpaymentsPaymentId: paymentId } : {}),
-        lastPayload: payload as Prisma.InputJsonValue,
-      },
-    });
 
     if (mapped.state === "succeeded") {
       const targetDbPlan = mapCheckoutPlanToDbPlan(session.planId);

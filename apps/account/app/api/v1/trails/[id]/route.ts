@@ -122,7 +122,9 @@ export async function PUT(
   const createdAt = parseDate(body.createdAt);
   const updatedAt = parseDate(body.updatedAt);
   const savedAt = parseDate(body.savedAt);
-  const nodeCount = typeof body.nodeCount === "number" ? body.nodeCount : null;
+  const nodeCount = typeof body.nodeCount === "number" && Number.isInteger(body.nodeCount) && body.nodeCount >= 0
+    ? body.nodeCount
+    : null;
   const payload = body.payload ?? null;
 
   if (
@@ -138,7 +140,16 @@ export async function PUT(
     return jsonError("invalid_payload", "Missing required fields.", { status: 400 });
   }
 
-  const deletedAtRaw = body.deletedAt === null ? null : parseDate(body.deletedAt);
+  let deletedAtRaw: Date | null;
+  if (body.deletedAt === null || body.deletedAt === undefined) {
+    deletedAtRaw = null;
+  } else {
+    const parsed = parseDate(body.deletedAt);
+    if (!parsed) {
+      return jsonError("invalid_payload", "Invalid deletedAt value.", { status: 400 });
+    }
+    deletedAtRaw = parsed;
+  }
 
   try {
     const result = await upsertTrail({

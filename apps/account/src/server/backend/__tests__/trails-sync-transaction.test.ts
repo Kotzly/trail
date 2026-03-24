@@ -1,11 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const txDeviceMocks = vi.hoisted(() => ({
+  findMany: vi.fn(),
+  createMany: vi.fn(),
+  update: vi.fn(),
+}));
+
 const txMocks = vi.hoisted(() => ({
   trail: {
     findFirst: vi.fn(),
     update: vi.fn(),
     create: vi.fn(),
   },
+  device: txDeviceMocks,
 }));
 
 const dbMocks = vi.hoisted(() => ({
@@ -32,11 +39,22 @@ import { upsertTrail } from "../trails-sync";
 
 function setupUserAndDevice(userId = "user-1", deviceId = "device-1") {
   dbMocks.user.findUnique.mockResolvedValue({ id: userId });
+  // db-level device mocks (used outside transactions)
   dbMocks.device.findMany.mockResolvedValue([
     { id: deviceId, userId },
   ]);
   dbMocks.device.createMany.mockResolvedValue({ count: 0 });
   dbMocks.device.update.mockResolvedValue({
+    id: deviceId,
+    userId,
+    status: "ACTIVE",
+  });
+  // tx-level device mocks (used inside $transaction callbacks)
+  txDeviceMocks.findMany.mockResolvedValue([
+    { id: deviceId, userId },
+  ]);
+  txDeviceMocks.createMany.mockResolvedValue({ count: 0 });
+  txDeviceMocks.update.mockResolvedValue({
     id: deviceId,
     userId,
     status: "ACTIVE",
@@ -55,6 +73,9 @@ describe("upsertTrail", () => {
     txMocks.trail.findFirst.mockReset();
     txMocks.trail.update.mockReset();
     txMocks.trail.create.mockReset();
+    txDeviceMocks.findMany.mockReset();
+    txDeviceMocks.createMany.mockReset();
+    txDeviceMocks.update.mockReset();
   });
 
   it("runs trail upsert inside a $transaction", async () => {
@@ -90,7 +111,8 @@ describe("upsertTrail", () => {
       },
     });
 
-    expect(dbMocks.$transaction).toHaveBeenCalledTimes(1);
+    // ensureSyncDevices uses one $transaction, upsertTrail uses another
+    expect(dbMocks.$transaction).toHaveBeenCalledTimes(2);
     expect(result.applied).toBe(true);
   });
 
@@ -144,6 +166,13 @@ describe("upsertTrail", () => {
       userId: "user-1",
       status: "ACTIVE",
     });
+    txDeviceMocks.findMany.mockResolvedValue([]);
+    txDeviceMocks.createMany.mockResolvedValue({ count: 1 });
+    txDeviceMocks.update.mockResolvedValue({
+      id: "device-new",
+      userId: "user-1",
+      status: "ACTIVE",
+    });
     dbMocks.$transaction.mockImplementation(async (fn: (tx: typeof txMocks) => Promise<unknown>) => fn(txMocks));
     txMocks.trail.findFirst.mockResolvedValue(null);
     txMocks.trail.create.mockResolvedValue({
@@ -174,7 +203,7 @@ describe("upsertTrail", () => {
       },
     });
 
-    expect(dbMocks.device.createMany).toHaveBeenCalledWith(
+    expect(txDeviceMocks.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.arrayContaining([
           expect.objectContaining({

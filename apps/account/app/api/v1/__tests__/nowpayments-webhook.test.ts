@@ -6,6 +6,7 @@ const dbMocks = vi.hoisted(() => {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   };
   const userSubscription = {
     findUnique: vi.fn(),
@@ -64,6 +65,7 @@ describe("nowpayments webhook", () => {
     dbMocks.db.billingCheckoutSession.findUnique.mockReset();
     dbMocks.db.billingCheckoutSession.findFirst.mockReset();
     dbMocks.db.billingCheckoutSession.update.mockReset();
+    dbMocks.db.billingCheckoutSession.updateMany.mockReset();
     dbMocks.db.userSubscription.findUnique.mockReset();
     dbMocks.db.userSubscription.upsert.mockReset();
     dbMocks.db.userSubscription.update.mockReset();
@@ -122,6 +124,7 @@ describe("nowpayments webhook", () => {
       requestedInterval: "year",
     });
     dbMocks.db.billingCheckoutSession.findFirst.mockResolvedValue(null);
+    dbMocks.db.billingCheckoutSession.updateMany.mockResolvedValue({ count: 1 });
     dbMocks.db.billingCheckoutSession.update.mockResolvedValue({});
     dbMocks.db.userSubscription.findUnique.mockResolvedValue(null);
     dbMocks.db.userSubscription.upsert.mockResolvedValue({});
