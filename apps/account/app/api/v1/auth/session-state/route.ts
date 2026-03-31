@@ -4,8 +4,14 @@ import { getExtensionConfig } from "@/src/server/backend/extension-config";
 import { jsonNoStore } from "@/src/server/backend/response";
 import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { db } from "@trail/db";
+import { maybeRow } from "@trail/db/helpers";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
+
+function typed<T>(res: unknown): PostgrestSingleResponse<T> {
+  return res as PostgrestSingleResponse<T>;
+}
 
 export async function GET(request: Request) {
   // 1. Check bearer token (extension)
@@ -31,15 +37,20 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    const record = await db.user.findUnique({
-      where: { id: user.id },
-      select: { authSessionVersion: true },
-    });
+    const record = maybeRow(
+      typed<{ auth_session_version: number } | null>(
+        await db
+          .from("users")
+          .select("auth_session_version")
+          .eq("id", user.id)
+          .maybeSingle(),
+      ),
+    );
     return jsonNoStore({
       status: "authenticated",
       source: "web",
       userId: user.id,
-      authSessionVersion: record?.authSessionVersion ?? null,
+      authSessionVersion: record?.auth_session_version ?? null,
       ...getExtensionConfig(),
     });
   }

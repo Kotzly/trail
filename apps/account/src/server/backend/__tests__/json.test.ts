@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { Prisma } from "@trail/db/src/generated/client";
 import { isJsonValue, toPrismaJsonInput } from "../json";
 
 describe("isJsonValue", () => {
@@ -24,8 +23,8 @@ describe("isJsonValue", () => {
 });
 
 describe("toPrismaJsonInput", () => {
-  it("maps null to Prisma.JsonNull", () => {
-    expect(toPrismaJsonInput(null)).toBe(Prisma.JsonNull);
+  it("passes null through as null", () => {
+    expect(toPrismaJsonInput(null)).toBeNull();
   });
 
   it("passes through non-null JSON values", () => {

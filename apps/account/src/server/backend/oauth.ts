@@ -1,5 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { db } from "@trail/db";
+import { singleRow, maybeRow, assertOk } from "@trail/db/helpers";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { createSignedExtensionToken } from "@trail/trpc";
 import { env } from "@/src/env";
 
@@ -38,6 +40,51 @@ type RefreshResult =
       reason: "invalid_grant" | "invalid_client" | "invalid_request";
     };
 
+// Row shapes for typed casts
+type AuthCodeRow = {
+  id: string;
+  code_hash: string;
+  user_id: string;
+  client_id: string;
+  redirect_uri: string;
+  code_challenge: string;
+  code_challenge_method: string;
+  scope: string | null;
+  state: string | null;
+  device_id: string | null;
+  expires_at: string;
+  used_at: string | null;
+  users: { id: string; auth_session_version: number };
+};
+
+type RefreshTokenRow = {
+  id: string;
+  token_hash: string;
+  user_id: string;
+  device_session_id: string;
+  client_id: string;
+  scope: string | null;
+  expires_at: string;
+  used_at: string | null;
+  revoked_at: string | null;
+  users: { id: string; auth_session_version: number };
+  extension_device_sessions: { id: string; status: string; revoked_at: string | null };
+};
+
+type DeviceSessionRow = {
+  id: string;
+  user_id: string;
+  device_id: string;
+  status: string;
+  session_version: number;
+  revoked_at: string | null;
+  last_seen_at: string;
+};
+
+function typed<T>(res: unknown): PostgrestSingleResponse<T> {
+  return res as PostgrestSingleResponse<T>;
+}
+
 function base64Url(buffer: Buffer): string {
   return buffer
     .toString("base64")
@@ -54,8 +101,8 @@ function sha256Base64Url(value: string): string {
   return base64Url(createHash("sha256").update(value).digest());
 }
 
-function now(): Date {
-  return new Date();
+function nowIso(): string {
+  return new Date().toISOString();
 }
 
 function createCode(): string {
@@ -126,20 +173,20 @@ export async function createOAuthAuthorizationCode(input: {
   const scope = normalizeScope(input.scope);
   const codeChallengeMethod = input.codeChallengeMethod?.trim() || PKCE_METHOD;
 
-  await db.oAuthAuthorizationCode.create({
-    data: {
-      codeHash: sha256Hex(code),
-      userId: input.userId,
-      clientId,
-      redirectUri: input.redirectUri,
-      codeChallenge: input.codeChallenge,
-      codeChallengeMethod,
+  assertOk(
+    await db.from("oauth_authorization_codes").insert({
+      code_hash: sha256Hex(code),
+      user_id: input.userId,
+      client_id: clientId,
+      redirect_uri: input.redirectUri,
+      code_challenge: input.codeChallenge,
+      code_challenge_method: codeChallengeMethod,
       scope,
       state: input.state?.trim() || null,
-      deviceId: input.deviceId?.trim() || null,
-      expiresAt,
-    },
-  });
+      device_id: input.deviceId?.trim() || null,
+      expires_at: expiresAt.toISOString(),
+    }),
+  );
 
   return { code, expiresAt, clientId, scope };
 }
@@ -171,38 +218,37 @@ export async function exchangeOAuthAuthorizationCode(input: {
   const codeHash = sha256Hex(input.code);
   const clientId = normalizeClientId(input.clientId);
 
-  const record = await db.oAuthAuthorizationCode.findUnique({
-    where: { codeHash },
-    include: {
-      user: {
-        select: {
-          id: true,
-          authSessionVersion: true,
-        },
-      },
-    },
-  });
+  // Fetch auth code + user in one joined query
+  const record = maybeRow(
+    typed<AuthCodeRow | null>(
+      await db
+        .from("oauth_authorization_codes")
+        .select("*, users!inner(id, auth_session_version)")
+        .eq("code_hash", codeHash)
+        .maybeSingle(),
+    ),
+  );
 
   if (!record) {
     return { ok: false, reason: "invalid_grant" };
   }
-  if (record.usedAt || record.expiresAt.getTime() <= Date.now()) {
+  if (record.used_at || new Date(record.expires_at).getTime() <= Date.now()) {
     return { ok: false, reason: "invalid_grant" };
   }
-  if (record.clientId !== clientId || record.redirectUri !== input.redirectUri) {
+  if (record.client_id !== clientId || record.redirect_uri !== input.redirectUri) {
     return { ok: false, reason: "invalid_client" };
   }
-  if (record.codeChallengeMethod !== PKCE_METHOD) {
+  if (record.code_challenge_method !== PKCE_METHOD) {
     return { ok: false, reason: "invalid_request" };
   }
 
   const expectedChallenge = sha256Base64Url(input.codeVerifier);
-  if (!safeEquals(expectedChallenge, record.codeChallenge)) {
+  if (!safeEquals(expectedChallenge, record.code_challenge)) {
     return { ok: false, reason: "invalid_grant" };
   }
 
   const deviceId =
-    record.deviceId?.trim() ||
+    record.device_id?.trim() ||
     input.deviceId?.trim() ||
     `device-${base64Url(randomBytes(12))}`;
 
@@ -210,78 +256,99 @@ export async function exchangeOAuthAuthorizationCode(input: {
   const refreshTokenHash = sha256Hex(refreshToken);
   const refreshExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
-  let session;
-  try {
-    session = await db.$transaction(async (tx) => {
-      // Atomically consume the auth code — WHERE guard prevents double-redemption
-      const consumed = await tx.oAuthAuthorizationCode.updateMany({
-        where: { id: record.id, usedAt: null, expiresAt: { gt: now() } },
-        data: { usedAt: now() },
-      });
-      if (consumed.count === 0) {
-        throw new Error("AUTH_CODE_ALREADY_USED");
-      }
+  // Atomically consume the auth code — WHERE guard prevents double-redemption
+  const consumed = await db
+    .from("oauth_authorization_codes")
+    .update({ used_at: nowIso() })
+    .eq("id", record.id)
+    .is("used_at", null)
+    .gt("expires_at", nowIso())
+    .select("id");
 
-      const current = await tx.extensionDeviceSession.findUnique({
-        where: {
-          userId_deviceId: {
-            userId: record.userId,
-            deviceId,
-          },
-        },
-      });
-
-      const deviceSession = !current
-        ? await tx.extensionDeviceSession.create({
-            data: {
-              userId: record.userId,
-              deviceId,
-              status: "ACTIVE",
-              sessionVersion: 1,
-              lastSeenAt: now(),
-            },
-          })
-        : await tx.extensionDeviceSession.update({
-            where: { id: current.id },
-            data: {
-              status: "ACTIVE",
-              revokedAt: null,
-              lastSeenAt: now(),
-              ...(current.status !== "ACTIVE" || current.revokedAt
-                ? { sessionVersion: { increment: 1 } }
-                : {}),
-            },
-          });
-
-      await tx.oAuthRefreshToken.create({
-        data: {
-          tokenHash: refreshTokenHash,
-          userId: record.userId,
-          deviceSessionId: deviceSession.id,
-          clientId,
-          scope: record.scope,
-          expiresAt: refreshExpiresAt,
-        },
-      });
-
-      return deviceSession;
-    });
-  } catch (err) {
-    if (err instanceof Error && err.message === "AUTH_CODE_ALREADY_USED") {
-      return { ok: false, reason: "invalid_grant" } as const;
-    }
-    throw err;
+  if (consumed.error) {
+    throw new Error(`Supabase query failed: ${consumed.error.message}`);
+  }
+  if (!consumed.data || (consumed.data as unknown[]).length === 0) {
+    return { ok: false, reason: "invalid_grant" };
   }
 
+  // Upsert the device session
+  const existingSession = maybeRow(
+    typed<Pick<DeviceSessionRow, "id" | "status" | "session_version" | "revoked_at"> | null>(
+      await db
+        .from("extension_device_sessions")
+        .select("id, status, session_version, revoked_at")
+        .eq("user_id", record.user_id)
+        .eq("device_id", deviceId)
+        .maybeSingle(),
+    ),
+  );
+
+  let deviceSession: { id: string };
+
+  if (!existingSession) {
+    deviceSession = singleRow(
+      typed<{ id: string }>(
+        await db
+          .from("extension_device_sessions")
+          .insert({
+            user_id: record.user_id,
+            device_id: deviceId,
+            status: "ACTIVE",
+            session_version: 1,
+            last_seen_at: nowIso(),
+          })
+          .select("id")
+          .single(),
+      ),
+    );
+  } else {
+    const shouldBumpVersion =
+      existingSession.status !== "ACTIVE" || existingSession.revoked_at;
+
+    const updateData: Record<string, unknown> = {
+      status: "ACTIVE",
+      revoked_at: null,
+      last_seen_at: nowIso(),
+    };
+
+    if (shouldBumpVersion) {
+      updateData.session_version = (existingSession.session_version ?? 0) + 1;
+    }
+
+    deviceSession = singleRow(
+      typed<{ id: string }>(
+        await db
+          .from("extension_device_sessions")
+          .update(updateData)
+          .eq("id", existingSession.id)
+          .select("id")
+          .single(),
+      ),
+    );
+  }
+
+  assertOk(
+    await db.from("oauth_refresh_tokens").insert({
+      token_hash: refreshTokenHash,
+      user_id: record.user_id,
+      device_session_id: deviceSession.id,
+      client_id: clientId,
+      scope: record.scope,
+      expires_at: refreshExpiresAt.toISOString(),
+    }),
+  );
+
+  const user = Array.isArray(record.users) ? record.users[0] : record.users;
   const access = await issueAccessToken({
-    userId: record.userId,
-    authSessionVersion: record.user.authSessionVersion,
-    deviceSessionId: session.id,
+    userId: record.user_id,
+    authSessionVersion: user.auth_session_version,
+    deviceSessionId: deviceSession.id,
   });
 
   return {
     ok: true,
-    userId: record.userId,
+    userId: record.user_id,
     tokens: buildTokenSet({
       accessToken: access.accessToken,
       accessExpiresAt: access.expiresAt,
@@ -299,35 +366,38 @@ export async function refreshOAuthToken(input: {
   const clientId = normalizeClientId(input.clientId);
   const tokenHash = sha256Hex(input.refreshToken);
 
-  const record = await db.oAuthRefreshToken.findUnique({
-    where: { tokenHash },
-    include: {
-      user: {
-        select: {
-          id: true,
-          authSessionVersion: true,
-        },
-      },
-      deviceSession: {
-        select: {
-          id: true,
-          status: true,
-          revokedAt: true,
-        },
-      },
-    },
-  });
+  // Fetch refresh token + user + device session in one joined query
+  const record = maybeRow(
+    typed<RefreshTokenRow | null>(
+      await db
+        .from("oauth_refresh_tokens")
+        .select(
+          "*, users!inner(id, auth_session_version), extension_device_sessions!inner(id, status, revoked_at)",
+        )
+        .eq("token_hash", tokenHash)
+        .maybeSingle(),
+    ),
+  );
 
   if (!record) {
     return { ok: false, reason: "invalid_grant" };
   }
-  if (record.clientId !== clientId) {
+  if (record.client_id !== clientId) {
     return { ok: false, reason: "invalid_client" };
   }
-  if (record.usedAt || record.revokedAt || record.expiresAt.getTime() <= Date.now()) {
+  if (
+    record.used_at ||
+    record.revoked_at ||
+    new Date(record.expires_at).getTime() <= Date.now()
+  ) {
     return { ok: false, reason: "invalid_grant" };
   }
-  if (record.deviceSession.status !== "ACTIVE" || record.deviceSession.revokedAt) {
+
+  const deviceSession = Array.isArray(record.extension_device_sessions)
+    ? record.extension_device_sessions[0]
+    : record.extension_device_sessions;
+
+  if (deviceSession.status !== "ACTIVE" || deviceSession.revoked_at) {
     return { ok: false, reason: "invalid_grant" };
   }
 
@@ -335,49 +405,44 @@ export async function refreshOAuthToken(input: {
   const nextRefreshHash = sha256Hex(nextRefreshToken);
   const nextRefreshExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
-  try {
-    await db.$transaction(async (tx) => {
-      // Atomically consume the refresh token — WHERE guard prevents double-rotation
-      const consumed = await tx.oAuthRefreshToken.updateMany({
-        where: {
-          id: record.id,
-          usedAt: null,
-          revokedAt: null,
-          expiresAt: { gt: now() },
-        },
-        data: { usedAt: now(), revokedAt: now() },
-      });
-      if (consumed.count === 0) {
-        throw new Error("REFRESH_TOKEN_ALREADY_USED");
-      }
+  // Atomically consume the refresh token — WHERE guard prevents double-rotation
+  const consumed = await db
+    .from("oauth_refresh_tokens")
+    .update({ used_at: nowIso(), revoked_at: nowIso() })
+    .eq("id", record.id)
+    .is("used_at", null)
+    .is("revoked_at", null)
+    .gt("expires_at", nowIso())
+    .select("id");
 
-      await tx.oAuthRefreshToken.create({
-        data: {
-          tokenHash: nextRefreshHash,
-          userId: record.userId,
-          deviceSessionId: record.deviceSessionId,
-          clientId,
-          scope: record.scope,
-          expiresAt: nextRefreshExpiresAt,
-        },
-      });
-    });
-  } catch (err) {
-    if (err instanceof Error && err.message === "REFRESH_TOKEN_ALREADY_USED") {
-      return { ok: false, reason: "invalid_grant" } as const;
-    }
-    throw err;
+  if (consumed.error) {
+    throw new Error(`Supabase query failed: ${consumed.error.message}`);
+  }
+  if (!consumed.data || (consumed.data as unknown[]).length === 0) {
+    return { ok: false, reason: "invalid_grant" };
   }
 
+  assertOk(
+    await db.from("oauth_refresh_tokens").insert({
+      token_hash: nextRefreshHash,
+      user_id: record.user_id,
+      device_session_id: record.device_session_id,
+      client_id: clientId,
+      scope: record.scope,
+      expires_at: nextRefreshExpiresAt.toISOString(),
+    }),
+  );
+
+  const user = Array.isArray(record.users) ? record.users[0] : record.users;
   const access = await issueAccessToken({
-    userId: record.userId,
-    authSessionVersion: record.user.authSessionVersion,
-    deviceSessionId: record.deviceSessionId,
+    userId: record.user_id,
+    authSessionVersion: user.auth_session_version,
+    deviceSessionId: record.device_session_id,
   });
 
   return {
     ok: true,
-    userId: record.userId,
+    userId: record.user_id,
     tokens: buildTokenSet({
       accessToken: access.accessToken,
       accessExpiresAt: access.expiresAt,
@@ -390,35 +455,58 @@ export async function refreshOAuthToken(input: {
 
 export async function revokeOAuthRefreshToken(refreshToken: string): Promise<void> {
   const tokenHash = sha256Hex(refreshToken);
-  await db.oAuthRefreshToken.updateMany({
-    where: { tokenHash, revokedAt: null },
-    data: { revokedAt: now() },
-  });
+  assertOk(
+    await db
+      .from("oauth_refresh_tokens")
+      .update({ revoked_at: nowIso() })
+      .eq("token_hash", tokenHash)
+      .is("revoked_at", null),
+  );
 }
 
 export async function revokeAllExtensionSessionsForUser(
   userId: string,
 ): Promise<void> {
-  await db.$transaction(async (tx) => {
-    await tx.oAuthRefreshToken.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: now() },
-    });
+  // Revoke all active refresh tokens
+  assertOk(
+    await db
+      .from("oauth_refresh_tokens")
+      .update({ revoked_at: nowIso() })
+      .eq("user_id", userId)
+      .is("revoked_at", null),
+  );
 
-    await tx.extensionDeviceSession.updateMany({
-      where: { userId, status: "ACTIVE" },
-      data: {
+  // Revoke all active device sessions
+  assertOk(
+    await db
+      .from("extension_device_sessions")
+      .update({
         status: "REVOKED",
-        revokedAt: now(),
-        sessionVersion: { increment: 1 },
-      },
-    });
+        revoked_at: nowIso(),
+      })
+      .eq("user_id", userId)
+      .eq("status", "ACTIVE"),
+  );
 
-    await tx.user.update({
-      where: { id: userId },
-      data: {
-        authSessionVersion: { increment: 1 },
-      },
-    });
-  });
+  // Bump auth session version — read-modify-write
+  const current = maybeRow(
+    typed<{ auth_session_version: number } | null>(
+      await db
+        .from("users")
+        .select("auth_session_version")
+        .eq("id", userId)
+        .maybeSingle(),
+    ),
+  );
+
+  if (current) {
+    assertOk(
+      await db
+        .from("users")
+        .update({
+          auth_session_version: (current.auth_session_version ?? 0) + 1,
+        })
+        .eq("id", userId),
+    );
+  }
 }

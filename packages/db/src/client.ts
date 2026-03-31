@@ -1,45 +1,34 @@
-import { PrismaClient } from "./generated/client";
-export { Prisma } from "./generated/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const globalForPrisma = globalThis as {
-  prisma?: PrismaClient;
-  prismaPool?: Pool;
-};
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
+if (!supabaseUrl) {
   throw new Error(
-    "Missing database connection string. Set DATABASE_URL environment variable."
+    "Missing Supabase URL. Set NEXT_PUBLIC_SUPABASE_URL environment variable.",
   );
 }
 
-try {
-  const parsed = new URL(databaseUrl);
-  if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
-    throw new Error("DATABASE_URL must use postgres:// or postgresql:// protocol.");
-  }
-} catch (err) {
-  if (err instanceof Error && err.message.includes("protocol")) throw err;
-  throw new Error("DATABASE_URL is not a valid URL.");
+if (!supabaseKey) {
+  throw new Error(
+    "Missing Supabase key. Set SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+  );
 }
 
-const pool =
-  globalForPrisma.prismaPool ??
-  new Pool({
-    connectionString: databaseUrl,
-    ssl: databaseUrl.includes("neon.tech") ? { rejectUnauthorized: true } : undefined,
+const globalForSupabase = globalThis as {
+  supabase?: SupabaseClient;
+};
+
+export const db =
+  globalForSupabase.supabase ??
+  createClient(supabaseUrl, supabaseKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 
-const adapter = new PrismaPg(pool);
-
-export const db = globalForPrisma.prisma ?? new PrismaClient({ adapter });
-
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
-  globalForPrisma.prismaPool = pool;
+  globalForSupabase.supabase = db;
 }
 
-export type { PrismaClient };
+export type { SupabaseClient };

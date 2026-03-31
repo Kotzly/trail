@@ -1,4 +1,6 @@
 import { db } from "@trail/db";
+import { maybeRow } from "@trail/db/helpers";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import type { ExtensionConfigMap } from "@/src/server/backend/extension-config";
 import { addInterval, toApiInterval } from "@/src/server/backend/subscription/period";
 
@@ -34,6 +36,36 @@ const TIER_ORDER: Record<PlanTier, number> = {
   enterprise: 3,
 };
 
+type DbPlan = "FREE" | "PRO" | "TEAMS" | null | undefined;
+type DbStatus =
+  | "ACTIVE"
+  | "TRIALING"
+  | "PAST_DUE"
+  | "CANCELED"
+  | "UNPAID"
+  | "INCOMPLETE"
+  | "UNKNOWN"
+  | null
+  | undefined;
+
+type UserSubscriptionRow = {
+  id: string;
+  plan: DbPlan;
+  status: DbStatus;
+  created_at: string;
+  interval: string | null;
+  pending_interval: string | null;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  updated_at: string;
+};
+
+function typed<T>(res: unknown): PostgrestSingleResponse<T> {
+  return res as PostgrestSingleResponse<T>;
+}
+
 function toIso(date: Date): string {
   return date.toISOString();
 }
@@ -53,7 +85,7 @@ function buildFreeSubscription(_createdAt: Date): SubscriptionSnapshot {
   };
 }
 
-function mapDbPlanToTier(plan: "FREE" | "PRO" | "TEAMS" | null | undefined): PlanTier {
+function mapDbPlanToTier(plan: DbPlan): PlanTier {
   switch (plan) {
     case "PRO":
       return "pro";
@@ -65,9 +97,7 @@ function mapDbPlanToTier(plan: "FREE" | "PRO" | "TEAMS" | null | undefined): Pla
   }
 }
 
-function mapDbPlanToPlanId(
-  plan: "FREE" | "PRO" | "TEAMS" | null | undefined,
-): "free" | "pro" | "teams" {
+function mapDbPlanToPlanId(plan: DbPlan): "free" | "pro" | "teams" {
   switch (plan) {
     case "PRO":
       return "pro";
@@ -79,18 +109,7 @@ function mapDbPlanToPlanId(
   }
 }
 
-function mapDbStatusToApiStatus(
-  status:
-    | "ACTIVE"
-    | "TRIALING"
-    | "PAST_DUE"
-    | "CANCELED"
-    | "UNPAID"
-    | "INCOMPLETE"
-    | "UNKNOWN"
-    | null
-    | undefined,
-): ApiSubscriptionStatus {
+function mapDbStatusToApiStatus(status: DbStatus): ApiSubscriptionStatus {
   switch (status) {
     case "ACTIVE":
       return "active";
@@ -141,11 +160,19 @@ export function getFeatureMinTier(
 }
 
 export async function getUserPlanTier(userId: string): Promise<PlanTier> {
-  const subscription = await db.userSubscription.findUnique({
-    where: { userId },
-    select: { plan: true, currentPeriodEnd: true },
-  });
-  if (subscription?.currentPeriodEnd && subscription.currentPeriodEnd.getTime() <= Date.now()) {
+  const subscription = maybeRow(
+    typed<Pick<UserSubscriptionRow, "plan" | "current_period_end"> | null>(
+      await db
+        .from("user_subscriptions")
+        .select("plan, current_period_end")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ),
+  );
+  if (
+    subscription?.current_period_end &&
+    new Date(subscription.current_period_end).getTime() <= Date.now()
+  ) {
     return "free";
   }
   return mapDbPlanToTier(subscription?.plan);
@@ -175,31 +202,29 @@ export async function getSubscriptionSnapshotForUser(
   params: { userId: string; fallbackCreatedAt?: Date },
 ): Promise<SubscriptionSnapshot | null> {
   const { userId, fallbackCreatedAt } = params;
-  const subscription = await db.userSubscription.findUnique({
-    where: { userId },
-    select: {
-      id: true,
-      plan: true,
-      status: true,
-      createdAt: true,
-      interval: true,
-      pendingInterval: true,
-      cancelAtPeriodEnd: true,
-      canceledAt: true,
-      currentPeriodStart: true,
-      currentPeriodEnd: true,
-    },
-  });
+  const subscription = maybeRow(
+    typed<UserSubscriptionRow | null>(
+      await db
+        .from("user_subscriptions")
+        .select(
+          "id, plan, status, created_at, interval, pending_interval, cancel_at_period_end, canceled_at, current_period_start, current_period_end",
+        )
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ),
+  );
 
   if (!subscription) {
     return fallbackCreatedAt ? buildFreeSubscription(fallbackCreatedAt) : null;
   }
 
-  const currentPeriodStart =
-    subscription.currentPeriodStart ?? subscription.createdAt;
-  const interval = toApiInterval(subscription.interval);
-  const currentPeriodEnd =
-    subscription.currentPeriodEnd ?? addInterval(currentPeriodStart, interval);
+  const currentPeriodStart = subscription.current_period_start
+    ? new Date(subscription.current_period_start)
+    : new Date(subscription.created_at);
+  const interval = toApiInterval(subscription.interval as "MONTH" | "YEAR" | null | undefined);
+  const currentPeriodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end)
+    : addInterval(currentPeriodStart, interval);
 
   const isExpired = currentPeriodEnd.getTime() <= Date.now();
   const status = isExpired ? "expired" : mapDbStatusToApiStatus(subscription.status);
@@ -208,8 +233,8 @@ export async function getSubscriptionSnapshotForUser(
   const pendingInterval =
     isExpired || planId === "free"
       ? null
-      : subscription.pendingInterval
-        ? toApiInterval(subscription.pendingInterval)
+      : subscription.pending_interval
+        ? toApiInterval(subscription.pending_interval as "MONTH" | "YEAR" | null | undefined)
         : null;
 
   return {
@@ -220,8 +245,8 @@ export async function getSubscriptionSnapshotForUser(
     pendingInterval,
     currentPeriodStart: planId === "free" ? null : toIso(currentPeriodStart),
     currentPeriodEnd: planId === "free" ? null : toIso(currentPeriodEnd),
-    cancelAtPeriodEnd: isExpired ? false : Boolean(subscription.cancelAtPeriodEnd),
+    cancelAtPeriodEnd: isExpired ? false : Boolean(subscription.cancel_at_period_end),
     trialEndsAt: status === "trialing" ? toIso(currentPeriodEnd) : null,
-    canceledAt: subscription.canceledAt ? toIso(subscription.canceledAt) : null,
+    canceledAt: subscription.canceled_at ? toIso(new Date(subscription.canceled_at)) : null,
   };
 }

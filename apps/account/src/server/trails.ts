@@ -69,31 +69,37 @@ function encodeCursor(cursor: TrailCursor): string {
   return `${cursor.updatedAt.toISOString()}|${cursor.id}`;
 }
 
-function toTrailSummary(trail: {
+type DbTrailRow = {
   id: string;
+  user_id: string;
+  device_id: string;
   label: string;
-  labelSource: string;
-  createdAt: Date;
-  updatedAt: Date;
-  savedAt: Date;
-  nodeCount: number;
-  rootUrl: string | null;
-  rootTitle: string | null;
-  rootFavicon: string | null;
-  deviceId: string;
-}): TrailSummary {
+  label_source: string;
+  label_updated_at: string;
+  created_at: string;
+  updated_at: string;
+  saved_at: string;
+  node_count: number;
+  root_url: string | null;
+  root_title: string | null;
+  root_favicon: string | null;
+  deleted_at: string | null;
+  payload?: unknown;
+};
+
+function toTrailSummary(row: DbTrailRow): TrailSummary {
   return {
-    id: trail.id,
-    label: trail.label,
-    labelSource: toApiLabelSource(trail.labelSource),
-    createdAt: trail.createdAt.toISOString(),
-    updatedAt: trail.updatedAt.toISOString(),
-    savedAt: trail.savedAt.toISOString(),
-    nodeCount: trail.nodeCount,
-    rootUrl: trail.rootUrl,
-    rootTitle: trail.rootTitle,
-    rootFavicon: trail.rootFavicon,
-    deviceId: trail.deviceId,
+    id: row.id,
+    label: row.label,
+    labelSource: toApiLabelSource(row.label_source),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    savedAt: row.saved_at,
+    nodeCount: row.node_count,
+    rootUrl: row.root_url,
+    rootTitle: row.root_title,
+    rootFavicon: row.root_favicon,
+    deviceId: row.device_id,
   };
 }
 
@@ -117,37 +123,46 @@ export async function getTrailsList(options?: {
       : 50;
   const cursor = parseCursor(options?.cursor);
 
-  const cursorFilter = cursor
-    ? {
-        OR: [
-          { updatedAt: { lt: cursor.updatedAt } },
-          {
-            updatedAt: cursor.updatedAt,
-            id: { lt: cursor.id },
-          },
-        ],
-      }
-    : {};
+  let trailsQuery = db
+    .from("trails")
+    .select("*")
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(limit + 1);
 
-  const [trails, totalCount] = await Promise.all([
-    db.trail.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-        ...cursorFilter,
-      },
-      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
-    }),
-    db.trail.count({ where: { userId, deletedAt: null } }),
+  if (cursor) {
+    trailsQuery = trailsQuery.or(
+      `updated_at.lt.${cursor.updatedAt.toISOString()},and(updated_at.eq.${cursor.updatedAt.toISOString()},id.lt.${cursor.id})`,
+    );
+  }
+
+  const [trailsResult, countResult] = await Promise.all([
+    trailsQuery,
+    db
+      .from("trails")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .is("deleted_at", null),
   ]);
 
-  const hasNext = trails.length > limit;
-  const items = hasNext ? trails.slice(0, limit) : trails;
+  if (trailsResult.error) {
+    throw new Error(`Failed to fetch trails: ${trailsResult.error.message}`);
+  }
+  if (countResult.error) {
+    throw new Error(`Failed to count trails: ${countResult.error.message}`);
+  }
+
+  const rows = trailsResult.data as DbTrailRow[];
+  const totalCount = countResult.count ?? 0;
+
+  const hasNext = rows.length > limit;
+  const items = hasNext ? rows.slice(0, limit) : rows;
   const lastItem = items[items.length - 1];
   const nextCursor =
     hasNext && lastItem
-      ? encodeCursor({ updatedAt: lastItem.updatedAt, id: lastItem.id })
+      ? encodeCursor({ updatedAt: new Date(lastItem.updated_at), id: lastItem.id })
       : null;
 
   return {
@@ -163,18 +178,29 @@ export async function getTrailById(id: string): Promise<TrailDetail | null> {
     return null;
   }
 
-  const trail = await db.trail.findFirst({
-    where: { id, userId, deletedAt: null },
-  });
-  if (!trail) {
+  const result = await db
+    .from("trails")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (result.error) {
+    throw new Error(`Failed to fetch trail: ${result.error.message}`);
+  }
+  if (!result.data) {
     return null;
   }
 
+  const row = result.data as DbTrailRow;
+
   return {
-    ...toTrailSummary(trail),
-    userId: trail.userId,
-    labelUpdatedAt: trail.labelUpdatedAt.toISOString(),
-    payload: trail.payload,
-    deletedAt: trail.deletedAt ? trail.deletedAt.toISOString() : null,
+    ...toTrailSummary(row),
+    userId: row.user_id,
+    labelUpdatedAt: row.label_updated_at,
+    payload: row.payload,
+    deletedAt: row.deleted_at,
   };
 }

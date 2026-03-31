@@ -1,12 +1,32 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { db } from "@trail/db";
-import type { Prisma } from "@trail/db";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { maybeRow } from "@trail/db/helpers";
 import { env } from "@/src/env";
 import { jsonError } from "@/src/server/backend/error-response";
 import { jsonNoStore } from "@/src/server/backend/response";
 import { addInterval } from "@/src/server/backend/subscription/period";
 import { isUpgrade, type PlanId } from "@/src/server/backend/subscription/proration";
+
+type CheckoutSessionRow = {
+  order_id: string;
+  status: string;
+  user_id: string;
+  plan_id: string;
+  interval: string;
+  requested_interval: string | null;
+};
+
+type UserSubscriptionRow = {
+  plan: "FREE" | "PRO" | "TEAMS";
+  interval: "MONTH" | "YEAR";
+  pending_interval: "MONTH" | "YEAR" | null;
+  created_at: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+};
 
 export const runtime = "nodejs";
 
@@ -160,17 +180,13 @@ export async function POST(request: Request) {
     return jsonError("invalid_payload", "Missing order_id.", { status: 400 });
   }
 
-  const session = await db.billingCheckoutSession.findUnique({
-    where: { orderId },
-    select: {
-      orderId: true,
-      status: true,
-      userId: true,
-      planId: true,
-      interval: true,
-      requestedInterval: true,
-    },
-  });
+  const session = maybeRow(
+    await db
+      .from("billing_checkout_sessions")
+      .select("order_id, status, user_id, plan_id, interval, requested_interval")
+      .eq("order_id", orderId)
+      .maybeSingle() as unknown as PostgrestSingleResponse<CheckoutSessionRow | null>,
+  );
 
   // Acknowledge unknown orders as OK to avoid infinite retries.
   if (!session) {
@@ -187,196 +203,176 @@ export async function POST(request: Request) {
   const mapped = mapPaymentStatus(paymentStatus);
   const now = new Date();
 
-  await db.$transaction(async (tx) => {
-    // Atomically claim the session: only proceed if the session is NOT in a terminal state.
-    // This prevents concurrent webhook deliveries from both applying subscription mutations.
-    const { count: claimed } = await tx.billingCheckoutSession.updateMany({
-      where: {
-        orderId,
-        status: { notIn: ["SUCCEEDED", "REFUNDED", "FAILED"] },
-      },
-      data: {
-        status: "WEBHOOK_RECEIVED",
-        paymentStatus,
-        ...(paymentId ? { nowpaymentsPaymentId: paymentId } : {}),
-        lastPayload: payload as Prisma.InputJsonValue,
-      },
-    });
+  // Atomically claim the session: only proceed if the session is NOT in a terminal state.
+  // This prevents concurrent webhook deliveries from both applying subscription mutations.
+  // The WHERE-guard pattern replaces transaction atomicity.
+  const claimResult = await db
+    .from("billing_checkout_sessions")
+    .update({
+      status: "WEBHOOK_RECEIVED",
+      payment_status: paymentStatus,
+      ...(paymentId ? { nowpayments_payment_id: paymentId } : {}),
+      last_payload: payload as Record<string, unknown>,
+    })
+    .eq("order_id", orderId)
+    .not("status", "in", '("SUCCEEDED","REFUNDED","FAILED")')
+    .select("order_id");
 
-    // Session already reached a terminal state — another webhook got there first.
-    if (claimed === 0) {
-      return;
+  // Session already reached a terminal state — another webhook got there first.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!claimResult.data || (claimResult.data as any[]).length === 0) {
+    return jsonNoStore({ ok: true });
+  }
+
+  // Deduplicate by provider payment ID: if another checkout already recorded this
+  // payment, skip processing to avoid double-applying the same payment.
+  if (paymentId) {
+    const duplicate = maybeRow(
+      await db
+        .from("billing_checkout_sessions")
+        .select("order_id")
+        .eq("nowpayments_payment_id", paymentId)
+        .neq("order_id", orderId)
+        .in("status", ["SUCCEEDED", "REFUNDED", "FAILED"])
+        .limit(1)
+        .maybeSingle() as unknown as PostgrestSingleResponse<{ order_id: string } | null>,
+    );
+    if (duplicate) {
+      return jsonNoStore({ ok: true });
     }
+  }
 
-    // Deduplicate by provider payment ID: if another checkout already recorded this
-    // payment, skip processing to avoid double-applying the same payment.
-    if (paymentId) {
-      const duplicate = await tx.billingCheckoutSession.findFirst({
-        where: {
-          nowpaymentsPaymentId: paymentId,
-          orderId: { not: orderId },
-          status: { in: ["SUCCEEDED", "REFUNDED", "FAILED"] },
-        },
-        select: { orderId: true },
-      });
-      if (duplicate) {
-        return;
-      }
-    }
+  if (mapped.state === "succeeded") {
+    const targetDbPlan = mapCheckoutPlanToDbPlan(session.plan_id);
+    if (targetDbPlan) {
+      const requestedInterval = session.requested_interval ?? session.interval;
+      const requestedDbInterval = mapCheckoutIntervalToDbInterval(requestedInterval);
 
-    if (mapped.state === "succeeded") {
-      const targetDbPlan = mapCheckoutPlanToDbPlan(session.planId);
-      if (targetDbPlan) {
-        const requestedInterval = session.requestedInterval ?? session.interval;
-        const requestedDbInterval = mapCheckoutIntervalToDbInterval(requestedInterval);
+      const existing = maybeRow(
+        await db
+          .from("user_subscriptions")
+          .select("plan, interval, pending_interval, created_at, current_period_start, current_period_end, cancel_at_period_end")
+          .eq("user_id", session.user_id)
+          .maybeSingle() as unknown as PostgrestSingleResponse<UserSubscriptionRow | null>,
+      );
 
-        const existing = await tx.userSubscription.findUnique({
-          where: { userId: session.userId },
-          select: {
-            plan: true,
-            interval: true,
-            pendingInterval: true,
-            createdAt: true,
-            currentPeriodStart: true,
-            currentPeriodEnd: true,
-            cancelAtPeriodEnd: true,
-          },
-        });
+      const existingPlanId = existing ? mapDbPlanToPlanId(existing.plan as "FREE" | "PRO" | "TEAMS") : "free";
+      const existingInterval = existing ? mapDbIntervalToCheckoutInterval(existing.interval as "MONTH" | "YEAR") : null;
+      const existingPeriodStart = existing?.current_period_start
+        ? new Date(existing.current_period_start)
+        : existing?.created_at
+          ? new Date(existing.created_at)
+          : null;
+      const existingPeriodEnd =
+        existing?.current_period_end && existingPeriodStart
+          ? new Date(existing.current_period_end)
+          : existingPeriodStart && existingInterval
+            ? addInterval(existingPeriodStart, existingInterval)
+            : null;
 
-        const existingPlanId = existing ? mapDbPlanToPlanId(existing.plan) : "free";
-        const existingInterval = existing ? mapDbIntervalToCheckoutInterval(existing.interval) : null;
-        const existingPeriodStart = existing?.currentPeriodStart ?? existing?.createdAt ?? null;
-        const existingPeriodEnd =
-          existing?.currentPeriodEnd && existingPeriodStart
-            ? existing.currentPeriodEnd
-            : existingPeriodStart && existingInterval
-              ? addInterval(existingPeriodStart, existingInterval)
-              : null;
+      const isExpired = existingPeriodEnd ? existingPeriodEnd.getTime() <= now.getTime() : true;
+      const targetPlanId = session.plan_id as PlanId;
 
-        const isExpired = existingPeriodEnd ? existingPeriodEnd.getTime() <= now.getTime() : true;
-        const targetPlanId = session.planId as PlanId;
-
-        if (existing && !isExpired && existingInterval && existingPeriodStart && existingPeriodEnd) {
-          // Upgrade within the current period: keep renewal date, apply pending interval if requested.
-          if (isUpgrade(existingPlanId, targetPlanId)) {
-            await tx.userSubscription.update({
-              where: { userId: session.userId },
-              data: {
-                plan: targetDbPlan,
-                status: "ACTIVE",
-                cancelAtPeriodEnd: false,
-                canceledAt: null,
-                pendingInterval: requestedDbInterval !== existing.interval ? requestedDbInterval : null,
-                // Keep currentPeriodStart/currentPeriodEnd intact.
-              },
-            });
-          } else if (existingPlanId === targetPlanId && !existing.cancelAtPeriodEnd) {
-            // Renewal payment: advance period and apply pending interval.
-            const appliedInterval = existing.pendingInterval ?? existing.interval;
-            const appliedCheckoutInterval = mapDbIntervalToCheckoutInterval(appliedInterval);
-            const nextStart = existingPeriodEnd;
-            const nextEnd = addInterval(nextStart, appliedCheckoutInterval);
-
-            await tx.userSubscription.update({
-              where: { userId: session.userId },
-              data: {
-                status: "ACTIVE",
-                cancelAtPeriodEnd: false,
-                canceledAt: null,
-                interval: appliedInterval,
-                pendingInterval: null,
-                currentPeriodStart: nextStart,
-                currentPeriodEnd: nextEnd,
-              },
-            });
-          } else {
-            // Unknown/unsupported change: keep subscription unchanged, but record the checkout as succeeded.
-          }
-        } else {
-          // New subscription (or expired): start a fresh period from now.
-          const currentPeriodStart = now;
-          const currentPeriodEnd = addInterval(
-            now,
-            requestedDbInterval === "YEAR" ? "year" : "month",
-          );
-
-          await tx.userSubscription.upsert({
-            where: { userId: session.userId },
-            create: {
-              userId: session.userId,
+      if (existing && !isExpired && existingInterval && existingPeriodStart && existingPeriodEnd) {
+        // Upgrade within the current period: keep renewal date, apply pending interval if requested.
+        if (isUpgrade(existingPlanId, targetPlanId)) {
+          await db
+            .from("user_subscriptions")
+            .update({
               plan: targetDbPlan,
               status: "ACTIVE",
-              interval: requestedDbInterval,
-              pendingInterval: null,
-              currentPeriodStart,
-              currentPeriodEnd,
-              cancelAtPeriodEnd: false,
-              canceledAt: null,
-            },
-            update: {
-              plan: targetDbPlan,
+              cancel_at_period_end: false,
+              canceled_at: null,
+              pending_interval: requestedDbInterval !== existing.interval ? requestedDbInterval : null,
+              // Keep current_period_start/current_period_end intact.
+            })
+            .eq("user_id", session.user_id);
+        } else if (existingPlanId === targetPlanId && !existing.cancel_at_period_end) {
+          // Renewal payment: advance period and apply pending interval.
+          const appliedInterval = (existing.pending_interval ?? existing.interval) as "MONTH" | "YEAR";
+          const appliedCheckoutInterval = mapDbIntervalToCheckoutInterval(appliedInterval);
+          const nextStart = existingPeriodEnd;
+          const nextEnd = addInterval(nextStart, appliedCheckoutInterval);
+
+          await db
+            .from("user_subscriptions")
+            .update({
               status: "ACTIVE",
-              interval: requestedDbInterval,
-              pendingInterval: null,
-              currentPeriodStart,
-              currentPeriodEnd,
-              cancelAtPeriodEnd: false,
-              canceledAt: null,
-            },
-          });
+              cancel_at_period_end: false,
+              canceled_at: null,
+              interval: appliedInterval,
+              pending_interval: null,
+              current_period_start: nextStart.toISOString(),
+              current_period_end: nextEnd.toISOString(),
+            })
+            .eq("user_id", session.user_id);
         }
+        // else: Unknown/unsupported change — keep subscription unchanged, record checkout as succeeded.
+      } else {
+        // New subscription (or expired): start a fresh period from now.
+        const currentPeriodStart = now;
+        const currentPeriodEnd = addInterval(
+          now,
+          requestedDbInterval === "YEAR" ? "year" : "month",
+        );
+
+        await db.from("user_subscriptions").upsert(
+          {
+            user_id: session.user_id,
+            plan: targetDbPlan,
+            status: "ACTIVE",
+            interval: requestedDbInterval,
+            pending_interval: null,
+            current_period_start: currentPeriodStart.toISOString(),
+            current_period_end: currentPeriodEnd.toISOString(),
+            cancel_at_period_end: false,
+            canceled_at: null,
+          },
+          { onConflict: "user_id" },
+        );
       }
-
-      await tx.billingCheckoutSession.update({
-        where: { orderId },
-        data: { status: "SUCCEEDED" },
-      });
     }
 
-    if (mapped.state === "refunded") {
-      await tx.userSubscription.upsert({
-        where: { userId: session.userId },
-        create: {
-          userId: session.userId,
-          plan: "FREE",
-          status: "UNKNOWN",
-          cancelAtPeriodEnd: false,
-          canceledAt: now,
-          pendingInterval: null,
-          currentPeriodStart: now,
-          currentPeriodEnd: now,
-        },
-        update: {
-          plan: "FREE",
-          status: "UNKNOWN",
-          cancelAtPeriodEnd: false,
-          canceledAt: now,
-          pendingInterval: null,
-          currentPeriodStart: now,
-          currentPeriodEnd: now,
-        },
-      });
+    await db
+      .from("billing_checkout_sessions")
+      .update({ status: "SUCCEEDED" })
+      .eq("order_id", orderId);
+  }
 
-      await tx.billingCheckoutSession.update({
-        where: { orderId },
-        data: { status: "REFUNDED" },
-      });
-    }
+  if (mapped.state === "refunded") {
+    await db.from("user_subscriptions").upsert(
+      {
+        user_id: session.user_id,
+        plan: "FREE",
+        status: "UNKNOWN",
+        cancel_at_period_end: false,
+        canceled_at: now.toISOString(),
+        pending_interval: null,
+        current_period_start: now.toISOString(),
+        current_period_end: now.toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
 
-    if (mapped.state === "failed") {
-      await tx.billingCheckoutSession.update({
-        where: { orderId },
-        data: { status: "FAILED" },
-      });
-    }
+    await db
+      .from("billing_checkout_sessions")
+      .update({ status: "REFUNDED" })
+      .eq("order_id", orderId);
+  }
 
-    if (mapped.state === "in_progress") {
-      await tx.billingCheckoutSession.update({
-        where: { orderId },
-        data: { status: "IN_PROGRESS" },
-      });
-    }
-  });
+  if (mapped.state === "failed") {
+    await db
+      .from("billing_checkout_sessions")
+      .update({ status: "FAILED" })
+      .eq("order_id", orderId);
+  }
+
+  if (mapped.state === "in_progress") {
+    await db
+      .from("billing_checkout_sessions")
+      .update({ status: "IN_PROGRESS" })
+      .eq("order_id", orderId);
+  }
 
   return jsonNoStore({ ok: true });
 }

@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@trail/db";
+import type { SupabaseClient } from "@trail/db";
 import type { UUID } from "crypto";
 
 export type User = {
@@ -20,7 +20,7 @@ export type AppSession = {
 } | null;
 
 export type AppContext = {
-  db: PrismaClient;
+  db: SupabaseClient;
   session: AppSession;
   headers: Headers;
 };

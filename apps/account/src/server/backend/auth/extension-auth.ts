@@ -3,7 +3,13 @@ import {
   verifySignedExtensionToken,
 } from "@trail/trpc";
 import { db } from "@trail/db";
+import { maybeRow } from "@trail/db/helpers";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { env } from "@/src/env";
+
+function typed<T>(res: unknown): PostgrestSingleResponse<T> {
+  return res as PostgrestSingleResponse<T>;
+}
 
 export async function verifyExtensionToken(
   token: string,
@@ -17,40 +23,45 @@ export async function verifyExtensionToken(
   }
 
   const [user, session] = await Promise.all([
-    db.user.findUnique({
-      where: { id: payload.sub },
-      select: { id: true, authSessionVersion: true },
-    }),
-    db.extensionDeviceSession.findUnique({
-      where: { id: payload.sid },
-      select: {
-        id: true,
-        userId: true,
-        status: true,
-        revokedAt: true,
-      },
-    }),
+    maybeRow(
+      typed<{ id: string; auth_session_version: number } | null>(
+        await db
+          .from("users")
+          .select("id, auth_session_version")
+          .eq("id", payload.sub)
+          .maybeSingle(),
+      ),
+    ),
+    maybeRow(
+      typed<{ id: string; user_id: string; status: string; revoked_at: string | null } | null>(
+        await db
+          .from("extension_device_sessions")
+          .select("id, user_id, status, revoked_at")
+          .eq("id", payload.sid)
+          .maybeSingle(),
+      ),
+    ),
   ]);
 
   if (!user || !session) {
     return null;
   }
-  if (session.userId !== payload.sub) {
+  if (session.user_id !== payload.sub) {
     return null;
   }
-  if (session.status !== "ACTIVE" || session.revokedAt) {
+  if (session.status !== "ACTIVE" || session.revoked_at) {
     return null;
   }
-  if (user.authSessionVersion !== payload.ver) {
+  if (user.auth_session_version !== payload.ver) {
     return null;
   }
 
-  void db.extensionDeviceSession
-    .update({
-      where: { id: session.id },
-      data: { lastSeenAt: new Date() },
-    })
-    .catch(() => undefined);
+  void Promise.resolve(
+    db
+      .from("extension_device_sessions")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", session.id),
+  ).catch(() => undefined);
 
   return payload;
 }

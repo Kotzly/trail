@@ -1,7 +1,7 @@
-import { Prisma } from "@trail/db/src/generated/client";
+import type { JsonValue } from "@trail/db/helpers";
 
-export type JsonValue = Prisma.JsonValue;
-export type JsonInputValue = Prisma.InputJsonValue | Prisma.JsonNullValueInput;
+export type { JsonValue };
+export type JsonInputValue = JsonValue;
 
 const isPlainObject = (value: object) =>
   Object.getPrototypeOf(value) === Object.prototype;
@@ -26,5 +26,5 @@ export function isJsonValue(value: unknown): value is JsonValue {
 }
 
 export function toPrismaJsonInput(value: JsonValue): JsonInputValue {
-  return value === null ? Prisma.JsonNull : value;
+  return value;
 }

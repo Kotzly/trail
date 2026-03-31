@@ -39,6 +39,44 @@ function parseDeletedAt(value: unknown): Date | null | undefined {
   return parsed;
 }
 
+type DbTrailRow = {
+  id: string;
+  user_id: string;
+  device_id: string;
+  label: string;
+  label_source: string;
+  label_updated_at: string;
+  created_at: string;
+  updated_at: string;
+  saved_at: string;
+  node_count: number;
+  root_url: string | null;
+  root_title: string | null;
+  root_favicon: string | null;
+  deleted_at: string | null;
+  payload: unknown;
+};
+
+function rowToTrailRecord(row: DbTrailRow) {
+  return toTrailRecord({
+    id: row.id,
+    userId: row.user_id,
+    deviceId: row.device_id,
+    label: row.label,
+    labelSource: row.label_source as DbLabelSource,
+    labelUpdatedAt: new Date(row.label_updated_at),
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    savedAt: new Date(row.saved_at),
+    nodeCount: row.node_count,
+    rootUrl: row.root_url,
+    rootTitle: row.root_title,
+    rootFavicon: row.root_favicon,
+    payload: row.payload,
+    deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /*  GET /api/v1/trails/:id                                             */
 /* ------------------------------------------------------------------ */
@@ -58,14 +96,23 @@ export async function GET(
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const trail = await db.trail.findFirst({
-    where: { id, userId, deletedAt: null },
-  });
-  if (!trail) {
+  const result = await db
+    .from("trails")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (result.error) {
+    return jsonError("internal_error", "Internal error.", { status: 500 });
+  }
+  if (!result.data) {
     return jsonError("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  return jsonNoStore(toTrailRecord(trail as typeof trail & { payload: unknown }));
+  return jsonNoStore(rowToTrailRecord(result.data as DbTrailRow));
 }
 
 /* ------------------------------------------------------------------ */
@@ -262,51 +309,56 @@ export async function PATCH(
   }
 
   const now = new Date();
-  const data: Record<string, unknown> = {};
+  const data: Record<string, unknown> = { updated_at: now.toISOString() };
   if (label !== undefined) {
     data.label = label;
-    data.labelUpdatedAt = now;
+    data.label_updated_at = now.toISOString();
   }
   if (labelSource !== undefined) {
-    data.labelSource = labelSource;
-    data.labelUpdatedAt = now;
+    data.label_source = labelSource;
+    data.label_updated_at = now.toISOString();
   }
   if (deletedAt !== undefined) {
-    data.deletedAt = deletedAt;
+    data.deleted_at = deletedAt ? deletedAt.toISOString() : null;
   }
   if (payload !== undefined) {
     data.payload = payload;
   }
   if (nodeCount !== undefined) {
-    data.nodeCount = nodeCount;
+    data.node_count = nodeCount;
   }
   if (rootUrl !== undefined) {
-    data.rootUrl = rootUrl;
+    data.root_url = rootUrl;
   }
   if (rootTitle !== undefined) {
-    data.rootTitle = rootTitle;
+    data.root_title = rootTitle;
   }
   if (rootFavicon !== undefined) {
-    data.rootFavicon = rootFavicon;
+    data.root_favicon = rootFavicon;
   }
   if (savedAt !== undefined) {
-    data.savedAt = savedAt;
+    data.saved_at = savedAt.toISOString();
   }
-  data.updatedAt = now;
 
-  const updated = await db.$transaction(async (tx) => {
-    const existing = await tx.trail.findFirst({ where: { id, userId } });
-    if (!existing) return null;
-    return tx.trail.update({ where: { id }, data });
-  });
+  const result = await db
+    .from("trails")
+    .update(data)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
 
-  if (!updated) {
+  if (result.error) {
+    if (result.error.code === "PGRST116") {
+      return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+    }
+    return jsonError("internal_error", "Internal error.", { status: 500 });
+  }
+  if (!result.data) {
     return jsonError("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  return jsonNoStore(
-    toTrailRecord(updated as typeof updated & { payload: unknown }),
-  );
+  return jsonNoStore(rowToTrailRecord(result.data as DbTrailRow));
 }
 
 export async function DELETE(
@@ -325,20 +377,24 @@ export async function DELETE(
   }
 
   const now = new Date();
-  const updated = await db.$transaction(async (tx) => {
-    const existing = await tx.trail.findFirst({ where: { id, userId } });
-    if (!existing) return null;
-    return tx.trail.update({
-      where: { id },
-      data: { deletedAt: now, updatedAt: now },
-    });
-  });
 
-  if (!updated) {
+  const result = await db
+    .from("trails")
+    .update({ deleted_at: now.toISOString(), updated_at: now.toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (result.error) {
+    if (result.error.code === "PGRST116") {
+      return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+    }
+    return jsonError("internal_error", "Internal error.", { status: 500 });
+  }
+  if (!result.data) {
     return jsonError("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  return jsonNoStore(
-    toTrailRecord(updated as typeof updated & { payload: unknown }),
-  );
+  return jsonNoStore(rowToTrailRecord(result.data as DbTrailRow));
 }

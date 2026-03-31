@@ -1,4 +1,6 @@
 import { db } from "@trail/db";
+import { maybeRow, assertOk } from "@trail/db/helpers";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { getUserFromBillingBearerToken } from "@/src/server/backend/auth/billing-user";
 import { env } from "@/src/env";
@@ -8,6 +10,10 @@ import { getSubscriptionSnapshotForUser } from "@/src/server/backend/subscriptio
 
 export const runtime = "nodejs";
 
+function typed<T>(res: unknown): PostgrestSingleResponse<T> {
+  return res as PostgrestSingleResponse<T>;
+}
+
 export async function POST(request: Request) {
   const token = getBearerToken(request.headers);
   const user = await getUserFromBillingBearerToken(token);
@@ -15,16 +21,22 @@ export async function POST(request: Request) {
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const existing = await db.userSubscription.findUnique({
-    where: { userId: user.id },
-    select: { plan: true, currentPeriodEnd: true },
-  });
+  const existing = maybeRow(
+    typed<{ plan: string | null; current_period_end: string | null } | null>(
+      await db
+        .from("user_subscriptions")
+        .select("plan, current_period_end")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ),
+  );
 
   // No subscription to cancel: treat as free.
   if (
     !existing ||
     existing.plan === "FREE" ||
-    (existing.currentPeriodEnd && existing.currentPeriodEnd.getTime() <= Date.now())
+    (existing.current_period_end &&
+      new Date(existing.current_period_end).getTime() <= Date.now())
   ) {
     const snapshot = await getSubscriptionSnapshotForUser({
       userId: user.id,
@@ -36,18 +48,20 @@ export async function POST(request: Request) {
   if (env.BILLING_TEST_MODE) {
     // In test mode we want to validate the full upgrade/downgrade loop without
     // waiting for period end or external provider actions.
-    await db.userSubscription.update({
-      where: { userId: user.id },
-      data: {
-        plan: "FREE",
-        status: "UNKNOWN",
-        cancelAtPeriodEnd: false,
-        canceledAt: new Date(),
-        pendingInterval: null,
-        currentPeriodEnd: new Date(),
-        currentPeriodStart: new Date(),
-      },
-    });
+    assertOk(
+      await db
+        .from("user_subscriptions")
+        .update({
+          plan: "FREE",
+          status: "UNKNOWN",
+          cancel_at_period_end: false,
+          canceled_at: new Date().toISOString(),
+          pending_interval: null,
+          current_period_end: new Date().toISOString(),
+          current_period_start: new Date().toISOString(),
+        })
+        .eq("user_id", user.id),
+    );
 
     const snapshot = await getSubscriptionSnapshotForUser({
       userId: user.id,
@@ -57,14 +71,16 @@ export async function POST(request: Request) {
     return jsonNoStore(snapshot);
   }
 
-  await db.userSubscription.update({
-    where: { userId: user.id },
-    data: {
-      cancelAtPeriodEnd: true,
-      canceledAt: new Date(),
-      // Leave `plan`/`interval` and period boundaries intact so the user keeps access until expiry.
-    },
-  });
+  assertOk(
+    await db
+      .from("user_subscriptions")
+      .update({
+        cancel_at_period_end: true,
+        canceled_at: new Date().toISOString(),
+        // Leave `plan`/`interval` and period boundaries intact so the user keeps access until expiry.
+      })
+      .eq("user_id", user.id),
+  );
 
   const snapshot = await getSubscriptionSnapshotForUser({
     userId: user.id,

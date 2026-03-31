@@ -7,6 +7,7 @@ import { toTrailSummary } from "@/src/server/backend/trail-serializers";
 import { ensureUser } from "@/src/server/backend/user";
 import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { db } from "@trail/db";
+import type { DbLabelSource } from "@/src/server/backend/trail-serializers";
 
 export const runtime = "nodejs";
 
@@ -88,45 +89,89 @@ export async function GET(request: Request) {
   const cursor = parseCursor(url.searchParams.get("cursor"));
   const includeDeleted = url.searchParams.get("includeDeleted") === "true";
 
-  const cursorFilter = cursor
-    ? {
-        OR: [
-          { updatedAt: { lt: cursor.updatedAt } },
-          {
-            updatedAt: cursor.updatedAt,
-            id: { lt: cursor.id },
-          },
-        ],
-      }
-    : {};
+  let trailsQuery = db
+    .from("trails")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(limit + 1);
 
-  const baseWhere = {
-    userId: user.id,
-    ...(includeDeleted ? {} : { deletedAt: null }),
+  if (!includeDeleted) {
+    trailsQuery = trailsQuery.is("deleted_at", null);
+  }
+
+  if (cursor) {
+    trailsQuery = trailsQuery.or(
+      `updated_at.lt.${cursor.updatedAt.toISOString()},and(updated_at.eq.${cursor.updatedAt.toISOString()},id.lt.${cursor.id})`,
+    );
+  }
+
+  let countQuery = db
+    .from("trails")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  if (!includeDeleted) {
+    countQuery = countQuery.is("deleted_at", null);
+  }
+
+  const [trailsResult, countResult] = await Promise.all([trailsQuery, countQuery]);
+
+  if (trailsResult.error) {
+    return jsonError("internal_error", "Failed to fetch trails.", { status: 500 });
+  }
+  if (countResult.error) {
+    return jsonError("internal_error", "Failed to count trails.", { status: 500 });
+  }
+
+  type DbTrailRow = {
+    id: string;
+    user_id: string;
+    device_id: string;
+    label: string;
+    label_source: string;
+    label_updated_at: string;
+    created_at: string;
+    updated_at: string;
+    saved_at: string;
+    node_count: number;
+    root_url: string | null;
+    root_title: string | null;
+    root_favicon: string | null;
+    deleted_at: string | null;
   };
 
-  const [trails, totalCount] = await Promise.all([
-    db.trail.findMany({
-      where: {
-        ...baseWhere,
-        ...cursorFilter,
-      },
-      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
-    }),
-    db.trail.count({ where: baseWhere }),
-  ]);
+  const rows = trailsResult.data as DbTrailRow[];
+  const totalCount = countResult.count ?? 0;
 
-  const hasNext = trails.length > limit;
-  const items = hasNext ? trails.slice(0, limit) : trails;
+  const hasNext = rows.length > limit;
+  const items = hasNext ? rows.slice(0, limit) : rows;
   const lastItem = items[items.length - 1];
   const nextCursor =
     hasNext && lastItem
-      ? encodeCursor({ updatedAt: lastItem.updatedAt, id: lastItem.id })
+      ? encodeCursor({ updatedAt: new Date(lastItem.updated_at), id: lastItem.id })
       : null;
 
   return jsonNoStore({
-    items: items.map(toTrailSummary),
+    items: items.map((row) =>
+      toTrailSummary({
+        id: row.id,
+        userId: row.user_id,
+        deviceId: row.device_id,
+        label: row.label,
+        labelSource: row.label_source as DbLabelSource,
+        labelUpdatedAt: new Date(row.label_updated_at),
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+        savedAt: new Date(row.saved_at),
+        nodeCount: row.node_count,
+        rootUrl: row.root_url,
+        rootTitle: row.root_title,
+        rootFavicon: row.root_favicon,
+        deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
+      }),
+    ),
     nextCursor,
     totalCount,
   });

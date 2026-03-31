@@ -4,6 +4,7 @@ import { jsonError } from "@/src/server/backend/error-response";
 import { jsonNoStore } from "@/src/server/backend/response";
 import { getAuthSession } from "@/src/lib/auth";
 import { db } from "@trail/db";
+import { assertOk } from "@trail/db/helpers";
 import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
@@ -87,35 +88,40 @@ export async function POST(request: Request) {
 
   const now = new Date();
   const trailId = randomUUID();
-
-  // Ensure device + create trail atomically to prevent race conditions
   const deviceId = importDeviceId(userId);
-  const trail = await db.$transaction(async (tx) => {
-    await tx.device.upsert({
-      where: { id: deviceId },
-      create: { id: deviceId, userId },
-      update: {},
-    });
 
-    return tx.trail.create({
-      data: {
-        id: trailId,
-        userId,
-        deviceId,
-        label,
-        labelSource,
-        labelUpdatedAt: now,
-        savedAt: now,
-        nodeCount,
-        rootUrl,
-        rootTitle,
-        rootFavicon,
-        payload: tree as object,
-      },
-    });
-  });
+  // Upsert the import device (no-op if it already exists)
+  assertOk(
+    await db
+      .from("devices")
+      .upsert({ id: deviceId, user_id: userId }, { onConflict: "id", ignoreDuplicates: true }),
+  );
 
-  return jsonNoStore({ id: trail.id }, { status: 201 });
+  // Create the trail
+  const trailResult = await db
+    .from("trails")
+    .insert({
+      id: trailId,
+      user_id: userId,
+      device_id: deviceId,
+      label,
+      label_source: labelSource,
+      label_updated_at: now.toISOString(),
+      saved_at: now.toISOString(),
+      node_count: nodeCount,
+      root_url: rootUrl,
+      root_title: rootTitle,
+      root_favicon: rootFavicon,
+      payload: tree,
+    })
+    .select("id")
+    .single();
+
+  if (trailResult.error) {
+    return jsonError("internal_error", "Failed to create trail.", { status: 500 });
+  }
+
+  return jsonNoStore({ id: trailResult.data.id }, { status: 201 });
 }
 
 function extractLabelFromTree(tree: Record<string, unknown>): string | null {
