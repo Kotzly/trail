@@ -5,8 +5,6 @@ import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
 import { getUserById } from "@/src/server/backend/user";
 
-export const AUTH_COOKIE_NAME = "trail_auth_session";
-
 export type User = {
   id: UUID;
   email: string;
