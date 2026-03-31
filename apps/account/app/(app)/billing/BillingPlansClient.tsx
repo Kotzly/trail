@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckIcon } from "@trail/ui/icons";
-import { Button, cn, Badge } from "@trail/ui";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { accountCopy } from "@trail/content";
 
 export type BillingPlanView = {
@@ -323,7 +325,7 @@ export function BillingPlansClient({
               <ul className="mt-6 flex-1 space-y-2 text-xs text-ink-muted lowercase">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <CheckIcon className="mt-0.5 h-3 w-3 flex-shrink-0 text-ink" />
+                    <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-ink" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -332,7 +334,7 @@ export function BillingPlansClient({
               <div className="mt-6">
                 <Button
                   size="sm"
-                  variant={plan.popular ? "primary" : "outline"}
+                  variant={plan.popular ? "default" : "outline"}
                   className="w-full lowercase"
                   disabled={
                     pendingPlanId === plan.id ||
