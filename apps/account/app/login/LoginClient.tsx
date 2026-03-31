@@ -25,7 +25,7 @@ export function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo");
-  const gisLoaded = useRef(false);
+  const gisReady = useRef(false);
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,8 +53,8 @@ export function LoginClient() {
   );
 
   useEffect(() => {
-    if (gisLoaded.current) return;
-    gisLoaded.current = true;
+    if (gisReady.current) return;
+    gisReady.current = true;
 
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
@@ -63,15 +63,14 @@ export function LoginClient() {
       window.google?.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleCredentialResponse,
+        ux_mode: "popup",
       });
     };
     document.head.appendChild(script);
   }, [handleCredentialResponse]);
 
   const handleContinueWithGoogle = () => {
-    if (window.google) {
-      window.google.accounts.id.prompt();
-    }
+    window.google?.accounts.id.prompt();
   };
 
   return (
