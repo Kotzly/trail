@@ -59,6 +59,7 @@ pens/
 .codex/
 .claude/
 .cursor/
+.omc/
 .wxt/
 extension/public/backend-preset.json
 .output/

@@ -8,24 +8,20 @@
     "dev:extension": "pnpm --dir extension dev:local",
     "dev:marketing": "pnpm --filter @trail/marketing dev",
     "dev:account": "pnpm --filter @trail/account dev",
-    "build": "pnpm run db:generate && pnpm -r --filter '!./apps/video' build",
+    "build": "pnpm -r --filter '!./apps/video' build",
     "lint": "pnpm -r --filter '!./apps/video' lint",
     "test": "pnpm -r --filter '!./apps/video' test",
     "test:e2e": "cypress run",
     "test:e2e:open": "cypress open",
     "typecheck": "pnpm -r --filter '!./apps/video' typecheck",
     "format": "pnpm -r --filter '!./apps/video' format",
-    "db:generate": "pnpm --filter @trail/db prisma generate",
-    "db:migrate": "pnpm --filter @trail/db prisma migrate dev",
-    "db:migrate:deploy": "pnpm --filter @trail/db prisma migrate deploy",
-    "db:studio": "pnpm --filter @trail/db prisma studio"
+    "db:migrate": "npx supabase db push",
+    "db:types": "npx supabase gen types typescript --project-id tevskvkyhenzqxkcgbbm > packages/db/src/generated/database.types.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@prisma/engines",
       "cypress",
       "esbuild",
-      "prisma",
       "sharp",
       "unrs-resolver"
     ]
