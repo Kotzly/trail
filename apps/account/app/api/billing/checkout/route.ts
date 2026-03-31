@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthTokenFromCookies } from "@/src/lib/auth";
+import { getUserFromBillingSession } from "@/src/server/backend/auth/billing-user";
 import { POST as checkoutV1 } from "@/app/api/v1/subscription/checkout/route";
 
 export const runtime = "nodejs";
@@ -15,8 +15,8 @@ function isOptionalString(value: unknown): value is string | undefined {
 }
 
 export async function POST(request: Request) {
-  const token = await getAuthTokenFromCookies();
-  if (!token) {
+  const user = await getUserFromBillingSession();
+  if (!user) {
     return NextResponse.json(
       {
         code: "auth",
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     new Request(new URL("/api/v1/subscription/checkout", request.url), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer internal:${user.id}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

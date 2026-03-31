@@ -34,7 +34,8 @@
     "cypress": "^15.11.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
-    "next": "16.1.6"
+    "next": "16.1.6",
+    "supabase": "^2.84.5"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

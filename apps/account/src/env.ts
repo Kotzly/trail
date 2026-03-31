@@ -1,9 +1,8 @@
 import "server-only";
 
 type RequiredEnvKey =
-  | "BETTER_AUTH_SECRET"
-  | "GOOGLE_CLIENT_ID"
-  | "GOOGLE_CLIENT_SECRET"
+  | "NEXT_PUBLIC_SUPABASE_URL"
+  | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
   | "TRAIL_EXTENSION_JWT_SECRET"
   | "DATABASE_URL";
 
@@ -63,9 +62,8 @@ function resolveAppBaseUrl(): string {
 }
 
 const requiredEnvVars: RequiredEnvKey[] = [
-  "BETTER_AUTH_SECRET",
-  "GOOGLE_CLIENT_ID",
-  "GOOGLE_CLIENT_SECRET",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "TRAIL_EXTENSION_JWT_SECRET",
   "DATABASE_URL",
 ];

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { authClient } from "@/src/auth-client";
+import { useSearchParams } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/src/lib/supabase/client";
 import TrailLogo from "@/components/TrailLogo";
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -38,13 +38,6 @@ function normalizeError(error: unknown): string {
   return "Something went wrong.";
 }
 
-function resolveRedirectUrl(data: unknown): string | null {
-  if (!data || typeof data !== "object") return null;
-  const record = data as Record<string, unknown>;
-  const candidate = record.url ?? record.redirect;
-  return typeof candidate === "string" ? candidate : null;
-}
-
 function resolveCallbackUrl(returnToParam: string | null): string {
   if (typeof window === "undefined") return "/auth/callback";
 
@@ -69,12 +62,10 @@ function resolveCallbackUrl(returnToParam: string | null): string {
 }
 
 export function LoginClient() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const returnTo = searchParams.get("returnTo");
   const prompt = searchParams.get("prompt");
-  const maxAge = searchParams.get("maxAge") ?? "0";
 
   const callbackUrl = useMemo(() => resolveCallbackUrl(returnTo), [returnTo]);
 
@@ -85,39 +76,24 @@ export function LoginClient() {
     setError(null);
     setIsLoading(true);
 
-    const socialInput: Record<string, unknown> = {
+    const supabase = createSupabaseBrowserClient();
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      callbackURL: callbackUrl,
-    };
+      options: {
+        redirectTo: callbackUrl,
+        queryParams:
+          prompt === "select_account"
+            ? { prompt: "select_account" }
+            : undefined,
+      },
+    });
 
-    if (prompt === "select_account") {
-      socialInput.fetchOptions = {
-        query: {
-          prompt: "select_account",
-          max_age: maxAge,
-        },
-      };
-    }
-
-    const { data, error: socialError } = await (authClient.signIn.social as (
-      input: Record<string, unknown>,
-    ) => Promise<{ data?: unknown; error?: unknown }>)(socialInput);
-
-    if (socialError) {
+    if (oauthError) {
       setIsLoading(false);
-      setError(normalizeError(socialError));
+      setError(oauthError.message);
       return;
     }
-
-    const redirectUrl = resolveRedirectUrl(data);
-    setIsLoading(false);
-
-    if (redirectUrl) {
-      window.location.assign(redirectUrl);
-      return;
-    }
-
-    router.push(callbackUrl);
+    // Supabase handles the redirect automatically
   };
 
   return (

@@ -1,49 +1,38 @@
 import { db } from "@trail/db";
 import type { AppContext, AppSession } from "@trail/trpc";
 import { getBearerToken } from "@/src/server/backend/auth/headers";
-import { verifyUserToken } from "@/src/server/backend/auth/user-auth";
+import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
 import { ensureUser } from "@/src/server/backend/user";
-
-const AUTH_COOKIE_NAME = "trail_auth_session";
-
-function getAuthTokenFromCookie(headers: Headers): string | null {
-  const cookieHeader = headers.get("cookie");
-  if (!cookieHeader) {
-    return null;
-  }
-
-  const cookies = cookieHeader.split(";");
-  for (const rawCookie of cookies) {
-    const [rawName, ...rawValueParts] = rawCookie.trim().split("=");
-    if (rawName !== AUTH_COOKIE_NAME) {
-      continue;
-    }
-    const rawValue = rawValueParts.join("=");
-    if (!rawValue) {
-      return null;
-    }
-    try {
-      return decodeURIComponent(rawValue);
-    } catch {
-      return rawValue;
-    }
-  }
-  return null;
-}
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 
 async function getRequestSession(headers: Headers): Promise<AppSession> {
-  const token = getBearerToken(headers) ?? getAuthTokenFromCookie(headers);
-  if (!token) {
-    return null;
+  // 1. Try extension bearer token first (API calls from extension)
+  const bearer = getBearerToken(headers);
+  if (bearer) {
+    const ext = await verifyExtensionToken(bearer);
+    if (ext?.sub) {
+      const user = await ensureUser({ sub: ext.sub });
+      return user ? { user } : null;
+    }
   }
 
-  const authUser = await verifyUserToken(token);
-  if (!authUser) {
-    return null;
+  // 2. Fall back to Supabase cookie-based session (web UI)
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user: supabaseUser },
+  } = await supabase.auth.getUser();
+  if (supabaseUser) {
+    const appUser = await ensureUser({
+      sub: supabaseUser.id,
+      email: supabaseUser.email ?? undefined,
+      name:
+        supabaseUser.user_metadata?.full_name ??
+        supabaseUser.user_metadata?.name,
+    });
+    return appUser ? { user: appUser } : null;
   }
 
-  const user = await ensureUser(authUser);
-  return user ? { user } : null;
+  return null;
 }
 
 export async function createTRPCContext(req?: Request): Promise<AppContext> {

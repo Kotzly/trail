@@ -1,9 +1,11 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
-import { verifyUserToken } from "@/src/server/backend/auth/user-auth";
+import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
+import { getUserFromToken } from "@/src/lib/auth";
 import { jsonError } from "@/src/server/backend/error-response";
 import { jsonNoStore } from "@/src/server/backend/response";
 import { toTrailSummary } from "@/src/server/backend/trail-serializers";
 import { ensureUser } from "@/src/server/backend/user";
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { db } from "@trail/db";
 
 export const runtime = "nodejs";
@@ -41,14 +43,38 @@ function parseCursor(raw: string | null): TrailCursor | null {
   return { updatedAt, id };
 }
 
-export async function GET(request: Request) {
-  const token = getBearerToken(request.headers);
-  const authUser = await verifyUserToken(token);
-  if (!authUser) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+async function resolveUser(request: Request) {
+  // 1. Try extension bearer token
+  const bearer = getBearerToken(request.headers);
+  if (bearer) {
+    const ext = await verifyExtensionToken(bearer);
+    if (ext?.sub) {
+      return ensureUser({ sub: ext.sub });
+    }
+
+    // Try as extension token via getUserFromToken fallback
+    const user = await getUserFromToken(bearer);
+    if (user) {
+      return { id: user.id, email: user.email, name: user.name, imageUrl: user.imageUrl };
+    }
   }
 
-  const user = await ensureUser(authUser);
+  // 2. Try Supabase cookie session
+  const supabase = await createSupabaseServerClient();
+  const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+  if (supabaseUser) {
+    return ensureUser({
+      sub: supabaseUser.id,
+      email: supabaseUser.email ?? undefined,
+      name: supabaseUser.user_metadata?.full_name ?? supabaseUser.user_metadata?.name,
+    });
+  }
+
+  return null;
+}
+
+export async function GET(request: Request) {
+  const user = await resolveUser(request);
   if (!user) {
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }

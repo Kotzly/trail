@@ -2,7 +2,7 @@ import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
 import { jsonError } from "@/src/server/backend/error-response";
 import { jsonNoStore } from "@/src/server/backend/response";
-import { getAuthTokenFromCookies } from "@/src/lib/auth";
+import { getAuthSession } from "@/src/lib/auth";
 import { db } from "@trail/db";
 import { randomUUID } from "crypto";
 
@@ -22,10 +22,13 @@ type TrailLabelSource = "USER" | "AUTO" | "SYSTEM";
  * Auth: Bearer token or cookie-based session.
  */
 export async function POST(request: Request) {
-  // Resolve authenticated user
+  // Resolve authenticated user — Bearer token for extension, Supabase session for web UI
   const bearerToken = getBearerToken(request.headers);
-  const cookieToken = await getAuthTokenFromCookies();
-  const userId = await resolveUserId(bearerToken ?? cookieToken);
+  let userId = await resolveUserId(bearerToken);
+  if (!userId) {
+    const session = await getAuthSession();
+    userId = session?.user.id ?? null;
+  }
   if (!userId) {
     return jsonError("unauthorized", "Unauthorized.", { status: 401 });
   }

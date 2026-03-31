@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { getAuthTokenFromCookies } from "@/src/lib/auth";
+import { getUserFromBillingSession } from "@/src/server/backend/auth/billing-user";
 import { POST as cancelV1 } from "@/app/api/v1/subscription/cancel/route";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const token = await getAuthTokenFromCookies();
-  if (!token) {
+  const user = await getUserFromBillingSession();
+  if (!user) {
     return NextResponse.json(
       {
         code: "auth",
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     new Request(new URL("/api/v1/subscription/cancel", request.url), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer internal:${user.id}`,
       },
     }),
   );

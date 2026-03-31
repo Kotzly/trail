@@ -1,7 +1,5 @@
 import { db } from "@trail/db";
-import { getAuthTokenFromCookies } from "@/src/lib/auth";
-import { verifyUserToken } from "@/src/server/backend/auth/user-auth";
-import { ensureUser } from "@/src/server/backend/user";
+import { getAuthSession } from "@/src/lib/auth";
 
 export type TrailSummary = {
   id: string;
@@ -100,18 +98,8 @@ function toTrailSummary(trail: {
 }
 
 async function resolveAuthedUserId(): Promise<string | null> {
-  const token = await getAuthTokenFromCookies();
-  if (!token) {
-    return null;
-  }
-
-  const authUser = await verifyUserToken(token);
-  if (!authUser) {
-    return null;
-  }
-
-  const user = await ensureUser(authUser);
-  return user?.id ?? null;
+  const session = await getAuthSession();
+  return session?.user.id ?? null;
 }
 
 export async function getTrailsList(options?: {

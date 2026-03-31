@@ -1,14 +1,12 @@
 import { randomBytes, createHash } from "crypto";
 import { NextResponse } from "next/server";
-import { auth } from "@/src/auth";
-import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { resolveSafeNextPath } from "@/src/server/auth-redirect";
 import { createOAuthAuthorizationCode } from "@/src/server/backend/oauth";
 
 export const runtime = "nodejs";
 
 const DEFAULT_REDIRECT = "/trails";
-const AUTH_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days, matches JWT expirationTime
 
 function base64Url(buffer: Buffer): string {
   return buffer
@@ -20,14 +18,31 @@ function base64Url(buffer: Buffer): string {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const code = url.searchParams.get("code");
   const nextParam = url.searchParams.get("next");
   const nextPath = resolveSafeNextPath(nextParam, DEFAULT_REDIRECT);
   const source = url.searchParams.get("source");
-  const headers = new Headers(request.headers);
-  const session = await auth.api.getSession({ headers });
-  const tokenResponse = await auth.api.getToken({ headers }).catch(() => null);
-  const accessToken = tokenResponse?.token;
-  if (!session?.user?.id || !accessToken) {
+
+  const supabase = await createSupabaseServerClient();
+
+  // Exchange Supabase auth code for session (sets cookies automatically via @supabase/ssr)
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      const loginUrl = new URL("/auth/login", url.origin);
+      loginUrl.searchParams.set("next", nextPath);
+      if (source) {
+        loginUrl.searchParams.set("source", source);
+      }
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // Check if user is now authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     const loginUrl = new URL("/auth/login", url.origin);
     loginUrl.searchParams.set("next", nextPath);
     if (source) {
@@ -36,15 +51,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const response = NextResponse.redirect(new URL(nextPath, url.origin));
-  response.cookies.set(AUTH_COOKIE_NAME, accessToken, {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
-  });
-
+  // Extension flow: generate PKCE code for extension relay
   if (source === "extension") {
     const codeVerifier = base64Url(randomBytes(64));
     const codeChallenge = base64Url(
@@ -52,7 +59,7 @@ export async function GET(request: Request) {
     );
     const redirectUri = new URL("/auth/extension-relay", url.origin).toString();
     const created = await createOAuthAuthorizationCode({
-      userId: session.user.id,
+      userId: user.id,
       clientId: "trail-extension",
       redirectUri,
       codeChallenge,
@@ -65,16 +72,8 @@ export async function GET(request: Request) {
     relayUrl.searchParams.set("redirectUri", redirectUri);
     relayUrl.searchParams.set("next", nextPath);
 
-    const relayResponse = NextResponse.redirect(relayUrl);
-    relayResponse.cookies.set(AUTH_COOKIE_NAME, accessToken, {
-      httpOnly: true,
-      path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
-    });
-    return relayResponse;
+    return NextResponse.redirect(relayUrl);
   }
 
-  return response;
+  return NextResponse.redirect(new URL(nextPath, url.origin));
 }

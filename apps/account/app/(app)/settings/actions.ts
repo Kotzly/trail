@@ -1,7 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
-import { auth } from "@/src/auth";
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import {
   buildDisplayName,
   normalizeEmail,
@@ -48,12 +47,12 @@ export async function updateAccountAction(
   _previousState: UpdateAccountActionState,
   formData: FormData,
 ): Promise<UpdateAccountActionState> {
-  const requestHeaders = await headers();
-  const session = await auth.api.getSession({
-    headers: new Headers(requestHeaders),
-  });
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session?.user?.id) {
+  if (!user) {
     return {
       status: "error",
       message: "session expired. please login again",
@@ -82,20 +81,19 @@ export async function updateAccountAction(
   }
 
   try {
-    if (name !== session.user.name) {
-      await auth.api.updateUser({
-        headers: new Headers(requestHeaders),
-        body: { name },
+    const currentName =
+      (user.user_metadata?.full_name as string | undefined) ?? "";
+    const needsNameUpdate = name !== currentName;
+    const needsEmailUpdate = email !== user.email;
+
+    if (needsNameUpdate) {
+      await supabase.auth.updateUser({
+        data: { full_name: name },
       });
     }
 
-    if (email !== session.user.email) {
-      await auth.api.changeEmail({
-        headers: new Headers(requestHeaders),
-        body: {
-          newEmail: email,
-        },
-      });
+    if (needsEmailUpdate) {
+      await supabase.auth.updateUser({ email });
 
       return {
         status: "success",

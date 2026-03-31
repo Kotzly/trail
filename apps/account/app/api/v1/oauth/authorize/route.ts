@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/src/auth";
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { createOAuthAuthorizationCode } from "@/src/server/backend/oauth";
 import { jsonError } from "@/src/server/backend/error-response";
 
@@ -143,12 +143,11 @@ export async function GET(request: Request) {
     });
   }
 
-  const session = await auth.api.getSession({
-    headers: new Headers(request.headers),
-  });
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const forceInteractive = prompt === "select_account";
-  if (!session?.user?.id || forceInteractive) {
+  if (!user || forceInteractive) {
     if (prompt === "none") {
       return redirectWithOAuthError({
         redirectUri,
@@ -170,7 +169,7 @@ export async function GET(request: Request) {
   }
 
   const created = await createOAuthAuthorizationCode({
-    userId: session.user.id,
+    userId: user.id,
     clientId,
     redirectUri,
     codeChallenge,
