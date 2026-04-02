@@ -4,10 +4,11 @@ import { db } from "@trail/db";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { maybeRow } from "@trail/db/helpers";
 import { env } from "@/src/env";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { addInterval } from "@/src/server/backend/subscription/period";
 import { isUpgrade, type PlanId } from "@/src/server/backend/subscription/proration";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { optionsResponse } from "@/src/server/api/cors";
 
 type CheckoutSessionRow = {
   order_id: string;
@@ -133,10 +134,20 @@ function mapDbIntervalToCheckoutInterval(value: "MONTH" | "YEAR"): "month" | "ye
   return value === "YEAR" ? "year" : "month";
 }
 
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "webhook");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const secret = env.NOWPAYMENTS_IPN_SECRET;
   if (!secret) {
-    return jsonError(
+    return jsonFail(
       "nowpayments_config_missing",
       "NOWPayments IPN secret is missing.",
       { status: 500 },
@@ -145,7 +156,7 @@ export async function POST(request: Request) {
 
   const sig = request.headers.get("x-nowpayments-sig");
   if (!sig) {
-    return jsonError("unauthorized", "Missing webhook signature.", {
+    return jsonFail("unauthorized", "Missing webhook signature.", {
       status: 401,
     });
   }
@@ -155,14 +166,14 @@ export async function POST(request: Request) {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return jsonError("invalid_payload", "Invalid webhook payload.", {
+    return jsonFail("invalid_payload", "Invalid webhook payload.", {
       status: 400,
     });
   }
 
   const result = nowPaymentsWebhookSchema.safeParse(parsed);
   if (!result.success) {
-    return jsonError("invalid_payload", "Webhook payload failed schema validation.", {
+    return jsonFail("invalid_payload", "Webhook payload failed schema validation.", {
       status: 400,
     });
   }
@@ -170,14 +181,14 @@ export async function POST(request: Request) {
 
   const expected = computeSignature(payload, secret);
   if (!safeEqualHex(sig, expected)) {
-    return jsonError("unauthorized", "Invalid webhook signature.", {
+    return jsonFail("unauthorized", "Invalid webhook signature.", {
       status: 401,
     });
   }
 
   const orderId = typeof payload.order_id === "string" ? payload.order_id.trim() : "";
   if (!orderId) {
-    return jsonError("invalid_payload", "Missing order_id.", { status: 400 });
+    return jsonFail("invalid_payload", "Missing order_id.", { status: 400 });
   }
 
   const session = maybeRow(
@@ -190,7 +201,7 @@ export async function POST(request: Request) {
 
   // Acknowledge unknown orders as OK to avoid infinite retries.
   if (!session) {
-    return jsonNoStore({ ok: true });
+    return jsonOk({ ok: true });
   }
 
   const paymentStatus =
@@ -220,7 +231,7 @@ export async function POST(request: Request) {
 
   // Session already reached a terminal state — another webhook got there first.
   if (!claimResult.data || (claimResult.data as any[]).length === 0) {
-    return jsonNoStore({ ok: true });
+    return jsonOk({ ok: true });
   }
 
   // Deduplicate by provider payment ID: if another checkout already recorded this
@@ -237,7 +248,7 @@ export async function POST(request: Request) {
         .maybeSingle() as unknown as PostgrestSingleResponse<{ order_id: string } | null>,
     );
     if (duplicate) {
-      return jsonNoStore({ ok: true });
+      return jsonOk({ ok: true });
     }
   }
 
@@ -373,5 +384,5 @@ export async function POST(request: Request) {
       .eq("order_id", orderId);
   }
 
-  return jsonNoStore({ ok: true });
+  return jsonOk({ ok: true });
 }

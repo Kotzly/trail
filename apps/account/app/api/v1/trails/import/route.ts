@@ -1,11 +1,14 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { getAuthSession } from "@/src/lib/auth";
 import { db } from "@trail/db";
 import { assertOk } from "@trail/db/helpers";
 import { randomUUID } from "crypto";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { optionsResponse } from "@/src/server/api/cors";
+import { trailsImportBodySchema } from "@/src/server/api/schemas";
+import { parseBody } from "@/src/server/api/validate";
 
 export const runtime = "nodejs";
 
@@ -22,7 +25,17 @@ type TrailLabelSource = "USER" | "AUTO" | "SYSTEM";
  * Accepts a TrailExportBundle JSON body and creates a new Trail record.
  * Auth: Bearer token or cookie-based session.
  */
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   // Resolve authenticated user — Bearer token for extension, Supabase session for web UI
   const bearerToken = getBearerToken(request.headers);
   let userId = await resolveUserId(bearerToken);
@@ -31,7 +44,7 @@ export async function POST(request: Request) {
     userId = session?.user.id ?? null;
   }
   if (!userId) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
   // Parse body
@@ -39,36 +52,18 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return jsonError("invalid_body", "Invalid JSON body.", { status: 400 });
+    return jsonFail("invalid_body", "Invalid JSON body.", { status: 400 });
   }
 
-  if (!body || typeof body !== "object") {
-    return jsonError("invalid_body", "Body must be a JSON object.", { status: 400 });
+  const parsed = parseBody(trailsImportBodySchema, body);
+  if (!parsed.ok) {
+    return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400 });
   }
 
-  const bundle = body as Record<string, unknown>;
-
-  // Validate schema version
-  if (bundle.schema !== EXPORT_SCHEMA) {
-    return jsonError(
-      "invalid_schema",
-      `Expected schema "${EXPORT_SCHEMA}", got "${String(bundle.schema)}".`,
-      { status: 400 },
-    );
-  }
-
-  // Validate tree payload
+  const bundle = parsed.data;
   const tree = bundle.tree;
-  if (!tree || typeof tree !== "object") {
-    return jsonError("invalid_tree", "Missing or invalid tree payload.", { status: 400 });
-  }
-
   const treeObj = tree as Record<string, unknown>;
-  if (!("root" in treeObj) || !("nodeCount" in treeObj)) {
-    return jsonError("invalid_tree", "Tree must have root and nodeCount fields.", { status: 400 });
-  }
-
-  const nodeCount = typeof treeObj.nodeCount === "number" ? treeObj.nodeCount : 0;
+  const nodeCount = tree.nodeCount;
 
   // Extract source metadata
   const source = (bundle.source ?? {}) as Record<string, unknown>;
@@ -118,10 +113,10 @@ export async function POST(request: Request) {
     .single();
 
   if (trailResult.error) {
-    return jsonError("internal_error", "Failed to create trail.", { status: 500 });
+    return jsonFail("internal_error", "Failed to create trail.", { status: 500 });
   }
 
-  return jsonNoStore({ id: trailResult.data.id }, { status: 201 });
+  return jsonOk({ id: trailResult.data.id }, { status: 201 });
 }
 
 function extractLabelFromTree(tree: Record<string, unknown>): string | null {

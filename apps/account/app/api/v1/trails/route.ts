@@ -1,13 +1,16 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
 import { getUserFromToken } from "@/src/lib/auth";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { toTrailSummary } from "@/src/server/backend/trail-serializers";
 import { ensureUser } from "@/src/server/backend/user";
 import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { db } from "@trail/db";
 import type { DbLabelSource } from "@/src/server/backend/trail-serializers";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { corsHeaders, optionsResponse } from "@/src/server/api/cors";
+import { trailsListQuerySchema } from "@/src/server/api/schemas";
+import { parseQuery } from "@/src/server/api/validate";
 
 export const runtime = "nodejs";
 
@@ -74,20 +77,30 @@ async function resolveUser(request: Request) {
   return null;
 }
 
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function GET(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const user = await resolveUser(request);
   if (!user) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
   const url = new URL(request.url);
-  const limitRaw = Number(url.searchParams.get("limit"));
-  const limit =
-    Number.isFinite(limitRaw) && limitRaw > 0 && limitRaw <= 200
-      ? limitRaw
-      : 50;
-  const cursor = parseCursor(url.searchParams.get("cursor"));
-  const includeDeleted = url.searchParams.get("includeDeleted") === "true";
+  const parsed = parseQuery(trailsListQuerySchema, url.searchParams);
+  if (!parsed.ok) {
+    return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400 });
+  }
+
+  const { limit, cursor: cursorRaw, includeDeleted } = parsed.data;
+  const cursor = parseCursor(cursorRaw ?? null);
 
   let trailsQuery = db
     .from("trails")
@@ -119,10 +132,10 @@ export async function GET(request: Request) {
   const [trailsResult, countResult] = await Promise.all([trailsQuery, countQuery]);
 
   if (trailsResult.error) {
-    return jsonError("internal_error", "Failed to fetch trails.", { status: 500 });
+    return jsonFail("internal_error", "Failed to fetch trails.", { status: 500 });
   }
   if (countResult.error) {
-    return jsonError("internal_error", "Failed to count trails.", { status: 500 });
+    return jsonFail("internal_error", "Failed to count trails.", { status: 500 });
   }
 
   type DbTrailRow = {
@@ -153,7 +166,7 @@ export async function GET(request: Request) {
       ? encodeCursor({ updatedAt: new Date(lastItem.updated_at), id: lastItem.id })
       : null;
 
-  return jsonNoStore({
+  return jsonOk({
     items: items.map((row) =>
       toTrailSummary({
         id: row.id,

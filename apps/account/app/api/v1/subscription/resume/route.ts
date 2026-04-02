@@ -3,9 +3,10 @@ import { maybeRow, assertOk } from "@trail/db/helpers";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { getUserFromBillingBearerToken } from "@/src/server/backend/auth/billing-user";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { getSubscriptionSnapshotForUser } from "@/src/server/backend/subscription-access";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { optionsResponse } from "@/src/server/api/cors";
 
 export const runtime = "nodejs";
 
@@ -13,11 +14,21 @@ function typed<T>(res: unknown): PostgrestSingleResponse<T> {
   return res as PostgrestSingleResponse<T>;
 }
 
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const token = getBearerToken(request.headers);
   const user = await getUserFromBillingBearerToken(token);
   if (!user) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
   const existing = maybeRow(
@@ -40,7 +51,7 @@ export async function POST(request: Request) {
       userId: user.id,
       fallbackCreatedAt: user.createdAt,
     });
-    return jsonNoStore(snapshot);
+    return jsonOk(snapshot);
   }
 
   // If the subscription is already expired, resuming does nothing.
@@ -52,7 +63,7 @@ export async function POST(request: Request) {
       userId: user.id,
       fallbackCreatedAt: user.createdAt,
     });
-    return jsonNoStore(snapshot);
+    return jsonOk(snapshot);
   }
 
   assertOk(
@@ -71,5 +82,5 @@ export async function POST(request: Request) {
     fallbackCreatedAt: user.createdAt,
   });
 
-  return jsonNoStore(snapshot);
+  return jsonOk(snapshot);
 }

@@ -4,16 +4,27 @@ import {
   BillingProviderError,
   getBillingProvider,
 } from "@/src/server/backend/billing/provider";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { optionsResponse } from "@/src/server/api/cors";
 
 export const runtime = "nodejs";
 
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function GET(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const token = getBearerToken(request.headers);
   const user = await getUserFromBillingBearerToken(token);
   if (!user) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
   try {
@@ -21,10 +32,10 @@ export async function GET(request: Request) {
       userId: user.id,
       userEmail: user.email,
     });
-    return jsonNoStore(billing);
+    return jsonOk(billing);
   } catch (error) {
     if (error instanceof BillingProviderError) {
-      return jsonError(error.code, error.message, {
+      return jsonFail(error.code, error.message, {
         status: error.status,
         retryable: error.retryable,
         details: error.details,

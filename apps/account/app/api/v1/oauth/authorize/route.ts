@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { createOAuthAuthorizationCode } from "@/src/server/backend/oauth";
-import { jsonError } from "@/src/server/backend/error-response";
+import { jsonFail } from "@/src/server/backend/error-response";
+import { oauthAuthorizeQuerySchema } from "@/src/server/api/schemas";
+import { parseQuery } from "@/src/server/api/validate";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { corsHeaders, optionsResponse } from "@/src/server/api/cors";
 
 export const runtime = "nodejs";
 
@@ -103,23 +107,44 @@ function redirectWithOAuthError(input: {
   return NextResponse.redirect(target);
 }
 
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function GET(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "auth");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
+  const origin = request.headers.get("origin");
+  const cors = corsHeaders(origin);
+
   const url = new URL(request.url);
-  const responseType = url.searchParams.get("response_type") ?? "code";
-  const clientId = url.searchParams.get("client_id") ?? "trail-extension";
-  const redirectUri = url.searchParams.get("redirect_uri") ?? "";
-  const state = url.searchParams.get("state");
-  const scope = url.searchParams.get("scope");
-  const codeChallenge = url.searchParams.get("code_challenge") ?? "";
-  const codeChallengeMethod = url.searchParams.get("code_challenge_method") ?? "S256";
-  const prompt = (url.searchParams.get("prompt") ?? "").trim().toLowerCase();
-  const deviceId = url.searchParams.get("device_id");
+
+  const parsed = parseQuery(oauthAuthorizeQuerySchema, url.searchParams);
+  if (!parsed.ok) {
+    return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400, headers: cors });
+  }
+  const {
+    response_type: responseType,
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    state,
+    scope,
+    code_challenge: codeChallenge,
+    code_challenge_method: codeChallengeMethod,
+    prompt: rawPrompt,
+    device_id: deviceId,
+  } = parsed.data;
+  const prompt = rawPrompt.trim().toLowerCase();
 
   if (!(clientId in OAUTH_CLIENTS)) {
-    return jsonError("invalid_client", "Unknown client_id.", { status: 400 });
+    return jsonFail("invalid_client", "Unknown client_id.", { status: 400, headers: cors });
   }
   if (!redirectUri || !isAllowedRedirectUri(clientId, redirectUri)) {
-    return jsonError("invalid_request", "Invalid redirect_uri.", { status: 400 });
+    return jsonFail("invalid_request", "Invalid redirect_uri.", { status: 400, headers: cors });
   }
   if (responseType !== "code") {
     return redirectWithOAuthError({

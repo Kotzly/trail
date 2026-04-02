@@ -1,9 +1,10 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { toTrailRecord, type DbLabelSource } from "@/src/server/backend/trail-serializers";
 import { db } from "@trail/db";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { optionsResponse } from "@/src/server/api/cors";
 
 export const runtime = "nodejs";
 
@@ -25,19 +26,29 @@ type DbTrailRow = {
   payload: unknown;
 };
 
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const { id } = await params;
   if (!id) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+    return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
   const token = getBearerToken(request.headers);
   const userId = await resolveUserId(token);
   if (!userId) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
   const now = new Date();
@@ -53,17 +64,17 @@ export async function POST(
 
   if (result.error) {
     if (result.error.code === "PGRST116") {
-      return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+      return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
     }
-    return jsonError("internal_error", "Internal error.", { status: 500 });
+    return jsonFail("internal_error", "Internal error.", { status: 500 });
   }
   if (!result.data) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+    return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
   const row = result.data as DbTrailRow;
 
-  return jsonNoStore(
+  return jsonOk(
     toTrailRecord({
       id: row.id,
       userId: row.user_id,
