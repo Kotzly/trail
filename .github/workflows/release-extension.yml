@@ -67,7 +67,7 @@ jobs:
           echo "ZIP_PATH=${zips[0]}" >> "$GITHUB_ENV"
 
       - name: Upload to Chrome Web Store (draft)
-        uses: mnao305/chrome-extension-upload@v5.0.0
+        uses: mnao305/chrome-extension-upload@v6.0.0
         with:
           extension-id: ${{ secrets.CWS_EXTENSION_ID }}
           client-id: ${{ secrets.CWS_CLIENT_ID }}
