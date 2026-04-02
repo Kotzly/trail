@@ -1,7 +1,7 @@
 @config "../tailwind.config.ts";
 @import "tailwindcss";
 @source "../../../packages/content/src";
-@import "@trail/ui/styles/shared-tokens.css";
+/* shared-tokens.css removed — will be re-added via shadcn/ui reinit during UI rebuild */
 
 :root,
 [data-theme="light"] {

@@ -1,15 +1,10 @@
 import type { Config } from "tailwindcss";
-import preset from "@trail/ui/tailwind-preset";
 
 const config: Config = {
-  presets: [preset],
   content: [
     "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
-    "../../packages/ui/src/**/*.{ts,tsx}",
     "../../packages/content/src/**/*.{ts,tsx}",
-    "../../packages/trpc/src/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
@@ -33,6 +28,7 @@ const config: Config = {
         "destructive-foreground":
           "rgb(var(--destructive-foreground) / <alpha-value>)",
         input: "rgb(var(--input) / <alpha-value>)",
+        border: "rgb(var(--border) / <alpha-value>)",
         ring: "rgb(var(--ring) / <alpha-value>)",
         base: "rgb(var(--base) / <alpha-value>)",
         surface: "rgb(var(--surface) / <alpha-value>)",

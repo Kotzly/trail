@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { accountCopy } from "@trail/content";
-import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: accountCopy.meta.title,
-  description: accountCopy.meta.description,
+  title: "Trail Account",
+  description: "Trail account and API",
   icons: {
     icon: [
       {
@@ -26,13 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      data-theme="system"
-      suppressHydrationWarning
-    >
+    <html lang="en" data-theme="system" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground">
-        <Providers>{children}</Providers>
+        {children}
       </body>
     </html>
   );

@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/src/lib/supabase/middleware";
 
-const protectedPrefixes = ["/trails", "/dashboard", "/settings", "/billing"];
+// UI routes removed — will be re-added during UI rebuild
+const protectedPrefixes: string[] = [];
 
 export async function proxy(request: NextRequest) {
   const { pathname, search, searchParams } = request.nextUrl;

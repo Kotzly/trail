@@ -10,7 +10,6 @@ const nextConfig = {
     root: join(__dirname, "../.."),
   },
   transpilePackages: [
-    "@trail/ui",
     "@trail/content",
     "@trail/trpc",
     "@trail/db",

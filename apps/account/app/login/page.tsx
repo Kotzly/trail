@@ -1,10 +1,7 @@
-import { Suspense } from "react"
-import { LoginForm } from "@/components/login-form"
+import { redirect } from "next/navigation";
 
+/** Minimal login placeholder — redirects to Supabase OAuth.
+ *  Will be fully rebuilt per PRD. */
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<div />}>
-      <LoginForm />
-    </Suspense>
-  )
+  redirect("/auth/login");
 }

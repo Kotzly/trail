@@ -3,36 +3,29 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import TrailLogo from "@/components/TrailLogo";
 
 const SITE_SOURCE = "trail-site" as const;
 const RELAY_TIMEOUT_MS = 5_000;
-const DEFAULT_NEXT_PATH = "/trails";
+const DEFAULT_NEXT_PATH = "/";
 
-/** Reject dangerous schemes and ensure the URL is a safe relative path or same-origin. */
 function sanitizeNextUrl(raw: string | null): string {
   const value = raw?.trim();
   if (!value) return DEFAULT_NEXT_PATH;
 
-  // Block javascript:, data:, vbscript:, and any other non-http(s) scheme
   if (/^[a-z][a-z0-9+.-]*:/i.test(value) && !/^https?:/i.test(value)) {
     return DEFAULT_NEXT_PATH;
   }
 
-  // Block protocol-relative URLs (e.g. //evil.com) which bypass scheme checks
-  // but redirect to external origins.
   if (value.startsWith("//")) return DEFAULT_NEXT_PATH;
-
-  // Allow relative paths (starting with /)
   if (value.startsWith("/")) return value;
 
-  // Allow same-origin absolute URLs when running in a browser
   if (typeof window !== "undefined" && /^https?:/i.test(value)) {
     try {
       const parsed = new URL(value);
-      if (parsed.origin === window.location.origin) return parsed.pathname + parsed.search + parsed.hash;
+      if (parsed.origin === window.location.origin)
+        return parsed.pathname + parsed.search + parsed.hash;
     } catch {
-      // malformed — fall through
+      // malformed
     }
   }
 
@@ -53,15 +46,12 @@ function ExtensionRelayInner() {
 
   useEffect(() => {
     if (!code || !codeVerifier || !redirectUri) {
-      // Page loaded without expected params — redirect through callback to
-      // re-establish the session cookie and land on the destination page.
       const url = new URL("/auth/callback", window.location.origin);
       url.searchParams.set("next", next);
       window.location.replace(url.toString());
       return;
     }
 
-    // Post the auth code only once (skip on React strict-mode remount).
     if (!sentRef.current) {
       sentRef.current = true;
 
@@ -78,8 +68,6 @@ function ExtensionRelayInner() {
       window.postMessage(message, window.location.origin);
     }
 
-    // Always set up the timer + listener, even on strict-mode remount,
-    // because cleanup kills them.
     const timer = setTimeout(() => {
       setStatus("connected");
     }, RELAY_TIMEOUT_MS);
@@ -107,39 +95,59 @@ function ExtensionRelayInner() {
 
   if (status === "connected") {
     return (
-      <main className="flex flex-col items-center gap-6 py-12 text-center">
-        <header className="flex flex-col items-center gap-4">
-          <TrailLogo animated label="Trail" />
-          <div className="space-y-1 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              extension connected
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              You can close this tab or head to your dashboard.
-            </p>
-          </div>
-        </header>
-
+      <main
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "1.5rem",
+          padding: "3rem 1rem",
+          textAlign: "center",
+          fontFamily: "system-ui, sans-serif",
+        }}
+      >
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 600 }}>
+          Extension connected
+        </h1>
+        <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+          You can close this tab.
+        </p>
         <a
           href={next}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "0.625rem 1rem",
+            borderRadius: "0.5rem",
+            border: "1px solid #e5e7eb",
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            textDecoration: "none",
+            color: "inherit",
+          }}
         >
-          Go to dashboard
+          Continue
         </a>
       </main>
     );
   }
 
   return (
-    <main className="flex flex-col items-center gap-6 py-12 text-center">
-      <header className="flex flex-col items-center gap-4">
-        <TrailLogo label="Trail" />
-        <div className="space-y-1 text-center">
-          <p className="text-sm text-muted-foreground">
-            Connecting to Trail extension…
-          </p>
-        </div>
-      </header>
+    <main
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "1.5rem",
+        padding: "3rem 1rem",
+        textAlign: "center",
+        fontFamily: "system-ui, sans-serif",
+      }}
+    >
+      <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+        Connecting to Trail extension…
+      </p>
     </main>
   );
 }
@@ -148,8 +156,16 @@ export default function ExtensionRelayPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex flex-col items-center gap-6 py-12 text-center">
-          <p className="text-sm text-muted-foreground">Loading…</p>
+        <main
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            padding: "3rem 1rem",
+            fontFamily: "system-ui, sans-serif",
+          }}
+        >
+          <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Loading…</p>
         </main>
       }
     >
