@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TrailDetailLoading() {
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1">
         <Skeleton className="h-4 w-14" />

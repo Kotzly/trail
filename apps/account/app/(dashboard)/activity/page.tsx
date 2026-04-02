@@ -135,7 +135,7 @@ export default async function ActivityPage() {
   const groups = groupByDate(trails);
 
   return (
-    <div className="flex flex-col gap-8 p-6">
+    <div className="flex flex-col gap-8">
       <div className="flex items-center gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>

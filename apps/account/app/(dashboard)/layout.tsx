@@ -22,7 +22,11 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar user={session.user} />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <div className="flex flex-1 flex-col p-6">
+          {children}
+        </div>
+      </SidebarInset>
     </SidebarProvider>
   );
 }

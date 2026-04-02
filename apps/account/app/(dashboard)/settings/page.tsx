@@ -74,7 +74,7 @@ export default async function SettingsPage() {
     : null;
 
   return (
-    <div className="flex flex-col gap-8 p-6 max-w-2xl">
+    <div className="flex flex-col gap-8 max-w-2xl">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">

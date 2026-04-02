@@ -17,7 +17,7 @@ export default async function TrailsPage() {
   const nextCursor = result?.nextCursor ?? null;
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Your Trails</h1>
         {totalCount > 0 && (

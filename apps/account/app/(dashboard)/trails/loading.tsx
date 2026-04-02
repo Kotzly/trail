@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TrailsLoading() {
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
         <Skeleton className="h-8 w-36" />
         <Skeleton className="h-5 w-8 rounded-full" />

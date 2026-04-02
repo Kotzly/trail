@@ -30,7 +30,7 @@ export default async function TrailPage({ params }: PageProps) {
   if (!trail) notFound();
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <nav className="flex items-center gap-1 text-sm text-muted-foreground">
         <Link href="/trails" className="hover:text-foreground transition-colors">
           Trails

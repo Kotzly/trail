@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export default function TrailNotFound() {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-20 text-center p-6">
+    <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
       <TreePine className="h-12 w-12 text-muted-foreground/40" />
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold">Trail not found</h2>
