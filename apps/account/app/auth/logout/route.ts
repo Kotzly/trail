@@ -14,6 +14,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  // CSRF: reject cross-origin POST (browser forms send Origin header)
+  const origin = request.headers.get("origin");
+  const expected = new URL(request.url).origin;
+  if (origin && origin !== expected) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+
   const supabase = await createSupabaseServerClient();
 
   // Resolve user for extension session revocation
@@ -45,6 +52,6 @@ export async function POST(request: Request) {
     return new NextResponse(null, { status: 204 });
   }
 
-  const origin = new URL(request.url).origin;
-  return NextResponse.redirect(new URL("/login", origin), 303);
+  const baseUrl = new URL(request.url).origin;
+  return NextResponse.redirect(new URL("/login", baseUrl), 303);
 }
