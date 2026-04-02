@@ -1,7 +1,24 @@
 import { redirect } from "next/navigation";
+import { getAuthSession } from "@/src/lib/auth";
+import { LoginCard } from "./login-card";
 
-/** Minimal login placeholder — redirects to Supabase OAuth.
- *  Will be fully rebuilt per PRD. */
-export default function LoginPage() {
-  redirect("/auth/login");
+interface LoginPageProps {
+  searchParams: Promise<{ returnTo?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const session = await getAuthSession();
+
+  if (session) {
+    const { returnTo } = await searchParams;
+    redirect(returnTo ?? "/trails");
+  }
+
+  const { returnTo } = await searchParams;
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 px-4">
+      <LoginCard returnTo={returnTo} />
+    </main>
+  );
 }

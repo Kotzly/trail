@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/src/lib/supabase/middleware";
 
-// UI routes removed — will be re-added during UI rebuild
-const protectedPrefixes: string[] = [];
+const PUBLIC_PATHS = ["/login", "/auth/", "/api/"];
 
 export async function proxy(request: NextRequest) {
   const { pathname, search, searchParams } = request.nextUrl;
@@ -10,7 +9,11 @@ export async function proxy(request: NextRequest) {
   // Supabase OAuth may redirect the auth code to the Site URL root instead of
   // /auth/callback when the redirectTo origin isn't in the allow-list (e.g.
   // Tailscale IP). Catch it here and forward to the callback handler.
-  if (pathname === "/" && searchParams.has("code") && !searchParams.has("next")) {
+  if (
+    pathname === "/" &&
+    searchParams.has("code") &&
+    !searchParams.has("next")
+  ) {
     const origin = `${request.nextUrl.protocol}//${request.headers.get("host")}`;
     const callbackUrl = new URL("/auth/callback", origin);
     callbackUrl.searchParams.set("code", searchParams.get("code")!);
@@ -19,12 +22,12 @@ export async function proxy(request: NextRequest) {
 
   const { supabaseResponse, user } = await updateSession(request);
 
-  const needsAuth = protectedPrefixes.some((p) => pathname.startsWith(p));
-  if (needsAuth && !user) {
-    const origin = `${request.nextUrl.protocol}//${request.headers.get("host")}`;
-    const callbackUrl = new URL("/auth/callback", origin);
-    callbackUrl.searchParams.set("next", `${pathname}${search}`);
-    return NextResponse.redirect(callbackUrl);
+  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+  if (!user && !isPublic) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("returnTo", `${pathname}${search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
   return supabaseResponse;
@@ -32,6 +35,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

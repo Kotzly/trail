@@ -13,6 +13,7 @@ export type TrailSummary = {
   rootTitle: string | null;
   rootFavicon: string | null;
   deviceId: string;
+  deletedAt: string | null;
 };
 
 export type TrailDetail = TrailSummary & {
@@ -100,6 +101,7 @@ function toTrailSummary(row: DbTrailRow): TrailSummary {
     rootTitle: row.root_title,
     rootFavicon: row.root_favicon,
     deviceId: row.device_id,
+    deletedAt: row.deleted_at,
   };
 }
 
