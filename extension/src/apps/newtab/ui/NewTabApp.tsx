@@ -211,7 +211,6 @@ export function NewTabApp() {
 
   // Clear multi-select when query or results change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
     setSelectedKeys(new Set());
   }, [search.query, search.sections]);
 

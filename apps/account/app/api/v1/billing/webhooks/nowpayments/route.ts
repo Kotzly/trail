@@ -219,7 +219,6 @@ export async function POST(request: Request) {
     .select("order_id");
 
   // Session already reached a terminal state — another webhook got there first.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!claimResult.data || (claimResult.data as any[]).length === 0) {
     return jsonNoStore({ ok: true });
   }

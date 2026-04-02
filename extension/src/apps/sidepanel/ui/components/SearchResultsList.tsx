@@ -52,6 +52,7 @@ export default function SearchResultsList({
     return next;
   }, [results, tree]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual API is safe here, not passed to memoized consumers
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,

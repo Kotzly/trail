@@ -60,7 +60,6 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const lastCommittedKeyRef = useRef<string | null>(null);
   const drilldownScopeRef = useRef(drilldownScope);
-  // eslint-disable-next-line react-hooks/refs -- sync prop to ref for stable callback access
   drilldownScopeRef.current = drilldownScope;
   const drilldownMemory = useDrilldownMemory();
 

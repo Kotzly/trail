@@ -7,6 +7,7 @@ import {
   onGraphMessage,
   establishChannel,
   type ParentToGraphMsg,
+  type GraphToParentMsg,
 } from "./spotlight-ipc.js";
 
 type SpotlightGraphFrameProps = {
@@ -40,6 +41,7 @@ export function SpotlightGraphFrame({
   const pendingContextRef = useRef<ParentToGraphMsg | null>(null);
   const channelCleanupRef = useRef<(() => void) | null>(null);
   const [graphReady, setGraphReady] = useState(false);
+  const handleGraphMsgRef = useRef<((msg: GraphToParentMsg) => void) | null>(null);
 
   const sendContext = useCallback((context: ParentToGraphMsg) => {
     const iframe = iframeRef.current;
@@ -50,7 +52,7 @@ export function SpotlightGraphFrame({
   // Handle graph-to-parent messages (shared handler for both postMessage and
   // MessageChannel paths).
   const handleGraphMsg = useCallback(
-    (msg: import("./spotlight-ipc.js").GraphToParentMsg) => {
+    (msg: GraphToParentMsg) => {
       switch (msg.type) {
         case "GRAPH_READY": {
           readyRef.current = true;
@@ -59,7 +61,7 @@ export function SpotlightGraphFrame({
           const iframe = iframeRef.current;
           if (iframe) {
             channelCleanupRef.current?.();
-            channelCleanupRef.current = establishChannel(iframe, handleGraphMsg);
+            channelCleanupRef.current = establishChannel(iframe, (m) => handleGraphMsgRef.current?.(m));
           }
           if (pendingContextRef.current) {
             sendContext(pendingContextRef.current);
@@ -79,6 +81,8 @@ export function SpotlightGraphFrame({
     },
     [onHoverNode, onNavigate, onEscapeKey, sendContext],
   );
+  // eslint-disable-next-line react-hooks/refs -- sync ref to break circular self-reference in useCallback
+  handleGraphMsgRef.current = handleGraphMsg;
 
   // Listen for initial messages via window.postMessage (before channel is up)
   useEffect(() => {

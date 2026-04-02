@@ -238,6 +238,7 @@ export default function ColorBends({
         container.removeChild(renderer.domElement);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- WebGL init runs once; params sync via separate effect below
   }, []);
 
   useEffect(() => {
