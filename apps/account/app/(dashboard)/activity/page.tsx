@@ -1,6 +1,6 @@
 import { getAuthSession } from "@/src/lib/auth";
 import { db } from "@trail/db";
-import { TreePine } from "lucide-react";
+import { GitBranch } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
@@ -74,7 +74,7 @@ function TrailItem({ trail }: { trail: TrailRow }) {
             onError={undefined}
           />
         ) : (
-          <TreePine className="h-4 w-4 text-muted-foreground" />
+          <GitBranch className="h-4 w-4 text-muted-foreground" />
         )}
       </div>
       <div className="flex flex-col gap-0.5 flex-1 min-w-0">
@@ -152,7 +152,7 @@ export default async function ActivityPage() {
 
       {trails.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-          <TreePine className="h-12 w-12 text-muted-foreground/40" />
+          <GitBranch className="h-12 w-12 text-muted-foreground/40" />
           <div className="flex flex-col gap-1">
             <p className="font-medium">No activity yet</p>
             <p className="text-sm text-muted-foreground max-w-xs">

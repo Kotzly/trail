@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
-  TreePine,
+  GitBranch,
   Activity,
   Settings,
   CreditCard,
@@ -32,7 +33,7 @@ type User = {
 };
 
 const navItems = [
-  { title: "Trails", href: "/trails", icon: TreePine },
+  { title: "Trails", href: "/trails", icon: GitBranch },
   { title: "Activity", href: "/activity", icon: Activity },
 ];
 
@@ -48,7 +49,7 @@ export function AppSidebar({ user }: { user: User }) {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link href="/trails" className="flex items-center gap-2">
-          <TreePine className="h-6 w-6" />
+          <Image src="/brand/trail-mark.svg" alt="" width={20} height={20} className="dark:invert" />
           <span className="text-lg font-semibold tracking-tight">Trail</span>
         </Link>
       </SidebarHeader>

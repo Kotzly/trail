@@ -3,7 +3,7 @@
 import { useState, useActionState, useTransition } from "react";
 import { toast } from "sonner";
 import {
-  TreePine,
+  GitBranch,
   Pencil,
   Archive,
   Download,
@@ -266,7 +266,7 @@ function TreeNodeRow({
             }}
           />
         ) : (
-          <TreePine className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+          <GitBranch className="h-4 w-4 shrink-0 text-muted-foreground/60" />
         )}
 
         <span className="truncate flex-1 leading-tight">

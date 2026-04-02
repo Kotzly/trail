@@ -4,7 +4,7 @@ import { useState, useActionState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  TreePine,
+  GitBranch,
   MoreHorizontal,
   Archive,
   RotateCcw,
@@ -173,7 +173,7 @@ function TrailCard({ trail, showArchived }: TrailCardProps) {
                 }}
               />
             ) : (
-              <TreePine className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <GitBranch className="h-5 w-5 shrink-0 text-muted-foreground" />
             )}
             <CardTitle className="text-sm font-medium leading-tight truncate">
               {trail.label}
@@ -280,7 +280,7 @@ export function TrailsList({ initialTrails, totalCount, initialNextCursor }: Tra
   if (trails.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-        <TreePine className="h-12 w-12 text-muted-foreground/50" />
+        <GitBranch className="h-12 w-12 text-muted-foreground/50" />
         <div className="flex flex-col gap-1">
           <p className="font-medium">No trails yet</p>
           <p className="text-sm text-muted-foreground max-w-xs">
