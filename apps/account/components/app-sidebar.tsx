@@ -10,6 +10,7 @@ import {
   CreditCard,
   LogOut,
 } from "lucide-react";
+import { notifyAuthRevoked } from "@/src/lib/trail-extension";
 import {
   Sidebar,
   SidebarContent,
@@ -113,7 +114,15 @@ export function AppSidebar({ user }: { user: User }) {
               {user.email}
             </p>
           </div>
-          <form action="/auth/logout" method="POST">
+          <form
+            action="/auth/logout"
+            method="POST"
+            onSubmit={(e) => {
+              e.preventDefault();
+              notifyAuthRevoked().catch(() => {});
+              (e.target as HTMLFormElement).submit();
+            }}
+          >
             <button
               type="submit"
               className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
