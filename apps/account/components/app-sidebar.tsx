@@ -113,13 +113,15 @@ export function AppSidebar({ user }: { user: User }) {
               {user.email}
             </p>
           </div>
-          <a
-            href="/auth/logout"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            title="Sign out"
-          >
-            <LogOut className="h-4 w-4" />
-          </a>
+          <form action="/auth/logout" method="POST">
+            <button
+              type="submit"
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </form>
         </div>
       </SidebarFooter>
     </Sidebar>

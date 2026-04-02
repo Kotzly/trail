@@ -39,5 +39,12 @@ export async function POST(request: Request) {
   // Sign out from Supabase (clears cookies)
   await supabase.auth.signOut();
 
-  return new NextResponse(null, { status: 204 });
+  // API callers (extension) get 204; browser callers get redirected to login
+  const accept = request.headers.get("accept") ?? "";
+  if (accept.includes("application/json")) {
+    return new NextResponse(null, { status: 204 });
+  }
+
+  const origin = new URL(request.url).origin;
+  return NextResponse.redirect(new URL("/login", origin), 303);
 }
