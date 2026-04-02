@@ -289,7 +289,7 @@ export function TrailsList({ initialTrails, totalCount, initialNextCursor }: Tra
         </div>
         <Button variant="outline" asChild>
           <a
-            href="https://chromewebstore.google.com"
+            href="https://chromewebstore.google.com/detail/trail/pginmdonnghdkcmnhjkniphopcfapodc"
             target="_blank"
             rel="noopener noreferrer"
           >

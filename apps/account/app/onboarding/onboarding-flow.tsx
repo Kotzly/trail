@@ -43,7 +43,7 @@ const STEPS: Step[] = [
       "The Trail browser extension runs quietly in the background and records your navigation trees in real time. It takes about 30 seconds to install.",
     cta: (
       <a
-        href="https://chromewebstore.google.com/"
+        href="https://chromewebstore.google.com/detail/trail/pginmdonnghdkcmnhjkniphopcfapodc"
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 text-sm font-medium text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
