@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev -p ${ACCOUNT_PORT:-4001}",
+    "dev": "echo \"\\n  Tailscale: http://$(tailscale ip -4 2>/dev/null):${ACCOUNT_PORT:-4001}\\n\"; next dev -H 0.0.0.0 -p ${ACCOUNT_PORT:-4001}",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint .",

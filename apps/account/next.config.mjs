@@ -16,6 +16,7 @@ const nextConfig = {
     "@trail/db",
   ],
   serverExternalPackages: ["@prisma/client", "prisma"],
+  allowedDevOrigins: ["http://100.123.146.112:4001"],
 };
 
 export default nextConfig;

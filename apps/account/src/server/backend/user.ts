@@ -56,6 +56,36 @@ export async function ensureUser(authUser: AuthUser): Promise<AppUser | null> {
   };
 }
 
+/** Safety-net upsert for public.users row after Supabase Auth sign-up.
+ *  The DB trigger normally handles this; this covers race conditions. */
+export async function ensurePublicUser(user: {
+  id: string;
+  email: string;
+  name: string;
+  imageUrl?: string | null;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const result = await db
+    .from("users")
+    .upsert(
+      {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image: user.imageUrl ?? null,
+        image_url: user.imageUrl ?? null,
+        email_verified: true,
+        created_at: now,
+        updated_at: now,
+        auth_session_version: 1,
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+  if (result.error) {
+    throw new Error(`ensurePublicUser failed: ${result.error.message}`);
+  }
+}
+
 export async function getUserById(userId: string): Promise<UserSummary | null> {
   const record = maybeRow(
     typed<{

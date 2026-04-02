@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { resolveSafeNextPath } from "@/src/server/auth-redirect";
 import { createOAuthAuthorizationCode } from "@/src/server/backend/oauth";
+import { ensurePublicUser } from "@/src/server/backend/user";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,8 @@ function base64Url(buffer: Buffer): string {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const host = request.headers.get("host");
+  if (host) url.host = host;
   const code = url.searchParams.get("code");
   const nextParam = url.searchParams.get("next");
   const nextPath = resolveSafeNextPath(nextParam, DEFAULT_REDIRECT);
@@ -50,6 +53,22 @@ export async function GET(request: Request) {
     }
     return NextResponse.redirect(loginUrl);
   }
+
+  // Safety net: ensure public.users row exists (the DB trigger usually
+  // handles this, but there can be race conditions on first sign-up).
+  await ensurePublicUser({
+    id: user.id,
+    email: user.email ?? "",
+    name:
+      (user.user_metadata?.full_name as string | undefined) ??
+      (user.user_metadata?.name as string | undefined) ??
+      user.email ??
+      "User",
+    imageUrl:
+      (user.user_metadata?.avatar_url as string | undefined) ?? null,
+  }).catch(() => {
+    // Non-critical: the DB trigger is the primary path; this is a fallback.
+  });
 
   // Extension flow: generate PKCE code for extension relay
   if (source === "extension") {

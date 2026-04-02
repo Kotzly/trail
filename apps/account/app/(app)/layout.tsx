@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/src/lib/auth";
 import { getOnboardingState } from "@/src/server/onboarding";
-import OnboardingGate from "./OnboardingGate";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "sonner";
 
@@ -17,6 +16,10 @@ export default async function AppLayout({
 
   const user = session.user;
   const onboarding = await getOnboardingState();
+
+  if (onboarding.status === "pending") {
+    redirect("/onboarding");
+  }
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -36,10 +39,6 @@ export default async function AppLayout({
       </div>
 
       <Toaster />
-
-      {onboarding?.status === "pending" && (
-        <OnboardingGate initialStatus="pending" />
-      )}
     </div>
   );
 }
