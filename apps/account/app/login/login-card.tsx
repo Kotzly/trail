@@ -27,15 +27,11 @@ export function LoginCard({ returnTo }: LoginCardProps) {
   const [magicLoading, setMagicLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
 
-  const callbackUrl = (() => {
-    const base =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : "";
-    const url = new URL("/auth/callback", base);
+  function getCallbackUrl() {
+    const url = new URL("/auth/callback", window.location.origin);
     if (returnTo) url.searchParams.set("next", returnTo);
     return url.toString();
-  })();
+  }
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
@@ -44,7 +40,7 @@ export function LoginCard({ returnTo }: LoginCardProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: callbackUrl,
+          redirectTo: getCallbackUrl(),
         },
       });
       if (error) throw error;
@@ -66,7 +62,7 @@ export function LoginCard({ returnTo }: LoginCardProps) {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: callbackUrl,
+          emailRedirectTo: getCallbackUrl(),
         },
       });
       if (error) throw error;
