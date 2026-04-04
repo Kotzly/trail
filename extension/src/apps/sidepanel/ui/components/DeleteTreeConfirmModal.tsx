@@ -49,23 +49,23 @@ export default function DeleteTreeConfirmModal() {
 
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => { if (!isOpen) close(); }}>
-      <AlertDialogContent className="max-w-xs gap-3 p-4">
+      <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-base">
+          <AlertDialogTitle>
             Delete &ldquo;{treeLabel}&rdquo;?
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-xs">
+          <AlertDialogDescription>
             This removes all {nodeCount} page{nodeCount === 1 ? "" : "s"} in this tree. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex-row gap-2">
-          <AlertDialogCancel className="mt-0 flex-1" size="sm">Cancel</AlertDialogCancel>
-          <AlertDialogAction variant="outline" size="sm" className="flex-1" onClick={handleCreateNewTree}>
-            New tree
+        <AlertDialogFooter>
+          <AlertDialogAction variant="destructive" size="sm" onClick={handleDelete}>
+            Delete &ldquo;{treeLabel}&rdquo;
           </AlertDialogAction>
-          <AlertDialogAction variant="destructive" size="sm" className="flex-1" onClick={handleDelete}>
-            Delete
+          <AlertDialogAction variant="outline" size="sm" onClick={handleCreateNewTree}>
+            Create new tree
           </AlertDialogAction>
+          <AlertDialogCancel size="sm">Cancel</AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
