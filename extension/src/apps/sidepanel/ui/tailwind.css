@@ -1,3 +1,4 @@
+@import "tailwindcss/preflight" layer(base);
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 @import "tw-animate-css";
@@ -11,7 +12,17 @@
 /* Dark mode matches extension's data-theme attribute */
 @custom-variant dark (&:is([data-theme="dark"] *));
 
-@theme inline {
+/* shadcn base: default border-color + body colors */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@theme {
   /* ── shadcn/ui semantic color tokens ── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);

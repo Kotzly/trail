@@ -1,6 +1,15 @@
 import { useEffect } from "react";
-import { createPortal } from "react-dom";
 import { rpc } from "@shared/rpc/contracts.js";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@ui/components/ui/alert-dialog";
 import { fireAndForget } from "../../api/background.js";
 import { createNewTree } from "../../api/tree.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
@@ -27,66 +36,38 @@ export default function DeleteTreeConfirmModal() {
     close();
   }, [canAct, close, open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        close();
-      }
-    };
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown, true);
-    };
-  }, [close, open]);
-
-  if (!open) return null;
-  if (typeof document === "undefined") return null;
-
   const handleDelete = () => {
     if (!canAct || !rootId) return;
-    close();
     clearSelection();
     fireAndForget(rpc.deleteWithChildren({ nodeId: rootId }));
   };
 
   const handleCreateNewTree = () => {
-    close();
     clearSelection();
     void createNewTree(DEFAULT_NEW_TREE_LABEL);
   };
 
-  return createPortal(
-    <div
-      className="confirm-overlay lod-enabler blur-enabler"
-      onClick={close}
-      onPointerDown={(event) => event.stopPropagation()}
-    >
-      <div
-        className="confirm-dialog"
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <div className="confirm-title">
-          Delete &ldquo;{treeLabel}&rdquo;?
-        </div>
-        <div className="confirm-description" style={{ fontSize: "12px", color: "var(--color-text-secondary, #999)", marginTop: "4px", lineHeight: 1.4 }}>
-          This removes all {nodeCount} page{nodeCount === 1 ? "" : "s"} in this tree. This cannot be undone.
-        </div>
-        <div className="confirm-actions">
-          <button className="confirm-btn ghost" type="button" onClick={close}>
-            Cancel
-          </button>
-          <button className="confirm-btn ghost" type="button" onClick={handleCreateNewTree}>
-            Create new tree
-          </button>
-          <button className="confirm-btn danger" type="button" onClick={handleDelete}>
-            Delete &ldquo;{treeLabel}&rdquo;
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+  return (
+    <AlertDialog open={open} onOpenChange={(isOpen) => { if (!isOpen) close(); }}>
+      <AlertDialogContent className="max-w-xs gap-3 p-4">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-base">
+            Delete &ldquo;{treeLabel}&rdquo;?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-xs">
+            This removes all {nodeCount} page{nodeCount === 1 ? "" : "s"} in this tree. This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex-row gap-2">
+          <AlertDialogCancel className="mt-0 flex-1" size="sm">Cancel</AlertDialogCancel>
+          <AlertDialogAction variant="outline" size="sm" className="flex-1" onClick={handleCreateNewTree}>
+            New tree
+          </AlertDialogAction>
+          <AlertDialogAction variant="destructive" size="sm" className="flex-1" onClick={handleDelete}>
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
