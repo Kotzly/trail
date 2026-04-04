@@ -56,18 +56,21 @@ export async function GET(request: Request) {
 
   // Safety net: ensure public.users row exists (the DB trigger usually
   // handles this, but there can be race conditions on first sign-up).
-  await ensurePublicUser({
-    id: user.id,
-    email: user.email ?? "",
-    name:
-      (user.user_metadata?.full_name as string | undefined) ??
-      (user.user_metadata?.name as string | undefined) ??
-      user.email ??
-      "User",
-    imageUrl:
-      (user.user_metadata?.avatar_url as string | undefined) ?? null,
-  }).catch(() => {
-    // Non-critical: the DB trigger is the primary path; this is a fallback.
+  await ensurePublicUser(
+    {
+      id: user.id,
+      email: user.email ?? "",
+      name:
+        (user.user_metadata?.full_name as string | undefined) ??
+        (user.user_metadata?.name as string | undefined) ??
+        user.email ??
+        "User",
+      imageUrl:
+        (user.user_metadata?.avatar_url as string | undefined) ?? null,
+    },
+    supabase,
+  ).catch((err) => {
+    console.error("ensurePublicUser failed in auth callback:", err);
   });
 
   // Extension flow: generate PKCE code for extension relay

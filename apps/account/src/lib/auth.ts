@@ -4,6 +4,7 @@ import type { UUID } from "crypto";
 import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
 import { getUserById } from "@/src/server/backend/user";
+import { db } from "@trail/db";
 
 export type User = {
   id: UUID;
@@ -55,7 +56,7 @@ export async function getUserFromToken(
     return undefined;
   }
 
-  const user = await getUserById(extension.sub);
+  const user = await getUserById(extension.sub, db);
   if (!user) {
     return undefined;
   }

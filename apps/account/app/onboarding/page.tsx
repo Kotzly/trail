@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/src/lib/auth";
-import { getUserById } from "@/src/server/backend/user";
+import { getUserById, ensurePublicUser } from "@/src/server/backend/user";
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { OnboardingFlow } from "./onboarding-flow";
 
 export default async function OnboardingPage() {
@@ -9,7 +10,20 @@ export default async function OnboardingPage() {
     redirect("/login");
   }
 
-  const user = await getUserById(session.user.id);
+  const supabase = await createSupabaseServerClient();
+  let user = await getUserById(session.user.id, supabase);
+  if (!user) {
+    await ensurePublicUser(
+      {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        imageUrl: session.user.imageUrl ?? null,
+      },
+      supabase,
+    );
+    user = await getUserById(session.user.id, supabase);
+  }
   if (user?.onboardingSeenAt !== null && user?.onboardingSeenAt !== undefined) {
     redirect("/trails");
   }

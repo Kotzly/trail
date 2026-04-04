@@ -10,6 +10,7 @@ import { rateLimit } from "@/src/server/api/rate-limit";
 import { optionsResponse } from "@/src/server/api/cors";
 import { onboardingBodySchema } from "@/src/server/api/schemas";
 import { parseBody } from "@/src/server/api/validate";
+import { db } from "@trail/db";
 
 export const runtime = "nodejs";
 
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const user = await getUserById(auth.userId);
+  const user = await getUserById(auth.userId, db);
   if (!user) {
     return jsonFail("user_not_found", "User not found.", { status: 404 });
   }
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400 });
   }
 
-  const seenAt = await markUserOnboardingSeen(auth.userId);
+  const seenAt = await markUserOnboardingSeen(auth.userId, db);
   if (seenAt === null) {
     return jsonFail("user_not_found", "User not found.", { status: 404 });
   }

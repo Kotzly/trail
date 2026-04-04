@@ -1,5 +1,6 @@
 import { getAuthSession } from "@/src/lib/auth";
 import { getUserById } from "@/src/server/backend/user";
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { getSubscriptionSnapshotForUser } from "@/src/server/backend/subscription-access";
 import {
   Card,
@@ -59,8 +60,9 @@ export default async function SettingsPage() {
   const session = await getAuthSession();
   if (!session) return null;
 
+  const supabase = await createSupabaseServerClient();
   const [user, snapshot] = await Promise.all([
-    getUserById(session.user.id),
+    getUserById(session.user.id, supabase),
     getSubscriptionSnapshotForUser({
       userId: session.user.id,
     }),

@@ -1,5 +1,6 @@
 import { getAuthSession } from "@/src/lib/auth";
 import { getUserById } from "@/src/server/backend/user";
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { getSubscriptionSnapshotForUser } from "@/src/server/backend/subscription-access";
 import { trailPlans } from "@trail/content";
 import { PricingTable } from "./pricing-table";
@@ -12,7 +13,8 @@ export default async function BillingPage() {
   const session = await getAuthSession();
   if (!session) return null;
 
-  const user = await getUserById(session.user.id);
+  const supabase = await createSupabaseServerClient();
+  const user = await getUserById(session.user.id, supabase);
 
   const snapshot = await getSubscriptionSnapshotForUser({
     userId: session.user.id,

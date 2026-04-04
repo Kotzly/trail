@@ -1,9 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl) {
   throw new Error(
@@ -13,7 +11,7 @@ if (!supabaseUrl) {
 
 if (!supabaseKey) {
   throw new Error(
-    "Missing Supabase key. Set SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+    "Missing SUPABASE_SERVICE_ROLE_KEY. The db client requires the service role key for server-to-server operations (bypasses RLS).",
   );
 }
 

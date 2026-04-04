@@ -3,6 +3,7 @@ import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
 import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { buildAccountSnapshot } from "@/src/server/backend/account-snapshot";
 import { getUserById } from "@/src/server/backend/user";
+import { db } from "@trail/db";
 import { getSubscriptionSnapshotForUser } from "@/src/server/backend/subscription-access";
 import { rateLimit } from "@/src/server/api/rate-limit";
 import { optionsResponse } from "@/src/server/api/cors";
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const user = await getUserById(extension.sub);
+  const user = await getUserById(extension.sub, db);
   if (!user) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }

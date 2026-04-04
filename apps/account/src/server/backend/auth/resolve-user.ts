@@ -1,5 +1,6 @@
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
 import { getUserById } from "@/src/server/backend/user";
+import { db } from "@trail/db";
 
 /**
  * Resolve a user ID from a bearer token.
@@ -13,7 +14,7 @@ export async function resolveUserId(
 
   const extension = await verifyExtensionToken(token);
   if (extension?.sub) {
-    const user = await getUserById(extension.sub);
+    const user = await getUserById(extension.sub, db);
     return user?.id ?? null;
   }
 

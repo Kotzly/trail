@@ -53,7 +53,7 @@ async function resolveUser(request: Request) {
   if (bearer) {
     const ext = await verifyExtensionToken(bearer);
     if (ext?.sub) {
-      return ensureUser({ sub: ext.sub });
+      return ensureUser({ sub: ext.sub }, db);
     }
 
     // Try as extension token via getUserFromToken fallback
@@ -71,7 +71,7 @@ async function resolveUser(request: Request) {
       sub: supabaseUser.id,
       email: supabaseUser.email ?? undefined,
       name: supabaseUser.user_metadata?.full_name ?? supabaseUser.user_metadata?.name,
-    });
+    }, supabase);
   }
 
   return null;

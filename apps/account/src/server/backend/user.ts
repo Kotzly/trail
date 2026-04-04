@@ -1,6 +1,5 @@
-import { db } from "@trail/db";
 import { singleRow, maybeRow } from "@trail/db/helpers";
-import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+import type { PostgrestSingleResponse, SupabaseClient } from "@supabase/supabase-js";
 import type { AppUser } from "@trail/trpc";
 
 type AuthUser = {
@@ -29,14 +28,17 @@ function resolveImageUrl(image?: string | null, imageUrl?: string | null) {
   return image ?? imageUrl ?? null;
 }
 
-export async function ensureUser(authUser: AuthUser): Promise<AppUser | null> {
+export async function ensureUser(
+  authUser: AuthUser,
+  client: SupabaseClient,
+): Promise<AppUser | null> {
   if (!authUser.sub) {
     return null;
   }
 
   const record = maybeRow(
     typed<{ id: string; email: string | null; name: string | null; image: string | null; image_url: string | null } | null>(
-      await db
+      await client
         .from("users")
         .select("id, email, name, image, image_url")
         .eq("id", authUser.sub)
@@ -56,16 +58,20 @@ export async function ensureUser(authUser: AuthUser): Promise<AppUser | null> {
   };
 }
 
-/** Safety-net upsert for public.users row after Supabase Auth sign-up.
- *  The DB trigger normally handles this; this covers race conditions. */
-export async function ensurePublicUser(user: {
-  id: string;
-  email: string;
-  name: string;
-  imageUrl?: string | null;
-}): Promise<void> {
+/** Create public.users row for a Supabase Auth user.
+ *  Must be called with an authenticated Supabase client (user JWT)
+ *  so the INSERT passes the RLS "insert_own" policy. */
+export async function ensurePublicUser(
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    imageUrl?: string | null;
+  },
+  client: SupabaseClient,
+): Promise<void> {
   const now = new Date().toISOString();
-  const result = await db
+  const result = await client
     .from("users")
     .upsert(
       {
@@ -86,7 +92,10 @@ export async function ensurePublicUser(user: {
   }
 }
 
-export async function getUserById(userId: string): Promise<UserSummary | null> {
+export async function getUserById(
+  userId: string,
+  client: SupabaseClient,
+): Promise<UserSummary | null> {
   const record = maybeRow(
     typed<{
       id: string;
@@ -97,7 +106,7 @@ export async function getUserById(userId: string): Promise<UserSummary | null> {
       created_at: string;
       onboarding_seen_at: string | null;
     } | null>(
-      await db
+      await client
         .from("users")
         .select("id, email, name, image, image_url, created_at, onboarding_seen_at")
         .eq("id", userId)
@@ -123,10 +132,11 @@ export async function getUserById(userId: string): Promise<UserSummary | null> {
 
 export async function getUserOnboardingSeen(
   userId: string,
+  client: SupabaseClient,
 ): Promise<boolean | null> {
   const record = maybeRow(
     typed<{ onboarding_seen_at: string | null } | null>(
-      await db
+      await client
         .from("users")
         .select("onboarding_seen_at")
         .eq("id", userId)
@@ -143,11 +153,12 @@ export async function getUserOnboardingSeen(
 
 export async function markUserOnboardingSeen(
   userId: string,
+  client: SupabaseClient,
 ): Promise<Date | null> {
   // COALESCE semantics: only set if not already set
   const existing = maybeRow(
     typed<{ onboarding_seen_at: string | null } | null>(
-      await db
+      await client
         .from("users")
         .select("onboarding_seen_at")
         .eq("id", userId)
@@ -165,7 +176,7 @@ export async function markUserOnboardingSeen(
 
   const updated = singleRow(
     typed<{ onboarding_seen_at: string | null }>(
-      await db
+      await client
         .from("users")
         .update({
           onboarding_seen_at: new Date().toISOString(),
@@ -181,8 +192,11 @@ export async function markUserOnboardingSeen(
   return updated.onboarding_seen_at ? new Date(updated.onboarding_seen_at) : null;
 }
 
-export async function resetUserOnboarding(userId: string): Promise<boolean> {
-  const result = await db
+export async function resetUserOnboarding(
+  userId: string,
+  client: SupabaseClient,
+): Promise<boolean> {
+  const result = await client
     .from("users")
     .update({
       onboarding_seen_at: null,
