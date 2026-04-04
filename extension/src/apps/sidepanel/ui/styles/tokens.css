@@ -4,6 +4,9 @@
 
 :root,
 [data-theme="light"] {
+  /* Border radius base (used by @theme inline radius scale) */
+  --radius: 0.625rem;
+
   /* Core semantic tokens */
   --background: #ffffff;
   --foreground: #0f172a;
@@ -24,6 +27,13 @@
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #0f172a;
+
+  /* Chart colors */
+  --chart-1: #f97316;
+  --chart-2: #0d9488;
+  --chart-3: #1e3a5f;
+  --chart-4: #e5b567;
+  --chart-5: #e8833a;
 
   /* Derived tokens (used by glass/elevation system) */
   --primary-rgb: 15, 23, 42;
@@ -82,6 +92,12 @@
   --border: #27272a;
   --input: #27272a;
   --ring: #d6d6d6;
+
+  --chart-1: #3b82f6;
+  --chart-2: #34d399;
+  --chart-3: #f59e0b;
+  --chart-4: #a78bfa;
+  --chart-5: #f472b6;
 
   --primary-rgb: 250, 250, 250;
   --destructive-rgb: 239, 68, 68;

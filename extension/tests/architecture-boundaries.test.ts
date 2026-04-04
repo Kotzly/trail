@@ -7,8 +7,8 @@ const ENTRYPOINTS_DIR = join(ROOT, 'src', 'entrypoints');
 const SRC_DIR = join(ROOT, 'src');
 
 const EXPECTED_ENTRYPOINT_FILES = [
-  'account/index.html',
-  'account/main.tsx',
+  'hub/index.html',
+  'hub/main.tsx',
   'background.ts',
   'content.ts',
   'fullview/index.html',

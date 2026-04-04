@@ -1,4 +1,16 @@
 {
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@entrypoints/*": ["src/entrypoints/*"],
+      "@apps/*": ["src/apps/*"],
+      "@ui/*": ["src/ui/*"],
+      "@features/*": ["src/features/*"],
+      "@background/*": ["src/background/*"],
+      "@content/*": ["src/content/*"],
+      "@shared/*": ["src/shared/*"]
+    }
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },

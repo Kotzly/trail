@@ -60,6 +60,7 @@ export const RPC_METHOD = {
   RESET_NODE_LAYOUTS: "RESET_NODE_LAYOUTS",
   ENTER_EDITOR_MODE: "ENTER_EDITOR_MODE",
   EXIT_EDITOR_MODE: "EXIT_EDITOR_MODE",
+  CANCEL_EDITOR_MODE: "CANCEL_EDITOR_MODE",
   REPARENT_NODE: "REPARENT_NODE",
   DUPLICATE_SUBTREE: "DUPLICATE_SUBTREE",
   SYNC_STATUS_UPDATED: "SYNC_STATUS_UPDATED",
@@ -300,6 +301,7 @@ export type EnterEditorModeMessage = RequestMessageBase<
   { treeId: string }
 >;
 export type ExitEditorModeMessage = RequestMessageBase<typeof RPC_METHOD.EXIT_EDITOR_MODE>;
+export type CancelEditorModeMessage = RequestMessageBase<typeof RPC_METHOD.CANCEL_EDITOR_MODE>;
 export type ReparentNodeMessage = RequestMessageBase<
   typeof RPC_METHOD.REPARENT_NODE,
   {
@@ -691,6 +693,7 @@ export type RequestMessage =
   | ResetNodeLayoutsMessage
   | EnterEditorModeMessage
   | ExitEditorModeMessage
+  | CancelEditorModeMessage
   | ReparentNodeMessage
   | DuplicateSubtreeMessage
   | SyncStatusUpdatedMessage
@@ -781,6 +784,7 @@ export type ResponseDataByType = {
   [RPC_METHOD.RESET_NODE_LAYOUTS]: void;
   [RPC_METHOD.ENTER_EDITOR_MODE]: EditorModeState;
   [RPC_METHOD.EXIT_EDITOR_MODE]: EditorModeState;
+  [RPC_METHOD.CANCEL_EDITOR_MODE]: EditorModeState;
   [RPC_METHOD.REPARENT_NODE]: void;
   [RPC_METHOD.DUPLICATE_SUBTREE]: void;
   [RPC_METHOD.SYNC_STATUS_UPDATED]: void;
@@ -993,6 +997,9 @@ export const rpc = {
   },
   exitEditorMode(): ExitEditorModeMessage {
     return { type: RPC_METHOD.EXIT_EDITOR_MODE };
+  },
+  cancelEditorMode(): CancelEditorModeMessage {
+    return { type: RPC_METHOD.CANCEL_EDITOR_MODE };
   },
   reparentNode(payload: { nodeId: NodeId; newParentId: NodeId }): ReparentNodeMessage {
     return { type: RPC_METHOD.REPARENT_NODE, ...payload };

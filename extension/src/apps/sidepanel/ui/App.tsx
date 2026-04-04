@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import FloatingControls from "./components/FloatingControls.js";
+import EditorToolbar from "./components/EditorToolbar.js";
 import GraphArea from "@features/graph/components/graph/GraphArea.js";
 import ThemePanel from "./components/theme/ThemePanel.js";
 import ContextMenus from "./components/ContextMenus.js";
@@ -143,6 +144,7 @@ export default function App() {
     <div className={containerClass}>
       <Toaster />
       {showSessionBanner && <SessionExpiredBanner />}
+      <EditorToolbar />
       <FloatingControls searchInputRef={searchInputRef} />
       <OnboardingHints />
       <GraphArea />

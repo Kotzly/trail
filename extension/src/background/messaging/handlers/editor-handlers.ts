@@ -22,6 +22,8 @@ import {
 } from "../../services/editor-sync.js";
 import { isAllowedSiteOrigin } from "@shared/config/site-origins.js";
 import { editorStateItem } from "@shared/config/storage-items.js";
+import { isSidepanelAlive } from "./panel-handlers.js";
+import { openSidebarForTab } from "@shared/platform/webext.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import { browser } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
@@ -34,6 +36,7 @@ const log = createLogger("editor");
 
 let editorState: EditorModeState = { active: false, treeId: null };
 let editorStateLoaded = false;
+let editorOpenedPanel = false;
 
 async function ensureEditorStateLoaded(): Promise<void> {
   if (editorStateLoaded) return;
@@ -196,6 +199,21 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
     });
   }
 
+  // Open sidepanel if it's not already open
+  if (!isSidepanelAlive()) {
+    try {
+      const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
+      if (activeTab?.id) {
+        await openSidebarForTab(activeTab.id);
+        editorOpenedPanel = true;
+      }
+    } catch (e) {
+      log.warn("Failed to open sidepanel for editor", { error: String(e) });
+    }
+  } else {
+    editorOpenedPanel = false;
+  }
+
   return editorState;
 }
 
@@ -214,6 +232,7 @@ async function finalizeEditorExit(): Promise<EditorModeState> {
   editorState = { active: false, treeId: null };
   void editorStateItem.setValue(editorState);
   editorSessionSnapshot = null;
+  editorOpenedPanel = false;
   CommandManager.clearHistory();
 
   const tree = await treeStorage.getOrCreateTree();
@@ -232,11 +251,20 @@ async function finalizeEditorExit(): Promise<EditorModeState> {
   return editorState;
 }
 
-export async function saveEditorMode(): Promise<EditorModeActionResult> {
-  if (!editorState.active) {
-    return { ok: true };
-  }
+let saveInFlight: Promise<EditorModeActionResult> | null = null;
 
+export function saveEditorMode(): Promise<EditorModeActionResult> {
+  if (!editorState.active) {
+    return Promise.resolve({ ok: true });
+  }
+  if (saveInFlight) return saveInFlight;
+  saveInFlight = doSaveEditorMode().finally(() => {
+    saveInFlight = null;
+  });
+  return saveInFlight;
+}
+
+async function doSaveEditorMode(): Promise<EditorModeActionResult> {
   const result = await editorSyncFlush();
   if (!result.ok) {
     return { ok: false, error: result.error };
@@ -291,6 +319,14 @@ export const editorHandlers = defineRpcHandlers({
 
   async [RPC_METHOD.EXIT_EDITOR_MODE]() {
     const result = await saveEditorMode();
+    if (!result.ok) {
+      return err(result.error);
+    }
+    return ok(editorState);
+  },
+
+  async [RPC_METHOD.CANCEL_EDITOR_MODE]() {
+    const result = await cancelEditorMode();
     if (!result.ok) {
       return err(result.error);
     }
