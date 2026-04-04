@@ -71,16 +71,15 @@ export function updateQualityPolicy(
   const canTransition = now - prev.lastTransitionAt >= HYSTERESIS_MS;
 
   if (level === "full") {
-    if (scoreMs >= 34 || (scoreMs >= 22 && canTransition)) {
-      level = scoreMs >= 34 ? "dot" : "low";
+    if (scoreMs >= 22 && canTransition) {
+      level = "low";
     }
   } else if (level === "low") {
-    if (scoreMs >= 30 && canTransition) {
-      level = "dot";
-    } else if (scoreMs <= 14 && canTransition) {
+    if (scoreMs <= 14 && canTransition) {
       level = "full";
     }
-  } else if (level === "dot" && scoreMs <= 18 && canTransition) {
+  } else if (level === "dot") {
+    // Recover from dot immediately — dot is disabled
     level = "low";
   }
 

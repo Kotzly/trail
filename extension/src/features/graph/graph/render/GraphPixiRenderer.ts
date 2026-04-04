@@ -55,7 +55,7 @@ export type GraphRenderMetrics = {
 };
 
 const LOD_HIDE_PX = -1; // disabled — hiding breaks newtab background graph where all nodes are tiny
-const LOD_DOT_PX = 12;
+const LOD_DOT_PX = -1; // disabled — always show text, never collapse to dot
 const LOD_LOW_PX = 32;
 /** Paths/connections are not drawn when typical node size on screen is below this. */
 const LOD_CONN_HIDE_PX = -1; // disabled — same reason as LOD_HIDE_PX
@@ -883,6 +883,12 @@ export class GraphPixiRenderer {
   private themeVersion = 0;
   private fontFamily = '"Inter", system-ui, sans-serif';
   private detailMode: DetailMode = "full";
+
+  /** During gestures, cap detail at "low" to avoid expensive full renders mid-zoom. */
+  private get effectiveDetailMode(): DetailMode {
+    if (this.isGestureActive && this.detailMode === "full") return "low";
+    return this.detailMode;
+  }
   private connectionQuality: ConnectionQuality = "full";
   private textResolution = 1;
   private selectedNodeIds: Set<NodeId> = new Set();
@@ -934,7 +940,7 @@ export class GraphPixiRenderer {
         if (visual && node) {
           visual.update(
             node, this.view, this.theme, this.origin, this.fontFamily,
-            this.themeVersion, this.detailMode, this.textResolution,
+            this.themeVersion, this.effectiveDetailMode, this.textResolution,
             selection.has(id), node.isPreview,
           );
         }
@@ -1215,7 +1221,7 @@ export class GraphPixiRenderer {
         this.origin,
         this.fontFamily,
         this.themeVersion,
-        this.detailMode,
+        this.effectiveDetailMode,
         this.textResolution,
         nextSelection.has(id),
         node.isPreview,
@@ -1269,7 +1275,7 @@ export class GraphPixiRenderer {
         this.origin,
         this.fontFamily,
         this.themeVersion,
-        this.detailMode,
+        this.effectiveDetailMode,
         this.textResolution,
         selection.has(id),
         updatedNode.isPreview,
@@ -1521,7 +1527,7 @@ export class GraphPixiRenderer {
               this.origin,
               this.fontFamily,
               this.themeVersion,
-              this.detailMode,
+              this.effectiveDetailMode,
               this.textResolution,
               selection.has(nodeId),
               node.isPreview,
@@ -1620,7 +1626,7 @@ export class GraphPixiRenderer {
   private isCollapseBadgeVisible(model: NodeRenderModel): boolean {
     if (!model.isCollapsed) return false;
     const selection = this.getEffectiveSelection();
-    const lod = resolveNodeLod(model, this.view, this.detailMode, selection.has(model.id));
+    const lod = resolveNodeLod(model, this.view, this.effectiveDetailMode, selection.has(model.id));
     return lod === "full" || lod === "low";
   }
 
@@ -1732,7 +1738,7 @@ export class GraphPixiRenderer {
         this.origin,
         this.fontFamily,
         this.themeVersion,
-        this.detailMode,
+        this.effectiveDetailMode,
         this.textResolution,
         selection.has(id),
         node.isPreview,
