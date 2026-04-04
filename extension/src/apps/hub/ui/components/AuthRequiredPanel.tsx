@@ -40,7 +40,7 @@ export default function AuthRequiredPanel() {
       </p>
       <button
         type="button"
-        className="account-btn account-btn--primary"
+        className="hub-btn hub-btn--primary"
         onClick={() => void handleSignIn()}
         disabled={busy}
       >

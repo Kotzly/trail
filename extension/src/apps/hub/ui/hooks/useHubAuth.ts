@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { accountSnapshotItem } from "@shared/config/storage-items.js";
 
-export function useAccountAuth() {
+export function useHubAuth() {
   const query = useQuery({
-    queryKey: ["account-auth-status"],
+    queryKey: ["hub-auth-status"],
     queryFn: async () => {
       const envelope = await accountSnapshotItem.getValue();
       if (!envelope) return { authenticated: false } as const;

@@ -2,8 +2,8 @@ import type { RouteParams } from "../router.js";
 
 export default function GettingStartedPage(_props: RouteParams) {
   return (
-    <div className="account-page">
-      <h1 className="account-page__title">Getting Started</h1>
+    <div className="hub-page">
+      <h1 className="hub-page__title">Getting Started</h1>
 
       <div className="getting-started">
         <div className="getting-started__section">

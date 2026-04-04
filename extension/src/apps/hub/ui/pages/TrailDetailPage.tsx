@@ -22,8 +22,8 @@ export default function TrailDetailPage({ params }: RouteParams) {
 
   if (isLoading) {
     return (
-      <div className="account-page">
-        <a href="#/trails" className="account-back-link">
+      <div className="hub-page">
+        <a href="#/trails" className="hub-back-link">
           <svg
             width="16"
             height="16"
@@ -38,8 +38,8 @@ export default function TrailDetailPage({ params }: RouteParams) {
           </svg>
           back to trails
         </a>
-        <div className="account-empty">
-          <p className="account-empty__text">Loading trail...</p>
+        <div className="hub-empty">
+          <p className="hub-empty__text">Loading trail...</p>
         </div>
       </div>
     );
@@ -47,8 +47,8 @@ export default function TrailDetailPage({ params }: RouteParams) {
 
   if (error || !trail) {
     return (
-      <div className="account-page">
-        <a href="#/trails" className="account-back-link">
+      <div className="hub-page">
+        <a href="#/trails" className="hub-back-link">
           <svg
             width="16"
             height="16"
@@ -63,8 +63,8 @@ export default function TrailDetailPage({ params }: RouteParams) {
           </svg>
           back to trails
         </a>
-        <div className="account-error">
-          <p className="account-error__text">
+        <div className="hub-error">
+          <p className="hub-error__text">
             {error ? `Failed to load trail: ${error.message}` : "Trail not found"}
           </p>
         </div>
@@ -73,8 +73,8 @@ export default function TrailDetailPage({ params }: RouteParams) {
   }
 
   return (
-    <div className="account-page">
-      <a href="#/trails" className="account-back-link">
+    <div className="hub-page">
+      <a href="#/trails" className="hub-back-link">
         <svg
           width="16"
           height="16"

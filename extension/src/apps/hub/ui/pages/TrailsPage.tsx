@@ -40,12 +40,12 @@ export default function TrailsPage(_props: RouteParams) {
 
   if (isLoading) {
     return (
-      <div className="account-page">
-        <div className="account-page__header">
-          <h1 className="account-page__title">Trails</h1>
+      <div className="hub-page">
+        <div className="hub-page__header">
+          <h1 className="hub-page__title">Trails</h1>
         </div>
-        <div className="account-empty">
-          <p className="account-empty__text">Loading trails...</p>
+        <div className="hub-empty">
+          <p className="hub-empty__text">Loading trails...</p>
         </div>
       </div>
     );
@@ -53,12 +53,12 @@ export default function TrailsPage(_props: RouteParams) {
 
   if (error) {
     return (
-      <div className="account-page">
-        <div className="account-page__header">
-          <h1 className="account-page__title">Trails</h1>
+      <div className="hub-page">
+        <div className="hub-page__header">
+          <h1 className="hub-page__title">Trails</h1>
         </div>
-        <div className="account-error">
-          <p className="account-error__text">Failed to load trails: {error.message}</p>
+        <div className="hub-error">
+          <p className="hub-error__text">Failed to load trails: {error.message}</p>
         </div>
       </div>
     );
@@ -66,16 +66,16 @@ export default function TrailsPage(_props: RouteParams) {
 
   if (trails.length === 0) {
     return (
-      <div className="account-page">
-        <div className="account-page__header">
-          <h1 className="account-page__title">Trails</h1>
-          <a href="#/trails/import" className="account-btn account-btn--secondary">
+      <div className="hub-page">
+        <div className="hub-page__header">
+          <h1 className="hub-page__title">Trails</h1>
+          <a href="#/trails/import" className="hub-btn hub-btn--secondary">
             Import
           </a>
         </div>
-        <div className="account-empty">
-          <p className="account-empty__heading">No trails yet</p>
-          <p className="account-empty__text">
+        <div className="hub-empty">
+          <p className="hub-empty__heading">No trails yet</p>
+          <p className="hub-empty__text">
             Start browsing with the Trail extension and your trails will appear here automatically.
           </p>
         </div>
@@ -84,10 +84,10 @@ export default function TrailsPage(_props: RouteParams) {
   }
 
   return (
-    <div className="account-page">
-      <div className="account-page__header">
-        <h1 className="account-page__title">Trails</h1>
-        <a href="#/trails/import" className="account-btn account-btn--secondary">
+    <div className="hub-page">
+      <div className="hub-page__header">
+        <h1 className="hub-page__title">Trails</h1>
+        <a href="#/trails/import" className="hub-btn hub-btn--secondary">
           Import
         </a>
       </div>
@@ -135,9 +135,9 @@ export default function TrailsPage(_props: RouteParams) {
           ))}
         </div>
       ) : (
-        <div className="account-empty">
-          <p className="account-empty__heading">No matching trails</p>
-          <p className="account-empty__text">Try adjusting your search query.</p>
+        <div className="hub-empty">
+          <p className="hub-empty__heading">No matching trails</p>
+          <p className="hub-empty__text">Try adjusting your search query.</p>
         </div>
       )}
     </div>

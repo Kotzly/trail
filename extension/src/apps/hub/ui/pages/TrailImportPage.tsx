@@ -123,8 +123,8 @@ export default function TrailImportPage(_props: RouteParams) {
   }, []);
 
   return (
-    <div className="account-page">
-      <a href="#/trails" className="account-back-link">
+    <div className="hub-page">
+      <a href="#/trails" className="hub-back-link">
         <svg
           width="16"
           height="16"
@@ -141,7 +141,7 @@ export default function TrailImportPage(_props: RouteParams) {
       </a>
 
       <div className="import-heading">
-        <h1 className="account-page__title">Import trail</h1>
+        <h1 className="hub-page__title">Import trail</h1>
         <p className="import-heading__subtitle">
           Upload a <code className="import-heading__code">.trail.json</code> file to import it
           locally.
@@ -175,7 +175,7 @@ export default function TrailImportPage(_props: RouteParams) {
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
             <p className="import-dropzone__text">drag &amp; drop a file here, or</p>
-            <label className="account-btn account-btn--secondary import-dropzone__label">
+            <label className="hub-btn hub-btn--secondary import-dropzone__label">
               choose file
               <input
                 ref={fileRef}
@@ -236,12 +236,12 @@ export default function TrailImportPage(_props: RouteParams) {
           <div className="import-preview__actions">
             <button
               type="button"
-              className="account-btn account-btn--primary"
+              className="hub-btn hub-btn--primary"
               onClick={() => void handleImport()}
             >
               Import
             </button>
-            <button type="button" className="account-btn account-btn--secondary" onClick={reset}>
+            <button type="button" className="hub-btn hub-btn--secondary" onClick={reset}>
               Cancel
             </button>
           </div>
@@ -251,7 +251,7 @@ export default function TrailImportPage(_props: RouteParams) {
       {state.step === "importing" && (
         <div className="import-status">
           <svg
-            className="account-spinner"
+            className="hub-spinner"
             width="16"
             height="16"
             viewBox="0 0 24 24"
@@ -271,12 +271,12 @@ export default function TrailImportPage(_props: RouteParams) {
           <div className="import-done__actions">
             <button
               type="button"
-              className="account-btn account-btn--primary"
+              className="hub-btn hub-btn--primary"
               onClick={() => navigate(`/trails/${state.treeId}`)}
             >
               View trail
             </button>
-            <button type="button" className="account-btn account-btn--secondary" onClick={reset}>
+            <button type="button" className="hub-btn hub-btn--secondary" onClick={reset}>
               Import another
             </button>
           </div>

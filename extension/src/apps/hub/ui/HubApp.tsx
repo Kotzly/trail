@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { defineRoute, useRoute, navigate } from "./router.js";
-import AccountLayout from "./layouts/AccountLayout.js";
+import HubLayout from "./layouts/HubLayout.js";
 import TrailsPage from "./pages/TrailsPage.js";
 import TrailDetailPage from "./pages/TrailDetailPage.js";
 import TrailImportPage from "./pages/TrailImportPage.js";
@@ -19,7 +19,7 @@ const routes = [
   defineRoute("/getting-started", GettingStartedPage),
 ] as const;
 
-export default function AccountApp() {
+export default function HubApp() {
   const match = useRoute(routes);
 
   useEffect(() => {
@@ -34,8 +34,8 @@ export default function AccountApp() {
   const Page = route.component;
 
   return (
-    <AccountLayout>
+    <HubLayout>
       <Page params={params} />
-    </AccountLayout>
+    </HubLayout>
   );
 }

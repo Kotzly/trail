@@ -21,22 +21,22 @@ function isActive(currentPath: string, itemPath: string): boolean {
   return currentPath === itemPath;
 }
 
-export default function AccountSidebar() {
+export default function HubSidebar() {
   const currentPath = useCurrentPath();
 
   return (
-    <nav className="account-sidebar">
-      <div className="account-sidebar__header">
-        <span className="account-sidebar__brand">Trail</span>
+    <nav className="hub-sidebar">
+      <div className="hub-sidebar__header">
+        <span className="hub-sidebar__brand">Trail</span>
       </div>
-      <ul className="account-sidebar__nav">
+      <ul className="hub-sidebar__nav">
         {navItems.map((item) => {
           const active = isActive(currentPath, item.path);
           return (
             <li key={item.path}>
               <a
                 href={`#${item.path}`}
-                className={cn("account-sidebar__link", active && "account-sidebar__link--active")}
+                className={cn("hub-sidebar__link", active && "hub-sidebar__link--active")}
               >
                 {item.label}
               </a>

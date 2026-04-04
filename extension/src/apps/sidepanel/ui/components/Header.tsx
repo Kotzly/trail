@@ -1,3 +1,4 @@
+import { browser } from "@shared/platform/webext.js";
 import { redo, undo } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
@@ -12,8 +13,6 @@ export default function Header() {
   const metaKey = useStore((state) => state.metaKey);
   const setCommandState = useStore((state) => state.setCommandState);
   const flags = useStore((state) => state.flags);
-  const settingsOpen = useStore((state) => state.ui.settingsOpen);
-  const setSettingsOpen = useStore((state) => state.setSettingsOpen);
   const themePickerOpen = useStore((state) => state.ui.themePickerOpen);
   const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
   const syncStatus = useStore((state) => state.syncStatus);
@@ -144,7 +143,12 @@ export default function Header() {
           type="button"
           aria-label={settingsLabel}
           data-tooltip={settingsTooltip}
-          onClick={() => setSettingsOpen(!settingsOpen)}
+          onClick={() => {
+            const url = browser.runtime.getURL("hub.html");
+            browser.tabs.create({ url, active: true }).catch((error) => {
+              console.error("Failed to open hub page:", error);
+            });
+          }}
         >
           <Icons.Settings size={20} />
         </button>

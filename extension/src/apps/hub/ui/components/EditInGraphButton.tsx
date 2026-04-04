@@ -31,13 +31,13 @@ export default function EditInGraphButton({ treeId }: EditInGraphButtonProps) {
   return (
     <button
       type="button"
-      className="account-btn account-btn--primary"
+      className="hub-btn hub-btn--primary"
       onClick={() => void handleClick()}
       disabled={state !== "idle"}
     >
       {state === "opening" && (
         <svg
-          className="account-spinner"
+          className="hub-spinner"
           width="14"
           height="14"
           viewBox="0 0 24 24"

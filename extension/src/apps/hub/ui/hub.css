@@ -1,12 +1,12 @@
-/* ── Account Layout ────────────────────────────────────────── */
+/* ── Hub Layout ────────────────────────────────────────────── */
 
-.account-layout {
+.hub-layout {
   display: flex;
   height: 100vh;
   overflow: hidden;
 }
 
-.account-main {
+.hub-main {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
@@ -15,7 +15,7 @@
 
 /* ── Sidebar ──────────────────────────────────────────────── */
 
-.account-sidebar {
+.hub-sidebar {
   width: 200px;
   flex-shrink: 0;
   display: flex;
@@ -25,18 +25,18 @@
   padding: 20px 0;
 }
 
-.account-sidebar__header {
+.hub-sidebar__header {
   padding: 0 20px 16px;
 }
 
-.account-sidebar__brand {
+.hub-sidebar__brand {
   font-size: 15px;
   font-weight: 600;
   color: var(--foreground);
   letter-spacing: -0.02em;
 }
 
-.account-sidebar__nav {
+.hub-sidebar__nav {
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -44,7 +44,7 @@
   padding: 0 8px;
 }
 
-.account-sidebar__link {
+.hub-sidebar__link {
   display: block;
   padding: 6px 12px;
   border-radius: 6px;
@@ -56,12 +56,12 @@
     color 120ms ease;
 }
 
-.account-sidebar__link:hover {
+.hub-sidebar__link:hover {
   background: var(--muted);
   color: var(--foreground);
 }
 
-.account-sidebar__link--active {
+.hub-sidebar__link--active {
   background: var(--muted);
   color: var(--foreground);
   font-weight: 500;
@@ -69,21 +69,21 @@
 
 /* ── Page Layout ──────────────────────────────────────────── */
 
-.account-page {
+.hub-page {
   display: flex;
   flex-direction: column;
   gap: 20px;
   max-width: 720px;
 }
 
-.account-page__header {
+.hub-page__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
 
-.account-page__title {
+.hub-page__title {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -93,7 +93,7 @@
 
 /* ── Buttons ──────────────────────────────────────────────── */
 
-.account-btn {
+.hub-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -108,34 +108,34 @@
     border-color 120ms ease;
 }
 
-.account-btn:disabled {
+.hub-btn:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
-.account-btn--primary {
+.hub-btn--primary {
   background: var(--foreground);
   color: var(--background);
   border: 1px solid var(--foreground);
 }
 
-.account-btn--primary:hover:not(:disabled) {
+.hub-btn--primary:hover:not(:disabled) {
   opacity: 0.9;
 }
 
-.account-btn--secondary {
+.hub-btn--secondary {
   background: var(--card);
   color: var(--foreground);
   border: 1px solid var(--border);
 }
 
-.account-btn--secondary:hover:not(:disabled) {
+.hub-btn--secondary:hover:not(:disabled) {
   background: var(--muted);
 }
 
 /* ── Shared states ────────────────────────────────────────── */
 
-.account-empty {
+.hub-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -146,41 +146,41 @@
   text-align: center;
 }
 
-.account-empty__heading {
+.hub-empty__heading {
   font-size: 14px;
   font-weight: 500;
   color: var(--foreground);
   margin: 0;
 }
 
-.account-empty__text {
+.hub-empty__text {
   font-size: 13px;
   color: var(--muted-foreground);
   max-width: 300px;
   margin: 0;
 }
 
-.account-error {
+.hub-error {
   padding: 12px 16px;
   border: 1px solid var(--destructive);
   border-radius: 8px;
   background: color-mix(in srgb, var(--destructive) 5%, transparent);
 }
 
-.account-error__text {
+.hub-error__text {
   font-size: 13px;
   color: var(--destructive);
   margin: 0;
 }
 
-.account-placeholder {
+.hub-placeholder {
   padding: 48px 24px;
   border: 1px solid var(--border);
   border-radius: 8px;
   text-align: center;
 }
 
-.account-placeholder__text {
+.hub-placeholder__text {
   font-size: 13px;
   color: var(--muted-foreground);
   margin: 0;
@@ -188,7 +188,7 @@
 
 /* ── Back Link ────────────────────────────────────────────── */
 
-.account-back-link {
+.hub-back-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -198,17 +198,17 @@
   transition: color 120ms ease;
 }
 
-.account-back-link:hover {
+.hub-back-link:hover {
   color: var(--foreground);
 }
 
 /* ── Spinner ──────────────────────────────────────────────── */
 
-.account-spinner {
-  animation: account-spin 800ms linear infinite;
+.hub-spinner {
+  animation: hub-spin 800ms linear infinite;
 }
 
-@keyframes account-spin {
+@keyframes hub-spin {
   to {
     transform: rotate(360deg);
   }
@@ -707,4 +707,158 @@
 
 .getting-started__link:hover {
   text-decoration-color: var(--foreground);
+}
+
+/* ── Settings Cards ──────────────────────────────────────── */
+
+.hub-settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.hub-settings-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 4px;
+}
+
+.hub-settings-card__section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hub-settings-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hub-settings-card__label {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.hub-settings-card__value {
+  font-size: 13px;
+  color: var(--foreground);
+}
+
+/* ── Segmented Control ───────────────────────────────────── */
+
+.hub-seg {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.hub-seg__btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--background);
+  color: var(--muted-foreground);
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.hub-seg__btn:last-child {
+  border-right: none;
+}
+
+.hub-seg__btn:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.hub-seg__btn--active {
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* ── Toggle ──────────────────────────────────────────────── */
+
+.hub-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.hub-toggle__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.hub-toggle__label {
+  font-size: 13px;
+  color: var(--foreground);
+}
+
+.hub-toggle__desc {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+.hub-toggle__switch {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.hub-toggle__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.hub-toggle__control {
+  display: block;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  position: relative;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.hub-toggle__control::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--foreground);
+  opacity: 0.5;
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+
+.hub-toggle__input:checked + .hub-toggle__control {
+  background: var(--foreground);
+  border-color: var(--foreground);
+}
+
+.hub-toggle__input:checked + .hub-toggle__control::after {
+  transform: translateX(16px);
+  background: var(--background);
+  opacity: 1;
 }

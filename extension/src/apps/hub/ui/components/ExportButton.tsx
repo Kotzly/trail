@@ -45,7 +45,7 @@ export default function ExportButton({ treeId, label }: ExportButtonProps) {
   return (
     <button
       type="button"
-      className="account-btn account-btn--secondary"
+      className="hub-btn hub-btn--secondary"
       onClick={() => void handleExport()}
       disabled={exporting}
     >

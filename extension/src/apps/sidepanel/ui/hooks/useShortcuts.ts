@@ -2,8 +2,9 @@ import { useEffect, type RefObject } from "react";
 import type { NodeId } from "@shared/types/ids.js";
 import type { LayoutMode } from "@shared/types/settings.js";
 import { rpc } from "@shared/rpc/contracts.js";
+import { browser } from "@shared/platform/webext.js";
 import { redo, undo } from "../../api/commands.js";
-import { fireAndForget } from "../../api/background.js";
+import { fireAndForget, sendMessage } from "../../api/background.js";
 import { navigateTo, setCurrentNode } from "../../api/tree.js";
 import { saveSettings } from "../../api/settings.js";
 import { useStore } from "../state/store.js";
@@ -169,8 +170,11 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         }
       };
 
-      const toggleSettings = () => {
-        state.setSettingsOpen(!state.ui.settingsOpen);
+      const openHubPage = () => {
+        const url = browser.runtime.getURL("hub.html");
+        browser.tabs.create({ url, active: true }).catch((error) => {
+          console.error("Failed to open hub page:", error);
+        });
       };
 
       const cycleLayoutMode = () => {
@@ -249,7 +253,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
 
       if (metaKey && code === "Comma") {
         event.preventDefault();
-        toggleSettings();
+        openHubPage();
         return;
       }
 
@@ -265,6 +269,12 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
 
       if (!metaKey && !event.altKey && !event.ctrlKey && key === "Escape") {
         event.preventDefault();
+        if (editorActive) {
+          sendMessage(rpc.exitEditorMode()).catch((error) => {
+            console.error("Failed to exit editor:", error);
+          });
+          return;
+        }
         state.closeAllPopups();
         state.closeContextMenu();
         state.clearSelection();
@@ -274,7 +284,6 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
       }
 
       const overlayOpen =
-        state.ui.settingsOpen ||
         state.ui.themePickerOpen ||
         state.ui.pinnedOpen ||
         state.ui.treesOpen ||
@@ -283,12 +292,8 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
 
       if (!metaKey && !event.altKey && !event.ctrlKey) {
         if (event.shiftKey && code === "KeyP") {
-          if (editorActive) {
-            event.preventDefault();
-            return;
-          }
           event.preventDefault();
-          togglePopup("pinnedOpen");
+          if (!editorActive) togglePopup("pinnedOpen");
           return;
         }
         if (event.shiftKey && code === "KeyT") {
@@ -297,12 +302,8 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
           return;
         }
         if (event.shiftKey && code === "KeyF") {
-          if (editorActive) {
-            event.preventDefault();
-            return;
-          }
           event.preventDefault();
-          togglePopup("tagFilterOpen");
+          if (!editorActive) togglePopup("tagFilterOpen");
           return;
         }
         if (event.shiftKey && code === "KeyL") {
