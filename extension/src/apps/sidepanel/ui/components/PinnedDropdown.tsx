@@ -79,10 +79,10 @@ export default function PinnedDropdown() {
               </div>
             ) : (
               pinnedNodes.map((node) => (
-                <button
+                <Button
                   key={node.id}
-                  type="button"
-                  className="flex items-center gap-2.5 w-full rounded-md px-2.5 py-2 text-left hover:bg-accent transition-colors"
+                  variant="ghost"
+                  className="flex items-center gap-2.5 w-full h-auto rounded-md px-2.5 py-2 justify-start"
                   data-node-id={node.id}
                   onClick={() => void handleNavigate(node.id as NodeId)}
                 >
@@ -97,9 +97,9 @@ export default function PinnedDropdown() {
                       <Icons.Pin className="size-2.5 text-muted-foreground" />
                     </div>
                   )}
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 text-left">
                     <div className="text-[13px] truncate">{node.data.title || "Untitled"}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">
+                    <div className="text-[11px] text-muted-foreground truncate font-normal">
                       {(() => {
                         try {
                           return new URL(node.data.url).hostname;
@@ -109,7 +109,7 @@ export default function PinnedDropdown() {
                       })()}
                     </div>
                   </div>
-                </button>
+                </Button>
               ))
             )}
           </div>

@@ -1,4 +1,5 @@
 import { useId } from "react";
+import "./trail-logo.css";
 
 export type TrailLogoProps = {
   className?: string;

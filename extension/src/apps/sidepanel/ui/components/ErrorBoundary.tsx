@@ -1,5 +1,5 @@
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
-import TrailLogo from "./TrailLogo.js";
+import TrailLogo from "@ui/components/trail-logo";
 import { Button } from "@ui/components/ui/button";
 
 type Props = {

@@ -2,11 +2,10 @@ import { useEffect, useRef } from "react";
 import FloatingControls from "./components/FloatingControls.js";
 import EditorToolbar from "./components/EditorToolbar.js";
 import GraphArea from "@features/graph/components/graph/GraphArea.js";
-import ThemePanel from "./components/theme/ThemePanel.js";
 import ContextMenus from "./components/ContextMenus.js";
 import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
 import SessionExpiredBanner from "./components/SessionExpiredBanner.js";
-import TrailLogo from "./components/TrailLogo.js";
+import TrailLogo from "@ui/components/trail-logo";
 import { Toaster } from "./components/ui/sonner.js";
 import { useBootstrap } from "./hooks/useBootstrap.js";
 import { useAccount } from "./hooks/useAccount.js";
@@ -19,77 +18,35 @@ import { useSystemThemeListener } from "./hooks/useSystemThemeListener.js";
 import { useStore } from "./state/store.js";
 import { sessionBannerDismissedItem } from "@shared/config/storage-items.js";
 import OnboardingHints from "./components/OnboardingHints.js";
+import { Skeleton } from "@ui/components/ui/skeleton";
+import { Button } from "@ui/components/ui/button";
+import { cn } from "@ui/lib/utils";
 
 function BootstrapSkeleton() {
   return (
-    <div className="skeleton-bootstrap">
-      <div className="skeleton-block skeleton-bootstrap__header" />
-      <div className="skeleton-block skeleton-bootstrap__graph" />
+    <div className="flex flex-col h-full p-3 gap-2.5">
+      <Skeleton className="h-10 rounded-lg" />
+      <Skeleton className="flex-1 min-h-[200px] rounded-lg" />
     </div>
   );
 }
 
 function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
   return (
-    <div
-      className="degraded-bootstrap"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100%",
-        padding: 24,
-        textAlign: "center",
-        gap: 12,
-      }}
-    >
-      <TrailLogo className="degraded-bootstrap__logo" label="Trail" />
-      <h2
-        className="degraded-bootstrap__title"
-        style={{ margin: 0, fontSize: 18, fontWeight: 600 }}
-      >
-        Could not load Trail
-      </h2>
-      <p
-        className="degraded-bootstrap__text"
-        style={{
-          margin: 0,
-          fontSize: 13,
-          color: "var(--text-secondary, #888)",
-          maxWidth: 280,
-        }}
-      >
+    <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-3">
+      <TrailLogo label="Trail" />
+      <h2 className="text-lg font-semibold">Could not load Trail</h2>
+      <p className="text-[13px] text-muted-foreground max-w-[280px]">
         Something prevented Trail from starting. This is usually temporary.
       </p>
-      <button
-        className="degraded-bootstrap__btn"
-        type="button"
-        onClick={onRetry}
-        style={{
-          marginTop: 8,
-          padding: "8px 20px",
-          fontSize: 13,
-          fontWeight: 500,
-          borderRadius: 6,
-          border: "1px solid var(--border-primary, #333)",
-          background: "var(--bg-interactive, #2a2a2a)",
-          color: "var(--text-primary, #eee)",
-          cursor: "pointer",
-        }}
-      >
+      <Button variant="outline" className="mt-2" onClick={onRetry}>
         Retry
-      </button>
+      </Button>
       <a
-        className="degraded-bootstrap__link"
         href="https://gettrail.net/support"
         target="_blank"
         rel="noopener noreferrer"
-        style={{
-          fontSize: 12,
-          color: "var(--text-secondary, #888)",
-          textDecoration: "underline",
-        }}
+        className="text-xs text-muted-foreground underline"
       >
         Report issue
       </a>
@@ -118,7 +75,7 @@ export default function App() {
 
   if (bootstrapStatus === "loading") {
     return (
-      <div className="container">
+      <div className="flex flex-col h-dvh w-full max-w-none min-w-0 overflow-hidden relative">
         <Toaster />
         <BootstrapSkeleton />
       </div>
@@ -127,7 +84,7 @@ export default function App() {
 
   if (bootstrapStatus === "degraded") {
     return (
-      <div className="container">
+      <div className="flex flex-col h-dvh w-full max-w-none min-w-0 overflow-hidden relative">
         <Toaster />
         <DegradedBootstrap onRetry={retryBootstrap} />
       </div>
@@ -138,17 +95,14 @@ export default function App() {
 
   const showSessionBanner = !isAuthenticated && !account.authRequired && account.sessionExpired;
 
-  const containerClass = `container${editorActive ? " container--editor" : ""}`;
-
   return (
-    <div className={containerClass}>
+    <div className={cn("flex flex-col h-dvh w-full max-w-none min-w-0 overflow-hidden relative", editorActive && "ring-3 ring-inset ring-blue-500/45 rounded-xl")}>
       <Toaster />
       {showSessionBanner && <SessionExpiredBanner />}
       <EditorToolbar />
       <FloatingControls searchInputRef={searchInputRef} />
       <OnboardingHints />
       <GraphArea />
-      <ThemePanel />
       <DeleteTreeConfirmModal />
       <ContextMenus />
       <TooltipLayer />

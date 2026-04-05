@@ -14,9 +14,6 @@ export default function Header() {
   const commandState = useStore((state) => state.commandState);
   const metaKey = useStore((state) => state.metaKey);
   const setCommandState = useStore((state) => state.setCommandState);
-  const flags = useStore((state) => state.flags);
-  const themePickerOpen = useStore((state) => state.ui.themePickerOpen);
-  const setThemePickerOpen = useStore((state) => state.setThemePickerOpen);
   const syncStatus = useStore((state) => state.syncStatus);
   const network = useStore((state) => state.account.network);
 
@@ -91,19 +88,6 @@ export default function Header() {
         <Separator orientation="vertical" className="mx-1 h-5" />
         <PinnedDropdown />
         <TreeDropdown />
-        {flags?.themeStudio && (
-          <Button
-            id="themePickerBtn"
-            variant="ghost"
-            size="icon-sm"
-            type="button"
-            aria-label="Theme"
-            data-tooltip="Theme"
-            onClick={() => setThemePickerOpen(!themePickerOpen)}
-          >
-            <Icons.Palette />
-          </Button>
-        )}
         {syncIndicator !== "idle" && (
           <span
             className={cn(

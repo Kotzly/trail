@@ -1,5 +1,4 @@
 import "@shared/styles/inter.css";
-import "@apps/sidepanel/ui/styles/tokens.css";
 import "@entrypoints/spotlight-content/style.css";
 import "@apps/newtab/ui/newtab.css";
 import "@apps/newtab/ui/bookmarks.css";

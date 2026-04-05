@@ -6,6 +6,7 @@ import { cn } from "@ui/lib/utils";
 import { Icons } from "./Icon.js";
 import SearchResultsList from "./SearchResultsList.js";
 import { Button } from "@ui/components/ui/button";
+import { Input } from "@ui/components/ui/input";
 
 type FloatingSearchProps = {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -96,11 +97,11 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
         expanded ? "w-[clamp(140px,calc(100vw-184px),220px)] rounded-lg px-2.5 gap-1.5" : "w-8 h-8 rounded-full justify-center",
       )}>
         {expanded && <Icons.Search className="size-3.5 text-muted-foreground shrink-0" />}
-        <input
+        <Input
           ref={inputRef}
           type="text"
           className={cn(
-            "bg-transparent text-[13px] outline-none placeholder:text-muted-foreground min-w-0 transition-all",
+            "border-0 shadow-none h-auto rounded-none bg-transparent text-[13px] placeholder:text-muted-foreground min-w-0 transition-all focus-visible:ring-0",
             expanded ? "flex-1 py-1.5 opacity-100" : "w-0 p-0 opacity-0",
           )}
           placeholder="search pages..."

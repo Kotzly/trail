@@ -60,7 +60,6 @@ export const THEME_TOKEN_KEYS = [
   "--graph-node-active-url",
   "--trail-app-bg-color",
   "--trail-app-bg-image",
-  "--trail-grain-opacity",
   "--trail-grid-dot",
 ] as const;
 
@@ -641,7 +640,6 @@ export function generateThemeTokens(custom: CustomTheme, scheme: ThemeId): Recor
     "--graph-node-active-url": activeUrl,
     "--trail-app-bg-color": appBackgroundColor,
     "--trail-app-bg-image": appBackgroundImage,
-    "--trail-grain-opacity": String(clamp(custom.texture ?? 0, 0, 1)),
     "--trail-grid-dot": gridDot,
   };
 }

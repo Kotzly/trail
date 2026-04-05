@@ -284,7 +284,6 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
       }
 
       const overlayOpen =
-        state.ui.themePickerOpen ||
         state.ui.pinnedOpen ||
         state.ui.treesOpen ||
         state.ui.tagFilterOpen ||

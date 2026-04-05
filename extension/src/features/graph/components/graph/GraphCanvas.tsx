@@ -10,6 +10,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { cn } from "../../../../ui/lib/utils.js";
+import { Button } from "@ui/components/ui/button";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNode } from "@shared/types/node.js";
 import { navigateTo, reparentNode } from "@apps/sidepanel/api/tree.js";
@@ -2134,7 +2135,7 @@ export default function GraphCanvas({
   };
 
   return (
-    <div className="stack-container" id="stackContainer">
+    <div className="stack-container flex-1 overflow-y-auto overflow-x-hidden p-2 min-w-0 relative has-[.graph-wrapper]:p-0 has-[.graph-wrapper]:overflow-hidden" id="stackContainer">
       <div
         className={cn("graph-wrapper", isDraggingNode && "is-dragging")}
         ref={wrapperRef}
@@ -2180,10 +2181,10 @@ export default function GraphCanvas({
                 : "default",
         }}
       >
-        <div className="graph-canvas" ref={pixiHostRef} />
+        <div className="absolute inset-0 pointer-events-none touch-none z-[2] [&_canvas]:block" ref={pixiHostRef} />
         <div
           ref={selectionBoxRef}
-          className="graph-selection-box"
+          className="absolute border-2 border-primary bg-[rgba(var(--primary-rgb),0.1)] pointer-events-none z-[5] rounded"
           style={{ opacity: 0, width: "0px", height: "0px" }}
         />
         {showControls && (
@@ -2216,11 +2217,11 @@ export default function GraphCanvas({
           />
         )}
         {pickTarget && (
-          <div className="graph-pick-hint" data-graph-ui="true">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border text-foreground text-xs z-10 shadow-md whitespace-nowrap" data-graph-ui="true">
             <span>Click a node to duplicate to</span>
-            <button type="button" onClick={onPickTargetComplete}>
+            <Button variant="ghost" size="sm" onClick={onPickTargetComplete}>
               Cancel
-            </button>
+            </Button>
           </div>
         )}
       </div>

@@ -1,8 +1,4 @@
 @import "@shared/styles/inter.css";
 @import "./tailwind.css";
-@import "./styles/tokens.css";
 @import "./styles/base.css";
-@import "./styles/trail-logo.css";
-@import "./styles/modal-overlay.css";
 @import "./styles/graph.css";
-@import "./styles/zen-theme-panel.css";

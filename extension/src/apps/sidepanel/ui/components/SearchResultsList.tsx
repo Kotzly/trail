@@ -6,6 +6,7 @@ import type { NavigationTree } from "@background/state/nav-tree.js";
 import { formatTime, formatUrl } from "../shared/format.js";
 import { cn } from "../lib/utils.js";
 import { Icons } from "./Icon.js";
+import { Button } from "@ui/components/ui/button";
 
 type SearchResultsListProps = {
   tree: NavigationTree | null;
@@ -118,12 +119,12 @@ const SearchResultRow = memo(function SearchResultRow({
   const url = renderHighlight(formatUrl(item.url), query);
 
   return (
-    <button
+    <Button
+      variant="ghost"
       className={cn(
-        "flex items-center gap-2 w-full rounded-md border border-border px-2.5 py-2 text-left cursor-pointer transition-colors hover:bg-accent",
+        "flex items-center gap-2 w-full h-auto rounded-md border border-border px-2.5 py-2 justify-start cursor-pointer",
         isActive && "bg-accent border-border",
       )}
-      type="button"
       onClick={() => onSelect(item.id)}
     >
       <div className="size-5.5 rounded-md bg-muted flex items-center justify-center shrink-0 overflow-hidden" aria-hidden="true">
@@ -133,12 +134,12 @@ const SearchResultRow = memo(function SearchResultRow({
           <Icons.Search className="size-3 text-muted-foreground" />
         )}
       </div>
-      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        <div className="text-xs truncate">{title}</div>
-        <div className="text-[10px] text-muted-foreground truncate">{url}</div>
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5 text-left">
+        <div className="text-xs truncate font-normal">{title}</div>
+        <div className="text-[10px] text-muted-foreground truncate font-normal">{url}</div>
       </div>
-      <div className="text-[10px] text-muted-foreground/60 ml-auto shrink-0">{formatTime(item.timestamp)}</div>
-    </button>
+      <div className="text-[10px] text-muted-foreground/60 ml-auto shrink-0 font-normal">{formatTime(item.timestamp)}</div>
+    </Button>
   );
 });
 
