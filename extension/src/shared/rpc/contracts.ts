@@ -1,8 +1,7 @@
-import type { Description, NodeId, Title, Url, Tag, TabId, FaviconUrl } from "../types/ids.js";
+import type { Description, NodeId, Title, Url, TabId, FaviconUrl } from "../types/ids.js";
 import { type Settings } from "../types/settings.js";
 import { type TabState } from "../types/tabs.js";
 import { type NavigationTreeJSON, type TreeMeta, type ArchiveIndexEntry } from "../types/tree.js";
-import type { TagDefinition } from "../types/tags.js";
 import type { TrailExportBundle } from "../types/export.js";
 import type { FlagKey, ResolvedFlags } from "../types/flags.js";
 import { type RuntimeMessageSender, type Tab } from "@shared/platform/webext.js";
@@ -20,16 +19,12 @@ export const RPC_METHOD = {
   UNDO: "UNDO",
   REDO: "REDO",
   COMMAND_STATE: "COMMAND_STATE",
-  GET_TAG_DEFS: "GET_TAG_DEFS",
-  UPSERT_TAG_DEF: "UPSERT_TAG_DEF",
-  DELETE_TAG_DEF: "DELETE_TAG_DEF",
   GET_TABS_FOR_NODE: "GET_TABS_FOR_NODE",
   SAVE_SETTINGS: "SAVE_SETTINGS",
   GET_SETTINGS: "GET_SETTINGS",
   TITLE_OR_FAVICON_CHANGED: "TITLE_OR_FAVICON_CHANGED",
   TREE_UPDATED: "TREE_UPDATED",
   TREES_UPDATED: "TREES_UPDATED",
-  TAGS_UPDATED: "TAGS_UPDATED",
   NOTIFY: "NOTIFY",
   GET_TREE: "GET_TREE",
   GET_TREES: "GET_TREES",
@@ -47,8 +42,6 @@ export const RPC_METHOD = {
   TOGGLE_PIN: "TOGGLE_PIN",
   BULK_PIN: "BULK_PIN",
   BULK_UNPIN: "BULK_UNPIN",
-  ADD_TAG: "ADD_TAG",
-  REMOVE_TAG: "REMOVE_TAG",
   DELETE_NODE: "DELETE_NODE",
   DELETE_CHILDREN: "DELETE_CHILDREN",
   DELETE_WITH_CHILDREN: "DELETE_WITH_CHILDREN",
@@ -157,15 +150,6 @@ export type OpenPanelMessage = RequestMessageBase<typeof RPC_METHOD.OPEN_PANEL>;
 export type UndoMessage = RequestMessageBase<typeof RPC_METHOD.UNDO>;
 export type RedoMessage = RequestMessageBase<typeof RPC_METHOD.REDO>;
 export type CommandStateMessage = RequestMessageBase<typeof RPC_METHOD.COMMAND_STATE>;
-export type GetTagDefsMessage = RequestMessageBase<typeof RPC_METHOD.GET_TAG_DEFS>;
-export type UpsertTagDefMessage = RequestMessageBase<
-  typeof RPC_METHOD.UPSERT_TAG_DEF,
-  { tagDef: TagDefinition }
->;
-export type DeleteTagDefMessage = RequestMessageBase<
-  typeof RPC_METHOD.DELETE_TAG_DEF,
-  { tagId: Tag }
->;
 export type TabsForNodeMessage = RequestMessageBase<
   typeof RPC_METHOD.GET_TABS_FOR_NODE,
   TabsForNodeInput
@@ -186,11 +170,6 @@ export type TreeUpdatedMessage = RequestMessageBase<
 export type TreesUpdatedMessage = RequestMessageBase<
   typeof RPC_METHOD.TREES_UPDATED,
   TreesSnapshot
->;
-export type TagDefsUpdatedInput = { tagDefs: TagDefinition[] };
-export type TagsUpdatedMessage = RequestMessageBase<
-  typeof RPC_METHOD.TAGS_UPDATED,
-  TagDefsUpdatedInput
 >;
 export type UiNotificationInput = {
   message: string;
@@ -248,9 +227,6 @@ export type BulkCloseTabsMessage = RequestMessageBase<
 export type TogglePinMessage = RequestMessageBase<typeof RPC_METHOD.TOGGLE_PIN, { nodeId: NodeId }>;
 export type BulkPinMessage = RequestMessageBase<typeof RPC_METHOD.BULK_PIN, BulkNodeIdsInput>;
 export type BulkUnpinMessage = RequestMessageBase<typeof RPC_METHOD.BULK_UNPIN, BulkNodeIdsInput>;
-
-export type AddTagMessage = RequestMessageBase<typeof RPC_METHOD.ADD_TAG, TagMessageInput>;
-export type RemoveTagMessage = RequestMessageBase<typeof RPC_METHOD.REMOVE_TAG, TagMessageInput>;
 
 export type NodeLayoutInput = {
   nodeId: NodeId;
@@ -651,16 +627,12 @@ export type RequestMessage =
   | UndoMessage
   | RedoMessage
   | CommandStateMessage
-  | GetTagDefsMessage
-  | UpsertTagDefMessage
-  | DeleteTagDefMessage
   | TabsForNodeMessage
   | SaveSettingsMessage
   | GetSettingsMessage
   | TitleOrFaviconChangedMessage
   | TreeUpdatedMessage
   | TreesUpdatedMessage
-  | TagsUpdatedMessage
   | NotifyMessage
   | GetTreeMessage
   | GetTreesMessage
@@ -680,8 +652,6 @@ export type RequestMessage =
   | TogglePinMessage
   | BulkPinMessage
   | BulkUnpinMessage
-  | AddTagMessage
-  | RemoveTagMessage
   | DeleteNodeMessage
   | DeleteChildrenMessage
   | DeleteWithChildrenMessage
@@ -744,16 +714,12 @@ export type ResponseDataByType = {
   [RPC_METHOD.UNDO]: CommandState;
   [RPC_METHOD.REDO]: CommandState;
   [RPC_METHOD.COMMAND_STATE]: CommandState;
-  [RPC_METHOD.GET_TAG_DEFS]: TagDefinition[];
-  [RPC_METHOD.UPSERT_TAG_DEF]: void;
-  [RPC_METHOD.DELETE_TAG_DEF]: void;
   [RPC_METHOD.GET_TABS_FOR_NODE]: TabsForNodeData;
   [RPC_METHOD.SAVE_SETTINGS]: void;
   [RPC_METHOD.GET_SETTINGS]: Settings;
   [RPC_METHOD.TITLE_OR_FAVICON_CHANGED]: void;
   [RPC_METHOD.TREE_UPDATED]: void;
   [RPC_METHOD.TREES_UPDATED]: void;
-  [RPC_METHOD.TAGS_UPDATED]: void;
   [RPC_METHOD.NOTIFY]: void;
   [RPC_METHOD.GET_TREE]: TreeUpdatedInput;
   [RPC_METHOD.GET_TREES]: TreesSnapshot;
@@ -771,8 +737,6 @@ export type ResponseDataByType = {
   [RPC_METHOD.TOGGLE_PIN]: void;
   [RPC_METHOD.BULK_PIN]: void;
   [RPC_METHOD.BULK_UNPIN]: void;
-  [RPC_METHOD.ADD_TAG]: void;
-  [RPC_METHOD.REMOVE_TAG]: void;
   [RPC_METHOD.DELETE_NODE]: void;
   [RPC_METHOD.DELETE_CHILDREN]: void;
   [RPC_METHOD.DELETE_WITH_CHILDREN]: void;
@@ -856,15 +820,6 @@ export const rpc = {
   openPanel(): OpenPanelMessage {
     return { type: RPC_METHOD.OPEN_PANEL };
   },
-  getTagDefs(): GetTagDefsMessage {
-    return { type: RPC_METHOD.GET_TAG_DEFS };
-  },
-  upsertTagDef(payload: { tagDef: TagDefinition }): UpsertTagDefMessage {
-    return { type: RPC_METHOD.UPSERT_TAG_DEF, ...payload };
-  },
-  deleteTagDef(payload: { tagId: Tag }): DeleteTagDefMessage {
-    return { type: RPC_METHOD.DELETE_TAG_DEF, ...payload };
-  },
   undo(): UndoMessage {
     return { type: RPC_METHOD.UNDO };
   },
@@ -891,9 +846,6 @@ export const rpc = {
   },
   treesUpdated(payload: TreesSnapshot): TreesUpdatedMessage {
     return { type: RPC_METHOD.TREES_UPDATED, ...payload };
-  },
-  tagsUpdated(payload: TagDefsUpdatedInput): TagsUpdatedMessage {
-    return { type: RPC_METHOD.TAGS_UPDATED, ...payload };
   },
   notify(payload: { notification: UiNotificationInput }): NotifyMessage {
     return { type: RPC_METHOD.NOTIFY, ...payload };
@@ -953,12 +905,6 @@ export const rpc = {
   },
   bulkUnpin(payload: BulkNodeIdsInput): BulkUnpinMessage {
     return { type: RPC_METHOD.BULK_UNPIN, ...payload };
-  },
-  addTag(payload: TagMessageInput): AddTagMessage {
-    return { type: RPC_METHOD.ADD_TAG, ...payload };
-  },
-  removeTag(payload: TagMessageInput): RemoveTagMessage {
-    return { type: RPC_METHOD.REMOVE_TAG, ...payload };
   },
   deleteNode(payload: { nodeId: NodeId }): DeleteNodeMessage {
     return { type: RPC_METHOD.DELETE_NODE, ...payload };
@@ -1130,7 +1076,6 @@ export type TreeUpdateReason =
   | "delete"
   | "undo"
   | "pins"
-  | "tags"
   | "tabs"
   | "temp-selection"
   | "sync"
@@ -1168,9 +1113,4 @@ export type TreesSnapshot = {
 
 export type BulkNodeIdsInput = {
   nodeIds: NodeId[];
-};
-
-export type TagMessageInput = {
-  nodeId: NodeId;
-  tagId: Tag;
 };

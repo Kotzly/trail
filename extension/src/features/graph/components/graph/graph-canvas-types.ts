@@ -2,7 +2,6 @@ import type { NodeId } from "@shared/types/ids.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { TabState } from "@shared/types/tabs.js";
 import type { TreeUpdatedInput } from "@shared/rpc/contracts.js";
-import type { TagDefinition } from "@shared/types/tags.js";
 import type { NavigationTree } from "@background/state/nav-tree.js";
 import type {
   ConnectionQuality,
@@ -90,7 +89,6 @@ export type GraphCanvasProps = {
   hoverNodeId: NodeId | null;
   resetVersion: number;
   viewIntent: TreeUpdatedInput["view"] | null;
-  tagDefs: Record<string, TagDefinition>;
   onGraphToolChange: (tool: GraphTool) => void;
   onSelectedNodeIdsChange: (ids: Set<NodeId>) => void;
   onClearSelection: () => void;

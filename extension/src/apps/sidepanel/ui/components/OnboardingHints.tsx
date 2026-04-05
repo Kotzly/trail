@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { hasSeenOnboardingItem } from "@shared/config/storage-items.js";
+import { Button } from "@ui/components/ui/button";
 
 type HintDef = {
   targetSelector: string;
@@ -7,9 +8,8 @@ type HintDef = {
 };
 
 const HINTS: HintDef[] = [
-  { targetSelector: ".search-orb", label: "Search your pages" },
+  { targetSelector: "#searchBtn", label: "Search your pages" },
   { targetSelector: "#treesBtn", label: "Switch between trees" },
-  { targetSelector: "#tagFilterBtn", label: "Filter by tags" },
 ];
 
 type HintPosition = { top: number; left: number; width: number };
@@ -19,7 +19,6 @@ export default function OnboardingHints() {
   const [positions, setPositions] = useState<HintPosition[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Check storage flag on mount
   useEffect(() => {
     let cancelled = false;
     hasSeenOnboardingItem
@@ -28,15 +27,11 @@ export default function OnboardingHints() {
         if (!cancelled && !seen) setVisible(true);
       })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  // Position hints relative to targets
   useLayoutEffect(() => {
     if (!visible) return;
-    // Slight delay to ensure FloatingControls has rendered
     const timer = setTimeout(() => {
       const pos: HintPosition[] = HINTS.map((hint) => {
         const el = document.querySelector(hint.targetSelector);
@@ -63,12 +58,10 @@ export default function OnboardingHints() {
   return (
     <div
       ref={containerRef}
-      className="onboarding-hints"
-      style={{ position: "fixed", inset: 0, zIndex: 9999, pointerEvents: "auto" }}
+      className="fixed inset-0 z-[9999]"
       onClick={handleDismiss}
     >
-      {/* Semi-transparent backdrop */}
-      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)" }} />
+      <div className="absolute inset-0 bg-black/30" />
 
       {HINTS.map((hint, i) => {
         const pos = positions[i];
@@ -76,56 +69,24 @@ export default function OnboardingHints() {
         return (
           <div
             key={hint.targetSelector}
-            className="onboarding-hint"
-            style={{
-              position: "fixed",
-              top: pos.top,
-              left: pos.left,
-              transform: "translateX(-50%)",
-              background: "var(--color-bg-primary, #1a1a2e)",
-              border: "1px solid var(--color-border, rgba(128,128,128,0.25))",
-              borderRadius: "8px",
-              padding: "6px 12px",
-              fontSize: "11px",
-              color: "var(--color-text-primary, #e0e0e0)",
-              whiteSpace: "nowrap",
-              pointerEvents: "none",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
+            className="fixed -translate-x-1/2 bg-popover border border-border rounded-lg px-3 py-1.5 text-[11px] text-popover-foreground whitespace-nowrap pointer-events-none shadow-md flex items-center gap-2"
+            style={{ top: pos.top, left: pos.left }}
           >
             <span>{hint.label}</span>
           </div>
         );
       })}
 
-      {/* Single "Got it" button */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDismiss();
-        }}
-        style={{
-          position: "fixed",
-          bottom: "24px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          padding: "8px 24px",
-          fontSize: "13px",
-          borderRadius: "8px",
-          border: "1px solid var(--color-border, rgba(128,128,128,0.25))",
-          background: "var(--color-bg-secondary, #2a2a3e)",
-          color: "var(--color-text-primary, #e0e0e0)",
-          cursor: "pointer",
-          zIndex: 10000,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-        }}
-      >
-        Got it
-      </button>
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[10000]">
+        <Button
+          variant="secondary"
+          size="sm"
+          type="button"
+          onClick={(e) => { e.stopPropagation(); handleDismiss(); }}
+        >
+          Got it
+        </Button>
+      </div>
     </div>
   );
 }

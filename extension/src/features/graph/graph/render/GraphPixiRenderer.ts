@@ -194,7 +194,6 @@ type NodeVisualState = {
   lod: LODLevel;
   styleKey: string;
   textKey: string;
-  tagKey: string;
   faviconKey: string;
   themeVersion: number;
   openProgress: number;
@@ -217,8 +216,6 @@ class NodeVisual {
   private readonly collapseBadge = new PIXI.Container();
   private readonly collapseBadgeBg = new PIXI.Graphics();
   private readonly collapseIcon = new PIXI.Graphics();
-  private readonly tagDots = new PIXI.Container();
-  private readonly tagDotPool: PIXI.Graphics[] = [];
   private readonly fallbackDot = new PIXI.Graphics();
   private readonly textContainer = new PIXI.Container();
 
@@ -226,7 +223,6 @@ class NodeVisual {
     lod: "full",
     styleKey: "",
     textKey: "",
-    tagKey: "",
     faviconKey: "",
     themeVersion: 0,
     openProgress: 1,
@@ -265,13 +261,6 @@ class NodeVisual {
     this.container.addChild(this.collapseBadge);
     this.collapseBadge.addChild(this.collapseBadgeBg);
     this.collapseBadge.addChild(this.collapseIcon);
-    this.container.addChild(this.tagDots);
-    for (let i = 0; i < 4; i++) {
-      const dot = new PIXI.Graphics();
-      dot.visible = false;
-      this.tagDots.addChild(dot);
-      this.tagDotPool.push(dot);
-    }
     this.tabBadgeText.anchor.set(0.5, 0.5);
     this.pinIcon.pivot.set(ICON_VIEWBOX, 0);
     this.audioIcon.pivot.set(ICON_VIEWBOX, 0);
@@ -292,7 +281,7 @@ class NodeVisual {
     if (!this.deferContent) return; // already hydrated
     this.deferContent = false;
     // Force state keys to empty so the next update() populates everything
-    this.state = { ...this.state, textKey: "", tagKey: "", faviconKey: "" };
+    this.state = { ...this.state, textKey: "", faviconKey: "" };
     // Don't call invalidate() here — the batch processor handles render scheduling
   }
 
@@ -336,10 +325,6 @@ class NodeVisual {
       lod === "dot"
         ? "dot"
         : `${title}|${url}|${model.display.titleTruncation}|${showUrls ? "u" : "n"}|${showFavicon ? "f" : "n"}`;
-    const tagKey =
-      lod === "full" && model.display.showTagDots && model.node.data.tags?.length
-        ? model.node.data.tags.join(",")
-        : "";
     const rawFavicon =
       lod === "dot"
         ? null
@@ -353,9 +338,9 @@ class NodeVisual {
     const themeChanged = this.state.themeVersion !== themeVersion;
     const openProgressChanged = Math.abs(this.state.openProgress - openProgress) > 0.001;
     // LOD-dependent changes are already encoded in the respective keys (textKey
-    // includes showUrls/showFavicon, tagKey is '' outside full, faviconKey
-    // includes showFavicon).  Removing the redundant `lod !== lod` check avoids
-    // expensive background/text rebuilds that don't actually change anything.
+    // includes showUrls/showFavicon, faviconKey includes showFavicon).
+    // Removing the redundant `lod !== lod` check avoids expensive background/text
+    // rebuilds that don't actually change anything.
     const needsStyleUpdate =
       themeChanged || this.state.styleKey !== nextStyleKey || openProgressChanged;
     const needsTextUpdate =
@@ -363,7 +348,6 @@ class NodeVisual {
       this.state.textKey !== textKey ||
       openProgressChanged ||
       this.state.textResolution !== textResolution;
-    const needsTagUpdate = themeChanged || this.state.tagKey !== tagKey;
     const needsFaviconUpdate = themeChanged || this.state.faviconKey !== faviconKey;
 
     if (this.state.textResolution !== textResolution) {
@@ -376,7 +360,6 @@ class NodeVisual {
       lod,
       styleKey: nextStyleKey,
       textKey,
-      tagKey,
       faviconKey,
       themeVersion,
       openProgress,
@@ -396,7 +379,6 @@ class NodeVisual {
 
     if (lod === "dot") {
       this.textContainer.visible = false;
-      this.tagDots.visible = false;
       this.faviconBg.visible = false;
       if (this.faviconSprite) this.faviconSprite.visible = false;
       this.tabBadge.visible = false;
@@ -417,16 +399,11 @@ class NodeVisual {
       this.pinIcon.visible = false;
       this.audioIcon.visible = false;
       this.collapseBadge.visible = false;
-      this.tagDots.visible = false;
       return;
     }
 
     if (needsTextUpdate) {
       this.updateText(model, theme, lod, fontFamily, showFavicon);
-    }
-
-    if (needsTagUpdate) {
-      this.updateTags(model, theme, lod);
     }
 
     if (needsFaviconUpdate) {
@@ -741,51 +718,6 @@ class NodeVisual {
     this.collapseIcon.position.set(rect.size / 2, rect.size / 2);
   }
 
-  private updateTags(
-    model: NodeRenderModel,
-    theme: ReturnType<typeof readGraphTheme>,
-    lod: LODLevel,
-  ) {
-    const show = lod === "full" && model.display.showTagDots;
-    this.tagDots.visible = show;
-    if (!show) {
-      for (let i = 0; i < this.tagDotPool.length; i++) {
-        this.tagDotPool[i]!.visible = false;
-      }
-      return;
-    }
-    const tags = model.node.data.tags ?? [];
-    const maxTags = Math.min(tags.length, 4);
-    if (maxTags === 0) {
-      for (let i = 0; i < this.tagDotPool.length; i++) {
-        this.tagDotPool[i]!.visible = false;
-      }
-      return;
-    }
-    const dotSize = 10;
-    const gap = 3;
-    let x = model.width - dotSize - 4;
-    const y = model.height - dotSize - 4;
-    let poolIdx = 0;
-    for (let i = 0; i < maxTags; i += 1) {
-      const tagId = tags[i];
-      if (!tagId) continue;
-      const tagPreset = model.tagDefs[tagId];
-      if (!tagPreset) continue;
-      const dot = this.tagDotPool[poolIdx]!;
-      dot.clear();
-      dot.circle(0, 0, dotSize / 2);
-      dot.fill({ color: safeColor(tagPreset.color, theme.primary), alpha: 1 });
-      dot.position.set(x + dotSize / 2, y + dotSize / 2);
-      dot.visible = true;
-      poolIdx++;
-      x -= dotSize + gap;
-    }
-    // Hide remaining unused pool items
-    for (let i = poolIdx; i < this.tagDotPool.length; i++) {
-      this.tagDotPool[i]!.visible = false;
-    }
-  }
 }
 
 class GraphicsPool {

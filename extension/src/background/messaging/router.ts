@@ -23,8 +23,6 @@ import { contentHandlers } from "./handlers/content-handlers.js";
 import { treeHandlers } from "./handlers/tree-handlers.js";
 import { commandHandlers } from "./handlers/undo-handlers.js";
 import { pinHandlers } from "./handlers/pin-handlers.js";
-import { tagHandlers } from "./handlers/tag-handlers.js";
-import { tagDefHandlers } from "./handlers/tag-def-handlers.js";
 import { panelHandlers } from "./handlers/panel-handlers.js";
 import { siteMessageHandlers } from "./handlers/site-message-handlers.js";
 import { editorHandlers } from "./handlers/editor-handlers.js";
@@ -50,8 +48,6 @@ const outboundOnlyHandlers = defineRpcHandlers({
     err("TREE_UPDATED is outbound-only"),
   [RPC_METHOD.TREES_UPDATED]: async (): Promise<ResponseMessage<typeof RPC_METHOD.TREES_UPDATED>> =>
     err("TREES_UPDATED is outbound-only"),
-  [RPC_METHOD.TAGS_UPDATED]: async (): Promise<ResponseMessage<typeof RPC_METHOD.TAGS_UPDATED>> =>
-    err("TAGS_UPDATED is outbound-only"),
   [RPC_METHOD.NOTIFY]: async (): Promise<ResponseMessage<typeof RPC_METHOD.NOTIFY>> =>
     err("NOTIFY is outbound-only"),
   [RPC_METHOD.SYNC_STATUS_UPDATED]: async (): Promise<
@@ -145,8 +141,6 @@ export function initMessaging(): void {
     .merge(treeHandlers)
     .merge(commandHandlers)
     .merge(pinHandlers)
-    .merge(tagHandlers)
-    .merge(tagDefHandlers)
     .merge(panelHandlers)
     .merge(siteMessageHandlers)
     .merge(oauthAuthHandlers)

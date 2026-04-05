@@ -52,7 +52,6 @@ export default function SearchResultsList({
     return next;
   }, [results, tree]);
 
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual API is safe here, not passed to memoized consumers
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,
@@ -60,7 +59,6 @@ export default function SearchResultsList({
     overscan: 5,
   });
 
-  // Scroll active item into view on keyboard navigation
   useEffect(() => {
     if (activeId == null) return;
     const idx = items.findIndex((item) => item.id === activeId);
@@ -68,22 +66,12 @@ export default function SearchResultsList({
   }, [activeId, items, virtualizer]);
 
   if (items.length === 0) {
-    return <div className="floating-search-list-empty">No results</div>;
+    return <div className="py-3.5 text-center text-[11px] text-muted-foreground">No results</div>;
   }
 
   return (
-    <div
-      ref={parentRef}
-      className="floating-search-list"
-      style={{ overflow: "auto" }}
-    >
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: "100%",
-          position: "relative",
-        }}
-      >
+    <div ref={parentRef} className="overflow-auto p-1.5" style={{ maxHeight: 260 }}>
+      <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const item = items[virtualRow.index];
           if (!item) return null;
@@ -131,22 +119,25 @@ const SearchResultRow = memo(function SearchResultRow({
 
   return (
     <button
-      className={cn("floating-search-item", isActive && "is-active")}
+      className={cn(
+        "flex items-center gap-2 w-full rounded-md border border-border px-2.5 py-2 text-left cursor-pointer transition-colors hover:bg-accent",
+        isActive && "bg-accent border-border",
+      )}
       type="button"
       onClick={() => onSelect(item.id)}
     >
-      <div className="floating-search-item-icon" aria-hidden="true">
+      <div className="size-5.5 rounded-md bg-muted flex items-center justify-center shrink-0 overflow-hidden" aria-hidden="true">
         {!faviconError ? (
-          <img src={getFaviconUrl(item.url)} alt="" onError={() => setFaviconError(true)} />
+          <img className="size-4 rounded object-cover" src={getFaviconUrl(item.url)} alt="" onError={() => setFaviconError(true)} />
         ) : (
-          <Icons.Search size={14} />
+          <Icons.Search className="size-3 text-muted-foreground" />
         )}
       </div>
-      <div className="floating-search-item-main">
-        <div className="floating-search-item-title">{title}</div>
-        <div className="floating-search-item-url">{url}</div>
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <div className="text-xs truncate">{title}</div>
+        <div className="text-[10px] text-muted-foreground truncate">{url}</div>
       </div>
-      <div className="floating-search-item-time">{formatTime(item.timestamp)}</div>
+      <div className="text-[10px] text-muted-foreground/60 ml-auto shrink-0">{formatTime(item.timestamp)}</div>
     </button>
   );
 });
@@ -161,7 +152,7 @@ function renderHighlight(text: string, query: string): ReactNode {
     const match = tokens.some((token) => token.toLowerCase() === part.toLowerCase());
     if (!match) return <span key={`${part}-${index}`}>{part}</span>;
     return (
-      <mark key={`${part}-${index}`} className="floating-search-highlight">
+      <mark key={`${part}-${index}`} className="bg-accent text-accent-foreground rounded-sm">
         {part}
       </mark>
     );

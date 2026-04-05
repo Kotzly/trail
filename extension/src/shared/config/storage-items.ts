@@ -11,7 +11,6 @@ import { storage } from "wxt/utils/storage";
 import type { NavigationTreeJSON, TreeMeta, ArchiveIndexEntry } from "../types/tree.js";
 import type { Settings } from "../types/settings.js";
 import type { PersistedFlagState } from "../types/flags.js";
-import type { TagDefinition } from "../types/tags.js";
 import type { AccountSnapshot } from "../types/account.js";
 import type { BackendConfigOverride } from "./backend.js";
 import type { SpotlightUsageStats } from "@features/spotlight/model/usage-stats.js";
@@ -98,12 +97,6 @@ export const flagsItem = storage.defineItem<PersistedFlagState | null>("local:tr
 
 export const experimentsUnlockedItem = storage.defineItem<boolean>("local:trail_flags_unlocked", {
   fallback: false,
-});
-
-// ── Tags (sync area) ───────────────────────────────────────────────
-
-export const tagDefsItem = storage.defineItem<TagDefinition[] | null>("sync:trail_tag_defs", {
-  fallback: null,
 });
 
 // ── Undo / Redo ─────────────────────────────────────────────────────

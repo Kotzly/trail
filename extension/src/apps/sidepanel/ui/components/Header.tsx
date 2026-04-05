@@ -4,7 +4,9 @@ import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
 import PinnedDropdown from "./PinnedDropdown.js";
 import TreeDropdown from "./TreeDropdown.js";
-import TagFilterDropdown from "./tags/TagFilterDropdown.js";
+import { Button } from "@ui/components/ui/button";
+import { Separator } from "@ui/components/ui/separator";
+import { cn } from "@ui/lib/utils";
 
 type SyncIndicatorState = "syncing" | "offline" | "error" | "idle";
 
@@ -56,54 +58,60 @@ export default function Header() {
   };
 
   return (
-    <header className="header">
-      <h1 className="title">
-        <Icons.Pin className="logo" aria-hidden="true" size={20} />
+    <header className="flex items-center gap-2 h-12 shrink-0 border-b border-border bg-background px-3">
+      <h1 className="flex items-center gap-1.5 text-sm font-semibold tracking-tight">
+        <Icons.Pin className="size-5 text-muted-foreground" aria-hidden="true" />
         trail
       </h1>
-      <div className="header-actions">
-        <button
+      <div className="flex items-center gap-1 ml-auto">
+        <Button
           id="undoBtn"
-          className="matte-circle-btn orb-button"
+          variant="ghost"
+          size="icon-sm"
           type="button"
           aria-label={undoTooltip}
           data-tooltip={undoTooltip}
           disabled={!commandState?.canUndo}
           onClick={handleUndo}
         >
-          <Icons.Undo2 size={20} />
-        </button>
-        <button
+          <Icons.Undo2 />
+        </Button>
+        <Button
           id="redoBtn"
-          className="matte-circle-btn orb-button"
+          variant="ghost"
+          size="icon-sm"
           type="button"
           aria-label={redoTooltip}
           data-tooltip={redoTooltip}
           disabled={!commandState?.canRedo}
           onClick={handleRedo}
         >
-          <Icons.Redo2 size={20} />
-        </button>
-        <div className="header-divider" />
+          <Icons.Redo2 />
+        </Button>
+        <Separator orientation="vertical" className="mx-1 h-5" />
         <PinnedDropdown />
         <TreeDropdown />
-        <TagFilterDropdown />
         {flags?.themeStudio && (
-          <button
+          <Button
             id="themePickerBtn"
-            className="matte-circle-btn orb-button"
+            variant="ghost"
+            size="icon-sm"
             type="button"
             aria-label="Theme"
             data-tooltip="Theme"
             onClick={() => setThemePickerOpen(!themePickerOpen)}
           >
-            <Icons.Palette size={20} />
-          </button>
+            <Icons.Palette />
+          </Button>
         )}
         {syncIndicator !== "idle" && (
           <span
-            className="sync-indicator"
-            data-state={syncIndicator}
+            className={cn(
+              "inline-flex items-center justify-center size-5 rounded-full",
+              syncIndicator === "offline" && "text-yellow-500",
+              syncIndicator === "error" && "text-destructive",
+              syncIndicator === "syncing" && "text-muted-foreground",
+            )}
             aria-label={
               syncIndicator === "syncing" ? "Syncing..." :
               syncIndicator === "offline" ? "Offline" :
@@ -114,32 +122,16 @@ export default function Header() {
               syncIndicator === "offline" ? "You are offline" :
               syncIndicator === "error" ? "Sync failed" : undefined
             }
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              color: syncIndicator === "offline" ? "var(--color-warning, #f59e0b)" :
-                     syncIndicator === "error" ? "var(--color-error, #ef4444)" :
-                     "var(--color-text-secondary, #888)",
-              opacity: 0.85,
-            }}
           >
-            {syncIndicator === "syncing" && (
-              <Icons.Loader2
-                size={14}
-                style={{ animation: "sync-indicator-spin 1s linear infinite" }}
-              />
-            )}
-            {syncIndicator === "offline" && <Icons.CloudOff size={14} />}
-            {syncIndicator === "error" && <Icons.AlertTriangle size={14} />}
+            {syncIndicator === "syncing" && <Icons.Loader2 className="size-3.5 animate-spin" />}
+            {syncIndicator === "offline" && <Icons.CloudOff className="size-3.5" />}
+            {syncIndicator === "error" && <Icons.AlertTriangle className="size-3.5" />}
           </span>
         )}
-        <button
+        <Button
           id="settingsBtn"
-          className="matte-circle-btn orb-button"
+          variant="ghost"
+          size="icon-sm"
           type="button"
           aria-label={settingsLabel}
           data-tooltip={settingsTooltip}
@@ -150,8 +142,8 @@ export default function Header() {
             });
           }}
         >
-          <Icons.Settings size={20} />
-        </button>
+          <Icons.Settings />
+        </Button>
       </div>
     </header>
   );

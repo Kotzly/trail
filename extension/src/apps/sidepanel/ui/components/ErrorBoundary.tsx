@@ -1,5 +1,6 @@
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
 import TrailLogo from "./TrailLogo.js";
+import { Button } from "@ui/components/ui/button";
 
 type Props = {
   children: ReactNode;
@@ -77,14 +78,12 @@ export default class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleSafeModeReload = (): void => {
-    // Clear layout cache and any other session storage
     try {
       chrome.storage.session.clear();
     } catch {
       // Extension API unavailable
     }
 
-    // Clear the sidepanel's own isolated localStorage
     try {
       localStorage.clear();
     } catch {
@@ -100,74 +99,43 @@ export default class ErrorBoundary extends Component<Props, State> {
     }
 
     return (
-      <div className="error-boundary">
-        <div className="error-boundary__content">
-          <TrailLogo className="error-boundary__logo" label="Trail" />
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background text-foreground font-sans">
+        <div className="flex flex-col items-center gap-4 max-w-80 px-6 py-8 text-center">
+          <TrailLogo className="size-18 mb-2 opacity-50" label="Trail" />
 
-          <h1 className="error-boundary__title">Something went wrong</h1>
-          <p className="error-boundary__subtitle">
+          <h1 className="text-xl font-semibold tracking-tight">Something went wrong</h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
             Trail ran into an unexpected error.
             <br />
             Reloading usually fixes it.
           </p>
 
-          <button className="error-boundary__btn" type="button" onClick={this.handleReload}>
-            Reload Trail
-          </button>
-
-          <button
-            className="error-boundary__btn"
-            type="button"
-            onClick={this.handleCopyDiagnostics}
-          >
-            {this.state.copied ? "Copied!" : "Copy diagnostics"}
-          </button>
-
-          <button
-            className="error-boundary__btn"
-            type="button"
-            onClick={this.handleSafeModeReload}
-          >
-            Reload with safe mode
-          </button>
-
-          <button
-            className="error-boundary__btn"
-            type="button"
-            onClick={() => window.open("https://gettrail.net/support", "_blank")}
-          >
-            Contact Support
-          </button>
+          <div className="flex flex-col gap-2 w-full mt-2">
+            <Button variant="outline" className="w-full" type="button" onClick={this.handleReload}>
+              Reload Trail
+            </Button>
+            <Button variant="outline" className="w-full" type="button" onClick={this.handleCopyDiagnostics}>
+              {this.state.copied ? "Copied!" : "Copy diagnostics"}
+            </Button>
+            <Button variant="outline" className="w-full" type="button" onClick={this.handleSafeModeReload}>
+              Reload with safe mode
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              onClick={() => window.open("https://gettrail.net/support", "_blank")}
+            >
+              Contact Support
+            </Button>
+          </div>
 
           {this.state.error?.stack && (
-            <details
-              className="error-boundary__details"
-              style={{ marginTop: 16, textAlign: "left", maxWidth: "100%" }}
-            >
-              <summary
-                className="error-boundary__summary"
-                style={{
-                  cursor: "pointer",
-                  fontSize: 12,
-                  color: "var(--text-secondary, #888)",
-                }}
-              >
+            <details className="mt-4 text-left w-full">
+              <summary className="cursor-pointer text-xs text-muted-foreground">
                 Technical details
               </summary>
-              <pre
-                className="error-boundary__stack"
-                style={{
-                  fontSize: 11,
-                  maxHeight: 200,
-                  overflow: "auto",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-all",
-                  marginTop: 8,
-                  padding: 8,
-                  background: "var(--bg-secondary, #1a1a1a)",
-                  borderRadius: 4,
-                }}
-              >
+              <pre className="text-[11px] max-h-[200px] overflow-auto whitespace-pre-wrap break-all mt-2 p-2 bg-muted rounded-md">
                 {this.state.error.stack}
               </pre>
             </details>

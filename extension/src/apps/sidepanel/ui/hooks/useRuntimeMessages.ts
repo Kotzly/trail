@@ -10,7 +10,6 @@ export function useRuntimeMessages(): void {
   const setCommandState = useStore((state) => state.setCommandState);
   const setEditorMode = useStore((state) => state.setEditorMode);
   const setSyncStatus = useStore((state) => state.setSyncStatus);
-  const setTagDefs = useStore((state) => state.setTagDefs);
   const setTrees = useStore((state) => state.setTrees);
 
   useEffect(() => {
@@ -30,10 +29,6 @@ export function useRuntimeMessages(): void {
         getCommandState()
           .then((state) => setCommandState(state))
           .catch((error) => console.error("Failed to fetch command state:", error));
-        return;
-      }
-      if (message.type === RPC_METHOD.TAGS_UPDATED) {
-        setTagDefs(message.tagDefs);
         return;
       }
       if (message.type === RPC_METHOD.TREES_UPDATED) {
@@ -60,5 +55,5 @@ export function useRuntimeMessages(): void {
     return () => {
       browser.runtime.onMessage.removeListener(handler);
     };
-  }, [applyTreeState, setCommandState, setEditorMode, setSyncStatus, setTagDefs, setTrees]);
+  }, [applyTreeState, setCommandState, setEditorMode, setSyncStatus, setTrees]);
 }

@@ -3,6 +3,15 @@ import { createPortal } from "react-dom";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
+import { Button } from "@ui/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@ui/components/ui/dialog";
+import { ScrollArea } from "@ui/components/ui/scroll-area";
 
 type Placement = "top" | "bottom" | "left" | "right";
 
@@ -13,27 +22,9 @@ type TooltipTarget = {
   element: HTMLElement;
 };
 
-type Rect = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-  width: number;
-  height: number;
-};
-
-type Size = {
-  width: number;
-  height: number;
-};
-
-type HoverLayout = {
-  left: number;
-  top: number;
-  placement: Placement;
-  arrowOffsetX: number;
-  arrowOffsetY: number;
-};
+type Rect = { left: number; top: number; right: number; bottom: number; width: number; height: number };
+type Size = { width: number; height: number };
+type HoverLayout = { left: number; top: number; placement: Placement; arrowOffsetX: number; arrowOffsetY: number };
 
 const VIEWPORT_PADDING = 8;
 const TOOLTIP_GAP = 8;
@@ -66,85 +57,39 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function toRect(rect: DOMRect): Rect {
-  return {
-    left: rect.left,
-    top: rect.top,
-    right: rect.right,
-    bottom: rect.bottom,
-    width: rect.width,
-    height: rect.height,
-  };
+  return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
 }
 
 function normalizePlacement(value: string | null): Placement {
-  if (value && PLACEMENTS.includes(value as Placement)) {
-    return value as Placement;
-  }
+  if (value && PLACEMENTS.includes(value as Placement)) return value as Placement;
   return "bottom";
 }
 
-function computeBasePosition(
-  placement: Placement,
-  targetRect: Rect,
-  tooltipRect: Rect,
-): { left: number; top: number } {
+function computeBasePosition(placement: Placement, targetRect: Rect, tooltipRect: Rect) {
   const centerX = targetRect.left + targetRect.width / 2;
   const centerY = targetRect.top + targetRect.height / 2;
-
   switch (placement) {
-    case "top":
-      return {
-        left: centerX - tooltipRect.width / 2,
-        top: targetRect.top - TOOLTIP_GAP - tooltipRect.height,
-      };
-    case "bottom":
-      return {
-        left: centerX - tooltipRect.width / 2,
-        top: targetRect.bottom + TOOLTIP_GAP,
-      };
-    case "left":
-      return {
-        left: targetRect.left - TOOLTIP_GAP - tooltipRect.width,
-        top: centerY - tooltipRect.height / 2,
-      };
-    case "right":
-      return {
-        left: targetRect.right + TOOLTIP_GAP,
-        top: centerY - tooltipRect.height / 2,
-      };
+    case "top": return { left: centerX - tooltipRect.width / 2, top: targetRect.top - TOOLTIP_GAP - tooltipRect.height };
+    case "bottom": return { left: centerX - tooltipRect.width / 2, top: targetRect.bottom + TOOLTIP_GAP };
+    case "left": return { left: targetRect.left - TOOLTIP_GAP - tooltipRect.width, top: centerY - tooltipRect.height / 2 };
+    case "right": return { left: targetRect.right + TOOLTIP_GAP, top: centerY - tooltipRect.height / 2 };
   }
 }
 
 function fitsWithin(left: number, top: number, tooltipRect: Rect, viewport: Rect) {
-  const right = left + tooltipRect.width;
-  const bottom = top + tooltipRect.height;
-  return (
-    left >= viewport.left &&
-    right <= viewport.right &&
-    top >= viewport.top &&
-    bottom <= viewport.bottom
-  );
+  return left >= viewport.left && left + tooltipRect.width <= viewport.right && top >= viewport.top && top + tooltipRect.height <= viewport.bottom;
 }
 
 function clampPosition(left: number, top: number, size: Size, viewport: Rect) {
   const maxLeft = Math.max(viewport.left, viewport.right - size.width);
   const maxTop = Math.max(viewport.top, viewport.bottom - size.height);
-  return {
-    left: clamp(left, viewport.left, maxLeft),
-    top: clamp(top, viewport.top, maxTop),
-  };
+  return { left: clamp(left, viewport.left, maxLeft), top: clamp(top, viewport.top, maxTop) };
 }
 
-function computePreferredPosition(
-  placement: Placement,
-  targetRect: Rect,
-  tooltipRect: Rect,
-  viewport: Rect,
-) {
+function computePreferredPosition(placement: Placement, targetRect: Rect, tooltipRect: Rect, viewport: Rect) {
   const order = [placement, ...FALLBACKS[placement]];
   let chosen = placement;
   let position = computeBasePosition(placement, targetRect, tooltipRect);
-
   for (const candidate of order) {
     const candidatePos = computeBasePosition(candidate, targetRect, tooltipRect);
     if (fitsWithin(candidatePos.left, candidatePos.top, tooltipRect, viewport)) {
@@ -153,7 +98,6 @@ function computePreferredPosition(
       break;
     }
   }
-
   const clamped = clampPosition(position.left, position.top, tooltipRect, viewport);
   return { placement: chosen, left: clamped.left, top: clamped.top };
 }
@@ -163,11 +107,10 @@ function computeArrowOffset(tooltipRect: Rect, targetRect: Rect, left: number, t
   const centerY = targetRect.top + targetRect.height / 2;
   const safePaddingX = Math.min(ARROW_PADDING, tooltipRect.width / 2);
   const safePaddingY = Math.min(ARROW_PADDING, tooltipRect.height / 2);
-  const maxX = tooltipRect.width - safePaddingX;
-  const maxY = tooltipRect.height - safePaddingY;
-  const arrowOffsetX = clamp(centerX - left, safePaddingX, maxX);
-  const arrowOffsetY = clamp(centerY - top, safePaddingY, maxY);
-  return { arrowOffsetX, arrowOffsetY };
+  return {
+    arrowOffsetX: clamp(centerX - left, safePaddingX, tooltipRect.width - safePaddingX),
+    arrowOffsetY: clamp(centerY - top, safePaddingY, tooltipRect.height - safePaddingY),
+  };
 }
 
 export default function TooltipLayer() {
@@ -196,12 +139,7 @@ export default function TooltipLayer() {
       if (!text) return null;
       const trimmed = text.trim();
       if (!trimmed) return null;
-      return {
-        id: getIdFor(element),
-        text: trimmed,
-        placement: normalizePlacement(element.getAttribute("data-tooltip-position")),
-        element,
-      };
+      return { id: getIdFor(element), text: trimmed, placement: normalizePlacement(element.getAttribute("data-tooltip-position")), element };
     },
     [getIdFor],
   );
@@ -210,86 +148,52 @@ export default function TooltipLayer() {
     if (typeof document === "undefined") return;
     if (tooltipsOpen) {
       const elements = Array.from(document.querySelectorAll<HTMLElement>("[data-tooltip]"));
-      const next = elements
-        .filter((element) => isVisible(element))
-        .map((element) => buildTarget(element))
-        .filter((target): target is TooltipTarget => Boolean(target));
+      const next = elements.filter(isVisible).map(buildTarget).filter((t): t is TooltipTarget => Boolean(t));
       setTargets(next);
       return;
     }
-
     if (hoverTarget && isVisible(hoverTarget)) {
       const target = buildTarget(hoverTarget);
       setTargets(target ? [target] : []);
       return;
     }
-
     setTargets([]);
   }, [buildTarget, hoverTarget, tooltipsOpen]);
 
-  useLayoutEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- layout measurement requires synchronous state update
-    updateTargets();
-  }, [updateTargets]);
+  useLayoutEffect(() => { updateTargets(); }, [updateTargets]);
 
   const updateHoverLayout = useCallback(() => {
-    if (tooltipsOpen) {
-      setHoverLayout(null);
-      return;
-    }
+    if (tooltipsOpen) { setHoverLayout(null); return; }
     const target = targets[0];
     const bubble = hoverBubbleRef.current;
-    if (!target || !bubble || typeof window === "undefined") {
-      setHoverLayout(null);
-      return;
-    }
+    if (!target || !bubble || typeof window === "undefined") { setHoverLayout(null); return; }
     const targetRect = toRect(target.element.getBoundingClientRect());
     const tooltipRect = toRect(bubble.getBoundingClientRect());
     const viewport: Rect = {
-      left: VIEWPORT_PADDING,
-      top: VIEWPORT_PADDING,
-      right: window.innerWidth - VIEWPORT_PADDING,
-      bottom: window.innerHeight - VIEWPORT_PADDING,
-      width: window.innerWidth,
-      height: window.innerHeight,
+      left: VIEWPORT_PADDING, top: VIEWPORT_PADDING,
+      right: window.innerWidth - VIEWPORT_PADDING, bottom: window.innerHeight - VIEWPORT_PADDING,
+      width: window.innerWidth, height: window.innerHeight,
     };
     const position = computePreferredPosition(target.placement, targetRect, tooltipRect, viewport);
     const arrow = computeArrowOffset(tooltipRect, targetRect, position.left, position.top);
-    setHoverLayout({
-      left: position.left,
-      top: position.top,
-      placement: position.placement,
-      arrowOffsetX: arrow.arrowOffsetX,
-      arrowOffsetY: arrow.arrowOffsetY,
-    });
+    setHoverLayout({ left: position.left, top: position.top, placement: position.placement, arrowOffsetX: arrow.arrowOffsetX, arrowOffsetY: arrow.arrowOffsetY });
   }, [targets, tooltipsOpen]);
 
-  useLayoutEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- layout measurement requires synchronous state update
-    updateHoverLayout();
-  }, [updateHoverLayout]);
+  useLayoutEffect(() => { updateHoverLayout(); }, [updateHoverLayout]);
 
   useEffect(() => {
     if (tooltipsOpen) return;
     window.addEventListener("resize", updateHoverLayout);
     window.addEventListener("scroll", updateHoverLayout, true);
-    return () => {
-      window.removeEventListener("resize", updateHoverLayout);
-      window.removeEventListener("scroll", updateHoverLayout, true);
-    };
+    return () => { window.removeEventListener("resize", updateHoverLayout); window.removeEventListener("scroll", updateHoverLayout, true); };
   }, [tooltipsOpen, updateHoverLayout]);
 
   useEffect(() => {
     if (tooltipsOpen) return;
     const handlePointerOver = (event: PointerEvent) => {
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-tooltip]");
-      if (!target) {
-        setHoverTarget(null);
-        return;
-      }
-      setHoverTarget(target);
+      setHoverTarget(target ?? null);
     };
-
     const handlePointerOut = (event: PointerEvent) => {
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-tooltip]");
       if (!target) return;
@@ -297,13 +201,10 @@ export default function TooltipLayer() {
       if (related && target.contains(related)) return;
       setHoverTarget((current) => (current === target ? null : current));
     };
-
     const handleFocusIn = (event: FocusEvent) => {
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-tooltip]");
-      if (!target) return;
-      setHoverTarget(target);
+      if (target) setHoverTarget(target);
     };
-
     const handleFocusOut = (event: FocusEvent) => {
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-tooltip]");
       if (!target) return;
@@ -311,12 +212,10 @@ export default function TooltipLayer() {
       if (related && target.contains(related)) return;
       setHoverTarget((current) => (current === target ? null : current));
     };
-
     document.addEventListener("pointerover", handlePointerOver);
     document.addEventListener("pointerout", handlePointerOut);
     document.addEventListener("focusin", handleFocusIn);
     document.addEventListener("focusout", handleFocusOut);
-
     return () => {
       document.removeEventListener("pointerover", handlePointerOver);
       document.removeEventListener("pointerout", handlePointerOut);
@@ -328,10 +227,7 @@ export default function TooltipLayer() {
   useEffect(() => {
     if (!tooltipsOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setTooltipsOpen(false);
-      }
+      if (event.key === "Escape") { event.preventDefault(); setTooltipsOpen(false); }
     };
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
@@ -342,24 +238,16 @@ export default function TooltipLayer() {
     const observer = new MutationObserver(() => updateTargets());
     const root = tooltipsOpen ? document.body : hoverTarget;
     if (root) {
-      observer.observe(root, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ["data-tooltip", "style", "class", "aria-hidden"],
-      });
+      observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tooltip", "style", "class", "aria-hidden"] });
     }
     window.addEventListener("resize", updateTargets);
     window.addEventListener("scroll", updateTargets, true);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updateTargets);
-      window.removeEventListener("scroll", updateTargets, true);
-    };
+    return () => { observer.disconnect(); window.removeEventListener("resize", updateTargets); window.removeEventListener("scroll", updateTargets, true); };
   }, [hoverTarget, tooltipsOpen, updateTargets]);
 
   if (typeof document === "undefined") return null;
 
+  // Tooltips panel (modal mode)
   if (tooltipsOpen) {
     const seen = new Set<string>();
     const items = targets.reduce<string[]>((acc, target) => {
@@ -369,74 +257,50 @@ export default function TooltipLayer() {
       return acc;
     }, []);
 
-    return createPortal(
-      <div
-        className="modal-overlay tooltip-panel-overlay lod-enabler blur-enabler"
-        onClick={() => setTooltipsOpen(false)}
-      >
-        <div
-          className="tooltip-panel"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="tooltip-panel-title"
-          onClick={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <div className="tooltip-panel-header">
-            <div>
-              <div id="tooltip-panel-title" className="tooltip-panel-title">
-                Tooltips
-              </div>
-              <div className="tooltip-panel-subtitle">
-                {items.length === 0 ? "No tooltips available." : `${items.length} tips available.`}
-              </div>
-            </div>
-            <button
-              className="tooltip-panel-close"
-              type="button"
-              aria-label="Close tooltips"
-              onClick={() => setTooltipsOpen(false)}
-            >
-              <Icons.X size={18} />
-            </button>
-          </div>
+    return (
+      <Dialog open={tooltipsOpen} onOpenChange={setTooltipsOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Tooltips</DialogTitle>
+            <DialogDescription>
+              {items.length === 0 ? "No tooltips available." : `${items.length} tips available.`}
+            </DialogDescription>
+          </DialogHeader>
           {items.length === 0 ? (
-            <div className="tooltip-panel-empty">Nothing to show right now.</div>
+            <p className="text-sm text-muted-foreground text-center py-4">Nothing to show right now.</p>
           ) : (
-            <div className="tooltip-panel-list">
-              {items.map((text) => (
-                <div key={text} className="tooltip-panel-item">
-                  {text}
-                </div>
-              ))}
-            </div>
+            <ScrollArea className="max-h-80">
+              <div className="flex flex-col gap-1">
+                {items.map((text) => (
+                  <div key={text} className="px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors">
+                    {text}
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
           )}
-        </div>
-      </div>,
-      document.body,
+        </DialogContent>
+      </Dialog>
     );
   }
 
+  // Hover tooltip bubble
   const hoverItem = targets[0];
   if (!hoverItem) return null;
 
   const bubbleStyle: React.CSSProperties | undefined = hoverLayout
-    ? {
-        left: `${hoverLayout.left}px`,
-        top: `${hoverLayout.top}px`,
-        ["--tooltip-arrow-offset-x" as string]: `${hoverLayout.arrowOffsetX}px`,
-        ["--tooltip-arrow-offset-y" as string]: `${hoverLayout.arrowOffsetY}px`,
-      }
+    ? { left: `${hoverLayout.left}px`, top: `${hoverLayout.top}px` }
     : undefined;
 
   return createPortal(
-    <div className="tooltip-layer">
+    <div className="fixed inset-0 z-[10000] pointer-events-none">
       <div
         ref={hoverBubbleRef}
-        className="tooltip-bubble"
-        data-placement={hoverLayout?.placement ?? hoverItem.placement}
-        data-visible={hoverLayout ? "true" : "false"}
-        style={bubbleStyle}
+        className="fixed z-[10001] px-2.5 py-1.5 text-xs rounded-md bg-popover text-popover-foreground border border-border shadow-md transition-opacity duration-100 pointer-events-none"
+        style={{
+          ...bubbleStyle,
+          opacity: hoverLayout ? 1 : 0,
+        }}
       >
         {hoverItem.text}
       </div>

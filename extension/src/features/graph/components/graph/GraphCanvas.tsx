@@ -43,7 +43,6 @@ import type {
 } from "../../graph/render/types.js";
 import { createGraphSnapshot, type GraphSnapshot } from "../../graph/render/graph-snapshot.js";
 import type { TabState } from "@shared/types/tabs.js";
-import type { TagDefinition } from "@shared/types/tags.js";
 import { easeOutCubic, lerp } from "../../graph/animation-utils.js";
 import { toast } from "sonner";
 import { invalidateLayoutCache } from "@shared/graph-layout-cache/cache.js";
@@ -136,7 +135,6 @@ export default function GraphCanvas({
   hoverNodeId,
   resetVersion,
   viewIntent,
-  tagDefs,
   onGraphToolChange,
   onSelectedNodeIdsChange,
   onClearSelection,
@@ -243,7 +241,6 @@ export default function GraphCanvas({
     hoverNodeId: NodeId | null;
     tabStates: Record<NodeId, TabState | undefined>;
     nodeTabCounts: Record<NodeId, number>;
-    tagDefs: Record<string, TagDefinition>;
     nodeWidth: number;
     nodeHeight: number;
     effectiveShowConnections: boolean;
@@ -336,7 +333,6 @@ export default function GraphCanvas({
         isSearchDimmed: dimmedBySearch && !s.searchSet.has(id),
         isHoverFocused: false,
         display: s.display,
-        tagDefs: s.tagDefs,
       };
     });
 
@@ -1540,7 +1536,6 @@ export default function GraphCanvas({
             isSearchDimmed: dimmedBySearch && !isSearchMatch,
             isHoverFocused: false,
             display,
-            tagDefs,
           };
         });
       }),
@@ -1558,7 +1553,6 @@ export default function GraphCanvas({
       searchActive,
       searchSet,
       tabStates,
-      tagDefs,
       visibleDisplayNodes,
     ],
   );
@@ -1711,7 +1705,6 @@ export default function GraphCanvas({
     hoverNodeId,
     tabStates,
     nodeTabCounts,
-    tagDefs,
     nodeWidth,
     nodeHeight,
     effectiveShowConnections,

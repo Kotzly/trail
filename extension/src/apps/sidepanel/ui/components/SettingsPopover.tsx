@@ -1,6 +1,7 @@
 import { browser } from "@shared/platform/webext.js";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
+import { Button } from "@ui/components/ui/button";
 
 export default function SettingsDropdown() {
   const metaKey = useStore((state) => state.metaKey);
@@ -18,15 +19,16 @@ export default function SettingsDropdown() {
   };
 
   return (
-    <button
+    <Button
       id="settingsBtn"
-      className="matte-circle-btn orb-button"
+      variant="ghost"
+      size="icon-sm"
       type="button"
       aria-label={settingsLabel}
       data-tooltip={settingsTooltip}
       onClick={handleGearClick}
     >
-      <Icons.Settings size={18} />
-    </button>
+      <Icons.Settings />
+    </Button>
   );
 }

@@ -13,7 +13,6 @@ import type {
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import type { NavigationTree } from "@background/state/nav-tree.js";
 import { PinnedManager } from "@background/state/pinned.js";
-import type { TagDefinition } from "@shared/types/tags.js";
 import type { TreeMeta, TreeSummary } from "@shared/types/tree.js";
 import type { ResolvedFlags } from "@shared/types/flags.js";
 import { getCollapsedAncestorIds } from "@features/graph/graph/collapse-utils.js";
@@ -108,8 +107,6 @@ type StoreState = {
   currentNodeId: NodeId | null;
   nodeCount: number;
   commandState: CommandState | null;
-  tagDefs: Record<string, TagDefinition>;
-  tagDefsList: TagDefinition[];
   tagFilter: {
     selected: Set<Tag>;
   };
@@ -160,9 +157,6 @@ type StoreActions = {
   applyTreeState: (payload: TreeUpdatedInput) => void;
   setTrees: (snapshot: TreesSnapshot) => void;
   setCommandState: (state: CommandState) => void;
-  setTagDefs: (defs: TagDefinition[]) => void;
-  upsertTagDef: (def: TagDefinition) => void;
-  removeTagDef: (id: string) => void;
   toggleTagFilterTag: (tagId: Tag) => void;
   setTagFilterSelected: (selected: Set<Tag>) => void;
   clearTagFilter: () => void;
@@ -266,8 +260,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   currentNodeId: null,
   nodeCount: 0,
   commandState: null,
-  tagDefs: {},
-  tagDefsList: [],
   tagFilter: {
     selected: new Set<Tag>(),
   },
@@ -426,40 +418,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       },
     }),
   setCommandState: (state) => set({ commandState: state }),
-  setTagDefs: (defs) =>
-    set((state) => {
-      const tagDefs = Object.fromEntries(defs.map((def) => [def.id, def]));
-      const nextSelected = new Set<Tag>();
-      state.tagFilter.selected.forEach((id) => {
-        if (tagDefs[id]) nextSelected.add(id);
-      });
-      const selectedChanged = nextSelected.size !== state.tagFilter.selected.size;
-      return {
-        tagDefs,
-        tagDefsList: defs,
-        tagFilter: selectedChanged
-          ? { ...state.tagFilter, selected: nextSelected }
-          : state.tagFilter,
-      };
-    }),
-  upsertTagDef: (def) =>
-    set((state) => {
-      const nextMap = { ...state.tagDefs, [def.id]: def };
-      const nextList = state.tagDefsList.some((item) => item.id === def.id)
-        ? state.tagDefsList.map((item) => (item.id === def.id ? def : item))
-        : [...state.tagDefsList, def];
-      return { tagDefs: nextMap, tagDefsList: nextList };
-    }),
-  removeTagDef: (id) =>
-    set((state) => {
-      if (!state.tagDefs[id]) return state;
-      const nextMap = { ...state.tagDefs };
-      delete nextMap[id];
-      return {
-        tagDefs: nextMap,
-        tagDefsList: state.tagDefsList.filter((item) => item.id !== id),
-      };
-    }),
   toggleTagFilterTag: (tagId) =>
     set((state) => {
       const next = new Set(state.tagFilter.selected);

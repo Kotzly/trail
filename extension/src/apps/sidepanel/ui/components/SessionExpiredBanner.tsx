@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useAuthPortalFlow } from "../hooks/useAuthPortalFlow.js";
 import { Icons } from "./Icon.js";
 import { sessionBannerDismissedItem } from "@shared/config/storage-items.js";
+import { Button } from "@ui/components/ui/button";
 
 export default function SessionExpiredBanner() {
   const [dismissed, setDismissed] = useState(false);
   const { busy, startAuthFlow } = useAuthPortalFlow();
 
-  // Load persisted dismiss state on mount
   useEffect(() => {
     let cancelled = false;
     sessionBannerDismissedItem
@@ -21,7 +21,6 @@ export default function SessionExpiredBanner() {
     };
   }, []);
 
-  // Watch for storage changes (e.g., if another panel instance dismisses)
   useEffect(() => {
     const unwatch = sessionBannerDismissedItem.watch((val) => {
       setDismissed(Boolean(val));
@@ -37,31 +36,33 @@ export default function SessionExpiredBanner() {
   if (dismissed) return null;
 
   return (
-    <div className="session-banner">
-      <span className="session-banner__text">Sync requires sign-in</span>
-      <button
-        className="session-banner__action"
+    <div className="flex items-center gap-2 px-2.5 py-1.5 bg-muted border-b border-border text-xs text-muted-foreground z-50">
+      <span className="flex-1 min-w-0">Sync requires sign-in</span>
+      <Button
+        variant="outline"
+        size="xs"
         type="button"
         onClick={() => void startAuthFlow()}
         disabled={busy}
       >
         {busy ? (
           <>
-            <Icons.Maximize size={12} className="auth-gate__spinner" />
+            <Icons.Loader2 className="animate-spin" data-icon="inline-start" />
             Signing in…
           </>
         ) : (
           "Sign in"
         )}
-      </button>
-      <button
-        className="session-banner__dismiss"
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-xs"
         type="button"
         onClick={handleDismiss}
         aria-label="Dismiss"
       >
-        <Icons.X size={14} />
-      </button>
+        <Icons.X />
+      </Button>
     </div>
   );
 }

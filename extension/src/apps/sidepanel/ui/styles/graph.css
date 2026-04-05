@@ -91,60 +91,6 @@
   display: block;
 }
 
-.graph-zoom-controls {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 10;
-}
-
-.graph-control-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--glass);
-  border: var(--glass-border);
-  border-radius: 10px;
-  box-shadow: var(--glass-inset);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  color: var(--glass-ink-muted);
-  cursor: pointer;
-  transition:
-    all 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.graph-control-btn:hover {
-  background: var(--glass-strong);
-  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
-  color: var(--glass-ink);
-}
-
-.graph-control-btn.active {
-  background: color-mix(in srgb, var(--primary) 45%, transparent);
-  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
-  color: var(--on-primary-soft);
-}
-
-.graph-zoom-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.graph-zoom-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 4px 0;
-}
-
 .graph-selection-box {
   position: absolute;
   border: 2px solid var(--primary);

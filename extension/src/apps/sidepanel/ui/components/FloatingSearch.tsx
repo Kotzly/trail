@@ -2,9 +2,10 @@ import React, { useEffect, useState, type RefObject } from "react";
 import type { NodeId } from "@shared/types/ids.js";
 import { useSearch } from "../hooks/useSearch.js";
 import { useStore } from "../state/store.js";
-import { cn } from "../lib/utils.js";
+import { cn } from "@ui/lib/utils";
 import { Icons } from "./Icon.js";
 import SearchResultsList from "./SearchResultsList.js";
+import { Button } from "@ui/components/ui/button";
 
 type FloatingSearchProps = {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -26,7 +27,6 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
   const searchTooltip = `Search (${searchShortcut})`;
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
     setDraft(search.query);
   }, [search.query]);
 
@@ -45,9 +45,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
     setListOpen(false);
     clearSearch();
     if (shouldFocus) {
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
+      requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
 
@@ -58,17 +56,11 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
   };
 
   useEffect(() => {
-    if (!hasQuery) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
-      setListOpen(false);
-    }
+    if (!hasQuery) setListOpen(false);
   }, [hasQuery]);
 
   useEffect(() => {
-    if (search.results.length === 0 && listOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- state sync on dep change
-      setListOpen(false);
-    }
+    if (search.results.length === 0 && listOpen) setListOpen(false);
   }, [listOpen, search.results.length]);
 
   useEffect(() => {
@@ -78,9 +70,7 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
   const handleSelectResult = (nodeId: NodeId) => {
     selectResult(nodeId);
     setListOpen(false);
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-    });
+    requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   const handleToggleList = () => {
@@ -90,134 +80,131 @@ export default function FloatingSearch({ inputRef, onExpandedChange }: FloatingS
 
   return (
     <div
-      className={cn("floating-search", expanded && "expanded", hasQuery && "has-query", listOpen && "list-open")}
+      className="pointer-events-auto"
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(event) => {
         const nextTarget = event.relatedTarget as Node | null;
-        if (!event.currentTarget.contains(nextTarget)) {
-          setFocused(false);
-        }
+        if (!event.currentTarget.contains(nextTarget)) setFocused(false);
       }}
       onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          handleCollapse();
-        }
+        if (event.key === "Escape") { event.preventDefault(); handleCollapse(); }
       }}
     >
-      <div className="floating-search-panel">
-        <div className="floating-search-input">
-          <input
-            ref={inputRef}
-            type="text"
-            className="floating-search-field"
-            placeholder="search pages..."
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                nextResult();
-              }
-            }}
-          />
-          {expanded ? (
-            <button
-              className="floating-search-close"
-              type="button"
-              aria-label="Close search"
-              onClick={handleCollapse}
-            >
-              <Icons.X size={14} />
-            </button>
-          ) : null}
-          {!expanded ? (
-            <button
-              className="matte-circle-btn orb-button search-orb"
-              type="button"
-              aria-label={searchTooltip}
-              data-tooltip={searchTooltip}
-              onClick={() => inputRef.current?.focus()}
-            >
-              <Icons.Search size={18} />
-            </button>
-          ) : null}
-        </div>
-        {expanded && focused && (
-          <div
-            className="floating-search-hints"
-            style={{
-              display: "flex",
-              gap: 10,
-              padding: "2px 8px",
-              fontSize: 10,
-              color: "var(--color-text-muted, #888)",
-              opacity: 0.7,
-            }}
+      {/* Search input bar / orb */}
+      <div className={cn(
+        "flex items-center bg-background/90 backdrop-blur-sm border border-border shadow-sm transition-all duration-150 overflow-hidden",
+        expanded ? "w-[clamp(140px,calc(100vw-184px),220px)] rounded-lg px-2.5 gap-1.5" : "w-8 h-8 rounded-full justify-center",
+      )}>
+        {expanded && <Icons.Search className="size-3.5 text-muted-foreground shrink-0" />}
+        <input
+          ref={inputRef}
+          type="text"
+          className={cn(
+            "bg-transparent text-[13px] outline-none placeholder:text-muted-foreground min-w-0 transition-all",
+            expanded ? "flex-1 py-1.5 opacity-100" : "w-0 p-0 opacity-0",
+          )}
+          placeholder="search pages..."
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); nextResult(); } }}
+        />
+        {expanded ? (
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="rounded-full shrink-0"
+            type="button"
+            aria-label="Close search"
+            onClick={handleCollapse}
           >
-            <span><kbd style={{ fontWeight: 600, opacity: 0.9 }}>Enter</kbd> next</span>
-            <span><kbd style={{ fontWeight: 600, opacity: 0.9 }}>&#8593;&#8595;</kbd> navigate</span>
-            <span><kbd style={{ fontWeight: 600, opacity: 0.9 }}>Esc</kbd> close</span>
-          </div>
+            <Icons.X />
+          </Button>
+        ) : (
+          <Button
+            id="searchBtn"
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full size-8"
+            type="button"
+            aria-label={searchTooltip}
+            data-tooltip={searchTooltip}
+            onClick={() => inputRef.current?.focus()}
+          >
+            <Icons.Search />
+          </Button>
         )}
-        <div className="floating-search-island" aria-hidden={!hasQuery}>
-          <div className="floating-search-results-panel">
-            <div className="floating-search-results">
-              <span className="floating-search-count">
-                {search.results.length === 0
-                  ? "No matches"
-                  : `${search.index + 1} of ${search.results.length}`}
-              </span>
-              <div className="floating-search-nav">
-                <button
-                  className={cn("floating-search-nav-btn", listOpen && "is-active")}
-                  type="button"
-                  aria-label="Results list"
-                  data-tooltip="Results list"
-                  onClick={handleToggleList}
-                  disabled={!hasQuery || search.results.length === 0}
-                  tabIndex={hasQuery ? 0 : -1}
-                >
-                  <Icons.List size={14} />
-                </button>
-                <button
-                  className="floating-search-nav-btn"
-                  type="button"
-                  aria-label="Previous (↑)"
-                  data-tooltip="Previous (↑)"
-                  onClick={prevResult}
-                  disabled={!hasQuery}
-                  tabIndex={hasQuery ? 0 : -1}
-                >
-                  <Icons.ChevronUp size={14} />
-                </button>
-                <button
-                  className="floating-search-nav-btn"
-                  type="button"
-                  aria-label="Next (↓)"
-                  data-tooltip="Next (↓)"
-                  onClick={nextResult}
-                  disabled={!hasQuery}
-                  tabIndex={hasQuery ? 0 : -1}
-                >
-                  <Icons.ChevronDown size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="floating-search-list-wrap" aria-hidden={!listOpen}>
-          <div className="floating-search-list-panel">
-            <SearchResultsList
-              tree={tree}
-              results={search.results}
-              activeId={search.results[search.index] ?? null}
-              query={search.query}
-              onSelect={handleSelectResult}
-            />
-          </div>
-        </div>
       </div>
+
+      {/* Keyboard hints */}
+      {expanded && focused && (
+        <div className="flex gap-2.5 px-2 py-1 text-[10px] text-muted-foreground/70">
+          <span><kbd className="font-semibold opacity-90">Enter</kbd> next</span>
+          <span><kbd className="font-semibold opacity-90">↑↓</kbd> navigate</span>
+          <span><kbd className="font-semibold opacity-90">Esc</kbd> close</span>
+        </div>
+      )}
+
+      {/* Results counter + navigation */}
+      {expanded && hasQuery && (
+        <div className="flex items-center justify-between bg-background/90 backdrop-blur-sm border border-border rounded-lg shadow-sm px-2.5 py-1.5 mt-1.5">
+          <span className="text-[11px] text-muted-foreground tabular-nums">
+            {search.results.length === 0
+              ? "No matches"
+              : `${search.index + 1} of ${search.results.length}`}
+          </span>
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="rounded-full"
+              type="button"
+              aria-label="Results list"
+              data-tooltip="Results list"
+              onClick={handleToggleList}
+              disabled={!hasQuery || search.results.length === 0}
+            >
+              <Icons.List className={cn(listOpen && "text-foreground")} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="rounded-full"
+              type="button"
+              aria-label="Previous (↑)"
+              data-tooltip="Previous (↑)"
+              onClick={prevResult}
+              disabled={!hasQuery}
+            >
+              <Icons.ChevronUp />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="rounded-full"
+              type="button"
+              aria-label="Next (↓)"
+              data-tooltip="Next (↓)"
+              onClick={nextResult}
+              disabled={!hasQuery}
+            >
+              <Icons.ChevronDown />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Results list */}
+      {listOpen && (
+        <div className="bg-background/90 backdrop-blur-sm border border-border rounded-lg shadow-sm overflow-hidden max-h-[260px] mt-1.5">
+          <SearchResultsList
+            tree={tree}
+            results={search.results}
+            activeId={search.results[search.index] ?? null}
+            query={search.query}
+            onSelect={handleSelectResult}
+          />
+        </div>
+      )}
     </div>
   );
 }

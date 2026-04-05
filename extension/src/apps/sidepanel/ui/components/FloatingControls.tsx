@@ -1,13 +1,13 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { cn } from "../lib/utils.js";
+import { cn } from "@ui/lib/utils";
 import { redo, undo } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
 import FloatingSearch from "./FloatingSearch.js";
 import PinnedDropdown from "./PinnedDropdown.js";
 import TreeDropdown from "./TreeDropdown.js";
-import TagFilterDropdown from "./tags/TagFilterDropdown.js";
 import SettingsDropdown from "./SettingsPopover.js";
+import { Button } from "@ui/components/ui/button";
 
 type FloatingControlsProps = {
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -89,45 +89,56 @@ export default function FloatingControls({ searchInputRef }: FloatingControlsPro
   return (
     <div
       ref={controlsRef}
-      className={cn("floating-controls", controlsCompact && "is-compact")}
+      className="fixed top-3 left-3 right-3 flex justify-between items-start gap-2 z-[900] pointer-events-none"
       data-search-expanded={searchExpanded ? "true" : "false"}
     >
-      <div ref={leftRef} className="floating-controls-left">
-        <div className="floating-island">
-          <button
+      {/* Left cluster: undo/redo + pinned/trees */}
+      <div
+        ref={leftRef}
+        className={cn(
+          "flex gap-2 items-start pointer-events-auto min-w-0 max-w-full transition-all duration-200",
+          controlsCompact && "max-w-0 opacity-0 -translate-x-2 pointer-events-none overflow-hidden",
+        )}
+      >
+        <div className="flex gap-1 bg-background/90 backdrop-blur-sm rounded-full border border-border shadow-sm p-0.5">
+          <Button
             id="undoBtn"
-            className="matte-circle-btn orb-button"
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full"
             type="button"
             aria-label={undoTooltip}
             data-tooltip={undoTooltip}
             disabled={!commandState?.canUndo}
             onClick={handleUndo}
           >
-            <Icons.Undo2 size={18} />
-          </button>
-          <button
+            <Icons.Undo2 />
+          </Button>
+          <Button
             id="redoBtn"
-            className="matte-circle-btn orb-button"
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full"
             type="button"
             aria-label={redoTooltip}
             data-tooltip={redoTooltip}
             disabled={!commandState?.canRedo}
             onClick={handleRedo}
           >
-            <Icons.Redo2 size={18} />
-          </button>
+            <Icons.Redo2 />
+          </Button>
         </div>
 
-        <div className="floating-island">
-          {!editorActive ? <PinnedDropdown /> : null}
+        <div className="flex gap-1 bg-background/90 backdrop-blur-sm rounded-full border border-border shadow-sm p-0.5">
+          {!editorActive && <PinnedDropdown />}
           <TreeDropdown />
-          {!editorActive ? <TagFilterDropdown /> : null}
         </div>
       </div>
 
-      <div ref={rightRef} className="floating-controls-right">
+      {/* Right cluster: search + settings */}
+      <div ref={rightRef} className="flex flex-row-reverse gap-2 items-start pointer-events-auto">
         <FloatingSearch inputRef={searchInputRef} onExpandedChange={setSearchExpanded} />
-        <div className="floating-island">
+        <div className="bg-background/90 backdrop-blur-sm rounded-full border border-border shadow-sm p-0.5">
           <SettingsDropdown />
         </div>
       </div>

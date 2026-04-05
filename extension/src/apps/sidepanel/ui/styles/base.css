@@ -79,9 +79,12 @@
   z-index: 0;
 }
 
-.container > * {
-  position: relative;
-  z-index: 1;
+/* In @layer base so Tailwind utilities (fixed, absolute, z-*) can override */
+@layer base {
+  .container > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 /* Keep Sonner toasts above every in-panel overlay, including auth gate. */
@@ -100,25 +103,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .confirm-overlay,
-  .confirm-dialog,
-  .settings-popover,
-  .popover-segment-btn,
-  .popover-range,
-  .popover-reset-btn,
-  .popover-icon-btn,
-  .graph-context-menu,
-  .onboarding-panel,
-  .onboarding-overlay,
-  .floating-search-panel,
-  .floating-search-island,
-  .floating-search-actions-wrap,
-  .floating-search-list-wrap,
-  .trees-dropdown,
-  .pinned-dropdown,
-  .tag-filter-dropdown {
-    animation: none;
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -129,18 +118,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* ── Skeleton loading ────────────────────────────────────────────── */
-
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.15; }
-}
-
-.skeleton-block {
-  background: var(--bg-interactive, #2a2a2a);
-  border-radius: 6px;
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
+/* ── Skeleton loading (bootstrap only — component skeletons use Tailwind) ── */
 
 .skeleton-bootstrap {
   display: flex;
@@ -153,17 +131,19 @@
 .skeleton-bootstrap__header {
   height: 40px;
   border-radius: 8px;
+  background: var(--muted);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .skeleton-bootstrap__graph {
   flex: 1;
   border-radius: 8px;
   min-height: 200px;
+  background: var(--muted);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
-.skeleton-graph-fallback {
-  width: 100%;
-  height: 100%;
-  min-height: 300px;
-  border-radius: 8px;
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }

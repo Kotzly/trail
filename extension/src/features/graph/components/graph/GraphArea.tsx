@@ -12,7 +12,7 @@ import type { NodeId } from "@shared/types/ids.js";
 const GraphCanvas = React.lazy(() => import("./GraphCanvas.js"));
 
 function GraphSkeleton() {
-  return <div className="skeleton-block skeleton-graph-fallback" />;
+  return <div className="w-full h-full min-h-[300px] rounded-lg bg-muted animate-pulse" />;
 }
 
 const NODE_COUNT_LOW_THRESHOLD = 500;
@@ -73,7 +73,6 @@ export default function GraphArea({
       hoverNodeId: state.graph.hoverNodeId,
       resetVersion: state.graph.resetVersion,
       viewIntent: state.graph.viewIntent,
-      tagDefs: state.tagDefs,
       editorActive: state.editorMode.active,
       pickTarget: state.pickTarget,
       fullViewEnabled: state.flags?.fullView ?? false,

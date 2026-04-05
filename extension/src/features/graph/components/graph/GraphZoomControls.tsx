@@ -1,5 +1,6 @@
 import { Icons } from "@apps/sidepanel/ui/components/Icon.js";
 import { cn } from "../../../../ui/lib/utils.js";
+import { Button } from "@ui/components/ui/button";
 
 type GraphZoomControlsProps = {
   tool: "hand" | "select";
@@ -17,70 +18,85 @@ export default function GraphZoomControls({
   fullViewEnabled,
 }: GraphZoomControlsProps) {
   return (
-    <div className="graph-zoom-controls" data-graph-ui="true">
-      <button
-        className={cn("graph-control-btn", tool === "select" && "active")}
+    <div
+      className="absolute bottom-3 right-3 flex flex-col gap-0.5 bg-background/90 backdrop-blur-sm border border-border rounded-lg shadow-sm p-0.5 z-10"
+      data-graph-ui="true"
+    >
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className={cn("rounded-md", tool === "select" && "bg-accent")}
         data-tool="select"
         aria-label="Select tool (V) - Select nodes"
         data-tooltip="Select tool (V)"
         type="button"
         onClick={() => onToolChange("select")}
       >
-        <Icons.MousePointer2 size={18} />
-      </button>
-      <button
-        className={cn("graph-control-btn", tool === "hand" && "active")}
+        <Icons.MousePointer2 />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className={cn("rounded-md", tool === "hand" && "bg-accent")}
         data-tool="hand"
         aria-label="Hand tool (H) - Pan"
         data-tooltip="Hand tool (H)"
         type="button"
         onClick={() => onToolChange("hand")}
       >
-        <Icons.Hand size={18} />
-      </button>
-      <div className="graph-zoom-divider" />
-      <button
-        className="graph-control-btn"
+        <Icons.Hand />
+      </Button>
+      <div className="h-px bg-border mx-1 my-0.5" />
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="rounded-md"
         data-zoom="in"
         aria-label="Zoom in (+)"
         data-tooltip="Zoom in (+)"
         type="button"
         onClick={() => onZoom("in")}
       >
-        <Icons.ZoomIn size={18} />
-      </button>
-      <button
-        className="graph-control-btn"
+        <Icons.ZoomIn />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="rounded-md"
         data-zoom="out"
         aria-label="Zoom out (-)"
         data-tooltip="Zoom out (-)"
         type="button"
         onClick={() => onZoom("out")}
       >
-        <Icons.ZoomOut size={18} />
-      </button>
-      <button
-        className="graph-control-btn"
+        <Icons.ZoomOut />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="rounded-md"
         data-zoom="reset"
         aria-label="Reset zoom (0)"
         data-tooltip="Reset zoom (0)"
         type="button"
         onClick={() => onZoom("reset")}
       >
-        <Icons.Maximize size={18} />
-      </button>
+        <Icons.Maximize />
+      </Button>
       {fullViewEnabled && (
         <>
-          <div className="graph-zoom-divider" />
-          <button
-            className="graph-control-btn"
+          <div className="h-px bg-border mx-1 my-0.5" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-md"
             aria-label="Open full view"
             data-tooltip="Open full view"
             type="button"
             onClick={onOpenFullView}
           >
-            <Icons.ExternalLink size={18} />
-          </button>
+            <Icons.ExternalLink />
+          </Button>
         </>
       )}
     </div>

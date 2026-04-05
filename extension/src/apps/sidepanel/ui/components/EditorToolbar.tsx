@@ -3,6 +3,7 @@ import { rpc } from "@shared/rpc/contracts.js";
 import { sendMessage } from "../../api/background.js";
 import { Icons } from "./Icon.js";
 import { useStore } from "../state/store.js";
+import { Button } from "@ui/components/ui/button";
 
 export default function EditorToolbar() {
   const editorActive = useStore((state) => state.editorMode.active);
@@ -26,34 +27,36 @@ export default function EditorToolbar() {
   };
 
   return (
-    <div className="editor-toolbar">
-      <div className="editor-toolbar__status">
-        <Icons.Pencil size={14} />
-        <span className="editor-toolbar__label">
+    <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-blue-500/10 border-b border-blue-500/30 z-[910] shrink-0 animate-in slide-in-from-top duration-200">
+      <div className="flex items-center gap-1.5 text-blue-300 text-xs font-medium min-w-0">
+        <Icons.Pencil className="size-3.5" />
+        <span className="truncate">
           editing{isSaving ? " — saving…" : ""}
         </span>
       </div>
-      <div className="editor-toolbar__actions">
-        <button
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Button
+          variant="ghost"
+          size="xs"
           type="button"
-          className="editor-toolbar__btn editor-toolbar__btn--cancel"
           onClick={() => void handleAction("cancel")}
           disabled={busy}
           aria-label="Cancel editing (discard changes)"
         >
-          <Icons.X size={14} />
-          <span>discard</span>
-        </button>
-        <button
+          <Icons.X data-icon="inline-start" />
+          discard
+        </Button>
+        <Button
+          variant="default"
+          size="xs"
           type="button"
-          className="editor-toolbar__btn editor-toolbar__btn--save"
           onClick={() => void handleAction("save")}
           disabled={busy}
           aria-label="Save and exit editing"
         >
-          <Icons.Check size={14} />
-          <span>done</span>
-        </button>
+          <Icons.Check data-icon="inline-start" />
+          done
+        </Button>
       </div>
     </div>
   );

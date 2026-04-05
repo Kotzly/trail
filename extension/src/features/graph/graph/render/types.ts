@@ -1,7 +1,6 @@
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNode } from "@shared/types/node.js";
 import type { TabState } from "@shared/types/tabs.js";
-import type { TagDefinition } from "@shared/types/tags.js";
 
 export type GraphDisplayOptions = {
   titleTruncation: "start" | "middle" | "end";
@@ -33,7 +32,6 @@ export type NodeRenderModel = {
   isSearchDimmed: boolean;
   isHoverFocused: boolean;
   display: GraphDisplayOptions;
-  tagDefs: Record<string, TagDefinition>;
 };
 
 export type ConnectionSegment = {

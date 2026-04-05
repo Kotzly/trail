@@ -11,18 +11,27 @@ import {
 import { getBackendConfig, initBackendConfig } from "@shared/config/backend.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
-import { useAnchoredDropdown } from "../hooks/useAnchoredDropdown.js";
-import { useOverlayBehavior } from "../hooks/useOverlayBehavior.js";
-import { cn } from "../lib/utils.js";
+import { cn } from "@ui/lib/utils";
 import { Icons } from "./Icon.js";
 
 import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import type { TrailExportBundle } from "@shared/types/export.js";
-import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { browser } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
+import { Button } from "@ui/components/ui/button";
+import { Input } from "@ui/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
+import { ScrollArea } from "@ui/components/ui/scroll-area";
+import { Separator } from "@ui/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@ui/components/ui/dialog";
 
 type TreeItem = {
   id: string;
@@ -106,17 +115,7 @@ export default function TreeDropdown() {
 
   useOverlayEffects(treesOpen, { kind: "dropdown" });
 
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  useAnchoredDropdown({ open: treesOpen, dropdownRef });
-  useOverlayBehavior({
-    open: treesOpen,
-    onClose: () => setTreesOpen(false),
-    containerRef: dropdownRef,
-    triggerRef,
-    skipEscWhenEditing: true,
-  });
 
   const activeTree = trees.active
     ? ({
@@ -226,7 +225,7 @@ export default function TreeDropdown() {
         showOperationError("Load tree from cloud", loadError);
         setUnavailableTreeIds((prev) => new Set(prev).add(tree.id));
         setLoadingTreeId(null);
-        return; // Don't try to open — keep dropdown open
+        return;
       }
     }
     try {
@@ -286,360 +285,314 @@ export default function TreeDropdown() {
   const treesTooltip = `Saved trees (${treesShortcut})`;
 
   return (
-    <div className="trees-dropdown-wrapper">
-      <button
-        ref={triggerRef}
-        id="treesBtn"
-        className="matte-circle-btn orb-button"
-        type="button"
-        aria-label={treesTooltip}
-        data-tooltip={treesTooltip}
-        onClick={() => setTreesOpen(!treesOpen)}
-      >
-        <Icons.ListTree size={20} />
-      </button>
-      <div
-        ref={dropdownRef}
-        id="treesDropdown"
-        className={cn("trees-dropdown", !treesOpen && "hidden")}
-        aria-hidden={!treesOpen}
-      >
-        <div className="trees-dropdown-header">
-          <div className="trees-dropdown-heading">
-            <span className="trees-dropdown-title">trees</span>
-            <span className="trees-dropdown-count">{archivedTrees.length}</span>
-          </div>
-          <button
-            className="dropdown-close-btn trees-dropdown-close"
+    <>
+      <Popover open={treesOpen} onOpenChange={setTreesOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            id="treesBtn"
+            variant="ghost"
+            size="icon-sm"
             type="button"
-            aria-label="Close trees list"
-            onClick={() => setTreesOpen(false)}
+            aria-label={treesTooltip}
+            data-tooltip={treesTooltip}
           >
-            <Icons.X size={14} />
-          </button>
-        </div>
-        {activeTree ? (
-          <div className="trees-dropdown-section">
-            <div className="trees-dropdown-section-title">current</div>
-            <div className="trees-dropdown-item active">
-              <div className="trees-dropdown-item-info">
-                {editingId === activeTree.id ? (
-                  <input
-                    ref={inputRef}
-                    className="trees-dropdown-item-input"
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        void commitEdit();
-                      }
-                      if (event.key === "Escape") {
-                        event.preventDefault();
-                        cancelEdit();
-                      }
-                    }}
-                    onBlur={() => void commitEdit()}
-                  />
-                ) : (
-                  <div
-                    className="trees-dropdown-item-title"
-                    onDoubleClick={() => startEdit(activeTree)}
-                  >
-                    {activeTree.label}
-                  </div>
-                )}
-                <div className="trees-dropdown-item-meta">
-                  {[
-                    "active now",
-                    `${activeTree.nodeCount} nodes`,
-                    lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : null,
-                  ].filter(Boolean).join(" \u00b7 ")}
-                </div>
-              </div>
-              {editingId !== activeTree.id ? (
-                <div className="trees-dropdown-item-actions">
-                  <button
-                    className="trees-dropdown-item-action"
-                    type="button"
-                    aria-label="Export tree"
-                    data-tooltip="Export tree"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handleExport();
-                    }}
-                  >
-                    <Icons.Download size={12} />
-                  </button>
-                  <button
-                    className="trees-dropdown-item-action"
-                    type="button"
-                    aria-label="Open in editor"
-                    data-tooltip="Open in editor"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void openTrailEditor(activeTree.id);
-                    }}
-                  >
-                    <Icons.Pencil size={12} />
-                  </button>
-                </div>
-              ) : null}
+            <Icons.ListTree />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-[360px] p-0" id="treesDropdown">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-semibold">trees</span>
+              <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {archivedTrees.length}
+              </span>
             </div>
           </div>
-        ) : null}
-        <div className="trees-dropdown-section">
-          <div className="trees-dropdown-section-header">
-            <div className="trees-dropdown-section-title">saved</div>
-            <button
-              id="newTreeBtn"
-              className="trees-dropdown-section-action"
-              type="button"
-              aria-label="New tree"
-              data-tooltip="New tree"
-              onClick={() => {
-                setLabelDraft("");
-                closeAllPopups();
-                setConfirmOpen(true);
-              }}
-            >
-              <Icons.GitBranchPlus size={14} />
-            </button>
-          </div>
-          {archivedTrees.length === 0 ? (
-            <div className="trees-dropdown-empty">
-              <Icons.ListTree size={24} />
-              <span>No saved trees yet</span>
-              <span className="trees-dropdown-empty-hint">Create a new tree to get started</span>
-            </div>
-          ) : (
-            archivedTrees.map((tree) => {
-              const isLoading = loadingTreeId === tree.id;
-              const isUnavailable = unavailableTreeIds.has(tree.id);
-              const host = formatHost(tree.rootUrl);
-              const date = formatDate(tree.savedAt);
-              const meta = [
-                "archived",
-                tree.stub ? (isUnavailable ? "unavailable" : "cloud") : null,
-                host || tree.rootTitle || "Untitled",
-                `${tree.nodeCount} nodes`,
-                date,
-              ]
-                .filter(Boolean)
-                .join(" · ");
-              return (
-                <div
-                  key={tree.id}
-                  className={cn(
-                    "trees-dropdown-item",
-                    isLoading && "loading",
-                    isUnavailable && "unavailable",
-                  )}
-                  onClick={() => !isLoading && !isUnavailable && void handleOpen(tree)}
-                >
-                  {isLoading ? (
-                    <div className="trees-dropdown-item-favicon placeholder">
-                      <Icons.Loader2 size={14} className="spin" />
-                    </div>
-                  ) : tree.stub ? (
-                    <div className="trees-dropdown-item-favicon placeholder">
-                      {isUnavailable
-                        ? <Icons.CloudOff size={14} />
-                        : <Icons.Cloud size={14} />}
-                    </div>
-                  ) : tree.rootUrl ? (
-                    <img
-                      className="trees-dropdown-item-favicon"
-                      alt=""
-                      src={getFaviconUrl(tree.rootUrl)}
-                    />
-                  ) : (
-                    <div className="trees-dropdown-item-favicon placeholder">
-                      <Icons.Bookmark size={14} />
-                    </div>
-                  )}
-                  <div className="trees-dropdown-item-info">
-                    {editingId === tree.id ? (
-                      <input
+
+          <ScrollArea className="max-h-[400px]">
+            {/* Active tree section */}
+            {activeTree && (
+              <div className="py-2.5">
+                <div className="px-4 pb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  current
+                </div>
+                <div className="flex items-center gap-2.5 px-4 py-2 bg-accent">
+                  <div className="min-w-0 flex-1">
+                    {editingId === activeTree.id ? (
+                      <Input
                         ref={inputRef}
-                        className="trees-dropdown-item-input"
+                        className="h-7 text-[13px] px-1.5"
                         value={draft}
-                        onChange={(event) => setDraft(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            void commitEdit();
-                          }
-                          if (event.key === "Escape") {
-                            event.preventDefault();
-                            cancelEdit();
-                          }
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); void commitEdit(); }
+                          if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
                         }}
                         onBlur={() => void commitEdit()}
-                        onClick={(event) => event.stopPropagation()}
                       />
                     ) : (
                       <div
-                        className="trees-dropdown-item-title"
-                        onDoubleClick={(event) => {
-                          event.stopPropagation();
-                          startEdit(tree);
-                        }}
+                        className="text-[13px] truncate cursor-text"
+                        onDoubleClick={() => startEdit(activeTree)}
                       >
-                        {tree.label}
+                        {activeTree.label}
                       </div>
                     )}
-                    <div className="trees-dropdown-item-meta">{meta}</div>
+                    <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {[
+                        "active now",
+                        `${activeTree.nodeCount} nodes`,
+                        lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : null,
+                      ].filter(Boolean).join(" \u00b7 ")}
+                    </div>
                   </div>
-                  {editingId !== tree.id && !isLoading ? (
-                    <div className="trees-dropdown-item-actions">
-                      {!tree.stub ? (
-                        <button
-                          className="trees-dropdown-item-action"
-                          type="button"
-                          aria-label="Export tree"
-                          data-tooltip="Export tree"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void handleExport(tree.id);
-                          }}
-                        >
-                          <Icons.Download size={12} />
-                        </button>
-                      ) : null}
-                      <button
-                        className="trees-dropdown-item-action"
+                  {editingId !== activeTree.id && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        type="button"
+                        aria-label="Export tree"
+                        data-tooltip="Export tree"
+                        onClick={(e) => { e.stopPropagation(); void handleExport(); }}
+                      >
+                        <Icons.Download />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
                         type="button"
                         aria-label="Open in editor"
                         data-tooltip="Open in editor"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void openTrailEditor(tree.id);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); void openTrailEditor(activeTree.id); }}
                       >
-                        <Icons.Pencil size={12} />
-                      </button>
-                      <button
-                        className="trees-dropdown-item-action"
-                        type="button"
-                        aria-label="Delete tree"
-                        data-tooltip="Delete tree"
-                        disabled={deletePending === tree.id}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleDeleteArchived(tree.id);
-                        }}
-                      >
-                        <Icons.Trash2 size={12} />
-                      </button>
+                        <Icons.Pencil />
+                      </Button>
                     </div>
-                  ) : null}
+                  )}
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-      <ConfirmOverlay
+              </div>
+            )}
+
+            <Separator />
+
+            {/* Saved trees section */}
+            <div className="py-2.5">
+              <div className="flex items-center justify-between px-4 pb-2 gap-3">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">saved</span>
+                <Button
+                  id="newTreeBtn"
+                  variant="outline"
+                  size="icon-xs"
+                  type="button"
+                  className="rounded-full"
+                  aria-label="New tree"
+                  data-tooltip="New tree"
+                  onClick={() => {
+                    setLabelDraft("");
+                    closeAllPopups();
+                    setConfirmOpen(true);
+                  }}
+                >
+                  <Icons.GitBranchPlus />
+                </Button>
+              </div>
+              {archivedTrees.length === 0 ? (
+                <div className="flex flex-col items-center gap-1.5 py-5 text-muted-foreground">
+                  <Icons.ListTree className="size-6 opacity-40" />
+                  <span className="text-xs">No saved trees yet</span>
+                  <span className="text-[11px] opacity-60">Create a new tree to get started</span>
+                </div>
+              ) : (
+                <div className="px-1">
+                  {archivedTrees.map((tree) => {
+                    const isLoading = loadingTreeId === tree.id;
+                    const isUnavailable = unavailableTreeIds.has(tree.id);
+                    const host = formatHost(tree.rootUrl);
+                    const date = formatDate(tree.savedAt);
+                    const meta = [
+                      "archived",
+                      tree.stub ? (isUnavailable ? "unavailable" : "cloud") : null,
+                      host || tree.rootTitle || "Untitled",
+                      `${tree.nodeCount} nodes`,
+                      date,
+                    ].filter(Boolean).join(" · ");
+
+                    return (
+                      <div
+                        key={tree.id}
+                        className={cn(
+                          "group flex items-center gap-2.5 rounded-md px-3 py-2 cursor-pointer hover:bg-accent transition-colors",
+                          isLoading && "opacity-60 pointer-events-none",
+                          isUnavailable && "opacity-50",
+                        )}
+                        onClick={() => !isLoading && !isUnavailable && void handleOpen(tree)}
+                      >
+                        {/* Favicon */}
+                        {isLoading ? (
+                          <div className="size-4 rounded-sm shrink-0 flex items-center justify-center bg-muted">
+                            <Icons.Loader2 className="size-3 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : tree.stub ? (
+                          <div className="size-4 rounded-sm shrink-0 flex items-center justify-center bg-muted">
+                            {isUnavailable
+                              ? <Icons.CloudOff className="size-3 text-muted-foreground" />
+                              : <Icons.Cloud className="size-3 text-muted-foreground" />}
+                          </div>
+                        ) : tree.rootUrl ? (
+                          <img className="size-4 rounded-sm shrink-0" alt="" src={getFaviconUrl(tree.rootUrl)} />
+                        ) : (
+                          <div className="size-4 rounded-sm shrink-0 flex items-center justify-center bg-muted">
+                            <Icons.Bookmark className="size-2.5 text-muted-foreground" />
+                          </div>
+                        )}
+
+                        {/* Info */}
+                        <div className="min-w-0 flex-1">
+                          {editingId === tree.id ? (
+                            <Input
+                              ref={inputRef}
+                              className="h-7 text-[13px] px-1.5"
+                              value={draft}
+                              onChange={(e) => setDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); void commitEdit(); }
+                                if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+                              }}
+                              onBlur={() => void commitEdit()}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <div
+                              className="text-[13px] truncate"
+                              onDoubleClick={(e) => { e.stopPropagation(); startEdit(tree); }}
+                            >
+                              {tree.label}
+                            </div>
+                          )}
+                          <div className="text-[11px] text-muted-foreground truncate">{meta}</div>
+                        </div>
+
+                        {/* Actions */}
+                        {editingId !== tree.id && !isLoading && (
+                          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {!tree.stub && (
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                type="button"
+                                aria-label="Export tree"
+                                data-tooltip="Export tree"
+                                onClick={(e) => { e.stopPropagation(); void handleExport(tree.id); }}
+                              >
+                                <Icons.Download />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              type="button"
+                              aria-label="Open in editor"
+                              data-tooltip="Open in editor"
+                              onClick={(e) => { e.stopPropagation(); void openTrailEditor(tree.id); }}
+                            >
+                              <Icons.Pencil />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              type="button"
+                              aria-label="Delete tree"
+                              data-tooltip="Delete tree"
+                              disabled={deletePending === tree.id}
+                              onClick={(e) => { e.stopPropagation(); void handleDeleteArchived(tree.id); }}
+                            >
+                              <Icons.Trash2 />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </PopoverContent>
+      </Popover>
+
+      <NewTreeDialog
         open={confirmOpen}
+        onOpenChange={(open) => { if (!creating) setConfirmOpen(open); }}
         confirmNewTree={confirmNewTree}
         label={labelDraft}
         creating={creating}
         onLabelChange={setLabelDraft}
-        onCancel={() => {
-          if (creating) return;
-          setConfirmOpen(false);
-        }}
         onConfirm={() => {
           if (creating) return;
           setConfirmOpen(false);
           void handleNewTree();
         }}
       />
-    </div>
+    </>
   );
 }
 
-type ConfirmOverlayProps = {
+type NewTreeDialogProps = {
   open: boolean;
+  onOpenChange: (open: boolean) => void;
   confirmNewTree: boolean;
   label: string;
   creating: boolean;
   onLabelChange: (value: string) => void;
-  onCancel: () => void;
   onConfirm: () => void;
 };
 
-function ConfirmOverlay({
+function NewTreeDialog({
   open,
+  onOpenChange,
   confirmNewTree,
   label,
   creating,
   onLabelChange,
-  onCancel,
   onConfirm,
-}: ConfirmOverlayProps) {
+}: NewTreeDialogProps) {
   useOverlayEffects(open, { lod: true, blur: true, kind: "modal" });
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCancel();
-      }
-    };
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown, true);
-    };
-  }, [onCancel, open]);
-
-  if (!open) return null;
-  if (typeof document === "undefined") return null;
-  return createPortal(
-    <div
-      className="confirm-overlay lod-enabler blur-enabler"
-      onClick={onCancel}
-      onPointerDown={(event) => event.stopPropagation()}
-    >
-      <div
-        className="confirm-dialog"
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <div className="confirm-title">
-          {confirmNewTree ? "create a new tree?" : "name your new tree"}
-        </div>
-        <input
-          className="confirm-input"
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xs" showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle className="text-sm font-normal">
+            {confirmNewTree ? "create a new tree?" : "name your new tree"}
+          </DialogTitle>
+        </DialogHeader>
+        <Input
           type="text"
           value={label}
           placeholder="Unnamed Tree"
-          onChange={(event) => onLabelChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              onConfirm();
-            }
+          onChange={(e) => onLabelChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); onConfirm(); }
           }}
           autoFocus
         />
-        <div className="confirm-actions">
-          <button
-            className="confirm-btn ghost"
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
-            onClick={onCancel}
+            onClick={() => onOpenChange(false)}
             disabled={creating}
           >
             Cancel
-          </button>
-          <button className="confirm-btn" type="button" onClick={onConfirm} disabled={creating}>
+          </Button>
+          <Button size="sm" type="button" onClick={onConfirm} disabled={creating}>
             {creating ? "Creating…" : "Create"}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

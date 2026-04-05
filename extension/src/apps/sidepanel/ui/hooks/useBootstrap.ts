@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getSettings } from "../../api/settings.js";
 import { getFlags } from "../../api/flags.js";
 import { getTreeState, getTrees } from "../../api/tree.js";
-import { getTagDefs } from "../../api/tags.js";
 import { getCommandState } from "../../api/commands.js";
 import { isMac } from "@shared/utils/platform.js";
 import { useStore, type MetaKeyPair } from "../state/store.js";
@@ -41,7 +40,6 @@ export function useBootstrap(): {
   const setEditorMode = useStore((state) => state.setEditorMode);
   const setSettings = useStore((state) => state.setSettings);
   const setFlags = useStore((state) => state.setFlags);
-  const setTagDefs = useStore((state) => state.setTagDefs);
   const setTrees = useStore((state) => state.setTrees);
 
   const [bootstrapStatus, setBootstrapStatus] = useState<BootstrapStatus>("loading");
@@ -119,11 +117,6 @@ export function useBootstrap(): {
 
       // Fire all deferred fetches in parallel, each with independent error handling
       const deferredPromises = [
-        getTagDefs()
-          .then((defs) => {
-            if (mounted) setTagDefs(defs);
-          })
-          .catch((e) => console.warn("[bootstrap] tagDefs fetch failed:", e)),
         getTrees()
           .then((snapshot) => {
             if (mounted) setTrees(snapshot);
@@ -164,7 +157,6 @@ export function useBootstrap(): {
     setEditorMode,
     setFlags,
     setSettings,
-    setTagDefs,
     setTrees,
   ]);
 
