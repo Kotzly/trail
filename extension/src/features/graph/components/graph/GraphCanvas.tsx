@@ -9,7 +9,6 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { cn } from "../../../../ui/lib/utils.js";
 import { Button } from "@ui/components/ui/button";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNode } from "@shared/types/node.js";
@@ -2137,7 +2136,7 @@ export default function GraphCanvas({
   return (
     <div className="stack-container flex-1 overflow-y-auto overflow-x-hidden p-2 min-w-0 relative has-[.graph-wrapper]:p-0 has-[.graph-wrapper]:overflow-hidden" id="stackContainer">
       <div
-        className={cn("graph-wrapper", isDraggingNode && "is-dragging")}
+        className="graph-wrapper absolute inset-0 overflow-hidden overscroll-contain isolate touch-none"
         ref={wrapperRef}
         tabIndex={0}
         onPointerDown={handlePointerDown}
@@ -2170,6 +2169,17 @@ export default function GraphCanvas({
         }}
         onClick={handleBackgroundClick}
         style={{
+          "--graph-grid-dot": "var(--trail-grid-dot, color-mix(in srgb, var(--border) 60%, transparent))",
+          "--graph-connection": "var(--primary)",
+          "--graph-grid-size": "20px",
+          "--graph-grid-dot-size": "1.5px",
+          "--graph-grid-offset-x": "0px",
+          "--graph-grid-offset-y": "0px",
+          backgroundColor: "var(--trail-app-bg-color, var(--background))",
+          backgroundImage: "var(--trail-app-bg-image, none)",
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
           cursor: pickTarget
             ? "crosshair"
             : tool === "hand"
@@ -2179,8 +2189,17 @@ export default function GraphCanvas({
               : hoverNodeId
                 ? "pointer"
                 : "default",
-        }}
+        } as React.CSSProperties}
       >
+        {/* Dot grid overlay (replaces ::before pseudo-element) */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            backgroundImage: "radial-gradient(circle, var(--graph-grid-dot) var(--graph-grid-dot-size), transparent var(--graph-grid-dot-size))",
+            backgroundSize: "var(--graph-grid-size) var(--graph-grid-size)",
+            backgroundPosition: "var(--graph-grid-offset-x) var(--graph-grid-offset-y)",
+          }}
+        />
         <div className="absolute inset-0 pointer-events-none touch-none z-[2] [&_canvas]:block" ref={pixiHostRef} />
         <div
           ref={selectionBoxRef}
