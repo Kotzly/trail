@@ -1,6 +1,7 @@
 import { Icons } from "@apps/sidepanel/ui/components/Icon.js";
 import { cn } from "../../../../ui/lib/utils.js";
 import { Button } from "@ui/components/ui/button";
+import { Separator } from "@ui/components/ui/separator";
 
 type GraphZoomControlsProps = {
   tool: "hand" | "select";
@@ -46,7 +47,7 @@ export default function GraphZoomControls({
       >
         <Icons.Hand />
       </Button>
-      <div className="h-px bg-border mx-1 my-0.5" />
+      <Separator className="mx-1 my-0.5" />
       <Button
         variant="ghost"
         size="icon-sm"
@@ -85,7 +86,7 @@ export default function GraphZoomControls({
       </Button>
       {fullViewEnabled && (
         <>
-          <div className="h-px bg-border mx-1 my-0.5" />
+          <Separator className="mx-1 my-0.5" />
           <Button
             variant="ghost"
             size="icon-sm"

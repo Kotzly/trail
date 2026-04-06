@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { sendRpcMessage } from "@shared/rpc/client.js";
 import { rpc } from "@shared/rpc/contracts.js";
+import { Button } from "@ui/components/ui/button";
 
 type ExportButtonProps = {
   treeId: string;
@@ -43,9 +44,8 @@ export default function ExportButton({ treeId, label }: ExportButtonProps) {
   }, [treeId, label, exporting]);
 
   return (
-    <button
-      type="button"
-      className="hub-btn hub-btn--secondary"
+    <Button
+      variant="outline"
       onClick={() => void handleExport()}
       disabled={exporting}
     >
@@ -64,6 +64,6 @@ export default function ExportButton({ treeId, label }: ExportButtonProps) {
         <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
       {exporting ? "Exporting..." : "Export JSON"}
-    </button>
+    </Button>
   );
 }

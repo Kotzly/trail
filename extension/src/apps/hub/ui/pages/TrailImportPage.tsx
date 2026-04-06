@@ -4,6 +4,11 @@ import { navigate, type RouteParams } from "../router.js";
 import { useImportTrail } from "../hooks/useImportTrail.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { isNavigationTreeJSON } from "@shared/types/tree.js";
+import { Button } from "@ui/components/ui/button";
+import { Badge } from "@ui/components/ui/badge";
+import { Alert, AlertDescription } from "@ui/components/ui/alert";
+import { Card, CardContent } from "@ui/components/ui/card";
+import { ChevronLeft, Upload, Loader2 } from "lucide-react";
 
 function isTrailExportBundle(value: unknown): value is TrailExportBundle {
   if (!value || typeof value !== "object") return false;
@@ -123,27 +128,18 @@ export default function TrailImportPage(_props: RouteParams) {
   }, []);
 
   return (
-    <div className="hub-page">
-      <a href="#/trails" className="hub-back-link">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-        back to trails
-      </a>
+    <div className="flex flex-col gap-5 max-w-3xl">
+      <Button variant="ghost" size="sm" className="text-[13px] text-muted-foreground hover:text-foreground -ml-2 h-auto px-2 py-1" asChild>
+        <a href="#/trails">
+          <ChevronLeft className="size-4" />
+          back to trails
+        </a>
+      </Button>
 
-      <div className="import-heading">
-        <h1 className="hub-page__title">Import trail</h1>
-        <p className="import-heading__subtitle">
-          Upload a <code className="import-heading__code">.trail.json</code> file to import it
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-semibold tracking-tight m-0">Import trail</h1>
+        <p className="text-[13px] text-muted-foreground m-0">
+          Upload a <code className="px-1 py-px rounded bg-muted text-xs">.trail.json</code> file to import it
           locally.
         </p>
       </div>
@@ -151,7 +147,10 @@ export default function TrailImportPage(_props: RouteParams) {
       {(state.step === "idle" || state.step === "error") && (
         <>
           <div
-            className={cn("import-dropzone", dragOver && "import-dropzone--active")}
+            className={cn(
+              "flex flex-col items-center gap-3 py-12 px-6 border-2 border-dashed rounded-lg bg-card text-center transition-colors",
+              dragOver && "border-foreground/40 bg-muted/50",
+            )}
             onDragOver={(e) => {
               e.preventDefault();
               setDragOver(true);
@@ -159,126 +158,96 @@ export default function TrailImportPage(_props: RouteParams) {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="import-dropzone__icon"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <p className="import-dropzone__text">drag &amp; drop a file here, or</p>
-            <label className="hub-btn hub-btn--secondary import-dropzone__label">
-              choose file
+            <Upload className="size-8 text-muted-foreground" strokeWidth={1.5} />
+            <p className="text-[13px] text-muted-foreground m-0">drag &amp; drop a file here, or</p>
+            <label className="cursor-pointer">
+              <Button variant="outline" asChild>
+                <span>choose file</span>
+              </Button>
               <input
                 ref={fileRef}
                 type="file"
                 accept=".json,.trail.json"
-                className="import-dropzone__input"
+                className="hidden"
                 onChange={handleFileChange}
               />
             </label>
           </div>
 
-          {state.step === "error" && <div className="import-error">{state.message}</div>}
+          {state.step === "error" && (
+            <Alert variant="destructive" className="border-destructive">
+              <AlertDescription className="text-[13px]">{state.message}</AlertDescription>
+            </Alert>
+          )}
         </>
       )}
 
       {state.step === "preview" && (
-        <div className="import-preview">
-          <div className="import-preview__card">
-            <div className="import-preview__header">
-              <div className="import-preview__identity">
-                <h2 className="import-preview__label">{state.preview.label}</h2>
-                <p className="import-preview__filename">from {state.fileName}</p>
+        <div className="flex flex-col gap-4">
+          <Card className="gap-3 rounded-lg py-4">
+            <CardContent className="px-4 flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="text-[15px] font-medium text-foreground truncate m-0">{state.preview.label}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5 m-0">from {state.fileName}</p>
               </div>
-              <span className="trail-card__badge">
+              <Badge variant="secondary" className="shrink-0 text-[11px] tabular-nums">
                 {state.preview.nodeCount} node
                 {state.preview.nodeCount === 1 ? "" : "s"}
-              </span>
+              </Badge>
             </div>
 
-            <div className="import-preview__meta">
+            <div className="grid grid-cols-2 gap-2 text-[13px]">
               {state.preview.rootUrl && (
                 <div>
-                  <span className="import-preview__meta-label">Root URL</span>
-                  <p className="import-preview__meta-value">{state.preview.rootUrl}</p>
+                  <span className="text-[11px] font-medium text-muted-foreground">Root URL</span>
+                  <p className="mt-0.5 truncate m-0">{state.preview.rootUrl}</p>
                 </div>
               )}
               {state.preview.rootTitle && (
                 <div>
-                  <span className="import-preview__meta-label">Root title</span>
-                  <p className="import-preview__meta-value">{state.preview.rootTitle}</p>
+                  <span className="text-[11px] font-medium text-muted-foreground">Root title</span>
+                  <p className="mt-0.5 truncate m-0">{state.preview.rootTitle}</p>
                 </div>
               )}
               {state.preview.exportedAt && (
                 <div>
-                  <span className="import-preview__meta-label">Exported</span>
-                  <p className="import-preview__meta-value">{state.preview.exportedAt}</p>
+                  <span className="text-[11px] font-medium text-muted-foreground">Exported</span>
+                  <p className="mt-0.5 truncate m-0">{state.preview.exportedAt}</p>
                 </div>
               )}
               {state.preview.origin && (
                 <div>
-                  <span className="import-preview__meta-label">Origin</span>
-                  <p className="import-preview__meta-value">{state.preview.origin}</p>
+                  <span className="text-[11px] font-medium text-muted-foreground">Origin</span>
+                  <p className="mt-0.5 truncate m-0">{state.preview.origin}</p>
                 </div>
               )}
             </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="import-preview__actions">
-            <button
-              type="button"
-              className="hub-btn hub-btn--primary"
-              onClick={() => void handleImport()}
-            >
-              Import
-            </button>
-            <button type="button" className="hub-btn hub-btn--secondary" onClick={reset}>
-              Cancel
-            </button>
+          <div className="flex items-center gap-3">
+            <Button onClick={() => void handleImport()}>Import</Button>
+            <Button variant="outline" onClick={reset}>Cancel</Button>
           </div>
         </div>
       )}
 
       {state.step === "importing" && (
-        <div className="import-status">
-          <svg
-            className="hub-spinner"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-          </svg>
+        <Card className="flex-row items-center gap-3 rounded-lg py-4 px-4 text-[13px]">
+          <Loader2 className="size-4 animate-spin" />
           <span>Importing trail...</span>
-        </div>
+        </Card>
       )}
 
       {state.step === "done" && (
-        <div className="import-done">
-          <div className="import-done__message">Trail imported successfully!</div>
-          <div className="import-done__actions">
-            <button
-              type="button"
-              className="hub-btn hub-btn--primary"
-              onClick={() => navigate(`/trails/${state.treeId}`)}
-            >
-              View trail
-            </button>
-            <button type="button" className="hub-btn hub-btn--secondary" onClick={reset}>
-              Import another
-            </button>
+        <div className="flex flex-col gap-4">
+          <Alert className="border-green-500/30 bg-green-500/5 text-green-600 dark:text-green-400">
+            <AlertDescription className="text-[13px]">Trail imported successfully!</AlertDescription>
+          </Alert>
+          <div className="flex items-center gap-3">
+            <Button onClick={() => navigate(`/trails/${state.treeId}`)}>View trail</Button>
+            <Button variant="outline" onClick={reset}>Import another</Button>
           </div>
         </div>
       )}

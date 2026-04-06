@@ -1,36 +1,37 @@
 import type { RouteParams } from "../router.js";
 import { useHubAuth } from "../hooks/useHubAuth.js";
 import AuthRequiredPanel from "../components/AuthRequiredPanel.js";
+import EmptyState from "../components/EmptyState.js";
 
 export default function BillingPage(_props: RouteParams) {
   const { authenticated, isLoading } = useHubAuth();
 
   if (isLoading) {
     return (
-      <div className="hub-page">
-        <h1 className="hub-page__title">Billing</h1>
-        <div className="hub-empty">
-          <p className="hub-empty__text">Loading...</p>
-        </div>
-      </div>
+      <>
+        <h1 className="text-xl font-semibold tracking-tight">Billing</h1>
+        <EmptyState dashed>
+          <p className="text-[13px] text-muted-foreground">Loading...</p>
+        </EmptyState>
+      </>
     );
   }
 
   if (!authenticated) {
     return (
-      <div className="hub-page">
-        <h1 className="hub-page__title">Billing</h1>
+      <>
+        <h1 className="text-xl font-semibold tracking-tight">Billing</h1>
         <AuthRequiredPanel />
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="hub-page">
-      <h1 className="hub-page__title">Billing</h1>
-      <div className="hub-placeholder">
-        <p className="hub-placeholder__text">Billing management is coming soon.</p>
-      </div>
-    </div>
+    <>
+      <h1 className="text-xl font-semibold tracking-tight">Billing</h1>
+      <EmptyState>
+        <p className="text-[13px] text-muted-foreground">Billing management is coming soon.</p>
+      </EmptyState>
+    </>
   );
 }

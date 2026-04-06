@@ -1,4 +1,6 @@
 import type { LocalTrailSummary } from "../hooks/useLocalTrails.js";
+import { Badge } from "@ui/components/ui/badge";
+import { Card } from "@ui/components/ui/card";
 
 type TrailCardProps = {
   trail: LocalTrailSummary;
@@ -33,32 +35,34 @@ function formatRelative(timestamp: number): string {
 
 export default function TrailCard({ trail }: TrailCardProps) {
   return (
-    <a href={`#/trails/${trail.id}`} className="trail-card">
-      <div className="trail-card__header">
-        <div className="trail-card__identity">
-          {trail.rootFavicon ? (
-            <img
-              src={trail.rootFavicon}
-              alt=""
-              width={16}
-              height={16}
-              className="trail-card__favicon"
-            />
-          ) : (
-            <span className="trail-card__favicon-placeholder" />
-          )}
-          <span className="trail-card__label">{trail.label}</span>
+    <a href={`#/trails/${trail.id}`} className="block no-underline text-inherit">
+      <Card className="gap-2.5 p-3.5 rounded-lg shadow-none transition-colors hover:bg-muted/50">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {trail.rootFavicon ? (
+              <img
+                src={trail.rootFavicon}
+                alt=""
+                width={16}
+                height={16}
+                className="size-4 shrink-0 rounded-sm"
+              />
+            ) : (
+              <span className="size-4 shrink-0 rounded-sm bg-muted flex items-center justify-center" />
+            )}
+            <span className="text-[13px] font-medium text-foreground truncate">{trail.label}</span>
+          </div>
+          <Badge variant="secondary" className="shrink-0 text-[11px] tabular-nums">
+            {trail.nodeCount} node{trail.nodeCount === 1 ? "" : "s"}
+          </Badge>
         </div>
-        <span className="trail-card__badge">
-          {trail.nodeCount} node{trail.nodeCount === 1 ? "" : "s"}
-        </span>
-      </div>
 
-      {trail.rootTitle && <p className="trail-card__title">{trail.rootTitle}</p>}
+        {trail.rootTitle && <p className="text-xs text-muted-foreground truncate m-0">{trail.rootTitle}</p>}
 
-      <div className="trail-card__footer">
-        <time>{formatRelative(trail.savedAt)}</time>
-      </div>
+        <div className="text-[11px] text-muted-foreground">
+          <time>{formatRelative(trail.savedAt)}</time>
+        </div>
+      </Card>
     </a>
   );
 }

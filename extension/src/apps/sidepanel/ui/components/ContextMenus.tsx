@@ -20,6 +20,7 @@ import { Icons } from "./Icon.js";
 import { getIncludedRootId } from "../shared/delete-tree.js";
 import { getNearestCollapsedAncestorId } from "@features/graph/graph/collapse-utils.js";
 import { Button } from "@ui/components/ui/button";
+import { Separator } from "@ui/components/ui/separator";
 
 import { toast } from "sonner";
 import { browser, type Tab } from "@shared/platform/webext.js";
@@ -220,7 +221,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
 
             {hasOpenTab && (
               <>
-                <div className="h-px bg-border my-1" role="separator" />
+                <Separator className="my-1" />
                 <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide" role="presentation">
                   {tabs.length} open tab{tabs.length !== 1 ? "s" : ""}
                 </div>
@@ -316,7 +317,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                 )}
               </>
             )}
-            <div className="h-px bg-border my-1" role="separator" />
+            <Separator className="my-1" />
           </>
         )}
 
@@ -364,7 +365,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
           >Duplicate at…</div>
         )}
 
-        <div className="h-px bg-border my-1" role="separator" />
+        <Separator className="my-1" />
 
         {!isRoot && (pendingDelete === "node" ? (
           <div className={menuItemConfirming} role="menuitem" tabIndex={-1}
@@ -452,7 +453,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide" role="presentation">
           {nodeIds.length} nodes selected
         </div>
-        <div className="h-px bg-border my-1" role="separator" />
+        <Separator className="my-1" />
 
         <div className={menuItemDefault} role="menuitem" tabIndex={-1}
           onClick={() => { fireAndForget(rpc.bulkPin({ nodeIds })); clearSelection(); closeContextMenu(); }}
@@ -489,7 +490,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           >Close selected tabs</div>
         )}
 
-        <div className="h-px bg-border my-1" role="separator" />
+        <Separator className="my-1" />
 
         {pendingDelete === "nodes" ? (
           <div className={menuItemConfirming} role="menuitem" tabIndex={-1}

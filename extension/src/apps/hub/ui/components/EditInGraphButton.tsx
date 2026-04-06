@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { sendRpcMessage } from "@shared/rpc/client.js";
 import { rpc } from "@shared/rpc/contracts.js";
+import { Button } from "@ui/components/ui/button";
 
 type EditInGraphButtonProps = {
   treeId: string;
@@ -29,15 +30,13 @@ export default function EditInGraphButton({ treeId }: EditInGraphButtonProps) {
   }, [treeId, state]);
 
   return (
-    <button
-      type="button"
-      className="hub-btn hub-btn--primary"
+    <Button
       onClick={() => void handleClick()}
       disabled={state !== "idle"}
     >
       {state === "opening" && (
         <svg
-          className="hub-spinner"
+          className="animate-spin"
           width="14"
           height="14"
           viewBox="0 0 24 24"
@@ -51,6 +50,6 @@ export default function EditInGraphButton({ treeId }: EditInGraphButtonProps) {
       {state === "idle" && "Edit in graph"}
       {state === "opening" && "Opening..."}
       {state === "editing" && "Editing"}
-    </button>
+    </Button>
   );
 }

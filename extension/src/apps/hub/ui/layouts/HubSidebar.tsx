@@ -25,18 +25,21 @@ export default function HubSidebar() {
   const currentPath = useCurrentPath();
 
   return (
-    <nav className="hub-sidebar">
-      <div className="hub-sidebar__header">
-        <span className="hub-sidebar__brand">Trail</span>
+    <nav className="w-[200px] shrink-0 flex flex-col border-r bg-background py-5">
+      <div className="px-5 pb-4">
+        <span className="text-[15px] font-semibold tracking-tight">Trail</span>
       </div>
-      <ul className="hub-sidebar__nav">
+      <ul className="flex flex-col gap-0.5 px-2 list-none">
         {navItems.map((item) => {
           const active = isActive(currentPath, item.path);
           return (
             <li key={item.path}>
               <a
                 href={`#${item.path}`}
-                className={cn("hub-sidebar__link", active && "hub-sidebar__link--active")}
+                className={cn(
+                  "block px-3 py-1.5 rounded-md text-[13px] text-muted-foreground no-underline transition-colors hover:bg-muted hover:text-foreground",
+                  active && "bg-muted text-foreground font-medium",
+                )}
               >
                 {item.label}
               </a>

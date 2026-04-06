@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import type { RouteParams } from "../router.js";
 import type { Settings, LayoutMode, TitleTruncation } from "@shared/types/settings.js";
 import { DEFAULT_LAYOUT_SETTINGS } from "@shared/layout/defaults.js";
@@ -10,6 +10,10 @@ import {
   experimentsUnlockedItem,
 } from "@shared/config/storage-items.js";
 import { useHubAuth } from "../hooks/useHubAuth.js";
+import { Switch } from "@ui/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@ui/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/ui/card";
+import { Button } from "@ui/components/ui/button";
 
 const UNLOCK_CLICKS = 7;
 const UNLOCK_WINDOW_MS = 3000;
@@ -24,22 +28,19 @@ function Seg<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="hub-seg">
-      {options.map((opt) => (
-        <button
-          key={opt}
-          type="button"
-          className={`hub-seg__btn${value === opt ? " hub-seg__btn--active" : ""}`}
-          onClick={() => onChange(opt)}
-        >
-          {opt}
-        </button>
-      ))}
-    </div>
+    <Tabs value={value} onValueChange={(v) => onChange(v as T)}>
+      <TabsList className="h-7">
+        {options.map((opt) => (
+          <TabsTrigger key={opt} value={opt} className="text-xs px-3 h-6">
+            {opt}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
   );
 }
 
-function Toggle({
+function SettingToggle({
   id,
   label,
   description,
@@ -53,22 +54,34 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="hub-toggle" htmlFor={id}>
-      <div className="hub-toggle__text">
-        <div className="hub-toggle__label">{label}</div>
-        {description && <div className="hub-toggle__desc">{description}</div>}
-      </div>
-      <div className="hub-toggle__switch">
-        <input
-          id={id}
-          type="checkbox"
-          className="hub-toggle__input"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-        />
-        <span className="hub-toggle__control" aria-hidden="true" />
-      </div>
-    </label>
+    <div className="flex items-center justify-between gap-3">
+      <label htmlFor={id} className="flex flex-col gap-0.5 cursor-pointer">
+        <span className="text-[13px] text-foreground">{label}</span>
+        {description && (
+          <span className="text-[11px] text-muted-foreground">{description}</span>
+        )}
+      </label>
+      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+function SettingsSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="gap-3 rounded-lg py-4">
+      <CardHeader className="px-4 py-0">
+        <CardTitle className="text-sm">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="px-4 flex flex-col gap-3">
+        {children}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -175,24 +188,24 @@ export default function SettingsPage(_props: RouteParams) {
 
   if (loading) {
     return (
-      <div className="hub-page">
-        <h1 className="hub-page__title">Settings</h1>
-        <div className="hub-empty">
-          <p className="hub-empty__text">Loading...</p>
-        </div>
+      <div className="flex flex-col gap-5 max-w-3xl">
+        <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+        <Card className="items-center gap-2 py-12 px-6 border-dashed text-center">
+          <p className="text-[13px] text-muted-foreground">Loading...</p>
+        </Card>
       </div>
     );
   }
 
   if (!settings) {
     return (
-      <div className="hub-page">
-        <h1 className="hub-page__title">Settings</h1>
-        <div className="hub-empty">
-          <p className="hub-empty__text">
+      <div className="flex flex-col gap-5 max-w-3xl">
+        <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+        <Card className="items-center gap-2 py-12 px-6 border-dashed text-center">
+          <p className="text-[13px] text-muted-foreground max-w-[300px]">
             Could not load settings. Make sure the Trail extension is installed.
           </p>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -200,26 +213,23 @@ export default function SettingsPage(_props: RouteParams) {
   const layout = settings.layout ?? DEFAULT_LAYOUT_SETTINGS;
 
   return (
-    <div className="hub-page">
-      <h1 className="hub-page__title" onClick={handleTitleClick}>Settings</h1>
+    <div className="flex flex-col gap-5 max-w-3xl">
+      <h1 className="text-xl font-semibold tracking-tight" onClick={handleTitleClick}>
+        Settings
+      </h1>
 
-      {/* Account section - only when signed in */}
       {authenticated && user && (
-        <div className="hub-settings-card">
-          <h2 className="hub-settings-card__title">Account</h2>
-          <div className="hub-settings-card__row">
-            <span className="hub-settings-card__label">Email</span>
-            <span className="hub-settings-card__value">{user.email ?? "—"}</span>
+        <SettingsSection title="Account">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[13px] text-muted-foreground">Email</span>
+            <span className="text-[13px] text-foreground">{user.email ?? "—"}</span>
           </div>
-        </div>
+        </SettingsSection>
       )}
 
-      {/* Graph settings */}
-      <div className="hub-settings-card">
-        <h2 className="hub-settings-card__title">Graph</h2>
-
-        <div className="hub-settings-card__section">
-          <span className="hub-settings-card__label">Layout mode</span>
+      <SettingsSection title="Graph">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[13px] text-muted-foreground">Layout mode</span>
           <Seg
             value={layout.mode}
             options={["mindmap", "tree", "radial"] as const}
@@ -229,8 +239,8 @@ export default function SettingsPage(_props: RouteParams) {
           />
         </div>
 
-        <div className="hub-settings-card__section">
-          <span className="hub-settings-card__label">Title truncation</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[13px] text-muted-foreground">Title truncation</span>
           <Seg
             value={settings.titleTruncation ?? "middle"}
             options={["start", "middle", "end"] as const}
@@ -238,7 +248,7 @@ export default function SettingsPage(_props: RouteParams) {
           />
         </div>
 
-        <Toggle
+        <SettingToggle
           id="keep-tabs"
           label="Keep tabs on switch"
           description="Preserve open tabs when switching trees"
@@ -246,21 +256,21 @@ export default function SettingsPage(_props: RouteParams) {
           onChange={(v) => update({ keepTabsOnSwitch: v })}
         />
 
-        <Toggle
+        <SettingToggle
           id="show-connections"
           label="Show connections"
           checked={settings.showConnections ?? true}
           onChange={(v) => update({ showConnections: v })}
         />
 
-        <Toggle
+        <SettingToggle
           id="show-favicons"
           label="Show favicons"
           checked={settings.showFavicons ?? true}
           onChange={(v) => update({ showFavicons: v })}
         />
 
-        <Toggle
+        <SettingToggle
           id="dim-closed"
           label="Dim closed nodes"
           description="Reduce opacity of nodes without open tabs"
@@ -269,7 +279,7 @@ export default function SettingsPage(_props: RouteParams) {
         />
 
         {layout.mode === "tree" && (
-          <Toggle
+          <SettingToggle
             id="hide-root"
             label="Hide root paths"
             checked={layout.tree?.hideRoot ?? false}
@@ -278,27 +288,21 @@ export default function SettingsPage(_props: RouteParams) {
             }
           />
         )}
-      </div>
+      </SettingsSection>
 
-      {/* Appearance */}
-      <div className="hub-settings-card">
-        <h2 className="hub-settings-card__title">Appearance</h2>
-
-        <div className="hub-settings-card__section">
-          <span className="hub-settings-card__label">Theme</span>
+      <SettingsSection title="Appearance">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[13px] text-muted-foreground">Theme</span>
           <Seg
             value={settings.theme ?? "system"}
             options={["system", "light", "dark"] as const}
             onChange={(v) => update({ theme: v })}
           />
         </div>
-      </div>
+      </SettingsSection>
 
-      {/* Behavior */}
-      <div className="hub-settings-card">
-        <h2 className="hub-settings-card__title">Behavior</h2>
-
-        <Toggle
+      <SettingsSection title="Behavior">
+        <SettingToggle
           id="shortcuts"
           label="Keyboard shortcuts"
           description="Enable keyboard shortcuts in the side panel"
@@ -306,7 +310,7 @@ export default function SettingsPage(_props: RouteParams) {
           onChange={(v) => update({ shortcutsEnabled: v })}
         />
 
-        <Toggle
+        <SettingToggle
           id="confirm-new-tree"
           label="Confirm new tree"
           description="Show confirmation before creating a new tree"
@@ -314,20 +318,17 @@ export default function SettingsPage(_props: RouteParams) {
           onChange={(v) => update({ confirmNewTree: v })}
         />
 
-        <Toggle
+        <SettingToggle
           id="adaptive-perf"
           label="Adaptive performance"
           description="Automatically reduce visual quality for large trees"
           checked={settings.adaptivePerformance ?? true}
           onChange={(v) => update({ adaptivePerformance: v })}
         />
-      </div>
+      </SettingsSection>
 
-      {/* Search */}
-      <div className="hub-settings-card">
-        <h2 className="hub-settings-card__title">Search</h2>
-
-        <Toggle
+      <SettingsSection title="Search">
+        <SettingToggle
           id="search-suggestions"
           label="Search suggestions"
           description="Queries are sent to Google for suggestions"
@@ -337,18 +338,15 @@ export default function SettingsPage(_props: RouteParams) {
             searchSuggestionsEnabledItem.setValue(v).catch(() => {});
           }}
         />
-      </div>
+      </SettingsSection>
 
-      {/* Experiments (unlocked via 7 clicks on title) */}
       {experimentsUnlocked && flags && (
-        <div className="hub-settings-card">
-          <h2 className="hub-settings-card__title">Experiments</h2>
-
+        <SettingsSection title="Experiments">
           {(Object.keys(FLAG_DEFS) as FlagKey[]).map((key) => {
             const def = FLAG_DEFS[key];
             if (def.type === "boolean") {
               return (
-                <Toggle
+                <SettingToggle
                   key={key}
                   id={`flag-${key}`}
                   label={def.label}
@@ -360,8 +358,8 @@ export default function SettingsPage(_props: RouteParams) {
             }
             if (def.type === "variant") {
               return (
-                <div key={key} className="hub-settings-card__section">
-                  <span className="hub-settings-card__label">{def.label}</span>
+                <div key={key} className="flex flex-col gap-1.5">
+                  <span className="text-[13px] text-muted-foreground">{def.label}</span>
                   <Seg
                     value={String(flags[key])}
                     options={def.variants}
@@ -373,16 +371,14 @@ export default function SettingsPage(_props: RouteParams) {
             return null;
           })}
 
-          <div className="hub-settings-card__section">
-            <button
-              type="button"
-              className="hub-btn hub-btn--secondary"
-              onClick={() => void handleResetFlags()}
-            >
-              Reset all experiments
-            </button>
-          </div>
-        </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleResetFlags()}
+          >
+            Reset all experiments
+          </Button>
+        </SettingsSection>
       )}
     </div>
   );

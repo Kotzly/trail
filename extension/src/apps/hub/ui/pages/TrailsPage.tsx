@@ -2,6 +2,12 @@ import { useState, useMemo } from "react";
 import type { RouteParams } from "../router.js";
 import { useLocalTrails, type LocalTrailSummary } from "../hooks/useLocalTrails.js";
 import TrailCard from "../components/TrailCard.js";
+import { Button } from "@ui/components/ui/button";
+import { Input } from "@ui/components/ui/input";
+import { Alert, AlertDescription } from "@ui/components/ui/alert";
+import { Card } from "@ui/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@ui/components/ui/select";
+import { Search } from "lucide-react";
 
 type SortOption = "newest" | "oldest" | "name" | "nodes";
 
@@ -40,105 +46,93 @@ export default function TrailsPage(_props: RouteParams) {
 
   if (isLoading) {
     return (
-      <div className="hub-page">
-        <div className="hub-page__header">
-          <h1 className="hub-page__title">Trails</h1>
+      <div className="flex flex-col gap-5 max-w-3xl">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-xl font-semibold tracking-tight">Trails</h1>
         </div>
-        <div className="hub-empty">
-          <p className="hub-empty__text">Loading trails...</p>
-        </div>
+        <Card className="items-center gap-2 py-12 px-6 border-dashed text-center">
+          <p className="text-[13px] text-muted-foreground">Loading trails...</p>
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="hub-page">
-        <div className="hub-page__header">
-          <h1 className="hub-page__title">Trails</h1>
+      <div className="flex flex-col gap-5 max-w-3xl">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-xl font-semibold tracking-tight">Trails</h1>
         </div>
-        <div className="hub-error">
-          <p className="hub-error__text">Failed to load trails: {error.message}</p>
-        </div>
+        <Alert variant="destructive" className="border-destructive">
+          <AlertDescription className="text-[13px]">Failed to load trails: {error.message}</AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   if (trails.length === 0) {
     return (
-      <div className="hub-page">
-        <div className="hub-page__header">
-          <h1 className="hub-page__title">Trails</h1>
-          <a href="#/trails/import" className="hub-btn hub-btn--secondary">
-            Import
-          </a>
+      <div className="flex flex-col gap-5 max-w-3xl">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-xl font-semibold tracking-tight">Trails</h1>
+          <Button variant="outline" asChild>
+            <a href="#/trails/import">Import</a>
+          </Button>
         </div>
-        <div className="hub-empty">
-          <p className="hub-empty__heading">No trails yet</p>
-          <p className="hub-empty__text">
+        <Card className="items-center gap-2 py-12 px-6 border-dashed text-center">
+          <p className="text-sm font-medium text-foreground m-0">No trails yet</p>
+          <p className="text-[13px] text-muted-foreground max-w-[300px] m-0">
             Start browsing with the Trail extension and your trails will appear here automatically.
           </p>
-        </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="hub-page">
-      <div className="hub-page__header">
-        <h1 className="hub-page__title">Trails</h1>
-        <a href="#/trails/import" className="hub-btn hub-btn--secondary">
-          Import
-        </a>
+    <div className="flex flex-col gap-5 max-w-3xl">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold tracking-tight">Trails</h1>
+        <Button variant="outline" asChild>
+          <a href="#/trails/import">Import</a>
+        </Button>
       </div>
 
-      <div className="trails-toolbar">
-        <div className="trails-search">
-          <svg
-            className="trails-search__icon"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none size-3.5" />
+          <Input
             type="text"
             placeholder="Search trails..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="trails-search__input"
+            className="pl-8 h-[34px] text-[13px]"
           />
         </div>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as SortOption)}
-          className="trails-sort"
-        >
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-          <option value="name">Name A-Z</option>
-          <option value="nodes">Most nodes</option>
-        </select>
+        <Select value={sort} onValueChange={(v) => setSort(v as SortOption)}>
+          <SelectTrigger className="h-[34px] text-[13px] w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest first</SelectItem>
+            <SelectItem value="oldest">Oldest first</SelectItem>
+            <SelectItem value="name">Name A-Z</SelectItem>
+            <SelectItem value="nodes">Most nodes</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {filtered.length > 0 ? (
-        <div className="trails-grid">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
           {filtered.map((trail) => (
             <TrailCard key={trail.id} trail={trail} />
           ))}
         </div>
       ) : (
-        <div className="hub-empty">
-          <p className="hub-empty__heading">No matching trails</p>
-          <p className="hub-empty__text">Try adjusting your search query.</p>
-        </div>
+        <Card className="items-center gap-2 py-12 px-6 border-dashed text-center">
+          <p className="text-sm font-medium text-foreground m-0">No matching trails</p>
+          <p className="text-[13px] text-muted-foreground m-0">Try adjusting your search query.</p>
+        </Card>
       )}
     </div>
   );

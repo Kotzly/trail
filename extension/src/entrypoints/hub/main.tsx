@@ -1,5 +1,4 @@
 import "@ui/panel/styles.css";
-import "@apps/hub/ui/hub.css";
 
 import { createRoot } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
