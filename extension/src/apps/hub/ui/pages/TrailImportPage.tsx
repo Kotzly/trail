@@ -8,7 +8,8 @@ import { Button } from "@ui/components/ui/button";
 import { Badge } from "@ui/components/ui/badge";
 import { Alert, AlertDescription } from "@ui/components/ui/alert";
 import { Card, CardContent } from "@ui/components/ui/card";
-import { ChevronLeft, Upload, Loader2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowLeft01Icon, Upload01Icon, Loading03Icon } from "@hugeicons/core-free-icons";
 
 function isTrailExportBundle(value: unknown): value is TrailExportBundle {
   if (!value || typeof value !== "object") return false;
@@ -131,7 +132,7 @@ export default function TrailImportPage(_props: RouteParams) {
     <div className="flex flex-col gap-5 max-w-3xl">
       <Button variant="ghost" size="sm" className="text-[13px] text-muted-foreground hover:text-foreground -ml-2 h-auto px-2 py-1" asChild>
         <a href="#/trails">
-          <ChevronLeft className="size-4" />
+          <HugeiconsIcon icon={ArrowLeft01Icon} className="size-4" />
           back to trails
         </a>
       </Button>
@@ -158,7 +159,7 @@ export default function TrailImportPage(_props: RouteParams) {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <Upload className="size-8 text-muted-foreground" strokeWidth={1.5} />
+            <HugeiconsIcon icon={Upload01Icon} className="size-8 text-muted-foreground" strokeWidth={1.5} />
             <p className="text-[13px] text-muted-foreground m-0">drag &amp; drop a file here, or</p>
             <label className="cursor-pointer">
               <Button variant="outline" asChild>
@@ -235,7 +236,7 @@ export default function TrailImportPage(_props: RouteParams) {
 
       {state.step === "importing" && (
         <Card className="flex-row items-center gap-3 rounded-lg py-4 px-4 text-[13px]">
-          <Loader2 className="size-4 animate-spin" />
+          <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />
           <span>Importing trail...</span>
         </Card>
       )}

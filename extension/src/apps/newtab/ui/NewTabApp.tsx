@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../../../ui/lib/utils.js";
 import { Command } from "cmdk";
-import { Search, ChevronRight, FolderOpen } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Search01Icon, ArrowRight01Icon, FolderOpenIcon } from "@hugeicons/core-free-icons";
 import { AnimatePresence, motion, useMotionValue } from "motion/react";
 import { SpotlightGraphFrame } from "@features/spotlight/ui/SpotlightGraphFrame.js";
 import {
@@ -668,11 +669,11 @@ export function NewTabApp() {
             <div className="spotlight-search newtab-search">
               <div className="spotlight-scope-icon" aria-hidden="true">
                 {spotlightMode === "commands" ? (
-                  <ChevronRight size={15} strokeWidth={1.8} />
+                  <HugeiconsIcon icon={ArrowRight01Icon} size={15} strokeWidth={1.8} />
                 ) : drilldownScope ? (
-                  <FolderOpen size={15} strokeWidth={1.8} />
+                  <HugeiconsIcon icon={FolderOpenIcon} size={15} strokeWidth={1.8} />
                 ) : (
-                  <Search size={15} strokeWidth={1.8} />
+                  <HugeiconsIcon icon={Search01Icon} size={15} strokeWidth={1.8} />
                 )}
               </div>
               <div className="spotlight-input-wrap">

@@ -7,7 +7,8 @@ import { Input } from "@ui/components/ui/input";
 import { Alert, AlertDescription } from "@ui/components/ui/alert";
 import { Card } from "@ui/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@ui/components/ui/select";
-import { Search } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Search01Icon } from "@hugeicons/core-free-icons";
 
 type SortOption = "newest" | "oldest" | "name" | "nodes";
 
@@ -100,7 +101,7 @@ export default function TrailsPage(_props: RouteParams) {
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none size-3.5" />
+          <HugeiconsIcon icon={Search01Icon} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none size-3.5" />
           <Input
             type="text"
             placeholder="Search trails..."

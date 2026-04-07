@@ -1,4 +1,5 @@
-import { Search, Globe, Bookmark, Network, FolderOpen } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Search01Icon, Globe02Icon, Bookmark01Icon, NeuralNetworkIcon, FolderOpenIcon } from "@hugeicons/core-free-icons";
 import { executeSpotlightAction } from "@features/spotlight/ui/rpc.js";
 
 // ---------------------------------------------------------------------------
@@ -28,7 +29,7 @@ export function SearchDefaults({ query, onSetQuery }: SearchDefaultsProps) {
   const actions: DefaultAction[] = [
     {
       id: "web",
-      icon: <Globe size={15} strokeWidth={1.8} />,
+      icon: <HugeiconsIcon icon={Globe02Icon} size={15} strokeWidth={1.8} />,
       label: trimmed ? `Search "${trimmed}" on the web` : "Search on the web",
       onSelect: () => {
         void executeSpotlightAction("search-default-engine", { kind: "search", query: trimmed });
@@ -36,25 +37,25 @@ export function SearchDefaults({ query, onSetQuery }: SearchDefaultsProps) {
     },
     {
       id: "bookmarks",
-      icon: <Bookmark size={15} strokeWidth={1.8} />,
+      icon: <HugeiconsIcon icon={Bookmark01Icon} size={15} strokeWidth={1.8} />,
       label: trimmed ? `Find "${trimmed}" in bookmarks` : "Browse bookmarks",
       onSelect: () => onSetQuery(trimmed ? `bookmarks:${trimmed}` : "bookmarks:"),
     },
     {
       id: "trails",
-      icon: <Network size={15} strokeWidth={1.8} />,
+      icon: <HugeiconsIcon icon={NeuralNetworkIcon} size={15} strokeWidth={1.8} />,
       label: trimmed ? `Find "${trimmed}" in trails` : "Browse trails",
       onSelect: () => onSetQuery(trimmed ? `trees:${trimmed}` : "trees:"),
     },
     {
       id: "tabs",
-      icon: <FolderOpen size={15} strokeWidth={1.8} />,
+      icon: <HugeiconsIcon icon={FolderOpenIcon} size={15} strokeWidth={1.8} />,
       label: trimmed ? `Find "${trimmed}" in open tabs` : "Show open tabs",
       onSelect: () => onSetQuery(trimmed ? `tabs:${trimmed}` : "tabs:"),
     },
     {
       id: "commands",
-      icon: <Search size={15} strokeWidth={1.8} />,
+      icon: <HugeiconsIcon icon={Search01Icon} size={15} strokeWidth={1.8} />,
       label: "Run a command",
       sublabel: "Type > to see available commands",
       onSelect: () => onSetQuery(">"),

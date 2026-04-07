@@ -98,34 +98,22 @@ export function readGraphTheme(source: ThemeSource): GraphTheme {
     ),
     onPrimary: parseColor(style.getPropertyValue("--primary-foreground"), DEFAULT_THEME.onPrimary),
     active: {
-      background: parseColor(
-        style.getPropertyValue("--graph-node-active-bg"),
-        DEFAULT_THEME.active.background,
-      ),
-      border: parseColor(
-        style.getPropertyValue("--graph-node-active-border"),
-        DEFAULT_THEME.active.border,
-      ),
+      background: parseColor(style.getPropertyValue("--secondary"), DEFAULT_THEME.active.background),
+      border: parseColor(style.getPropertyValue("--primary"), DEFAULT_THEME.active.border),
       title: parseColor(
-        style.getPropertyValue("--graph-node-active-title"),
+        style.getPropertyValue("--secondary-foreground"),
         DEFAULT_THEME.active.title,
       ),
-      url: parseColor(style.getPropertyValue("--graph-node-active-url"), DEFAULT_THEME.active.url),
+      url: parseColor(style.getPropertyValue("--primary"), DEFAULT_THEME.active.url),
     },
     closed: {
-      background: parseColor(
-        style.getPropertyValue("--graph-node-closed-bg"),
-        DEFAULT_THEME.closed.background,
-      ),
-      border: parseColor(
-        style.getPropertyValue("--graph-node-closed-border"),
-        DEFAULT_THEME.closed.border,
-      ),
+      background: parseColor(style.getPropertyValue("--card"), DEFAULT_THEME.closed.background),
+      border: parseColor(style.getPropertyValue("--border"), DEFAULT_THEME.closed.border),
       title: parseColor(
-        style.getPropertyValue("--graph-node-closed-title"),
+        style.getPropertyValue("--muted-foreground"),
         DEFAULT_THEME.closed.title,
       ),
-      url: parseColor(style.getPropertyValue("--graph-node-closed-url"), DEFAULT_THEME.closed.url),
+      url: parseColor(style.getPropertyValue("--muted-foreground"), DEFAULT_THEME.closed.url),
     },
     connection: {
       base: connectionColor,

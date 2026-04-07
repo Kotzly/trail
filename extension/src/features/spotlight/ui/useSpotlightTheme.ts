@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { getSettings } from "./rpc.js";
 import { applyThemeTokens } from "@apps/sidepanel/ui/shared/apply-theme.js";
 import type { ThemeId } from "@shared/types/theme.js";
-import type { CustomTheme } from "@shared/types/settings.js";
 
 /**
  * Resolves a ThemeId ('light' | 'dark' | 'system') to an effective
@@ -19,14 +18,13 @@ function resolveEffective(themeId: ThemeId): "light" | "dark" {
  * Synchronizes the Spotlight shadow host's theme with Trail's settings.
  *
  * - Sets `data-theme` attribute (effective light/dark) for CSS overrides
- * - Applies THEME_TOKEN_KEYS as inline styles on the host (the Shadow DOM
- *   has no access to tokens.css, so base tokens must be set explicitly)
+ * - Applies base shadcn tokens as inline styles on the host (the Shadow DOM
+ *   has no access to the CSS cascade, so tokens must be set explicitly)
  * - Fetches theme via RPC (safe in content script context)
  * - Watches OS media-query changes for `theme: 'system'`
  */
 export function useSpotlightTheme(containerRef: React.RefObject<HTMLElement | null>) {
   const themeIdRef = useRef<ThemeId>("system");
-  const customThemeRef = useRef<CustomTheme | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -38,7 +36,7 @@ export function useSpotlightTheme(containerRef: React.RefObject<HTMLElement | nu
     const apply = () => {
       const effective = resolveEffective(themeIdRef.current);
       host.setAttribute("data-theme", effective);
-      applyThemeTokens(host, effective, customThemeRef.current, { preserveDefaults: false });
+      applyThemeTokens(host, effective, null, { preserveDefaults: false });
     };
 
     // Immediately set based on OS preference (avoids flash before settings load)
@@ -48,7 +46,6 @@ export function useSpotlightTheme(containerRef: React.RefObject<HTMLElement | nu
     getSettings()
       .then((s) => {
         themeIdRef.current = s.theme;
-        customThemeRef.current = s.customTheme;
         apply();
       })
       .catch(() => {

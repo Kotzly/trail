@@ -1,44 +1,46 @@
 import { cn } from "../../../ui/lib/utils.js";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Archive,
-  Copy,
-  ExternalLink,
-  Globe,
-  HelpCircle,
-  Network,
-  PanelLeft,
-  Pin,
-  PinOff,
-  Plus,
-  Search,
-  Settings,
-  Trash2,
-  Upload,
-  X,
-} from "lucide-react";
+  Archive01Icon,
+  Copy01Icon,
+  LinkSquare01Icon,
+  Globe02Icon,
+  HelpCircleIcon,
+  NeuralNetworkIcon,
+  PanelLeftIcon,
+  PinIcon,
+  PinOffIcon,
+  PlusSignIcon,
+  Search01Icon,
+  Settings02Icon,
+  Delete02Icon,
+  Upload01Icon,
+  Cancel01Icon,
+} from "@hugeicons/core-free-icons";
 import type { SpotlightSearchResult, SpotlightActionId } from "./types.js";
-import type { ComponentType } from "react";
 
-const ACTION_ICONS: Record<SpotlightActionId, ComponentType<{ size: number }>> = {
-  open: ExternalLink,
-  "open-node-in-tree": ExternalLink,
-  "open-url-only": ExternalLink,
-  "open-url": ExternalLink,
-  "open-tree": Network,
-  "search-default-engine": Search,
-  "copy-url": Copy,
-  pin: Pin,
-  unpin: PinOff,
-  "close-tab": X,
-  "close-tabs": X,
-  "archive-current-tree": Archive,
-  "delete-archived-tree": Trash2,
-  "export-tree": Upload,
-  "new-tree": Plus,
-  "show-command-help": HelpCircle,
-  "open-settings": Settings,
-  "toggle-sidebar": PanelLeft,
-  "clear-history": Trash2,
+type IconData = Parameters<typeof HugeiconsIcon>[0]["icon"];
+
+const ACTION_ICONS: Record<SpotlightActionId, IconData> = {
+  open: LinkSquare01Icon,
+  "open-node-in-tree": LinkSquare01Icon,
+  "open-url-only": LinkSquare01Icon,
+  "open-url": LinkSquare01Icon,
+  "open-tree": NeuralNetworkIcon,
+  "search-default-engine": Search01Icon,
+  "copy-url": Copy01Icon,
+  pin: PinIcon,
+  unpin: PinOffIcon,
+  "close-tab": Cancel01Icon,
+  "close-tabs": Cancel01Icon,
+  "archive-current-tree": Archive01Icon,
+  "delete-archived-tree": Delete02Icon,
+  "export-tree": Upload01Icon,
+  "new-tree": PlusSignIcon,
+  "show-command-help": HelpCircleIcon,
+  "open-settings": Settings02Icon,
+  "toggle-sidebar": PanelLeftIcon,
+  "clear-history": Delete02Icon,
 };
 
 type SpotlightRowIconProps = {
@@ -47,33 +49,33 @@ type SpotlightRowIconProps = {
 
 function FaviconOrFallback({
   favicon,
-  fallback: Fallback,
+  fallback,
 }: {
   favicon?: string | undefined;
-  fallback: ComponentType<{ size: number }>;
+  fallback: IconData;
 }) {
   return (
     <span className="spotlight-row-icon">
-      {favicon ? <img src={favicon} alt="" width={16} height={16} /> : <Fallback size={16} />}
+      {favicon ? <img src={favicon} alt="" width={16} height={16} /> : <HugeiconsIcon icon={fallback} size={16} />}
     </span>
   );
 }
 
 export function SpotlightRowIcon({ item }: SpotlightRowIconProps) {
   if (item.kind === "node") {
-    return <FaviconOrFallback favicon={item.favicon} fallback={Globe} />;
+    return <FaviconOrFallback favicon={item.favicon} fallback={Globe02Icon} />;
   }
 
   if (item.kind === "tree") {
-    return <FaviconOrFallback favicon={item.favicon} fallback={Network} />;
+    return <FaviconOrFallback favicon={item.favicon} fallback={NeuralNetworkIcon} />;
   }
 
-  const Icon = ACTION_ICONS[item.actionId] ?? ExternalLink;
+  const iconData = ACTION_ICONS[item.actionId] ?? LinkSquare01Icon;
   const isDestructive = item.safety === "destructive";
 
   return (
     <span className={cn("spotlight-row-icon", isDestructive && "spotlight-row-icon--destructive")}>
-      <Icon size={16} />
+      <HugeiconsIcon icon={iconData} size={16} />
     </span>
   );
 }

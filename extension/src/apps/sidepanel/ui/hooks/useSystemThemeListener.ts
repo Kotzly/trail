@@ -9,7 +9,7 @@ export function useSystemThemeListener() {
     const onChange = () => {
       const settings = useStore.getState().settings;
       if (!settings || settings.theme !== "system") return;
-      applyTheme("system", settings.customTheme);
+      applyTheme("system");
     };
 
     onChange(); // sync on start

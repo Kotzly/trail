@@ -1,84 +1,97 @@
-import type { CustomTheme } from "@shared/types/settings.js";
 import type { ThemeId } from "@features/themes/model.js";
-import { generateThemeTokens, generateBaseTokens, THEME_TOKEN_KEYS } from "./theme-generator.js";
 import { themeCacheItem } from "@shared/config/storage-items.js";
 
+function resolveEffective(theme: ThemeId): "light" | "dark" {
+  if (theme === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  return theme;
+}
+
 /**
- * Apply theme CSS tokens to an arbitrary element.
+ * Base shadcn token values for contexts without CSS cascade access
+ * (Spotlight Shadow DOM). Matches the :root / [data-theme="dark"]
+ * definitions in tailwind.css.
+ */
+const BASE_TOKENS: Record<"light" | "dark", Record<string, string>> = {
+  light: {
+    "--background": "#ffffff",
+    "--foreground": "#09090b",
+    "--card": "#ffffff",
+    "--card-foreground": "#09090b",
+    "--popover": "#ffffff",
+    "--popover-foreground": "#09090b",
+    "--primary": "#18181b",
+    "--primary-foreground": "#fafafa",
+    "--secondary": "#f4f4f5",
+    "--secondary-foreground": "#18181b",
+    "--muted": "#f4f4f5",
+    "--muted-foreground": "#71717a",
+    "--accent": "#f4f4f5",
+    "--accent-foreground": "#18181b",
+    "--destructive": "#ef4444",
+    "--destructive-foreground": "#fafafa",
+    "--border": "#e4e4e7",
+    "--input": "#e4e4e7",
+    "--ring": "#18181b",
+  },
+  dark: {
+    "--background": "#09090b",
+    "--foreground": "#fafafa",
+    "--card": "#09090b",
+    "--card-foreground": "#fafafa",
+    "--popover": "#09090b",
+    "--popover-foreground": "#fafafa",
+    "--primary": "#fafafa",
+    "--primary-foreground": "#18181b",
+    "--secondary": "#27272a",
+    "--secondary-foreground": "#fafafa",
+    "--muted": "#27272a",
+    "--muted-foreground": "#a1a1aa",
+    "--accent": "#27272a",
+    "--accent-foreground": "#fafafa",
+    "--destructive": "#ef4444",
+    "--destructive-foreground": "#fafafa",
+    "--border": "#27272a",
+    "--input": "#27272a",
+    "--ring": "#d4d4d8",
+  },
+};
+
+/**
+ * Apply base theme tokens as inline styles on a Shadow DOM host.
+ * Only needed for elements without access to the CSS cascade
+ * (e.g. Spotlight content script Shadow DOM).
  *
- * Does NOT set `data-theme` or write to storage — only writes/clears
- * THEME_TOKEN_KEYS as inline styles on `target`.
- *
- * @param preserveDefaults (default true) — when true and custom theme is
- *   disabled, removes inline tokens so tokens.css cascade takes over
- *   (sidepanel root). When false, generates and applies base tokens
- *   because the target has no tokens.css (Spotlight Shadow DOM host).
+ * For the sidepanel, tokens come from the CSS cascade (tailwind.css)
+ * and this function is not needed.
  */
 export function applyThemeTokens(
   target: HTMLElement,
   theme: ThemeId,
-  customTheme: CustomTheme | null,
+  _customTheme?: unknown,
   opts?: { preserveDefaults?: boolean },
 ): void {
   const preserveDefaults = opts?.preserveDefaults ?? true;
-  const effective: "light" | "dark" =
-    theme === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : theme;
+  if (preserveDefaults) return;
 
-  const hasVisualContent =
-    (customTheme?.dots?.length ?? 0) > 0 || (customTheme?.customColors?.length ?? 0) > 0;
-  if (!customTheme?.enabled || !hasVisualContent) {
-    if (preserveDefaults) {
-      // Sidepanel: clear inline tokens, rely on tokens.css
-      for (const key of THEME_TOKEN_KEYS) {
-        target.style.removeProperty(key);
-      }
-    } else {
-      // Spotlight: apply base tokens since no tokens.css available
-      const baseTokens = generateBaseTokens(effective);
-      for (const key of THEME_TOKEN_KEYS) {
-        const value = baseTokens[key as keyof typeof baseTokens];
-        if (value) {
-          target.style.setProperty(key, value);
-        } else {
-          target.style.removeProperty(key);
-        }
-      }
-    }
-    return;
-  }
-  const tokens = generateThemeTokens(customTheme, effective);
-  for (const key of THEME_TOKEN_KEYS) {
-    const value = tokens[key];
-    if (value) {
-      target.style.setProperty(key, value);
-    } else {
-      target.style.removeProperty(key);
-    }
+  const effective = resolveEffective(theme);
+  const tokens = BASE_TOKENS[effective];
+  for (const [key, value] of Object.entries(tokens)) {
+    target.style.setProperty(key, value);
   }
 }
 
 /**
  * Apply theme to the sidepanel document root.
- * Sets data-theme, writes tokens, and persists to cache.
+ * Sets data-theme attribute and persists to cache/localStorage.
  */
-export function applyTheme(theme: ThemeId, customTheme: CustomTheme): void {
+export function applyTheme(theme: ThemeId): void {
   const root = document.documentElement;
   root.setAttribute("data-theme", theme);
   void themeCacheItem.setValue(theme);
-  applyThemeTokens(root, theme, customTheme, { preserveDefaults: true });
 
-  // Persist resolved theme to localStorage for instant access by inline
-  // scripts in fullview/sidepanel HTML — prevents white flash on load.
-  const effective: "light" | "dark" =
-    theme === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : theme;
+  const effective = resolveEffective(theme);
   try {
     localStorage.setItem("trail_theme", effective);
   } catch {

@@ -2169,17 +2169,13 @@ export default function GraphCanvas({
         }}
         onClick={handleBackgroundClick}
         style={{
-          "--graph-grid-dot": "var(--trail-grid-dot, color-mix(in srgb, var(--border) 60%, transparent))",
+          "--graph-grid-dot": "color-mix(in srgb, var(--border) 60%, transparent)",
           "--graph-connection": "var(--primary)",
           "--graph-grid-size": "20px",
           "--graph-grid-dot-size": "1.5px",
           "--graph-grid-offset-x": "0px",
           "--graph-grid-offset-y": "0px",
-          backgroundColor: "var(--trail-app-bg-color, var(--background))",
-          backgroundImage: "var(--trail-app-bg-image, none)",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundColor: "var(--background)",
           cursor: pickTarget
             ? "crosshair"
             : tool === "hand"
@@ -2203,7 +2199,7 @@ export default function GraphCanvas({
         <div className="absolute inset-0 pointer-events-none touch-none z-[2] [&_canvas]:block" ref={pixiHostRef} />
         <div
           ref={selectionBoxRef}
-          className="absolute border-2 border-primary bg-[rgba(var(--primary-rgb),0.1)] pointer-events-none z-[5] rounded"
+          className="absolute border-2 border-primary bg-primary/10 pointer-events-none z-[5] rounded"
           style={{ opacity: 0, width: "0px", height: "0px" }}
         />
         {showControls && (

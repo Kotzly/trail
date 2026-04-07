@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Command } from "cmdk";
 import { motion } from "motion/react";
-import { Search, ChevronRight, FolderOpen } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Search01Icon, ArrowRight01Icon, FolderOpenIcon } from "@hugeicons/core-free-icons";
 import { SpotlightGraphFrame } from "./SpotlightGraphFrame.js";
 import { applySpotlightHint, buildSpotlightHints, computeGhostSuffix } from "./SpotlightHintRow.js";
 import { SpotlightHelp } from "./SpotlightHelp.js";
@@ -312,11 +313,11 @@ export function SpotlightRoot({ onRegisterToggle }: SpotlightRootProps) {
           <div className="spotlight-search spotlight-search--v3">
             <div className="spotlight-scope-icon" aria-hidden="true">
               {spotlightMode === "commands" ? (
-                <ChevronRight size={15} strokeWidth={1.8} />
+                <HugeiconsIcon icon={ArrowRight01Icon} size={15} strokeWidth={1.8} />
               ) : drilldownScope ? (
-                <FolderOpen size={15} strokeWidth={1.8} />
+                <HugeiconsIcon icon={FolderOpenIcon} size={15} strokeWidth={1.8} />
               ) : (
-                <Search size={15} strokeWidth={1.8} />
+                <HugeiconsIcon icon={Search01Icon} size={15} strokeWidth={1.8} />
               )}
             </div>
             <div className="spotlight-input-wrap">

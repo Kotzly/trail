@@ -71,7 +71,7 @@ export function useBootstrap(): {
         bootstrapGraph(settings, treeState);
         setFlags(flags);
         setSettings(settings);
-        applyTheme(settings.theme, settings.customTheme);
+        applyTheme(settings.theme);
 
         // Restore editor mode if it was active before the sidepanel was closed
         if (treeState.editorMode?.active) {
