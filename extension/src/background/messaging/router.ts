@@ -26,10 +26,7 @@ import { pinHandlers } from "./handlers/pin-handlers.js";
 import { panelHandlers } from "./handlers/panel-handlers.js";
 import { siteMessageHandlers } from "./handlers/site-message-handlers.js";
 import { editorHandlers } from "./handlers/editor-handlers.js";
-import { oauthAuthHandlers } from "./handlers/oauth-auth-handlers.js";
 import { flagsHandlers } from "./handlers/flags-handlers.js";
-import { spotlightHandlers } from "./handlers/spotlight-handlers.js";
-import { accountPageHandlers } from "./handlers/account-page-handlers.js";
 import { browser, type RuntimeMessageSender } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
 
@@ -50,9 +47,6 @@ const outboundOnlyHandlers = defineRpcHandlers({
     err("TREES_UPDATED is outbound-only"),
   [RPC_METHOD.NOTIFY]: async (): Promise<ResponseMessage<typeof RPC_METHOD.NOTIFY>> =>
     err("NOTIFY is outbound-only"),
-  [RPC_METHOD.SYNC_STATUS_UPDATED]: async (): Promise<
-    ResponseMessage<typeof RPC_METHOD.SYNC_STATUS_UPDATED>
-  > => err("SYNC_STATUS_UPDATED is outbound-only"),
 } satisfies HandlerMap);
 
 function createMessageRouter() {
@@ -143,10 +137,7 @@ export function initMessaging(): void {
     .merge(pinHandlers)
     .merge(panelHandlers)
     .merge(siteMessageHandlers)
-    .merge(oauthAuthHandlers)
     .merge(editorHandlers)
     .merge(flagsHandlers)
-    .merge(spotlightHandlers)
-    .merge(accountPageHandlers)
     .listen();
 }

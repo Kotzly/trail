@@ -14,12 +14,6 @@ import type { NavigationTree } from "../../state/nav-tree.js";
 import type { NavigationNode, NodeData } from "@shared/types/node.js";
 import { type TreeNode } from "../../state/tree-node.js";
 import { loadTree } from "../../services/tree-loader.js";
-import {
-  editorSyncStart,
-  editorSyncMarkDirty,
-  editorSyncFlush,
-  editorSyncStop,
-} from "../../services/editor-sync.js";
 import { isAllowedSiteOrigin } from "@shared/config/site-origins.js";
 import { editorStateItem } from "@shared/config/storage-items.js";
 import { isSidepanelAlive } from "./panel-handlers.js";
@@ -182,8 +176,6 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
   editorState = { active: true, treeId };
   void editorStateItem.setValue(editorState);
 
-  editorSyncStart(treeId);
-
   if (!isActiveTree) {
     treeStorage.setEditingNonActiveTree(true);
   }
@@ -221,8 +213,6 @@ export type EditorModeActionResult = { ok: true } | { ok: false; error: string }
 
 async function finalizeEditorExit(): Promise<EditorModeState> {
   const wasEditingNonActive = treeStorage.isEditingNonActiveTree;
-
-  editorSyncStop();
 
   if (wasEditingNonActive) {
     await treeStorage.restoreActiveTreeFromStorage();
@@ -265,11 +255,6 @@ export function saveEditorMode(): Promise<EditorModeActionResult> {
 }
 
 async function doSaveEditorMode(): Promise<EditorModeActionResult> {
-  const result = await editorSyncFlush();
-  if (!result.ok) {
-    return { ok: false, error: result.error };
-  }
-
   await finalizeEditorExit();
   return { ok: true };
 }
@@ -287,19 +272,8 @@ export async function cancelEditorMode(): Promise<EditorModeActionResult> {
   }
 
   try {
-    const currentTree = await treeStorage.getOrCreateTree();
-    const currentTreeJSON = NavigationTreeMapper.toJSON(currentTree);
-
     const snapshotTree = NavigationTreeMapper.fromJSON(editorSessionSnapshot.tree);
     treeStorage.cacheTree(snapshotTree);
-
-    editorSyncMarkDirty();
-    const result = await editorSyncFlush();
-    if (!result.ok) {
-      const restoredTree = NavigationTreeMapper.fromJSON(currentTreeJSON);
-      treeStorage.cacheTree(restoredTree);
-      return { ok: false, error: result.error };
-    }
 
     await finalizeEditorExit();
     return { ok: true };
@@ -366,8 +340,6 @@ export const editorHandlers = defineRpcHandlers({
 
     treeStorage.cacheTree(tree);
 
-    if (editorState.active) editorSyncMarkDirty();
-
     await notifyTreeUpdate(tree, "reparent", {
       focusNodeId: message.nodeId,
       mode: "soft",
@@ -404,8 +376,6 @@ export const editorHandlers = defineRpcHandlers({
     const refreshed = NavigationTreeMapper.fromJSON(json);
     treeStorage.cacheTree(refreshed);
 
-    if (editorState.active) editorSyncMarkDirty();
-
     await notifyTreeUpdate(refreshed, "duplicate", {
       focusNodeId: message.targetParentId,
       mode: "soft",
@@ -414,11 +384,6 @@ export const editorHandlers = defineRpcHandlers({
     return ok();
   },
 
-  async [RPC_METHOD.EDITOR_SYNC_RETRY]() {
-    const { editorSyncRetry } = await import("../../services/editor-sync.js");
-    editorSyncRetry();
-    return ok();
-  },
 });
 
 // Restore editor state from chrome.storage.session on SW startup

@@ -14,14 +14,7 @@ export default function Header() {
   const commandState = useStore((state) => state.commandState);
   const metaKey = useStore((state) => state.metaKey);
   const setCommandState = useStore((state) => state.setCommandState);
-  const syncStatus = useStore((state) => state.syncStatus);
-  const network = useStore((state) => state.account.network);
-
-  const syncIndicator: SyncIndicatorState =
-    network === "offline" ? "offline" :
-    syncStatus === "error" ? "error" :
-    syncStatus === "saving" ? "syncing" :
-    "idle";
+  const syncIndicator: SyncIndicatorState = "idle";
 
   const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : "Ctrl+Z";
   const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : "Ctrl+Shift+Z";
@@ -120,7 +113,7 @@ export default function Header() {
           aria-label={settingsLabel}
           data-tooltip={settingsTooltip}
           onClick={() => {
-            const url = browser.runtime.getURL("hub.html");
+            const url = chrome.runtime.getURL("settings.html");
             browser.tabs.create({ url, active: true }).catch((error) => {
               console.error("Failed to open hub page:", error);
             });

@@ -5,28 +5,17 @@ import type { TabState } from "@shared/types/tabs.js";
 import type {
   CommandState,
   EditorModeState,
-  SyncStatus,
   TreeUpdateReason,
   TreeUpdatedInput,
   TreesSnapshot,
 } from "@shared/rpc/contracts.js";
+
+export type SyncStatus = "idle" | "saving" | "saved" | "error";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import type { NavigationTree } from "@background/state/nav-tree.js";
 import { PinnedManager } from "@background/state/pinned.js";
 import type { TreeMeta, TreeSummary } from "@shared/types/tree.js";
 import type { ResolvedFlags } from "@shared/types/flags.js";
-import { getCollapsedAncestorIds } from "@features/graph/graph/collapse-utils.js";
-import type {
-  AccountError,
-  AccountConfig,
-  AccountSnapshot,
-  AuthSession,
-  BillingStatus,
-  OnboardingState,
-  Plan,
-  Subscription,
-  User,
-} from "../../../../shared/types/account.js";
 
 export type MetaKeyPair = { short: "^"; long: "ctrl" } | { short: "⌘"; long: "cmd" };
 
@@ -65,31 +54,10 @@ type OverlayEffectsState = {
   blurCount: number;
 };
 
-type AccountStatus = "idle" | "loading" | "ready" | "error";
-type NetworkStatus = "online" | "offline";
-
-export type AccountState = {
-  status: AccountStatus;
-  network: NetworkStatus;
-  session: AuthSession;
-  config: AccountConfig;
-  user: User | null;
-  subscription: Subscription | null;
-  billing: BillingStatus | null;
-  plans: Plan[];
-  onboarding: OnboardingState;
-  error: AccountError | null;
-  lastSyncedAt: string | null;
-  sessionExpired: boolean;
-  authRequired: boolean;
-  guestWelcomeDismissed: boolean;
-  authPolicyLoaded: boolean;
-};
 
 type StoreState = {
   settings: Settings | null;
   flags: ResolvedFlags | null;
-  account: AccountState;
   tree: NavigationTree | null;
   treeUpdate: {
     reason: TreeUpdateReason;
@@ -177,9 +145,6 @@ type StoreActions = {
   closeDeleteTreeConfirm: () => void;
   registerOverlay: (id: string, effects: OverlayEffects) => void;
   unregisterOverlay: (id: string) => void;
-  setAccount: (patch: Partial<AccountState>) => void;
-  setAccountSnapshot: (snapshot: AccountSnapshot) => void;
-  resetAccount: () => void;
   setGraphTool: (tool: GraphTool) => void;
   setSelectedNodeIds: (ids: Set<NodeId>) => void;
   clearSelection: () => void;
@@ -229,23 +194,6 @@ const pruneCollapsedNodes = (tree: NavigationTree | null, collapsed: Set<NodeId>
 export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   settings: null,
   flags: null,
-  account: {
-    status: "idle",
-    network: "online",
-    session: { status: "guest" },
-    config: {},
-    user: null,
-    subscription: null,
-    billing: { state: "none" },
-    plans: [],
-    onboarding: { flowId: "activation-v1", status: "pending", seenAt: null },
-    error: null,
-    lastSyncedAt: null,
-    sessionExpired: false,
-    authRequired: false,
-    guestWelcomeDismissed: false,
-    authPolicyLoaded: false,
-  },
   tree: null,
   treeUpdate: null,
   trees: {
@@ -355,9 +303,9 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       } else {
         nextCollapsedNodeIds = pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
       }
-      const autoExpandIds = shouldResetTransient
+      const autoExpandIds: NodeId[] = shouldResetTransient
         ? []
-        : getCollapsedAncestorIds(tree, currentId, nextCollapsedNodeIds);
+        : [];
       const collapseVersion =
         autoExpandIds.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion;
       const collapseAction =
@@ -581,46 +529,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         },
       };
     }),
-  setAccount: (patch) => set((state) => ({ account: { ...state.account, ...patch } })),
-  setAccountSnapshot: (snapshot) =>
-    set((state) => ({
-      account: {
-        ...state.account,
-        ...snapshot,
-        config: snapshot.config ?? state.account.config,
-        onboarding: snapshot.onboarding ?? state.account.onboarding,
-        status: "ready",
-        network: "online",
-        error: null,
-        lastSyncedAt: new Date().toISOString(),
-        sessionExpired: false,
-        authRequired:
-          typeof snapshot.config?.["auth.extension.required"] === "boolean"
-            ? (snapshot.config["auth.extension.required"] as boolean)
-            : state.account.authRequired,
-      },
-    })),
-  resetAccount: () =>
-    set((state) => ({
-      account: {
-        status: "idle",
-        network: "online",
-        session: { status: "guest" },
-        config: {},
-        user: null,
-        subscription: null,
-        billing: { state: "none" },
-        plans: [],
-        onboarding: { flowId: "activation-v1", status: "pending", seenAt: null },
-        error: null,
-        lastSyncedAt: null,
-        sessionExpired: false,
-        authRequired: state.account.authRequired,
-        guestWelcomeDismissed: state.account.guestWelcomeDismissed,
-        authPolicyLoaded: state.account.authPolicyLoaded,
-      },
-    })),
-
   setGraphTool: (tool) => set((state) => ({ graph: { ...state.graph, tool } })),
   setSelectedNodeIds: (ids) =>
     set((state) => ({ graph: { ...state.graph, selectedNodeIds: new Set(ids) } })),

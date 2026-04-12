@@ -6,7 +6,6 @@ import {
   exportTree,
   openTree,
   renameTree,
-  syncTrees,
 } from "../../api/tree.js";
 import { getBackendConfig, initBackendConfig } from "@shared/config/backend.js";
 import { useStore } from "../state/store.js";
@@ -111,7 +110,7 @@ export default function TreeDropdown() {
   const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
   const treesShortcut = "Shift+T";
   const nodeCount = useStore((state) => state.nodeCount);
-  const lastSyncedAt = useStore((state) => state.account.lastSyncedAt);
+  const lastSyncedAt: string | null = null;
 
   useOverlayEffects(treesOpen, { kind: "dropdown" });
 
@@ -155,33 +154,11 @@ export default function TreeDropdown() {
   const [creating, setCreating] = useState(false);
   const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
   const [unavailableTreeIds, setUnavailableTreeIds] = useState<Set<string>>(new Set());
-  const [_syncing, setSyncing] = useState(false);
-
   useEffect(() => {
     if (!treesOpen) {
       setEditingId(null);
       setDraft("");
-      return;
     }
-
-    let cancelled = false;
-    const doSync = async () => {
-      try {
-        setSyncing(true);
-        await syncTrees();
-      } catch (error) {
-        showOperationError("Sync", error);
-      } finally {
-        if (!cancelled) {
-          setSyncing(false);
-        }
-      }
-    };
-    void doSync();
-
-    return () => {
-      cancelled = true;
-    };
   }, [treesOpen]);
 
   useEffect(() => {

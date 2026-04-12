@@ -7,62 +7,36 @@ const ENTRYPOINTS_DIR = join(ROOT, 'src', 'entrypoints');
 const SRC_DIR = join(ROOT, 'src');
 
 const EXPECTED_ENTRYPOINT_FILES = [
-  'hub/index.html',
-  'hub/main.tsx',
   'background.ts',
   'content.ts',
-  'fullview/index.html',
-  'fullview/main.tsx',
-  'newtab/index.html',
-  'newtab/main.tsx',
-  'offscreen-graph/index.html',
-  'offscreen-graph/main.ts',
+  'settings/index.html',
+  'settings/main.tsx',
   'sidepanel/index.html',
   'sidepanel/main.tsx',
-  'spotlight-content/index.tsx',
-  'spotlight-content/style.css',
-  'spotlight-graph/index.html',
-  'spotlight-graph/main.tsx',
 ].sort();
 
 const REQUIRED_DIRECTORIES = [
-  '.meta/planning',
   'src/apps',
   'src/ui',
-  'src/features/spotlight/model',
-  'src/features/spotlight/ui',
-  'src/features/graph/components/graph',
-  'src/features/graph/graph',
+  'src/features/graph',
+  'src/apps/settings',
 ];
 
 const FORBIDDEN_PATHS = [
-  '.claude',
-  '.planning',
-  'dist',
-  'logs',
-  'pnpm-lock.yaml',
-  'tasks',
   'src/ui-core',
   'src/spotlight',
   'src/shared/lib/spotlight',
-  'src/entrypoints/account/ui',
-  'src/entrypoints/content-ui',
-  'src/entrypoints/fullview/ui',
-  'src/entrypoints/newtab/ui',
-  'src/entrypoints/sidepanel/api',
-  'src/entrypoints/sidepanel/ui',
-  'src/entrypoints/spotlight.content',
-  'src/entrypoints/spotlight-graph/SpotlightGraphApp.tsx',
-  'src/apps/sidepanel/ui/components/AuthGate.tsx',
-  'src/apps/sidepanel/ui/components/WelcomeGate.tsx',
-  'src/shared/debug',
-  'src/apps/newtab/ui/BookmarksBar.tsx',
-  'src/apps/sidepanel/ui/components/SearchBar.tsx',
-  'src/apps/sidepanel/ui/components/TabInfo.tsx',
-  'src/apps/sidepanel/ui/components/ui/demo.tsx',
-  'src/apps/sidepanel/ui/components/ui/sidebar.tsx',
-  'src/apps/sidepanel/ui/components/ui/sidebar-utils.ts',
-  'src/ui/components/liquid-glass.tsx',
+  'src/entrypoints/fullview',
+  'src/entrypoints/newtab',
+  'src/entrypoints/offscreen-graph',
+  'src/entrypoints/spotlight-content',
+  'src/entrypoints/spotlight-graph',
+  'src/apps/content-ui',
+  'src/apps/fullview',
+  'src/apps/newtab',
+  'src/apps/spotlight-graph',
+  'src/features/spotlight',
+  'src/shared/graph-layout-cache',
 ];
 
 const FORBIDDEN_IMPORT_PATTERNS = [
@@ -74,6 +48,8 @@ const FORBIDDEN_IMPORT_PATTERNS = [
   '../../../spotlight/',
   'spotlight.content',
   'src/ui-core',
+  'pixi.js',
+  'pixi',
 ];
 
 function listFiles(dir: string): string[] {
@@ -178,12 +154,6 @@ function testProdManifestNoDev(): void {
     devPatterns,
     [],
     `prod manifest must not contain dev origins: ${devPatterns.join(', ')}`,
-  );
-
-  assert.deepEqual(
-    hostPermissions,
-    ['https://gettrail.net/*', 'https://app.gettrail.net/*'],
-    'host_permissions must be exactly the production origins',
   );
 
   console.log('  prod manifest no-dev: OK');

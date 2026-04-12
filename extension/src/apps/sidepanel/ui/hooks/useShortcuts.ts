@@ -171,7 +171,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
       };
 
       const openHubPage = () => {
-        const url = browser.runtime.getURL("hub.html");
+        const url = chrome.runtime.getURL("settings.html");
         browser.tabs.create({ url, active: true }).catch((error) => {
           console.error("Failed to open hub page:", error);
         });

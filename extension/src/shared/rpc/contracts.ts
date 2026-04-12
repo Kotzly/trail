@@ -56,28 +56,13 @@ export const RPC_METHOD = {
   CANCEL_EDITOR_MODE: "CANCEL_EDITOR_MODE",
   REPARENT_NODE: "REPARENT_NODE",
   DUPLICATE_SUBTREE: "DUPLICATE_SUBTREE",
-  SYNC_STATUS_UPDATED: "SYNC_STATUS_UPDATED",
-  EDITOR_SYNC_RETRY: "EDITOR_SYNC_RETRY",
   SITE_MESSAGE_FORWARD: "SITE_MESSAGE_FORWARD",
-  OAUTH_INTERACTIVE_LOGIN: "OAUTH_INTERACTIVE_LOGIN",
-  OAUTH_SILENT_SYNC: "OAUTH_SILENT_SYNC",
   ENSURE_TREE_LOADED: "ENSURE_TREE_LOADED",
-  SYNC_TREES: "SYNC_TREES",
   GET_FLAGS: "GET_FLAGS",
   SET_FLAG: "SET_FLAG",
   RESET_FLAGS: "RESET_FLAGS",
-  GET_SPOTLIGHT_DATA: "GET_SPOTLIGHT_DATA",
-  SPOTLIGHT_BOOTSTRAP: "SPOTLIGHT_BOOTSTRAP",
-  SPOTLIGHT_SEARCH: "SPOTLIGHT_SEARCH",
-  SPOTLIGHT_GET_TREE_PREVIEW: "SPOTLIGHT_GET_TREE_PREVIEW",
-  SPOTLIGHT_EXECUTE_ACTION: "SPOTLIGHT_EXECUTE_ACTION",
-  SPOTLIGHT_DISPOSE_SESSION: "SPOTLIGHT_DISPOSE_SESSION",
-  SPOTLIGHT_EXECUTE_BATCH_ACTION: "SPOTLIGHT_EXECUTE_BATCH_ACTION",
-  SPOTLIGHT_GET_THUMBNAIL: "SPOTLIGHT_GET_THUMBNAIL",
-  TOGGLE_SPOTLIGHT: "TOGGLE_SPOTLIGHT",
   GET_LOCAL_TRAIL_DETAIL: "GET_LOCAL_TRAIL_DETAIL",
   IMPORT_TRAIL: "IMPORT_TRAIL",
-  OPEN_FULLVIEW_EDITOR: "OPEN_FULLVIEW_EDITOR",
 } as const;
 
 export type RequestType = (typeof RPC_METHOD)[keyof typeof RPC_METHOD];
@@ -190,7 +175,6 @@ export type EnsureTreeLoadedMessage = RequestMessageBase<
   typeof RPC_METHOD.ENSURE_TREE_LOADED,
   { treeId: string }
 >;
-export type SyncTreesMessage = RequestMessageBase<typeof RPC_METHOD.SYNC_TREES>;
 export type RenameTreeMessage = RequestMessageBase<
   typeof RPC_METHOD.RENAME_TREE,
   { treeId: string; label: string }
@@ -298,15 +282,6 @@ export type EditorModeState = {
   treeId: string | null;
 };
 
-export type SyncStatus = "idle" | "saving" | "saved" | "error";
-
-export type SyncStatusInput = { status: SyncStatus };
-export type SyncStatusUpdatedMessage = RequestMessageBase<
-  typeof RPC_METHOD.SYNC_STATUS_UPDATED,
-  SyncStatusInput
->;
-export type EditorSyncRetryMessage = RequestMessageBase<typeof RPC_METHOD.EDITOR_SYNC_RETRY>;
-
 export type SiteMessageForwardPayload = {
   siteMessageType: string;
   payload: Record<string, unknown>;
@@ -321,265 +296,10 @@ export type SiteMessageForwardResponse = {
   responsePayload?: Record<string, unknown>;
 };
 
-export type OAuthInteractiveLoginMessage = RequestMessageBase<
-  typeof RPC_METHOD.OAUTH_INTERACTIVE_LOGIN
->;
-
-export type OAuthSilentSyncMessage = RequestMessageBase<typeof RPC_METHOD.OAUTH_SILENT_SYNC>;
-
-export type OAuthInteractiveLoginResponse = {
-  ok: boolean;
-  reason?: string;
-};
-
-export type OAuthSilentSyncResponse = {
-  ok: boolean;
-  reason?: string;
-};
-
 export type SetFlagInput = { key: FlagKey; value: unknown };
 export type GetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.GET_FLAGS>;
 export type SetFlagMessage = RequestMessageBase<typeof RPC_METHOD.SET_FLAG, SetFlagInput>;
 export type ResetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.RESET_FLAGS>;
-
-// ==== Spotlight ====
-
-export type SpotlightSuggestionGroup =
-  | "open-tabs"
-  | "recently-closed"
-  | "current-tree"
-  | "other-trees";
-export type SpotlightSearchSessionId = string;
-export type SpotlightMode = "discover" | "search" | "commands";
-export type SpotlightItemKind = "node" | "tree" | "action";
-export type SpotlightActionSafety = "safe" | "destructive";
-export type SpotlightSectionId =
-  | "continue"
-  | "actions"
-  | "pins"
-  | "open-tabs"
-  | "recent"
-  | "current-tree"
-  | "other-trees"
-  | "archived-trees"
-  | "trees"
-  | "external"
-  | "matches"
-  | "scoped-pages"
-  | "frequent"
-  | "recent-searches"
-  | "suggestions";
-
-export type SpotlightTreeRelation =
-  | "current"
-  | "parent"
-  | "child"
-  | "sibling"
-  | "same-branch"
-  | "other-branch";
-
-export type SpotlightHighlightRange = {
-  start: number;
-  end: number;
-};
-
-export type SpotlightHighlightMap = {
-  title: SpotlightHighlightRange[];
-  url: SpotlightHighlightRange[];
-};
-
-export type SpotlightActionId =
-  | "open"
-  | "open-node-in-tree"
-  | "open-tree"
-  | "open-url-only"
-  | "search-default-engine"
-  | "open-url"
-  | "copy-url"
-  | "pin"
-  | "unpin"
-  | "close-tab"
-  | "close-tabs"
-  | "archive-current-tree"
-  | "delete-archived-tree"
-  | "export-tree"
-  | "new-tree"
-  | "show-command-help"
-  | "open-settings"
-  | "toggle-sidebar"
-  | "clear-history";
-
-export type SpotlightActionTarget =
-  | { kind: "node"; nodeId: NodeId; treeId: string }
-  | { kind: "tree"; treeId: string }
-  | { kind: "url"; url: string }
-  | { kind: "search"; query: string }
-  | { kind: "global" };
-
-export type SpotlightGraphPreviewData = {
-  treeId: string;
-  treeName: string;
-  tree: NavigationTreeJSON;
-  currentNodeId: NodeId | null;
-  openNodeIds: NodeId[];
-  tabStates: Record<NodeId, TabState>;
-  nodeTabCounts: Record<NodeId, number>;
-  nodeRecency: Record<NodeId, number>;
-};
-
-export type SpotlightSourceBadge = "tab" | "pin" | "tree" | "frequent";
-
-export type SpotlightNodeResult = {
-  kind: "node";
-  key: string;
-  nodeId: NodeId;
-  title: string;
-  url: string;
-  favicon?: string | undefined;
-  group: SpotlightSuggestionGroup;
-  recency: number;
-  isCurrent: boolean;
-  treeRelation: SpotlightTreeRelation;
-  tabCount: number;
-  pinned: boolean;
-  treeId: string;
-  treeName: string;
-  score: number;
-  groupBadge: "Open" | "Recent" | "Tree" | "Archived";
-  sourceBadge: SpotlightSourceBadge;
-  highlights: SpotlightHighlightMap;
-  why: string[];
-};
-
-export type SpotlightTreeResult = {
-  kind: "tree";
-  key: string;
-  treeId: string;
-  treeName: string;
-  rootUrl: string;
-  favicon?: string | undefined;
-  recency: number;
-  score: number;
-  groupBadge: "Archived";
-  highlights: SpotlightHighlightMap;
-  why: string[];
-};
-
-export type SpotlightActionResult = {
-  kind: "action";
-  key: string;
-  actionId: SpotlightActionId;
-  title: string;
-  subtitle: string;
-  safety: SpotlightActionSafety;
-  shortcutHint: "Enter";
-  target?: SpotlightActionTarget;
-};
-
-export type SpotlightSearchResult =
-  | SpotlightNodeResult
-  | SpotlightTreeResult
-  | SpotlightActionResult;
-
-export type SpotlightSection = {
-  id: SpotlightSectionId;
-  title: string;
-  items: SpotlightSearchResult[];
-};
-
-export type SpotlightSearchRequest = {
-  sessionId: SpotlightSearchSessionId;
-  query: string;
-  limit: number;
-  requestSeq: number;
-  scopeTreeId?: string;
-};
-
-export type SpotlightExecuteActionRequest = {
-  actionId: SpotlightActionId;
-  target?: SpotlightActionTarget;
-  query?: string;
-};
-
-export type SpotlightBatchActionId =
-  | "batch-copy-urls"
-  | "batch-close-tabs"
-  | "batch-pin"
-  | "batch-unpin";
-
-export type SpotlightExecuteBatchActionRequest = {
-  actionId: SpotlightBatchActionId;
-  targets: SpotlightActionTarget[];
-};
-
-export type SpotlightExecuteActionResponse = {
-  closeSpotlight: boolean;
-  statusText?: string;
-};
-
-export type SpotlightSearchResponse = {
-  requestSeq: number;
-  mode: SpotlightMode;
-  sections: SpotlightSection[];
-};
-
-export type SpotlightGetTreePreviewRequest = {
-  treeId: string;
-};
-
-export type SpotlightBootstrapData = {
-  sessionId: SpotlightSearchSessionId;
-  mode: SpotlightMode;
-  sections: SpotlightSection[];
-  activeTreeId: string;
-  activeTreeName: string;
-  tree: NavigationTreeJSON;
-  currentNodeId: NodeId | null;
-  openNodeIds: NodeId[];
-  nodeRecency: Record<NodeId, number>;
-  nodeTabCounts: Record<NodeId, number>;
-  docCount: number;
-  recentQueries?: string[];
-  flags?: ResolvedFlags;
-  settings: Settings;
-};
-
-/** @deprecated Use SPOTLIGHT_BOOTSTRAP instead. */
-export type GetSpotlightDataMessage = RequestMessageBase<typeof RPC_METHOD.GET_SPOTLIGHT_DATA>;
-export type SpotlightBootstrapMessage = RequestMessageBase<
-  typeof RPC_METHOD.SPOTLIGHT_BOOTSTRAP,
-  {
-    limit?: number;
-  }
->;
-export type SpotlightSearchMessage = RequestMessageBase<
-  typeof RPC_METHOD.SPOTLIGHT_SEARCH,
-  SpotlightSearchRequest
->;
-export type SpotlightGetTreePreviewMessage = RequestMessageBase<
-  typeof RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW,
-  SpotlightGetTreePreviewRequest
->;
-export type SpotlightExecuteActionMessage = RequestMessageBase<
-  typeof RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION,
-  SpotlightExecuteActionRequest
->;
-export type SpotlightDisposeSessionMessage = RequestMessageBase<
-  typeof RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION,
-  {
-    sessionId: SpotlightSearchSessionId;
-  }
->;
-export type SpotlightExecuteBatchActionMessage = RequestMessageBase<
-  typeof RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION,
-  SpotlightExecuteBatchActionRequest
->;
-export type SpotlightGetThumbnailRequest = { nodeId: NodeId; treeId: string };
-export type SpotlightGetThumbnailMessage = RequestMessageBase<
-  typeof RPC_METHOD.SPOTLIGHT_GET_THUMBNAIL,
-  SpotlightGetThumbnailRequest
->;
-export type ToggleSpotlightMessage = RequestMessageBase<typeof RPC_METHOD.TOGGLE_SPOTLIGHT>;
 
 export type LocalTrailDetail = {
   id: string;
@@ -604,13 +324,6 @@ export type ImportTrailMessage = RequestMessageBase<
   typeof RPC_METHOD.IMPORT_TRAIL,
   {
     bundle: TrailExportBundle;
-  }
->;
-
-export type OpenFullviewEditorMessage = RequestMessageBase<
-  typeof RPC_METHOD.OPEN_FULLVIEW_EDITOR,
-  {
-    treeId: string;
   }
 >;
 
@@ -640,7 +353,6 @@ export type RequestMessage =
   | NewTreeMessage
   | OpenTreeMessage
   | EnsureTreeLoadedMessage
-  | SyncTreesMessage
   | RenameTreeMessage
   | DeleteArchivedTreeMessage
   | ExportTreeMessage
@@ -666,26 +378,12 @@ export type RequestMessage =
   | CancelEditorModeMessage
   | ReparentNodeMessage
   | DuplicateSubtreeMessage
-  | SyncStatusUpdatedMessage
-  | EditorSyncRetryMessage
   | SiteMessageForwardMessage
-  | OAuthInteractiveLoginMessage
-  | OAuthSilentSyncMessage
   | GetFlagsMessage
   | SetFlagMessage
   | ResetFlagsMessage
-  | GetSpotlightDataMessage
-  | SpotlightBootstrapMessage
-  | SpotlightSearchMessage
-  | SpotlightGetTreePreviewMessage
-  | SpotlightExecuteActionMessage
-  | SpotlightDisposeSessionMessage
-  | SpotlightExecuteBatchActionMessage
-  | SpotlightGetThumbnailMessage
-  | ToggleSpotlightMessage
   | GetLocalTrailDetailMessage
-  | ImportTrailMessage
-  | OpenFullviewEditorMessage;
+  | ImportTrailMessage;
 
 // ==== Responses ====
 
@@ -751,28 +449,13 @@ export type ResponseDataByType = {
   [RPC_METHOD.CANCEL_EDITOR_MODE]: EditorModeState;
   [RPC_METHOD.REPARENT_NODE]: void;
   [RPC_METHOD.DUPLICATE_SUBTREE]: void;
-  [RPC_METHOD.SYNC_STATUS_UPDATED]: void;
-  [RPC_METHOD.EDITOR_SYNC_RETRY]: void;
   [RPC_METHOD.SITE_MESSAGE_FORWARD]: SiteMessageForwardResponse;
-  [RPC_METHOD.OAUTH_INTERACTIVE_LOGIN]: OAuthInteractiveLoginResponse;
-  [RPC_METHOD.OAUTH_SILENT_SYNC]: OAuthSilentSyncResponse;
   [RPC_METHOD.ENSURE_TREE_LOADED]: boolean;
-  [RPC_METHOD.SYNC_TREES]: void;
   [RPC_METHOD.GET_FLAGS]: ResolvedFlags;
   [RPC_METHOD.SET_FLAG]: ResolvedFlags;
   [RPC_METHOD.RESET_FLAGS]: ResolvedFlags;
-  [RPC_METHOD.GET_SPOTLIGHT_DATA]: SpotlightBootstrapData;
-  [RPC_METHOD.SPOTLIGHT_BOOTSTRAP]: SpotlightBootstrapData;
-  [RPC_METHOD.SPOTLIGHT_SEARCH]: SpotlightSearchResponse;
-  [RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW]: SpotlightGraphPreviewData | null;
-  [RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION]: SpotlightExecuteActionResponse;
-  [RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION]: void;
-  [RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION]: SpotlightExecuteActionResponse;
-  [RPC_METHOD.SPOTLIGHT_GET_THUMBNAIL]: { dataUrl: string } | null;
-  [RPC_METHOD.TOGGLE_SPOTLIGHT]: void;
   [RPC_METHOD.GET_LOCAL_TRAIL_DETAIL]: LocalTrailDetail;
   [RPC_METHOD.IMPORT_TRAIL]: { treeId: string };
-  [RPC_METHOD.OPEN_FULLVIEW_EDITOR]: EditorModeState;
 };
 
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
@@ -871,9 +554,6 @@ export const rpc = {
   ensureTreeLoaded(payload: { treeId: string }): EnsureTreeLoadedMessage {
     return { type: RPC_METHOD.ENSURE_TREE_LOADED, ...payload };
   },
-  syncTrees(): SyncTreesMessage {
-    return { type: RPC_METHOD.SYNC_TREES };
-  },
   renameTree(payload: { treeId: string; label: string }): RenameTreeMessage {
     return { type: RPC_METHOD.RENAME_TREE, ...payload };
   },
@@ -953,18 +633,6 @@ export const rpc = {
   duplicateSubtree(payload: { nodeId: NodeId; targetParentId: NodeId }): DuplicateSubtreeMessage {
     return { type: RPC_METHOD.DUPLICATE_SUBTREE, ...payload };
   },
-  syncStatusUpdated(payload: SyncStatusInput): SyncStatusUpdatedMessage {
-    return { type: RPC_METHOD.SYNC_STATUS_UPDATED, ...payload };
-  },
-  editorSyncRetry(): EditorSyncRetryMessage {
-    return { type: RPC_METHOD.EDITOR_SYNC_RETRY };
-  },
-  oauthInteractiveLogin(): OAuthInteractiveLoginMessage {
-    return { type: RPC_METHOD.OAUTH_INTERACTIVE_LOGIN };
-  },
-  oauthSilentSync(): OAuthSilentSyncMessage {
-    return { type: RPC_METHOD.OAUTH_SILENT_SYNC };
-  },
   getFlags(): GetFlagsMessage {
     return { type: RPC_METHOD.GET_FLAGS };
   },
@@ -974,45 +642,11 @@ export const rpc = {
   resetFlags(): ResetFlagsMessage {
     return { type: RPC_METHOD.RESET_FLAGS };
   },
-  getSpotlightData(): GetSpotlightDataMessage {
-    return { type: RPC_METHOD.GET_SPOTLIGHT_DATA };
-  },
-  spotlightBootstrap(payload?: { limit?: number }): SpotlightBootstrapMessage {
-    if (payload?.limit === undefined) {
-      return { type: RPC_METHOD.SPOTLIGHT_BOOTSTRAP };
-    }
-    return { type: RPC_METHOD.SPOTLIGHT_BOOTSTRAP, ...payload };
-  },
-  spotlightSearch(payload: SpotlightSearchRequest): SpotlightSearchMessage {
-    return { type: RPC_METHOD.SPOTLIGHT_SEARCH, ...payload };
-  },
-  spotlightGetTreePreview(payload: SpotlightGetTreePreviewRequest): SpotlightGetTreePreviewMessage {
-    return { type: RPC_METHOD.SPOTLIGHT_GET_TREE_PREVIEW, ...payload };
-  },
-  spotlightExecuteAction(payload: SpotlightExecuteActionRequest): SpotlightExecuteActionMessage {
-    return { type: RPC_METHOD.SPOTLIGHT_EXECUTE_ACTION, ...payload };
-  },
-  spotlightDisposeSession(payload: {
-    sessionId: SpotlightSearchSessionId;
-  }): SpotlightDisposeSessionMessage {
-    return { type: RPC_METHOD.SPOTLIGHT_DISPOSE_SESSION, ...payload };
-  },
-  spotlightExecuteBatchAction(
-    payload: SpotlightExecuteBatchActionRequest,
-  ): SpotlightExecuteBatchActionMessage {
-    return { type: RPC_METHOD.SPOTLIGHT_EXECUTE_BATCH_ACTION, ...payload };
-  },
-  toggleSpotlight(): ToggleSpotlightMessage {
-    return { type: RPC_METHOD.TOGGLE_SPOTLIGHT };
-  },
   getLocalTrailDetail(payload: { treeId: string }): GetLocalTrailDetailMessage {
     return { type: RPC_METHOD.GET_LOCAL_TRAIL_DETAIL, ...payload };
   },
   importTrail(payload: { bundle: TrailExportBundle }): ImportTrailMessage {
     return { type: RPC_METHOD.IMPORT_TRAIL, ...payload };
-  },
-  openFullviewEditor(payload: { treeId: string }): OpenFullviewEditorMessage {
-    return { type: RPC_METHOD.OPEN_FULLVIEW_EDITOR, ...payload };
   },
 };
 

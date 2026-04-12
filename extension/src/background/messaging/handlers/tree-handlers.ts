@@ -24,10 +24,7 @@ import {
 } from "@shared/types/node.js";
 import { normalizeFaviconUrl, shouldTrackUrl } from "../../utils/url-utils.js";
 import { tempSelectionManager } from "../../services/temporary-selection.js";
-import { syncEngine } from "../../services/sync/engine.js";
-import { dirtyTracker } from "../../services/sync/dirty-tracker.js";
 import { loadTree } from "../../services/tree-loader.js";
-import { editorSyncMarkDirty } from "../../services/editor-sync.js";
 import type { TreeMeta, NavigationTreeJSON } from "@shared/types/tree.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { settingsManager } from "../../services/settings.js";
@@ -36,11 +33,6 @@ import { browser, type Tab } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
 
 const log = createLogger("tree-handlers");
-
-/** Mark editor sync dirty if currently in editor mode. */
-function maybeEditorDirty(): void {
-  if (getEditorState().active) editorSyncMarkDirty();
-}
 
 function reassignTabsForRedirects(redirects: Array<{ from: NodeId; to: NodeId }>): void {
   for (const redirect of redirects) {
@@ -411,15 +403,8 @@ export const treeHandlers = defineRpcHandlers({
     return ok(Boolean(record));
   },
 
-  async [RPC_METHOD.SYNC_TREES]() {
-    await syncEngine.syncNow("manual");
-    return ok();
-  },
-
   async [RPC_METHOD.RENAME_TREE](message) {
     await treeStorage.renameTree(message.treeId, message.label);
-    // Mark dirty so the rename gets pushed on next sync
-    void dirtyTracker.markDirty(message.treeId);
     await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
   },
@@ -429,8 +414,6 @@ export const treeHandlers = defineRpcHandlers({
     if (active.id === message.treeId) return err("Cannot delete active tree");
     const removed = await treeStorage.deleteArchivedTree(message.treeId);
     if (!removed) return err("Tree not found");
-    // Queue for server-side soft-delete on next sync
-    await dirtyTracker.queueDelete(message.treeId);
     await clearOpenTabs(message.treeId);
     await notifyTreesUpdate(await buildTreesSnapshot());
     return ok();
@@ -479,7 +462,6 @@ export const treeHandlers = defineRpcHandlers({
     await closeTabsForNodes(result.removed.map((node) => node.id));
     reassignTabsForRedirects(result.redirects);
     treeStorage.cacheTree(tree);
-    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
     return ok();
@@ -494,7 +476,6 @@ export const treeHandlers = defineRpcHandlers({
     if (removed.length === 0) return err("Node not found");
     await closeTabsForNodes(removed.map((node) => node.id));
     treeStorage.cacheTree(tree);
-    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
     return ok();
@@ -509,7 +490,6 @@ export const treeHandlers = defineRpcHandlers({
     if (removed.length === 0) return err("Node not found");
     await closeTabsForNodes(removed.map((node) => node.id));
     treeStorage.cacheTree(tree);
-    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
     return ok();
@@ -528,7 +508,6 @@ export const treeHandlers = defineRpcHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
-    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
     return ok();
@@ -548,7 +527,6 @@ export const treeHandlers = defineRpcHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
-    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
     return ok();
@@ -570,8 +548,7 @@ export const treeHandlers = defineRpcHandlers({
         removedIds.push(...removed.map((n) => n.id));
         await closeTabsForNodes(removedIds);
         treeStorage.cacheTree(tree);
-        maybeEditorDirty();
-        const view = getDeleteFocusView(tree, prevCurrentId);
+            const view = getDeleteFocusView(tree, prevCurrentId);
         await notifyTreeUpdate(tree, "delete", view);
         return ok();
       }
@@ -601,7 +578,6 @@ export const treeHandlers = defineRpcHandlers({
 
     await closeTabsForNodes(removedIds);
     treeStorage.cacheTree(tree);
-    maybeEditorDirty();
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
     return ok();
@@ -628,7 +604,6 @@ export const treeHandlers = defineRpcHandlers({
     if (!hasChanges) return ok();
     node.data = updateNodeData(node.data, { layout: nextLayout });
     treeStorage.cacheTree(tree);
-    maybeEditorDirty();
     return ok();
   },
 
@@ -666,7 +641,6 @@ export const treeHandlers = defineRpcHandlers({
     if (!changed) return ok();
 
     treeStorage.cacheTree(tree);
-    maybeEditorDirty();
     return ok();
   },
 
@@ -682,7 +656,6 @@ export const treeHandlers = defineRpcHandlers({
     }
     if (!changed) return ok();
     treeStorage.cacheTree(tree);
-    maybeEditorDirty();
     await notifyTreeUpdate(tree, "layout");
     return ok();
   },

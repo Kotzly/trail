@@ -1,26 +1,24 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import FloatingControls from "./components/FloatingControls.js";
-import EditorToolbar from "./components/EditorToolbar.js";
-import GraphArea from "@features/graph/components/graph/GraphArea.js";
 import ContextMenus from "./components/ContextMenus.js";
 import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
-import SessionExpiredBanner from "./components/SessionExpiredBanner.js";
 import TrailLogo from "@ui/components/trail-logo";
 import { Toaster } from "./components/ui/sonner.js";
 import { useBootstrap } from "./hooks/useBootstrap.js";
-import { useAccount } from "./hooks/useAccount.js";
-import { useAuthPolicy } from "./hooks/useAuthPolicy.js";
 import { useRuntimeMessages } from "./hooks/useRuntimeMessages.js";
 import { useShortcuts } from "./hooks/useShortcuts.js";
 import TooltipLayer from "./components/TooltipLayer.js";
-
 import { useSystemThemeListener } from "./hooks/useSystemThemeListener.js";
 import { useStore } from "./state/store.js";
-import { sessionBannerDismissedItem } from "@shared/config/storage-items.js";
 import OnboardingHints from "./components/OnboardingHints.js";
 import { Skeleton } from "@ui/components/ui/skeleton";
 import { Button } from "@ui/components/ui/button";
-import { cn } from "@ui/lib/utils";
+import { TrailGraph } from "@features/graph/index.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
+import { sendMessage } from "../api/background.js";
+import { rpc } from "@shared/rpc/contracts.js";
+import { saveSettings } from "../api/settings.js";
+import type { NodeId, Url } from "@shared/types/ids.js";
 
 function BootstrapSkeleton() {
   return (
@@ -42,36 +40,68 @@ function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
       <Button variant="outline" className="mt-2" onClick={onRetry}>
         Retry
       </Button>
-      <a
-        href="https://gettrail.net/support"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-xs text-muted-foreground underline"
-      >
-        Report issue
-      </a>
     </div>
   );
 }
 
 export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const account = useStore((state) => state.account);
-  const editorActive = useStore((state) => state.editorMode.active);
 
   const { bootstrapStatus, retryBootstrap } = useBootstrap();
-  useAccount();
-  useAuthPolicy();
   useRuntimeMessages();
   useSystemThemeListener();
   useShortcuts(searchInputRef);
 
-  // Clear session banner dismiss when auth is restored so banner reappears on next expiry
-  useEffect(() => {
-    if (!account.sessionExpired) {
-      sessionBannerDismissedItem.setValue(false).catch(() => {});
-    }
-  }, [account.sessionExpired]);
+  const tree = useStore((s) => s.tree);
+  const settings = useStore((s) => s.settings);
+  const currentNodeId = useStore((s) => s.currentNodeId);
+  const openNodeIds = useStore((s) => s.openNodeIds);
+  const nodeTabCounts = useStore((s) => s.nodeTabCounts);
+  const collapsedNodeIds = useStore((s) => s.graph.collapsedNodeIds);
+  const openContextMenu = useStore((s) => s.openContextMenu);
+  const collapseNodes = useStore((s) => s.collapseNodes);
+  const expandNodes = useStore((s) => s.expandNodes);
+  const setSettings = useStore((s) => s.setSettings);
+
+  const treeJSON = useMemo(
+    () => (tree ? NavigationTreeMapper.toJSON(tree) : null),
+    [tree],
+  );
+
+  const handleNodeClick = useCallback(
+    (nodeId: NodeId, url: string) => {
+      void sendMessage(rpc.navigateTo({ nodeId, url: url as Url }));
+    },
+    [],
+  );
+
+  const handleNodeContextMenu = useCallback(
+    (nodeId: NodeId, position: { x: number; y: number }) => {
+      openContextMenu({ type: "node", nodeId, position });
+    },
+    [openContextMenu],
+  );
+
+  const handleCollapseToggle = useCallback(
+    (nodeId: NodeId) => {
+      if (collapsedNodeIds.has(nodeId)) {
+        expandNodes([nodeId]);
+      } else {
+        collapseNodes([nodeId]);
+      }
+    },
+    [collapsedNodeIds, collapseNodes, expandNodes],
+  );
+
+  const handleLayoutModeChange = useCallback(
+    (mode: "tree" | "mindmap" | "radial") => {
+      if (!settings) return;
+      const next = { ...settings, layout: { ...settings.layout, mode } };
+      setSettings(next);
+      saveSettings(next).catch(console.error);
+    },
+    [settings, setSettings],
+  );
 
   if (bootstrapStatus === "loading") {
     return (
@@ -91,18 +121,25 @@ export default function App() {
     );
   }
 
-  const isAuthenticated = account.session.status === "authenticated" && Boolean(account.user);
-
-  const showSessionBanner = !isAuthenticated && !account.authRequired && account.sessionExpired;
-
   return (
-    <div className={cn("flex flex-col h-dvh w-full max-w-none min-w-0 overflow-hidden relative", editorActive && "ring-3 ring-inset ring-blue-500/45 rounded-xl")}>
+    <div className="flex flex-col h-dvh w-full max-w-none min-w-0 overflow-hidden relative">
       <Toaster />
-      {showSessionBanner && <SessionExpiredBanner />}
-      <EditorToolbar />
       <FloatingControls searchInputRef={searchInputRef} />
       <OnboardingHints />
-      <GraphArea />
+      {settings && (
+        <TrailGraph
+          tree={treeJSON}
+          currentNodeId={currentNodeId}
+          openNodeIds={openNodeIds}
+          collapsedNodeIds={collapsedNodeIds}
+          nodeTabCounts={nodeTabCounts}
+          settings={settings}
+          onNodeClick={handleNodeClick}
+          onNodeContextMenu={handleNodeContextMenu}
+          onCollapseToggle={handleCollapseToggle}
+          onLayoutModeChange={handleLayoutModeChange}
+        />
+      )}
       <DeleteTreeConfirmModal />
       <ContextMenus />
       <TooltipLayer />

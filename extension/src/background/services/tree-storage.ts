@@ -14,7 +14,6 @@ import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { uuidv7 } from "@shared/lib/uuid.js";
 import { findBestTrailFavicon } from "@shared/lib/tree-favicon.js";
 import { encodeTree, decodeTree } from "@shared/lib/tree-codec.js";
-import { quotaAwareSet, type BulkEntry } from "./quota-manager.js";
 import {
   activeTreeItem,
   activeTreeMetaItem,
@@ -27,6 +26,10 @@ import type { NodeData } from "@shared/types/node.js";
 import { createLogger } from "@shared/lib/logger.js";
 
 const log = createLogger("tree-storage");
+
+type BulkEntry =
+  | { item: { setValue: (v: unknown) => Promise<void> }; value: unknown }
+  | { key: `local:${string}` | `session:${string}` | `sync:${string}` | `managed:${string}`; value: unknown };
 
 /** Adapter to satisfy the BulkEntry item shape (which uses `unknown` for generic bulk writes). */
 const archiveIndexBulkItem: { key: string; setValue: (v: unknown) => Promise<void> } = {
@@ -569,7 +572,7 @@ class TreeStorageService {
       this.cachedIndex = summaries;
 
       try {
-        await quotaAwareSet(entries);
+        await writeBulkDirect(entries);
       } catch (error) {
         log.error("Error writing archives", { error: error instanceof Error ? error.message : String(error) });
       }
@@ -607,7 +610,7 @@ class TreeStorageService {
 
       const blob = serializeBlob(encodeTree(treeJSON));
       try {
-        await quotaAwareSet([
+        await writeBulkDirect([
           { item: archiveIndexBulkItem, value: nextIndex },
           { key: archiveBlobKey(record.id), value: blob },
         ]);
@@ -801,7 +804,7 @@ class TreeStorageService {
       this.cachedIndex = index;
 
       try {
-        await quotaAwareSet([
+        await writeBulkDirect([
           { item: archiveIndexBulkItem, value: index },
           { key: archiveBlobKey(treeId), value: serializeBlob(encodeTree(treeJSON)) },
         ]);

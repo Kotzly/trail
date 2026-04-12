@@ -9,7 +9,6 @@ export function useRuntimeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
   const setCommandState = useStore((state) => state.setCommandState);
   const setEditorMode = useStore((state) => state.setEditorMode);
-  const setSyncStatus = useStore((state) => state.setSyncStatus);
   const setTrees = useStore((state) => state.setTrees);
 
   useEffect(() => {
@@ -35,17 +34,6 @@ export function useRuntimeMessages(): void {
         setTrees({ active: message.active, archived: message.archived });
         return;
       }
-      if (message.type === RPC_METHOD.SYNC_STATUS_UPDATED) {
-        setSyncStatus(message.status);
-        if (message.status === "error") {
-          showUiToast({
-            message: "Sync failed. Check your connection and try again.",
-            icon: "AlertTriangle",
-            durationMs: 5000,
-          });
-        }
-        return;
-      }
       if (message.type === RPC_METHOD.NOTIFY) {
         showUiToast(message.notification);
       }
@@ -55,5 +43,5 @@ export function useRuntimeMessages(): void {
     return () => {
       browser.runtime.onMessage.removeListener(handler);
     };
-  }, [applyTreeState, setCommandState, setEditorMode, setSyncStatus, setTrees]);
+  }, [applyTreeState, setCommandState, setEditorMode, setTrees]);
 }

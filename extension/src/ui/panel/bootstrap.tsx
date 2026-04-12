@@ -6,28 +6,17 @@ import ErrorBoundary from "@apps/sidepanel/ui/components/ErrorBoundary.js";
 import { initBackendConfig } from "@shared/config/backend.js";
 import { queryClient } from "@apps/sidepanel/ui/query/client.js";
 import { browser } from "@shared/platform/webext.js";
-import type { CachedLayoutResult } from "@shared/graph-layout-cache/types.js";
-
-declare global {
-  var __trailCachedLayout: CachedLayoutResult | null | undefined;
-}
 
 export type MountPanelAppOptions = {
   rootId?: string;
   connectPortName?: string;
-  cachedLayout?: CachedLayoutResult | null;
 };
 
 export function mountPanelApp(options: MountPanelAppOptions = {}): void {
-  const { rootId = "root", connectPortName, cachedLayout } = options;
+  const { rootId = "root", connectPortName } = options;
 
   if (connectPortName) {
     browser.runtime.connect({ name: connectPortName });
-  }
-
-  // Stash pre-fetched layout for GraphCanvas consumption
-  if (cachedLayout !== undefined) {
-    globalThis.__trailCachedLayout = cachedLayout;
   }
 
   const rootEl = document.getElementById(rootId);

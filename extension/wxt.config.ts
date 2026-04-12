@@ -61,8 +61,6 @@ export default defineConfig({
       "48": "icons/trail-48.png",
       "128": "icons/trail-128.png",
     },
-    // activeTab: required by captureVisibleTab in thumbnail-cache.ts
-    // See SEC-02 audit (2026-03-21) for full permission justification
     permissions: [
       "sidePanel",
       "storage",
@@ -70,33 +68,14 @@ export default defineConfig({
       "webNavigation",
       "favicon",
       "alarms",
-      "activeTab",
-      "bookmarks",
-      "offscreen",
     ],
-    commands: {
-      "toggle-spotlight": {
-        suggested_key: {
-          default: "Ctrl+Shift+K",
-          mac: "Command+Shift+K",
-        },
-        description: "Toggle Spotlight search",
-      },
-    },
     web_accessible_resources: [
-      {
-        resources: ['spotlight-graph.html'],
-        matches: ['<all_urls>'],
-      },
       {
         resources: ['assets/*.woff2'],
         matches: ['<all_urls>'],
       },
     ],
     host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
-    chrome_url_overrides: {
-      newtab: "newtab.html",
-    },
     side_panel: {
       default_path: "sidepanel/index.html",
     },

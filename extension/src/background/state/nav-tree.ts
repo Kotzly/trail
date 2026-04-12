@@ -1,5 +1,5 @@
 import type { NodeId, Title, Url } from "@shared/types/ids.js";
-import MiniSearch from "@shared/vendor/minisearch.js";
+import MiniSearch from "minisearch";
 import { TreeNode } from "./tree-node.js";
 import { DefaultNavigationOptions, type NavigationOptions } from "@shared/types/tree.js";
 import { type NodeData, type NavigationNode, updateNodeMeta } from "@shared/types/node.js";

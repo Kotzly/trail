@@ -11,31 +11,8 @@ import { storage } from "wxt/utils/storage";
 import type { NavigationTreeJSON, TreeMeta, ArchiveIndexEntry } from "../types/tree.js";
 import type { Settings } from "../types/settings.js";
 import type { PersistedFlagState } from "../types/flags.js";
-import type { AccountSnapshot } from "../types/account.js";
 import type { BackendConfigOverride } from "./backend.js";
-import type { SpotlightUsageStats } from "@features/spotlight/model/usage-stats.js";
 import type { EditorModeState } from "../rpc/contracts.js";
-
-// ── Auth ────────────────────────────────────────────────────────────
-
-/** Shared auth session shape, previously duplicated across 5 files. */
-export type StoredAuthSession = {
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: string;
-};
-
-export const authSessionItem = storage.defineItem<StoredAuthSession | null>(
-  "local:trail_auth_session",
-  { fallback: null },
-);
-
-export const oauthDeviceIdItem = storage.defineItem<string | null>("local:trail_oauth_device_id", {
-  fallback: null,
-});
-
-/** Backwards-compat re-export (raw key without area prefix). */
-export const AUTH_STORAGE_KEY = "trail_auth_session" as const;
 
 // ── Tree ────────────────────────────────────────────────────────────
 
@@ -62,26 +39,6 @@ export const treeSavedAtItem = storage.defineItem<number | null>("local:trail_tr
 export function archiveBlobKey(treeId: string): `local:trail_ar_${string}` {
   return `local:trail_ar_${treeId}`;
 }
-
-// ── Sync ────────────────────────────────────────────────────────────
-
-export type SyncState = {
-  serverSyncAt: string | null;
-  dirtyIds: string[];
-  pendingDeletes: string[];
-};
-
-export const syncStateItem = storage.defineItem<SyncState | null>("local:trail_v3_sync", {
-  fallback: null,
-});
-
-export const syncDeviceIdItem = storage.defineItem<string | null>("local:trail_sync_device_id", {
-  fallback: null,
-});
-
-export const migrationDoneItem = storage.defineItem<boolean>("local:trail_v3_migration_done", {
-  fallback: false,
-});
 
 // ── Settings ────────────────────────────────────────────────────────
 
@@ -119,18 +76,6 @@ export const openTabsItem = storage.defineItem<Record<string, string[]>>(
   { fallback: {} },
 );
 
-// ── Account ─────────────────────────────────────────────────────────
-
-export type CachedSnapshotEnvelope = {
-  snapshot: AccountSnapshot;
-  fetchedAt: number;
-};
-
-export const accountSnapshotItem = storage.defineItem<CachedSnapshotEnvelope | null>(
-  "local:trail_account_snapshot",
-  { fallback: null },
-);
-
 // ── Backend config ──────────────────────────────────────────────────
 
 export const backendConfigItem = storage.defineItem<BackendConfigOverride | null>(
@@ -138,56 +83,11 @@ export const backendConfigItem = storage.defineItem<BackendConfigOverride | null
   { fallback: null },
 );
 
-// ── Spotlight ───────────────────────────────────────────────────────
-
-export const spotlightUsageStatsItem = storage.defineItem<SpotlightUsageStats | null>(
-  "local:trail_spotlight_usage_stats",
-  { fallback: null },
-);
-
-// ── Auth Policy ────────────────────────────────────────────────────
-
-export type CachedAuthPolicy = {
-  authRequired: boolean;
-  fetchedAt: number;
-};
-
-export const authPolicyItem = storage.defineItem<CachedAuthPolicy | null>(
-  "local:trail_auth_policy",
-  { fallback: null },
-);
-
-// ── Guest Welcome ──────────────────────────────────────────────────
-
-export const guestWelcomeDismissedItem = storage.defineItem<boolean>(
-  "local:trail_guest_welcome_dismissed",
-  { fallback: false },
-);
-
 // ── UI State ───────────────────────────────────────────────────────
-
-export const spotlightSplitRatioItem = storage.defineItem<number>(
-  "local:trail_spotlight_split_ratio",
-  { fallback: 0.38 },
-);
 
 export const themeCacheItem = storage.defineItem<string | null>("session:trail_theme_cache", {
   fallback: null,
 });
-
-// ── Search suggestions ───────────────────────────────────────────────
-
-export const searchSuggestionsEnabledItem = storage.defineItem<boolean>(
-  "local:searchSuggestionsEnabled",
-  { fallback: true },
-);
-
-// ── Session Banner ──────────────────────────────────────────────────
-
-export const sessionBannerDismissedItem = storage.defineItem<boolean>(
-  "session:trail_session_banner_dismissed",
-  { fallback: false },
-);
 
 // ── Onboarding ──────────────────────────────────────────────────────
 

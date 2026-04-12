@@ -20,14 +20,9 @@ import {
   saveEditorMode,
   cancelEditorMode,
 } from "./editor-handlers.js";
-import { authOrchestrator } from "../../services/auth-orchestrator.js";
-import { authSessionItem } from "@shared/config/storage-items.js";
 import { browser } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
-import {
-  EnterEditorModeMessage as EnterEditorSchema,
-  AuthCodeRelayMessage as AuthCodeRelaySchema,
-} from "../../../shared/schemas/site-messages.js";
+import { EnterEditorModeMessage as EnterEditorSchema } from "../../../shared/schemas/site-messages.js";
 import type { z } from "zod";
 
 const log = createLogger("site-msg");
@@ -38,7 +33,6 @@ const log = createLogger("site-msg");
 
 const payloadSchemas: Partial<Record<string, z.ZodType>> = {
   ENTER_EDITOR_MODE: EnterEditorSchema,
-  AUTH_CODE_RELAY: AuthCodeRelaySchema,
 };
 
 // ---------------------------------------------------------------------------
@@ -46,12 +40,8 @@ const payloadSchemas: Partial<Record<string, z.ZodType>> = {
 // ---------------------------------------------------------------------------
 
 async function isAuthenticated(): Promise<boolean> {
-  try {
-    const session = await authSessionItem.getValue();
-    return Boolean(session?.accessToken);
-  } catch {
-    return false;
-  }
+  // Local-only mode — no auth
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,22 +68,6 @@ const innerHandlers: Record<string, InnerHandler> = {
         version: browser.runtime.getManifest().version,
         authenticated: authed,
         editorMode: editor.active,
-      },
-    };
-  },
-
-  /**
-   * AUTH_REVOKED — site logout propagation.
-   * Extension should clear tokens and show auth gate.
-   */
-  AUTH_REVOKED: async (_payload, _requestId) => {
-    // AUTH_REVOKED received — clearing tokens
-    await authOrchestrator.invalidateFromWebLogout();
-    return {
-      responsePayload: {
-        source: "trail-extension",
-        type: "AUTH_REVOKED_ACK",
-        ok: true,
       },
     };
   },
@@ -177,39 +151,6 @@ const innerHandlers: Record<string, InnerHandler> = {
     };
   },
 
-  AUTH_CODE_RELAY: async (payload, _requestId) => {
-    const { code, codeVerifier, redirectUri } = payload as {
-      code: string;
-      codeVerifier: string;
-      redirectUri: string;
-    };
-
-    if (!code || !codeVerifier || !redirectUri) {
-      return {
-        responsePayload: {
-          source: "trail-extension",
-          type: "AUTH_CODE_RELAY_ACK",
-          ok: false,
-          error: "Missing code, codeVerifier, or redirectUri",
-        },
-      };
-    }
-
-    const result = await authOrchestrator.handleAuthCodeRelay({
-      code,
-      codeVerifier,
-      redirectUri,
-    });
-
-    return {
-      responsePayload: {
-        source: "trail-extension",
-        type: "AUTH_CODE_RELAY_ACK",
-        ok: result.ok,
-        error: result.ok ? undefined : result.reason,
-      },
-    };
-  },
 };
 
 // ---------------------------------------------------------------------------

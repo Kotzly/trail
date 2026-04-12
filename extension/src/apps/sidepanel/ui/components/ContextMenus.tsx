@@ -12,13 +12,12 @@ import { getFaviconUrl } from "@shared/utils/favicon.js";
 import { rpc } from "@shared/rpc/contracts.js";
 import { cn } from "@ui/lib/utils";
 import { fireAndForget } from "../../api/background.js";
-import { navigateTo, setCurrentNode } from "../../api/tree.js";
+import { navigateTo } from "../../api/tree.js";
 import { getTabsForNodeMessage } from "../../api/tabs.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
 import { getIncludedRootId } from "../shared/delete-tree.js";
-import { getNearestCollapsedAncestorId } from "@features/graph/graph/collapse-utils.js";
 import { Button } from "@ui/components/ui/button";
 import { Separator } from "@ui/components/ui/separator";
 
@@ -131,7 +130,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const tree = useStore((state) => state.tree);
   const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
-  const currentNodeId = useStore((state) => state.currentNodeId);
   const editorActive = useStore((state) => state.editorMode.active);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
@@ -328,10 +326,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         {hasChildren && !isCollapsed && (
           <div className={menuItemDefault} role="menuitem" tabIndex={-1}
             onClick={() => {
-              const nextCollapsed = new Set(collapsedNodeIds);
-              nextCollapsed.add(nodeId);
-              const targetId = getNearestCollapsedAncestorId(tree, currentNodeId, nextCollapsed);
-              if (targetId && targetId !== currentNodeId) void setCurrentNode(targetId);
               collapseNodes([nodeId]); closeContextMenu();
             }}
           >Collapse node</div>
@@ -418,7 +412,6 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const tree = useStore((state) => state.tree);
   const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
-  const currentNodeId = useStore((state) => state.currentNodeId);
   const editorActive = useStore((state) => state.editorMode.active);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
@@ -466,10 +459,6 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           aria-disabled={collapseCandidates.length === 0}
           onClick={() => {
             if (collapseCandidates.length === 0) return;
-            const nextCollapsed = new Set(collapsedNodeIds);
-            collapseCandidates.forEach((node) => nextCollapsed.add(node.id));
-            const targetId = getNearestCollapsedAncestorId(tree, currentNodeId, nextCollapsed);
-            if (targetId && targetId !== currentNodeId) void setCurrentNode(targetId);
             collapseNodes(collapseCandidates.map((node) => node.id));
             clearSelection(); closeContextMenu();
           }}
