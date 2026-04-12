@@ -63,7 +63,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     onLayoutModeChange,
   } = props;
 
-  const { fitView } = useReactFlow();
+  const { fitView, getViewport, setViewport } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
 
@@ -149,6 +149,37 @@ function TrailGraphInner(props: TrailGraphProps) {
     dragStartRef.current = null;
   }, []);
 
+  // Cmd+scroll zoom (capture phase to intercept before React Flow)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handler = (e: WheelEvent) => {
+      if (!e.metaKey) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const vp = getViewport();
+      const factor = 1 - e.deltaY * 0.005;
+      const newZoom = Math.min(3, Math.max(0.05, vp.zoom * factor));
+
+      // Zoom toward cursor position
+      const rect = el.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const scale = newZoom / vp.zoom;
+      const newX = mouseX - (mouseX - vp.x) * scale;
+      const newY = mouseY - (mouseY - vp.y) * scale;
+
+      setViewport({ x: newX, y: newY, zoom: newZoom });
+    };
+
+    el.addEventListener("wheel", handler, { capture: true, passive: false });
+    return () => el.removeEventListener("wheel", handler, { capture: true } as EventListenerOptions);
+  }, [getViewport, setViewport]);
+
   // fitView once on first data
   useEffect(() => {
     if (displayNodes.length > 0 && !initialFitDone.current) {
@@ -224,7 +255,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         panOnScrollSpeed={1}
         zoomOnScroll={false}
         zoomOnPinch
-        zoomActivationKeyCode="Meta"
+
         fitView={false}
         minZoom={0.05}
         maxZoom={3}

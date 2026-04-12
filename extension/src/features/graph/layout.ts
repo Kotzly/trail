@@ -1,7 +1,7 @@
 /**
  * Layout computation: NavigationTreeJSON → positioned React Flow nodes + edges.
  *
- * All three layout modes (tree, mindmap, radial) use elkjs.
+ * Tree and mindmap use elkjs; radial uses a custom algorithm.
  */
 
 import ELK from "elkjs/lib/elk.bundled.js";
@@ -11,6 +11,7 @@ import type { Settings } from "@shared/types/settings.js";
 import type { LayoutMode, LayoutResult, TrailEdge } from "./types.js";
 import { treeToNodes, treeToEdges, type TreeToNodesMetadata } from "./transforms.js";
 import { treeToElkGraph, elkResultToPositions, NODE_WIDTH, NODE_HEIGHT } from "./elk-graph.js";
+import { computeRadialPositions } from "./radial-layout.js";
 
 const elk = new ELK();
 
@@ -101,19 +102,23 @@ export async function computeLayout(
     return { nodes: [], edges: [] };
   }
 
-  // Compute positions via elkjs
-  const { nodeSpacing, layerSpacing } = getSpacing(settings.graphDensity);
+  // Compute positions — custom radial or ELK for tree/mindmap
+  let positions: Map<string, { x: number; y: number }>;
 
-  const elkGraph = treeToElkGraph({
-    tree,
-    collapsedNodeIds,
-    mode: settings.layout.mode,
-    nodeSpacing,
-    layerSpacing,
-  });
-
-  const layoutedGraph = await elk.layout(elkGraph);
-  const positions = elkResultToPositions(layoutedGraph);
+  if (settings.layout.mode === "radial") {
+    positions = computeRadialPositions(tree, collapsedNodeIds, settings.layout.radial);
+  } else {
+    const { nodeSpacing, layerSpacing } = getSpacing(settings.graphDensity);
+    const elkGraph = treeToElkGraph({
+      tree,
+      collapsedNodeIds,
+      mode: settings.layout.mode,
+      nodeSpacing,
+      layerSpacing,
+    });
+    const layoutedGraph = await elk.layout(elkGraph);
+    positions = elkResultToPositions(layoutedGraph);
+  }
 
   // Apply positions to nodes
   for (const node of nodes) {
