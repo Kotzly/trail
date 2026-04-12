@@ -8,9 +8,9 @@ import ELK from "elkjs/lib/elk.bundled.js";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { Settings } from "@shared/types/settings.js";
-import type { LayoutResult } from "./types.js";
+import type { LayoutMode, LayoutResult, TrailEdge } from "./types.js";
 import { treeToNodes, treeToEdges, type TreeToNodesMetadata } from "./transforms.js";
-import { treeToElkGraph, elkResultToPositions } from "./elk-graph.js";
+import { treeToElkGraph, elkResultToPositions, NODE_WIDTH, NODE_HEIGHT } from "./elk-graph.js";
 
 const elk = new ELK();
 
@@ -28,6 +28,49 @@ function getSpacing(density: Settings["graphDensity"]): {
     case "comfortable":
     default:
       return { nodeSpacing: 24, layerSpacing: 80 };
+  }
+}
+
+// ── Per-edge handle assignment ────────────────────────────────────
+
+function nearestSide(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+): string {
+  const dx = (to.x + NODE_WIDTH / 2) - (from.x + NODE_WIDTH / 2);
+  const dy = (to.y + NODE_HEIGHT / 2) - (from.y + NODE_HEIGHT / 2);
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx > 0 ? "right" : "left";
+  }
+  return dy > 0 ? "bottom" : "top";
+}
+
+function assignEdgeHandles(
+  edges: TrailEdge[],
+  positions: Map<string, { x: number; y: number }>,
+  mode: LayoutMode,
+): void {
+  for (const edge of edges) {
+    switch (mode) {
+      case "tree":
+        edge.sourceHandle = "source-bottom";
+        edge.targetHandle = "target-top";
+        break;
+      case "mindmap":
+        edge.sourceHandle = "source-right";
+        edge.targetHandle = "target-left";
+        break;
+      case "radial": {
+        const sp = positions.get(edge.source);
+        const tp = positions.get(edge.target);
+        if (sp && tp) {
+          edge.sourceHandle = `source-${nearestSide(sp, tp)}`;
+          edge.targetHandle = `target-${nearestSide(tp, sp)}`;
+        }
+        break;
+      }
+    }
   }
 }
 
@@ -79,6 +122,9 @@ export async function computeLayout(
       node.position = pos;
     }
   }
+
+  // Assign per-edge handles based on layout mode + positions
+  assignEdgeHandles(edges, positions, settings.layout.mode);
 
   return { nodes, edges };
 }

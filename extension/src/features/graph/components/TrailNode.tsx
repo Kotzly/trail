@@ -3,12 +3,9 @@ import { Handle, Position } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { cn } from "@ui/lib/utils";
 
-type TrailNodeProps = {
-  data: TrailNodeData;
-  selected?: boolean;
-};
+const hidden = { opacity: 0, width: 6, height: 6 } as const;
 
-function TrailNodeComponent({ data, selected }: TrailNodeProps) {
+function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?: boolean }) {
   const {
     title,
     url,
@@ -29,15 +26,18 @@ function TrailNodeComponent({ data, selected }: TrailNodeProps) {
 
   return (
     <>
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={{ opacity: 0, width: 6, height: 6 }}
-      />
+      <Handle id="target-top" type="target" position={Position.Top} style={hidden} />
+      <Handle id="target-bottom" type="target" position={Position.Bottom} style={hidden} />
+      <Handle id="target-left" type="target" position={Position.Left} style={hidden} />
+      <Handle id="target-right" type="target" position={Position.Right} style={hidden} />
+      <Handle id="source-top" type="source" position={Position.Top} style={hidden} />
+      <Handle id="source-bottom" type="source" position={Position.Bottom} style={hidden} />
+      <Handle id="source-left" type="source" position={Position.Left} style={hidden} />
+      <Handle id="source-right" type="source" position={Position.Right} style={hidden} />
       <div
         className={cn(
           "flex items-center gap-2 px-2.5 py-2 rounded-md border",
-          "w-[160px] cursor-grab active:cursor-grabbing select-none",
+          "w-[160px] cursor-default select-none",
           isOpen || isCurrent
             ? "bg-card text-card-foreground"
             : "bg-muted/60 text-muted-foreground border-border/50",
@@ -80,11 +80,6 @@ function TrailNodeComponent({ data, selected }: TrailNodeProps) {
           )}
         </div>
       </div>
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{ opacity: 0, width: 6, height: 6 }}
-      />
     </>
   );
 }

@@ -77,8 +77,10 @@ function getLayoutOptions(input: ElkGraphInput): Record<string, string> {
         ...common,
         "elk.algorithm": "org.eclipse.elk.radial",
         "elk.radial.centerOnRoot": "true",
-        "elk.radial.radius": String(layerSpacing),
+        "elk.radial.radius": String(NODE_WIDTH),
         "elk.radial.wedgeCriteria": "NODE_SIZE",
+        "elk.radial.compactor": "NONE",
+        "elk.spacing.nodeNode": String(Math.max(nodeSpacing, NODE_HEIGHT)),
       };
   }
 }
