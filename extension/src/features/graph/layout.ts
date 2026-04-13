@@ -1,36 +1,17 @@
 /**
  * Layout computation: NavigationTreeJSON → positioned React Flow nodes + edges.
  *
- * Tree and mindmap use elkjs; radial uses a custom algorithm.
+ * Tree and mindmap use dagre; radial uses a custom algorithm.
  */
 
-import ELK from "elkjs/lib/elk.bundled.js";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { LayoutMode, LayoutResult, TrailEdge } from "./types.js";
 import { treeToNodes, treeToEdges, type TreeToNodesMetadata } from "./transforms.js";
-import { treeToElkGraph, elkResultToPositions, NODE_WIDTH, NODE_HEIGHT } from "./elk-graph.js";
+import { computeTreePositions, NODE_WIDTH, NODE_HEIGHT } from "./elk-graph.js";
 import { computeRadialPositions } from "./radial-layout.js";
-
-const elk = new ELK();
-
-// ── Density → spacing ──────────────────────────────────────────────
-
-function getSpacing(density: Settings["graphDensity"]): {
-  nodeSpacing: number;
-  layerSpacing: number;
-} {
-  switch (density) {
-    case "compact":
-      return { nodeSpacing: 16, layerSpacing: 60 };
-    case "spacious":
-      return { nodeSpacing: 32, layerSpacing: 100 };
-    case "comfortable":
-    default:
-      return { nodeSpacing: 24, layerSpacing: 80 };
-  }
-}
+import { getSpacing } from "@shared/layout/spacing.js";
 
 // ── Per-edge handle assignment ────────────────────────────────────
 
@@ -105,6 +86,7 @@ export async function computeLayout(
   settings: Settings,
   collapsedNodeIds: Set<NodeId>,
   metadata: LayoutMetadata,
+  precomputedPositions?: Record<string, { x: number; y: number }> | null | undefined,
 ): Promise<LayoutResult> {
   if (!tree?.root) {
     return { nodes: [], edges: [] };
@@ -123,22 +105,23 @@ export async function computeLayout(
     return { nodes: [], edges: [] };
   }
 
-  // Compute positions — custom radial or ELK for tree/mindmap
+  // Compute positions — use pre-computed if available, else radial or dagre
   let positions: Map<string, { x: number; y: number }>;
 
-  if (settings.layout.mode === "radial") {
+  if (precomputedPositions && collapsedNodeIds.size === 0) {
+    // Fast path: background already computed positions for fully-expanded tree
+    positions = new Map(Object.entries(precomputedPositions));
+  } else if (settings.layout.mode === "radial") {
     positions = computeRadialPositions(tree, collapsedNodeIds, settings.layout.radial);
   } else {
     const { nodeSpacing, layerSpacing } = getSpacing(settings.graphDensity);
-    const elkGraph = treeToElkGraph({
+    positions = computeTreePositions({
       tree,
       collapsedNodeIds,
       mode: settings.layout.mode,
       nodeSpacing,
       layerSpacing,
     });
-    const layoutedGraph = await elk.layout(elkGraph);
-    positions = elkResultToPositions(layoutedGraph);
   }
 
   // Apply positions to nodes

@@ -1,17 +1,31 @@
-import type { TabId, NodeId } from "@shared/types/ids.js";
+import type { NodeId, TabId } from "@shared/types/ids.js";
 import { tabManager } from "../state/tab-manager.js";
 import type { TabSoundState, TabState } from "@shared/types/tabs.js";
 import {
-  rpc,
   type TreeUpdateReason,
   type TreeViewIntent,
-  type TreesSnapshot,
 } from "@shared/rpc/contracts.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
-import { type NavigationTree } from "../state/nav-tree.js";
-import { sendRuntimeMessage } from "./send-message.js";
+import type { NavigationTreeJSON } from "@shared/types/tree.js";
+import type { NavigationTree } from "../state/nav-tree.js";
 import { browser } from "@shared/platform/webext.js";
-// Get tab states for all open tabs.
+import {
+  createLayoutCacheKey,
+  getActiveLayoutCacheContext,
+  getCachedPositions,
+  precompute,
+  type LayoutPositions,
+} from "../services/layout-precompute.js";
+import { settingsManager } from "../services/settings.js";
+import { createLogger } from "@shared/lib/logger.js";
+import {
+  EXTENSION_MESSAGE,
+  fireExtensionEvent,
+} from "@shared/transport/extension-messaging.js";
+import type { TreesSnapshot } from "@shared/rpc/contracts.js";
+
+const log = createLogger("notifications");
+
 export async function getTabStates(): Promise<Record<NodeId, TabState>> {
   const tabStates: Record<NodeId, TabState> = {};
   const allTabs = await browser.tabs.query({});
@@ -24,20 +38,13 @@ export async function getTabStates(): Promise<Record<NodeId, TabState>> {
       muted: tab.mutedInfo?.muted || false,
       audible: tab.audible || false,
     };
-    const tabState: TabState = {
-      sound: soundState,
-    };
-    tabStates[nodeId] = tabState;
+    tabStates[nodeId] = { sound: soundState };
   }
 
   return tabStates;
 }
 
 let viewIntentCounter = 0;
-
-// ---------------------------------------------------------------------------
-// Debounce for navigate/sync reasons to batch redirect chains
-// ---------------------------------------------------------------------------
 
 const DEBOUNCE_MS = 200;
 const IMMEDIATE_REASONS: Set<string> = new Set([
@@ -55,14 +62,74 @@ const IMMEDIATE_REASONS: Set<string> = new Set([
   "editor-exit",
 ]);
 
+const STRUCTURAL_REASONS: Set<TreeUpdateReason> = new Set([
+  "navigate",
+  "tree-switch",
+  "tree-reset",
+  "delete",
+  "undo",
+  "reparent",
+  "duplicate",
+  "layout",
+]);
+
+type PendingNotification = {
+  treeJSON: NavigationTreeJSON;
+  reason: TreeUpdateReason;
+  view?: TreeViewIntent;
+};
+
+type TreeNotificationOptions = {
+  positions?: LayoutPositions | null;
+  skipPrecompute?: boolean;
+};
+
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingArgs: { tree: NavigationTree; reason: TreeUpdateReason; view?: TreeViewIntent } | null =
-  null;
+let pendingArgs: PendingNotification | null = null;
+
+async function loadCachedPositionsForActiveTree(): Promise<LayoutPositions | null> {
+  try {
+    const settings = settingsManager.get();
+    const context = await getActiveLayoutCacheContext(settings);
+    return await getCachedPositions(context);
+  } catch (error) {
+    log.warn("Failed to load cached layout positions", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+export function requestLayoutRefinement(treeJSON: NavigationTreeJSON): void {
+  void (async () => {
+    try {
+      const settings = settingsManager.get();
+      const context = await getActiveLayoutCacheContext(settings);
+      const { positions, applied } = await precompute(treeJSON, settings, context);
+      if (!applied) return;
+
+      const latestContext = await getActiveLayoutCacheContext(settingsManager.get());
+      if (createLayoutCacheKey(latestContext) !== createLayoutCacheKey(context)) {
+        return;
+      }
+
+      await sendTreeNotification(treeJSON, "layout", undefined, {
+        positions,
+        skipPrecompute: true,
+      });
+    } catch (error) {
+      log.warn("Late layout refinement failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  })();
+}
 
 async function sendTreeNotification(
-  tree: NavigationTree,
+  treeJSON: NavigationTreeJSON,
   reason: TreeUpdateReason,
   view?: TreeViewIntent,
+  options: TreeNotificationOptions = {},
 ): Promise<void> {
   const openNodes = Array.from(tabManager.openNodes());
   const tabStates = await getTabStates();
@@ -72,24 +139,33 @@ async function sendTreeNotification(
   );
   const nodeRecency: Record<string, number> = {};
   for (const nodeId of openNodes) {
-    const r = tabManager.getNodeRecency(nodeId);
-    if (r > 0) nodeRecency[nodeId] = r;
+    const recency = tabManager.getNodeRecency(nodeId);
+    if (recency > 0) nodeRecency[nodeId] = recency;
   }
+
   const nextView = view
     ? { ...view, intentId: view.intentId ?? (viewIntentCounter += 1) }
     : undefined;
 
-  const payload = rpc.treeUpdated({
-    tree: NavigationTreeMapper.toJSON(tree),
+  const positions =
+    options.positions === undefined && !STRUCTURAL_REASONS.has(reason)
+      ? await loadCachedPositionsForActiveTree()
+      : (options.positions ?? null);
+
+  fireExtensionEvent(EXTENSION_MESSAGE.TREE_UPDATED, {
+    tree: treeJSON,
     openNodeIds: openNodes,
-    tabStates: tabStates,
-    nodeTabCounts: nodeTabCounts,
+    tabStates,
+    nodeTabCounts,
     nodeRecency,
     reason,
     ...(nextView ? { view: nextView } : {}),
+    ...(positions ? { positions } : {}),
   });
 
-  sendRuntimeMessage(payload);
+  if (STRUCTURAL_REASONS.has(reason) && !options.skipPrecompute) {
+    requestLayoutRefinement(treeJSON);
+  }
 }
 
 export async function notifyTreeUpdate(
@@ -97,29 +173,30 @@ export async function notifyTreeUpdate(
   reason: TreeUpdateReason = "navigate",
   view?: TreeViewIntent,
 ): Promise<void> {
+  const treeJSON = NavigationTreeMapper.toJSON(tree);
+
   if (IMMEDIATE_REASONS.has(reason)) {
-    // Flush any pending debounced update, then send immediately
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
       pendingArgs = null;
     }
-    return sendTreeNotification(tree, reason, view);
+    return sendTreeNotification(treeJSON, reason, view);
   }
 
-  // Debounce: keep latest args, send after DEBOUNCE_MS of quiet
-  pendingArgs = { tree, reason, ...(view ? { view } : {}) };
+  pendingArgs = { treeJSON, reason, ...(view ? { view } : {}) };
   if (!debounceTimer) {
     debounceTimer = setTimeout(async () => {
       const args = pendingArgs;
       pendingArgs = null;
       debounceTimer = null;
-      if (args) await sendTreeNotification(args.tree, args.reason, args.view);
+      if (args) {
+        await sendTreeNotification(args.treeJSON, args.reason, args.view);
+      }
     }, DEBOUNCE_MS);
   }
 }
 
 export async function notifyTreesUpdate(snapshot: TreesSnapshot): Promise<void> {
-  const payload = rpc.treesUpdated(snapshot);
-  sendRuntimeMessage(payload);
+  fireExtensionEvent(EXTENSION_MESSAGE.TREES_UPDATED, snapshot);
 }
