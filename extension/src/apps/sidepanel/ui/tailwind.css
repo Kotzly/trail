@@ -128,6 +128,27 @@
     line-height: 1.5;
   }
 
+  /* Graph node containment — nodes are absolutely positioned with fixed size,
+     so layout/style containment lets the browser skip cross-node invalidation.
+     Paint containment is excluded so ring/outline indicators aren't clipped. */
+  .react-flow__node {
+    contain: layout style;
+  }
+
+  /* Selection rectangle drawn by drag-to-select */
+  .react-flow__selection {
+    background: color-mix(in srgb, var(--primary) 8%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent) !important;
+    border-radius: 4px;
+  }
+
+  /* Bounding box around the group of selected nodes */
+  .react-flow__nodesselection-rect {
+    background: color-mix(in srgb, var(--primary) 4%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent) !important;
+    border-radius: 4px;
+  }
+
   /* Stack list thin scrollbar */
   .stack-container::-webkit-scrollbar {
     width: 4px;

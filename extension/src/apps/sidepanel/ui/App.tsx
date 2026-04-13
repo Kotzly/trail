@@ -58,6 +58,8 @@ export default function App() {
   const openNodeIds = useStore((s) => s.openNodeIds);
   const nodeTabCounts = useStore((s) => s.nodeTabCounts);
   const collapsedNodeIds = useStore((s) => s.graph.collapsedNodeIds);
+  const selectedNodeIds = useStore((s) => s.graph.selectedNodeIds);
+  const setSelectedNodeIds = useStore((s) => s.setSelectedNodeIds);
   const openContextMenu = useStore((s) => s.openContextMenu);
   const collapseNodes = useStore((s) => s.collapseNodes);
   const expandNodes = useStore((s) => s.expandNodes);
@@ -91,6 +93,13 @@ export default function App() {
       }
     },
     [collapsedNodeIds, collapseNodes, expandNodes],
+  );
+
+  const handleSelectionChange = useCallback(
+    (nodeIds: Set<NodeId>) => {
+      setSelectedNodeIds(nodeIds);
+    },
+    [setSelectedNodeIds],
   );
 
   const handleLayoutModeChange = useCallback(
@@ -132,11 +141,13 @@ export default function App() {
           currentNodeId={currentNodeId}
           openNodeIds={openNodeIds}
           collapsedNodeIds={collapsedNodeIds}
+          selectedNodeIds={selectedNodeIds}
           nodeTabCounts={nodeTabCounts}
           settings={settings}
           onNodeClick={handleNodeClick}
           onNodeContextMenu={handleNodeContextMenu}
           onCollapseToggle={handleCollapseToggle}
+          onSelectionChange={handleSelectionChange}
           onLayoutModeChange={handleLayoutModeChange}
         />
       )}

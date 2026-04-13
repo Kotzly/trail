@@ -36,6 +36,7 @@ export type TrailGraphProps = {
   currentNodeId: NodeId | null;
   openNodeIds: Set<NodeId>;
   collapsedNodeIds: Set<NodeId>;
+  selectedNodeIds: Set<NodeId>;
   nodeTabCounts: Record<NodeId, number>;
   settings: Settings;
   onNodeClick: (nodeId: NodeId, url: string) => void;
@@ -44,6 +45,7 @@ export type TrailGraphProps = {
     position: { x: number; y: number },
   ) => void;
   onCollapseToggle: (nodeId: NodeId) => void;
+  onSelectionChange: (nodeIds: Set<NodeId>) => void;
   onLayoutModeChange: (mode: LayoutMode) => void;
 };
 

@@ -64,6 +64,7 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
             ? "bg-foreground/20 border-foreground/30"
             : "bg-foreground/10 border-foreground/15",
           isCurrent && "bg-primary/30 border-primary",
+          selected && "ring-2 ring-ring",
         )}
       />
     );

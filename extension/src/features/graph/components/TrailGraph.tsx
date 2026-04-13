@@ -4,10 +4,13 @@ import {
   ReactFlowProvider,
   Background,
   BackgroundVariant,
+  SelectionMode,
   useReactFlow,
+  useStore,
   applyNodeChanges,
   type NodeMouseHandler,
   type NodeChange,
+  type ReactFlowState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { TrailGraphProps, TrailNode as TrailNodeType } from "../types.js";
@@ -18,6 +21,11 @@ import type { NodeId } from "@shared/types/ids.js";
 
 
 const nodeTypes = { trail: TrailNode };
+
+// LOD selectors — boolean thresholds avoid re-render on every zoom tick
+const selectShowEdges = (s: ReactFlowState) => s.transform[2] >= 0.12;
+const selectShowBackground = (s: ReactFlowState) => s.transform[2] >= 0.15;
+const EMPTY_EDGES: never[] = [];
 
 const defaultEdgeOptions = {
   type: "default",
@@ -64,17 +72,22 @@ function TrailGraphInner(props: TrailGraphProps) {
     currentNodeId,
     openNodeIds,
     collapsedNodeIds,
+    selectedNodeIds,
     nodeTabCounts,
     settings,
     onNodeClick,
     onNodeContextMenu,
     onCollapseToggle,
+    onSelectionChange,
     onLayoutModeChange,
   } = props;
 
   const { fitView, getViewport, setViewport } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
+
+  const showEdges = useStore(selectShowEdges);
+  const showBackground = useStore(selectShowBackground);
 
   const metadata = useMemo(
     () => ({
@@ -92,12 +105,41 @@ function TrailGraphInner(props: TrailGraphProps) {
     metadata,
   });
 
-  const [displayNodes, setDisplayNodes] = useState<TrailNodeType[]>([]);
+  // Keep a ref to selectedNodeIds for use in the layout sync (avoids stale closure)
+  const selectedNodeIdsRef = useRef(selectedNodeIds);
+  selectedNodeIdsRef.current = selectedNodeIds;
 
-  // Sync layout → local state
+  const applySelection = useCallback(
+    (nodes: TrailNodeType[]): TrailNodeType[] =>
+      nodes.map((n) => {
+        const sel = selectedNodeIdsRef.current.has(n.data.nodeId);
+        return n.selected === sel ? n : { ...n, selected: sel };
+      }),
+    [],
+  );
+
+  const [displayNodes, setDisplayNodes] = useState(() => applySelection(layout.nodes));
+
+  // Sync layout → local state during render (no useEffect lag)
+  const [prevLayoutNodes, setPrevLayoutNodes] = useState(layout.nodes);
+  if (layout.nodes !== prevLayoutNodes) {
+    setPrevLayoutNodes(layout.nodes);
+    setDisplayNodes(applySelection(layout.nodes));
+  }
+
+  // Sync external selection changes (Cmd+A, Escape, etc.) → displayNodes
   useEffect(() => {
-    setDisplayNodes(layout.nodes);
-  }, [layout.nodes]);
+    setDisplayNodes((nds) => {
+      let changed = false;
+      const next = nds.map((n) => {
+        const shouldBeSelected = selectedNodeIds.has(n.data.nodeId);
+        if (n.selected === shouldBeSelected) return n;
+        changed = true;
+        return { ...n, selected: shouldBeSelected };
+      });
+      return changed ? next : nds;
+    });
+  }, [selectedNodeIds]);
 
   const onNodesChange = useCallback((changes: NodeChange<TrailNodeType>[]) => {
     setDisplayNodes((nds) => applyNodeChanges(changes, nds));
@@ -145,7 +187,8 @@ function TrailGraphInner(props: TrailGraphProps) {
       setDisplayNodes((nds) =>
         nds.map((n) => {
           const initial = dragStartRef.current?.get(n.id);
-          if (initial && n.id !== node.id) {
+          // Skip nodes already moved by ReactFlow's multi-selection drag
+          if (initial && n.id !== node.id && !n.selected) {
             return { ...n, position: { x: initial.x + dx, y: initial.y + dy } };
           }
           return n;
@@ -212,8 +255,19 @@ function TrailGraphInner(props: TrailGraphProps) {
   }, [fitView]);
 
 
+  // Sync ReactFlow selection → store
+  const handleSelectionChange = useCallback(
+    ({ nodes }: { nodes: TrailNodeType[] }) => {
+      const ids = new Set<NodeId>(nodes.map((n) => n.data.nodeId));
+      onSelectionChange(ids);
+    },
+    [onSelectionChange],
+  );
+
   const handleNodeClick: NodeMouseHandler = useCallback(
-    (_event, node) => {
+    (event, node) => {
+      // Shift+click = multi-select, handled by ReactFlow — don't navigate
+      if (event.shiftKey) return;
       const data = node.data as { nodeId?: NodeId; url?: string };
       if (data.nodeId !== undefined && data.url !== undefined) {
         onNodeClick(data.nodeId, String(data.url));
@@ -250,7 +304,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     <div ref={containerRef} className="flex-1 min-h-0 w-full">
       <ReactFlow
         nodes={displayNodes}
-        edges={layout.edges}
+        edges={showEdges ? layout.edges : EMPTY_EDGES}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onNodeDragStart={handleNodeDragStart}
@@ -259,6 +313,10 @@ function TrailGraphInner(props: TrailGraphProps) {
         onNodeClick={handleNodeClick}
         onNodeContextMenu={handleNodeContextMenu}
         onNodeDoubleClick={handleNodeDoubleClick}
+        onSelectionChange={handleSelectionChange}
+        selectionOnDrag
+        selectionMode={SelectionMode.Partial}
+        multiSelectionKeyCode="Shift"
         onlyRenderVisibleElements
         nodesDraggable
         nodesConnectable={false}
@@ -268,19 +326,20 @@ function TrailGraphInner(props: TrailGraphProps) {
         panOnScrollSpeed={1}
         zoomOnScroll={false}
         zoomOnPinch={false}
-
         fitView={false}
         minZoom={0.05}
         maxZoom={3}
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={defaultEdgeOptions}
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          color="var(--border)"
-        />
+        {showBackground && (
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={20}
+            size={1}
+            color="var(--border)"
+          />
+        )}
         <GraphControls
           layoutMode={settings.layout.mode}
           onLayoutModeChange={onLayoutModeChange}
