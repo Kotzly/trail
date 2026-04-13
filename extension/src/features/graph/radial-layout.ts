@@ -28,7 +28,7 @@ function countLeaves(
 
 function radiusAtDepth(depth: number, s: RadialLayoutSettings): number {
   if (depth === 0) return 0;
-  return NODE_WIDTH * depth * (s.depthGapBase + s.depthGapGrowth * (depth - 1));
+  return s.depthGapBase * NODE_WIDTH * depth;
 }
 
 // ── Layout ───────────────────────────────────────────────────────

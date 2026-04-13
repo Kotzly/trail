@@ -3,7 +3,7 @@
 @import "tailwindcss/utilities" layer(utilities);
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "@shared/styles/geist.css";
 
 /* Scan extension source for Tailwind class usage */
 @source "../../../apps/**/*.{ts,tsx}";

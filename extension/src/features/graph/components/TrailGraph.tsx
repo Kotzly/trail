@@ -149,19 +149,20 @@ function TrailGraphInner(props: TrailGraphProps) {
     dragStartRef.current = null;
   }, []);
 
-  // Cmd+scroll zoom (capture phase to intercept before React Flow)
+  // Cmd/Ctrl+scroll zoom (capture phase to intercept before React Flow)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const handler = (e: WheelEvent) => {
-      if (!e.metaKey) return;
+      if (!e.metaKey && !e.ctrlKey) return;
 
       e.preventDefault();
       e.stopPropagation();
 
       const vp = getViewport();
-      const factor = 1 - e.deltaY * 0.005;
+      const clamped = Math.max(-30, Math.min(30, e.deltaY));
+      const factor = 1 - clamped * 0.006;
       const newZoom = Math.min(3, Math.max(0.05, vp.zoom * factor));
 
       // Zoom toward cursor position
@@ -251,10 +252,11 @@ function TrailGraphInner(props: TrailGraphProps) {
         nodesDraggable
         nodesConnectable={false}
         connectOnClick={false}
+        panOnDrag={false}
         panOnScroll
         panOnScrollSpeed={1}
         zoomOnScroll={false}
-        zoomOnPinch
+        zoomOnPinch={false}
 
         fitView={false}
         minZoom={0.05}

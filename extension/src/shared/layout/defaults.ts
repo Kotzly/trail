@@ -16,7 +16,7 @@ export const DEFAULT_LAYOUT_SETTINGS: LayoutSettings = {
     minSpanFactor: 0.75,
     minSpanAbs: 0.11,
     requiredScale: 0.85,
-    depthGapBase: 2.2,
-    depthGapGrowth: 0.08,
+    depthGapBase: 1.5,
+    depthGapGrowth: 0.3,
   },
 };
