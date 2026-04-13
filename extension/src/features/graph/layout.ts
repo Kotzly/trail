@@ -96,7 +96,7 @@ export async function computeLayout(
 
   // Build flat node/edge lists (unpositioned)
   const nodes = treeToNodes(tree, fullMetadata);
-  const edges = treeToEdges(tree, collapsedNodeIds);
+  const edges = treeToEdges(tree, collapsedNodeIds, settings.layout.mode);
 
   if (nodes.length === 0) {
     return { nodes: [], edges: [] };
