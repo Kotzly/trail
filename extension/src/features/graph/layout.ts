@@ -51,28 +51,49 @@ function assignEdgeHandles(
   edges: TrailEdge[],
   positions: Map<string, { x: number; y: number }>,
   mode: LayoutMode,
-): void {
+): Map<string, Set<string>> {
+  const nodeHandles = new Map<string, Set<string>>();
+
+  function addHandle(nodeId: string, handleId: string) {
+    let set = nodeHandles.get(nodeId);
+    if (!set) {
+      set = new Set();
+      nodeHandles.set(nodeId, set);
+    }
+    set.add(handleId);
+  }
+
   for (const edge of edges) {
     switch (mode) {
       case "tree":
         edge.sourceHandle = "source-bottom";
         edge.targetHandle = "target-top";
+        addHandle(edge.source, "source-bottom");
+        addHandle(edge.target, "target-top");
         break;
       case "mindmap":
         edge.sourceHandle = "source-right";
         edge.targetHandle = "target-left";
+        addHandle(edge.source, "source-right");
+        addHandle(edge.target, "target-left");
         break;
       case "radial": {
         const sp = positions.get(edge.source);
         const tp = positions.get(edge.target);
         if (sp && tp) {
-          edge.sourceHandle = `source-${nearestSide(sp, tp)}`;
-          edge.targetHandle = `target-${nearestSide(tp, sp)}`;
+          const sh = `source-${nearestSide(sp, tp)}`;
+          const th = `target-${nearestSide(tp, sp)}`;
+          edge.sourceHandle = sh;
+          edge.targetHandle = th;
+          addHandle(edge.source, sh);
+          addHandle(edge.target, th);
         }
         break;
       }
     }
   }
+
+  return nodeHandles;
 }
 
 // ── Public API ─────────────────────────────────────────────────────
@@ -129,7 +150,13 @@ export async function computeLayout(
   }
 
   // Assign per-edge handles based on layout mode + positions
-  assignEdgeHandles(edges, positions, settings.layout.mode);
+  const nodeHandles = assignEdgeHandles(edges, positions, settings.layout.mode);
+
+  // Write handle set into node data so TrailNode renders only needed handles
+  for (const node of nodes) {
+    const handles = nodeHandles.get(node.id);
+    node.data.handles = handles ? Array.from(handles) : [];
+  }
 
   return { nodes, edges };
 }

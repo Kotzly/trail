@@ -19,6 +19,15 @@ import type { NodeId } from "@shared/types/ids.js";
 
 const nodeTypes = { trail: TrailNode };
 
+const defaultEdgeOptions = {
+  type: "default",
+  animated: false,
+  style: {
+    stroke: "var(--border)",
+    strokeWidth: 1.5,
+  },
+} as const;
+
 // ── Helpers ──────────────────────────────────────────────────────
 
 function buildChildrenMap(edges: { source: string; target: string }[]): Map<string, string[]> {
@@ -105,12 +114,13 @@ function TrailGraphInner(props: TrailGraphProps) {
       const descendants = getDescendantIds(node.id, childrenMap);
       if (descendants.length === 0) return;
 
+      const descendantSet = new Set(descendants);
       const posMap = new Map<string, { x: number; y: number }>();
       posMap.set(node.id, { ...node.position });
 
       setDisplayNodes((nds) => {
         for (const n of nds) {
-          if (descendants.includes(n.id)) {
+          if (descendantSet.has(n.id)) {
             posMap.set(n.id, { ...n.position });
           }
         }
@@ -249,6 +259,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         onNodeClick={handleNodeClick}
         onNodeContextMenu={handleNodeContextMenu}
         onNodeDoubleClick={handleNodeDoubleClick}
+        onlyRenderVisibleElements
         nodesDraggable
         nodesConnectable={false}
         connectOnClick={false}
@@ -262,14 +273,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         minZoom={0.05}
         maxZoom={3}
         proOptions={{ hideAttribution: true }}
-        defaultEdgeOptions={{
-          type: "default",
-          animated: false,
-          style: {
-            stroke: "var(--border)",
-            strokeWidth: 1.5,
-          },
-        }}
+        defaultEdgeOptions={defaultEdgeOptions}
       >
         <Background
           variant={BackgroundVariant.Dots}

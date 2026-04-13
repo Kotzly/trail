@@ -16,6 +16,8 @@ export type TrailNodeData = {
   tabCount: number;
   childCount: number;
   isCollapsed: boolean;
+  /** Handle IDs this node needs (e.g. ["source-bottom", "target-top"]) — set by layout */
+  handles: string[];
 };
 
 // ── React Flow node/edge aliases ───────────────────────────────────

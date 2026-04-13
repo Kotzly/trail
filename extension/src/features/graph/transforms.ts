@@ -9,6 +9,7 @@ import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { TrailNode, TrailNodeData, TrailEdge } from "./types.js";
+import { NODE_WIDTH, NODE_HEIGHT } from "./elk-graph.js";
 
 export type TreeToNodesMetadata = {
   currentNodeId: NodeId | null;
@@ -42,6 +43,7 @@ export function treeToNodes(
       tabCount: metadata.nodeTabCounts[node.id] ?? 0,
       childCount: node.children.length,
       isCollapsed,
+      handles: [], // filled by layout
     } as TrailNodeData;
     if (node.data.favicon !== undefined) {
       data.favicon = node.data.favicon;
@@ -51,6 +53,8 @@ export function treeToNodes(
       id: String(node.id),
       type: "trail",
       position: { x: 0, y: 0 }, // filled by layout
+      width: NODE_WIDTH,
+      height: NODE_HEIGHT,
       data,
     });
 
