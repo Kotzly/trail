@@ -10,7 +10,6 @@ import {
   applyNodeChanges,
   type NodeMouseHandler,
   type NodeChange,
-  type ReactFlowState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { TrailGraphProps, TrailNode as TrailNodeType } from "../types.js";
@@ -18,14 +17,10 @@ import { TrailNode } from "./TrailNode.js";
 import { GraphControls } from "./GraphControls.js";
 import { useGraphLayout } from "../hooks/useGraphLayout.js";
 import type { NodeId } from "@shared/types/ids.js";
+import { selectShowBackground } from "../lod.js";
 
 
 const nodeTypes = { trail: TrailNode };
-
-// LOD selectors — boolean thresholds avoid re-render on every zoom tick
-const selectShowEdges = (s: ReactFlowState) => s.transform[2] >= 0.12;
-const selectShowBackground = (s: ReactFlowState) => s.transform[2] >= 0.15;
-const EMPTY_EDGES: never[] = [];
 
 const defaultEdgeOptions = {
   type: "default",
@@ -86,8 +81,8 @@ function TrailGraphInner(props: TrailGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
 
-  const showEdges = useStore(selectShowEdges);
   const showBackground = useStore(selectShowBackground);
+
 
   const metadata = useMemo(
     () => ({
@@ -140,6 +135,7 @@ function TrailGraphInner(props: TrailGraphProps) {
       return changed ? next : nds;
     });
   }, [selectedNodeIds]);
+
 
   const onNodesChange = useCallback((changes: NodeChange<TrailNodeType>[]) => {
     setDisplayNodes((nds) => applyNodeChanges(changes, nds));
@@ -304,7 +300,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     <div ref={containerRef} className="flex-1 min-h-0 w-full">
       <ReactFlow
         nodes={displayNodes}
-        edges={showEdges ? layout.edges : EMPTY_EDGES}
+        edges={layout.edges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onNodeDragStart={handleNodeDragStart}

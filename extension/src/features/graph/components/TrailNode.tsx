@@ -1,7 +1,8 @@
 import { memo } from "react";
-import { Handle, Position, useStore, type ReactFlowState } from "@xyflow/react";
+import { Handle, Position, useStore } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { cn } from "@ui/lib/utils";
+import { selectShowDetail, selectShowLabels } from "../lod.js";
 
 const hidden = { opacity: 0, width: 6, height: 6 } as const;
 
@@ -27,9 +28,6 @@ const handleTypeMap: Record<string, "source" | "target"> = {
   "source-right": "source",
 };
 
-// LOD zoom thresholds — use boolean selectors to avoid re-render on every zoom tick
-const selectShowDetail = (s: ReactFlowState) => s.transform[2] >= 0.4;
-const selectShowLabels = (s: ReactFlowState) => s.transform[2] >= 0.15;
 
 function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?: boolean }) {
   const {
@@ -54,19 +52,25 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
 
   const displayTitle = String(title) || displayUrl;
 
+
   // LOD: minimal colored rectangle when zoomed way out
   if (!showLabels) {
     return (
-      <div
-        className={cn(
-          "w-[160px] h-[52px] rounded-sm border-2",
-          isOpen || isCurrent
-            ? "bg-foreground/20 border-foreground/30"
-            : "bg-foreground/10 border-foreground/15",
-          isCurrent && "bg-primary/30 border-primary",
-          selected && "ring-2 ring-ring",
-        )}
-      />
+      <>
+        {handles.map((id) => (
+          <Handle key={id} id={id} type={handleTypeMap[id]!} position={handlePositionMap[id]!} style={hidden} />
+        ))}
+        <div
+          className={cn(
+            "w-[160px] h-[52px] rounded-sm border-2",
+            isOpen || isCurrent
+              ? "bg-foreground/20 border-foreground/30"
+              : "bg-foreground/10 border-foreground/15",
+            isCurrent && "bg-primary/30 border-primary",
+            selected && "ring-2 ring-ring",
+          )}
+        />
+      </>
     );
   }
 
