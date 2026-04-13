@@ -4,6 +4,7 @@ import {
   deleteArchivedTree,
   ensureTreeLoaded,
   exportTree,
+  importTrail,
   openTree,
   renameTree,
 } from "../../api/tree.js";
@@ -15,7 +16,7 @@ import { Icons } from "./Icon.js";
 
 import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
-import type { TrailExportBundle } from "@shared/types/export.js";
+import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { toast } from "sonner";
 import { browser } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
@@ -152,8 +153,10 @@ export default function TreeDropdown() {
   const [renamePending, setRenamePending] = useState(false);
   const [deletePending, setDeletePending] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
   const [unavailableTreeIds, setUnavailableTreeIds] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
     if (!treesOpen) {
       setEditingId(null);
@@ -259,6 +262,26 @@ export default function TreeDropdown() {
     }
   };
 
+  const handleImportFile = async (file: File) => {
+    try {
+      setImporting(true);
+      const text = await file.text();
+      const bundle = JSON.parse(text) as TrailExportBundle;
+      if (bundle.schema !== EXPORT_SCHEMA) {
+        toast.error("Unsupported file format");
+        return;
+      }
+      await importTrail(bundle);
+      setTreesOpen(false);
+      toast.success("Trail imported");
+    } catch (error) {
+      showOperationError("Import", error);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const treesTooltip = `Saved trees (${treesShortcut})`;
 
   return (
@@ -358,22 +381,46 @@ export default function TreeDropdown() {
             <div className="py-2.5">
               <div className="flex items-center justify-between px-4 pb-2 gap-3">
                 <span className="text-[11px] uppercase tracking-wider text-muted-foreground">saved</span>
-                <Button
-                  id="newTreeBtn"
-                  variant="outline"
-                  size="icon-xs"
-                  type="button"
-                  className="rounded-full"
-                  aria-label="New tree"
-                  data-tooltip="New tree"
-                  onClick={() => {
-                    setLabelDraft("");
-                    closeAllPopups();
-                    setConfirmOpen(true);
-                  }}
-                >
-                  <Icons.GitBranchPlus />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".trail.json,.json"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleImportFile(file);
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon-xs"
+                    type="button"
+                    className="rounded-full"
+                    aria-label="Import trail"
+                    data-tooltip="Import trail"
+                    disabled={importing}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {importing ? <Icons.Loader2 className="animate-spin" /> : <Icons.Upload />}
+                  </Button>
+                  <Button
+                    id="newTreeBtn"
+                    variant="outline"
+                    size="icon-xs"
+                    type="button"
+                    className="rounded-full"
+                    aria-label="New tree"
+                    data-tooltip="New tree"
+                    onClick={() => {
+                      setLabelDraft("");
+                      closeAllPopups();
+                      setConfirmOpen(true);
+                    }}
+                  >
+                    <Icons.GitBranchPlus />
+                  </Button>
+                </div>
               </div>
               {archivedTrees.length === 0 ? (
                 <div className="flex flex-col items-center gap-1.5 py-5 text-muted-foreground">

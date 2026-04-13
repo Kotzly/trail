@@ -644,6 +644,31 @@ export const treeHandlers = defineRpcHandlers({
     return ok();
   },
 
+  async [RPC_METHOD.IMPORT_TRAIL](message) {
+    const { bundle } = message;
+
+    if (bundle.schema !== EXPORT_SCHEMA) {
+      return err(`Unsupported schema: ${bundle.schema}`);
+    }
+    if (!bundle.tree) {
+      return err("Invalid bundle: missing tree data");
+    }
+
+    const current = await treeStorage.getOrCreateTree();
+    if (current.getRoot()) {
+      snapshot(current, "Import trail");
+    }
+    await treeStorage.archiveActiveTree();
+
+    const label = bundle.source.treeLabel ?? "Imported Trail";
+    const meta = treeStorage.createMeta(label);
+    const nextTree = NavigationTreeMapper.fromJSON(bundle.tree);
+
+    await switchTree(nextTree, meta, nextTree.getRoot()?.data.url ?? null);
+
+    return ok({ treeId: meta.id });
+  },
+
   async [RPC_METHOD.RESET_NODE_LAYOUTS]() {
     const tree = await treeStorage.getOrCreateTree();
     let changed = false;

@@ -163,6 +163,12 @@ export async function resetNodeLayouts(): Promise<void> {
   return res.data;
 }
 
+export async function importTrail(bundle: TrailExportBundle): Promise<{ treeId: string }> {
+  const res = await sendMessage(rpc.importTrail({ bundle }));
+  if (!res.success) throw new Error(res.error);
+  return res.data;
+}
+
 export async function reparentNode(nodeId: NodeId, newParentId: NodeId): Promise<void> {
   const res = await sendMessage(rpc.reparentNode({ nodeId, newParentId }));
   if (!res.success) throw new Error(res.error);
