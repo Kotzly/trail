@@ -13,6 +13,7 @@ import type { Settings } from "../types/settings.js";
 import type { PersistedFlagState } from "../types/flags.js";
 import type { BackendConfigOverride } from "./backend.js";
 import type { EditorModeState } from "../rpc/contracts.js";
+import type { LayoutPositionsCacheEntry } from "@background/services/layout-cache-signature.js";
 
 // ── Tree ────────────────────────────────────────────────────────────
 
@@ -98,7 +99,10 @@ export const hasSeenOnboardingItem = storage.defineItem<boolean>(
 
 // ── Editor State (session-scoped) ────────────────────────────────────
 
-export const editorStateItem = storage.defineItem<EditorModeState>(
-  "session:trail_editor_state",
-  { fallback: { active: false, treeId: null } },
-);
+export const editorStateItem = storage.defineItem<EditorModeState>("session:trail_editor_state", {
+  fallback: { active: false, treeId: null },
+});
+
+export const layoutPositionsCacheItem = storage.defineItem<
+  Record<string, LayoutPositionsCacheEntry>
+>("session:trail_layout_positions", { fallback: {} });

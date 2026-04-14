@@ -1,5 +1,7 @@
-import { rpc } from "@shared/rpc/contracts.js";
-import { sendRuntimeMessage } from "./send-message.js";
+import {
+  EXTENSION_MESSAGE,
+  fireExtensionEvent,
+} from "@shared/transport/extension-messaging.js";
 
 export type UiNotificationPayload = {
   message: string;
@@ -8,5 +10,5 @@ export type UiNotificationPayload = {
 };
 
 export function notifyUi(notification: UiNotificationPayload): void {
-  sendRuntimeMessage(rpc.notify({ notification }));
+  fireExtensionEvent(EXTENSION_MESSAGE.UI_NOTIFY, notification);
 }

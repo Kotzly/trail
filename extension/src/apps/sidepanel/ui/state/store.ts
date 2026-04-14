@@ -14,7 +14,7 @@ export type SyncStatus = "idle" | "saving" | "saved" | "error";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import type { NavigationTree } from "@background/state/nav-tree.js";
 import { PinnedManager } from "@background/state/pinned.js";
-import type { TreeMeta, TreeSummary } from "@shared/types/tree.js";
+import type { TreeMeta, TreeSummary, NavigationTreeJSON } from "@shared/types/tree.js";
 import type { ResolvedFlags } from "@shared/types/flags.js";
 
 export type MetaKeyPair = { short: "^"; long: "ctrl" } | { short: "⌘"; long: "cmd" };
@@ -59,6 +59,8 @@ type StoreState = {
   settings: Settings | null;
   flags: ResolvedFlags | null;
   tree: NavigationTree | null;
+  treeJSON: NavigationTreeJSON | null;
+  precomputedPositions: Record<string, { x: number; y: number }> | null;
   treeUpdate: {
     reason: TreeUpdateReason;
     at: number;
@@ -195,6 +197,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   settings: null,
   flags: null,
   tree: null,
+  treeJSON: null,
+  precomputedPositions: null,
   treeUpdate: null,
   trees: {
     active: null,
@@ -263,6 +267,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set({
       settings,
       tree,
+      treeJSON: payload.tree,
+      precomputedPositions: payload.positions ?? null,
       treeUpdate: { reason: payload.reason, at: Date.now() },
       pins,
       tabStates: payload.tabStates,
@@ -332,6 +338,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       };
       return {
         tree,
+        treeJSON: payload.tree,
+        precomputedPositions: payload.positions ?? null,
         treeUpdate: { reason: payload.reason, at: Date.now() },
         pins,
         tabStates: payload.tabStates,
@@ -441,7 +449,17 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       },
     }),
 
-  setSettings: (settings) => set({ settings }),
+  setSettings: (settings) =>
+    set((state) => {
+      const positionsInvalid =
+        state.settings &&
+        (state.settings.layout.mode !== settings.layout.mode ||
+          state.settings.graphDensity !== settings.graphDensity);
+      return {
+        settings,
+        ...(positionsInvalid ? { precomputedPositions: null } : {}),
+      };
+    }),
   setFlags: (flags) => set({ flags }),
   setSettingsOpen: (open) =>
     set((state) =>
@@ -558,6 +576,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       });
       if (changed.length === 0) return state;
       return {
+        precomputedPositions: null,
         graph: {
           ...state.graph,
           collapsedNodeIds: next,
@@ -578,6 +597,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       });
       if (changed.length === 0) return state;
       return {
+        precomputedPositions: null,
         graph: {
           ...state.graph,
           collapsedNodeIds: next,

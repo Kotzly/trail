@@ -3,7 +3,7 @@
  * sidepanel can skip the layout step on open.
  */
 
-import { computeTreePositionsRecord } from "@features/graph/elk-graph.js";
+import { computeTreePositionsRecord } from "@features/graph/tree-layout.js";
 import { computeRadialPositions } from "@features/graph/radial-layout.js";
 import { layoutPositionsCacheItem } from "@shared/config/storage-items.js";
 import { getSpacing } from "@shared/layout/spacing.js";

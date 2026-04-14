@@ -25,7 +25,7 @@
     "format:check": "prettier --check 'src/**/*.{ts,tsx,css,json}'",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
     "generate-icons": "tsx src/shared/utils/generate-icons.ts",
-    "test": "node --import tsx tests/basic.test.ts && node --import tsx tests/architecture-boundaries.test.ts && node --import tsx tests/spotlight-search.test.ts && node --import tsx tests/rpc-schema.test.ts && node --import tsx tests/layout-signature.test.ts && node --import tsx tests/smoke-e2e.test.ts && node --import tsx tests/ui-interaction.test.ts"
+    "test": "node --import tsx tests/basic.test.ts && node --import tsx tests/architecture-boundaries.test.ts && node --import tsx tests/transport-contracts.test.ts && node --import tsx tests/content-bridge-runtime.test.ts && node --import tsx tests/graph-layout.test.ts && node --import tsx tests/layout-precompute-regression.test.ts && node --import tsx tests/smoke-e2e.test.ts && node --import tsx tests/ui-interaction.test.ts"
   },
   "keywords": [],
   "author": "Trail",
@@ -41,6 +41,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.1",
     "@types/chrome": "^0.1.37",
+    "@types/d3-hierarchy": "^3.1.7",
     "@types/node": "^25.3.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -72,11 +73,14 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.90.5",
     "@tanstack/react-virtual": "^3.13.22",
+    "@webext-core/messaging": "^2.3.0",
+    "@webext-core/proxy-service": "^2.0.0",
     "@xyflow/react": "^12.10.2",
     "autoprefixer": "^10.4.27",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "d3-hierarchy": "^3.1.2",
     "date-fns": "^4.1.0",
     "elkjs": "^0.11.1",
     "embla-carousel-react": "^8.6.0",

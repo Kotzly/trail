@@ -105,7 +105,7 @@ function testPruneLayoutCacheEntriesReplacesSameLayoutFamily(): void {
   console.log("  layout cache pruning: OK");
 }
 
-function testBackgroundUsesDagreAndNonBlockingSnapshot(): void {
+function testBackgroundUsesTreeLayoutAndNonBlockingSnapshot(): void {
   const precomputeSource = readSource("src/background/services/layout-precompute.ts");
   const treeHandlersSource = readSource("src/background/messaging/handlers/tree-handlers.ts");
   const notificationsSource = readSource("src/background/messaging/notifications.ts");
@@ -117,14 +117,14 @@ function testBackgroundUsesDagreAndNonBlockingSnapshot(): void {
   assert.match(treeHandlersSource, /requestLayoutRefinement\(treeJSON\)/);
   assert.match(notificationsSource, /skipPrecompute/);
 
-  console.log("  dagre + non-blocking snapshot: OK");
+  console.log("  d3-hierarchy + non-blocking snapshot: OK");
 }
 
 function run(): void {
   console.log("Running layout-precompute-regression.test.ts...");
   testLayoutCacheKeyIncludesAllFields();
   testPruneLayoutCacheEntriesReplacesSameLayoutFamily();
-  testBackgroundUsesDagreAndNonBlockingSnapshot();
+  testBackgroundUsesTreeLayoutAndNonBlockingSnapshot();
 }
 
 run();

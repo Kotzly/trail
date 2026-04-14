@@ -1,12 +1,22 @@
 import { useEffect, type RefObject } from "react";
 import type { NodeId } from "@shared/types/ids.js";
 import type { LayoutMode } from "@shared/types/settings.js";
-import { rpc } from "@shared/rpc/contracts.js";
 import { browser } from "@shared/platform/webext.js";
 import { redo, undo } from "../../api/commands.js";
-import { fireAndForget, sendMessage } from "../../api/background.js";
 import { navigateTo, setCurrentNode } from "../../api/tree.js";
 import { saveSettings } from "../../api/settings.js";
+import {
+  bulkDeleteNodes,
+  bulkDeleteRecursive,
+  bulkPin,
+  bulkUnpin,
+  deleteNode,
+  deleteWithChildren,
+  exitEditorMode,
+  fireAndForget,
+  openInNewTab,
+  togglePin,
+} from "../../api/actions.js";
 import { useStore } from "../state/store.js";
 import { getIncludedRootId } from "../shared/delete-tree.js";
 
@@ -108,7 +118,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
 
       const openNodesInNewTabs = (nodeIds: NodeId[]) => {
         nodeIds.forEach((nodeId) => {
-          fireAndForget(rpc.openInNewTab({ nodeId }));
+          fireAndForget(openInNewTab(nodeId), "open in new tab");
         });
       };
 
@@ -118,13 +128,13 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
         if (nodeIds.length === 1) {
           const [nodeId] = nodeIds;
           if (!nodeId) return;
-          fireAndForget(rpc.togglePin({ nodeId }));
+          fireAndForget(togglePin(nodeId), "toggle pin");
           return;
         }
         const nodes = nodeIds.map((id) => tree.findNodeById(id)).filter((node) => Boolean(node));
         if (nodes.length === 0) return;
         const allPinned = nodes.every((node) => node?.data.pinned);
-        fireAndForget(allPinned ? rpc.bulkUnpin({ nodeIds }) : rpc.bulkPin({ nodeIds }));
+        fireAndForget(allPinned ? bulkUnpin(nodeIds) : bulkPin(nodeIds), "bulk pin toggle");
       };
 
       const deleteNodes = (nodeIds: NodeId[], recursive: boolean) => {
@@ -138,11 +148,13 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
           const [nodeId] = nodeIds;
           if (!nodeId) return;
           fireAndForget(
-            recursive ? rpc.deleteWithChildren({ nodeId }) : rpc.deleteNode({ nodeId }),
+            recursive ? deleteWithChildren(nodeId) : deleteNode(nodeId),
+            recursive ? "delete subtree" : "delete node",
           );
         } else {
           fireAndForget(
-            recursive ? rpc.bulkDeleteRecursive({ nodeIds }) : rpc.bulkDeleteNodes({ nodeIds }),
+            recursive ? bulkDeleteRecursive(nodeIds) : bulkDeleteNodes(nodeIds),
+            recursive ? "bulk delete recursive" : "bulk delete nodes",
           );
         }
         state.clearSelection();
@@ -270,7 +282,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
       if (!metaKey && !event.altKey && !event.ctrlKey && key === "Escape") {
         event.preventDefault();
         if (editorActive) {
-          sendMessage(rpc.exitEditorMode()).catch((error) => {
+          exitEditorMode().catch((error) => {
             console.error("Failed to exit editor:", error);
           });
           return;

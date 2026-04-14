@@ -9,11 +9,24 @@ import {
 } from "react";
 import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
-import { rpc } from "@shared/rpc/contracts.js";
 import { cn } from "@ui/lib/utils";
-import { fireAndForget } from "../../api/background.js";
 import { navigateTo } from "../../api/tree.js";
 import { getTabsForNodeMessage } from "../../api/tabs.js";
+import {
+  bulkCloseTabs,
+  bulkDeleteNodes,
+  bulkDeleteRecursive,
+  bulkPin,
+  bulkUnpin,
+  closeTab,
+  deleteChildren,
+  deleteNode,
+  deleteWithChildren,
+  fireAndForget,
+  openInNewTab,
+  toggleMute,
+  togglePin,
+} from "../../api/actions.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
@@ -214,7 +227,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
               }}
             >Open in this tab</div>
             <div className={menuItemDefault} role="menuitem" tabIndex={-1}
-              onClick={() => { fireAndForget(rpc.openInNewTab({ nodeId })); closeContextMenu(); }}
+              onClick={() => { fireAndForget(openInNewTab(nodeId), "open in new tab"); closeContextMenu(); }}
             >Open in new tab</div>
 
             {hasOpenTab && (
@@ -273,7 +286,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!tab.id) return;
-                            fireAndForget(rpc.toggleMute({ nodeId, tabId: tab.id as TabId }));
+                            fireAndForget(toggleMute(nodeId, tab.id as TabId), "toggle mute");
                             setTabs((prev) =>
                               prev.map((item) =>
                                 item.id === tab.id
@@ -290,7 +303,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!tab.id) return;
-                            fireAndForget(rpc.closeTab({ nodeId, tabId: tab.id as TabId }));
+                            fireAndForget(closeTab(nodeId, tab.id as TabId), "close tab");
                             setTabs((prev) => prev.filter((item) => item.id !== tab.id));
                           }}
                         >
@@ -303,8 +316,8 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                 {pendingCloseAllTabs ? (
                   <div className={menuItemConfirming} role="menuitem" tabIndex={-1}
                     onClick={() => {
-                      if (tabs.length === 1 && tabs[0]?.id) fireAndForget(rpc.closeTab({ nodeId, tabId: tabs[0].id as TabId }));
-                      else if (tabs.length > 1) fireAndForget(rpc.bulkCloseTabs({ nodeIds: [nodeId] }));
+                      if (tabs.length === 1 && tabs[0]?.id) fireAndForget(closeTab(nodeId, tabs[0].id as TabId), "close tab");
+                      else if (tabs.length > 1) fireAndForget(bulkCloseTabs([nodeId]), "bulk close tabs");
                       setTabs([]); setPendingCloseAllTabs(false); closeContextMenu();
                     }}
                   >Confirm close?</div>
@@ -320,7 +333,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         )}
 
         <div className={menuItemDefault} role="menuitem" tabIndex={-1}
-          onClick={() => { fireAndForget(rpc.togglePin({ nodeId })); closeContextMenu(); }}
+          onClick={() => { fireAndForget(togglePin(nodeId), "toggle pin"); closeContextMenu(); }}
         >{node.data.pinned ? "Unpin" : "Pin"}</div>
 
         {hasChildren && !isCollapsed && (
@@ -363,7 +376,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
 
         {!isRoot && (pendingDelete === "node" ? (
           <div className={menuItemConfirming} role="menuitem" tabIndex={-1}
-            onClick={() => { if (deletingNode) return; setDeletingNode(true); fireAndForget(rpc.deleteNode({ nodeId })); closeContextMenu(); }}
+            onClick={() => { if (deletingNode) return; setDeletingNode(true); fireAndForget(deleteNode(nodeId), "delete node"); closeContextMenu(); }}
           >Confirm delete?</div>
         ) : (
           <div className={menuItemDanger} role="menuitem" tabIndex={-1}
@@ -373,7 +386,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
 
         {hasChildren && (pendingDelete === "children" ? (
           <div className={menuItemConfirming} role="menuitem" tabIndex={-1}
-            onClick={() => { fireAndForget(rpc.deleteChildren({ nodeId })); closeContextMenu(); }}
+            onClick={() => { fireAndForget(deleteChildren(nodeId), "delete children"); closeContextMenu(); }}
           >Confirm delete?</div>
         ) : (
           <div className={menuItemDanger} role="menuitem" tabIndex={-1}
@@ -385,7 +398,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
           <div className={menuItemConfirming} role="menuitem" tabIndex={-1}
             onClick={() => {
               if (isRoot) { openDeleteTreeConfirm(nodeId); return; }
-              fireAndForget(rpc.deleteWithChildren({ nodeId })); closeContextMenu();
+              fireAndForget(deleteWithChildren(nodeId), "delete subtree"); closeContextMenu();
             }}
           >Confirm delete?</div>
         ) : (
@@ -449,10 +462,10 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         <Separator className="my-1" />
 
         <div className={menuItemDefault} role="menuitem" tabIndex={-1}
-          onClick={() => { fireAndForget(rpc.bulkPin({ nodeIds })); clearSelection(); closeContextMenu(); }}
+          onClick={() => { fireAndForget(bulkPin(nodeIds), "bulk pin"); clearSelection(); closeContextMenu(); }}
         >Pin selected</div>
         <div className={menuItemDefault} role="menuitem" tabIndex={-1}
-          onClick={() => { fireAndForget(rpc.bulkUnpin({ nodeIds })); clearSelection(); closeContextMenu(); }}
+          onClick={() => { fireAndForget(bulkUnpin(nodeIds), "bulk unpin"); clearSelection(); closeContextMenu(); }}
         >Unpin selected</div>
 
         <div className={collapseCandidates.length === 0 ? menuItemDisabled : menuItemDefault} role="menuitem" tabIndex={-1}
@@ -475,7 +488,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
 
         {!editorActive && (
           <div className={menuItemDefault} role="menuitem" tabIndex={-1}
-            onClick={() => { fireAndForget(rpc.bulkCloseTabs({ nodeIds })); clearSelection(); closeContextMenu(); }}
+            onClick={() => { fireAndForget(bulkCloseTabs(nodeIds), "bulk close tabs"); clearSelection(); closeContextMenu(); }}
           >Close selected tabs</div>
         )}
 
@@ -485,7 +498,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           <div className={menuItemConfirming} role="menuitem" tabIndex={-1}
             onClick={() => {
               if (deletingBulk) return; setDeletingBulk(true);
-              fireAndForget(rpc.bulkDeleteNodes({ nodeIds })); clearSelection(); closeContextMenu();
+              fireAndForget(bulkDeleteNodes(nodeIds), "bulk delete nodes"); clearSelection(); closeContextMenu();
             }}
           >Confirm delete?</div>
         ) : (
@@ -500,7 +513,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
               if (deletingBulk) return; setDeletingBulk(true);
               const rootId = getIncludedRootId(tree, nodeIds);
               if (rootId) { openDeleteTreeConfirm(rootId); return; }
-              fireAndForget(rpc.bulkDeleteRecursive({ nodeIds })); clearSelection(); closeContextMenu();
+              fireAndForget(bulkDeleteRecursive(nodeIds), "bulk delete recursive"); clearSelection(); closeContextMenu();
             }}
           >Confirm delete?</div>
         ) : (

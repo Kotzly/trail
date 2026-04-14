@@ -1,22 +1,14 @@
-import { sendMessage } from "./background.js";
-import { rpc, type CommandState } from "@shared/rpc/contracts.js";
+import type { CommandState } from "@shared/rpc/contracts.js";
+import { commandService } from "@shared/transport/proxy-clients.js";
 
 export async function getCommandState(): Promise<CommandState> {
-  const res = await sendMessage(rpc.getCommandState());
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  return commandService.getCommandState();
 }
 
 export async function undo(): Promise<CommandState> {
-  const res = await sendMessage(rpc.undo());
-  if (!res.success) {
-    throw new Error(res.error);
-  }
-  return res.data;
+  return commandService.undo();
 }
 
 export async function redo(): Promise<CommandState> {
-  const res = await sendMessage(rpc.redo());
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  return commandService.redo();
 }

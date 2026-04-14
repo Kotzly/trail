@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useEffect, useState } from "react";
+import { useCallback, useMemo, useRef, useEffect } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -7,15 +7,14 @@ import {
   SelectionMode,
   useReactFlow,
   useStore,
-  applyNodeChanges,
   type NodeMouseHandler,
-  type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { TrailGraphProps, TrailNode as TrailNodeType } from "../types.js";
 import { TrailNode } from "./TrailNode.js";
 import { GraphControls } from "./GraphControls.js";
 import { useGraphLayout } from "../hooks/useGraphLayout.js";
+import { NODE_WIDTH, NODE_HEIGHT } from "../tree-layout.js";
 import type { NodeId } from "@shared/types/ids.js";
 import { selectShowBackground } from "../lod.js";
 
@@ -31,34 +30,6 @@ const defaultEdgeOptions = {
   },
 } as const;
 
-// ── Helpers ──────────────────────────────────────────────────────
-
-function buildChildrenMap(edges: { source: string; target: string }[]): Map<string, string[]> {
-  const map = new Map<string, string[]>();
-  for (const e of edges) {
-    const list = map.get(e.source);
-    if (list) list.push(e.target);
-    else map.set(e.source, [e.target]);
-  }
-  return map;
-}
-
-function getDescendantIds(nodeId: string, childrenMap: Map<string, string[]>): string[] {
-  const result: string[] = [];
-  const stack = [nodeId];
-  while (stack.length > 0) {
-    const id = stack.pop()!;
-    const children = childrenMap.get(id);
-    if (children) {
-      for (const child of children) {
-        result.push(child);
-        stack.push(child);
-      }
-    }
-  }
-  return result;
-}
-
 // ── Component ────────────────────────────────────────────────────
 
 function TrailGraphInner(props: TrailGraphProps) {
@@ -70,6 +41,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     selectedNodeIds,
     nodeTabCounts,
     settings,
+    precomputedPositions,
     onNodeClick,
     onNodeContextMenu,
     onCollapseToggle,
@@ -77,7 +49,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     onLayoutModeChange,
   } = props;
 
-  const { fitView, getViewport, setViewport } = useReactFlow();
+  const { fitView, setCenter, getViewport, setViewport } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
 
@@ -98,105 +70,16 @@ function TrailGraphInner(props: TrailGraphProps) {
     settings,
     collapsedNodeIds,
     metadata,
+    precomputedPositions,
   });
 
-  // Keep a ref to selectedNodeIds for use in the layout sync (avoids stale closure)
-  const selectedNodeIdsRef = useRef(selectedNodeIds);
-  selectedNodeIdsRef.current = selectedNodeIds;
-
-  const applySelection = useCallback(
-    (nodes: TrailNodeType[]): TrailNodeType[] =>
-      nodes.map((n) => {
-        const sel = selectedNodeIdsRef.current.has(n.data.nodeId);
-        return n.selected === sel ? n : { ...n, selected: sel };
-      }),
-    [],
+  const displayNodes = useMemo(
+    () => layout.nodes.map((n) => {
+      const sel = selectedNodeIds.has(n.data.nodeId);
+      return n.selected === sel ? n : { ...n, selected: sel };
+    }),
+    [layout.nodes, selectedNodeIds],
   );
-
-  const [displayNodes, setDisplayNodes] = useState(() => applySelection(layout.nodes));
-
-  // Sync layout → local state during render (no useEffect lag)
-  const [prevLayoutNodes, setPrevLayoutNodes] = useState(layout.nodes);
-  if (layout.nodes !== prevLayoutNodes) {
-    setPrevLayoutNodes(layout.nodes);
-    setDisplayNodes(applySelection(layout.nodes));
-  }
-
-  // Sync external selection changes (Cmd+A, Escape, etc.) → displayNodes
-  useEffect(() => {
-    setDisplayNodes((nds) => {
-      let changed = false;
-      const next = nds.map((n) => {
-        const shouldBeSelected = selectedNodeIds.has(n.data.nodeId);
-        if (n.selected === shouldBeSelected) return n;
-        changed = true;
-        return { ...n, selected: shouldBeSelected };
-      });
-      return changed ? next : nds;
-    });
-  }, [selectedNodeIds]);
-
-
-  const onNodesChange = useCallback((changes: NodeChange<TrailNodeType>[]) => {
-    setDisplayNodes((nds) => applyNodeChanges(changes, nds));
-  }, []);
-
-  // Children map for group drag
-  const childrenMap = useMemo(() => buildChildrenMap(layout.edges), [layout.edges]);
-
-  // Track drag start positions for group drag
-  const dragStartRef = useRef<Map<string, { x: number; y: number }> | null>(null);
-
-  const handleNodeDragStart: NodeMouseHandler<TrailNodeType> = useCallback(
-    (_event, node) => {
-      const descendants = getDescendantIds(node.id, childrenMap);
-      if (descendants.length === 0) return;
-
-      const descendantSet = new Set(descendants);
-      const posMap = new Map<string, { x: number; y: number }>();
-      posMap.set(node.id, { ...node.position });
-
-      setDisplayNodes((nds) => {
-        for (const n of nds) {
-          if (descendantSet.has(n.id)) {
-            posMap.set(n.id, { ...n.position });
-          }
-        }
-        return nds;
-      });
-
-      dragStartRef.current = posMap;
-    },
-    [childrenMap],
-  );
-
-  const handleNodeDrag: NodeMouseHandler<TrailNodeType> = useCallback(
-    (event, node) => {
-      if (event.altKey || !dragStartRef.current) return;
-
-      const startPos = dragStartRef.current.get(node.id);
-      if (!startPos) return;
-
-      const dx = node.position.x - startPos.x;
-      const dy = node.position.y - startPos.y;
-
-      setDisplayNodes((nds) =>
-        nds.map((n) => {
-          const initial = dragStartRef.current?.get(n.id);
-          // Skip nodes already moved by ReactFlow's multi-selection drag
-          if (initial && n.id !== node.id && !n.selected) {
-            return { ...n, position: { x: initial.x + dx, y: initial.y + dy } };
-          }
-          return n;
-        }),
-      );
-    },
-    [],
-  );
-
-  const handleNodeDragStop: NodeMouseHandler<TrailNodeType> = useCallback(() => {
-    dragStartRef.current = null;
-  }, []);
 
   // Cmd/Ctrl+scroll zoom (capture phase to intercept before React Flow)
   useEffect(() => {
@@ -230,25 +113,28 @@ function TrailGraphInner(props: TrailGraphProps) {
     return () => el.removeEventListener("wheel", handler, { capture: true } as EventListenerOptions);
   }, [getViewport, setViewport]);
 
-  // fitView once on first data
+  // Center on current node once on first data
   useEffect(() => {
     if (displayNodes.length > 0 && !initialFitDone.current) {
       initialFitDone.current = true;
-      requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 }));
+
+      const currentNode = currentNodeId
+        ? displayNodes.find((n) => n.data.nodeId === currentNodeId)
+        : null;
+
+      if (currentNode?.position) {
+        requestAnimationFrame(() =>
+          setCenter(
+            currentNode.position.x + NODE_WIDTH / 2,
+            currentNode.position.y + NODE_HEIGHT / 2,
+            { zoom: 1, duration: 300 },
+          ),
+        );
+      } else {
+        requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 }));
+      }
     }
-  }, [displayNodes.length, fitView]);
-
-  // fitView on panel resize
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const observer = new ResizeObserver(() => {
-      fitView({ padding: 0.2, duration: 200 });
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [fitView]);
+  }, [displayNodes.length, fitView, setCenter, currentNodeId]);
 
 
   // Sync ReactFlow selection → store
@@ -302,10 +188,6 @@ function TrailGraphInner(props: TrailGraphProps) {
         nodes={displayNodes}
         edges={layout.edges}
         nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onNodeDragStart={handleNodeDragStart}
-        onNodeDrag={handleNodeDrag}
-        onNodeDragStop={handleNodeDragStop}
         onNodeClick={handleNodeClick}
         onNodeContextMenu={handleNodeContextMenu}
         onNodeDoubleClick={handleNodeDoubleClick}
@@ -314,7 +196,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         selectionMode={SelectionMode.Partial}
         multiSelectionKeyCode="Shift"
         onlyRenderVisibleElements
-        nodesDraggable
+        nodesDraggable={false}
         nodesConnectable={false}
         connectOnClick={false}
         panOnDrag={false}

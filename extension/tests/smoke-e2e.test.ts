@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 /**
  * Smoke E2E Test Stubs (QA-01)
  *
- * 8 critical user scenarios documented as executable stubs.
+ * Critical user scenarios documented as executable stubs.
  * Each function describes preconditions, manual steps, and expected outcomes.
  * Stubs pass with assert.ok(true) — ready for Playwright automation later.
  */
@@ -188,6 +188,117 @@ function testQuotaEviction(): void {
   assert.ok(true, 'stub — automation pending');
 }
 
+function testWebsitePingBridge(): void {
+  /**
+   * Scenario: Website Bridge Ping
+   *
+   * Preconditions:
+   *   - Extension loaded on a page where the content bridge is injected
+   *   - Website bundle uses the `trail-bridge-v1` namespace
+   *
+   * Manual steps:
+   *   1. Open DevTools on the website page
+   *   2. Send the `site/ping` window message through the website bridge client
+   *   3. Inspect the resolved payload
+   *
+   * Expected outcomes:
+   *   - Response includes extension version
+   *   - Response includes `authenticated: false` in guest mode
+   *   - Response includes the current editor mode flag
+   *   - No legacy request envelope fields are present
+   */
+  console.log('  MANUAL: website ping — send site/ping, verify version + auth + editorMode without legacy envelope');
+  assert.ok(true, 'stub — automation pending');
+}
+
+function testWebsiteOpenPanelBridge(): void {
+  /**
+   * Scenario: Website Opens Sidepanel
+   *
+   * Preconditions:
+   *   - Extension installed with content script active on the current page
+   *
+   * Manual steps:
+   *   1. Trigger the website bridge action that sends `site/open-panel`
+   *   2. Observe the browser sidepanel state
+   *
+   * Expected outcomes:
+   *   - Background receives the typed extension message
+   *   - Sidepanel opens or focuses for the current tab
+   *   - No raw runtime relay or site-forward RPC path is used
+   */
+  console.log('  MANUAL: website open-panel — send site/open-panel, verify sidepanel opens through typed messaging');
+  assert.ok(true, 'stub — automation pending');
+}
+
+function testWebsiteEditorModeFlow(): void {
+  /**
+   * Scenario: Website Editor Mode Flow
+   *
+   * Preconditions:
+   *   - At least one tree exists
+   *   - Website bundle is updated to the new bridge protocol
+   *
+   * Manual steps:
+   *   1. Send `site/enter-editor-mode` with an existing tree id
+   *   2. Make an edit
+   *   3. Send `site/save-editor-mode`
+   *   4. Re-enter editor mode and send `site/cancel-editor-mode`
+   *   5. Send `site/exit-editor-mode`
+   *
+   * Expected outcomes:
+   *   - Enter returns active editor state for the requested tree
+   *   - Save exits editor mode cleanly
+   *   - Cancel exits editor mode without leaving stale state
+   *   - Exit returns inactive editor state
+   */
+  console.log('  MANUAL: website editor flow — verify enter/save/cancel/exit through window messaging contract');
+  assert.ok(true, 'stub — automation pending');
+}
+
+function testBackgroundEditorExitRelay(): void {
+  /**
+   * Scenario: Background Editor Exit Relay
+   *
+   * Preconditions:
+   *   - Website page is open with active content bridge
+   *   - Editor mode is active
+   *
+   * Manual steps:
+   *   1. Exit editor mode from the sidepanel or background-driven flow
+   *   2. Observe the website bridge listener
+   *
+   * Expected outcomes:
+   *   - Background emits the typed `site/editor-mode-exited` extension event
+   *   - Content bridge forwards `site/editor-mode-exited` to the page
+   *   - Website receives `{ editorMode: false }`
+   */
+  console.log('  MANUAL: editor exit relay — exit from extension, verify site/editor-mode-exited reaches the page');
+  assert.ok(true, 'stub — automation pending');
+}
+
+function testSidepanelTransportEvents(): void {
+  /**
+   * Scenario: Sidepanel Push Events
+   *
+   * Preconditions:
+   *   - Sidepanel open and subscribed to runtime events
+   *
+   * Manual steps:
+   *   1. Trigger a tree mutation
+   *   2. Trigger a tree list mutation
+   *   3. Trigger a UI notification (toast)
+   *
+   * Expected outcomes:
+   *   - Tree mutation arrives through `event/tree-updated`
+   *   - Tree list mutation arrives through `event/trees-updated`
+   *   - Toast arrives through `event/ui-notify`
+   *   - Sidepanel updates without `browser.runtime.onMessage`
+   */
+  console.log('  MANUAL: sidepanel events — mutate tree and verify typed tree/tree-list/toast events update the UI');
+  assert.ok(true, 'stub — automation pending');
+}
+
 function run(): void {
   console.log('Running smoke-e2e.test.ts...');
   testFirstInstall();
@@ -198,6 +309,11 @@ function run(): void {
   testTreeSwitch();
   testExportImport();
   testQuotaEviction();
+  testWebsitePingBridge();
+  testWebsiteOpenPanelBridge();
+  testWebsiteEditorModeFlow();
+  testBackgroundEditorExitRelay();
+  testSidepanelTransportEvents();
 }
 
 run();

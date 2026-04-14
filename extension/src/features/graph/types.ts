@@ -39,6 +39,7 @@ export type TrailGraphProps = {
   selectedNodeIds: Set<NodeId>;
   nodeTabCounts: Record<NodeId, number>;
   settings: Settings;
+  precomputedPositions?: Record<string, { x: number; y: number }> | null;
   onNodeClick: (nodeId: NodeId, url: string) => void;
   onNodeContextMenu: (
     nodeId: NodeId,

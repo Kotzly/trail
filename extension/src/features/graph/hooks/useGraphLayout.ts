@@ -10,6 +10,7 @@ type UseGraphLayoutInput = {
   settings: Settings;
   collapsedNodeIds: Set<NodeId>;
   metadata: LayoutMetadata;
+  precomputedPositions?: Record<string, { x: number; y: number }> | null | undefined;
 };
 
 export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
@@ -24,6 +25,7 @@ export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
       input.settings,
       input.collapsedNodeIds,
       input.metadata,
+      input.precomputedPositions,
     ).then((layoutResult) => {
       if (versionRef.current === version) {
         setResult(layoutResult);
@@ -31,7 +33,7 @@ export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
     }).catch((err) => {
       console.error("Layout computation failed:", err);
     });
-  }, [input.tree, input.settings, input.collapsedNodeIds, input.metadata]);
+  }, [input.tree, input.settings, input.collapsedNodeIds, input.metadata, input.precomputedPositions]);
 
   return result;
 }

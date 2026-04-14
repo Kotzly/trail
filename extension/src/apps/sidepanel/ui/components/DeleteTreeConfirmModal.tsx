@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { rpc } from "@shared/rpc/contracts.js";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@ui/components/ui/alert-dialog";
-import { fireAndForget } from "../../api/background.js";
+import { deleteWithChildren, fireAndForget } from "../../api/actions.js";
 import { createNewTree } from "../../api/tree.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { useStore } from "../state/store.js";
@@ -39,7 +38,7 @@ export default function DeleteTreeConfirmModal() {
   const handleDelete = () => {
     if (!canAct || !rootId) return;
     clearSelection();
-    fireAndForget(rpc.deleteWithChildren({ nodeId: rootId }));
+    fireAndForget(deleteWithChildren(rootId), "delete tree");
   };
 
   const handleCreateNewTree = () => {

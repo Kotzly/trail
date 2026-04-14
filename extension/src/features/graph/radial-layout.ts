@@ -10,7 +10,7 @@ import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { RadialLayoutSettings } from "@shared/types/settings.js";
-import { NODE_WIDTH } from "./elk-graph.js";
+import { NODE_WIDTH } from "./tree-layout.js";
 
 // ── Helpers ──────────────────────────────────────────────────────
 

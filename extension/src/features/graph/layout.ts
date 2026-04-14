@@ -1,7 +1,7 @@
 /**
  * Layout computation: NavigationTreeJSON → positioned React Flow nodes + edges.
  *
- * Tree and mindmap use dagre; radial uses a custom algorithm.
+ * Tree and mindmap use d3-hierarchy (Reingold-Tilford); radial uses a custom algorithm.
  */
 
 import type { NodeId } from "@shared/types/ids.js";
@@ -9,7 +9,7 @@ import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { LayoutMode, LayoutResult, TrailEdge } from "./types.js";
 import { treeToNodes, treeToEdges, type TreeToNodesMetadata } from "./transforms.js";
-import { computeTreePositions, NODE_WIDTH, NODE_HEIGHT } from "./elk-graph.js";
+import { computeTreePositions, NODE_WIDTH, NODE_HEIGHT } from "./tree-layout.js";
 import { computeRadialPositions } from "./radial-layout.js";
 import { getSpacing } from "@shared/layout/spacing.js";
 
@@ -105,7 +105,7 @@ export async function computeLayout(
     return { nodes: [], edges: [] };
   }
 
-  // Compute positions — use pre-computed if available, else radial or dagre
+  // Compute positions — use pre-computed if available, else radial or d3-hierarchy
   let positions: Map<string, { x: number; y: number }>;
 
   if (precomputedPositions && collapsedNodeIds.size === 0) {

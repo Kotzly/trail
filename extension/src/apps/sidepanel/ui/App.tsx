@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { lazy, Suspense, useCallback, useRef } from "react";
 import FloatingControls from "./components/FloatingControls.js";
 import ContextMenus from "./components/ContextMenus.js";
 import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
@@ -13,12 +13,15 @@ import { useStore } from "./state/store.js";
 import OnboardingHints from "./components/OnboardingHints.js";
 import { Skeleton } from "@ui/components/ui/skeleton";
 import { Button } from "@ui/components/ui/button";
-import { TrailGraph } from "@features/graph/index.js";
-import { NavigationTreeMapper } from "@shared/lib/mapper.js";
-import { sendMessage } from "../api/background.js";
-import { rpc } from "@shared/rpc/contracts.js";
 import { saveSettings } from "../api/settings.js";
 import type { NodeId, Url } from "@shared/types/ids.js";
+import { navigateToNodeId } from "../api/tree.js";
+
+const TrailGraph = lazy(() =>
+  import("@features/graph/components/TrailGraph.js").then((m) => ({
+    default: m.TrailGraph,
+  })),
+);
 
 function BootstrapSkeleton() {
   return (
@@ -52,7 +55,8 @@ export default function App() {
   useSystemThemeListener();
   useShortcuts(searchInputRef);
 
-  const tree = useStore((s) => s.tree);
+  const treeJSON = useStore((s) => s.treeJSON);
+  const precomputedPositions = useStore((s) => s.precomputedPositions);
   const settings = useStore((s) => s.settings);
   const currentNodeId = useStore((s) => s.currentNodeId);
   const openNodeIds = useStore((s) => s.openNodeIds);
@@ -65,14 +69,9 @@ export default function App() {
   const expandNodes = useStore((s) => s.expandNodes);
   const setSettings = useStore((s) => s.setSettings);
 
-  const treeJSON = useMemo(
-    () => (tree ? NavigationTreeMapper.toJSON(tree) : null),
-    [tree],
-  );
-
   const handleNodeClick = useCallback(
     (nodeId: NodeId, url: string) => {
-      void sendMessage(rpc.navigateTo({ nodeId, url: url as Url }));
+      void navigateToNodeId(nodeId, url as Url);
     },
     [],
   );
@@ -136,20 +135,23 @@ export default function App() {
       <FloatingControls searchInputRef={searchInputRef} />
       <OnboardingHints />
       {settings && (
-        <TrailGraph
-          tree={treeJSON}
-          currentNodeId={currentNodeId}
-          openNodeIds={openNodeIds}
-          collapsedNodeIds={collapsedNodeIds}
-          selectedNodeIds={selectedNodeIds}
-          nodeTabCounts={nodeTabCounts}
-          settings={settings}
-          onNodeClick={handleNodeClick}
-          onNodeContextMenu={handleNodeContextMenu}
-          onCollapseToggle={handleCollapseToggle}
-          onSelectionChange={handleSelectionChange}
-          onLayoutModeChange={handleLayoutModeChange}
-        />
+        <Suspense fallback={<BootstrapSkeleton />}>
+          <TrailGraph
+            tree={treeJSON}
+            currentNodeId={currentNodeId}
+            openNodeIds={openNodeIds}
+            collapsedNodeIds={collapsedNodeIds}
+            selectedNodeIds={selectedNodeIds}
+            nodeTabCounts={nodeTabCounts}
+            settings={settings}
+            precomputedPositions={precomputedPositions}
+            onNodeClick={handleNodeClick}
+            onNodeContextMenu={handleNodeContextMenu}
+            onCollapseToggle={handleCollapseToggle}
+            onSelectionChange={handleSelectionChange}
+            onLayoutModeChange={handleLayoutModeChange}
+          />
+        </Suspense>
       )}
       <DeleteTreeConfirmModal />
       <ContextMenus />

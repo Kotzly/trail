@@ -23,9 +23,6 @@ export const RPC_METHOD = {
   SAVE_SETTINGS: "SAVE_SETTINGS",
   GET_SETTINGS: "GET_SETTINGS",
   TITLE_OR_FAVICON_CHANGED: "TITLE_OR_FAVICON_CHANGED",
-  TREE_UPDATED: "TREE_UPDATED",
-  TREES_UPDATED: "TREES_UPDATED",
-  NOTIFY: "NOTIFY",
   GET_TREE: "GET_TREE",
   GET_TREES: "GET_TREES",
   CLEAR_TREE: "CLEAR_TREE",
@@ -56,7 +53,6 @@ export const RPC_METHOD = {
   CANCEL_EDITOR_MODE: "CANCEL_EDITOR_MODE",
   REPARENT_NODE: "REPARENT_NODE",
   DUPLICATE_SUBTREE: "DUPLICATE_SUBTREE",
-  SITE_MESSAGE_FORWARD: "SITE_MESSAGE_FORWARD",
   ENSURE_TREE_LOADED: "ENSURE_TREE_LOADED",
   GET_FLAGS: "GET_FLAGS",
   SET_FLAG: "SET_FLAG",
@@ -148,23 +144,11 @@ export type TitleOrFaviconChangedMessage = RequestMessageBase<
   typeof RPC_METHOD.TITLE_OR_FAVICON_CHANGED,
   TitleOrFaviconChangedInput
 >;
-export type TreeUpdatedMessage = RequestMessageBase<
-  typeof RPC_METHOD.TREE_UPDATED,
-  TreeUpdatedInput
->;
-export type TreesUpdatedMessage = RequestMessageBase<
-  typeof RPC_METHOD.TREES_UPDATED,
-  TreesSnapshot
->;
 export type UiNotificationInput = {
   message: string;
   icon?: string;
   durationMs?: number;
 };
-export type NotifyMessage = RequestMessageBase<
-  typeof RPC_METHOD.NOTIFY,
-  { notification: UiNotificationInput }
->;
 export type GetTreeMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREE>;
 export type GetTreesMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREES>;
 export type ClearTreeMessage = RequestMessageBase<typeof RPC_METHOD.CLEAR_TREE>;
@@ -282,20 +266,6 @@ export type EditorModeState = {
   treeId: string | null;
 };
 
-export type SiteMessageForwardPayload = {
-  siteMessageType: string;
-  payload: Record<string, unknown>;
-  requestId: string;
-};
-export type SiteMessageForwardMessage = RequestMessageBase<
-  typeof RPC_METHOD.SITE_MESSAGE_FORWARD,
-  SiteMessageForwardPayload
->;
-
-export type SiteMessageForwardResponse = {
-  responsePayload?: Record<string, unknown>;
-};
-
 export type SetFlagInput = { key: FlagKey; value: unknown };
 export type GetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.GET_FLAGS>;
 export type SetFlagMessage = RequestMessageBase<typeof RPC_METHOD.SET_FLAG, SetFlagInput>;
@@ -344,9 +314,6 @@ export type RequestMessage =
   | SaveSettingsMessage
   | GetSettingsMessage
   | TitleOrFaviconChangedMessage
-  | TreeUpdatedMessage
-  | TreesUpdatedMessage
-  | NotifyMessage
   | GetTreeMessage
   | GetTreesMessage
   | ClearTreeMessage
@@ -378,7 +345,6 @@ export type RequestMessage =
   | CancelEditorModeMessage
   | ReparentNodeMessage
   | DuplicateSubtreeMessage
-  | SiteMessageForwardMessage
   | GetFlagsMessage
   | SetFlagMessage
   | ResetFlagsMessage
@@ -416,9 +382,6 @@ export type ResponseDataByType = {
   [RPC_METHOD.SAVE_SETTINGS]: void;
   [RPC_METHOD.GET_SETTINGS]: Settings;
   [RPC_METHOD.TITLE_OR_FAVICON_CHANGED]: void;
-  [RPC_METHOD.TREE_UPDATED]: void;
-  [RPC_METHOD.TREES_UPDATED]: void;
-  [RPC_METHOD.NOTIFY]: void;
   [RPC_METHOD.GET_TREE]: TreeUpdatedInput;
   [RPC_METHOD.GET_TREES]: TreesSnapshot;
   [RPC_METHOD.CLEAR_TREE]: void;
@@ -449,7 +412,6 @@ export type ResponseDataByType = {
   [RPC_METHOD.CANCEL_EDITOR_MODE]: EditorModeState;
   [RPC_METHOD.REPARENT_NODE]: void;
   [RPC_METHOD.DUPLICATE_SUBTREE]: void;
-  [RPC_METHOD.SITE_MESSAGE_FORWARD]: SiteMessageForwardResponse;
   [RPC_METHOD.ENSURE_TREE_LOADED]: boolean;
   [RPC_METHOD.GET_FLAGS]: ResolvedFlags;
   [RPC_METHOD.SET_FLAG]: ResolvedFlags;
@@ -461,194 +423,6 @@ export type ResponseDataByType = {
 export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
 
 export type MessageByType<T extends RequestType> = Extract<RequestMessage, { type: T }>;
-
-export const rpc = {
-  navigateTo(payload: NavigateToData): NavigateToMessage {
-    return {
-      type: RPC_METHOD.NAVIGATE_TO,
-      ...payload,
-    };
-  },
-  previewNode(payload: { nodeId: NodeId }): PreviewNodeMessage {
-    return { type: RPC_METHOD.PREVIEW_NODE, ...payload };
-  },
-  setCurrent(payload: { nodeId: NodeId }): SetCurrentMessage {
-    return { type: RPC_METHOD.SET_CURRENT, ...payload };
-  },
-  beginTempSelection(payload: BeginTempSelectionInput): BeginTempSelectionMessage {
-    return { type: RPC_METHOD.BEGIN_TEMP_SELECTION, ...payload };
-  },
-  previewTempSelection(payload: {
-    sessionId: TempSelectionSessionId;
-    nodeId: NodeId;
-    tabId?: TabId;
-  }): PreviewTempSelectionMessage {
-    return { type: RPC_METHOD.PREVIEW_TEMP_SELECTION, ...payload };
-  },
-  acceptTempSelection(payload: {
-    sessionId: TempSelectionSessionId;
-    nodeId?: NodeId;
-  }): AcceptTempSelectionMessage {
-    return { type: RPC_METHOD.ACCEPT_TEMP_SELECTION, ...payload };
-  },
-  cancelTempSelection(payload: {
-    sessionId: TempSelectionSessionId;
-    keepSession?: boolean;
-  }): CancelTempSelectionMessage {
-    return { type: RPC_METHOD.CANCEL_TEMP_SELECTION, ...payload };
-  },
-  endTempSelection(payload: { sessionId: TempSelectionSessionId }): EndTempSelectionMessage {
-    return { type: RPC_METHOD.END_TEMP_SELECTION, ...payload };
-  },
-  openPanel(): OpenPanelMessage {
-    return { type: RPC_METHOD.OPEN_PANEL };
-  },
-  undo(): UndoMessage {
-    return { type: RPC_METHOD.UNDO };
-  },
-  redo(): RedoMessage {
-    return { type: RPC_METHOD.REDO };
-  },
-  getCommandState(): CommandStateMessage {
-    return { type: RPC_METHOD.COMMAND_STATE };
-  },
-  getTabsForNode(payload: TabsForNodeInput): TabsForNodeMessage {
-    return { type: RPC_METHOD.GET_TABS_FOR_NODE, ...payload };
-  },
-  saveSettings(payload: SaveSettingsInput): SaveSettingsMessage {
-    return { type: RPC_METHOD.SAVE_SETTINGS, ...payload };
-  },
-  getSettings(): GetSettingsMessage {
-    return { type: RPC_METHOD.GET_SETTINGS };
-  },
-  titleOrFaviconChanged(payload: TitleOrFaviconChangedInput): TitleOrFaviconChangedMessage {
-    return { type: RPC_METHOD.TITLE_OR_FAVICON_CHANGED, ...payload };
-  },
-  treeUpdated(payload: TreeUpdatedInput): TreeUpdatedMessage {
-    return { type: RPC_METHOD.TREE_UPDATED, ...payload };
-  },
-  treesUpdated(payload: TreesSnapshot): TreesUpdatedMessage {
-    return { type: RPC_METHOD.TREES_UPDATED, ...payload };
-  },
-  notify(payload: { notification: UiNotificationInput }): NotifyMessage {
-    return { type: RPC_METHOD.NOTIFY, ...payload };
-  },
-  getTree(): GetTreeMessage {
-    return { type: RPC_METHOD.GET_TREE };
-  },
-  getTrees(): GetTreesMessage {
-    return { type: RPC_METHOD.GET_TREES };
-  },
-  clearTree(): ClearTreeMessage {
-    return { type: RPC_METHOD.CLEAR_TREE };
-  },
-  newTree(payload: { label: string }): NewTreeMessage {
-    return { type: RPC_METHOD.NEW_TREE, ...payload };
-  },
-  archiveActiveTree(): ArchiveActiveTreeMessage {
-    return { type: RPC_METHOD.ARCHIVE_ACTIVE_TREE };
-  },
-  openTree(payload: { treeId: string }): OpenTreeMessage {
-    return { type: RPC_METHOD.OPEN_TREE, ...payload };
-  },
-  ensureTreeLoaded(payload: { treeId: string }): EnsureTreeLoadedMessage {
-    return { type: RPC_METHOD.ENSURE_TREE_LOADED, ...payload };
-  },
-  renameTree(payload: { treeId: string; label: string }): RenameTreeMessage {
-    return { type: RPC_METHOD.RENAME_TREE, ...payload };
-  },
-  deleteArchivedTree(payload: { treeId: string }): DeleteArchivedTreeMessage {
-    return { type: RPC_METHOD.DELETE_ARCHIVED_TREE, ...payload };
-  },
-  exportTree(payload: { treeId?: string }): ExportTreeMessage {
-    const msg: Record<string, unknown> = { type: RPC_METHOD.EXPORT_TREE };
-    if (payload.treeId !== undefined) msg.treeId = payload.treeId;
-    return msg as ExportTreeMessage;
-  },
-  openInNewTab(payload: { nodeId: NodeId }): OpenInNewTabMessage {
-    return { type: RPC_METHOD.OPEN_IN_NEW_TAB, ...payload };
-  },
-  toggleMute(payload: { nodeId: NodeId; tabId: TabId }): ToggleMuteMessage {
-    return { type: RPC_METHOD.TOGGLE_MUTE, ...payload };
-  },
-  closeTab(payload: { nodeId: NodeId; tabId: TabId }): CloseTabMessage {
-    return { type: RPC_METHOD.CLOSE_TAB, ...payload };
-  },
-  bulkCloseTabs(payload: BulkNodeIdsInput): BulkCloseTabsMessage {
-    return { type: RPC_METHOD.BULK_CLOSE_TABS, ...payload };
-  },
-  togglePin(payload: { nodeId: NodeId }): TogglePinMessage {
-    return { type: RPC_METHOD.TOGGLE_PIN, ...payload };
-  },
-  bulkPin(payload: BulkNodeIdsInput): BulkPinMessage {
-    return { type: RPC_METHOD.BULK_PIN, ...payload };
-  },
-  bulkUnpin(payload: BulkNodeIdsInput): BulkUnpinMessage {
-    return { type: RPC_METHOD.BULK_UNPIN, ...payload };
-  },
-  deleteNode(payload: { nodeId: NodeId }): DeleteNodeMessage {
-    return { type: RPC_METHOD.DELETE_NODE, ...payload };
-  },
-  deleteChildren(payload: { nodeId: NodeId }): DeleteChildrenMessage {
-    return { type: RPC_METHOD.DELETE_CHILDREN, ...payload };
-  },
-  deleteWithChildren(payload: { nodeId: NodeId }): DeleteWithChildrenMessage {
-    return { type: RPC_METHOD.DELETE_WITH_CHILDREN, ...payload };
-  },
-  bulkDelete(payload: BulkNodeIdsInput): BulkDeleteMessage {
-    return { type: RPC_METHOD.BULK_DELETE, ...payload };
-  },
-  bulkDeleteNodes(payload: BulkNodeIdsInput): BulkDeleteNodesMessage {
-    return { type: RPC_METHOD.BULK_DELETE_NODES, ...payload };
-  },
-  bulkDeleteRecursive(payload: BulkNodeIdsInput): BulkDeleteRecursiveMessage {
-    return { type: RPC_METHOD.BULK_DELETE_RECURSIVE, ...payload };
-  },
-  setNodeLayout(payload: {
-    nodeId: NodeId;
-    offsetX?: number;
-    offsetY?: number;
-    radial?: { angleDelta: number; radiusDelta: number };
-  }): SetNodeLayoutMessage {
-    return { type: RPC_METHOD.SET_NODE_LAYOUT, ...payload };
-  },
-  setNodeLayoutBatch(payload: { layouts: NodeLayoutInput[] }): SetNodeLayoutBatchMessage {
-    return { type: RPC_METHOD.SET_NODE_LAYOUT_BATCH, ...payload };
-  },
-  resetNodeLayouts(): ResetNodeLayoutsMessage {
-    return { type: RPC_METHOD.RESET_NODE_LAYOUTS };
-  },
-  enterEditorMode(payload: { treeId: string }): EnterEditorModeMessage {
-    return { type: RPC_METHOD.ENTER_EDITOR_MODE, ...payload };
-  },
-  exitEditorMode(): ExitEditorModeMessage {
-    return { type: RPC_METHOD.EXIT_EDITOR_MODE };
-  },
-  cancelEditorMode(): CancelEditorModeMessage {
-    return { type: RPC_METHOD.CANCEL_EDITOR_MODE };
-  },
-  reparentNode(payload: { nodeId: NodeId; newParentId: NodeId }): ReparentNodeMessage {
-    return { type: RPC_METHOD.REPARENT_NODE, ...payload };
-  },
-  duplicateSubtree(payload: { nodeId: NodeId; targetParentId: NodeId }): DuplicateSubtreeMessage {
-    return { type: RPC_METHOD.DUPLICATE_SUBTREE, ...payload };
-  },
-  getFlags(): GetFlagsMessage {
-    return { type: RPC_METHOD.GET_FLAGS };
-  },
-  setFlag(payload: SetFlagInput): SetFlagMessage {
-    return { type: RPC_METHOD.SET_FLAG, ...payload };
-  },
-  resetFlags(): ResetFlagsMessage {
-    return { type: RPC_METHOD.RESET_FLAGS };
-  },
-  getLocalTrailDetail(payload: { treeId: string }): GetLocalTrailDetailMessage {
-    return { type: RPC_METHOD.GET_LOCAL_TRAIL_DETAIL, ...payload };
-  },
-  importTrail(payload: { bundle: TrailExportBundle }): ImportTrailMessage {
-    return { type: RPC_METHOD.IMPORT_TRAIL, ...payload };
-  },
-};
 
 // ==== message handler ====
 
@@ -738,6 +512,8 @@ export type TreeUpdatedInput = {
   reason: TreeUpdateReason;
   view?: TreeViewIntent;
   editorMode?: EditorModeState;
+  /** Pre-computed node positions from background ELK (fully-expanded tree). */
+  positions?: Record<string, { x: number; y: number }>;
 };
 
 export type TreesSnapshot = {

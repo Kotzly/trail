@@ -1,9 +1,11 @@
 import { useEffect } from "react";
-import { RPC_METHOD, type RequestMessage } from "@shared/rpc/contracts.js";
 import { getCommandState } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
 import { showUiToast } from "../notifications/sonner-adapter.js";
-import { browser } from "@shared/platform/webext.js";
+import {
+  EXTENSION_MESSAGE,
+  onExtensionMessage,
+} from "@shared/transport/extension-messaging.js";
 
 export function useRuntimeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
@@ -12,36 +14,30 @@ export function useRuntimeMessages(): void {
   const setTrees = useStore((state) => state.setTrees);
 
   useEffect(() => {
-    const handler = (message: RequestMessage) => {
-      if (message.type === RPC_METHOD.TREE_UPDATED) {
-        applyTreeState(message);
+    const removeTreeUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREE_UPDATED, ({ data }) => {
+      applyTreeState(data);
 
-        // Sync editor mode state from tree update reason
-        if (message.reason === "editor-enter") {
-          // The treeId is conveyed by the background; for now derive from the
-          // current tree's root or leave as null until a direct update.
-          setEditorMode({ active: true, treeId: null });
-        } else if (message.reason === "editor-exit") {
-          setEditorMode({ active: false, treeId: null });
-        }
+      if (data.reason === "editor-enter") {
+        setEditorMode({ active: true, treeId: null });
+      } else if (data.reason === "editor-exit") {
+        setEditorMode({ active: false, treeId: null });
+      }
 
-        getCommandState()
-          .then((state) => setCommandState(state))
-          .catch((error) => console.error("Failed to fetch command state:", error));
-        return;
-      }
-      if (message.type === RPC_METHOD.TREES_UPDATED) {
-        setTrees({ active: message.active, archived: message.archived });
-        return;
-      }
-      if (message.type === RPC_METHOD.NOTIFY) {
-        showUiToast(message.notification);
-      }
-    };
+      void getCommandState()
+        .then((state) => setCommandState(state))
+        .catch((error) => console.error("Failed to fetch command state:", error));
+    });
+    const removeTreesUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREES_UPDATED, ({ data }) => {
+      setTrees({ active: data.active, archived: data.archived });
+    });
+    const removeNotify = onExtensionMessage(EXTENSION_MESSAGE.UI_NOTIFY, ({ data }) => {
+      showUiToast(data);
+    });
 
-    browser.runtime.onMessage.addListener(handler);
     return () => {
-      browser.runtime.onMessage.removeListener(handler);
+      removeTreeUpdated();
+      removeTreesUpdated();
+      removeNotify();
     };
   }, [applyTreeState, setCommandState, setEditorMode, setTrees]);
 }

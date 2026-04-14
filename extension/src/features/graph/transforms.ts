@@ -9,7 +9,7 @@ import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { TrailNode, TrailNodeData, TrailEdge } from "./types.js";
-import { NODE_WIDTH, NODE_HEIGHT } from "./elk-graph.js";
+import { NODE_WIDTH, NODE_HEIGHT } from "./tree-layout.js";
 
 export type TreeToNodesMetadata = {
   currentNodeId: NodeId | null;
@@ -55,6 +55,9 @@ export function treeToNodes(
       position: { x: 0, y: 0 }, // filled by layout
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
+      // Pre-initialize measured dimensions so React Flow treats nodes as initialized
+      // immediately, preventing error #015 when dragging right after a layout update
+      measured: { width: NODE_WIDTH, height: NODE_HEIGHT },
       data,
     });
 

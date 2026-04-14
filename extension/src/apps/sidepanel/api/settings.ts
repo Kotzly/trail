@@ -1,15 +1,10 @@
-import { rpc } from "@shared/rpc/contracts.js";
 import { type Settings } from "@shared/types/settings.js";
-import { sendMessage } from "./background.js";
+import { settingsService } from "@shared/transport/proxy-clients.js";
 
 export async function saveSettings(settings: Settings): Promise<void> {
-  const response = await sendMessage(rpc.saveSettings({ settings }));
-  if (!response.success) throw new Error(response.error);
-  return response.data;
+  await settingsService.saveSettings({ settings });
 }
 
 export async function getSettings(): Promise<Settings> {
-  const response = await sendMessage(rpc.getSettings());
-  if (!response.success) throw new Error(response.error);
-  return response.data;
+  return settingsService.getSettings();
 }

@@ -21,6 +21,10 @@ import { openSidebarForTab } from "@shared/platform/webext.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import { browser } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
+import {
+  EXTENSION_MESSAGE,
+  fireExtensionEvent,
+} from "@shared/transport/extension-messaging.js";
 
 const log = createLogger("editor");
 
@@ -112,11 +116,6 @@ function registerCloneInTree(_tree: NavigationTree, _node: NavigationNode): void
 async function broadcastEditorExitToSite(): Promise<void> {
   try {
     const tabs = await browser.tabs.query({});
-    const payload = {
-      source: "trail-extension",
-      type: "EDITOR_MODE_EXITED",
-      editorMode: false,
-    };
     for (const tab of tabs) {
       if (tab.id === undefined || !tab.url) continue;
 
@@ -127,18 +126,7 @@ async function broadcastEditorExitToSite(): Promise<void> {
         continue;
       }
       if (!isAllowedSiteOrigin(origin)) continue;
-
-      browser.tabs
-        .sendMessage(tab.id, {
-          type: "RELAY_TO_SITE",
-          payload,
-        })
-        .catch((e) => {
-          log.warn("Content script unavailable for tab", {
-            tabId: String(tab.id),
-            error: String(e),
-          });
-        });
+      fireExtensionEvent(EXTENSION_MESSAGE.SITE_EDITOR_MODE_EXITED, { editorMode: false }, tab.id);
     }
   } catch (e) {
     log.warn("Failed to broadcast editor exit", { error: String(e) });

@@ -9,7 +9,12 @@ import {
 } from "@shared/rpc/contracts.js";
 import { getEditorState } from "./editor-handlers.js";
 import { treeStorage } from "../../services/tree-storage.js";
-import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from "../notifications.js";
+import {
+  notifyTreeUpdate,
+  getTabStates,
+  notifyTreesUpdate,
+  requestLayoutRefinement,
+} from "../notifications.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { CommandManager } from "@shared/lib/commands.js";
@@ -25,9 +30,13 @@ import {
 import { normalizeFaviconUrl, shouldTrackUrl } from "../../utils/url-utils.js";
 import { tempSelectionManager } from "../../services/temporary-selection.js";
 import { loadTree } from "../../services/tree-loader.js";
-import type { TreeMeta, NavigationTreeJSON } from "@shared/types/tree.js";
+import type { NavigationTreeJSON, TreeMeta } from "@shared/types/tree.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { settingsManager } from "../../services/settings.js";
+import {
+  getActiveLayoutCacheContext,
+  getCachedPositions,
+} from "../../services/layout-precompute.js";
 import { saveOpenTabs, getOpenTabs, clearOpenTabs } from "../../services/tab-restoration.js";
 import { browser, type Tab } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
@@ -71,7 +80,10 @@ async function closeTabs(tabIds: TabId[], context: string): Promise<boolean> {
     await browser.tabs.remove(tabIds);
     return true;
   } catch (error) {
-    log.error("Failed to close tabs", { context, error: error instanceof Error ? error.message : String(error) });
+    log.error("Failed to close tabs", {
+      context,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 }
@@ -89,15 +101,34 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
     const r = tabManager.getNodeRecency(nodeId);
     if (r > 0) nodeRecency[nodeId] = r;
   }
+  const settings = settingsManager.get();
+  const [tree, tabStates] = await Promise.all([treeStorage.getOrCreateTree(), getTabStates()]);
+  const treeJSON = NavigationTreeMapper.toJSON(tree);
+
+  let positions: Awaited<ReturnType<typeof getCachedPositions>> = null;
+  try {
+    const context = await getActiveLayoutCacheContext(settings);
+    positions = await getCachedPositions(context);
+  } catch (error) {
+    log.warn("Failed to load cached positions for tree snapshot", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  if (!positions) {
+    requestLayoutRefinement(treeJSON);
+  }
+
   const snapshot: TreeUpdatedInput = {
-    tree: NavigationTreeMapper.toJSON(await treeStorage.getOrCreateTree()),
+    tree: treeJSON,
     openNodeIds: openNodes,
-    tabStates: await getTabStates(),
+    tabStates,
     nodeTabCounts: Object.fromEntries(
       openNodes.map((nodeId) => [nodeId, tabManager.tabCountForNode(nodeId)]),
     ),
     nodeRecency,
     reason: "sync",
+    ...(positions ? { positions } : {}),
   };
   if (editorMode.active) {
     snapshot.editorMode = editorMode;
@@ -263,7 +294,9 @@ async function switchTree(
         preferredFocusUrl ? { url: preferredFocusUrl, active: true } : { active: true },
       );
     } catch (error) {
-      log.error("Failed to open root tab for tree switch", { error: error instanceof Error ? error.message : String(error) });
+      log.error("Failed to open root tab for tree switch", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       created = await browser.tabs.create({});
     }
     if (preferredFocusNode) {
@@ -548,7 +581,7 @@ export const treeHandlers = defineRpcHandlers({
         removedIds.push(...removed.map((n) => n.id));
         await closeTabsForNodes(removedIds);
         treeStorage.cacheTree(tree);
-            const view = getDeleteFocusView(tree, prevCurrentId);
+        const view = getDeleteFocusView(tree, prevCurrentId);
         await notifyTreeUpdate(tree, "delete", view);
         return ok();
       }
