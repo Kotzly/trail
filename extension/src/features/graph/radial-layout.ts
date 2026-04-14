@@ -1,37 +1,20 @@
 /**
- * Custom radial tree layout.
+ * Radial tree layout.
  *
- * Places the root at (0, 0) and distributes children on concentric rings
- * with monotonically increasing radius — children are always farther from
- * center than their parents.
+ * Runs d3-hierarchy's cluster (dendrogram) layout on a [0, 2π] × radius
+ * canvas, then maps the Cartesian (x=angle, y=radius) output into polar
+ * screen coordinates. Cluster keeps all leaves on the outer ring and
+ * uniform separation spreads them evenly around 2π regardless of tree
+ * imbalance — tree layout bunched leaves on one side when one subtree
+ * dominated the leaf count.
  */
 
+import { hierarchy, cluster as d3cluster } from "d3-hierarchy";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { RadialLayoutSettings } from "@shared/types/settings.js";
-import { NODE_WIDTH } from "./tree-layout.js";
-
-// ── Helpers ──────────────────────────────────────────────────────
-
-function countLeaves(
-  node: NavigationNodeJSON,
-  collapsed: Set<NodeId>,
-): number {
-  if (collapsed.has(node.id) || node.children.length === 0) return 1;
-  let total = 0;
-  for (const child of node.children) {
-    total += countLeaves(child, collapsed);
-  }
-  return total;
-}
-
-function radiusAtDepth(depth: number, s: RadialLayoutSettings): number {
-  if (depth === 0) return 0;
-  return s.depthGapBase * NODE_WIDTH * depth;
-}
-
-// ── Layout ───────────────────────────────────────────────────────
+import { NODE_WIDTH, NODE_HEIGHT } from "./tree-layout.js";
 
 export function computeRadialPositions(
   tree: NavigationTreeJSON,
@@ -39,70 +22,49 @@ export function computeRadialPositions(
   settings: RadialLayoutSettings,
 ): Map<string, { x: number; y: number }> {
   const positions = new Map<string, { x: number; y: number }>();
-
   if (!tree.root) return positions;
 
-  // Root at center
-  positions.set(String(tree.root.id), { x: 0, y: 0 });
+  const root = hierarchy<NavigationNodeJSON>(tree.root, (node) =>
+    collapsedNodeIds.has(node.id) ? null : node.children,
+  );
 
-  placeChildren(tree.root, 0, -Math.PI, 2 * Math.PI, collapsedNodeIds, settings, positions);
+  let maxDepth = 0;
+  root.each((n) => {
+    if (n.depth > maxDepth) maxDepth = n.depth;
+  });
+
+  if (maxDepth === 0) {
+    positions.set(String(tree.root.id), { x: -NODE_WIDTH / 2, y: -NODE_HEIGHT / 2 });
+    return positions;
+  }
+
+  // Radius must satisfy two constraints:
+  //  1. enough depth spacing (depthGapBase × NODE_WIDTH per ring);
+  //  2. outer circumference fits all leaves without overlap — otherwise
+  //     wide-but-shallow trees collapse into illegible cluster at small radius.
+  const depthRadius = settings.depthGapBase * NODE_WIDTH * maxDepth;
+  const numLeaves = root.leaves().length;
+  const leafRadius = (numLeaves * NODE_WIDTH * 1.3) / (2 * Math.PI);
+  const radius = Math.max(depthRadius, leafRadius);
+
+  // separation=1 → leaves are distributed uniformly across [0, 2π].
+  // Anything else (depth-scaled or sibling-preferring) causes bunching
+  // when the tree is imbalanced.
+  d3cluster<NavigationNodeJSON>()
+    .size([2 * Math.PI, radius])
+    .separation(() => 1)(root);
+
+  root.each((n) => {
+    const overrides = n.data.data.layout?.radial;
+    // d3 puts x ∈ [0, 2π]; subtract π/2 so angle=0 points up.
+    const angle = (n.x ?? 0) - Math.PI / 2 + (overrides?.angleDelta ?? 0);
+    const r = (n.y ?? 0) + (overrides?.radiusDelta ?? 0);
+
+    positions.set(String(n.data.id), {
+      x: r * Math.cos(angle) - NODE_WIDTH / 2,
+      y: r * Math.sin(angle) - NODE_HEIGHT / 2,
+    });
+  });
 
   return positions;
-}
-
-function placeChildren(
-  node: NavigationNodeJSON,
-  depth: number,
-  startAngle: number,
-  spanAngle: number,
-  collapsed: Set<NodeId>,
-  settings: RadialLayoutSettings,
-  positions: Map<string, { x: number; y: number }>,
-): void {
-  if (collapsed.has(node.id) || node.children.length === 0) return;
-
-  const childRadius = radiusAtDepth(depth + 1, settings);
-
-  // Compute weighted leaf counts for angular allocation
-  const weights = node.children.map((c) =>
-    Math.pow(countLeaves(c, collapsed), settings.angleWeightExp),
-  );
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
-
-  // Compute raw spans, enforce minimums, then normalize to fit
-  const minSpan = Math.max(
-    settings.minSpanAbs,
-    spanAngle * settings.minSpanFactor / node.children.length,
-  );
-
-  const rawSpans = weights.map((w) => (w / totalWeight) * spanAngle);
-  const spans = rawSpans.map((s) => Math.max(s, minSpan));
-
-  // Normalize so children fit within parent's span
-  const totalSpans = spans.reduce((a, b) => a + b, 0);
-  if (totalSpans > spanAngle) {
-    const scale = spanAngle / totalSpans;
-    for (let i = 0; i < spans.length; i++) spans[i]! *= scale;
-  }
-
-  let currentAngle = startAngle;
-
-  for (let i = 0; i < node.children.length; i++) {
-    const child = node.children[i]!;
-    const childSpan = spans[i]!;
-    const midAngle = currentAngle + childSpan / 2;
-
-    // Apply per-node overrides
-    const overrides = child.data.layout?.radial;
-    const r = childRadius + (overrides?.radiusDelta ?? 0);
-    const angle = midAngle + (overrides?.angleDelta ?? 0);
-
-    positions.set(String(child.id), {
-      x: r * Math.cos(angle),
-      y: r * Math.sin(angle),
-    });
-
-    placeChildren(child, depth + 1, currentAngle, childSpan, collapsed, settings, positions);
-    currentAngle += childSpan;
-  }
 }
