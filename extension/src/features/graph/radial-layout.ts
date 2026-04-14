@@ -1,15 +1,15 @@
 /**
  * Radial tree layout.
  *
- * Runs d3-hierarchy's cluster (dendrogram) layout on a [0, 2π] × radius
- * canvas, then maps the Cartesian (x=angle, y=radius) output into polar
- * screen coordinates. Cluster keeps all leaves on the outer ring and
- * uniform separation spreads them evenly around 2π regardless of tree
- * imbalance — tree layout bunched leaves on one side when one subtree
- * dominated the leaf count.
+ * Runs d3-hierarchy's tree layout on a [0, 2π] × radius canvas, then maps
+ * the Cartesian (x=angle, y=radius) output into polar screen coordinates.
+ * Uniform separation spreads siblings evenly; keeping tree (not cluster)
+ * means leaves sit at their true depth's radius, preserving hierarchy
+ * visibility — cluster flattened all leaves to the outer ring which lost
+ * depth information.
  */
 
-import { hierarchy, cluster as d3cluster } from "d3-hierarchy";
+import { hierarchy, tree as d3tree } from "d3-hierarchy";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
@@ -50,7 +50,7 @@ export function computeRadialPositions(
   // separation=1 → leaves are distributed uniformly across [0, 2π].
   // Anything else (depth-scaled or sibling-preferring) causes bunching
   // when the tree is imbalanced.
-  d3cluster<NavigationNodeJSON>()
+  d3tree<NavigationNodeJSON>()
     .size([2 * Math.PI, radius])
     .separation(() => 1)(root);
 
