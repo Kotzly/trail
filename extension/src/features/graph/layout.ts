@@ -8,7 +8,7 @@ import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { LayoutMode, LayoutResult, TrailEdge } from "./types.js";
-import { treeToNodes, treeToEdges, type TreeToNodesMetadata } from "./transforms.js";
+import { treeToNodes, treeToEdges, computeActivePathIds, type TreeToNodesMetadata } from "./transforms.js";
 import { computeTreePositions } from "./tree-layout.js";
 import { getSpacing } from "@shared/layout/spacing.js";
 
@@ -70,8 +70,9 @@ export async function computeLayout(
   };
 
   // Build flat node/edge lists (unpositioned)
+  const activePathIds = computeActivePathIds(tree, metadata.currentNodeId);
   const nodes = treeToNodes(tree, fullMetadata);
-  const edges = treeToEdges(tree, collapsedNodeIds);
+  const edges = treeToEdges(tree, collapsedNodeIds, activePathIds);
 
   if (nodes.length === 0) {
     return { nodes: [], edges: [] };

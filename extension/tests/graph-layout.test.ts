@@ -130,16 +130,18 @@ describe("treeToNodes", () => {
   });
 });
 
+const NO_PATH = new Set<NodeId>();
+
 describe("treeToEdges", () => {
   it("returns empty array for null tree", () => {
-    const edges = treeToEdges(null, NO_COLLAPSED);
+    const edges = treeToEdges(null, NO_COLLAPSED, NO_PATH);
     assert.equal(edges.length, 0);
   });
 
   it("returns correct edges for tree", () => {
     const root = makeNode(1, [makeNode(2), makeNode(3)]);
     const tree = makeTree(root, 3);
-    const edges = treeToEdges(tree, NO_COLLAPSED);
+    const edges = treeToEdges(tree, NO_COLLAPSED, NO_PATH);
     assert.equal(edges.length, 2);
     assert.equal(edges[0]!.source, "1");
     assert.equal(edges[0]!.target, "2");
@@ -154,7 +156,7 @@ describe("treeToEdges", () => {
     ]);
     const tree = makeTree(root, 5);
     const collapsed = new Set([2 as NodeId]);
-    const edges = treeToEdges(tree, collapsed);
+    const edges = treeToEdges(tree, collapsed, NO_PATH);
     // root→2 and root→3 exist, but 2→4 and 2→5 do not
     assert.equal(edges.length, 2);
   });

@@ -36,6 +36,7 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
     favicon,
     isCurrent,
     isOpen,
+    onActivePath,
     pinned,
     tabCount,
     isCollapsed,
@@ -66,6 +67,7 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
             isOpen || isCurrent
               ? "bg-foreground/20 border-foreground/30"
               : "bg-foreground/10 border-foreground/15",
+            onActivePath && !isCurrent && "bg-primary/15 border-primary/50",
             isCurrent && "bg-primary/30 border-primary",
             selected && "ring-2 ring-ring",
           )}
@@ -92,6 +94,7 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
           isOpen || isCurrent
             ? "bg-card text-card-foreground"
             : "bg-muted/60 text-muted-foreground border-border/50",
+          onActivePath && !isCurrent && "bg-card text-card-foreground border-primary/50 shadow-sm shadow-primary/15",
           isCurrent && "border-primary shadow-sm shadow-primary/25",
           selected && "ring-2 ring-ring",
         )}
@@ -108,7 +111,7 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
           />
         )}
         <div className="flex flex-col min-w-0 flex-1 gap-0.5">
-          <span className="text-[11px] font-medium leading-tight line-clamp-2">
+          <span className="text-[11px] font-medium leading-tight line-clamp-2 min-h-[2lh]">
             {displayTitle}
           </span>
           {showDetail && (
@@ -149,6 +152,7 @@ export const TrailNode = memo(TrailNodeComponent, (prev, next) => {
     a.favicon === b.favicon &&
     a.isCurrent === b.isCurrent &&
     a.isOpen === b.isOpen &&
+    a.onActivePath === b.onActivePath &&
     a.pinned === b.pinned &&
     a.tabCount === b.tabCount &&
     a.childCount === b.childCount &&

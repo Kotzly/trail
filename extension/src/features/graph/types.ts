@@ -13,6 +13,8 @@ export type TrailNodeData = {
   pinned: boolean;
   isCurrent: boolean;
   isOpen: boolean;
+  /** True for the current node and all its ancestors up to the root */
+  onActivePath: boolean;
   tabCount: number;
   childCount: number;
   isCollapsed: boolean;

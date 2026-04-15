@@ -19,6 +19,34 @@ export type TreeToNodesMetadata = {
 };
 
 /**
+ * Build the set of node IDs on the path from root to `targetId` (inclusive).
+ * Returns empty set if target not found or null.
+ */
+export function computeActivePathIds(
+  tree: NavigationTreeJSON | null,
+  targetId: NodeId | null,
+): Set<NodeId> {
+  const path = new Set<NodeId>();
+  if (!tree?.root || targetId === null) return path;
+
+  const stack: NodeId[] = [];
+  function dfs(node: NavigationNodeJSON): boolean {
+    stack.push(node.id);
+    if (node.id === targetId) {
+      for (const id of stack) path.add(id);
+      return true;
+    }
+    for (const child of node.children) {
+      if (dfs(child)) return true;
+    }
+    stack.pop();
+    return false;
+  }
+  dfs(tree.root);
+  return path;
+}
+
+/**
  * Walk the tree and produce a flat list of TrailNodes.
  * Collapsed subtrees are excluded (the collapsed parent is included but not its children).
  */
@@ -28,6 +56,7 @@ export function treeToNodes(
 ): TrailNode[] {
   if (!tree?.root) return [];
 
+  const activePathIds = computeActivePathIds(tree, metadata.currentNodeId);
   const nodes: TrailNode[] = [];
 
   function walk(node: NavigationNodeJSON): void {
@@ -40,6 +69,7 @@ export function treeToNodes(
       pinned: node.data.pinned,
       isCurrent: node.id === metadata.currentNodeId,
       isOpen: metadata.openNodeIds.has(node.id),
+      onActivePath: activePathIds.has(node.id),
       tabCount: metadata.nodeTabCounts[node.id] ?? 0,
       childCount: node.children.length,
       isCollapsed,
@@ -79,9 +109,15 @@ export function treeToNodes(
  */
 const SMOOTHSTEP_CHILD_THRESHOLD = 4;
 
+const ACTIVE_EDGE_STYLE = {
+  stroke: "var(--primary)",
+  strokeWidth: 2.25,
+} as const;
+
 export function treeToEdges(
   tree: NavigationTreeJSON | null,
   collapsedNodeIds: Set<NodeId>,
+  activePathIds: Set<NodeId>,
 ): TrailEdge[] {
   if (!tree?.root) return [];
 
@@ -93,12 +129,18 @@ export function treeToEdges(
     const useSmoothStep = node.children.length >= SMOOTHSTEP_CHILD_THRESHOLD;
 
     for (const child of node.children) {
-      edges.push({
+      const onPath = activePathIds.has(node.id) && activePathIds.has(child.id);
+      const edge: TrailEdge = {
         id: `${node.id}->${child.id}`,
         source: String(node.id),
         target: String(child.id),
         type: useSmoothStep ? "smoothstep" : "default",
-      });
+      };
+      if (onPath) {
+        edge.style = ACTIVE_EDGE_STYLE;
+        edge.zIndex = 1;
+      }
+      edges.push(edge);
       walk(child);
     }
   }
