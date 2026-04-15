@@ -4,7 +4,6 @@
  */
 
 import { computeTreePositionsRecord } from "@features/graph/tree-layout.js";
-import { computeRadialPositions } from "@features/graph/radial-layout.js";
 import { layoutPositionsCacheItem } from "@shared/config/storage-items.js";
 import { getSpacing } from "@shared/layout/spacing.js";
 import { createLogger } from "@shared/lib/logger.js";
@@ -113,12 +112,6 @@ export function computePositions(
   settings: Settings,
 ): LayoutPositions | null {
   const collapsedNodeIds = new Set<NodeId>();
-
-  if (settings.layout.mode === "radial") {
-    const positions = computeRadialPositions(tree, collapsedNodeIds, settings.layout.radial);
-    return Object.fromEntries(positions);
-  }
-
   const { nodeSpacing, layerSpacing } = getSpacing(settings.graphDensity);
   return computeTreePositionsRecord({
     tree,

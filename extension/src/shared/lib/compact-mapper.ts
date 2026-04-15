@@ -64,19 +64,9 @@ function nodeToTuple(node: NavigationNodeJSON): CompactNodeTupleV3 {
   const d = node.data;
   const flags = d.pinned ? CF.PINNED : 0;
 
-  let layout: number[] | null = null;
-  if (d.layout) {
-    if (d.layout.radial) {
-      layout = [
-        d.layout.offsetX,
-        d.layout.offsetY,
-        d.layout.radial.angleDelta,
-        d.layout.radial.radiusDelta,
-      ];
-    } else {
-      layout = [d.layout.offsetX, d.layout.offsetY];
-    }
-  }
+  const layout: number[] | null = d.layout
+    ? [d.layout.offsetX, d.layout.offsetY]
+    : null;
 
   return [
     node.id as number,
@@ -97,11 +87,7 @@ function nodeToTuple(node: NavigationNodeJSON): CompactNodeTupleV3 {
 
 function parseLayout(layoutArr: number[] | null): NodeData["layout"] | undefined {
   if (!layoutArr) return undefined;
-  const base = { offsetX: layoutArr[0]!, offsetY: layoutArr[1]! };
-  if (layoutArr.length >= 4) {
-    return { ...base, radial: { angleDelta: layoutArr[2]!, radiusDelta: layoutArr[3]! } };
-  }
-  return base;
+  return { offsetX: layoutArr[0]!, offsetY: layoutArr[1]! };
 }
 
 function tupleToNodeV3(tuple: CompactNodeTupleV3): NavigationNodeJSON {

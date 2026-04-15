@@ -1,7 +1,7 @@
 /**
  * Layout computation: NavigationTreeJSON → positioned React Flow nodes + edges.
  *
- * Tree and mindmap use d3-hierarchy (Reingold-Tilford); radial uses a custom algorithm.
+ * Tree and mindmap use d3-hierarchy (Reingold-Tilford).
  */
 
 import type { NodeId } from "@shared/types/ids.js";
@@ -9,28 +9,13 @@ import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { LayoutMode, LayoutResult, TrailEdge } from "./types.js";
 import { treeToNodes, treeToEdges, type TreeToNodesMetadata } from "./transforms.js";
-import { computeTreePositions, NODE_WIDTH, NODE_HEIGHT } from "./tree-layout.js";
-import { computeRadialPositions } from "./radial-layout.js";
+import { computeTreePositions } from "./tree-layout.js";
 import { getSpacing } from "@shared/layout/spacing.js";
 
 // ── Per-edge handle assignment ────────────────────────────────────
 
-function nearestSide(
-  from: { x: number; y: number },
-  to: { x: number; y: number },
-): string {
-  const dx = (to.x + NODE_WIDTH / 2) - (from.x + NODE_WIDTH / 2);
-  const dy = (to.y + NODE_HEIGHT / 2) - (from.y + NODE_HEIGHT / 2);
-
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    return dx > 0 ? "right" : "left";
-  }
-  return dy > 0 ? "bottom" : "top";
-}
-
 function assignEdgeHandles(
   edges: TrailEdge[],
-  positions: Map<string, { x: number; y: number }>,
   mode: LayoutMode,
 ): Map<string, Set<string>> {
   const nodeHandles = new Map<string, Set<string>>();
@@ -58,19 +43,6 @@ function assignEdgeHandles(
         addHandle(edge.source, "source-right");
         addHandle(edge.target, "target-left");
         break;
-      case "radial": {
-        const sp = positions.get(edge.source);
-        const tp = positions.get(edge.target);
-        if (sp && tp) {
-          const sh = `source-${nearestSide(sp, tp)}`;
-          const th = `target-${nearestSide(tp, sp)}`;
-          edge.sourceHandle = sh;
-          edge.targetHandle = th;
-          addHandle(edge.source, sh);
-          addHandle(edge.target, th);
-        }
-        break;
-      }
     }
   }
 
@@ -99,20 +71,18 @@ export async function computeLayout(
 
   // Build flat node/edge lists (unpositioned)
   const nodes = treeToNodes(tree, fullMetadata);
-  const edges = treeToEdges(tree, collapsedNodeIds, settings.layout.mode);
+  const edges = treeToEdges(tree, collapsedNodeIds);
 
   if (nodes.length === 0) {
     return { nodes: [], edges: [] };
   }
 
-  // Compute positions — use pre-computed if available, else radial or d3-hierarchy
+  // Compute positions — use pre-computed if available, else d3-hierarchy
   let positions: Map<string, { x: number; y: number }>;
 
   if (precomputedPositions && collapsedNodeIds.size === 0) {
     // Fast path: background already computed positions for fully-expanded tree
     positions = new Map(Object.entries(precomputedPositions));
-  } else if (settings.layout.mode === "radial") {
-    positions = computeRadialPositions(tree, collapsedNodeIds, settings.layout.radial);
   } else {
     const { nodeSpacing, layerSpacing } = getSpacing(settings.graphDensity);
     positions = computeTreePositions({
@@ -132,8 +102,8 @@ export async function computeLayout(
     }
   }
 
-  // Assign per-edge handles based on layout mode + positions
-  const nodeHandles = assignEdgeHandles(edges, positions, settings.layout.mode);
+  // Assign per-edge handles based on layout mode
+  const nodeHandles = assignEdgeHandles(edges, settings.layout.mode);
 
   // Write handle set into node data so TrailNode renders only needed handles
   for (const node of nodes) {

@@ -50,14 +50,6 @@ const DEFAULT_SETTINGS: Settings = {
     mode: "tree",
     tree: { verticalGapScale: 1, horizontalGapScale: 1, hideRoot: false },
     mindmap: { verticalGapScale: 1, horizontalGapScale: 1 },
-    radial: {
-      angleWeightExp: 0.6,
-      minSpanFactor: 0.6,
-      minSpanAbs: 0.15,
-      requiredScale: 1,
-      depthGapBase: 120,
-      depthGapGrowth: 20,
-    },
   },
   titleTruncation: "end",
   graphDensity: "comfortable",
@@ -221,23 +213,6 @@ describe("computeLayout", () => {
     const childNode = result.nodes.find((n) => n.data.nodeId === (2 as NodeId));
     assert.ok(rootNode && childNode);
     assert.ok(childNode.position.x !== rootNode.position.x, "child should be horizontally offset in mindmap mode");
-  });
-
-  it("radial mode: children farther from center than parent", async () => {
-    const root = makeNode(1, [makeNode(2), makeNode(3)]);
-    const tree = makeTree(root, 3);
-    const settings = { ...DEFAULT_SETTINGS, layout: { ...DEFAULT_SETTINGS.layout, mode: "radial" as const } };
-    const result = await computeLayout(tree, settings, NO_COLLAPSED, {
-      currentNodeId: null,
-      openNodeIds: new Set(),
-      nodeTabCounts: {},
-    });
-    const rootNode = result.nodes.find((n) => n.data.nodeId === (1 as NodeId));
-    const childNode = result.nodes.find((n) => n.data.nodeId === (2 as NodeId));
-    assert.ok(rootNode && childNode);
-    const rootDist = Math.sqrt(rootNode.position.x ** 2 + rootNode.position.y ** 2);
-    const childDist = Math.sqrt(childNode.position.x ** 2 + childNode.position.y ** 2);
-    assert.ok(childDist > rootDist, "child should be farther from center in radial mode");
   });
 
   it("all positions are finite numbers", async () => {

@@ -624,16 +624,9 @@ export const treeHandlers = defineRpcHandlers({
     const nextLayout = {
       offsetX: typeof message.offsetX === "number" ? message.offsetX : existingLayout.offsetX,
       offsetY: typeof message.offsetY === "number" ? message.offsetY : existingLayout.offsetY,
-      ...(message.radial
-        ? { radial: message.radial }
-        : existingLayout.radial
-          ? { radial: existingLayout.radial }
-          : {}),
     };
     const hasChanges =
-      typeof message.offsetX === "number" ||
-      typeof message.offsetY === "number" ||
-      typeof message.radial !== "undefined";
+      typeof message.offsetX === "number" || typeof message.offsetY === "number";
     if (!hasChanges) return ok();
     node.data = updateNodeData(node.data, { layout: nextLayout });
     treeStorage.cacheTree(tree);
@@ -649,9 +642,7 @@ export const treeHandlers = defineRpcHandlers({
       if (!node) continue;
 
       const hasChanges =
-        typeof layoutUpdate.offsetX === "number" ||
-        typeof layoutUpdate.offsetY === "number" ||
-        typeof layoutUpdate.radial !== "undefined";
+        typeof layoutUpdate.offsetX === "number" || typeof layoutUpdate.offsetY === "number";
       if (!hasChanges) continue;
 
       const existingLayout = node.data.layout ?? { offsetX: 0, offsetY: 0 };
@@ -660,11 +651,6 @@ export const treeHandlers = defineRpcHandlers({
           typeof layoutUpdate.offsetX === "number" ? layoutUpdate.offsetX : existingLayout.offsetX,
         offsetY:
           typeof layoutUpdate.offsetY === "number" ? layoutUpdate.offsetY : existingLayout.offsetY,
-        ...(layoutUpdate.radial
-          ? { radial: layoutUpdate.radial }
-          : existingLayout.radial
-            ? { radial: existingLayout.radial }
-            : {}),
       };
 
       node.data = updateNodeData(node.data, { layout: nextLayout });

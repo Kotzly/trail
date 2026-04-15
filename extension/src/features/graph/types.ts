@@ -27,7 +27,7 @@ export type TrailEdge = Edge;
 
 // ── Layout modes (mirrors settings.layout.mode) ────────────────────
 
-export type LayoutMode = "tree" | "mindmap" | "radial";
+export type LayoutMode = "tree" | "mindmap";
 
 // ── Main graph component props ─────────────────────────────────────
 

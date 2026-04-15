@@ -83,7 +83,6 @@ export const defaultSettings: Settings = {
     mode: DEFAULT_LAYOUT_SETTINGS.mode,
     tree: { ...DEFAULT_LAYOUT_SETTINGS.tree },
     mindmap: { ...DEFAULT_LAYOUT_SETTINGS.mindmap },
-    radial: { ...DEFAULT_LAYOUT_SETTINGS.radial },
   },
   titleTruncation: "end",
   graphDensity: "comfortable",
@@ -115,12 +114,17 @@ function mergeDefaults(raw: unknown): Settings {
   } = partial;
   const sanitized = rest as Partial<Settings>;
   const layout = sanitized.layout ?? DEFAULT_LAYOUT_SETTINGS;
+  const storedMode = (layout as { mode?: string }).mode;
+  const normalizedMode =
+    storedMode === "tree" || storedMode === "mindmap"
+      ? storedMode
+      : DEFAULT_LAYOUT_SETTINGS.mode;
   return {
     ...defaultSettings,
     ...sanitized,
     customTheme: normalizeCustomTheme(sanitized.customTheme),
     layout: {
-      mode: layout.mode ?? DEFAULT_LAYOUT_SETTINGS.mode,
+      mode: normalizedMode,
       tree: {
         ...DEFAULT_LAYOUT_SETTINGS.tree,
         ...(layout.tree ?? {}),
@@ -128,10 +132,6 @@ function mergeDefaults(raw: unknown): Settings {
       mindmap: {
         ...DEFAULT_LAYOUT_SETTINGS.mindmap,
         ...(layout.mindmap ?? {}),
-      },
-      radial: {
-        ...DEFAULT_LAYOUT_SETTINGS.radial,
-        ...(layout.radial ?? {}),
       },
     },
     titleTruncation: sanitized.titleTruncation ?? defaultSettings.titleTruncation,

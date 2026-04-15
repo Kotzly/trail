@@ -191,7 +191,7 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
 
       const cycleLayoutMode = () => {
         if (!state.settings) return;
-        const order: LayoutMode[] = ["tree", "mindmap", "radial"];
+        const order: LayoutMode[] = ["tree", "mindmap"];
         const current = state.settings.layout.mode ?? "tree";
         const next = order[(order.indexOf(current) + 1) % order.length] ?? "tree";
         const nextSettings = {

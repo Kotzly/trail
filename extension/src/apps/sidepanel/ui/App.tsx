@@ -102,7 +102,7 @@ export default function App() {
   );
 
   const handleLayoutModeChange = useCallback(
-    (mode: "tree" | "mindmap" | "radial") => {
+    (mode: "tree" | "mindmap") => {
       if (!settings) return;
       const next = { ...settings, layout: { ...settings.layout, mode } };
       setSettings(next);

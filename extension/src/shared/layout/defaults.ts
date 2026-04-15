@@ -11,12 +11,4 @@ export const DEFAULT_LAYOUT_SETTINGS: LayoutSettings = {
     verticalGapScale: 1,
     horizontalGapScale: 1,
   },
-  radial: {
-    angleWeightExp: 0.42,
-    minSpanFactor: 0.75,
-    minSpanAbs: 0.11,
-    requiredScale: 0.85,
-    depthGapBase: 1.5,
-    depthGapGrowth: 0.3,
-  },
 };

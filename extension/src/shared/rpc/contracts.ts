@@ -200,10 +200,6 @@ export type NodeLayoutInput = {
   nodeId: NodeId;
   offsetX?: number;
   offsetY?: number;
-  radial?: {
-    angleDelta: number;
-    radiusDelta: number;
-  };
 };
 
 export type SetNodeLayoutMessage = RequestMessageBase<

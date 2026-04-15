@@ -82,7 +82,6 @@ const SMOOTHSTEP_CHILD_THRESHOLD = 4;
 export function treeToEdges(
   tree: NavigationTreeJSON | null,
   collapsedNodeIds: Set<NodeId>,
-  layoutMode: "tree" | "mindmap" | "radial" = "tree",
 ): TrailEdge[] {
   if (!tree?.root) return [];
 
@@ -91,9 +90,7 @@ export function treeToEdges(
   function walk(node: NavigationNodeJSON): void {
     if (collapsedNodeIds.has(node.id)) return;
 
-    const useSmoothStep =
-      layoutMode !== "radial" &&
-      node.children.length >= SMOOTHSTEP_CHILD_THRESHOLD;
+    const useSmoothStep = node.children.length >= SMOOTHSTEP_CHILD_THRESHOLD;
 
     for (const child of node.children) {
       edges.push({

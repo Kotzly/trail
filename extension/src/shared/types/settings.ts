@@ -27,7 +27,7 @@ export type CustomTheme = {
   accentColor: string | null;
 };
 
-export type LayoutMode = "tree" | "radial" | "mindmap";
+export type LayoutMode = "tree" | "mindmap";
 
 export type TreeLayoutSettings = {
   verticalGapScale: number;
@@ -40,20 +40,10 @@ export type MindmapLayoutSettings = {
   horizontalGapScale: number;
 };
 
-export type RadialLayoutSettings = {
-  angleWeightExp: number;
-  minSpanFactor: number;
-  minSpanAbs: number;
-  requiredScale: number;
-  depthGapBase: number;
-  depthGapGrowth: number;
-};
-
 export type LayoutSettings = {
   mode: LayoutMode;
   tree: TreeLayoutSettings;
   mindmap: MindmapLayoutSettings;
-  radial: RadialLayoutSettings;
 };
 
 export type TitleTruncation = "start" | "middle" | "end";

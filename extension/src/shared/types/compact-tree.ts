@@ -76,7 +76,7 @@ export const CF = {
  * [id, timestamp, url, title, favicon|null, flags, tags, layout|null, lastVisitedAt|null, visitCount|null, children[]]
  *
  * - flags: bitmask (bit 0 = pinned)
- * - layout: null | [offsetX, offsetY] | [offsetX, offsetY, angleDelta, radiusDelta]
+ * - layout: null | [offsetX, offsetY]
  * - tags: string[] (tag IDs)
  * - lastVisitedAt: unix ms timestamp or null
  * - visitCount: number of visits or null

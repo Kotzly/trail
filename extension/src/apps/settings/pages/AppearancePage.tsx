@@ -40,10 +40,6 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
               <RadioGroupItem value="mindmap" id="layout-mindmap" />
               <Label htmlFor="layout-mindmap">Mind Map</Label>
             </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="radial" id="layout-radial" />
-              <Label htmlFor="layout-radial">Radial</Label>
-            </div>
           </RadioGroup>
         </div>
 

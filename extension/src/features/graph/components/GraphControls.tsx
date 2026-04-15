@@ -62,12 +62,6 @@ export function GraphControls({
         >
           Map
         </ToggleGroupItem>
-        <ToggleGroupItem
-          value="radial"
-          className="h-7 px-2 text-[11px] rounded-none data-[state=on]:bg-accent"
-        >
-          Radial
-        </ToggleGroupItem>
       </ToggleGroup>
     </div>
   );

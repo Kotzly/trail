@@ -108,7 +108,6 @@ export async function setNodeLayout(
   layout: {
     offsetX?: number;
     offsetY?: number;
-    radial?: { angleDelta: number; radiusDelta: number };
   },
 ): Promise<void> {
   await treeService.setNodeLayout({ nodeId, ...layout });
