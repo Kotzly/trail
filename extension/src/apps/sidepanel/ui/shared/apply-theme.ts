@@ -84,15 +84,28 @@ export function applyThemeTokens(
 
 /**
  * Apply theme to the sidepanel document root.
- * Sets data-theme attribute and persists to cache/localStorage.
+ *
+ * Sets `data-theme` to the *resolved* value ("light" | "dark"), never
+ * "system" — the tailwind `@custom-variant dark (&:is([data-theme="dark"] *))`
+ * rule only triggers on that exact string, and the early-apply script does
+ * the same resolution. The user's *choice* ("system" vs explicit) is
+ * persisted separately in `trail_settings.theme`.
+ *
+ * Also sets `color-scheme` so form controls, scrollbars, and the initial
+ * paint match the theme.
  */
 export function applyTheme(theme: ThemeId): void {
   const root = document.documentElement;
-  root.setAttribute("data-theme", theme);
-  void themeCacheItem.setValue(theme);
-
   const effective = resolveEffective(theme);
+  root.setAttribute("data-theme", effective);
+  root.style.colorScheme = effective;
+  void themeCacheItem.setValue(effective);
+
   try {
+    // `trail_theme_choice` stores the user's *pick* (incl. "system") so the
+    // next-load early-apply script can re-resolve against the current OS
+    // preference. `trail_theme` kept for back-compat with older clients.
+    localStorage.setItem("trail_theme_choice", theme);
     localStorage.setItem("trail_theme", effective);
   } catch {
     /* quota / sandboxed */
