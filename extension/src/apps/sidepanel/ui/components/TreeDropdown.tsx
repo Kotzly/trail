@@ -44,99 +44,13 @@ type TreeItem = {
   stub?: boolean;
 };
 
-function formatHost(url?: Url): string {
-  if (!url) return "";
-  try {
-    const host = new URL(url).hostname;
-    // Drop the leading www. — noise that pushes useful domain characters
-    // past the truncation point on narrow sidepanels.
-    return host.replace(/^www\./i, "");
-  } catch {
-    return url;
-  }
-}
-
-/**
- * Compact, humane date:
- *   - today → "today"
- *   - yesterday → "yesterday"
- *   - this year → "Apr 16"
- *   - older → "Apr 16, 2025"
- */
-function formatDate(ts?: number): string {
-  if (!ts) return "";
-  try {
-    const date = new Date(ts);
-    if (Number.isNaN(date.getTime())) return "";
-
-    const now = new Date();
-    const sameDay =
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth() &&
-      date.getDate() === now.getDate();
-    if (sameDay) return "today";
-
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const isYesterday =
-      date.getFullYear() === yesterday.getFullYear() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getDate() === yesterday.getDate();
-    if (isYesterday) return "yesterday";
-
-    const thisYear = date.getFullYear() === now.getFullYear();
-    return new Intl.DateTimeFormat(undefined, {
-      month: "short",
-      day: "numeric",
-      ...(thisYear ? {} : { year: "numeric" }),
-    }).format(date);
-  } catch {
-    return "";
-  }
-}
-
-const NUMBER_FORMATTER = new Intl.NumberFormat();
-
-function formatNodeCount(n: number): string {
-  const rounded = Math.round(n);
-  return `${NUMBER_FORMATTER.format(rounded)} ${rounded === 1 ? "node" : "nodes"}`;
-}
-
-/**
- * Prefer the user's label when set; fall back to root title, then host.
- * Never return the generic "Unnamed Tree" placeholder if we have a better
- * signal from the tree's root URL — that placeholder is the `label` field
- * when the user hit Enter without typing anything.
- */
-function displayLabel(entry: { label: string; rootTitle?: string; rootUrl?: Url }): string {
-  const label = (entry.label ?? "").trim();
-  if (label && label !== "Unnamed Tree") return label;
-  const title = (entry.rootTitle ?? "").trim();
-  if (title) return title;
-  const host = formatHost(entry.rootUrl);
-  if (host) return host;
-  return label || "Unnamed Tree";
-}
-
-function formatRelativeTime(iso: string | null): string {
-  if (!iso) return "";
-  try {
-    const then = new Date(iso).getTime();
-    if (Number.isNaN(then)) return "";
-    const diffMs = Date.now() - then;
-    if (diffMs < 0) return "just now";
-    const diffMin = Math.floor(diffMs / 60_000);
-    if (diffMin < 1) return "just now";
-    if (diffMin < 60) return `${diffMin} min ago`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr} hr ago`;
-    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(
-      new Date(iso),
-    );
-  } catch {
-    return "";
-  }
-}
+import {
+  displayLabel,
+  formatDate,
+  formatHost,
+  formatNodeCount,
+  formatRelativeTime,
+} from "../shared/format.js";
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9_\-. ]/g, "_").trim() || "trail";
