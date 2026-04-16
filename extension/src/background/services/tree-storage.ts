@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { storage } from "wxt/utils/storage";
 import {
   isTreeStub,
@@ -21,7 +22,7 @@ import {
   treeSavedAtItem,
   archiveBlobKey,
 } from "../../shared/config/storage-items.js";
-import type { Title, Url } from "@shared/types/ids.js";
+import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
 import type { NodeData } from "@shared/types/node.js";
 import { createLogger } from "@shared/lib/logger.js";
 
@@ -53,34 +54,54 @@ const LABEL_MAX = 80;
 // Helpers
 // ---------------------------------------------------------------------------
 
-function normalizeLabel(raw: unknown): string {
-  if (typeof raw !== "string") return DEFAULT_LABEL;
-  const trimmed = raw.trim();
-  return trimmed ? trimmed.slice(0, LABEL_MAX) : DEFAULT_LABEL;
-}
+const labelSchema = z
+  .unknown()
+  .transform((raw) => (typeof raw === "string" ? raw.trim().slice(0, LABEL_MAX) : ""))
+  .transform((s) => s || DEFAULT_LABEL);
 
-function normalizeLabelSource(raw: unknown): TreeLabelSource {
-  if (raw === "user" || raw === "auto" || raw === "system") return raw;
-  return "system";
-}
+const labelSourceSchema = z
+  .unknown()
+  .transform(
+    (raw): TreeLabelSource =>
+      raw === "user" || raw === "auto" || raw === "system" ? raw : "system",
+  );
+
+const finiteNumberOr = (fallback: () => number) =>
+  z
+    .unknown()
+    .transform((raw) => (typeof raw === "number" && Number.isFinite(raw) ? raw : fallback()));
+
+const optionalString = z.unknown().transform((raw) => (typeof raw === "string" ? raw : undefined));
+
+const metaSchema = z
+  .object({
+    id: z.string(),
+    label: labelSchema,
+    labelSource: labelSourceSchema,
+    createdAt: finiteNumberOr(() => Date.now()),
+    labelUpdatedAt: z.unknown(),
+  })
+  .transform(
+    ({ id, label, labelSource, createdAt, labelUpdatedAt }) =>
+      ({
+        id,
+        label,
+        labelSource,
+        createdAt,
+        labelUpdatedAt:
+          typeof labelUpdatedAt === "number" && Number.isFinite(labelUpdatedAt)
+            ? labelUpdatedAt
+            : createdAt,
+      }) satisfies TreeMeta,
+  );
 
 function normalizeMeta(raw: unknown): TreeMeta | null {
-  if (!raw || typeof raw !== "object") return null;
-  const candidate = raw as Partial<TreeMeta>;
-  if (typeof candidate.id !== "string") return null;
-  const createdAt = Number.isFinite(candidate.createdAt)
-    ? (candidate.createdAt as number)
-    : Date.now();
-  const labelUpdatedAt = Number.isFinite(candidate.labelUpdatedAt)
-    ? (candidate.labelUpdatedAt as number)
-    : createdAt;
-  return {
-    id: candidate.id,
-    label: normalizeLabel(candidate.label),
-    labelSource: normalizeLabelSource(candidate.labelSource),
-    labelUpdatedAt,
-    createdAt,
-  } as TreeMeta;
+  const parsed = metaSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+function normalizeLabel(raw: unknown): string {
+  return labelSchema.parse(raw);
 }
 
 function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): TreeSummary {
@@ -97,22 +118,29 @@ function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): Tr
   } as TreeSummary;
 }
 
+const indexEntryExtrasSchema = z.object({
+  savedAt: finiteNumberOr(() => Date.now()),
+  nodeCount: finiteNumberOr(() => 0),
+  rootUrl: optionalString,
+  rootTitle: optionalString,
+  rootFavicon: optionalString,
+  stub: z.unknown().transform((raw) => raw === true),
+});
+
 function normalizeIndexEntry(raw: unknown): ArchiveIndexEntry | null {
-  if (!raw || typeof raw !== "object") return null;
-  const candidate = raw as Partial<ArchiveIndexEntry>;
-  if (typeof candidate.id !== "string") return null;
-  const meta = normalizeMeta(candidate);
+  const meta = normalizeMeta(raw);
   if (!meta) return null;
-  const savedAt = Number.isFinite(candidate.savedAt) ? (candidate.savedAt as number) : Date.now();
-  const nodeCount = Number.isFinite(candidate.nodeCount) ? (candidate.nodeCount as number) : 0;
-  const entry: ArchiveIndexEntry = { ...meta, savedAt, nodeCount };
-  if (typeof candidate.rootUrl === "string") entry.rootUrl = candidate.rootUrl;
-  if (typeof candidate.rootTitle === "string") entry.rootTitle = candidate.rootTitle;
-  if (typeof candidate.rootFavicon === "string") entry.rootFavicon = candidate.rootFavicon;
-  // Preserve stub marker
-  if ("stub" in candidate && (candidate as Partial<TreeStub>).stub === true) {
-    return { ...entry, stub: true as const } satisfies TreeStub;
-  }
+  const extras = indexEntryExtrasSchema.safeParse(raw);
+  if (!extras.success) return null;
+  const entry = {
+    ...meta,
+    savedAt: extras.data.savedAt,
+    nodeCount: extras.data.nodeCount,
+  } as ArchiveIndexEntry;
+  if (extras.data.rootUrl) entry.rootUrl = extras.data.rootUrl as Url;
+  if (extras.data.rootTitle) entry.rootTitle = extras.data.rootTitle as Title;
+  if (extras.data.rootFavicon) entry.rootFavicon = extras.data.rootFavicon as FaviconUrl;
+  if (extras.data.stub) return { ...entry, stub: true as const } satisfies TreeStub;
   return entry;
 }
 
@@ -172,27 +200,29 @@ function toUint8Array(data: unknown): Uint8Array | null {
   return null;
 }
 
+const legacyRecordExtrasSchema = z.object({
+  tree: z.record(z.string(), z.unknown()),
+  savedAt: finiteNumberOr(() => Date.now()),
+  nodeCount: finiteNumberOr(() => 0),
+  rootUrl: optionalString,
+  rootTitle: optionalString,
+  rootFavicon: optionalString,
+});
+
 /** Normalize a legacy TreeRecord stored in the old single-blob format. */
 function normalizeLegacyRecord(raw: unknown): TreeRecord | null {
-  if (!raw || typeof raw !== "object") return null;
-  const candidate = raw as Partial<TreeRecord>;
-  if (typeof candidate.id !== "string") return null;
-  if (!candidate.tree || typeof candidate.tree !== "object") return null;
-  const meta = normalizeMeta(candidate);
+  const meta = normalizeMeta(raw);
   if (!meta) return null;
-  const savedAt = Number.isFinite(candidate.savedAt) ? (candidate.savedAt as number) : Date.now();
-  const nodeCount = Number.isFinite(candidate.nodeCount) ? (candidate.nodeCount as number) : 0;
-  const rootUrl = typeof candidate.rootUrl === "string" ? candidate.rootUrl : undefined;
-  const rootTitle = typeof candidate.rootTitle === "string" ? candidate.rootTitle : undefined;
-  const rootFavicon = typeof candidate.rootFavicon === "string" ? candidate.rootFavicon : undefined;
+  const extras = legacyRecordExtrasSchema.safeParse(raw);
+  if (!extras.success) return null;
   return {
     ...meta,
-    savedAt,
-    nodeCount,
-    rootUrl,
-    rootTitle,
-    rootFavicon,
-    tree: candidate.tree as NavigationTreeJSON,
+    savedAt: extras.data.savedAt,
+    nodeCount: extras.data.nodeCount,
+    rootUrl: extras.data.rootUrl as Url | undefined,
+    rootTitle: extras.data.rootTitle as Title | undefined,
+    rootFavicon: extras.data.rootFavicon as FaviconUrl | undefined,
+    tree: extras.data.tree as unknown as NavigationTreeJSON,
   } as TreeRecord;
 }
 

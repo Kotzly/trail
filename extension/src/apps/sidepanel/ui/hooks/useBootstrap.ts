@@ -1,140 +1,120 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getSettings } from "../../api/settings.js";
 import { getFlags } from "../../api/flags.js";
 import { getTreeState, getTrees } from "../../api/tree.js";
-import { getCommandState } from "../../api/commands.js";
 import { isMac } from "@shared/utils/platform.js";
 import { useStore, type MetaKeyPair } from "../state/store.js";
 
 export type BootstrapStatus = "loading" | "degraded" | "ready";
 
 const BOOTSTRAP_TIMEOUT_MS = 10_000;
+const AUTO_RETRY_DELAY_MS = 5_000;
+
+function withTimeout<T>(promise: Promise<T>): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Bootstrap timed out")), BOOTSTRAP_TIMEOUT_MS),
+    ),
+  ]);
+}
 
 export function useBootstrap(): {
   bootstrapStatus: BootstrapStatus;
   retryBootstrap: () => void;
 } {
-  const bootstrapGraph = useStore((state) => state.bootstrapGraph);
-  const setPlatformMeta = useStore((state) => state.setPlatformMeta);
-  const setCommandState = useStore((state) => state.setCommandState);
-  const setEditorMode = useStore((state) => state.setEditorMode);
-  const setSettings = useStore((state) => state.setSettings);
-  const setFlags = useStore((state) => state.setFlags);
-  const setTrees = useStore((state) => state.setTrees);
+  const bootstrapGraph = useStore((s) => s.bootstrapGraph);
+  const setPlatformMeta = useStore((s) => s.setPlatformMeta);
+  const setEditorMode = useStore((s) => s.setEditorMode);
+  const setSettings = useStore((s) => s.setSettings);
+  const setFlags = useStore((s) => s.setFlags);
+  const setTrees = useStore((s) => s.setTrees);
 
-  const [bootstrapStatus, setBootstrapStatus] = useState<BootstrapStatus>("loading");
-  const [retryCount, setRetryCount] = useState(0);
-  const autoRetryScheduled = useRef(false);
-  const autoRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const bootstrapInFlight = useRef(false);
+  // Critical path: retry once after 5s, then surface as degraded.
+  const settingsQ = useQuery({
+    queryKey: ["bootstrap", "settings"],
+    queryFn: () => withTimeout(getSettings()),
+    staleTime: Infinity,
+    retry: 1,
+    retryDelay: AUTO_RETRY_DELAY_MS,
+  });
+  const treeStateQ = useQuery({
+    queryKey: ["bootstrap", "treeState"],
+    queryFn: () => withTimeout(getTreeState()),
+    staleTime: Infinity,
+    retry: 1,
+    retryDelay: AUTO_RETRY_DELAY_MS,
+  });
+  const flagsQ = useQuery({
+    queryKey: ["bootstrap", "flags"],
+    queryFn: () => withTimeout(getFlags()),
+    staleTime: Infinity,
+    retry: 1,
+    retryDelay: AUTO_RETRY_DELAY_MS,
+  });
 
-  const retryBootstrap = useCallback(() => {
-    setBootstrapStatus("loading");
-    setRetryCount((c) => c + 1);
-  }, []);
+  const bootstrapStatus: BootstrapStatus =
+    settingsQ.isError || treeStateQ.isError || flagsQ.isError
+      ? "degraded"
+      : settingsQ.data && treeStateQ.data && flagsQ.data
+        ? "ready"
+        : "loading";
 
+  // Bridge critical data into the zustand store once loaded.
   useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      if (bootstrapInFlight.current) return;
-      bootstrapInFlight.current = true;
-
-      // ---- Critical path: settings + tree only ----
-      try {
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Bootstrap timed out")), BOOTSTRAP_TIMEOUT_MS),
-        );
-        const [settings, treeState, flags] = await Promise.race([
-          Promise.all([getSettings(), getTreeState(), getFlags()]),
-          timeout,
-        ]);
-        if (!mounted) return;
-
-        bootstrapGraph(settings, treeState);
-        setFlags(flags);
-        setSettings(settings);
-        // Theme class is driven by next-themes via useThemeSync().
-
-        // Restore editor mode if it was active before the sidepanel was closed
-        if (treeState.editorMode?.active) {
-          setEditorMode(treeState.editorMode);
-        }
-
-        setBootstrapStatus("ready");
-      } catch (error) {
-        console.error("[bootstrap] Critical fetch failed:", error);
-
-        if (!mounted) {
-          bootstrapInFlight.current = false;
-          return;
-        }
-
-        // First failure (retryCount === 0 and no auto-retry yet): schedule auto-retry after 5s
-        if (retryCount === 0 && !autoRetryScheduled.current) {
-          autoRetryScheduled.current = true;
-          autoRetryTimer.current = setTimeout(() => {
-            if (mounted) {
-              setRetryCount(1);
-            }
-          }, 5000);
-          bootstrapInFlight.current = false;
-          return;
-        }
-
-        // Second or later failure: show degraded state
-        setBootstrapStatus("degraded");
-        bootstrapInFlight.current = false;
-        return;
-      }
-
-      // ---- Deferred: non-blocking fetches after first paint ----
-      if (!mounted) return;
-
-      // Fire all deferred fetches in parallel, each with independent error handling
-      const deferredPromises = [
-        getTrees()
-          .then((snapshot) => {
-            if (mounted) setTrees(snapshot);
-          })
-          .catch((e) => console.warn("[bootstrap] trees fetch failed:", e)),
-        isMac()
-          .then((isMacValue) => {
-            if (!mounted) return;
-            const metaKey: MetaKeyPair = isMacValue
-              ? { short: "\u2318", long: "cmd" }
-              : { short: "^", long: "ctrl" };
-            setPlatformMeta(metaKey, isMacValue);
-          })
-          .catch((e) => console.warn("[bootstrap] platform meta failed:", e)),
-        getCommandState()
-          .then((state) => {
-            if (mounted) setCommandState(state);
-          })
-          .catch((e) => console.warn("[bootstrap] commandState fetch failed:", e)),
-      ];
-      await Promise.allSettled(deferredPromises);
-      bootstrapInFlight.current = false;
-    })();
-
-    return () => {
-      mounted = false;
-      bootstrapInFlight.current = false;
-      if (autoRetryTimer.current !== null) {
-        clearTimeout(autoRetryTimer.current);
-        autoRetryTimer.current = null;
-      }
-    };
+    if (settingsQ.data && treeStateQ.data && flagsQ.data) {
+      bootstrapGraph(settingsQ.data, treeStateQ.data);
+      setFlags(flagsQ.data);
+      setSettings(settingsQ.data);
+      if (treeStateQ.data.editorMode?.active) setEditorMode(treeStateQ.data.editorMode);
+    }
   }, [
-    retryCount,
+    settingsQ.data,
+    treeStateQ.data,
+    flagsQ.data,
     bootstrapGraph,
-    setPlatformMeta,
-    setCommandState,
-    setEditorMode,
     setFlags,
     setSettings,
-    setTrees,
+    setEditorMode,
   ]);
+
+  // Deferred: non-blocking fetches after the critical path is ready.
+  const enabled = bootstrapStatus === "ready";
+
+  const treesQ = useQuery({
+    queryKey: ["bootstrap", "trees"],
+    queryFn: getTrees,
+    enabled,
+    staleTime: 30_000,
+  });
+  const platformQ = useQuery({
+    queryKey: ["bootstrap", "platform"],
+    queryFn: isMac,
+    enabled,
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (treesQ.data) setTrees(treesQ.data);
+  }, [treesQ.data, setTrees]);
+
+  useEffect(() => {
+    if (platformQ.data === undefined) return;
+    const metaKey: MetaKeyPair = platformQ.data
+      ? { short: "\u2318", long: "cmd" }
+      : { short: "^", long: "ctrl" };
+    setPlatformMeta(metaKey, platformQ.data);
+  }, [platformQ.data, setPlatformMeta]);
+
+  // CommandState is no longer fetched here — it arrives as part of every
+  // TREE_UPDATED message (see useRuntimeMessages).
+
+  const retryBootstrap = useCallback(() => {
+    void settingsQ.refetch();
+    void treeStateQ.refetch();
+    void flagsQ.refetch();
+  }, [settingsQ, treeStateQ, flagsQ]);
 
   return { bootstrapStatus, retryBootstrap };
 }
