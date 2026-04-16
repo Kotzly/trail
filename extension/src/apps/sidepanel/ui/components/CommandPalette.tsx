@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -21,7 +21,13 @@ type NodeEntry = {
   favicon?: string;
 };
 
-const MAX_RESULTS = 40;
+/**
+ * Hard cap on nodes passed to cmdk. cmdk filters client-side and renders
+ * all matches, so for huge trees we'd overwhelm the DOM. 2000 covers the
+ * vast majority of real trees and the first match for any query is always
+ * within this window thanks to the depth-first tree.iter() order.
+ */
+const NODE_CAP = 2000;
 
 export default function CommandPalette() {
   const open = useStore((s) => s.commandPalette.open);
@@ -29,9 +35,11 @@ export default function CommandPalette() {
   const tree = useStore((s) => s.tree);
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    if (!open) setQuery("");
-  }, [open]);
+  // Close handler resets query directly — no useEffect-as-state-reset.
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setQuery("");
+    setOpen(next);
+  };
 
   const nodes: NodeEntry[] = useMemo(() => {
     if (!tree) return [];
@@ -43,37 +51,35 @@ export default function CommandPalette() {
         url: String(node.data.url ?? ""),
         favicon: node.data.favicon ? String(node.data.favicon) : undefined,
       });
-      if (result.length >= 2000) break; // guard for massive trees; filter happens in cmdk
+      if (result.length >= NODE_CAP) break;
     }
     return result;
   }, [tree]);
 
   const handleNavigate = (entry: NodeEntry) => {
-    setOpen(false);
+    handleOpenChange(false);
     void navigateToNodeId(entry.id, entry.url as Url);
   };
 
   const handleOpenInNewTab = (entry: NodeEntry) => {
-    setOpen(false);
+    handleOpenChange(false);
     browser.tabs.create({ url: entry.url, active: true }).catch((error) => {
       console.error("Failed to open in new tab:", error);
     });
   };
 
   const openSettings = () => {
-    setOpen(false);
+    handleOpenChange(false);
     const url = chrome.runtime.getURL("settings.html");
     browser.tabs.create({ url, active: true }).catch((error) => {
       console.error("Failed to open settings:", error);
     });
   };
 
-  const visible = nodes.slice(0, MAX_RESULTS);
-
   return (
     <CommandDialog
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={handleOpenChange}
       title="Search Trail"
       description="Search nodes, jump between trees, or run commands"
     >
@@ -84,9 +90,9 @@ export default function CommandPalette() {
       />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
-        {visible.length > 0 && (
+        {nodes.length > 0 && (
           <CommandGroup heading="Nodes">
-            {visible.map((entry) => (
+            {nodes.map((entry) => (
               <CommandItem
                 key={entry.id}
                 value={`${entry.title} ${entry.url}`}
@@ -121,11 +127,11 @@ export default function CommandPalette() {
             <Icons.Settings className="size-3.5" />
             Open settings
           </CommandItem>
-          {visible[0] && (
+          {nodes[0] && (
             <CommandItem
               value="open first result in new tab"
               onSelect={() => {
-                const first = visible[0];
+                const first = nodes[0];
                 if (first) handleOpenInNewTab(first);
               }}
             >

@@ -397,5 +397,10 @@ export function useShortcuts(): void {
     return () => {
       document.removeEventListener("keydown", onKeyDown);
     };
+    // Intentional empty-deps: `onKeyDown` reads live state via
+    // `useStore.getState()` on every keypress instead of subscribing to
+    // the store. This attaches the global listener exactly once for the
+    // sidepanel's lifetime. Do not add hook-sourced dependencies — route
+    // new needs through `useStore.getState()` inside `onKeyDown`.
   }, []);
 }

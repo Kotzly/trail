@@ -188,7 +188,6 @@ export default function OnboardingWizard() {
 
   const current = STEPS[step] ?? STEPS[0]!;
   const progress = Math.round(((step + 1) / STEPS.length) * 100);
-  const isLast = step === STEPS.length - 1;
 
   const runPrimary = useCallback(async () => {
     if (busy) return;
@@ -274,7 +273,7 @@ export default function OnboardingWizard() {
             <span />
           )}
           <Button
-            variant={isLast ? "default" : "default"}
+            variant="default"
             size="sm"
             type="button"
             disabled={busy}
