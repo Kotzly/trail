@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   createNewTree,
   deleteArchivedTree,
@@ -49,6 +49,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@ui/components/ui/dialog";
+import {
+  displayLabel,
+  formatDate,
+  formatHost,
+  formatNodeCount,
+  formatRelativeTime,
+} from "../shared/format.js";
 
 type TreeItem = {
   id: string;
@@ -60,14 +67,6 @@ type TreeItem = {
   savedAt?: number;
   stub?: boolean;
 };
-
-import {
-  displayLabel,
-  formatDate,
-  formatHost,
-  formatNodeCount,
-  formatRelativeTime,
-} from "../shared/format.js";
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9_\-. ]/g, "_").trim() || "trail";
@@ -99,8 +98,6 @@ export default function TreeDropdown() {
 
   useOverlayEffects(treesOpen, { kind: "dropdown" });
 
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
   const activeTree = trees.active
     ? ({
         id: trees.active.id,
@@ -130,91 +127,82 @@ export default function TreeDropdown() {
   }, [trees.archived]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
-  const editing = editingId !== null;
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [labelDraft, setLabelDraft] = useState("");
-  const [renamePending, setRenamePending] = useState(false);
   const [deletePending, setDeletePending] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
   const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
   const [unavailableTreeIds, setUnavailableTreeIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => {
-    if (!treesOpen) {
-      setEditingId(null);
-      setDraft("");
-    }
-  }, [treesOpen]);
 
-  useEffect(() => {
-    if (!editing) return;
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, [editing]);
+  const handlePopoverOpenChange = useCallback(
+    (open: boolean) => {
+      setTreesOpen(open);
+      if (!open) setEditingId(null);
+    },
+    [setTreesOpen],
+  );
 
-  const startEdit = (tree: TreeItem) => {
-    setEditingId(tree.id);
-    setDraft(tree.label);
-  };
+  const handleStartEdit = useCallback((id: string) => {
+    setEditingId(id);
+  }, []);
 
-  const commitEdit = async () => {
-    if (!editingId) return;
-    if (renamePending) return;
-    const nextLabel = draft.trim() || "Unnamed Tree";
+  const handleCommitRename = useCallback(async (treeId: string, nextLabel: string) => {
     try {
-      setRenamePending(true);
-      await renameTree(editingId, nextLabel);
+      await renameTree(treeId, nextLabel);
     } catch (error) {
       showOperationError("Rename", error);
     } finally {
-      setRenamePending(false);
       setEditingId(null);
-      setDraft("");
     }
-  };
+  }, []);
 
-  const cancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingId(null);
-    setDraft("");
-  };
+  }, []);
 
-  const handleOpen = async (tree: TreeItem) => {
-    if (tree.stub) {
-      setLoadingTreeId(tree.id);
-      try {
-        await ensureTreeLoaded(tree.id);
-      } catch (loadError) {
-        showOperationError("Load tree from cloud", loadError);
-        setUnavailableTreeIds((prev) => new Set(prev).add(tree.id));
-        setLoadingTreeId(null);
-        return;
+  const handleOpen = useCallback(
+    async (tree: TreeItem) => {
+      if (tree.stub) {
+        setLoadingTreeId(tree.id);
+        try {
+          await ensureTreeLoaded(tree.id);
+        } catch (loadError) {
+          showOperationError("Load tree from cloud", loadError);
+          setUnavailableTreeIds((prev) => new Set(prev).add(tree.id));
+          setLoadingTreeId(null);
+          return;
+        }
       }
-    }
-    try {
-      await openTree(tree.id);
-    } catch (openError) {
-      showOperationError("Open tree", openError);
-    } finally {
-      setLoadingTreeId(null);
-      setTreesOpen(false);
-    }
-  };
+      try {
+        await openTree(tree.id);
+      } catch (openError) {
+        showOperationError("Open tree", openError);
+      } finally {
+        setLoadingTreeId(null);
+        setTreesOpen(false);
+      }
+    },
+    [setTreesOpen],
+  );
 
-  const handleDeleteArchived = async (treeId: string) => {
-    if (deletePending === treeId) return;
-    try {
-      setDeletePending(treeId);
-      await deleteArchivedTree(treeId);
-    } catch (error) {
-      showOperationError("Delete tree", error);
-    } finally {
-      setDeletePending(null);
-    }
-  };
+  const handleDeleteArchived = useCallback(
+    async (treeId: string) => {
+      if (deletePending === treeId) return;
+      try {
+        setDeletePending(treeId);
+        await deleteArchivedTree(treeId);
+      } catch (error) {
+        showOperationError("Delete tree", error);
+      } finally {
+        setDeletePending(null);
+      }
+    },
+    [deletePending],
+  );
 
-  const handleExport = async (treeId?: string) => {
+  const handleExport = useCallback(async (treeId?: string) => {
     try {
       const bundle = await exportTree(treeId);
       downloadBundle(bundle);
@@ -222,9 +210,9 @@ export default function TreeDropdown() {
     } catch (error) {
       showOperationError("Export", error);
     }
-  };
+  }, []);
 
-  const openTrailEditor = async (treeId: string) => {
+  const openTrailEditor = useCallback(async (treeId: string) => {
     try {
       await initBackendConfig();
       const baseUrl = getBackendConfig().baseUrl;
@@ -232,9 +220,9 @@ export default function TreeDropdown() {
     } catch (error) {
       showOperationError("Open editor", error);
     }
-  };
+  }, []);
 
-  const handleNewTree = async () => {
+  const handleNewTree = useCallback(async () => {
     try {
       const label = labelDraft.trim() || "Unnamed Tree";
       setCreating(true);
@@ -244,33 +232,37 @@ export default function TreeDropdown() {
     } finally {
       setCreating(false);
     }
-  };
+  }, [labelDraft]);
 
-  const handleImportFile = async (file: File) => {
-    try {
-      setImporting(true);
-      const text = await file.text();
-      const bundle = JSON.parse(text) as TrailExportBundle;
-      if (bundle.schema !== EXPORT_SCHEMA) {
-        toast.error("Unsupported file format");
-        return;
+  const handleImportFile = useCallback(
+    async (file: File) => {
+      try {
+        setImporting(true);
+        const text = await file.text();
+        const bundle = JSON.parse(text) as TrailExportBundle;
+        if (bundle.schema !== EXPORT_SCHEMA) {
+          toast.error("Unsupported file format");
+          return;
+        }
+        await importTrail(bundle);
+        setTreesOpen(false);
+        toast.success("Trail imported");
+      } catch (error) {
+        showOperationError("Import", error);
+      } finally {
+        setImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
-      await importTrail(bundle);
-      setTreesOpen(false);
-      toast.success("Trail imported");
-    } catch (error) {
-      showOperationError("Import", error);
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
+    },
+    [setTreesOpen],
+  );
 
   const treesTooltip = `Saved trees (${treesShortcut})`;
+  const totalCount = archivedTrees.length + (activeTree ? 1 : 0);
 
   return (
     <>
-      <Popover open={treesOpen} onOpenChange={setTreesOpen}>
+      <Popover open={treesOpen} onOpenChange={handlePopoverOpenChange}>
         <PopoverTrigger asChild>
           <Button
             id="treesBtn"
@@ -287,8 +279,7 @@ export default function TreeDropdown() {
           <CardHeader className="px-3 py-2.5">
             <CardTitle className="text-[13px]">Trees</CardTitle>
             <CardDescription className="text-[11px]">
-              {archivedTrees.length + (activeTree ? 1 : 0)}{" "}
-              {archivedTrees.length + (activeTree ? 1 : 0) === 1 ? "tree" : "trees"}
+              {totalCount} {totalCount === 1 ? "tree" : "trees"}
             </CardDescription>
             <CardAction className="flex items-center gap-0.5">
               <input
@@ -337,61 +328,34 @@ export default function TreeDropdown() {
             ) : (
               <ItemGroup className="p-1">
                 {activeTree && (
-                  <TreeRow
+                  <ActiveTreeRow
                     tree={activeTree}
-                    active
                     isEditing={editingId === activeTree.id}
-                    draft={draft}
-                    inputRef={inputRef}
-                    meta={[
-                      formatNodeCount(activeTree.nodeCount),
-                      lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : "active now",
-                    ]
-                      .filter(Boolean)
-                      .join(" \u00b7 ")}
-                    onStartEdit={() => startEdit(activeTree)}
-                    onDraftChange={setDraft}
-                    onCommitEdit={commitEdit}
-                    onCancelEdit={cancelEdit}
-                    onExport={() => void handleExport()}
-                    onOpenEditor={() => void openTrailEditor(activeTree.id)}
+                    syncedAt={lastSyncedAt}
+                    onStartEdit={handleStartEdit}
+                    onCommitRename={handleCommitRename}
+                    onCancelEdit={handleCancelEdit}
+                    onExport={handleExport}
+                    onOpenEditor={openTrailEditor}
                   />
                 )}
-                {archivedTrees.map((tree) => {
-                  const isLoading = loadingTreeId === tree.id;
-                  const isUnavailable = unavailableTreeIds.has(tree.id);
-                  const host = formatHost(tree.rootUrl);
-                  const meta = [
-                    tree.stub ? (isUnavailable ? "unavailable" : "cloud") : null,
-                    host,
-                    formatNodeCount(tree.nodeCount),
-                    formatDate(tree.savedAt),
-                  ]
-                    .filter(Boolean)
-                    .join(" \u00b7 ");
-
-                  return (
-                    <TreeRow
-                      key={tree.id}
-                      tree={tree}
-                      loading={isLoading}
-                      unavailable={isUnavailable}
-                      isEditing={editingId === tree.id}
-                      draft={draft}
-                      inputRef={inputRef}
-                      meta={meta}
-                      onOpen={() => void handleOpen(tree)}
-                      onStartEdit={() => startEdit(tree)}
-                      onDraftChange={setDraft}
-                      onCommitEdit={commitEdit}
-                      onCancelEdit={cancelEdit}
-                      onExport={() => void handleExport(tree.id)}
-                      onOpenEditor={() => void openTrailEditor(tree.id)}
-                      onDelete={() => void handleDeleteArchived(tree.id)}
-                      deleting={deletePending === tree.id}
-                    />
-                  );
-                })}
+                {archivedTrees.map((tree) => (
+                  <ArchivedTreeRow
+                    key={tree.id}
+                    tree={tree}
+                    isEditing={editingId === tree.id}
+                    loading={loadingTreeId === tree.id}
+                    unavailable={unavailableTreeIds.has(tree.id)}
+                    deleting={deletePending === tree.id}
+                    onStartEdit={handleStartEdit}
+                    onCommitRename={handleCommitRename}
+                    onCancelEdit={handleCancelEdit}
+                    onOpen={handleOpen}
+                    onExport={handleExport}
+                    onOpenEditor={openTrailEditor}
+                    onDelete={handleDeleteArchived}
+                  />
+                ))}
               </ItemGroup>
             )}
           </ScrollArea>
@@ -417,160 +381,268 @@ export default function TreeDropdown() {
   );
 }
 
-type TreeRowProps = {
+/* ─── Explicit variant: ActiveTreeRow ────────────────────────────── */
+
+type ActiveTreeRowProps = {
   tree: TreeItem;
-  active?: boolean;
-  loading?: boolean;
-  unavailable?: boolean;
   isEditing: boolean;
-  draft: string;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  meta: string;
-  onOpen?: () => void;
-  onStartEdit: () => void;
-  onDraftChange: (v: string) => void;
-  onCommitEdit: () => void | Promise<void>;
+  syncedAt: string | null;
+  onStartEdit: (id: string) => void;
+  onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
   onCancelEdit: () => void;
-  onExport: () => void;
-  onOpenEditor: () => void;
-  onDelete?: () => void;
-  deleting?: boolean;
+  onExport: (treeId?: string) => void;
+  onOpenEditor: (treeId: string) => void;
 };
 
-/**
- * One flat shadcn-style row. Same layout for the active tree and each
- * archived tree — the active row just carries `bg-accent` and lives at
- * the top of the list.
- */
-function TreeRow({
+const ActiveTreeRow = memo(function ActiveTreeRow({
   tree,
-  active,
-  loading,
-  unavailable,
   isEditing,
-  draft,
-  inputRef,
-  meta,
-  onOpen,
+  syncedAt,
   onStartEdit,
-  onDraftChange,
-  onCommitEdit,
+  onCommitRename,
   onCancelEdit,
   onExport,
   onOpenEditor,
-  onDelete,
+}: ActiveTreeRowProps) {
+  const meta = [
+    formatNodeCount(tree.nodeCount),
+    syncedAt ? `synced ${formatRelativeTime(syncedAt)}` : "active now",
+  ]
+    .filter(Boolean)
+    .join(" \u00b7 ");
+
+  return (
+    <Item variant="muted" size="xs" className="border-transparent">
+      <ItemMedia variant="icon">
+        <TreeFavicon tree={tree} />
+      </ItemMedia>
+      <RowBody
+        tree={tree}
+        isEditing={isEditing}
+        meta={meta}
+        onStartEdit={onStartEdit}
+        onCommitRename={onCommitRename}
+        onCancelEdit={onCancelEdit}
+      />
+      {!isEditing && (
+        <ItemActions className="gap-0.5">
+          <IconAction label="Export tree" icon={<Icons.Download />} onClick={() => onExport()} />
+          <IconAction
+            label="Open in editor"
+            icon={<Icons.Pencil />}
+            onClick={() => onOpenEditor(tree.id)}
+          />
+        </ItemActions>
+      )}
+    </Item>
+  );
+});
+
+/* ─── Explicit variant: ArchivedTreeRow ──────────────────────────── */
+
+type ArchivedTreeRowProps = {
+  tree: TreeItem;
+  isEditing: boolean;
+  loading: boolean;
+  unavailable: boolean;
+  deleting: boolean;
+  onStartEdit: (id: string) => void;
+  onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
+  onCancelEdit: () => void;
+  onOpen: (tree: TreeItem) => void;
+  onExport: (treeId: string) => void;
+  onOpenEditor: (treeId: string) => void;
+  onDelete: (treeId: string) => void;
+};
+
+const ArchivedTreeRow = memo(function ArchivedTreeRow({
+  tree,
+  isEditing,
+  loading,
+  unavailable,
   deleting,
-}: TreeRowProps) {
-  const clickable = !active && !loading && !unavailable && Boolean(onOpen);
+  onStartEdit,
+  onCommitRename,
+  onCancelEdit,
+  onOpen,
+  onExport,
+  onOpenEditor,
+  onDelete,
+}: ArchivedTreeRowProps) {
+  const clickable = !loading && !unavailable && !isEditing;
+  const meta = [
+    tree.stub ? (unavailable ? "unavailable" : "cloud") : null,
+    formatHost(tree.rootUrl),
+    formatNodeCount(tree.nodeCount),
+    formatDate(tree.savedAt),
+  ]
+    .filter(Boolean)
+    .join(" \u00b7 ");
+
   return (
     <Item
-      variant={active ? "muted" : "default"}
+      variant="default"
       size="xs"
       className={cn(
         "group/row border-transparent",
-        !active && "hover:bg-accent",
-        clickable && "cursor-pointer",
+        clickable && "hover:bg-accent cursor-pointer",
         loading && "pointer-events-none opacity-60",
         unavailable && "opacity-50",
       )}
-      onClick={() => clickable && onOpen?.()}
+      onClick={clickable ? () => onOpen(tree) : undefined}
     >
       <ItemMedia variant="icon">
         <TreeFavicon tree={tree} loading={loading} unavailable={unavailable} />
       </ItemMedia>
-
-      <ItemContent>
-        {isEditing ? (
-          <Input
-            ref={inputRef}
-            className="h-6 px-1.5 text-[13px]"
-            value={draft}
-            onChange={(e) => onDraftChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void onCommitEdit();
-              }
-              if (e.key === "Escape") {
-                e.preventDefault();
-                onCancelEdit();
-              }
-            }}
-            onBlur={() => void onCommitEdit()}
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <ItemTitle
-            className="cursor-text text-[13px]"
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              onStartEdit();
-            }}
-          >
-            {displayLabel({
-              label: tree.label,
-              ...(tree.rootTitle ? { rootTitle: tree.rootTitle } : {}),
-              ...(tree.rootUrl ? { rootUrl: tree.rootUrl } : {}),
-            })}
-          </ItemTitle>
-        )}
-        {meta ? <ItemDescription className="text-[11px]">{meta}</ItemDescription> : null}
-      </ItemContent>
-
+      <RowBody
+        tree={tree}
+        isEditing={isEditing}
+        meta={meta}
+        onStartEdit={onStartEdit}
+        onCommitRename={onCommitRename}
+        onCancelEdit={onCancelEdit}
+      />
       {!isEditing && !loading && (
-        <ItemActions
-          className={cn(
-            "gap-0.5 transition-opacity",
-            active ? "opacity-100" : "opacity-0 group-hover/row:opacity-100",
-          )}
-        >
+        <ItemActions className="gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
           {!tree.stub && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              type="button"
-              aria-label="Export tree"
-              data-tooltip="Export tree"
-              onClick={(e) => {
-                e.stopPropagation();
-                onExport();
-              }}
-            >
-              <Icons.Download />
-            </Button>
+            <IconAction
+              label="Export tree"
+              icon={<Icons.Download />}
+              onClick={() => onExport(tree.id)}
+            />
           )}
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            type="button"
-            aria-label="Open in editor"
-            data-tooltip="Open in editor"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenEditor();
-            }}
-          >
-            <Icons.Pencil />
-          </Button>
-          {onDelete && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              type="button"
-              aria-label="Delete tree"
-              data-tooltip="Delete tree"
-              disabled={deleting}
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-            >
-              <Icons.Trash2 />
-            </Button>
-          )}
+          <IconAction
+            label="Open in editor"
+            icon={<Icons.Pencil />}
+            onClick={() => onOpenEditor(tree.id)}
+          />
+          <IconAction
+            label="Delete tree"
+            icon={<Icons.Trash2 />}
+            disabled={deleting}
+            onClick={() => onDelete(tree.id)}
+          />
         </ItemActions>
       )}
     </Item>
+  );
+});
+
+/* ─── Shared row body + primitives ───────────────────────────────── */
+
+type RowBodyProps = {
+  tree: TreeItem;
+  isEditing: boolean;
+  meta: string;
+  onStartEdit: (id: string) => void;
+  onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
+  onCancelEdit: () => void;
+};
+
+function RowBody({
+  tree,
+  isEditing,
+  meta,
+  onStartEdit,
+  onCommitRename,
+  onCancelEdit,
+}: RowBodyProps) {
+  return (
+    <ItemContent>
+      {isEditing ? (
+        <RenameField
+          initial={tree.label}
+          onCommit={(next) => void onCommitRename(tree.id, next)}
+          onCancel={onCancelEdit}
+        />
+      ) : (
+        <ItemTitle
+          className="cursor-text text-[13px]"
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            onStartEdit(tree.id);
+          }}
+        >
+          {displayLabel({
+            label: tree.label,
+            ...(tree.rootTitle ? { rootTitle: tree.rootTitle } : {}),
+            ...(tree.rootUrl ? { rootUrl: tree.rootUrl } : {}),
+          })}
+        </ItemTitle>
+      )}
+      {meta ? <ItemDescription className="text-[11px]">{meta}</ItemDescription> : null}
+    </ItemContent>
+  );
+}
+
+/**
+ * Inline rename input. Owns its own draft state — mounting when the
+ * parent flips `isEditing` to true keeps the draft isolated from sibling
+ * rows so typing in one row never re-renders the others.
+ */
+function RenameField({
+  initial,
+  onCommit,
+  onCancel,
+}: {
+  initial: string;
+  onCommit: (next: string) => void;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState(initial);
+  const submit = () => {
+    const trimmed = draft.trim() || "Unnamed Tree";
+    onCommit(trimmed);
+  };
+  return (
+    <Input
+      autoFocus
+      className="h-6 px-1.5 text-[13px]"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          submit();
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
+      onBlur={submit}
+      onClick={(e) => e.stopPropagation()}
+      onFocus={(e) => e.currentTarget.select()}
+    />
+  );
+}
+
+function IconAction({
+  label,
+  icon,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon-xs"
+      type="button"
+      aria-label={label}
+      data-tooltip={label}
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      {icon}
+    </Button>
   );
 }
 

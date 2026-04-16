@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
+import type { NavigationNode, NodeData } from "@shared/types/node.js";
+import type { TreeNode } from "@background/state/tree-node.js";
 import type { NodeId } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import { navigateTo } from "../../api/tree.js";
@@ -28,6 +30,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popov
 import { ScrollArea } from "@ui/components/ui/scroll-area";
 import { Separator } from "@ui/components/ui/separator";
 
+type NavNode = TreeNode<NodeData> | NavigationNode;
+
 export default function PinnedDropdown() {
   const pins = useStore((state) => state.pins);
   const tree = useStore((state) => state.tree);
@@ -43,16 +47,19 @@ export default function PinnedDropdown() {
     return Array.from(pins.pinned);
   }, [pins]);
 
-  const handleNavigate = async (nodeId: NodeId) => {
-    const node = tree?.findNodeById(nodeId);
-    if (!node) return;
-    try {
-      await navigateTo(node);
-      setPinnedOpen(false);
-    } catch (error) {
-      showOperationError("Open page", error);
-    }
-  };
+  const handleNavigate = useCallback(
+    async (nodeId: NodeId) => {
+      const node = tree?.findNodeById(nodeId);
+      if (!node) return;
+      try {
+        await navigateTo(node);
+        setPinnedOpen(false);
+      } catch (error) {
+        showOperationError("Open page", error);
+      }
+    },
+    [tree, setPinnedOpen],
+  );
 
   return (
     <Popover open={pinnedOpen} onOpenChange={setPinnedOpen}>
@@ -98,42 +105,10 @@ export default function PinnedDropdown() {
               </EmptyHeader>
             </Empty>
           ) : (
-            <ItemGroup className="gap-0.5 p-1" id="pinnedList">
-              {pinnedNodes.map((node) => {
-                const title = displayLabel({
-                  title: node.data.title ?? null,
-                  url: node.data.url ?? null,
-                });
-                const host = formatHost(node.data.url);
-                return (
-                  <Item
-                    key={node.id}
-                    variant="default"
-                    size="xs"
-                    className="hover:bg-accent cursor-pointer border-transparent"
-                    data-node-id={node.id}
-                    onClick={() => void handleNavigate(node.id as NodeId)}
-                  >
-                    <ItemMedia variant="icon">
-                      {node.data.url ? (
-                        <img
-                          className="size-4 rounded-sm"
-                          alt=""
-                          src={getFaviconUrl(node.data.url)}
-                        />
-                      ) : (
-                        <Icons.Pin className="text-muted-foreground size-4" />
-                      )}
-                    </ItemMedia>
-                    <ItemContent>
-                      <ItemTitle className="text-[13px]">{title}</ItemTitle>
-                      {host && host !== title ? (
-                        <ItemDescription className="text-[11px]">{host}</ItemDescription>
-                      ) : null}
-                    </ItemContent>
-                  </Item>
-                );
-              })}
+            <ItemGroup className="p-1" id="pinnedList">
+              {pinnedNodes.map((node) => (
+                <PinnedRow key={node.id} node={node} onNavigate={handleNavigate} />
+              ))}
             </ItemGroup>
           )}
         </ScrollArea>
@@ -141,3 +116,46 @@ export default function PinnedDropdown() {
     </Popover>
   );
 }
+
+/**
+ * Memoized row — re-renders only when its own node identity changes. Any
+ * pin/unpin elsewhere in the list (or any unrelated parent state update)
+ * leaves existing rows untouched.
+ */
+const PinnedRow = memo(function PinnedRow({
+  node,
+  onNavigate,
+}: {
+  node: NavNode;
+  onNavigate: (id: NodeId) => void | Promise<void>;
+}) {
+  const title = displayLabel({
+    title: node.data.title ?? null,
+    url: node.data.url ?? null,
+  });
+  const host = formatHost(node.data.url);
+
+  return (
+    <Item
+      variant="default"
+      size="xs"
+      className="hover:bg-accent cursor-pointer border-transparent"
+      data-node-id={node.id}
+      onClick={() => void onNavigate(node.id as NodeId)}
+    >
+      <ItemMedia variant="icon">
+        {node.data.url ? (
+          <img className="size-4 rounded-sm" alt="" src={getFaviconUrl(node.data.url)} />
+        ) : (
+          <Icons.Pin className="text-muted-foreground size-4" />
+        )}
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle className="text-[13px]">{title}</ItemTitle>
+        {host && host !== title ? (
+          <ItemDescription className="text-[11px]">{host}</ItemDescription>
+        ) : null}
+      </ItemContent>
+    </Item>
+  );
+});

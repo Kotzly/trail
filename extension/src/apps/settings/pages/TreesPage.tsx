@@ -37,15 +37,21 @@ import {
   AlertDialogTrigger,
 } from "@ui/components/ui/alert-dialog";
 import { HugeiconsIcon } from "@hugeicons/react";
+// Named imports from the barrel: the `bundle-barrel-imports` rule warns
+// about the ~800ms cold-start hit in webpack. Vite/esbuild pre-bundles
+// this exact shape automatically (see `optimizeDeps`) and tree-shakes
+// the production build, so named imports are the safe + TypeScript-
+// friendly choice here (deep paths like `@hugeicons/core-free-icons/X`
+// exist but don't ship .d.ts files — see the rule's TS warning).
 import {
   Archive02Icon,
   BookmarkIcon,
-  ListTreeIcon,
-  PlusSignIcon,
   Delete02Icon,
-  PencilEdit02Icon,
   Download04Icon,
   Folder01Icon,
+  ListTreeIcon,
+  PencilEdit02Icon,
+  PlusSignIcon,
 } from "@hugeicons/core-free-icons";
 
 export function TreesPage() {

@@ -122,7 +122,8 @@ export default function FloatingControls() {
             type="button"
             aria-label={searchTooltip}
             data-tooltip={searchTooltip}
-            onClick={() => setCommandPaletteOpen(true)}
+            onPointerDown={handleSearchPointerDown}
+            onClick={handleSearchClick}
           >
             <Icons.Search />
           </Button>

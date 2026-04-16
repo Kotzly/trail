@@ -224,3 +224,14 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 }
+
+/* Command palette is keyboard-triggered (100+/day) — close must feel
+   instant. The DialogContent already overrides its own animation duration
+   inline, but DialogOverlay (rendered as the previous sibling inside
+   DialogPortal) still carries a 100ms fade-out from the shadcn base. We
+   tag the content with `.cmdk-instant` and zero out the overlay through
+   a sibling-aware :has() selector, leaving every other dialog untouched. */
+[data-slot="dialog-overlay"]:has(+ .cmdk-instant) {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}

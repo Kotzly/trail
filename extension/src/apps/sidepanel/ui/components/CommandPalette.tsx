@@ -101,7 +101,10 @@ export default function CommandPalette() {
       description="Search nodes, jump between trees, or run commands"
       // Keyboard-triggered surface (100+/day). Per Emil's frequency rule
       // we kill the open/close zoom-and-fade entirely — Raycast pattern.
-      className="data-closed:duration-0 data-open:duration-0"
+      // The `cmdk-instant` marker is picked up by a CSS rule in
+      // tailwind.css that also nukes the sibling DialogOverlay's
+      // fade-out duration (otherwise the backdrop lingers ~100ms).
+      className="cmdk-instant data-closed:duration-0 data-open:duration-0"
     >
       <CommandInput
         placeholder="Search nodes or type a command..."

@@ -28,6 +28,15 @@ export default defineConfig({
       jsx: "automatic",
       jsxImportSource: "react",
     },
+    optimizeDeps: {
+      // Force pre-bundling for barrel icon/UI packages so each named
+      // import doesn't trigger a module-by-module fetch in dev. Fixes
+      // the `bundle-barrel-imports` anti-pattern for Vite projects.
+      include: [
+        "@hugeicons/core-free-icons",
+        "@hugeicons/react",
+      ],
+    },
   }),
   alias: {
     "@entrypoints": resolve("src/entrypoints"),
