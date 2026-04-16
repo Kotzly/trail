@@ -15,6 +15,7 @@ import {
 import { TreesPage } from "./TreesPage.js";
 import { browser } from "@shared/platform/webext.js";
 import { captureEvent, captureError } from "@shared/lib/observability.js";
+import { toast } from "sonner";
 import { signOut } from "@shared/auth/auth-orchestrator.js";
 import { getSupabaseClient } from "@shared/lib/supabase.js";
 
@@ -29,10 +30,10 @@ export function DataPage() {
       await browser.storage.local.clear();
       await browser.storage.session?.clear().catch(() => {});
       captureEvent("tree_exported", { kind: "clear_local" });
-      alert("Local data cleared. Reload the sidepanel to start fresh.");
+      toast.success("Local data cleared. Reload the sidepanel to start fresh.");
     } catch (error) {
       captureError(error, { kind: "ui_clear_local" });
-      alert("Failed to clear local data: " + String(error));
+      toast.error("Failed to clear local data", { description: String(error) });
     } finally {
       setClearing(false);
     }
@@ -57,13 +58,15 @@ export function DataPage() {
       await browser.storage.local.clear();
       await browser.storage.session?.clear().catch(() => {});
       captureEvent("auth_signout", { reason: "account_deletion" });
-      alert(
-        "Account deletion requested. Your local data has been cleared and your session ended. " +
+      toast.success("Account deletion requested", {
+        description:
+          "Your local data has been cleared and your session ended. " +
           "Server-side data removal completes within 30 days.",
-      );
+        duration: 8000,
+      });
     } catch (error) {
       captureError(error, { kind: "ui_delete_account" });
-      alert("Failed to request account deletion: " + String(error));
+      toast.error("Failed to request account deletion", { description: String(error) });
     } finally {
       setDeleting(false);
     }

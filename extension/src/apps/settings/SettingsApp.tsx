@@ -11,6 +11,7 @@ import { Separator } from "@ui/components/ui/separator";
 import { Skeleton } from "@ui/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@ui/components/ui/tabs";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
+import { Toaster } from "@ui/components/ui/sonner";
 
 type Page = "account" | "data" | "appearance" | "behavior" | "shortcuts" | "privacy" | "about";
 
@@ -30,6 +31,7 @@ export default function SettingsApp() {
 
   return (
     <TooltipProvider delayDuration={200}>
+      <Toaster />
       <Tabs
         orientation="vertical"
         value={page}

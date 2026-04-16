@@ -3,6 +3,7 @@ import { Button } from "@ui/components/ui/button";
 import TrailLogo from "@ui/components/trail-logo";
 import { onboardingStateItem } from "@shared/config/storage-items.js";
 import { captureEvent } from "@shared/lib/observability.js";
+import { toast } from "sonner";
 
 const MANIFEST_VERSION = chrome.runtime.getManifest?.()?.version ?? "dev";
 const HOMEPAGE = "https://gettrail.net";
@@ -22,10 +23,7 @@ export function AboutPage() {
 
   const replayOnboarding = async () => {
     await onboardingStateItem.setValue({ seenWelcome: false, completedAt: null, step: 0 });
-    // Open the sidepanel so the user sees the wizard. We can't directly
-    // open the sidepanel from a settings tab, so prompt via a toast-like
-    // instruction is the best we can do here.
-    alert("Open the Trail sidepanel to see the walkthrough again.");
+    toast.info("Open the Trail sidepanel to see the walkthrough again.");
   };
 
   return (
