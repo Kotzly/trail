@@ -6,7 +6,7 @@ import OnboardingWizard from "./onboarding/OnboardingWizard.js";
 import ContextMenus from "./components/ContextMenus.js";
 import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
 import TrailLogo from "@ui/components/trail-logo";
-import { Toaster } from "./components/ui/sonner.js";
+import { Toaster } from "@ui/components/ui/sonner.js";
 import { useBootstrap } from "./hooks/useBootstrap.js";
 import { useRuntimeMessages } from "./hooks/useRuntimeMessages.js";
 import { useShortcuts } from "./hooks/useShortcuts.js";
