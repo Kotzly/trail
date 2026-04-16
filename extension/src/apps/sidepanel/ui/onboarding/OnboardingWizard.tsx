@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@ui/components/ui/dialog";
 import { Button } from "@ui/components/ui/button";
 import { Progress } from "@ui/components/ui/progress";
@@ -232,11 +233,32 @@ export default function OnboardingWizard() {
             </span>
           </div>
           <Progress value={progress} className="h-1" />
-          <DialogTitle className="text-lg font-semibold tracking-tight">
-            {current.title}
-          </DialogTitle>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`title-${step}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <DialogTitle className="text-lg font-semibold tracking-tight">
+                {current.title}
+              </DialogTitle>
+            </motion.div>
+          </AnimatePresence>
         </DialogHeader>
-        <div className="px-6 text-sm">{current.body}</div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`body-${step}`}
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="px-6 text-sm"
+          >
+            {current.body}
+          </motion.div>
+        </AnimatePresence>
         <div className="flex items-center justify-between gap-2 border-t p-4">
           {current.secondaryLabel ? (
             <Button
