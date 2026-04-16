@@ -5,6 +5,7 @@
  * Layout positions are NOT set here — that's handled by layout.ts.
  */
 
+import { hierarchy } from "d3-hierarchy";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
@@ -26,24 +27,11 @@ export function computeActivePathIds(
   tree: NavigationTreeJSON | null,
   targetId: NodeId | null,
 ): Set<NodeId> {
-  const path = new Set<NodeId>();
-  if (!tree?.root || targetId === null) return path;
-
-  const stack: NodeId[] = [];
-  function dfs(node: NavigationNodeJSON): boolean {
-    stack.push(node.id);
-    if (node.id === targetId) {
-      for (const id of stack) path.add(id);
-      return true;
-    }
-    for (const child of node.children) {
-      if (dfs(child)) return true;
-    }
-    stack.pop();
-    return false;
-  }
-  dfs(tree.root);
-  return path;
+  if (!tree?.root || targetId === null) return new Set<NodeId>();
+  const root = hierarchy<NavigationNodeJSON>(tree.root, (n) => n.children);
+  const target = root.find((n) => n.data.id === targetId);
+  if (!target) return new Set<NodeId>();
+  return new Set(target.ancestors().map((n) => n.data.id));
 }
 
 /**

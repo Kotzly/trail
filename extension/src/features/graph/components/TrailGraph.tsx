@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -48,7 +48,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     onLayoutModeChange,
   } = props;
 
-  const { fitView, setCenter, getViewport, setViewport } = useReactFlow();
+  const { fitView, setCenter } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
 
@@ -79,39 +79,6 @@ function TrailGraphInner(props: TrailGraphProps) {
       }),
     [layout.nodes, selectedNodeIds],
   );
-
-  // Cmd/Ctrl+scroll zoom (capture phase to intercept before React Flow)
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handler = (e: WheelEvent) => {
-      if (!e.metaKey && !e.ctrlKey) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      const vp = getViewport();
-      const clamped = Math.max(-30, Math.min(30, e.deltaY));
-      const factor = 1 - clamped * 0.006;
-      const newZoom = Math.min(3, Math.max(0.05, vp.zoom * factor));
-
-      // Zoom toward cursor position
-      const rect = el.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      const scale = newZoom / vp.zoom;
-      const newX = mouseX - (mouseX - vp.x) * scale;
-      const newY = mouseY - (mouseY - vp.y) * scale;
-
-      setViewport({ x: newX, y: newY, zoom: newZoom });
-    };
-
-    el.addEventListener("wheel", handler, { capture: true, passive: false });
-    return () =>
-      el.removeEventListener("wheel", handler, { capture: true } as EventListenerOptions);
-  }, [getViewport, setViewport]);
 
   // Center on current node once on first data
   useEffect(() => {
@@ -199,7 +166,8 @@ function TrailGraphInner(props: TrailGraphProps) {
         panOnDrag={false}
         panOnScroll
         panOnScrollSpeed={1}
-        zoomOnScroll={false}
+        zoomOnScroll
+        zoomActivationKeyCode={["Meta", "Control"]}
         zoomOnPinch={false}
         fitView={false}
         minZoom={0.05}
