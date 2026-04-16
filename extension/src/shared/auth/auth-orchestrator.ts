@@ -33,14 +33,10 @@ export type AuthState =
 let cachedState: AuthState | null = null;
 const listeners = new Set<(state: AuthState) => void>();
 
-function uuid(): string {
-  return crypto.randomUUID();
-}
-
 async function ensureDeviceId(): Promise<string> {
   const existing = await deviceIdItem.getValue();
   if (existing) return existing;
-  const next = uuid();
+  const next = crypto.randomUUID();
   await deviceIdItem.setValue(next);
   return next;
 }
