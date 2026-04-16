@@ -1,22 +1,26 @@
 import { useState } from "react";
 import { useSettings } from "./hooks/useSettings.js";
-import { TreesPage } from "./pages/TreesPage.js";
+import { AccountPage } from "./pages/AccountPage.js";
+import { DataPage } from "./pages/DataPage.js";
 import { AppearancePage } from "./pages/AppearancePage.js";
 import { BehaviorPage } from "./pages/BehaviorPage.js";
+import { ShortcutsPage } from "./pages/ShortcutsPage.js";
 import { PrivacyPage } from "./pages/PrivacyPage.js";
-import { AccountPage } from "./pages/AccountPage.js";
+import { AboutPage } from "./pages/AboutPage.js";
 import { Button } from "@ui/components/ui/button";
 import { Separator } from "@ui/components/ui/separator";
 import { cn } from "@ui/lib/utils";
 
-type Page = "account" | "trees" | "appearance" | "behavior" | "privacy";
+type Page = "account" | "data" | "appearance" | "behavior" | "shortcuts" | "privacy" | "about";
 
 const NAV_ITEMS: { id: Page; label: string }[] = [
   { id: "account", label: "Account" },
-  { id: "trees", label: "Trees" },
+  { id: "data", label: "Data" },
   { id: "appearance", label: "Appearance" },
   { id: "behavior", label: "Behavior" },
+  { id: "shortcuts", label: "Shortcuts" },
   { id: "privacy", label: "Privacy" },
+  { id: "about", label: "About" },
 ];
 
 export default function SettingsApp() {
@@ -45,12 +49,14 @@ export default function SettingsApp() {
         ) : (
           <>
             {page === "account" && <AccountPage />}
-            {page === "trees" && <TreesPage />}
+            {page === "data" && <DataPage />}
             {page === "appearance" && (
               <AppearancePage settings={settings} onUpdate={updateSettings} />
             )}
             {page === "behavior" && <BehaviorPage settings={settings} onUpdate={updateSettings} />}
+            {page === "shortcuts" && <ShortcutsPage />}
             {page === "privacy" && <PrivacyPage />}
+            {page === "about" && <AboutPage />}
           </>
         )}
       </main>
