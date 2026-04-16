@@ -8,7 +8,8 @@ export function useTrees() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
-    api.getTrees()
+    api
+      .getTrees()
       .then(setTrees)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load trees"))
       .finally(() => setLoading(false));

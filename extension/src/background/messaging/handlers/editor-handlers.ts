@@ -17,14 +17,10 @@ import { loadTree } from "../../services/tree-loader.js";
 import { isAllowedSiteOrigin } from "@shared/config/site-origins.js";
 import { editorStateItem } from "@shared/config/storage-items.js";
 import { isSidepanelAlive } from "./panel-handlers.js";
-import { openSidebarForTab } from "@shared/platform/webext.js";
+import { browser, openSidebarForTab } from "@shared/platform/webext.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
-import { browser } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
-import {
-  EXTENSION_MESSAGE,
-  fireExtensionEvent,
-} from "@shared/transport/extension-messaging.js";
+import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 
 const log = createLogger("editor");
 
@@ -336,6 +332,32 @@ export const editorHandlers = defineRpcHandlers({
     return ok();
   },
 
+  async [RPC_METHOD.RENAME_NODE](message) {
+    const tree = await treeStorage.getOrCreateTree();
+    const node = tree.findNodeById(message.nodeId);
+    if (!node) return err("Node not found");
+
+    const nextTitle = message.title.trim();
+    if (nextTitle.length === 0) return err("Title cannot be empty");
+    if (nextTitle.length > 500) return err("Title is too long");
+
+    const currentTitle = String(node.data.title ?? "");
+    if (currentTitle === nextTitle) return ok();
+
+    snapshot(tree, "Rename node");
+
+    node.data = { ...node.data, title: nextTitle as NodeData["title"] };
+
+    treeStorage.cacheTree(tree);
+
+    await notifyTreeUpdate(tree, "rename", {
+      focusNodeId: message.nodeId,
+      mode: "soft",
+    });
+
+    return ok();
+  },
+
   async [RPC_METHOD.DUPLICATE_SUBTREE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
@@ -371,7 +393,6 @@ export const editorHandlers = defineRpcHandlers({
 
     return ok();
   },
-
 });
 
 // Restore editor state from chrome.storage.session on SW startup

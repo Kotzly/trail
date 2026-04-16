@@ -61,10 +61,13 @@ export default function PinnedDropdown() {
           }
         }}
       >
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
+        <div className="border-border flex items-center justify-between border-b px-3 py-2.5">
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold">pinned</span>
-            <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full" id="pinnedCount">
+            <span
+              className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-[11px]"
+              id="pinnedCount"
+            >
               {pinnedNodes.length}
             </span>
           </div>
@@ -72,7 +75,7 @@ export default function PinnedDropdown() {
         <ScrollArea className="max-h-[300px]">
           <div className="p-1" id="pinnedList">
             {pinnedNodes.length === 0 ? (
-              <div className="flex flex-col items-center gap-1.5 py-6 text-muted-foreground">
+              <div className="text-muted-foreground flex flex-col items-center gap-1.5 py-6">
                 <Icons.Bookmark className="size-6 opacity-40" />
                 <span className="text-[13px]">No pinned pages yet</span>
                 <span className="text-[11px] opacity-60">Right-click a node to pin it</span>
@@ -82,24 +85,24 @@ export default function PinnedDropdown() {
                 <Button
                   key={node.id}
                   variant="ghost"
-                  className="flex items-center gap-2.5 w-full h-auto rounded-md px-2.5 py-2 justify-start"
+                  className="flex h-auto w-full items-center justify-start gap-2.5 rounded-md px-2.5 py-2"
                   data-node-id={node.id}
                   onClick={() => void handleNavigate(node.id as NodeId)}
                 >
                   {node.data.url ? (
                     <img
-                      className="size-4 rounded-sm shrink-0"
+                      className="size-4 shrink-0 rounded-sm"
                       alt=""
                       src={getFaviconUrl(node.data.url)}
                     />
                   ) : (
-                    <div className="size-4 rounded-sm shrink-0 flex items-center justify-center bg-muted">
-                      <Icons.Pin className="size-2.5 text-muted-foreground" />
+                    <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
+                      <Icons.Pin className="text-muted-foreground size-2.5" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1 text-left">
-                    <div className="text-[13px] truncate">{node.data.title || "Untitled"}</div>
-                    <div className="text-[11px] text-muted-foreground truncate font-normal">
+                    <div className="truncate text-[13px]">{node.data.title || "Untitled"}</div>
+                    <div className="text-muted-foreground truncate text-[11px] font-normal">
                       {(() => {
                         try {
                           return new URL(node.data.url).hostname;

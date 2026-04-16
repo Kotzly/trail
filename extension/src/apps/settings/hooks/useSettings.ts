@@ -14,17 +14,14 @@ export function useSettings() {
       .finally(() => setLoading(false));
   }, []);
 
-  const updateSettings = useCallback(
-    (patch: Partial<Settings>) => {
-      setSettings((prev) => {
-        if (!prev) return prev;
-        const next = { ...prev, ...patch } as Settings;
-        saveSettings(next).catch(console.error);
-        return next;
-      });
-    },
-    [],
-  );
+  const updateSettings = useCallback((patch: Partial<Settings>) => {
+    setSettings((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch } as Settings;
+      saveSettings(next).catch(console.error);
+      return next;
+    });
+  }, []);
 
   return { settings, loading, error, updateSettings };
 }

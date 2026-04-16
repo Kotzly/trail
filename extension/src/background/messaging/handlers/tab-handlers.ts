@@ -20,7 +20,9 @@ export const tabHandlers = defineRpcHandlers({
           return await browser.tabs.get(tabId as TabId);
         } catch (error) {
           tabManager.unregister(tabId as TabId);
-          log.error("Failed to get tab", { error: error instanceof Error ? error.message : String(error) });
+          log.error("Failed to get tab", {
+            error: error instanceof Error ? error.message : String(error),
+          });
           return null;
         }
       }),
@@ -80,7 +82,11 @@ export const tabHandlers = defineRpcHandlers({
       tabManager.tabsByNode(nodeId).forEach(async (tabId) => {
         browser.tabs
           .remove(tabId)
-          .catch((e) => log.error("Failed to remove tab", { error: e instanceof Error ? e.message : String(e) }))
+          .catch((e) =>
+            log.error("Failed to remove tab", {
+              error: e instanceof Error ? e.message : String(e),
+            }),
+          )
           .then(async () => await unregisterTabForNode(tree, nodeId, tabId));
       });
     });

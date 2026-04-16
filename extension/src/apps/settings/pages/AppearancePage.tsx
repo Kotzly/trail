@@ -1,8 +1,20 @@
-import type { Settings, LayoutMode, GraphDensity, TitleTruncation } from "@shared/types/settings.js";
+import type {
+  Settings,
+  LayoutMode,
+  GraphDensity,
+  TitleTruncation,
+} from "@shared/types/settings.js";
 import { Label } from "@ui/components/ui/label";
 import { Switch } from "@ui/components/ui/switch";
 import { Separator } from "@ui/components/ui/separator";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@ui/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@ui/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@ui/components/ui/radio-group";
 
 type AppearancePageProps = {
@@ -15,9 +27,7 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-lg font-semibold">Appearance</h2>
-        <p className="text-sm text-muted-foreground">
-          Customize the graph display
-        </p>
+        <p className="text-muted-foreground text-sm">Customize the graph display</p>
       </div>
 
       <div className="flex flex-col gap-4">

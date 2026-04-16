@@ -97,6 +97,34 @@ export const hasSeenOnboardingItem = storage.defineItem<boolean>(
   { fallback: false },
 );
 
+export type OnboardingState = {
+  seenWelcome: boolean;
+  completedAt: number | null;
+  step: number;
+};
+
+export const onboardingStateItem = storage.defineItem<OnboardingState>("local:trail_onboarding", {
+  fallback: { seenWelcome: false, completedAt: null, step: 0 },
+});
+
+// ── Telemetry ───────────────────────────────────────────────────────
+
+export type TelemetryConsent = {
+  errors: boolean; // Sentry error reporting (defaults on)
+  analytics: boolean; // PostHog product analytics (defaults on)
+  decidedAt: number | null; // timestamp user explicitly set consent
+};
+
+export const telemetryConsentItem = storage.defineItem<TelemetryConsent>(
+  "local:trail_telemetry_consent",
+  { fallback: { errors: true, analytics: true, decidedAt: null } },
+);
+
+export const telemetryAnonIdItem = storage.defineItem<string | null>(
+  "local:trail_telemetry_anon_id",
+  { fallback: null },
+);
+
 // ── Editor State (session-scoped) ────────────────────────────────────
 
 export const editorStateItem = storage.defineItem<EditorModeState>("session:trail_editor_state", {

@@ -11,7 +11,10 @@ import { treeService } from "@shared/transport/proxy-clients.js";
 import type { TrailExportBundle } from "@shared/types/export.js";
 
 export async function navigateTo(node: NavigationNode): Promise<void> {
-  await treeService.navigateTo({ nodeId: node.id, ...(node.data.url ? { url: node.data.url } : {}) });
+  await treeService.navigateTo({
+    nodeId: node.id,
+    ...(node.data.url ? { url: node.data.url } : {}),
+  });
 }
 
 export async function navigateToNodeId(nodeId: NodeId, url?: Url): Promise<void> {
@@ -127,4 +130,8 @@ export async function importTrail(bundle: TrailExportBundle): Promise<{ treeId: 
 
 export async function reparentNode(nodeId: NodeId, newParentId: NodeId): Promise<void> {
   await treeService.reparentNode({ nodeId, newParentId });
+}
+
+export async function renameNode(nodeId: NodeId, title: string): Promise<void> {
+  await treeService.renameNode({ nodeId, title });
 }

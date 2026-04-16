@@ -28,7 +28,6 @@ const handleTypeMap: Record<string, "source" | "target"> = {
   "source-right": "source",
 };
 
-
 function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?: boolean }) {
   const {
     title,
@@ -53,23 +52,28 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
 
   const displayTitle = String(title) || displayUrl;
 
-
   // LOD: minimal colored rectangle when zoomed way out
   if (!showLabels) {
     return (
       <>
         {handles.map((id) => (
-          <Handle key={id} id={id} type={handleTypeMap[id]!} position={handlePositionMap[id]!} style={hidden} />
+          <Handle
+            key={id}
+            id={id}
+            type={handleTypeMap[id]!}
+            position={handlePositionMap[id]!}
+            style={hidden}
+          />
         ))}
         <div
           className={cn(
-            "w-[160px] h-[52px] rounded-sm border-2",
+            "h-[52px] w-[160px] rounded-sm border-2",
             isOpen || isCurrent
               ? "bg-foreground/20 border-foreground/30"
               : "bg-foreground/10 border-foreground/15",
             onActivePath && !isCurrent && "bg-primary/15 border-primary/50",
             isCurrent && "bg-primary/30 border-primary",
-            selected && "ring-2 ring-ring",
+            selected && "ring-ring ring-2",
           )}
         />
       </>
@@ -89,14 +93,16 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
       ))}
       <div
         className={cn(
-          "flex items-center gap-2 px-2.5 py-2 rounded-md border",
+          "flex items-center gap-2 rounded-md border px-2.5 py-2",
           "w-[160px] cursor-default select-none",
           isOpen || isCurrent
             ? "bg-card text-card-foreground"
             : "bg-muted/60 text-muted-foreground border-border/50",
-          onActivePath && !isCurrent && "bg-card text-card-foreground border-primary/50 shadow-sm shadow-primary/15",
-          isCurrent && "border-primary shadow-sm shadow-primary/25",
-          selected && "ring-2 ring-ring",
+          onActivePath &&
+            !isCurrent &&
+            "bg-card text-card-foreground border-primary/50 shadow-primary/15 shadow-sm",
+          isCurrent && "border-primary shadow-primary/25 shadow-sm",
+          selected && "ring-ring ring-2",
         )}
       >
         {showDetail && favicon && (
@@ -110,28 +116,26 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
             }}
           />
         )}
-        <div className="flex flex-col min-w-0 flex-1 gap-0.5">
-          <span className="text-[11px] font-medium leading-tight line-clamp-2 min-h-[2lh]">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="line-clamp-2 min-h-[2lh] text-[11px] leading-tight font-medium">
             {displayTitle}
           </span>
           {showDetail && (
-            <span className="text-[9px] text-muted-foreground truncate leading-tight">
+            <span className="text-muted-foreground truncate text-[9px] leading-tight">
               {displayUrl}
             </span>
           )}
         </div>
         {showDetail && (
-          <div className="flex flex-col items-end gap-0.5 shrink-0">
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
             {tabCount > 1 && (
-              <span className="text-[9px] bg-primary/10 text-primary rounded px-1 py-0.5 tabular-nums font-medium leading-none">
+              <span className="bg-primary/10 text-primary rounded px-1 py-0.5 text-[9px] leading-none font-medium tabular-nums">
                 {tabCount}
               </span>
             )}
-            {pinned && (
-              <span className="text-[9px] text-muted-foreground leading-none">pin</span>
-            )}
+            {pinned && <span className="text-muted-foreground text-[9px] leading-none">pin</span>}
             {isCollapsed && childCount > 0 && (
-              <span className="text-[9px] bg-muted text-muted-foreground rounded px-1 py-0.5 tabular-nums font-medium leading-none">
+              <span className="bg-muted text-muted-foreground rounded px-1 py-0.5 text-[9px] leading-none font-medium tabular-nums">
                 +{childCount}
               </span>
             )}

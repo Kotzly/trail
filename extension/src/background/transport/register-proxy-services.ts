@@ -21,10 +21,7 @@ import { settingsHandlers } from "@background/messaging/handlers/settings-handle
 import { flagsHandlers } from "@background/messaging/handlers/flags-handlers.js";
 import { tabHandlers } from "@background/messaging/handlers/tab-handlers.js";
 import { pinHandlers } from "@background/messaging/handlers/pin-handlers.js";
-import {
-  editorHandlers,
-  getEditorState,
-} from "@background/messaging/handlers/editor-handlers.js";
+import { editorHandlers, getEditorState } from "@background/messaging/handlers/editor-handlers.js";
 import { invokeRpcHandler } from "./invoke-rpc-handler.js";
 
 const treeService: TreeService = {
@@ -136,6 +133,11 @@ const treeService: TreeService = {
   reparentNode: (input) =>
     invokeRpcHandler(editorHandlers[RPC_METHOD.REPARENT_NODE]!, {
       type: RPC_METHOD.REPARENT_NODE,
+      ...input,
+    }),
+  renameNode: (input) =>
+    invokeRpcHandler(editorHandlers[RPC_METHOD.RENAME_NODE]!, {
+      type: RPC_METHOD.RENAME_NODE,
       ...input,
     }),
 };

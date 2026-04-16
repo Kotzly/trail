@@ -1,9 +1,6 @@
 import { contentHandlers } from "@background/messaging/handlers/content-handlers.js";
 import { panelHandlers } from "@background/messaging/handlers/panel-handlers.js";
-import {
-  EXTENSION_MESSAGE,
-  onExtensionMessage,
-} from "@shared/transport/extension-messaging.js";
+import { EXTENSION_MESSAGE, onExtensionMessage } from "@shared/transport/extension-messaging.js";
 import { RPC_METHOD } from "@shared/rpc/contracts.js";
 import { invokeRpcHandler } from "./invoke-rpc-handler.js";
 

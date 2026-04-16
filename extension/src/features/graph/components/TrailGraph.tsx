@@ -18,7 +18,6 @@ import { NODE_WIDTH, NODE_HEIGHT } from "../tree-layout.js";
 import type { NodeId } from "@shared/types/ids.js";
 import { selectShowBackground } from "../lod.js";
 
-
 const nodeTypes = { trail: TrailNode };
 
 const defaultEdgeOptions = {
@@ -55,7 +54,6 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   const showBackground = useStore(selectShowBackground);
 
-
   const metadata = useMemo(
     () => ({
       currentNodeId,
@@ -74,10 +72,11 @@ function TrailGraphInner(props: TrailGraphProps) {
   });
 
   const displayNodes = useMemo(
-    () => layout.nodes.map((n) => {
-      const sel = selectedNodeIds.has(n.data.nodeId);
-      return n.selected === sel ? n : { ...n, selected: sel };
-    }),
+    () =>
+      layout.nodes.map((n) => {
+        const sel = selectedNodeIds.has(n.data.nodeId);
+        return n.selected === sel ? n : { ...n, selected: sel };
+      }),
     [layout.nodes, selectedNodeIds],
   );
 
@@ -110,7 +109,8 @@ function TrailGraphInner(props: TrailGraphProps) {
     };
 
     el.addEventListener("wheel", handler, { capture: true, passive: false });
-    return () => el.removeEventListener("wheel", handler, { capture: true } as EventListenerOptions);
+    return () =>
+      el.removeEventListener("wheel", handler, { capture: true } as EventListenerOptions);
   }, [getViewport, setViewport]);
 
   // Center on current node once on first data
@@ -135,7 +135,6 @@ function TrailGraphInner(props: TrailGraphProps) {
       }
     }
   }, [displayNodes.length, fitView, setCenter, currentNodeId]);
-
 
   // Sync ReactFlow selection → store
   const handleSelectionChange = useCallback(
@@ -183,7 +182,7 @@ function TrailGraphInner(props: TrailGraphProps) {
   );
 
   return (
-    <div ref={containerRef} className="flex-1 min-h-0 w-full">
+    <div ref={containerRef} className="min-h-0 w-full flex-1">
       <ReactFlow
         nodes={displayNodes}
         edges={layout.edges}
@@ -211,17 +210,9 @@ function TrailGraphInner(props: TrailGraphProps) {
         defaultEdgeOptions={defaultEdgeOptions}
       >
         {showBackground && (
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={20}
-            size={1}
-            color="var(--border)"
-          />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--border)" />
         )}
-        <GraphControls
-          layoutMode={settings.layout.mode}
-          onLayoutModeChange={onLayoutModeChange}
-        />
+        <GraphControls layoutMode={settings.layout.mode} onLayoutModeChange={onLayoutModeChange} />
       </ReactFlow>
     </div>
   );

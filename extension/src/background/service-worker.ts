@@ -8,6 +8,7 @@ import { createLogger } from "@shared/lib/logger.js";
 import { warmLayoutPositions } from "./services/layout-precompute.js";
 import { registerProxyServices } from "./transport/register-proxy-services.js";
 import { registerExtensionMessaging } from "./transport/register-extension-messaging.js";
+import { captureError, captureEvent, initObservability } from "@shared/lib/observability.js";
 
 const log = createLogger("service-worker");
 
@@ -17,6 +18,21 @@ self.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
   log.error("Unhandled rejection in service worker", {
     error: event.reason instanceof Error ? event.reason.message : String(event.reason),
   });
+  captureError(event.reason, { surface: "background", kind: "unhandled_rejection" });
+});
+
+void initObservability("background");
+
+// Install / update tracking — fires once per install and once per version change.
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    captureEvent("install", { version: chrome.runtime.getManifest().version });
+  } else if (details.reason === "update") {
+    captureEvent("update", {
+      version: chrome.runtime.getManifest().version,
+      previousVersion: details.previousVersion ?? null,
+    });
+  }
 });
 
 // Initialize all modules

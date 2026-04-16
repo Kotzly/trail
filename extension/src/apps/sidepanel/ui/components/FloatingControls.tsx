@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type RefObject } from "react";
+import { useRef } from "react";
 import { cn } from "@ui/lib/utils";
 import { redo, undo } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
@@ -8,18 +8,18 @@ import TreeDropdown from "./TreeDropdown.js";
 import SettingsDropdown from "./SettingsPopover.js";
 import { Button } from "@ui/components/ui/button";
 
-type FloatingControlsProps = {
-  searchInputRef?: RefObject<HTMLInputElement | null>;
-};
-
-export default function FloatingControls({ searchInputRef: _searchInputRef }: FloatingControlsProps) {
+export default function FloatingControls() {
   const commandState = useStore((state) => state.commandState);
   const metaKey = useStore((state) => state.metaKey);
   const editorActive = useStore((state) => state.editorMode.active);
   const setCommandState = useStore((state) => state.setCommandState);
+  const setCommandPaletteOpen = useStore((state) => state.setCommandPaletteOpen);
   const controlsRef = useRef<HTMLDivElement | null>(null);
   const leftRef = useRef<HTMLDivElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
+
+  const searchShortcut = metaKey ? `${metaKey.short}+K` : "Ctrl+K";
+  const searchTooltip = `Search (${searchShortcut})`;
 
   const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : "Ctrl+Z";
   const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : "Ctrl+Shift+Z";
@@ -48,23 +48,19 @@ export default function FloatingControls({ searchInputRef: _searchInputRef }: Fl
     }
   };
 
-  useLayoutEffect(() => {
-    // layout measurement kept for future search integration
-  }, []);
-
   return (
     <div
       ref={controlsRef}
-      className="fixed top-3 left-3 right-3 flex justify-between items-start gap-2 z-[900] pointer-events-none"
+      className="pointer-events-none fixed top-3 right-3 left-3 z-[900] flex items-start justify-between gap-2"
     >
       {/* Left cluster: undo/redo + pinned/trees */}
       <div
         ref={leftRef}
         className={cn(
-          "flex gap-2 items-start pointer-events-auto min-w-0 max-w-full transition-all duration-200",
+          "pointer-events-auto flex max-w-full min-w-0 items-start gap-2 transition-all duration-200",
         )}
       >
-        <div className="flex gap-1 bg-background/90 backdrop-blur-sm rounded-full border border-border shadow-sm p-0.5">
+        <div className="bg-background/90 border-border flex gap-1 rounded-full border p-0.5 shadow-sm backdrop-blur-sm">
           <Button
             id="undoBtn"
             variant="ghost"
@@ -93,16 +89,28 @@ export default function FloatingControls({ searchInputRef: _searchInputRef }: Fl
           </Button>
         </div>
 
-        <div className="flex gap-1 bg-background/90 backdrop-blur-sm rounded-full border border-border shadow-sm p-0.5">
+        <div className="bg-background/90 border-border flex gap-1 rounded-full border p-0.5 shadow-sm backdrop-blur-sm">
           {!editorActive && <PinnedDropdown />}
           <TreeDropdown />
         </div>
       </div>
 
-      {/* Right cluster: settings */}
-      <div ref={rightRef} className="flex flex-row-reverse gap-2 items-start pointer-events-auto">
-        <div className="bg-background/90 backdrop-blur-sm rounded-full border border-border shadow-sm p-0.5">
+      {/* Right cluster: search + settings */}
+      <div ref={rightRef} className="pointer-events-auto flex flex-row-reverse items-start gap-2">
+        <div className="bg-background/90 border-border flex gap-1 rounded-full border p-0.5 shadow-sm backdrop-blur-sm">
           <SettingsDropdown />
+          <Button
+            id="searchBtn"
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full"
+            type="button"
+            aria-label={searchTooltip}
+            data-tooltip={searchTooltip}
+            onClick={() => setCommandPaletteOpen(true)}
+          >
+            <Icons.Search />
+          </Button>
         </div>
       </div>
     </div>

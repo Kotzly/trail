@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect } from "react";
 import type { NodeId } from "@shared/types/ids.js";
 import type { LayoutMode } from "@shared/types/settings.js";
 import { browser } from "@shared/platform/webext.js";
@@ -27,7 +27,7 @@ const isEditableTarget = (target: EventTarget | null): boolean => {
   return Boolean(target.closest('[contenteditable="true"]'));
 };
 
-export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>): void {
+export function useShortcuts(): void {
   useEffect(() => {
     const onKeyDown = async (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
@@ -44,9 +44,8 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
       const code = event.code;
       const isEditable = isEditableTarget(event.target);
 
-      const focusSearch = () => {
-        searchInputRef.current?.focus();
-        searchInputRef.current?.select();
+      const openCommandPalette = () => {
+        state.setCommandPaletteOpen(true);
       };
 
       const getFocusBaseId = () => {
@@ -253,13 +252,23 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
 
       if (metaKey && (code === "KeyF" || code === "KeyK")) {
         event.preventDefault();
-        focusSearch();
+        openCommandPalette();
+        return;
+      }
+
+      if (!metaKey && !event.altKey && !event.ctrlKey && code === "F2") {
+        const ids = getTargetNodeIds();
+        if (ids.length === 1) {
+          event.preventDefault();
+          const first = ids[0];
+          if (first) state.openRenameDialog(first);
+        }
         return;
       }
 
       if (!metaKey && !event.altKey && code === "Slash") {
         event.preventDefault();
-        focusSearch();
+        openCommandPalette();
         return;
       }
 
@@ -388,5 +397,5 @@ export function useShortcuts(searchInputRef: RefObject<HTMLInputElement | null>)
     return () => {
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [searchInputRef]);
+  }, []);
 }

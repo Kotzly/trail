@@ -1,6 +1,7 @@
-import React, { Component, type ErrorInfo, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import TrailLogo from "@ui/components/trail-logo";
 import { Button } from "@ui/components/ui/button";
+import { captureError } from "@shared/lib/observability.js";
 
 type Props = {
   children: ReactNode;
@@ -28,6 +29,10 @@ export default class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error("Trail ErrorBoundary caught:", error, info.componentStack);
     this.setState({ componentStack: info.componentStack ?? null });
+    captureError(error, {
+      componentStack: info.componentStack ?? "(unavailable)",
+      kind: "react_boundary",
+    });
   }
 
   componentWillUnmount(): void {
@@ -99,25 +104,35 @@ export default class ErrorBoundary extends Component<Props, State> {
     }
 
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background text-foreground font-sans">
-        <div className="flex flex-col items-center gap-4 max-w-80 px-6 py-8 text-center">
-          <TrailLogo className="size-18 mb-2 opacity-50" label="Trail" />
+      <div className="bg-background text-foreground fixed inset-0 z-[9999] flex items-center justify-center font-sans">
+        <div className="flex max-w-80 flex-col items-center gap-4 px-6 py-8 text-center">
+          <TrailLogo className="mb-2 size-18 opacity-50" label="Trail" />
 
           <h1 className="text-xl font-semibold tracking-tight">Something went wrong</h1>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+          <p className="text-muted-foreground text-sm leading-relaxed">
             Trail ran into an unexpected error.
             <br />
             Reloading usually fixes it.
           </p>
 
-          <div className="flex flex-col gap-2 w-full mt-2">
+          <div className="mt-2 flex w-full flex-col gap-2">
             <Button variant="outline" className="w-full" type="button" onClick={this.handleReload}>
               Reload Trail
             </Button>
-            <Button variant="outline" className="w-full" type="button" onClick={this.handleCopyDiagnostics}>
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              onClick={this.handleCopyDiagnostics}
+            >
               {this.state.copied ? "Copied!" : "Copy diagnostics"}
             </Button>
-            <Button variant="outline" className="w-full" type="button" onClick={this.handleSafeModeReload}>
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              onClick={this.handleSafeModeReload}
+            >
               Reload with safe mode
             </Button>
             <Button
@@ -131,11 +146,11 @@ export default class ErrorBoundary extends Component<Props, State> {
           </div>
 
           {this.state.error?.stack && (
-            <details className="mt-4 text-left w-full">
-              <summary className="cursor-pointer text-xs text-muted-foreground">
+            <details className="mt-4 w-full text-left">
+              <summary className="text-muted-foreground cursor-pointer text-xs">
                 Technical details
               </summary>
-              <pre className="text-[11px] max-h-[200px] overflow-auto whitespace-pre-wrap break-all mt-2 p-2 bg-muted rounded-md">
+              <pre className="bg-muted mt-2 max-h-[200px] overflow-auto rounded-md p-2 text-[11px] break-all whitespace-pre-wrap">
                 {this.state.error.stack}
               </pre>
             </details>

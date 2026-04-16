@@ -43,10 +43,7 @@ export type TrailGraphProps = {
   settings: Settings;
   precomputedPositions?: Record<string, { x: number; y: number }> | null;
   onNodeClick: (nodeId: NodeId, url: string) => void;
-  onNodeContextMenu: (
-    nodeId: NodeId,
-    position: { x: number; y: number },
-  ) => void;
+  onNodeContextMenu: (nodeId: NodeId, position: { x: number; y: number }) => void;
   onCollapseToggle: (nodeId: NodeId) => void;
   onSelectionChange: (nodeIds: Set<NodeId>) => void;
   onLayoutModeChange: (mode: LayoutMode) => void;

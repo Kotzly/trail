@@ -37,7 +37,10 @@ export const panelHandlers = defineRpcHandlers({
       }
       return ok();
     } catch (error) {
-      log.warn("OPEN_PANEL failed", { tabId: String(tabId), error: error instanceof Error ? error.message : String(error) });
+      log.warn("OPEN_PANEL failed", {
+        tabId: String(tabId),
+        error: error instanceof Error ? error.message : String(error),
+      });
       const message = error instanceof Error ? error.message : "Failed to open side panel";
       if (message.toLowerCase().includes("already open")) return ok();
       return err(message);

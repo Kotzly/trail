@@ -19,7 +19,9 @@ export async function initFlags(): Promise<void> {
       overrides = persisted.overrides ?? {};
     }
   } catch (error) {
-    log.error("Failed to load flags", { error: error instanceof Error ? error.message : String(error) });
+    log.error("Failed to load flags", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -47,8 +49,12 @@ export async function resetAllFlags(): Promise<void> {
 async function persistFlags(): Promise<void> {
   const state: PersistedFlagState = { v: 1, overrides: { ...overrides } };
   await flagsItem.setValue(state).catch((error) => {
-    log.error("Failed to save flags", { error: error instanceof Error ? error.message : String(error) });
+    log.error("Failed to save flags", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   });
 }
 
-initFlags().catch((e) => log.error("Init failed", { error: e instanceof Error ? e.message : String(e) }));
+initFlags().catch((e) =>
+  log.error("Init failed", { error: e instanceof Error ? e.message : String(e) }),
+);

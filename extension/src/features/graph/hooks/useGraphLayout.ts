@@ -26,14 +26,22 @@ export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
       input.collapsedNodeIds,
       input.metadata,
       input.precomputedPositions,
-    ).then((layoutResult) => {
-      if (versionRef.current === version) {
-        setResult(layoutResult);
-      }
-    }).catch((err) => {
-      console.error("Layout computation failed:", err);
-    });
-  }, [input.tree, input.settings, input.collapsedNodeIds, input.metadata, input.precomputedPositions]);
+    )
+      .then((layoutResult) => {
+        if (versionRef.current === version) {
+          setResult(layoutResult);
+        }
+      })
+      .catch((err) => {
+        console.error("Layout computation failed:", err);
+      });
+  }, [
+    input.tree,
+    input.settings,
+    input.collapsedNodeIds,
+    input.metadata,
+    input.precomputedPositions,
+  ]);
 
   return result;
 }

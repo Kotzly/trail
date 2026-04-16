@@ -1,10 +1,7 @@
 import type { TreesSnapshot } from "@shared/rpc/contracts.js";
 import type { TrailExportBundle } from "@shared/types/export.js";
 import type { Settings } from "@shared/types/settings.js";
-import {
-  settingsService,
-  treeService,
-} from "@shared/transport/proxy-clients.js";
+import { settingsService, treeService } from "@shared/transport/proxy-clients.js";
 
 export async function getSettings(): Promise<Settings> {
   return settingsService.getSettings();

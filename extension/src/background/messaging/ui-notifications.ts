@@ -1,7 +1,4 @@
-import {
-  EXTENSION_MESSAGE,
-  fireExtensionEvent,
-} from "@shared/transport/extension-messaging.js";
+import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 
 export type UiNotificationPayload = {
   message: string;

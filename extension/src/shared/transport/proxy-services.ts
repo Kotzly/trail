@@ -18,16 +18,15 @@ export interface TreeService {
   navigateTo(input: { nodeId: NodeId; url?: Url }): Promise<void>;
   previewNode(input: { nodeId: NodeId }): Promise<void>;
   setCurrentNode(input: { nodeId: NodeId }): Promise<void>;
-  beginTempSelection(input: BeginTempSelectionInput): Promise<{ sessionId: TempSelectionSessionId }>;
+  beginTempSelection(
+    input: BeginTempSelectionInput,
+  ): Promise<{ sessionId: TempSelectionSessionId }>;
   previewTempSelection(input: {
     sessionId: TempSelectionSessionId;
     nodeId: NodeId;
     tabId?: TabId;
   }): Promise<{ previewedTabId: TabId | null }>;
-  acceptTempSelection(input: {
-    sessionId: TempSelectionSessionId;
-    nodeId?: NodeId;
-  }): Promise<void>;
+  acceptTempSelection(input: { sessionId: TempSelectionSessionId; nodeId?: NodeId }): Promise<void>;
   cancelTempSelection(input: {
     sessionId: TempSelectionSessionId;
     keepSession?: boolean;
@@ -48,6 +47,7 @@ export interface TreeService {
   resetNodeLayouts(): Promise<void>;
   importTrail(input: { bundle: TrailExportBundle }): Promise<{ treeId: string }>;
   reparentNode(input: { nodeId: NodeId; newParentId: NodeId }): Promise<void>;
+  renameNode(input: { nodeId: NodeId; title: string }): Promise<void>;
 }
 
 export interface CommandService {

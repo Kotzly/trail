@@ -77,10 +77,7 @@ export function useBootstrap(): {
 
         setBootstrapStatus("ready");
       } catch (error) {
-        console.error(
-          "[bootstrap] Critical fetch failed:",
-          error,
-        );
+        console.error("[bootstrap] Critical fetch failed:", error);
 
         if (!mounted) {
           bootstrapInFlight.current = false;

@@ -48,12 +48,12 @@ export default function Header() {
   };
 
   return (
-    <header className="flex items-center gap-2 h-12 shrink-0 border-b border-border bg-background px-3">
+    <header className="border-border bg-background flex h-12 shrink-0 items-center gap-2 border-b px-3">
       <h1 className="flex items-center gap-1.5 text-sm font-semibold tracking-tight">
-        <Icons.Pin className="size-5 text-muted-foreground" aria-hidden="true" />
+        <Icons.Pin className="text-muted-foreground size-5" aria-hidden="true" />
         trail
       </h1>
-      <div className="flex items-center gap-1 ml-auto">
+      <div className="ml-auto flex items-center gap-1">
         <Button
           id="undoBtn"
           variant="ghost"
@@ -84,20 +84,28 @@ export default function Header() {
         {syncIndicator !== "idle" && (
           <span
             className={cn(
-              "inline-flex items-center justify-center size-5 rounded-full",
+              "inline-flex size-5 items-center justify-center rounded-full",
               syncIndicator === "offline" && "text-yellow-500",
               syncIndicator === "error" && "text-destructive",
               syncIndicator === "syncing" && "text-muted-foreground",
             )}
             aria-label={
-              syncIndicator === "syncing" ? "Syncing..." :
-              syncIndicator === "offline" ? "Offline" :
-              syncIndicator === "error" ? "Sync error" : ""
+              syncIndicator === "syncing"
+                ? "Syncing..."
+                : syncIndicator === "offline"
+                  ? "Offline"
+                  : syncIndicator === "error"
+                    ? "Sync error"
+                    : ""
             }
             data-tooltip={
-              syncIndicator === "syncing" ? "Syncing changes..." :
-              syncIndicator === "offline" ? "You are offline" :
-              syncIndicator === "error" ? "Sync failed" : undefined
+              syncIndicator === "syncing"
+                ? "Syncing changes..."
+                : syncIndicator === "offline"
+                  ? "You are offline"
+                  : syncIndicator === "error"
+                    ? "Sync failed"
+                    : undefined
             }
           >
             {syncIndicator === "syncing" && <Icons.Loader2 className="size-3.5 animate-spin" />}

@@ -5,20 +5,12 @@ import {
   sendExtensionMessage,
 } from "@shared/transport/extension-messaging.js";
 import { actionService } from "@shared/transport/proxy-clients.js";
-import {
-  WEBSITE_MESSAGE,
-} from "@shared/transport/protocols.js";
-import {
-  onWebsiteMessage,
-  sendWebsiteMessage,
-} from "@shared/transport/website-messaging.js";
+import { WEBSITE_MESSAGE } from "@shared/transport/protocols.js";
+import { onWebsiteMessage, sendWebsiteMessage } from "@shared/transport/website-messaging.js";
 import { registerWebsiteBridgeRuntime } from "./register-runtime.js";
 import { createWebsiteBridge } from "./website-bridge.js";
 
-const IGNORED_WEBSITE_MESSAGE_ERRORS = [
-  "No response",
-  "Extension context invalidated",
-];
+const IGNORED_WEBSITE_MESSAGE_ERRORS = ["No response", "Extension context invalidated"];
 
 function shouldIgnoreWebsiteMessageError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -29,7 +21,10 @@ function currentOrigin(): string {
   return window.location.origin;
 }
 
-function forwardWebsiteEvent(type: typeof WEBSITE_MESSAGE.EDITOR_MODE_EXITED, data: { editorMode: false }): void {
+function forwardWebsiteEvent(
+  type: typeof WEBSITE_MESSAGE.EDITOR_MODE_EXITED,
+  data: { editorMode: false },
+): void {
   void sendWebsiteMessage(type, data, currentOrigin()).catch((error) => {
     if (shouldIgnoreWebsiteMessageError(error)) {
       return;

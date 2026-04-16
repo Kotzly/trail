@@ -27,7 +27,9 @@ export type LayoutGraphInput = {
   layerSpacing: number;
 };
 
-export function computeTreePositions(input: LayoutGraphInput): Map<string, { x: number; y: number }> {
+export function computeTreePositions(
+  input: LayoutGraphInput,
+): Map<string, { x: number; y: number }> {
   const { tree, collapsedNodeIds, mode, nodeSpacing, layerSpacing } = input;
 
   const positions = new Map<string, { x: number; y: number }>();

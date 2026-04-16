@@ -2,10 +2,7 @@ import { useEffect } from "react";
 import { getCommandState } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
 import { showUiToast } from "../notifications/sonner-adapter.js";
-import {
-  EXTENSION_MESSAGE,
-  onExtensionMessage,
-} from "@shared/transport/extension-messaging.js";
+import { EXTENSION_MESSAGE, onExtensionMessage } from "@shared/transport/extension-messaging.js";
 
 export function useRuntimeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);

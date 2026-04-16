@@ -64,9 +64,7 @@ function nodeToTuple(node: NavigationNodeJSON): CompactNodeTupleV3 {
   const d = node.data;
   const flags = d.pinned ? CF.PINNED : 0;
 
-  const layout: number[] | null = d.layout
-    ? [d.layout.offsetX, d.layout.offsetY]
-    : null;
+  const layout: number[] | null = d.layout ? [d.layout.offsetX, d.layout.offsetY] : null;
 
   return [
     node.id as number,

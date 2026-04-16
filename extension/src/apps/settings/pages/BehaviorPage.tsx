@@ -12,16 +12,14 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-lg font-semibold">Behavior</h2>
-        <p className="text-sm text-muted-foreground">
-          Customize how Trail works
-        </p>
+        <p className="text-muted-foreground text-sm">Customize how Trail works</p>
       </div>
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
             <Label className="text-sm">Keyboard shortcuts</Label>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Enable keyboard shortcuts in the side panel
             </p>
           </div>
@@ -34,7 +32,7 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
         <div className="flex items-center justify-between">
           <div>
             <Label className="text-sm">Confirm new tree</Label>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Ask for confirmation before creating a new tree
             </p>
           </div>
@@ -47,9 +45,7 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
         <div className="flex items-center justify-between">
           <div>
             <Label className="text-sm">Keep tabs on switch</Label>
-            <p className="text-xs text-muted-foreground">
-              Keep open tabs when switching trees
-            </p>
+            <p className="text-muted-foreground text-xs">Keep open tabs when switching trees</p>
           </div>
           <Switch
             checked={settings.keepTabsOnSwitch}
@@ -60,9 +56,7 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
         <div className="flex items-center justify-between">
           <div>
             <Label className="text-sm">Adaptive performance</Label>
-            <p className="text-xs text-muted-foreground">
-              Automatically adjust rendering quality
-            </p>
+            <p className="text-muted-foreground text-xs">Automatically adjust rendering quality</p>
           </div>
           <Switch
             checked={settings.adaptivePerformance}

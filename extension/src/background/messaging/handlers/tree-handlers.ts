@@ -649,8 +649,7 @@ export const treeHandlers = defineRpcHandlers({
       offsetX: typeof message.offsetX === "number" ? message.offsetX : existingLayout.offsetX,
       offsetY: typeof message.offsetY === "number" ? message.offsetY : existingLayout.offsetY,
     };
-    const hasChanges =
-      typeof message.offsetX === "number" || typeof message.offsetY === "number";
+    const hasChanges = typeof message.offsetX === "number" || typeof message.offsetY === "number";
     if (!hasChanges) return ok();
     node.data = updateNodeData(node.data, { layout: nextLayout });
     treeStorage.cacheTree(tree);

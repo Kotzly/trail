@@ -116,9 +116,7 @@ function mergeDefaults(raw: unknown): Settings {
   const layout = sanitized.layout ?? DEFAULT_LAYOUT_SETTINGS;
   const storedMode = (layout as { mode?: string }).mode;
   const normalizedMode =
-    storedMode === "tree" || storedMode === "mindmap"
-      ? storedMode
-      : DEFAULT_LAYOUT_SETTINGS.mode;
+    storedMode === "tree" || storedMode === "mindmap" ? storedMode : DEFAULT_LAYOUT_SETTINGS.mode;
   return {
     ...defaultSettings,
     ...sanitized,
@@ -166,7 +164,9 @@ class SettingsManager {
       const stored = await settingsItem.getValue();
       this.settings = mergeDefaults(stored);
     } catch (error) {
-      log.error("Error loading settings", { error: error instanceof Error ? error.message : String(error) });
+      log.error("Error loading settings", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
     return this.settings;
@@ -177,7 +177,9 @@ class SettingsManager {
     try {
       await settingsItem.setValue(this.settings);
     } catch (error) {
-      log.error("Error saving settings", { error: error instanceof Error ? error.message : String(error) });
+      log.error("Error saving settings", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }
@@ -190,4 +192,6 @@ class SettingsManager {
 }
 
 export const settingsManager = new SettingsManager();
-settingsManager.init().catch((e) => log.error("Init failed", { error: e instanceof Error ? e.message : String(e) }));
+settingsManager
+  .init()
+  .catch((e) => log.error("Init failed", { error: e instanceof Error ? e.message : String(e) }));

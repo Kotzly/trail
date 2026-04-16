@@ -47,14 +47,18 @@ export default function DeleteTreeConfirmModal() {
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={(isOpen) => { if (!isOpen) close(); }}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) close();
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            Delete &ldquo;{treeLabel}&rdquo;?
-          </AlertDialogTitle>
+          <AlertDialogTitle>Delete &ldquo;{treeLabel}&rdquo;?</AlertDialogTitle>
           <AlertDialogDescription>
-            This removes all {nodeCount} page{nodeCount === 1 ? "" : "s"} in this tree. This cannot be undone.
+            This removes all {nodeCount} page{nodeCount === 1 ? "" : "s"} in this tree. This cannot
+            be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

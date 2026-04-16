@@ -54,7 +54,6 @@ type OverlayEffectsState = {
   blurCount: number;
 };
 
-
 type StoreState = {
   settings: Settings | null;
   flags: ResolvedFlags | null;
@@ -115,6 +114,8 @@ type StoreState = {
   };
   editorMode: EditorModeState;
   syncStatus: SyncStatus;
+  commandPalette: { open: boolean };
+  renameTarget: NodeId | null;
   contextMenu: ContextMenuState;
   pickTarget: { type: "duplicate"; sourceNodeId: NodeId } | null;
   metaKey: MetaKeyPair | null;
@@ -162,6 +163,9 @@ type StoreActions = {
   setPickTarget: (target: StoreState["pickTarget"]) => void;
   clearPickTarget: () => void;
   setSyncStatus: (status: SyncStatus) => void;
+  setCommandPaletteOpen: (open: boolean) => void;
+  openRenameDialog: (nodeId: NodeId) => void;
+  closeRenameDialog: () => void;
 };
 
 type PopupKey = keyof StoreState["ui"];
@@ -254,6 +258,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   },
   editorMode: { active: false, treeId: null },
   syncStatus: "idle" as SyncStatus,
+  commandPalette: { open: false },
+  renameTarget: null,
   contextMenu: null,
   pickTarget: null,
   metaKey: null,
@@ -309,9 +315,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       } else {
         nextCollapsedNodeIds = pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
       }
-      const autoExpandIds: NodeId[] = shouldResetTransient
-        ? []
-        : [];
+      const autoExpandIds: NodeId[] = shouldResetTransient ? [] : [];
       const collapseVersion =
         autoExpandIds.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion;
       const collapseAction =
@@ -621,4 +625,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   setPickTarget: (pickTarget) => set({ pickTarget }),
   clearPickTarget: () => set({ pickTarget: null }),
   setSyncStatus: (syncStatus) => set({ syncStatus }),
+  setCommandPaletteOpen: (open) => set({ commandPalette: { open } }),
+  openRenameDialog: (nodeId) => set({ renameTarget: nodeId }),
+  closeRenameDialog: () => set({ renameTarget: null }),
 }));

@@ -95,7 +95,9 @@ export async function syncOpenTabs(): Promise<void> {
     await notifyTreeUpdate(tree, "tabs");
   })()
     .catch((error) => {
-      log.error("Failed to sync open tabs", { error: error instanceof Error ? error.message : String(error) });
+      log.error("Failed to sync open tabs", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     })
     .finally(() => {
       syncPromise = null;

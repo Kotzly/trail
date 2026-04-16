@@ -1,8 +1,4 @@
-import type {
-  GetReturnType,
-  MaybePromise,
-  Message,
-} from "@webext-core/messaging";
+import type { GetReturnType, MaybePromise, Message } from "@webext-core/messaging";
 import {
   EXTENSION_MESSAGE,
   WEBSITE_MESSAGE,

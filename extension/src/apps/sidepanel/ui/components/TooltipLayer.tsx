@@ -22,9 +22,22 @@ type TooltipTarget = {
   element: HTMLElement;
 };
 
-type Rect = { left: number; top: number; right: number; bottom: number; width: number; height: number };
+type Rect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+};
 type Size = { width: number; height: number };
-type HoverLayout = { left: number; top: number; placement: Placement; arrowOffsetX: number; arrowOffsetY: number };
+type HoverLayout = {
+  left: number;
+  top: number;
+  placement: Placement;
+  arrowOffsetX: number;
+  arrowOffsetY: number;
+};
 
 const VIEWPORT_PADDING = 8;
 const TOOLTIP_GAP = 8;
@@ -57,7 +70,14 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function toRect(rect: DOMRect): Rect {
-  return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+  return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+  };
 }
 
 function normalizePlacement(value: string | null): Placement {
@@ -69,15 +89,30 @@ function computeBasePosition(placement: Placement, targetRect: Rect, tooltipRect
   const centerX = targetRect.left + targetRect.width / 2;
   const centerY = targetRect.top + targetRect.height / 2;
   switch (placement) {
-    case "top": return { left: centerX - tooltipRect.width / 2, top: targetRect.top - TOOLTIP_GAP - tooltipRect.height };
-    case "bottom": return { left: centerX - tooltipRect.width / 2, top: targetRect.bottom + TOOLTIP_GAP };
-    case "left": return { left: targetRect.left - TOOLTIP_GAP - tooltipRect.width, top: centerY - tooltipRect.height / 2 };
-    case "right": return { left: targetRect.right + TOOLTIP_GAP, top: centerY - tooltipRect.height / 2 };
+    case "top":
+      return {
+        left: centerX - tooltipRect.width / 2,
+        top: targetRect.top - TOOLTIP_GAP - tooltipRect.height,
+      };
+    case "bottom":
+      return { left: centerX - tooltipRect.width / 2, top: targetRect.bottom + TOOLTIP_GAP };
+    case "left":
+      return {
+        left: targetRect.left - TOOLTIP_GAP - tooltipRect.width,
+        top: centerY - tooltipRect.height / 2,
+      };
+    case "right":
+      return { left: targetRect.right + TOOLTIP_GAP, top: centerY - tooltipRect.height / 2 };
   }
 }
 
 function fitsWithin(left: number, top: number, tooltipRect: Rect, viewport: Rect) {
-  return left >= viewport.left && left + tooltipRect.width <= viewport.right && top >= viewport.top && top + tooltipRect.height <= viewport.bottom;
+  return (
+    left >= viewport.left &&
+    left + tooltipRect.width <= viewport.right &&
+    top >= viewport.top &&
+    top + tooltipRect.height <= viewport.bottom
+  );
 }
 
 function clampPosition(left: number, top: number, size: Size, viewport: Rect) {
@@ -86,7 +121,12 @@ function clampPosition(left: number, top: number, size: Size, viewport: Rect) {
   return { left: clamp(left, viewport.left, maxLeft), top: clamp(top, viewport.top, maxTop) };
 }
 
-function computePreferredPosition(placement: Placement, targetRect: Rect, tooltipRect: Rect, viewport: Rect) {
+function computePreferredPosition(
+  placement: Placement,
+  targetRect: Rect,
+  tooltipRect: Rect,
+  viewport: Rect,
+) {
   const order = [placement, ...FALLBACKS[placement]];
   let chosen = placement;
   let position = computeBasePosition(placement, targetRect, tooltipRect);
@@ -139,7 +179,12 @@ export default function TooltipLayer() {
       if (!text) return null;
       const trimmed = text.trim();
       if (!trimmed) return null;
-      return { id: getIdFor(element), text: trimmed, placement: normalizePlacement(element.getAttribute("data-tooltip-position")), element };
+      return {
+        id: getIdFor(element),
+        text: trimmed,
+        placement: normalizePlacement(element.getAttribute("data-tooltip-position")),
+        element,
+      };
     },
     [getIdFor],
   );
@@ -148,7 +193,10 @@ export default function TooltipLayer() {
     if (typeof document === "undefined") return;
     if (tooltipsOpen) {
       const elements = Array.from(document.querySelectorAll<HTMLElement>("[data-tooltip]"));
-      const next = elements.filter(isVisible).map(buildTarget).filter((t): t is TooltipTarget => Boolean(t));
+      const next = elements
+        .filter(isVisible)
+        .map(buildTarget)
+        .filter((t): t is TooltipTarget => Boolean(t));
       setTargets(next);
       return;
     }
@@ -160,32 +208,54 @@ export default function TooltipLayer() {
     setTargets([]);
   }, [buildTarget, hoverTarget, tooltipsOpen]);
 
-  useLayoutEffect(() => { updateTargets(); }, [updateTargets]);
+  useLayoutEffect(() => {
+    updateTargets();
+  }, [updateTargets]);
 
   const updateHoverLayout = useCallback(() => {
-    if (tooltipsOpen) { setHoverLayout(null); return; }
+    if (tooltipsOpen) {
+      setHoverLayout(null);
+      return;
+    }
     const target = targets[0];
     const bubble = hoverBubbleRef.current;
-    if (!target || !bubble || typeof window === "undefined") { setHoverLayout(null); return; }
+    if (!target || !bubble || typeof window === "undefined") {
+      setHoverLayout(null);
+      return;
+    }
     const targetRect = toRect(target.element.getBoundingClientRect());
     const tooltipRect = toRect(bubble.getBoundingClientRect());
     const viewport: Rect = {
-      left: VIEWPORT_PADDING, top: VIEWPORT_PADDING,
-      right: window.innerWidth - VIEWPORT_PADDING, bottom: window.innerHeight - VIEWPORT_PADDING,
-      width: window.innerWidth, height: window.innerHeight,
+      left: VIEWPORT_PADDING,
+      top: VIEWPORT_PADDING,
+      right: window.innerWidth - VIEWPORT_PADDING,
+      bottom: window.innerHeight - VIEWPORT_PADDING,
+      width: window.innerWidth,
+      height: window.innerHeight,
     };
     const position = computePreferredPosition(target.placement, targetRect, tooltipRect, viewport);
     const arrow = computeArrowOffset(tooltipRect, targetRect, position.left, position.top);
-    setHoverLayout({ left: position.left, top: position.top, placement: position.placement, arrowOffsetX: arrow.arrowOffsetX, arrowOffsetY: arrow.arrowOffsetY });
+    setHoverLayout({
+      left: position.left,
+      top: position.top,
+      placement: position.placement,
+      arrowOffsetX: arrow.arrowOffsetX,
+      arrowOffsetY: arrow.arrowOffsetY,
+    });
   }, [targets, tooltipsOpen]);
 
-  useLayoutEffect(() => { updateHoverLayout(); }, [updateHoverLayout]);
+  useLayoutEffect(() => {
+    updateHoverLayout();
+  }, [updateHoverLayout]);
 
   useEffect(() => {
     if (tooltipsOpen) return;
     window.addEventListener("resize", updateHoverLayout);
     window.addEventListener("scroll", updateHoverLayout, true);
-    return () => { window.removeEventListener("resize", updateHoverLayout); window.removeEventListener("scroll", updateHoverLayout, true); };
+    return () => {
+      window.removeEventListener("resize", updateHoverLayout);
+      window.removeEventListener("scroll", updateHoverLayout, true);
+    };
   }, [tooltipsOpen, updateHoverLayout]);
 
   useEffect(() => {
@@ -227,7 +297,10 @@ export default function TooltipLayer() {
   useEffect(() => {
     if (!tooltipsOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); setTooltipsOpen(false); }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setTooltipsOpen(false);
+      }
     };
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
@@ -238,11 +311,20 @@ export default function TooltipLayer() {
     const observer = new MutationObserver(() => updateTargets());
     const root = tooltipsOpen ? document.body : hoverTarget;
     if (root) {
-      observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tooltip", "style", "class", "aria-hidden"] });
+      observer.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["data-tooltip", "style", "class", "aria-hidden"],
+      });
     }
     window.addEventListener("resize", updateTargets);
     window.addEventListener("scroll", updateTargets, true);
-    return () => { observer.disconnect(); window.removeEventListener("resize", updateTargets); window.removeEventListener("scroll", updateTargets, true); };
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateTargets);
+      window.removeEventListener("scroll", updateTargets, true);
+    };
   }, [hoverTarget, tooltipsOpen, updateTargets]);
 
   if (typeof document === "undefined") return null;
@@ -267,12 +349,17 @@ export default function TooltipLayer() {
             </DialogDescription>
           </DialogHeader>
           {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Nothing to show right now.</p>
+            <p className="text-muted-foreground py-4 text-center text-sm">
+              Nothing to show right now.
+            </p>
           ) : (
             <ScrollArea className="max-h-80">
               <div className="flex flex-col gap-1">
                 {items.map((text) => (
-                  <div key={text} className="px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors">
+                  <div
+                    key={text}
+                    className="hover:bg-accent rounded-md px-3 py-2 text-sm transition-colors"
+                  >
                     {text}
                   </div>
                 ))}
@@ -293,10 +380,10 @@ export default function TooltipLayer() {
     : undefined;
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] pointer-events-none">
+    <div className="pointer-events-none fixed inset-0 z-[10000]">
       <div
         ref={hoverBubbleRef}
-        className="fixed z-[10001] px-2.5 py-1.5 text-xs rounded-md bg-popover text-popover-foreground border border-border shadow-md transition-opacity duration-100 pointer-events-none"
+        className="bg-popover text-popover-foreground border-border pointer-events-none fixed z-[10001] rounded-md border px-2.5 py-1.5 text-xs shadow-md transition-opacity duration-100"
         style={{
           ...bubbleStyle,
           opacity: hoverLayout ? 1 : 0,

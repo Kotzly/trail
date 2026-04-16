@@ -1,5 +1,6 @@
-import { lazy, Suspense, useCallback, useRef } from "react";
+import { lazy, Suspense, useCallback } from "react";
 import FloatingControls from "./components/FloatingControls.js";
+import CommandPalette from "./components/CommandPalette.js";
 import ContextMenus from "./components/ContextMenus.js";
 import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
 import TrailLogo from "@ui/components/trail-logo";
@@ -10,7 +11,6 @@ import { useShortcuts } from "./hooks/useShortcuts.js";
 import TooltipLayer from "./components/TooltipLayer.js";
 import { useSystemThemeListener } from "./hooks/useSystemThemeListener.js";
 import { useStore } from "./state/store.js";
-import OnboardingHints from "./components/OnboardingHints.js";
 import { Skeleton } from "@ui/components/ui/skeleton";
 import { Button } from "@ui/components/ui/button";
 import { saveSettings } from "../api/settings.js";
@@ -25,19 +25,19 @@ const TrailGraph = lazy(() =>
 
 function BootstrapSkeleton() {
   return (
-    <div className="flex flex-col h-full p-3 gap-2.5">
+    <div className="flex h-full flex-col gap-2.5 p-3">
       <Skeleton className="h-10 rounded-lg" />
-      <Skeleton className="flex-1 min-h-[200px] rounded-lg" />
+      <Skeleton className="min-h-[200px] flex-1 rounded-lg" />
     </div>
   );
 }
 
 function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-3">
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
       <TrailLogo label="Trail" />
       <h2 className="text-lg font-semibold">Could not load Trail</h2>
-      <p className="text-[13px] text-muted-foreground max-w-[280px]">
+      <p className="text-muted-foreground max-w-[280px] text-[13px]">
         Something prevented Trail from starting. This is usually temporary.
       </p>
       <Button variant="outline" className="mt-2" onClick={onRetry}>
@@ -48,12 +48,10 @@ function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
 }
 
 export default function App() {
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
   const { bootstrapStatus, retryBootstrap } = useBootstrap();
   useRuntimeMessages();
   useSystemThemeListener();
-  useShortcuts(searchInputRef);
+  useShortcuts();
 
   const treeJSON = useStore((s) => s.treeJSON);
   const precomputedPositions = useStore((s) => s.precomputedPositions);
@@ -69,12 +67,9 @@ export default function App() {
   const expandNodes = useStore((s) => s.expandNodes);
   const setSettings = useStore((s) => s.setSettings);
 
-  const handleNodeClick = useCallback(
-    (nodeId: NodeId, url: string) => {
-      void navigateToNodeId(nodeId, url as Url);
-    },
-    [],
-  );
+  const handleNodeClick = useCallback((nodeId: NodeId, url: string) => {
+    void navigateToNodeId(nodeId, url as Url);
+  }, []);
 
   const handleNodeContextMenu = useCallback(
     (nodeId: NodeId, position: { x: number; y: number }) => {
@@ -113,7 +108,7 @@ export default function App() {
 
   if (bootstrapStatus === "loading") {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-none min-w-0 overflow-hidden relative">
+      <div className="relative flex h-dvh w-full max-w-none min-w-0 flex-col overflow-hidden">
         <Toaster />
         <BootstrapSkeleton />
       </div>
@@ -122,7 +117,7 @@ export default function App() {
 
   if (bootstrapStatus === "degraded") {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-none min-w-0 overflow-hidden relative">
+      <div className="relative flex h-dvh w-full max-w-none min-w-0 flex-col overflow-hidden">
         <Toaster />
         <DegradedBootstrap onRetry={retryBootstrap} />
       </div>
@@ -130,10 +125,10 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-none min-w-0 overflow-hidden relative">
+    <div className="relative flex h-dvh w-full max-w-none min-w-0 flex-col overflow-hidden">
       <Toaster />
-      <FloatingControls searchInputRef={searchInputRef} />
-      <OnboardingHints />
+      <FloatingControls />
+      <CommandPalette />
       {settings && (
         <Suspense fallback={<BootstrapSkeleton />}>
           <TrailGraph

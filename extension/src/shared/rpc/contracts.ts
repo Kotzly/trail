@@ -52,6 +52,7 @@ export const RPC_METHOD = {
   EXIT_EDITOR_MODE: "EXIT_EDITOR_MODE",
   CANCEL_EDITOR_MODE: "CANCEL_EDITOR_MODE",
   REPARENT_NODE: "REPARENT_NODE",
+  RENAME_NODE: "RENAME_NODE",
   DUPLICATE_SUBTREE: "DUPLICATE_SUBTREE",
   ENSURE_TREE_LOADED: "ENSURE_TREE_LOADED",
   GET_FLAGS: "GET_FLAGS",
@@ -162,6 +163,10 @@ export type EnsureTreeLoadedMessage = RequestMessageBase<
 export type RenameTreeMessage = RequestMessageBase<
   typeof RPC_METHOD.RENAME_TREE,
   { treeId: string; label: string }
+>;
+export type RenameNodeMessage = RequestMessageBase<
+  typeof RPC_METHOD.RENAME_NODE,
+  { nodeId: NodeId; title: string }
 >;
 export type DeleteArchivedTreeMessage = RequestMessageBase<
   typeof RPC_METHOD.DELETE_ARCHIVED_TREE,
@@ -340,6 +345,7 @@ export type RequestMessage =
   | ExitEditorModeMessage
   | CancelEditorModeMessage
   | ReparentNodeMessage
+  | RenameNodeMessage
   | DuplicateSubtreeMessage
   | GetFlagsMessage
   | SetFlagMessage
@@ -407,6 +413,7 @@ export type ResponseDataByType = {
   [RPC_METHOD.EXIT_EDITOR_MODE]: EditorModeState;
   [RPC_METHOD.CANCEL_EDITOR_MODE]: EditorModeState;
   [RPC_METHOD.REPARENT_NODE]: void;
+  [RPC_METHOD.RENAME_NODE]: void;
   [RPC_METHOD.DUPLICATE_SUBTREE]: void;
   [RPC_METHOD.ENSURE_TREE_LOADED]: boolean;
   [RPC_METHOD.GET_FLAGS]: ResolvedFlags;
@@ -484,6 +491,7 @@ export type TreeUpdateReason =
   | "temp-selection"
   | "sync"
   | "reparent"
+  | "rename"
   | "duplicate"
   | "editor-enter"
   | "editor-exit";

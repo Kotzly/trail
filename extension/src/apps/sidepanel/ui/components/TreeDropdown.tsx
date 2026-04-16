@@ -79,7 +79,9 @@ function formatRelativeTime(iso: string | null): string {
     if (diffMin < 60) return `${diffMin} min ago`;
     const diffHr = Math.floor(diffMin / 60);
     if (diffHr < 24) return `${diffHr} hr ago`;
-    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
+    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(
+      new Date(iso),
+    );
   } catch {
     return "";
   }
@@ -301,10 +303,10 @@ export default function TreeDropdown() {
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[360px] p-0" id="treesDropdown">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+          <div className="border-border flex items-center justify-between border-b px-4 py-2.5">
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-semibold">trees</span>
-              <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <span className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-[11px]">
                 {archivedTrees.length}
               </span>
             </div>
@@ -314,48 +316,59 @@ export default function TreeDropdown() {
             {/* Active tree section */}
             {activeTree && (
               <div className="py-2.5">
-                <div className="px-4 pb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <div className="text-muted-foreground px-4 pb-2 text-[11px] tracking-wider uppercase">
                   current
                 </div>
-                <div className="flex items-center gap-2.5 px-4 py-2 bg-accent">
+                <div className="bg-accent flex items-center gap-2.5 px-4 py-2">
                   <div className="min-w-0 flex-1">
                     {editingId === activeTree.id ? (
                       <Input
                         ref={inputRef}
-                        className="h-7 text-[13px] px-1.5"
+                        className="h-7 px-1.5 text-[13px]"
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") { e.preventDefault(); void commitEdit(); }
-                          if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void commitEdit();
+                          }
+                          if (e.key === "Escape") {
+                            e.preventDefault();
+                            cancelEdit();
+                          }
                         }}
                         onBlur={() => void commitEdit()}
                       />
                     ) : (
                       <div
-                        className="text-[13px] truncate cursor-text"
+                        className="cursor-text truncate text-[13px]"
                         onDoubleClick={() => startEdit(activeTree)}
                       >
                         {activeTree.label}
                       </div>
                     )}
-                    <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    <div className="text-muted-foreground mt-0.5 truncate text-[11px]">
                       {[
                         "active now",
                         `${activeTree.nodeCount} nodes`,
                         lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : null,
-                      ].filter(Boolean).join(" \u00b7 ")}
+                      ]
+                        .filter(Boolean)
+                        .join(" \u00b7 ")}
                     </div>
                   </div>
                   {editingId !== activeTree.id && (
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex shrink-0 items-center gap-1">
                       <Button
                         variant="ghost"
                         size="icon-xs"
                         type="button"
                         aria-label="Export tree"
                         data-tooltip="Export tree"
-                        onClick={(e) => { e.stopPropagation(); void handleExport(); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleExport();
+                        }}
                       >
                         <Icons.Download />
                       </Button>
@@ -365,7 +378,10 @@ export default function TreeDropdown() {
                         type="button"
                         aria-label="Open in editor"
                         data-tooltip="Open in editor"
-                        onClick={(e) => { e.stopPropagation(); void openTrailEditor(activeTree.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void openTrailEditor(activeTree.id);
+                        }}
                       >
                         <Icons.Pencil />
                       </Button>
@@ -379,8 +395,10 @@ export default function TreeDropdown() {
 
             {/* Saved trees section */}
             <div className="py-2.5">
-              <div className="flex items-center justify-between px-4 pb-2 gap-3">
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">saved</span>
+              <div className="flex items-center justify-between gap-3 px-4 pb-2">
+                <span className="text-muted-foreground text-[11px] tracking-wider uppercase">
+                  saved
+                </span>
                 <div className="flex items-center gap-1">
                   <input
                     ref={fileInputRef}
@@ -423,7 +441,7 @@ export default function TreeDropdown() {
                 </div>
               </div>
               {archivedTrees.length === 0 ? (
-                <div className="flex flex-col items-center gap-1.5 py-5 text-muted-foreground">
+                <div className="text-muted-foreground flex flex-col items-center gap-1.5 py-5">
                   <Icons.ListTree className="size-6 opacity-40" />
                   <span className="text-xs">No saved trees yet</span>
                   <span className="text-[11px] opacity-60">Create a new tree to get started</span>
@@ -441,34 +459,42 @@ export default function TreeDropdown() {
                       host || tree.rootTitle || "Untitled",
                       `${tree.nodeCount} nodes`,
                       date,
-                    ].filter(Boolean).join(" · ");
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
 
                     return (
                       <div
                         key={tree.id}
                         className={cn(
-                          "group flex items-center gap-2.5 rounded-md px-3 py-2 cursor-pointer hover:bg-accent transition-colors",
-                          isLoading && "opacity-60 pointer-events-none",
+                          "group hover:bg-accent flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 transition-colors",
+                          isLoading && "pointer-events-none opacity-60",
                           isUnavailable && "opacity-50",
                         )}
                         onClick={() => !isLoading && !isUnavailable && void handleOpen(tree)}
                       >
                         {/* Favicon */}
                         {isLoading ? (
-                          <div className="size-4 rounded-sm shrink-0 flex items-center justify-center bg-muted">
-                            <Icons.Loader2 className="size-3 animate-spin text-muted-foreground" />
+                          <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
+                            <Icons.Loader2 className="text-muted-foreground size-3 animate-spin" />
                           </div>
                         ) : tree.stub ? (
-                          <div className="size-4 rounded-sm shrink-0 flex items-center justify-center bg-muted">
-                            {isUnavailable
-                              ? <Icons.CloudOff className="size-3 text-muted-foreground" />
-                              : <Icons.Cloud className="size-3 text-muted-foreground" />}
+                          <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
+                            {isUnavailable ? (
+                              <Icons.CloudOff className="text-muted-foreground size-3" />
+                            ) : (
+                              <Icons.Cloud className="text-muted-foreground size-3" />
+                            )}
                           </div>
                         ) : tree.rootUrl ? (
-                          <img className="size-4 rounded-sm shrink-0" alt="" src={getFaviconUrl(tree.rootUrl)} />
+                          <img
+                            className="size-4 shrink-0 rounded-sm"
+                            alt=""
+                            src={getFaviconUrl(tree.rootUrl)}
+                          />
                         ) : (
-                          <div className="size-4 rounded-sm shrink-0 flex items-center justify-center bg-muted">
-                            <Icons.Bookmark className="size-2.5 text-muted-foreground" />
+                          <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
+                            <Icons.Bookmark className="text-muted-foreground size-2.5" />
                           </div>
                         )}
 
@@ -477,30 +503,39 @@ export default function TreeDropdown() {
                           {editingId === tree.id ? (
                             <Input
                               ref={inputRef}
-                              className="h-7 text-[13px] px-1.5"
+                              className="h-7 px-1.5 text-[13px]"
                               value={draft}
                               onChange={(e) => setDraft(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") { e.preventDefault(); void commitEdit(); }
-                                if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  void commitEdit();
+                                }
+                                if (e.key === "Escape") {
+                                  e.preventDefault();
+                                  cancelEdit();
+                                }
                               }}
                               onBlur={() => void commitEdit()}
                               onClick={(e) => e.stopPropagation()}
                             />
                           ) : (
                             <div
-                              className="text-[13px] truncate"
-                              onDoubleClick={(e) => { e.stopPropagation(); startEdit(tree); }}
+                              className="truncate text-[13px]"
+                              onDoubleClick={(e) => {
+                                e.stopPropagation();
+                                startEdit(tree);
+                              }}
                             >
                               {tree.label}
                             </div>
                           )}
-                          <div className="text-[11px] text-muted-foreground truncate">{meta}</div>
+                          <div className="text-muted-foreground truncate text-[11px]">{meta}</div>
                         </div>
 
                         {/* Actions */}
                         {editingId !== tree.id && !isLoading && (
-                          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                             {!tree.stub && (
                               <Button
                                 variant="ghost"
@@ -508,7 +543,10 @@ export default function TreeDropdown() {
                                 type="button"
                                 aria-label="Export tree"
                                 data-tooltip="Export tree"
-                                onClick={(e) => { e.stopPropagation(); void handleExport(tree.id); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void handleExport(tree.id);
+                                }}
                               >
                                 <Icons.Download />
                               </Button>
@@ -519,7 +557,10 @@ export default function TreeDropdown() {
                               type="button"
                               aria-label="Open in editor"
                               data-tooltip="Open in editor"
-                              onClick={(e) => { e.stopPropagation(); void openTrailEditor(tree.id); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void openTrailEditor(tree.id);
+                              }}
                             >
                               <Icons.Pencil />
                             </Button>
@@ -530,7 +571,10 @@ export default function TreeDropdown() {
                               aria-label="Delete tree"
                               data-tooltip="Delete tree"
                               disabled={deletePending === tree.id}
-                              onClick={(e) => { e.stopPropagation(); void handleDeleteArchived(tree.id); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleDeleteArchived(tree.id);
+                              }}
                             >
                               <Icons.Trash2 />
                             </Button>
@@ -548,7 +592,9 @@ export default function TreeDropdown() {
 
       <NewTreeDialog
         open={confirmOpen}
-        onOpenChange={(open) => { if (!creating) setConfirmOpen(open); }}
+        onOpenChange={(open) => {
+          if (!creating) setConfirmOpen(open);
+        }}
         confirmNewTree={confirmNewTree}
         label={labelDraft}
         creating={creating}
@@ -598,7 +644,10 @@ function NewTreeDialog({
           placeholder="Unnamed Tree"
           onChange={(e) => onLabelChange(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") { e.preventDefault(); onConfirm(); }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onConfirm();
+            }
           }}
           autoFocus
         />

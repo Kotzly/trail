@@ -34,7 +34,7 @@ export function TreesPage() {
   const [editLabel, setEditLabel] = useState("");
 
   if (loading || !trees) {
-    return <p className="text-sm text-muted-foreground p-4">Loading trees...</p>;
+    return <p className="text-muted-foreground p-4 text-sm">Loading trees...</p>;
   }
 
   const handleNewTree = async () => {
@@ -53,9 +53,7 @@ export function TreesPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-lg font-semibold">Trees</h2>
-        <p className="text-sm text-muted-foreground">
-          Manage your browsing trees
-        </p>
+        <p className="text-muted-foreground text-sm">Manage your browsing trees</p>
       </div>
 
       <div className="flex gap-2">
@@ -74,26 +72,18 @@ export function TreesPage() {
       <Separator />
 
       <div>
-        <h3 className="text-sm font-medium mb-3">Active</h3>
+        <h3 className="mb-3 text-sm font-medium">Active</h3>
         <Card className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm">{trees.active.label}</span>
+              <span className="text-sm font-medium">{trees.active.label}</span>
               <Badge variant="secondary">Active</Badge>
             </div>
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => exportTree()}
-              >
+              <Button variant="ghost" size="sm" onClick={() => exportTree()}>
                 Export
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={archiveActiveTree}
-              >
+              <Button variant="ghost" size="sm" onClick={archiveActiveTree}>
                 Archive
               </Button>
             </div>
@@ -103,14 +93,12 @@ export function TreesPage() {
 
       {trees.archived.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium mb-3">
-            Archived ({trees.archived.length})
-          </h3>
+          <h3 className="mb-3 text-sm font-medium">Archived ({trees.archived.length})</h3>
           <div className="flex flex-col gap-2">
             {trees.archived.map((tree) => (
               <Card key={tree.id} className="p-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     {editingId === tree.id ? (
                       <div className="flex gap-1">
                         <Input
@@ -129,19 +117,15 @@ export function TreesPage() {
                       </div>
                     ) : (
                       <div>
-                        <span className="font-medium text-sm">{tree.label}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
+                        <span className="text-sm font-medium">{tree.label}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
                           {tree.nodeCount} nodes
                         </span>
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0 ml-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openTree(tree.id)}
-                    >
+                  <div className="ml-2 flex shrink-0 items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => openTree(tree.id)}>
                       Open
                     </Button>
                     <Button
@@ -154,11 +138,7 @@ export function TreesPage() {
                     >
                       Rename
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => exportTree(tree.id)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => exportTree(tree.id)}>
                       Export
                     </Button>
                     <AlertDialog>
@@ -176,9 +156,7 @@ export function TreesPage() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteArchivedTree(tree.id)}
-                          >
+                          <AlertDialogAction onClick={() => deleteArchivedTree(tree.id)}>
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>

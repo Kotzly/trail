@@ -8,16 +8,18 @@ import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { LayoutMode, LayoutResult, TrailEdge } from "./types.js";
-import { treeToNodes, treeToEdges, computeActivePathIds, type TreeToNodesMetadata } from "./transforms.js";
+import {
+  treeToNodes,
+  treeToEdges,
+  computeActivePathIds,
+  type TreeToNodesMetadata,
+} from "./transforms.js";
 import { computeTreePositions } from "./tree-layout.js";
 import { getSpacing } from "@shared/layout/spacing.js";
 
 // ── Per-edge handle assignment ────────────────────────────────────
 
-function assignEdgeHandles(
-  edges: TrailEdge[],
-  mode: LayoutMode,
-): Map<string, Set<string>> {
+function assignEdgeHandles(edges: TrailEdge[], mode: LayoutMode): Map<string, Set<string>> {
   const nodeHandles = new Map<string, Set<string>>();
 
   function addHandle(nodeId: string, handleId: string) {
