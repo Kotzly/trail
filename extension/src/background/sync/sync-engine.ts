@@ -31,6 +31,7 @@
  */
 
 import type { PostgrestError } from "@supabase/supabase-js";
+import pDebounce from "p-debounce";
 import { getSupabaseClient } from "@shared/lib/supabase.js";
 import { getAuthState, subscribeAuthState } from "@shared/auth/auth-orchestrator.js";
 import {
@@ -61,7 +62,6 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 20;
 const PULL_INTERVAL_MS = 60_000;
 
-let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let pullTimer: ReturnType<typeof setInterval> | null = null;
 let pushHistory: number[] = []; // timestamps of recent pushes
 let running = false;
@@ -252,16 +252,17 @@ async function doPush(treeId?: string): Promise<void> {
   setStatus("saved");
 }
 
-async function handlePushError(treeId: string, error: PostgrestError): Promise<void> {
-  const msg = error.message ?? "Unknown error";
-  // Network-ish errors (no code, or "Failed to fetch"): enqueue and mark offline.
-  const looksOffline =
-    !error.code ||
-    /network|fetch|timeout/i.test(msg) ||
-    (typeof navigator !== "undefined" && navigator.onLine === false);
+function isOfflineError(error: PostgrestError): boolean {
+  // PostgrestError without a code means the request never reached
+  // PostgREST — network failure, DNS failure, timeout, or hard offline.
+  if (!error.code) return true;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  return false;
+}
 
-  if (looksOffline) {
-    log.info("push: offline, enqueuing", { treeId, msg });
+async function handlePushError(treeId: string, error: PostgrestError): Promise<void> {
+  if (isOfflineError(error)) {
+    log.info("push: offline, enqueuing", { treeId, msg: error.message ?? "Unknown error" });
     await enqueuePendingOp({ kind: "push_tree", treeId, queuedAt: Date.now() });
     setStatus("offline");
     return;
@@ -294,15 +295,20 @@ async function doDelete(treeId: string): Promise<void> {
   await syncStateItem.setValue(rest);
 }
 
+const debouncedPush = pDebounce(async () => {
+  // Re-check `running` at fire time: stopSyncEngine can flip it between
+  // schedulePush() and the debounce timeout firing.
+  if (!running) return;
+  try {
+    await doPush();
+  } catch (error) {
+    log.error("push failed", { error: error instanceof Error ? error.message : String(error) });
+  }
+}, PUSH_DEBOUNCE_MS);
+
 export function schedulePush(): void {
   if (!running) return;
-  if (pushTimer) clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => {
-    pushTimer = null;
-    void doPush().catch((error) => {
-      log.error("push failed", { error: error instanceof Error ? error.message : String(error) });
-    });
-  }, PUSH_DEBOUNCE_MS);
+  void debouncedPush();
 }
 
 export function scheduleDelete(treeId: string): void {
@@ -351,7 +357,7 @@ async function doPull(): Promise<void> {
   if (error) {
     // Swallow offline errors; periodic pull retries and the user isn't
     // blocked by them the way they are on push.
-    if (!/network|fetch|timeout/i.test(error.message ?? "")) {
+    if (!isOfflineError(error)) {
       captureError(error, { kind: "sync_pull" });
     }
     return;
@@ -512,10 +518,6 @@ export function startSyncEngine(): void {
 
 export function stopSyncEngine(): void {
   running = false;
-  if (pushTimer) {
-    clearTimeout(pushTimer);
-    pushTimer = null;
-  }
   if (pullTimer) {
     clearInterval(pullTimer);
     pullTimer = null;
