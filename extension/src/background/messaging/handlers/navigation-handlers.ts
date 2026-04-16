@@ -1,5 +1,5 @@
 import type { TabId } from "@shared/types/ids.js";
-import { RPC_METHOD, defineRpcHandlers, ok, err } from "@shared/rpc/contracts.js";
+import { RPC_METHOD, defineRpcHandlers } from "@shared/rpc/contracts.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { notifyTreeUpdate } from "../notifications.js";
@@ -27,7 +27,7 @@ export const navigationHandlers = defineRpcHandlers({
   async [RPC_METHOD.NAVIGATE_TO](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err("Node not found");
+    if (!node) throw new Error("Node not found");
 
     if (getEditorState().active) {
       tree.setCurrentById(message.nodeId);
@@ -36,7 +36,7 @@ export const navigationHandlers = defineRpcHandlers({
         focusNodeId: message.nodeId,
         mode: "force",
       });
-      return ok();
+      return;
     }
 
     if (tabManager.openNodes().size === 0) {
@@ -61,7 +61,7 @@ export const navigationHandlers = defineRpcHandlers({
             focusNodeId: message.nodeId,
             mode: "force",
           });
-          return ok();
+          return;
         }
         tabManager.unregister(nextTabId as TabId);
       }
@@ -76,7 +76,7 @@ export const navigationHandlers = defineRpcHandlers({
         tree.setCurrentById(message.nodeId);
         treeStorage.cacheTree(tree);
         await notifyTreeUpdate(tree, "set-current", { focusNodeId: message.nodeId, mode: "force" });
-        return ok();
+        return;
       }
       tabManager.unregister(tabId as TabId);
     }
@@ -98,32 +98,29 @@ export const navigationHandlers = defineRpcHandlers({
     tree.setCurrentById(message.nodeId);
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree, "set-current", { focusNodeId: message.nodeId, mode: "force" });
-
-    return ok();
   },
 
   async [RPC_METHOD.PREVIEW_NODE](message) {
     if (getEditorState().active) {
-      return ok();
+      return;
     }
 
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err("Node not found");
+    if (!node) throw new Error("Node not found");
 
     const tabsArray = tabManager.getTabsByRecency(message.nodeId);
     if (tabsArray.length === 0) {
-      return ok();
+      return;
     }
     for (const tabId of tabsArray) {
       tabManager.suppressNextActivate(tabId as TabId);
       const focused = await focusTab(tabId as TabId);
       if (focused) {
-        return ok();
+        return;
       }
       tabManager.unregister(tabId as TabId);
     }
-    return ok();
   },
 
   async [RPC_METHOD.BEGIN_TEMP_SELECTION](message) {
@@ -132,9 +129,9 @@ export const navigationHandlers = defineRpcHandlers({
         message.baseNodeId ?? null,
         message.options,
       );
-      return ok({ sessionId });
+      return { sessionId };
     } catch (error) {
-      return err(error instanceof Error ? error.message : "Failed to begin temp selection");
+      throw new Error(error instanceof Error ? error.message : "Failed to begin temp selection");
     }
   },
 
@@ -145,18 +142,17 @@ export const navigationHandlers = defineRpcHandlers({
         message.nodeId,
         message.tabId,
       );
-      return ok(result);
+      return result;
     } catch (error) {
-      return err(error instanceof Error ? error.message : "Failed to preview temp selection");
+      throw new Error(error instanceof Error ? error.message : "Failed to preview temp selection");
     }
   },
 
   async [RPC_METHOD.ACCEPT_TEMP_SELECTION](message) {
     try {
       await tempSelectionManager.accept(message.sessionId, message.nodeId);
-      return ok();
     } catch (error) {
-      return err(error instanceof Error ? error.message : "Failed to accept temp selection");
+      throw new Error(error instanceof Error ? error.message : "Failed to accept temp selection");
     }
   },
 
@@ -165,21 +161,19 @@ export const navigationHandlers = defineRpcHandlers({
       await tempSelectionManager.cancel(message.sessionId, { keepSession: message.keepSession } as {
         keepSession?: boolean;
       });
-      return ok();
     } catch (error) {
-      return err(error instanceof Error ? error.message : "Failed to cancel temp selection");
+      throw new Error(error instanceof Error ? error.message : "Failed to cancel temp selection");
     }
   },
 
   async [RPC_METHOD.END_TEMP_SELECTION](message) {
     tempSelectionManager.end(message.sessionId);
-    return ok();
   },
 
   async [RPC_METHOD.SET_CURRENT](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err("Node not found");
+    if (!node) throw new Error("Node not found");
 
     if (getEditorState().active) {
       tree.setCurrentById(message.nodeId);
@@ -188,7 +182,7 @@ export const navigationHandlers = defineRpcHandlers({
         focusNodeId: message.nodeId,
         mode: "force",
       });
-      return ok();
+      return;
     }
 
     if (tabManager.openNodes().size === 0) {
@@ -204,7 +198,7 @@ export const navigationHandlers = defineRpcHandlers({
         tree.setCurrentById(message.nodeId);
         treeStorage.cacheTree(tree);
         await notifyTreeUpdate(tree, "set-current", { focusNodeId: message.nodeId, mode: "force" });
-        return ok();
+        return;
       }
       tabManager.unregister(tabId as TabId);
     }
@@ -226,17 +220,16 @@ export const navigationHandlers = defineRpcHandlers({
     tree.setCurrentById(message.nodeId);
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree, "set-current", { focusNodeId: message.nodeId, mode: "force" });
-    return ok();
   },
 
   async [RPC_METHOD.OPEN_IN_NEW_TAB](message) {
     if (getEditorState().active) {
-      return ok();
+      return;
     }
 
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err("Node not found");
+    if (!node) throw new Error("Node not found");
 
     const tab = await browser.tabs.create({ url: node.data.url, active: false });
     if (tab.id !== undefined) {
@@ -247,6 +240,5 @@ export const navigationHandlers = defineRpcHandlers({
     }
 
     await notifyTreeUpdate(tree, "tabs");
-    return ok();
   },
 });

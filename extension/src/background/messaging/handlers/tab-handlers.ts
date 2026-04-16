@@ -1,5 +1,5 @@
 import type { NodeId, TabId } from "@shared/types/ids.js";
-import { RPC_METHOD, defineRpcHandlers, ok, err } from "@shared/rpc/contracts.js";
+import { RPC_METHOD, defineRpcHandlers } from "@shared/rpc/contracts.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { notifyTreeUpdate } from "../notifications.js";
 import { treeStorage } from "../../services/tree-storage.js";
@@ -28,52 +28,50 @@ export const tabHandlers = defineRpcHandlers({
       }),
     );
 
-    return ok({ tabs: tabs.filter((tab): tab is Tab => Boolean(tab)) });
+    return { tabs: tabs.filter((tab): tab is Tab => Boolean(tab)) };
   },
 
   async [RPC_METHOD.TOGGLE_MUTE](message) {
     if (getEditorState().active) {
-      return ok();
+      return;
     }
 
     const { nodeId, tabId } = message;
 
     const tabsForNode = tabManager.tabsByNode(nodeId);
-    if (!tabsForNode?.has(tabId)) return err("Tab not found");
+    if (!tabsForNode?.has(tabId)) throw new Error("Tab not found");
 
     try {
       const tab = await browser.tabs.get(tabId);
       const newMuted = !tab.mutedInfo?.muted;
       await browser.tabs.update(tabId, { muted: newMuted });
-      return ok();
     } catch (e) {
-      return err((e as Error).message);
+      throw new Error((e as Error).message);
     }
   },
 
   async [RPC_METHOD.CLOSE_TAB](message) {
     if (getEditorState().active) {
-      return ok();
+      return;
     }
 
     const { nodeId, tabId } = message;
     const tabsForNode = tabManager.tabsByNode(nodeId);
-    if (!tabsForNode?.has(tabId)) return err("Tab not found");
+    if (!tabsForNode?.has(tabId)) throw new Error("Tab not found");
 
     const tree = await treeStorage.getOrCreateTree();
     try {
       await browser.tabs.remove(tabId);
       await unregisterTabForNode(tree, nodeId, tabId);
       await notifyTreeUpdate(tree, "tabs");
-      return ok();
     } catch (e) {
-      return err((e as Error).message);
+      throw new Error((e as Error).message);
     }
   },
 
   async [RPC_METHOD.BULK_CLOSE_TABS](message) {
     if (getEditorState().active) {
-      return ok();
+      return;
     }
 
     const tree = await treeStorage.getOrCreateTree();
@@ -92,7 +90,6 @@ export const tabHandlers = defineRpcHandlers({
     });
 
     await notifyTreeUpdate(tree, "tabs");
-    return ok();
   },
 });
 

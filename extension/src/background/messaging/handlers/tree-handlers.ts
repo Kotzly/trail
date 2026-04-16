@@ -1,8 +1,6 @@
 import {
   RPC_METHOD,
   defineRpcHandlers,
-  ok,
-  err,
   type TreeUpdatedInput,
   type TreesSnapshot,
   type TreeViewIntent,
@@ -384,13 +382,11 @@ export async function openTreeAndFocusNode(treeId: string, nodeId: NodeId): Prom
 
 export const treeHandlers = defineRpcHandlers({
   async [RPC_METHOD.GET_TREE]() {
-    const snapshot = await buildTreeSnapshot();
-    return ok(snapshot);
+    return await buildTreeSnapshot();
   },
 
   async [RPC_METHOD.GET_TREES]() {
-    const snapshot = await buildTreesSnapshot();
-    return ok(snapshot);
+    return await buildTreesSnapshot();
   },
 
   async [RPC_METHOD.CLEAR_TREE]() {
@@ -404,7 +400,6 @@ export const treeHandlers = defineRpcHandlers({
     await closeTabsForNodes(tabManager.openNodes());
     await notifyTreeUpdate(tree, "tree-reset");
     await treeStorage.flushSaveNow();
-    return ok();
   },
 
   async [RPC_METHOD.NEW_TREE](message) {
@@ -416,7 +411,6 @@ export const treeHandlers = defineRpcHandlers({
     const meta = treeStorage.createMeta(message.label);
     const nextTree = new NavigationTree();
     await switchTree(nextTree, meta, null, null);
-    return ok();
   },
 
   async [RPC_METHOD.ARCHIVE_ACTIVE_TREE]() {
@@ -428,13 +422,12 @@ export const treeHandlers = defineRpcHandlers({
     const meta = treeStorage.createMeta("Untitled Tree");
     const nextTree = new NavigationTree();
     await switchTree(nextTree, meta, null, null);
-    return ok();
   },
 
   async [RPC_METHOD.OPEN_TREE](message) {
     // Use tree-loader (handles active tree, archive blob, cloud fetch)
     const loaded = await loadTree(message.treeId);
-    if (!loaded) return err("Tree not found");
+    if (!loaded) throw new Error("Tree not found");
 
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
@@ -442,7 +435,7 @@ export const treeHandlers = defineRpcHandlers({
     }
     await treeStorage.archiveActiveTree();
     const record = await treeStorage.takeArchivedTree(message.treeId);
-    if (!record) return err("Tree not found");
+    if (!record) throw new Error("Tree not found");
     const nextTree = NavigationTreeMapper.fromJSON(record.tree);
     const meta: TreeMeta = {
       id: record.id,
@@ -453,28 +446,25 @@ export const treeHandlers = defineRpcHandlers({
     };
     const rootUrl = record.rootUrl ?? nextTree.getRoot()?.data.url ?? null;
     await switchTree(nextTree, meta, rootUrl);
-    return ok();
   },
 
   async [RPC_METHOD.ENSURE_TREE_LOADED](message) {
     const record = await loadTree(message.treeId);
-    return ok(Boolean(record));
+    return Boolean(record);
   },
 
   async [RPC_METHOD.RENAME_TREE](message) {
     await treeStorage.renameTree(message.treeId, message.label);
     await notifyTreesUpdate(await buildTreesSnapshot());
-    return ok();
   },
 
   async [RPC_METHOD.DELETE_ARCHIVED_TREE](message) {
     const active = await treeStorage.getActiveMeta();
-    if (active.id === message.treeId) return err("Cannot delete active tree");
+    if (active.id === message.treeId) throw new Error("Cannot delete active tree");
     const removed = await treeStorage.deleteArchivedTree(message.treeId);
-    if (!removed) return err("Tree not found");
+    if (!removed) throw new Error("Tree not found");
     await clearOpenTabs(message.treeId);
     await notifyTreesUpdate(await buildTreesSnapshot());
-    return ok();
   },
 
   async [RPC_METHOD.EXPORT_TREE](message) {
@@ -483,7 +473,7 @@ export const treeHandlers = defineRpcHandlers({
 
     if (message.treeId) {
       const record = await treeStorage.getFullArchiveRecord(message.treeId);
-      if (!record) return err("Tree not found");
+      if (!record) throw new Error("Tree not found");
       treeJSON = record.tree;
       label = record.label;
     } else {
@@ -507,50 +497,47 @@ export const treeHandlers = defineRpcHandlers({
       },
     };
 
-    return ok(bundle);
+    return bundle;
   },
 
   async [RPC_METHOD.DELETE_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
-    if (!tree.findNodeById(message.nodeId)) return err("Node not found");
+    if (!tree.findNodeById(message.nodeId)) throw new Error("Node not found");
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, "Delete node");
     const result = tree.deleteNode(message.nodeId);
-    if (result.removed.length === 0) return err("Node not found");
+    if (result.removed.length === 0) throw new Error("Node not found");
     await closeTabsForNodes(result.removed.map((node) => node.id));
     reassignTabsForRedirects(result.redirects);
     treeStorage.cacheTree(tree);
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
-    return ok();
   },
 
   async [RPC_METHOD.DELETE_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
-    if (!tree.findNodeById(message.nodeId)) return err("Node not found");
+    if (!tree.findNodeById(message.nodeId)) throw new Error("Node not found");
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, "Delete children");
     const removed = tree.deleteChildren(message.nodeId);
-    if (removed.length === 0) return err("Node not found");
+    if (removed.length === 0) throw new Error("Node not found");
     await closeTabsForNodes(removed.map((node) => node.id));
     treeStorage.cacheTree(tree);
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
-    return ok();
   },
 
   async [RPC_METHOD.DELETE_WITH_CHILDREN](message) {
     const tree = await treeStorage.getOrCreateTree();
-    if (!tree.findNodeById(message.nodeId)) return err("Node not found");
+    if (!tree.findNodeById(message.nodeId)) throw new Error("Node not found");
     const prevCurrentId = tree.getCurrentId();
     snapshot(tree, "Delete subtree");
     const removed = tree.deleteSubtree(message.nodeId);
-    if (removed.length === 0) return err("Node not found");
+    if (removed.length === 0) throw new Error("Node not found");
     await closeTabsForNodes(removed.map((node) => node.id));
     treeStorage.cacheTree(tree);
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
-    return ok();
   },
 
   async [RPC_METHOD.BULK_DELETE](message) {
@@ -568,7 +555,6 @@ export const treeHandlers = defineRpcHandlers({
     treeStorage.cacheTree(tree);
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
-    return ok();
   },
 
   async [RPC_METHOD.BULK_DELETE_NODES](message) {
@@ -587,7 +573,6 @@ export const treeHandlers = defineRpcHandlers({
     treeStorage.cacheTree(tree);
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
-    return ok();
   },
 
   async [RPC_METHOD.BULK_DELETE_RECURSIVE](message) {
@@ -608,7 +593,7 @@ export const treeHandlers = defineRpcHandlers({
         treeStorage.cacheTree(tree);
         const view = getDeleteFocusView(tree, prevCurrentId);
         await notifyTreeUpdate(tree, "delete", view);
-        return ok();
+        return;
       }
       candidates.push(id);
     }
@@ -638,23 +623,21 @@ export const treeHandlers = defineRpcHandlers({
     treeStorage.cacheTree(tree);
     const view = getDeleteFocusView(tree, prevCurrentId);
     await notifyTreeUpdate(tree, "delete", view);
-    return ok();
   },
 
   async [RPC_METHOD.SET_NODE_LAYOUT](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err("Node not found");
+    if (!node) throw new Error("Node not found");
     const existingLayout = node.data.layout ?? { offsetX: 0, offsetY: 0 };
     const nextLayout = {
       offsetX: typeof message.offsetX === "number" ? message.offsetX : existingLayout.offsetX,
       offsetY: typeof message.offsetY === "number" ? message.offsetY : existingLayout.offsetY,
     };
     const hasChanges = typeof message.offsetX === "number" || typeof message.offsetY === "number";
-    if (!hasChanges) return ok();
+    if (!hasChanges) return;
     node.data = updateNodeData(node.data, { layout: nextLayout });
     treeStorage.cacheTree(tree);
-    return ok();
   },
 
   async [RPC_METHOD.SET_NODE_LAYOUT_BATCH](message) {
@@ -681,20 +664,19 @@ export const treeHandlers = defineRpcHandlers({
       changed = true;
     }
 
-    if (!changed) return ok();
+    if (!changed) return;
 
     treeStorage.cacheTree(tree);
-    return ok();
   },
 
   async [RPC_METHOD.IMPORT_TRAIL](message) {
     const { bundle } = message;
 
     if (bundle.schema !== EXPORT_SCHEMA) {
-      return err(`Unsupported schema: ${bundle.schema}`);
+      throw new Error(`Unsupported schema: ${bundle.schema}`);
     }
     if (!bundle.tree) {
-      return err("Invalid bundle: missing tree data");
+      throw new Error("Invalid bundle: missing tree data");
     }
 
     const current = await treeStorage.getOrCreateTree();
@@ -709,7 +691,7 @@ export const treeHandlers = defineRpcHandlers({
 
     await switchTree(nextTree, meta, nextTree.getRoot()?.data.url ?? null);
 
-    return ok({ treeId: meta.id });
+    return { treeId: meta.id };
   },
 
   async [RPC_METHOD.RESET_NODE_LAYOUTS]() {
@@ -722,9 +704,8 @@ export const treeHandlers = defineRpcHandlers({
         changed = true;
       }
     }
-    if (!changed) return ok();
+    if (!changed) return;
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree, "layout");
-    return ok();
   },
 });

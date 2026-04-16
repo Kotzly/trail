@@ -355,18 +355,6 @@ export type RequestMessage =
 
 // ==== Responses ====
 
-export type Ok<T = void> = { success: true; data: T };
-export type Err = { success: false; error: string };
-export type Response<T = void> = Ok<T> | Err;
-
-export function ok<T = void>(data?: T): Response<T> {
-  return { success: true, data: data as T };
-}
-
-export function err(error: string): Response<never> {
-  return { success: false, error };
-}
-
 export type ResponseDataByType = {
   [RPC_METHOD.NAVIGATE_TO]: void;
   [RPC_METHOD.PREVIEW_NODE]: void;
@@ -423,8 +411,6 @@ export type ResponseDataByType = {
   [RPC_METHOD.IMPORT_TRAIL]: { treeId: string };
 };
 
-export type ResponseMessage<T extends RequestType> = Response<ResponseDataByType[T]>;
-
 export type MessageByType<T extends RequestType> = Extract<RequestMessage, { type: T }>;
 
 // ==== message handler ====
@@ -432,7 +418,7 @@ export type MessageByType<T extends RequestType> = Extract<RequestMessage, { typ
 export type MessageHandler<T extends RequestType = RequestType> = (
   message: MessageByType<T>,
   sender: RuntimeMessageSender,
-) => Promise<ResponseMessage<T>> | ResponseMessage<T>;
+) => Promise<ResponseDataByType[T]> | ResponseDataByType[T];
 
 export type HandlerMap = Partial<{ [K in RequestType]: MessageHandler<K> }>;
 

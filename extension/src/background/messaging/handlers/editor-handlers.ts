@@ -1,8 +1,6 @@
 import {
   RPC_METHOD,
   defineRpcHandlers,
-  ok,
-  err,
   type EditorModeState,
 } from "../../../shared/rpc/contracts.js";
 import { treeStorage } from "../../services/tree-storage.js";
@@ -30,7 +28,6 @@ const log = createLogger("editor");
 
 let editorState: EditorModeState = { active: false, treeId: null };
 let editorStateLoaded = false;
-let editorOpenedPanel = false;
 
 async function ensureEditorStateLoaded(): Promise<void> {
   if (editorStateLoaded) return;
@@ -181,13 +178,10 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
       const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
       if (activeTab?.id) {
         await openSidebarForTab(activeTab.id);
-        editorOpenedPanel = true;
       }
     } catch (e) {
       log.warn("Failed to open sidepanel for editor", { error: String(e) });
     }
-  } else {
-    editorOpenedPanel = false;
   }
 
   return editorState;
@@ -206,7 +200,6 @@ async function finalizeEditorExit(): Promise<EditorModeState> {
   editorState = { active: false, treeId: null };
   void editorStateItem.setValue(editorState);
   editorSessionSnapshot = null;
-  editorOpenedPanel = false;
   CommandManager.clearHistory();
 
   const tree = await treeStorage.getOrCreateTree();
@@ -272,40 +265,41 @@ export async function cancelEditorMode(): Promise<EditorModeActionResult> {
 export const editorHandlers = defineRpcHandlers({
   async [RPC_METHOD.ENTER_EDITOR_MODE](message) {
     const result = await enterEditorMode(message.treeId);
-    return typeof result === "string" ? err(result) : ok(result);
+    if (typeof result === "string") throw new Error(result);
+    return result;
   },
 
   async [RPC_METHOD.EXIT_EDITOR_MODE]() {
     const result = await saveEditorMode();
     if (!result.ok) {
-      return err(result.error);
+      throw new Error(result.error);
     }
-    return ok(editorState);
+    return editorState;
   },
 
   async [RPC_METHOD.CANCEL_EDITOR_MODE]() {
     const result = await cancelEditorMode();
     if (!result.ok) {
-      return err(result.error);
+      throw new Error(result.error);
     }
-    return ok(editorState);
+    return editorState;
   },
 
   async [RPC_METHOD.REPARENT_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err("Node not found");
+    if (!node) throw new Error("Node not found");
 
     const newParent = tree.findNodeById(message.newParentId);
-    if (!newParent) return err("New parent not found");
+    if (!newParent) throw new Error("New parent not found");
 
-    if (node.isRoot()) return err("Cannot reparent root node");
+    if (node.isRoot()) throw new Error("Cannot reparent root node");
 
     if (isDescendant(tree, message.nodeId, message.newParentId)) {
-      return err("Cannot reparent to a descendant");
+      throw new Error("Cannot reparent to a descendant");
     }
 
-    if (node.getParent()?.id === message.newParentId) return ok();
+    if (node.getParent()?.id === message.newParentId) return;
 
     snapshot(tree, "Reparent node");
 
@@ -328,21 +322,19 @@ export const editorHandlers = defineRpcHandlers({
       focusNodeId: message.nodeId,
       mode: "soft",
     });
-
-    return ok();
   },
 
   async [RPC_METHOD.RENAME_NODE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err("Node not found");
+    if (!node) throw new Error("Node not found");
 
     const nextTitle = message.title.trim();
-    if (nextTitle.length === 0) return err("Title cannot be empty");
-    if (nextTitle.length > 500) return err("Title is too long");
+    if (nextTitle.length === 0) throw new Error("Title cannot be empty");
+    if (nextTitle.length > 500) throw new Error("Title is too long");
 
     const currentTitle = String(node.data.title ?? "");
-    if (currentTitle === nextTitle) return ok();
+    if (currentTitle === nextTitle) return;
 
     snapshot(tree, "Rename node");
 
@@ -354,28 +346,26 @@ export const editorHandlers = defineRpcHandlers({
       focusNodeId: message.nodeId,
       mode: "soft",
     });
-
-    return ok();
   },
 
   async [RPC_METHOD.DUPLICATE_SUBTREE](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err("Node not found");
+    if (!node) throw new Error("Node not found");
 
     const targetParent = tree.findNodeById(message.targetParentId);
-    if (!targetParent) return err("Target parent not found");
+    if (!targetParent) throw new Error("Target parent not found");
 
     const currentParent = node.getParent();
     if (currentParent?.id === message.targetParentId) {
-      return err("Cannot duplicate to the same parent");
+      throw new Error("Cannot duplicate to the same parent");
     }
 
     if (
       message.nodeId === message.targetParentId ||
       isDescendant(tree, message.nodeId, message.targetParentId)
     ) {
-      return err("Cannot duplicate into own subtree");
+      throw new Error("Cannot duplicate into own subtree");
     }
 
     snapshot(tree, "Duplicate subtree");
@@ -390,8 +380,6 @@ export const editorHandlers = defineRpcHandlers({
       focusNodeId: message.targetParentId,
       mode: "soft",
     });
-
-    return ok();
   },
 });
 

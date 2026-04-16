@@ -1,4 +1,4 @@
-import { RPC_METHOD, defineRpcHandlers, ok } from "@shared/rpc/contracts.js";
+import { RPC_METHOD, defineRpcHandlers } from "@shared/rpc/contracts.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { notifyTreeUpdate } from "../notifications.js";
 import { CommandManager } from "@shared/lib/commands.js";
@@ -14,28 +14,28 @@ async function applyTree(json: ReturnType<typeof NavigationTreeMapper.toJSON>): 
 
 export const commandHandlers = defineRpcHandlers({
   async [RPC_METHOD.COMMAND_STATE]() {
-    return ok(CommandManager.getState());
+    return CommandManager.getState();
   },
 
   async [RPC_METHOD.UNDO]() {
-    if (!CommandManager.canUndo()) return ok(CommandManager.getState());
+    if (!CommandManager.canUndo()) return CommandManager.getState();
     const tree = await treeStorage.getOrCreateTree();
     const current = NavigationTreeMapper.toJSON(tree);
     const previous = CommandManager.undo(current);
-    if (!previous) return ok(CommandManager.getState());
+    if (!previous) return CommandManager.getState();
 
     await applyTree(previous);
-    return ok(CommandManager.getState());
+    return CommandManager.getState();
   },
 
   async [RPC_METHOD.REDO]() {
-    if (!CommandManager.canRedo()) return ok(CommandManager.getState());
+    if (!CommandManager.canRedo()) return CommandManager.getState();
     const tree = await treeStorage.getOrCreateTree();
     const current = NavigationTreeMapper.toJSON(tree);
     const next = CommandManager.redo(current);
-    if (!next) return ok(CommandManager.getState());
+    if (!next) return CommandManager.getState();
 
     await applyTree(next);
-    return ok(CommandManager.getState());
+    return CommandManager.getState();
   },
 });
