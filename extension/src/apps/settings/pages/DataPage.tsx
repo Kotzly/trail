@@ -71,12 +71,12 @@ export function DataPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Data</h2>
-        <p className="text-muted-foreground text-sm">
+      <CardHeader className="px-0">
+        <CardTitle>Data</CardTitle>
+        <CardDescription>
           Export, import, and manage your trees. Your data is yours.
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
       <TreesPage />
 
@@ -125,10 +125,7 @@ export function DataPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => void deleteAccount()}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
+                <AlertDialogAction variant="destructive" onClick={() => void deleteAccount()}>
                   Delete everything
                 </AlertDialogAction>
               </AlertDialogFooter>

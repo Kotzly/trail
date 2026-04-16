@@ -4,7 +4,15 @@ import type {
   GraphDensity,
   TitleTruncation,
 } from "@shared/types/settings.js";
-import { Label } from "@ui/components/ui/label";
+import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
+import {
+  Field,
+  FieldContent,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@ui/components/ui/field";
 import { Switch } from "@ui/components/ui/switch";
 import { Separator } from "@ui/components/ui/separator";
 import {
@@ -25,63 +33,61 @@ type AppearancePageProps = {
 export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-semibold">Appearance</h2>
-        <p className="text-muted-foreground text-sm">Customize the graph display</p>
-      </div>
+      <CardHeader className="px-0">
+        <CardTitle>Appearance</CardTitle>
+        <CardDescription>Customize the graph display.</CardDescription>
+      </CardHeader>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label>Layout Mode</Label>
+      <FieldGroup>
+        <FieldSet>
+          <FieldLegend variant="label">Layout mode</FieldLegend>
           <RadioGroup
             value={settings.layout.mode}
             onValueChange={(v) =>
-              onUpdate({
-                layout: { ...settings.layout, mode: v as LayoutMode },
-              })
+              onUpdate({ layout: { ...settings.layout, mode: v as LayoutMode } })
             }
             className="flex gap-4"
           >
-            <div className="flex items-center gap-2">
+            <Field orientation="horizontal">
               <RadioGroupItem value="tree" id="layout-tree" />
-              <Label htmlFor="layout-tree">Tree</Label>
-            </div>
-            <div className="flex items-center gap-2">
+              <FieldLabel htmlFor="layout-tree">Tree</FieldLabel>
+            </Field>
+            <Field orientation="horizontal">
               <RadioGroupItem value="mindmap" id="layout-mindmap" />
-              <Label htmlFor="layout-mindmap">Mind Map</Label>
-            </div>
+              <FieldLabel htmlFor="layout-mindmap">Mind map</FieldLabel>
+            </Field>
           </RadioGroup>
-        </div>
+        </FieldSet>
 
-        <div className="flex flex-col gap-2">
-          <Label>Density</Label>
+        <FieldSet>
+          <FieldLegend variant="label">Density</FieldLegend>
           <RadioGroup
             value={settings.graphDensity}
             onValueChange={(v) => onUpdate({ graphDensity: v as GraphDensity })}
             className="flex gap-4"
           >
-            <div className="flex items-center gap-2">
+            <Field orientation="horizontal">
               <RadioGroupItem value="compact" id="density-compact" />
-              <Label htmlFor="density-compact">Compact</Label>
-            </div>
-            <div className="flex items-center gap-2">
+              <FieldLabel htmlFor="density-compact">Compact</FieldLabel>
+            </Field>
+            <Field orientation="horizontal">
               <RadioGroupItem value="comfortable" id="density-comfortable" />
-              <Label htmlFor="density-comfortable">Comfortable</Label>
-            </div>
-            <div className="flex items-center gap-2">
+              <FieldLabel htmlFor="density-comfortable">Comfortable</FieldLabel>
+            </Field>
+            <Field orientation="horizontal">
               <RadioGroupItem value="spacious" id="density-spacious" />
-              <Label htmlFor="density-spacious">Spacious</Label>
-            </div>
+              <FieldLabel htmlFor="density-spacious">Spacious</FieldLabel>
+            </Field>
           </RadioGroup>
-        </div>
+        </FieldSet>
 
-        <div className="flex flex-col gap-2">
-          <Label>Title Truncation</Label>
+        <Field>
+          <FieldLabel htmlFor="title-truncation">Title truncation</FieldLabel>
           <Select
             value={settings.titleTruncation}
             onValueChange={(v) => onUpdate({ titleTruncation: v as TitleTruncation })}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger id="title-truncation" className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -92,56 +98,66 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
               </SelectGroup>
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        </Field>
+      </FieldGroup>
 
       <Separator />
 
-      <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-medium">Display</h3>
-        <ToggleRow
-          label="Show favicons"
-          checked={settings.showFavicons}
-          onChange={(v) => onUpdate({ showFavicons: v })}
-        />
-        <ToggleRow
-          label="Show URLs"
-          checked={settings.showUrls}
-          onChange={(v) => onUpdate({ showUrls: v })}
-        />
-        <ToggleRow
-          label="Show connections"
-          checked={settings.showConnections}
-          onChange={(v) => onUpdate({ showConnections: v })}
-        />
-        <ToggleRow
-          label="Show tab counts"
-          checked={settings.showTabCounts}
-          onChange={(v) => onUpdate({ showTabCounts: v })}
-        />
-        <ToggleRow
-          label="Dim closed nodes"
-          checked={settings.dimClosedNodes}
-          onChange={(v) => onUpdate({ dimClosedNodes: v })}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ToggleRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <Label className="text-sm">{label}</Label>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      <FieldSet>
+        <FieldLegend variant="label">Display</FieldLegend>
+        <FieldGroup>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="show-favicons">Show favicons</FieldLabel>
+            </FieldContent>
+            <Switch
+              id="show-favicons"
+              checked={settings.showFavicons}
+              onCheckedChange={(v) => onUpdate({ showFavicons: v })}
+            />
+          </Field>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="show-urls">Show URLs</FieldLabel>
+            </FieldContent>
+            <Switch
+              id="show-urls"
+              checked={settings.showUrls}
+              onCheckedChange={(v) => onUpdate({ showUrls: v })}
+            />
+          </Field>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="show-connections">Show connections</FieldLabel>
+            </FieldContent>
+            <Switch
+              id="show-connections"
+              checked={settings.showConnections}
+              onCheckedChange={(v) => onUpdate({ showConnections: v })}
+            />
+          </Field>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="show-tab-counts">Show tab counts</FieldLabel>
+            </FieldContent>
+            <Switch
+              id="show-tab-counts"
+              checked={settings.showTabCounts}
+              onCheckedChange={(v) => onUpdate({ showTabCounts: v })}
+            />
+          </Field>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="dim-closed-nodes">Dim closed nodes</FieldLabel>
+            </FieldContent>
+            <Switch
+              id="dim-closed-nodes"
+              checked={settings.dimClosedNodes}
+              onCheckedChange={(v) => onUpdate({ dimClosedNodes: v })}
+            />
+          </Field>
+        </FieldGroup>
+      </FieldSet>
     </div>
   );
 }

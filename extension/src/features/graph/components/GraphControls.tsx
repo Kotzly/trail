@@ -1,5 +1,6 @@
 import { useReactFlow } from "@xyflow/react";
 import { Button } from "@ui/components/ui/button";
+import { ButtonGroup } from "@ui/components/ui/button-group";
 import { ToggleGroup, ToggleGroupItem } from "@ui/components/ui/toggle-group";
 import type { LayoutMode } from "../types.js";
 
@@ -13,52 +14,43 @@ export function GraphControls({ layoutMode, onLayoutModeChange }: GraphControlsP
 
   return (
     <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1">
-      <div className="bg-card flex items-center overflow-hidden rounded-md border shadow-sm">
+      <ButtonGroup>
         <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground h-7 w-7 rounded-none text-xs"
+          variant="outline"
+          size="icon-sm"
+          aria-label="Zoom in"
           onClick={() => zoomIn({ duration: 200 })}
         >
           +
         </Button>
         <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground h-7 w-7 rounded-none text-xs"
+          variant="outline"
+          size="icon-sm"
+          aria-label="Zoom out"
           onClick={() => zoomOut({ duration: 200 })}
         >
           −
         </Button>
         <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground h-7 w-7 rounded-none text-xs"
+          variant="outline"
+          size="icon-sm"
+          aria-label="Fit view"
           onClick={() => fitView({ padding: 0.2, duration: 300 })}
         >
           ⊞
         </Button>
-      </div>
+      </ButtonGroup>
       <ToggleGroup
         type="single"
+        size="sm"
         value={layoutMode}
         onValueChange={(v) => {
           if (v) onLayoutModeChange(v as LayoutMode);
         }}
-        className="bg-card gap-0 overflow-hidden rounded-md border shadow-sm"
+        variant="outline"
       >
-        <ToggleGroupItem
-          value="tree"
-          className="data-[state=on]:bg-accent h-7 rounded-none px-2 text-[11px]"
-        >
-          Tree
-        </ToggleGroupItem>
-        <ToggleGroupItem
-          value="mindmap"
-          className="data-[state=on]:bg-accent h-7 rounded-none px-2 text-[11px]"
-        >
-          Map
-        </ToggleGroupItem>
+        <ToggleGroupItem value="tree">Tree</ToggleGroupItem>
+        <ToggleGroupItem value="mindmap">Map</ToggleGroupItem>
       </ToggleGroup>
     </div>
   );

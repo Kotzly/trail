@@ -1,5 +1,12 @@
 import type { Settings } from "@shared/types/settings.js";
-import { Label } from "@ui/components/ui/label";
+import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@ui/components/ui/field";
 import { Switch } from "@ui/components/ui/switch";
 
 type BehaviorPageProps = {
@@ -10,60 +17,60 @@ type BehaviorPageProps = {
 export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-semibold">Behavior</h2>
-        <p className="text-muted-foreground text-sm">Customize how Trail works</p>
-      </div>
+      <CardHeader className="px-0">
+        <CardTitle>Behavior</CardTitle>
+        <CardDescription>Customize how Trail works.</CardDescription>
+      </CardHeader>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-sm">Keyboard shortcuts</Label>
-            <p className="text-muted-foreground text-xs">
-              Enable keyboard shortcuts in the side panel
-            </p>
-          </div>
+      <FieldGroup>
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel htmlFor="shortcuts-enabled">Keyboard shortcuts</FieldLabel>
+            <FieldDescription>Enable keyboard shortcuts in the side panel.</FieldDescription>
+          </FieldContent>
           <Switch
+            id="shortcuts-enabled"
             checked={settings.shortcutsEnabled}
             onCheckedChange={(v) => onUpdate({ shortcutsEnabled: v })}
           />
-        </div>
+        </Field>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-sm">Confirm new tree</Label>
-            <p className="text-muted-foreground text-xs">
-              Ask for confirmation before creating a new tree
-            </p>
-          </div>
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel htmlFor="confirm-new-tree">Confirm new tree</FieldLabel>
+            <FieldDescription>Ask for confirmation before creating a new tree.</FieldDescription>
+          </FieldContent>
           <Switch
+            id="confirm-new-tree"
             checked={settings.confirmNewTree}
             onCheckedChange={(v) => onUpdate({ confirmNewTree: v })}
           />
-        </div>
+        </Field>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-sm">Keep tabs on switch</Label>
-            <p className="text-muted-foreground text-xs">Keep open tabs when switching trees</p>
-          </div>
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel htmlFor="keep-tabs-on-switch">Keep tabs on switch</FieldLabel>
+            <FieldDescription>Keep open tabs when switching trees.</FieldDescription>
+          </FieldContent>
           <Switch
+            id="keep-tabs-on-switch"
             checked={settings.keepTabsOnSwitch}
             onCheckedChange={(v) => onUpdate({ keepTabsOnSwitch: v })}
           />
-        </div>
+        </Field>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-sm">Adaptive performance</Label>
-            <p className="text-muted-foreground text-xs">Automatically adjust rendering quality</p>
-          </div>
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel htmlFor="adaptive-performance">Adaptive performance</FieldLabel>
+            <FieldDescription>Automatically adjust rendering quality.</FieldDescription>
+          </FieldContent>
           <Switch
+            id="adaptive-performance"
             checked={settings.adaptivePerformance}
             onCheckedChange={(v) => onUpdate({ adaptivePerformance: v })}
           />
-        </div>
-      </div>
+        </Field>
+      </FieldGroup>
     </div>
   );
 }

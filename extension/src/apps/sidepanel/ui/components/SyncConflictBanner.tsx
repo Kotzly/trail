@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useStore } from "../state/store.js";
+import { Alert, AlertDescription, AlertTitle } from "@ui/components/ui/alert";
 import { Button } from "@ui/components/ui/button";
 import { Icons } from "./Icon.js";
-import { cn } from "@ui/lib/utils";
 import { captureEvent } from "@shared/lib/observability.js";
+import { formatRelativeTime } from "../shared/format.js";
 
 /**
  * Sticky banner shown when the sync engine detects another device has
@@ -37,51 +38,38 @@ export default function SyncConflictBanner() {
     window.location.reload();
   };
 
-  const serverDate = conflict ? new Date(conflict.serverUpdatedAt) : new Date();
-  const timeAgo = formatRelativeTime(serverDate);
+  const timeAgo = formatRelativeTime(conflict?.serverUpdatedAt ?? null);
 
   return (
     <AnimatePresence>
       {conflict ? (
         <motion.div
-          role="alert"
           aria-live="polite"
           aria-atomic="true"
           initial={{ y: -24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -24, opacity: 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className={cn(
-            "fixed top-0 right-0 left-0 z-[950]",
-            "pointer-events-auto flex items-center gap-2 border-b px-3 py-2",
-            "bg-destructive/10 border-destructive/20 text-destructive-foreground",
-            "dark:bg-destructive/20 backdrop-blur-sm",
-          )}
+          className="fixed top-0 right-0 left-0 z-[950]"
         >
-          <Icons.AlertTriangle className="size-4 shrink-0" />
-          <div className="min-w-0 flex-1 text-[12px] leading-tight">
-            <div className="font-semibold">Tree updated on another device</div>
-            <div className="text-muted-foreground">Last remote change {timeAgo}.</div>
-          </div>
-          <Button size="sm" variant="outline" type="button" disabled={busy} onClick={keepMine}>
-            Keep mine
-          </Button>
-          <Button size="sm" variant="default" type="button" disabled={busy} onClick={useServer}>
-            Use server
-          </Button>
+          <Alert
+            variant="destructive"
+            className="bg-destructive/10 border-destructive/20 dark:bg-destructive/20 rounded-none border-x-0 border-t-0 backdrop-blur-sm"
+          >
+            <Icons.AlertTriangle />
+            <AlertTitle>Tree updated on another device</AlertTitle>
+            <AlertDescription>Last remote change {timeAgo}.</AlertDescription>
+            <div className="col-start-2 mt-1 flex gap-2">
+              <Button size="sm" variant="outline" type="button" disabled={busy} onClick={keepMine}>
+                Keep mine
+              </Button>
+              <Button size="sm" variant="default" type="button" disabled={busy} onClick={useServer}>
+                Use server
+              </Button>
+            </div>
+          </Alert>
         </motion.div>
       ) : null}
     </AnimatePresence>
   );
-}
-
-function formatRelativeTime(date: Date): string {
-  const diffMs = Date.now() - date.getTime();
-  const diffSec = Math.round(diffMs / 1000);
-  if (diffSec < 60) return "just now";
-  const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} min ago`;
-  const diffH = Math.round(diffMin / 60);
-  if (diffH < 24) return `${diffH}h ago`;
-  return date.toLocaleDateString();
 }

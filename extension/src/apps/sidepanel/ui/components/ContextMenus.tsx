@@ -1,13 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type RefObject,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import { cn } from "@ui/lib/utils";
@@ -33,95 +24,25 @@ import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
 import { getIncludedRootId } from "../shared/delete-tree.js";
 import { Button } from "@ui/components/ui/button";
-import { Separator } from "@ui/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@ui/components/ui/dropdown-menu";
+import { ScrollArea } from "@ui/components/ui/scroll-area";
 
 import { toast } from "sonner";
 import { browser, type Tab } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 
-type MenuPosition = { left: number; top: number; maxHeight: number };
-
-function useMenuPosition(
-  menuRef: RefObject<HTMLDivElement | null>,
-  position: { x: number; y: number },
-) {
-  const [menuStyle, setMenuStyle] = useState<MenuPosition>({
-    left: position.x,
-    top: position.y,
-    maxHeight: window.innerHeight - 16,
-  });
-
-  const updatePosition = useCallback(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    const menuWidth = menu.offsetWidth;
-    const menuHeight = menu.offsetHeight;
-    const padding = 8;
-    const availableHeight = Math.max(0, window.innerHeight - padding * 2);
-    const clampedHeight = Math.min(menuHeight, availableHeight);
-    const maxLeft = window.innerWidth - menuWidth - padding;
-    const maxTop = window.innerHeight - padding - clampedHeight;
-    const left = Math.min(Math.max(position.x, padding), Math.max(padding, maxLeft));
-    const top = Math.min(Math.max(position.y, padding), Math.max(padding, maxTop));
-    setMenuStyle({ left, top, maxHeight: availableHeight });
-  }, [menuRef, position.x, position.y]);
-
-  useLayoutEffect(() => {
-    updatePosition();
-  }, [updatePosition]);
-
-  useEffect(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    const observer = new ResizeObserver(() => updatePosition());
-    observer.observe(menu);
-    window.addEventListener("resize", updatePosition);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updatePosition);
-    };
-  }, [menuRef, updatePosition]);
-
-  return menuStyle;
-}
-
-// Shared Tailwind classes for menu items
-const menuItemBase =
-  "flex items-center px-3 py-2 text-[13px] cursor-pointer rounded-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const menuItemDefault = `${menuItemBase} hover:bg-accent`;
-const menuItemDanger = `${menuItemBase} text-destructive hover:bg-destructive/10`;
-const menuItemConfirming = `${menuItemBase} text-destructive bg-destructive/10 font-semibold hover:bg-destructive/15`;
-const menuItemDisabled = `${menuItemBase} opacity-45 pointer-events-none`;
-
 export default function ContextMenus() {
   const contextMenu = useStore((state) => state.contextMenu);
-  const closeContextMenu = useStore((state) => state.closeContextMenu);
-  const setHoverNodeId = useStore((state) => state.setHoverNodeId);
-  const tree = useStore((state) => state.tree);
   useOverlayEffects(Boolean(contextMenu), { kind: "context" });
 
-  useEffect(() => {
-    if (!contextMenu) return;
-    const onClick = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if ((target as HTMLElement).closest("[data-context-menu]")) return;
-      setHoverNodeId(null);
-      closeContextMenu();
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setHoverNodeId(null);
-        closeContextMenu();
-      }
-    };
-    document.addEventListener("click", onClick);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("click", onClick);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [closeContextMenu, contextMenu, setHoverNodeId]);
+  const tree = useStore((state) => state.tree);
 
   if (!contextMenu) return null;
 
@@ -132,6 +53,20 @@ export default function ContextMenus() {
   }
 
   return <BulkContextMenu nodeIds={contextMenu.nodeIds} position={contextMenu.position} />;
+}
+
+type VirtualTriggerProps = { position: { x: number; y: number } };
+
+function VirtualTrigger({ position }: VirtualTriggerProps) {
+  return (
+    <DropdownMenuTrigger asChild>
+      <span
+        aria-hidden
+        className="pointer-events-none fixed"
+        style={{ left: position.x, top: position.y, width: 0, height: 0 }}
+      />
+    </DropdownMenuTrigger>
+  );
 }
 
 type NodeMenuProps = { nodeId: NodeId; position: { x: number; y: number } };
@@ -147,12 +82,13 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
   const node = tree?.findNodeById(nodeId);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const menuStyle = useMenuPosition(menuRef, position);
-  const menuVars = { "--menu-max-height": `${menuStyle.maxHeight}px` } as CSSProperties;
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [checkedTabId, setCheckedTabId] = useState<number | null>(null);
   const checkTimeoutRef = useRef<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<"node" | "children" | "withChildren" | null>(
+    null,
+  );
+  const [pendingCloseAllTabs, setPendingCloseAllTabs] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -162,26 +98,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
       }
     };
   }, [nodeId]);
-
-  const updateTabsLayout = useCallback(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    const menuHeight = menu.offsetHeight;
-    const padding = 8;
-    const tabsList = menu.querySelector<HTMLElement>("[data-tabs-list]");
-    if (tabsList) {
-      const availableHeight = Math.max(0, window.innerHeight - padding * 2);
-      const staticHeight = menuHeight - tabsList.offsetHeight;
-      const maxTabsHeight = Math.max(96, availableHeight - staticHeight - padding);
-      const row = tabsList.querySelector<HTMLElement>("[data-tab-item]");
-      const rowHeight = row?.getBoundingClientRect().height ?? 44;
-      const gap = 6;
-      const listPadding = 6;
-      const visibleRows = 5;
-      const targetHeight = rowHeight * visibleRows + gap * (visibleRows - 1) + listPadding * 2;
-      tabsList.style.maxHeight = `${Math.max(96, Math.min(targetHeight, maxTabsHeight))}px`;
-    }
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -195,418 +111,333 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
     };
   }, [nodeId]);
 
-  useLayoutEffect(() => {
-    updateTabsLayout();
-  }, [menuStyle.left, menuStyle.top, updateTabsLayout]);
-  useLayoutEffect(() => {
-    updateTabsLayout();
-  }, [tabs.length, updateTabsLayout]);
-  useEffect(() => {
-    window.addEventListener("resize", updateTabsLayout);
-    return () => window.removeEventListener("resize", updateTabsLayout);
-  }, [updateTabsLayout]);
-
-  const [pendingDelete, setPendingDelete] = useState<"node" | "children" | "withChildren" | null>(
-    null,
+  const onOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        setHoverNodeId(null);
+        closeContextMenu();
+      }
+    },
+    [closeContextMenu, setHoverNodeId],
   );
-  const [deletingNode, setDeletingNode] = useState(false);
-  const [pendingCloseAllTabs, setPendingCloseAllTabs] = useState(false);
-  const hasOpenTab = tabs.length > 0;
-  const hasTitle = Boolean(node?.data.title && node.data.title.trim().length > 0);
-  const hasChildren = node?.getChildren()?.length ? node.getChildren().length > 0 : false;
-  const isRoot = node?.isRoot() ?? false;
-  const isCollapsed = collapsedNodeIds.has(nodeId);
 
   if (!node) return null;
 
+  const hasOpenTab = tabs.length > 0;
+  const hasTitle = Boolean(node.data.title && node.data.title.trim().length > 0);
+  const hasChildren = (node.getChildren?.() ?? []).length > 0;
+  const isRoot = node.isRoot();
+  const isCollapsed = collapsedNodeIds.has(nodeId);
+
   return (
-    <div
-      ref={menuRef}
-      data-context-menu
-      className="border-border bg-popover animate-in fade-in-0 zoom-in-95 fixed z-[1000] max-w-[calc(100vw-16px)] min-w-40 rounded-lg border p-1 shadow-md duration-150"
-      role="menu"
-      style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px`, ...menuVars }}
+    <DropdownMenu
+      key={`${position.x}-${position.y}`}
+      open
+      modal={false}
+      onOpenChange={onOpenChange}
     >
-      <div
-        className="flex flex-col"
-        style={{ maxHeight: "var(--menu-max-height, calc(100vh - 16px))" }}
+      <VirtualTrigger position={position} />
+      <DropdownMenuContent
+        align="start"
+        side="bottom"
+        sideOffset={0}
+        collisionPadding={8}
+        className="min-w-40"
       >
         {!editorActive && (
           <>
-            <div
-              className={menuItemDefault}
-              role="menuitem"
-              tabIndex={-1}
-              onClick={async () => {
+            <DropdownMenuItem
+              onSelect={async () => {
                 try {
                   await navigateTo(node);
-                  closeContextMenu();
                 } catch (error) {
                   showOperationError("Open page", error);
                 }
               }}
             >
               Open in this tab
-            </div>
-            <div
-              className={menuItemDefault}
-              role="menuitem"
-              tabIndex={-1}
-              onClick={() => {
-                fireAndForget(openInNewTab(nodeId), "open in new tab");
-                closeContextMenu();
-              }}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => fireAndForget(openInNewTab(nodeId), "open in new tab")}
             >
               Open in new tab
-            </div>
+            </DropdownMenuItem>
 
             {hasOpenTab && (
               <>
-                <Separator className="my-1" />
-                <div
-                  className="text-muted-foreground px-3 py-1.5 text-xs font-semibold tracking-wide uppercase"
-                  role="presentation"
-                >
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>
                   {tabs.length} open tab{tabs.length !== 1 ? "s" : ""}
-                </div>
-                <div
-                  data-tabs-list
-                  className="flex max-h-[220px] min-h-0 flex-col gap-1.5 overflow-x-hidden overflow-y-auto p-1.5"
-                  onMouseLeave={() => setHoverNodeId(null)}
-                >
-                  {tabs.map((tab) => (
-                    <div
-                      key={tab.id}
-                      data-tab-item
-                      role="menuitem"
-                      tabIndex={-1}
-                      className="hover:bg-accent flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors"
-                      onMouseEnter={() => setHoverNodeId(nodeId)}
-                      onMouseLeave={() => setHoverNodeId(null)}
-                      onClick={async () => {
-                        if (!tab.id) return;
-                        setCheckedTabId(tab.id);
-                        if (checkTimeoutRef.current !== null)
-                          window.clearTimeout(checkTimeoutRef.current);
-                        checkTimeoutRef.current = window.setTimeout(() => {
-                          setCheckedTabId(null);
-                          checkTimeoutRef.current = null;
-                        }, 650);
-                        try {
-                          await browser.tabs.update(tab.id, { active: true });
-                        } catch (error) {
-                          console.error("Failed to focus tab:", error);
-                        }
-                      }}
-                    >
-                      <div className="flex min-w-0 items-center gap-2">
-                        {tab.url && (
-                          <img
-                            className="size-4 shrink-0 rounded-sm"
-                            src={getFaviconUrl(tab.url as Url)}
-                            alt=""
-                          />
-                        )}
-                        <div className="flex min-w-0 flex-col">
-                          <div className="max-w-[200px] truncate text-xs">
-                            {tab.title || "Untitled tab"}
-                          </div>
+                </DropdownMenuLabel>
+                <ScrollArea className="max-h-[200px]" onMouseLeave={() => setHoverNodeId(null)}>
+                  <div className="flex flex-col gap-0.5">
+                    {tabs.map((tab) => (
+                      <div
+                        key={tab.id}
+                        role="menuitem"
+                        tabIndex={-1}
+                        className="hover:bg-accent hover:text-accent-foreground flex cursor-default items-center justify-between gap-1.5 rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors select-none"
+                        onMouseEnter={() => setHoverNodeId(nodeId)}
+                        onMouseLeave={() => setHoverNodeId(null)}
+                        onClick={async () => {
+                          if (!tab.id) return;
+                          setCheckedTabId(tab.id);
+                          if (checkTimeoutRef.current !== null)
+                            window.clearTimeout(checkTimeoutRef.current);
+                          checkTimeoutRef.current = window.setTimeout(() => {
+                            setCheckedTabId(null);
+                            checkTimeoutRef.current = null;
+                          }, 650);
+                          try {
+                            await browser.tabs.update(tab.id, { active: true });
+                          } catch (error) {
+                            console.error("Failed to focus tab:", error);
+                          }
+                        }}
+                      >
+                        <div className="flex min-w-0 items-center gap-1.5">
                           {tab.url && (
-                            <div className="text-muted-foreground max-w-[200px] truncate text-[10px]">
-                              {tab.url}
-                            </div>
+                            <img
+                              className="size-4 shrink-0 rounded-sm"
+                              src={getFaviconUrl(tab.url as Url)}
+                              alt=""
+                            />
                           )}
+                          <div className="flex min-w-0 flex-col">
+                            <div className="max-w-[180px] truncate text-xs">
+                              {tab.title || "Untitled tab"}
+                            </div>
+                            {tab.url && (
+                              <div className="text-muted-foreground max-w-[180px] truncate text-[10px]">
+                                {tab.url}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <span
+                            className={cn(
+                              "bg-muted inline-flex size-5 items-center justify-center rounded-full transition-all",
+                              checkedTabId === tab.id
+                                ? "scale-100 opacity-100"
+                                : "scale-75 opacity-0",
+                            )}
+                            aria-hidden="true"
+                          >
+                            <Icons.Check className="size-3" />
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="rounded-full"
+                            aria-label={tab.mutedInfo?.muted ? "Unmute tab" : "Mute tab"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!tab.id) return;
+                              fireAndForget(toggleMute(nodeId, tab.id as TabId), "toggle mute");
+                              setTabs((prev) =>
+                                prev.map((item) =>
+                                  item.id === tab.id
+                                    ? ({
+                                        ...item,
+                                        mutedInfo: {
+                                          muted: !item.mutedInfo?.muted,
+                                          reason:
+                                            (item.mutedInfo?.reason as
+                                              | "user"
+                                              | "capture"
+                                              | "extension"
+                                              | undefined) ?? undefined,
+                                        },
+                                      } as typeof item)
+                                    : item,
+                                ),
+                              );
+                            }}
+                          >
+                            {tab.mutedInfo?.muted ? <Icons.VolumeX /> : <Icons.Volume2 />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                            aria-label="Close tab"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!tab.id) return;
+                              fireAndForget(closeTab(nodeId, tab.id as TabId), "close tab");
+                              setTabs((prev) => prev.filter((item) => item.id !== tab.id));
+                            }}
+                          >
+                            <Icons.X />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <span
-                          className={cn(
-                            "bg-muted inline-flex size-5.5 items-center justify-center rounded-full transition-all",
-                            checkedTabId === tab.id
-                              ? "scale-100 opacity-100"
-                              : "scale-75 opacity-0",
-                          )}
-                          aria-hidden="true"
-                        >
-                          <Icons.Check className="size-3.5" />
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          className="rounded-full"
-                          aria-label={tab.mutedInfo?.muted ? "Unmute tab" : "Mute tab"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!tab.id) return;
-                            fireAndForget(toggleMute(nodeId, tab.id as TabId), "toggle mute");
-                            setTabs((prev) =>
-                              prev.map((item) =>
-                                item.id === tab.id
-                                  ? ({
-                                      ...item,
-                                      mutedInfo: {
-                                        muted: !item.mutedInfo?.muted,
-                                        reason:
-                                          (item.mutedInfo?.reason as
-                                            | "user"
-                                            | "capture"
-                                            | "extension"
-                                            | undefined) ?? undefined,
-                                      },
-                                    } as typeof item)
-                                  : item,
-                              ),
-                            );
-                          }}
-                        >
-                          {tab.mutedInfo?.muted ? <Icons.VolumeX /> : <Icons.Volume2 />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                          aria-label="Close tab"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!tab.id) return;
-                            fireAndForget(closeTab(nodeId, tab.id as TabId), "close tab");
-                            setTabs((prev) => prev.filter((item) => item.id !== tab.id));
-                          }}
-                        >
-                          <Icons.X />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </ScrollArea>
                 {pendingCloseAllTabs ? (
-                  <div
-                    className={menuItemConfirming}
-                    role="menuitem"
-                    tabIndex={-1}
-                    onClick={() => {
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => {
                       if (tabs.length === 1 && tabs[0]?.id)
                         fireAndForget(closeTab(nodeId, tabs[0].id as TabId), "close tab");
                       else if (tabs.length > 1)
                         fireAndForget(bulkCloseTabs([nodeId]), "bulk close tabs");
                       setTabs([]);
                       setPendingCloseAllTabs(false);
-                      closeContextMenu();
                     }}
                   >
                     Confirm close?
-                  </div>
+                  </DropdownMenuItem>
                 ) : (
-                  <div
-                    className={menuItemDefault}
-                    role="menuitem"
-                    tabIndex={-1}
-                    onClick={() => setPendingCloseAllTabs(true)}
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setPendingCloseAllTabs(true);
+                    }}
                   >
                     {tabs.length === 1 ? "Close tab" : "Close all tabs"}
-                  </div>
+                  </DropdownMenuItem>
                 )}
               </>
             )}
-            <Separator className="my-1" />
+            <DropdownMenuSeparator />
           </>
         )}
 
-        <div
-          className={menuItemDefault}
-          role="menuitem"
-          tabIndex={-1}
-          onClick={() => {
-            fireAndForget(togglePin(nodeId), "toggle pin");
-            closeContextMenu();
-          }}
-        >
+        <DropdownMenuItem onSelect={() => fireAndForget(togglePin(nodeId), "toggle pin")}>
           {node.data.pinned ? "Unpin" : "Pin"}
-        </div>
+        </DropdownMenuItem>
 
-        <div
-          className={menuItemDefault}
-          role="menuitem"
-          tabIndex={-1}
-          onClick={() => {
-            useStore.getState().openRenameDialog(nodeId);
-            closeContextMenu();
-          }}
-        >
+        <DropdownMenuItem onSelect={() => useStore.getState().openRenameDialog(nodeId)}>
           Rename…
-        </div>
+        </DropdownMenuItem>
 
         {hasChildren && !isCollapsed && (
-          <div
-            className={menuItemDefault}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
-              collapseNodes([nodeId]);
-              closeContextMenu();
-            }}
-          >
+          <DropdownMenuItem onSelect={() => collapseNodes([nodeId])}>
             Collapse node
-          </div>
+          </DropdownMenuItem>
         )}
         {isCollapsed && (
-          <div
-            className={menuItemDefault}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
-              expandNodes([nodeId]);
-              closeContextMenu();
-            }}
-          >
-            Expand node
-          </div>
+          <DropdownMenuItem onSelect={() => expandNodes([nodeId])}>Expand node</DropdownMenuItem>
         )}
 
-        <div
-          className={menuItemDefault}
-          role="menuitem"
-          tabIndex={-1}
-          onClick={async () => {
+        <DropdownMenuItem
+          onSelect={async () => {
             try {
               await navigator.clipboard.writeText(node.data.url);
               toast.success("URL copied");
             } catch (error) {
               showOperationError("Copy URL", error);
             }
-            closeContextMenu();
           }}
         >
           Copy URL
-        </div>
+        </DropdownMenuItem>
         {hasTitle && (
-          <div
-            className={menuItemDefault}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={async () => {
+          <DropdownMenuItem
+            onSelect={async () => {
               try {
                 await navigator.clipboard.writeText(node.data.title || "Untitled");
                 toast.success("Title copied");
               } catch (error) {
                 showOperationError("Copy title", error);
               }
-              closeContextMenu();
             }}
           >
             Copy title
-          </div>
+          </DropdownMenuItem>
         )}
 
         {!isRoot && (
-          <div
-            className={menuItemDefault}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
-              setPickTarget({ type: "duplicate", sourceNodeId: nodeId });
-              closeContextMenu();
-            }}
+          <DropdownMenuItem
+            onSelect={() => setPickTarget({ type: "duplicate", sourceNodeId: nodeId })}
           >
             Duplicate at…
-          </div>
+          </DropdownMenuItem>
         )}
 
-        <Separator className="my-1" />
+        <DropdownMenuSeparator />
 
         {!isRoot &&
           (pendingDelete === "node" ? (
-            <div
-              className={menuItemConfirming}
-              role="menuitem"
-              tabIndex={-1}
-              onClick={() => {
-                if (deletingNode) return;
-                setDeletingNode(true);
-                fireAndForget(deleteNode(nodeId), "delete node");
-                closeContextMenu();
-              }}
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => fireAndForget(deleteNode(nodeId), "delete node")}
             >
               Confirm delete?
-            </div>
+            </DropdownMenuItem>
           ) : (
-            <div
-              className={menuItemDanger}
-              role="menuitem"
-              tabIndex={-1}
-              onClick={() => setPendingDelete("node")}
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={(e) => {
+                e.preventDefault();
+                setPendingDelete("node");
+              }}
             >
               Delete node
-            </div>
+            </DropdownMenuItem>
           ))}
 
         {hasChildren &&
           (pendingDelete === "children" ? (
-            <div
-              className={menuItemConfirming}
-              role="menuitem"
-              tabIndex={-1}
-              onClick={() => {
-                fireAndForget(deleteChildren(nodeId), "delete children");
-                closeContextMenu();
-              }}
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => fireAndForget(deleteChildren(nodeId), "delete children")}
             >
               Confirm delete?
-            </div>
+            </DropdownMenuItem>
           ) : (
-            <div
-              className={menuItemDanger}
-              role="menuitem"
-              tabIndex={-1}
-              onClick={() => setPendingDelete("children")}
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={(e) => {
+                e.preventDefault();
+                setPendingDelete("children");
+              }}
             >
               Delete children
-            </div>
+            </DropdownMenuItem>
           ))}
 
         {pendingDelete === "withChildren" ? (
-          <div
-            className={menuItemConfirming}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={(e) => {
               if (isRoot) {
+                e.preventDefault();
                 openDeleteTreeConfirm(nodeId);
                 return;
               }
               fireAndForget(deleteWithChildren(nodeId), "delete subtree");
-              closeContextMenu();
             }}
           >
             Confirm delete?
-          </div>
+          </DropdownMenuItem>
         ) : (
-          <div
-            className={menuItemDanger}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={(e) => {
               if (isRoot) {
+                e.preventDefault();
                 openDeleteTreeConfirm(nodeId);
                 return;
               }
+              e.preventDefault();
               setPendingDelete("withChildren");
             }}
           >
             {isRoot && !hasChildren ? "Delete tree" : "Delete with children"}
-          </div>
+          </DropdownMenuItem>
         )}
-      </div>
-    </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 type BulkMenuProps = { nodeIds: NodeId[]; position: { x: number; y: number } };
 
 function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const menuStyle = useMenuPosition(menuRef, position);
-  const menuVars = { "--menu-max-height": `${menuStyle.maxHeight}px` } as CSSProperties;
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const clearSelection = useStore((state) => state.clearSelection);
   const tree = useStore((state) => state.tree);
@@ -616,7 +447,6 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
   const [pendingDelete, setPendingDelete] = useState<"nodes" | "recursive" | null>(null);
-  const [deletingBulk, setDeletingBulk] = useState(false);
 
   useEffect(() => {
     setPendingDelete(null);
@@ -641,155 +471,133 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
     [collapsedNodeIds, selectedNodes],
   );
 
-  return (
-    <div
-      ref={menuRef}
-      data-context-menu
-      className="border-border bg-popover animate-in fade-in-0 zoom-in-95 fixed z-[1000] max-w-[calc(100vw-16px)] min-w-40 rounded-lg border p-1 shadow-md duration-150"
-      role="menu"
-      style={{ left: `${menuStyle.left}px`, top: `${menuStyle.top}px`, ...menuVars }}
-    >
-      <div
-        className="flex flex-col"
-        style={{ maxHeight: "var(--menu-max-height, calc(100vh - 16px))" }}
-      >
-        <div
-          className="text-muted-foreground px-3 py-1.5 text-xs font-semibold tracking-wide uppercase"
-          role="presentation"
-        >
-          {nodeIds.length} nodes selected
-        </div>
-        <Separator className="my-1" />
+  const onOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) closeContextMenu();
+    },
+    [closeContextMenu],
+  );
 
-        <div
-          className={menuItemDefault}
-          role="menuitem"
-          tabIndex={-1}
-          onClick={() => {
+  return (
+    <DropdownMenu
+      key={`${position.x}-${position.y}`}
+      open
+      modal={false}
+      onOpenChange={onOpenChange}
+    >
+      <VirtualTrigger position={position} />
+      <DropdownMenuContent
+        align="start"
+        side="bottom"
+        sideOffset={0}
+        collisionPadding={8}
+        className="min-w-40"
+      >
+        <DropdownMenuLabel>{nodeIds.length} nodes selected</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onSelect={() => {
             fireAndForget(bulkPin(nodeIds), "bulk pin");
             clearSelection();
-            closeContextMenu();
           }}
         >
           Pin selected
-        </div>
-        <div
-          className={menuItemDefault}
-          role="menuitem"
-          tabIndex={-1}
-          onClick={() => {
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
             fireAndForget(bulkUnpin(nodeIds), "bulk unpin");
             clearSelection();
-            closeContextMenu();
           }}
         >
           Unpin selected
-        </div>
+        </DropdownMenuItem>
 
-        <div
-          className={collapseCandidates.length === 0 ? menuItemDisabled : menuItemDefault}
-          role="menuitem"
-          tabIndex={-1}
-          aria-disabled={collapseCandidates.length === 0}
-          onClick={() => {
+        <DropdownMenuItem
+          disabled={collapseCandidates.length === 0}
+          onSelect={() => {
             if (collapseCandidates.length === 0) return;
             collapseNodes(collapseCandidates.map((node) => node.id));
             clearSelection();
-            closeContextMenu();
           }}
         >
           Collapse selected
-        </div>
+        </DropdownMenuItem>
 
-        <div
-          className={expandCandidates.length === 0 ? menuItemDisabled : menuItemDefault}
-          role="menuitem"
-          tabIndex={-1}
-          aria-disabled={expandCandidates.length === 0}
-          onClick={() => {
+        <DropdownMenuItem
+          disabled={expandCandidates.length === 0}
+          onSelect={() => {
             if (expandCandidates.length === 0) return;
             expandNodes(expandCandidates.map((node) => node.id));
             clearSelection();
-            closeContextMenu();
           }}
         >
           Expand selected
-        </div>
+        </DropdownMenuItem>
 
         {!editorActive && (
-          <div
-            className={menuItemDefault}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
+          <DropdownMenuItem
+            onSelect={() => {
               fireAndForget(bulkCloseTabs(nodeIds), "bulk close tabs");
               clearSelection();
-              closeContextMenu();
             }}
           >
             Close selected tabs
-          </div>
+          </DropdownMenuItem>
         )}
 
-        <Separator className="my-1" />
+        <DropdownMenuSeparator />
 
         {pendingDelete === "nodes" ? (
-          <div
-            className={menuItemConfirming}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
-              if (deletingBulk) return;
-              setDeletingBulk(true);
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => {
               fireAndForget(bulkDeleteNodes(nodeIds), "bulk delete nodes");
               clearSelection();
-              closeContextMenu();
             }}
           >
             Confirm delete?
-          </div>
+          </DropdownMenuItem>
         ) : (
-          <div
-            className={menuItemDanger}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => setPendingDelete("nodes")}
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={(e) => {
+              e.preventDefault();
+              setPendingDelete("nodes");
+            }}
           >
             Delete nodes
-          </div>
+          </DropdownMenuItem>
         )}
 
         {pendingDelete === "recursive" ? (
-          <div
-            className={menuItemConfirming}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => {
-              if (deletingBulk) return;
-              setDeletingBulk(true);
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={(e) => {
               const rootId = getIncludedRootId(tree, nodeIds);
               if (rootId) {
+                e.preventDefault();
                 openDeleteTreeConfirm(rootId);
                 return;
               }
               fireAndForget(bulkDeleteRecursive(nodeIds), "bulk delete recursive");
               clearSelection();
-              closeContextMenu();
             }}
           >
             Confirm delete?
-          </div>
+          </DropdownMenuItem>
         ) : (
-          <div
-            className={menuItemDanger}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => setPendingDelete("recursive")}
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={(e) => {
+              e.preventDefault();
+              setPendingDelete("recursive");
+            }}
           >
             Delete nodes recursively
-          </div>
+          </DropdownMenuItem>
         )}
-      </div>
-    </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

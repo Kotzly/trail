@@ -64,25 +64,23 @@ export function AccountPage() {
   if (!isSupabaseConfigured()) {
     return (
       <div className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">Account</h2>
-          <p className="text-muted-foreground text-sm">
-            Cloud sync is not configured in this build.
-          </p>
-        </div>
+        <CardHeader className="px-0">
+          <CardTitle>Account</CardTitle>
+          <CardDescription>Cloud sync is not configured in this build.</CardDescription>
+        </CardHeader>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Account</h2>
-        <p className="text-muted-foreground text-sm">
+      <CardHeader className="px-0">
+        <CardTitle>Account</CardTitle>
+        <CardDescription>
           Sign in to sync your trees across devices. Your data stays on your device until you
           explicitly sign in.
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
       <Card>
         <CardHeader>

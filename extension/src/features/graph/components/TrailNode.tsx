@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Handle, Position, useStore } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { cn } from "@ui/lib/utils";
+import { Badge } from "@ui/components/ui/badge";
 import { selectShowDetail, selectShowLabels } from "../lod.js";
 
 const hidden = { opacity: 0, width: 6, height: 6 } as const;
@@ -129,15 +130,28 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
         {showDetail && (
           <div className="flex shrink-0 flex-col items-end gap-0.5">
             {tabCount > 1 && (
-              <span className="bg-primary/10 text-primary rounded px-1 py-0.5 text-[9px] leading-none font-medium tabular-nums">
+              <Badge
+                variant="outline"
+                className="bg-primary/10 text-primary h-4 rounded border-transparent px-1 text-[9px] leading-none tabular-nums"
+              >
                 {tabCount}
-              </span>
+              </Badge>
             )}
-            {pinned && <span className="text-muted-foreground text-[9px] leading-none">pin</span>}
+            {pinned && (
+              <Badge
+                variant="outline"
+                className="text-muted-foreground h-4 rounded border-transparent px-1 text-[9px] leading-none"
+              >
+                pin
+              </Badge>
+            )}
             {isCollapsed && childCount > 0 && (
-              <span className="bg-muted text-muted-foreground rounded px-1 py-0.5 text-[9px] leading-none font-medium tabular-nums">
+              <Badge
+                variant="secondary"
+                className="h-4 rounded px-1 text-[9px] leading-none tabular-nums"
+              >
                 +{childCount}
-              </span>
+              </Badge>
             )}
           </div>
         )}

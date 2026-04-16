@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/ui/card";
+import { Kbd, KbdGroup } from "@ui/components/ui/kbd";
 
 type Shortcut = {
   keys: string[];
@@ -53,12 +54,12 @@ const GROUPS: ShortcutGroup[] = [
 export function ShortcutsPage() {
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Keyboard shortcuts</h2>
+      <CardHeader className="px-0">
+        <CardTitle>Keyboard shortcuts</CardTitle>
         <p className="text-muted-foreground text-sm">
           All shortcuts at a glance. On Windows/Linux, swap ⌘ for Ctrl.
         </p>
-      </div>
+      </CardHeader>
 
       {GROUPS.map((group) => (
         <Card key={group.title}>
@@ -69,16 +70,11 @@ export function ShortcutsPage() {
             {group.items.map((item) => (
               <div key={item.label} className="flex items-center justify-between gap-4 text-sm">
                 <span>{item.label}</span>
-                <div className="flex shrink-0 gap-1">
+                <KbdGroup className="shrink-0">
                   {item.keys.map((k) => (
-                    <kbd
-                      key={k}
-                      className="bg-muted text-muted-foreground rounded px-2 py-0.5 font-mono text-[11px]"
-                    >
-                      {k}
-                    </kbd>
+                    <Kbd key={k}>{k}</Kbd>
                   ))}
-                </div>
+                </KbdGroup>
               </div>
             ))}
           </CardContent>

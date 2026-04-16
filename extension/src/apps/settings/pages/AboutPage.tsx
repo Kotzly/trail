@@ -30,12 +30,10 @@ export function AboutPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">About Trail</h2>
-        <p className="text-muted-foreground text-sm">
-          Your browsing sessions, reimagined as a graph.
-        </p>
-      </div>
+      <CardHeader className="px-0">
+        <CardTitle>About Trail</CardTitle>
+        <CardDescription>Your browsing sessions, reimagined as a graph.</CardDescription>
+      </CardHeader>
 
       <Card>
         <CardHeader className="flex flex-row items-center gap-3">

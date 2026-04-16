@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@ui/components/ui/dialog";
 import { Button } from "@ui/components/ui/button";
+import { Kbd } from "@ui/components/ui/kbd";
 import { Progress } from "@ui/components/ui/progress";
+import { Spinner } from "@ui/components/ui/spinner";
 import TrailLogo from "@ui/components/trail-logo";
-import { Icons } from "../components/Icon.js";
 import {
   advanceOnboarding,
   completeOnboarding,
@@ -116,20 +117,16 @@ const STEPS: Step[] = [
         <p>A few shortcuts to remember:</p>
         <ul className="flex flex-col gap-2 pl-4">
           <li>
-            <kbd className="bg-muted rounded px-1.5 py-0.5 text-[11px]">⌘K</kbd> — Command palette
-            (search across all nodes)
+            <Kbd>⌘K</Kbd> — Command palette (search across all nodes)
           </li>
           <li>
-            <kbd className="bg-muted rounded px-1.5 py-0.5 text-[11px]">⌘Z</kbd> — Undo (last 30
-            actions saved)
+            <Kbd>⌘Z</Kbd> — Undo (last 30 actions saved)
           </li>
           <li>
-            <kbd className="bg-muted rounded px-1.5 py-0.5 text-[11px]">⌘/</kbd> — Full shortcuts
-            cheat-sheet
+            <Kbd>⌘/</Kbd> — Full shortcuts cheat-sheet
           </li>
           <li>
-            <kbd className="bg-muted rounded px-1.5 py-0.5 text-[11px]">F2</kbd> — Rename selected
-            node
+            <Kbd>F2</Kbd> — Rename selected node
           </li>
         </ul>
         <p className="text-muted-foreground">Happy trailing 🌲</p>
@@ -281,7 +278,7 @@ export default function OnboardingWizard() {
           >
             {busy ? (
               <>
-                <Icons.Loader2 className="size-3.5 animate-spin" />
+                <Spinner className="size-3.5" />
                 <span>Loading…</span>
               </>
             ) : (

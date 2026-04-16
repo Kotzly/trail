@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Switch } from "@ui/components/ui/switch";
-import { Label } from "@ui/components/ui/label";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@ui/components/ui/field";
 import { Separator } from "@ui/components/ui/separator";
 import { Button } from "@ui/components/ui/button";
 import { Textarea } from "@ui/components/ui/textarea";
@@ -54,12 +60,12 @@ export function PrivacyPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Privacy</h2>
-        <p className="text-muted-foreground text-sm">
+      <CardHeader className="px-0">
+        <CardTitle>Privacy</CardTitle>
+        <CardDescription>
           Control what leaves your device. Your browsing tree is always stored locally first.
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
       <Card>
         <CardHeader>
@@ -68,46 +74,45 @@ export function PrivacyPage() {
             Help us improve Trail. We never send URLs, page titles, or tree content.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="telemetry-errors" className="text-sm font-medium">
-                Crash reports
-              </Label>
-              <p className="text-muted-foreground text-xs">
-                Send anonymized error reports via Sentry when Trail crashes.
-              </p>
-            </div>
-            <Switch
-              id="telemetry-errors"
-              checked={Boolean(consent?.errors)}
-              onCheckedChange={(v) => void updateConsent({ errors: v })}
-              disabled={!consent}
-            />
-          </div>
+        <CardContent>
+          <FieldGroup>
+            <Field orientation="horizontal">
+              <FieldContent>
+                <FieldLabel htmlFor="telemetry-errors">Crash reports</FieldLabel>
+                <FieldDescription>
+                  Send anonymized error reports via Sentry when Trail crashes.
+                </FieldDescription>
+              </FieldContent>
+              <Switch
+                id="telemetry-errors"
+                checked={Boolean(consent?.errors)}
+                onCheckedChange={(v) => void updateConsent({ errors: v })}
+                disabled={!consent}
+              />
+            </Field>
 
-          <Separator />
+            <Separator />
 
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="telemetry-analytics" className="text-sm font-medium">
-                Product analytics
-              </Label>
-              <p className="text-muted-foreground text-xs">
-                Anonymous usage stats (feature opened, action taken) via PostHog. No personal data.
-              </p>
-            </div>
-            <Switch
-              id="telemetry-analytics"
-              checked={Boolean(consent?.analytics)}
-              onCheckedChange={(v) => void updateConsent({ analytics: v })}
-              disabled={!consent}
-            />
-          </div>
+            <Field orientation="horizontal">
+              <FieldContent>
+                <FieldLabel htmlFor="telemetry-analytics">Product analytics</FieldLabel>
+                <FieldDescription>
+                  Anonymous usage stats (feature opened, action taken) via PostHog. No personal
+                  data.
+                </FieldDescription>
+              </FieldContent>
+              <Switch
+                id="telemetry-analytics"
+                checked={Boolean(consent?.analytics)}
+                onCheckedChange={(v) => void updateConsent({ analytics: v })}
+                disabled={!consent}
+              />
+            </Field>
 
-          <p className="text-muted-foreground text-xs">
-            Changes take effect when you next open the sidepanel or settings.
-          </p>
+            <FieldDescription>
+              Changes take effect when you next open the sidepanel or settings.
+            </FieldDescription>
+          </FieldGroup>
         </CardContent>
       </Card>
 
@@ -118,80 +123,76 @@ export function PrivacyPage() {
             Domains Trail should never record. Supports <code>*</code> wildcards.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="skip-incognito" className="text-sm font-medium">
-                Skip incognito windows
-              </Label>
-              <p className="text-muted-foreground text-xs">
-                Don't record navigations in private browsing.
-              </p>
-            </div>
-            <Switch
-              id="skip-incognito"
-              checked={settings?.privacy.skipIncognito ?? true}
-              onCheckedChange={(v) => {
-                if (!settings) return;
-                void updateSettings({
-                  ...settings,
-                  privacy: { ...settings.privacy, skipIncognito: v },
-                });
-              }}
-              disabled={!settings}
-            />
-          </div>
-
-          <Separator />
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="blocklist" className="text-sm font-medium">
-              Blocked hostnames
-            </Label>
-            <p className="text-muted-foreground text-xs">
-              One pattern per line. <code>*.bank.com</code> blocks any subdomain;{" "}
-              <code>localhost</code> is an exact match.
-            </p>
-            <Textarea
-              id="blocklist"
-              value={blocklistDraft}
-              onChange={(e) => setBlocklistDraft(e.target.value)}
-              rows={8}
-              className="font-mono text-xs"
-              spellCheck={false}
-              placeholder="*.bank.com&#10;localhost&#10;127.0.0.1"
-            />
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                disabled={!settings}
-                onClick={() => {
+        <CardContent>
+          <FieldGroup>
+            <Field orientation="horizontal">
+              <FieldContent>
+                <FieldLabel htmlFor="skip-incognito">Skip incognito windows</FieldLabel>
+                <FieldDescription>Don't record navigations in private browsing.</FieldDescription>
+              </FieldContent>
+              <Switch
+                id="skip-incognito"
+                checked={settings?.privacy.skipIncognito ?? true}
+                onCheckedChange={(v) => {
                   if (!settings) return;
-                  const patterns = blocklistDraft
-                    .split("\n")
-                    .map((p) => p.trim())
-                    .filter((p) => p.length > 0);
                   void updateSettings({
                     ...settings,
-                    privacy: { ...settings.privacy, blocklist: patterns },
+                    privacy: { ...settings.privacy, skipIncognito: v },
                   });
                 }}
-              >
-                Save
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
                 disabled={!settings}
-                onClick={() => {
-                  if (!settings) return;
-                  setBlocklistDraft(settings.privacy.blocklist.join("\n"));
-                }}
-              >
-                Reset
-              </Button>
-            </div>
-          </div>
+              />
+            </Field>
+
+            <Separator />
+
+            <Field>
+              <FieldLabel htmlFor="blocklist">Blocked hostnames</FieldLabel>
+              <FieldDescription>
+                One pattern per line. <code>*.bank.com</code> blocks any subdomain;{" "}
+                <code>localhost</code> is an exact match.
+              </FieldDescription>
+              <Textarea
+                id="blocklist"
+                value={blocklistDraft}
+                onChange={(e) => setBlocklistDraft(e.target.value)}
+                rows={8}
+                className="font-mono text-xs"
+                spellCheck={false}
+                placeholder="*.bank.com&#10;localhost&#10;127.0.0.1"
+              />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={!settings}
+                  onClick={() => {
+                    if (!settings) return;
+                    const patterns = blocklistDraft
+                      .split("\n")
+                      .map((p) => p.trim())
+                      .filter((p) => p.length > 0);
+                    void updateSettings({
+                      ...settings,
+                      privacy: { ...settings.privacy, blocklist: patterns },
+                    });
+                  }}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!settings}
+                  onClick={() => {
+                    if (!settings) return;
+                    setBlocklistDraft(settings.privacy.blocklist.join("\n"));
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
+            </Field>
+          </FieldGroup>
         </CardContent>
       </Card>
 
