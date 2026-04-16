@@ -25,7 +25,9 @@
     "format:check": "prettier --check 'src/**/*.{ts,tsx,css,json}'",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
     "generate-icons": "tsx src/shared/utils/generate-icons.ts",
-    "test": "node --import tsx tests/basic.test.ts && node --import tsx tests/architecture-boundaries.test.ts && node --import tsx tests/transport-contracts.test.ts && node --import tsx tests/content-bridge-runtime.test.ts && node --import tsx tests/graph-layout.test.ts && node --import tsx tests/layout-precompute-regression.test.ts && node --import tsx tests/smoke-e2e.test.ts && node --import tsx tests/ui-interaction.test.ts"
+    "test": "node --import tsx tests/basic.test.ts && node --import tsx tests/architecture-boundaries.test.ts && node --import tsx tests/transport-contracts.test.ts && node --import tsx tests/content-bridge-runtime.test.ts && node --import tsx tests/graph-layout.test.ts && node --import tsx tests/layout-precompute-regression.test.ts && node --import tsx tests/smoke-e2e.test.ts && node --import tsx tests/ui-interaction.test.ts",
+    "e2e": "pnpm run build && playwright test",
+    "e2e:ui": "pnpm run build && playwright test --ui"
   },
   "keywords": [],
   "author": "Trail",
@@ -39,6 +41,7 @@
   },
   "type": "commonjs",
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/chrome": "^0.1.37",
     "@types/d3-hierarchy": "^3.1.7",

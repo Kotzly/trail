@@ -52,3 +52,11 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: E2E (Playwright, headed via xvfb)
+        run: xvfb-run --auto-servernum pnpm exec playwright test
+        env:
+          CI: "true"
