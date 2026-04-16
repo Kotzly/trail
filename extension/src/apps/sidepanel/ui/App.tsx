@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback } from "react";
 import FloatingControls from "./components/FloatingControls.js";
 import CommandPalette from "./components/CommandPalette.js";
 import RenameNodeDialog from "./components/RenameNodeDialog.js";
+import SyncConflictBanner from "./components/SyncConflictBanner.js";
 import OnboardingWizard from "./onboarding/OnboardingWizard.js";
 import ContextMenus from "./components/ContextMenus.js";
 import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
@@ -129,6 +130,7 @@ export default function App() {
   return (
     <div className="relative flex h-dvh w-full max-w-none min-w-0 flex-col overflow-hidden">
       <Toaster />
+      <SyncConflictBanner />
       <FloatingControls />
       <CommandPalette />
       {settings && (

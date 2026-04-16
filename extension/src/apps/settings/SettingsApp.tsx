@@ -4,13 +4,15 @@ import { TreesPage } from "./pages/TreesPage.js";
 import { AppearancePage } from "./pages/AppearancePage.js";
 import { BehaviorPage } from "./pages/BehaviorPage.js";
 import { PrivacyPage } from "./pages/PrivacyPage.js";
+import { AccountPage } from "./pages/AccountPage.js";
 import { Button } from "@ui/components/ui/button";
 import { Separator } from "@ui/components/ui/separator";
 import { cn } from "@ui/lib/utils";
 
-type Page = "trees" | "appearance" | "behavior" | "privacy";
+type Page = "account" | "trees" | "appearance" | "behavior" | "privacy";
 
 const NAV_ITEMS: { id: Page; label: string }[] = [
+  { id: "account", label: "Account" },
   { id: "trees", label: "Trees" },
   { id: "appearance", label: "Appearance" },
   { id: "behavior", label: "Behavior" },
@@ -18,7 +20,7 @@ const NAV_ITEMS: { id: Page; label: string }[] = [
 ];
 
 export default function SettingsApp() {
-  const [page, setPage] = useState<Page>("trees");
+  const [page, setPage] = useState<Page>("account");
   const { settings, loading, updateSettings } = useSettings();
 
   return (
@@ -42,6 +44,7 @@ export default function SettingsApp() {
           <p className="text-muted-foreground text-sm">Loading...</p>
         ) : (
           <>
+            {page === "account" && <AccountPage />}
             {page === "trees" && <TreesPage />}
             {page === "appearance" && (
               <AppearancePage settings={settings} onUpdate={updateSettings} />

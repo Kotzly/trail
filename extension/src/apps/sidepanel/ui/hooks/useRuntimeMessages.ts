@@ -9,6 +9,9 @@ export function useRuntimeMessages(): void {
   const setCommandState = useStore((state) => state.setCommandState);
   const setEditorMode = useStore((state) => state.setEditorMode);
   const setTrees = useStore((state) => state.setTrees);
+  const setSyncStatus = useStore((state) => state.setSyncStatus);
+  const setAuthState = useStore((state) => state.setAuthState);
+  const setSyncConflict = useStore((state) => state.setSyncConflict);
 
   useEffect(() => {
     const removeTreeUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREE_UPDATED, ({ data }) => {
@@ -30,11 +33,36 @@ export function useRuntimeMessages(): void {
     const removeNotify = onExtensionMessage(EXTENSION_MESSAGE.UI_NOTIFY, ({ data }) => {
       showUiToast(data);
     });
+    const removeSyncStatus = onExtensionMessage(EXTENSION_MESSAGE.SYNC_STATUS, ({ data }) => {
+      // Map engine statuses to the sidepanel's narrower SyncStatus enum.
+      if (data.status === "offline") {
+        setSyncStatus("error");
+      } else {
+        setSyncStatus(data.status);
+      }
+    });
+    const removeAuthState = onExtensionMessage(EXTENSION_MESSAGE.AUTH_STATE, ({ data }) => {
+      setAuthState(data);
+    });
+    const removeSyncConflict = onExtensionMessage(EXTENSION_MESSAGE.SYNC_CONFLICT, ({ data }) => {
+      setSyncConflict(data);
+    });
 
     return () => {
       removeTreeUpdated();
       removeTreesUpdated();
       removeNotify();
+      removeSyncStatus();
+      removeAuthState();
+      removeSyncConflict();
     };
-  }, [applyTreeState, setCommandState, setEditorMode, setTrees]);
+  }, [
+    applyTreeState,
+    setCommandState,
+    setEditorMode,
+    setTrees,
+    setSyncStatus,
+    setAuthState,
+    setSyncConflict,
+  ]);
 }

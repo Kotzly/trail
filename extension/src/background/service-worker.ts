@@ -9,6 +9,9 @@ import { warmLayoutPositions } from "./services/layout-precompute.js";
 import { registerProxyServices } from "./transport/register-proxy-services.js";
 import { registerExtensionMessaging } from "./transport/register-extension-messaging.js";
 import { captureError, captureEvent, initObservability } from "@shared/lib/observability.js";
+import { initAuth, subscribeAuthState } from "@shared/auth/auth-orchestrator.js";
+import { startSyncEngine } from "./sync/sync-engine.js";
+import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 
 const log = createLogger("service-worker");
 
@@ -54,5 +57,14 @@ if (chrome.sidePanel?.setPanelBehavior) {
 
 // Pre-compute layout positions so sidepanel opens instantly
 void warmLayoutPositions();
+
+// Auth + sync — no-op when env vars missing or user not signed in.
+void initAuth().then((state) => {
+  fireExtensionEvent(EXTENSION_MESSAGE.AUTH_STATE, state);
+  subscribeAuthState((next) => {
+    fireExtensionEvent(EXTENSION_MESSAGE.AUTH_STATE, next);
+  });
+  startSyncEngine();
+});
 
 // Service worker initialized.

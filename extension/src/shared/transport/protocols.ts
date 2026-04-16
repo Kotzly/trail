@@ -15,8 +15,34 @@ export const EXTENSION_MESSAGE = {
   TREE_UPDATED: "event/tree-updated",
   TREES_UPDATED: "event/trees-updated",
   UI_NOTIFY: "event/ui-notify",
+  SYNC_STATUS: "event/sync-status",
+  SYNC_CONFLICT: "event/sync-conflict",
+  AUTH_STATE: "event/auth-state",
   SITE_EDITOR_MODE_EXITED: "site/editor-mode-exited",
 } as const;
+
+export type SyncStatusEvent = {
+  status: "idle" | "saving" | "saved" | "error" | "offline";
+};
+
+export type SyncConflictEvent = {
+  treeId: string;
+  serverUpdatedAt: string;
+  serverDeviceId: string;
+};
+
+export type AuthStateEvent =
+  | { status: "unconfigured" }
+  | { status: "signed-out" }
+  | {
+      status: "signed-in";
+      identity: {
+        userId: string;
+        email: string | null;
+        displayName: string | null;
+        avatarUrl: string | null;
+      };
+    };
 
 export interface ExtensionProtocolMap {
   [EXTENSION_MESSAGE.OPEN_PANEL](): void;
@@ -24,6 +50,9 @@ export interface ExtensionProtocolMap {
   [EXTENSION_MESSAGE.TREE_UPDATED](data: TreeUpdatedInput): void;
   [EXTENSION_MESSAGE.TREES_UPDATED](data: TreesSnapshot): void;
   [EXTENSION_MESSAGE.UI_NOTIFY](data: UiNotificationInput): void;
+  [EXTENSION_MESSAGE.SYNC_STATUS](data: SyncStatusEvent): void;
+  [EXTENSION_MESSAGE.SYNC_CONFLICT](data: SyncConflictEvent): void;
+  [EXTENSION_MESSAGE.AUTH_STATE](data: AuthStateEvent): void;
   [EXTENSION_MESSAGE.SITE_EDITOR_MODE_EXITED](data: { editorMode: false }): void;
 }
 

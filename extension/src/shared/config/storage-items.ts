@@ -107,6 +107,47 @@ export const onboardingStateItem = storage.defineItem<OnboardingState>("local:tr
   fallback: { seenWelcome: false, completedAt: null, step: 0 },
 });
 
+// ── Auth / Device / Sync ────────────────────────────────────────────
+
+export type AuthIdentity = {
+  userId: string;
+  email: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
+export const authIdentityItem = storage.defineItem<AuthIdentity | null>(
+  "local:trail_auth_identity",
+  { fallback: null },
+);
+
+export const deviceIdItem = storage.defineItem<string | null>("local:trail_device_id", {
+  fallback: null,
+});
+
+export type SyncStateMeta = {
+  /** Server-side updated_at ISO of the local tree's last successful push. */
+  lastSyncedAt: string | null;
+  /** Server-side updated_at we observed on last pull; used to detect drift. */
+  lastRemoteUpdatedAt: string | null;
+  /** Local mutation counter at last push; bumped on every mutation. */
+  lastPushedLocalVersion: number;
+};
+
+export const syncStateItem = storage.defineItem<Record<string, SyncStateMeta>>(
+  "local:trail_sync_state",
+  { fallback: {} },
+);
+
+export type PendingSyncOp =
+  | { kind: "push_tree"; treeId: string; queuedAt: number }
+  | { kind: "delete_tree"; treeId: string; queuedAt: number };
+
+export const pendingSyncOpsItem = storage.defineItem<PendingSyncOp[]>(
+  "local:trail_pending_sync_ops",
+  { fallback: [] },
+);
+
 // ── Telemetry ───────────────────────────────────────────────────────
 
 export type TelemetryConsent = {

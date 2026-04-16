@@ -116,6 +116,8 @@ type StoreState = {
   syncStatus: SyncStatus;
   commandPalette: { open: boolean };
   renameTarget: NodeId | null;
+  authState: AuthUiState;
+  syncConflict: SyncConflictUiState | null;
   contextMenu: ContextMenuState;
   pickTarget: { type: "duplicate"; sourceNodeId: NodeId } | null;
   metaKey: MetaKeyPair | null;
@@ -166,6 +168,28 @@ type StoreActions = {
   setCommandPaletteOpen: (open: boolean) => void;
   openRenameDialog: (nodeId: NodeId) => void;
   closeRenameDialog: () => void;
+  setAuthState: (state: AuthUiState) => void;
+  setSyncConflict: (conflict: SyncConflictUiState | null) => void;
+};
+
+export type AuthUiState =
+  | { status: "unknown" }
+  | { status: "unconfigured" }
+  | { status: "signed-out" }
+  | {
+      status: "signed-in";
+      identity: {
+        userId: string;
+        email: string | null;
+        displayName: string | null;
+        avatarUrl: string | null;
+      };
+    };
+
+export type SyncConflictUiState = {
+  treeId: string;
+  serverUpdatedAt: string;
+  serverDeviceId: string;
 };
 
 type PopupKey = keyof StoreState["ui"];
@@ -260,6 +284,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   syncStatus: "idle" as SyncStatus,
   commandPalette: { open: false },
   renameTarget: null,
+  authState: { status: "unknown" as const },
+  syncConflict: null,
   contextMenu: null,
   pickTarget: null,
   metaKey: null,
@@ -628,4 +654,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   setCommandPaletteOpen: (open) => set({ commandPalette: { open } }),
   openRenameDialog: (nodeId) => set({ renameTarget: nodeId }),
   closeRenameDialog: () => set({ renameTarget: null }),
+  setAuthState: (authState) => set({ authState }),
+  setSyncConflict: (syncConflict) => set({ syncConflict }),
 }));

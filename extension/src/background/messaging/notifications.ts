@@ -185,7 +185,28 @@ async function sendTreeNotification(
   if (triggerRefinement) {
     requestLayoutRefinement(treeJSON);
   }
+
+  // Opportunistic sync push — no-op when signed out or sync not configured.
+  if (!STRUCTURAL_ONLY_REASONS.has(reason)) {
+    // Lazy-require to avoid importing the full sync engine at module init
+    // time (service worker cold-start can take longer with extra work).
+    void import("../sync/sync-engine.js")
+      .then(({ schedulePush }) => schedulePush())
+      .catch(() => {
+        /* sync engine not available */
+      });
+  }
 }
+
+// Reasons that don't produce a new tree content state that's worth syncing.
+// Layout-only updates shouldn't trip a push — the server payload is still the
+// same tree; client-local positions are not synced.
+const STRUCTURAL_ONLY_REASONS = new Set<TreeUpdateReason>([
+  "layout",
+  "temp-selection",
+  "editor-enter",
+  "editor-exit",
+]);
 
 export async function notifyTreeUpdate(
   tree: NavigationTree,
