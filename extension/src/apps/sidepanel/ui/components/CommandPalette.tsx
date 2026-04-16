@@ -90,7 +90,7 @@ export default function CommandPalette() {
       />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
-        {nodes.length > 0 && (
+        {query.trim() && nodes.length > 0 && (
           <CommandGroup heading="Nodes">
             {nodes.map((entry) => (
               <CommandItem

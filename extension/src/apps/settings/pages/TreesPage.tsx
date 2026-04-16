@@ -1,10 +1,29 @@
 import { useState } from "react";
 import { useTrees } from "../hooks/useTrees.js";
 import { Button } from "@ui/components/ui/button";
-import { Card } from "@ui/components/ui/card";
 import { Input } from "@ui/components/ui/input";
-import { Badge } from "@ui/components/ui/badge";
-import { Separator } from "@ui/components/ui/separator";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@ui/components/ui/input-group";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@ui/components/ui/empty";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@ui/components/ui/item";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +35,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@ui/components/ui/alert-dialog";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Archive02Icon,
+  BookmarkIcon,
+  ListTreeIcon,
+  PlusSignIcon,
+  Delete02Icon,
+  PencilEdit02Icon,
+  Download04Icon,
+  Folder01Icon,
+} from "@hugeicons/core-free-icons";
 
 export function TreesPage() {
   const {
@@ -34,7 +64,7 @@ export function TreesPage() {
   const [editLabel, setEditLabel] = useState("");
 
   if (loading || !trees) {
-    return <p className="text-muted-foreground p-4 text-sm">Loading trees...</p>;
+    return <p className="text-muted-foreground p-4 text-sm">Loading trees…</p>;
   }
 
   const handleNewTree = async () => {
@@ -51,124 +81,188 @@ export function TreesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-semibold">Trees</h2>
-        <p className="text-muted-foreground text-sm">Manage your browsing trees</p>
-      </div>
+      <header className="flex flex-col gap-1">
+        <h2 className="text-lg font-semibold tracking-tight">Trees</h2>
+        <p className="text-muted-foreground text-sm">Manage your browsing trees.</p>
+      </header>
 
-      <div className="flex gap-2">
-        <Input
-          placeholder="New tree name..."
+      <InputGroup>
+        <InputGroupInput
+          placeholder="New tree name…"
           value={newTreeLabel}
           onChange={(e) => setNewTreeLabel(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleNewTree()}
-          className="flex-1"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void handleNewTree();
+          }}
         />
-        <Button onClick={handleNewTree} disabled={!newTreeLabel.trim()}>
-          New Tree
-        </Button>
-      </div>
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton onClick={() => void handleNewTree()} disabled={!newTreeLabel.trim()}>
+            <HugeiconsIcon icon={PlusSignIcon} />
+            Create
+          </InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
 
-      <Separator />
-
-      <div>
-        <h3 className="mb-3 text-sm font-medium">Active</h3>
-        <Card className="p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{trees.active.label}</span>
-              <Badge variant="secondary">Active</Badge>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => exportTree()}>
-                Export
+      <section className="flex flex-col gap-2">
+        <h3 className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
+          Active
+        </h3>
+        <ItemGroup>
+          <Item variant="muted" size="sm">
+            <ItemMedia variant="icon">
+              <HugeiconsIcon icon={BookmarkIcon} className="text-muted-foreground" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{trees.active.label}</ItemTitle>
+              <ItemDescription>Currently open in the sidepanel.</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Export tree"
+                data-tooltip="Export tree"
+                onClick={() => void exportTree()}
+              >
+                <HugeiconsIcon icon={Download04Icon} />
               </Button>
-              <Button variant="ghost" size="sm" onClick={archiveActiveTree}>
-                Archive
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Archive tree"
+                data-tooltip="Archive tree"
+                onClick={() => void archiveActiveTree()}
+              >
+                <HugeiconsIcon icon={Archive02Icon} />
               </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
+            </ItemActions>
+          </Item>
+        </ItemGroup>
+      </section>
 
-      {trees.archived.length > 0 && (
-        <div>
-          <h3 className="mb-3 text-sm font-medium">Archived ({trees.archived.length})</h3>
-          <div className="flex flex-col gap-2">
-            {trees.archived.map((tree) => (
-              <Card key={tree.id} className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    {editingId === tree.id ? (
-                      <div className="flex gap-1">
-                        <Input
-                          value={editLabel}
-                          onChange={(e) => setEditLabel(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleRename(tree.id);
-                            if (e.key === "Escape") setEditingId(null);
-                          }}
-                          className="h-7 text-sm"
-                          autoFocus
-                        />
-                        <Button size="sm" className="h-7" onClick={() => handleRename(tree.id)}>
-                          Save
-                        </Button>
-                      </div>
+      <section className="flex flex-col gap-2">
+        <h3 className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
+          Archived{trees.archived.length > 0 ? ` · ${trees.archived.length}` : ""}
+        </h3>
+        {trees.archived.length === 0 ? (
+          <Empty className="py-10">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <HugeiconsIcon icon={ListTreeIcon} />
+              </EmptyMedia>
+              <EmptyTitle className="text-sm">No archived trees</EmptyTitle>
+              <EmptyDescription>
+                Archive the current tree to save it here. You can re-open archived trees from the
+                sidepanel switcher.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <ItemGroup>
+            {trees.archived.map((tree) => {
+              const isEditing = editingId === tree.id;
+              return (
+                <Item key={tree.id} variant="outline" size="sm">
+                  <ItemMedia variant="icon">
+                    <HugeiconsIcon icon={Folder01Icon} className="text-muted-foreground" />
+                  </ItemMedia>
+                  <ItemContent>
+                    {isEditing ? (
+                      <Input
+                        autoFocus
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void handleRename(tree.id);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        onBlur={() => {
+                          if (editLabel.trim() && editLabel !== tree.label) {
+                            void handleRename(tree.id);
+                          } else {
+                            setEditingId(null);
+                          }
+                        }}
+                        className="h-7 max-w-sm"
+                      />
                     ) : (
-                      <div>
-                        <span className="text-sm font-medium">{tree.label}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">
-                          {tree.nodeCount} nodes
-                        </span>
-                      </div>
+                      <ItemTitle
+                        className="cursor-text"
+                        onDoubleClick={() => {
+                          setEditingId(tree.id);
+                          setEditLabel(tree.label);
+                        }}
+                      >
+                        {tree.label}
+                      </ItemTitle>
                     )}
-                  </div>
-                  <div className="ml-2 flex shrink-0 items-center gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => openTree(tree.id)}>
-                      Open
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingId(tree.id);
-                        setEditLabel(tree.label);
-                      }}
-                    >
-                      Rename
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => exportTree(tree.id)}>
-                      Export
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-destructive">
-                          Delete
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete "{tree.label}"?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This permanently deletes this tree and all its nodes.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteArchivedTree(tree.id)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+                    <ItemDescription>{tree.nodeCount.toLocaleString()} nodes</ItemDescription>
+                  </ItemContent>
+                  {!isEditing && (
+                    <ItemActions>
+                      <Button variant="ghost" size="sm" onClick={() => void openTree(tree.id)}>
+                        Open
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Rename"
+                        data-tooltip="Rename"
+                        onClick={() => {
+                          setEditingId(tree.id);
+                          setEditLabel(tree.label);
+                        }}
+                      >
+                        <HugeiconsIcon icon={PencilEdit02Icon} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Export"
+                        data-tooltip="Export"
+                        onClick={() => void exportTree(tree.id)}
+                      >
+                        <HugeiconsIcon icon={Download04Icon} />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Delete"
+                            data-tooltip="Delete"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <HugeiconsIcon icon={Delete02Icon} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete &ldquo;{tree.label}&rdquo;?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This permanently deletes the tree and all its nodes. This cannot be
+                              undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => void deleteArchivedTree(tree.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </ItemActions>
+                  )}
+                </Item>
+              );
+            })}
+          </ItemGroup>
+        )}
+      </section>
     </div>
   );
 }
