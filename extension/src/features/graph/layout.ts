@@ -78,13 +78,20 @@ export async function computeLayout(
     return { nodes: [], edges: [] };
   }
 
-  // Compute positions — use pre-computed if available, else d3-hierarchy
-  let positions: Map<string, { x: number; y: number }>;
+  // Compute positions — use pre-computed if available, else d3-hierarchy.
+  // The background cache may be stale after a mutation (savedAt bumps on debounced
+  // save, not on every cacheTree), so verify every node is covered; otherwise fall
+  // back to a fresh local d3 compute. This avoids new nodes flickering at (0, 0).
+  let positions: Map<string, { x: number; y: number }> | null = null;
 
   if (precomputedPositions && collapsedNodeIds.size === 0) {
-    // Fast path: background already computed positions for fully-expanded tree
-    positions = new Map(Object.entries(precomputedPositions));
-  } else {
+    const candidate = new Map(Object.entries(precomputedPositions));
+    if (nodes.every((n) => candidate.has(n.id))) {
+      positions = candidate;
+    }
+  }
+
+  if (!positions) {
     const { nodeSpacing, layerSpacing } = getSpacing(settings.graphDensity);
     positions = computeTreePositions({
       tree,

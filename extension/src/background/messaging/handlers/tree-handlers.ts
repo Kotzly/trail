@@ -93,6 +93,22 @@ async function closeTabsForNodes(nodeIds: ForEacher<NodeId>): Promise<void> {
   await closeTabs(tabIds, "nodes");
 }
 
+function coversAllNodes(
+  tree: NavigationTreeJSON,
+  positions: Record<string, { x: number; y: number }>,
+): boolean {
+  if (!tree.root) return true;
+  const stack = [tree.root];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (!Object.prototype.hasOwnProperty.call(positions, String(node.id))) {
+      return false;
+    }
+    for (const child of node.children) stack.push(child);
+  }
+  return true;
+}
+
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
   const editorMode = getEditorState();
   const openNodes = Array.from(tabManager.openNodes());
@@ -113,6 +129,14 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
     log.warn("Failed to load cached positions for tree snapshot", {
       error: error instanceof Error ? error.message : String(error),
     });
+  }
+
+  // If the cached positions don't cover every node in the current tree, treat
+  // this as a miss: savedAt only bumps on the debounced save (~1.5s after
+  // cacheTree), so just-added nodes are usually missing here and would
+  // otherwise render at (0, 0) until the next snapshot.
+  if (positions && !coversAllNodes(treeJSON, positions)) {
+    positions = null;
   }
 
   if (!positions) {

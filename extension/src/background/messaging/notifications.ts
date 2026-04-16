@@ -100,6 +100,28 @@ async function loadCachedPositionsForActiveTree(): Promise<LayoutPositions | nul
   }
 }
 
+/**
+ * True when every node in `tree` has a corresponding entry in `positions`.
+ * Used to skip stale cached positions after a mutation — savedAt only bumps
+ * on the debounced save (~1.5s), so just-added nodes would otherwise ship
+ * with no position and render at (0, 0) until the next snapshot arrives.
+ */
+function positionsCoverTree(
+  tree: NavigationTreeJSON,
+  positions: LayoutPositions,
+): boolean {
+  if (!tree.root) return true;
+  const stack = [tree.root];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (!Object.prototype.hasOwnProperty.call(positions, String(node.id))) {
+      return false;
+    }
+    for (const child of node.children) stack.push(child);
+  }
+  return true;
+}
+
 export function requestLayoutRefinement(treeJSON: NavigationTreeJSON): void {
   void (async () => {
     try {
@@ -147,10 +169,17 @@ async function sendTreeNotification(
     ? { ...view, intentId: view.intentId ?? (viewIntentCounter += 1) }
     : undefined;
 
-  const positions =
-    options.positions === undefined && !STRUCTURAL_REASONS.has(reason)
-      ? await loadCachedPositionsForActiveTree()
-      : (options.positions ?? null);
+  let positions: LayoutPositions | null;
+  if (options.positions !== undefined) {
+    positions = options.positions;
+  } else if (STRUCTURAL_REASONS.has(reason)) {
+    positions = null;
+  } else {
+    const cached = await loadCachedPositionsForActiveTree();
+    positions = cached && positionsCoverTree(treeJSON, cached) ? cached : null;
+  }
+  const triggerRefinement =
+    (STRUCTURAL_REASONS.has(reason) || positions === null) && !options.skipPrecompute;
 
   fireExtensionEvent(EXTENSION_MESSAGE.TREE_UPDATED, {
     tree: treeJSON,
@@ -163,7 +192,7 @@ async function sendTreeNotification(
     ...(positions ? { positions } : {}),
   });
 
-  if (STRUCTURAL_REASONS.has(reason) && !options.skipPrecompute) {
+  if (triggerRefinement) {
     requestLayoutRefinement(treeJSON);
   }
 }
