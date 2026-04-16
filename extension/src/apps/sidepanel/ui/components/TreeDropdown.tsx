@@ -21,10 +21,10 @@ import { toast } from "sonner";
 import { browser } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { Button } from "@ui/components/ui/button";
-import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Input } from "@ui/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { ScrollArea } from "@ui/components/ui/scroll-area";
+import { Separator } from "@ui/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -267,309 +267,121 @@ export default function TreeDropdown() {
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[360px] p-0" id="treesDropdown">
-          {/* Header */}
-          <div className="border-border flex items-center justify-between border-b px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-semibold">trees</span>
-              <span className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-[11px]">
-                {archivedTrees.length}
+          {/* Single compact toolbar: title + count on the left, import + new
+              on the right. No other section headers — the active row sits
+              on top, archived rows below. */}
+          <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+            <div className="text-muted-foreground flex items-center gap-1.5 px-1.5 text-[12px]">
+              <span>Trees</span>
+              <span className="bg-muted rounded px-1.5 py-px text-[10px] tabular-nums">
+                {archivedTrees.length + (activeTree ? 1 : 0)}
               </span>
             </div>
+            <div className="flex items-center gap-0.5">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".trail.json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleImportFile(file);
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                type="button"
+                aria-label="Import trail"
+                data-tooltip="Import trail"
+                disabled={importing}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {importing ? <Icons.Loader2 className="animate-spin" /> : <Icons.Upload />}
+              </Button>
+              <Button
+                id="newTreeBtn"
+                variant="ghost"
+                size="icon-xs"
+                type="button"
+                aria-label="New tree"
+                data-tooltip="New tree"
+                onClick={() => {
+                  setLabelDraft("");
+                  closeAllPopups();
+                  setConfirmOpen(true);
+                }}
+              >
+                <Icons.GitBranchPlus />
+              </Button>
+            </div>
           </div>
+          <Separator />
 
-          <ScrollArea className="max-h-[400px]">
-            {/* Active tree section — proper shadcn Card with CardAction */}
-            {activeTree && (
-              <div className="px-3 pt-3">
-                <Card
-                  size="sm"
-                  className="bg-accent/60 shadow-none ring-0"
-                  data-testid="active-tree-card"
-                >
-                  <CardHeader>
-                    <CardTitle className="flex min-w-0 items-center gap-2 text-[13px] font-medium">
-                      {activeTree.rootUrl ? (
-                        <img
-                          className="size-4 shrink-0 rounded-sm"
-                          alt=""
-                          src={getFaviconUrl(activeTree.rootUrl)}
-                        />
-                      ) : (
-                        <span className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
-                          <Icons.Bookmark className="text-muted-foreground size-2.5" />
-                        </span>
-                      )}
-                      {editingId === activeTree.id ? (
-                        <Input
-                          ref={inputRef}
-                          className="h-7 flex-1 px-1.5 text-[13px]"
-                          value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              void commitEdit();
-                            }
-                            if (e.key === "Escape") {
-                              e.preventDefault();
-                              cancelEdit();
-                            }
-                          }}
-                          onBlur={() => void commitEdit()}
-                        />
-                      ) : (
-                        <span
-                          className="min-w-0 cursor-text truncate"
-                          onDoubleClick={() => startEdit(activeTree)}
-                        >
-                          {displayLabel({
-                            label: activeTree.label,
-                            ...(activeTree.rootTitle ? { rootTitle: activeTree.rootTitle } : {}),
-                            ...(activeTree.rootUrl ? { rootUrl: activeTree.rootUrl } : {}),
-                          })}
-                        </span>
-                      )}
-                    </CardTitle>
-                    <CardDescription className="truncate text-[11px]">
-                      {[
-                        formatNodeCount(activeTree.nodeCount),
-                        lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : "active now",
-                      ]
-                        .filter(Boolean)
-                        .join(" \u00b7 ")}
-                    </CardDescription>
-                    {editingId !== activeTree.id && (
-                      <CardAction className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          type="button"
-                          aria-label="Export tree"
-                          data-tooltip="Export tree"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleExport();
-                          }}
-                        >
-                          <Icons.Download />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          type="button"
-                          aria-label="Open in editor"
-                          data-tooltip="Open in editor"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void openTrailEditor(activeTree.id);
-                          }}
-                        >
-                          <Icons.Pencil />
-                        </Button>
-                      </CardAction>
-                    )}
-                  </CardHeader>
-                </Card>
-              </div>
-            )}
+          <ScrollArea className="max-h-[420px]">
+            <div className="flex flex-col gap-px p-1">
+              {activeTree && (
+                <TreeRow
+                  tree={activeTree}
+                  active
+                  isEditing={editingId === activeTree.id}
+                  draft={draft}
+                  inputRef={inputRef}
+                  meta={[
+                    formatNodeCount(activeTree.nodeCount),
+                    lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : "active now",
+                  ]
+                    .filter(Boolean)
+                    .join(" \u00b7 ")}
+                  onStartEdit={() => startEdit(activeTree)}
+                  onDraftChange={setDraft}
+                  onCommitEdit={commitEdit}
+                  onCancelEdit={cancelEdit}
+                  onExport={() => void handleExport()}
+                  onOpenEditor={() => void openTrailEditor(activeTree.id)}
+                />
+              )}
 
-            {/* Saved trees section */}
-            <div className="py-2.5">
-              <div className="flex items-center justify-between gap-3 px-4 pb-2">
-                <span className="text-muted-foreground text-[11px] tracking-wider uppercase">
-                  saved
-                </span>
-                <div className="flex items-center gap-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".trail.json,.json"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) void handleImportFile(file);
-                    }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon-xs"
-                    type="button"
-                    className="rounded-full"
-                    aria-label="Import trail"
-                    data-tooltip="Import trail"
-                    disabled={importing}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {importing ? <Icons.Loader2 className="animate-spin" /> : <Icons.Upload />}
-                  </Button>
-                  <Button
-                    id="newTreeBtn"
-                    variant="outline"
-                    size="icon-xs"
-                    type="button"
-                    className="rounded-full"
-                    aria-label="New tree"
-                    data-tooltip="New tree"
-                    onClick={() => {
-                      setLabelDraft("");
-                      closeAllPopups();
-                      setConfirmOpen(true);
-                    }}
-                  >
-                    <Icons.GitBranchPlus />
-                  </Button>
-                </div>
-              </div>
-              {archivedTrees.length === 0 ? (
-                <div className="text-muted-foreground flex flex-col items-center gap-1.5 py-5">
-                  <Icons.ListTree className="size-6 opacity-40" />
-                  <span className="text-xs">No saved trees yet</span>
-                  <span className="text-[11px] opacity-60">Create a new tree to get started</span>
-                </div>
+              {activeTree && archivedTrees.length > 0 && <Separator className="my-1 opacity-60" />}
+
+              {archivedTrees.length === 0 && !activeTree ? (
+                <EmptyState />
               ) : (
-                <div className="px-1">
-                  {archivedTrees.map((tree) => {
-                    const isLoading = loadingTreeId === tree.id;
-                    const isUnavailable = unavailableTreeIds.has(tree.id);
-                    const host = formatHost(tree.rootUrl);
-                    const date = formatDate(tree.savedAt);
-                    // "archived" is redundant — this whole section is the
-                    // archive list. "cloud"/"unavailable" chips only
-                    // surface when meaningful.
-                    const meta = [
-                      tree.stub ? (isUnavailable ? "unavailable" : "cloud") : null,
-                      host,
-                      formatNodeCount(tree.nodeCount),
-                      date,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ");
+                archivedTrees.map((tree) => {
+                  const isLoading = loadingTreeId === tree.id;
+                  const isUnavailable = unavailableTreeIds.has(tree.id);
+                  const host = formatHost(tree.rootUrl);
+                  const meta = [
+                    tree.stub ? (isUnavailable ? "unavailable" : "cloud") : null,
+                    host,
+                    formatNodeCount(tree.nodeCount),
+                    formatDate(tree.savedAt),
+                  ]
+                    .filter(Boolean)
+                    .join(" \u00b7 ");
 
-                    return (
-                      <div
-                        key={tree.id}
-                        className={cn(
-                          "group hover:bg-accent flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 transition-colors",
-                          isLoading && "pointer-events-none opacity-60",
-                          isUnavailable && "opacity-50",
-                        )}
-                        onClick={() => !isLoading && !isUnavailable && void handleOpen(tree)}
-                      >
-                        {/* Favicon */}
-                        {isLoading ? (
-                          <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
-                            <Icons.Loader2 className="text-muted-foreground size-3 animate-spin" />
-                          </div>
-                        ) : tree.stub ? (
-                          <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
-                            {isUnavailable ? (
-                              <Icons.CloudOff className="text-muted-foreground size-3" />
-                            ) : (
-                              <Icons.Cloud className="text-muted-foreground size-3" />
-                            )}
-                          </div>
-                        ) : tree.rootUrl ? (
-                          <img
-                            className="size-4 shrink-0 rounded-sm"
-                            alt=""
-                            src={getFaviconUrl(tree.rootUrl)}
-                          />
-                        ) : (
-                          <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
-                            <Icons.Bookmark className="text-muted-foreground size-2.5" />
-                          </div>
-                        )}
-
-                        {/* Info */}
-                        <div className="min-w-0 flex-1">
-                          {editingId === tree.id ? (
-                            <Input
-                              ref={inputRef}
-                              className="h-7 px-1.5 text-[13px]"
-                              value={draft}
-                              onChange={(e) => setDraft(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  void commitEdit();
-                                }
-                                if (e.key === "Escape") {
-                                  e.preventDefault();
-                                  cancelEdit();
-                                }
-                              }}
-                              onBlur={() => void commitEdit()}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            <div
-                              className="truncate text-[13px]"
-                              onDoubleClick={(e) => {
-                                e.stopPropagation();
-                                startEdit(tree);
-                              }}
-                            >
-                              {displayLabel({
-                                label: tree.label,
-                                ...(tree.rootTitle ? { rootTitle: tree.rootTitle } : {}),
-                                ...(tree.rootUrl ? { rootUrl: tree.rootUrl } : {}),
-                              })}
-                            </div>
-                          )}
-                          <div className="text-muted-foreground truncate text-[11px]">{meta}</div>
-                        </div>
-
-                        {/* Actions */}
-                        {editingId !== tree.id && !isLoading && (
-                          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                            {!tree.stub && (
-                              <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                type="button"
-                                aria-label="Export tree"
-                                data-tooltip="Export tree"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  void handleExport(tree.id);
-                                }}
-                              >
-                                <Icons.Download />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              type="button"
-                              aria-label="Open in editor"
-                              data-tooltip="Open in editor"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void openTrailEditor(tree.id);
-                              }}
-                            >
-                              <Icons.Pencil />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              type="button"
-                              aria-label="Delete tree"
-                              data-tooltip="Delete tree"
-                              disabled={deletePending === tree.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleDeleteArchived(tree.id);
-                              }}
-                            >
-                              <Icons.Trash2 />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                  return (
+                    <TreeRow
+                      key={tree.id}
+                      tree={tree}
+                      loading={isLoading}
+                      unavailable={isUnavailable}
+                      isEditing={editingId === tree.id}
+                      draft={draft}
+                      inputRef={inputRef}
+                      meta={meta}
+                      onOpen={() => void handleOpen(tree)}
+                      onStartEdit={() => startEdit(tree)}
+                      onDraftChange={setDraft}
+                      onCommitEdit={commitEdit}
+                      onCancelEdit={cancelEdit}
+                      onExport={() => void handleExport(tree.id)}
+                      onOpenEditor={() => void openTrailEditor(tree.id)}
+                      onDelete={() => void handleDeleteArchived(tree.id)}
+                      deleting={deletePending === tree.id}
+                    />
+                  );
+                })
               )}
             </div>
           </ScrollArea>
@@ -592,6 +404,208 @@ export default function TreeDropdown() {
         }}
       />
     </>
+  );
+}
+
+type TreeRowProps = {
+  tree: TreeItem;
+  active?: boolean;
+  loading?: boolean;
+  unavailable?: boolean;
+  isEditing: boolean;
+  draft: string;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  meta: string;
+  onOpen?: () => void;
+  onStartEdit: () => void;
+  onDraftChange: (v: string) => void;
+  onCommitEdit: () => void | Promise<void>;
+  onCancelEdit: () => void;
+  onExport: () => void;
+  onOpenEditor: () => void;
+  onDelete?: () => void;
+  deleting?: boolean;
+};
+
+/**
+ * One flat shadcn-style row. Same layout for the active tree and each
+ * archived tree — the active row just carries `bg-accent` and lives at
+ * the top of the list.
+ */
+function TreeRow({
+  tree,
+  active,
+  loading,
+  unavailable,
+  isEditing,
+  draft,
+  inputRef,
+  meta,
+  onOpen,
+  onStartEdit,
+  onDraftChange,
+  onCommitEdit,
+  onCancelEdit,
+  onExport,
+  onOpenEditor,
+  onDelete,
+  deleting,
+}: TreeRowProps) {
+  const clickable = !active && !loading && !unavailable && Boolean(onOpen);
+  return (
+    <div
+      className={cn(
+        "group flex items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] transition-colors",
+        active && "bg-accent",
+        !active && "hover:bg-accent",
+        clickable && "cursor-pointer",
+        loading && "pointer-events-none opacity-60",
+        unavailable && "opacity-50",
+      )}
+      onClick={() => clickable && onOpen?.()}
+    >
+      <TreeFavicon tree={tree} loading={loading} unavailable={unavailable} />
+
+      <div className="min-w-0 flex-1">
+        {isEditing ? (
+          <Input
+            ref={inputRef}
+            className="h-6 px-1.5 text-[13px]"
+            value={draft}
+            onChange={(e) => onDraftChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void onCommitEdit();
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                onCancelEdit();
+              }
+            }}
+            onBlur={() => void onCommitEdit()}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <div
+            className="truncate"
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              onStartEdit();
+            }}
+          >
+            {displayLabel({
+              label: tree.label,
+              ...(tree.rootTitle ? { rootTitle: tree.rootTitle } : {}),
+              ...(tree.rootUrl ? { rootUrl: tree.rootUrl } : {}),
+            })}
+          </div>
+        )}
+        {meta ? <div className="text-muted-foreground truncate text-[11px]">{meta}</div> : null}
+      </div>
+
+      {!isEditing && !loading && (
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-0.5 transition-opacity",
+            active ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+          )}
+        >
+          {!tree.stub && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              type="button"
+              aria-label="Export tree"
+              data-tooltip="Export tree"
+              onClick={(e) => {
+                e.stopPropagation();
+                onExport();
+              }}
+            >
+              <Icons.Download />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            type="button"
+            aria-label="Open in editor"
+            data-tooltip="Open in editor"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenEditor();
+            }}
+          >
+            <Icons.Pencil />
+          </Button>
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              type="button"
+              aria-label="Delete tree"
+              data-tooltip="Delete tree"
+              disabled={deleting}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <Icons.Trash2 />
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TreeFavicon({
+  tree,
+  loading,
+  unavailable,
+}: {
+  tree: TreeItem;
+  loading?: boolean;
+  unavailable?: boolean;
+}) {
+  const wrap = "bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm";
+  if (loading) {
+    return (
+      <div className={wrap}>
+        <Icons.Loader2 className="text-muted-foreground size-3 animate-spin" />
+      </div>
+    );
+  }
+  if (tree.stub) {
+    return (
+      <div className={wrap}>
+        {unavailable ? (
+          <Icons.CloudOff className="text-muted-foreground size-3" />
+        ) : (
+          <Icons.Cloud className="text-muted-foreground size-3" />
+        )}
+      </div>
+    );
+  }
+  if (tree.rootUrl) {
+    return <img className="size-4 shrink-0 rounded-sm" alt="" src={getFaviconUrl(tree.rootUrl)} />;
+  }
+  return (
+    <div className={wrap}>
+      <Icons.Bookmark className="text-muted-foreground size-2.5" />
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="text-muted-foreground flex flex-col items-center gap-1 py-8">
+      <Icons.ListTree className="size-6 opacity-40" />
+      <span className="text-[12px]">No trees yet</span>
+      <span className="text-[11px] opacity-60">Create a new tree to get started</span>
+    </div>
   );
 }
 
