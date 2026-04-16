@@ -40,6 +40,9 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Initialize all modules
 void initBackendConfig();
+
+// Run local schema migrations before anything else touches storage.
+void import("./services/migrations.js").then(({ runMigrations }) => runMigrations());
 registerProxyServices();
 registerExtensionMessaging();
 initWebNavigation();

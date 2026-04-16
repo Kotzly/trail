@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Trail — Визуальная история браузера",
+    "description": "Extension name shown in Chrome Web Store and toolbar."
+  },
+  "extDescription": {
+    "message": "Ваши сессии в браузере как интерактивный граф.",
+    "description": "Short description shown under the extension name."
+  },
+  "openTrail": {
+    "message": "Открыть Trail",
+    "description": "Tooltip on the toolbar action icon."
+  }
+}

@@ -50,9 +50,9 @@ export default defineConfig({
     keepProfileChanges: true,
   },
   manifest: {
-    name: "Trail - Visual Browsing History",
-    description:
-      "Your browsing sessions, reimagined.",
+    name: "__MSG_extName__",
+    description: "__MSG_extDescription__",
+    default_locale: "en",
     version: "1.0.0",
     homepage_url: "https://gettrail.net",
     icons: {
@@ -81,7 +81,7 @@ export default defineConfig({
       default_path: "sidepanel/index.html",
     },
     action: {
-      default_title: "open Trail",
+      default_title: "__MSG_openTrail__",
       default_icon: {
         "16": "icons/trail-16.png",
         "32": "icons/trail-32.png",
