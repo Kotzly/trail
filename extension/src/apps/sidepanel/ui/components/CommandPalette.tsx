@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -34,6 +34,23 @@ export default function CommandPalette() {
   const setOpen = useStore((s) => s.setCommandPaletteOpen);
   const tree = useStore((s) => s.tree);
   const [query, setQuery] = useState("");
+
+  // Defer mounting the (potentially huge) Nodes group until after the
+  // dialog has painted. The palette appears empty for one frame, then
+  // fills in — keeps `open` instant even on multi-thousand-node trees.
+  // startTransition lets React interrupt the heavy commit if the user
+  // starts typing immediately.
+  const [nodesReady, setNodesReady] = useState(false);
+  useEffect(() => {
+    if (!open) {
+      setNodesReady(false);
+      return;
+    }
+    const id = requestAnimationFrame(() => {
+      startTransition(() => setNodesReady(true));
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open]);
 
   // Close handler resets query directly — no useEffect-as-state-reset.
   const handleOpenChange = (next: boolean) => {
@@ -90,7 +107,7 @@ export default function CommandPalette() {
       />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
-        {query.trim() && nodes.length > 0 && (
+        {nodesReady && nodes.length > 0 && (
           <CommandGroup heading="Nodes">
             {nodes.map((entry) => (
               <CommandItem

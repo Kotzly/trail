@@ -36,7 +36,6 @@ import {
   ItemDescription,
   ItemGroup,
   ItemMedia,
-  ItemSeparator,
   ItemTitle,
 } from "@ui/components/ui/item";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
@@ -336,37 +335,32 @@ export default function TreeDropdown() {
           <Separator />
 
           <ScrollArea className="max-h-[420px]">
-            <ItemGroup className="gap-0.5 p-1">
-              {activeTree && (
-                <TreeRow
-                  tree={activeTree}
-                  active
-                  isEditing={editingId === activeTree.id}
-                  draft={draft}
-                  inputRef={inputRef}
-                  meta={[
-                    formatNodeCount(activeTree.nodeCount),
-                    lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : "active now",
-                  ]
-                    .filter(Boolean)
-                    .join(" \u00b7 ")}
-                  onStartEdit={() => startEdit(activeTree)}
-                  onDraftChange={setDraft}
-                  onCommitEdit={commitEdit}
-                  onCancelEdit={cancelEdit}
-                  onExport={() => void handleExport()}
-                  onOpenEditor={() => void openTrailEditor(activeTree.id)}
-                />
-              )}
-
-              {activeTree && archivedTrees.length > 0 && (
-                <ItemSeparator className="my-0.5 opacity-60" />
-              )}
-
-              {archivedTrees.length === 0 && !activeTree ? (
-                <EmptyState />
-              ) : (
-                archivedTrees.map((tree) => {
+            {!activeTree && archivedTrees.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <ItemGroup className="p-1">
+                {activeTree && (
+                  <TreeRow
+                    tree={activeTree}
+                    active
+                    isEditing={editingId === activeTree.id}
+                    draft={draft}
+                    inputRef={inputRef}
+                    meta={[
+                      formatNodeCount(activeTree.nodeCount),
+                      lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : "active now",
+                    ]
+                      .filter(Boolean)
+                      .join(" \u00b7 ")}
+                    onStartEdit={() => startEdit(activeTree)}
+                    onDraftChange={setDraft}
+                    onCommitEdit={commitEdit}
+                    onCancelEdit={cancelEdit}
+                    onExport={() => void handleExport()}
+                    onOpenEditor={() => void openTrailEditor(activeTree.id)}
+                  />
+                )}
+                {archivedTrees.map((tree) => {
                   const isLoading = loadingTreeId === tree.id;
                   const isUnavailable = unavailableTreeIds.has(tree.id);
                   const host = formatHost(tree.rootUrl);
@@ -400,9 +394,9 @@ export default function TreeDropdown() {
                       deleting={deletePending === tree.id}
                     />
                   );
-                })
-              )}
-            </ItemGroup>
+                })}
+              </ItemGroup>
+            )}
           </ScrollArea>
         </PopoverContent>
       </Popover>
