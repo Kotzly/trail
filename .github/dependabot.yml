@@ -1,27 +1,53 @@
 version: 2
 
 updates:
-  # - package-ecosystem: npm
-  #   directory: /
-  #   schedule:
-  #     interval: weekly
-  #   groups:
-  #     production:
-  #       dependency-type: production
-  #     development:
-  #       dependency-type: development
-  #
-  # - package-ecosystem: npm
-  #   directory: /extension
-  #   schedule:
-  #     interval: weekly
-  #   groups:
-  #     production:
-  #       dependency-type: production
-  #     development:
-  #       dependency-type: development
-  #
-  # - package-ecosystem: github-actions
-  #   directory: /
-  #   schedule:
-  #     interval: weekly
+  # Monorepo root — covers packages/*, apps/*, and any root-level tooling
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      production-dependencies:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+  # Extension package — treated separately so release cadence doesn't block
+  # minor doc/tooling bumps and vice versa
+  - package-ecosystem: npm
+    directory: /extension
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      extension-prod:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      extension-dev:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Majors land as their own PRs with manual review
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3

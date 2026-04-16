@@ -1,5 +1,6 @@
 import type { FaviconUrl, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
+import { compileBlocklist, type CompiledBlocklist } from "@shared/lib/url-blocklist.js";
 export { getFaviconUrl };
 
 const ignoredUrlPatterns: RegExp[] = [
@@ -50,9 +51,22 @@ export function isTrackableUrl(url: string): boolean {
   }
 }
 
+// Cache the compiled blocklist — settings write frequency is low and
+// navigation frequency is high.
+let cachedBlocklistKey = "";
+let cachedBlocklist: CompiledBlocklist = () => false;
+
+export function setUrlBlocklist(patterns: readonly string[]): void {
+  const key = patterns.join("\n");
+  if (key === cachedBlocklistKey) return;
+  cachedBlocklistKey = key;
+  cachedBlocklist = compileBlocklist(patterns);
+}
+
 export function shouldTrackUrl(url: Url): boolean {
   if (ignoredUrlPatterns.some((pattern) => pattern.test(url))) return false;
-  return isTrackableUrl(url);
+  if (!isTrackableUrl(url)) return false;
+  return !cachedBlocklist(url);
 }
 
 export function normalizeFaviconUrl(

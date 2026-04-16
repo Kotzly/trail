@@ -97,6 +97,22 @@ export const defaultSettings: Settings = {
   shortcutsEnabled: true,
   adaptivePerformance: true,
   keepTabsOnSwitch: true,
+  privacy: {
+    // Sensible defaults biased toward privacy. Users can remove any of
+    // these in Settings → Privacy.
+    blocklist: [
+      "localhost",
+      "127.0.0.1",
+      "*.local",
+      "*.bank.com",
+      "*.banking.*",
+      "accounts.google.com",
+      "login.microsoftonline.com",
+      "*.healthcare.gov",
+      "*.irs.gov",
+    ],
+    skipIncognito: true,
+  },
 };
 
 function mergeDefaults(raw: unknown): Settings {
@@ -145,6 +161,17 @@ function mergeDefaults(raw: unknown): Settings {
     shortcutsEnabled: sanitized.shortcutsEnabled ?? defaultSettings.shortcutsEnabled,
     adaptivePerformance: sanitized.adaptivePerformance ?? defaultSettings.adaptivePerformance,
     keepTabsOnSwitch: sanitized.keepTabsOnSwitch ?? defaultSettings.keepTabsOnSwitch,
+    privacy: {
+      blocklist:
+        Array.isArray(sanitized.privacy?.blocklist) &&
+        sanitized.privacy.blocklist.every((x) => typeof x === "string")
+          ? sanitized.privacy.blocklist
+          : defaultSettings.privacy.blocklist,
+      skipIncognito:
+        typeof sanitized.privacy?.skipIncognito === "boolean"
+          ? sanitized.privacy.skipIncognito
+          : defaultSettings.privacy.skipIncognito,
+    },
   };
 }
 
@@ -163,6 +190,7 @@ class SettingsManager {
     try {
       const stored = await settingsItem.getValue();
       this.settings = mergeDefaults(stored);
+      this.pushBlocklist();
     } catch (error) {
       log.error("Error loading settings", {
         error: error instanceof Error ? error.message : String(error),
@@ -176,12 +204,20 @@ class SettingsManager {
     this.settings = { ...defaultSettings, ...next };
     try {
       await settingsItem.setValue(this.settings);
+      this.pushBlocklist();
     } catch (error) {
       log.error("Error saving settings", {
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
+  }
+
+  private pushBlocklist(): void {
+    // Lazy import to avoid circular dep (url-utils is deep in navigation).
+    void import("../utils/url-utils.js").then(({ setUrlBlocklist }) => {
+      setUrlBlocklist(this.settings.privacy.blocklist);
+    });
   }
 
   async patch(patch: Partial<Settings>): Promise<Settings> {

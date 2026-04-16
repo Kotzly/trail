@@ -50,6 +50,19 @@ export type TitleTruncation = "start" | "middle" | "end";
 
 export type GraphDensity = "compact" | "comfortable" | "spacious";
 
+export type PrivacySettings = {
+  /**
+   * Hostname patterns (supports `*` wildcard, case-insensitive) that Trail
+   * never records. Matches against the full hostname — a pattern like
+   * `*.bank.com` blocks `login.bank.com` and `www.bank.com` but not
+   * `fakebank.com`. Defaults cover common financial / health / gov
+   * domains and localhost.
+   */
+  blocklist: string[];
+  /** If true (default), skip tracking in Chrome incognito windows. */
+  skipIncognito: boolean;
+};
+
 export type Settings = {
   theme: ThemeId;
   customTheme: CustomTheme;
@@ -67,4 +80,5 @@ export type Settings = {
   shortcutsEnabled: boolean;
   adaptivePerformance: boolean;
   keepTabsOnSwitch: boolean;
+  privacy: PrivacySettings;
 };

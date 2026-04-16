@@ -56,6 +56,9 @@ function testProtocolConstants(): void {
     'event/tree-updated',
     'event/trees-updated',
     'event/ui-notify',
+    'event/sync-status',
+    'event/sync-conflict',
+    'event/auth-state',
     'site/editor-mode-exited',
   ]);
 

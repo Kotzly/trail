@@ -45,6 +45,8 @@ export default function SyncConflictBanner() {
       {conflict ? (
         <motion.div
           role="alert"
+          aria-live="polite"
+          aria-atomic="true"
           initial={{ y: -24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -24, opacity: 0 }}

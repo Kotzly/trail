@@ -4,18 +4,26 @@ import { Switch } from "@ui/components/ui/switch";
 import { Label } from "@ui/components/ui/label";
 import { Separator } from "@ui/components/ui/separator";
 import { Button } from "@ui/components/ui/button";
+import { Textarea } from "@ui/components/ui/textarea";
 import {
   getTelemetryConsent,
   setTelemetryConsent,
   captureEvent,
 } from "@shared/lib/observability.js";
 import type { TelemetryConsent } from "@shared/config/storage-items.js";
+import { useSettings } from "../hooks/useSettings.js";
 
 const PRIVACY_URL = "https://gettrail.net/privacy";
 const TERMS_URL = "https://gettrail.net/terms";
 
 export function PrivacyPage() {
   const [consent, setConsent] = useState<TelemetryConsent | null>(null);
+  const { settings, updateSettings } = useSettings();
+  const [blocklistDraft, setBlocklistDraft] = useState<string>("");
+
+  useEffect(() => {
+    if (settings) setBlocklistDraft(settings.privacy.blocklist.join("\n"));
+  }, [settings]);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +108,90 @@ export function PrivacyPage() {
           <p className="text-muted-foreground text-xs">
             Changes take effect when you next open the sidepanel or settings.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">What Trail records</CardTitle>
+          <CardDescription>
+            Domains Trail should never record. Supports <code>*</code> wildcards.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="skip-incognito" className="text-sm font-medium">
+                Skip incognito windows
+              </Label>
+              <p className="text-muted-foreground text-xs">
+                Don't record navigations in private browsing.
+              </p>
+            </div>
+            <Switch
+              id="skip-incognito"
+              checked={settings?.privacy.skipIncognito ?? true}
+              onCheckedChange={(v) => {
+                if (!settings) return;
+                void updateSettings({
+                  ...settings,
+                  privacy: { ...settings.privacy, skipIncognito: v },
+                });
+              }}
+              disabled={!settings}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="blocklist" className="text-sm font-medium">
+              Blocked hostnames
+            </Label>
+            <p className="text-muted-foreground text-xs">
+              One pattern per line. <code>*.bank.com</code> blocks any subdomain;{" "}
+              <code>localhost</code> is an exact match.
+            </p>
+            <Textarea
+              id="blocklist"
+              value={blocklistDraft}
+              onChange={(e) => setBlocklistDraft(e.target.value)}
+              rows={8}
+              className="font-mono text-xs"
+              spellCheck={false}
+              placeholder="*.bank.com&#10;localhost&#10;127.0.0.1"
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                disabled={!settings}
+                onClick={() => {
+                  if (!settings) return;
+                  const patterns = blocklistDraft
+                    .split("\n")
+                    .map((p) => p.trim())
+                    .filter((p) => p.length > 0);
+                  void updateSettings({
+                    ...settings,
+                    privacy: { ...settings.privacy, blocklist: patterns },
+                  });
+                }}
+              >
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!settings}
+                onClick={() => {
+                  if (!settings) return;
+                  setBlocklistDraft(settings.privacy.blocklist.join("\n"));
+                }}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

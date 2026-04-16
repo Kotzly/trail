@@ -1,19 +1,19 @@
 /**
- * Unified tree loading from local sources.
+ * Unified tree loading entry point.
  *
- * Single entry point for all tree loading.
+ * Resolution order:
+ *   1. Active tree (in-memory / chrome.storage)
+ *   2. Local archive blob (compressed, chrome.storage)
+ *   3. Remote Supabase payload (only when signed in; materializes to
+ *      local archive for subsequent loads)
  */
 
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
-import { type TreeRecord } from "@shared/types/tree.js";
+import { isTreeStub, type TreeRecord } from "@shared/types/tree.js";
 import { treeStorage } from "./tree-storage.js";
 
-/**
- * Load a tree by ID from local sources.
- * Returns null if the tree doesn't exist locally.
- */
 export async function loadTree(treeId: string): Promise<TreeRecord | null> {
-  // 1. Check if it's the active tree
+  // 1. Active tree — the live in-memory copy.
   const activeMeta = await treeStorage.getActiveMeta();
   if (activeMeta.id === treeId) {
     const tree = await treeStorage.getOrCreateTree();
@@ -27,9 +27,31 @@ export async function loadTree(treeId: string): Promise<TreeRecord | null> {
     };
   }
 
-  // 2. Check archive blob (local compressed storage)
+  // 2. Archived locally.
   const fullRecord = await treeStorage.getFullArchiveRecord(treeId);
   if (fullRecord) return fullRecord;
 
-  return null;
+  // 3. Stub on server only — try to fetch + materialize.
+  const index = await treeStorage.getArchiveIndex();
+  const entry = index.find((e) => e.id === treeId);
+  if (!entry || !isTreeStub(entry)) return null;
+
+  // Lazy import so the sync module isn't pulled in for purely-local flows.
+  const { fetchRemoteTreePayload } = await import("../sync/sync-engine.js");
+  const payload = await fetchRemoteTreePayload(treeId);
+  if (!payload) return null;
+
+  return {
+    id: entry.id,
+    label: entry.label,
+    labelSource: entry.labelSource,
+    labelUpdatedAt: entry.labelUpdatedAt,
+    createdAt: entry.createdAt,
+    savedAt: entry.savedAt,
+    nodeCount: entry.nodeCount,
+    ...(entry.rootUrl ? { rootUrl: entry.rootUrl } : {}),
+    ...(entry.rootTitle ? { rootTitle: entry.rootTitle } : {}),
+    ...(entry.rootFavicon ? { rootFavicon: entry.rootFavicon } : {}),
+    tree: payload,
+  };
 }

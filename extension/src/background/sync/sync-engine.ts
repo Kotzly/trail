@@ -45,6 +45,14 @@ import { createLogger } from "@shared/lib/logger.js";
 import { treeStorage } from "../services/tree-storage.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
+import {
+  isTreeStub,
+  type ArchiveIndexEntry,
+  type NavigationTreeJSON,
+  type TreeStub,
+  type TreeSummary,
+} from "@shared/types/tree.js";
+import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
 
 const log = createLogger("sync");
 
@@ -306,12 +314,173 @@ export function scheduleDelete(treeId: string): void {
   });
 }
 
+type TrailRow = {
+  id: string;
+  device_id: string;
+  label: string;
+  label_source: "USER" | "AUTO" | "SYSTEM";
+  label_updated_at: string;
+  created_at: string;
+  updated_at: string;
+  saved_at: string;
+  node_count: number;
+  root_url: string | null;
+  root_title: string | null;
+  root_favicon: string | null;
+  deleted_at: string | null;
+};
+
+/**
+ * Merge remote trails into the local archive index as stubs. A stub is a
+ * summary-only entry — payload is fetched on demand via `loadTree` (see
+ * tree-loader.ts). Local entries with full payload win over stubs.
+ */
+async function doPull(): Promise<void> {
+  const supabase = getSupabaseClient();
+  const auth = getAuthState();
+  if (!supabase || auth.status !== "signed-in") return;
+
+  const { data, error } = await supabase
+    .from("trails")
+    .select(
+      "id,device_id,label,label_source,label_updated_at,created_at,updated_at,saved_at,node_count,root_url,root_title,root_favicon,deleted_at",
+    )
+    .eq("user_id", auth.identity.userId)
+    .is("deleted_at", null);
+
+  if (error) {
+    // Swallow offline errors; periodic pull retries and the user isn't
+    // blocked by them the way they are on push.
+    if (!/network|fetch|timeout/i.test(error.message ?? "")) {
+      captureError(error, { kind: "sync_pull" });
+    }
+    return;
+  }
+
+  const rows = (data ?? []) as TrailRow[];
+  if (rows.length === 0) return;
+
+  const activeMeta = await treeStorage.getActiveMeta();
+  const currentIndex = await treeStorage.getArchiveIndex();
+  const byId = new Map(currentIndex.map((e) => [e.id, e] as const));
+  let changed = false;
+
+  for (const row of rows) {
+    if (row.id === activeMeta.id) continue; // active tree handled by push path
+    const summary: TreeSummary = {
+      id: row.id,
+      label: row.label,
+      labelSource: row.label_source.toLowerCase() as TreeSummary["labelSource"],
+      labelUpdatedAt: new Date(row.label_updated_at).getTime(),
+      createdAt: new Date(row.created_at).getTime(),
+      savedAt: new Date(row.saved_at).getTime(),
+      nodeCount: row.node_count,
+      ...(row.root_url ? { rootUrl: row.root_url as Url } : {}),
+      ...(row.root_title ? { rootTitle: row.root_title as Title } : {}),
+      ...(row.root_favicon ? { rootFavicon: row.root_favicon as FaviconUrl } : {}),
+    };
+
+    const existing = byId.get(row.id);
+    if (!existing) {
+      // Never seen locally — insert as stub (payload fetched on open).
+      const stub: TreeStub = { ...summary, stub: true as const };
+      byId.set(row.id, stub);
+      changed = true;
+      continue;
+    }
+    if (isTreeStub(existing)) {
+      // Refresh stub metadata in case label/node_count changed on remote.
+      if (
+        existing.label !== summary.label ||
+        existing.nodeCount !== summary.nodeCount ||
+        existing.savedAt !== summary.savedAt
+      ) {
+        byId.set(row.id, { ...summary, stub: true as const });
+        changed = true;
+      }
+      continue;
+    }
+    // Local has real payload — if server is newer, fire a conflict. Don't
+    // overwrite silently; the user's local payload is the source of truth
+    // until they explicitly accept the server version.
+    if (summary.savedAt > existing.savedAt) {
+      const syncMeta = await getSyncMeta(row.id);
+      const lastKnown = syncMeta.lastSyncedAt ? new Date(syncMeta.lastSyncedAt).getTime() : 0;
+      if (new Date(row.updated_at).getTime() > lastKnown) {
+        fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT, {
+          treeId: row.id,
+          serverUpdatedAt: row.updated_at,
+          serverDeviceId: row.device_id,
+        });
+      }
+    }
+  }
+
+  if (changed) {
+    const next: ArchiveIndexEntry[] = Array.from(byId.values());
+    await treeStorage.setArchiveIndex(next);
+    // Nudge the UI to refresh the tree switcher.
+    try {
+      const active = await treeStorage.getActiveMeta();
+      const archived = await treeStorage.getArchivedSummaries();
+      fireExtensionEvent(EXTENSION_MESSAGE.TREES_UPDATED, { active, archived });
+    } catch {
+      /* non-fatal */
+    }
+  }
+}
+
+/**
+ * Fetch a tree's full payload from Supabase. Used by `loadTree` when a stub
+ * entry is opened. Materializes the payload into the local archive blob
+ * so subsequent opens are instant.
+ */
+export async function fetchRemoteTreePayload(treeId: string): Promise<NavigationTreeJSON | null> {
+  const supabase = getSupabaseClient();
+  const auth = getAuthState();
+  if (!supabase || auth.status !== "signed-in") return null;
+
+  const { data, error } = await supabase
+    .from("trails")
+    .select("payload,updated_at")
+    .eq("id", treeId)
+    .eq("user_id", auth.identity.userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    captureError(error, { kind: "sync_fetch_payload", treeId });
+    return null;
+  }
+  if (!data?.payload) return null;
+
+  const payload = data.payload as NavigationTreeJSON;
+  try {
+    await treeStorage.saveArchiveTree(treeId, payload);
+    const meta = await getSyncMeta(treeId);
+    await writeSyncMeta(treeId, {
+      ...meta,
+      lastSyncedAt: data.updated_at,
+      lastRemoteUpdatedAt: data.updated_at,
+    });
+  } catch (error) {
+    log.warn("materializing remote tree failed (keeping stub)", {
+      treeId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+  return payload;
+}
+
 async function periodicPull(): Promise<void> {
   if (!running) return;
   const auth = getAuthState();
   if (auth.status !== "signed-in") return;
   await drainPendingOps().catch((error) => {
     log.warn("drain failed", { error: error instanceof Error ? error.message : String(error) });
+  });
+  await doPull().catch((error) => {
+    log.warn("pull failed", { error: error instanceof Error ? error.message : String(error) });
   });
 }
 

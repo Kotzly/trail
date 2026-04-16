@@ -12,6 +12,7 @@ import { tabManager } from "../state/tab-manager.js";
 import { treeStorage } from "../services/tree-storage.js";
 import { redirectDetector } from "./redirect-detection.js";
 import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from "../utils/url-utils.js";
+import { settingsManager } from "../services/settings.js";
 import { handleNewTabTab } from "../utils/new-tab.js";
 import { notifyTreeUpdate } from "../messaging/notifications.js";
 import { createUrlKey } from "@shared/lib/url-key.js";
@@ -56,6 +57,11 @@ export async function handleNavigation(
     tab = await browser.tabs.get(tabId);
   } catch {
     return; // Tab no longer exists
+  }
+
+  // Respect the privacy setting to skip incognito windows.
+  if (tab.incognito && settingsManager.get().privacy.skipIncognito) {
+    return;
   }
 
   // Early handling for new-tab variants: always map them to the root node.
