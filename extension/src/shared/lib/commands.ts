@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { Description, JSONString } from "../types/ids.js";
 import type { CommandState } from "../rpc/contracts.js";
 import { type NavigationTreeJSON } from "../types/tree.js";
@@ -12,6 +13,16 @@ export type Snapshot = {
   description: Description;
 };
 
+const snapshotSchema = z
+  .object({
+    treeJSON: z.string(),
+    description: z.string(),
+  })
+  .transform(({ treeJSON, description }) => ({
+    treeJSON: treeJSON as JSONString,
+    description: description as Description,
+  }));
+
 export class CommandManager {
   private static undoStack: Snapshot[] = [];
   private static redoStack: Snapshot[] = [];
@@ -21,18 +32,10 @@ export class CommandManager {
 
   private static sanitizeStack(raw: unknown): Snapshot[] {
     if (!Array.isArray(raw)) return [];
-    const list: Snapshot[] = [];
-    for (const entry of raw) {
-      if (!entry || typeof entry !== "object") continue;
-      const candidate = entry as { treeJSON?: unknown; description?: unknown };
-      if (typeof candidate.treeJSON !== "string") continue;
-      if (typeof candidate.description !== "string") continue;
-      list.push({
-        treeJSON: candidate.treeJSON as JSONString,
-        description: candidate.description as Description,
-      });
-    }
-    return list;
+    return raw.flatMap((entry) => {
+      const parsed = snapshotSchema.safeParse(entry);
+      return parsed.success ? [parsed.data] : [];
+    });
   }
 
   private static schedulePersist = pDebounce(() => CommandManager.persistNow(), 300);

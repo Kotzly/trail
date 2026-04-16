@@ -53,11 +53,4 @@ export function isTreeStub(entry: ArchiveIndexEntry): entry is TreeStub {
   return "stub" in entry && entry.stub === true;
 }
 
-export function isNavigationTreeJSON(value: unknown): value is NavigationTreeJSON {
-  if (!value || typeof value !== "object") return false;
-  if (!("root" in value)) return false;
-  const v = value as Record<string, unknown>;
-  if (!(v.currentNodeId === null || typeof v.currentNodeId === "number")) return false;
-  if (!Number.isFinite(v.nodeCount)) return false;
-  return true;
-}
+export { isNavigationTreeJSON } from "../schemas/node.js";
