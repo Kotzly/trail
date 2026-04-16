@@ -1,111 +1,124 @@
-# Release Checklist — Trail v1.0.0
+# Release Checklist — Trail
 
-Step-by-step verification for Chrome Web Store submission.
-Run through each section before every release. Every item is a checkbox.
+Step-by-step verification before publishing to the Chrome Web Store. Every
+item is a checkbox. Run through each section in order.
 
 ---
 
-## 1. Build Verification
+## 1. Version & tag
 
-- [ ] `pnpm build` completes without errors
-- [ ] `pnpm test` passes (architecture boundaries, rpc schema, smoke stubs, UI stubs)
+- [ ] `wxt.config.ts` `manifest.version` matches target release
+- [ ] `package.json` `version` matches
+- [ ] `CHANGELOG.md` has a section for this version
+- [ ] `git tag chrome-v<version>` on the release commit
+
+## 2. Automated verification
+
 - [ ] `pnpm typecheck` passes
-- [ ] `pnpm lint` passes
-- [ ] Build output in `.output/chrome-mv3/` contains expected entrypoints:
-  - `sidepanel/index.html`
-  - `newtab.html`
-  - `background.js`
-  - `account/index.html`
-  - `fullview/index.html`
-  - `offscreen-graph/index.html`
-  - `spotlight-graph/index.html`
-  - `content-scripts/content.js`
-- [ ] `manifest.json` version matches release target (`1.0.0`)
-  - Verify: `grep '"version"' .output/chrome-mv3/manifest.json`
+- [ ] `pnpm lint` passes (0 errors; warnings acceptable)
+- [ ] `pnpm format:check` passes
+- [ ] `pnpm test` passes
+- [ ] `pnpm build` succeeds; total bundle < 5 MB
+- [ ] `pnpm e2e` passes (smoke specs + any added specs)
 
-## 2. Permissions Check
+Or run them all: `pnpm check && pnpm build && pnpm test && pnpm e2e`.
 
-- [ ] `manifest.json` `permissions` contains only these (no extras):
-  - `sidePanel`, `storage`, `tabs`, `webNavigation`, `favicon`, `alarms`, `activeTab`, `bookmarks`, `offscreen`
-  - No `scripting`, no `search`, no `<all_urls>` permission
-- [ ] `host_permissions` are exactly: `https://gettrail.net/*`, `https://app.gettrail.net/*`
-  - Verify: `jq '.host_permissions' .output/chrome-mv3/manifest.json`
-- [ ] No `http://` or `localhost` origins in production manifest
-  - Verify: `grep -E 'localhost|127\.0\.0\.1|http://' .output/chrome-mv3/manifest.json` returns nothing
-- [ ] CSP includes `unsafe-eval` only for pixi.js (documented rationale in `wxt.config.ts` or `.meta/planning`)
-- [ ] Architecture boundary test confirms manifest checks:
-  - Run: `cd extension && node --import tsx tests/architecture-boundaries.test.ts`
+## 3. Manifest verification
 
-## 3. Offline Mode
+Produced at `.output/chrome-mv3/manifest.json` after build.
 
-- [ ] Install extension, authenticate, load trees
-- [ ] Disconnect network (chrome://net-internals or airplane mode)
-- [ ] Open sidepanel: sync indicator shows offline status
-- [ ] Navigate existing trees: graph renders from cache
-- [ ] Attempt sync: toast shows offline error, no crash
-- [ ] Reconnect network: sync resumes, indicator clears
+- [ ] `"manifest_version": 3`
+- [ ] `"version"` matches the `chrome-v*` git tag
+- [ ] `"permissions"` is exactly: `sidePanel`, `storage`, `tabs`,
+      `webNavigation`, `favicon`, `alarms`, `identity`
+- [ ] No `scripting`, `<all_urls>` permission, `activeTab`, `bookmarks`,
+      `offscreen`, or unused extras
+- [ ] `"host_permissions"` is exactly:
+      `https://gettrail.net/*`, `https://app.gettrail.net/*`
+- [ ] No `http://` or `localhost` URLs in the production manifest
+      (`grep -E 'localhost|127\.0\.0\.1|http://' .output/chrome-mv3/manifest.json`
+      returns nothing)
+- [ ] CSP has no `unsafe-eval` / `unsafe-inline`
+      (default MV3 strict CSP; see `CSP-RATIONALE.md`)
+- [ ] Only expected entrypoints ship:
+      `sidepanel.html`, `settings.html`, `background.js`,
+      `content-scripts/content.js`
 
-## 4. Empty States
+## 4. Permissions justification (for Web Store reviewer)
 
-- [ ] New tab page with no bookmarks: shows fallback CTA with explanation
-- [ ] Sidepanel with no trees: shows empty state, create tree prompt
-- [ ] Search with no results: shows "no results" message
-- [ ] Tree dropdown with 0 trees: shows create prompt
+Paste this into the store listing justification textarea:
 
-## 5. Corrupted Cache Recovery
+- `sidePanel` — renders the Trail UI next to the user's content.
+- `storage` — persists trees + settings to `chrome.storage.local`.
+- `tabs` — correlates navigation events with the active tab.
+- `webNavigation` — detects page transitions to build the graph.
+- `favicon` — renders each node's favicon.
+- `alarms` — drives the 60-second sync pull while signed in.
+- `identity` — launches Supabase OAuth via `chrome.identity.launchWebAuthFlow`.
+  Only invoked when the user clicks "Sign in" in Settings → Account.
+- `host_permissions` for `gettrail.net` — content script bridge to the
+  marketing + account surfaces (ping + open-panel).
 
-- [ ] Open DevTools > Application > Local Storage
-- [ ] Corrupt a known key (e.g., set layout cache to invalid JSON `{broken`)
-- [ ] Reload sidepanel: toast appears explaining auto-reset, panel loads normally
-- [ ] Corrupt `editorMode` storage: reload, verify default mode restored with toast
-- [ ] Verify no data loss beyond the corrupted cache entry
+No broad `<all_urls>` permission. No content script on arbitrary pages.
 
-## 6. Service Worker Restart
+## 5. Offline mode
 
-- [ ] Open sidepanel with authenticated session
-- [ ] Go to chrome://extensions, disable then re-enable extension
-- [ ] Open sidepanel: bootstrap recovery engages, session restored
-- [ ] Verify `editorMode` persists across worker restart
-- [ ] Verify sync resumes after worker restart
+- [ ] Sign in, load trees, verify sync indicator reaches `saved`
+- [ ] Disable network (chrome://net-internals)
+- [ ] Mutate a node: sync status goes to `offline`, no crash
+- [ ] Reload sidepanel: last tree renders from `chrome.storage.local`
+- [ ] Re-enable network: pending ops drain, indicator clears
 
-## 7. Cold Profile Testing (First Install)
+## 6. Conflict resolution
 
-Purpose: Verify the first-run experience from a completely clean state.
-Start from a fresh Chrome profile with no Trail data.
+- [ ] Sign in on two Chrome profiles with the same Google account
+- [ ] Edit the same tree on each, both signed in, ~10 s apart
+- [ ] Second profile to mutate sees the `SyncConflictBanner` at top
+- [ ] "Keep mine" clears the banner and next push wins
+- [ ] "Use server" reloads and picks up the other profile's state
 
-- [ ] Create new Chrome profile (chrome://settings > People > Add)
-- [ ] Install extension from CWS or load unpacked from `.output/chrome-mv3/`
-- [ ] First open: onboarding hints appear (search, tree switch, tag, spotlight)
-- [ ] Guest mode works: local tree created, no auth required
-- [ ] Auth flow: sign in via email/password or Google OAuth, trees sync from server
-- [ ] First tree creation: graph renders, nodes appear
-- [ ] All entrypoints work:
-  - Sidepanel opens from toolbar icon
-  - New tab shows Trail dashboard
-  - Spotlight activates via Cmd+Shift+K (Mac) or Ctrl+Shift+K
-  - Account page loads at extension account entrypoint
+## 7. Onboarding (cold profile)
 
-## 8. Dirty Returning User Testing (Existing Data)
+- [ ] Fresh Chrome profile, install extension unpacked or from CWS
+- [ ] Open sidepanel: wizard appears
+- [ ] Step through: Welcome → How → Permissions → Demo/Fresh → Shortcuts
+- [ ] "Load demo" imports the Japan trip (33 nodes)
+- [ ] Close wizard with "Done": no re-open on next sidepanel load
+- [ ] Settings → About → "Replay walkthrough" resets and reloads
 
-Purpose: Verify upgrade/reload behavior with pre-existing data.
-Use a profile with existing Trail data (multiple trees, tags, archives).
+## 8. Settings pages
 
-- [ ] Open extension with existing data: trees load, graph renders cached state
-- [ ] Archived/stub trees show explanation in dropdown
-- [ ] Tags and filters preserved across sessions
-- [ ] Session expiry handled: banner appears, re-auth works
-- [ ] Export a tree, verify JSON contains full structure
-- [ ] Import a previously exported tree, verify fidelity
-- [ ] Settings page shows existing preferences
-- [ ] Privacy section shows correct local vs cloud data explanation
+- [ ] **Account** — Sign in with Google opens popup, signs in, shows
+      avatar + display name + email; Sign out works
+- [ ] **Data** — Export a tree (downloads JSON), Import re-creates the
+      tree, Clear local wipes storage, Delete account soft-deletes
+- [ ] **Appearance** — Light / Dark / System theme picker applies
+      correctly (watch `[data-theme]` on `<html>`)
+- [ ] **Behavior** — `adaptivePerformance` persists
+- [ ] **Shortcuts** — cheat-sheet renders; key labels match useShortcuts
+- [ ] **Privacy** — consent toggles persist; disable ends session
+- [ ] **About** — version string matches manifest; feedback buttons open
 
-## 9. Pre-Submission Final
+## 9. Theme
 
-- [ ] Version number updated in `wxt.config.ts` manifest section
-- [ ] Version number matches in `package.json`
-- [ ] Screenshots updated (if UI changed since last release)
-- [ ] Extension description current in CWS listing
-- [ ] Privacy policy URL valid and current (`https://gettrail.net/privacy`)
-- [ ] All automated tests pass: `cd extension && pnpm test`
-- [ ] Manual smoke tests from sections 3-8 completed on at least one Cold Profile
-- [ ] Manual smoke tests from sections 3-8 completed on at least one Dirty returning profile
+- [ ] Light mode: no FOUC on sidepanel cold open
+- [ ] Dark mode: no FOUC; `data-theme="dark"` appears before first paint
+- [ ] System mode: follows OS; toggling OS mid-session updates UI
+- [ ] Settings page: honors the same theme (early-apply script loaded)
+
+## 10. Store listing
+
+- [ ] 5 screenshots 1280×800 (or 640×400) captured on the demo tree
+- [ ] Promo tile 440×280 saved under `store-assets/` (gitignored)
+- [ ] Description under 10,000 chars; keywords included
+- [ ] Privacy policy URL `https://gettrail.net/privacy` resolves
+- [ ] Terms URL `https://gettrail.net/terms` resolves
+- [ ] Category: "Productivity"
+
+## 11. Release
+
+- [ ] `git tag chrome-v<version> && git push --tags`
+- [ ] `release-extension.yml` completes green
+- [ ] GitHub Release has the `.zip` artifact attached
+- [ ] Draft upload visible in CWS Developer Dashboard
+- [ ] Click "Publish" manually after reviewing in the dashboard preview

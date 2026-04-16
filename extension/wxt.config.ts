@@ -68,6 +68,7 @@ export default defineConfig({
       "webNavigation",
       "favicon",
       "alarms",
+      "identity",
     ],
     web_accessible_resources: [
       {
