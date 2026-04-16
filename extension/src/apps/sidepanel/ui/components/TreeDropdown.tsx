@@ -21,10 +21,10 @@ import { toast } from "sonner";
 import { browser } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { Button } from "@ui/components/ui/button";
+import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Input } from "@ui/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { ScrollArea } from "@ui/components/ui/scroll-area";
-import { Separator } from "@ui/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -364,100 +364,100 @@ export default function TreeDropdown() {
           </div>
 
           <ScrollArea className="max-h-[400px]">
-            {/* Active tree section */}
+            {/* Active tree section — proper shadcn Card with CardAction */}
             {activeTree && (
-              <div className="py-2.5">
-                <div className="text-muted-foreground px-4 pb-2 text-[11px] tracking-wider uppercase">
-                  current
-                </div>
-                <div className="bg-accent flex items-center gap-2.5 px-4 py-2">
-                  {/* Favicon (parity with saved rows) */}
-                  {activeTree.rootUrl ? (
-                    <img
-                      className="size-4 shrink-0 rounded-sm"
-                      alt=""
-                      src={getFaviconUrl(activeTree.rootUrl)}
-                    />
-                  ) : (
-                    <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
-                      <Icons.Bookmark className="text-muted-foreground size-2.5" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    {editingId === activeTree.id ? (
-                      <Input
-                        ref={inputRef}
-                        className="h-7 px-1.5 text-[13px]"
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            void commitEdit();
-                          }
-                          if (e.key === "Escape") {
-                            e.preventDefault();
-                            cancelEdit();
-                          }
-                        }}
-                        onBlur={() => void commitEdit()}
-                      />
-                    ) : (
-                      <div
-                        className="cursor-text truncate text-[13px]"
-                        onDoubleClick={() => startEdit(activeTree)}
-                      >
-                        {displayLabel({
-                          label: activeTree.label,
-                          ...(activeTree.rootTitle ? { rootTitle: activeTree.rootTitle } : {}),
-                          ...(activeTree.rootUrl ? { rootUrl: activeTree.rootUrl } : {}),
-                        })}
-                      </div>
-                    )}
-                    <div className="text-muted-foreground mt-0.5 truncate text-[11px]">
+              <div className="px-3 pt-3">
+                <Card
+                  size="sm"
+                  className="bg-accent/60 shadow-none ring-0"
+                  data-testid="active-tree-card"
+                >
+                  <CardHeader>
+                    <CardTitle className="flex min-w-0 items-center gap-2 text-[13px] font-medium">
+                      {activeTree.rootUrl ? (
+                        <img
+                          className="size-4 shrink-0 rounded-sm"
+                          alt=""
+                          src={getFaviconUrl(activeTree.rootUrl)}
+                        />
+                      ) : (
+                        <span className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
+                          <Icons.Bookmark className="text-muted-foreground size-2.5" />
+                        </span>
+                      )}
+                      {editingId === activeTree.id ? (
+                        <Input
+                          ref={inputRef}
+                          className="h-7 flex-1 px-1.5 text-[13px]"
+                          value={draft}
+                          onChange={(e) => setDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              void commitEdit();
+                            }
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              cancelEdit();
+                            }
+                          }}
+                          onBlur={() => void commitEdit()}
+                        />
+                      ) : (
+                        <span
+                          className="min-w-0 cursor-text truncate"
+                          onDoubleClick={() => startEdit(activeTree)}
+                        >
+                          {displayLabel({
+                            label: activeTree.label,
+                            ...(activeTree.rootTitle ? { rootTitle: activeTree.rootTitle } : {}),
+                            ...(activeTree.rootUrl ? { rootUrl: activeTree.rootUrl } : {}),
+                          })}
+                        </span>
+                      )}
+                    </CardTitle>
+                    <CardDescription className="truncate text-[11px]">
                       {[
                         formatNodeCount(activeTree.nodeCount),
                         lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : "active now",
                       ]
                         .filter(Boolean)
                         .join(" \u00b7 ")}
-                    </div>
-                  </div>
-                  {editingId !== activeTree.id && (
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        type="button"
-                        aria-label="Export tree"
-                        data-tooltip="Export tree"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleExport();
-                        }}
-                      >
-                        <Icons.Download />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        type="button"
-                        aria-label="Open in editor"
-                        data-tooltip="Open in editor"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void openTrailEditor(activeTree.id);
-                        }}
-                      >
-                        <Icons.Pencil />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                    </CardDescription>
+                    {editingId !== activeTree.id && (
+                      <CardAction className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          type="button"
+                          aria-label="Export tree"
+                          data-tooltip="Export tree"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleExport();
+                          }}
+                        >
+                          <Icons.Download />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          type="button"
+                          aria-label="Open in editor"
+                          data-tooltip="Open in editor"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void openTrailEditor(activeTree.id);
+                          }}
+                        >
+                          <Icons.Pencil />
+                        </Button>
+                      </CardAction>
+                    )}
+                  </CardHeader>
+                </Card>
               </div>
             )}
-
-            <Separator />
 
             {/* Saved trees section */}
             <div className="py-2.5">
