@@ -8,26 +8,15 @@
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { browser } from "@shared/platform/webext.js";
+import { storage } from "wxt/utils/storage";
 
-const STORAGE_KEY_PREFIX = "sb_";
+const sbKey = (key: string) => `local:sb_${key}` as const;
 
 /** Adapter conforming to supabase-js `SupportedStorage` interface. */
 const chromeStorageAdapter = {
-  async getItem(key: string): Promise<string | null> {
-    const full = `${STORAGE_KEY_PREFIX}${key}`;
-    const result = await browser.storage.local.get(full);
-    const value = result[full];
-    return typeof value === "string" ? value : null;
-  },
-  async setItem(key: string, value: string): Promise<void> {
-    const full = `${STORAGE_KEY_PREFIX}${key}`;
-    await browser.storage.local.set({ [full]: value });
-  },
-  async removeItem(key: string): Promise<void> {
-    const full = `${STORAGE_KEY_PREFIX}${key}`;
-    await browser.storage.local.remove(full);
-  },
+  getItem: (key: string) => storage.getItem<string>(sbKey(key)),
+  setItem: (key: string, value: string) => storage.setItem(sbKey(key), value),
+  removeItem: (key: string) => storage.removeItem(sbKey(key)),
 };
 
 let cached: SupabaseClient | null = null;

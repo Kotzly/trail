@@ -15,6 +15,7 @@ import {
 } from "../services/layout-precompute.js";
 import { settingsManager } from "../services/settings.js";
 import { createLogger } from "@shared/lib/logger.js";
+import { CommandManager } from "@shared/lib/commands.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 
 const log = createLogger("notifications");
@@ -180,6 +181,7 @@ async function sendTreeNotification(
     reason,
     ...(nextView ? { view: nextView } : {}),
     ...(positions ? { positions } : {}),
+    commandState: CommandManager.getState(),
   });
 
   if (triggerRefinement) {

@@ -518,6 +518,8 @@ export type TreeUpdatedInput = {
   editorMode?: EditorModeState;
   /** Pre-computed node positions from background ELK (fully-expanded tree). */
   positions?: Record<string, { x: number; y: number }>;
+  /** Undo/redo state — avoids a follow-up getCommandState() RPC on every update. */
+  commandState: CommandState;
 };
 
 export type TreesSnapshot = {

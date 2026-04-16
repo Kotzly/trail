@@ -84,12 +84,6 @@ export const backendConfigItem = storage.defineItem<BackendConfigOverride | null
   { fallback: null },
 );
 
-// ── UI State ───────────────────────────────────────────────────────
-
-export const themeCacheItem = storage.defineItem<string | null>("session:trail_theme_cache", {
-  fallback: null,
-});
-
 // ── Onboarding ──────────────────────────────────────────────────────
 
 export const hasSeenOnboardingItem = storage.defineItem<boolean>(

@@ -5,7 +5,6 @@ import { getTreeState, getTrees } from "../../api/tree.js";
 import { getCommandState } from "../../api/commands.js";
 import { isMac } from "@shared/utils/platform.js";
 import { useStore, type MetaKeyPair } from "../state/store.js";
-import { applyTheme } from "../shared/apply-theme.js";
 
 export type BootstrapStatus = "loading" | "degraded" | "ready";
 
@@ -55,7 +54,7 @@ export function useBootstrap(): {
         bootstrapGraph(settings, treeState);
         setFlags(flags);
         setSettings(settings);
-        applyTheme(settings.theme);
+        // Theme class is driven by next-themes via useThemeSync().
 
         // Restore editor mode if it was active before the sidepanel was closed
         if (treeState.editorMode?.active) {

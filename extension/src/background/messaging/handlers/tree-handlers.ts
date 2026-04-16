@@ -153,6 +153,7 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
     nodeRecency,
     reason: "sync",
     ...(positions ? { positions } : {}),
+    commandState: CommandManager.getState(),
   };
   if (editorMode.active) {
     snapshot.editorMode = editorMode;

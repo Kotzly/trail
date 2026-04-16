@@ -1,59 +1,44 @@
-import { useEffect, useState, useCallback } from "react";
-import type { TreesSnapshot } from "@shared/rpc/contracts.js";
+import { useCallback } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "../api.js";
 
+const TREES_KEY = ["trees"] as const;
+
 export function useTrees() {
-  const [trees, setTrees] = useState<TreesSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: TREES_KEY });
 
-  const refresh = useCallback(() => {
-    api
-      .getTrees()
-      .then(setTrees)
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load trees"))
-      .finally(() => setLoading(false));
-  }, []);
+  const query = useQuery({ queryKey: TREES_KEY, queryFn: api.getTrees });
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const newTreeMutation = useMutation({ mutationFn: api.newTree, onSuccess: invalidate });
+  const openTreeMutation = useMutation({ mutationFn: api.openTree, onSuccess: invalidate });
+  const renameTreeMutation = useMutation({
+    mutationFn: ({ treeId, label }: { treeId: string; label: string }) =>
+      api.renameTree(treeId, label),
+    onSuccess: invalidate,
+  });
+  const archiveMutation = useMutation({ mutationFn: api.archiveActiveTree, onSuccess: invalidate });
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteArchivedTree,
+    onSuccess: invalidate,
+  });
 
   const newTree = useCallback(
-    async (label: string) => {
-      await api.newTree(label);
-      refresh();
-    },
-    [refresh],
+    (label: string) => newTreeMutation.mutateAsync(label),
+    [newTreeMutation],
   );
-
   const openTree = useCallback(
-    async (treeId: string) => {
-      await api.openTree(treeId);
-      refresh();
-    },
-    [refresh],
+    (treeId: string) => openTreeMutation.mutateAsync(treeId),
+    [openTreeMutation],
   );
-
   const renameTree = useCallback(
-    async (treeId: string, label: string) => {
-      await api.renameTree(treeId, label);
-      refresh();
-    },
-    [refresh],
+    (treeId: string, label: string) => renameTreeMutation.mutateAsync({ treeId, label }),
+    [renameTreeMutation],
   );
-
-  const archiveActiveTree = useCallback(async () => {
-    await api.archiveActiveTree();
-    refresh();
-  }, [refresh]);
-
+  const archiveActiveTree = useCallback(() => archiveMutation.mutateAsync(), [archiveMutation]);
   const deleteArchivedTree = useCallback(
-    async (treeId: string) => {
-      await api.deleteArchivedTree(treeId);
-      refresh();
-    },
-    [refresh],
+    (treeId: string) => deleteMutation.mutateAsync(treeId),
+    [deleteMutation],
   );
 
   const exportTree = useCallback(async (treeId?: string) => {
@@ -68,10 +53,10 @@ export function useTrees() {
   }, []);
 
   return {
-    trees,
-    loading,
-    error,
-    refresh,
+    trees: query.data ?? null,
+    loading: query.isPending,
+    error: query.error instanceof Error ? query.error.message : null,
+    refresh: invalidate,
     newTree,
     openTree,
     renameTree,

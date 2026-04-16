@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { getCommandState } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
 import { showUiToast } from "../notifications/sonner-adapter.js";
 import { EXTENSION_MESSAGE, onExtensionMessage } from "@shared/transport/extension-messaging.js";
@@ -16,16 +15,13 @@ export function useRuntimeMessages(): void {
   useEffect(() => {
     const removeTreeUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREE_UPDATED, ({ data }) => {
       applyTreeState(data);
+      setCommandState(data.commandState);
 
       if (data.reason === "editor-enter") {
         setEditorMode({ active: true, treeId: null });
       } else if (data.reason === "editor-exit") {
         setEditorMode({ active: false, treeId: null });
       }
-
-      void getCommandState()
-        .then((state) => setCommandState(state))
-        .catch((error) => console.error("Failed to fetch command state:", error));
     });
     const removeTreesUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREES_UPDATED, ({ data }) => {
       setTrees({ active: data.active, archived: data.archived });

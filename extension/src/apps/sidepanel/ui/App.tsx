@@ -10,7 +10,7 @@ import { Toaster } from "./components/ui/sonner.js";
 import { useBootstrap } from "./hooks/useBootstrap.js";
 import { useRuntimeMessages } from "./hooks/useRuntimeMessages.js";
 import { useShortcuts } from "./hooks/useShortcuts.js";
-import { useSystemThemeListener } from "./hooks/useSystemThemeListener.js";
+import { useThemeSync } from "./hooks/useThemeSync.js";
 import { useStore } from "./state/store.js";
 import { Skeleton } from "@ui/components/ui/skeleton";
 import { Button } from "@ui/components/ui/button";
@@ -52,7 +52,7 @@ function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
 export default function App() {
   const { bootstrapStatus, retryBootstrap } = useBootstrap();
   useRuntimeMessages();
-  useSystemThemeListener();
+  useThemeSync();
   useShortcuts();
 
   const treeJSON = useStore((s) => s.treeJSON);

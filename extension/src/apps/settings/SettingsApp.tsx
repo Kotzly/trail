@@ -7,11 +7,10 @@ import { BehaviorPage } from "./pages/BehaviorPage.js";
 import { ShortcutsPage } from "./pages/ShortcutsPage.js";
 import { PrivacyPage } from "./pages/PrivacyPage.js";
 import { AboutPage } from "./pages/AboutPage.js";
-import { Button } from "@ui/components/ui/button";
 import { Separator } from "@ui/components/ui/separator";
 import { Skeleton } from "@ui/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@ui/components/ui/tabs";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
-import { cn } from "@ui/lib/utils";
 
 type Page = "account" | "data" | "appearance" | "behavior" | "shortcuts" | "privacy" | "about";
 
@@ -31,21 +30,26 @@ export default function SettingsApp() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="bg-background text-foreground flex h-screen">
-        <nav className="flex w-48 shrink-0 flex-col gap-1 border-r p-4">
+      <Tabs
+        orientation="vertical"
+        value={page}
+        onValueChange={(v) => setPage(v as Page)}
+        className="bg-background text-foreground flex h-screen gap-0"
+      >
+        <aside className="flex w-48 shrink-0 flex-col gap-1 border-r p-4">
           <h1 className="mb-4 text-lg font-semibold">Trail Settings</h1>
           <Separator className="mb-2" />
-          {NAV_ITEMS.map((item) => (
-            <Button
-              key={item.id}
-              variant="ghost"
-              className={cn("w-full justify-start", page === item.id && "bg-accent")}
-              onClick={() => setPage(item.id)}
-            >
-              {item.label}
-            </Button>
-          ))}
-        </nav>
+          <TabsList
+            variant="line"
+            className="h-fit w-full flex-col items-stretch gap-1 bg-transparent p-0"
+          >
+            {NAV_ITEMS.map((item) => (
+              <TabsTrigger key={item.id} value={item.id}>
+                {item.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </aside>
         <main className="max-w-2xl flex-1 overflow-y-auto p-6">
           {loading || !settings ? (
             <div className="flex flex-col gap-4">
@@ -56,21 +60,31 @@ export default function SettingsApp() {
             </div>
           ) : (
             <>
-              {page === "account" && <AccountPage />}
-              {page === "data" && <DataPage />}
-              {page === "appearance" && (
+              <TabsContent value="account">
+                <AccountPage />
+              </TabsContent>
+              <TabsContent value="data">
+                <DataPage />
+              </TabsContent>
+              <TabsContent value="appearance">
                 <AppearancePage settings={settings} onUpdate={updateSettings} />
-              )}
-              {page === "behavior" && (
+              </TabsContent>
+              <TabsContent value="behavior">
                 <BehaviorPage settings={settings} onUpdate={updateSettings} />
-              )}
-              {page === "shortcuts" && <ShortcutsPage />}
-              {page === "privacy" && <PrivacyPage />}
-              {page === "about" && <AboutPage />}
+              </TabsContent>
+              <TabsContent value="shortcuts">
+                <ShortcutsPage />
+              </TabsContent>
+              <TabsContent value="privacy">
+                <PrivacyPage />
+              </TabsContent>
+              <TabsContent value="about">
+                <AboutPage />
+              </TabsContent>
             </>
           )}
         </main>
-      </div>
+      </Tabs>
     </TooltipProvider>
   );
 }
