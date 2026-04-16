@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTrees } from "../hooks/useTrees.js";
 import { Button } from "@ui/components/ui/button";
+import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Input } from "@ui/components/ui/input";
 import {
   InputGroup,
@@ -81,10 +82,10 @@ export function TreesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold tracking-tight">Trees</h2>
-        <p className="text-muted-foreground text-sm">Manage your browsing trees.</p>
-      </header>
+      <CardHeader className="px-0">
+        <CardTitle className="text-lg">Trees</CardTitle>
+        <CardDescription>Manage your browsing trees.</CardDescription>
+      </CardHeader>
 
       <InputGroup>
         <InputGroupInput

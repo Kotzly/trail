@@ -8,6 +8,7 @@ import { Icons } from "./Icon.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { displayLabel, formatHost } from "../shared/format.js";
 import { Button } from "@ui/components/ui/button";
+import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -78,12 +79,12 @@ export default function PinnedDropdown() {
           }
         }}
       >
-        <div className="text-muted-foreground flex items-center gap-1.5 px-3 py-2 text-[12px]">
-          <span>Pinned</span>
-          <span className="bg-muted rounded px-1.5 py-px text-[10px] tabular-nums" id="pinnedCount">
-            {pinnedNodes.length}
-          </span>
-        </div>
+        <CardHeader className="px-3 py-2.5">
+          <CardTitle className="text-[13px]">Pinned</CardTitle>
+          <CardDescription className="text-[11px]" id="pinnedCount">
+            {pinnedNodes.length} {pinnedNodes.length === 1 ? "page" : "pages"}
+          </CardDescription>
+        </CardHeader>
         <Separator />
         <ScrollArea className="max-h-[320px]">
           {pinnedNodes.length === 0 ? (

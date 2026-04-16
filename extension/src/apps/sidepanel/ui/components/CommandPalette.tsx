@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -35,21 +35,18 @@ export default function CommandPalette() {
   const tree = useStore((s) => s.tree);
   const [query, setQuery] = useState("");
 
-  // Defer mounting the (potentially huge) Nodes group until after the
-  // dialog has painted. The palette appears empty for one frame, then
-  // fills in — keeps `open` instant even on multi-thousand-node trees.
-  // startTransition lets React interrupt the heavy commit if the user
-  // starts typing immediately.
+  // Defer mounting the (potentially huge) Nodes group. useEffect runs
+  // after commit + paint, so the open dialog appears first; the transition
+  // then schedules the heavy mount as non-urgent and yields to the input.
+  // `isPending` powers the inline "loading" hint during that window.
   const [nodesReady, setNodesReady] = useState(false);
+  const [isPending, startTransition] = useTransition();
   useEffect(() => {
     if (!open) {
       setNodesReady(false);
       return;
     }
-    const id = requestAnimationFrame(() => {
-      startTransition(() => setNodesReady(true));
-    });
-    return () => cancelAnimationFrame(id);
+    startTransition(() => setNodesReady(true));
   }, [open]);
 
   // Close handler resets query directly — no useEffect-as-state-reset.
@@ -58,8 +55,11 @@ export default function CommandPalette() {
     setOpen(next);
   };
 
+  // Build the entry list lazily — only when the palette is actually open.
+  // Avoids paying the iteration cost on every tree mutation in the
+  // background while the palette sits closed.
   const nodes: NodeEntry[] = useMemo(() => {
-    if (!tree) return [];
+    if (!tree || !open) return [];
     const result: NodeEntry[] = [];
     for (const node of tree.iter()) {
       result.push({
@@ -71,7 +71,7 @@ export default function CommandPalette() {
       if (result.length >= NODE_CAP) break;
     }
     return result;
-  }, [tree]);
+  }, [tree, open]);
 
   const handleNavigate = (entry: NodeEntry) => {
     handleOpenChange(false);
@@ -99,6 +99,9 @@ export default function CommandPalette() {
       onOpenChange={handleOpenChange}
       title="Search Trail"
       description="Search nodes, jump between trees, or run commands"
+      // Keyboard-triggered surface (100+/day). Per Emil's frequency rule
+      // we kill the open/close zoom-and-fade entirely — Raycast pattern.
+      className="data-closed:duration-0 data-open:duration-0"
     >
       <CommandInput
         placeholder="Search nodes or type a command..."
@@ -107,8 +110,20 @@ export default function CommandPalette() {
       />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
+        {isPending && !nodesReady && (
+          <div className="text-muted-foreground flex items-center gap-2 px-3 py-2 text-xs">
+            <Icons.Loader2 className="size-3 animate-spin" />
+            Loading nodes…
+          </div>
+        )}
         {nodesReady && nodes.length > 0 && (
-          <CommandGroup heading="Nodes">
+          <CommandGroup
+            heading="Nodes"
+            // Subtle async-settle: ~150ms strong ease-out, opacity + 4px
+            // slide from top. Never scale(0) — we start visible. Gated on
+            // motion-safe so reduced-motion users get an instant mount.
+            className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-150 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)]"
+          >
             {nodes.map((entry) => (
               <CommandItem
                 key={entry.id}

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { cn } from "@ui/lib/utils";
 import { redo, undo } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
@@ -17,6 +17,21 @@ export default function FloatingControls() {
   const controlsRef = useRef<HTMLDivElement | null>(null);
   const leftRef = useRef<HTMLDivElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
+
+  // Search button toggle. The button lives outside the dialog portal, so
+  // Radix's DismissableLayer fires onPointerDownOutside → closes the
+  // palette BEFORE our onClick can read the "still-open" state. We snapshot
+  // the live store value on pointerdown (React's delegated handler runs
+  // before Radix's document-level listener) and skip the reopen on click
+  // when the palette was open just before the press.
+  const searchWasOpenRef = useRef(false);
+  const handleSearchPointerDown = useCallback(() => {
+    searchWasOpenRef.current = useStore.getState().commandPalette.open;
+  }, []);
+  const handleSearchClick = useCallback(() => {
+    if (searchWasOpenRef.current) return;
+    setCommandPaletteOpen(true);
+  }, [setCommandPaletteOpen]);
 
   const searchShortcut = metaKey ? `${metaKey.short}+K` : "Ctrl+K";
   const searchTooltip = `Search (${searchShortcut})`;

@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { browser } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { Button } from "@ui/components/ui/button";
+import { CardAction, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -283,17 +284,13 @@ export default function TreeDropdown() {
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[360px] p-0" id="treesDropdown">
-          {/* Single compact toolbar: title + count on the left, import + new
-              on the right. No other section headers — the active row sits
-              on top, archived rows below. */}
-          <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-            <div className="text-muted-foreground flex items-center gap-1.5 px-1.5 text-[12px]">
-              <span>Trees</span>
-              <span className="bg-muted rounded px-1.5 py-px text-[10px] tabular-nums">
-                {archivedTrees.length + (activeTree ? 1 : 0)}
-              </span>
-            </div>
-            <div className="flex items-center gap-0.5">
+          <CardHeader className="px-3 py-2.5">
+            <CardTitle className="text-[13px]">Trees</CardTitle>
+            <CardDescription className="text-[11px]">
+              {archivedTrees.length + (activeTree ? 1 : 0)}{" "}
+              {archivedTrees.length + (activeTree ? 1 : 0) === 1 ? "tree" : "trees"}
+            </CardDescription>
+            <CardAction className="flex items-center gap-0.5">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -330,8 +327,8 @@ export default function TreeDropdown() {
               >
                 <Icons.GitBranchPlus />
               </Button>
-            </div>
-          </div>
+            </CardAction>
+          </CardHeader>
           <Separator />
 
           <ScrollArea className="max-h-[420px]">
