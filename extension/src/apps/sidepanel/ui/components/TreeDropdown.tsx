@@ -49,6 +49,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@ui/components/ui/dialog";
+import { ButtonTooltip } from "@ui/components/button-tooltip";
 import {
   displayLabel,
   formatDate,
@@ -92,7 +93,6 @@ export default function TreeDropdown() {
   const setTreesOpen = useStore((state) => state.setTreesOpen);
   const closeAllPopups = useStore((state) => state.closeAllPopups);
   const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
-  const treesShortcut = "Shift+T";
   const nodeCount = useStore((state) => state.nodeCount);
   const lastSyncedAt: string | null = null;
 
@@ -257,24 +257,26 @@ export default function TreeDropdown() {
     [setTreesOpen],
   );
 
-  const treesTooltip = `Saved trees (${treesShortcut})`;
+  const isMac = useStore((state) => state.isMac);
+  const treesKeys = [isMac ? "⇧" : "Shift", "T"];
   const totalCount = archivedTrees.length + (activeTree ? 1 : 0);
 
   return (
     <>
       <Popover open={treesOpen} onOpenChange={handlePopoverOpenChange}>
-        <PopoverTrigger asChild>
-          <Button
-            id="treesBtn"
-            variant="ghost"
-            size="icon-sm"
-            type="button"
-            aria-label={treesTooltip}
-            data-tooltip={treesTooltip}
-          >
-            <Icons.ListTree />
-          </Button>
-        </PopoverTrigger>
+        <ButtonTooltip label="Saved trees" keys={treesKeys}>
+          <PopoverTrigger asChild>
+            <Button
+              id="treesBtn"
+              variant="ghost"
+              size="icon-sm"
+              type="button"
+              aria-label="Saved trees"
+            >
+              <Icons.ListTree />
+            </Button>
+          </PopoverTrigger>
+        </ButtonTooltip>
         <PopoverContent align="start" className="w-[360px] p-0" id="treesDropdown">
           <CardHeader className="px-3 py-2.5">
             <CardTitle className="text-[13px]">Trees</CardTitle>
@@ -292,32 +294,34 @@ export default function TreeDropdown() {
                   if (file) void handleImportFile(file);
                 }}
               />
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                type="button"
-                aria-label="Import trail"
-                data-tooltip="Import trail"
-                disabled={importing}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {importing ? <Icons.Loader2 className="animate-spin" /> : <Icons.Upload />}
-              </Button>
-              <Button
-                id="newTreeBtn"
-                variant="ghost"
-                size="icon-xs"
-                type="button"
-                aria-label="New tree"
-                data-tooltip="New tree"
-                onClick={() => {
-                  setLabelDraft("");
-                  closeAllPopups();
-                  setConfirmOpen(true);
-                }}
-              >
-                <Icons.GitBranchPlus />
-              </Button>
+              <ButtonTooltip label="Import trail">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  type="button"
+                  aria-label="Import trail"
+                  disabled={importing}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {importing ? <Icons.Loader2 className="animate-spin" /> : <Icons.Upload />}
+                </Button>
+              </ButtonTooltip>
+              <ButtonTooltip label="New tree">
+                <Button
+                  id="newTreeBtn"
+                  variant="ghost"
+                  size="icon-xs"
+                  type="button"
+                  aria-label="New tree"
+                  onClick={() => {
+                    setLabelDraft("");
+                    closeAllPopups();
+                    setConfirmOpen(true);
+                  }}
+                >
+                  <Icons.GitBranchPlus />
+                </Button>
+              </ButtonTooltip>
             </CardAction>
           </CardHeader>
           <Separator />
@@ -629,20 +633,21 @@ function IconAction({
   disabled?: boolean;
 }) {
   return (
-    <Button
-      variant="ghost"
-      size="icon-xs"
-      type="button"
-      aria-label={label}
-      data-tooltip={label}
-      disabled={disabled}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-    >
-      {icon}
-    </Button>
+    <ButtonTooltip label={label}>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        type="button"
+        aria-label={label}
+        disabled={disabled}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+      >
+        {icon}
+      </Button>
+    </ButtonTooltip>
   );
 }
 

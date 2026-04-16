@@ -2,14 +2,11 @@ import { browser } from "@shared/platform/webext.js";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
 import { Button } from "@ui/components/ui/button";
+import { ButtonTooltip } from "@ui/components/button-tooltip";
 
 export default function SettingsDropdown() {
   const metaKey = useStore((state) => state.metaKey);
-
-  const settingsShortcut = metaKey ? `${metaKey.short}+,` : "Ctrl+,";
-  const tooltipsShortcut = metaKey ? `${metaKey.short}+/` : "Ctrl+/";
-  const settingsLabel = `Settings (${settingsShortcut})`;
-  const settingsTooltip = `Settings (${settingsShortcut}) • Tooltips (${tooltipsShortcut})`;
+  const meta = metaKey?.short ?? "Ctrl";
 
   const handleGearClick = () => {
     const url = chrome.runtime.getURL("settings.html");
@@ -19,16 +16,17 @@ export default function SettingsDropdown() {
   };
 
   return (
-    <Button
-      id="settingsBtn"
-      variant="ghost"
-      size="icon-sm"
-      type="button"
-      aria-label={settingsLabel}
-      data-tooltip={settingsTooltip}
-      onClick={handleGearClick}
-    >
-      <Icons.Settings />
-    </Button>
+    <ButtonTooltip label="Settings" keys={[meta, ","]}>
+      <Button
+        id="settingsBtn"
+        variant="ghost"
+        size="icon-sm"
+        type="button"
+        aria-label="Settings"
+        onClick={handleGearClick}
+      >
+        <Icons.Settings />
+      </Button>
+    </ButtonTooltip>
   );
 }

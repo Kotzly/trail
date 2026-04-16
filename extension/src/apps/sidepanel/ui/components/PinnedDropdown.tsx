@@ -29,14 +29,18 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { ScrollArea } from "@ui/components/ui/scroll-area";
 import { Separator } from "@ui/components/ui/separator";
+import { ButtonTooltip } from "@ui/components/button-tooltip";
 
 type NavNode = TreeNode<NodeData> | NavigationNode;
 
 export default function PinnedDropdown() {
   const pins = useStore((s) => s.pins);
   const tree = useStore((s) => s.tree);
+  const isMac = useStore((s) => s.isMac);
   const open = useStore((s) => s.ui.pinnedOpen);
   const setOpen = useStore((s) => s.setPinnedOpen);
+
+  const pinnedKeys = [isMac ? "⇧" : "Shift", "P"];
 
   useOverlayEffects(open, { kind: "dropdown" });
 
@@ -70,18 +74,19 @@ export default function PinnedDropdown() {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id="pinnedBtn"
-          variant="ghost"
-          size="icon-sm"
-          type="button"
-          aria-label="Pinned pages (Shift+P)"
-          data-tooltip="Pinned pages (Shift+P)"
-        >
-          <Icons.Pin />
-        </Button>
-      </PopoverTrigger>
+      <ButtonTooltip label="Pinned pages" keys={pinnedKeys}>
+        <PopoverTrigger asChild>
+          <Button
+            id="pinnedBtn"
+            variant="ghost"
+            size="icon-sm"
+            type="button"
+            aria-label="Pinned pages"
+          >
+            <Icons.Pin />
+          </Button>
+        </PopoverTrigger>
+      </ButtonTooltip>
       <PopoverContent align="start" className="w-80 p-0" onKeyDown={handleEnter}>
         <Card className="rounded-none border-0 shadow-none ring-0">
           <CardHeader>

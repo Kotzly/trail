@@ -29,13 +29,11 @@ export default defineConfig({
       jsxImportSource: "react",
     },
     optimizeDeps: {
-      // Force pre-bundling for barrel icon/UI packages so each named
-      // import doesn't trigger a module-by-module fetch in dev. Fixes
-      // the `bundle-barrel-imports` anti-pattern for Vite projects.
-      include: [
-        "@hugeicons/core-free-icons",
-        "@hugeicons/react",
-      ],
+      // Pre-bundle icon barrel so dev HMR doesn't fetch each icon's ESM
+      // module individually on every change. `lucide-react` is the
+      // project's `components.json` icon library; all icon usage goes
+      // through the `Icons` registry in `@ui/components/icons`.
+      include: ["lucide-react"],
     },
   }),
   alias: {

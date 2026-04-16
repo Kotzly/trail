@@ -211,12 +211,6 @@ export function useShortcuts(): void {
         void saveSettings(nextSettings);
       };
 
-      if (metaKey && code === "Slash") {
-        event.preventDefault();
-        state.setTooltipsOpen(!state.ui.tooltipsOpen);
-        return;
-      }
-
       if (isEditable) return;
 
       if (metaKey && code === "KeyZ") {
@@ -300,7 +294,6 @@ export function useShortcuts(): void {
         state.closeContextMenu();
         state.clearSelection();
         state.clearSearch();
-        state.setTooltipsOpen(false);
         return;
       }
 

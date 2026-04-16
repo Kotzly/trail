@@ -8,24 +8,24 @@ import TreeDropdown from "./TreeDropdown.js";
 import SettingsDropdown from "./SettingsPopover.js";
 import CommandPalette from "./CommandPalette.js";
 import { Button } from "@ui/components/ui/button";
+import { ButtonTooltip } from "@ui/components/button-tooltip";
 
 export default function FloatingControls() {
   const commandState = useStore((state) => state.commandState);
   const metaKey = useStore((state) => state.metaKey);
+  const isMac = useStore((state) => state.isMac);
   const editorActive = useStore((state) => state.editorMode.active);
   const setCommandState = useStore((state) => state.setCommandState);
   const controlsRef = useRef<HTMLDivElement | null>(null);
   const leftRef = useRef<HTMLDivElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
 
-  const undoShortcut = metaKey ? `${metaKey.short}+z (${metaKey.long}+z)` : "Ctrl+Z";
-  const redoShortcut = metaKey ? `${metaKey.short}+⇧+z (${metaKey.long}+shift+z)` : "Ctrl+Shift+Z";
-  const undoTooltip = commandState?.nextUndoDesc
-    ? `Undo: ${commandState.nextUndoDesc} (${undoShortcut})`
-    : `Undo (${undoShortcut})`;
-  const redoTooltip = commandState?.nextRedoDesc
-    ? `Redo: ${commandState.nextRedoDesc} (${redoShortcut})`
-    : `Redo (${redoShortcut})`;
+  const meta = metaKey?.short ?? "Ctrl";
+  const shift = isMac ? "⇧" : "Shift";
+  const undoKeys = [meta, "Z"];
+  const redoKeys = [meta, shift, "Z"];
+  const undoLabel = commandState?.nextUndoDesc ? `Undo: ${commandState.nextUndoDesc}` : "Undo";
+  const redoLabel = commandState?.nextRedoDesc ? `Redo: ${commandState.nextRedoDesc}` : "Redo";
 
   const handleUndo = async () => {
     try {
@@ -58,32 +58,34 @@ export default function FloatingControls() {
         )}
       >
         <div className="bg-background/90 border-border flex gap-1 rounded-full border p-0.5 shadow-sm backdrop-blur-sm">
-          <Button
-            id="undoBtn"
-            variant="ghost"
-            size="icon-sm"
-            className="rounded-full"
-            type="button"
-            aria-label={undoTooltip}
-            data-tooltip={undoTooltip}
-            disabled={!commandState?.canUndo}
-            onClick={handleUndo}
-          >
-            <Icons.Undo2 />
-          </Button>
-          <Button
-            id="redoBtn"
-            variant="ghost"
-            size="icon-sm"
-            className="rounded-full"
-            type="button"
-            aria-label={redoTooltip}
-            data-tooltip={redoTooltip}
-            disabled={!commandState?.canRedo}
-            onClick={handleRedo}
-          >
-            <Icons.Redo2 />
-          </Button>
+          <ButtonTooltip label={undoLabel} keys={undoKeys}>
+            <Button
+              id="undoBtn"
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-full"
+              type="button"
+              aria-label={undoLabel}
+              disabled={!commandState?.canUndo}
+              onClick={handleUndo}
+            >
+              <Icons.Undo2 />
+            </Button>
+          </ButtonTooltip>
+          <ButtonTooltip label={redoLabel} keys={redoKeys}>
+            <Button
+              id="redoBtn"
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-full"
+              type="button"
+              aria-label={redoLabel}
+              disabled={!commandState?.canRedo}
+              onClick={handleRedo}
+            >
+              <Icons.Redo2 />
+            </Button>
+          </ButtonTooltip>
         </div>
 
         <div className="bg-background/90 border-border flex gap-1 rounded-full border p-0.5 shadow-sm backdrop-blur-sm">

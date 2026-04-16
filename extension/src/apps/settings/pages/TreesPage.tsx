@@ -26,6 +26,7 @@ import {
   ItemTitle,
 } from "@ui/components/ui/item";
 import { Skeleton } from "@ui/components/ui/skeleton";
+import { ButtonTooltip } from "@ui/components/button-tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,17 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@ui/components/ui/alert-dialog";
-import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Archive02Icon,
-  BookmarkIcon,
-  Delete02Icon,
-  Download04Icon,
-  Folder01Icon,
-  ListTreeIcon,
-  PencilEdit02Icon,
-  PlusSignIcon,
-} from "@hugeicons/core-free-icons";
+import { Icons } from "@ui/components/icons";
 import type { ArchiveIndexEntry } from "@shared/types/tree.js";
 
 export function TreesPage() {
@@ -109,7 +100,7 @@ export function TreesPage() {
         />
         <InputGroupAddon align="inline-end">
           <InputGroupButton onClick={() => void handleNewTree()} disabled={!newTreeLabel.trim()}>
-            <HugeiconsIcon icon={PlusSignIcon} />
+            <Icons.Plus />
             Create
           </InputGroupButton>
         </InputGroupAddon>
@@ -118,31 +109,33 @@ export function TreesPage() {
       <ItemGroup>
         <Item variant="muted" size="sm">
           <ItemMedia variant="icon">
-            <HugeiconsIcon icon={BookmarkIcon} className="text-muted-foreground" />
+            <Icons.Bookmark className="text-muted-foreground" />
           </ItemMedia>
           <ItemContent>
             <ItemTitle>{trees.active.label}</ItemTitle>
             <ItemDescription>Currently open in the sidepanel.</ItemDescription>
           </ItemContent>
           <ItemActions>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Export tree"
-              data-tooltip="Export tree"
-              onClick={() => void exportTree()}
-            >
-              <HugeiconsIcon icon={Download04Icon} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Archive tree"
-              data-tooltip="Archive tree"
-              onClick={() => void archiveActiveTree()}
-            >
-              <HugeiconsIcon icon={Archive02Icon} />
-            </Button>
+            <ButtonTooltip label="Export tree">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Export tree"
+                onClick={() => void exportTree()}
+              >
+                <Icons.Download />
+              </Button>
+            </ButtonTooltip>
+            <ButtonTooltip label="Archive tree">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Archive tree"
+                onClick={() => void archiveActiveTree()}
+              >
+                <Icons.Archive />
+              </Button>
+            </ButtonTooltip>
           </ItemActions>
         </Item>
       </ItemGroup>
@@ -196,7 +189,7 @@ function EmptyArchived() {
     <Empty className="py-10">
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <HugeiconsIcon icon={ListTreeIcon} />
+          <Icons.ListTree />
         </EmptyMedia>
         <EmptyTitle>No archived trees</EmptyTitle>
         <EmptyDescription>
@@ -236,7 +229,7 @@ const ArchivedTreeRow = memo(function ArchivedTreeRow({
   return (
     <Item variant="outline" size="sm">
       <ItemMedia variant="icon">
-        <HugeiconsIcon icon={Folder01Icon} className="text-muted-foreground" />
+        <Icons.Folder className="text-muted-foreground" />
       </ItemMedia>
       <ItemContent>
         {isEditing ? (
@@ -257,35 +250,34 @@ const ArchivedTreeRow = memo(function ArchivedTreeRow({
           <Button variant="ghost" size="sm" onClick={() => void onOpen(tree.id)}>
             Open
           </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Rename"
-            data-tooltip="Rename"
-            onClick={() => onStartEdit(tree.id)}
-          >
-            <HugeiconsIcon icon={PencilEdit02Icon} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Export"
-            data-tooltip="Export"
-            onClick={() => void onExport(tree.id)}
-          >
-            <HugeiconsIcon icon={Download04Icon} />
-          </Button>
+          <ButtonTooltip label="Rename">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Rename"
+              onClick={() => onStartEdit(tree.id)}
+            >
+              <Icons.Pencil />
+            </Button>
+          </ButtonTooltip>
+          <ButtonTooltip label="Export">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Export"
+              onClick={() => void onExport(tree.id)}
+            >
+              <Icons.Download />
+            </Button>
+          </ButtonTooltip>
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                size="icon-sm"
-                aria-label="Delete"
-                data-tooltip="Delete"
-              >
-                <HugeiconsIcon icon={Delete02Icon} />
-              </Button>
-            </AlertDialogTrigger>
+            <ButtonTooltip label="Delete">
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon-sm" aria-label="Delete">
+                  <Icons.Trash2 />
+                </Button>
+              </AlertDialogTrigger>
+            </ButtonTooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete &ldquo;{tree.label}&rdquo;?</AlertDialogTitle>

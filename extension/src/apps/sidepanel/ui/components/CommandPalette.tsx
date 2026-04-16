@@ -18,6 +18,7 @@ import {
 } from "@ui/components/ui/command";
 import { Button } from "@ui/components/ui/button";
 import { Kbd } from "@ui/components/ui/kbd";
+import { ButtonTooltip } from "@ui/components/button-tooltip";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
 import { browser } from "@shared/platform/webext.js";
@@ -45,22 +46,24 @@ const VISIBLE_LIMIT = 50;
 export default function CommandPalette() {
   const open = useStore((s) => s.commandPalette.open);
   const setOpen = useStore((s) => s.setCommandPaletteOpen);
+  const metaKey = useStore((s) => s.metaKey);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          id="searchBtn"
-          variant="ghost"
-          size="icon-sm"
-          className="rounded-full"
-          type="button"
-          aria-label="Search"
-          data-tooltip="Search"
-        >
-          <Icons.Search />
-        </Button>
-      </DialogTrigger>
+      <ButtonTooltip label="Search" keys={[metaKey?.short ?? "Ctrl", "K"]}>
+        <DialogTrigger asChild>
+          <Button
+            id="searchBtn"
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full"
+            type="button"
+            aria-label="Search"
+          >
+            <Icons.Search />
+          </Button>
+        </DialogTrigger>
+      </ButtonTooltip>
       <DialogContent
         showCloseButton={false}
         className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0"
