@@ -1,6 +1,8 @@
 import { lazy, Suspense, useCallback } from "react";
 import FloatingControls from "./components/FloatingControls.js";
 import CommandPalette from "./components/CommandPalette.js";
+import RenameNodeDialog from "./components/RenameNodeDialog.js";
+import OnboardingWizard from "./onboarding/OnboardingWizard.js";
 import ContextMenus from "./components/ContextMenus.js";
 import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
 import TrailLogo from "@ui/components/trail-logo";
@@ -149,6 +151,8 @@ export default function App() {
         </Suspense>
       )}
       <DeleteTreeConfirmModal />
+      <RenameNodeDialog />
+      <OnboardingWizard />
       <ContextMenus />
       <TooltipLayer />
     </div>
