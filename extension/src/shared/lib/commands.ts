@@ -2,7 +2,7 @@ import type { Description, JSONString } from "../types/ids.js";
 import type { CommandState } from "../rpc/contracts.js";
 import { type NavigationTreeJSON } from "../types/tree.js";
 import { undoHistoryItem } from "../config/storage-items.js";
-import { debounce } from "@shared/utils/debounce.js";
+import pDebounce from "p-debounce";
 
 // max history stack size (todo: make this configurable by the user)
 const MAX_HISTORY = 30;
@@ -35,9 +35,7 @@ export class CommandManager {
     return list;
   }
 
-  private static schedulePersist = debounce(() => {
-    void CommandManager.persistNow();
-  }, 300);
+  private static schedulePersist = pDebounce(() => CommandManager.persistNow(), 300);
 
   private static async persistNow(): Promise<void> {
     try {
@@ -85,7 +83,7 @@ export class CommandManager {
     while (this.undoStack.length > MAX_HISTORY) {
       this.undoStack.shift();
     }
-    this.schedulePersist();
+    void this.schedulePersist();
   }
   static undo(currentTreeJSON: NavigationTreeJSON): NavigationTreeJSON | null {
     if (this.undoStack.length === 0) return null;
@@ -100,7 +98,7 @@ export class CommandManager {
     });
 
     const previousState = this.undoStack.pop();
-    this.schedulePersist();
+    void this.schedulePersist();
     return previousState ? (JSON.parse(previousState.treeJSON) as NavigationTreeJSON) : null;
   }
   static redo(currentTreeJSON: NavigationTreeJSON): NavigationTreeJSON | null {
@@ -117,7 +115,7 @@ export class CommandManager {
 
     // Pop and return next state
     const nextState = this.redoStack.pop();
-    this.schedulePersist();
+    void this.schedulePersist();
     return nextState ? (JSON.parse(nextState.treeJSON) as NavigationTreeJSON) : null;
   }
 
@@ -149,8 +147,8 @@ export class CommandManager {
     if (!this.loaded && this.loading) {
       this.dirtyDuringLoad = true;
     }
-    this.undoStack = this.undoStack.slice(0, 0);
-    this.redoStack = this.redoStack.slice(0, 0);
-    this.schedulePersist();
+    this.undoStack = [];
+    this.redoStack = [];
+    void this.schedulePersist();
   }
 }

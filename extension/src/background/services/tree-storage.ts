@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Mutex } from "async-mutex";
 import { storage } from "wxt/utils/storage";
 import {
   isTreeStub,
@@ -227,29 +228,20 @@ function normalizeLegacyRecord(raw: unknown): TreeRecord | null {
 }
 
 // ---------------------------------------------------------------------------
-// Promise-based mutex for tree operations
+// Mutex for tree operations
 // ---------------------------------------------------------------------------
 
-let treeLock: Promise<void> = Promise.resolve();
+const treeMutex = new Mutex();
 
 function withTreeLock<T>(fn: () => Promise<T>): Promise<T> {
-  let release!: () => void;
-  const next = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const prev = treeLock;
-  treeLock = next;
-
   const waitStart = Date.now();
-  return prev
-    .then(() => {
-      const waited = Date.now() - waitStart;
-      if (waited > 5000) {
-        log.warn("Lock acquisition slow", { waitedMs: waited });
-      }
-      return fn();
-    })
-    .finally(() => release());
+  return treeMutex.runExclusive(() => {
+    const waited = Date.now() - waitStart;
+    if (waited > 5000) {
+      log.warn("Lock acquisition slow", { waitedMs: waited });
+    }
+    return fn();
+  });
 }
 
 // ---------------------------------------------------------------------------
