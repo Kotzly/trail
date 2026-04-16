@@ -45,7 +45,21 @@ export class LruManager {
 
   remove(tabId: TabId) {
     this.lastUsed.delete(tabId);
-    if (this.latestTabId === tabId) this.latestTabId = null; // todo: check if this is correct
+    if (this.latestTabId === tabId) {
+      // Find the next-most-recently used tab from the remaining set.
+      let nextId: TabId | null = null;
+      let nextTs = -1;
+      for (const [id, ts] of this.lastUsed) {
+        if (id !== tabId && ts > nextTs) {
+          nextTs = ts;
+          nextId = id;
+        }
+      }
+      this.latestTabId = nextId;
+      if (nextId === null) this.latestNodeId = null;
+      // Note: latestNodeId for nextId is unknown at this layer — callers that
+      // depend on it after a remove should look it up via tabManager.nodeByTab.
+    }
     return this.set.delete(tabId);
   }
 

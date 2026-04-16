@@ -1,9 +1,9 @@
+import { defineExtensionMessaging, type GetDataType } from "@webext-core/messaging";
 import {
-  defineExtensionMessaging,
-  type GetDataType,
-} from "@webext-core/messaging";
-import type { ExtensionProtocolMap, ExtensionMessageTarget } from "./protocols.js";
-import { EXTENSION_MESSAGE } from "./protocols.js";
+  EXTENSION_MESSAGE,
+  type ExtensionProtocolMap,
+  type ExtensionMessageTarget,
+} from "./protocols.js";
 
 const IGNORED_EXTENSION_MESSAGE_ERRORS = [
   "No response",

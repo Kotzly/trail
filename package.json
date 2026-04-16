@@ -16,7 +16,8 @@
     "typecheck": "pnpm -r --filter '!./apps/video' typecheck",
     "format": "pnpm -r --filter '!./apps/video' format",
     "db:migrate": "npx supabase db push",
-    "db:types": "npx supabase gen types typescript --project-id tevskvkyhenzqxkcgbbm > packages/db/src/generated/database.types.ts"
+    "db:types": "npx supabase gen types typescript --project-id tevskvkyhenzqxkcgbbm > packages/db/src/generated/database.types.ts",
+    "prepare": "husky"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -30,6 +31,8 @@
     "cypress": "^15.11.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "next": "16.1.6",
     "supabase": "^2.84.5"
   },

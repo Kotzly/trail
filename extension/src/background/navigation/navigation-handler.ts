@@ -44,7 +44,9 @@ export async function handleNavigation(
         await saveEditorMode();
       }
     } catch (e) {
-      log.error("Auto-exit editor on navigation failed", { error: e instanceof Error ? e.message : String(e) });
+      log.error("Auto-exit editor on navigation failed", {
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
   }
 
@@ -74,7 +76,9 @@ export async function handleNavigation(
         await notifyTreeUpdate(tree, "tabs", view);
       }
     } catch (error) {
-      log.error("New tab navigation error", { error: error instanceof Error ? error.message : String(error) });
+      log.error("New tab navigation error", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
     return;
   }
@@ -104,7 +108,7 @@ export async function handleNavigation(
       url: url as Url,
       title: (tab.title || url) as Title,
       favicon: normalizeFaviconUrl(url as Url, tab.favIconUrl as FaviconUrl | undefined),
-      pinned: false, // todo: check pinned.
+      pinned: Boolean(tab.pinned),
       tags: [],
     } as NodeData;
     const metaPatch = { title: data.title, favicon: data.favicon } as NodeMetaPatch;
@@ -236,6 +240,8 @@ export async function handleNavigation(
       await notifyTreeUpdate(tree, reason, view);
     }
   } catch (error) {
-    log.error("Navigation error", { error: error instanceof Error ? error.message : String(error) });
+    log.error("Navigation error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }

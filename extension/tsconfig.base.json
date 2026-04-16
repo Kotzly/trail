@@ -18,7 +18,11 @@
     "jsxImportSource": "react",
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    // exactOptionalPropertyTypes conflicts with shadcn/Radix component prop patterns
+    // (optional props passed through spread end up as `T | undefined` where target expects `T`).
+    // Trade: we lose the strict distinction between "prop omitted" vs "prop explicitly undefined".
+    // All other `strict` flags are on, so real type safety is preserved.
+    "exactOptionalPropertyTypes": false,
     "useUnknownInCatchVariables": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,

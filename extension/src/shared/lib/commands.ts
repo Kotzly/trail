@@ -87,9 +87,9 @@ export class CommandManager {
       description: desc,
     });
 
-    this.redoStack = this.redoStack.slice(0, 0); // new action invalidates redo history
+    this.redoStack = []; // new action invalidates redo history
     while (this.undoStack.length > MAX_HISTORY) {
-      this.undoStack.shift(); // todo: check code for correctness
+      this.undoStack.shift();
     }
     this.schedulePersist();
   }

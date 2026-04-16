@@ -1,0 +1,15 @@
+{
+  "extension/src/**/*.{ts,tsx}": [
+    "bash -c 'cd extension && pnpm eslint --fix'",
+    "bash -c 'cd extension && pnpm prettier --write'"
+  ],
+  "extension/src/**/*.{css,json}": [
+    "bash -c 'cd extension && pnpm prettier --write'"
+  ],
+  "apps/**/*.{ts,tsx,js,jsx}": [
+    "prettier --write"
+  ],
+  "packages/**/*.{ts,tsx,js,jsx}": [
+    "prettier --write"
+  ]
+}

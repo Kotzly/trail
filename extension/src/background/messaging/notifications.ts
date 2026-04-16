@@ -1,10 +1,7 @@
 import type { NodeId, TabId } from "@shared/types/ids.js";
 import { tabManager } from "../state/tab-manager.js";
 import type { TabSoundState, TabState } from "@shared/types/tabs.js";
-import {
-  type TreeUpdateReason,
-  type TreeViewIntent,
-} from "@shared/rpc/contracts.js";
+import type { TreeUpdateReason, TreeViewIntent, TreesSnapshot } from "@shared/rpc/contracts.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { NavigationTree } from "../state/nav-tree.js";
@@ -18,11 +15,7 @@ import {
 } from "../services/layout-precompute.js";
 import { settingsManager } from "../services/settings.js";
 import { createLogger } from "@shared/lib/logger.js";
-import {
-  EXTENSION_MESSAGE,
-  fireExtensionEvent,
-} from "@shared/transport/extension-messaging.js";
-import type { TreesSnapshot } from "@shared/rpc/contracts.js";
+import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 
 const log = createLogger("notifications");
 
@@ -106,10 +99,7 @@ async function loadCachedPositionsForActiveTree(): Promise<LayoutPositions | nul
  * on the debounced save (~1.5s), so just-added nodes would otherwise ship
  * with no position and render at (0, 0) until the next snapshot arrives.
  */
-function positionsCoverTree(
-  tree: NavigationTreeJSON,
-  positions: LayoutPositions,
-): boolean {
+function positionsCoverTree(tree: NavigationTreeJSON, positions: LayoutPositions): boolean {
   if (!tree.root) return true;
   const stack = [tree.root];
   while (stack.length > 0) {

@@ -65,8 +65,6 @@ export class NavigationTree {
     }
   }
 
-  // todo: implement setRoot logic
-
   private mergeNodeData(base: NodeData, incoming: NodeData): NodeData {
     const tags = Array.from(new Set([...(base.tags ?? []), ...(incoming.tags ?? [])]));
     const title = incoming.title ? incoming.title : base.title;
@@ -193,7 +191,6 @@ export class NavigationTree {
     return nodes;
   }
 
-  // todo: remove this functionality of deleting nodes
   deleteNode(nodeId: NodeId): DeleteNodeResult {
     const node = this.findNodeById(nodeId);
     if (!node || node.isRoot()) return { removed: [], redirects: [] };
