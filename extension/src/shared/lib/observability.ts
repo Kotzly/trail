@@ -68,22 +68,10 @@ let posthogClient: PostHog | null = null;
 let cachedConsent: TelemetryConsent | null = null;
 let currentSurface: ObservabilitySurface = "sidepanel";
 
-function uuid(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  // Fallback (older runtimes): RFC4122-ish v4
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
 async function ensureAnonId(): Promise<string> {
   const existing = await telemetryAnonIdItem.getValue();
   if (existing) return existing;
-  const next = uuid();
+  const next = crypto.randomUUID();
   await telemetryAnonIdItem.setValue(next);
   return next;
 }

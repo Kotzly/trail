@@ -1,15 +1,5 @@
-import type { Timestamp, Url } from "@shared/types/ids.js";
-
-export function formatTime(timestamp: Timestamp): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-
-  if (diff < 60000) return "Just now";
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-
-  return new Date(timestamp).toLocaleDateString();
-}
+import { formatDistanceToNow, isToday, isYesterday } from "date-fns";
+import type { Url } from "@shared/types/ids.js";
 
 export function formatUrl(url: Url): string {
   try {
@@ -47,34 +37,16 @@ export function formatHost(url?: string | Url | null): string {
  */
 export function formatDate(ts?: number | null): string {
   if (!ts) return "";
-  try {
-    const date = new Date(ts);
-    if (Number.isNaN(date.getTime())) return "";
-
-    const now = new Date();
-    const sameDay =
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth() &&
-      date.getDate() === now.getDate();
-    if (sameDay) return "today";
-
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const isYesterday =
-      date.getFullYear() === yesterday.getFullYear() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getDate() === yesterday.getDate();
-    if (isYesterday) return "yesterday";
-
-    const thisYear = date.getFullYear() === now.getFullYear();
-    return new Intl.DateTimeFormat(undefined, {
-      month: "short",
-      day: "numeric",
-      ...(thisYear ? {} : { year: "numeric" }),
-    }).format(date);
-  } catch {
-    return "";
-  }
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return "";
+  if (isToday(date)) return "today";
+  if (isYesterday(date)) return "yesterday";
+  const thisYear = date.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    ...(thisYear ? {} : { year: "numeric" }),
+  }).format(date);
 }
 
 const NUMBER_FORMATTER = new Intl.NumberFormat();
@@ -84,24 +56,12 @@ export function formatNodeCount(n: number): string {
   return `${NUMBER_FORMATTER.format(rounded)} ${rounded === 1 ? "node" : "nodes"}`;
 }
 
-export function formatRelativeTime(iso: string | null): string {
-  if (!iso) return "";
-  try {
-    const then = new Date(iso).getTime();
-    if (Number.isNaN(then)) return "";
-    const diffMs = Date.now() - then;
-    if (diffMs < 0) return "just now";
-    const diffMin = Math.floor(diffMs / 60_000);
-    if (diffMin < 1) return "just now";
-    if (diffMin < 60) return `${diffMin} min ago`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr} hr ago`;
-    return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(
-      new Date(iso),
-    );
-  } catch {
-    return "";
-  }
+export function formatRelativeTime(input: string | number | Date | null): string {
+  if (input == null) return "";
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) return "";
+  if (Date.now() - date.getTime() < 60_000) return "just now";
+  return formatDistanceToNow(date, { addSuffix: true });
 }
 
 /**

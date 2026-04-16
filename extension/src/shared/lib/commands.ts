@@ -2,6 +2,7 @@ import type { Description, JSONString } from "../types/ids.js";
 import type { CommandState } from "../rpc/contracts.js";
 import { type NavigationTreeJSON } from "../types/tree.js";
 import { undoHistoryItem } from "../config/storage-items.js";
+import { debounce } from "@shared/utils/debounce.js";
 
 // max history stack size (todo: make this configurable by the user)
 const MAX_HISTORY = 30;
@@ -17,7 +18,6 @@ export class CommandManager {
   private static loaded = false;
   private static loading: Promise<void> | null = null;
   private static dirtyDuringLoad = false;
-  private static persistTimer: ReturnType<typeof setTimeout> | null = null;
 
   private static sanitizeStack(raw: unknown): Snapshot[] {
     if (!Array.isArray(raw)) return [];
@@ -35,15 +35,9 @@ export class CommandManager {
     return list;
   }
 
-  private static schedulePersist(): void {
-    if (this.persistTimer) {
-      clearTimeout(this.persistTimer);
-    }
-    this.persistTimer = setTimeout(() => {
-      this.persistTimer = null;
-      void this.persistNow();
-    }, 300);
-  }
+  private static schedulePersist = debounce(() => {
+    void CommandManager.persistNow();
+  }, 300);
 
   private static async persistNow(): Promise<void> {
     try {

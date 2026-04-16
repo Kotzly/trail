@@ -9,6 +9,7 @@ import { PrivacyPage } from "./pages/PrivacyPage.js";
 import { AboutPage } from "./pages/AboutPage.js";
 import { Button } from "@ui/components/ui/button";
 import { Separator } from "@ui/components/ui/separator";
+import { Skeleton } from "@ui/components/ui/skeleton";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
 import { cn } from "@ui/lib/utils";
 
@@ -47,7 +48,12 @@ export default function SettingsApp() {
         </nav>
         <main className="max-w-2xl flex-1 overflow-y-auto p-6">
           {loading || !settings ? (
-            <p className="text-muted-foreground text-sm">Loading...</p>
+            <div className="flex flex-col gap-4">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-64" />
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
           ) : (
             <>
               {page === "account" && <AccountPage />}

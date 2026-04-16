@@ -123,15 +123,13 @@ function TrailGraphInner(props: TrailGraphProps) {
         : null;
 
       if (currentNode?.position) {
-        requestAnimationFrame(() =>
-          setCenter(
-            currentNode.position.x + NODE_WIDTH / 2,
-            currentNode.position.y + NODE_HEIGHT / 2,
-            { zoom: 1, duration: 300 },
-          ),
+        setCenter(
+          currentNode.position.x + NODE_WIDTH / 2,
+          currentNode.position.y + NODE_HEIGHT / 2,
+          { zoom: 1, duration: 300 },
         );
       } else {
-        requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 }));
+        fitView({ padding: 0.2, duration: 300 });
       }
     }
   }, [displayNodes.length, fitView, setCenter, currentNodeId]);

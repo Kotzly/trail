@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import { cn } from "@ui/lib/utils";
 import { redo, undo } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
@@ -51,12 +50,7 @@ export default function FloatingControls() {
       className="pointer-events-none fixed top-3 right-3 left-3 z-[900] flex items-start justify-between gap-2"
     >
       {/* Left cluster: undo/redo + pinned/trees */}
-      <div
-        ref={leftRef}
-        className={cn(
-          "pointer-events-auto flex max-w-full min-w-0 items-start gap-2 transition-all duration-200",
-        )}
-      >
+      <div ref={leftRef} className="pointer-events-auto flex max-w-full min-w-0 items-start gap-2">
         <div className="bg-background/90 border-border flex gap-1 rounded-full border p-0.5 shadow-sm backdrop-blur-sm">
           <ButtonTooltip label={undoLabel} keys={undoKeys}>
             <Button

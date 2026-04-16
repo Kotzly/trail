@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { browser } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { Button } from "@ui/components/ui/button";
+import { Spinner } from "@ui/components/ui/spinner";
 import { CardAction, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Empty,
@@ -303,7 +304,7 @@ export default function TreeDropdown() {
                   disabled={importing}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  {importing ? <Icons.Loader2 className="animate-spin" /> : <Icons.Upload />}
+                  {importing ? <Spinner /> : <Icons.Upload />}
                 </Button>
               </ButtonTooltip>
               <ButtonTooltip label="New tree">
@@ -661,7 +662,7 @@ function TreeFavicon({
   unavailable?: boolean;
 }) {
   if (loading) {
-    return <Icons.Loader2 className="text-muted-foreground size-4 animate-spin" />;
+    return <Spinner className="text-muted-foreground size-4" />;
   }
   if (tree.stub) {
     return unavailable ? (

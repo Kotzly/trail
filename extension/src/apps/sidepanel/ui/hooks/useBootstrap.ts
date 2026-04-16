@@ -11,22 +11,6 @@ export type BootstrapStatus = "loading" | "degraded" | "ready";
 
 const BOOTSTRAP_TIMEOUT_MS = 10_000;
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Bootstrap timed out")), ms);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
-}
-
 export function useBootstrap(): {
   bootstrapStatus: BootstrapStatus;
   retryBootstrap: () => void;
@@ -59,10 +43,13 @@ export function useBootstrap(): {
 
       // ---- Critical path: settings + tree only ----
       try {
-        const [settings, treeState, flags] = await withTimeout(
-          Promise.all([getSettings(), getTreeState(), getFlags()]),
-          BOOTSTRAP_TIMEOUT_MS,
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Bootstrap timed out")), BOOTSTRAP_TIMEOUT_MS),
         );
+        const [settings, treeState, flags] = await Promise.race([
+          Promise.all([getSettings(), getTreeState(), getFlags()]),
+          timeout,
+        ]);
         if (!mounted) return;
 
         bootstrapGraph(settings, treeState);
