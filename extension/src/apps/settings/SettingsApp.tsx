@@ -9,6 +9,7 @@ import { PrivacyPage } from "./pages/PrivacyPage.js";
 import { AboutPage } from "./pages/AboutPage.js";
 import { Button } from "@ui/components/ui/button";
 import { Separator } from "@ui/components/ui/separator";
+import { TooltipProvider } from "@ui/components/ui/tooltip";
 import { cn } from "@ui/lib/utils";
 
 type Page = "account" | "data" | "appearance" | "behavior" | "shortcuts" | "privacy" | "about";
@@ -28,38 +29,42 @@ export default function SettingsApp() {
   const { settings, loading, updateSettings } = useSettings();
 
   return (
-    <div className="bg-background text-foreground flex h-screen">
-      <nav className="flex w-48 shrink-0 flex-col gap-1 border-r p-4">
-        <h1 className="mb-4 text-lg font-semibold">Trail Settings</h1>
-        <Separator className="mb-2" />
-        {NAV_ITEMS.map((item) => (
-          <Button
-            key={item.id}
-            variant="ghost"
-            className={cn("w-full justify-start", page === item.id && "bg-accent")}
-            onClick={() => setPage(item.id)}
-          >
-            {item.label}
-          </Button>
-        ))}
-      </nav>
-      <main className="max-w-2xl flex-1 overflow-y-auto p-6">
-        {loading || !settings ? (
-          <p className="text-muted-foreground text-sm">Loading...</p>
-        ) : (
-          <>
-            {page === "account" && <AccountPage />}
-            {page === "data" && <DataPage />}
-            {page === "appearance" && (
-              <AppearancePage settings={settings} onUpdate={updateSettings} />
-            )}
-            {page === "behavior" && <BehaviorPage settings={settings} onUpdate={updateSettings} />}
-            {page === "shortcuts" && <ShortcutsPage />}
-            {page === "privacy" && <PrivacyPage />}
-            {page === "about" && <AboutPage />}
-          </>
-        )}
-      </main>
-    </div>
+    <TooltipProvider delayDuration={200}>
+      <div className="bg-background text-foreground flex h-screen">
+        <nav className="flex w-48 shrink-0 flex-col gap-1 border-r p-4">
+          <h1 className="mb-4 text-lg font-semibold">Trail Settings</h1>
+          <Separator className="mb-2" />
+          {NAV_ITEMS.map((item) => (
+            <Button
+              key={item.id}
+              variant="ghost"
+              className={cn("w-full justify-start", page === item.id && "bg-accent")}
+              onClick={() => setPage(item.id)}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </nav>
+        <main className="max-w-2xl flex-1 overflow-y-auto p-6">
+          {loading || !settings ? (
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          ) : (
+            <>
+              {page === "account" && <AccountPage />}
+              {page === "data" && <DataPage />}
+              {page === "appearance" && (
+                <AppearancePage settings={settings} onUpdate={updateSettings} />
+              )}
+              {page === "behavior" && (
+                <BehaviorPage settings={settings} onUpdate={updateSettings} />
+              )}
+              {page === "shortcuts" && <ShortcutsPage />}
+              {page === "privacy" && <PrivacyPage />}
+              {page === "about" && <AboutPage />}
+            </>
+          )}
+        </main>
+      </div>
+    </TooltipProvider>
   );
 }

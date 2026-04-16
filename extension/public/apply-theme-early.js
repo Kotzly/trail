@@ -24,7 +24,7 @@
     }
   }
   var root = document.documentElement;
-  root.setAttribute("data-theme", resolved);
+  if (resolved === "dark") root.classList.add("dark");
   root.style.backgroundColor = resolved === "dark" ? "#09090b" : "#ffffff";
   root.style.colorScheme = resolved;
 })();

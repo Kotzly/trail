@@ -1,15 +1,15 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "radix-luma",
+  "style": "radix-nova",
   "rsc": false,
   "tsx": true,
   "tailwind": {
     "config": "",
     "css": "src/apps/sidepanel/ui/tailwind.css",
-    "baseColor": "mist",
+    "baseColor": "taupe",
     "cssVariables": true
   },
-  "iconLibrary": "hugeicons",
+  "iconLibrary": "lucide",
   "rtl": false,
   "aliases": {
     "components": "@ui/components",

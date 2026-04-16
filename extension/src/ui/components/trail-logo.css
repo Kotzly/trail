@@ -1,10 +1,9 @@
-:root,
-[data-theme="light"] {
+:root {
   --trail-logo-border: var(--ring);
   --trail-logo-accent: var(--primary);
 }
 
-[data-theme="dark"] {
+.dark {
   --trail-logo-border: var(--ring);
   --trail-logo-accent: var(--primary);
 }

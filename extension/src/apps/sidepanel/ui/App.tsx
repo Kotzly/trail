@@ -1,6 +1,5 @@
 import { lazy, Suspense, useCallback } from "react";
 import FloatingControls from "./components/FloatingControls.js";
-import CommandPalette from "./components/CommandPalette.js";
 import RenameNodeDialog from "./components/RenameNodeDialog.js";
 import SyncConflictBanner from "./components/SyncConflictBanner.js";
 import OnboardingWizard from "./onboarding/OnboardingWizard.js";
@@ -11,11 +10,11 @@ import { Toaster } from "./components/ui/sonner.js";
 import { useBootstrap } from "./hooks/useBootstrap.js";
 import { useRuntimeMessages } from "./hooks/useRuntimeMessages.js";
 import { useShortcuts } from "./hooks/useShortcuts.js";
-import TooltipLayer from "./components/TooltipLayer.js";
 import { useSystemThemeListener } from "./hooks/useSystemThemeListener.js";
 import { useStore } from "./state/store.js";
 import { Skeleton } from "@ui/components/ui/skeleton";
 import { Button } from "@ui/components/ui/button";
+import { TooltipProvider } from "@ui/components/ui/tooltip";
 import { saveSettings } from "../api/settings.js";
 import type { NodeId, Url } from "@shared/types/ids.js";
 import { navigateToNodeId } from "../api/tree.js";
@@ -128,35 +127,35 @@ export default function App() {
   }
 
   return (
-    <div className="relative flex h-dvh w-full max-w-none min-w-0 flex-col overflow-hidden">
-      <Toaster />
-      <SyncConflictBanner />
-      <FloatingControls />
-      <CommandPalette />
-      {settings && (
-        <Suspense fallback={<BootstrapSkeleton />}>
-          <TrailGraph
-            tree={treeJSON}
-            currentNodeId={currentNodeId}
-            openNodeIds={openNodeIds}
-            collapsedNodeIds={collapsedNodeIds}
-            selectedNodeIds={selectedNodeIds}
-            nodeTabCounts={nodeTabCounts}
-            settings={settings}
-            precomputedPositions={precomputedPositions}
-            onNodeClick={handleNodeClick}
-            onNodeContextMenu={handleNodeContextMenu}
-            onCollapseToggle={handleCollapseToggle}
-            onSelectionChange={handleSelectionChange}
-            onLayoutModeChange={handleLayoutModeChange}
-          />
-        </Suspense>
-      )}
-      <DeleteTreeConfirmModal />
-      <RenameNodeDialog />
-      <OnboardingWizard />
-      <ContextMenus />
-      <TooltipLayer />
-    </div>
+    <TooltipProvider delayDuration={200}>
+      <div className="relative flex h-dvh w-full max-w-none min-w-0 flex-col overflow-hidden">
+        <Toaster />
+        <SyncConflictBanner />
+        <FloatingControls />
+        {settings && (
+          <Suspense fallback={<BootstrapSkeleton />}>
+            <TrailGraph
+              tree={treeJSON}
+              currentNodeId={currentNodeId}
+              openNodeIds={openNodeIds}
+              collapsedNodeIds={collapsedNodeIds}
+              selectedNodeIds={selectedNodeIds}
+              nodeTabCounts={nodeTabCounts}
+              settings={settings}
+              precomputedPositions={precomputedPositions}
+              onNodeClick={handleNodeClick}
+              onNodeContextMenu={handleNodeContextMenu}
+              onCollapseToggle={handleCollapseToggle}
+              onSelectionChange={handleSelectionChange}
+              onLayoutModeChange={handleLayoutModeChange}
+            />
+          </Suspense>
+        )}
+        <DeleteTreeConfirmModal />
+        <RenameNodeDialog />
+        <OnboardingWizard />
+        <ContextMenus />
+      </div>
+    </TooltipProvider>
   );
 }

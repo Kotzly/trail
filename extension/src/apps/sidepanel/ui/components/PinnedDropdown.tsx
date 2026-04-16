@@ -10,7 +10,7 @@ import { Icons } from "./Icon.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { displayLabel, formatHost } from "../shared/format.js";
 import { Button } from "@ui/components/ui/button";
-import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -33,19 +33,14 @@ import { Separator } from "@ui/components/ui/separator";
 type NavNode = TreeNode<NodeData> | NavigationNode;
 
 export default function PinnedDropdown() {
-  const pins = useStore((state) => state.pins);
-  const tree = useStore((state) => state.tree);
-  const pinnedOpen = useStore((state) => state.ui.pinnedOpen);
-  const setPinnedOpen = useStore((state) => state.setPinnedOpen);
-  const pinnedShortcut = "Shift+P";
-  const pinnedTooltip = `Pinned pages (${pinnedShortcut})`;
+  const pins = useStore((s) => s.pins);
+  const tree = useStore((s) => s.tree);
+  const open = useStore((s) => s.ui.pinnedOpen);
+  const setOpen = useStore((s) => s.setPinnedOpen);
 
-  useOverlayEffects(pinnedOpen, { kind: "dropdown" });
+  useOverlayEffects(open, { kind: "dropdown" });
 
-  const pinnedNodes = useMemo(() => {
-    if (!pins) return [];
-    return Array.from(pins.pinned);
-  }, [pins]);
+  const pinnedNodes = useMemo<NavNode[]>(() => (pins ? Array.from(pins.pinned) : []), [pins]);
 
   const handleNavigate = useCallback(
     async (nodeId: NodeId) => {
@@ -53,74 +48,91 @@ export default function PinnedDropdown() {
       if (!node) return;
       try {
         await navigateTo(node);
-        setPinnedOpen(false);
+        setOpen(false);
       } catch (error) {
         showOperationError("Open page", error);
       }
     },
-    [tree, setPinnedOpen],
+    [tree, setOpen],
+  );
+
+  const handleEnter = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+      const first = pinnedNodes[0];
+      if (first) {
+        e.preventDefault();
+        void handleNavigate(first.id as NodeId);
+      }
+    },
+    [pinnedNodes, handleNavigate],
   );
 
   return (
-    <Popover open={pinnedOpen} onOpenChange={setPinnedOpen}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           id="pinnedBtn"
           variant="ghost"
           size="icon-sm"
           type="button"
-          aria-label={pinnedTooltip}
-          data-tooltip={pinnedTooltip}
+          aria-label="Pinned pages (Shift+P)"
+          data-tooltip="Pinned pages (Shift+P)"
         >
           <Icons.Pin />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-80 p-0"
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            const node = pinnedNodes[0];
-            if (node) void handleNavigate(node.id as NodeId);
-          }
-        }}
-      >
-        <CardHeader className="px-3 py-2.5">
-          <CardTitle className="text-[13px]">Pinned</CardTitle>
-          <CardDescription className="text-[11px]" id="pinnedCount">
-            {pinnedNodes.length} {pinnedNodes.length === 1 ? "page" : "pages"}
-          </CardDescription>
-        </CardHeader>
-        <Separator />
-        <ScrollArea className="max-h-[320px]">
-          {pinnedNodes.length === 0 ? (
-            <Empty className="border-0 py-8">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Icons.Bookmark />
-                </EmptyMedia>
-                <EmptyTitle className="text-sm">No pinned pages yet</EmptyTitle>
-                <EmptyDescription>Right-click a node in the graph to pin it</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <ItemGroup className="p-1" id="pinnedList">
-              {pinnedNodes.map((node) => (
-                <PinnedRow key={node.id} node={node} onNavigate={handleNavigate} />
-              ))}
-            </ItemGroup>
-          )}
-        </ScrollArea>
+      <PopoverContent align="start" className="w-80 p-0" onKeyDown={handleEnter}>
+        <Card className="rounded-none border-0 shadow-none ring-0">
+          <CardHeader>
+            <CardTitle>Pinned</CardTitle>
+            <CardDescription id="pinnedCount">
+              {pinnedNodes.length} {pinnedNodes.length === 1 ? "page" : "pages"}
+            </CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="p-0">
+            <ScrollArea className="max-h-[320px]">
+              {pinnedNodes.length === 0 ? (
+                <EmptyPinned />
+              ) : (
+                <ItemGroup className="p-1" id="pinnedList">
+                  {pinnedNodes.map((node) => (
+                    <PinnedRow key={node.id} node={node} onNavigate={handleNavigate} />
+                  ))}
+                </ItemGroup>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
       </PopoverContent>
     </Popover>
   );
 }
 
 /**
- * Memoized row — re-renders only when its own node identity changes. Any
- * pin/unpin elsewhere in the list (or any unrelated parent state update)
- * leaves existing rows untouched.
+ * Hoisted — static tree, never re-constructed on parent re-render
+ * (`rendering-hoist-jsx`).
+ */
+function EmptyPinned() {
+  return (
+    <Empty className="border-0">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icons.Bookmark />
+        </EmptyMedia>
+        <EmptyTitle>No pinned pages yet</EmptyTitle>
+        <EmptyDescription>Right-click a node in the graph to pin it</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+}
+
+/**
+ * Memoized so sibling re-renders (parent state change, graph update,
+ * another pin/unpin) don't ripple through the whole list — only the row
+ * whose `node` identity changed actually re-renders
+ * (`rerender-memo` + `rerender-functional-setstate`).
  */
 const PinnedRow = memo(function PinnedRow({
   node,
@@ -134,6 +146,7 @@ const PinnedRow = memo(function PinnedRow({
     url: node.data.url ?? null,
   });
   const host = formatHost(node.data.url);
+  const showHost = host && host !== title;
 
   return (
     <Item
@@ -151,10 +164,8 @@ const PinnedRow = memo(function PinnedRow({
         )}
       </ItemMedia>
       <ItemContent>
-        <ItemTitle className="text-[13px]">{title}</ItemTitle>
-        {host && host !== title ? (
-          <ItemDescription className="text-[11px]">{host}</ItemDescription>
-        ) : null}
+        <ItemTitle>{title}</ItemTitle>
+        {showHost ? <ItemDescription>{host}</ItemDescription> : null}
       </ItemContent>
     </Item>
   );

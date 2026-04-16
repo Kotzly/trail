@@ -10,8 +10,8 @@ function resolveEffective(theme: ThemeId): "light" | "dark" {
 
 /**
  * Base shadcn token values for contexts without CSS cascade access
- * (Spotlight Shadow DOM). Matches the :root / [data-theme="dark"]
- * definitions in tailwind.css.
+ * (Spotlight Shadow DOM). Matches the :root / .dark definitions in
+ * tailwind.css.
  */
 const BASE_TOKENS: Record<"light" | "dark", Record<string, string>> = {
   light: {
@@ -85,11 +85,11 @@ export function applyThemeTokens(
 /**
  * Apply theme to the sidepanel document root.
  *
- * Sets `data-theme` to the *resolved* value ("light" | "dark"), never
- * "system" — the tailwind `@custom-variant dark (&:is([data-theme="dark"] *))`
- * rule only triggers on that exact string, and the early-apply script does
- * the same resolution. The user's *choice* ("system" vs explicit) is
- * persisted separately in `trail_settings.theme`.
+ * Toggles the `.dark` class on `<html>` — matches the shadcn convention so
+ * preset-generated `.dark { ... }` blocks apply cleanly, and keeps the
+ * tailwind `@custom-variant dark (&:is(.dark *))` rule firing. The early-apply
+ * script does the same thing before React mounts. The user's *choice*
+ * ("system" vs explicit) is persisted separately in `trail_settings.theme`.
  *
  * Also sets `color-scheme` so form controls, scrollbars, and the initial
  * paint match the theme.
@@ -97,7 +97,7 @@ export function applyThemeTokens(
 export function applyTheme(theme: ThemeId): void {
   const root = document.documentElement;
   const effective = resolveEffective(theme);
-  root.setAttribute("data-theme", effective);
+  root.classList.toggle("dark", effective === "dark");
   root.style.colorScheme = effective;
   void themeCacheItem.setValue(effective);
 

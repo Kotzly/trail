@@ -1,12 +1,9 @@
-"use client";
-
 import * as React from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 
 import { cn } from "@ui/lib/utils";
 import { Button } from "@ui/components/ui/button";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { XIcon } from "lucide-react";
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
@@ -32,7 +29,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm",
+        "data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs",
         className,
       )}
       {...props}
@@ -54,7 +51,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-popover text-popover-foreground ring-foreground/5 dark:ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-4xl p-6 text-sm shadow-xl ring-1 duration-100 outline-none sm:max-w-md",
+          "bg-popover text-popover-foreground ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl p-4 text-sm ring-1 duration-100 outline-none sm:max-w-sm",
           className,
         )}
         {...props}
@@ -62,8 +59,8 @@ function DialogContent({
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button variant="ghost" className="bg-secondary absolute top-4 right-4" size="icon-sm">
-              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+            <Button variant="ghost" className="absolute top-2 right-2" size="icon-sm">
+              <XIcon />
               <span className="sr-only">Close</span>
             </Button>
           </DialogPrimitive.Close>
@@ -75,7 +72,7 @@ function DialogContent({
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div data-slot="dialog-header" className={cn("flex flex-col gap-1.5", className)} {...props} />
+    <div data-slot="dialog-header" className={cn("flex flex-col gap-2", className)} {...props} />
   );
 }
 
@@ -90,7 +87,10 @@ function DialogFooter({
   return (
     <div
       data-slot="dialog-footer"
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+      className={cn(
+        "bg-muted/50 -mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t p-4 sm:flex-row sm:justify-end",
+        className,
+      )}
       {...props}
     >
       {children}

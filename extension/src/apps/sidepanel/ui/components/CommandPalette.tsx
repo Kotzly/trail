@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import {
-  CommandDialog,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@ui/components/ui/dialog";
+import {
+  Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -8,104 +16,113 @@ import {
   CommandList,
   CommandSeparator,
 } from "@ui/components/ui/command";
+import { Button } from "@ui/components/ui/button";
+import { Kbd } from "@ui/components/ui/kbd";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
 import { browser } from "@shared/platform/webext.js";
 import { navigateToNodeId } from "../../api/tree.js";
-import type { NodeId, Url } from "@shared/types/ids.js";
+import type { Url } from "@shared/types/ids.js";
+import { type IndexEntry, SearchIndex } from "./command-palette-search.js";
 
-type NodeEntry = {
-  id: NodeId;
-  title: string;
-  url: string;
-  favicon?: string;
-};
+/** Hard limit on items rendered in the Nodes group. cmdk filters are
+ *  disabled (`shouldFilter={false}`) so what we render is exactly what
+ *  the user sees — the cap keeps mount/unmount cost bounded per
+ *  keystroke and on close. */
+const VISIBLE_LIMIT = 50;
 
 /**
- * Hard cap on nodes passed to cmdk. cmdk filters client-side and renders
- * all matches, so for huge trees we'd overwhelm the DOM. 2000 covers the
- * vast majority of real trees and the first match for any query is always
- * within this window thanks to the depth-first tree.iter() order.
+ * Command palette: search trigger + Radix dialog wired to the global
+ * `commandPalette.open` state (so the keyboard shortcut and any other
+ * caller can drive it). The trigger pattern lets Radix recognise the
+ * search button as part of the dialog tree, so clicking it while open
+ * closes cleanly without a re-open race.
+ *
+ * The body is rendered in a separate component so it mounts only when
+ * the dialog opens — query state lives there and resets naturally on
+ * unmount, no manual `setQuery("")` ceremony.
  */
-const NODE_CAP = 2000;
-
 export default function CommandPalette() {
   const open = useStore((s) => s.commandPalette.open);
   const setOpen = useStore((s) => s.setCommandPaletteOpen);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          id="searchBtn"
+          variant="ghost"
+          size="icon-sm"
+          className="rounded-full"
+          type="button"
+          aria-label="Search"
+          data-tooltip="Search"
+        >
+          <Icons.Search />
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        showCloseButton={false}
+        className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0"
+      >
+        <DialogHeader className="sr-only">
+          <DialogTitle>Search Trail</DialogTitle>
+          <DialogDescription>Search nodes, jump between trees, or run commands</DialogDescription>
+        </DialogHeader>
+        <PaletteBody onClose={() => setOpen(false)} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Mounted only while the dialog is open. Owns the input/query state, so
+ * it resets naturally when Radix unmounts the portal on close.
+ *
+ * Index lifecycle: built once per tree reference (the store hands us a
+ * fresh `NavigationTree` on every applyTreeState — see store.ts), cached
+ * by useMemo. Filtering and ranking happen inside the index; this
+ * component just plumbs the deferred query through and renders results.
+ */
+function PaletteBody({ onClose }: { onClose: () => void }) {
   const tree = useStore((s) => s.tree);
   const [query, setQuery] = useState("");
 
-  // Defer mounting the (potentially huge) Nodes group. useEffect runs
-  // after commit + paint, so the open dialog appears first; the transition
-  // then schedules the heavy mount as non-urgent and yields to the input.
-  // `isPending` powers the inline "loading" hint during that window.
-  const [nodesReady, setNodesReady] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  useEffect(() => {
-    if (!open) {
-      setNodesReady(false);
-      return;
-    }
-    startTransition(() => setNodesReady(true));
-  }, [open]);
+  const index = useMemo(() => (tree ? new SearchIndex(tree) : null), [tree]);
 
-  // Close handler resets query directly — no useEffect-as-state-reset.
-  const handleOpenChange = (next: boolean) => {
-    if (!next) setQuery("");
-    setOpen(next);
-  };
+  // useDeferredValue keeps the input snappy: React commits the new query
+  // value first as urgent, then schedules the re-rank as low priority.
+  const deferredQuery = useDeferredValue(query);
+  const matches: readonly IndexEntry[] = useMemo(
+    () => (index ? index.search(deferredQuery, VISIBLE_LIMIT) : []),
+    [index, deferredQuery],
+  );
 
-  // Build the entry list lazily — only when the palette is actually open.
-  // Avoids paying the iteration cost on every tree mutation in the
-  // background while the palette sits closed.
-  const nodes: NodeEntry[] = useMemo(() => {
-    if (!tree || !open) return [];
-    const result: NodeEntry[] = [];
-    for (const node of tree.iter()) {
-      result.push({
-        id: node.id,
-        title: String(node.data.title ?? node.data.url ?? "Untitled"),
-        url: String(node.data.url ?? ""),
-        favicon: node.data.favicon ? String(node.data.favicon) : undefined,
-      });
-      if (result.length >= NODE_CAP) break;
-    }
-    return result;
-  }, [tree, open]);
-
-  const handleNavigate = (entry: NodeEntry) => {
-    handleOpenChange(false);
+  const handleNavigate = (entry: IndexEntry) => {
+    onClose();
     void navigateToNodeId(entry.id, entry.url as Url);
   };
 
-  const handleOpenInNewTab = (entry: NodeEntry) => {
-    handleOpenChange(false);
+  const handleOpenInNewTab = (entry: IndexEntry) => {
+    onClose();
     browser.tabs.create({ url: entry.url, active: true }).catch((error) => {
       console.error("Failed to open in new tab:", error);
     });
   };
 
   const openSettings = () => {
-    handleOpenChange(false);
+    onClose();
     const url = chrome.runtime.getURL("settings.html");
     browser.tabs.create({ url, active: true }).catch((error) => {
       console.error("Failed to open settings:", error);
     });
   };
 
+  const heading = query.trim() ? "Nodes" : "Recent & frequent";
+  const firstMatch = matches[0];
+
   return (
-    <CommandDialog
-      open={open}
-      onOpenChange={handleOpenChange}
-      title="Search Trail"
-      description="Search nodes, jump between trees, or run commands"
-      // Keyboard-triggered surface (100+/day). Per Emil's frequency rule
-      // we kill the open/close zoom-and-fade entirely — Raycast pattern.
-      // The `cmdk-instant` marker is picked up by a CSS rule in
-      // tailwind.css that also nukes the sibling DialogOverlay's
-      // fade-out duration (otherwise the backdrop lingers ~100ms).
-      className="cmdk-instant data-closed:duration-0 data-open:duration-0"
-    >
+    <Command shouldFilter={false}>
       <CommandInput
         placeholder="Search nodes or type a command..."
         value={query}
@@ -113,24 +130,12 @@ export default function CommandPalette() {
       />
       <CommandList>
         <CommandEmpty>No matches.</CommandEmpty>
-        {isPending && !nodesReady && (
-          <div className="text-muted-foreground flex items-center gap-2 px-3 py-2 text-xs">
-            <Icons.Loader2 className="size-3 animate-spin" />
-            Loading nodes…
-          </div>
-        )}
-        {nodesReady && nodes.length > 0 && (
-          <CommandGroup
-            heading="Nodes"
-            // Subtle async-settle: ~150ms strong ease-out, opacity + 4px
-            // slide from top. Never scale(0) — we start visible. Gated on
-            // motion-safe so reduced-motion users get an instant mount.
-            className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-150 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)]"
-          >
-            {nodes.map((entry) => (
+        {matches.length > 0 && (
+          <CommandGroup heading={heading}>
+            {matches.map((entry) => (
               <CommandItem
                 key={entry.id}
-                value={`${entry.title} ${entry.url}`}
+                value={String(entry.id)}
                 onSelect={() => handleNavigate(entry)}
                 className="gap-2"
               >
@@ -158,17 +163,14 @@ export default function CommandPalette() {
         )}
         <CommandSeparator />
         <CommandGroup heading="Actions">
-          <CommandItem value="open settings" onSelect={openSettings}>
+          <CommandItem value="open-settings" onSelect={openSettings}>
             <Icons.Settings className="size-3.5" />
             Open settings
           </CommandItem>
-          {nodes[0] && (
+          {firstMatch && (
             <CommandItem
-              value="open first result in new tab"
-              onSelect={() => {
-                const first = nodes[0];
-                if (first) handleOpenInNewTab(first);
-              }}
+              value="open-first-in-new-tab"
+              onSelect={() => handleOpenInNewTab(firstMatch)}
             >
               <Icons.ExternalLink className="size-3.5" />
               Open first result in new tab
@@ -176,6 +178,14 @@ export default function CommandPalette() {
           )}
         </CommandGroup>
       </CommandList>
-    </CommandDialog>
+      <div className="border-border/60 text-muted-foreground flex items-center justify-end gap-3 border-t px-3 py-1.5 text-[11px]">
+        <span className="flex items-center gap-1.5">
+          <Kbd>↵</Kbd> Open
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Kbd>Esc</Kbd> Close
+        </span>
+      </div>
+    </Command>
   );
 }
