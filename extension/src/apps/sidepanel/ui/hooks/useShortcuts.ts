@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { tinykeys, type KeyBindingMap } from "tinykeys";
 import type { NodeId } from "@shared/types/ids.js";
 import type { LayoutMode } from "@shared/types/settings.js";
 import { browser } from "@shared/platform/webext.js";
@@ -21,29 +22,9 @@ import { useStore } from "../state/store.js";
 import { getIncludedRootId } from "../shared/delete-tree.js";
 
 type Store = ReturnType<typeof useStore.getState>;
-
-type Match = {
-  /** cmd on mac, ctrl on others. Undefined = must not be pressed. */
-  mod?: boolean;
-  alt?: boolean;
-  /** ctrl key specifically — separate from `mod` on macOS. */
-  ctrl?: boolean;
-  shift?: boolean;
-  /** Matches `event.code` (layout-independent). */
-  code?: string;
-  /** Matches `event.key` (layout-dependent, useful for Enter/Escape/Arrow*). */
-  key?: string;
-};
-
 type Ctx = { event: KeyboardEvent; state: Store };
-type Shortcut = {
-  match: Match | Match[];
-  /** Run condition. Defaults to: not in editor mode. */
-  when?: (ctx: Ctx) => boolean;
-  run: (ctx: Ctx) => void | Promise<void>;
-  /** Skip preventDefault (rare). */
-  passive?: boolean;
-};
+type WhenFn = (ctx: Ctx) => boolean;
+type RunFn = (ctx: Ctx) => void | Promise<void>;
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) return false;
@@ -51,18 +32,6 @@ const isEditableTarget = (target: EventTarget | null): boolean => {
   if (tag === "input" || tag === "textarea" || target.isContentEditable) return true;
   return Boolean(target.closest('[contenteditable="true"]'));
 };
-
-function matches(event: KeyboardEvent, spec: Match, isMac: boolean): boolean {
-  const mod = isMac ? event.metaKey : event.ctrlKey;
-  const ctrl = isMac ? event.ctrlKey : false;
-  if ((spec.mod ?? false) !== mod) return false;
-  if ((spec.alt ?? false) !== event.altKey) return false;
-  if ((spec.ctrl ?? false) !== ctrl) return false;
-  if (spec.shift !== undefined && spec.shift !== event.shiftKey) return false;
-  if (spec.code && spec.code !== event.code) return false;
-  if (spec.key && spec.key !== event.key) return false;
-  return true;
-}
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -203,203 +172,150 @@ async function openFocusedNode(state: Store) {
   }
 }
 
-// ── Shortcut table ──────────────────────────────────────────────────
+// ── Wiring ──────────────────────────────────────────────────────────
 
-const whenNotInEditor: Shortcut["when"] = ({ state }) => !state.editorMode.active;
+const whenNotInEditor: WhenFn = ({ state }) => !state.editorMode.active;
+const always: WhenFn = () => true;
+const whenNotOverlayOrEditor: WhenFn = ({ state }) =>
+  !state.editorMode.active && !overlayOpen(state);
 
-const SHORTCUTS: Shortcut[] = [
-  // Undo / redo
-  {
-    match: { mod: true, code: "KeyZ", shift: false },
-    run: async ({ state }) => {
+/**
+ * Wrap a handler with the global gating: skip when typing in an input,
+ * skip when settings disable shortcuts, evaluate `when`, then
+ * preventDefault + run.
+ */
+function gate(run: RunFn, when: WhenFn = whenNotInEditor): (event: KeyboardEvent) => void {
+  return (event) => {
+    if (event.defaultPrevented) return;
+    if (isEditableTarget(event.target)) return;
+    const state = useStore.getState();
+    if (state.settings && state.settings.shortcutsEnabled === false) return;
+    const ctx: Ctx = { event, state };
+    if (!when(ctx)) return;
+    event.preventDefault();
+    void run(ctx);
+  };
+}
+
+function buildBindings(): KeyBindingMap {
+  const openPalette: RunFn = ({ state }) => state.setCommandPaletteOpen(true);
+  const escape: RunFn = ({ state }) => {
+    if (state.editorMode.active) {
+      exitEditorMode().catch((error) => console.error("Failed to exit editor:", error));
+      return;
+    }
+    state.closeAllPopups();
+    state.closeContextMenu();
+    state.clearSelection();
+    state.clearSearch();
+  };
+
+  return {
+    // Undo / redo
+    "$mod+KeyZ": gate(async ({ state }) => {
       if (!(state.commandState?.canUndo ?? false)) return;
       try {
         state.setCommandState(await undo());
       } catch (error) {
         console.error("Failed to undo:", error);
       }
-    },
-  },
-  {
-    match: [
-      { mod: true, code: "KeyZ", shift: true },
-      // Ctrl+Y on non-Mac only — handled via explicit check in `when`
-      { mod: true, code: "KeyY", shift: false },
-    ],
-    when: ({ event, state }) => !(event.code === "KeyY" && state.isMac),
-    run: async ({ state }) => {
+    }),
+    "$mod+Shift+KeyZ": gate(async ({ state }) => {
       if (!(state.commandState?.canRedo ?? false)) return;
       try {
         state.setCommandState(await redo());
       } catch (error) {
         console.error("Failed to redo:", error);
       }
-    },
-  },
-  // Command palette / search
-  {
-    match: [{ mod: true, code: "KeyF" }, { mod: true, code: "KeyK" }, { code: "Slash" }],
-    run: ({ state }) => {
-      state.setCommandPaletteOpen(true);
-    },
-  },
-  // F2 rename
-  {
-    match: { code: "F2" },
-    run: ({ state }) => {
+    }),
+    // Ctrl+Y on non-mac only — Cmd+Y is "History" on macOS so skip there.
+    "$mod+KeyY": gate(
+      async ({ state }) => {
+        if (!(state.commandState?.canRedo ?? false)) return;
+        try {
+          state.setCommandState(await redo());
+        } catch (error) {
+          console.error("Failed to redo:", error);
+        }
+      },
+      ({ state }) => !state.isMac && !state.editorMode.active,
+    ),
+
+    // Command palette / search
+    "$mod+KeyF": gate(openPalette),
+    "$mod+KeyK": gate(openPalette),
+    Slash: gate(openPalette),
+
+    // F2 rename
+    F2: gate(({ state }) => {
       const ids = getTargetNodeIds(state);
       if (ids.length === 1 && ids[0]) state.openRenameDialog(ids[0]);
-    },
-  },
-  // Settings page
-  {
-    match: { mod: true, code: "Comma" },
-    run: () => openHubPage(),
-  },
-  // Select all / clear selection
-  {
-    match: { mod: true, code: "KeyA", shift: false },
-    run: ({ state }) => selectAllNodes(state),
-  },
-  {
-    match: { mod: true, code: "KeyA", shift: true },
-    run: ({ state }) => state.clearSelection(),
-  },
-  // Escape — exit editor OR close overlays
-  {
-    match: { key: "Escape" },
-    when: () => true, // always active (including editor)
-    run: ({ state }) => {
-      if (state.editorMode.active) {
-        exitEditorMode().catch((error) => console.error("Failed to exit editor:", error));
-        return;
-      }
-      state.closeAllPopups();
-      state.closeContextMenu();
-      state.clearSelection();
-      state.clearSearch();
-    },
-  },
-  // Overlays (pinned / trees / tag filter / layout / connections)
-  {
-    match: { code: "KeyP", shift: true },
-    when: whenNotInEditor,
-    run: ({ state }) => {
-      const open = state.ui.pinnedOpen;
-      state.setPinnedOpen(!open);
-    },
-  },
-  {
-    match: { code: "KeyT", shift: true },
-    run: ({ state }) => {
-      const open = state.ui.treesOpen;
-      state.setTreesOpen(!open);
-    },
-  },
-  {
-    match: { code: "KeyF", shift: true },
-    when: whenNotInEditor,
-    run: ({ state }) => {
-      const open = state.ui.tagFilterOpen;
-      state.setTagFilterOpen(!open);
-    },
-  },
-  {
-    match: { code: "KeyL", shift: true },
-    run: ({ state }) => cycleLayoutMode(state),
-  },
-  {
-    match: { code: "KeyC", shift: true },
-    run: ({ state }) => toggleConnections(state),
-  },
-  // Pin toggle (plain P)
-  {
-    match: { code: "KeyP", shift: false },
-    when: ({ state }) => !state.editorMode.active && !overlayOpen(state),
-    run: ({ state }) => togglePinned(state, getTargetNodeIds(state)),
-  },
-  // Enter — open node(s) in current tab
-  {
-    match: { key: "Enter", shift: false },
-    when: ({ state }) => !overlayOpen(state),
-    run: async ({ state }) => {
-      if (state.editorMode.active) return;
-      await openFocusedNode(state);
-    },
-  },
-  // Cmd+Enter — open in new tabs (works in/out of editor, short-circuits in editor)
-  {
-    match: { key: "Enter", mod: true },
-    when: () => true,
-    run: ({ state }) => {
+    }),
+
+    // Settings page
+    "$mod+Comma": gate(() => openHubPage()),
+
+    // Select all / clear selection
+    "$mod+KeyA": gate(({ state }) => selectAllNodes(state)),
+    "$mod+Shift+KeyA": gate(({ state }) => state.clearSelection()),
+
+    // Escape — exit editor or close overlays
+    Escape: gate(escape, always),
+
+    // Overlays
+    "Shift+KeyP": gate(({ state }) => state.setPinnedOpen(!state.ui.pinnedOpen)),
+    "Shift+KeyT": gate(({ state }) => state.setTreesOpen(!state.ui.treesOpen), always),
+    "Shift+KeyF": gate(({ state }) => state.setTagFilterOpen(!state.ui.tagFilterOpen)),
+    "Shift+KeyL": gate(({ state }) => cycleLayoutMode(state), always),
+    "Shift+KeyC": gate(({ state }) => toggleConnections(state), always),
+
+    // Pin toggle (plain P)
+    KeyP: gate(({ state }) => togglePinned(state, getTargetNodeIds(state)), whenNotOverlayOrEditor),
+
+    // Enter — open in current tab
+    Enter: gate(
+      async ({ state }) => {
+        if (state.editorMode.active) return;
+        await openFocusedNode(state);
+      },
+      ({ state }) => !overlayOpen(state),
+    ),
+    // Cmd+Enter — open in new tabs
+    "$mod+Enter": gate(({ state }) => {
       if (state.editorMode.active) return;
       getTargetNodeIds(state).forEach((nodeId) =>
         fireAndForget(openInNewTab(nodeId), "open in new tab"),
       );
-    },
-  },
-  // Delete / Backspace
-  {
-    match: [
-      { key: "Delete", shift: false },
-      { key: "Delete", shift: true },
-      { key: "Backspace", shift: false },
-      { key: "Backspace", shift: true },
-    ],
-    when: ({ state }) => !state.editorMode.active && !overlayOpen(state),
-    run: ({ event, state }) => deleteNodes(state, getTargetNodeIds(state), event.shiftKey),
-  },
-  // Arrow navigation
-  {
-    match: { key: "ArrowUp", shift: false },
-    when: ({ state }) => !state.editorMode.active && !overlayOpen(state),
-    run: ({ state }) => moveFocus(state, "parent"),
-  },
-  {
-    match: { key: "ArrowDown", shift: false },
-    when: ({ state }) => !state.editorMode.active && !overlayOpen(state),
-    run: ({ state }) => moveFocus(state, "child"),
-  },
-  {
-    match: { key: "ArrowLeft", shift: false },
-    when: ({ state }) => !state.editorMode.active && !overlayOpen(state),
-    run: ({ state }) => moveFocus(state, "prev"),
-  },
-  {
-    match: { key: "ArrowRight", shift: false },
-    when: ({ state }) => !state.editorMode.active && !overlayOpen(state),
-    run: ({ state }) => moveFocus(state, "next"),
-  },
-];
+    }, always),
+
+    // Delete / Backspace — single key + Shift variant for recursive
+    Delete: gate(
+      ({ event, state }) => deleteNodes(state, getTargetNodeIds(state), event.shiftKey),
+      whenNotOverlayOrEditor,
+    ),
+    Backspace: gate(
+      ({ event, state }) => deleteNodes(state, getTargetNodeIds(state), event.shiftKey),
+      whenNotOverlayOrEditor,
+    ),
+    "Shift+Delete": gate(
+      ({ state }) => deleteNodes(state, getTargetNodeIds(state), true),
+      whenNotOverlayOrEditor,
+    ),
+    "Shift+Backspace": gate(
+      ({ state }) => deleteNodes(state, getTargetNodeIds(state), true),
+      whenNotOverlayOrEditor,
+    ),
+
+    // Arrow navigation
+    ArrowUp: gate(({ state }) => moveFocus(state, "parent"), whenNotOverlayOrEditor),
+    ArrowDown: gate(({ state }) => moveFocus(state, "child"), whenNotOverlayOrEditor),
+    ArrowLeft: gate(({ state }) => moveFocus(state, "prev"), whenNotOverlayOrEditor),
+    ArrowRight: gate(({ state }) => moveFocus(state, "next"), whenNotOverlayOrEditor),
+  };
+}
 
 export function useShortcuts(): void {
   useEffect(() => {
-    const onKeyDown = async (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-      if (isEditableTarget(event.target)) return;
-
-      const state = useStore.getState();
-      if (state.settings && state.settings.shortcutsEnabled === false) return;
-
-      const isMac = state.isMac;
-
-      for (const shortcut of SHORTCUTS) {
-        const specs = Array.isArray(shortcut.match) ? shortcut.match : [shortcut.match];
-        if (!specs.some((spec) => matches(event, spec, isMac))) continue;
-
-        const ctx: Ctx = { event, state };
-        const allowed = shortcut.when ? shortcut.when(ctx) : !state.editorMode.active;
-        if (!allowed) continue;
-
-        if (!shortcut.passive) event.preventDefault();
-        await shortcut.run(ctx);
-        return;
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-    // Intentional empty deps: handler reads live state via useStore.getState()
-    // so the listener attaches once for the sidepanel's lifetime.
+    return tinykeys(window, buildBindings());
   }, []);
 }

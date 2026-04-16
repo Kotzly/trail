@@ -19,3 +19,22 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// tinykeys 3.0.0 ships its types via "types" but doesn't list them in
+// "exports", so moduleResolution: bundler can't find them. Re-declare
+// the small subset of the API the project consumes.
+declare module "tinykeys" {
+  export interface KeyBindingMap {
+    [keybinding: string]: (event: KeyboardEvent) => void;
+  }
+  export interface KeyBindingOptions {
+    timeout?: number;
+    event?: "keydown" | "keyup";
+    capture?: boolean;
+  }
+  export function tinykeys(
+    target: Window | HTMLElement,
+    keyBindingMap: KeyBindingMap,
+    options?: KeyBindingOptions,
+  ): () => void;
+}
