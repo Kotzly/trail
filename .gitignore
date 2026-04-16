@@ -69,3 +69,4 @@ extension/.meta/claude/
 .superset/
 backend-preset.json
 runtime-debug.json
+graphify-out/
