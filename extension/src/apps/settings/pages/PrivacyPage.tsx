@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Switch } from "@ui/components/ui/switch";
 import {
@@ -22,8 +23,14 @@ import { useSettings } from "../hooks/useSettings.js";
 const PRIVACY_URL = "https://gettrail.net/privacy";
 const TERMS_URL = "https://gettrail.net/terms";
 
+const TELEMETRY_CONSENT_KEY = ["telemetry-consent"] as const;
+
 export function PrivacyPage() {
-  const [consent, setConsent] = useState<TelemetryConsent | null>(null);
+  const queryClient = useQueryClient();
+  const { data: consent } = useQuery({
+    queryKey: TELEMETRY_CONSENT_KEY,
+    queryFn: getTelemetryConsent,
+  });
   const { settings, updateSettings } = useSettings();
   const [blocklistDraft, setBlocklistDraft] = useState<string>("");
 
@@ -31,20 +38,12 @@ export function PrivacyPage() {
     if (settings) setBlocklistDraft(settings.privacy.blocklist.join("\n"));
   }, [settings]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void getTelemetryConsent().then((c) => {
-      if (!cancelled) setConsent(c);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const updateConsent = async (next: Partial<TelemetryConsent>) => {
     await setTelemetryConsent(next);
-    const updated = await getTelemetryConsent();
-    setConsent(updated);
+    const updated = await queryClient.fetchQuery({
+      queryKey: TELEMETRY_CONSENT_KEY,
+      queryFn: getTelemetryConsent,
+    });
     if (next.analytics === false || next.errors === false) {
       captureEvent("telemetry_opted_out", {
         errors: Boolean(updated.errors),
