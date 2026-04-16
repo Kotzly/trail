@@ -47,24 +47,75 @@ type TreeItem = {
 function formatHost(url?: Url): string {
   if (!url) return "";
   try {
-    return new URL(url).hostname;
+    const host = new URL(url).hostname;
+    // Drop the leading www. — noise that pushes useful domain characters
+    // past the truncation point on narrow sidepanels.
+    return host.replace(/^www\./i, "");
   } catch {
     return url;
   }
 }
 
+/**
+ * Compact, humane date:
+ *   - today → "today"
+ *   - yesterday → "yesterday"
+ *   - this year → "Apr 16"
+ *   - older → "Apr 16, 2025"
+ */
 function formatDate(ts?: number): string {
   if (!ts) return "";
   try {
     const date = new Date(ts);
     if (Number.isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat("en-US", {
+
+    const now = new Date();
+    const sameDay =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+    if (sameDay) return "today";
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday =
+      date.getFullYear() === yesterday.getFullYear() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getDate() === yesterday.getDate();
+    if (isYesterday) return "yesterday";
+
+    const thisYear = date.getFullYear() === now.getFullYear();
+    return new Intl.DateTimeFormat(undefined, {
       month: "short",
       day: "numeric",
+      ...(thisYear ? {} : { year: "numeric" }),
     }).format(date);
   } catch {
     return "";
   }
+}
+
+const NUMBER_FORMATTER = new Intl.NumberFormat();
+
+function formatNodeCount(n: number): string {
+  const rounded = Math.round(n);
+  return `${NUMBER_FORMATTER.format(rounded)} ${rounded === 1 ? "node" : "nodes"}`;
+}
+
+/**
+ * Prefer the user's label when set; fall back to root title, then host.
+ * Never return the generic "Unnamed Tree" placeholder if we have a better
+ * signal from the tree's root URL — that placeholder is the `label` field
+ * when the user hit Enter without typing anything.
+ */
+function displayLabel(entry: { label: string; rootTitle?: string; rootUrl?: Url }): string {
+  const label = (entry.label ?? "").trim();
+  if (label && label !== "Unnamed Tree") return label;
+  const title = (entry.rootTitle ?? "").trim();
+  if (title) return title;
+  const host = formatHost(entry.rootUrl);
+  if (host) return host;
+  return label || "Unnamed Tree";
 }
 
 function formatRelativeTime(iso: string | null): string {
@@ -320,6 +371,18 @@ export default function TreeDropdown() {
                   current
                 </div>
                 <div className="bg-accent flex items-center gap-2.5 px-4 py-2">
+                  {/* Favicon (parity with saved rows) */}
+                  {activeTree.rootUrl ? (
+                    <img
+                      className="size-4 shrink-0 rounded-sm"
+                      alt=""
+                      src={getFaviconUrl(activeTree.rootUrl)}
+                    />
+                  ) : (
+                    <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
+                      <Icons.Bookmark className="text-muted-foreground size-2.5" />
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     {editingId === activeTree.id ? (
                       <Input
@@ -344,14 +407,17 @@ export default function TreeDropdown() {
                         className="cursor-text truncate text-[13px]"
                         onDoubleClick={() => startEdit(activeTree)}
                       >
-                        {activeTree.label}
+                        {displayLabel({
+                          label: activeTree.label,
+                          ...(activeTree.rootTitle ? { rootTitle: activeTree.rootTitle } : {}),
+                          ...(activeTree.rootUrl ? { rootUrl: activeTree.rootUrl } : {}),
+                        })}
                       </div>
                     )}
                     <div className="text-muted-foreground mt-0.5 truncate text-[11px]">
                       {[
-                        "active now",
-                        `${activeTree.nodeCount} nodes`,
-                        lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : null,
+                        formatNodeCount(activeTree.nodeCount),
+                        lastSyncedAt ? `synced ${formatRelativeTime(lastSyncedAt)}` : "active now",
                       ]
                         .filter(Boolean)
                         .join(" \u00b7 ")}
@@ -453,11 +519,13 @@ export default function TreeDropdown() {
                     const isUnavailable = unavailableTreeIds.has(tree.id);
                     const host = formatHost(tree.rootUrl);
                     const date = formatDate(tree.savedAt);
+                    // "archived" is redundant — this whole section is the
+                    // archive list. "cloud"/"unavailable" chips only
+                    // surface when meaningful.
                     const meta = [
-                      "archived",
                       tree.stub ? (isUnavailable ? "unavailable" : "cloud") : null,
-                      host || tree.rootTitle || "Untitled",
-                      `${tree.nodeCount} nodes`,
+                      host,
+                      formatNodeCount(tree.nodeCount),
                       date,
                     ]
                       .filter(Boolean)
@@ -527,7 +595,11 @@ export default function TreeDropdown() {
                                 startEdit(tree);
                               }}
                             >
-                              {tree.label}
+                              {displayLabel({
+                                label: tree.label,
+                                ...(tree.rootTitle ? { rootTitle: tree.rootTitle } : {}),
+                                ...(tree.rootUrl ? { rootUrl: tree.rootUrl } : {}),
+                              })}
                             </div>
                           )}
                           <div className="text-muted-foreground truncate text-[11px]">{meta}</div>
