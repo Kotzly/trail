@@ -21,7 +21,24 @@ import { toast } from "sonner";
 import { browser } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { Button } from "@ui/components/ui/button";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@ui/components/ui/empty";
 import { Input } from "@ui/components/ui/input";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemSeparator,
+  ItemTitle,
+} from "@ui/components/ui/item";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { ScrollArea } from "@ui/components/ui/scroll-area";
 import { Separator } from "@ui/components/ui/separator";
@@ -319,7 +336,7 @@ export default function TreeDropdown() {
           <Separator />
 
           <ScrollArea className="max-h-[420px]">
-            <div className="flex flex-col gap-px p-1">
+            <ItemGroup className="gap-0.5 p-1">
               {activeTree && (
                 <TreeRow
                   tree={activeTree}
@@ -342,7 +359,9 @@ export default function TreeDropdown() {
                 />
               )}
 
-              {activeTree && archivedTrees.length > 0 && <Separator className="my-1 opacity-60" />}
+              {activeTree && archivedTrees.length > 0 && (
+                <ItemSeparator className="my-0.5 opacity-60" />
+              )}
 
               {archivedTrees.length === 0 && !activeTree ? (
                 <EmptyState />
@@ -383,7 +402,7 @@ export default function TreeDropdown() {
                   );
                 })
               )}
-            </div>
+            </ItemGroup>
           </ScrollArea>
         </PopoverContent>
       </Popover>
@@ -453,10 +472,11 @@ function TreeRow({
 }: TreeRowProps) {
   const clickable = !active && !loading && !unavailable && Boolean(onOpen);
   return (
-    <div
+    <Item
+      variant={active ? "muted" : "default"}
+      size="xs"
       className={cn(
-        "group flex items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] transition-colors",
-        active && "bg-accent",
+        "group/row border-transparent",
         !active && "hover:bg-accent",
         clickable && "cursor-pointer",
         loading && "pointer-events-none opacity-60",
@@ -464,9 +484,11 @@ function TreeRow({
       )}
       onClick={() => clickable && onOpen?.()}
     >
-      <TreeFavicon tree={tree} loading={loading} unavailable={unavailable} />
+      <ItemMedia variant="icon">
+        <TreeFavicon tree={tree} loading={loading} unavailable={unavailable} />
+      </ItemMedia>
 
-      <div className="min-w-0 flex-1">
+      <ItemContent>
         {isEditing ? (
           <Input
             ref={inputRef}
@@ -487,8 +509,8 @@ function TreeRow({
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <div
-            className="truncate"
+          <ItemTitle
+            className="cursor-text text-[13px]"
             onDoubleClick={(e) => {
               e.stopPropagation();
               onStartEdit();
@@ -499,16 +521,16 @@ function TreeRow({
               ...(tree.rootTitle ? { rootTitle: tree.rootTitle } : {}),
               ...(tree.rootUrl ? { rootUrl: tree.rootUrl } : {}),
             })}
-          </div>
+          </ItemTitle>
         )}
-        {meta ? <div className="text-muted-foreground truncate text-[11px]">{meta}</div> : null}
-      </div>
+        {meta ? <ItemDescription className="text-[11px]">{meta}</ItemDescription> : null}
+      </ItemContent>
 
       {!isEditing && !loading && (
-        <div
+        <ItemActions
           className={cn(
-            "flex shrink-0 items-center gap-0.5 transition-opacity",
-            active ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            "gap-0.5 transition-opacity",
+            active ? "opacity-100" : "opacity-0 group-hover/row:opacity-100",
           )}
         >
           {!tree.stub && (
@@ -555,9 +577,9 @@ function TreeRow({
               <Icons.Trash2 />
             </Button>
           )}
-        </div>
+        </ItemActions>
       )}
-    </div>
+    </Item>
   );
 }
 
@@ -570,42 +592,33 @@ function TreeFavicon({
   loading?: boolean;
   unavailable?: boolean;
 }) {
-  const wrap = "bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm";
   if (loading) {
-    return (
-      <div className={wrap}>
-        <Icons.Loader2 className="text-muted-foreground size-3 animate-spin" />
-      </div>
-    );
+    return <Icons.Loader2 className="text-muted-foreground size-4 animate-spin" />;
   }
   if (tree.stub) {
-    return (
-      <div className={wrap}>
-        {unavailable ? (
-          <Icons.CloudOff className="text-muted-foreground size-3" />
-        ) : (
-          <Icons.Cloud className="text-muted-foreground size-3" />
-        )}
-      </div>
+    return unavailable ? (
+      <Icons.CloudOff className="text-muted-foreground size-4" />
+    ) : (
+      <Icons.Cloud className="text-muted-foreground size-4" />
     );
   }
   if (tree.rootUrl) {
-    return <img className="size-4 shrink-0 rounded-sm" alt="" src={getFaviconUrl(tree.rootUrl)} />;
+    return <img className="size-4 rounded-sm" alt="" src={getFaviconUrl(tree.rootUrl)} />;
   }
-  return (
-    <div className={wrap}>
-      <Icons.Bookmark className="text-muted-foreground size-2.5" />
-    </div>
-  );
+  return <Icons.Bookmark className="text-muted-foreground size-4" />;
 }
 
 function EmptyState() {
   return (
-    <div className="text-muted-foreground flex flex-col items-center gap-1 py-8">
-      <Icons.ListTree className="size-6 opacity-40" />
-      <span className="text-[12px]">No trees yet</span>
-      <span className="text-[11px] opacity-60">Create a new tree to get started</span>
-    </div>
+    <Empty className="border-0 py-8">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icons.ListTree />
+        </EmptyMedia>
+        <EmptyTitle className="text-sm">No trees yet</EmptyTitle>
+        <EmptyDescription>Create a new tree to get started</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }
 

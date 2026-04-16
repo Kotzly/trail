@@ -8,9 +8,24 @@ import { Icons } from "./Icon.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { displayLabel, formatHost } from "../shared/format.js";
 import { Button } from "@ui/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@ui/components/ui/empty";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@ui/components/ui/item";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { ScrollArea } from "@ui/components/ui/scroll-area";
+import { Separator } from "@ui/components/ui/separator";
 
 export default function PinnedDropdown() {
   const pins = useStore((state) => state.pins);
@@ -63,72 +78,64 @@ export default function PinnedDropdown() {
           }
         }}
       >
-        <Card size="sm" className="rounded-md shadow-none ring-0">
-          <CardHeader className="gap-1">
-            <CardTitle className="flex items-center gap-2 text-[13px] font-semibold">
-              pinned
-              <span
-                className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-[11px]"
-                id="pinnedCount"
-              >
-                {pinnedNodes.length}
-              </span>
-            </CardTitle>
-            <CardDescription className="text-[11px]">
-              Pages you've pinned for quick access.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-1 pb-2">
-            <ScrollArea className="max-h-[300px]">
-              <div id="pinnedList">
-                {pinnedNodes.length === 0 ? (
-                  <div className="text-muted-foreground flex flex-col items-center gap-1.5 py-6">
-                    <Icons.Bookmark className="size-6 opacity-40" />
-                    <span className="text-[13px]">No pinned pages yet</span>
-                    <span className="text-[11px] opacity-60">Right-click a node to pin it</span>
-                  </div>
-                ) : (
-                  pinnedNodes.map((node) => {
-                    const title = displayLabel({
-                      title: node.data.title ?? null,
-                      url: node.data.url ?? null,
-                    });
-                    const host = formatHost(node.data.url);
-                    return (
-                      <Button
-                        key={node.id}
-                        variant="ghost"
-                        className="flex h-auto w-full items-center justify-start gap-2.5 rounded-md px-2.5 py-2"
-                        data-node-id={node.id}
-                        onClick={() => void handleNavigate(node.id as NodeId)}
-                      >
-                        {node.data.url ? (
-                          <img
-                            className="size-4 shrink-0 rounded-sm"
-                            alt=""
-                            src={getFaviconUrl(node.data.url)}
-                          />
-                        ) : (
-                          <div className="bg-muted flex size-4 shrink-0 items-center justify-center rounded-sm">
-                            <Icons.Pin className="text-muted-foreground size-2.5" />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1 text-left">
-                          <div className="truncate text-[13px]">{title}</div>
-                          {host && host !== title ? (
-                            <div className="text-muted-foreground truncate text-[11px] font-normal">
-                              {host}
-                            </div>
-                          ) : null}
-                        </div>
-                      </Button>
-                    );
-                  })
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        <div className="text-muted-foreground flex items-center gap-1.5 px-3 py-2 text-[12px]">
+          <span>Pinned</span>
+          <span className="bg-muted rounded px-1.5 py-px text-[10px] tabular-nums" id="pinnedCount">
+            {pinnedNodes.length}
+          </span>
+        </div>
+        <Separator />
+        <ScrollArea className="max-h-[320px]">
+          {pinnedNodes.length === 0 ? (
+            <Empty className="border-0 py-8">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Icons.Bookmark />
+                </EmptyMedia>
+                <EmptyTitle className="text-sm">No pinned pages yet</EmptyTitle>
+                <EmptyDescription>Right-click a node in the graph to pin it</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <ItemGroup className="gap-0.5 p-1" id="pinnedList">
+              {pinnedNodes.map((node) => {
+                const title = displayLabel({
+                  title: node.data.title ?? null,
+                  url: node.data.url ?? null,
+                });
+                const host = formatHost(node.data.url);
+                return (
+                  <Item
+                    key={node.id}
+                    variant="default"
+                    size="xs"
+                    className="hover:bg-accent cursor-pointer border-transparent"
+                    data-node-id={node.id}
+                    onClick={() => void handleNavigate(node.id as NodeId)}
+                  >
+                    <ItemMedia variant="icon">
+                      {node.data.url ? (
+                        <img
+                          className="size-4 rounded-sm"
+                          alt=""
+                          src={getFaviconUrl(node.data.url)}
+                        />
+                      ) : (
+                        <Icons.Pin className="text-muted-foreground size-4" />
+                      )}
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className="text-[13px]">{title}</ItemTitle>
+                      {host && host !== title ? (
+                        <ItemDescription className="text-[11px]">{host}</ItemDescription>
+                      ) : null}
+                    </ItemContent>
+                  </Item>
+                );
+              })}
+            </ItemGroup>
+          )}
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   );
