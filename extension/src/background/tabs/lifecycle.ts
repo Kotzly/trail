@@ -171,14 +171,32 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
 async function onWindowFocusChanged(windowId: number): Promise<void> {
   if (windowId === browser.windows.WINDOW_ID_NONE) return;
 
+  // Filter out non-normal windows (devtools pop-outs, picture-in-
+  // picture hosts, macOS workspace transitions). Focusing these
+  // shouldn't trigger a tree current-repoint.
+  try {
+    const win = await browser.windows.get(windowId);
+    if (win.type !== "normal") return;
+  } catch {
+    return;
+  }
+
   const [activeTab] = await browser.tabs.query({ active: true, windowId });
   if (!activeTab?.id) return;
 
   const tabId = activeTab.id as TabId;
   if (tabManager.isIgnoredTab(tabId)) return;
 
+  // Short-circuit if the active tab is unchanged since the last
+  // focus event — saves a round of cacheTree + notify. Covered
+  // by the overall isReady + lock discipline elsewhere.
+  if (tabManager.nodeByTab(tabId) === lastFocusedActiveTabId) return;
+  lastFocusedActiveTabId = tabManager.nodeByTab(tabId);
+
   await onTabActivated({ tabId: activeTab.id, windowId });
 }
+
+let lastFocusedActiveTabId: ReturnType<typeof tabManager.nodeByTab> = undefined;
 
 async function onTabUpdated(
   tabId: number,
