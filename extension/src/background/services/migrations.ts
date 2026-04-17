@@ -45,26 +45,57 @@ const MIGRATIONS: Migration[] = [
   },
 ];
 
+// Index by `from` so the runner is insensitive to ordering in the array.
+function migrationFrom(v: number): Migration | undefined {
+  return MIGRATIONS.find((m) => m.from === v);
+}
+
+// Singleflight: concurrent callers share the same in-flight migration
+// and see it either succeed once or reject once. Cleared only on
+// rejection so a successful run is terminal until the next SW wake.
+let runningMigrations: Promise<void> | null = null;
+
 export async function runMigrations(): Promise<void> {
-  let current = await schemaVersionItem.getValue();
-  if (current >= CURRENT_SCHEMA_VERSION) return;
+  if (runningMigrations) return runningMigrations;
 
-  log.info("migrations: starting", { from: current, to: CURRENT_SCHEMA_VERSION });
+  runningMigrations = (async () => {
+    let current = await schemaVersionItem.getValue();
+    if (current >= CURRENT_SCHEMA_VERSION) return;
 
-  for (const m of MIGRATIONS) {
-    if (m.from !== current) continue;
-    try {
-      await m.run();
-    } catch (error) {
-      captureError(error, { kind: "migration_failed", name: m.name });
-      log.error("migration failed", {
-        name: m.name,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return; // stop on first failure
+    log.info("migrations: starting", { from: current, to: CURRENT_SCHEMA_VERSION });
+
+    // while-loop indexed by from-version: future out-of-order appends
+    // can't cause silent skips the way the filtered single-pass did.
+    while (current < CURRENT_SCHEMA_VERSION) {
+      const m = migrationFrom(current);
+      if (!m) {
+        const error = new Error(
+          `No migration registered from schema version ${current} to ${CURRENT_SCHEMA_VERSION}`,
+        );
+        captureError(error, { kind: "migration_gap", from: current });
+        log.error("migration gap", { from: current });
+        throw error;
+      }
+      try {
+        await m.run();
+      } catch (error) {
+        captureError(error, { kind: "migration_failed", name: m.name });
+        log.error("migration failed", {
+          name: m.name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
+      current = m.to;
+      await schemaVersionItem.setValue(current);
+      log.info("migrations: applied", { name: m.name, at: current });
     }
-    current = m.to;
-    await schemaVersionItem.setValue(current);
-    log.info("migrations: applied", { name: m.name, at: current });
-  }
+  })().catch((error) => {
+    // Reset singleflight on failure so a retry (e.g., onInstalled)
+    // can try again. Don't swallow — re-throw so callers see it.
+    runningMigrations = null;
+    throw error;
+  });
+
+  return runningMigrations;
 }
