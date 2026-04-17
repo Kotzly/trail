@@ -231,13 +231,21 @@ function normalizeLegacyRecord(raw: unknown): TreeRecord | null {
 // Mutex for tree operations
 // ---------------------------------------------------------------------------
 
-const treeMutex = new Mutex();
+export const treeMutex = new Mutex();
 
-function withTreeLock<T>(fn: () => Promise<T>): Promise<T> {
+/**
+ * Run `fn` under the tree mutex. All mutation paths must wrap their
+ * tree writes here; persistence (cacheTree/flushSaveNow) uses the same
+ * lock so readers see consistent state.
+ *
+ * PATTERN: read externals (browser.tabs.get, queries) OUTSIDE the lock.
+ * The lock is narrow — no I/O to Chrome APIs inside `fn`.
+ */
+export function withTreeLock<T>(fn: () => Promise<T>): Promise<T> {
   const waitStart = Date.now();
   return treeMutex.runExclusive(() => {
     const waited = Date.now() - waitStart;
-    if (waited > 5000) {
+    if (waited > 1500) {
       log.warn("Lock acquisition slow", { waitedMs: waited });
     }
     return fn();
@@ -261,6 +269,23 @@ class TreeStorageService {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly saveDebounceMs = 1500;
   private migrated = false;
+
+  /**
+   * Monotonically increasing counter bumped on every tree mutation.
+   * Used by the sidepanel to drop stale snapshots (see useBootstrap
+   * generation guard). Resets to 0 on service-worker restart; consumers
+   * treat it as session-local, not persisted.
+   */
+  private generation = 0;
+
+  getGeneration(): number {
+    return this.generation;
+  }
+
+  /** Internal: bump the generation. Call after every successful mutation under `withTreeLock`. */
+  bumpGeneration(): number {
+    return ++this.generation;
+  }
 
   /**
    * When true, the cached tree is an editor tree for a non-active (archived)
@@ -412,6 +437,7 @@ class TreeStorageService {
   cacheTree(tree: NavigationTree): void {
     this.cachedTree = tree;
     this.dirty = true;
+    this.bumpGeneration();
     this.scheduleSave();
   }
 
