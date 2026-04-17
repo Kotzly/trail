@@ -81,6 +81,19 @@ export class NavigationTree {
     } as NodeData;
   }
 
+  /**
+   * Walk up from `node` to root, returning true if any ancestor
+   * (including `node` itself) is `ancestor`.
+   */
+  private isDescendantOf(node: NavigationNode, ancestor: NavigationNode): boolean {
+    let cursor: NavigationNode | null = node;
+    while (cursor) {
+      if (cursor === ancestor) return true;
+      cursor = cursor.getParent();
+    }
+    return false;
+  }
+
   private mergeDuplicateChildren(parent: NavigationNode): NodeRedirect[] {
     const redirects: NodeRedirect[] = [];
     const seen = new Map<string, NavigationNode>();
@@ -98,16 +111,22 @@ export class NavigationTree {
       existing.data = this.mergeNodeData(existing.data, child.data);
       this.updateSearchEntry(existing);
 
+      // Ancestor-chain intersection: if `this.current` is a
+      // descendant of the subtree we're merging away (not just the
+      // direct child), re-point to the survivor. Previously only
+      // `this.current.id === child.id` was checked, leaving the
+      // cursor dangling in a merged-away subtree and making it a
+      // zombie (reachable via nodeMap but unreachable from root).
+      if (this.current && this.isDescendantOf(this.current, child)) {
+        this.current = existing;
+      }
+
       child.transferChildrenTo(existing);
       child.detach();
 
       this.nodeMap.delete(child.id);
       this.removeSearchEntry(child.id);
       this.nodeCount = Math.max(0, this.nodeCount - 1);
-
-      if (this.current && this.current.id === child.id) {
-        this.current = existing;
-      }
 
       redirects.push({ from: child.id, to: existing.id });
       redirects.push(...this.mergeDuplicateChildren(existing));
