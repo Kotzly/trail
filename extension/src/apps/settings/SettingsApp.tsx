@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSettings } from "./hooks/useSettings.js";
 import { AccountPage } from "./pages/AccountPage.js";
 import { DataPage } from "./pages/DataPage.js";
@@ -25,9 +25,37 @@ const NAV_ITEMS: { id: Page; label: string }[] = [
   { id: "about", label: "About" },
 ];
 
+const VALID_PAGES = new Set<Page>([
+  "account",
+  "data",
+  "appearance",
+  "behavior",
+  "shortcuts",
+  "privacy",
+  "about",
+]);
+
+function pageFromHash(): Page | null {
+  if (typeof window === "undefined") return null;
+  const hash = window.location.hash.replace(/^#/, "");
+  return VALID_PAGES.has(hash as Page) ? (hash as Page) : null;
+}
+
 export default function SettingsApp() {
-  const [page, setPage] = useState<Page>("account");
+  const [page, setPage] = useState<Page>(() => pageFromHash() ?? "account");
   const { settings, loading, updateSettings } = useSettings();
+
+  // Honor hash-based deep-links (e.g. settings.html#behavior) both on
+  // mount and when the hash changes — lets the onboarding "Open
+  // Behavior settings" link jump straight to the right tab.
+  useEffect(() => {
+    const onHashChange = () => {
+      const next = pageFromHash();
+      if (next) setPage(next);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   return (
     <TooltipProvider delayDuration={200}>

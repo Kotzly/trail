@@ -6,6 +6,7 @@ import { Shortcut } from "@ui/components/shortcut";
 import { Progress } from "@ui/components/ui/progress";
 import { Spinner } from "@ui/components/ui/spinner";
 import TrailLogo from "@ui/components/trail-logo";
+import { browser } from "@shared/platform/webext.js";
 import { useBoolean } from "@ui/hooks/use-boolean";
 import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { useMount } from "@ui/hooks/use-mount";
@@ -25,7 +26,7 @@ type Step = {
   primaryLabel: string;
   primaryAction: "next" | "load-demo" | "done";
   secondaryLabel?: string;
-  secondaryAction?: "skip" | "next";
+  secondaryAction?: "skip" | "next" | "open-behavior";
 };
 
 const STEPS: Step[] = [
@@ -68,6 +69,26 @@ const STEPS: Step[] = [
     primaryAction: "next",
     secondaryLabel: "Skip",
     secondaryAction: "skip",
+  },
+  {
+    title: "Trail keeps itself tidy",
+    body: (
+      <div className="flex flex-col gap-3 text-sm leading-relaxed">
+        <p>
+          Trail automatically removes pages you only glanced at for a second — the kind of quick
+          peek that clutters your map without adding meaning.
+        </p>
+        <p>
+          If you ever return to one of those pages, it comes back automatically. You'll find a{" "}
+          <strong>Recently cleaned</strong> list whenever you want to audit or restore.
+        </p>
+        <p className="text-muted-foreground">You can tune this in Settings → Behavior.</p>
+      </div>
+    ),
+    primaryLabel: "Got it",
+    primaryAction: "next",
+    secondaryLabel: "Open Behavior settings",
+    secondaryAction: "open-behavior",
   },
   {
     title: "Chrome will ask for permissions",
@@ -213,6 +234,14 @@ export default function OnboardingWizard() {
       case "next":
         await goToStep(step + 1);
         break;
+      case "open-behavior": {
+        const url = chrome.runtime.getURL("settings.html#behavior");
+        browser.tabs.create({ url, active: true }).catch((error) => {
+          console.error("Failed to open Behavior settings:", error);
+        });
+        await goToStep(step + 1);
+        break;
+      }
     }
   }, [busy, current.secondaryAction, goToStep, handleSkip, step]);
 
