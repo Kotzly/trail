@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trail — sidepanel preview</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #050505;
+        color: #ededed;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      body {
+        display: grid;
+        place-items: stretch;
+        padding: 12px;
+        box-sizing: border-box;
+      }
+      /* Chrome sidepanel default ~400px; 440 gives a bit of breathing room
+         without hiding the overflow issues that real users hit. Override
+         via ?w=NNN query string if you need a wider canvas. */
+      #root {
+        width: 440px;
+        justify-self: center;
+        height: 100%;
+        border: 1px solid #1f1f1f;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+      }
+    </style>
+    <script>
+      // Allow ?w=NNN to override sidepanel width for manual testing.
+      const w = new URLSearchParams(location.search).get("w");
+      if (w) {
+        document.addEventListener("DOMContentLoaded", () => {
+          const r = document.getElementById("root");
+          if (r) r.style.width = w + "px";
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "wxt",
+    "preview:ui": "vite --config vite.preview.config.ts",
     "dev:local": "pnpm run backend:local && wxt",
     "dev:gettrail": "pnpm run backend:gettrail && wxt",
     "build": "wxt build",

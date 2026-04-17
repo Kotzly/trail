@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["vite/client", "node"],
+    "baseUrl": "..",
+    "paths": {
+      "@apps/*": ["src/apps/*"],
+      "@ui/*": ["src/ui/*"],
+      "@features/*": ["src/features/*"],
+      "@background/*": ["src/background/*"],
+      "@shared/*": ["src/shared/*"],
+      "@entrypoints/*": ["src/entrypoints/*"],
+      "@content/*": ["src/content/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../src/**/*"]
+}
