@@ -13,6 +13,7 @@ import { treeStorage, withTreeLock } from "../services/tree-storage.js";
 import { redirectDetector } from "./redirect-detection.js";
 import { onNavigation as trackerOnNavigation, DEFAULT_THRESHOLDS } from "./nav-pattern-tracker.js";
 import { pruneGlance, reviveFromTombstone } from "../services/cleanup-policy.js";
+import { onBurstStep, onBurstSeal } from "../services/burst-consolidator.js";
 import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from "../utils/url-utils.js";
 import { settingsManager } from "../services/settings.js";
 import { handleNewTabTab } from "../utils/new-tab.js";
@@ -371,9 +372,17 @@ export async function handleNavigation(
     );
     if (classification.kind === "glance") {
       await pruneGlance(classification.nodeId);
+    } else if (classification.kind === "burst-step") {
+      onBurstStep(
+        tabId as TabId,
+        classification.nodeId,
+        classification.shape,
+        incomingUrl.timestamp,
+      );
+    } else if (classification.kind === "burst-seal") {
+      await onBurstSeal(tabId as TabId);
     }
-    // burst-step / burst-seal / engaged / none: Phase D + D-adjacent
-    // consumers handle. No-op here.
+    // engaged / none: nothing to do.
   } catch (error) {
     log.warn("Pattern tracker / glance prune failed", {
       error: error instanceof Error ? error.message : String(error),

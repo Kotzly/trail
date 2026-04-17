@@ -19,6 +19,10 @@ import {
   onTabFocus as trackerOnTabFocus,
 } from "../navigation/nav-pattern-tracker.js";
 import { pruneGlance } from "../services/cleanup-policy.js";
+import {
+  onBurstSeal as consolidatorOnBurstSeal,
+  onTabClosed as consolidatorOnTabClosed,
+} from "../services/burst-consolidator.js";
 import type { TreeViewIntent, TreeUpdateReason } from "@shared/rpc/contracts.js";
 
 const log = createLogger("tab-lifecycle");
@@ -131,6 +135,8 @@ async function onTabRemoved(tabId_: number, removeInfo: Browser.tabs.OnRemovedIn
     const cls = trackerOnTabFinished(tabId, Date.now());
     if (cls.kind === "glance") {
       await pruneGlance(cls.nodeId);
+    } else if (cls.kind === "burst-seal") {
+      await consolidatorOnBurstSeal(tabId);
     }
   } catch (error) {
     log.warn("Pattern tracker onTabFinished failed", {
@@ -138,6 +144,7 @@ async function onTabRemoved(tabId_: number, removeInfo: Browser.tabs.OnRemovedIn
     });
   }
   trackerOnTabRemoved(tabId);
+  consolidatorOnTabClosed(tabId);
 
   if (broadcast.kind === "notify") {
     const tree = await treeStorage.getOrCreateTree();
@@ -216,7 +223,7 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
     // exceeded grace, this also seals any in-flight burst.
     const focusCls = trackerOnTabFocus(tabId, Date.now());
     if (focusCls.kind === "burst-seal") {
-      // Consumed by the burst detector in Phase D (no-op for now).
+      void consolidatorOnBurstSeal(tabId);
     }
     tempSelectionManager.handleTabActivated(tabId);
     if (!tabManager.shouldSuppressTouch(tabId)) {
