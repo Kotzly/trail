@@ -14,6 +14,7 @@ import type { TrailGraphProps, TrailNode as TrailNodeType } from "../types.js";
 import { TrailNode } from "./TrailNode.js";
 import { GraphControls } from "./GraphControls.js";
 import { useGraphLayout } from "../hooks/useGraphLayout.js";
+import { useCmdWheelZoom } from "../hooks/useCmdWheelZoom.js";
 import { NODE_WIDTH, NODE_HEIGHT } from "../tree-layout.js";
 import type { NodeId } from "@shared/types/ids.js";
 import { selectShowBackground } from "../lod.js";
@@ -48,9 +49,11 @@ function TrailGraphInner(props: TrailGraphProps) {
     onLayoutModeChange,
   } = props;
 
-  const { fitView, setCenter, getViewport, setViewport } = useReactFlow();
+  const { fitView, setCenter } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
+
+  useCmdWheelZoom(containerRef);
 
   const showBackground = useStore(selectShowBackground);
 
@@ -79,53 +82,6 @@ function TrailGraphInner(props: TrailGraphProps) {
       }),
     [layout.nodes, selectedNodeIds],
   );
-
-  // Cursor-anchored zoom on Cmd/Ctrl+wheel and macOS trackpad pinch.
-  //
-  // Why a custom handler instead of xyflow's zoomActivationKeyCode +
-  // zoomOnScroll/zoomOnPinch:
-  //   1. xyflow tracks the activation key via useKeyPress (window
-  //      keydown/keyup). The sidepanel's window only sees keydown when
-  //      it has focus — so reaching for Cmd+scroll on the graph while
-  //      focus is still on the page being browsed is a no-op.
-  //   2. macOS trackpad pinch arrives as a wheel event with synthetic
-  //      ctrlKey=true (no real key pressed). xyflow's zoomOnPinch is
-  //      gated on the same useKeyPress, so it has the same dead spot.
-  //
-  // Reading event.metaKey/ctrlKey directly off the wheel event sidesteps
-  // both: modifier state on the event reflects OS-level state regardless
-  // of focus, and pinch's synthetic ctrlKey is indistinguishable from a
-  // real Ctrl press here — which is exactly what we want.
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handler = (e: WheelEvent) => {
-      if (!e.metaKey && !e.ctrlKey) return;
-      e.preventDefault();
-      e.stopPropagation();
-
-      const vp = getViewport();
-      const clamped = Math.max(-30, Math.min(30, e.deltaY));
-      const factor = 1 - clamped * 0.006;
-      const newZoom = Math.min(3, Math.max(0.05, vp.zoom * factor));
-
-      const rect = el.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const scale = newZoom / vp.zoom;
-
-      setViewport({
-        x: mouseX - (mouseX - vp.x) * scale,
-        y: mouseY - (mouseY - vp.y) * scale,
-        zoom: newZoom,
-      });
-    };
-
-    el.addEventListener("wheel", handler, { capture: true, passive: false });
-    return () =>
-      el.removeEventListener("wheel", handler, { capture: true } as EventListenerOptions);
-  }, [getViewport, setViewport]);
 
   // Center on current node once on first data
   useEffect(() => {
