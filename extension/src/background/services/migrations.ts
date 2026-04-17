@@ -17,42 +17,50 @@
 import { createLogger } from "@shared/lib/logger.js";
 import { captureError } from "@shared/lib/observability.js";
 import { storage } from "wxt/utils/storage";
-import { activeTreeItem, archiveIndexItem } from "../../shared/config/storage-items.js";
+import {
+  activeTreeItem,
+  archiveIndexItem,
+  undoHistoryItem,
+  layoutPositionsCacheItem,
+} from "../../shared/config/storage-items.js";
 import { isTreeStub } from "@shared/types/tree.js";
+import { uuidv7 } from "@shared/lib/uuid.js";
 
 const log = createLogger("migrations");
 
 export const CURRENT_SCHEMA_VERSION = 2 as const;
 
 /**
- * Walk a raw NavigationTreeJSON-shaped object and coerce every `id` to
- * a string. Idempotent — running on already-migrated data is a no-op.
+ * Walk a raw NavigationTreeJSON-shaped object and REPLACE every `id`
+ * with a fresh uuidv7. Tree structure (parent/child layout via the
+ * children arrays) is preserved; only the identity tokens change.
  *
- * This is purely data-shape work; the runtime NodeId type becomes a
- * `Brand<string, "NodeId">` in Phase 1. We do the stringify here so
- * downstream code never sees a mixed-key `Map<NodeId, ...>`.
+ * An old→new id map is threaded through the walk so the tree's
+ * `currentNodeId` pointer can be rewritten to the new id of the same
+ * logical node.
  */
-function stringifyIdsInNodeJSON(node: unknown): void {
+function rementIdsInNodeJSON(node: unknown, idMap: Map<string, string>): void {
   if (!node || typeof node !== "object") return;
   const n = node as { id?: unknown; children?: unknown[] };
-  if (n.id !== undefined && n.id !== null && typeof n.id !== "string") {
-    n.id = String(n.id);
+  if (n.id !== undefined && n.id !== null) {
+    const oldId = String(n.id);
+    const newId = uuidv7();
+    idMap.set(oldId, newId);
+    n.id = newId;
   }
   if (Array.isArray(n.children)) {
-    for (const child of n.children) stringifyIdsInNodeJSON(child);
+    for (const child of n.children) rementIdsInNodeJSON(child, idMap);
   }
 }
 
-function stringifyIdsInTreeJSON(json: unknown): unknown {
+function rementIdsInTreeJSON(json: unknown): unknown {
   if (!json || typeof json !== "object") return json;
   const t = json as { root?: unknown; currentNodeId?: unknown };
-  if (t.root) stringifyIdsInNodeJSON(t.root);
-  if (
-    t.currentNodeId !== undefined &&
-    t.currentNodeId !== null &&
-    typeof t.currentNodeId !== "string"
-  ) {
-    t.currentNodeId = String(t.currentNodeId);
+  const idMap = new Map<string, string>();
+  if (t.root) rementIdsInNodeJSON(t.root, idMap);
+  if (t.currentNodeId !== undefined && t.currentNodeId !== null) {
+    const oldId = String(t.currentNodeId);
+    t.currentNodeId = idMap.get(oldId) ?? null;
   }
   return json;
 }
@@ -81,25 +89,24 @@ const MIGRATIONS: Migration[] = [
   {
     from: 1,
     to: 2,
-    name: "stringify_node_ids",
+    name: "rement_node_ids_uuidv7",
     async run() {
-      // Convert numeric NodeIds in all persisted trees to strings.
-      // Safe to run concurrently (single-flight guard in runMigrations)
-      // and idempotent (already-string ids are left alone).
+      // Re-mint every NodeId as a fresh uuidv7. Tree structure is
+      // preserved (parent/child layout is encoded in the children
+      // arrays, which don't reference ids externally — only the
+      // `currentNodeId` pointer does, and it's rewritten via the
+      // old→new map in rementIdsInTreeJSON).
 
       // 1. Active tree
       const activeTree = await activeTreeItem.getValue();
       if (activeTree) {
-        stringifyIdsInTreeJSON(activeTree);
+        rementIdsInTreeJSON(activeTree);
         await activeTreeItem.setValue(activeTree);
       }
 
-      // 2. Archive blobs (one per non-stub archive). Stubs hold only
-      //    remote references; no local node data to rewrite. We go
-      //    through treeStorage.getArchiveTree/saveArchiveTree so the
-      //    compressed/base64 round-trip matches what the rest of the
-      //    extension expects; dynamic import keeps migrations.ts from
-      //    eagerly importing the storage service (avoiding a cycle).
+      // 2. Archive blobs (one per non-stub archive). Each archive is
+      //    an independent id-space; we re-mint each tree separately.
+      //    Stubs hold remote-only references — no local node data.
       const archives = await archiveIndexItem.getValue();
       if (archives.some((e) => !isTreeStub(e))) {
         const { treeStorage } = await import("./tree-storage.js");
@@ -108,10 +115,10 @@ const MIGRATIONS: Migration[] = [
           try {
             const tree = await treeStorage.getArchiveTree(entry.id);
             if (!tree) continue;
-            stringifyIdsInTreeJSON(tree);
+            rementIdsInTreeJSON(tree);
             await treeStorage.saveArchiveTree(entry.id, tree);
           } catch (error) {
-            log.warn("stringify_node_ids: failed to rewrite archive blob", {
+            log.warn("rement_node_ids_uuidv7: failed to rewrite archive blob", {
               id: entry.id,
               error: error instanceof Error ? error.message : String(error),
             });
@@ -119,24 +126,48 @@ const MIGRATIONS: Migration[] = [
         }
       }
 
-      // Post-condition assertion: re-read the active tree and confirm
-      // no numeric ids slipped through. Throws if migration failed
-      // silently.
+      // 3. Clear persisted state that references old node ids:
+      //    - Undo history snapshots contain pre-migration tree JSONs.
+      //      Applying them now would resurrect stale ids. Drop.
+      //    - Layout positions cache is keyed by nodeId. Drop — will
+      //      recompute on next layout pass.
+      //    - lastNodeByTab (session storage, used by opener-based
+      //      parent inference) holds pre-migration node ids. Clear
+      //      so tabs re-register with fresh ids via syncOpenTabs.
+      await undoHistoryItem.removeValue().catch((error) => {
+        log.warn("rement_node_ids_uuidv7: undo history clear failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+      await layoutPositionsCacheItem.removeValue().catch((error) => {
+        log.warn("rement_node_ids_uuidv7: layout cache clear failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+      await storage.removeItem("session:trail_last_node_by_tab").catch((error) => {
+        log.warn("rement_node_ids_uuidv7: session lastNodeByTab clear failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+
+      // Post-condition: every persisted node id must be a uuidv7 string.
+      // A quick shape check: length 36 with hyphens at the right spots.
       const verify = await activeTreeItem.getValue();
       if (verify && verify.root) {
-        let failed = false;
+        let failed: string | null = null;
+        const uuidv7Re = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         const walk = (n: unknown): void => {
           if (failed || !n || typeof n !== "object") return;
           const node = n as { id?: unknown; children?: unknown[] };
-          if (typeof node.id !== "string") {
-            failed = true;
+          if (typeof node.id !== "string" || !uuidv7Re.test(node.id)) {
+            failed = `invalid id: ${String(node.id)}`;
             return;
           }
           if (Array.isArray(node.children)) for (const c of node.children) walk(c);
         };
         walk(verify.root);
         if (failed) {
-          throw new Error("stringify_node_ids: post-verify found non-string node id");
+          throw new Error(`rement_node_ids_uuidv7: post-verify failed — ${failed}`);
         }
       }
     },

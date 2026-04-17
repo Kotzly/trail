@@ -81,13 +81,11 @@ export const CF = {
  * - lastVisitedAt: unix ms timestamp or null
  * - visitCount: number of visits or null
  */
-// NOTE: id width is `string | number` for backward compatibility.
-// Before schema v2 (Phase 0), all ids were numeric. After migration,
-// all writes are strings (uuidv7 or stringified legacy numeric). The
-// decoder (tupleToNodeV*) coerces via String() so consumers see a
-// consistent NodeId (Brand<string, "NodeId">).
+// NodeIds are uuidv7 strings. Schema v2 migration re-mints every
+// persisted numeric id to a fresh uuidv7, so by the time any runtime
+// code reads a tuple the id is always string.
 export type CompactNodeTupleV1 = [
-  id: string | number,
+  id: string,
   ts: number,
   url: string,
   title: string,
@@ -99,7 +97,7 @@ export type CompactNodeTupleV1 = [
 ];
 
 export type CompactNodeTupleV2 = [
-  id: string | number,
+  id: string,
   ts: number,
   url: string,
   title: string,
@@ -112,7 +110,7 @@ export type CompactNodeTupleV2 = [
 ];
 
 export type CompactNodeTupleV3 = [
-  id: string | number,
+  id: string,
   ts: number,
   url: string,
   title: string,
@@ -138,21 +136,21 @@ export type CompactNodeTuple = CompactNodeTupleV1 | CompactNodeTupleV2 | Compact
 export type CompactTreeJSONV1 = {
   v: 1;
   r: CompactNodeTupleV1 | null;
-  c: string | number | null;
+  c: string | null;
   n: number;
 };
 
 export type CompactTreeJSONV2 = {
   v: 2;
   r: CompactNodeTupleV2 | null;
-  c: string | number | null;
+  c: string | null;
   n: number;
 };
 
 export type CompactTreeJSONV3 = {
   v: 3;
   r: CompactNodeTupleV3 | null;
-  c: string | number | null;
+  c: string | null;
   n: number;
 };
 

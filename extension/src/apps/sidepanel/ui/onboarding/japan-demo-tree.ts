@@ -14,6 +14,7 @@ import {
   type Timestamp,
   now,
 } from "@shared/types/ids.js";
+import { uuidv7 } from "@shared/lib/uuid.js";
 
 type NodeSeed = {
   title: string;
@@ -22,13 +23,9 @@ type NodeSeed = {
   children?: NodeSeed[];
 };
 
-let idCounter = 0;
 function nextId(): NodeId {
-  idCounter += 1;
-  // Demo tree ids are synthetic; make them strings to match the branded
-  // NodeId type (Brand<string, "NodeId">) and namespace with a `d-`
-  // prefix so they can't collide with runtime uuidv7-minted ids.
-  return `d-${idCounter}` as NodeId;
+  // All NodeIds — including synthetic demo-tree ones — are uuidv7.
+  return uuidv7() as NodeId;
 }
 
 function favicon(url: string): FaviconUrl | undefined {
@@ -222,12 +219,12 @@ function countNodes(node: NavigationNodeJSON): number {
 }
 
 /**
- * Build a fresh demo bundle. `idCounter` resets on each call so the node
- * IDs are deterministic-ish; the background `importTrail` handler
- * remaps ids anyway to avoid collisions with the user's existing tree.
+ * Build a fresh demo bundle. Node IDs are uuidv7; the background
+ * `importTrail` handler is free to remap them on import to avoid
+ * collisions with the user's existing tree (time-ordered uuidv7
+ * makes this a no-op in practice).
  */
 export function buildJapanDemoBundle(): TrailExportBundle {
-  idCounter = 0;
   const root = toNode(SEED);
   return {
     schema: "trail.export.v1",

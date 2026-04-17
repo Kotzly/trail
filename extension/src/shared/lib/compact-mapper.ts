@@ -23,16 +23,11 @@ import {
 // Tree-level conversion
 // ---------------------------------------------------------------------------
 
-function coerceNodeId(id: string | number | null | undefined): NodeId | null {
-  if (id === null || id === undefined) return null;
-  return (typeof id === "string" ? id : String(id)) as NodeId;
-}
-
 export function toCompact(tree: NavigationTreeJSON): CompactTreeJSON {
   return {
     v: 3,
     r: tree.root ? nodeToTuple(tree.root) : null,
-    c: tree.currentNodeId as string | null,
+    c: (tree.currentNodeId ?? null) as string | null,
     n: tree.nodeCount,
   } as CompactTreeJSONV3;
 }
@@ -41,7 +36,7 @@ export function fromCompact(compact: CompactTreeJSON): NavigationTreeJSON {
   if (compact.v === 1) {
     return {
       root: compact.r ? tupleToNodeV1(compact.r) : null,
-      currentNodeId: coerceNodeId(compact.c),
+      currentNodeId: (compact.c ?? null) as NodeId | null,
       nodeCount: compact.n,
     };
   }
@@ -49,14 +44,14 @@ export function fromCompact(compact: CompactTreeJSON): NavigationTreeJSON {
   if (compact.v === 2) {
     return {
       root: compact.r ? tupleToNodeV2(compact.r) : null,
-      currentNodeId: coerceNodeId(compact.c),
+      currentNodeId: (compact.c ?? null) as NodeId | null,
       nodeCount: compact.n,
     };
   }
 
   return {
     root: compact.r ? tupleToNodeV3(compact.r) : null,
-    currentNodeId: coerceNodeId(compact.c),
+    currentNodeId: (compact.c ?? null) as NodeId | null,
     nodeCount: compact.n,
   };
 }
@@ -125,7 +120,7 @@ function tupleToNodeV3(tuple: CompactNodeTupleV3): NavigationNodeJSON {
   }
 
   return {
-    id: coerceNodeId(tuple[CI.ID])!,
+    id: tuple[CI.ID] as NodeId,
     timestamp: tuple[CI.TS] as Timestamp,
     data,
     children: tuple[CI.CHILDREN].map(tupleToNodeV3),
@@ -159,7 +154,7 @@ function tupleToNodeV2(tuple: CompactNodeTupleV2): NavigationNodeJSON {
   }
 
   return {
-    id: coerceNodeId(tuple[CI_V2.ID])!,
+    id: tuple[CI_V2.ID] as NodeId,
     timestamp: tuple[CI_V2.TS] as Timestamp,
     data,
     children: tuple[CI_V2.CHILDREN].map(tupleToNodeV2),
@@ -188,7 +183,7 @@ function tupleToNodeV1(tuple: CompactNodeTupleV1): NavigationNodeJSON {
   }
 
   return {
-    id: coerceNodeId(tuple[CI_V1.ID])!,
+    id: tuple[CI_V1.ID] as NodeId,
     timestamp: tuple[CI_V1.TS] as Timestamp,
     data,
     children: tuple[CI_V1.CHILDREN].map(tupleToNodeV1),
