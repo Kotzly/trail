@@ -63,9 +63,17 @@ registerProxyServices();
 registerExtensionMessaging();
 initWebNavigation();
 initTabsLifecycle();
+
 // Hydrate lastNodeByTab from session storage BEFORE syncOpenTabs so
-// opener-based parent inference works immediately on SW wake.
-void tabManager.hydrate().then(() => syncOpenTabs());
+// opener-based parent inference works immediately on SW wake. Also
+// wire up tree-level integrations so TabManager can validate nodeIds
+// and respond to deletions.
+tabManager.setTreeAccessor(() => treeStorage.cachedTree);
+void tabManager.hydrate().then(async () => {
+  const tree = await treeStorage.getOrCreateTree();
+  tree.onNodesDeleted((ids) => tabManager.onNodesDeleted(ids));
+  await syncOpenTabs();
+});
 void CommandManager.init();
 
 if (chrome.sidePanel?.setPanelBehavior) {

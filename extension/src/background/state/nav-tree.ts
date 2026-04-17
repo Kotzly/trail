@@ -23,6 +23,33 @@ export class NavigationTree {
    */
   private urlIndex: Map<string, Set<NavigationNode>> = new Map();
 
+  /**
+   * Subscribers to node-deletion events. Notified whenever any
+   * deleteNode / deleteChildren / deleteSubtree / merge path removes
+   * nodes from this tree. TabManager hooks in here so tabs mapped
+   * to deleted nodes are released (#22, #29).
+   */
+  private nodesDeletedListeners: Array<(ids: NodeId[]) => void> = [];
+
+  onNodesDeleted(listener: (ids: NodeId[]) => void): () => void {
+    this.nodesDeletedListeners.push(listener);
+    return () => {
+      const idx = this.nodesDeletedListeners.indexOf(listener);
+      if (idx !== -1) this.nodesDeletedListeners.splice(idx, 1);
+    };
+  }
+
+  private emitNodesDeleted(ids: NodeId[]): void {
+    if (ids.length === 0) return;
+    for (const listener of this.nodesDeletedListeners) {
+      try {
+        listener(ids);
+      } catch {
+        // Subscriber errors must not corrupt tree state.
+      }
+    }
+  }
+
   constructor(root?: NavigationNode) {
     this.searchIndex = NavigationTree.createSearchIndex();
     this.nodeCount = 0;
@@ -321,6 +348,9 @@ export class NavigationTree {
       redirects = this.mergeDuplicateChildren(parent);
     }
 
+    const deletedIds = [node.id, ...redirects.map((r) => r.from)];
+    this.emitNodesDeleted(deletedIds);
+
     return { removed, redirects };
   }
 
@@ -347,6 +377,7 @@ export class NavigationTree {
       this.current = node;
     }
 
+    this.emitNodesDeleted(removed.map((n) => n.id));
     return removed;
   }
 
@@ -364,6 +395,7 @@ export class NavigationTree {
       this.searchDocs.clear();
       this.urlIndex.clear();
       this.nodeCount = 0;
+      this.emitNodesDeleted(removed.map((n) => n.id));
       return removed;
     }
 
@@ -381,6 +413,7 @@ export class NavigationTree {
       this.current = parent ?? null;
     }
 
+    this.emitNodesDeleted(removed.map((n) => n.id));
     return removed;
   }
 

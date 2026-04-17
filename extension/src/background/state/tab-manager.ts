@@ -23,9 +23,16 @@ export class TabManager {
   private lru: LruManager;
   private cycleOrderByNode = new Map<NodeId, TabId[]>();
   private cycleIndexByNode = new Map<NodeId, number>();
-  private suppressTouchForTabId: TabId | null = null;
+  private suppressTouchForTabId = new Map<TabId, boolean>();
   private suppressActivateForTabId = new Map<TabId, string | undefined>();
   private ignoredTabs = new Set<TabId>();
+  /**
+   * Optional tree accessor injected at service-worker init. When set,
+   * register() validates that the nodeId exists in the current tree
+   * before recording the mapping, preventing "phantom" node entries
+   * from stale RPC handlers (#70).
+   */
+  private treeAccessor: (() => NavigationTree | null) | null = null;
 
   /**
    * Per-tab "last known node" used as a fallback parent signal for
@@ -43,6 +50,28 @@ export class TabManager {
   constructor() {
     this.index = new TabIndex();
     this.lru = new LruManager();
+  }
+
+  /**
+   * Inject the tree accessor. Called from service-worker bootstrap
+   * so register() can validate nodeIds against the live tree.
+   */
+  setTreeAccessor(accessor: () => NavigationTree | null): void {
+    this.treeAccessor = accessor;
+  }
+
+  /**
+   * Drop all tab mappings that reference any of the given node ids.
+   * Called from NavigationTree delete paths so tabs pinned to a
+   * deleted node are released instead of silently pointing at a
+   * zombie id (#22, #29).
+   */
+  onNodesDeleted(nodeIds: Iterable<NodeId>): void {
+    for (const nodeId of nodeIds) {
+      const tabs = this.index.tabsByNode(nodeId);
+      if (!tabs || tabs.size === 0) continue;
+      for (const tabId of [...tabs]) this.unregister(tabId);
+    }
   }
 
   /** Load persisted `lastNodeByTab` mapping from session storage. */
@@ -86,7 +115,7 @@ export class TabManager {
     this.lru = new LruManager();
     this.cycleOrderByNode.clear();
     this.cycleIndexByNode.clear();
-    this.suppressTouchForTabId = null;
+    this.suppressTouchForTabId.clear();
     this.suppressActivateForTabId.clear();
     this.ignoredTabs.clear();
     this.lastNodeByTab.clear();
@@ -103,6 +132,20 @@ export class TabManager {
   // Register a tab for a node (global across windows).
   // Reassigns the tab if it previously belonged to another node.
   register(nodeId: NodeId, tabId: TabId, options?: { touch?: boolean; lastUsed?: number }) {
+    // Validate the nodeId exists in the tree (#70). Without this,
+    // stale RPC handlers or in-flight navigations can pin tabs to
+    // deleted nodes, polluting openNodes() and tabsByNode().
+    if (this.treeAccessor) {
+      const tree = this.treeAccessor();
+      if (tree && !tree.findNodeById(nodeId)) {
+        log.warn("register rejected — nodeId not in tree", {
+          nodeId: String(nodeId),
+          tabId: String(tabId),
+        });
+        return;
+      }
+    }
+
     const previousNodeId = this.index.nodeByTab(tabId);
 
     if (previousNodeId) {
@@ -181,12 +224,14 @@ export class TabManager {
   }
 
   suppressNextTouch(tabId: TabId): void {
-    this.suppressTouchForTabId = tabId;
+    // Per-tab Map so two rapid suppressions on different tabs don't
+    // overwrite each other (#51).
+    this.suppressTouchForTabId.set(tabId, true);
   }
 
   shouldSuppressTouch(tabId: TabId): boolean {
-    if (this.suppressTouchForTabId !== tabId) return false;
-    this.suppressTouchForTabId = null;
+    if (!this.suppressTouchForTabId.has(tabId)) return false;
+    this.suppressTouchForTabId.delete(tabId);
     return true;
   }
 
