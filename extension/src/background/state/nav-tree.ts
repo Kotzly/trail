@@ -578,6 +578,131 @@ export class NavigationTree {
     return node;
   }
 
+  /**
+   * Wrap a contiguous sibling range under a new burst container. The
+   * container is inserted as a child of the shared parent at the
+   * position of the first wrapped node. Items become children of the
+   * container with kind="burst-item".
+   *
+   * All items must share a parent. Returns the new container, or
+   * null if inputs are invalid (parents diverge, items < 2, etc.).
+   */
+  consolidateBurst(
+    itemIds: readonly NodeId[],
+    meta: { urlTemplate: string; autoLabel?: string },
+  ): NavigationNode | null {
+    if (itemIds.length < 2) return null;
+    const items = itemIds
+      .map((id) => this.findNodeById(id))
+      .filter((n): n is NavigationNode => !!n);
+    if (items.length !== itemIds.length) return null;
+
+    const parent = items[0]!.getParent();
+    if (!parent) return null; // can't wrap root-level nodes
+    for (const item of items) {
+      if (item.getParent() !== parent) return null;
+      // Don't re-wrap existing burst items or containers.
+      const k = item.data.kind;
+      if (k === "burst" || k === "burst-item") return null;
+    }
+
+    // Position of the first wrapped item among its siblings.
+    const siblings = [...parent.getChildren()];
+    const firstIdx = siblings.indexOf(items[0]!);
+    if (firstIdx < 0) return null;
+
+    // Build container data using the first item's URL as the container URL
+    // (decent default — layout will often pick the feed root URL).
+    const first = items[0]!;
+    const now = Date.now() as Timestamp;
+    const containerData: NodeData = {
+      url: first.data.url,
+      title: (meta.autoLabel ?? `${meta.urlTemplate} · ${items.length} items`) as Title,
+      favicon: first.data.favicon,
+      pinned: false,
+      tags: [],
+      kind: "burst",
+      burst: {
+        urlTemplate: meta.urlTemplate,
+        startedAt: now,
+        lastItemAt: now,
+        status: "open",
+        autoLabel: meta.autoLabel ?? `${meta.urlTemplate} · ${items.length} items`,
+      },
+    } as NodeData;
+
+    // Detach items from parent, create container, re-attach items under container.
+    for (const item of items) item.detach();
+    const container = new TreeNode(containerData, parent);
+    parent.attachChild(container, { index: firstIdx });
+    this.nodeMap.set(container.id, container);
+    this.updateSearchEntry(container);
+    this.indexUrlForNode(container);
+    this.nodeCount++;
+    for (const item of items) {
+      // Mark each as burst-item via updateNodeData (preserves search / url index).
+      this.updateNodeData(item.id, { kind: "burst-item" });
+      container.attachChild(item);
+    }
+    return container;
+  }
+
+  /**
+   * Promote a burst-item back to a normal node, detach it from the
+   * container, and re-attach as a sibling of the container. Keeps
+   * tree structure valid (burst containers only contain burst-items).
+   *
+   * Returns true on successful promotion.
+   */
+  promoteBurstItem(nodeId: NodeId): boolean {
+    const node = this.findNodeById(nodeId);
+    if (!node) return false;
+    if (node.data.kind !== "burst-item") return false;
+    const container = node.getParent();
+    if (!container || container.data.kind !== "burst") return false;
+    const grandParent = container.getParent();
+    if (!grandParent) return false;
+
+    this.updateNodeData(nodeId, { kind: "normal" });
+    node.detach();
+    const containerIdx = grandParent.getChildren().indexOf(container);
+    grandParent.attachChild(node, {
+      index: containerIdx >= 0 ? containerIdx + 1 : undefined,
+    });
+
+    // If the container is now empty or too small to justify existing,
+    // collapse: promote remaining item (if any) and remove container.
+    const remaining = container.getChildren();
+    if (remaining.length < 2) {
+      for (const item of [...remaining]) {
+        this.updateNodeData(item.id, { kind: "normal" });
+        item.detach();
+        grandParent.attachChild(item, {
+          index: containerIdx >= 0 ? containerIdx + 1 : undefined,
+        });
+      }
+      this.deleteNode(container.id);
+    }
+    return true;
+  }
+
+  /**
+   * Mark a burst container as sealed. Idempotent.
+   */
+  sealBurst(containerId: NodeId, lastItemAt?: Timestamp): boolean {
+    const container = this.findNodeById(containerId);
+    if (!container || container.data.kind !== "burst" || !container.data.burst) return false;
+    if (container.data.burst.status === "sealed") return true;
+    this.updateNodeData(containerId, {
+      burst: {
+        ...container.data.burst,
+        status: "sealed",
+        ...(lastItemAt ? { lastItemAt } : {}),
+      },
+    });
+    return true;
+  }
+
   private updateSearchEntry(node: NavigationNode): void {
     const existing = this.searchDocs.get(node.id);
     if (existing) {
