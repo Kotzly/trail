@@ -125,9 +125,20 @@ export class TabManager {
     this.persistLastNodeByTab();
   }
 
-  touch(tabId: TabId, _nodeId: NodeId, lastUsed?: number) {
+  touch(tabId: TabId, nodeId: NodeId, lastUsed?: number) {
     const actualNodeId = this.index.nodeByTab(tabId);
     if (!actualNodeId) return;
+    if (actualNodeId !== nodeId) {
+      // Caller's nodeId doesn't match the current mapping. Don't
+      // silently redirect — log so the divergence shows up in
+      // observability (#71). Still touch the real mapping so LRU
+      // reflects reality.
+      log.warn("touch nodeId mismatch — using index value", {
+        tabId: String(tabId),
+        requested: String(nodeId),
+        actual: String(actualNodeId),
+      });
+    }
     this.lru.touch(tabId, actualNodeId, lastUsed);
     this.invalidateCycle(actualNodeId);
   }
