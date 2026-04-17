@@ -88,8 +88,43 @@ export function isBlocklistReady(): boolean {
   return blocklistReady;
 }
 
+/**
+ * URLs that are never tracked, never create a node, never mutate
+ * anything — bot-challenge, captcha, and similar interstitials that
+ * the user didn't intend to visit.
+ *
+ * Matching one of these means: handler returns early, tree untouched,
+ * tab→node mapping preserved on whatever was previously loaded. When
+ * the challenge resolves and the real destination loads, that
+ * destination URL flows through normally and matches its prior node.
+ *
+ * Not configurable at runtime (yet) — the list is small, site-wide,
+ * and adding to it is a fast-follow. If user needs per-site opt-out,
+ * `settings.privacy.blocklist` already covers that path.
+ */
+const challengeUrlPatterns: ReadonlyArray<RegExp> = [
+  // Google's bot detection / "Our systems have detected unusual traffic"
+  /^https?:\/\/(?:[^/]+\.)?google\.[a-z.]+\/sorry(?:\/|$)/i,
+  // Cloudflare Under Attack / Turnstile challenge shell
+  /^https?:\/\/[^/]+\/cdn-cgi\/challenge-platform\//i,
+  /^https?:\/\/challenges\.cloudflare\.com\//i,
+  // hCaptcha iframe host
+  /^https?:\/\/(?:newassets\.)?hcaptcha\.com\//i,
+  // reCAPTCHA iframe host (normally loaded in iframe but some pages redirect)
+  /^https?:\/\/www\.google\.com\/recaptcha\/api2\/bframe/i,
+  // Akamai bot manager challenge
+  /^https?:\/\/[^/]+\/_Incapsula_Resource\?/i,
+  // DataDome
+  /^https?:\/\/geo\.captcha-delivery\.com\//i,
+] as const;
+
+export function isChallengeUrl(url: Url | string): boolean {
+  return challengeUrlPatterns.some((pattern) => pattern.test(url));
+}
+
 export function shouldTrackUrl(url: Url): boolean {
   if (ignoredUrlPatterns.some((pattern) => pattern.test(url))) return false;
+  if (isChallengeUrl(url)) return false;
   if (!isTrackableUrl(url)) return false;
   return !cachedBlocklist(url);
 }
