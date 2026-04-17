@@ -83,6 +83,7 @@ export default function CommandPalette() {
  */
 function PaletteBody({ onClose }: { onClose: () => void }) {
   const tree = useStore((s) => s.tree);
+  const setRecentlyCleanedOpen = useStore((s) => s.setRecentlyCleanedOpen);
   const [query, setQuery] = useState("");
 
   const index = useMemo(() => (tree ? new SearchIndex(tree) : null), [tree]);
@@ -163,6 +164,16 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           <CommandItem value="open-settings" onSelect={openSettings}>
             <Icons.Settings className="size-3.5" />
             Open settings
+          </CommandItem>
+          <CommandItem
+            value="view-recently-cleaned"
+            onSelect={() => {
+              onClose();
+              setRecentlyCleanedOpen(true);
+            }}
+          >
+            <Icons.History className="size-3.5" />
+            View recently cleaned
           </CommandItem>
           {firstMatch && (
             <CommandItem
