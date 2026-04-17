@@ -1,12 +1,11 @@
-import type { FaviconUrl, TabId, Title, Url } from "@shared/types/ids.js";
+import type { TabId, Url } from "@shared/types/ids.js";
 import { tabManager } from "../state/tab-manager.js";
 import { treeStorage, withTreeLock } from "../services/tree-storage.js";
 import { notifyTreeUpdate } from "../messaging/notifications.js";
 import { tempSelectionManager } from "../services/temporary-selection.js";
 
 import { syncTabTitleFavicon, syncTabAudioState } from "./tab-sync.js";
-import { type NodeData } from "@shared/types/node.js";
-import { normalizeFaviconUrl, shouldTrackUrl, isNewTabContext } from "../utils/url-utils.js";
+import { shouldTrackUrl, isNewTabContext } from "../utils/url-utils.js";
 import { handleNewTabTab } from "../utils/new-tab.js";
 import { browser, type Browser, type Tab } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../state/node-recency.js";
@@ -130,22 +129,17 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
       } else {
         if (!shouldTrackUrl(url)) return { kind: "none" } as LifecycleBroadcast;
 
+        // Only register against an existing node match. Do NOT
+        // fabricate a new node here — that was bug #93: activating
+        // a pre-existing untracked tab silently created it as a
+        // child of `tree.current`, producing false parent edges on
+        // every installed-before-extension tab. If no node exists
+        // yet, we skip; a real webnav event will trigger node
+        // creation with proper opener-derived parent later.
         const existing = tree.findByUrl(url);
-        if (existing) {
-          tabManager.register(existing.id, tabId);
-          nodeId = existing.id;
-        } else {
-          const data: NodeData = {
-            url,
-            title: (tabRead.title || url) as Title,
-            favicon: normalizeFaviconUrl(url, tabRead.favIconUrl as FaviconUrl | undefined),
-            pinned: false,
-            tags: [],
-          } as NodeData;
-          const node = tree.navigate(data);
-          tabManager.register(node.id, tabId);
-          nodeId = node.id;
-        }
+        if (!existing) return { kind: "none" } as LifecycleBroadcast;
+        tabManager.register(existing.id, tabId);
+        nodeId = existing.id;
       }
     }
 
