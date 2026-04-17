@@ -10,7 +10,7 @@ import { Icons } from "./Icon.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { displayLabel, formatHost } from "../shared/format.js";
 import { Button } from "@ui/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
+import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -86,29 +86,29 @@ export default function PinnedDropdown() {
           </Button>
         </PopoverTrigger>
       </ButtonTooltip>
-      <PopoverContent align="start" className="w-80 p-0" onKeyDown={handleEnter}>
-        <Card className="rounded-none border-0 shadow-none ring-0">
-          <CardHeader>
-            <CardTitle>Pinned</CardTitle>
-            <CardDescription id="pinnedCount">
-              {pinnedNodes.length} {pinnedNodes.length === 1 ? "page" : "pages"}
-            </CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent className="p-0">
-            <ScrollArea className="max-h-[320px]">
-              {pinnedNodes.length === 0 ? (
-                <EmptyPinned />
-              ) : (
-                <ItemGroup className="p-1" id="pinnedList">
-                  {pinnedNodes.map((node) => (
-                    <PinnedRow key={node.id} node={node} onNavigate={handleNavigate} />
-                  ))}
-                </ItemGroup>
-              )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
+      <PopoverContent
+        align="start"
+        className="w-[320px] overflow-hidden p-0"
+        onKeyDown={handleEnter}
+      >
+        <CardHeader className="px-3 py-2.5">
+          <CardTitle className="text-[13px]">Pinned</CardTitle>
+          <CardDescription id="pinnedCount" className="text-[11px]">
+            {pinnedNodes.length} {pinnedNodes.length === 1 ? "page" : "pages"}
+          </CardDescription>
+        </CardHeader>
+        <Separator />
+        <ScrollArea className="max-h-[320px] [&>[data-radix-scroll-area-viewport]>div]:!block">
+          {pinnedNodes.length === 0 ? (
+            <EmptyPinned />
+          ) : (
+            <ItemGroup className="p-1" id="pinnedList">
+              {pinnedNodes.map((node) => (
+                <PinnedRow key={node.id} node={node} onNavigate={handleNavigate} />
+              ))}
+            </ItemGroup>
+          )}
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   );
@@ -120,12 +120,12 @@ export default function PinnedDropdown() {
  */
 function EmptyPinned() {
   return (
-    <Empty className="border-0">
+    <Empty className="border-0 py-8">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Icons.Bookmark />
         </EmptyMedia>
-        <EmptyTitle>No pinned pages yet</EmptyTitle>
+        <EmptyTitle className="text-sm">No pinned pages yet</EmptyTitle>
         <EmptyDescription>Right-click a node in the graph to pin it</EmptyDescription>
       </EmptyHeader>
     </Empty>
@@ -153,7 +153,12 @@ const PinnedRow = memo(function PinnedRow({
   const showHost = host && host !== title;
 
   return (
-    <Item data-node-id={node.id} onClick={() => void onNavigate(node.id as NodeId)}>
+    <Item
+      size="xs"
+      className="hover:bg-accent cursor-pointer border-transparent"
+      data-node-id={node.id}
+      onClick={() => void onNavigate(node.id as NodeId)}
+    >
       <ItemMedia variant="icon">
         {node.data.url ? (
           <img className="size-4 rounded-sm" alt="" src={getFaviconUrl(node.data.url)} />
@@ -161,9 +166,9 @@ const PinnedRow = memo(function PinnedRow({
           <Icons.Pin className="text-muted-foreground size-4" />
         )}
       </ItemMedia>
-      <ItemContent>
-        <ItemTitle>{title}</ItemTitle>
-        {showHost ? <ItemDescription>{host}</ItemDescription> : null}
+      <ItemContent className="min-w-0">
+        <ItemTitle className="block w-full truncate text-[13px]">{title}</ItemTitle>
+        {showHost ? <ItemDescription className="text-[11px]">{host}</ItemDescription> : null}
       </ItemContent>
     </Item>
   );

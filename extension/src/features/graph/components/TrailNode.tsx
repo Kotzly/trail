@@ -1,14 +1,24 @@
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Globe, Layers, RotateCcw } from "lucide-react";
 import { Handle, Position, useStore } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { cn } from "@ui/lib/utils";
 import { Badge } from "@ui/components/ui/badge";
+import { Button } from "@ui/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@ui/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/ui/tooltip";
 import { selectShowDetail, selectShowLabels } from "../lod.js";
 import { browser } from "@shared/platform/webext.js";
-import type { Url } from "@shared/types/ids.js";
+import type { NodeId, Url } from "@shared/types/ids.js";
+import { promoteBurstItem } from "@apps/sidepanel/api/cleanup.js";
+
+/**
+ * Count of burst-item dots rendered directly on the card. Anything past
+ * this folds into a "+N" pill that opens the full ribbon. Five fits the
+ * 160px body with comfortable breathing room.
+ */
+const VISIBLE_DOTS = 5;
 
 const hidden = { opacity: 0, width: 6, height: 6 } as const;
 
@@ -68,6 +78,18 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
   const showDetail = useStore(selectShowDetail);
   const showLabels = useStore(selectShowLabels);
   const [burstExpanded, setBurstExpanded] = useState(false);
+
+  const openItemUrl = useCallback((itemUrl: Url) => {
+    browser.tabs.create({ url: itemUrl, active: true }).catch(() => {
+      /* swallowed — user will see no tab open */
+    });
+  }, []);
+
+  const promoteItem = useCallback((itemId: NodeId) => {
+    promoteBurstItem(itemId).catch((error) => {
+      console.error("Failed to promote burst item:", error);
+    });
+  }, []);
 
   const displayUrl = String(url)
     .replace(/^https?:\/\/(www\.)?/, "")
@@ -200,8 +222,110 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
           )}
         </button>
 
+        {/* Dots row: always-visible favicon pills for the first N burst
+            items, with an overflow "+M" badge that opens the full
+            ribbon. Detail-LOD only — the dots are too small to hit
+            below that zoom and collapse the affordance into the badge
+            on the card body itself. */}
+        {showDetail && burstItems.length > 0 && (
+          <div
+            className="absolute top-[66px] left-0 flex w-[160px] items-center gap-0.5"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {burstItems.slice(0, VISIBLE_DOTS).map((item) => (
+              <Popover key={item.nodeId}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={item.title || item.url}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-background hover:ring-ring size-3.5 shrink-0 overflow-hidden rounded-full border hover:ring-1"
+                  >
+                    {item.favicon ? (
+                      <img
+                        src={String(item.favicon)}
+                        alt=""
+                        className="size-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
+                        }}
+                      />
+                    ) : (
+                      <Globe
+                        className="text-muted-foreground/60 size-full p-0.5"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                    )}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="bottom"
+                  align="start"
+                  className="w-auto min-w-[200px] gap-1.5 p-2"
+                >
+                  <div className="flex items-center gap-1.5">
+                    {item.favicon ? (
+                      <img
+                        src={String(item.favicon)}
+                        alt=""
+                        className="size-3.5 shrink-0 rounded-sm"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
+                        }}
+                      />
+                    ) : (
+                      <Globe
+                        className="text-muted-foreground/60 size-3.5 shrink-0"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                    )}
+                    <span className="truncate text-[11px] leading-tight font-medium">
+                      {item.title || item.url}
+                    </span>
+                  </div>
+                  <div className="flex gap-1 border-t pt-1.5">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 flex-1 text-[11px]"
+                      onClick={() => openItemUrl(item.url)}
+                    >
+                      Open
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 flex-1 text-[11px]"
+                      onClick={() => promoteItem(item.nodeId)}
+                    >
+                      Promote out
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ))}
+            {burstItems.length > VISIBLE_DOTS && (
+              <button
+                type="button"
+                aria-label={`Show ${burstItems.length - VISIBLE_DOTS} more burst items`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBurstExpanded(true);
+                }}
+                className="bg-muted text-muted-foreground hover:bg-accent flex h-3.5 shrink-0 items-center rounded-full border px-1 text-[9px] leading-none tabular-nums"
+              >
+                +{burstItems.length - VISIBLE_DOTS}
+              </button>
+            )}
+          </div>
+        )}
+
         {burstExpanded && burstItems.length > 0 && (
-          <div className="bg-popover text-popover-foreground absolute top-[68px] left-0 z-10 w-[288px] rounded-md border p-2 shadow-md">
+          <div className="bg-popover text-popover-foreground absolute top-[88px] left-0 z-10 w-[288px] rounded-md border p-2 shadow-md">
             <ScrollArea className="w-full whitespace-nowrap">
               <div className="flex gap-2 pb-2">
                 {burstItems.map((item) => (
