@@ -463,6 +463,9 @@ export async function fetchRemoteTreePayload(treeId: string): Promise<Navigation
   const payload = data.payload as NavigationTreeJSON;
   try {
     await treeStorage.saveArchiveTree(treeId, payload);
+    // Clear the `stub: true` marker so future opens hit the local
+    // blob instead of re-downloading from Supabase every time (#36).
+    await treeStorage.unstubArchiveEntry(treeId);
     const meta = await getSyncMeta(treeId);
     await writeSyncMeta(treeId, {
       ...meta,
