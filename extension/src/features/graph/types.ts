@@ -20,6 +20,37 @@ export type TrailNodeData = {
   isCollapsed: boolean;
   /** Handle IDs this node needs (e.g. ["source-bottom", "target-top"]) — set by layout */
   handles: string[];
+
+  /**
+   * Burst rendering: `true` when the underlying tree node has
+   * `kind === "burst"`. `TrailNode` renders a stacked-card affordance
+   * and a click-to-expand ribbon of its children. Burst-item children
+   * are suppressed from the graph entirely (they're only visible inside
+   * the ribbon).
+   */
+  isBurst: boolean;
+  /** Number of burst-item children, 0 for non-burst nodes. */
+  burstItemCount: number;
+  /** First-item favicon, used as the container's primary favicon. */
+  burstFirstFavicon: FaviconUrl | null;
+  /** Burst time span derived from burst meta (null for non-burst). */
+  burstSpan: { startMs: number; endMs: number } | null;
+  /**
+   * Burst-item previews for the expanded ribbon. Empty for non-burst.
+   * Only title + favicon + URL are needed for the mini-node card.
+   */
+  burstItems: Array<{
+    nodeId: NodeId;
+    url: Url;
+    title: Title;
+    favicon: FaviconUrl | null;
+  }>;
+  /**
+   * True when the node was revived from a tombstone within the
+   * revival-indicator window. The revive icon is only rendered when
+   * this flag is set AND detail LOD is active.
+   */
+  isRevived: boolean;
 };
 
 // ── React Flow node/edge aliases ───────────────────────────────────
