@@ -150,14 +150,17 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
   if (tabManager.isIgnoredTab(tabId)) return;
   if (tabManager.shouldSuppressActivate(tabId)) return;
 
-  // Incognito gate: skip before any state mutation.
+  // Single tab read — used for both incognito gate and the URL
+  // trackability check below. Outside the lock so a slow tabs.get
+  // doesn't stall the whole browser.
+  let tabRead: Tab | undefined;
   try {
-    const tab = await browser.tabs.get(tabId);
-    if (skipIncognito(tab)) return;
+    tabRead = await browser.tabs.get(tabId);
   } catch {
     // Tab vanished — nothing to do.
     return;
   }
+  if (skipIncognito(tabRead)) return;
 
   // Auto-exit editor mode when switching tabs (has its own locking)
   const editorState = getEditorState();
@@ -169,24 +172,41 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
     }
   }
 
-  // Read the tab (and potentially do a URL-track check) outside the
-  // lock so a slow tabs.get doesn't stall the whole browser.
-  let tabRead: Tab | undefined;
-  if (tabManager.nodeByTab(tabId) === undefined) {
-    try {
-      tabRead = await browser.tabs.get(tabId);
-    } catch {
-      return;
-    }
-  }
-
   const broadcast = await withTreeLock(async () => {
     let nodeId = tabManager.nodeByTab(tabId);
     const tree = await treeStorage.getOrCreateTree();
 
+    // Helper: user switched to a tab that has no associated node
+    // (untracked URL, chrome://, games, etc.). Detach the graph's
+    // "current" highlight so the UI reflects reality rather than
+    // staying stuck on the last tracked node. Fixes desync where
+    // activating a game/chrome:// tab still showed the previous
+    // node as selected.
+    const detach = (): LifecycleBroadcast => {
+      const prev = tree.getCurrentId();
+      if (prev === null) return { kind: "none" } as LifecycleBroadcast;
+      tree.clearCurrent();
+      treeStorage.cacheTree(tree);
+      return { kind: "notify", reason: "set-current" } as LifecycleBroadcast;
+    };
+
+    // The activated tab's CURRENT URL is the source of truth — any
+    // cached tab→node mapping for an untrackable URL is stale and must
+    // not promote that node to "current". Fixes the settings-tab→NTP
+    // bug: chrome.tabs.create({ url: 'settings.html' }) briefly reports
+    // about:blank in onTabCreated, which registered the tab against the
+    // NTP root; activating the tab before onTabUpdated dropped the
+    // mapping then wrongly highlighted NTP as current.
+    {
+      const activeUrl = tabRead.url as Url | undefined;
+      if (activeUrl && !isNewTabContext(activeUrl, tabRead.title) && !shouldTrackUrl(activeUrl)) {
+        if (nodeId !== undefined) tabManager.unregister(tabId);
+        return detach();
+      }
+    }
+
     if (nodeId === undefined) {
-      if (!tabRead) return { kind: "none" } as LifecycleBroadcast;
-      if (!tabRead.url) return { kind: "none" } as LifecycleBroadcast;
+      if (!tabRead.url) return detach();
       const url = tabRead.url as Url;
       if (isNewTabContext(url, tabRead.title)) {
         const result = handleNewTabTab(tree, tabRead, url, {
@@ -195,7 +215,7 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
         });
         nodeId = result.rootId ?? undefined;
       } else {
-        if (!shouldTrackUrl(url)) return { kind: "none" } as LifecycleBroadcast;
+        if (!shouldTrackUrl(url)) return detach();
 
         // Only register against an existing node match. Do NOT
         // fabricate a new node here — that was bug #93: activating
@@ -205,13 +225,13 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
         // yet, we skip; a real webnav event will trigger node
         // creation with proper opener-derived parent later.
         const existing = tree.findByUrl(url);
-        if (!existing) return { kind: "none" } as LifecycleBroadcast;
+        if (!existing) return detach();
         tabManager.register(existing.id, tabId);
         nodeId = existing.id;
       }
     }
 
-    if (nodeId === undefined) return { kind: "none" } as LifecycleBroadcast;
+    if (nodeId === undefined) return detach();
     // Tracker: tab regained focus — unpause dwell clock.
     trackerOnTabFocus(tabId, Date.now());
     tempSelectionManager.handleTabActivated(tabId);
@@ -309,6 +329,18 @@ async function onTabUpdated(
       // describe the wrong URL. Fixes #67 partially + contributes to
       // #33 (stale mappings for untrackable-URL tabs).
       tabManager.unregister(tabId as TabId);
+      // If this was the active tab and the tracked node was the
+      // graph's current selection, detach — the user is no longer on
+      // a tracked page, so nothing should look "selected".
+      if (tab.active) {
+        await withTreeLock(async () => {
+          const tree = await treeStorage.getOrCreateTree();
+          if (tree.getCurrentId() !== nodeId) return;
+          tree.clearCurrent();
+          treeStorage.cacheTree(tree);
+          await notifyTreeUpdate(tree, "set-current");
+        });
+      }
     }
   }
 
