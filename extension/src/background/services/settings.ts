@@ -205,6 +205,13 @@ class SettingsManager {
       this.readyResolved = true;
       this.resolveReady();
     }
+    // Watch for out-of-band writes (from other extension contexts —
+    // onboarding, settings page RPCs that bypass this manager, etc.)
+    // so the background's in-memory state doesn't drift. Fixes #81.
+    settingsItem.watch((value) => {
+      this.settings = mergeDefaults(value);
+      this.pushBlocklist();
+    });
   }
 
   get(): Settings {
@@ -226,7 +233,13 @@ class SettingsManager {
   }
 
   async saveSettings(next: Settings): Promise<void> {
-    this.settings = { ...defaultSettings, ...next };
+    // Merge order preserves user overrides (#82): defaults first, then
+    // already-saved state, then the new patch. Future defaults added
+    // to `defaultSettings` fill in only missing keys instead of
+    // stomping values the user has already explicitly changed.
+    const stored = await settingsItem.getValue().catch(() => null);
+    const storedMerged = stored ? mergeDefaults(stored) : this.settings;
+    this.settings = { ...defaultSettings, ...storedMerged, ...next };
     try {
       await settingsItem.setValue(this.settings);
       this.pushBlocklist();
