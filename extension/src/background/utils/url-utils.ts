@@ -35,10 +35,20 @@ export function isNewTabUrl(url: Url): boolean {
   return ntpUrlPatterns.some((pattern) => pattern.test(url));
 }
 
-export function isNewTabContext(url: Url, title?: string | null): boolean {
-  if (isNewTabUrl(url)) return true;
-  if (!title) return false;
-  return title.toLowerCase().includes("new tab");
+/**
+ * Detect new-tab / NTP contexts strictly by URL pattern. The old
+ * implementation also matched any tab whose title (case-insensitively)
+ * contained "new tab" — but this produced false positives on real
+ * pages (Stack Overflow threads, Notion pages, Google Chrome Help,
+ * etc. whose title contains "New Tab…"). Those pages were silently
+ * routed to the tree's root node instead of being tracked normally.
+ *
+ * The `title` parameter is kept for API compatibility but deliberately
+ * unused; removing it would churn ~10 call sites. Flagged as _title
+ * to signal its vestigial status.
+ */
+export function isNewTabContext(url: Url, _title?: string | null): boolean {
+  return isNewTabUrl(url);
 }
 
 /** Allowlist: only http(s) URLs are trackable in the tree. */
