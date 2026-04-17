@@ -52,8 +52,23 @@ const getTargetNodeIds = (state: Store): NodeId[] => {
   return [];
 };
 
+/**
+ * True when any dialog / popover / palette is open that should swallow
+ * destructive shortcuts (Delete, Backspace, etc.). #84 was a P0 silent
+ * deletion: Rename dialog open + focus on Cancel button + Backspace
+ * fired the delete handler because the overlayOpen check missed
+ * `renameTarget`, `deleteTreeConfirm`, command palette, and sync-
+ * conflict dialogs.
+ */
 const overlayOpen = (state: Store) =>
-  state.ui.pinnedOpen || state.ui.treesOpen || state.ui.tagFilterOpen || Boolean(state.contextMenu);
+  state.ui.pinnedOpen ||
+  state.ui.treesOpen ||
+  state.ui.tagFilterOpen ||
+  Boolean(state.contextMenu) ||
+  Boolean(state.renameTarget) ||
+  Boolean(state.deleteTreeConfirm?.open) ||
+  state.commandPalette.open ||
+  Boolean(state.syncConflict);
 
 async function moveFocus(state: Store, direction: "parent" | "child" | "prev" | "next") {
   const tree = state.tree;
@@ -298,14 +313,11 @@ function buildBindings(): KeyBindingMap {
       ({ event, state }) => deleteNodes(state, getTargetNodeIds(state), event.shiftKey),
       whenNotOverlayOrEditor,
     ),
-    "Shift+Delete": gate(
-      ({ state }) => deleteNodes(state, getTargetNodeIds(state), true),
-      whenNotOverlayOrEditor,
-    ),
-    "Shift+Backspace": gate(
-      ({ state }) => deleteNodes(state, getTargetNodeIds(state), true),
-      whenNotOverlayOrEditor,
-    ),
+    // Note: Shift+Delete / Shift+Backspace are handled by the Delete /
+    // Backspace bindings above via `event.shiftKey` branching.
+    // Declaring them separately previously caused tinykeys to dispatch
+    // BOTH bindings on a single Shift+Delete keystroke, firing
+    // deleteNodes twice (#92). Removed.
 
     // Arrow navigation
     ArrowUp: gate(({ state }) => moveFocus(state, "parent"), whenNotOverlayOrEditor),
