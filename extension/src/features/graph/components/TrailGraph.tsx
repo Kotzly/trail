@@ -39,6 +39,18 @@ const defaultEdgeOptions = {
   },
 } as const;
 
+/**
+ * Isolated Background subscriber. Keeping the `useStore` read inside a
+ * leaf component means the parent `TrailGraphInner` doesn't re-render
+ * when the user zooms across the background threshold — only this tiny
+ * component flips, which is effectively free.
+ */
+function GraphBackground() {
+  const showBackground = useStore(selectShowBackground);
+  if (!showBackground) return null;
+  return <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--border)" />;
+}
+
 // ── Component ────────────────────────────────────────────────────
 
 function TrailGraphInner(props: TrailGraphProps) {
@@ -76,7 +88,6 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   useCmdWheelZoom(containerRef);
 
-  const showBackground = useStore(selectShowBackground);
   const relayoutAnimated = useRelayoutEnabled();
   const hoverGlow = useHoverHighlightEnabled();
 
@@ -108,10 +119,11 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   const hasNodes = displayNodes.length > 0;
 
-  // Target position for `currentNodeId` — null while the async layout
-  // pipeline hasn't produced a position for it yet (e.g. brand-new tab).
-  // Primitive x/y deps below mean the centering effect refires exactly
-  // once when the position lands, not on every re-render.
+  // Target position for `currentNodeId` — null when the node hasn't
+  // reached the layout yet (e.g. brand-new tab that arrives just before
+  // the geometry memo recomputes). Primitive x/y deps below mean the
+  // centering effect refires exactly once when the position lands, not
+  // on every re-render.
   const targetPos = useMemo(() => {
     if (!currentNodeId) return null;
     const node = displayNodes.find((n) => n.data.nodeId === currentNodeId);
@@ -133,6 +145,15 @@ function TrailGraphInner(props: TrailGraphProps) {
     followClickEnabled,
   });
 
+  // Layout mode switch (Tree ↔ Map) drastically reshuffles positions.
+  // Reset the resolved marker so the centering effect below re-fires
+  // when the new geometry lands and tweens to the current node. Runs
+  // before the centering effect by declaration order; on initial mount
+  // the reset is a no-op (ref is already null).
+  useEffect(() => {
+    resolvedForIdRef.current = null;
+  }, [settings.layout.mode]);
+
   // Camera centering policy:
   //   1. Initial mount (sidepanel opens) — always center on the current
   //      node, or fitView if there's no current node.
@@ -142,11 +163,12 @@ function TrailGraphInner(props: TrailGraphProps) {
   //   3. Subsequent extension-initiated click — only center if the
   //      `camera_follow_click` flag is on. Extension click is detected
   //      via `expectedClickNodeId` matching the new `currentNodeId`.
+  //   4. Layout mode switch — re-center on current node (see effect above).
   //
-  // Position may be null on first run after a new node arrives because
-  // `useGraphLayout` computes positions asynchronously. The effect simply
-  // waits: when `targetX`/`targetY` transition from null → numbers, it
-  // re-fires with the newly-available coordinates and centers. The
+  // Position may be null on the very first pass for a new node (tree
+  // update arrives before the geometry memo recomputes). The effect
+  // simply waits: when `targetX`/`targetY` transition null → numbers,
+  // it re-fires with the newly-available coordinates and centers. The
   // `resolvedForIdRef` guard ensures one commit per `currentNodeId`
   // change, so churn in `displayNodes` (e.g. from selection changes)
   // doesn't trigger repeated re-centers.
@@ -286,9 +308,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={defaultEdgeOptions}
       >
-        {showBackground && (
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--border)" />
-        )}
+        <GraphBackground />
         <LodController targetRef={containerRef} />
         <GraphControls
           layoutMode={settings.layout.mode}
