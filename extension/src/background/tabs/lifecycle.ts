@@ -76,11 +76,30 @@ export async function getActiveTab(): Promise<Tab | undefined> {
   return active[0];
 }
 
-async function onTabRemoved(tabId_: number, _: Browser.tabs.OnRemovedInfo): Promise<void> {
+async function onTabRemoved(tabId_: number, removeInfo: Browser.tabs.OnRemovedInfo): Promise<void> {
   const tabId = tabId_ as TabId;
 
-  // Active-tab query runs outside the lock.
-  const activeTab = await getActiveTab();
+  // Query the active tab in the window the removal happened in, NOT
+  // the currently-focused window. Fixes #65 — closing a tab in a
+  // background window was yanking tree.current to the foreground
+  // window's active tab (a completely unrelated page) because the
+  // old query used { active: true, currentWindow: true }.
+  let activeTab: Tab | undefined;
+  try {
+    if (removeInfo.windowId !== undefined) {
+      const [tab] = await browser.tabs.query({
+        active: true,
+        windowId: removeInfo.windowId,
+      });
+      activeTab = tab;
+    }
+  } catch {
+    // Window closed (isWindowClosing path) — nothing to focus.
+  }
+  if (!activeTab) {
+    // Fallback: use any currently-focused window's active tab.
+    activeTab = await getActiveTab();
+  }
 
   const broadcast = await withTreeLock(async () => {
     const tree = await treeStorage.getOrCreateTree();
@@ -91,6 +110,9 @@ async function onTabRemoved(tabId_: number, _: Browser.tabs.OnRemovedInfo): Prom
       if (activeNodeId) tree.setCurrentById(activeNodeId);
     }
     tabManager.unregister(tabId);
+    // Ordering matters: cache BEFORE broadcast so the sidepanel
+    // picks up the post-unregister state (fixes #66 — notify-then-
+    // cache let concurrent handlers observe old state).
     treeStorage.cacheTree(tree);
     return { kind: "notify", reason: "tabs" } as LifecycleBroadcast;
   });
