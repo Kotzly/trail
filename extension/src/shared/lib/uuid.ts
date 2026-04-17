@@ -1,3 +1,5 @@
+import type { UUIDv7 } from "../types/ids.js";
+
 /**
  * Generate a UUID v7 (RFC 9562) identifier.
  *
@@ -10,8 +12,12 @@
  *
  * The embedded timestamp makes IDs time-ordered and lexicographically
  * sortable, which is ideal for database primary keys.
+ *
+ * Returns a branded `UUIDv7` — this is the ONLY path that mints values
+ * of that type. Consumers who need a specific id brand (e.g., NodeId)
+ * use the corresponding `as*()` helper from `@shared/types/ids.js`.
  */
-export function uuidv7(): string {
+export function uuidv7(): UUIDv7 {
   const now = Date.now();
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -28,8 +34,7 @@ export function uuidv7(): string {
   bytes[8] = (bytes[8]! & 0x3f) | 0x80;
 
   const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-  return (
-    hex.slice(0, 8) +
+  return (hex.slice(0, 8) +
     "-" +
     hex.slice(8, 12) +
     "-" +
@@ -37,6 +42,5 @@ export function uuidv7(): string {
     "-" +
     hex.slice(16, 20) +
     "-" +
-    hex.slice(20)
-  );
+    hex.slice(20)) as UUIDv7;
 }

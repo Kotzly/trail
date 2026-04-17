@@ -8,6 +8,7 @@ import type { TrailExportBundle } from "@shared/types/export.js";
 import type { NavigationNodeJSON } from "@shared/types/node.js";
 import {
   type NodeId,
+  asNodeId,
   type Url,
   type Title,
   type FaviconUrl,
@@ -25,7 +26,7 @@ type NodeSeed = {
 
 function nextId(): NodeId {
   // All NodeIds — including synthetic demo-tree ones — are uuidv7.
-  return uuidv7() as NodeId;
+  return asNodeId(uuidv7());
 }
 
 function favicon(url: string): FaviconUrl | undefined {

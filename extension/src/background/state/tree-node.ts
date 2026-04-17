@@ -1,8 +1,8 @@
-import { type NodeId, now, type Timestamp } from "@shared/types/ids.js";
+import { type NodeId, asNodeId, now, type Timestamp } from "@shared/types/ids.js";
 import { uuidv7 } from "@shared/lib/uuid.js";
 
 function nextNodeId(): NodeId {
-  return uuidv7() as NodeId;
+  return asNodeId(uuidv7());
 }
 
 type iter = "dfs" | "bfs";
