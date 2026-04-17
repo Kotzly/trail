@@ -460,9 +460,14 @@ class TreeStorageService {
       }
 
       const tree = this.cachedTree;
-      this.dirty = false;
       try {
         await this.saveTreeToChrome(tree);
+        // Set dirty = false ONLY after the save resolves. If the SW is
+        // terminated mid-await, dirty stays true and the next wake
+        // re-flushes (#56). Previously dirty was lowered pre-await,
+        // so SW termination during the write silently dropped the
+        // pending mutation from the dirty tracker.
+        this.dirty = false;
         await this.setActiveSavedAt(Date.now());
         const treeJSON = NavigationTreeMapper.toJSON(tree);
         void import("../messaging/notifications.js")
@@ -478,7 +483,7 @@ class TreeStorageService {
         log.error("Error flushing tree save", {
           error: error instanceof Error ? error.message : String(error),
         });
-        this.dirty = true;
+        // dirty is already true (never lowered), schedule a retry.
         this.scheduleSave();
       }
     });
