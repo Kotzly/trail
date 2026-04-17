@@ -72,7 +72,12 @@ function VirtualTrigger({ position }: VirtualTriggerProps) {
 }
 
 function MenuShortcut({ keys }: { keys: readonly ShortcutKey[] }) {
-  return <Shortcut keys={keys} className="ml-auto pl-3" />;
+  return (
+    <Shortcut
+      keys={keys}
+      className="ml-auto pl-3 [&_kbd]:h-6 [&_kbd]:min-w-6 [&_kbd]:px-1.5 [&_kbd]:text-sm [&_kbd]:uppercase"
+    />
+  );
 }
 
 type DestructiveItemProps = {
