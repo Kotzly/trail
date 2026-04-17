@@ -150,10 +150,15 @@ export async function enterEditorMode(treeId: string): Promise<EditorModeState |
     tree: structuredClone(NavigationTreeMapper.toJSON(tree)),
   };
 
+  // Clear previous undo history first, then stamp the "Enter editor
+  // mode" snapshot so it's the first (and reachable) entry. Fixes
+  // #18: the previous ordering was clearHistory AFTER snapshot,
+  // which wiped the very snapshot we just pushed — so Undo past the
+  // first edit couldn't roll back to the pre-editor tree.
+  CommandManager.clearHistory();
   const currentTree = await treeStorage.getOrCreateTree();
   snapshot(currentTree, "Enter editor mode");
 
-  CommandManager.clearHistory();
   editorState = { active: true, treeId };
   void editorStateItem.setValue(editorState);
 
