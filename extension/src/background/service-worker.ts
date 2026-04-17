@@ -13,6 +13,7 @@ import { initAuth, subscribeAuthState } from "@shared/auth/auth-orchestrator.js"
 import { startSyncEngine } from "./sync/sync-engine.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 import { treeStorage } from "./services/tree-storage.js";
+import { tabManager } from "./state/tab-manager.js";
 
 const log = createLogger("service-worker");
 
@@ -62,7 +63,9 @@ registerProxyServices();
 registerExtensionMessaging();
 initWebNavigation();
 initTabsLifecycle();
-void syncOpenTabs();
+// Hydrate lastNodeByTab from session storage BEFORE syncOpenTabs so
+// opener-based parent inference works immediately on SW wake.
+void tabManager.hydrate().then(() => syncOpenTabs());
 void CommandManager.init();
 
 if (chrome.sidePanel?.setPanelBehavior) {

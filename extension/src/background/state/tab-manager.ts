@@ -4,8 +4,19 @@ import { TabIndex } from "./tab-index.js";
 import { LruManager } from "./tab-lru.js";
 import { browser } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
+import { storage } from "wxt/utils/storage";
 
 const log = createLogger("tab-manager");
+
+/**
+ * Persisted in chrome.storage.session so the map survives MV3
+ * service-worker suspend (session storage lives for the browser
+ * session, not just the SW lifetime). Key: `${TabId}`. Value: NodeId.
+ */
+const lastNodeByTabItem = storage.defineItem<Record<string, string>>(
+  "session:trail_last_node_by_tab",
+  { fallback: {} },
+);
 
 export class TabManager {
   private index: TabIndex;
@@ -16,9 +27,58 @@ export class TabManager {
   private suppressActivateForTabId = new Map<TabId, string | undefined>();
   private ignoredTabs = new Set<TabId>();
 
+  /**
+   * Per-tab "last known node" used as a fallback parent signal for
+   * opener-based navigation attribution (Phase 2). When a new tab is
+   * spawned from tab A, we want the new tab's first navigation to
+   * attach under A's node — even if A has already been re-registered
+   * elsewhere since the click.
+   *
+   * Persisted to chrome.storage.session so SW suspend + resume doesn't
+   * regress parent inference (critic C3).
+   */
+  private lastNodeByTab = new Map<TabId, NodeId>();
+  private hydrated = false;
+
   constructor() {
     this.index = new TabIndex();
     this.lru = new LruManager();
+  }
+
+  /** Load persisted `lastNodeByTab` mapping from session storage. */
+  async hydrate(): Promise<void> {
+    if (this.hydrated) return;
+    try {
+      const raw = await lastNodeByTabItem.getValue();
+      for (const [tabKey, nodeId] of Object.entries(raw)) {
+        const tabId = Number(tabKey);
+        if (!Number.isFinite(tabId) || typeof nodeId !== "string") continue;
+        this.lastNodeByTab.set(tabId as TabId, nodeId as NodeId);
+      }
+    } catch (error) {
+      log.warn("Failed to hydrate lastNodeByTab", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    this.hydrated = true;
+  }
+
+  /** Synchronous read; returns undefined if the tab has no known last node. */
+  lastNodeByTabId(tabId: TabId): NodeId | undefined {
+    return this.lastNodeByTab.get(tabId);
+  }
+
+  private persistLastNodeByTab(): void {
+    const snapshot: Record<string, string> = {};
+    for (const [tabId, nodeId] of this.lastNodeByTab.entries()) {
+      snapshot[String(tabId)] = nodeId as string;
+    }
+    // Fire-and-forget — session storage writes are cheap.
+    void lastNodeByTabItem.setValue(snapshot).catch((error) => {
+      log.warn("Failed to persist lastNodeByTab", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
   }
 
   reset() {
@@ -29,6 +89,8 @@ export class TabManager {
     this.suppressTouchForTabId = null;
     this.suppressActivateForTabId.clear();
     this.ignoredTabs.clear();
+    this.lastNodeByTab.clear();
+    this.persistLastNodeByTab();
   }
 
   touch(tabId: TabId, _nodeId: NodeId, lastUsed?: number) {
@@ -55,6 +117,9 @@ export class TabManager {
       this.lru.touch(tabId, nodeId, options?.lastUsed);
     }
     this.invalidateCycle(nodeId);
+    // Remember the last known node for this tab (opener fallback).
+    this.lastNodeByTab.set(tabId, nodeId);
+    this.persistLastNodeByTab();
   }
 
   getNextTabForNode(nodeId: NodeId, currentTabId: TabId | null = null): TabId | null {
@@ -110,6 +175,9 @@ export class TabManager {
 
     this.lru.remove(tabId);
     this.ignoredTabs.delete(tabId);
+    if (this.lastNodeByTab.delete(tabId)) {
+      this.persistLastNodeByTab();
+    }
   }
 
   suppressNextTouch(tabId: TabId): void {
