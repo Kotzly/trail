@@ -139,6 +139,18 @@ export async function handleNavigation(
     { url: url as Url, timestamp: now() } as UrlWithTimestamp,
   );
 
+  // Resolve the opener-derived parent. Order of preference:
+  //   1. opener tab's currently-registered node
+  //   2. opener tab's last known node (persisted in storage.session)
+  //   3. this tab's own last known node (fallback for SW suspend)
+  //   4. null → navigateUnder will attach to root (not tree.current)
+  // This runs outside the lock; tabManager reads are synchronous.
+  const openerTabId = tab.openerTabId as TabId | undefined;
+  const openerDerivedParentId =
+    openerTabId !== undefined
+      ? (tabManager.nodeByTab(openerTabId) ?? tabManager.lastNodeByTabId(openerTabId) ?? null)
+      : (tabManager.lastNodeByTabId(tabId as TabId) ?? null);
+
   let broadcast: NavigationBroadcast = { kind: "none" };
   try {
     broadcast = await withTreeLock(async () => {
@@ -178,20 +190,17 @@ export async function handleNavigation(
               didUpdateCurrent = true;
             }
           } else {
-            // Normal behavior: navigate from current node (creates child)
-            tree.setCurrentById(existingNodeId);
+            // Normal behavior: attach new node as child of the EXISTING
+            // node (same tab continuing its trail), not tree.current.
             didMutate = true;
-            const newNode = tree.navigate(data);
+            const newNode = tree.navigateUnder(existingNodeId, data, {
+              setAsCurrent: isActiveTab,
+            });
             wasNewNodeCreated = true;
             // Re-register tab with new node (global) — this automatically unregisters from old node
             tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
             if (isActiveTab) {
               markNodeVisited(tree, newNode.id, lastUsed);
-            }
-            // Update currentNode to new node only if tab is active
-            if (!isActiveTab && prevCurrentId !== null) {
-              tree.setCurrentById(prevCurrentId);
-            } else {
               didUpdateCurrent = true;
             }
           }
@@ -216,13 +225,13 @@ export async function handleNavigation(
           }
         }
       } else {
-        // New tab without existing node
+        // New tab without existing node — use opener-derived parent
         let newNode;
 
-        // First, try to find existing node with this URL globally
+        // Try URL dedup first (user returning to same URL in a new tab
+        // of an existing opener subtree).
         const existingNodeInWindow = tree.findByUrl(url as Url);
 
-        // If found existing node, use it instead of creating new
         if (existingNodeInWindow) {
           newNode = existingNodeInWindow;
           const updated = updateNodeMeta(newNode.data, metaPatch);
@@ -240,17 +249,21 @@ export async function handleNavigation(
             markNodeVisited(tree, newNode.id, lastUsed);
           }
         } else {
+          // Attach under opener's node (or root, if opener unknown).
+          // Never uses tree.current as parent — that was the core bug.
           didMutate = true;
-          newNode = tree.navigate(data);
+          newNode = tree.navigateUnder(openerDerivedParentId, data, {
+            setAsCurrent: isActiveTab,
+          });
           wasNewNodeCreated = true;
           tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
           if (isActiveTab) {
             markNodeVisited(tree, newNode.id, lastUsed);
-          }
-          if (!isActiveTab && prevCurrentId !== null) {
-            tree.setCurrentById(prevCurrentId);
-          } else {
             didUpdateCurrent = true;
+          } else if (prevCurrentId !== null) {
+            // Background tab: restore the UI cursor to whatever the
+            // sidepanel was showing before we touched the tree.
+            tree.setCurrentById(prevCurrentId);
           }
         }
       }
