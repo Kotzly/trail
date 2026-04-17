@@ -7,6 +7,8 @@ export type NodeData = {
   title: Title;
   favicon?: FaviconUrl;
   pinned: boolean;
+  /** Timestamp of the most recent pinned-state change. Used for LWW merges. */
+  pinnedUpdatedAt?: Timestamp;
   tags: Tag[];
   lastVisitedAt?: Timestamp;
   visitCount?: number;
@@ -14,6 +16,8 @@ export type NodeData = {
     offsetX: number;
     offsetY: number;
   };
+  /** Timestamp of the most recent layout change. Used for LWW merges. */
+  layoutUpdatedAt?: Timestamp;
 };
 
 export type NodeDataPatch = Partial<Omit<NodeData, "url">>;

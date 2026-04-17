@@ -97,15 +97,42 @@ export class NavigationTree {
     const tags = Array.from(new Set([...(base.tags ?? []), ...(incoming.tags ?? [])]));
     const title = incoming.title ? incoming.title : base.title;
     const favicon = incoming.favicon !== undefined ? incoming.favicon : base.favicon;
-    const layout = base.layout ?? incoming.layout;
+
+    // LWW for pinned + layout based on the stamped *UpdatedAt fields.
+    // If both sides have a stamp, newer wins. If only one, that one
+    // wins. If neither has a stamp, we fall back to the previous
+    // conservative policies (OR for pinned, base-wins for layout).
+    const basePinAt = base.pinnedUpdatedAt ?? 0;
+    const incPinAt = incoming.pinnedUpdatedAt ?? 0;
+    let pinned = Boolean(base.pinned || incoming.pinned);
+    let pinnedUpdatedAt = base.pinnedUpdatedAt ?? incoming.pinnedUpdatedAt;
+    if (basePinAt || incPinAt) {
+      pinned = incPinAt > basePinAt ? incoming.pinned : base.pinned;
+      pinnedUpdatedAt =
+        (incPinAt > basePinAt ? incoming.pinnedUpdatedAt : base.pinnedUpdatedAt) ?? pinnedUpdatedAt;
+    }
+
+    const baseLayoutAt = base.layoutUpdatedAt ?? 0;
+    const incLayoutAt = incoming.layoutUpdatedAt ?? 0;
+    let layout = base.layout ?? incoming.layout;
+    let layoutUpdatedAt = base.layoutUpdatedAt ?? incoming.layoutUpdatedAt;
+    if (baseLayoutAt || incLayoutAt) {
+      layout = incLayoutAt > baseLayoutAt ? incoming.layout : base.layout;
+      layoutUpdatedAt =
+        (incLayoutAt > baseLayoutAt ? incoming.layoutUpdatedAt : base.layoutUpdatedAt) ??
+        layoutUpdatedAt;
+    }
+
     return {
       ...base,
       url: base.url,
       title,
       favicon,
-      pinned: Boolean(base.pinned || incoming.pinned),
+      pinned,
+      ...(pinnedUpdatedAt ? { pinnedUpdatedAt } : {}),
       tags,
       ...(layout ? { layout } : {}),
+      ...(layoutUpdatedAt ? { layoutUpdatedAt } : {}),
     } as NodeData;
   }
 
