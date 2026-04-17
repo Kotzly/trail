@@ -318,10 +318,17 @@ export class NavigationTree {
     return null;
   }
 
-  setCurrentById(nodeId: NodeId): void {
+  /**
+   * Set the current cursor by id.
+   * Returns true if the node was found and current was updated;
+   * false if the id does not exist (silent no-op for the caller's
+   * awareness — callers that need to react to a miss should check).
+   */
+  setCurrentById(nodeId: NodeId): boolean {
     const node = this.findNodeById(nodeId);
-    if (!node) return;
+    if (!node) return false;
     this.setCurrent(node);
+    return true;
   }
 
   getCurrentId(): NodeId | null {

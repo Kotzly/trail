@@ -3,6 +3,9 @@ import { TreeNode } from "@background/state/tree-node.js";
 import { type NavigationTreeJSON } from "../types/tree.js";
 import { NavigationTree } from "@background/state/nav-tree.js";
 import { normalizeNodeData } from "../schemas/node.js";
+import { createLogger } from "./logger.js";
+
+const log = createLogger("tree-mapper");
 
 export class TreeNodeMapper {
   static fromJSON(json: NavigationNodeJSON, parent?: NavigationNode): NavigationNode {
@@ -46,7 +49,17 @@ export class NavigationTreeMapper {
     const root = TreeNodeMapper.fromJSON(json.root);
     const tree = new NavigationTree(root);
 
-    if (json.currentNodeId) tree.setCurrentById(json.currentNodeId);
+    if (json.currentNodeId) {
+      const ok = tree.setCurrentById(json.currentNodeId);
+      if (!ok) {
+        // Persisted current references a node that was removed in a
+        // prior session (e.g., merged away by deleteNode cleanup
+        // before save). Falls through to root fallback below.
+        log.warn("persisted currentNodeId not found — falling back to root", {
+          currentNodeId: json.currentNodeId,
+        });
+      }
+    }
     if (!tree.getCurrent() && tree.getRoot()) {
       tree.setCurrent(tree.getRoot()!);
     }
