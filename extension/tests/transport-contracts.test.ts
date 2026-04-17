@@ -60,6 +60,7 @@ function testProtocolConstants(): void {
     'event/sync-conflict',
     'event/auth-state',
     'site/editor-mode-exited',
+    'event/content-bridge-error',
   ]);
 
   assert.deepEqual(Object.values(WEBSITE_MESSAGE), [
