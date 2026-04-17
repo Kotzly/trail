@@ -132,14 +132,14 @@ export async function handleNavigation(
     lastUsed === undefined ? { touch } : { touch, lastUsed };
   const isActiveTab = tab.active;
 
-  // Record + check for redirect (safe outside lock — redirectDetector
-  // is a dedicated tab-keyed map, not the tree). If this URL looks
-  // like a redirect from the previous one (same tab, different URL,
-  // within REDIRECT_THRESHOLD_MS), we mutate the existing node in
-  // place instead of creating a child. Otherwise every intermediate
-  // hop in an OAuth chain would become a useless dead node.
+  // Record the URL for redirect-detection state; actual redirect/glance/
+  // burst handling is done downstream in per-tab state machines (see
+  // the cleanup design doc). We no longer mutate the existing node in
+  // place on short-window redirects — that destroyed user-visible
+  // history when challenge pages (captcha, Cloudflare) landed on a
+  // tab mapped to a real node. Normal child creation is the safe
+  // default; challenge URLs are filtered by an upstream deny-list.
   const incomingUrl = { url: url as Url, timestamp: now() } as UrlWithTimestamp;
-  const isRedirectHop = redirectDetector.isRedirect(tabId as TabId, incomingUrl);
   redirectDetector.recordTabUrl(tabId as TabId, incomingUrl);
 
   // Resolve the opener-derived parent. Order of preference:
@@ -197,26 +197,17 @@ export async function handleNavigation(
               tree.setCurrentById(node.id);
               didUpdateCurrent = true;
             }
-          } else if (isRedirectHop && node) {
-            // Redirect hop — mutate the existing node's URL in place
-            // instead of creating a child. Avoids the dead-node chain
-            // that OAuth / bit.ly / server-redirect flows produce.
-            node.data = {
-              ...node.data,
-              url: data.url,
-              title: data.title,
-              favicon: data.favicon,
-            } as NodeData;
-            tree.refreshSearchEntry(node.id);
-            didMutate = true;
-            if (isActiveTab) {
-              markNodeVisited(tree, node.id, lastUsed);
-              tree.setCurrentById(node.id);
-              didUpdateCurrent = true;
-            }
           } else {
             // Normal behavior: attach new node as child of the EXISTING
             // node (same tab continuing its trail), not tree.current.
+            //
+            // Previously there was an "isRedirectHop" branch here that
+            // mutated the existing node's URL in place. It was removed:
+            // it destroyed synced user history when challenge/captcha
+            // pages landed on a tab mapped to a real node. Challenge
+            // URLs are now filtered upstream by a deny-list (Layer 1);
+            // redirect chains that produce cruft are handled by
+            // round-trip detection (Layer 2) and glance prune (Layer 3).
             didMutate = true;
             const newNode = tree.navigateUnder(existingNodeId, data, {
               setAsCurrent: isActiveTab,
