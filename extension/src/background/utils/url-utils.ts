@@ -72,7 +72,12 @@ let cachedBlocklist: CompiledBlocklist = () => true;
 let blocklistReady = false;
 
 export function setUrlBlocklist(patterns: readonly string[]): void {
-  const key = patterns.join("\n");
+  // Canonicalize the cache key: sort + escape the delimiter so
+  // (a) pattern reordering doesn't cause a pointless recompile, and
+  // (b) pathological patterns like ["a\nb"] can't collide with
+  // ["a", "b"] (#97).
+  const sorted = [...patterns].map((p) => p.replace(/[\\|]/g, (m) => `\\${m}`)).sort();
+  const key = sorted.join("|");
   if (blocklistReady && key === cachedBlocklistKey) return;
   cachedBlocklistKey = key;
   cachedBlocklist = compileBlocklist(patterns);
