@@ -132,15 +132,16 @@ export async function handleNavigation(
     lastUsed === undefined ? { touch } : { touch, lastUsed };
   const isActiveTab = tab.active;
 
-  // Record the URL for redirect-detection state; actual redirect/glance/
-  // burst handling is done downstream in per-tab state machines (see
-  // the cleanup design doc). We no longer mutate the existing node in
-  // place on short-window redirects — that destroyed user-visible
-  // history when challenge pages (captcha, Cloudflare) landed on a
-  // tab mapped to a real node. Normal child creation is the safe
-  // default; challenge URLs are filtered by an upstream deny-list.
+  // Record the URL for legacy callers; the real per-tab trail is
+  // `redirectDetector.pushHistory` below, after we know the nodeId.
   const incomingUrl = { url: url as Url, timestamp: now() } as UrlWithTimestamp;
   redirectDetector.recordTabUrl(tabId as TabId, incomingUrl);
+
+  // Round-trip check (Layer 2). If this URL appears in the tab's
+  // recent history, we're returning from a detour (captcha resolve,
+  // quick glance back to feed, etc.). Restore the mapping and skip
+  // tree mutation entirely.
+  const roundTrip = redirectDetector.findRoundTrip(tabId as TabId, url as Url);
 
   // Resolve the opener-derived parent. Order of preference:
   //   1. opener tab's currently-registered node
@@ -167,6 +168,38 @@ export async function handleNavigation(
       const tree = await treeStorage.getOrCreateTree();
       const prevCurrentId = tree.getCurrentId();
       let didMutate = false;
+
+      // Round-trip fast-path (Layer 2 cleanup). If this URL matches an
+      // earlier entry in the tab's history AND the matched node still
+      // exists, we're returning from a detour. Just re-register the
+      // mapping to the original node and exit — no child created, no
+      // mutation. This handles "captcha solved, back to search" and
+      // "glanced at a link, hit back" cleanly, independent of dwell.
+      if (roundTrip && roundTrip.nodeId) {
+        const target = tree.findNodeById(roundTrip.nodeId);
+        if (target) {
+          tabManager.register(target.id, tabId as TabId, registerOptions(isActiveTab));
+          if (isActiveTab) {
+            markNodeVisited(tree, target.id, lastUsed);
+            tree.setCurrentById(target.id);
+            didUpdateCurrent = true;
+          } else if (prevCurrentId !== null) {
+            tree.setCurrentById(prevCurrentId);
+          }
+          if (didUpdateCurrent) treeStorage.cacheTree(tree);
+          redirectDetector.pushHistory(
+            tabId as TabId,
+            url as Url,
+            target.id,
+            incomingUrl.timestamp,
+          );
+          if (isActiveTab) {
+            const view: TreeViewIntent = { focusNodeId: target.id, mode: "force" };
+            return { kind: "notify", reason: "navigate", view };
+          }
+          return { kind: "none" };
+        }
+      }
 
       if (existingNodeId !== undefined) {
         // Tab already has a node
@@ -287,6 +320,12 @@ export async function handleNavigation(
       if (didMutate || didUpdateCurrent) {
         treeStorage.cacheTree(tree);
       }
+
+      // Push to history AFTER mutation — record the actual node this
+      // navigation resolved to. On a later return, findRoundTrip
+      // looks up the entry and restores this exact node.
+      const resolvedId = tabManager.nodeByTab(tabId as TabId) ?? null;
+      redirectDetector.pushHistory(tabId as TabId, url as Url, resolvedId, incomingUrl.timestamp);
 
       // Decide broadcast intent; actual send happens outside the lock.
       if (isActiveTab || wasNewNodeCreated) {
