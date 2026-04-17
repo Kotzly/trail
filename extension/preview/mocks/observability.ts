@@ -26,3 +26,18 @@ export async function setTelemetryConsent(): Promise<void> {
 export function resetTelemetryIdentity(): void {
   // intentionally empty
 }
+
+// Feature flags — preview harness has no PostHog, so flag reads always
+// return "no signal" and motion-config falls back to compile-time defaults.
+
+export function readFeatureFlag(_key: string): boolean | undefined {
+  return undefined;
+}
+
+export function readFeatureFlagSnapshot(_keys: readonly string[]): Record<string, boolean> {
+  return {};
+}
+
+export async function reloadFeatureFlags(): Promise<void> {
+  // intentionally empty
+}

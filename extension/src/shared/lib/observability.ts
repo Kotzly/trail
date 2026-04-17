@@ -52,7 +52,12 @@ export type AnalyticsEvent =
   | "sync_failed"
   | "feedback_submitted"
   | "telemetry_opted_out"
-  | "telemetry_opted_in";
+  | "telemetry_opted_in"
+  // Motion platform (§0.5) — anonymous perf/behavior signal only
+  | "graph.hover"
+  | "graph.frame_drop"
+  | "graph.motion_degraded"
+  | "graph.ambient_session";
 
 export type AnalyticsProperties = Record<string, string | number | boolean | null | undefined>;
 
@@ -231,4 +236,62 @@ export async function getTelemetryConsent(): Promise<TelemetryConsent> {
 export async function resetTelemetryIdentity(): Promise<void> {
   await telemetryAnonIdItem.setValue(null);
   posthogClient?.reset();
+}
+
+// ── Feature flags ──────────────────────────────────────────────────
+//
+// Thin wrapper over PostHog feature flags with consent + initialization
+// guards. Motion config (and any other runtime-toggleable feature) reads
+// through here; never call posthog.getFeatureFlag() directly from UI code.
+//
+// Unknown / missing flags return `undefined` so callers can fall back
+// to a compile-time default — mid-session "no signal" must not flip the
+// UI to a different behaviour than the defaults baked in.
+
+/**
+ * Read a single boolean flag synchronously from the cached PostHog
+ * snapshot. Returns undefined if PostHog is not initialized, consent is
+ * off, or the flag isn't in the snapshot yet.
+ */
+export function readFeatureFlag(key: string): boolean | undefined {
+  if (!posthogClient) return undefined;
+  const raw = posthogClient.getFeatureFlag(key);
+  if (typeof raw === "boolean") return raw;
+  return undefined;
+}
+
+/**
+ * Read a set of boolean flags as a plain object. Missing flags are
+ * omitted from the result (not set to false) so callers can distinguish
+ * "flag turned off" from "no signal yet".
+ */
+export function readFeatureFlagSnapshot(keys: readonly string[]): Record<string, boolean> {
+  if (!posthogClient) return {};
+  const result: Record<string, boolean> = {};
+  for (const key of keys) {
+    const raw = posthogClient.getFeatureFlag(key);
+    if (typeof raw === "boolean") result[key] = raw;
+  }
+  return result;
+}
+
+/**
+ * Ask PostHog to re-fetch feature flags from the server. Resolves when
+ * the new snapshot is available (or immediately if PostHog is disabled).
+ */
+export async function reloadFeatureFlags(): Promise<void> {
+  if (!posthogClient) return;
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    // onFeatureFlags fires once flags arrive from the server
+    posthogClient?.onFeatureFlags(() => done());
+    posthogClient?.reloadFeatureFlags();
+    // safety: don't hang callers if PostHog is unresponsive
+    setTimeout(done, 5_000);
+  });
 }

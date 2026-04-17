@@ -7,6 +7,7 @@ import { initBackendConfig } from "@shared/config/backend.js";
 import { queryClient } from "@ui/query/client.js";
 import { ThemeProvider } from "@ui/providers/theme-provider.js";
 import { browser } from "@shared/platform/webext.js";
+import { MotionPlatformProvider } from "@features/graph/motion/index.js";
 
 export type MountPanelAppOptions = {
   rootId?: string;
@@ -30,9 +31,11 @@ export function mountPanelApp(options: MountPanelAppOptions = {}): void {
   createRoot(rootEl).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <App />
-        </ThemeProvider>
+        <MotionPlatformProvider>
+          <ThemeProvider>
+            <App />
+          </ThemeProvider>
+        </MotionPlatformProvider>
       </QueryClientProvider>
     </ErrorBoundary>,
   );

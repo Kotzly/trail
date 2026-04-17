@@ -8,6 +8,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@ui/query/client";
 import { ThemeProvider } from "@ui/providers/theme-provider";
 import { useStore } from "@apps/sidepanel/ui/state/store";
+import { MotionPlatformProvider } from "@features/graph/motion/index.js";
 import { fakeFlags, fakeSettings, fakeTreeUpdatedInput } from "./fake-tree";
 import { PreviewApp } from "./PreviewApp";
 
@@ -45,7 +46,6 @@ class PreviewErrorBoundary extends Component<
 const store = useStore.getState();
 store.bootstrapGraph(fakeSettings(), fakeTreeUpdatedInput());
 store.setFlags(fakeFlags());
-store.setPlatformMeta({ short: "⌘", long: "cmd" }, true);
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("preview: missing #root");
@@ -53,9 +53,11 @@ if (!rootEl) throw new Error("preview: missing #root");
 createRoot(rootEl).render(
   <PreviewErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <PreviewApp />
-      </ThemeProvider>
+      <MotionPlatformProvider>
+        <ThemeProvider>
+          <PreviewApp />
+        </ThemeProvider>
+      </MotionPlatformProvider>
     </QueryClientProvider>
   </PreviewErrorBoundary>,
 );
