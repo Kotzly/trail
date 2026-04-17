@@ -12,6 +12,7 @@ import { captureError, captureEvent, initObservability } from "@shared/lib/obser
 import { initAuth, subscribeAuthState } from "@shared/auth/auth-orchestrator.js";
 import { startSyncEngine } from "./sync/sync-engine.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
+import { treeStorage } from "./services/tree-storage.js";
 
 const log = createLogger("service-worker");
 
@@ -27,6 +28,8 @@ self.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
 void initObservability("background");
 
 // Install / update tracking — fires once per install and once per version change.
+// Also kicks off local schema migrations so the extension starts each
+// upgrade with its persisted shape matching the current code.
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
     captureEvent("install", { version: chrome.runtime.getManifest().version });
@@ -35,7 +38,19 @@ chrome.runtime.onInstalled.addListener((details) => {
       version: chrome.runtime.getManifest().version,
       previousVersion: details.previousVersion ?? null,
     });
+    // Run migrations on upgrade. Module-load migration below also runs,
+    // but singleflight dedupes.
+    void import("./services/migrations.js").then(({ runMigrations }) => runMigrations());
   }
+});
+
+// MV3 service workers are evicted aggressively. Flush pending tree saves
+// before termination so the 1.5s debounced writes don't disappear with
+// the worker. This is best-effort — Chrome may terminate before the
+// flush resolves — but it closes the common-case data-loss window.
+chrome.runtime.onSuspend.addListener(() => {
+  log.info("Service worker suspending — flushing pending saves");
+  void treeStorage.flushSaveNow();
 });
 
 // Initialize all modules
