@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { Globe } from "lucide-react";
 import { Handle, Position, useStore } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { cn } from "@ui/lib/utils";
@@ -68,7 +69,7 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
         ))}
         <div
           className={cn(
-            "h-[52px] w-[160px] rounded-sm border-2",
+            "h-[60px] w-[160px] rounded-md border",
             isOpen || isCurrent
               ? "bg-foreground/20 border-foreground/30"
               : "bg-foreground/10 border-foreground/15",
@@ -94,8 +95,10 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
       ))}
       <div
         className={cn(
-          "flex items-center gap-2 rounded-md border px-2.5 py-2",
+          "flex min-h-[60px] items-center gap-2 rounded-md border px-2.5 py-2",
           "w-[160px] cursor-default select-none",
+          "transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out will-change-transform",
+          "hover:scale-[1.015] hover:shadow-md",
           isOpen || isCurrent
             ? "bg-card text-card-foreground"
             : "bg-muted/60 text-muted-foreground border-border/50",
@@ -106,21 +109,26 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
           selected && "ring-ring ring-2",
         )}
       >
-        {showDetail && favicon && (
-          <img
-            src={String(favicon)}
-            alt=""
-            className="size-4 shrink-0 rounded-sm"
-            loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
-        )}
+        {showDetail &&
+          (favicon ? (
+            <img
+              src={String(favicon)}
+              alt=""
+              className="size-4 shrink-0 rounded-sm"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <Globe
+              className="text-muted-foreground/60 size-4 shrink-0"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+          ))}
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="line-clamp-2 min-h-[2lh] text-[11px] leading-tight font-medium">
-            {displayTitle}
-          </span>
+          <span className="line-clamp-2 text-[11px] leading-tight font-medium">{displayTitle}</span>
           {showDetail && (
             <span className="text-muted-foreground truncate text-[9px] leading-tight">
               {displayUrl}

@@ -10,6 +10,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import "../motion/relayout.css";
+import "../motion/hover.css";
 import type { TrailGraphProps, TrailNode as TrailNodeType } from "../types.js";
 import { TrailNode } from "./TrailNode.js";
 import { GraphControls } from "./GraphControls.js";
@@ -21,6 +22,7 @@ import type { NodeId } from "@shared/types/ids.js";
 import { cn } from "@ui/lib/utils";
 import { selectShowBackground } from "../lod.js";
 import { useRelayoutEnabled } from "../motion/useRelayoutEnabled.js";
+import { useHoverHighlightEnabled } from "../motion/useHoverHighlightEnabled.js";
 import { useCameraControls } from "../motion/useCameraControls.js";
 
 const nodeTypes = { trail: TrailNode };
@@ -61,6 +63,7 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   const showBackground = useStore(selectShowBackground);
   const relayoutAnimated = useRelayoutEnabled();
+  const hoverGlow = useHoverHighlightEnabled();
 
   const metadata = useMemo(
     () => ({
@@ -156,7 +159,11 @@ function TrailGraphInner(props: TrailGraphProps) {
   return (
     <div
       ref={containerRef}
-      className={cn("min-h-0 w-full flex-1", relayoutAnimated && "graph--relayout-animated")}
+      className={cn(
+        "min-h-0 w-full flex-1",
+        relayoutAnimated && "graph--relayout-animated",
+        hoverGlow && "graph--hover-glow",
+      )}
     >
       <ReactFlow
         nodes={displayNodes}
