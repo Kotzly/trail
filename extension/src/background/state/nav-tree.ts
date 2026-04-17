@@ -15,6 +15,13 @@ export class NavigationTree {
   private nodeMap: Map<NodeId, NavigationNode> = new Map<NodeId, NavigationNode>();
   private searchIndex: MiniSearch;
   private searchDocs: Map<NodeId, SearchDoc> = new Map<NodeId, SearchDoc>();
+  /**
+   * O(1) URL-key → nodes index. One key can map to multiple nodes
+   * (same URL visited from two different parts of the tree); callers
+   * use `findByUrl(url, near?)` to pick the closest one. Maintained
+   * by createChild / updateNodeData / deleteNode / merge paths.
+   */
+  private urlIndex: Map<string, Set<NavigationNode>> = new Map();
 
   constructor(root?: NavigationNode) {
     this.searchIndex = NavigationTree.createSearchIndex();
@@ -34,6 +41,7 @@ export class NavigationTree {
       const doc = NavigationTree.buildSearchDoc(node);
       docs.push(doc);
       this.searchDocs.set(node.id, doc);
+      this.indexUrlForNode(node);
       ++count;
     });
     if (docs.length > 0) {
@@ -41,6 +49,26 @@ export class NavigationTree {
     }
 
     this.nodeCount = count;
+  }
+
+  private indexUrlForNode(node: NavigationNode): void {
+    const key = createUrlKey(node.data.url);
+    if (!key) return;
+    let set = this.urlIndex.get(key);
+    if (!set) {
+      set = new Set();
+      this.urlIndex.set(key, set);
+    }
+    set.add(node);
+  }
+
+  private unindexUrlForNode(node: NavigationNode, urlKey?: string): void {
+    const key = urlKey ?? createUrlKey(node.data.url);
+    if (!key) return;
+    const set = this.urlIndex.get(key);
+    if (!set) return;
+    set.delete(node);
+    if (set.size === 0) this.urlIndex.delete(key);
   }
 
   size(): number {
@@ -126,6 +154,7 @@ export class NavigationTree {
 
       this.nodeMap.delete(child.id);
       this.removeSearchEntry(child.id);
+      this.unindexUrlForNode(child);
       this.nodeCount = Math.max(0, this.nodeCount - 1);
 
       redirects.push({ from: child.id, to: existing.id });
@@ -224,6 +253,7 @@ export class NavigationTree {
     const child = node ? node.addChild(data) : new TreeNode(data);
     this.nodeMap.set(child.id, child);
     this.updateSearchEntry(child);
+    this.indexUrlForNode(child);
     this.nodeCount++;
     return child;
   }
@@ -252,6 +282,7 @@ export class NavigationTree {
     node.remove();
     this.nodeMap.delete(node.id);
     this.removeSearchEntry(node.id);
+    this.unindexUrlForNode(node);
     this.nodeCount = Math.max(0, this.nodeCount - 1);
 
     if (this.current && this.current.id === nodeId) {
@@ -281,6 +312,7 @@ export class NavigationTree {
     for (const removedNode of removed) {
       this.nodeMap.delete(removedNode.id);
       this.removeSearchEntry(removedNode.id);
+      this.unindexUrlForNode(removedNode);
     }
     this.nodeCount = Math.max(0, this.nodeCount - removed.length);
 
@@ -303,6 +335,7 @@ export class NavigationTree {
       this.nodeMap.clear();
       this.searchIndex = NavigationTree.createSearchIndex();
       this.searchDocs.clear();
+      this.urlIndex.clear();
       this.nodeCount = 0;
       return removed;
     }
@@ -313,6 +346,7 @@ export class NavigationTree {
     for (const removedNode of removed) {
       this.nodeMap.delete(removedNode.id);
       this.removeSearchEntry(removedNode.id);
+      this.unindexUrlForNode(removedNode);
     }
     this.nodeCount = Math.max(0, this.nodeCount - removed.length);
 
@@ -329,6 +363,7 @@ export class NavigationTree {
     this.nodeMap.clear();
     this.searchIndex = NavigationTree.createSearchIndex();
     this.searchDocs.clear();
+    this.urlIndex.clear();
     this.nodeCount = 0;
   }
 
@@ -358,14 +393,35 @@ export class NavigationTree {
     return ids;
   }
 
-  findByUrl(url: Url): NavigationNode | null {
+  /**
+   * O(1) URL lookup via the urlIndex. When multiple nodes share the
+   * same URL key (same URL reached from two different parts of the
+   * tree), prefer the one closest to `near` (via ancestor walk). If
+   * `near` is not provided, return the first match in insertion
+   * order. Never returns a detached node (those are unindexed on
+   * delete).
+   */
+  findByUrl(url: Url, near?: NavigationNode): NavigationNode | null {
     const targetKey = createUrlKey(url);
-    for (const node of this.iter() ?? []) {
-      if (createUrlKey(node.data.url) === targetKey) {
-        return node;
-      }
+    if (!targetKey) return null;
+    const set = this.urlIndex.get(targetKey);
+    if (!set || set.size === 0) return null;
+    if (set.size === 1 || !near) {
+      return set.values().next().value ?? null;
     }
-    return null;
+    // Proximity: walk up from `near` to root; the first ancestor
+    // that's in the set wins.
+    let cursor: NavigationNode | null = near;
+    while (cursor) {
+      if (set.has(cursor)) return cursor;
+      cursor = cursor.getParent();
+    }
+    // Otherwise, walk down from `near`'s subtree looking for a match.
+    for (const node of near.iter()) {
+      if (set.has(node)) return node;
+    }
+    // No proximity winner — fall back to the first inserted.
+    return set.values().next().value ?? null;
   }
 
   /**
@@ -410,7 +466,13 @@ export class NavigationTree {
     if (!node) return null;
     const prev = node.data;
     const next: NodeData = { ...prev, ...patch } as NodeData;
+    const prevUrlKey = createUrlKey(prev.url);
+    const nextUrlKey = createUrlKey(next.url);
     node.data = next;
+    if (prevUrlKey !== nextUrlKey) {
+      this.unindexUrlForNode(node, prevUrlKey);
+      this.indexUrlForNode(node);
+    }
     const searchAffected =
       prev.url !== next.url || prev.title !== next.title || prev.favicon !== next.favicon;
     if (searchAffected) {
