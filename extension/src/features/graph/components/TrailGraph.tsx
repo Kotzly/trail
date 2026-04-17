@@ -10,6 +10,7 @@ import {
   type NodeMouseHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import "../motion/relayout.css";
 import type { TrailGraphProps, TrailNode as TrailNodeType } from "../types.js";
 import { TrailNode } from "./TrailNode.js";
 import { GraphControls } from "./GraphControls.js";
@@ -17,7 +18,9 @@ import { useGraphLayout } from "../hooks/useGraphLayout.js";
 import { useCmdWheelZoom } from "../hooks/useCmdWheelZoom.js";
 import { NODE_WIDTH, NODE_HEIGHT } from "../tree-layout.js";
 import type { NodeId } from "@shared/types/ids.js";
+import { cn } from "@ui/lib/utils";
 import { selectShowBackground } from "../lod.js";
+import { useRelayoutEnabled } from "../motion/useRelayoutEnabled.js";
 
 const nodeTypes = { trail: TrailNode };
 
@@ -56,6 +59,7 @@ function TrailGraphInner(props: TrailGraphProps) {
   useCmdWheelZoom(containerRef);
 
   const showBackground = useStore(selectShowBackground);
+  const relayoutAnimated = useRelayoutEnabled();
 
   const metadata = useMemo(
     () => ({
@@ -150,7 +154,10 @@ function TrailGraphInner(props: TrailGraphProps) {
   );
 
   return (
-    <div ref={containerRef} className="min-h-0 w-full flex-1">
+    <div
+      ref={containerRef}
+      className={cn("min-h-0 w-full flex-1", relayoutAnimated && "graph--relayout-animated")}
+    >
       <ReactFlow
         nodes={displayNodes}
         edges={layout.edges}
