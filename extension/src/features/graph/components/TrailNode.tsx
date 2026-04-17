@@ -1,8 +1,8 @@
 import { memo, useEffect } from "react";
-import { Globe } from "lucide-react";
 import { Handle, Position, useStore, useUpdateNodeInternals } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { cn } from "@ui/lib/utils";
+import { Icons } from "@ui/components/icons";
 import { Badge } from "@ui/components/ui/badge";
 import { selectLod, showDetailAt, showLabelsAt } from "../lod.js";
 
@@ -143,7 +143,7 @@ function TrailNodeComponent({
               }}
             />
           ) : (
-            <Globe
+            <Icons.Globe
               className="text-muted-foreground/60 size-4 shrink-0"
               strokeWidth={1.75}
               aria-hidden

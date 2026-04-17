@@ -1,5 +1,5 @@
 import { useReactFlow } from "@xyflow/react";
-import { LocateFixed, Maximize, Minus, Plus } from "lucide-react";
+import { Icons } from "@ui/components/icons";
 import { Button } from "@ui/components/ui/button";
 import { ButtonGroup } from "@ui/components/ui/button-group";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
@@ -34,7 +34,7 @@ export function GraphControls({
             aria-label="Zoom in"
             onClick={() => zoomIn({ duration: 200 })}
           >
-            <Plus />
+            <Icons.Plus />
           </Button>
         </ButtonTooltip>
         <ButtonTooltip label="Zoom out">
@@ -44,7 +44,7 @@ export function GraphControls({
             aria-label="Zoom out"
             onClick={() => zoomOut({ duration: 200 })}
           >
-            <Minus />
+            <Icons.Minus />
           </Button>
         </ButtonTooltip>
         <ButtonTooltip label="Center on current tab">
@@ -55,7 +55,7 @@ export function GraphControls({
             disabled={!canCenterCurrent}
             onClick={onCenterCurrent}
           >
-            <LocateFixed />
+            <Icons.LocateFixed />
           </Button>
         </ButtonTooltip>
         <ButtonTooltip label="Fit whole graph">
@@ -65,7 +65,7 @@ export function GraphControls({
             aria-label="Fit whole graph"
             onClick={() => smoothFitView()}
           >
-            <Maximize />
+            <Icons.Maximize />
           </Button>
         </ButtonTooltip>
       </ButtonGroup>
