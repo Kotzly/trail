@@ -14,6 +14,7 @@ import "../motion/relayout.css";
 import type { TrailGraphProps, TrailNode as TrailNodeType } from "../types.js";
 import { TrailNode } from "./TrailNode.js";
 import { GraphControls } from "./GraphControls.js";
+import { LodController } from "./LodController.js";
 import { useGraphLayout } from "../hooks/useGraphLayout.js";
 import { useCmdWheelZoom } from "../hooks/useCmdWheelZoom.js";
 import { NODE_WIDTH, NODE_HEIGHT } from "../tree-layout.js";
@@ -187,6 +188,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         {showBackground && (
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--border)" />
         )}
+        <LodController targetRef={containerRef} />
         <GraphControls layoutMode={settings.layout.mode} onLayoutModeChange={onLayoutModeChange} />
       </ReactFlow>
     </div>

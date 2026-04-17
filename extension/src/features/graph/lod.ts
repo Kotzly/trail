@@ -6,6 +6,11 @@
  *
  * Edges require handles in the DOM, so showEdges is tied to
  * showLabels — the lowest LOD that renders handles.
+ *
+ * A tri-state `Lod` selector is also exposed for effects that want to
+ * gate purely in CSS (see `LodController`): the container receives a
+ * `data-lod="far" | "mid" | "near"` attribute that descendants can
+ * target without subscribing to the store.
  */
 import type { ReactFlowState } from "@xyflow/react";
 
@@ -25,3 +30,17 @@ export const selectShowDetail = (s: ReactFlowState) => s.transform[2] >= ZOOM_DE
 
 /** Background dot grid */
 export const selectShowBackground = (s: ReactFlowState) => s.transform[2] >= ZOOM_BACKGROUND;
+
+export type Lod = "far" | "mid" | "near";
+
+/**
+ * Tri-state LOD bucket for CSS-driven effects. Only flips when the
+ * zoom crosses a threshold — callers using this selector re-render at
+ * most twice per zoom gesture, never per frame.
+ */
+export const selectLod = (s: ReactFlowState): Lod => {
+  const zoom = s.transform[2];
+  if (zoom < ZOOM_LABELS) return "far";
+  if (zoom < ZOOM_DETAIL) return "mid";
+  return "near";
+};
