@@ -46,7 +46,6 @@ export type TrailGraphProps = {
   onNodeContextMenu: (nodeId: NodeId, position: { x: number; y: number }) => void;
   onCollapseToggle: (nodeId: NodeId) => void;
   onSelectionChange: (nodeIds: Set<NodeId>) => void;
-  onLayoutModeChange: (mode: LayoutMode) => void;
 };
 
 // ── Layout computation result ──────────────────────────────────────

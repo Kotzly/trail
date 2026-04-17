@@ -22,7 +22,6 @@ import {
   EmptyTitle,
 } from "@ui/components/ui/empty";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
-import { saveSettings } from "../api/settings.js";
 import type { NodeId, Url } from "@shared/types/ids.js";
 import { navigateToNodeId } from "../api/tree.js";
 
@@ -83,7 +82,6 @@ export default function App() {
   const openContextMenu = useStore((s) => s.openContextMenu);
   const collapseNodes = useStore((s) => s.collapseNodes);
   const expandNodes = useStore((s) => s.expandNodes);
-  const setSettings = useStore((s) => s.setSettings);
 
   const handleNodeClick = useCallback((nodeId: NodeId, url: string) => {
     void navigateToNodeId(nodeId, url as Url);
@@ -112,16 +110,6 @@ export default function App() {
       setSelectedNodeIds(nodeIds);
     },
     [setSelectedNodeIds],
-  );
-
-  const handleLayoutModeChange = useCallback(
-    (mode: "tree" | "mindmap") => {
-      if (!settings) return;
-      const next = { ...settings, layout: { ...settings.layout, mode } };
-      setSettings(next);
-      saveSettings(next).catch(console.error);
-    },
-    [settings, setSettings],
   );
 
   if (bootstrapStatus === "loading") {
@@ -163,7 +151,6 @@ export default function App() {
               onNodeContextMenu={handleNodeContextMenu}
               onCollapseToggle={handleCollapseToggle}
               onSelectionChange={handleSelectionChange}
-              onLayoutModeChange={handleLayoutModeChange}
             />
           </Suspense>
         )}

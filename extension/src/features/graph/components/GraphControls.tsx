@@ -3,24 +3,15 @@ import { Icons } from "@ui/components/icons";
 import { Button } from "@ui/components/ui/button";
 import { ButtonGroup } from "@ui/components/ui/button-group";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
-import { ToggleGroup, ToggleGroupItem } from "@ui/components/ui/toggle-group";
-import type { LayoutMode } from "../types.js";
 import { useCameraControls } from "../motion/useCameraControls.js";
 
 type GraphControlsProps = {
-  layoutMode: LayoutMode;
-  onLayoutModeChange: (mode: LayoutMode) => void;
   /** Center camera on the current tab's node. Disabled when no such node. */
   onCenterCurrent: () => void;
   canCenterCurrent: boolean;
 };
 
-export function GraphControls({
-  layoutMode,
-  onLayoutModeChange,
-  onCenterCurrent,
-  canCenterCurrent,
-}: GraphControlsProps) {
+export function GraphControls({ onCenterCurrent, canCenterCurrent }: GraphControlsProps) {
   const { zoomIn, zoomOut } = useReactFlow();
   const { smoothFitView } = useCameraControls();
 
@@ -69,18 +60,6 @@ export function GraphControls({
           </Button>
         </ButtonTooltip>
       </ButtonGroup>
-      <ToggleGroup
-        type="single"
-        size="sm"
-        value={layoutMode}
-        onValueChange={(v) => {
-          if (v) onLayoutModeChange(v as LayoutMode);
-        }}
-        variant="outline"
-      >
-        <ToggleGroupItem value="tree">Tree</ToggleGroupItem>
-        <ToggleGroupItem value="mindmap">Map</ToggleGroupItem>
-      </ToggleGroup>
     </div>
   );
 }

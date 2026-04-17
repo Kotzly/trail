@@ -67,7 +67,6 @@ function TrailGraphInner(props: TrailGraphProps) {
     onNodeContextMenu,
     onCollapseToggle,
     onSelectionChange,
-    onLayoutModeChange,
   } = props;
 
   const { smoothCenter, smoothFitView } = useCameraControls();
@@ -330,12 +329,7 @@ function TrailGraphInner(props: TrailGraphProps) {
       >
         <GraphBackground />
         <LodController targetRef={containerRef} />
-        <GraphControls
-          layoutMode={settings.layout.mode}
-          onLayoutModeChange={onLayoutModeChange}
-          onCenterCurrent={handleCenterCurrent}
-          canCenterCurrent={canCenterCurrent}
-        />
+        <GraphControls onCenterCurrent={handleCenterCurrent} canCenterCurrent={canCenterCurrent} />
       </ReactFlow>
     </div>
   );
