@@ -12,7 +12,7 @@ import { Separator } from "@ui/components/ui/separator";
 import { Slider } from "@ui/components/ui/slider";
 import { Button } from "@ui/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
-import { Info } from "lucide-react";
+import { Icons } from "@ui/components/icons";
 
 type BehaviorPageProps = {
   settings: Settings;
@@ -25,11 +25,11 @@ function CleanupInfo({ text }: { text: string }) {
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground h-6 w-6"
+          size="icon-sm"
+          className="text-muted-foreground hover:text-foreground"
           aria-label="More info"
         >
-          <Info className="h-4 w-4" />
+          <Icons.Info />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="max-w-xs text-sm leading-relaxed">{text}</PopoverContent>

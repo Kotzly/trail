@@ -18,6 +18,7 @@ import {
 } from "@ui/components/ui/command";
 import { Button } from "@ui/components/ui/button";
 import { Kbd } from "@ui/components/ui/kbd";
+import { Separator } from "@ui/components/ui/separator";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
@@ -58,10 +59,7 @@ export default function CommandPalette() {
           </Button>
         </DialogTrigger>
       </ButtonTooltip>
-      <DialogContent
-        showCloseButton={false}
-        className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0"
-      >
+      <DialogContent showCloseButton={false} className="top-1/3 translate-y-0 overflow-hidden p-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Search Trail</DialogTitle>
           <DialogDescription>Search nodes, jump between trees, or run commands</DialogDescription>
@@ -175,7 +173,8 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           )}
         </CommandGroup>
       </CommandList>
-      <div className="border-border/60 text-muted-foreground flex items-center justify-end gap-3 border-t px-3 py-1.5 text-[11px]">
+      <Separator />
+      <div className="text-muted-foreground flex items-center justify-end gap-3 px-3 py-1.5 text-[11px]">
         <span className="flex items-center gap-1.5">
           <Kbd>↵</Kbd> Open
         </span>
