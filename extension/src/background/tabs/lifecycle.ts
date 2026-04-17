@@ -19,10 +19,6 @@ import {
   onTabFocus as trackerOnTabFocus,
 } from "../navigation/nav-pattern-tracker.js";
 import { pruneGlance } from "../services/cleanup-policy.js";
-import {
-  onBurstSeal as consolidatorOnBurstSeal,
-  onTabClosed as consolidatorOnTabClosed,
-} from "../services/burst-consolidator.js";
 import type { TreeViewIntent, TreeUpdateReason } from "@shared/rpc/contracts.js";
 
 const log = createLogger("tab-lifecycle");
@@ -128,15 +124,13 @@ async function onTabRemoved(tabId_: number, removeInfo: Browser.tabs.OnRemovedIn
     return { kind: "notify", reason: "tabs" } as LifecycleBroadcast;
   });
 
-  // Layer 3: retroactively classify the final dwell on this tab.
+  // Layer 3a: retroactively classify the final dwell on this tab.
   // If the user had the tab open briefly and closed without
   // returning, the node is a glance candidate.
   try {
     const cls = trackerOnTabFinished(tabId, Date.now());
     if (cls.kind === "glance") {
       await pruneGlance(cls.nodeId);
-    } else if (cls.kind === "burst-seal") {
-      await consolidatorOnBurstSeal(tabId);
     }
   } catch (error) {
     log.warn("Pattern tracker onTabFinished failed", {
@@ -144,7 +138,6 @@ async function onTabRemoved(tabId_: number, removeInfo: Browser.tabs.OnRemovedIn
     });
   }
   trackerOnTabRemoved(tabId);
-  consolidatorOnTabClosed(tabId);
 
   if (broadcast.kind === "notify") {
     const tree = await treeStorage.getOrCreateTree();
@@ -219,12 +212,8 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
     }
 
     if (nodeId === undefined) return { kind: "none" } as LifecycleBroadcast;
-    // Tracker: tab regained focus — unpause dwell clock. If blur
-    // exceeded grace, this also seals any in-flight burst.
-    const focusCls = trackerOnTabFocus(tabId, Date.now());
-    if (focusCls.kind === "burst-seal") {
-      void consolidatorOnBurstSeal(tabId);
-    }
+    // Tracker: tab regained focus — unpause dwell clock.
+    trackerOnTabFocus(tabId, Date.now());
     tempSelectionManager.handleTabActivated(tabId);
     if (!tabManager.shouldSuppressTouch(tabId)) {
       tabManager.touch(tabId, nodeId);

@@ -43,14 +43,12 @@ function patchCleanup(
   current: CleanupSettings,
   patch: {
     glance?: Partial<CleanupSettings["glance"]>;
-    burst?: Partial<CleanupSettings["burst"]>;
     roundTrip?: Partial<CleanupSettings["roundTrip"]>;
     allowDomains?: string[];
   },
 ): CleanupSettings {
   return {
     glance: { ...current.glance, ...(patch.glance ?? {}) },
-    burst: { ...current.burst, ...(patch.burst ?? {}) },
     roundTrip: { ...current.roundTrip, ...(patch.roundTrip ?? {}) },
     allowDomains: patch.allowDomains ?? current.allowDomains,
   };

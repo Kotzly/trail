@@ -77,12 +77,6 @@ export type CleanupSettings = {
     /** Dwell strictly under this, in ms, makes a node eligible. */
     thresholdMs: number;
   };
-  /** Burst consolidation: group rapid feed-style navigation. */
-  burst: {
-    enabled: boolean;
-    /** Minimum streak length for container consolidation. */
-    minItems: number;
-  };
   /** Round-trip suppression: A→B→A short-circuits to just A. */
   roundTrip: {
     enabled: boolean;

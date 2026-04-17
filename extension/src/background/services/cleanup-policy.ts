@@ -1,10 +1,9 @@
 /**
- * Cleanup policy — applies the Layer 3 glance/burst decisions made
- * by `nav-pattern-tracker` to the tree.
+ * Cleanup policy — applies the Layer 3a glance decisions made by
+ * `nav-pattern-tracker` to the tree.
  *
- * Keeps the policy logic out of `navigation-handler` so the handler
- * stays about "commit webnav → mutate tree" and policy decisions
- * (prune? tombstone? keep?) live here.
+ * Keeps policy out of `navigation-handler` so the handler stays about
+ * "commit webnav → mutate tree" and prune/revive decisions live here.
  *
  * Design notes:
  * - Prune is always silent. No toasts, no notifications.
@@ -14,11 +13,9 @@
  * - Runs under `withTreeLock` so the prune is atomic wrt other
  *   mutations. Callers (the tracker event consumer) must NOT hold
  *   the lock when invoking — this function acquires it.
- * - Burst consolidation lives in a separate module; this one only
- *   handles glance prune.
  */
 
-import type { NodeId, Timestamp, Title, Url } from "@shared/types/ids.js";
+import type { NodeId, Title, Url } from "@shared/types/ids.js";
 import type { NodeData } from "@shared/types/node.js";
 import { treeStorage, withTreeLock } from "./tree-storage.js";
 import { tabManager } from "../state/tab-manager.js";
@@ -31,7 +28,6 @@ const log = createLogger("cleanup-policy");
 /**
  * Apply the glance-prune rule to a node. Silent delete if all of:
  *   - the node is still in the tree
- *   - it is "normal" kind (not burst / burst-item / already gone)
  *   - it has no children (subtree preservation)
  *   - visitCount ≤ 1 (single-visit — revisited nodes are kept)
  *   - no other tab is currently mapped to it
@@ -48,9 +44,6 @@ export async function pruneGlance(nodeId: NodeId): Promise<boolean> {
     const node = tree.findNodeById(nodeId);
     if (!node) return false;
     if (node.isRoot()) return false;
-
-    const kind = node.data.kind;
-    if (kind && kind !== "normal") return false;
 
     const children = node.getChildren();
     if (children.length > 0) return false;
@@ -117,8 +110,6 @@ export async function reviveFromTombstone(
       ...(tombstone.favicon ? { favicon: tombstone.favicon as NodeData["favicon"] } : {}),
       pinned: false,
       tags: [],
-      // Mark for 7-day revival indicator in UI.
-      revivedAt: Date.now() as Timestamp,
     } as NodeData;
 
     const revived = tree.navigateUnder(parentId, data, { setAsCurrent: false });

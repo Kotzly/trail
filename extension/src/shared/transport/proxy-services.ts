@@ -97,8 +97,6 @@ export interface CleanupService {
   restoreTombstone(input: { nodeId: string }): Promise<{ restoredNodeId: NodeId } | null>;
   dismissTombstone(input: { nodeId: string }): Promise<void>;
   clearTombstones(): Promise<void>;
-  promoteBurstItem(input: { nodeId: NodeId }): Promise<boolean>;
-  sealBurst(input: { containerId: NodeId }): Promise<boolean>;
 }
 
 export const TREE_SERVICE_KEY = "trail/tree-service" as ProxyServiceKey<TreeService>;

@@ -83,8 +83,6 @@ export const cleanupService = {
   restoreTombstone: async () => null,
   dismissTombstone: asyncOk("dismissTombstone"),
   clearTombstones: asyncOk("clearTombstones"),
-  promoteBurstItem: async () => true,
-  sealBurst: async () => true,
 };
 
 export type ProxyServices = {

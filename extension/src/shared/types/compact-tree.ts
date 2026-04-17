@@ -12,25 +12,8 @@
 // Tuple position indices (named for readability)
 // ---------------------------------------------------------------------------
 
-/** Positional indices within a CompactNodeTuple (current = V4). */
+/** Positional indices within a CompactNodeTuple (current = V3). */
 export const CI = {
-  ID: 0,
-  TS: 1,
-  URL: 2,
-  TITLE: 3,
-  FAV: 4,
-  FLAGS: 5,
-  TAGS: 6,
-  LAYOUT: 7,
-  LAST_VISITED_AT: 8,
-  VISIT_COUNT: 9,
-  KIND: 10,
-  BURST: 11,
-  CHILDREN: 12,
-} as const;
-
-/** V3 tuple indices (no kind/burst metadata). */
-export const CI_V3 = {
   ID: 0,
   TS: 1,
   URL: 2,
@@ -69,19 +52,6 @@ export const CI_V1 = {
   TAGS: 6,
   LAYOUT: 7,
   CHILDREN: 8,
-} as const;
-
-/** Kind enum values in the compact tuple (saves bytes vs string). */
-export const CK = {
-  NORMAL: 0,
-  BURST: 1,
-  BURST_ITEM: 2,
-} as const;
-
-/** Burst status enum in the compact tuple. */
-export const CBS = {
-  OPEN: 0,
-  SEALED: 1,
 } as const;
 
 /** Flag bitmask values. */
@@ -153,45 +123,7 @@ export type CompactNodeTupleV3 = [
   children: CompactNodeTupleV3[],
 ];
 
-/**
- * V4 tuple shape:
- * [id, ts, url, title, fav|null, flags, tags, layout|null,
- *  lastVisitedAt|null, visitCount|null,
- *  kind (CK: 0=normal, 1=burst, 2=burst-item),
- *  burst|null  — only non-null when kind === BURST
- *               [urlTemplate, startedAt, lastItemAt, status (CBS: 0/1),
- *                autoLabel|null],
- *  children[]]
- */
-export type CompactBurstTuple = [
-  urlTemplate: string,
-  startedAt: number,
-  lastItemAt: number,
-  status: number, // CBS.OPEN | CBS.SEALED
-  autoLabel: string | null,
-];
-
-export type CompactNodeTupleV4 = [
-  id: string,
-  ts: number,
-  url: string,
-  title: string,
-  fav: string | null,
-  flags: number,
-  tags: string[],
-  layout: number[] | null,
-  lastVisitedAt: number | null,
-  visitCount: number | null,
-  kind: number, // CK enum
-  burst: CompactBurstTuple | null,
-  children: CompactNodeTupleV4[],
-];
-
-export type CompactNodeTuple =
-  | CompactNodeTupleV1
-  | CompactNodeTupleV2
-  | CompactNodeTupleV3
-  | CompactNodeTupleV4;
+export type CompactNodeTuple = CompactNodeTupleV1 | CompactNodeTupleV2 | CompactNodeTupleV3;
 
 /**
  * Compact tree envelope.
@@ -222,15 +154,4 @@ export type CompactTreeJSONV3 = {
   n: number;
 };
 
-export type CompactTreeJSONV4 = {
-  v: 4;
-  r: CompactNodeTupleV4 | null;
-  c: string | null;
-  n: number;
-};
-
-export type CompactTreeJSON =
-  | CompactTreeJSONV1
-  | CompactTreeJSONV2
-  | CompactTreeJSONV3
-  | CompactTreeJSONV4;
+export type CompactTreeJSON = CompactTreeJSONV1 | CompactTreeJSONV2 | CompactTreeJSONV3;

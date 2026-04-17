@@ -27,7 +27,6 @@ type Group = { label: string; entries: CleanupTombstoneEntry[] };
 
 const REASON_LABEL: Record<CleanupTombstoneEntry["reason"], string> = {
   glance: "glance",
-  burst: "burst",
   "round-trip": "round-trip",
 };
 

@@ -225,16 +225,6 @@ const cleanupService: CleanupService = {
     call(cleanupHandlers[RPC_METHOD.CLEAR_CLEANUP_TOMBSTONES], {
       type: RPC_METHOD.CLEAR_CLEANUP_TOMBSTONES,
     }),
-  promoteBurstItem: (input) =>
-    call(cleanupHandlers[RPC_METHOD.PROMOTE_BURST_ITEM], {
-      type: RPC_METHOD.PROMOTE_BURST_ITEM,
-      ...input,
-    }),
-  sealBurst: (input) =>
-    call(cleanupHandlers[RPC_METHOD.SEAL_BURST], {
-      type: RPC_METHOD.SEAL_BURST,
-      ...input,
-    }),
 };
 
 export function registerProxyServices(): void {

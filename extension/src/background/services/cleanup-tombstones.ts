@@ -1,11 +1,10 @@
 /**
  * Cleanup tombstone store.
  *
- * When the auto-cleanup layers (glance prune, burst consolidation,
- * round-trip detection) silently remove a node, we record a
- * tombstone so the user can (a) rescue it by returning to the URL
- * within the TTL, or (b) audit/restore via the Recently cleaned
- * drawer.
+ * When the auto-cleanup layers (glance prune, round-trip detection)
+ * silently remove a node, we record a tombstone so the user can
+ * (a) rescue it by returning to the URL within the TTL, or
+ * (b) audit/restore via the Recently cleaned drawer.
  *
  * Store: chrome.storage.local under `trail_cleanup_tombstones`.
  * Lifetime: 72 hours from removal (TOMBSTONE_TTL_MS).

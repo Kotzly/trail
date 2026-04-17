@@ -65,9 +65,6 @@ export const RPC_METHOD = {
   RESTORE_CLEANUP_TOMBSTONE: "RESTORE_CLEANUP_TOMBSTONE",
   CLEAR_CLEANUP_TOMBSTONES: "CLEAR_CLEANUP_TOMBSTONES",
   DISMISS_CLEANUP_TOMBSTONE: "DISMISS_CLEANUP_TOMBSTONE",
-  // Burst-container actions
-  PROMOTE_BURST_ITEM: "PROMOTE_BURST_ITEM",
-  SEAL_BURST: "SEAL_BURST",
 } as const;
 
 export type RequestType = (typeof RPC_METHOD)[keyof typeof RPC_METHOD];
@@ -323,14 +320,6 @@ export type DismissCleanupTombstoneMessage = RequestMessageBase<
   typeof RPC_METHOD.DISMISS_CLEANUP_TOMBSTONE,
   { nodeId: string }
 >;
-export type PromoteBurstItemMessage = RequestMessageBase<
-  typeof RPC_METHOD.PROMOTE_BURST_ITEM,
-  { nodeId: NodeId }
->;
-export type SealBurstMessage = RequestMessageBase<
-  typeof RPC_METHOD.SEAL_BURST,
-  { containerId: NodeId }
->;
 
 export type RequestMessage =
   | NavigateToMessage
@@ -389,9 +378,7 @@ export type RequestMessage =
   | ListCleanupTombstonesMessage
   | RestoreCleanupTombstoneMessage
   | ClearCleanupTombstonesMessage
-  | DismissCleanupTombstoneMessage
-  | PromoteBurstItemMessage
-  | SealBurstMessage;
+  | DismissCleanupTombstoneMessage;
 
 // ==== Responses ====
 
@@ -453,8 +440,6 @@ export type ResponseDataByType = {
   [RPC_METHOD.RESTORE_CLEANUP_TOMBSTONE]: { restoredNodeId: NodeId } | null;
   [RPC_METHOD.CLEAR_CLEANUP_TOMBSTONES]: void;
   [RPC_METHOD.DISMISS_CLEANUP_TOMBSTONE]: void;
-  [RPC_METHOD.PROMOTE_BURST_ITEM]: boolean;
-  [RPC_METHOD.SEAL_BURST]: boolean;
 };
 
 export type CleanupTombstoneEntry = {
@@ -464,7 +449,7 @@ export type CleanupTombstoneEntry = {
   favicon: string | null;
   parentId: string | null;
   removedAt: number;
-  reason: "glance" | "burst" | "round-trip";
+  reason: "glance" | "round-trip";
 };
 
 export type MessageByType<T extends RequestType> = Extract<RequestMessage, { type: T }>;

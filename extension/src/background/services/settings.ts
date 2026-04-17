@@ -115,12 +115,6 @@ export const defaultSettings: Settings = {
   },
   cleanup: {
     glance: { enabled: true, thresholdMs: 5_000 },
-    // Burst consolidation is off by default — the UX cost of the extra
-    // "container" abstraction + dots/promote actions wasn't worth what
-    // it bought over the plain tree, per pre-release review. Backend
-    // primitives are preserved so it can be re-enabled per-user or
-    // re-promoted later if we find a shape that carries its weight.
-    burst: { enabled: false, minItems: 5 },
     roundTrip: { enabled: true },
     allowDomains: [],
   },
@@ -195,18 +189,6 @@ function mergeDefaults(raw: unknown): Settings {
           sanitized.cleanup.glance.thresholdMs >= 0
             ? sanitized.cleanup.glance.thresholdMs
             : defaultSettings.cleanup.glance.thresholdMs,
-      },
-      burst: {
-        enabled:
-          typeof sanitized.cleanup?.burst?.enabled === "boolean"
-            ? sanitized.cleanup.burst.enabled
-            : defaultSettings.cleanup.burst.enabled,
-        minItems:
-          typeof sanitized.cleanup?.burst?.minItems === "number" &&
-          Number.isFinite(sanitized.cleanup.burst.minItems) &&
-          sanitized.cleanup.burst.minItems >= 2
-            ? sanitized.cleanup.burst.minItems
-            : defaultSettings.cleanup.burst.minItems,
       },
       roundTrip: {
         enabled:

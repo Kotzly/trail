@@ -125,7 +125,6 @@ export function fakeSettings(): Settings {
     privacy: { blocklist: [], skipIncognito: true },
     cleanup: {
       glance: { enabled: true, thresholdMs: 5000 },
-      burst: { enabled: true, minItems: 5 },
       roundTrip: { enabled: true },
       allowDomains: [],
     },

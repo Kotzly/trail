@@ -13,7 +13,6 @@ import { treeStorage, withTreeLock } from "../services/tree-storage.js";
 import { redirectDetector } from "./redirect-detection.js";
 import { onNavigation as trackerOnNavigation, DEFAULT_THRESHOLDS } from "./nav-pattern-tracker.js";
 import { pruneGlance, reviveFromTombstone } from "../services/cleanup-policy.js";
-import { onBurstStep, onBurstSeal } from "../services/burst-consolidator.js";
 import {
   isChallengeUrl,
   isNewTabContext,
@@ -379,11 +378,10 @@ export async function handleNavigation(
     await notifyTreeUpdate(tree, broadcast.reason, broadcast.view);
   }
 
-  // Layer 3 classification: runs AFTER notify so UI isn't blocked on
+  // Layer 3a classification: runs AFTER notify so UI isn't blocked on
   // policy decisions. tracker.onNavigation returns how to treat the
   // PREVIOUS nav on this tab (now that we know its dwell).
   // - glance: prune silently (keeps a tombstone for 72h revival)
-  // - burst-step / burst-seal: consumed by the burst detector (Phase D)
   // - engaged / none: keep as-is
   try {
     const resolvedNodeId = tabManager.nodeByTab(tabId as TabId) ?? null;
@@ -399,17 +397,7 @@ export async function handleNavigation(
     );
     if (classification.kind === "glance") {
       await pruneGlance(classification.nodeId);
-    } else if (classification.kind === "burst-step") {
-      onBurstStep(
-        tabId as TabId,
-        classification.nodeId,
-        classification.shape,
-        incomingUrl.timestamp,
-      );
-    } else if (classification.kind === "burst-seal") {
-      await onBurstSeal(tabId as TabId);
     }
-    // engaged / none: nothing to do.
   } catch (error) {
     log.warn("Pattern tracker / glance prune failed", {
       error: error instanceof Error ? error.message : String(error),
