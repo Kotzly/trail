@@ -178,8 +178,33 @@ function mergeDefaults(raw: unknown): Settings {
 class SettingsManager {
   private settings: Settings = { ...defaultSettings };
 
+  /**
+   * Resolves once `init()` has finished its first successful load.
+   * Navigation and lifecycle handlers await this (or check isReady)
+   * before consulting the blocklist so Chrome events arriving during
+   * the service-worker boot window aren't silently dropped or
+   * silently allowed past a stale blocklist.
+   */
+  readonly ready: Promise<void>;
+  private resolveReady!: () => void;
+  private readyResolved = false;
+
+  constructor() {
+    this.ready = new Promise<void>((resolve) => {
+      this.resolveReady = resolve;
+    });
+  }
+
+  isReady(): boolean {
+    return this.readyResolved;
+  }
+
   async init(): Promise<void> {
     await this.loadSettings();
+    if (!this.readyResolved) {
+      this.readyResolved = true;
+      this.resolveReady();
+    }
   }
 
   get(): Settings {

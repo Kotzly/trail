@@ -52,15 +52,25 @@ export function isTrackableUrl(url: string): boolean {
 }
 
 // Cache the compiled blocklist — settings write frequency is low and
-// navigation frequency is high.
+// navigation frequency is high. The default is a "block everything"
+// predicate so any navigation event arriving before settings load
+// falls into the blocked branch. Callers that can wait should await
+// `settingsManager.ready` first; fire-and-forget callers get a safe
+// default-deny instead of a silent privacy leak.
 let cachedBlocklistKey = "";
-let cachedBlocklist: CompiledBlocklist = () => false;
+let cachedBlocklist: CompiledBlocklist = () => true;
+let blocklistReady = false;
 
 export function setUrlBlocklist(patterns: readonly string[]): void {
   const key = patterns.join("\n");
-  if (key === cachedBlocklistKey) return;
+  if (blocklistReady && key === cachedBlocklistKey) return;
   cachedBlocklistKey = key;
   cachedBlocklist = compileBlocklist(patterns);
+  blocklistReady = true;
+}
+
+export function isBlocklistReady(): boolean {
+  return blocklistReady;
 }
 
 export function shouldTrackUrl(url: Url): boolean {

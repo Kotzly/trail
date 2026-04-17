@@ -45,6 +45,15 @@ export async function handleNavigation(
   if (frameId !== 0) return;
   if (tabManager.isIgnoredTab(tabId as TabId)) return;
 
+  // Defer any navigation arriving before settings load. Chrome queues
+  // webNav events on the service-worker task queue; awaiting here just
+  // serializes us behind the first settings fetch (typically <100ms).
+  // Without this, the first navs after SW wake would hit a default-deny
+  // blocklist and be dropped.
+  if (!settingsManager.isReady()) {
+    await settingsManager.ready;
+  }
+
   // Auto-exit editor mode when user navigates in the active tab
   const editorState = getEditorState();
   if (editorState.active) {
