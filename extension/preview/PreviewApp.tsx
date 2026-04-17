@@ -49,7 +49,6 @@ export function PreviewApp() {
   const openContextMenu = useStore((s) => s.openContextMenu);
   const collapseNodes = useStore((s) => s.collapseNodes);
   const expandNodes = useStore((s) => s.expandNodes);
-  const setSettings = useStore((s) => s.setSettings);
 
   const handleNodeClick = useCallback((nodeId: NodeId, url: string) => {
     console.debug("[preview] node click", nodeId, url as Url);
@@ -78,14 +77,6 @@ export function PreviewApp() {
       setSelectedNodeIds(nodeIds);
     },
     [setSelectedNodeIds],
-  );
-
-  const handleLayoutModeChange = useCallback(
-    (mode: "tree" | "mindmap") => {
-      if (!settings) return;
-      setSettings({ ...settings, layout: { ...settings.layout, mode } });
-    },
-    [settings, setSettings],
   );
 
   // Debug hotkeys so ContextMenus + other overlays are triggerable without
@@ -135,7 +126,6 @@ export function PreviewApp() {
               onNodeContextMenu={handleNodeContextMenu}
               onCollapseToggle={handleCollapseToggle}
               onSelectionChange={handleSelectionChange}
-              onLayoutModeChange={handleLayoutModeChange}
             />
           </Suspense>
         )}

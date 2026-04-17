@@ -86,7 +86,7 @@ export default function PinnedDropdown() {
           <Button
             id="pinnedBtn"
             variant="outline"
-            size="icon-sm"
+            size="icon"
             type="button"
             aria-label="Pinned pages"
           >

@@ -45,7 +45,7 @@ export default function FloatingControls() {
             <Button
               id="undoBtn"
               variant="outline"
-              size="icon-sm"
+              size="icon"
               type="button"
               aria-label={undoLabel}
               disabled={!commandState?.canUndo}
@@ -58,7 +58,7 @@ export default function FloatingControls() {
             <Button
               id="redoBtn"
               variant="outline"
-              size="icon-sm"
+              size="icon"
               type="button"
               aria-label={redoLabel}
               disabled={!commandState?.canRedo}

@@ -269,7 +269,7 @@ export default function TreeDropdown() {
             <Button
               id="treesBtn"
               variant="outline"
-              size="icon-sm"
+              size="icon"
               type="button"
               aria-label="Saved trees"
             >

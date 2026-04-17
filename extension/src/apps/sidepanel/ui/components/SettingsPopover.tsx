@@ -19,7 +19,7 @@ export default function SettingsDropdown() {
       <Button
         id="settingsBtn"
         variant="outline"
-        size="icon-sm"
+        size="icon"
         type="button"
         aria-label="Settings"
         onClick={handleGearClick}

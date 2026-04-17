@@ -54,7 +54,7 @@ export default function CommandPalette() {
     <Dialog open={open} onOpenChange={setOpen}>
       <ButtonTooltip label="Search" keys={SEARCH_KEYS}>
         <DialogTrigger asChild>
-          <Button id="searchBtn" variant="outline" size="icon-sm" type="button" aria-label="Search">
+          <Button id="searchBtn" variant="outline" size="icon" type="button" aria-label="Search">
             <Icons.Search />
           </Button>
         </DialogTrigger>
