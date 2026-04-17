@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { tinykeys, type KeyBindingMap } from "tinykeys";
-import { toast } from "sonner";
-import type { NodeId, Url } from "@shared/types/ids.js";
+import type { NodeId } from "@shared/types/ids.js";
 import type { LayoutMode } from "@shared/types/settings.js";
 import { browser } from "@shared/platform/webext.js";
 import { redo, undo } from "../../api/commands.js";
@@ -176,28 +175,6 @@ function openHubPage() {
   });
 }
 
-async function saveCurrentTab(_state: Store): Promise<void> {
-  try {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-    const url = tab?.url;
-    if (!url) {
-      toast.error("No active tab to save");
-      return;
-    }
-    const snapshot = useStore.getState();
-    const node = snapshot.tree?.findByUrl(url as Url) ?? null;
-    if (!node) {
-      toast.info("This page isn't in your trail yet");
-      return;
-    }
-    const wasPinned = node.data.pinned;
-    fireAndForget(togglePin(node.id), "toggle pin (save shortcut)");
-    toast.success(wasPinned ? "Unpinned" : "Saved");
-  } catch (error) {
-    console.error("Failed to save current page:", error);
-  }
-}
-
 async function openFocusedNode(state: Store) {
   const tree = state.tree;
   const [firstId] = getTargetNodeIds(state);
@@ -310,11 +287,6 @@ function buildBindings(): KeyBindingMap {
 
     // Pin toggle (plain P)
     KeyP: gate(({ state }) => togglePinned(state, getTargetNodeIds(state)), whenNotOverlayOrEditor),
-
-    // Save this page: mirror the toolbar button — pin the node that
-    // matches the active tab's URL. Overrides the browser's "Save Page
-    // As" dialog inside the sidepanel. Gated to editor-safe contexts.
-    "$mod+KeyS": gate(({ state }) => void saveCurrentTab(state), whenNotOverlayOrEditor),
 
     // Enter — open in current tab
     Enter: gate(

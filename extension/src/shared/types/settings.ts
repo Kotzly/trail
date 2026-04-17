@@ -81,8 +81,6 @@ export type CleanupSettings = {
   roundTrip: {
     enabled: boolean;
   };
-  /** Domains (supports * wildcards) that are never auto-cleaned. */
-  allowDomains: string[];
 };
 
 export type Settings = {

@@ -112,7 +112,6 @@ type StoreState = {
   editorMode: EditorModeState;
   syncStatus: SyncStatus;
   commandPalette: { open: boolean };
-  recentlyCleanedOpen: boolean;
   renameTarget: NodeId | null;
   authState: AuthUiState;
   syncConflict: SyncConflictUiState | null;
@@ -160,7 +159,6 @@ type StoreActions = {
   clearPickTarget: () => void;
   setSyncStatus: (status: SyncStatus) => void;
   setCommandPaletteOpen: (open: boolean) => void;
-  setRecentlyCleanedOpen: (open: boolean) => void;
   openRenameDialog: (nodeId: NodeId) => void;
   closeRenameDialog: () => void;
   setAuthState: (state: AuthUiState) => void;
@@ -276,7 +274,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   editorMode: { active: false, treeId: null },
   syncStatus: "idle" as SyncStatus,
   commandPalette: { open: false },
-  recentlyCleanedOpen: false,
   renameTarget: null,
   authState: { status: "unknown" as const },
   syncConflict: null,
@@ -644,7 +641,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   clearPickTarget: () => set({ pickTarget: null }),
   setSyncStatus: (syncStatus) => set({ syncStatus }),
   setCommandPaletteOpen: (open) => set({ commandPalette: { open } }),
-  setRecentlyCleanedOpen: (open) => set({ recentlyCleanedOpen: open }),
   openRenameDialog: (nodeId) => set({ renameTarget: nodeId }),
   closeRenameDialog: () => set({ renameTarget: null }),
   setAuthState: (authState) => set({ authState }),

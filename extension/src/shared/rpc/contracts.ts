@@ -60,11 +60,6 @@ export const RPC_METHOD = {
   RESET_FLAGS: "RESET_FLAGS",
   GET_LOCAL_TRAIL_DETAIL: "GET_LOCAL_TRAIL_DETAIL",
   IMPORT_TRAIL: "IMPORT_TRAIL",
-  // Cleanup / tombstone RPCs
-  LIST_CLEANUP_TOMBSTONES: "LIST_CLEANUP_TOMBSTONES",
-  RESTORE_CLEANUP_TOMBSTONE: "RESTORE_CLEANUP_TOMBSTONE",
-  CLEAR_CLEANUP_TOMBSTONES: "CLEAR_CLEANUP_TOMBSTONES",
-  DISMISS_CLEANUP_TOMBSTONE: "DISMISS_CLEANUP_TOMBSTONE",
 } as const;
 
 export type RequestType = (typeof RPC_METHOD)[keyof typeof RPC_METHOD];
@@ -303,24 +298,6 @@ export type ImportTrailMessage = RequestMessageBase<
   }
 >;
 
-// Cleanup / tombstone RPCs
-export type ListCleanupTombstonesMessage = RequestMessageBase<
-  typeof RPC_METHOD.LIST_CLEANUP_TOMBSTONES,
-  {}
->;
-export type RestoreCleanupTombstoneMessage = RequestMessageBase<
-  typeof RPC_METHOD.RESTORE_CLEANUP_TOMBSTONE,
-  { nodeId: string }
->;
-export type ClearCleanupTombstonesMessage = RequestMessageBase<
-  typeof RPC_METHOD.CLEAR_CLEANUP_TOMBSTONES,
-  {}
->;
-export type DismissCleanupTombstoneMessage = RequestMessageBase<
-  typeof RPC_METHOD.DISMISS_CLEANUP_TOMBSTONE,
-  { nodeId: string }
->;
-
 export type RequestMessage =
   | NavigateToMessage
   | PreviewNodeMessage
@@ -374,11 +351,7 @@ export type RequestMessage =
   | SetFlagMessage
   | ResetFlagsMessage
   | GetLocalTrailDetailMessage
-  | ImportTrailMessage
-  | ListCleanupTombstonesMessage
-  | RestoreCleanupTombstoneMessage
-  | ClearCleanupTombstonesMessage
-  | DismissCleanupTombstoneMessage;
+  | ImportTrailMessage;
 
 // ==== Responses ====
 
@@ -436,20 +409,6 @@ export type ResponseDataByType = {
   [RPC_METHOD.RESET_FLAGS]: ResolvedFlags;
   [RPC_METHOD.GET_LOCAL_TRAIL_DETAIL]: LocalTrailDetail;
   [RPC_METHOD.IMPORT_TRAIL]: { treeId: string };
-  [RPC_METHOD.LIST_CLEANUP_TOMBSTONES]: CleanupTombstoneEntry[];
-  [RPC_METHOD.RESTORE_CLEANUP_TOMBSTONE]: { restoredNodeId: NodeId } | null;
-  [RPC_METHOD.CLEAR_CLEANUP_TOMBSTONES]: void;
-  [RPC_METHOD.DISMISS_CLEANUP_TOMBSTONE]: void;
-};
-
-export type CleanupTombstoneEntry = {
-  nodeId: string;
-  url: string;
-  title: string;
-  favicon: string | null;
-  parentId: string | null;
-  removedAt: number;
-  reason: "glance" | "round-trip";
 };
 
 export type MessageByType<T extends RequestType> = Extract<RequestMessage, { type: T }>;

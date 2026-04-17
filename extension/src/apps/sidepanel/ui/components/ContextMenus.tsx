@@ -3,7 +3,6 @@ import { useClipboard } from "@ui/hooks/use-clipboard";
 import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import { navigateTo } from "../../api/tree.js";
-import { saveSettings } from "../../api/settings.js";
 import { getTabsForNodeMessage } from "../../api/tabs.js";
 import {
   bulkCloseTabs,
@@ -180,33 +179,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
     [closeContextMenu, setHoverNodeId],
   );
 
-  const settings = useStore((state) => state.settings);
-  const setSettings = useStore((state) => state.setSettings);
-
-  const handleAllowDomain = useCallback(async () => {
-    if (!node || !settings) return;
-    let host: string;
-    try {
-      host = new URL(String(node.data.url)).hostname.toLowerCase();
-    } catch {
-      return;
-    }
-    if (!host) return;
-    const current = settings.cleanup.allowDomains;
-    if (current.includes(host)) return;
-    const next = {
-      ...settings,
-      cleanup: { ...settings.cleanup, allowDomains: [...current, host] },
-    };
-    setSettings(next);
-    try {
-      await saveSettings(next);
-      toast.success(`Won't auto-clean ${host}`);
-    } catch (error) {
-      showOperationError("Add domain to allowlist", error);
-    }
-  }, [node, settings, setSettings]);
-
   if (!node) return null;
 
   const hasOpenTab = tabs.length > 0;
@@ -214,16 +186,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const hasChildren = (node.getChildren?.() ?? []).length > 0;
   const isRoot = node.isRoot();
   const isCollapsed = collapsedNodeIds.has(nodeId);
-  const nodeHost = (() => {
-    try {
-      return new URL(String(node.data.url)).hostname.toLowerCase();
-    } catch {
-      return "";
-    }
-  })();
-  const domainAlreadyAllowed = Boolean(
-    nodeHost && settings?.cleanup.allowDomains.includes(nodeHost),
-  );
 
   return (
     <DropdownMenu
@@ -238,7 +200,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         side="bottom"
         sideOffset={0}
         collisionPadding={8}
-        className="w-auto min-w-40"
+        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto min-w-40"
       >
         {!editorActive && (
           <>
@@ -336,12 +298,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         <DropdownMenuItem onSelect={() => fireAndForget(togglePin(nodeId), "toggle pin")}>
           {node.data.pinned ? "Unpin" : "Pin"}
         </DropdownMenuItem>
-
-        {nodeHost && !domainAlreadyAllowed && (
-          <DropdownMenuItem onSelect={() => void handleAllowDomain()}>
-            Never auto-clean {nodeHost}
-          </DropdownMenuItem>
-        )}
 
         <DropdownMenuItem onSelect={() => useStore.getState().openRenameDialog(nodeId)}>
           Rename…
@@ -516,7 +472,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         side="bottom"
         sideOffset={0}
         collisionPadding={8}
-        className="w-auto max-w-60 min-w-40"
+        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto max-w-60 min-w-40"
       >
         <DropdownMenuLabel>{nodeIds.length} nodes selected</DropdownMenuLabel>
         <DropdownMenuSeparator />

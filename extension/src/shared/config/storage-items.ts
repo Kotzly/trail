@@ -172,16 +172,15 @@ export const layoutPositionsCacheItem = storage.defineItem<
 
 // ── Auto-cleanup tombstones ─────────────────────────────────────────
 //
-// When a node is silently pruned by the glance / round-trip cleanup
-// layers, a tombstone is recorded so the node can be revived if the
-// user returns to its URL within TOMBSTONE_TTL_MS (72h). Tombstones
-// also back the "Recently cleaned" drawer UI — users can audit what
-// was removed and explicitly restore items.
+// When a node is silently pruned by the glance cleanup layer, a
+// tombstone is recorded so the node can be revived if the user
+// returns to its URL within TOMBSTONE_TTL_MS (72h). Transparent to
+// the user — revival happens on the next nav to the same URL.
 //
 // Eviction: on every tombstone write, entries older than TTL are
-// dropped. Also a lazy sweep when the drawer opens.
+// dropped.
 
-export type CleanupReason = "glance" | "round-trip";
+export type CleanupReason = "glance";
 
 export type CleanupTombstone = {
   /** Matches a pruned node id before it was removed. Post-revival this

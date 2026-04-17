@@ -78,13 +78,6 @@ export const actionService = {
   },
 };
 
-export const cleanupService = {
-  listTombstones: async () => [],
-  restoreTombstone: async () => null,
-  dismissTombstone: asyncOk("dismissTombstone"),
-  clearTombstones: asyncOk("clearTombstones"),
-};
-
 export type ProxyServices = {
   treeService: typeof treeService;
   commandService: typeof commandService;
@@ -92,7 +85,6 @@ export type ProxyServices = {
   flagsService: typeof flagsService;
   tabsService: typeof tabsService;
   actionService: typeof actionService;
-  cleanupService: typeof cleanupService;
 };
 
 // Silence unused imports for TabId

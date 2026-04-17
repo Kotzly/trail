@@ -1,5 +1,4 @@
 import type { Settings, CleanupSettings } from "@shared/types/settings.js";
-import { useState } from "react";
 import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Field,
@@ -11,7 +10,6 @@ import {
 import { Switch } from "@ui/components/ui/switch";
 import { Separator } from "@ui/components/ui/separator";
 import { Slider } from "@ui/components/ui/slider";
-import { Textarea } from "@ui/components/ui/textarea";
 import { Button } from "@ui/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { Info } from "lucide-react";
@@ -44,20 +42,16 @@ function patchCleanup(
   patch: {
     glance?: Partial<CleanupSettings["glance"]>;
     roundTrip?: Partial<CleanupSettings["roundTrip"]>;
-    allowDomains?: string[];
   },
 ): CleanupSettings {
   return {
     glance: { ...current.glance, ...(patch.glance ?? {}) },
     roundTrip: { ...current.roundTrip, ...(patch.roundTrip ?? {}) },
-    allowDomains: patch.allowDomains ?? current.allowDomains,
   };
 }
 
 export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
   const cleanup = settings.cleanup;
-  const [allowDraft, setAllowDraft] = useState<string>(cleanup.allowDomains.join("\n"));
-  const allowDirty = allowDraft !== cleanup.allowDomains.join("\n");
 
   const pushCleanup = (patch: Parameters<typeof patchCleanup>[1]) =>
     onUpdate({ cleanup: patchCleanup(cleanup, patch) });
@@ -125,8 +119,7 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
         <CardHeader className="px-0">
           <CardTitle className="text-base">Auto-cleanup</CardTitle>
           <CardDescription>
-            Trail quietly removes low-value pages to keep your map readable. You can tune or disable
-            each behavior.
+            Trail quietly removes low-value pages to keep your map readable.
           </CardDescription>
         </CardHeader>
         <FieldGroup>
@@ -185,47 +178,6 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
               checked={cleanup.roundTrip.enabled}
               onCheckedChange={(v) => pushCleanup({ roundTrip: { enabled: v } })}
             />
-          </Field>
-
-          <Separator />
-
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor="cleanup-allow">Never auto-clean these domains</FieldLabel>
-              <FieldDescription>
-                One per line. Supports <code>*</code> wildcards (e.g. <code>*.github.com</code>).
-              </FieldDescription>
-              <Textarea
-                id="cleanup-allow"
-                value={allowDraft}
-                onChange={(e) => setAllowDraft(e.target.value)}
-                placeholder={"arxiv.org\n*.github.com"}
-                className="mt-2 min-h-[6rem] font-mono text-xs"
-              />
-              {allowDirty ? (
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      const lines = allowDraft
-                        .split("\n")
-                        .map((s) => s.trim())
-                        .filter(Boolean);
-                      pushCleanup({ allowDomains: lines });
-                    }}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setAllowDraft(cleanup.allowDomains.join("\n"))}
-                  >
-                    Reset
-                  </Button>
-                </div>
-              ) : null}
-            </FieldContent>
           </Field>
         </FieldGroup>
       </div>

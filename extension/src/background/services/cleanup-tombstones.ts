@@ -83,34 +83,11 @@ export async function findTombstoneByUrl(url: string): Promise<CleanupTombstone 
   return fresh.find((t) => createUrlKey(t.url) === key);
 }
 
-/**
- * Remove a tombstone by node id (call after a successful revival so
- * it doesn't linger in the "Recently cleaned" drawer).
- */
+/** Remove a tombstone after a successful revival. */
 export async function consumeTombstoneById(nodeId: string): Promise<void> {
   const all = await readAll();
   const filtered = all.filter((t) => t.nodeId !== nodeId);
   if (filtered.length !== all.length) {
     await writeAll(filtered);
   }
-}
-
-/** Drawer API: list all live tombstones, newest first. */
-export async function listTombstones(): Promise<CleanupTombstone[]> {
-  const now = Date.now();
-  const fresh = dropExpired(await readAll(), now);
-  // Evict if any expired.
-  const all = await readAll();
-  if (fresh.length !== all.length) await writeAll(fresh);
-  return [...fresh].sort((a, b) => b.removedAt - a.removedAt);
-}
-
-/** Drawer action: clear all tombstones. */
-export async function clearAllTombstones(): Promise<void> {
-  await writeAll([]);
-}
-
-/** Drawer action: drop one tombstone explicitly. */
-export async function clearTombstone(nodeId: string): Promise<void> {
-  await consumeTombstoneById(nodeId);
 }

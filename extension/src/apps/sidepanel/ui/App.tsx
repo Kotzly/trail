@@ -1,6 +1,5 @@
 import { lazy, Suspense, useCallback } from "react";
 import FloatingControls from "./components/FloatingControls.js";
-import RecentlyCleanedDrawer from "./components/RecentlyCleanedDrawer.js";
 import RenameNodeDialog from "./components/RenameNodeDialog.js";
 import SyncConflictBanner from "./components/SyncConflictBanner.js";
 import OnboardingWizard from "./onboarding/OnboardingWizard.js";
@@ -172,7 +171,6 @@ export default function App() {
         <RenameNodeDialog />
         <OnboardingWizard />
         <ContextMenus />
-        <RecentlyCleanedDrawer />
       </div>
     </TooltipProvider>
   );

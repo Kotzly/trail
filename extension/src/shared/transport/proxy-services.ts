@@ -1,7 +1,6 @@
 import type { ProxyServiceKey } from "@webext-core/proxy-service";
 import type {
   BeginTempSelectionInput,
-  CleanupTombstoneEntry,
   CommandState,
   EditorModeState,
   NodeLayoutInput,
@@ -92,19 +91,11 @@ export interface ActionService {
   getEditorModeState(): Promise<EditorModeState>;
 }
 
-export interface CleanupService {
-  listTombstones(): Promise<CleanupTombstoneEntry[]>;
-  restoreTombstone(input: { nodeId: string }): Promise<{ restoredNodeId: NodeId } | null>;
-  dismissTombstone(input: { nodeId: string }): Promise<void>;
-  clearTombstones(): Promise<void>;
-}
-
 export const TREE_SERVICE_KEY = "trail/tree-service" as ProxyServiceKey<TreeService>;
 export const COMMAND_SERVICE_KEY = "trail/command-service" as ProxyServiceKey<CommandService>;
 export const SETTINGS_SERVICE_KEY = "trail/settings-service" as ProxyServiceKey<SettingsService>;
 export const FLAGS_SERVICE_KEY = "trail/flags-service" as ProxyServiceKey<FlagsService>;
 export const TABS_SERVICE_KEY = "trail/tabs-service" as ProxyServiceKey<TabsService>;
 export const ACTION_SERVICE_KEY = "trail/action-service" as ProxyServiceKey<ActionService>;
-export const CLEANUP_SERVICE_KEY = "trail/cleanup-service" as ProxyServiceKey<CleanupService>;
 
 export type TitleChangePayload = { url: Url; title: Title };

@@ -126,7 +126,6 @@ export function fakeSettings(): Settings {
     cleanup: {
       glance: { enabled: true, thresholdMs: 5000 },
       roundTrip: { enabled: true },
-      allowDomains: [],
     },
   };
 }

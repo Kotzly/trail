@@ -116,7 +116,6 @@ export const defaultSettings: Settings = {
   cleanup: {
     glance: { enabled: true, thresholdMs: 5_000 },
     roundTrip: { enabled: true },
-    allowDomains: [],
   },
 };
 
@@ -196,11 +195,6 @@ function mergeDefaults(raw: unknown): Settings {
             ? sanitized.cleanup.roundTrip.enabled
             : defaultSettings.cleanup.roundTrip.enabled,
       },
-      allowDomains:
-        Array.isArray(sanitized.cleanup?.allowDomains) &&
-        sanitized.cleanup.allowDomains.every((x) => typeof x === "string")
-          ? sanitized.cleanup.allowDomains
-          : defaultSettings.cleanup.allowDomains,
     },
   };
 }

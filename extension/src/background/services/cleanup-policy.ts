@@ -51,12 +51,6 @@ export async function pruneGlance(nodeId: NodeId): Promise<boolean> {
     const visitCount = node.data.visitCount ?? 1;
     if (visitCount > 1) return false;
 
-    // Domain allowlist — respect user's per-domain opt-out.
-    const host = tryGetHost(node.data.url);
-    if (host && cleanup.allowDomains?.some((d: string) => domainMatches(host, d))) {
-      return false;
-    }
-
     // Another tab still attached — not a safe prune target.
     const mappedTabs = tabManager.tabsByNode(nodeId);
     if (mappedTabs.size > 0) return false;
@@ -118,22 +112,4 @@ export async function reviveFromTombstone(
     await consumeTombstoneById(tombstone.nodeId);
     return { nodeId: revived.id, parentId };
   });
-}
-
-function tryGetHost(url: string): string | null {
-  try {
-    return new URL(url).host.replace(/^www\./, "").toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
-function domainMatches(host: string, pattern: string): boolean {
-  const p = pattern.toLowerCase().replace(/^www\./, "");
-  if (p === host) return true;
-  if (p.startsWith("*.")) {
-    const suffix = p.slice(2);
-    return host === suffix || host.endsWith(`.${suffix}`);
-  }
-  return false;
 }
