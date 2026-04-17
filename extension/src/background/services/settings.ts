@@ -113,6 +113,12 @@ export const defaultSettings: Settings = {
     ],
     skipIncognito: true,
   },
+  cleanup: {
+    glance: { enabled: true, thresholdMs: 5_000 },
+    burst: { enabled: true, minItems: 5 },
+    roundTrip: { enabled: true },
+    allowDomains: [],
+  },
 };
 
 function mergeDefaults(raw: unknown): Settings {
@@ -171,6 +177,43 @@ function mergeDefaults(raw: unknown): Settings {
         typeof sanitized.privacy?.skipIncognito === "boolean"
           ? sanitized.privacy.skipIncognito
           : defaultSettings.privacy.skipIncognito,
+    },
+    cleanup: {
+      glance: {
+        enabled:
+          typeof sanitized.cleanup?.glance?.enabled === "boolean"
+            ? sanitized.cleanup.glance.enabled
+            : defaultSettings.cleanup.glance.enabled,
+        thresholdMs:
+          typeof sanitized.cleanup?.glance?.thresholdMs === "number" &&
+          Number.isFinite(sanitized.cleanup.glance.thresholdMs) &&
+          sanitized.cleanup.glance.thresholdMs >= 0
+            ? sanitized.cleanup.glance.thresholdMs
+            : defaultSettings.cleanup.glance.thresholdMs,
+      },
+      burst: {
+        enabled:
+          typeof sanitized.cleanup?.burst?.enabled === "boolean"
+            ? sanitized.cleanup.burst.enabled
+            : defaultSettings.cleanup.burst.enabled,
+        minItems:
+          typeof sanitized.cleanup?.burst?.minItems === "number" &&
+          Number.isFinite(sanitized.cleanup.burst.minItems) &&
+          sanitized.cleanup.burst.minItems >= 2
+            ? sanitized.cleanup.burst.minItems
+            : defaultSettings.cleanup.burst.minItems,
+      },
+      roundTrip: {
+        enabled:
+          typeof sanitized.cleanup?.roundTrip?.enabled === "boolean"
+            ? sanitized.cleanup.roundTrip.enabled
+            : defaultSettings.cleanup.roundTrip.enabled,
+      },
+      allowDomains:
+        Array.isArray(sanitized.cleanup?.allowDomains) &&
+        sanitized.cleanup.allowDomains.every((x) => typeof x === "string")
+          ? sanitized.cleanup.allowDomains
+          : defaultSettings.cleanup.allowDomains,
     },
   };
 }

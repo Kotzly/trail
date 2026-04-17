@@ -63,6 +63,34 @@ export type PrivacySettings = {
   skipIncognito: boolean;
 };
 
+/**
+ * Auto-cleanup behaviors. When enabled, Trail silently removes
+ * low-value navigations to keep the map readable. User can audit
+ * and restore via the Recently cleaned drawer; post-hoc revival
+ * (returning to a pruned URL within 72h) re-creates the node
+ * automatically.
+ */
+export type CleanupSettings = {
+  /** "Quick-peek" auto-prune: drop single-visit short-dwell nodes. */
+  glance: {
+    enabled: boolean;
+    /** Dwell strictly under this, in ms, makes a node eligible. */
+    thresholdMs: number;
+  };
+  /** Burst consolidation: group rapid feed-style navigation. */
+  burst: {
+    enabled: boolean;
+    /** Minimum streak length for container consolidation. */
+    minItems: number;
+  };
+  /** Round-trip suppression: A→B→A short-circuits to just A. */
+  roundTrip: {
+    enabled: boolean;
+  };
+  /** Domains (supports * wildcards) that are never auto-cleaned. */
+  allowDomains: string[];
+};
+
 export type Settings = {
   theme: ThemeId;
   customTheme: CustomTheme;
@@ -81,4 +109,5 @@ export type Settings = {
   adaptivePerformance: boolean;
   keepTabsOnSwitch: boolean;
   privacy: PrivacySettings;
+  cleanup: CleanupSettings;
 };

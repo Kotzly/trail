@@ -11,6 +11,8 @@ import { type NodeMetaPatch, updateNodeMeta, type NodeData } from "@shared/types
 import { tabManager } from "../state/tab-manager.js";
 import { treeStorage, withTreeLock } from "../services/tree-storage.js";
 import { redirectDetector } from "./redirect-detection.js";
+import { onNavigation as trackerOnNavigation, DEFAULT_THRESHOLDS } from "./nav-pattern-tracker.js";
+import { pruneGlance, reviveFromTombstone } from "../services/cleanup-policy.js";
 import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from "../utils/url-utils.js";
 import { settingsManager } from "../services/settings.js";
 import { handleNewTabTab } from "../utils/new-tab.js";
@@ -347,5 +349,53 @@ export async function handleNavigation(
   if (broadcast.kind === "notify") {
     const tree = await treeStorage.getOrCreateTree();
     await notifyTreeUpdate(tree, broadcast.reason, broadcast.view);
+  }
+
+  // Layer 3 classification: runs AFTER notify so UI isn't blocked on
+  // policy decisions. tracker.onNavigation returns how to treat the
+  // PREVIOUS nav on this tab (now that we know its dwell).
+  // - glance: prune silently (keeps a tombstone for 72h revival)
+  // - burst-step / burst-seal: consumed by the burst detector (Phase D)
+  // - engaged / none: keep as-is
+  try {
+    const resolvedNodeId = tabManager.nodeByTab(tabId as TabId) ?? null;
+    const classification = trackerOnNavigation(
+      tabId as TabId,
+      url as Url,
+      resolvedNodeId,
+      incomingUrl.timestamp,
+      {
+        ...DEFAULT_THRESHOLDS,
+        glanceMs: settingsManager.get().cleanup?.glance?.thresholdMs ?? DEFAULT_THRESHOLDS.glanceMs,
+      },
+    );
+    if (classification.kind === "glance") {
+      await pruneGlance(classification.nodeId);
+    }
+    // burst-step / burst-seal / engaged / none: Phase D + D-adjacent
+    // consumers handle. No-op here.
+  } catch (error) {
+    log.warn("Pattern tracker / glance prune failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Revival fast-path: if the incoming URL has a tombstone, recreate
+  // the node at the original parent. Runs late so a race with pruning
+  // elsewhere can't double-write.
+  try {
+    const revived = await reviveFromTombstone(url as Url);
+    if (revived) {
+      const tree = await treeStorage.getOrCreateTree();
+      const revivedNode = tree.findNodeById(revived.nodeId);
+      if (revivedNode) {
+        tabManager.register(revivedNode.id, tabId as TabId, registerOptions(isActiveTab));
+        await notifyTreeUpdate(tree, "navigate", { focusNodeId: revivedNode.id, mode: "force" });
+      }
+    }
+  } catch (error) {
+    log.warn("Revive from tombstone failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }

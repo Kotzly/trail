@@ -12,6 +12,13 @@ import { markNodeVisited } from "../state/node-recency.js";
 import { createLogger } from "@shared/lib/logger.js";
 import { getEditorState, saveEditorMode } from "../messaging/handlers/editor-handlers.js";
 import { settingsManager } from "../services/settings.js";
+import {
+  onTabFinished as trackerOnTabFinished,
+  onTabRemoved as trackerOnTabRemoved,
+  onTabBlur as trackerOnTabBlur,
+  onTabFocus as trackerOnTabFocus,
+} from "../navigation/nav-pattern-tracker.js";
+import { pruneGlance } from "../services/cleanup-policy.js";
 import type { TreeViewIntent, TreeUpdateReason } from "@shared/rpc/contracts.js";
 
 const log = createLogger("tab-lifecycle");
@@ -117,6 +124,21 @@ async function onTabRemoved(tabId_: number, removeInfo: Browser.tabs.OnRemovedIn
     return { kind: "notify", reason: "tabs" } as LifecycleBroadcast;
   });
 
+  // Layer 3: retroactively classify the final dwell on this tab.
+  // If the user had the tab open briefly and closed without
+  // returning, the node is a glance candidate.
+  try {
+    const cls = trackerOnTabFinished(tabId, Date.now());
+    if (cls.kind === "glance") {
+      await pruneGlance(cls.nodeId);
+    }
+  } catch (error) {
+    log.warn("Pattern tracker onTabFinished failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+  trackerOnTabRemoved(tabId);
+
   if (broadcast.kind === "notify") {
     const tree = await treeStorage.getOrCreateTree();
     await notifyTreeUpdate(tree, broadcast.reason, broadcast.view);
@@ -190,6 +212,12 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
     }
 
     if (nodeId === undefined) return { kind: "none" } as LifecycleBroadcast;
+    // Tracker: tab regained focus — unpause dwell clock. If blur
+    // exceeded grace, this also seals any in-flight burst.
+    const focusCls = trackerOnTabFocus(tabId, Date.now());
+    if (focusCls.kind === "burst-seal") {
+      // Consumed by the burst detector in Phase D (no-op for now).
+    }
     tempSelectionManager.handleTabActivated(tabId);
     if (!tabManager.shouldSuppressTouch(tabId)) {
       tabManager.touch(tabId, nodeId);
@@ -215,7 +243,21 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
 }
 
 async function onWindowFocusChanged(windowId: number): Promise<void> {
-  if (windowId === browser.windows.WINDOW_ID_NONE) return;
+  // Tracker hook: Chrome fires WINDOW_ID_NONE when the browser loses
+  // focus (user alt-tabs out). Propagate this as a "blur" signal to
+  // pause dwell counting on the currently-active tab per window.
+  if (windowId === browser.windows.WINDOW_ID_NONE) {
+    try {
+      const activeTabs = await browser.tabs.query({ active: true });
+      const nowMs = Date.now();
+      for (const t of activeTabs) {
+        if (t.id !== undefined) trackerOnTabBlur(t.id as TabId, nowMs);
+      }
+    } catch {
+      // best-effort; ignore
+    }
+    return;
+  }
 
   // Filter out non-normal windows (devtools pop-outs, picture-in-
   // picture hosts, macOS workspace transitions). Focusing these

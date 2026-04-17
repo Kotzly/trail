@@ -14,6 +14,7 @@ import { startSyncEngine } from "./sync/sync-engine.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 import { treeStorage } from "./services/tree-storage.js";
 import { tabManager } from "./state/tab-manager.js";
+import { hydrateNavPatterns } from "./navigation/nav-pattern-tracker.js";
 
 const log = createLogger("service-worker");
 
@@ -69,7 +70,7 @@ initTabsLifecycle();
 // wire up tree-level integrations so TabManager can validate nodeIds
 // and respond to deletions.
 tabManager.setTreeAccessor(() => treeStorage.cachedTree);
-void tabManager.hydrate().then(async () => {
+void Promise.all([tabManager.hydrate(), hydrateNavPatterns()]).then(async () => {
   const tree = await treeStorage.getOrCreateTree();
   tree.onNodesDeleted((ids) => tabManager.onNodesDeleted(ids));
   await syncOpenTabs();
