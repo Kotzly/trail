@@ -54,6 +54,15 @@ const IMMEDIATE_REASONS: Set<string> = new Set([
   "duplicate",
   "editor-enter",
   "editor-exit",
+  // Added in the tree-tracking overhaul (#85, #86). These all
+  // correspond to user-observable events; a 200ms debounce was
+  // producing visible lag (rename dialog closed but tree still
+  // showed old title, click-to-navigate felt sluggish).
+  "navigate",
+  "rename",
+  "tabs",
+  "temp-selection",
+  "sync",
 ]);
 
 const STRUCTURAL_REASONS: Set<TreeUpdateReason> = new Set([
@@ -226,7 +235,15 @@ export async function notifyTreeUpdate(
     return sendTreeNotification(treeJSON, reason, view);
   }
 
-  pendingArgs = { treeJSON, reason, ...(view ? { view } : {}) };
+  // Merge `view` with the pending args — do NOT replace wholesale.
+  // If caller A queued a view-intent (e.g. focus-to-node) and caller B
+  // debounce-coalesced without a view, B's args shouldn't drop A's
+  // view. Fixes #91.
+  pendingArgs = {
+    treeJSON,
+    reason,
+    ...(view ? { view } : pendingArgs?.view ? { view: pendingArgs.view } : {}),
+  };
   if (!debounceTimer) {
     debounceTimer = setTimeout(async () => {
       const args = pendingArgs;
