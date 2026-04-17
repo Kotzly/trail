@@ -130,8 +130,18 @@ export class TreeNode<T> implements Timestamped {
     this.parent = parent;
   }
 
+  /**
+   * Returns the children array typed as readonly. The underlying
+   * array is NOT copied or frozen on each call — that was a hot-path
+   * allocation (20k allocs per render on a 5k-node tree) and the
+   * freeze gave false confidence (internal mutations still worked).
+   *
+   * TypeScript's `readonly T[]` enforces the no-mutation contract at
+   * the type level; callers who need a defensive copy can `[...arr]`
+   * themselves at the rare sites where it's actually needed.
+   */
   getChildren(): readonly TreeNode<T>[] {
-    return Object.freeze([...this.children]);
+    return this.children;
   }
 
   /** Remove the child at the given index, returning a new internal array. */
