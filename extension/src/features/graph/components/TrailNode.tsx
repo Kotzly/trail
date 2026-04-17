@@ -170,9 +170,10 @@ function TrailNodeComponent({
             {pinned && (
               <Badge
                 variant="outline"
-                className="text-muted-foreground h-4 rounded border-transparent px-1 text-[9px] leading-none"
+                aria-label="Pinned"
+                className="text-muted-foreground h-4 rounded border-transparent px-0.5"
               >
-                pin
+                <Icons.Pin className="size-2.5" aria-hidden />
               </Badge>
             )}
             {isCollapsed && childCount > 0 && (
