@@ -12,7 +12,7 @@ test.describe("onboarding", () => {
     await expect(page.getByRole("heading", { name: "Welcome to Trail" })).toBeVisible({
       timeout: 10_000,
     });
-    await expect(page.getByText(/Step 1 of 5/i)).toBeVisible();
+    await expect(page.getByText(/Step 1 of 6/i)).toBeVisible();
 
     // Advance → step 2
     await page.getByRole("button", { name: "Next" }).first().click();

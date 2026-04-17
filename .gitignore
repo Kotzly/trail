@@ -70,3 +70,7 @@ extension/.meta/claude/
 backend-preset.json
 runtime-debug.json
 graphify-out/
+
+# Playwright artifacts
+extension/test-results/
+extension/playwright-report/

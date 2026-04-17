@@ -31,13 +31,16 @@ export function useRuntimeMessages(): void {
       // and fire a one-time onboarding toast. We poll via the RPC here
       // rather than subscribing to a dedicated event because the
       // silent-prune path doesn't broadcast anything extra — but a
-      // prune implies a later navigation, which does.
+      // prune implies a later navigation, which does. Treat the
+      // pre-observation state as 0, so a first tick that already has
+      // tombstones (e.g. user reopens Chrome with cleanups queued
+      // from the previous session) still fires the toast.
       void listTombstones()
         .then((list) => {
           const count = list.length;
-          const prev = lastTombstoneCount.current;
+          const prev = lastTombstoneCount.current ?? 0;
           lastTombstoneCount.current = count;
-          if (prev === null || count <= prev) return;
+          if (count <= prev) return;
           void maybeShowFirstPruneToast(count, {
             onView: () => setRecentlyCleanedOpen(true),
             onOpenSettings: () => {
