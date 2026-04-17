@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect } from "react";
 import FloatingControls from "@apps/sidepanel/ui/components/FloatingControls";
+import RecentlyCleanedDrawer from "@apps/sidepanel/ui/components/RecentlyCleanedDrawer";
 import RenameNodeDialog from "@apps/sidepanel/ui/components/RenameNodeDialog";
 import SyncConflictBanner from "@apps/sidepanel/ui/components/SyncConflictBanner";
 import ContextMenus from "@apps/sidepanel/ui/components/ContextMenus";
@@ -136,6 +137,7 @@ export function PreviewApp() {
         <DeleteTreeConfirmModal />
         <RenameNodeDialog />
         <ContextMenus />
+        <RecentlyCleanedDrawer />
       </div>
     </TooltipProvider>
   );
