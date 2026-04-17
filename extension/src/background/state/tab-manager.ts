@@ -376,7 +376,24 @@ export class TabManager {
       await browser.tabs.remove(tabIdToClose);
       this.unregister(tabIdToClose);
       return tabIdToClose;
-    } catch {
+    } catch (error) {
+      // Chrome may throw AFTER actually closing the tab (race with
+      // window-close cascades). Check with tabs.get: if it reports
+      // "No tab with id", we know Chrome closed it and we should
+      // unregister. Otherwise leave state intact. Fixes #75
+      // (over-closing in closeOldestUntil).
+      try {
+        await browser.tabs.get(tabIdToClose);
+        // Tab still exists — caller should get null so the outer
+        // loop knows it didn't close anything.
+        log.warn("tabs.remove threw but tab still exists", {
+          tabId: String(tabIdToClose),
+          error: error instanceof Error ? error.message : String(error),
+        });
+      } catch {
+        // tabs.get also threw — tab is gone, unregister.
+        this.unregister(tabIdToClose);
+      }
       return null;
     }
   }
