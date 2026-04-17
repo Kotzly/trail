@@ -9,7 +9,7 @@ import {
 import type { TreeViewIntent } from "@shared/rpc/contracts.js";
 import { type NodeMetaPatch, updateNodeMeta, type NodeData } from "@shared/types/node.js";
 import { tabManager } from "../state/tab-manager.js";
-import { treeStorage } from "../services/tree-storage.js";
+import { treeStorage, withTreeLock } from "../services/tree-storage.js";
 import { redirectDetector } from "./redirect-detection.js";
 import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from "../utils/url-utils.js";
 import { settingsManager } from "../services/settings.js";
@@ -23,9 +23,18 @@ import { getEditorState, saveEditorMode } from "../messaging/handlers/editor-han
 
 const log = createLogger("navigation");
 
+type NavigationBroadcast =
+  | { kind: "none" }
+  | { kind: "notify"; reason: "navigate" | "sync" | "tabs"; view: TreeViewIntent | undefined };
+
 /**
  * Handle navigation events and add to tree.
- * Always uses multi-tab mode.
+ *
+ * Lock discipline: Chrome API reads (tabs.get, tabs.query) run OUTSIDE
+ * the tree mutex; only the tree mutation block acquires the lock. The
+ * post-mutation `notifyTreeUpdate` broadcast also runs outside the
+ * lock so a slow sidepanel listener never stalls the next webnav
+ * handler. See the plan's "Narrow lock scope" principle.
  */
 export async function handleNavigation(
   details: Browser.webNavigation.WebNavigationFramedCallbackDetails,
@@ -51,7 +60,7 @@ export async function handleNavigation(
     }
   }
 
-  // Ensure tab still exists
+  // Ensure tab still exists (read outside the lock)
   let tab: Tab;
   try {
     tab = await browser.tabs.get(tabId);
@@ -66,25 +75,33 @@ export async function handleNavigation(
 
   // Early handling for new-tab variants: always map them to the root node.
   if (isNewTabContext(url as Url, tab.title)) {
+    let broadcast: NavigationBroadcast = { kind: "none" };
     try {
-      const tree = await treeStorage.getOrCreateTree();
-      const result = handleNewTabTab(tree, tab, url as Url, {
-        touch: tab.active,
-        setCurrent: tab.active,
-      });
-      if (result.handled) {
+      broadcast = await withTreeLock(async () => {
+        const tree = await treeStorage.getOrCreateTree();
+        const result = handleNewTabTab(tree, tab, url as Url, {
+          touch: tab.active,
+          setCurrent: tab.active,
+        });
+        if (!result.handled) return { kind: "none" } as NavigationBroadcast;
         if (result.didMutate || result.didUpdateCurrent) {
           treeStorage.cacheTree(tree);
         }
         const currentId = tree.getCurrentId();
         const view: TreeViewIntent | undefined =
           tab.active && currentId !== null ? { focusNodeId: currentId, mode: "force" } : undefined;
-        await notifyTreeUpdate(tree, "tabs", view);
-      }
+        // Broadcast requires the serialized JSON; do it outside the lock.
+        return { kind: "notify", reason: "tabs", view };
+      });
     } catch (error) {
       log.error("New tab navigation error", {
         error: error instanceof Error ? error.message : String(error),
       });
+      return;
+    }
+    if (broadcast.kind === "notify") {
+      const tree = await treeStorage.getOrCreateTree();
+      await notifyTreeUpdate(tree, broadcast.reason, broadcast.view);
     }
     return;
   }
@@ -92,162 +109,166 @@ export async function handleNavigation(
   // Skip ignored URLs
   if (!shouldTrackUrl(url as Url)) return;
 
+  // Build the immutable inputs outside the lock.
+  const data: NodeData = {
+    url: url as Url,
+    title: (tab.title || url) as Title,
+    favicon: normalizeFaviconUrl(url as Url, tab.favIconUrl as FaviconUrl | undefined),
+    pinned: Boolean(tab.pinned),
+    tags: [],
+  } as NodeData;
+  const metaPatch = { title: data.title, favicon: data.favicon } as NodeMetaPatch;
+  const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
+  const registerOptions = (touch: boolean) =>
+    lastUsed === undefined ? { touch } : { touch, lastUsed };
+  const isActiveTab = tab.active;
+
+  // Track URL for about:blank redirect detection (safe outside lock —
+  // redirectDetector is a dedicated tab-keyed map, not the tree).
+  redirectDetector.recordTabUrl(
+    tabId as TabId,
+    { url: url as Url, timestamp: now() } as UrlWithTimestamp,
+  );
+
+  let broadcast: NavigationBroadcast = { kind: "none" };
   try {
-    // CRITICAL: Only update currentNode if this tab is active (user navigated)
-    // If tab is not active, it was created programmatically - don't switch focus
-    const isActiveTab = tab.active;
+    broadcast = await withTreeLock(async () => {
+      let wasNewNodeCreated = false;
+      let didUpdateCurrent = false;
 
-    // Track whether we create a new node (vs reusing existing)
-    let wasNewNodeCreated = false;
-    let didUpdateCurrent = false;
+      // Re-read tab↔node mapping inside the lock (another handler
+      // may have unregistered the tab between our tab.get and here).
+      const existingNodeId = tabManager.nodeByTab(tabId as TabId);
 
-    // Track URL for about:blank redirect detection
-    redirectDetector.recordTabUrl(
-      tabId as TabId,
-      { url: url as Url, timestamp: now() } as UrlWithTimestamp,
-    );
+      const tree = await treeStorage.getOrCreateTree();
+      const prevCurrentId = tree.getCurrentId();
+      let didMutate = false;
 
-    // Check if this tab is already registered to a node (global)
-    const existingNodeId = tabManager.nodeByTab(tabId as TabId);
-
-    const data: NodeData = {
-      url: url as Url,
-      title: (tab.title || url) as Title,
-      favicon: normalizeFaviconUrl(url as Url, tab.favIconUrl as FaviconUrl | undefined),
-      pinned: Boolean(tab.pinned),
-      tags: [],
-    } as NodeData;
-    const metaPatch = { title: data.title, favicon: data.favicon } as NodeMetaPatch;
-    const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
-    const registerOptions = (touch: boolean) =>
-      lastUsed === undefined ? { touch } : { touch, lastUsed };
-
-    // Use GLOBAL tree - shared across all windows
-    const tree = await treeStorage.getOrCreateTree();
-    const prevCurrentId = tree.getCurrentId();
-    let didMutate = false;
-
-    if (existingNodeId !== undefined) {
-      // Tab already has a node
-      const node = tree.findNodeById(existingNodeId);
-      if (node && createUrlKey(node.data.url) !== createUrlKey(url as Url)) {
-        // Different URL
-        const nodeUrl = node.data.url as Url;
-        if (!shouldTrackUrl(nodeUrl)) {
-          node.data = {
-            ...node.data,
-            url: data.url,
-            title: data.title,
-            favicon: data.favicon,
-          } as NodeData;
-          didMutate = true;
-          tabManager.register(node.id, tabId as TabId, registerOptions(isActiveTab));
-          if (isActiveTab) {
-            markNodeVisited(tree, node.id, lastUsed);
-          }
-          if (!isActiveTab && prevCurrentId !== null) {
-            tree.setCurrentById(prevCurrentId);
+      if (existingNodeId !== undefined) {
+        // Tab already has a node
+        const node = tree.findNodeById(existingNodeId);
+        if (node && createUrlKey(node.data.url) !== createUrlKey(url as Url)) {
+          // Different URL
+          const nodeUrl = node.data.url as Url;
+          if (!shouldTrackUrl(nodeUrl)) {
+            node.data = {
+              ...node.data,
+              url: data.url,
+              title: data.title,
+              favicon: data.favicon,
+            } as NodeData;
+            didMutate = true;
+            tabManager.register(node.id, tabId as TabId, registerOptions(isActiveTab));
+            if (isActiveTab) {
+              markNodeVisited(tree, node.id, lastUsed);
+            }
+            if (!isActiveTab && prevCurrentId !== null) {
+              tree.setCurrentById(prevCurrentId);
+            } else {
+              tree.setCurrentById(node.id);
+              didUpdateCurrent = true;
+            }
           } else {
-            tree.setCurrentById(node.id);
+            // Normal behavior: navigate from current node (creates child)
+            tree.setCurrentById(existingNodeId);
+            didMutate = true;
+            const newNode = tree.navigate(data);
+            wasNewNodeCreated = true;
+            // Re-register tab with new node (global) — this automatically unregisters from old node
+            tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
+            if (isActiveTab) {
+              markNodeVisited(tree, newNode.id, lastUsed);
+            }
+            // Update currentNode to new node only if tab is active
+            if (!isActiveTab && prevCurrentId !== null) {
+              tree.setCurrentById(prevCurrentId);
+            } else {
+              didUpdateCurrent = true;
+            }
+          }
+        } else if (node) {
+          // Same URL — only update current if tab is active
+          const updated = updateNodeMeta(node.data, metaPatch);
+          if (updated.title !== node.data.title || updated.favicon !== node.data.favicon) {
+            node.data = updated;
+            tree.refreshSearchEntry(node.id);
+            didMutate = true;
+          }
+          if (tab.active) {
+            tree.setCurrentById(existingNodeId);
             didUpdateCurrent = true;
           }
-        } else {
-          // Normal behavior: navigate from current node (creates child)
-          tree.setCurrentById(existingNodeId);
-          didMutate = true;
-          const newNode = tree.navigate(data);
-          wasNewNodeCreated = true; // New node was created
-          // Re-register tab with new node (global) - this automatically unregisters from old node
+        }
+        if (isActiveTab) {
+          tabManager.touch(tabId as TabId, existingNodeId);
+          const resolvedNodeId = tabManager.nodeByTab(tabId as TabId);
+          if (resolvedNodeId !== undefined) {
+            markNodeVisited(tree, resolvedNodeId, lastUsed);
+          }
+        }
+      } else {
+        // New tab without existing node
+        let newNode;
+
+        // First, try to find existing node with this URL globally
+        const existingNodeInWindow = tree.findByUrl(url as Url);
+
+        // If found existing node, use it instead of creating new
+        if (existingNodeInWindow) {
+          newNode = existingNodeInWindow;
+          const updated = updateNodeMeta(newNode.data, metaPatch);
+          if (updated.title !== newNode.data.title || updated.favicon !== newNode.data.favicon) {
+            newNode.data = updated;
+            tree.refreshSearchEntry(newNode.id);
+            didMutate = true;
+          }
+          if (isActiveTab) {
+            tree.setCurrentById(newNode.id);
+            didUpdateCurrent = true;
+          }
           tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
           if (isActiveTab) {
             markNodeVisited(tree, newNode.id, lastUsed);
           }
-          // Update currentNode to new node only if tab is active
+        } else {
+          didMutate = true;
+          newNode = tree.navigate(data);
+          wasNewNodeCreated = true;
+          tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
+          if (isActiveTab) {
+            markNodeVisited(tree, newNode.id, lastUsed);
+          }
           if (!isActiveTab && prevCurrentId !== null) {
             tree.setCurrentById(prevCurrentId);
           } else {
             didUpdateCurrent = true;
           }
         }
-      } else if (node) {
-        // Same URL - only update current if tab is active
-        const updated = updateNodeMeta(node.data, metaPatch);
-        if (updated.title !== node.data.title || updated.favicon !== node.data.favicon) {
-          node.data = updated;
-          tree.refreshSearchEntry(node.id);
-          didMutate = true;
-        }
-        if (tab.active) {
-          tree.setCurrentById(existingNodeId);
-          didUpdateCurrent = true;
-        }
       }
-      if (isActiveTab) {
-        tabManager.touch(tabId as TabId, existingNodeId);
-        const resolvedNodeId = tabManager.nodeByTab(tabId as TabId);
-        if (resolvedNodeId !== undefined) {
-          markNodeVisited(tree, resolvedNodeId, lastUsed);
-        }
+
+      if (didMutate || didUpdateCurrent) {
+        treeStorage.cacheTree(tree);
       }
-    } else {
-      // New tab without existing node
-      let newNode;
 
-      // First, try to find existing node with this URL globally
-      const existingNodeInWindow = tree.findByUrl(url as Url);
-
-      // If found existing node, use it instead of creating new
-      if (existingNodeInWindow) {
-        newNode = existingNodeInWindow;
-        const updated = updateNodeMeta(newNode.data, metaPatch);
-        if (updated.title !== newNode.data.title || updated.favicon !== newNode.data.favicon) {
-          newNode.data = updated;
-          tree.refreshSearchEntry(newNode.id);
-          didMutate = true;
-        }
-        // Only update currentNode if tab is active (user navigated, not programmatic)
-        if (isActiveTab) {
-          tree.setCurrentById(newNode.id);
-          didUpdateCurrent = true;
-        }
-        // Register this tab with the existing node - this automatically unregisters from old node if any
-        tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
-        if (isActiveTab) {
-          markNodeVisited(tree, newNode.id, lastUsed);
-        }
-      } else {
-        didMutate = true;
-        newNode = tree.navigate(data);
-        wasNewNodeCreated = true;
-        tabManager.register(newNode.id, tabId as TabId, registerOptions(isActiveTab));
-        if (isActiveTab) {
-          markNodeVisited(tree, newNode.id, lastUsed);
-        }
-        if (!isActiveTab && prevCurrentId !== null) {
-          tree.setCurrentById(prevCurrentId);
-        } else {
-          didUpdateCurrent = true;
-        }
+      // Decide broadcast intent; actual send happens outside the lock.
+      if (isActiveTab || wasNewNodeCreated) {
+        const reason: "navigate" | "sync" = isActiveTab ? "navigate" : "sync";
+        const currentId = tree.getCurrentId();
+        const view: TreeViewIntent | undefined =
+          isActiveTab && currentId !== null ? { focusNodeId: currentId, mode: "force" } : undefined;
+        return { kind: "notify", reason, view };
       }
-    }
-
-    if (didMutate || didUpdateCurrent) {
-      treeStorage.cacheTree(tree);
-    }
-
-    // Only notify if tab is active OR if we created a new node (not just reused existing)
-    // This prevents unnecessary UI updates for programmatic tab creation
-    // For inactive tabs, only notify if a new node was actually created
-    if (isActiveTab || wasNewNodeCreated) {
-      const reason = isActiveTab ? "navigate" : "sync";
-      const currentId = tree.getCurrentId();
-      const view: TreeViewIntent | undefined =
-        isActiveTab && currentId !== null ? { focusNodeId: currentId, mode: "force" } : undefined;
-      await notifyTreeUpdate(tree, reason, view);
-    }
+      return { kind: "none" };
+    });
   } catch (error) {
     log.error("Navigation error", {
       error: error instanceof Error ? error.message : String(error),
     });
+    return;
+  }
+
+  if (broadcast.kind === "notify") {
+    const tree = await treeStorage.getOrCreateTree();
+    await notifyTreeUpdate(tree, broadcast.reason, broadcast.view);
   }
 }
