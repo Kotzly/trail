@@ -35,7 +35,12 @@ import {
   getActiveLayoutCacheContext,
   getCachedPositions,
 } from "../../services/layout-precompute.js";
-import { saveOpenTabs, getOpenTabs, clearOpenTabs } from "../../services/tab-restoration.js";
+import {
+  saveOpenTabs,
+  getOpenTabs,
+  clearOpenTabs,
+  consumeOpenTabs,
+} from "../../services/tab-restoration.js";
 import { browser, type Tab } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
 
@@ -260,6 +265,7 @@ async function switchTree(
 
   if (savedUrls && savedUrls.length > 0) {
     let treeChanged = false;
+    let createdCount = 0;
 
     for (const url of savedUrls) {
       const isActive = preferredFocusUrl !== null && url === preferredFocusUrl;
@@ -269,6 +275,7 @@ async function switchTree(
       } catch {
         continue;
       }
+      createdCount++;
       const node = nextTree.findByUrl(url as Url);
       if (node && tab.id !== undefined) {
         registerTabForNode(node.id, tab);
@@ -278,6 +285,13 @@ async function switchTree(
           treeChanged = true;
         }
       }
+    }
+
+    // Only consume the saved-URLs list if we actually created tabs
+    // for all of them. On partial failure keep the list so a retry
+    // (manual switch-back, next session) can resume (#80).
+    if (createdCount === savedUrls.length) {
+      await consumeOpenTabs(nextMeta.id);
     }
 
     // If no active tab was created (e.g. current node URL wasn't in saved list),

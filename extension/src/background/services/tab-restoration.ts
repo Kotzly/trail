@@ -15,14 +15,32 @@ export async function saveOpenTabs(treeId: string, urls: string[]): Promise<void
   await openTabsItem.setValue(map);
 }
 
-/** Retrieve (and remove) saved URLs for a tree. Returns null if none exist. */
+/**
+ * Peek at saved URLs for a tree without deleting them. The caller is
+ * responsible for calling consumeOpenTabs() after every URL has been
+ * successfully restored (#80 — non-destructive read).
+ *
+ * Returns null when no URLs exist.
+ */
 export async function getOpenTabs(treeId: string): Promise<string[] | null> {
   const map = await openTabsItem.getValue();
   const urls = map[treeId];
   if (!urls || urls.length === 0) return null;
+  return urls;
+}
+
+/**
+ * Delete saved URLs for a tree once the caller has confirmed they
+ * were fully restored. Split from getOpenTabs so partial failures
+ * (service worker killed mid-restore, tabs.create throws on some
+ * URLs) preserve the pending list for next attempt instead of
+ * silently discarding it.
+ */
+export async function consumeOpenTabs(treeId: string): Promise<void> {
+  const map = await openTabsItem.getValue();
+  if (!(treeId in map)) return;
   delete map[treeId];
   await openTabsItem.setValue(map);
-  return urls;
 }
 
 /** Remove saved URLs for a tree (e.g. on tree deletion). */
