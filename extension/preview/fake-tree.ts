@@ -64,7 +64,7 @@ export function fakeTree(): NavigationTreeJSON {
                 url: "https://ui.shadcn.com/docs" as never,
                 title: "shadcn/ui" as never,
                 favicon: "https://ui.shadcn.com/favicon.ico" as never,
-                pinned: false,
+                pinned: true,
                 tags: [],
               },
               children: [],
@@ -73,10 +73,11 @@ export function fakeTree(): NavigationTreeJSON {
               id: nid(6),
               timestamp: ts as never,
               data: {
-                url: "https://radix-ui.com/primitives" as never,
-                title: "Radix Primitives" as never,
+                url: "https://radix-ui.com/primitives/docs/components/popover" as never,
+                title:
+                  "Radix Primitives · Popover — A floating window that can be opened from anywhere" as never,
                 favicon: "https://radix-ui.com/favicon.ico" as never,
-                pinned: false,
+                pinned: true,
                 tags: [],
               },
               children: [],

@@ -153,13 +153,7 @@ const PinnedRow = memo(function PinnedRow({
   const showHost = host && host !== title;
 
   return (
-    <Item
-      variant="default"
-      size="xs"
-      className="hover:bg-accent cursor-pointer border-transparent"
-      data-node-id={node.id}
-      onClick={() => void onNavigate(node.id as NodeId)}
-    >
+    <Item data-node-id={node.id} onClick={() => void onNavigate(node.id as NodeId)}>
       <ItemMedia variant="icon">
         {node.data.url ? (
           <img className="size-4 rounded-sm" alt="" src={getFaviconUrl(node.data.url)} />

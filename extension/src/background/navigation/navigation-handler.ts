@@ -14,7 +14,12 @@ import { redirectDetector } from "./redirect-detection.js";
 import { onNavigation as trackerOnNavigation, DEFAULT_THRESHOLDS } from "./nav-pattern-tracker.js";
 import { pruneGlance, reviveFromTombstone } from "../services/cleanup-policy.js";
 import { onBurstStep, onBurstSeal } from "../services/burst-consolidator.js";
-import { isNewTabContext, normalizeFaviconUrl, shouldTrackUrl } from "../utils/url-utils.js";
+import {
+  isChallengeUrl,
+  isNewTabContext,
+  normalizeFaviconUrl,
+  shouldTrackUrl,
+} from "../utils/url-utils.js";
 import { settingsManager } from "../services/settings.js";
 import { handleNewTabTab } from "../utils/new-tab.js";
 import { notifyTreeUpdate } from "../messaging/notifications.js";
@@ -118,8 +123,30 @@ export async function handleNavigation(
     return;
   }
 
-  // Skip ignored URLs
-  if (!shouldTrackUrl(url as Url)) return;
+  // Skip ignored URLs. For challenge/captcha URLs specifically, also
+  // break the tab→node mapping: the browser just yanked the tab out
+  // from under the previous node (Google /sorry, Cloudflare UAM, etc.)
+  // and leaving `isOpen`/`isCurrent` pointing at the old node gives a
+  // stale UI — user clicks it, gets a fresh tab, same challenge,
+  // infinite loop. User-configured blocklist URLs keep the mapping
+  // (that's "don't record this step" not "the tab is gone").
+  if (!shouldTrackUrl(url as Url)) {
+    if (isChallengeUrl(url as Url)) {
+      const hadMapping = tabManager.nodeByTab(tabId as TabId) !== undefined;
+      if (hadMapping) {
+        tabManager.unregister(tabId as TabId);
+        try {
+          const tree = await treeStorage.getOrCreateTree();
+          await notifyTreeUpdate(tree, "tabs");
+        } catch (error) {
+          log.warn("notify after challenge unregister failed", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+    return;
+  }
 
   // Build the immutable inputs outside the lock.
   const data: NodeData = {
