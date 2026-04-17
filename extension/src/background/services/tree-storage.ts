@@ -923,42 +923,69 @@ class TreeStorageService {
   // Migration from legacy single-blob format
   // -----------------------------------------------------------------------
 
+  /**
+   * Singleflight guard for `ensureMigrated`. Previous implementation
+   * set `this.migrated = true` BEFORE awaiting the storage reads, so
+   * a second caller arriving during the migration saw "done" and read
+   * legacy-shape cached data. We now cache the in-flight promise and
+   * only mark migrated AFTER the work completes successfully.
+   */
+  private migrationPromise: Promise<void> | null = null;
+
   private async ensureMigrated(): Promise<void> {
     if (this.migrated) return;
-    this.migrated = true;
+    if (this.migrationPromise) return this.migrationPromise;
 
-    try {
-      const rawArr = await archiveIndexItem.getValue();
-      if (rawArr.length === 0) return;
+    this.migrationPromise = (async () => {
+      try {
+        const rawArr = await archiveIndexItem.getValue();
+        if (rawArr.length === 0) {
+          this.migrated = true;
+          return;
+        }
 
-      const first = rawArr[0];
-      if (!first || typeof first !== "object") return;
-      if (!("tree" in first) || !first.tree || typeof first.tree !== "object") {
-        return;
-      }
+        const first = rawArr[0];
+        if (!first || typeof first !== "object") {
+          this.migrated = true;
+          return;
+        }
+        if (!("tree" in first) || !first.tree || typeof first.tree !== "object") {
+          this.migrated = true;
+          return;
+        }
 
-      // Migrating legacy archives to per-tree format.
-      const summaries: TreeSummary[] = [];
-      const entries: BulkEntry[] = [];
+        // Migrating legacy archives to per-tree format.
+        const summaries: TreeSummary[] = [];
+        const entries: BulkEntry[] = [];
 
-      for (const entry of rawArr) {
-        const record = normalizeLegacyRecord(entry);
-        if (!record) continue;
-        summaries.push(extractSummary(record));
-        entries.push({
-          key: archiveBlobKey(record.id),
-          value: serializeBlob(encodeTree(record.tree)),
+        for (const entry of rawArr) {
+          const record = normalizeLegacyRecord(entry);
+          if (!record) continue;
+          summaries.push(extractSummary(record));
+          entries.push({
+            key: archiveBlobKey(record.id),
+            value: serializeBlob(encodeTree(record.tree)),
+          });
+        }
+
+        entries.push({ item: archiveIndexBulkItem, value: summaries });
+        await writeBulkDirect(entries);
+        this.cachedIndex = summaries;
+        this.migrated = true;
+      } catch (error) {
+        log.error("Migration error", {
+          error: error instanceof Error ? error.message : String(error),
         });
+        // Clear the in-flight promise on failure so a subsequent call
+        // retries. Do NOT set `migrated = true` — we want retry next.
+        throw error;
       }
+    })().catch((error) => {
+      this.migrationPromise = null;
+      throw error;
+    });
 
-      entries.push({ item: archiveIndexBulkItem, value: summaries });
-      await writeBulkDirect(entries);
-      this.cachedIndex = summaries;
-    } catch (error) {
-      log.error("Migration error", {
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+    return this.migrationPromise;
   }
 
   // -----------------------------------------------------------------------
