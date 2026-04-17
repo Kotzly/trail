@@ -24,6 +24,7 @@ import { selectShowBackground } from "../lod.js";
 import { useRelayoutEnabled } from "../motion/useRelayoutEnabled.js";
 import { useHoverHighlightEnabled } from "../motion/useHoverHighlightEnabled.js";
 import { useCameraControls } from "../motion/useCameraControls.js";
+import { useMotionFlag } from "../motion/store.js";
 
 const nodeTypes = { trail: TrailNode };
 
@@ -58,6 +59,12 @@ function TrailGraphInner(props: TrailGraphProps) {
   const { smoothCenter, smoothFitView } = useCameraControls();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
+  // Marker for distinguishing extension clicks from external navigation:
+  // handleNodeClick sets this before onNodeClick runs; when the subsequent
+  // currentNodeId change matches, we know the user clicked a node in the
+  // extension (rather than navigating externally via the browser).
+  const expectedClickNodeId = useRef<NodeId | null>(null);
+  const followClickEnabled = useMotionFlag("camera_follow_click");
 
   useCmdWheelZoom(containerRef);
 
@@ -91,25 +98,53 @@ function TrailGraphInner(props: TrailGraphProps) {
     [layout.nodes, selectedNodeIds],
   );
 
-  // Center on current node once on first data
+  const currentNode = useMemo(
+    () => (currentNodeId ? displayNodes.find((n) => n.data.nodeId === currentNodeId) : undefined),
+    [currentNodeId, displayNodes],
+  );
+
+  // Camera centering policy:
+  //   1. Initial mount (sidepanel opens) — always center on current node, or
+  //      fitView if there's no current node.
+  //   2. Subsequent external navigation (browser-initiated, user clicks a
+  //      link on a page) — always center on the new current node.
+  //   3. Subsequent extension-initiated click — only center if the
+  //      `camera_follow_click` flag is on. Extension click is detected via
+  //      `expectedClickNodeId` matching the new `currentNodeId`.
+  //
+  // `displayNodes.length` is a cheap proxy for "layout computed"; we depend
+  // on the array reference via `currentNode` so the effect re-runs when the
+  // node's position actually changes.
   useEffect(() => {
-    if (displayNodes.length > 0 && !initialFitDone.current) {
-      initialFitDone.current = true;
+    if (displayNodes.length === 0) return;
 
-      const currentNode = currentNodeId
-        ? displayNodes.find((n) => n.data.nodeId === currentNodeId)
-        : null;
-
-      if (currentNode?.position) {
-        smoothCenter(
-          currentNode.position.x + NODE_WIDTH / 2,
-          currentNode.position.y + NODE_HEIGHT / 2,
-        );
-      } else {
+    if (!currentNode?.position) {
+      // No current node yet — fit view on initial mount, then stop.
+      if (!initialFitDone.current) {
+        initialFitDone.current = true;
         smoothFitView();
       }
+      return;
     }
-  }, [displayNodes.length, smoothCenter, smoothFitView, currentNodeId]);
+
+    const wasClicked =
+      expectedClickNodeId.current !== null && expectedClickNodeId.current === currentNodeId;
+    if (wasClicked) expectedClickNodeId.current = null;
+
+    const isInitial = !initialFitDone.current;
+    const shouldCenter = isInitial || !wasClicked || followClickEnabled;
+    if (!shouldCenter) return;
+
+    initialFitDone.current = true;
+    smoothCenter(currentNode.position.x + NODE_WIDTH / 2, currentNode.position.y + NODE_HEIGHT / 2);
+  }, [
+    currentNode,
+    currentNodeId,
+    displayNodes.length,
+    smoothCenter,
+    smoothFitView,
+    followClickEnabled,
+  ]);
 
   // Sync ReactFlow selection → store
   const handleSelectionChange = useCallback(
@@ -126,6 +161,10 @@ function TrailGraphInner(props: TrailGraphProps) {
       if (event.shiftKey) return;
       const data = node.data as { nodeId?: NodeId; url?: string };
       if (data.nodeId !== undefined && data.url !== undefined) {
+        // Mark this click so the centering effect can tell extension-initiated
+        // navigation from external browser navigation. When the tab update
+        // lands and currentNodeId matches this ref, we know the user clicked.
+        expectedClickNodeId.current = data.nodeId;
         onNodeClick(data.nodeId, String(data.url));
       }
     },

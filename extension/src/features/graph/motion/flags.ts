@@ -40,6 +40,7 @@ export type MotionFlagKey =
   | "camera_fit_to_view"
   | "camera_focus_mode"
   | "camera_breadcrumb"
+  | "camera_follow_click"
   // Clusters
   | "cluster_collapse"
   | "cluster_hover_highlight"
@@ -75,6 +76,7 @@ export const DEFAULT_MOTION_CONFIG: MotionConfig = Object.freeze({
   camera_fit_to_view: true,
   camera_focus_mode: true,
   camera_breadcrumb: false,
+  camera_follow_click: false,
 
   cluster_collapse: true,
   cluster_hover_highlight: true,
