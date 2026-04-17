@@ -209,6 +209,24 @@ async function onTabUpdated(
     return;
   }
 
+  // Some same-document URL changes (tabs.update, session restore
+  // reopen, file: navigation after error) don't fire webNavigation
+  // but do fire tabs.onUpdated with changeInfo.url. If the tab is
+  // currently registered and its URL just changed AWAY from what the
+  // node holds, we unregister; a subsequent webNavigation (or a
+  // fresh onActivated) will re-register with the right node. This
+  // prevents stale tab→node mappings from accumulating.
+  if (typeof changeInfo.url === "string" && changeInfo.url.length > 0) {
+    const nodeId = tabManager.nodeByTab(tabId as TabId);
+    if (nodeId && !shouldTrackUrl(changeInfo.url as Url)) {
+      // Tab navigated to an untrackable URL (chrome://, about://,
+      // blob:, etc.). Drop the mapping so future meta-patches don't
+      // describe the wrong URL. Fixes #67 partially + contributes to
+      // #33 (stale mappings for untrackable-URL tabs).
+      tabManager.unregister(tabId as TabId);
+    }
+  }
+
   if (changeInfo.title || changeInfo.favIconUrl) {
     await syncTabTitleFavicon(tabId as TabId, changeInfo, tab);
     return;
