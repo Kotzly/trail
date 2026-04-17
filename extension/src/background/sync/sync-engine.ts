@@ -406,19 +406,31 @@ async function doPull(): Promise<void> {
       }
       continue;
     }
-    // Local has real payload — if server is newer, fire a conflict. Don't
-    // overwrite silently; the user's local payload is the source of truth
-    // until they explicitly accept the server version.
-    if (summary.savedAt > existing.savedAt) {
-      const syncMeta = await getSyncMeta(row.id);
-      const lastKnown = syncMeta.lastSyncedAt ? new Date(syncMeta.lastSyncedAt).getTime() : 0;
-      if (new Date(row.updated_at).getTime() > lastKnown) {
-        fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT, {
-          treeId: row.id,
-          serverUpdatedAt: row.updated_at,
-          serverDeviceId: row.device_id,
-        });
-      }
+    // Local has real payload — if server version is ahead, fire a conflict.
+    // Compare using server `updated_at` (trigger-stamped, monotonic per
+    // row) instead of client-generated `savedAt` (subject to cross-device
+    // clock skew — #14). Fall back to savedAt only if server updated_at
+    // is missing.
+    //
+    // Tiebreaker: when updated_at is identical (two writes within the
+    // same trigger tick, rare but non-zero), prefer the row with the
+    // lexicographically greater id as a stable deterministic choice.
+    // This is a client-side mitigation; a true monotonic `revision`
+    // column is a follow-up Supabase-schema change.
+    const syncMeta = await getSyncMeta(row.id);
+    const lastKnownServer = syncMeta.lastRemoteUpdatedAt
+      ? new Date(syncMeta.lastRemoteUpdatedAt).getTime()
+      : 0;
+    const currentServer = new Date(row.updated_at).getTime();
+    const serverAhead =
+      currentServer > lastKnownServer ||
+      (currentServer === lastKnownServer && row.id > (syncMeta.lastSyncedAt ?? ""));
+    if (serverAhead) {
+      fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT, {
+        treeId: row.id,
+        serverUpdatedAt: row.updated_at,
+        serverDeviceId: row.device_id,
+      });
     }
   }
 
