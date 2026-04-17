@@ -177,44 +177,6 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
           <Field orientation="horizontal">
             <FieldContent>
               <div className="flex items-center gap-1">
-                <FieldLabel htmlFor="cleanup-burst">Burst collapsing</FieldLabel>
-                <CleanupInfo text="When you navigate quickly through many pages in a row — browsing a feed, clicking through search results — Trail groups them into a single expandable container." />
-              </div>
-              <FieldDescription>
-                Group rapid feed-style navigation into one container.
-              </FieldDescription>
-            </FieldContent>
-            <Switch
-              id="cleanup-burst"
-              checked={cleanup.burst.enabled}
-              onCheckedChange={(v) => pushCleanup({ burst: { enabled: v } })}
-            />
-          </Field>
-
-          {cleanup.burst.enabled ? (
-            <Field>
-              <FieldContent>
-                <FieldLabel>Burst size · {cleanup.burst.minItems} items</FieldLabel>
-                <FieldDescription>
-                  Collapse once this many rapid navigations accumulate.
-                </FieldDescription>
-                <Slider
-                  min={3}
-                  max={50}
-                  step={1}
-                  value={[cleanup.burst.minItems]}
-                  onValueChange={(v) => pushCleanup({ burst: { minItems: v[0] ?? 5 } })}
-                  className="mt-2 max-w-xs"
-                />
-              </FieldContent>
-            </Field>
-          ) : null}
-
-          <Separator />
-
-          <Field orientation="horizontal">
-            <FieldContent>
-              <div className="flex items-center gap-1">
                 <FieldLabel htmlFor="cleanup-roundtrip">Round-trip cleanup</FieldLabel>
                 <CleanupInfo text="If you click a link and immediately go back without staying, the side-trip is skipped. Useful for accidental clicks and captcha round-trips." />
               </div>

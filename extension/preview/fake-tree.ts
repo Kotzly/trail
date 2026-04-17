@@ -84,98 +84,10 @@ export function fakeTree(): NavigationTreeJSON {
             },
           ],
         },
-        // Burst container + burst-item children so the preview
-        // exercises TrailNode's burst branch and the ribbon expansion.
-        // revivedAt on node 8 proves the revival indicator path too.
-        {
-          id: nid(7),
-          timestamp: ts as never,
-          data: {
-            url: "https://arxiv.org/abs/2401.00000" as never,
-            title: "arxiv.org · 5 items" as never,
-            favicon: "https://arxiv.org/favicon.ico" as never,
-            pinned: false,
-            tags: [],
-            kind: "burst",
-            burst: {
-              urlTemplate: "arxiv.org/abs/*",
-              startedAt: (ts - 14 * 60_000) as never,
-              lastItemAt: ts as never,
-              status: "open",
-            },
-          } as never,
-          children: [
-            {
-              id: nid(10),
-              timestamp: (ts - 14 * 60_000) as never,
-              data: {
-                url: "https://arxiv.org/abs/2401.00001" as never,
-                title: "arxiv 2401.00001" as never,
-                favicon: "https://arxiv.org/favicon.ico" as never,
-                pinned: false,
-                tags: [],
-                kind: "burst-item",
-              } as never,
-              children: [],
-            },
-            {
-              id: nid(11),
-              timestamp: (ts - 10 * 60_000) as never,
-              data: {
-                url: "https://arxiv.org/abs/2401.00002" as never,
-                title: "arxiv 2401.00002" as never,
-                favicon: "https://arxiv.org/favicon.ico" as never,
-                pinned: false,
-                tags: [],
-                kind: "burst-item",
-              } as never,
-              children: [],
-            },
-            {
-              id: nid(12),
-              timestamp: (ts - 6 * 60_000) as never,
-              data: {
-                url: "https://arxiv.org/abs/2401.00003" as never,
-                title: "arxiv 2401.00003" as never,
-                favicon: "https://arxiv.org/favicon.ico" as never,
-                pinned: false,
-                tags: [],
-                kind: "burst-item",
-              } as never,
-              children: [],
-            },
-            {
-              id: nid(13),
-              timestamp: (ts - 2 * 60_000) as never,
-              data: {
-                url: "https://arxiv.org/abs/2401.00004" as never,
-                title: "arxiv 2401.00004" as never,
-                favicon: "https://arxiv.org/favicon.ico" as never,
-                pinned: false,
-                tags: [],
-                kind: "burst-item",
-              } as never,
-              children: [],
-            },
-          ],
-        },
-        {
-          id: nid(8),
-          timestamp: ts as never,
-          data: {
-            url: "https://example.com/revived" as never,
-            title: "Restored page" as never,
-            favicon: undefined as never,
-            pinned: false,
-            tags: [],
-            revivedAt: (ts - 60_000) as never,
-          } as never,
-          children: [],
-        },
       ],
     },
     currentNodeId: nid(3),
-    nodeCount: 12,
+    nodeCount: 6,
   };
 }
 
@@ -225,20 +137,7 @@ export function fakeFlags(): ResolvedFlags {
 }
 
 export function fakeTreeUpdatedInput(): TreeUpdatedInput {
-  const nodeIds: NodeId[] = [
-    nid(1),
-    nid(2),
-    nid(3),
-    nid(4),
-    nid(5),
-    nid(6),
-    nid(7),
-    nid(8),
-    nid(10),
-    nid(11),
-    nid(12),
-    nid(13),
-  ];
+  const nodeIds: NodeId[] = [nid(1), nid(2), nid(3), nid(4), nid(5), nid(6)];
   return {
     tree: fakeTree(),
     reason: "tree-reset",

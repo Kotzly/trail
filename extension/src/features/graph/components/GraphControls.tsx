@@ -1,6 +1,8 @@
 import { useReactFlow } from "@xyflow/react";
+import { LocateFixed, Maximize, Minus, Plus } from "lucide-react";
 import { Button } from "@ui/components/ui/button";
 import { ButtonGroup } from "@ui/components/ui/button-group";
+import { ButtonTooltip } from "@ui/components/button-tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@ui/components/ui/toggle-group";
 import type { LayoutMode } from "../types.js";
 import { useCameraControls } from "../motion/useCameraControls.js";
@@ -8,39 +10,64 @@ import { useCameraControls } from "../motion/useCameraControls.js";
 type GraphControlsProps = {
   layoutMode: LayoutMode;
   onLayoutModeChange: (mode: LayoutMode) => void;
+  /** Center camera on the current tab's node. Disabled when no such node. */
+  onCenterCurrent: () => void;
+  canCenterCurrent: boolean;
 };
 
-export function GraphControls({ layoutMode, onLayoutModeChange }: GraphControlsProps) {
+export function GraphControls({
+  layoutMode,
+  onLayoutModeChange,
+  onCenterCurrent,
+  canCenterCurrent,
+}: GraphControlsProps) {
   const { zoomIn, zoomOut } = useReactFlow();
   const { smoothFitView } = useCameraControls();
 
   return (
     <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1">
       <ButtonGroup>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Zoom in"
-          onClick={() => zoomIn({ duration: 200 })}
-        >
-          +
-        </Button>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Zoom out"
-          onClick={() => zoomOut({ duration: 200 })}
-        >
-          −
-        </Button>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Fit view"
-          onClick={() => smoothFitView()}
-        >
-          ⊞
-        </Button>
+        <ButtonTooltip label="Zoom in">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Zoom in"
+            onClick={() => zoomIn({ duration: 200 })}
+          >
+            <Plus />
+          </Button>
+        </ButtonTooltip>
+        <ButtonTooltip label="Zoom out">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Zoom out"
+            onClick={() => zoomOut({ duration: 200 })}
+          >
+            <Minus />
+          </Button>
+        </ButtonTooltip>
+        <ButtonTooltip label="Center on current tab">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Center on current tab"
+            disabled={!canCenterCurrent}
+            onClick={onCenterCurrent}
+          >
+            <LocateFixed />
+          </Button>
+        </ButtonTooltip>
+        <ButtonTooltip label="Fit whole graph">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Fit whole graph"
+            onClick={() => smoothFitView()}
+          >
+            <Maximize />
+          </Button>
+        </ButtonTooltip>
       </ButtonGroup>
       <ToggleGroup
         type="single"

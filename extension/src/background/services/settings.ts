@@ -115,7 +115,12 @@ export const defaultSettings: Settings = {
   },
   cleanup: {
     glance: { enabled: true, thresholdMs: 5_000 },
-    burst: { enabled: true, minItems: 5 },
+    // Burst consolidation is off by default — the UX cost of the extra
+    // "container" abstraction + dots/promote actions wasn't worth what
+    // it bought over the plain tree, per pre-release review. Backend
+    // primitives are preserved so it can be re-enabled per-user or
+    // re-promoted later if we find a shape that carries its weight.
+    burst: { enabled: false, minItems: 5 },
     roundTrip: { enabled: true },
     allowDomains: [],
   },

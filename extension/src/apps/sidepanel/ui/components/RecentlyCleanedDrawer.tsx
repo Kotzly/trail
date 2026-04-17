@@ -7,7 +7,6 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@ui/components/ui/sheet";
@@ -19,7 +18,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@ui/components/ui/empty";
-import { clearTombstones, listTombstones, restoreTombstone } from "../../api/cleanup.js";
+import { listTombstones, restoreTombstone } from "../../api/cleanup.js";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
 import { showOperationError } from "../shared/show-operation-error.js";
@@ -43,7 +42,6 @@ function groupEntries(entries: CleanupTombstoneEntry[]): Group[] {
   const todayStart = startOfDay(now);
   const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
 
-  // Sort newest-first
   const sorted = [...entries].sort((a, b) => b.removedAt - a.removedAt);
   const buckets = new Map<string, CleanupTombstoneEntry[]>();
   const order: string[] = [];
@@ -138,7 +136,6 @@ export default function RecentlyCleanedDrawer() {
   const setOpen = useStore((s) => s.setRecentlyCleanedOpen);
   const [entries, setEntries] = useState<CleanupTombstoneEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pendingClearAll, setPendingClearAll] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -153,10 +150,7 @@ export default function RecentlyCleanedDrawer() {
   }, []);
 
   useEffect(() => {
-    if (!open) {
-      setPendingClearAll(false);
-      return;
-    }
+    if (!open) return;
     void refresh();
   }, [open, refresh]);
 
@@ -176,16 +170,6 @@ export default function RecentlyCleanedDrawer() {
     browser.tabs.create({ url: entry.url, active: true }).catch((error) => {
       console.error("Failed to open tombstoned URL:", error);
     });
-  }, []);
-
-  const handleClearAll = useCallback(async () => {
-    try {
-      await clearTombstones();
-      setEntries([]);
-      setPendingClearAll(false);
-    } catch (error) {
-      showOperationError("Clear cleanup history", error);
-    }
   }, []);
 
   const groups = groupEntries(entries);
@@ -245,25 +229,6 @@ export default function RecentlyCleanedDrawer() {
             )}
           </div>
         </ScrollArea>
-
-        {entries.length > 0 && (
-          <SheetFooter className="border-t p-3">
-            {pendingClearAll ? (
-              <Button variant="destructive" size="sm" onClick={() => void handleClearAll()}>
-                Confirm clear all?
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={() => setPendingClearAll(true)}
-              >
-                Clear all
-              </Button>
-            )}
-          </SheetFooter>
-        )}
       </SheetContent>
     </Sheet>
   );

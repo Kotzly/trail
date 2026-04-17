@@ -6,19 +6,11 @@
  */
 
 import { hierarchy } from "d3-hierarchy";
-import type { FaviconUrl, NodeId } from "@shared/types/ids.js";
+import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { TrailNode, TrailNodeData, TrailEdge } from "./types.js";
 import { NODE_WIDTH, NODE_HEIGHT } from "./tree-layout.js";
-
-/**
- * How long a `revivedAt` marker keeps the "restored" icon visible.
- * After 7 days the node blends back in with the rest of the tree — the
- * backend leaves the field set indefinitely so sync/merges stay stable,
- * but UI hides it past the window. See NodeData.revivedAt.
- */
-const REVIVAL_ICON_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type TreeToNodesMetadata = {
   currentNodeId: NodeId | null;
@@ -54,51 +46,9 @@ export function treeToNodes(
 
   const activePathIds = computeActivePathIds(tree, metadata.currentNodeId);
   const nodes: TrailNode[] = [];
-  const now = Date.now();
 
   function walk(node: NavigationNodeJSON): void {
-    // Burst-item nodes are never surfaced as first-class graph nodes —
-    // they live inside the container's expandable ribbon. They also
-    // can't have children (invariant on NodeKind = "burst-item"), so
-    // there's nothing further to traverse.
-    if (node.data.kind === "burst-item") {
-      return;
-    }
-
     const isCollapsed = metadata.collapsedNodeIds.has(node.id);
-    const isBurst = node.data.kind === "burst";
-
-    // Pre-extract burst child data — transforms stay a pure mapping,
-    // and the node component doesn't have to walk NavigationNodeJSON.
-    const burstItemChildren: NavigationNodeJSON[] = isBurst
-      ? node.children.filter((c) => c.data.kind === "burst-item")
-      : [];
-    const burstFirst = burstItemChildren[0];
-    const burstLast = burstItemChildren[burstItemChildren.length - 1];
-    const burstSpan = isBurst
-      ? {
-          startMs: node.data.burst?.startedAt ?? burstFirst?.timestamp ?? node.timestamp,
-          endMs: node.data.burst?.lastItemAt ?? burstLast?.timestamp ?? node.timestamp,
-        }
-      : null;
-    const burstItems = burstItemChildren.map((c) => ({
-      nodeId: c.id,
-      url: c.data.url,
-      title: c.data.title,
-      favicon: c.data.favicon ?? null,
-    }));
-    const burstFirstFavicon: FaviconUrl | null = burstFirst?.data.favicon ?? null;
-
-    const isRevived =
-      typeof node.data.revivedAt === "number" && now - node.data.revivedAt < REVIVAL_ICON_WINDOW_MS;
-
-    // Burst container's "childCount" reflects the non-burst-item
-    // children (a burst that is re-parented under a normal node can
-    // have additional branches). The collapsed +N badge uses this; the
-    // burst ribbon uses `burstItemCount` instead.
-    const visibleChildCount = isBurst
-      ? node.children.filter((c) => c.data.kind !== "burst-item").length
-      : node.children.length;
 
     const data = {
       nodeId: node.id,
@@ -109,15 +59,9 @@ export function treeToNodes(
       isOpen: metadata.openNodeIds.has(node.id),
       onActivePath: activePathIds.has(node.id),
       tabCount: metadata.nodeTabCounts[node.id] ?? 0,
-      childCount: visibleChildCount,
+      childCount: node.children.length,
       isCollapsed,
       handles: [], // filled by layout
-      isBurst,
-      burstItemCount: burstItemChildren.length,
-      burstFirstFavicon,
-      burstSpan,
-      burstItems,
-      isRevived,
     } as TrailNodeData;
     if (node.data.favicon !== undefined) {
       data.favicon = node.data.favicon;
@@ -170,13 +114,9 @@ export function treeToEdges(
   function walk(node: NavigationNodeJSON): void {
     if (collapsedNodeIds.has(node.id)) return;
 
-    // Edges from a burst container down to its burst-items never
-    // appear on the graph — the ribbon is the visual affordance. Still
-    // walk children so nested normal nodes keep their own edges.
-    const visibleChildren = node.children.filter((c) => c.data.kind !== "burst-item");
-    const useSmoothStep = visibleChildren.length >= SMOOTHSTEP_CHILD_THRESHOLD;
+    const useSmoothStep = node.children.length >= SMOOTHSTEP_CHILD_THRESHOLD;
 
-    for (const child of visibleChildren) {
+    for (const child of node.children) {
       const onPath = activePathIds.has(node.id) && activePathIds.has(child.id);
       const edge: TrailEdge = {
         id: `${node.id}->${child.id}`,

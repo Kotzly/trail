@@ -3,7 +3,6 @@ import { useClipboard } from "@ui/hooks/use-clipboard";
 import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import { navigateTo } from "../../api/tree.js";
-import { promoteBurstItem, sealBurst } from "../../api/cleanup.js";
 import { saveSettings } from "../../api/settings.js";
 import { getTabsForNodeMessage } from "../../api/tabs.js";
 import {
@@ -184,38 +183,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const settings = useStore((state) => state.settings);
   const setSettings = useStore((state) => state.setSettings);
 
-  const handleDisbandBurst = useCallback(async () => {
-    if (!node) return;
-    const children = (node.getChildren?.() ?? []).filter(
-      (child) => child.data.kind === "burst-item",
-    );
-    try {
-      for (const child of children) {
-        await promoteBurstItem(child.id);
-      }
-    } catch (error) {
-      showOperationError("Disband burst", error);
-    }
-  }, [node]);
-
-  const handleSealBurst = useCallback(async () => {
-    if (!node) return;
-    try {
-      await sealBurst(node.id);
-    } catch (error) {
-      showOperationError("Lock burst", error);
-    }
-  }, [node]);
-
-  const handlePromoteBurstItem = useCallback(async () => {
-    if (!node) return;
-    try {
-      await promoteBurstItem(node.id);
-    } catch (error) {
-      showOperationError("Promote out of burst", error);
-    }
-  }, [node]);
-
   const handleAllowDomain = useCallback(async () => {
     if (!node || !settings) return;
     let host: string;
@@ -247,9 +214,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const hasChildren = (node.getChildren?.() ?? []).length > 0;
   const isRoot = node.isRoot();
   const isCollapsed = collapsedNodeIds.has(nodeId);
-  const nodeKind = node.data.kind ?? "normal";
-  const isBurstContainer = nodeKind === "burst";
-  const isBurstItem = nodeKind === "burst-item";
   const nodeHost = (() => {
     try {
       return new URL(String(node.data.url)).hostname.toLowerCase();
@@ -372,25 +336,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         <DropdownMenuItem onSelect={() => fireAndForget(togglePin(nodeId), "toggle pin")}>
           {node.data.pinned ? "Unpin" : "Pin"}
         </DropdownMenuItem>
-
-        {isBurstContainer && (
-          <>
-            <DropdownMenuItem onSelect={() => void handleDisbandBurst()}>
-              Disband burst
-            </DropdownMenuItem>
-            {node.data.burst?.status !== "sealed" && (
-              <DropdownMenuItem onSelect={() => void handleSealBurst()}>
-                Lock this burst
-              </DropdownMenuItem>
-            )}
-          </>
-        )}
-
-        {isBurstItem && (
-          <DropdownMenuItem onSelect={() => void handlePromoteBurstItem()}>
-            Promote out of burst
-          </DropdownMenuItem>
-        )}
 
         {nodeHost && !domainAlreadyAllowed && (
           <DropdownMenuItem onSelect={() => void handleAllowDomain()}>
