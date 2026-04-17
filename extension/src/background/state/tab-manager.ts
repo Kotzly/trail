@@ -50,6 +50,8 @@ export class TabManager {
   constructor() {
     this.index = new TabIndex();
     this.lru = new LruManager();
+    // Let the LRU derive latestNodeId on demand from the index.
+    this.lru.setNodeResolver((tabId) => this.index.nodeByTab(tabId));
   }
 
   /**
@@ -113,6 +115,7 @@ export class TabManager {
   reset() {
     this.index = new TabIndex();
     this.lru = new LruManager();
+    this.lru.setNodeResolver((tabId) => this.index.nodeByTab(tabId));
     this.cycleOrderByNode.clear();
     this.cycleIndexByNode.clear();
     this.suppressTouchForTabId.clear();
@@ -280,7 +283,11 @@ export class TabManager {
   getTabsByRecency(nodeId: NodeId): TabId[] {
     const tabsSet = this.index.tabsByNode(nodeId);
     if (!tabsSet) return [];
-    return [...tabsSet].sort((a, b) => this.lru.getLastUsed(b) - this.lru.getLastUsed(a));
+    return [...tabsSet].sort((a, b) => {
+      const ta = this.lru.getLastUsed(b) ?? -Infinity;
+      const tb = this.lru.getLastUsed(a) ?? -Infinity;
+      return ta - tb;
+    });
   }
 
   getNodeRecency(nodeId: NodeId): number {
@@ -288,7 +295,8 @@ export class TabManager {
     if (!tabsSet || tabsSet.size === 0) return 0;
     let max = 0;
     for (const tabId of tabsSet) {
-      max = Math.max(max, this.lru.getLastUsed(tabId));
+      const ts = this.lru.getLastUsed(tabId);
+      if (ts !== undefined && ts > max) max = ts;
     }
     return max;
   }
@@ -317,9 +325,15 @@ export class TabManager {
     const count = this.index.tabCount();
     if (count <= limit) return null;
     let tabIdToClose = null;
-    const candidates = [...this.lru.iter()].sort(
-      (a, b) => this.lru.getLastUsed(a) - this.lru.getLastUsed(b),
-    );
+    // Deterministic tie-break: (lastUsed ?? -1, tabId). Fresh-profile
+    // cases where many tabs report lastAccessed=0 used to be arbitrary;
+    // now tied tabs sort by tabId so close-order is stable.
+    const candidates = [...this.lru.iter()].sort((a, b) => {
+      const ta = this.lru.getLastUsed(a) ?? -1;
+      const tb = this.lru.getLastUsed(b) ?? -1;
+      if (ta !== tb) return ta - tb;
+      return (a as number) - (b as number);
+    });
     for (const tabId of candidates) {
       const nodeId = this.index.nodeByTab(tabId);
       if (!nodeId) {
