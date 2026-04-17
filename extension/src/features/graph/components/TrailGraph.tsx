@@ -5,7 +5,6 @@ import {
   Background,
   BackgroundVariant,
   SelectionMode,
-  useReactFlow,
   useStore,
   type NodeMouseHandler,
 } from "@xyflow/react";
@@ -22,6 +21,7 @@ import type { NodeId } from "@shared/types/ids.js";
 import { cn } from "@ui/lib/utils";
 import { selectShowBackground } from "../lod.js";
 import { useRelayoutEnabled } from "../motion/useRelayoutEnabled.js";
+import { useCameraControls } from "../motion/useCameraControls.js";
 
 const nodeTypes = { trail: TrailNode };
 
@@ -53,7 +53,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     onLayoutModeChange,
   } = props;
 
-  const { fitView, setCenter } = useReactFlow();
+  const { smoothCenter, smoothFitView } = useCameraControls();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
 
@@ -98,16 +98,15 @@ function TrailGraphInner(props: TrailGraphProps) {
         : null;
 
       if (currentNode?.position) {
-        setCenter(
+        smoothCenter(
           currentNode.position.x + NODE_WIDTH / 2,
           currentNode.position.y + NODE_HEIGHT / 2,
-          { zoom: 1, duration: 300 },
         );
       } else {
-        fitView({ padding: 0.2, duration: 300 });
+        smoothFitView();
       }
     }
-  }, [displayNodes.length, fitView, setCenter, currentNodeId]);
+  }, [displayNodes.length, smoothCenter, smoothFitView, currentNodeId]);
 
   // Sync ReactFlow selection → store
   const handleSelectionChange = useCallback(

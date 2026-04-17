@@ -3,6 +3,7 @@ import { Button } from "@ui/components/ui/button";
 import { ButtonGroup } from "@ui/components/ui/button-group";
 import { ToggleGroup, ToggleGroupItem } from "@ui/components/ui/toggle-group";
 import type { LayoutMode } from "../types.js";
+import { useCameraControls } from "../motion/useCameraControls.js";
 
 type GraphControlsProps = {
   layoutMode: LayoutMode;
@@ -10,7 +11,8 @@ type GraphControlsProps = {
 };
 
 export function GraphControls({ layoutMode, onLayoutModeChange }: GraphControlsProps) {
-  const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const { zoomIn, zoomOut } = useReactFlow();
+  const { smoothFitView } = useCameraControls();
 
   return (
     <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1">
@@ -35,7 +37,7 @@ export function GraphControls({ layoutMode, onLayoutModeChange }: GraphControlsP
           variant="outline"
           size="icon-sm"
           aria-label="Fit view"
-          onClick={() => fitView({ padding: 0.2, duration: 300 })}
+          onClick={() => smoothFitView()}
         >
           ⊞
         </Button>

@@ -6,6 +6,7 @@ export { useMotionFlag, getMotionSnapshot } from "./store.js";
 export { useFpsTier, getFpsTier, type FpsTier } from "./fps-tier.js";
 export { useReducedMotion } from "./use-reduced-motion.js";
 export { useRelayoutEnabled } from "./useRelayoutEnabled.js";
+export { useCameraControls, type SmoothCenterOptions } from "./useCameraControls.js";
 
 export {
   DEFAULT_MOTION_CONFIG,
