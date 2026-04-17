@@ -41,6 +41,18 @@ export class TreeNode<T> implements Timestamped {
       throw new Error("Cannot attach node to itself");
     }
 
+    // Ancestry check: walk up from `this` to root. If `child` appears
+    // anywhere in the chain, attaching would create a cycle (DFS
+    // iteration would loop forever, serialization would recurse
+    // infinitely). Refuse and throw.
+    let ancestor: TreeNode<T> | null = this.parent;
+    while (ancestor) {
+      if (ancestor === child) {
+        throw new Error("Cannot attach ancestor as child — would create a cycle");
+      }
+      ancestor = ancestor.parent;
+    }
+
     // Detach from previous parent, if any.
     if (child.parent) {
       const prev = child.parent;
@@ -79,14 +91,26 @@ export class TreeNode<T> implements Timestamped {
       throw new Error("Node has no parent");
     }
 
-    const index = this.parent.children.indexOf(this);
+    const parent = this.parent;
+    const index = parent.children.indexOf(this);
+    const lifted = [...this.children];
+    for (const c of lifted) c.setParent(parent);
+
+    // Splice the lifted children into the parent at `this`'s original
+    // position instead of appending to the tail. Preserves user-visible
+    // ordering when a mid-tree node is deleted (fixes #11: "delete
+    // node N; N's 500 children appear after all siblings in parent's
+    // tail, and their original position is lost").
     if (index !== -1) {
-      this.parent.removeChildAt(index);
+      parent.children = [
+        ...parent.children.slice(0, index),
+        ...lifted,
+        ...parent.children.slice(index + 1),
+      ];
+    } else {
+      parent.children = [...parent.children, ...lifted];
     }
-    for (const c of [...this.children]) {
-      c.setParent(this.parent);
-    }
-    this.parent.appendChildren(this.children);
+
     this.children = [];
     this.parent = null;
   }
