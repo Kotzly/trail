@@ -100,6 +100,14 @@ export default function PinnedDropdown() {
         onKeyDown={handleEnter}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
+        <div className="text-muted-foreground border-b px-3 py-2 text-xs font-medium tracking-wide">
+          Pinned
+          {pinnedNodes.length > 0 && (
+            <span className="text-muted-foreground/70 ml-1.5 tabular-nums">
+              {pinnedNodes.length}
+            </span>
+          )}
+        </div>
         <ScrollArea className="max-h-[320px] [&>[data-radix-scroll-area-viewport]>div]:!block">
           {pinnedNodes.length === 0 ? (
             <EmptyPinned />
