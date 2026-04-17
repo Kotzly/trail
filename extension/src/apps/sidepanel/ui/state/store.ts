@@ -307,12 +307,15 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     const currentId = tree.getCurrentId();
     const nodeCount = tree.size();
     set((state) => {
-      const nextViewIntent = payload.view ?? state.graph.viewIntent;
+      // viewIntent is a one-shot signal from the background: "focus
+      // this node now". Do NOT carry the previous view forward when
+      // the new payload omits one — that leak caused unrelated tree
+      // updates (a background tab refreshing) to re-focus/zoom the
+      // graph to a stale target (#87). If the new payload has a
+      // view, use it; otherwise clear.
+      const resolvedViewIntent = payload.view ?? null;
       const shouldResetTransient =
         payload.reason === "tree-switch" || payload.reason === "tree-reset";
-      const resolvedViewIntent = shouldResetTransient
-        ? (nextViewIntent ?? null)
-        : (nextViewIntent ?? state.graph.viewIntent);
       // Save/restore per-tree collapse state on tree-switch
       let nextCollapsedByTree = state.graph.collapsedByTree;
       let nextCollapsedNodeIds: Set<NodeId>;
