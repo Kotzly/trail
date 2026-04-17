@@ -1,12 +1,14 @@
 import { registerService } from "@webext-core/proxy-service";
 import {
   ACTION_SERVICE_KEY,
+  CLEANUP_SERVICE_KEY,
   COMMAND_SERVICE_KEY,
   FLAGS_SERVICE_KEY,
   SETTINGS_SERVICE_KEY,
   TABS_SERVICE_KEY,
   TREE_SERVICE_KEY,
   type ActionService,
+  type CleanupService,
   type CommandService,
   type FlagsService,
   type SettingsService,
@@ -28,6 +30,7 @@ import { flagsHandlers } from "@background/messaging/handlers/flags-handlers.js"
 import { tabHandlers } from "@background/messaging/handlers/tab-handlers.js";
 import { pinHandlers } from "@background/messaging/handlers/pin-handlers.js";
 import { editorHandlers, getEditorState } from "@background/messaging/handlers/editor-handlers.js";
+import { cleanupHandlers } from "@background/messaging/handlers/cleanup-handlers.js";
 import type { RuntimeMessageSender } from "@shared/platform/webext.js";
 
 const EMPTY_SENDER = {} as RuntimeMessageSender;
@@ -203,6 +206,37 @@ const actionService: ActionService = {
   },
 };
 
+const cleanupService: CleanupService = {
+  listTombstones: () =>
+    call(cleanupHandlers[RPC_METHOD.LIST_CLEANUP_TOMBSTONES], {
+      type: RPC_METHOD.LIST_CLEANUP_TOMBSTONES,
+    }),
+  restoreTombstone: (input) =>
+    call(cleanupHandlers[RPC_METHOD.RESTORE_CLEANUP_TOMBSTONE], {
+      type: RPC_METHOD.RESTORE_CLEANUP_TOMBSTONE,
+      ...input,
+    }),
+  dismissTombstone: (input) =>
+    call(cleanupHandlers[RPC_METHOD.DISMISS_CLEANUP_TOMBSTONE], {
+      type: RPC_METHOD.DISMISS_CLEANUP_TOMBSTONE,
+      ...input,
+    }),
+  clearTombstones: () =>
+    call(cleanupHandlers[RPC_METHOD.CLEAR_CLEANUP_TOMBSTONES], {
+      type: RPC_METHOD.CLEAR_CLEANUP_TOMBSTONES,
+    }),
+  promoteBurstItem: (input) =>
+    call(cleanupHandlers[RPC_METHOD.PROMOTE_BURST_ITEM], {
+      type: RPC_METHOD.PROMOTE_BURST_ITEM,
+      ...input,
+    }),
+  sealBurst: (input) =>
+    call(cleanupHandlers[RPC_METHOD.SEAL_BURST], {
+      type: RPC_METHOD.SEAL_BURST,
+      ...input,
+    }),
+};
+
 export function registerProxyServices(): void {
   registerService(TREE_SERVICE_KEY, treeService);
   registerService(COMMAND_SERVICE_KEY, commandService);
@@ -210,4 +244,5 @@ export function registerProxyServices(): void {
   registerService(FLAGS_SERVICE_KEY, flagsService);
   registerService(TABS_SERVICE_KEY, tabsService);
   registerService(ACTION_SERVICE_KEY, actionService);
+  registerService(CLEANUP_SERVICE_KEY, cleanupService);
 }
