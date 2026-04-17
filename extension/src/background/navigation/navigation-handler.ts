@@ -132,12 +132,15 @@ export async function handleNavigation(
     lastUsed === undefined ? { touch } : { touch, lastUsed };
   const isActiveTab = tab.active;
 
-  // Track URL for about:blank redirect detection (safe outside lock —
-  // redirectDetector is a dedicated tab-keyed map, not the tree).
-  redirectDetector.recordTabUrl(
-    tabId as TabId,
-    { url: url as Url, timestamp: now() } as UrlWithTimestamp,
-  );
+  // Record + check for redirect (safe outside lock — redirectDetector
+  // is a dedicated tab-keyed map, not the tree). If this URL looks
+  // like a redirect from the previous one (same tab, different URL,
+  // within REDIRECT_THRESHOLD_MS), we mutate the existing node in
+  // place instead of creating a child. Otherwise every intermediate
+  // hop in an OAuth chain would become a useless dead node.
+  const incomingUrl = { url: url as Url, timestamp: now() } as UrlWithTimestamp;
+  const isRedirectHop = redirectDetector.isRedirect(tabId as TabId, incomingUrl);
+  redirectDetector.recordTabUrl(tabId as TabId, incomingUrl);
 
   // Resolve the opener-derived parent. Order of preference:
   //   1. opener tab's currently-registered node
@@ -186,6 +189,23 @@ export async function handleNavigation(
             if (!isActiveTab && prevCurrentId !== null) {
               tree.setCurrentById(prevCurrentId);
             } else {
+              tree.setCurrentById(node.id);
+              didUpdateCurrent = true;
+            }
+          } else if (isRedirectHop && node) {
+            // Redirect hop — mutate the existing node's URL in place
+            // instead of creating a child. Avoids the dead-node chain
+            // that OAuth / bit.ly / server-redirect flows produce.
+            node.data = {
+              ...node.data,
+              url: data.url,
+              title: data.title,
+              favicon: data.favicon,
+            } as NodeData;
+            tree.refreshSearchEntry(node.id);
+            didMutate = true;
+            if (isActiveTab) {
+              markNodeVisited(tree, node.id, lastUsed);
               tree.setCurrentById(node.id);
               didUpdateCurrent = true;
             }
