@@ -302,7 +302,7 @@ export class NavigationTree {
       const nodeB = this.nodeMap.get(b);
       const timeA = nodeA?.timestamp ?? 0;
       const timeB = nodeB?.timestamp ?? 0;
-      if (timeA === timeB) return Number(a) - Number(b);
+      if (timeA === timeB) return (a as string).localeCompare(b as string);
       return timeA - timeB;
     });
     return ids;

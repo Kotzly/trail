@@ -1,8 +1,8 @@
 import { type NodeId, now, type Timestamp } from "@shared/types/ids.js";
-let nodeIdCounter = 0 as NodeId;
+import { uuidv7 } from "@shared/lib/uuid.js";
 
 function nextNodeId(): NodeId {
-  return ++nodeIdCounter as NodeId;
+  return uuidv7() as NodeId;
 }
 
 type iter = "dfs" | "bfs";
@@ -17,9 +17,6 @@ export class TreeNode<T> implements Timestamped {
 
   constructor(data: T, parent?: TreeNode<T>, id: NodeId = nextNodeId()) {
     this.id = id;
-    if (this.id > nodeIdCounter) {
-      nodeIdCounter = this.id;
-    }
     this.timestamp = now();
     this.data = data;
     this.parent = parent ?? null;

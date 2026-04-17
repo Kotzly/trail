@@ -2,7 +2,13 @@ export type Brand<T, B extends string> = T & { readonly __brand: B };
 
 // export type WindowId = Brand<number, "WindowId">;
 export type TabId = Brand<number, "TabId">;
-export type NodeId = Brand<number, "NodeId">;
+/**
+ * Node IDs are uuidv7 strings (Phase 1 of tree-tracking overhaul).
+ * Legacy persisted data is upgraded from numeric ids to String(id) via
+ * the schema v2 migration. New nodes get a fresh uuidv7 from
+ * @shared/lib/uuid.ts.
+ */
+export type NodeId = Brand<string, "NodeId">;
 
 export type Timestamp = Brand<number, "time">;
 export type Url = Brand<string, "Url">;

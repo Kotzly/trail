@@ -25,7 +25,10 @@ type NodeSeed = {
 let idCounter = 0;
 function nextId(): NodeId {
   idCounter += 1;
-  return idCounter as NodeId;
+  // Demo tree ids are synthetic; make them strings to match the branded
+  // NodeId type (Brand<string, "NodeId">) and namespace with a `d-`
+  // prefix so they can't collide with runtime uuidv7-minted ids.
+  return `d-${idCounter}` as NodeId;
 }
 
 function favicon(url: string): FaviconUrl | undefined {
