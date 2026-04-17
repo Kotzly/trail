@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { NodeData, NavigationNodeJSON } from "@shared/types/node.js";
+import type { NodeData, NavigationNodeJSON, NodeKind, BurstMeta } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 
 const finiteNumber = z.number().refine(Number.isFinite);
@@ -14,6 +14,22 @@ const layoutSchema = z
     return { offsetX: raw.offsetX ?? 0, offsetY: raw.offsetY ?? 0 };
   });
 
+const nodeKindSchema = z
+  .enum(["normal", "burst", "burst-item"])
+  .optional()
+  .transform((v): NodeKind | undefined => v);
+
+const burstMetaSchema = z
+  .object({
+    urlTemplate: z.string(),
+    startedAt: finiteNumber,
+    lastItemAt: finiteNumber,
+    status: z.enum(["open", "sealed"]),
+    autoLabel: z.string().optional(),
+  })
+  .optional()
+  .transform((v): BurstMeta | undefined => v as BurstMeta | undefined);
+
 export const nodeDataSchema = z
   .object({
     url: z.string().optional(),
@@ -27,6 +43,9 @@ export const nodeDataSchema = z
     lastVisitedAt: finiteNumber.optional(),
     visitCount: finiteNumber.refine((n) => n > 0).optional(),
     layout: layoutSchema.optional(),
+    kind: nodeKindSchema,
+    burst: burstMetaSchema,
+    revivedAt: finiteNumber.optional(),
   })
   .transform(
     (raw): NodeData =>
@@ -39,6 +58,9 @@ export const nodeDataSchema = z
         lastVisitedAt: raw.lastVisitedAt as NodeData["lastVisitedAt"],
         visitCount: raw.visitCount,
         layout: raw.layout,
+        kind: raw.kind,
+        burst: raw.burst,
+        revivedAt: raw.revivedAt as NodeData["revivedAt"],
       }) as NodeData,
   );
 

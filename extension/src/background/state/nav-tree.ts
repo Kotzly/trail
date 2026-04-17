@@ -1,4 +1,4 @@
-import type { NodeId, Title, Url } from "@shared/types/ids.js";
+import type { NodeId, Timestamp, Title, Url } from "@shared/types/ids.js";
 import MiniSearch from "minisearch";
 import { TreeNode } from "./tree-node.js";
 import { DefaultNavigationOptions, type NavigationOptions } from "@shared/types/tree.js";
@@ -125,6 +125,41 @@ export class NavigationTree {
     const title = incoming.title ? incoming.title : base.title;
     const favicon = incoming.favicon !== undefined ? incoming.favicon : base.favicon;
 
+    // kind is monotonic: "burst-item" can promote to "normal", never
+    // the other way. If either side promoted to normal (or is implicit
+    // normal), result is normal. Otherwise preserve the most specific
+    // existing kind.
+    let mergedKind: NodeData["kind"] = base.kind ?? incoming.kind;
+    if (base.kind === "normal" || incoming.kind === "normal") {
+      mergedKind = "normal";
+    } else if (!base.kind && !incoming.kind) {
+      mergedKind = undefined; // both implicit normal
+    }
+
+    // burst.status is monotonic: sealed beats open. Take the side
+    // whose status is sealed; if both same, prefer the larger
+    // lastItemAt so divergent bursts converge to the latest extent.
+    let mergedBurst: NodeData["burst"] = base.burst ?? incoming.burst;
+    if (base.burst && incoming.burst) {
+      const baseSealed = base.burst.status === "sealed";
+      const incSealed = incoming.burst.status === "sealed";
+      if (baseSealed || incSealed) {
+        mergedBurst = {
+          ...(baseSealed ? base.burst : incoming.burst),
+          status: "sealed",
+          lastItemAt: Math.max(
+            base.burst.lastItemAt as number,
+            incoming.burst.lastItemAt as number,
+          ) as Timestamp,
+        };
+      } else {
+        mergedBurst =
+          (base.burst.lastItemAt as number) >= (incoming.burst.lastItemAt as number)
+            ? base.burst
+            : incoming.burst;
+      }
+    }
+
     // LWW for pinned + layout based on the stamped *UpdatedAt fields.
     // If both sides have a stamp, newer wins. If only one, that one
     // wins. If neither has a stamp, we fall back to the previous
@@ -160,6 +195,8 @@ export class NavigationTree {
       tags,
       ...(layout ? { layout } : {}),
       ...(layoutUpdatedAt ? { layoutUpdatedAt } : {}),
+      ...(mergedKind ? { kind: mergedKind } : {}),
+      ...(mergedBurst ? { burst: mergedBurst } : {}),
     } as NodeData;
   }
 
