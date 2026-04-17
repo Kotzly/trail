@@ -11,9 +11,23 @@ import { browser, type Browser, type Tab } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../state/node-recency.js";
 import { createLogger } from "@shared/lib/logger.js";
 import { getEditorState, saveEditorMode } from "../messaging/handlers/editor-handlers.js";
+import { settingsManager } from "../services/settings.js";
 import type { TreeViewIntent, TreeUpdateReason } from "@shared/rpc/contracts.js";
 
 const log = createLogger("tab-lifecycle");
+
+/**
+ * True when the tab is incognito AND the user asked us to skip
+ * incognito browsing. Centralized so every lifecycle handler applies
+ * the same gate (fixes #30 — the navigation-handler already had it,
+ * but onTabCreated / onTabRemoved / onTabActivated / onTabUpdated /
+ * onWindowFocusChanged didn't, leaking incognito state into the
+ * public tree).
+ */
+function skipIncognito(tab: Tab | { incognito?: boolean } | undefined): boolean {
+  if (!tab?.incognito) return false;
+  return settingsManager.get().privacy.skipIncognito;
+}
 
 type LifecycleBroadcast =
   | { kind: "none" }
@@ -22,6 +36,7 @@ type LifecycleBroadcast =
 async function onTabCreated(tab: Tab): Promise<void> {
   if (!tab.id) return;
   if (tabManager.isIgnoredTab(tab.id as TabId)) return;
+  if (skipIncognito(tab)) return;
   if (!tab.url) return;
   const url = tab.url as Url;
 
@@ -90,6 +105,15 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
   const tabId = activeInfo.tabId as TabId;
   if (tabManager.isIgnoredTab(tabId)) return;
   if (tabManager.shouldSuppressActivate(tabId)) return;
+
+  // Incognito gate: skip before any state mutation.
+  try {
+    const tab = await browser.tabs.get(tabId);
+    if (skipIncognito(tab)) return;
+  } catch {
+    // Tab vanished — nothing to do.
+    return;
+  }
 
   // Auto-exit editor mode when switching tabs (has its own locking)
   const editorState = getEditorState();
@@ -204,6 +228,7 @@ async function onTabUpdated(
   tab: Tab,
 ): Promise<void> {
   if (tabManager.isIgnoredTab(tabId as TabId)) return;
+  if (skipIncognito(tab)) return;
   if (changeInfo.audible || changeInfo.mutedInfo) {
     await syncTabAudioState(tabId as TabId, changeInfo, tab);
     return;
