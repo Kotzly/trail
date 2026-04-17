@@ -18,10 +18,8 @@ import {
   captureEvent,
 } from "@shared/lib/observability.js";
 import type { TelemetryConsent } from "@shared/config/storage-items.js";
+import { MARKETING_URLS, openExternal } from "@shared/config/marketing-urls.js";
 import { useSettings } from "../hooks/useSettings.js";
-
-const PRIVACY_URL = "https://gettrail.net/privacy";
-const TERMS_URL = "https://gettrail.net/terms";
 
 const TELEMETRY_CONSENT_KEY = ["telemetry-consent"] as const;
 
@@ -203,14 +201,14 @@ export function PrivacyPage() {
           <Button
             variant="outline"
             className="justify-start"
-            onClick={() => window.open(PRIVACY_URL, "_blank")}
+            onClick={() => openExternal(MARKETING_URLS.privacy)}
           >
             Privacy Policy →
           </Button>
           <Button
             variant="outline"
             className="justify-start"
-            onClick={() => window.open(TERMS_URL, "_blank")}
+            onClick={() => openExternal(MARKETING_URLS.terms)}
           >
             Terms of Service →
           </Button>

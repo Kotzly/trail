@@ -19,7 +19,14 @@ export const EXTENSION_MESSAGE = {
   SYNC_CONFLICT: "event/sync-conflict",
   AUTH_STATE: "event/auth-state",
   SITE_EDITOR_MODE_EXITED: "site/editor-mode-exited",
+  CONTENT_BRIDGE_ERROR: "event/content-bridge-error",
 } as const;
+
+export type ContentBridgeErrorEvent = {
+  message: string;
+  stack: string | null;
+  url: string;
+};
 
 export type SyncStatusEvent = {
   status: "idle" | "saving" | "saved" | "error" | "offline";
@@ -54,6 +61,7 @@ export interface ExtensionProtocolMap {
   [EXTENSION_MESSAGE.SYNC_CONFLICT](data: SyncConflictEvent): void;
   [EXTENSION_MESSAGE.AUTH_STATE](data: AuthStateEvent): void;
   [EXTENSION_MESSAGE.SITE_EDITOR_MODE_EXITED](data: { editorMode: false }): void;
+  [EXTENSION_MESSAGE.CONTENT_BRIDGE_ERROR](data: ContentBridgeErrorEvent): void;
 }
 
 export const WEBSITE_MESSAGE = {

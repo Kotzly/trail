@@ -22,6 +22,8 @@ import { browser } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { Button } from "@ui/components/ui/button";
 import { Spinner } from "@ui/components/ui/spinner";
+import { useBoolean } from "@ui/hooks/use-boolean";
+import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { CardAction, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Empty,
@@ -69,6 +71,8 @@ type TreeItem = {
   savedAt?: number;
   stub?: boolean;
 };
+
+const TREES_KEYS = ["shift", "T"] as const;
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9_\-. ]/g, "_").trim() || "trail";
@@ -128,11 +132,11 @@ export default function TreeDropdown() {
   }, [trees.archived]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmOpen, confirmOpenActions] = useBoolean(false);
   const [labelDraft, setLabelDraft] = useState("");
   const [deletePending, setDeletePending] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [creating, creatingActions] = useBoolean(false);
+  const [importing, importingActions] = useBoolean(false);
   const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
   const [unavailableTreeIds, setUnavailableTreeIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -223,53 +227,48 @@ export default function TreeDropdown() {
     }
   }, []);
 
-  const handleNewTree = useCallback(async () => {
+  const handleNewTree = useLockFn(async () => {
     try {
       const label = labelDraft.trim() || "Unnamed Tree";
-      setCreating(true);
+      creatingActions.setTrue();
       await createNewTree(label);
     } catch (error) {
       showOperationError("Create tree", error);
     } finally {
-      setCreating(false);
+      creatingActions.setFalse();
     }
-  }, [labelDraft]);
+  });
 
-  const handleImportFile = useCallback(
-    async (file: File) => {
-      try {
-        setImporting(true);
-        const text = await file.text();
-        const bundle = JSON.parse(text) as TrailExportBundle;
-        if (bundle.schema !== EXPORT_SCHEMA) {
-          toast.error("Unsupported file format");
-          return;
-        }
-        await importTrail(bundle);
-        setTreesOpen(false);
-        toast.success("Trail imported");
-      } catch (error) {
-        showOperationError("Import", error);
-      } finally {
-        setImporting(false);
-        if (fileInputRef.current) fileInputRef.current.value = "";
+  const handleImportFile = useLockFn(async (file: File) => {
+    try {
+      importingActions.setTrue();
+      const text = await file.text();
+      const bundle = JSON.parse(text) as TrailExportBundle;
+      if (bundle.schema !== EXPORT_SCHEMA) {
+        toast.error("Unsupported file format");
+        return;
       }
-    },
-    [setTreesOpen],
-  );
+      await importTrail(bundle);
+      setTreesOpen(false);
+      toast.success("Trail imported");
+    } catch (error) {
+      showOperationError("Import", error);
+    } finally {
+      importingActions.setFalse();
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  });
 
-  const isMac = useStore((state) => state.isMac);
-  const treesKeys = [isMac ? "⇧" : "Shift", "T"];
   const totalCount = archivedTrees.length + (activeTree ? 1 : 0);
 
   return (
     <>
       <Popover open={treesOpen} onOpenChange={handlePopoverOpenChange}>
-        <ButtonTooltip label="Saved trees" keys={treesKeys}>
+        <ButtonTooltip label="Saved trees" keys={TREES_KEYS}>
           <PopoverTrigger asChild>
             <Button
               id="treesBtn"
-              variant="ghost"
+              variant="outline"
               size="icon-sm"
               type="button"
               aria-label="Saved trees"
@@ -317,7 +316,7 @@ export default function TreeDropdown() {
                   onClick={() => {
                     setLabelDraft("");
                     closeAllPopups();
-                    setConfirmOpen(true);
+                    confirmOpenActions.setTrue();
                   }}
                 >
                   <Icons.GitBranchPlus />
@@ -370,7 +369,7 @@ export default function TreeDropdown() {
       <NewTreeDialog
         open={confirmOpen}
         onOpenChange={(open) => {
-          if (!creating) setConfirmOpen(open);
+          if (!creating) confirmOpenActions.set(open);
         }}
         confirmNewTree={confirmNewTree}
         label={labelDraft}
@@ -378,7 +377,7 @@ export default function TreeDropdown() {
         onLabelChange={setLabelDraft}
         onConfirm={() => {
           if (creating) return;
-          setConfirmOpen(false);
+          confirmOpenActions.setFalse();
           void handleNewTree();
         }}
       />

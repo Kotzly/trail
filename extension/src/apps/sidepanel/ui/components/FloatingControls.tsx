@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useCallback } from "react";
 import { redo, undo } from "../../api/commands.js";
 import { useStore } from "../state/store.js";
 import { Icons } from "./Icon.js";
@@ -7,57 +7,45 @@ import TreeDropdown from "./TreeDropdown.js";
 import SettingsDropdown from "./SettingsPopover.js";
 import CommandPalette from "./CommandPalette.js";
 import { Button } from "@ui/components/ui/button";
+import { ButtonGroup } from "@ui/components/ui/button-group";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
+
+const UNDO_KEYS = ["meta", "Z"] as const;
+const REDO_KEYS = ["meta", "shift", "Z"] as const;
 
 export default function FloatingControls() {
   const commandState = useStore((state) => state.commandState);
-  const metaKey = useStore((state) => state.metaKey);
-  const isMac = useStore((state) => state.isMac);
   const editorActive = useStore((state) => state.editorMode.active);
   const setCommandState = useStore((state) => state.setCommandState);
-  const controlsRef = useRef<HTMLDivElement | null>(null);
-  const leftRef = useRef<HTMLDivElement | null>(null);
-  const rightRef = useRef<HTMLDivElement | null>(null);
 
-  const meta = metaKey?.short ?? "Ctrl";
-  const shift = isMac ? "⇧" : "Shift";
-  const undoKeys = [meta, "Z"];
-  const redoKeys = [meta, shift, "Z"];
   const undoLabel = commandState?.nextUndoDesc ? `Undo: ${commandState.nextUndoDesc}` : "Undo";
   const redoLabel = commandState?.nextRedoDesc ? `Redo: ${commandState.nextRedoDesc}` : "Redo";
 
-  const handleUndo = async () => {
+  const handleUndo = useCallback(async () => {
     try {
-      const state = await undo();
-      setCommandState(state);
+      setCommandState(await undo());
     } catch (error) {
       console.error("Failed to undo:", error);
     }
-  };
+  }, [setCommandState]);
 
-  const handleRedo = async () => {
+  const handleRedo = useCallback(async () => {
     try {
-      const state = await redo();
-      setCommandState(state);
+      setCommandState(await redo());
     } catch (error) {
       console.error("Failed to redo:", error);
     }
-  };
+  }, [setCommandState]);
 
   return (
-    <div
-      ref={controlsRef}
-      className="pointer-events-none fixed top-3 right-3 left-3 z-[900] flex items-start justify-between gap-2"
-    >
-      {/* Left cluster: undo/redo + pinned/trees */}
-      <div ref={leftRef} className="pointer-events-auto flex max-w-full min-w-0 items-start gap-2">
-        <div className="bg-background/90 border-border flex gap-1 rounded-full border p-0.5 shadow-sm backdrop-blur-sm">
-          <ButtonTooltip label={undoLabel} keys={undoKeys}>
+    <div className="pointer-events-none fixed top-3 right-3 left-3 z-[900] flex items-start justify-between gap-2">
+      <div className="pointer-events-auto flex max-w-full min-w-0 items-start gap-2">
+        <ButtonGroup>
+          <ButtonTooltip label={undoLabel} keys={UNDO_KEYS}>
             <Button
               id="undoBtn"
-              variant="ghost"
+              variant="outline"
               size="icon-sm"
-              className="rounded-full"
               type="button"
               aria-label={undoLabel}
               disabled={!commandState?.canUndo}
@@ -66,12 +54,11 @@ export default function FloatingControls() {
               <Icons.Undo2 />
             </Button>
           </ButtonTooltip>
-          <ButtonTooltip label={redoLabel} keys={redoKeys}>
+          <ButtonTooltip label={redoLabel} keys={REDO_KEYS}>
             <Button
               id="redoBtn"
-              variant="ghost"
+              variant="outline"
               size="icon-sm"
-              className="rounded-full"
               type="button"
               aria-label={redoLabel}
               disabled={!commandState?.canRedo}
@@ -80,20 +67,19 @@ export default function FloatingControls() {
               <Icons.Redo2 />
             </Button>
           </ButtonTooltip>
-        </div>
+        </ButtonGroup>
 
-        <div className="bg-background/90 border-border flex gap-1 rounded-full border p-0.5 shadow-sm backdrop-blur-sm">
+        <ButtonGroup>
           {!editorActive && <PinnedDropdown />}
           <TreeDropdown />
-        </div>
+        </ButtonGroup>
       </div>
 
-      {/* Right cluster: search + settings */}
-      <div ref={rightRef} className="pointer-events-auto flex flex-row-reverse items-start gap-2">
-        <div className="bg-background/90 border-border flex gap-1 rounded-full border p-0.5 shadow-sm backdrop-blur-sm">
+      <div className="pointer-events-auto flex flex-row-reverse items-start gap-2">
+        <ButtonGroup>
           <SettingsDropdown />
           <CommandPalette />
-        </div>
+        </ButtonGroup>
       </div>
     </div>
   );

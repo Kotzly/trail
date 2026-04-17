@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@ui/components/ui/dialog";
 import { Button } from "@ui/components/ui/button";
-import { Kbd } from "@ui/components/ui/kbd";
+import { Shortcut } from "@ui/components/shortcut";
 import { Progress } from "@ui/components/ui/progress";
 import { Spinner } from "@ui/components/ui/spinner";
 import TrailLogo from "@ui/components/trail-logo";
+import { useBoolean } from "@ui/hooks/use-boolean";
+import { useLockFn } from "@ui/hooks/use-lock-fn";
+import { useMount } from "@ui/hooks/use-mount";
 import {
   advanceOnboarding,
   completeOnboarding,
@@ -117,16 +120,16 @@ const STEPS: Step[] = [
         <p>A few shortcuts to remember:</p>
         <ul className="flex flex-col gap-2 pl-4">
           <li>
-            <Kbd>⌘K</Kbd> — Command palette (search across all nodes)
+            <Shortcut keys={["meta", "K"]} /> — Command palette (search across all nodes)
           </li>
           <li>
-            <Kbd>⌘Z</Kbd> — Undo (last 30 actions saved)
+            <Shortcut keys={["meta", "Z"]} /> — Undo (last 30 actions saved)
           </li>
           <li>
-            <Kbd>⌘/</Kbd> — Full shortcuts cheat-sheet
+            <Shortcut keys={["meta", "/"]} /> — Full shortcuts cheat-sheet
           </li>
           <li>
-            <Kbd>F2</Kbd> — Rename selected node
+            <Shortcut keys={["F2"]} /> — Rename selected node
           </li>
         </ul>
         <p className="text-muted-foreground">Happy trailing 🌲</p>
@@ -140,9 +143,9 @@ const STEPS: Step[] = [
 export default function OnboardingWizard() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
-  const [busy, setBusy] = useState(false);
+  const [busy, busyActions] = useBoolean(false);
 
-  useEffect(() => {
+  useMount(() => {
     let cancelled = false;
     void getOnboardingState().then((state) => {
       if (cancelled) return;
@@ -154,34 +157,34 @@ export default function OnboardingWizard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  });
 
   const goToStep = useCallback(async (nextStep: number) => {
     setStep(nextStep);
     await advanceOnboarding(nextStep);
   }, []);
 
-  const handleSkip = useCallback(async () => {
+  const handleSkip = useLockFn(async () => {
     await skipOnboarding();
     setOpen(false);
-  }, []);
+  });
 
-  const handleDone = useCallback(async () => {
+  const handleDone = useLockFn(async () => {
     await completeOnboarding();
     setOpen(false);
-  }, []);
+  });
 
-  const handleLoadDemo = useCallback(async () => {
-    setBusy(true);
+  const handleLoadDemo = useLockFn(async () => {
+    busyActions.setTrue();
     try {
       await loadDemoTree();
       await goToStep(STEPS.length - 1);
     } catch (error) {
       showOperationError("Load demo tree", error);
     } finally {
-      setBusy(false);
+      busyActions.setFalse();
     }
-  }, [goToStep]);
+  });
 
   const current = STEPS[step] ?? STEPS[0]!;
   const progress = Math.round(((step + 1) / STEPS.length) * 100);

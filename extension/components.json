@@ -11,6 +11,8 @@
   },
   "iconLibrary": "lucide",
   "rtl": false,
+  "menuColor": "default-translucent",
+  "menuAccent": "subtle",
   "aliases": {
     "components": "@ui/components",
     "utils": "@ui/lib/utils",
@@ -18,7 +20,7 @@
     "lib": "@ui/lib",
     "hooks": "@ui/hooks"
   },
-  "menuColor": "default-translucent",
-  "menuAccent": "subtle",
-  "registries": {}
+  "registries": {
+    "@shadcnhooks": "https://shadcn-hooks.com/r/{name}.json"
+  }
 }

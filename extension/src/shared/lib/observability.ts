@@ -26,6 +26,16 @@ import {
 
 export type ObservabilitySurface = "sidepanel" | "settings" | "background" | "content";
 
+export type BugReport = {
+  message: string;
+  name?: string;
+  email?: string;
+  /** When the report is filed from a caught error, pass its Sentry event id here. */
+  associatedEventId?: string;
+  /** Free-form tags merged into the Sentry feedback event (e.g. {"source": "error_boundary"}). */
+  tags?: Record<string, string | number | boolean>;
+};
+
 export type AnalyticsEvent =
   | "install"
   | "update"
@@ -115,6 +125,20 @@ function scrubSentryEvent(event: Sentry.ErrorEvent): Sentry.ErrorEvent | null {
 }
 
 /**
+ * Install global JS error handlers for a DOM-scoped surface. Service worker
+ * wires its own listeners in `service-worker.ts`.
+ */
+function installGlobalErrorHandlers(surface: ObservabilitySurface): void {
+  if (typeof window === "undefined") return;
+  window.addEventListener("error", (event) => {
+    captureError(event.error ?? event.message, { surface, kind: "window_error" });
+  });
+  window.addEventListener("unhandledrejection", (event) => {
+    captureError(event.reason, { surface, kind: "unhandled_rejection" });
+  });
+}
+
+/**
  * Initialize observability for a given surface. Safe to call multiple
  * times — only the first call with a given surface wins.
  */
@@ -146,6 +170,10 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
     } catch (error) {
       console.warn("[observability] Sentry init failed:", error);
     }
+  }
+
+  if (surface !== "background") {
+    installGlobalErrorHandlers(surface);
   }
 
   // PostHog ————————————————————————————
@@ -192,6 +220,46 @@ export function captureError(error: unknown, context?: AnalyticsProperties): voi
  */
 export function captureEvent(event: AnalyticsEvent, props?: AnalyticsProperties): void {
   posthogClient?.capture(event, { ...(props ?? {}), surface: currentSurface });
+}
+
+/**
+ * The Sentry event id of the most recent captured error, or `undefined`
+ * if no error has been captured (or Sentry is disabled). Used by the bug
+ * report dialog to attach the current error to the user's report.
+ */
+export function lastErrorEventId(): string | undefined {
+  if (!sentryEnabled) return undefined;
+  return Sentry.lastEventId();
+}
+
+/**
+ * Send a user-authored bug report to Sentry. Returns the event id so the
+ * caller can show a "thanks, reference: xyz" receipt, or `null` if the
+ * report could not be sent (consent off or DSN missing) — callers should
+ * fall back to a mailto/github link in that case.
+ */
+export function captureBugReport(report: BugReport): string | null {
+  if (!sentryEnabled) {
+    if (import.meta.env.DEV) {
+      console.warn("[observability] captureBugReport dropped (Sentry disabled):", report);
+    }
+    return null;
+  }
+  const tags = {
+    surface: currentSurface,
+    source: "user_bug_report",
+    ...(report.tags ?? {}),
+  };
+  return Sentry.captureFeedback(
+    {
+      message: report.message,
+      name: report.name,
+      email: report.email,
+      associatedEventId: report.associatedEventId,
+      tags,
+    },
+    { includeReplay: false },
+  );
 }
 
 /**

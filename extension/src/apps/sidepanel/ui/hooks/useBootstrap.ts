@@ -3,8 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSettings } from "../../api/settings.js";
 import { getFlags } from "../../api/flags.js";
 import { getTreeState, getTrees } from "../../api/tree.js";
-import { isMac } from "@shared/utils/platform.js";
-import { useStore, type MetaKeyPair } from "../state/store.js";
+import { useStore } from "../state/store.js";
 
 export type BootstrapStatus = "loading" | "degraded" | "ready";
 
@@ -25,7 +24,6 @@ export function useBootstrap(): {
   retryBootstrap: () => void;
 } {
   const bootstrapGraph = useStore((s) => s.bootstrapGraph);
-  const setPlatformMeta = useStore((s) => s.setPlatformMeta);
   const setEditorMode = useStore((s) => s.setEditorMode);
   const setSettings = useStore((s) => s.setSettings);
   const setFlags = useStore((s) => s.setFlags);
@@ -88,24 +86,10 @@ export function useBootstrap(): {
     enabled,
     staleTime: 30_000,
   });
-  const platformQ = useQuery({
-    queryKey: ["bootstrap", "platform"],
-    queryFn: isMac,
-    enabled,
-    staleTime: Infinity,
-  });
 
   useEffect(() => {
     if (treesQ.data) setTrees(treesQ.data);
   }, [treesQ.data, setTrees]);
-
-  useEffect(() => {
-    if (platformQ.data === undefined) return;
-    const metaKey: MetaKeyPair = platformQ.data
-      ? { short: "\u2318", long: "cmd" }
-      : { short: "^", long: "ctrl" };
-    setPlatformMeta(metaKey, platformQ.data);
-  }, [platformQ.data, setPlatformMeta]);
 
   // CommandState is no longer fetched here — it arrives as part of every
   // TREE_UPDATED message (see useRuntimeMessages).

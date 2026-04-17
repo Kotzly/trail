@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useClipboard } from "@ui/hooks/use-clipboard";
 import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
-import { cn } from "@ui/lib/utils";
 import { navigateTo } from "../../api/tree.js";
 import { getTabsForNodeMessage } from "../../api/tabs.js";
 import {
@@ -23,8 +23,8 @@ import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
 import { getIncludedRootId } from "../shared/delete-tree.js";
-import { Badge } from "@ui/components/ui/badge";
 import { Button } from "@ui/components/ui/button";
+import { ButtonGroup } from "@ui/components/ui/button-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +70,73 @@ function VirtualTrigger({ position }: VirtualTriggerProps) {
   );
 }
 
+type TabRowProps = {
+  tab: Tab;
+  onActivate: () => void;
+  onMute: () => void;
+  onClose: () => void;
+};
+
+function TabRow({ tab, onActivate, onMute, onClose }: TabRowProps) {
+  const muted = Boolean(tab.mutedInfo?.muted);
+  const displayUrl = tab.url
+    ? String(tab.url)
+        .replace(/^https?:\/\/(www\.)?/, "")
+        .replace(/\/$/, "")
+    : "";
+  return (
+    <DropdownMenuItem
+      onSelect={(e) => {
+        e.preventDefault();
+        onActivate();
+      }}
+    >
+      {tab.url && (
+        <img
+          className="size-4 shrink-0 rounded-sm"
+          src={getFaviconUrl(tab.url as Url)}
+          alt=""
+          loading="lazy"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
+          }}
+        />
+      )}
+      <div className="flex w-48 flex-col">
+        <span className="truncate text-xs">{tab.title || "Untitled tab"}</span>
+        {displayUrl && (
+          <span className="text-muted-foreground truncate text-[10px]">{displayUrl}</span>
+        )}
+      </div>
+      <ButtonGroup>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label={muted ? "Unmute tab" : "Mute tab"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMute();
+          }}
+        >
+          {muted ? <Icons.VolumeX /> : <Icons.Volume2 />}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          aria-label="Close tab"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+        >
+          <Icons.X />
+        </Button>
+      </ButtonGroup>
+    </DropdownMenuItem>
+  );
+}
+
 type NodeMenuProps = { nodeId: NodeId; position: { x: number; y: number } };
 
 function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
@@ -84,21 +151,11 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const expandNodes = useStore((state) => state.expandNodes);
   const node = tree?.findNodeById(nodeId);
   const [tabs, setTabs] = useState<Tab[]>([]);
-  const [checkedTabId, setCheckedTabId] = useState<number | null>(null);
-  const checkTimeoutRef = useRef<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<"node" | "children" | "withChildren" | null>(
     null,
   );
   const [pendingCloseAllTabs, setPendingCloseAllTabs] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      if (checkTimeoutRef.current !== null) {
-        window.clearTimeout(checkTimeoutRef.current);
-        checkTimeoutRef.current = null;
-      }
-    };
-  }, [nodeId]);
+  const { copy: copyToClipboard } = useClipboard();
 
   useEffect(() => {
     let mounted = true;
@@ -170,131 +227,68 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                 <DropdownMenuLabel>
                   {tabs.length} open tab{tabs.length !== 1 ? "s" : ""}
                 </DropdownMenuLabel>
-                <ScrollArea className="max-h-[200px]" onMouseLeave={() => setHoverNodeId(null)}>
+                <ScrollArea
+                  className="max-h-[200px]"
+                  onMouseEnter={() => setHoverNodeId(nodeId)}
+                  onMouseLeave={() => setHoverNodeId(null)}
+                >
                   {tabs.map((tab) => (
-                    <DropdownMenuItem
+                    <TabRow
                       key={tab.id}
-                      onMouseEnter={() => setHoverNodeId(nodeId)}
-                      onMouseLeave={() => setHoverNodeId(null)}
-                      onSelect={async (e) => {
-                        e.preventDefault();
-                        if (!tab.id) return;
-                        setCheckedTabId(tab.id);
-                        if (checkTimeoutRef.current !== null)
-                          window.clearTimeout(checkTimeoutRef.current);
-                        checkTimeoutRef.current = window.setTimeout(() => {
-                          setCheckedTabId(null);
-                          checkTimeoutRef.current = null;
-                        }, 650);
-                        try {
-                          await browser.tabs.update(tab.id, { active: true });
-                        } catch (error) {
-                          console.error("Failed to focus tab:", error);
-                        }
+                      tab={tab}
+                      onActivate={() => {
+                        if (tab.id)
+                          browser.tabs
+                            .update(tab.id, { active: true })
+                            .catch((error) => console.error("Failed to focus tab:", error));
                       }}
-                    >
-                      {tab.url && (
-                        <img
-                          className="size-4 shrink-0 rounded-sm"
-                          src={getFaviconUrl(tab.url as Url)}
-                          alt=""
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.visibility = "hidden";
-                          }}
-                        />
-                      )}
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="line-clamp-1 text-xs">{tab.title || "Untitled tab"}</span>
-                        {tab.url && (
-                          <span className="text-muted-foreground line-clamp-1 text-[10px]">
-                            {tab.url}
-                          </span>
-                        )}
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        aria-hidden
-                        className={cn(
-                          "size-5 shrink-0 rounded-full p-0 transition-all",
-                          checkedTabId === tab.id
-                            ? "scale-100 opacity-100"
-                            : "pointer-events-none scale-75 opacity-0",
-                        )}
-                      >
-                        <Icons.Check />
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        className="rounded-full"
-                        aria-label={tab.mutedInfo?.muted ? "Unmute tab" : "Mute tab"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!tab.id) return;
-                          fireAndForget(toggleMute(nodeId, tab.id as TabId), "toggle mute");
-                          setTabs((prev) =>
-                            prev.map((item) =>
-                              item.id === tab.id
-                                ? ({
-                                    ...item,
-                                    mutedInfo: {
-                                      muted: !item.mutedInfo?.muted,
-                                      reason:
-                                        (item.mutedInfo?.reason as
-                                          | "user"
-                                          | "capture"
-                                          | "extension"
-                                          | undefined) ?? undefined,
-                                    },
-                                  } as typeof item)
-                                : item,
-                            ),
-                          );
-                        }}
-                      >
-                        {tab.mutedInfo?.muted ? <Icons.VolumeX /> : <Icons.Volume2 />}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                        aria-label="Close tab"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!tab.id) return;
-                          fireAndForget(closeTab(nodeId, tab.id as TabId), "close tab");
-                          setTabs((prev) => prev.filter((item) => item.id !== tab.id));
-                        }}
-                      >
-                        <Icons.X />
-                      </Button>
-                    </DropdownMenuItem>
+                      onMute={() => {
+                        if (!tab.id) return;
+                        fireAndForget(toggleMute(nodeId, tab.id as TabId), "toggle mute");
+                        setTabs((prev) =>
+                          prev.map((item) =>
+                            item.id === tab.id
+                              ? {
+                                  ...item,
+                                  mutedInfo: {
+                                    ...item.mutedInfo,
+                                    muted: !item.mutedInfo?.muted,
+                                  },
+                                }
+                              : item,
+                          ),
+                        );
+                      }}
+                      onClose={() => {
+                        if (!tab.id) return;
+                        fireAndForget(closeTab(nodeId, tab.id as TabId), "close tab");
+                        setTabs((prev) => prev.filter((item) => item.id !== tab.id));
+                      }}
+                    />
                   ))}
                 </ScrollArea>
-                {pendingCloseAllTabs ? (
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={() => {
-                      if (tabs.length === 1 && tabs[0]?.id)
-                        fireAndForget(closeTab(nodeId, tabs[0].id as TabId), "close tab");
-                      else if (tabs.length > 1)
+                {tabs.length > 1 &&
+                  (pendingCloseAllTabs ? (
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onSelect={() => {
                         fireAndForget(bulkCloseTabs([nodeId]), "bulk close tabs");
-                      setTabs([]);
-                      setPendingCloseAllTabs(false);
-                    }}
-                  >
-                    Confirm close?
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setPendingCloseAllTabs(true);
-                    }}
-                  >
-                    {tabs.length === 1 ? "Close tab" : "Close all tabs"}
-                  </DropdownMenuItem>
-                )}
+                        setTabs([]);
+                        setPendingCloseAllTabs(false);
+                      }}
+                    >
+                      Confirm close?
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setPendingCloseAllTabs(true);
+                      }}
+                    >
+                      Close all tabs
+                    </DropdownMenuItem>
+                  ))}
               </>
             )}
             <DropdownMenuSeparator />
@@ -320,12 +314,8 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
 
         <DropdownMenuItem
           onSelect={async () => {
-            try {
-              await navigator.clipboard.writeText(node.data.url);
-              toast.success("URL copied");
-            } catch (error) {
-              showOperationError("Copy URL", error);
-            }
+            await copyToClipboard(node.data.url);
+            toast.success("URL copied");
           }}
         >
           Copy URL
@@ -333,12 +323,8 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         {hasTitle && (
           <DropdownMenuItem
             onSelect={async () => {
-              try {
-                await navigator.clipboard.writeText(node.data.title || "Untitled");
-                toast.success("Title copied");
-              } catch (error) {
-                showOperationError("Copy title", error);
-              }
+              await copyToClipboard(node.data.title || "Untitled");
+              toast.success("Title copied");
             }}
           >
             Copy title
@@ -486,7 +472,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         side="bottom"
         sideOffset={0}
         collisionPadding={8}
-        className="w-auto min-w-40"
+        className="w-auto max-w-60 min-w-40"
       >
         <DropdownMenuLabel>{nodeIds.length} nodes selected</DropdownMenuLabel>
         <DropdownMenuSeparator />

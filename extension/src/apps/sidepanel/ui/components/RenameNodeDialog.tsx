@@ -11,6 +11,8 @@ import {
 } from "@ui/components/ui/alert-dialog";
 import { Input } from "@ui/components/ui/input";
 import { Label } from "@ui/components/ui/label";
+import { useBoolean } from "@ui/hooks/use-boolean";
+import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { useStore } from "../state/store.js";
 import { renameNode } from "../../api/tree.js";
 import { showOperationError } from "../shared/show-operation-error.js";
@@ -46,12 +48,12 @@ function RenameForm({ nodeId, onClose }: { nodeId: NodeId; onClose: () => void }
   const tree = useStore((s) => s.tree);
   const initialTitle = String(tree?.findNodeById(nodeId)?.data.title ?? "");
   const [value, setValue] = useState(initialTitle);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, submittingActions] = useBoolean(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useLockFn(async () => {
     const trimmed = value.trim();
     if (trimmed.length === 0) return;
-    setSubmitting(true);
+    submittingActions.setTrue();
     try {
       await renameNode(nodeId, trimmed);
       captureEvent("node_renamed");
@@ -59,9 +61,9 @@ function RenameForm({ nodeId, onClose }: { nodeId: NodeId; onClose: () => void }
     } catch (error) {
       showOperationError("Rename node", error);
     } finally {
-      setSubmitting(false);
+      submittingActions.setFalse();
     }
-  };
+  });
 
   return (
     <>

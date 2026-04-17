@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trail</title>
+    <!--
+      FOUC-prevention: applies theme class + background before CSS loads.
+      We already use next-themes for React-side theming, but next-themes
+      ships its anti-flash via an inline <script dangerouslySetInnerHTML>
+      which MV3's content-script CSP blocks. This external .js file is
+      the CSP-compliant equivalent and MUST stay in sync with the
+      storageKey on <ThemeProvider> (see ui/providers/theme-provider.tsx).
+    -->
     <script src="/apply-theme-early.js"></script>
   </head>
   <body>

@@ -19,6 +19,7 @@ import {
   togglePin,
 } from "../../api/actions.js";
 import { useStore } from "../state/store.js";
+import { IS_MAC_PLATFORM } from "@ui/components/shortcut";
 import { getIncludedRootId } from "../shared/delete-tree.js";
 
 type Store = ReturnType<typeof useStore.getState>;
@@ -238,7 +239,7 @@ function buildBindings(): KeyBindingMap {
           console.error("Failed to redo:", error);
         }
       },
-      ({ state }) => !state.isMac && !state.editorMode.active,
+      ({ state }) => !IS_MAC_PLATFORM && !state.editorMode.active,
     ),
 
     // Command palette / search

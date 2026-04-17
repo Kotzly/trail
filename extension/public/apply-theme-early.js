@@ -1,11 +1,17 @@
-// Prevent white flash: apply background before CSS module loads.
-// This file MUST be a plain .js file (not .ts) loaded via <script src="...">
-// because Chrome MV3 CSP blocks inline scripts.
+// FOUC-prevention for next-themes under MV3 CSP.
 //
-// Two localStorage keys:
-//   trail_theme_choice — the user's PICK ("system" | "light" | "dark")
-//                        set by applyTheme() when user changes theme
-//   trail_theme        — the RESOLVED theme actually in effect (back-compat)
+// React theming is handled by next-themes (see ui/providers/theme-provider.tsx).
+// next-themes normally injects its anti-flash snippet via
+// `<script dangerouslySetInnerHTML>`, but MV3 extension pages forbid inline
+// scripts, so we ship the equivalent as an external .js loaded synchronously
+// from the HTML <head>.
+//
+// If you change the storageKey on <ThemeProvider>, update it here too.
+//
+// localStorage keys:
+//   trail_theme_choice — user's PICK ("system" | "light" | "dark")
+//                        written by next-themes when the user changes theme
+//   trail_theme        — legacy RESOLVED theme (back-compat)
 (function () {
   var choice;
   try {

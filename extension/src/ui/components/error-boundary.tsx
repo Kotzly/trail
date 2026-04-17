@@ -1,16 +1,21 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import TrailLogo from "@ui/components/trail-logo";
-import { Button } from "@ui/components/ui/button";
-import { captureError } from "@shared/lib/observability.js";
+import TrailLogo from "@ui/components/trail-logo.js";
+import { Button } from "@ui/components/ui/button.js";
+import { FeedbackDialog } from "@ui/components/feedback-dialog.js";
+import { captureError, lastErrorEventId } from "@shared/lib/observability.js";
 
 type Props = {
   children: ReactNode;
+  /** Source tag attached to the bug report (e.g. "sidepanel", "settings"). */
+  source?: string;
 };
 
 type State = {
   hasError: boolean;
   error: Error | null;
   componentStack: string | null;
+  eventId: string | null;
+  reportOpen: boolean;
   copied: boolean;
 };
 
@@ -19,7 +24,14 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, componentStack: null, copied: false };
+    this.state = {
+      hasError: false,
+      error: null,
+      componentStack: null,
+      eventId: null,
+      reportOpen: false,
+      copied: false,
+    };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -28,10 +40,14 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error("Trail ErrorBoundary caught:", error, info.componentStack);
-    this.setState({ componentStack: info.componentStack ?? null });
     captureError(error, {
       componentStack: info.componentStack ?? "(unavailable)",
       kind: "react_boundary",
+      source: this.props.source ?? "unknown",
+    });
+    this.setState({
+      componentStack: info.componentStack ?? null,
+      eventId: lastErrorEventId() ?? null,
     });
   }
 
@@ -46,7 +62,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleCopyDiagnostics = (): void => {
-    const { error, componentStack } = this.state;
+    const { error, componentStack, eventId } = this.state;
 
     let version = "unknown";
     try {
@@ -59,6 +75,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       "Trail crash report",
       "==================",
       `Error: ${error?.message ?? "Unknown error"}`,
+      `Event ID: ${eventId ?? "(not captured)"}`,
       `Version: ${version}`,
       `User Agent: ${navigator.userAgent}`,
       `Timestamp: ${new Date().toISOString()}`,
@@ -103,6 +120,9 @@ export default class ErrorBoundary extends Component<Props, State> {
       return this.props.children;
     }
 
+    const { error, eventId, reportOpen } = this.state;
+    const source = this.props.source ?? "error_boundary";
+
     return (
       <div className="bg-background text-foreground fixed inset-0 z-[9999] flex items-center justify-center font-sans">
         <div className="flex max-w-80 flex-col items-center gap-4 px-6 py-8 text-center">
@@ -116,8 +136,16 @@ export default class ErrorBoundary extends Component<Props, State> {
           </p>
 
           <div className="mt-2 flex w-full flex-col gap-2">
-            <Button variant="outline" className="w-full" type="button" onClick={this.handleReload}>
+            <Button variant="default" className="w-full" type="button" onClick={this.handleReload}>
               Reload Trail
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              onClick={() => this.setState({ reportOpen: true })}
+            >
+              Send bug report
             </Button>
             <Button
               variant="outline"
@@ -128,34 +156,33 @@ export default class ErrorBoundary extends Component<Props, State> {
               {this.state.copied ? "Copied!" : "Copy diagnostics"}
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               className="w-full"
               type="button"
               onClick={this.handleSafeModeReload}
             >
               Reload with safe mode
             </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              type="button"
-              onClick={() => window.open("https://gettrail.net/support", "_blank")}
-            >
-              Contact Support
-            </Button>
           </div>
 
-          {this.state.error?.stack && (
+          {error?.stack && (
             <details className="mt-4 w-full text-left">
               <summary className="text-muted-foreground cursor-pointer text-xs">
                 Technical details
               </summary>
               <pre className="bg-muted mt-2 max-h-[200px] overflow-auto rounded-md p-2 text-[11px] break-all whitespace-pre-wrap">
-                {this.state.error.stack}
+                {error.stack}
               </pre>
             </details>
           )}
         </div>
+
+        <FeedbackDialog
+          kind={reportOpen ? "bug" : null}
+          onOpenChange={(open) => this.setState({ reportOpen: open })}
+          associatedEventId={eventId ?? undefined}
+          source={source}
+        />
       </div>
     );
   }

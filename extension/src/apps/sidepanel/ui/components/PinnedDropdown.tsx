@@ -33,14 +33,13 @@ import { ButtonTooltip } from "@ui/components/button-tooltip";
 
 type NavNode = TreeNode<NodeData> | NavigationNode;
 
+const PINNED_KEYS = ["shift", "P"] as const;
+
 export default function PinnedDropdown() {
   const pins = useStore((s) => s.pins);
   const tree = useStore((s) => s.tree);
-  const isMac = useStore((s) => s.isMac);
   const open = useStore((s) => s.ui.pinnedOpen);
   const setOpen = useStore((s) => s.setPinnedOpen);
-
-  const pinnedKeys = [isMac ? "⇧" : "Shift", "P"];
 
   useOverlayEffects(open, { kind: "dropdown" });
 
@@ -74,11 +73,11 @@ export default function PinnedDropdown() {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <ButtonTooltip label="Pinned pages" keys={pinnedKeys}>
+      <ButtonTooltip label="Pinned pages" keys={PINNED_KEYS}>
         <PopoverTrigger asChild>
           <Button
             id="pinnedBtn"
-            variant="ghost"
+            variant="outline"
             size="icon-sm"
             type="button"
             aria-label="Pinned pages"

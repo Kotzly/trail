@@ -32,6 +32,8 @@ import { type IndexEntry, SearchIndex } from "./command-palette-search.js";
  *  keystroke and on close. */
 const VISIBLE_LIMIT = 50;
 
+const SEARCH_KEYS = ["meta", "K"] as const;
+
 /**
  * Command palette: search trigger + Radix dialog wired to the global
  * `commandPalette.open` state (so the keyboard shortcut and any other
@@ -46,20 +48,12 @@ const VISIBLE_LIMIT = 50;
 export default function CommandPalette() {
   const open = useStore((s) => s.commandPalette.open);
   const setOpen = useStore((s) => s.setCommandPaletteOpen);
-  const metaKey = useStore((s) => s.metaKey);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <ButtonTooltip label="Search" keys={[metaKey?.short ?? "Ctrl", "K"]}>
+      <ButtonTooltip label="Search" keys={SEARCH_KEYS}>
         <DialogTrigger asChild>
-          <Button
-            id="searchBtn"
-            variant="ghost"
-            size="icon-sm"
-            className="rounded-full"
-            type="button"
-            aria-label="Search"
-          >
+          <Button id="searchBtn" variant="outline" size="icon-sm" type="button" aria-label="Search">
             <Icons.Search />
           </Button>
         </DialogTrigger>

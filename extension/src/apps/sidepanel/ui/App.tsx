@@ -12,8 +12,15 @@ import { useRuntimeMessages } from "./hooks/useRuntimeMessages.js";
 import { useShortcuts } from "./hooks/useShortcuts.js";
 import { useThemeSync } from "./hooks/useThemeSync.js";
 import { useStore } from "./state/store.js";
-import { Skeleton } from "@ui/components/ui/skeleton";
 import { Button } from "@ui/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@ui/components/ui/empty";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
 import { saveSettings } from "../api/settings.js";
 import type { NodeId, Url } from "@shared/types/ids.js";
@@ -27,25 +34,34 @@ const TrailGraph = lazy(() =>
 
 function BootstrapSkeleton() {
   return (
-    <div className="flex h-full flex-col gap-2.5 p-3">
-      <Skeleton className="h-10 rounded-lg" />
-      <Skeleton className="min-h-[200px] flex-1 rounded-lg" />
-    </div>
+    <Empty className="h-full border-none">
+      <EmptyHeader>
+        <TrailLogo animated label="Loading Trail" />
+        <EmptyTitle>Loading your trails</EmptyTitle>
+        <EmptyDescription>Restoring your navigation graph…</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }
 
 function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-      <TrailLogo label="Trail" />
-      <h2 className="text-lg font-semibold">Could not load Trail</h2>
-      <p className="text-muted-foreground max-w-[280px] text-[13px]">
-        Something prevented Trail from starting. This is usually temporary.
-      </p>
-      <Button variant="outline" className="mt-2" onClick={onRetry}>
-        Retry
-      </Button>
-    </div>
+    <Empty className="h-full border-none">
+      <EmptyHeader>
+        <EmptyMedia>
+          <TrailLogo label="Trail" />
+        </EmptyMedia>
+        <EmptyTitle>Could not load Trail</EmptyTitle>
+        <EmptyDescription>
+          Something prevented Trail from starting. This is usually temporary.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button variant="outline" onClick={onRetry}>
+          Retry
+        </Button>
+      </EmptyContent>
+    </Empty>
   );
 }
 

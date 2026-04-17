@@ -12,6 +12,23 @@ export function captureError(error: unknown, context?: Record<string, unknown>):
   console.error("[preview] captureError", error, context);
 }
 
+export function lastErrorEventId(): string | undefined {
+  return undefined;
+}
+
+type BugReportArgs = {
+  message: string;
+  name?: string;
+  email?: string;
+  associatedEventId?: string;
+  tags?: Record<string, string | number | boolean>;
+};
+
+export function captureBugReport(report: BugReportArgs): string | null {
+  console.info("[preview] captureBugReport", report);
+  return null;
+}
+
 export async function getTelemetryConsent(): Promise<{
   errors: boolean;
   analytics: boolean;

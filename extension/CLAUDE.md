@@ -18,6 +18,72 @@ Create distinctive, production-grade frontend interfaces with high design qualit
 
 - `.claude/skills/frontend-design/SKILL.md`
 
+## Playwright Best Practices
+
+Use when writing Playwright tests, fixing flaky tests, debugging failures, implementing Page Object Model, configuring CI/CD, optimizing performance, mocking APIs, handling authentication or OAuth, testing accessibility (axe-core), file uploads/downloads, date/time mocking, WebSockets, geolocatio...
+
+- `.claude/skills/playwright-best-practices/SKILL.md`
+- `.claude/skills/playwright-best-practices/advanced/authentication-flows.md`: Intercept API responses to capture verification tokens for testing:
+- `.claude/skills/playwright-best-practices/advanced/authentication.md`: **Use when**: You need authenticated tests and want to avoid logging in before every test. **Avoid when**: Tests require completely fresh sessions, or you are testing the login flow itself.
+- `.claude/skills/playwright-best-practices/advanced/clock-mocking.md`
+- `.claude/skills/playwright-best-practices/advanced/mobile-testing.md`
+- `.claude/skills/playwright-best-practices/advanced/multi-context.md`: This file covers **single-user scenarios** with multiple browser tabs, windows, and popups. For **multi-user collaboration testing** (multiple users interacting simultaneously), see [multi-user.md](multi-user.md).
+- `.claude/skills/playwright-best-practices/advanced/multi-user.md`
+- `.claude/skills/playwright-best-practices/advanced/network-advanced.md`: Use `context.setOffline(true/false)` to simulate network connectivity changes.
+- `.claude/skills/playwright-best-practices/advanced/third-party.md`
+- `.claude/skills/playwright-best-practices/architecture/pom-vs-fixtures.md`: Use all three patterns together. Most projects benefit from a hybrid approach:
+- `.claude/skills/playwright-best-practices/architecture/test-architecture.md`: **Ideal for**:
+- `.claude/skills/playwright-best-practices/architecture/when-to-mock.md`: **Mock at the boundary, test your stack end-to-end.** Mock third-party services you don't own (payment gateways, email providers, OAuth). Never mock your own frontend-to-backend communication. Tests should prove YOUR code works, not that third-party APIs are available.
+- `.claude/skills/playwright-best-practices/browser-apis/browser-apis.md`
+- `.claude/skills/playwright-best-practices/browser-apis/iframes.md`
+- `.claude/skills/playwright-best-practices/browser-apis/service-workers.md`: This section covers **offline-first apps (PWAs)** that are designed to work offline using service workers, caching, and background sync. For testing **unexpected network failures** (error recovery, graceful degradation), see [error-testing.md](error-testing.md#offline-testing).
+- `.claude/skills/playwright-best-practices/browser-apis/websockets.md`
+- `.claude/skills/playwright-best-practices/core/annotations.md`
+- `.claude/skills/playwright-best-practices/core/assertions-waiting.md`: Auto-retry until condition is met or timeout. Always prefer these over generic assertions.
+- `.claude/skills/playwright-best-practices/core/configuration.md`: **Use when**: Tests run against dev, staging, and production environments.
+- `.claude/skills/playwright-best-practices/core/fixtures-hooks.md`: Created fresh for each test:
+- `.claude/skills/playwright-best-practices/core/global-setup.md`: This section covers **one-time database setup** (migrations, snapshots, per-worker databases). For related topics:
+- `.claude/skills/playwright-best-practices/core/locators.md`: Use locators in this order of preference:
+- `.claude/skills/playwright-best-practices/core/page-object-model.md`: Page Object Model encapsulates page structure and interactions, providing:
+- `.claude/skills/playwright-best-practices/core/projects-dependencies.md`: Setup projects are the recommended way to handle authentication. They run before your main test projects and can use Playwright fixtures.
+- `.claude/skills/playwright-best-practices/core/test-data.md`: This file covers **reusable test data builders** (factories, Faker, data generators). For related topics:
+- `.claude/skills/playwright-best-practices/core/test-suite-structure.md`: Full user journey tests through the browser.
+- `.claude/skills/playwright-best-practices/core/test-tags.md`
+- `.claude/skills/playwright-best-practices/debugging/console-errors.md`
+- `.claude/skills/playwright-best-practices/debugging/debugging.md`: Features:
+- `.claude/skills/playwright-best-practices/debugging/error-testing.md`: This section covers **unexpected network failures** and error recovery. For **offline-first apps (PWAs)** with service workers, caching, and background sync, see [service-workers.md](service-workers.md#offline-testing).
+- `.claude/skills/playwright-best-practices/debugging/flaky-tests.md`: Most flaky tests fall into distinct categories requiring different remediation:
+- `.claude/skills/playwright-best-practices/frameworks/angular.md`: Angular generates internal attributes (`_ngcontent-*`, `_nghost-*`, `ng-reflect-*`) that change every build. Always use semantic locators.
+- `.claude/skills/playwright-best-practices/frameworks/nextjs.md`: Next.js loads `.env.test` when `NODE_ENV=test`:
+- `.claude/skills/playwright-best-practices/frameworks/react.md`: **Use when**: Verifying React context (theme, auth, locale) and state management (Redux, Zustand) produce correct UI changes. **Avoid when**: You want to assert on raw state objects—test the UI, not internal state.
+- `.claude/skills/playwright-best-practices/frameworks/vue.md`: Nuxt uses port 3000 and requires a build step before testing.
+- `.claude/skills/playwright-best-practices/infrastructure-ci-cd/ci-cd.md`
+- `.claude/skills/playwright-best-practices/infrastructure-ci-cd/docker.md`: Run tests without building a custom image:
+- `.claude/skills/playwright-best-practices/infrastructure-ci-cd/github-actions.md`: **Use when**: Starting a new project or running a small test suite.
+- `.claude/skills/playwright-best-practices/infrastructure-ci-cd/gitlab.md`: **Use when**: Any GitLab project with Playwright tests.
+- `.claude/skills/playwright-best-practices/infrastructure-ci-cd/other-providers.md`: All platforms benefit from JUnit output for native test result display:
+- `.claude/skills/playwright-best-practices/infrastructure-ci-cd/parallel-sharding.md`: **Use when**: Controlling concurrent test execution on a single machine.
+- `.claude/skills/playwright-best-practices/infrastructure-ci-cd/performance.md`: Tests are distributed evenly by file. For optimal sharding:
+- `.claude/skills/playwright-best-practices/infrastructure-ci-cd/reporting.md`: Build custom reporters for Slack notifications, database logging, or dashboards.
+- `.claude/skills/playwright-best-practices/infrastructure-ci-cd/test-coverage.md`
+- `.claude/skills/playwright-best-practices/LICENSE.md`: Copyright © 2026 Currents Software Inc.
+- `.claude/skills/playwright-best-practices/README.md`: <img src="https://currents.dev/favicon-96x96.png" width="24" height="24" align="left" />by [currents.dev](https://currents.dev?utm_source=ai-skill) - The all-in-one Dashboard for Playwright Testing.
+- `.claude/skills/playwright-best-practices/testing-patterns/accessibility.md`
+- `.claude/skills/playwright-best-practices/testing-patterns/api-testing.md`: **Use when**: Multiple tests need an authenticated API client with shared configuration. **Avoid when**: A single test makes one-off API calls — use the built-in `request` fixture directly.
+- `.claude/skills/playwright-best-practices/testing-patterns/browser-extensions.md`
+- `.claude/skills/playwright-best-practices/testing-patterns/canvas-webgl.md`
+- `.claude/skills/playwright-best-practices/testing-patterns/component-testing.md`
+- `.claude/skills/playwright-best-practices/testing-patterns/drag-drop.md`: Some drag libraries (react-beautiful-dnd, dnd-kit) require incremental mouse movements:
+- `.claude/skills/playwright-best-practices/testing-patterns/electron.md`
+- `.claude/skills/playwright-best-practices/testing-patterns/file-operations.md`
+- `.claude/skills/playwright-best-practices/testing-patterns/file-upload-download.md`: Drop zones always have an underlying `input[type="file"]`—target it directly instead of simulating OS-level drag events.
+- `.claude/skills/playwright-best-practices/testing-patterns/forms-validation.md`: **Use when**: Testing search fields, address lookups, mention pickers, or any input that shows suggestions as the user types.
+- `.claude/skills/playwright-best-practices/testing-patterns/graphql-testing.md`: All GraphQL requests go through `POST` to a single endpoint. Send `query`, `variables`, and optionally `operationName` in the JSON body.
+- `.claude/skills/playwright-best-practices/testing-patterns/i18n.md`
+- `.claude/skills/playwright-best-practices/testing-patterns/performance-testing.md`
+- `.claude/skills/playwright-best-practices/testing-patterns/security-testing.md`
+- `.claude/skills/playwright-best-practices/testing-patterns/visual-regression.md`: **Use when**: Page contains timestamps, avatars, ad slots, relative dates, random images, or A/B variants.
+
 ## SEO optimization
 
 Optimize for search engine visibility and ranking. Use when asked to "improve SEO", "optimize for search", "fix meta tags", "add structured data", "sitemap optimization", or "search engine optimization".
@@ -37,6 +103,46 @@ Manages shadcn components and projects — adding, searching, fixing, debugging,
 - `.claude/skills/shadcn/rules/forms.md`: Always use `FieldGroup` + `Field` — never raw `div` with `space-y-*`:
 - `.claude/skills/shadcn/rules/icons.md`: **Always use the project's configured `iconLibrary` for imports.** Check the `iconLibrary` field from project context: `lucide` → `lucide-react`, `tabler` → `@tabler/icons-react`, etc. Never assume `lucide-react`.
 - `.claude/skills/shadcn/rules/styling.md`: See [customization.md](../customization.md) for theming, CSS variables, and adding custom colors.
+
+## Supabase Postgres Best Practices
+
+Postgres performance optimization and best practices from Supabase. Use this skill when writing, reviewing, or optimizing Postgres queries, schema designs, or database configurations.
+
+- `.claude/skills/supabase-postgres-best-practices/SKILL.md`
+- `.claude/skills/supabase-postgres-best-practices/references/_contributing.md`: This document provides guidelines for creating effective Postgres best practice references that work well with AI agents and LLMs.
+- `.claude/skills/supabase-postgres-best-practices/references/_sections.md`: This file defines the rule categories for Postgres best practices. Rules are automatically assigned to sections based on their filename prefix.
+- `.claude/skills/supabase-postgres-best-practices/references/_template.md`: [1-2 sentence explanation of the problem and why it matters. Focus on performance impact.]
+- `.claude/skills/supabase-postgres-best-practices/references/advanced-full-text-search.md`: LIKE with wildcards can't use indexes. Full-text search with tsvector is orders of magnitude faster.
+- `.claude/skills/supabase-postgres-best-practices/references/advanced-jsonb-indexing.md`: JSONB queries without indexes scan the entire table. Use GIN indexes for containment queries.
+- `.claude/skills/supabase-postgres-best-practices/references/conn-idle-timeout.md`: Idle connections waste resources. Configure timeouts to automatically reclaim them.
+- `.claude/skills/supabase-postgres-best-practices/references/conn-limits.md`: Too many connections exhaust memory and degrade performance. Set limits based on available resources.
+- `.claude/skills/supabase-postgres-best-practices/references/conn-pooling.md`: Postgres connections are expensive (1-3MB RAM each). Without pooling, applications exhaust connections under load.
+- `.claude/skills/supabase-postgres-best-practices/references/conn-prepared-statements.md`: Prepared statements are tied to individual database connections. In transaction-mode pooling, connections are shared, causing conflicts.
+- `.claude/skills/supabase-postgres-best-practices/references/data-batch-inserts.md`: Individual INSERT statements have high overhead. Batch multiple rows in single statements or use COPY.
+- `.claude/skills/supabase-postgres-best-practices/references/data-n-plus-one.md`: N+1 queries execute one query per item in a loop. Batch them into a single query using arrays or JOINs.
+- `.claude/skills/supabase-postgres-best-practices/references/data-pagination.md`: OFFSET-based pagination scans all skipped rows, getting slower on deeper pages. Cursor pagination is O(1).
+- `.claude/skills/supabase-postgres-best-practices/references/data-upsert.md`: Using separate SELECT-then-INSERT/UPDATE creates race conditions. Use INSERT ... ON CONFLICT for atomic upserts.
+- `.claude/skills/supabase-postgres-best-practices/references/lock-advisory.md`: Advisory locks provide application-level coordination without requiring database rows to lock.
+- `.claude/skills/supabase-postgres-best-practices/references/lock-deadlock-prevention.md`: Deadlocks occur when transactions lock resources in different orders. Always acquire locks in a consistent order.
+- `.claude/skills/supabase-postgres-best-practices/references/lock-short-transactions.md`: Long-running transactions hold locks that block other queries. Keep transactions as short as possible.
+- `.claude/skills/supabase-postgres-best-practices/references/lock-skip-locked.md`: When multiple workers process a queue, SKIP LOCKED allows workers to process different rows without waiting.
+- `.claude/skills/supabase-postgres-best-practices/references/monitor-explain-analyze.md`: EXPLAIN ANALYZE executes the query and shows actual timings, revealing the true performance bottlenecks.
+- `.claude/skills/supabase-postgres-best-practices/references/monitor-pg-stat-statements.md`: pg_stat_statements tracks execution statistics for all queries, helping identify slow and frequent queries.
+- `.claude/skills/supabase-postgres-best-practices/references/monitor-vacuum-analyze.md`: Outdated statistics cause the query planner to make poor decisions. VACUUM reclaims space, ANALYZE updates statistics.
+- `.claude/skills/supabase-postgres-best-practices/references/query-composite-indexes.md`: When queries filter on multiple columns, a composite index is more efficient than separate single-column indexes.
+- `.claude/skills/supabase-postgres-best-practices/references/query-covering-indexes.md`: Covering indexes include all columns needed by a query, enabling index-only scans that skip the table entirely.
+- `.claude/skills/supabase-postgres-best-practices/references/query-index-types.md`: Different index types excel at different query patterns. The default B-tree isn't always optimal.
+- `.claude/skills/supabase-postgres-best-practices/references/query-missing-indexes.md`: Queries filtering or joining on unindexed columns cause full table scans, which become exponentially slower as tables grow.
+- `.claude/skills/supabase-postgres-best-practices/references/query-partial-indexes.md`: Partial indexes only include rows matching a WHERE condition, making them smaller and faster when queries consistently filter on the same condition.
+- `.claude/skills/supabase-postgres-best-practices/references/schema-constraints.md`: PostgreSQL does not support `ADD CONSTRAINT IF NOT EXISTS`. Migrations using this syntax will fail.
+- `.claude/skills/supabase-postgres-best-practices/references/schema-data-types.md`: Using the right data types reduces storage, improves query performance, and prevents bugs.
+- `.claude/skills/supabase-postgres-best-practices/references/schema-foreign-key-indexes.md`: Postgres does not automatically index foreign key columns. Missing indexes cause slow JOINs and CASCADE operations.
+- `.claude/skills/supabase-postgres-best-practices/references/schema-lowercase-identifiers.md`: PostgreSQL folds unquoted identifiers to lowercase. Quoted mixed-case identifiers require quotes forever and cause issues with tools, ORMs, and AI assistants that may not recognize them.
+- `.claude/skills/supabase-postgres-best-practices/references/schema-partitioning.md`: Partitioning splits a large table into smaller pieces, improving query performance and maintenance operations.
+- `.claude/skills/supabase-postgres-best-practices/references/schema-primary-keys.md`: Primary key choice affects insert performance, index size, and replication efficiency.
+- `.claude/skills/supabase-postgres-best-practices/references/security-privileges.md`: Grant only the minimum permissions required. Never use superuser for application queries.
+- `.claude/skills/supabase-postgres-best-practices/references/security-rls-basics.md`: Row Level Security (RLS) enforces data access at the database level, ensuring users only see their own data.
+- `.claude/skills/supabase-postgres-best-practices/references/security-rls-performance.md`: Poorly written RLS policies can cause severe performance issues. Use subqueries and indexes strategically.
 
 ## Tailwind CSS Development Patterns
 

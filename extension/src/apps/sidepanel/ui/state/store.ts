@@ -17,8 +17,6 @@ import { PinnedManager } from "@background/state/pinned.js";
 import type { TreeMeta, TreeSummary, NavigationTreeJSON } from "@shared/types/tree.js";
 import type { ResolvedFlags } from "@shared/types/flags.js";
 
-export type MetaKeyPair = { short: "^"; long: "ctrl" } | { short: "⌘"; long: "cmd" };
-
 type GraphTool = "hand" | "select";
 
 export type ViewState = {
@@ -119,13 +117,10 @@ type StoreState = {
   syncConflict: SyncConflictUiState | null;
   contextMenu: ContextMenuState;
   pickTarget: { type: "duplicate"; sourceNodeId: NodeId } | null;
-  metaKey: MetaKeyPair | null;
-  isMac: boolean;
 };
 
 type StoreActions = {
   bootstrapGraph: (settings: Settings, payload: TreeUpdatedInput) => void;
-  setPlatformMeta: (meta: MetaKeyPair, isMac: boolean) => void;
   applyTreeState: (payload: TreeUpdatedInput) => void;
   setTrees: (snapshot: TreesSnapshot) => void;
   setCommandState: (state: CommandState) => void;
@@ -284,8 +279,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   syncConflict: null,
   contextMenu: null,
   pickTarget: null,
-  metaKey: null,
-  isMac: false,
 
   bootstrapGraph: (settings, payload) => {
     const tree = NavigationTreeMapper.fromJSON(payload.tree);
@@ -307,8 +300,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       nodeCount,
     });
   },
-
-  setPlatformMeta: (meta, isMac) => set({ metaKey: meta, isMac }),
 
   applyTreeState: (payload) => {
     const tree = NavigationTreeMapper.fromJSON(payload.tree);

@@ -1,6 +1,7 @@
-import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Button } from "@ui/components/ui/button";
+import { useBoolean } from "@ui/hooks/use-boolean";
+import { useLockFn } from "@ui/hooks/use-lock-fn";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,11 +21,11 @@ import { signOut } from "@shared/auth/auth-orchestrator.js";
 import { getSupabaseClient } from "@shared/lib/supabase.js";
 
 export function DataPage() {
-  const [clearing, setClearing] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [clearing, clearingActions] = useBoolean(false);
+  const [deleting, deletingActions] = useBoolean(false);
 
-  const clearLocal = async () => {
-    setClearing(true);
+  const clearLocal = useLockFn(async () => {
+    clearingActions.setTrue();
     try {
       // Wipe everything Trail owns in local + session storage.
       await browser.storage.local.clear();
@@ -35,12 +36,12 @@ export function DataPage() {
       captureError(error, { kind: "ui_clear_local" });
       toast.error("Failed to clear local data", { description: String(error) });
     } finally {
-      setClearing(false);
+      clearingActions.setFalse();
     }
-  };
+  });
 
-  const deleteAccount = async () => {
-    setDeleting(true);
+  const deleteAccount = useLockFn(async () => {
+    deletingActions.setTrue();
     try {
       const supabase = getSupabaseClient();
       if (supabase) {
@@ -68,9 +69,9 @@ export function DataPage() {
       captureError(error, { kind: "ui_delete_account" });
       toast.error("Failed to request account deletion", { description: String(error) });
     } finally {
-      setDeleting(false);
+      deletingActions.setFalse();
     }
-  };
+  });
 
   return (
     <div className="flex flex-col gap-6">

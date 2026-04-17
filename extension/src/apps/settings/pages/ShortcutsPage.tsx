@@ -1,52 +1,55 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/ui/card";
-import { Kbd, KbdGroup } from "@ui/components/ui/kbd";
+import { Shortcut, type ShortcutKey } from "@ui/components/shortcut";
 
-type Shortcut = {
-  keys: string[];
+type ShortcutRow = {
+  keys: readonly ShortcutKey[];
   label: string;
 };
 
 type ShortcutGroup = {
   title: string;
-  items: Shortcut[];
+  items: readonly ShortcutRow[];
 };
 
-const GROUPS: ShortcutGroup[] = [
+const GROUPS: readonly ShortcutGroup[] = [
   {
     title: "Navigation",
     items: [
-      { keys: ["⌘K"], label: "Open command palette (search everything)" },
-      { keys: ["⌘F"], label: "Open command palette" },
+      { keys: ["meta", "K"], label: "Open command palette (search everything)" },
+      { keys: ["meta", "F"], label: "Open command palette" },
       { keys: ["/"], label: "Open command palette" },
-      { keys: ["↑", "↓", "←", "→"], label: "Move focus between nodes" },
-      { keys: ["Enter"], label: "Navigate to selected node" },
-      { keys: ["⌘Enter"], label: "Open selected node in new tab" },
-      { keys: ["Esc"], label: "Close popups / clear selection" },
+      { keys: ["up"], label: "Move focus up" },
+      { keys: ["down"], label: "Move focus down" },
+      { keys: ["left"], label: "Move focus left" },
+      { keys: ["right"], label: "Move focus right" },
+      { keys: ["enter"], label: "Navigate to selected node" },
+      { keys: ["meta", "enter"], label: "Open selected node in new tab" },
+      { keys: ["escape"], label: "Close popups / clear selection" },
     ],
   },
   {
     title: "Editing",
     items: [
       { keys: ["F2"], label: "Rename selected node" },
-      { keys: ["Delete"], label: "Delete node" },
-      { keys: ["⇧ Delete"], label: "Delete node and all children" },
+      { keys: ["delete"], label: "Delete node" },
+      { keys: ["shift", "delete"], label: "Delete node and all children" },
       { keys: ["P"], label: "Toggle pin on selection" },
-      { keys: ["⌘Z"], label: "Undo" },
-      { keys: ["⌘⇧Z"], label: "Redo" },
-      { keys: ["⌘A"], label: "Select all visible" },
-      { keys: ["⌘⇧A"], label: "Clear selection" },
+      { keys: ["meta", "Z"], label: "Undo" },
+      { keys: ["meta", "shift", "Z"], label: "Redo" },
+      { keys: ["meta", "A"], label: "Select all visible" },
+      { keys: ["meta", "shift", "A"], label: "Clear selection" },
     ],
   },
   {
     title: "Views & panels",
     items: [
-      { keys: ["⇧P"], label: "Toggle pinned dropdown" },
-      { keys: ["⇧T"], label: "Toggle tree switcher" },
-      { keys: ["⇧F"], label: "Toggle tag filter" },
-      { keys: ["⇧L"], label: "Cycle layout (tree ↔ mindmap)" },
-      { keys: ["⇧C"], label: "Toggle connection lines" },
-      { keys: ["⌘,"], label: "Open settings" },
-      { keys: ["⌘/"], label: "Show shortcut tooltips overlay" },
+      { keys: ["shift", "P"], label: "Toggle pinned dropdown" },
+      { keys: ["shift", "T"], label: "Toggle tree switcher" },
+      { keys: ["shift", "F"], label: "Toggle tag filter" },
+      { keys: ["shift", "L"], label: "Cycle layout (tree ↔ mindmap)" },
+      { keys: ["shift", "C"], label: "Toggle connection lines" },
+      { keys: ["meta", ","], label: "Open settings" },
+      { keys: ["meta", "/"], label: "Show shortcut tooltips overlay" },
     ],
   },
 ];
@@ -56,9 +59,7 @@ export function ShortcutsPage() {
     <div className="flex flex-col gap-4">
       <CardHeader className="px-0">
         <CardTitle>Keyboard shortcuts</CardTitle>
-        <p className="text-muted-foreground text-sm">
-          All shortcuts at a glance. On Windows/Linux, swap ⌘ for Ctrl.
-        </p>
+        <p className="text-muted-foreground text-sm">All shortcuts at a glance.</p>
       </CardHeader>
 
       {GROUPS.map((group) => (
@@ -70,11 +71,7 @@ export function ShortcutsPage() {
             {group.items.map((item) => (
               <div key={item.label} className="flex items-center justify-between gap-4 text-sm">
                 <span>{item.label}</span>
-                <KbdGroup className="shrink-0">
-                  {item.keys.map((k) => (
-                    <Kbd key={k}>{k}</Kbd>
-                  ))}
-                </KbdGroup>
+                <Shortcut keys={item.keys} />
               </div>
             ))}
           </CardContent>

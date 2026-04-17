@@ -15,7 +15,7 @@ import type { LayoutMode } from "@shared/types/settings.js";
 // ── Constants ──────────────────────────────────────────────────────
 
 const NODE_WIDTH = 160;
-const NODE_HEIGHT = 52;
+const NODE_HEIGHT = 60;
 
 // ── Tree → d3-hierarchy layout ──────────────────────────────────────
 

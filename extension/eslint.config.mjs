@@ -125,6 +125,20 @@ export default [
     },
   },
 
+  // ── shadcn-hooks generated hooks + utility files ────────────────
+  // Installed via `npx shadcn@latest add @shadcnhooks/…`. Registry output
+  // has duplicate `react` imports, `this`-typed function expressions, and
+  // stable-ref patterns that trip exhaustive-deps. Do not modify upstream.
+  {
+    files: ["src/ui/hooks/use-*.ts", "src/ui/lib/{is-browser,create-effect-with-target}.ts"],
+    rules: {
+      "no-duplicate-imports": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "react-hooks/exhaustive-deps": "off",
+      "react-hooks/unsupported-syntax": "off",
+    },
+  },
+
   // ── Disable formatting rules (Prettier handles it) ─────────────
   eslintConfigPrettier,
 ];

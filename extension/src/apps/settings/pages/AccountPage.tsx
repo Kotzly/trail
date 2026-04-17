@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Button } from "@ui/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/ui/avatar";
 import { Skeleton } from "@ui/components/ui/skeleton";
+import { useBoolean } from "@ui/hooks/use-boolean";
+import { useLockFn } from "@ui/hooks/use-lock-fn";
+import { useMount } from "@ui/hooks/use-mount";
 import {
   initAuth,
   signInWithGoogle,
@@ -15,16 +18,16 @@ import { captureError } from "@shared/lib/observability.js";
 
 export function AccountPage() {
   const [state, setState] = useState<AuthState>({ status: "signed-out" });
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [loading, loadingActions] = useBoolean(true);
+  const [busy, busyActions] = useBoolean(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useMount(() => {
     let active = true;
     void initAuth().then((s) => {
       if (active) {
         setState(s);
-        setLoading(false);
+        loadingActions.setFalse();
       }
     });
     const unsub = subscribeAuthState((next) => {
@@ -34,10 +37,10 @@ export function AccountPage() {
       active = false;
       unsub();
     };
-  }, []);
+  });
 
-  const handleSignIn = async () => {
-    setBusy(true);
+  const handleSignIn = useLockFn(async () => {
+    busyActions.setTrue();
     setError(null);
     try {
       await signInWithGoogle();
@@ -45,21 +48,21 @@ export function AccountPage() {
       captureError(err, { kind: "ui_signin" });
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
+      busyActions.setFalse();
     }
-  };
+  });
 
-  const handleSignOut = async () => {
-    setBusy(true);
+  const handleSignOut = useLockFn(async () => {
+    busyActions.setTrue();
     try {
       await signOut();
     } catch (err) {
       captureError(err, { kind: "ui_signout" });
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
+      busyActions.setFalse();
     }
-  };
+  });
 
   if (!isSupabaseConfigured()) {
     return (
