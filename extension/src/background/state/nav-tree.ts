@@ -117,56 +117,87 @@ export class NavigationTree {
   }
 
   navigate(data: NodeData, options: NavigationOptions = DefaultNavigationOptions): NavigationNode {
+    return this.navigateUnder(this.current?.id ?? null, data, {
+      ...options,
+      setAsCurrent: true,
+    });
+  }
+
+  /**
+   * Attach a new node under an explicit parent (identified by id).
+   *
+   * This is the core primitive that Phase 2's opener-based parent
+   * inference uses — callers resolve the parent from the opener tab,
+   * not from `tree.current`, so background-tab navigations don't
+   * silently attach under whatever the sidepanel is looking at.
+   *
+   * Behavior:
+   * - If `parentId` is null or unknown, attach as a root sibling
+   *   (creates root if the tree is empty, otherwise attaches to the
+   *   existing root). Never falls back to `this.current`.
+   * - Same-URL-as-parent: update metadata in place, return parent.
+   * - Same-URL-as-existing-child: return that child.
+   * - backOnRevisit: walks ancestors of the parent for a URL match.
+   * - Otherwise: creates a fresh child of parent.
+   * - `setAsCurrent` (default false) controls whether to advance the
+   *   UI cursor. Callers that represent programmatic/background
+   *   navigations should pass false.
+   */
+  navigateUnder(
+    parentId: NodeId | null,
+    data: NodeData,
+    options: NavigationOptions & { setAsCurrent?: boolean } = DefaultNavigationOptions,
+  ): NavigationNode {
+    const setAsCurrent = options.setAsCurrent ?? false;
+
     // no root ==> create it
     if (!this.root) {
       this.root = this.createChild(null, data);
-      this.current = this.root;
+      if (setAsCurrent || !this.current) this.current = this.root;
       return this.root;
     }
 
-    // QUESTION: how should we handle this.current === null?
-    if (!this.current) {
-      this.current = this.root;
-    }
+    // Resolve the parent. Unknown parentId or null falls back to the
+    // tree's root — NOT to `this.current` (that was the original bug).
+    const parent = (parentId !== null ? this.findNodeById(parentId) : null) ?? this.root;
 
     const targetKey = createUrlKey(data.url);
-    const currentKey = createUrlKey(this.current.data.url);
+    const parentKey = createUrlKey(parent.data.url);
 
-    // same url as current ==> update metadata
-    if (currentKey === targetKey) {
-      this.current.data = updateNodeMeta(this.current.data, data);
-      this.updateSearchEntry(this.current);
-      return this.current;
+    // same url as parent ==> update metadata
+    if (parentKey === targetKey) {
+      parent.data = updateNodeMeta(parent.data, data);
+      this.updateSearchEntry(parent);
+      if (setAsCurrent) this.current = parent;
+      return parent;
     }
 
-    // if current has a child with the same url ==> update metadata
-    const existingChild = this.current
-      .getChildren()
-      .find((c) => createUrlKey(c.data.url) === targetKey);
+    // if parent has a child with the same url ==> update metadata + use it
+    const existingChild = parent.getChildren().find((c) => createUrlKey(c.data.url) === targetKey);
     if (existingChild) {
       existingChild.data = updateNodeMeta(existingChild.data, data);
       this.updateSearchEntry(existingChild);
-      this.current = existingChild;
+      if (setAsCurrent) this.current = existingChild;
       return existingChild;
     }
 
-    // if backOnRevisit: search ancestors
+    // if backOnRevisit: search ancestors of the parent
     if (options.backOnRevisit ?? DefaultNavigationOptions.backOnRevisit) {
-      let ancestor = this.current.getParent();
+      let ancestor = parent.getParent();
       while (ancestor) {
         if (createUrlKey(ancestor.data.url) === targetKey) {
           ancestor.data = updateNodeMeta(ancestor.data, data);
           this.updateSearchEntry(ancestor);
-          this.current = ancestor;
+          if (setAsCurrent) this.current = ancestor;
           return ancestor;
         }
         ancestor = ancestor.getParent();
       }
     }
 
-    // create a child
-    const newChild = this.createChild(this.current, data);
-    this.current = newChild;
+    // create a child of `parent`
+    const newChild = this.createChild(parent, data);
+    if (setAsCurrent) this.current = newChild;
     return newChild;
   }
 
