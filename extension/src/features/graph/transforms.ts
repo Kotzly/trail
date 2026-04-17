@@ -41,10 +41,11 @@ export function computeActivePathIds(
 export function treeToNodes(
   tree: NavigationTreeJSON | null,
   metadata: TreeToNodesMetadata,
+  activePathIds?: Set<NodeId>,
 ): TrailNode[] {
   if (!tree?.root) return [];
 
-  const activePathIds = computeActivePathIds(tree, metadata.currentNodeId);
+  const path = activePathIds ?? computeActivePathIds(tree, metadata.currentNodeId);
   const nodes: TrailNode[] = [];
 
   function walk(node: NavigationNodeJSON): void {
@@ -57,7 +58,7 @@ export function treeToNodes(
       pinned: node.data.pinned,
       isCurrent: node.id === metadata.currentNodeId,
       isOpen: metadata.openNodeIds.has(node.id),
-      onActivePath: activePathIds.has(node.id),
+      onActivePath: path.has(node.id),
       tabCount: metadata.nodeTabCounts[node.id] ?? 0,
       childCount: node.children.length,
       isCollapsed,
@@ -97,15 +98,19 @@ export function treeToNodes(
  */
 const SMOOTHSTEP_CHILD_THRESHOLD = 4;
 
-const ACTIVE_EDGE_STYLE = {
+const ACTIVE_EDGE_STYLE = Object.freeze({
   stroke: "var(--primary)",
   strokeWidth: 2.25,
-} as const;
+});
 
+/**
+ * Base edge list — topology only, no active-path styling.
+ * Styling is applied on top (see `applyEdgeHighlight`) so the base list
+ * can be cached across active-tab changes.
+ */
 export function treeToEdges(
   tree: NavigationTreeJSON | null,
   collapsedNodeIds: Set<NodeId>,
-  activePathIds: Set<NodeId>,
 ): TrailEdge[] {
   if (!tree?.root) return [];
 
@@ -117,22 +122,36 @@ export function treeToEdges(
     const useSmoothStep = node.children.length >= SMOOTHSTEP_CHILD_THRESHOLD;
 
     for (const child of node.children) {
-      const onPath = activePathIds.has(node.id) && activePathIds.has(child.id);
-      const edge: TrailEdge = {
+      edges.push({
         id: `${node.id}->${child.id}`,
         source: String(node.id),
         target: String(child.id),
         type: useSmoothStep ? "smoothstep" : "default",
-      };
-      if (onPath) {
-        edge.style = ACTIVE_EDGE_STYLE;
-        edge.zIndex = 1;
-      }
-      edges.push(edge);
+      });
       walk(child);
     }
   }
 
   walk(tree.root);
   return edges;
+}
+
+/**
+ * Produce a fresh edge list with active-path styling applied. Edges not
+ * on the active path are returned by reference (no allocation). Edges on
+ * the path are shallow-cloned with style + zIndex set.
+ */
+export function applyEdgeHighlight(
+  edges: readonly TrailEdge[],
+  activePathIds: Set<NodeId>,
+): TrailEdge[] {
+  if (activePathIds.size === 0) return edges as TrailEdge[];
+  const out: TrailEdge[] = new Array(edges.length);
+  for (let i = 0; i < edges.length; i += 1) {
+    const edge = edges[i]!;
+    const onPath =
+      activePathIds.has(edge.source as NodeId) && activePathIds.has(edge.target as NodeId);
+    out[i] = onPath ? { ...edge, style: ACTIVE_EDGE_STYLE, zIndex: 1 } : edge;
+  }
+  return out;
 }

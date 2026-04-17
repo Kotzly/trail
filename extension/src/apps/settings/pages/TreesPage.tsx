@@ -1,8 +1,9 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useTrees } from "../hooks/useTrees.js";
 import { Button } from "@ui/components/ui/button";
-import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Input } from "@ui/components/ui/input";
+import { SectionHeader } from "../components/PageHeader.js";
 import {
   InputGroup,
   InputGroupAddon,
@@ -51,16 +52,40 @@ export function TreesPage() {
     archiveActiveTree,
     deleteArchivedTree,
     exportTree,
+    importFromFile,
   } = useTrees();
 
   const [newTreeLabel, setNewTreeLabel] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleNewTree = useCallback(async () => {
     if (!newTreeLabel.trim()) return;
     await newTree(newTreeLabel.trim());
     setNewTreeLabel("");
   }, [newTreeLabel, newTree]);
+
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChosen = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      // Always reset the input so the same file can be picked again.
+      event.target.value = "";
+      if (!file) return;
+      try {
+        await importFromFile(file);
+        toast.success("Tree imported.");
+      } catch (err) {
+        toast.error("Import failed", {
+          description: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+    [importFromFile],
+  );
 
   const handleStartEdit = useCallback((id: string) => {
     setEditingId(id);
@@ -83,28 +108,45 @@ export function TreesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <CardHeader className="px-0">
-        <CardTitle>Trees</CardTitle>
-        <CardDescription>Manage your browsing trees.</CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-4">
+      <SectionHeader title="Trees" description="Create, archive, import, and export your trees." />
 
-      <InputGroup>
-        <InputGroupInput
-          placeholder="New tree name…"
-          value={newTreeLabel}
-          onChange={(e) => setNewTreeLabel(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void handleNewTree();
-          }}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <InputGroup className="flex-1">
+          <InputGroupInput
+            placeholder="New tree name…"
+            value={newTreeLabel}
+            onChange={(e) => setNewTreeLabel(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void handleNewTree();
+            }}
+          />
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton onClick={() => void handleNewTree()} disabled={!newTreeLabel.trim()}>
+              <Icons.Plus />
+              Create
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+        <Button
+          variant="outline"
+          onClick={handleImportClick}
+          className="shrink-0"
+          aria-label="Import a .trail or .json export"
+        >
+          <Icons.Upload />
+          Import
+        </Button>
+        {/* Offscreen file picker. `.trail` is the v2 gzipped format;
+            `.json` is the legacy v1 pretty JSON — decodeExport auto-detects. */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".trail,.json,application/json,application/octet-stream"
+          className="hidden"
+          onChange={(e) => void handleFileChosen(e)}
         />
-        <InputGroupAddon align="inline-end">
-          <InputGroupButton onClick={() => void handleNewTree()} disabled={!newTreeLabel.trim()}>
-            <Icons.Plus />
-            Create
-          </InputGroupButton>
-        </InputGroupAddon>
-      </InputGroup>
+      </div>
 
       <ItemGroup>
         <Item variant="muted" size="sm">

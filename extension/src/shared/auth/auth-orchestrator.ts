@@ -136,35 +136,68 @@ export function subscribeAuthState(cb: (state: AuthState) => void): () => void {
 export async function signInWithGoogle(): Promise<AuthState> {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    throw new Error("Supabase not configured");
+    throw new Error(
+      "Cloud sync isn't configured in this build of Trail. Your trees stay local-only.",
+    );
   }
   if (!chrome.identity?.launchWebAuthFlow) {
-    throw new Error("chrome.identity not available in this surface");
+    throw new Error("Sign-in isn't available from this page — open Settings in the full tab view.");
   }
 
   const redirectUrl = chrome.identity.getRedirectURL();
   captureEvent("auth_signin_started", { provider: "google" });
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: redirectUrl,
-      skipBrowserRedirect: true,
-    },
-  });
+  let oauthResponse;
+  try {
+    oauthResponse = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: true,
+      },
+    });
+  } catch (err) {
+    // Supabase returns a network / config error here when the project
+    // is paused, the URL is misconfigured, or the browser has no
+    // connectivity. Translate into a user-actionable message.
+    captureError(err, { kind: "auth_oauth_request" });
+    throw new Error(
+      "Couldn't reach the sign-in service. Check your connection and try again — your local trees are not affected.",
+      { cause: err instanceof Error ? err : undefined },
+    );
+  }
+  const { data, error } = oauthResponse;
   if (error || !data.url) {
-    throw error ?? new Error("Supabase did not return an auth URL");
+    captureError(error ?? new Error("No auth URL"), { kind: "auth_oauth_empty_url" });
+    throw new Error(
+      "The sign-in service didn't return an authorization URL. The cloud service may be temporarily down.",
+    );
   }
 
   const responseUrl = await new Promise<string>((resolve, reject) => {
     chrome.identity.launchWebAuthFlow({ url: data.url, interactive: true }, (result) => {
       const lastErr = chrome.runtime.lastError;
       if (lastErr) {
-        reject(new Error(lastErr.message ?? "launchWebAuthFlow failed"));
+        const raw = lastErr.message ?? "launchWebAuthFlow failed";
+        // Send the RAW chrome runtime message to Sentry so we keep
+        // real diagnostic fidelity (e.g. "Authorization page could
+        // not be loaded") even when the UI shows a friendlier
+        // rephrasing. The user-visible error below is a polished
+        // explanation; the backend needs the original.
+        captureError(new Error(`launchWebAuthFlow: ${raw}`), {
+          kind: "auth_launch_web_auth_flow",
+          rawMessage: raw,
+        });
+        const friendly = /authorization page could not be loaded/i.test(raw)
+          ? "Couldn't load the sign-in page — the cloud service is unreachable right now. Your local data is safe; try again in a minute."
+          : /canceled|cancelled|user did not approve/i.test(raw)
+            ? "Sign-in was cancelled."
+            : raw;
+        reject(new Error(friendly));
         return;
       }
       if (!result) {
-        reject(new Error("Empty auth flow response"));
+        reject(new Error("Sign-in window closed without completing."));
         return;
       }
       resolve(result);

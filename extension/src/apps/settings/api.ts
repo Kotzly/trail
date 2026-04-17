@@ -15,12 +15,20 @@ export async function getTrees(): Promise<TreesSnapshot> {
   return treeService.getTrees();
 }
 
+// All tree-switch operations originating from the Settings UI pass
+// `origin: "settings"` so the background can open the new tab in the
+// background — the user stays on the Settings tab they initiated the
+// switch from instead of getting yanked to the freshly-opened tree
+// tab. Sidepanel callers omit `origin` and get the default
+// focus-the-new-tab behaviour.
+const SETTINGS_ORIGIN = { origin: "settings" as const };
+
 export async function newTree(label: string): Promise<void> {
-  await treeService.createNewTree({ label });
+  await treeService.createNewTree({ label, ...SETTINGS_ORIGIN });
 }
 
 export async function openTree(treeId: string): Promise<void> {
-  await treeService.openTree({ treeId });
+  await treeService.openTree({ treeId, ...SETTINGS_ORIGIN });
 }
 
 export async function renameTree(treeId: string, label: string): Promise<void> {
@@ -28,7 +36,7 @@ export async function renameTree(treeId: string, label: string): Promise<void> {
 }
 
 export async function archiveActiveTree(): Promise<void> {
-  await treeService.archiveActiveTree();
+  await treeService.archiveActiveTree(SETTINGS_ORIGIN);
 }
 
 export async function deleteArchivedTree(treeId: string): Promise<void> {

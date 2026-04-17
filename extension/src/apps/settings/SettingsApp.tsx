@@ -12,6 +12,7 @@ import { Skeleton } from "@ui/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@ui/components/ui/tabs";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
 import { Toaster } from "@ui/components/ui/sonner";
+import { SidepanelPeek } from "./components/SidepanelPeek.js";
 
 type Page = "account" | "data" | "appearance" | "behavior" | "shortcuts" | "privacy" | "about";
 
@@ -60,6 +61,7 @@ export default function SettingsApp() {
   return (
     <TooltipProvider delayDuration={200}>
       <Toaster />
+      <SidepanelPeek />
       <Tabs
         orientation="vertical"
         value={page}
@@ -80,39 +82,41 @@ export default function SettingsApp() {
             ))}
           </TabsList>
         </aside>
-        <main className="max-w-2xl flex-1 overflow-y-auto p-6">
-          {loading || !settings ? (
-            <div className="flex flex-col gap-4">
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-4 w-64" />
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          ) : (
-            <>
-              <TabsContent value="account">
-                <AccountPage />
-              </TabsContent>
-              <TabsContent value="data">
-                <DataPage />
-              </TabsContent>
-              <TabsContent value="appearance">
-                <AppearancePage settings={settings} onUpdate={updateSettings} />
-              </TabsContent>
-              <TabsContent value="behavior">
-                <BehaviorPage settings={settings} onUpdate={updateSettings} />
-              </TabsContent>
-              <TabsContent value="shortcuts">
-                <ShortcutsPage />
-              </TabsContent>
-              <TabsContent value="privacy">
-                <PrivacyPage />
-              </TabsContent>
-              <TabsContent value="about">
-                <AboutPage />
-              </TabsContent>
-            </>
-          )}
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-2xl p-6 md:p-8">
+            {loading || !settings ? (
+              <div className="flex flex-col gap-4">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-64" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            ) : (
+              <>
+                <TabsContent value="account">
+                  <AccountPage />
+                </TabsContent>
+                <TabsContent value="data">
+                  <DataPage />
+                </TabsContent>
+                <TabsContent value="appearance">
+                  <AppearancePage settings={settings} onUpdate={updateSettings} />
+                </TabsContent>
+                <TabsContent value="behavior">
+                  <BehaviorPage settings={settings} onUpdate={updateSettings} />
+                </TabsContent>
+                <TabsContent value="shortcuts">
+                  <ShortcutsPage />
+                </TabsContent>
+                <TabsContent value="privacy">
+                  <PrivacyPage />
+                </TabsContent>
+                <TabsContent value="about">
+                  <AboutPage />
+                </TabsContent>
+              </>
+            )}
+          </div>
         </main>
       </Tabs>
     </TooltipProvider>

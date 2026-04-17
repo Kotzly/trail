@@ -1,16 +1,9 @@
 import type { FaviconUrl, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import { compileBlocklist, type CompiledBlocklist } from "@shared/lib/url-blocklist.js";
+import { isNewTabUrl } from "@shared/lib/root.js";
 export { getFaviconUrl };
-
-const ignoredUrlPatterns: RegExp[] = [
-  /^devtools:/,
-  /^javascript:/,
-  /^mailto:/,
-  /^tel:/,
-  /^data:/,
-  /^chrome-extension:/,
-];
+export { isNewTabUrl };
 
 const blockedFaviconUrlPatterns: RegExp[] = [
   /^chrome:\/\/favicon2/i,
@@ -19,21 +12,6 @@ const blockedFaviconUrlPatterns: RegExp[] = [
   /^chrome-extension:\/\/[^/]+\/_favicon\//i,
   /^about:blank(?:[#?].*)?$/i,
 ];
-
-const ntpUrlPatterns: ReadonlyArray<RegExp> = [
-  /^(?<scheme>[a-z][a-z0-9+.-]*):\/\/(?<page>newtab|new-tab-page)\/?(?:[?#].*)?$/i,
-  /^(?<scheme>chrome-search):\/\/(?<page>local-ntp|newtab)\/.*$/i,
-  /^(?<scheme>chrome-extension):\/\/(?<extId>[a-p]{32})\/(?<path>(?:.*\/)?(?:newtab|new-tab-page|ntp)(?:\.html?)?)(?:[?#].*)?$/i,
-  /^(?<scheme>brave-extension):\/\/(?<extId>[a-p]{32})\/(?<path>(?:.*\/)?(?:newtab|new-tab-page|ntp)(?:\.html?)?)(?:[?#].*)?$/i,
-  /^about:blank(?:[#?].*)?$/i,
-  /^about:newtab(?:[#?].*)?$/i,
-  /^about:new-tab-page(?:[#?].*)?$/i,
-  /^about:ntp(?:[#?].*)?$/i,
-] as const;
-
-export function isNewTabUrl(url: Url): boolean {
-  return ntpUrlPatterns.some((pattern) => pattern.test(url));
-}
 
 /**
  * Detect new-tab / NTP contexts strictly by URL pattern. The old
@@ -51,11 +29,28 @@ export function isNewTabContext(url: Url, _title?: string | null): boolean {
   return isNewTabUrl(url);
 }
 
-/** Allowlist: only http(s) URLs are trackable in the tree. */
+// Cached scheme allowlist. Populated from settings; defaults to
+// http(s) so events arriving before settings load don't silently
+// track chrome-extension:// or similar.
+let cachedSchemes = new Set<string>(["http:", "https:"]);
+
+export function setTrackedSchemes(schemes: readonly string[]): void {
+  // No fallback if user clears the list — an explicit empty list means
+  // "track nothing", and settings/url-utils/UI copy all agree on that.
+  // The module-scope initializer above handles the startup race where
+  // events fire before settings load.
+  const normalized = schemes
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => s.length > 0)
+    .map((s) => (s.endsWith(":") ? s : `${s}:`));
+  cachedSchemes = new Set(normalized);
+}
+
+/** Allowlist: URL scheme must be in the user-configured set. */
 export function isTrackableUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    return cachedSchemes.has(parsed.protocol);
   } catch {
     return false;
   }
@@ -123,7 +118,6 @@ export function isChallengeUrl(url: Url | string): boolean {
 }
 
 export function shouldTrackUrl(url: Url): boolean {
-  if (ignoredUrlPatterns.some((pattern) => pattern.test(url))) return false;
   if (isChallengeUrl(url)) return false;
   if (!isTrackableUrl(url)) return false;
   return !cachedBlocklist(url);

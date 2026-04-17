@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "../api.js";
+import { decodeExport, encodeExport } from "@shared/lib/export-codec.js";
 
 const TREES_KEY = ["trees"] as const;
 
@@ -43,14 +44,31 @@ export function useTrees() {
 
   const exportTree = useCallback(async (treeId?: string) => {
     const bundle = await api.exportTree(treeId);
-    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+    const { bytes, suggestedFilename, mimeType } = encodeExport(bundle);
+    // Wrapping Uint8Array in a plain array lets TS narrow BlobPart
+    // correctly without a cast; the underlying bytes are the same.
+    const blob = new Blob([new Uint8Array(bytes)], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `trail-export-${bundle.source.treeLabel ?? "tree"}.json`;
+    a.download = suggestedFilename;
     a.click();
     URL.revokeObjectURL(url);
   }, []);
+
+  const importFromFile = useCallback(
+    async (file: File) => {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const bundle = decodeExport(bytes);
+      await api.importTrail(bundle);
+      invalidate();
+    },
+    // invalidate is a stable reference returned by react-query's queryClient
+    // method; linting it as a dep would force the caller to recreate the
+    // callback every render, defeating the memoization.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   return {
     trees: query.data ?? null,
@@ -63,5 +81,6 @@ export function useTrees() {
     archiveActiveTree,
     deleteArchivedTree,
     exportTree,
+    importFromFile,
   };
 }

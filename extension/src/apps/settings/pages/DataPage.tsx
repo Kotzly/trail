@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
+import { PageHeader } from "../components/PageHeader.js";
 import { Button } from "@ui/components/ui/button";
 import { useBoolean } from "@ui/hooks/use-boolean";
 import { useLockFn } from "@ui/hooks/use-lock-fn";
@@ -75,12 +76,10 @@ export function DataPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <CardHeader className="px-0">
-        <CardTitle>Data</CardTitle>
-        <CardDescription>
-          Export, import, and manage your trees. Your data is yours.
-        </CardDescription>
-      </CardHeader>
+      <PageHeader
+        title="Data"
+        description="Export, import, and manage your trees. Your data is yours."
+      />
 
       <TreesPage />
 

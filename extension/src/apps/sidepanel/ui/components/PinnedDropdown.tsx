@@ -4,13 +4,13 @@ import type { TreeNode } from "@background/state/tree-node.js";
 import type { NodeId } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import { navigateTo } from "../../api/tree.js";
+import { togglePin } from "../../api/actions.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { displayLabel, formatHost } from "../shared/format.js";
 import { Button } from "@ui/components/ui/button";
-import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -20,6 +20,7 @@ import {
 } from "@ui/components/ui/empty";
 import {
   Item,
+  ItemActions,
   ItemContent,
   ItemDescription,
   ItemGroup,
@@ -28,7 +29,6 @@ import {
 } from "@ui/components/ui/item";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { ScrollArea } from "@ui/components/ui/scroll-area";
-import { Separator } from "@ui/components/ui/separator";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
 
 type NavNode = TreeNode<NodeData> | NavigationNode;
@@ -58,6 +58,14 @@ export default function PinnedDropdown() {
     },
     [tree, setOpen],
   );
+
+  const handleUnpin = useCallback(async (nodeId: NodeId) => {
+    try {
+      await togglePin(nodeId);
+    } catch (error) {
+      showOperationError("Unpin", error);
+    }
+  }, []);
 
   const handleEnter = useCallback(
     (e: React.KeyboardEvent) => {
@@ -90,21 +98,20 @@ export default function PinnedDropdown() {
         align="start"
         className="w-[320px] overflow-hidden p-0"
         onKeyDown={handleEnter}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <CardHeader className="px-3 py-2.5">
-          <CardTitle className="text-[13px]">Pinned</CardTitle>
-          <CardDescription id="pinnedCount" className="text-[11px]">
-            {pinnedNodes.length} {pinnedNodes.length === 1 ? "page" : "pages"}
-          </CardDescription>
-        </CardHeader>
-        <Separator />
         <ScrollArea className="max-h-[320px] [&>[data-radix-scroll-area-viewport]>div]:!block">
           {pinnedNodes.length === 0 ? (
             <EmptyPinned />
           ) : (
             <ItemGroup className="p-1" id="pinnedList">
               {pinnedNodes.map((node) => (
-                <PinnedRow key={node.id} node={node} onNavigate={handleNavigate} />
+                <PinnedRow
+                  key={node.id}
+                  node={node}
+                  onNavigate={handleNavigate}
+                  onUnpin={handleUnpin}
+                />
               ))}
             </ItemGroup>
           )}
@@ -141,9 +148,11 @@ function EmptyPinned() {
 const PinnedRow = memo(function PinnedRow({
   node,
   onNavigate,
+  onUnpin,
 }: {
   node: NavNode;
   onNavigate: (id: NodeId) => void | Promise<void>;
+  onUnpin: (id: NodeId) => void | Promise<void>;
 }) {
   const title = displayLabel({
     title: node.data.title ?? null,
@@ -155,7 +164,7 @@ const PinnedRow = memo(function PinnedRow({
   return (
     <Item
       size="xs"
-      className="hover:bg-accent cursor-pointer border-transparent"
+      className="hover:bg-accent group/row cursor-pointer border-transparent"
       data-node-id={node.id}
       onClick={() => void onNavigate(node.id as NodeId)}
     >
@@ -170,6 +179,22 @@ const PinnedRow = memo(function PinnedRow({
         <ItemTitle className="block w-full truncate text-[13px]">{title}</ItemTitle>
         {showHost ? <ItemDescription className="text-[11px]">{host}</ItemDescription> : null}
       </ItemContent>
+      <ItemActions className="opacity-0 transition-opacity group-hover/row:opacity-100">
+        <ButtonTooltip label="Unpin">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            type="button"
+            aria-label="Unpin"
+            onClick={(e) => {
+              e.stopPropagation();
+              void onUnpin(node.id as NodeId);
+            }}
+          >
+            <Icons.X />
+          </Button>
+        </ButtonTooltip>
+      </ItemActions>
     </Item>
   );
 });

@@ -4,7 +4,6 @@ import type {
   GraphDensity,
   TitleTruncation,
 } from "@shared/types/settings.js";
-import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Field,
   FieldContent,
@@ -13,8 +12,8 @@ import {
   FieldLegend,
   FieldSet,
 } from "@ui/components/ui/field";
+import { PageHeader, SectionHeader } from "../components/PageHeader.js";
 import { Switch } from "@ui/components/ui/switch";
-import { Separator } from "@ui/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -32,11 +31,8 @@ type AppearancePageProps = {
 
 export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
   return (
-    <div className="flex flex-col gap-6">
-      <CardHeader className="px-0">
-        <CardTitle>Appearance</CardTitle>
-        <CardDescription>Customize the graph display.</CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-8">
+      <PageHeader title="Appearance" description="Customize how the graph looks." />
 
       <FieldGroup>
         <FieldSet>
@@ -101,10 +97,8 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
         </Field>
       </FieldGroup>
 
-      <Separator />
-
-      <FieldSet>
-        <FieldLegend variant="label">Display</FieldLegend>
+      <div className="flex flex-col gap-4">
+        <SectionHeader title="Display" description="Decide how much detail each node shows." />
         <FieldGroup>
           <Field orientation="horizontal">
             <FieldContent>
@@ -157,7 +151,7 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
             />
           </Field>
         </FieldGroup>
-      </FieldSet>
+      </div>
     </div>
   );
 }

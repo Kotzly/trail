@@ -1,0 +1,15 @@
+/* Size overrides for the shared TrailLogo inside the onboarding wizard.
+   The base .trail-logo selector lives in trail-logo.css (unlayered) with
+   width: 90px and beats any Tailwind utility. These onboarding-local
+   classes match its specificity and override width/height to the sizes
+   the wizard actually wants. */
+
+.trail-logo.trail-logo-hero {
+  width: 112px;
+  height: 112px;
+}
+
+.trail-logo.trail-logo-badge {
+  width: 14px;
+  height: 14px;
+}

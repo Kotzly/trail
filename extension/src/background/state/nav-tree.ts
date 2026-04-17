@@ -4,6 +4,7 @@ import { TreeNode } from "./tree-node.js";
 import { DefaultNavigationOptions, type NavigationOptions } from "@shared/types/tree.js";
 import { type NodeData, type NavigationNode, updateNodeMeta } from "@shared/types/node.js";
 import { createUrlKey } from "@shared/lib/url-key.js";
+import { buildNewTabRootData, isNewTabUrl } from "@shared/lib/root.js";
 
 export type NodeRedirect = { from: NodeId; to: NodeId };
 export type DeleteNodeResult = { removed: NavigationNode[]; redirects: NodeRedirect[] };
@@ -252,11 +253,24 @@ export class NavigationTree {
   ): NavigationNode {
     const setAsCurrent = options.setAsCurrent ?? false;
 
-    // no root ==> create it
+    // Invariant: the root of a tree is ALWAYS a New-Tab URL node.
+    // It's the single anchor that Ctrl+T / Cmd+T tabs collapse into,
+    // so the tree can't lose the user's starting point. If the tree
+    // is empty and the incoming navigation is for a real page (not
+    // NTP), synthesise an NTP root first and fall through — the
+    // real URL becomes a child of the synthetic root via the normal
+    // "create child of parent" path below.
     if (!this.root) {
-      this.root = this.createChild(null, data);
-      if (setAsCurrent || !this.current) this.current = this.root;
-      return this.root;
+      if (isNewTabUrl(data.url)) {
+        this.root = this.createChild(null, data);
+        if (setAsCurrent || !this.current) this.current = this.root;
+        return this.root;
+      }
+      this.root = this.createChild(null, buildNewTabRootData());
+      if (!this.current) this.current = this.root;
+      // intentional fall-through — parent resolution below picks up
+      // the freshly-created NTP root and attaches the incoming URL
+      // as its first child.
     }
 
     // Resolve the parent. Unknown parentId or null falls back to the

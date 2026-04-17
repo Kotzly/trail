@@ -111,6 +111,9 @@ export const defaultSettings: Settings = {
       "*.healthcare.gov",
       "*.irs.gov",
     ],
+    // Default to regular web pages only. Matches the legacy hardcoded
+    // allowlist; users can add `file:`, `chrome-extension:`, etc.
+    trackedSchemes: ["http:", "https:"],
     skipIncognito: true,
   },
   cleanup: {
@@ -171,6 +174,14 @@ function mergeDefaults(raw: unknown): Settings {
         sanitized.privacy.blocklist.every((x) => typeof x === "string")
           ? sanitized.privacy.blocklist
           : defaultSettings.privacy.blocklist,
+      trackedSchemes:
+        Array.isArray(sanitized.privacy?.trackedSchemes) &&
+        sanitized.privacy.trackedSchemes.every((x) => typeof x === "string")
+          ? sanitized.privacy.trackedSchemes
+              .map((s) => s.trim().toLowerCase())
+              .filter((s) => s.length > 0)
+              .map((s) => (s.endsWith(":") ? s : `${s}:`))
+          : defaultSettings.privacy.trackedSchemes,
       skipIncognito:
         typeof sanitized.privacy?.skipIncognito === "boolean"
           ? sanitized.privacy.skipIncognito
@@ -277,8 +288,9 @@ class SettingsManager {
 
   private pushBlocklist(): void {
     // Lazy import to avoid circular dep (url-utils is deep in navigation).
-    void import("../utils/url-utils.js").then(({ setUrlBlocklist }) => {
+    void import("../utils/url-utils.js").then(({ setUrlBlocklist, setTrackedSchemes }) => {
       setUrlBlocklist(this.settings.privacy.blocklist);
+      setTrackedSchemes(this.settings.privacy.trackedSchemes);
     });
   }
 

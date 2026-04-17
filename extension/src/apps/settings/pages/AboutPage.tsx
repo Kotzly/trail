@@ -6,6 +6,7 @@ import { onboardingStateItem } from "@shared/config/storage-items.js";
 import { MARKETING_URLS, openExternal } from "@shared/config/marketing-urls.js";
 import { toast } from "sonner";
 import { FeedbackDialog, type FeedbackKind } from "@ui/components/feedback-dialog.js";
+import { PageHeader } from "../components/PageHeader.js";
 
 const MANIFEST_VERSION = chrome.runtime.getManifest?.()?.version ?? "dev";
 
@@ -18,11 +19,11 @@ export function AboutPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <CardHeader className="px-0">
-        <CardTitle>About Trail</CardTitle>
-        <CardDescription>Your browsing sessions, reimagined as a graph.</CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="About Trail"
+        description="Your browsing sessions, reimagined as a graph."
+      />
 
       <Card>
         <CardHeader className="flex flex-row items-center gap-3">

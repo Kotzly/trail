@@ -59,6 +59,12 @@ export type PrivacySettings = {
    * domains and localhost.
    */
   blocklist: string[];
+  /**
+   * URL schemes that Trail will record. Stored with a trailing colon
+   * (e.g. `https:`). Defaults to regular web pages only; users can add
+   * `file:`, `chrome-extension:`, etc. from Settings → Privacy.
+   */
+  trackedSchemes: string[];
   /** If true (default), skip tracking in Chrome incognito windows. */
   skipIncognito: boolean;
 };

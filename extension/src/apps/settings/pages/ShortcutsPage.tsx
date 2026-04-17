@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Shortcut, type ShortcutKey } from "@ui/components/shortcut";
+import { PageHeader } from "../components/PageHeader.js";
 
 type ShortcutRow = {
   keys: readonly ShortcutKey[];
@@ -56,11 +57,8 @@ const GROUPS: readonly ShortcutGroup[] = [
 
 export function ShortcutsPage() {
   return (
-    <div className="flex flex-col gap-4">
-      <CardHeader className="px-0">
-        <CardTitle>Keyboard shortcuts</CardTitle>
-        <p className="text-muted-foreground text-sm">All shortcuts at a glance.</p>
-      </CardHeader>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Keyboard shortcuts" description="All shortcuts at a glance." />
 
       {GROUPS.map((group) => (
         <Card key={group.title}>

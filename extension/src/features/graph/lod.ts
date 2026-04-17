@@ -44,3 +44,8 @@ export const selectLod = (s: ReactFlowState): Lod => {
   if (zoom < ZOOM_DETAIL) return "mid";
   return "near";
 };
+
+/** `showLabels` at the current LOD. */
+export const showLabelsAt = (lod: Lod): boolean => lod !== "far";
+/** `showDetail` at the current LOD. */
+export const showDetailAt = (lod: Lod): boolean => lod === "near";

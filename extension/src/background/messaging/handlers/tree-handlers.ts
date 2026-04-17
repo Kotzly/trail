@@ -4,6 +4,7 @@ import {
   type TreeUpdatedInput,
   type TreesSnapshot,
   type TreeViewIntent,
+  type TreeSwitchOrigin,
 } from "@shared/rpc/contracts.js";
 import { getEditorState } from "./editor-handlers.js";
 import { treeStorage } from "../../services/tree-storage.js";
@@ -207,10 +208,16 @@ function ensureRootForTab(tree: NavigationTree, tab: Tab): NavigationNode | null
     if (!data) {
       return null;
     }
-    const created = tree.navigate(data);
-    tree.setCurrent(created);
-    registerTabForNode(created.id, tab);
-    return created;
+    // `tree.navigate` enforces the root-is-NTP invariant: if `data.url`
+    // is a real page (not a New Tab URL), the tree synthesises an NTP
+    // root first and returns the real-URL CHILD as the landed node.
+    // Either way, `landed` is the node this tab should be mapped to —
+    // which is what we want: Ctrl+T new-tab tabs map to the synthetic
+    // root, real pages map to their own node.
+    const landed = tree.navigate(data);
+    tree.setCurrent(landed);
+    registerTabForNode(landed.id, tab);
+    return landed;
   }
   if (data && root.data.url === data.url) {
     root.data = updateNodeMeta(root.data, data);
@@ -221,14 +228,32 @@ function ensureRootForTab(tree: NavigationTree, tab: Tab): NavigationNode | null
   return root;
 }
 
+type SwitchTreeOptions = {
+  /**
+   * Source of the switch request. When `"settings"`, new tabs are
+   * created in the background so the settings page keeps OS focus —
+   * the tree/tab state is still correct, the user just isn't yanked
+   * out of their settings flow. Default (undefined / "sidepanel")
+   * focuses the freshly-opened active tab.
+   */
+  origin?: TreeSwitchOrigin;
+};
+
 async function switchTree(
   nextTree: NavigationTree,
   nextMeta: TreeMeta,
   rootUrl?: Url | null,
   viewOverride?: TreeViewIntent | null,
   preferredFocusNodeId?: NodeId | null,
+  options: SwitchTreeOptions = {},
 ): Promise<void> {
   const keepTabs = settingsManager.get().keepTabsOnSwitch;
+  // `activateNewTabs=false` means the tree is still switched (active
+  // tree in storage + tabs opened per `keepTabsOnSwitch`) but the
+  // user's focus stays on whatever tab they were on — typically the
+  // settings page they initiated the switch from. A later switch via
+  // sidepanel will still activate tabs normally.
+  const activateNewTabs = options.origin !== "settings";
 
   // --- Save open tab URLs for the current tree -------------------------
   if (keepTabs) {
@@ -268,7 +293,12 @@ async function switchTree(
     let createdCount = 0;
 
     for (const url of savedUrls) {
-      const isActive = preferredFocusUrl !== null && url === preferredFocusUrl;
+      // The "focused" tab is the one representing the tree's current
+      // node. We still record it as the current node regardless of OS
+      // focus, but when the switch originates from settings we skip
+      // the OS `active: true` so the user stays on settings.
+      const shouldMarkCurrent = preferredFocusUrl !== null && url === preferredFocusUrl;
+      const isActive = shouldMarkCurrent && activateNewTabs;
       let tab: Tab;
       try {
         tab = await browser.tabs.create({ url, active: isActive });
@@ -279,7 +309,7 @@ async function switchTree(
       const node = nextTree.findByUrl(url as Url);
       if (node && tab.id !== undefined) {
         registerTabForNode(node.id, tab);
-        if (isActive) {
+        if (shouldMarkCurrent) {
           focusNodeId = node.id;
           nextTree.setCurrent(node);
           treeChanged = true;
@@ -301,10 +331,10 @@ async function switchTree(
       let tab: Tab;
       try {
         tab = await browser.tabs.create(
-          fallbackUrl ? { url: fallbackUrl, active: true } : { active: true },
+          fallbackUrl ? { url: fallbackUrl, active: activateNewTabs } : { active: activateNewTabs },
         );
       } catch {
-        tab = await browser.tabs.create({});
+        tab = await browser.tabs.create({ active: activateNewTabs });
       }
       if (preferredFocusNode) {
         nextTree.setCurrent(preferredFocusNode);
@@ -324,17 +354,21 @@ async function switchTree(
       treeStorage.cacheTree(nextTree);
     }
   } else {
-    // No saved tabs — original behaviour: open single preferred tab
+    // No saved tabs — original behaviour: open single preferred tab.
+    // `activateNewTabs` controls whether OS focus moves to it; tree
+    // state is still updated below regardless.
     let created: Tab;
     try {
       created = await browser.tabs.create(
-        preferredFocusUrl ? { url: preferredFocusUrl, active: true } : { active: true },
+        preferredFocusUrl
+          ? { url: preferredFocusUrl, active: activateNewTabs }
+          : { active: activateNewTabs },
       );
     } catch (error) {
       log.error("Failed to open root tab for tree switch", {
         error: error instanceof Error ? error.message : String(error),
       });
-      created = await browser.tabs.create({});
+      created = await browser.tabs.create({ active: activateNewTabs });
     }
     if (preferredFocusNode) {
       nextTree.setCurrent(preferredFocusNode);
@@ -424,10 +458,10 @@ export const treeHandlers = defineRpcHandlers({
     await treeStorage.archiveActiveTree();
     const meta = treeStorage.createMeta(message.label);
     const nextTree = new NavigationTree();
-    await switchTree(nextTree, meta, null, null);
+    await switchTree(nextTree, meta, null, null, null, { origin: message.origin });
   },
 
-  async [RPC_METHOD.ARCHIVE_ACTIVE_TREE]() {
+  async [RPC_METHOD.ARCHIVE_ACTIVE_TREE](message) {
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
       snapshot(current, "Archive active tree");
@@ -435,7 +469,7 @@ export const treeHandlers = defineRpcHandlers({
     await treeStorage.archiveActiveTree();
     const meta = treeStorage.createMeta("Untitled Tree");
     const nextTree = new NavigationTree();
-    await switchTree(nextTree, meta, null, null);
+    await switchTree(nextTree, meta, null, null, null, { origin: message?.origin });
   },
 
   async [RPC_METHOD.OPEN_TREE](message) {
@@ -459,7 +493,7 @@ export const treeHandlers = defineRpcHandlers({
       createdAt: record.createdAt,
     };
     const rootUrl = record.rootUrl ?? nextTree.getRoot()?.data.url ?? null;
-    await switchTree(nextTree, meta, rootUrl);
+    await switchTree(nextTree, meta, rootUrl, undefined, null, { origin: message.origin });
   },
 
   async [RPC_METHOD.ENSURE_TREE_LOADED](message) {

@@ -1,12 +1,15 @@
-import { useCallback, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@ui/components/ui/dialog";
+import { useCallback, useEffect, useRef, useState } from "react";
+import "./onboarding.css";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@ui/components/ui/dialog";
 import { Button } from "@ui/components/ui/button";
-import { Shortcut } from "@ui/components/shortcut";
-import { Progress } from "@ui/components/ui/progress";
-import { Spinner } from "@ui/components/ui/spinner";
+import { Icons } from "@ui/components/icons";
 import TrailLogo from "@ui/components/trail-logo";
-import { browser } from "@shared/platform/webext.js";
 import { useBoolean } from "@ui/hooks/use-boolean";
 import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { useMount } from "@ui/hooks/use-mount";
@@ -19,152 +22,40 @@ import {
   startOnboarding,
 } from "../../api/onboarding.js";
 import { showOperationError } from "../shared/show-operation-error.js";
+import { StepDots } from "./components/StepDots.js";
+import { WelcomeStep } from "./steps/WelcomeStep.js";
+import { PrivacyStep } from "./steps/PrivacyStep.js";
+import { BranchStep } from "./steps/BranchStep.js";
+import { StartStep } from "./steps/StartStep.js";
+import { ReadyStep } from "./steps/ReadyStep.js";
 
-type Step = {
-  title: string;
-  body: React.ReactNode;
-  primaryLabel: string;
-  primaryAction: "next" | "load-demo" | "done";
-  secondaryLabel?: string;
-  secondaryAction?: "skip" | "next" | "open-behavior";
-};
+const TOTAL_STEPS = 5;
 
-const STEPS: Step[] = [
-  {
-    title: "Welcome to Trail",
-    body: (
-      <div className="flex flex-col gap-3 text-sm leading-relaxed">
-        <p>
-          Trail turns your browsing into an interactive <strong>graph</strong>. Every click,
-          back-button, and new tab becomes a node you can revisit and rearrange.
-        </p>
-        <p className="text-muted-foreground">
-          Your data stays on your device until you opt in to cloud sync.
-        </p>
-      </div>
-    ),
-    primaryLabel: "Next",
-    primaryAction: "next",
-    secondaryLabel: "Skip",
-    secondaryAction: "skip",
-  },
-  {
-    title: "How Trail works",
-    body: (
-      <div className="flex flex-col gap-3 text-sm leading-relaxed">
-        <p>
-          As you browse, Trail records <strong>URL, title, and favicon</strong> for each page —
-          nothing else. No keystrokes, no form contents, no passwords.
-        </p>
-        <p>
-          When you follow a link from a page, that page becomes the parent of the new one. Hit back
-          and jump forward again — Trail forks a branch, so you don't lose the other path.
-        </p>
-        <p className="text-muted-foreground">
-          The result: a visual map of your research, not a flat list.
-        </p>
-      </div>
-    ),
-    primaryLabel: "Next",
-    primaryAction: "next",
-    secondaryLabel: "Skip",
-    secondaryAction: "skip",
-  },
-  {
-    title: "Trail keeps itself tidy",
-    body: (
-      <div className="flex flex-col gap-3 text-sm leading-relaxed">
-        <p>
-          Trail automatically removes pages you only glanced at for a second — the kind of quick
-          peek that clutters your map without adding meaning.
-        </p>
-        <p>
-          If you ever return to one of those pages, it comes back automatically. You'll find a{" "}
-          <strong>Recently cleaned</strong> list whenever you want to audit or restore.
-        </p>
-        <p className="text-muted-foreground">You can tune this in Settings → Behavior.</p>
-      </div>
-    ),
-    primaryLabel: "Got it",
-    primaryAction: "next",
-    secondaryLabel: "Open Behavior settings",
-    secondaryAction: "open-behavior",
-  },
-  {
-    title: "Chrome will ask for permissions",
-    body: (
-      <div className="flex flex-col gap-3 text-sm leading-relaxed">
-        <p>We need three permissions to build your trail:</p>
-        <ul className="flex flex-col gap-2 pl-4">
-          <li>
-            <strong>webNavigation</strong> — detect when you navigate between pages so we can
-            connect them in the graph.
-          </li>
-          <li>
-            <strong>tabs</strong> — know which tab you're in so separate research sessions stay
-            separate.
-          </li>
-          <li>
-            <strong>storage</strong> — save your tree locally (no server unless you opt in).
-          </li>
-        </ul>
-        <p className="text-muted-foreground">Trail never reads page content or form input.</p>
-      </div>
-    ),
-    primaryLabel: "Got it",
-    primaryAction: "next",
-    secondaryLabel: "Skip",
-    secondaryAction: "skip",
-  },
-  {
-    title: "Try a demo tree?",
-    body: (
-      <div className="flex flex-col gap-3 text-sm leading-relaxed">
-        <p>
-          Want to see what a full research session looks like? Load a demo tree —{" "}
-          <em>Planning a trip to Japan</em> — with ~25 nodes you can pan, collapse, and edit.
-        </p>
-        <p className="text-muted-foreground">
-          Your current tree (if any) is archived, not deleted. Access it from the tree switcher.
-        </p>
-      </div>
-    ),
-    primaryLabel: "Load demo",
-    primaryAction: "load-demo",
-    secondaryLabel: "Skip, start fresh",
-    secondaryAction: "next",
-  },
-  {
-    title: "You're set!",
-    body: (
-      <div className="flex flex-col gap-3 text-sm leading-relaxed">
-        <p>A few shortcuts to remember:</p>
-        <ul className="flex flex-col gap-2 pl-4">
-          <li>
-            <Shortcut keys={["meta", "K"]} /> — Command palette (search across all nodes)
-          </li>
-          <li>
-            <Shortcut keys={["meta", "Z"]} /> — Undo (last 30 actions saved)
-          </li>
-          <li>
-            <Shortcut keys={["meta", "/"]} /> — Full shortcuts cheat-sheet
-          </li>
-          <li>
-            <Shortcut keys={["F2"]} /> — Rename selected node
-          </li>
-        </ul>
-        <p className="text-muted-foreground">Happy trailing 🌲</p>
-      </div>
-    ),
-    primaryLabel: "Done",
-    primaryAction: "done",
-  },
-];
+// Index constants for readability — matches the order of step components rendered below.
+const STEP = {
+  WELCOME: 0,
+  PRIVACY: 1,
+  BRANCH: 2,
+  START: 3,
+  READY: 4,
+} as const;
+
+// Visually hidden titles satisfy Radix Dialog's a11y contract without
+// breaking the custom header layout. Each matches the on-screen h2 of
+// the current step so screen readers announce the same content.
+const STEP_TITLES = [
+  "Welcome to Trail",
+  "What Trail records",
+  "How Trail branches",
+  "Choose a starting tree",
+  "Keyboard shortcuts",
+] as const;
 
 export default function OnboardingWizard() {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<number>(STEP.WELCOME);
   const [busy, busyActions] = useBoolean(false);
+  const primaryButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useMount(() => {
     let cancelled = false;
@@ -180,9 +71,9 @@ export default function OnboardingWizard() {
     };
   });
 
-  const goToStep = useCallback(async (nextStep: number) => {
-    setStep(nextStep);
-    await advanceOnboarding(nextStep);
+  const goToStep = useCallback(async (next: number) => {
+    setStep(next);
+    await advanceOnboarding(next);
   }, []);
 
   const handleSkip = useLockFn(async () => {
@@ -199,7 +90,7 @@ export default function OnboardingWizard() {
     busyActions.setTrue();
     try {
       await loadDemoTree();
-      await goToStep(STEPS.length - 1);
+      await goToStep(STEP.READY);
     } catch (error) {
       showOperationError("Load demo tree", error);
     } finally {
@@ -207,43 +98,78 @@ export default function OnboardingWizard() {
     }
   });
 
-  const current = STEPS[step] ?? STEPS[0]!;
-  const progress = Math.round(((step + 1) / STEPS.length) * 100);
-
-  const runPrimary = useCallback(async () => {
+  const handleStartFresh = useCallback(async () => {
     if (busy) return;
-    switch (current.primaryAction) {
-      case "next":
-        await goToStep(step + 1);
-        break;
-      case "load-demo":
-        await handleLoadDemo();
-        break;
-      case "done":
-        await handleDone();
-        break;
-    }
-  }, [busy, current.primaryAction, goToStep, handleDone, handleLoadDemo, step]);
+    await goToStep(STEP.READY);
+  }, [busy, goToStep]);
 
-  const runSecondary = useCallback(async () => {
+  const goNext = useCallback(async () => {
     if (busy) return;
-    switch (current.secondaryAction) {
-      case "skip":
-        await handleSkip();
-        break;
-      case "next":
-        await goToStep(step + 1);
-        break;
-      case "open-behavior": {
-        const url = chrome.runtime.getURL("settings.html#behavior");
-        browser.tabs.create({ url, active: true }).catch((error) => {
-          console.error("Failed to open Behavior settings:", error);
-        });
-        await goToStep(step + 1);
-        break;
-      }
+    if (step < TOTAL_STEPS - 1) {
+      await goToStep(step + 1);
+    } else {
+      await handleDone();
     }
-  }, [busy, current.secondaryAction, goToStep, handleSkip, step]);
+  }, [busy, goToStep, handleDone, step]);
+
+  const goBack = useCallback(async () => {
+    if (busy || step === 0) return;
+    await goToStep(step - 1);
+  }, [busy, goToStep, step]);
+
+  // Enter = primary action. Only when dialog is open, not busy, and not on
+  // the Start step (which is a choice, not a single primary action).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+      if (step === STEP.START) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      e.preventDefault();
+      void goNext();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [goNext, open, step]);
+
+  // Re-focus the primary button on each step so Enter advances immediately
+  // after motion settles. Skips the Start step, which has no primary.
+  useEffect(() => {
+    if (!open) return;
+    if (step === STEP.START) return;
+    const id = window.setTimeout(() => {
+      primaryButtonRef.current?.focus();
+    }, 120);
+    return () => window.clearTimeout(id);
+  }, [open, step]);
+
+  const isLast = step === TOTAL_STEPS - 1;
+  const primaryLabel = isLast ? "Let's go" : step === STEP.WELCOME ? "Show me more" : "Got it";
+
+  const renderStep = () => {
+    switch (step) {
+      case STEP.WELCOME:
+        return <WelcomeStep />;
+      case STEP.PRIVACY:
+        return <PrivacyStep />;
+      case STEP.BRANCH:
+        return <BranchStep />;
+      case STEP.START:
+        return (
+          <StartStep
+            onLoadDemo={() => void handleLoadDemo()}
+            onStartFresh={() => void handleStartFresh()}
+            loadingDemo={busy}
+            disabled={busy}
+          />
+        );
+      case STEP.READY:
+        return <ReadyStep />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <Dialog
@@ -252,71 +178,75 @@ export default function OnboardingWizard() {
         if (!next) void handleSkip();
       }}
     >
-      <DialogContent className="max-w-[440px] gap-4 p-0">
-        <DialogHeader className="flex flex-col gap-2 p-6 pb-0">
-          <div className="flex items-center justify-between gap-2">
-            <TrailLogo className="size-8" label="Trail" />
-            <span className="text-muted-foreground text-[11px]">
-              Step {step + 1} of {STEPS.length}
+      <DialogContent showCloseButton={false} className="max-w-[400px] gap-0 overflow-hidden p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{STEP_TITLES[step]}</DialogTitle>
+          <DialogDescription>
+            Trail setup — step {step + 1} of {TOTAL_STEPS}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Top bar: subtle logo glyph, dots, skip */}
+        <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-3">
+          <div className="flex items-center gap-1.5">
+            <TrailLogo className="trail-logo-badge" aria-hidden />
+            <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
+              Trail
             </span>
           </div>
-          <Progress value={progress} className="h-1" />
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`title-${step}`}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-            >
-              <DialogTitle className="text-lg font-semibold tracking-tight">
-                {current.title}
-              </DialogTitle>
-            </motion.div>
-          </AnimatePresence>
-        </DialogHeader>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`body-${step}`}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="px-6 text-sm"
+          <StepDots total={TOTAL_STEPS} current={step} />
+          <button
+            type="button"
+            onClick={() => void handleSkip()}
+            disabled={busy}
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-sm p-1 transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+            aria-label="Skip onboarding"
           >
-            {current.body}
-          </motion.div>
-        </AnimatePresence>
-        <div className="flex items-center justify-between gap-2 border-t p-4">
-          {current.secondaryLabel ? (
+            <Icons.X className="size-3.5" />
+          </button>
+        </div>
+
+        {/* Step body. A `key` on this wrapper forces React to unmount the
+            previous step's tree and remount the new one, replaying the
+            stagger each step owns internally. No wrapper animation —
+            the per-step stagger is the transition. */}
+        <div className="relative min-h-[280px] px-5 pt-2 pb-5">
+          <div key={`step-${step}`}>{renderStep()}</div>
+        </div>
+
+        {/* Footer: back / primary. Start step has no primary — just back. */}
+        <div className="border-border/60 bg-muted/30 flex items-center justify-between gap-2 border-t px-4 py-3">
+          {step > 0 ? (
             <Button
               variant="ghost"
               size="sm"
               type="button"
               disabled={busy}
-              onClick={() => void runSecondary()}
+              onClick={() => void goBack()}
+              className="text-muted-foreground hover:text-foreground gap-1"
             >
-              {current.secondaryLabel}
+              <Icons.ChevronLeft className="size-3.5" />
+              Back
             </Button>
           ) : (
             <span />
           )}
-          <Button
-            variant="default"
-            size="sm"
-            type="button"
-            disabled={busy}
-            onClick={() => void runPrimary()}
-          >
-            {busy ? (
-              <>
-                <Spinner className="size-3.5" />
-                <span>Loading…</span>
-              </>
-            ) : (
-              <span>{current.primaryLabel}</span>
-            )}
-          </Button>
+          {step !== STEP.START ? (
+            <Button
+              ref={primaryButtonRef}
+              variant="default"
+              size="sm"
+              type="button"
+              disabled={busy}
+              onClick={() => void goNext()}
+              className="gap-1"
+            >
+              {primaryLabel}
+              {!isLast ? <Icons.ChevronRight className="size-3.5" /> : null}
+            </Button>
+          ) : (
+            <span className="text-muted-foreground text-[11px]">Pick one to continue</span>
+          )}
         </div>
       </DialogContent>
     </Dialog>

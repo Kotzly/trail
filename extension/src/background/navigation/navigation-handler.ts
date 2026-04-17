@@ -143,6 +143,36 @@ export async function handleNavigation(
           });
         }
       }
+      return;
+    }
+    // Untrackable, non-NTP, non-challenge destination (chrome://settings,
+    // chrome-extension://<ext>/settings.html, file://, view-source:, …).
+    // If a stale mapping exists — common cause: the tab was briefly
+    // about:blank during creation, onTabCreated classified it as NTP
+    // and registered it to the synthetic NTP root — drop it now and
+    // detach the graph's current highlight if this is the active tab.
+    // Otherwise the user lands on Settings and sees the NTP root still
+    // highlighted as "current" in the sidepanel.
+    const staleNodeId = tabManager.nodeByTab(tabId as TabId);
+    if (staleNodeId !== undefined) {
+      tabManager.unregister(tabId as TabId);
+      try {
+        const broadcast = await withTreeLock(async () => {
+          const tree = await treeStorage.getOrCreateTree();
+          if (!tab.active || tree.getCurrentId() !== staleNodeId) {
+            return { kind: "tabs" } as const;
+          }
+          tree.clearCurrent();
+          treeStorage.cacheTree(tree);
+          return { kind: "set-current" } as const;
+        });
+        const tree = await treeStorage.getOrCreateTree();
+        await notifyTreeUpdate(tree, broadcast.kind);
+      } catch (error) {
+        log.warn("notify after untrackable-destination unregister failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
     return;
   }

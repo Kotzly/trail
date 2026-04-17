@@ -16,6 +16,7 @@ import {
   now,
 } from "@shared/types/ids.js";
 import { uuidv7 } from "@shared/lib/uuid.js";
+import { NEW_TAB_ROOT_TITLE, NEW_TAB_ROOT_URL } from "@shared/lib/root.js";
 
 type NodeSeed = {
   title: string;
@@ -32,6 +33,10 @@ function nextId(): NodeId {
 function favicon(url: string): FaviconUrl | undefined {
   try {
     const u = new URL(url);
+    // Only http(s) pages have a meaningful Google-hosted favicon.
+    // chrome:// / about: / data: etc. have no domain favicon and would
+    // just produce a broken placeholder request.
+    if (u.protocol !== "http:" && u.protocol !== "https:") return undefined;
     return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64` as FaviconUrl;
   } catch {
     return undefined;
@@ -54,7 +59,11 @@ function toNode(seed: NodeSeed): NavigationNodeJSON {
   return node;
 }
 
-const SEED: NodeSeed = {
+// Root is always the landing page the user starts from — same as real
+// browsing. Wrapping the research seed under a New Tab root also makes the
+// demo tree narratable ("opened a new tab → searched → branched into
+// Flights/Stay/…") and matches how every actual Trail session begins.
+const RESEARCH_SEED: NodeSeed = {
   title: "Planning a trip to Japan 🇯🇵",
   url: "https://www.google.com/search?q=japan+trip+planning+2026",
   children: [
@@ -213,6 +222,12 @@ const SEED: NodeSeed = {
       ],
     },
   ],
+};
+
+const SEED: NodeSeed = {
+  title: NEW_TAB_ROOT_TITLE,
+  url: NEW_TAB_ROOT_URL,
+  children: [RESEARCH_SEED],
 };
 
 function countNodes(node: NavigationNodeJSON): number {

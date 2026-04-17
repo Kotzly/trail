@@ -153,9 +153,37 @@ export type UiNotificationInput = {
 export type GetTreeMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREE>;
 export type GetTreesMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREES>;
 export type ClearTreeMessage = RequestMessageBase<typeof RPC_METHOD.CLEAR_TREE>;
-export type NewTreeMessage = RequestMessageBase<typeof RPC_METHOD.NEW_TREE, { label: string }>;
-export type ArchiveActiveTreeMessage = RequestMessageBase<typeof RPC_METHOD.ARCHIVE_ACTIVE_TREE>;
-export type OpenTreeMessage = RequestMessageBase<typeof RPC_METHOD.OPEN_TREE, { treeId: string }>;
+
+/**
+ * Origin hint for tree-switching commands. Determines browser-focus
+ * behaviour after the switch:
+ *  - `sidepanel` (default): the new active-tree tab is opened AND
+ *    focused — this is what the user wants when they switch trees
+ *    from the sidepanel UI, because they were already looking at
+ *    tabs that belonged to the old tree.
+ *  - `settings`: the new tab is still opened (so the active tree has
+ *    a tab to attach to), but the user stays on the Settings page.
+ *    Focusing the new tab would pull them away from a settings flow
+ *    they haven't finished.
+ *
+ * Callers in the settings app pass `"settings"`; anything else (sidepanel
+ * UI, command palette, keyboard shortcuts) leaves this unset so the
+ * default focus-the-new-tab behaviour applies.
+ */
+export type TreeSwitchOrigin = "sidepanel" | "settings";
+
+export type NewTreeMessage = RequestMessageBase<
+  typeof RPC_METHOD.NEW_TREE,
+  { label: string; origin?: TreeSwitchOrigin }
+>;
+export type ArchiveActiveTreeMessage = RequestMessageBase<
+  typeof RPC_METHOD.ARCHIVE_ACTIVE_TREE,
+  { origin?: TreeSwitchOrigin }
+>;
+export type OpenTreeMessage = RequestMessageBase<
+  typeof RPC_METHOD.OPEN_TREE,
+  { treeId: string; origin?: TreeSwitchOrigin }
+>;
 export type EnsureTreeLoadedMessage = RequestMessageBase<
   typeof RPC_METHOD.ENSURE_TREE_LOADED,
   { treeId: string }

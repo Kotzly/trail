@@ -11,16 +11,28 @@ import { useSyncExternalStore } from "react";
 
 const MEDIA_QUERY = "(prefers-reduced-motion: reduce)";
 
+// Lazy module-level MediaQueryList — one per process instead of one per
+// render. `matchMedia` is not free; cached callers save a DOM call on
+// every `useSyncExternalStore` snapshot read (can fire multiple times
+// per render per subscriber).
+let mql: MediaQueryList | null = null;
+function getMql(): MediaQueryList | null {
+  if (typeof window === "undefined") return null;
+  if (!mql) mql = window.matchMedia(MEDIA_QUERY);
+  return mql;
+}
+
 function subscribe(listener: () => void): () => void {
-  const mql = window.matchMedia(MEDIA_QUERY);
-  mql.addEventListener("change", listener);
+  const m = getMql();
+  if (!m) return () => {};
+  m.addEventListener("change", listener);
   return () => {
-    mql.removeEventListener("change", listener);
+    m.removeEventListener("change", listener);
   };
 }
 
 function getSnapshot(): boolean {
-  return window.matchMedia(MEDIA_QUERY).matches;
+  return getMql()?.matches ?? false;
 }
 
 function getServerSnapshot(): boolean {

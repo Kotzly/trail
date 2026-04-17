@@ -277,7 +277,12 @@ export default function TreeDropdown() {
             </Button>
           </PopoverTrigger>
         </ButtonTooltip>
-        <PopoverContent align="start" className="w-[360px] p-0" id="treesDropdown">
+        <PopoverContent
+          align="start"
+          className="w-[360px] p-0"
+          id="treesDropdown"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <CardHeader className="px-3 py-2.5">
             <CardTitle className="text-[13px]">Trees</CardTitle>
             <CardDescription className="text-[11px]">

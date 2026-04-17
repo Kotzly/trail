@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
+import { PageHeader } from "../components/PageHeader.js";
 import { Button } from "@ui/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/ui/avatar";
+import { Alert, AlertDescription, AlertTitle } from "@ui/components/ui/alert";
 import { Skeleton } from "@ui/components/ui/skeleton";
 import { useBoolean } from "@ui/hooks/use-boolean";
 import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { useMount } from "@ui/hooks/use-mount";
+import { Icons } from "@ui/components/icons";
 import {
   initAuth,
   signInWithGoogle,
@@ -66,24 +69,27 @@ export function AccountPage() {
 
   if (!isSupabaseConfigured()) {
     return (
-      <div className="flex flex-col gap-4">
-        <CardHeader className="px-0">
-          <CardTitle>Account</CardTitle>
-          <CardDescription>Cloud sync is not configured in this build.</CardDescription>
-        </CardHeader>
+      <div className="flex flex-col gap-6">
+        <PageHeader title="Account" description="Cloud sync is not configured in this build." />
+        <Alert>
+          <Icons.Info aria-hidden />
+          <AlertTitle>Local-only mode</AlertTitle>
+          <AlertDescription>
+            This build of Trail has no Supabase credentials baked in, so cloud sync, sign-in, and
+            cross-device support are turned off. Everything still works locally — your trees live in{" "}
+            <code>chrome.storage.local</code> on this profile.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <CardHeader className="px-0">
-        <CardTitle>Account</CardTitle>
-        <CardDescription>
-          Sign in to sync your trees across devices. Your data stays on your device until you
-          explicitly sign in.
-        </CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Account"
+        description="Sign in to sync your trees across devices. Your data stays on your device until you explicitly sign in."
+      />
 
       <Card>
         <CardHeader>
@@ -127,11 +133,15 @@ export function AccountPage() {
               <p className="text-muted-foreground text-sm">
                 You're not signed in. Your trees are stored locally only.
               </p>
-              <Button onClick={handleSignIn} disabled={busy}>
+              <Button onClick={handleSignIn} disabled={busy} className="self-start">
                 {busy ? "Opening sign-in…" : "Sign in with Google"}
               </Button>
               {error ? (
-                <p className="text-destructive text-xs">{error}</p>
+                <Alert variant="destructive">
+                  <Icons.AlertTriangle aria-hidden />
+                  <AlertTitle>Sign-in failed</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               ) : (
                 <p className="text-muted-foreground text-xs">
                   A secure popup opens. We never see your password.

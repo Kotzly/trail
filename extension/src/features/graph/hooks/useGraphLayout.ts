@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useMemo } from "react";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { LayoutResult } from "../types.js";
-import { computeLayout, type LayoutMetadata } from "../layout.js";
+import { applyNodeMetadata, computeGeometry, type LayoutMetadata } from "../layout.js";
+import { applyEdgeHighlight, computeActivePathIds } from "../transforms.js";
 
 type UseGraphLayoutInput = {
   tree: NavigationTreeJSON | null;
@@ -13,35 +14,50 @@ type UseGraphLayoutInput = {
   precomputedPositions?: Record<string, { x: number; y: number }> | null | undefined;
 };
 
+/**
+ * Two-stage layout hook:
+ *
+ *   1. Geometry (d3 layout, edge topology, handle assignment) is
+ *      memoized against tree + settings + collapsed state. Tab
+ *      activation and tab-count churn don't invalidate this — big win
+ *      because d3-hierarchy + two tree walks run on every
+ *      `useMemo` recomputation.
+ *
+ *   2. Node metadata (current / open / tab counts / active-path) is
+ *      applied on top. Produces a fresh node list synchronously; the
+ *      `TrailNode` memo comparator catches unchanged fields so
+ *      ReactFlow only repaints actually-changed nodes.
+ */
 export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
-  const [result, setResult] = useState<LayoutResult>({ nodes: [], edges: [] });
-  const versionRef = useRef(0);
+  const { tree, settings, collapsedNodeIds, metadata, precomputedPositions } = input;
 
-  useEffect(() => {
-    const version = ++versionRef.current;
+  // Geometry: positions + base edges + handles. Expensive; cache it.
+  const geometry = useMemo(
+    () => computeGeometry(tree, settings, collapsedNodeIds, precomputedPositions),
+    [tree, settings, collapsedNodeIds, precomputedPositions],
+  );
 
-    computeLayout(
-      input.tree,
-      input.settings,
-      input.collapsedNodeIds,
-      input.metadata,
-      input.precomputedPositions,
-    )
-      .then((layoutResult) => {
-        if (versionRef.current === version) {
-          setResult(layoutResult);
-        }
-      })
-      .catch((err) => {
-        console.error("Layout computation failed:", err);
-      });
-  }, [
-    input.tree,
-    input.settings,
-    input.collapsedNodeIds,
-    input.metadata,
-    input.precomputedPositions,
-  ]);
+  // Active-path only depends on tree + currentNodeId. Extract so the
+  // hierarchy walk doesn't run on open/tab-count changes.
+  const { currentNodeId } = metadata;
+  const activePathIds = useMemo(
+    () => computeActivePathIds(tree, currentNodeId),
+    [tree, currentNodeId],
+  );
 
-  return result;
+  // Nodes: synchronous application of metadata onto cached geometry.
+  const nodes = useMemo(
+    () => applyNodeMetadata(tree, settings, collapsedNodeIds, metadata, geometry, activePathIds),
+    [tree, settings, collapsedNodeIds, metadata, geometry, activePathIds],
+  );
+
+  // Edges: base edges with active-path styling overlaid. New array only
+  // when the active path changes — unchanged edges keep reference
+  // identity, so ReactFlow's internal diff is cheap.
+  const edges = useMemo(
+    () => applyEdgeHighlight(geometry.baseEdges, activePathIds),
+    [geometry.baseEdges, activePathIds],
+  );
+
+  return { nodes, edges };
 }

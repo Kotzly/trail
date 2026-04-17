@@ -15,6 +15,7 @@ import { NavigationTree } from "../state/nav-tree.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { uuidv7 } from "@shared/lib/uuid.js";
 import { findBestTrailFavicon } from "@shared/lib/tree-favicon.js";
+import { buildNewTabRootData, isNewTabUrl } from "@shared/lib/root.js";
 import { encodeTree, decodeTree } from "@shared/lib/tree-codec.js";
 import {
   activeTreeItem,
@@ -24,7 +25,6 @@ import {
   archiveBlobKey,
 } from "../../shared/config/storage-items.js";
 import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
-import type { NodeData } from "@shared/types/node.js";
 import { createLogger } from "@shared/lib/logger.js";
 
 const log = createLogger("tree-storage");
@@ -107,8 +107,17 @@ function normalizeLabel(raw: unknown): string {
 
 function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): TreeSummary {
   const root = tree.getRoot();
-  const rootData = root?.data;
   const treeJSON = NavigationTreeMapper.toJSON(tree);
+  // `rootUrl / rootTitle / rootFavicon` are the identifying card the
+  // Trees dropdown shows when the user hasn't renamed a tree. After the
+  // NTP-root invariant, the actual root is always `chrome://newtab/` /
+  // "New Tab" — useless as a label. So if the root is the synthetic
+  // NTP, we surface the tree's FIRST real child instead (the page the
+  // user actually researched from). Tree with only the synthetic NTP
+  // and no children is effectively empty; we let rootUrl fall through
+  // to the NTP value so the summary isn't missing.
+  const identifying = pickIdentifyingNode(root);
+  const rootData = identifying?.data;
   return {
     ...meta,
     nodeCount: tree.size(),
@@ -117,6 +126,22 @@ function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): Tr
     rootTitle: rootData?.title,
     rootFavicon: findBestTrailFavicon(treeJSON) ?? rootData?.favicon,
   } as TreeSummary;
+}
+
+/**
+ * Pick the node that should stand in for the tree in summary UI:
+ * - empty tree → null
+ * - NTP root with no children → the NTP root itself (tree is effectively empty)
+ * - NTP root with ≥1 child → the first child (the actual subject)
+ * - non-NTP root (pre-migration legacy, before wrap fires) → the root itself
+ */
+function pickIdentifyingNode(
+  root: ReturnType<NavigationTree["getRoot"]>,
+): ReturnType<NavigationTree["getRoot"]> {
+  if (!root) return null;
+  if (!isNewTabUrl(root.data.url)) return root;
+  const [firstChild] = root.getChildren();
+  return firstChild ?? root;
 }
 
 const indexEntryExtrasSchema = z.object({
@@ -327,12 +352,7 @@ class TreeStorageService {
 
         if (!json || !json.root) {
           const tree = new NavigationTree();
-          tree.navigate({
-            url: "chrome://newtab/" as Url,
-            title: "New Tab" as Title,
-            pinned: false,
-            tags: [],
-          } as NodeData);
+          tree.navigate(buildNewTabRootData());
           this.cachedTree = tree;
           return tree;
         }
@@ -344,12 +364,7 @@ class TreeStorageService {
           error: error instanceof Error ? error.message : String(error),
         });
         const tree = new NavigationTree();
-        tree.navigate({
-          url: "chrome://newtab/" as Url,
-          title: "New Tab" as Title,
-          pinned: false,
-          tags: [],
-        } as NodeData);
+        tree.navigate(buildNewTabRootData());
         this.cachedTree = tree;
         return tree;
       } finally {

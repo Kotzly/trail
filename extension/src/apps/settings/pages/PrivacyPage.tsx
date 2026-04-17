@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
+import { PageHeader } from "../components/PageHeader.js";
 import { Switch } from "@ui/components/ui/switch";
 import {
   Field,
@@ -11,7 +11,6 @@ import {
 } from "@ui/components/ui/field";
 import { Separator } from "@ui/components/ui/separator";
 import { Button } from "@ui/components/ui/button";
-import { Textarea } from "@ui/components/ui/textarea";
 import {
   getTelemetryConsent,
   setTelemetryConsent,
@@ -20,6 +19,15 @@ import {
 import type { TelemetryConsent } from "@shared/config/storage-items.js";
 import { MARKETING_URLS, openExternal } from "@shared/config/marketing-urls.js";
 import { useSettings } from "../hooks/useSettings.js";
+import { PatternListEditor } from "../components/PatternListEditor.js";
+
+const normalizeScheme = (raw: string): string => {
+  const trimmed = raw.trim().toLowerCase();
+  if (trimmed.length === 0) return "";
+  return trimmed.endsWith(":") ? trimmed : `${trimmed}:`;
+};
+
+const normalizeHostPattern = (raw: string): string => raw.trim().toLowerCase();
 
 const TELEMETRY_CONSENT_KEY = ["telemetry-consent"] as const;
 
@@ -30,11 +38,6 @@ export function PrivacyPage() {
     queryFn: getTelemetryConsent,
   });
   const { settings, updateSettings } = useSettings();
-  const [blocklistDraft, setBlocklistDraft] = useState<string>("");
-
-  useEffect(() => {
-    if (settings) setBlocklistDraft(settings.privacy.blocklist.join("\n"));
-  }, [settings]);
 
   const updateConsent = async (next: Partial<TelemetryConsent>) => {
     await setTelemetryConsent(next);
@@ -56,13 +59,11 @@ export function PrivacyPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <CardHeader className="px-0">
-        <CardTitle>Privacy</CardTitle>
-        <CardDescription>
-          Control what leaves your device. Your browsing tree is always stored locally first.
-        </CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Privacy"
+        description="Control what leaves your device. Your browsing tree is always stored locally first."
+      />
 
       <Card>
         <CardHeader>
@@ -144,50 +145,53 @@ export function PrivacyPage() {
             <Separator />
 
             <Field>
-              <FieldLabel htmlFor="blocklist">Blocked hostnames</FieldLabel>
+              <FieldLabel>URL schemes to track</FieldLabel>
               <FieldDescription>
-                One pattern per line. <code>*.bank.com</code> blocks any subdomain;{" "}
-                <code>localhost</code> is an exact match.
+                Trail records pages using these schemes. Defaults to regular web pages only. Add{" "}
+                <code>file:</code> to record local files, <code>chrome-extension:</code> for
+                extension pages.
               </FieldDescription>
-              <Textarea
-                id="blocklist"
-                value={blocklistDraft}
-                onChange={(e) => setBlocklistDraft(e.target.value)}
-                rows={8}
-                className="font-mono text-xs"
-                spellCheck={false}
-                placeholder="*.bank.com&#10;localhost&#10;127.0.0.1"
+              <PatternListEditor
+                values={settings?.privacy.trackedSchemes ?? []}
+                disabled={!settings}
+                placeholder="chrome-extension:"
+                addLabel="Add scheme"
+                emptyText="No schemes — nothing will be tracked. Add at least one (e.g. https:)."
+                normalize={normalizeScheme}
+                onChange={(next) => {
+                  if (!settings) return;
+                  void updateSettings({
+                    ...settings,
+                    privacy: { ...settings.privacy, trackedSchemes: next },
+                  });
+                }}
               />
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  disabled={!settings}
-                  onClick={() => {
-                    if (!settings) return;
-                    const patterns = blocklistDraft
-                      .split("\n")
-                      .map((p) => p.trim())
-                      .filter((p) => p.length > 0);
-                    void updateSettings({
-                      ...settings,
-                      privacy: { ...settings.privacy, blocklist: patterns },
-                    });
-                  }}
-                >
-                  Save
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={!settings}
-                  onClick={() => {
-                    if (!settings) return;
-                    setBlocklistDraft(settings.privacy.blocklist.join("\n"));
-                  }}
-                >
-                  Reset
-                </Button>
-              </div>
+            </Field>
+
+            <Separator />
+
+            <Field>
+              <FieldLabel>Blocked hostnames</FieldLabel>
+              <FieldDescription>
+                Hostnames Trail never records. Supports <code>*</code> wildcards —{" "}
+                <code>*.bank.com</code> blocks any subdomain; <code>localhost</code> is an exact
+                match.
+              </FieldDescription>
+              <PatternListEditor
+                values={settings?.privacy.blocklist ?? []}
+                disabled={!settings}
+                placeholder="*.bank.com"
+                addLabel="Add pattern"
+                emptyText="Nothing blocked. Add a hostname pattern to hide it from your tree."
+                normalize={normalizeHostPattern}
+                onChange={(next) => {
+                  if (!settings) return;
+                  void updateSettings({
+                    ...settings,
+                    privacy: { ...settings.privacy, blocklist: next },
+                  });
+                }}
+              />
             </Field>
           </FieldGroup>
         </CardContent>

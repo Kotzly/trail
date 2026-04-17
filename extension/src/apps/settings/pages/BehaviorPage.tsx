@@ -1,5 +1,4 @@
 import type { Settings, CleanupSettings } from "@shared/types/settings.js";
-import { CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import {
   Field,
   FieldContent,
@@ -13,6 +12,7 @@ import { Slider } from "@ui/components/ui/slider";
 import { Button } from "@ui/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { Icons } from "@ui/components/icons";
+import { PageHeader, SectionHeader } from "../components/PageHeader.js";
 
 type BehaviorPageProps = {
   settings: Settings;
@@ -57,11 +57,8 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
     onUpdate({ cleanup: patchCleanup(cleanup, patch) });
 
   return (
-    <div className="flex flex-col gap-6">
-      <CardHeader className="px-0">
-        <CardTitle>Behavior</CardTitle>
-        <CardDescription>Customize how Trail works.</CardDescription>
-      </CardHeader>
+    <div className="flex flex-col gap-8">
+      <PageHeader title="Behavior" description="Customize how Trail works." />
 
       <FieldGroup>
         <Field orientation="horizontal">
@@ -113,15 +110,11 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
         </Field>
       </FieldGroup>
 
-      <Separator />
-
-      <div>
-        <CardHeader className="px-0">
-          <CardTitle className="text-base">Auto-cleanup</CardTitle>
-          <CardDescription>
-            Trail quietly removes low-value pages to keep your map readable.
-          </CardDescription>
-        </CardHeader>
+      <div className="flex flex-col gap-4">
+        <SectionHeader
+          title="Auto-cleanup"
+          description="Trail quietly removes low-value pages to keep your map readable."
+        />
         <FieldGroup>
           <Field orientation="horizontal">
             <FieldContent>

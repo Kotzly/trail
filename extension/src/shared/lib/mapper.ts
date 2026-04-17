@@ -3,6 +3,9 @@ import { TreeNode } from "@background/state/tree-node.js";
 import { type NavigationTreeJSON } from "../types/tree.js";
 import { NavigationTree } from "@background/state/nav-tree.js";
 import { normalizeNodeData } from "../schemas/node.js";
+import { buildNewTabRootData, isNewTabUrl } from "./root.js";
+import { asNodeId, now, type NodeId, type Timestamp } from "../types/ids.js";
+import { uuidv7 } from "./uuid.js";
 import { createLogger } from "./logger.js";
 
 const log = createLogger("tree-mapper");
@@ -28,6 +31,36 @@ export class TreeNodeMapper {
   }
 }
 
+/**
+ * Wrap a non-NTP root under a synthesised NTP root. Idempotent: if the
+ * incoming root is already an NTP, returns it unchanged. Called from
+ * `fromJSON` so every deserialisation path — persisted-storage load,
+ * import-bundle, sync-pull payload, undo restore, tree duplicate —
+ * auto-repairs legacy or untrusted trees to match the root invariant
+ * defined in `shared/lib/root.ts`.
+ *
+ * ID preservation: the original root keeps its NodeId (so pinned
+ * state, saved layout positions, and any external reference to the
+ * node — including `currentNodeId` — remain valid). The synthesised
+ * wrapper gets a fresh uuidv7. Subtrees are reparented en masse.
+ */
+function ensureNtpRoot(rootJson: NavigationNodeJSON): NavigationNodeJSON {
+  if (isNewTabUrl(rootJson.data.url)) return rootJson;
+
+  log.info("wrapping non-NTP root under synthetic New Tab root", {
+    originalUrl: rootJson.data.url,
+    originalTitle: rootJson.data.title,
+    originalId: rootJson.id,
+  });
+
+  return {
+    id: asNodeId(uuidv7()),
+    timestamp: now() as Timestamp,
+    data: buildNewTabRootData(),
+    children: [rootJson],
+  };
+}
+
 export class NavigationTreeMapper {
   static toJSON(tree: NavigationTree): NavigationTreeJSON {
     const root = tree.getRoot();
@@ -46,17 +79,24 @@ export class NavigationTreeMapper {
       return new NavigationTree();
     }
 
-    const root = TreeNodeMapper.fromJSON(json.root);
+    const rootJson = ensureNtpRoot(json.root);
+    const root = TreeNodeMapper.fromJSON(rootJson);
     const tree = new NavigationTree(root);
 
-    if (json.currentNodeId) {
-      const ok = tree.setCurrentById(json.currentNodeId);
+    // `currentNodeId` references a persisted NodeId that still exists
+    // in the tree whether or not we wrapped the root (the pre-existing
+    // root kept its id; new wrapper root got a fresh one the persisted
+    // state can't name). So the lookup logic is identical for wrapped
+    // and unwrapped trees.
+    const persistedCurrent: NodeId | null = json.currentNodeId;
+    if (persistedCurrent) {
+      const ok = tree.setCurrentById(persistedCurrent);
       if (!ok) {
         // Persisted current references a node that was removed in a
         // prior session (e.g., merged away by deleteNode cleanup
         // before save). Falls through to root fallback below.
         log.warn("persisted currentNodeId not found — falling back to root", {
-          currentNodeId: json.currentNodeId,
+          currentNodeId: persistedCurrent,
         });
       }
     }

@@ -32,7 +32,12 @@ let running = false;
 let rafId: number | null = null;
 let visibilityBound = false;
 
-const frameDeltas: number[] = [];
+// Fixed-capacity ring buffer for frame deltas: O(1) push, no Array.shift
+// allocation churn per frame. Capacity is WINDOW_SIZE.
+const frameDeltas: Float64Array = new Float64Array(WINDOW_SIZE);
+let frameDeltaCount = 0;
+let frameDeltaHead = 0;
+let frameDeltaSum = 0;
 let prevFrameAt = 0;
 
 const listeners = new Set<() => void>();
@@ -48,11 +53,21 @@ function emit(): void {
   for (const l of listeners) l();
 }
 
+function pushFrameDelta(delta: number): void {
+  if (frameDeltaCount < WINDOW_SIZE) {
+    frameDeltas[frameDeltaHead] = delta;
+    frameDeltaSum += delta;
+    frameDeltaCount += 1;
+  } else {
+    frameDeltaSum += delta - (frameDeltas[frameDeltaHead] ?? 0);
+    frameDeltas[frameDeltaHead] = delta;
+  }
+  frameDeltaHead = (frameDeltaHead + 1) % WINDOW_SIZE;
+}
+
 function currentFps(): number {
-  if (frameDeltas.length === 0) return 60;
-  let sum = 0;
-  for (const d of frameDeltas) sum += d;
-  const avgDelta = sum / frameDeltas.length;
+  if (frameDeltaCount === 0) return 60;
+  const avgDelta = frameDeltaSum / frameDeltaCount;
   if (avgDelta <= 0) return 60;
   return 1000 / avgDelta;
 }
@@ -115,11 +130,8 @@ function tick(timestamp: number): void {
   if (!running) return;
 
   if (prevFrameAt !== 0) {
-    const delta = timestamp - prevFrameAt;
-    frameDeltas.push(delta);
-    if (frameDeltas.length > WINDOW_SIZE) frameDeltas.shift();
-
-    if (frameDeltas.length >= 20) {
+    pushFrameDelta(timestamp - prevFrameAt);
+    if (frameDeltaCount >= 20) {
       const fps = currentFps();
       const target = computeTargetTier(fps);
       applyHysteresis(target, timestamp, fps);
@@ -130,7 +142,9 @@ function tick(timestamp: number): void {
 }
 
 function resetSamples(): void {
-  frameDeltas.length = 0;
+  frameDeltaCount = 0;
+  frameDeltaHead = 0;
+  frameDeltaSum = 0;
   prevFrameAt = 0;
 }
 

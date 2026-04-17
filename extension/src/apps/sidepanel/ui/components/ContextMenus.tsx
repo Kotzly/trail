@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useClipboard } from "@ui/hooks/use-clipboard";
 import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@ui/components/ui/dropdown-menu";
 import { ScrollArea } from "@ui/components/ui/scroll-area";
+import { Shortcut, type ShortcutKey } from "@ui/components/shortcut";
 
 import { toast } from "sonner";
 import { browser, type Tab } from "@shared/platform/webext.js";
@@ -67,6 +68,69 @@ function VirtualTrigger({ position }: VirtualTriggerProps) {
         style={{ left: position.x, top: position.y, width: 0, height: 0 }}
       />
     </DropdownMenuTrigger>
+  );
+}
+
+function MenuShortcut({ keys }: { keys: readonly ShortcutKey[] }) {
+  return <Shortcut keys={keys} className="ml-auto pl-3" />;
+}
+
+type DestructiveItemProps = {
+  label: string;
+  confirmLabel: string;
+  pending: boolean;
+  onArm: () => void;
+  onConfirm: () => void;
+  icon?: React.ReactNode;
+  shortcut?: readonly ShortcutKey[];
+};
+
+/**
+ * Two-step destructive menu item. Shift-click (or Shift+Space/Enter) skips
+ * the confirmation step for power users.
+ */
+function DestructiveItem({
+  label,
+  confirmLabel,
+  pending,
+  onArm,
+  onConfirm,
+  icon,
+  shortcut,
+}: DestructiveItemProps) {
+  const shiftRef = useRef(false);
+
+  if (pending) {
+    return (
+      <DropdownMenuItem variant="destructive" onSelect={() => onConfirm()}>
+        <Icons.Trash2 />
+        {confirmLabel}
+      </DropdownMenuItem>
+    );
+  }
+
+  return (
+    <DropdownMenuItem
+      variant="destructive"
+      onPointerDown={(event) => {
+        shiftRef.current = event.shiftKey;
+      }}
+      onKeyDown={(event) => {
+        shiftRef.current = event.shiftKey;
+      }}
+      onSelect={(event) => {
+        if (shiftRef.current) {
+          onConfirm();
+          return;
+        }
+        event.preventDefault();
+        onArm();
+      }}
+    >
+      {icon ?? <Icons.Trash2 />}
+      {label}
+      {shortcut && <MenuShortcut keys={shortcut} />}
+    </DropdownMenuItem>
   );
 }
 
@@ -151,10 +215,9 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const expandNodes = useStore((state) => state.expandNodes);
   const node = tree?.findNodeById(nodeId);
   const [tabs, setTabs] = useState<Tab[]>([]);
-  const [pendingDelete, setPendingDelete] = useState<"node" | "children" | "withChildren" | null>(
-    null,
-  );
+  const [pendingDelete, setPendingDelete] = useState<"node" | "children" | "subtree" | null>(null);
   const [pendingCloseAllTabs, setPendingCloseAllTabs] = useState(false);
+  const closeAllShiftRef = useRef(false);
   const { copy: copyToClipboard } = useClipboard();
 
   useEffect(() => {
@@ -187,6 +250,12 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const isRoot = node.isRoot();
   const isCollapsed = collapsedNodeIds.has(nodeId);
 
+  const confirmCloseAllTabs = () => {
+    fireAndForget(bulkCloseTabs([nodeId]), "bulk close tabs");
+    setTabs([]);
+    setPendingCloseAllTabs(false);
+  };
+
   return (
     <DropdownMenu
       key={`${position.x}-${position.y}`}
@@ -200,7 +269,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         side="bottom"
         sideOffset={0}
         collisionPadding={8}
-        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto min-w-40"
+        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto min-w-48"
       >
         {!editorActive && (
           <>
@@ -213,12 +282,16 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                 }
               }}
             >
+              <Icons.ArrowRight />
               Open in this tab
+              <MenuShortcut keys={["enter"]} />
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => fireAndForget(openInNewTab(nodeId), "open in new tab")}
             >
+              <Icons.ExternalLink />
               Open in new tab
+              <MenuShortcut keys={["meta", "enter"]} />
             </DropdownMenuItem>
 
             {hasOpenTab && (
@@ -269,23 +342,29 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                 </ScrollArea>
                 {tabs.length > 1 &&
                   (pendingCloseAllTabs ? (
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => {
-                        fireAndForget(bulkCloseTabs([nodeId]), "bulk close tabs");
-                        setTabs([]);
-                        setPendingCloseAllTabs(false);
-                      }}
-                    >
-                      Confirm close?
+                    <DropdownMenuItem variant="destructive" onSelect={confirmCloseAllTabs}>
+                      <Icons.X />
+                      Confirm: close all tabs
                     </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
+                      variant="destructive"
+                      onPointerDown={(event) => {
+                        closeAllShiftRef.current = event.shiftKey;
+                      }}
+                      onKeyDown={(event) => {
+                        closeAllShiftRef.current = event.shiftKey;
+                      }}
+                      onSelect={(event) => {
+                        if (closeAllShiftRef.current) {
+                          confirmCloseAllTabs();
+                          return;
+                        }
+                        event.preventDefault();
                         setPendingCloseAllTabs(true);
                       }}
                     >
+                      <Icons.X />
                       Close all tabs
                     </DropdownMenuItem>
                   ))}
@@ -296,21 +375,31 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         )}
 
         <DropdownMenuItem onSelect={() => fireAndForget(togglePin(nodeId), "toggle pin")}>
+          {node.data.pinned ? <Icons.PinOff /> : <Icons.Pin />}
           {node.data.pinned ? "Unpin" : "Pin"}
-        </DropdownMenuItem>
-
-        <DropdownMenuItem onSelect={() => useStore.getState().openRenameDialog(nodeId)}>
-          Rename…
+          <MenuShortcut keys={["p"]} />
         </DropdownMenuItem>
 
         {hasChildren && !isCollapsed && (
           <DropdownMenuItem onSelect={() => collapseNodes([nodeId])}>
+            <Icons.FoldVertical />
             Collapse node
           </DropdownMenuItem>
         )}
         {isCollapsed && (
-          <DropdownMenuItem onSelect={() => expandNodes([nodeId])}>Expand node</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => expandNodes([nodeId])}>
+            <Icons.UnfoldVertical />
+            Expand node
+          </DropdownMenuItem>
         )}
+
+        <DropdownMenuItem onSelect={() => useStore.getState().openRenameDialog(nodeId)}>
+          <Icons.Pencil />
+          Rename…
+          <MenuShortcut keys={["F2"]} />
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
 
         <DropdownMenuItem
           onSelect={async () => {
@@ -318,6 +407,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
             toast.success("URL copied");
           }}
         >
+          <Icons.Link />
           Copy URL
         </DropdownMenuItem>
         {hasTitle && (
@@ -327,6 +417,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
               toast.success("Title copied");
             }}
           >
+            <Icons.Type />
             Copy title
           </DropdownMenuItem>
         )}
@@ -335,81 +426,51 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
           <DropdownMenuItem
             onSelect={() => setPickTarget({ type: "duplicate", sourceNodeId: nodeId })}
           >
+            <Icons.Copy />
             Duplicate at…
           </DropdownMenuItem>
         )}
 
         <DropdownMenuSeparator />
 
-        {!isRoot &&
-          (pendingDelete === "node" ? (
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={() => fireAndForget(deleteNode(nodeId), "delete node")}
-            >
-              Confirm delete?
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={(e) => {
-                e.preventDefault();
-                setPendingDelete("node");
-              }}
-            >
-              Delete node
-            </DropdownMenuItem>
-          ))}
-
-        {hasChildren &&
-          (pendingDelete === "children" ? (
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={() => fireAndForget(deleteChildren(nodeId), "delete children")}
-            >
-              Confirm delete?
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={(e) => {
-                e.preventDefault();
-                setPendingDelete("children");
-              }}
-            >
-              Delete children
-            </DropdownMenuItem>
-          ))}
-
-        {pendingDelete === "withChildren" ? (
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={(e) => {
-              if (isRoot) {
-                e.preventDefault();
-                openDeleteTreeConfirm(nodeId);
-                return;
-              }
-              fireAndForget(deleteWithChildren(nodeId), "delete subtree");
-            }}
-          >
-            Confirm delete?
-          </DropdownMenuItem>
+        {isRoot ? (
+          <DestructiveItem
+            label="Delete tree"
+            confirmLabel="Confirm: delete tree"
+            pending={pendingDelete === "subtree"}
+            onArm={() => openDeleteTreeConfirm(nodeId)}
+            onConfirm={() => openDeleteTreeConfirm(nodeId)}
+          />
         ) : (
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={(e) => {
-              if (isRoot) {
-                e.preventDefault();
-                openDeleteTreeConfirm(nodeId);
-                return;
-              }
-              e.preventDefault();
-              setPendingDelete("withChildren");
-            }}
-          >
-            {isRoot && !hasChildren ? "Delete tree" : "Delete with children"}
-          </DropdownMenuItem>
+          <>
+            <DestructiveItem
+              label="Delete node"
+              confirmLabel="Confirm: delete node"
+              pending={pendingDelete === "node"}
+              onArm={() => setPendingDelete("node")}
+              onConfirm={() => fireAndForget(deleteNode(nodeId), "delete node")}
+              shortcut={["delete"]}
+            />
+            {hasChildren && (
+              <>
+                <DestructiveItem
+                  label="Delete children"
+                  confirmLabel="Confirm: delete children"
+                  pending={pendingDelete === "children"}
+                  onArm={() => setPendingDelete("children")}
+                  onConfirm={() => fireAndForget(deleteChildren(nodeId), "delete children")}
+                />
+                <DestructiveItem
+                  label="Delete subtree"
+                  confirmLabel="Confirm: delete subtree"
+                  pending={pendingDelete === "subtree"}
+                  onArm={() => setPendingDelete("subtree")}
+                  onConfirm={() => fireAndForget(deleteWithChildren(nodeId), "delete subtree")}
+                  shortcut={["shift", "delete"]}
+                />
+              </>
+            )}
+          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -428,6 +489,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
   const [pendingDelete, setPendingDelete] = useState<"nodes" | "recursive" | null>(null);
+  const { copy: copyToClipboard } = useClipboard();
 
   useEffect(() => {
     setPendingDelete(null);
@@ -439,6 +501,8 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
       .map((id) => tree.findNodeById(id))
       .filter((node): node is NonNullable<typeof node> => Boolean(node));
   }, [nodeIds, tree]);
+
+  const allPinned = selectedNodes.length > 0 && selectedNodes.every((node) => node.data.pinned);
 
   const collapseCandidates = useMemo(
     () =>
@@ -459,6 +523,21 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
     [closeContextMenu],
   );
 
+  const confirmDeleteNodes = () => {
+    fireAndForget(bulkDeleteNodes(nodeIds), "bulk delete nodes");
+    clearSelection();
+  };
+
+  const confirmDeleteRecursive = () => {
+    const rootId = getIncludedRootId(tree, nodeIds);
+    if (rootId) {
+      openDeleteTreeConfirm(rootId);
+      return;
+    }
+    fireAndForget(bulkDeleteRecursive(nodeIds), "bulk delete recursive");
+    clearSelection();
+  };
+
   return (
     <DropdownMenu
       key={`${position.x}-${position.y}`}
@@ -472,26 +551,20 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         side="bottom"
         sideOffset={0}
         collisionPadding={8}
-        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto max-w-60 min-w-40"
+        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto max-w-60 min-w-48"
       >
         <DropdownMenuLabel>{nodeIds.length} nodes selected</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
           onSelect={() => {
-            fireAndForget(bulkPin(nodeIds), "bulk pin");
+            fireAndForget(allPinned ? bulkUnpin(nodeIds) : bulkPin(nodeIds), "bulk pin toggle");
             clearSelection();
           }}
         >
-          Pin selected
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => {
-            fireAndForget(bulkUnpin(nodeIds), "bulk unpin");
-            clearSelection();
-          }}
-        >
-          Unpin selected
+          {allPinned ? <Icons.PinOff /> : <Icons.Pin />}
+          {allPinned ? "Unpin selected" : "Pin selected"}
+          <MenuShortcut keys={["p"]} />
         </DropdownMenuItem>
 
         <DropdownMenuItem
@@ -502,6 +575,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
             clearSelection();
           }}
         >
+          <Icons.FoldVertical />
           Collapse selected
         </DropdownMenuItem>
 
@@ -513,7 +587,22 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
             clearSelection();
           }}
         >
+          <Icons.UnfoldVertical />
           Expand selected
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onSelect={async () => {
+            const urls = selectedNodes.map((node) => node.data.url).filter(Boolean);
+            if (urls.length === 0) return;
+            await copyToClipboard(urls.join("\n"));
+            toast.success(`${urls.length} URL${urls.length !== 1 ? "s" : ""} copied`);
+          }}
+        >
+          <Icons.Link />
+          Copy URLs
         </DropdownMenuItem>
 
         {!editorActive && (
@@ -523,61 +612,29 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
               clearSelection();
             }}
           >
+            <Icons.X />
             Close selected tabs
           </DropdownMenuItem>
         )}
 
         <DropdownMenuSeparator />
 
-        {pendingDelete === "nodes" ? (
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={() => {
-              fireAndForget(bulkDeleteNodes(nodeIds), "bulk delete nodes");
-              clearSelection();
-            }}
-          >
-            Confirm delete?
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={(e) => {
-              e.preventDefault();
-              setPendingDelete("nodes");
-            }}
-          >
-            Delete nodes
-          </DropdownMenuItem>
-        )}
-
-        {pendingDelete === "recursive" ? (
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={(e) => {
-              const rootId = getIncludedRootId(tree, nodeIds);
-              if (rootId) {
-                e.preventDefault();
-                openDeleteTreeConfirm(rootId);
-                return;
-              }
-              fireAndForget(bulkDeleteRecursive(nodeIds), "bulk delete recursive");
-              clearSelection();
-            }}
-          >
-            Confirm delete?
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={(e) => {
-              e.preventDefault();
-              setPendingDelete("recursive");
-            }}
-          >
-            Delete nodes recursively
-          </DropdownMenuItem>
-        )}
+        <DestructiveItem
+          label="Delete nodes"
+          confirmLabel="Confirm: delete nodes"
+          pending={pendingDelete === "nodes"}
+          onArm={() => setPendingDelete("nodes")}
+          onConfirm={confirmDeleteNodes}
+          shortcut={["delete"]}
+        />
+        <DestructiveItem
+          label="Delete subtrees"
+          confirmLabel="Confirm: delete subtrees"
+          pending={pendingDelete === "recursive"}
+          onArm={() => setPendingDelete("recursive")}
+          onConfirm={confirmDeleteRecursive}
+          shortcut={["shift", "delete"]}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );

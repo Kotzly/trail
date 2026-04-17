@@ -1,10 +1,10 @@
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import { Globe } from "lucide-react";
-import { Handle, Position, useStore } from "@xyflow/react";
+import { Handle, Position, useStore, useUpdateNodeInternals } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { cn } from "@ui/lib/utils";
 import { Badge } from "@ui/components/ui/badge";
-import { selectShowDetail, selectShowLabels } from "../lod.js";
+import { selectLod, showDetailAt, showLabelsAt } from "../lod.js";
 
 const hidden = { opacity: 0, width: 6, height: 6 } as const;
 
@@ -30,7 +30,15 @@ const handleTypeMap: Record<string, "source" | "target"> = {
   "source-right": "source",
 };
 
-function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?: boolean }) {
+function TrailNodeComponent({
+  id,
+  data,
+  selected,
+}: {
+  id: string;
+  data: TrailNodeData;
+  selected?: boolean;
+}) {
   const {
     title,
     url,
@@ -45,8 +53,24 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
     handles,
   } = data;
 
-  const showDetail = useStore(selectShowDetail);
-  const showLabels = useStore(selectShowLabels);
+  // One xyflow subscription per node instead of two independent boolean
+  // selectors. Tri-state `selectLod` only flips twice per zoom gesture,
+  // so the overhead during panning/tweening is a single string-compare
+  // per node per frame.
+  const lod = useStore(selectLod);
+  const showLabels = showLabelsAt(lod);
+  const showDetail = showDetailAt(lod);
+
+  // When handles change (e.g. first child added → parent gains
+  // `source-bottom`, or freshly mounted node registers `target-top`),
+  // React Flow must re-measure them so incident edges can be drawn.
+  // Without this, a new parent→child edge stays invisible until the
+  // viewport re-culls it (pan/zoom), which was the reported bug.
+  const handlesKey = handles.join("|");
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, handlesKey, updateNodeInternals]);
 
   const displayUrl = String(url)
     .replace(/^https?:\/\/(www\.)?/, "")
@@ -73,7 +97,7 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
             isOpen || isCurrent
               ? "bg-foreground/20 border-foreground/30"
               : "bg-foreground/10 border-foreground/15",
-            onActivePath && !isCurrent && "bg-primary/15 border-primary/50",
+            onActivePath && !isCurrent && isOpen && "bg-primary/15 border-primary/50",
             isCurrent && "bg-primary/30 border-primary",
             selected && "ring-ring ring-2",
           )}
@@ -97,14 +121,12 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
         className={cn(
           "relative flex min-h-[60px] items-center gap-2 rounded-md border px-2.5 py-2",
           "w-[160px] cursor-default select-none",
-          "transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out will-change-transform",
+          "transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out",
           "hover:scale-[1.015] hover:shadow-md",
           isOpen || isCurrent
             ? "bg-card text-card-foreground"
             : "bg-muted/60 text-muted-foreground border-border/50",
-          onActivePath &&
-            !isCurrent &&
-            "bg-card text-card-foreground border-primary/50 shadow-primary/15 shadow-sm",
+          onActivePath && !isCurrent && isOpen && "border-primary/50 shadow-primary/15 shadow-sm",
           isCurrent && "border-primary shadow-primary/25 shadow-sm",
           selected && "ring-ring ring-2",
         )}

@@ -73,11 +73,11 @@
     border-radius: 4px;
   }
 
-  /* Bounding box around the group of selected nodes */
+  /* Bounding box around the group of selected nodes — hidden. With
+     `nodesDraggable={false}` it's purely visual noise on top of the
+     per-node selection rings. */
   .react-flow__nodesselection-rect {
-    background: color-mix(in srgb, var(--primary) 4%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent) !important;
-    border-radius: 4px;
+    display: none !important;
   }
 
   /* Stack list thin scrollbar */

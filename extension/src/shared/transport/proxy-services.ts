@@ -5,6 +5,7 @@ import type {
   EditorModeState,
   NodeLayoutInput,
   TempSelectionSessionId,
+  TreeSwitchOrigin,
   TreeUpdatedInput,
   TreesSnapshot,
 } from "@shared/rpc/contracts.js";
@@ -35,9 +36,9 @@ export interface TreeService {
   getTreeState(): Promise<TreeUpdatedInput>;
   getTrees(): Promise<TreesSnapshot>;
   clearTree(): Promise<void>;
-  createNewTree(input: { label: string }): Promise<void>;
-  archiveActiveTree(): Promise<void>;
-  openTree(input: { treeId: string }): Promise<void>;
+  createNewTree(input: { label: string; origin?: TreeSwitchOrigin }): Promise<void>;
+  archiveActiveTree(input?: { origin?: TreeSwitchOrigin }): Promise<void>;
+  openTree(input: { treeId: string; origin?: TreeSwitchOrigin }): Promise<void>;
   ensureTreeLoaded(input: { treeId: string }): Promise<boolean>;
   renameTree(input: { treeId: string; label: string }): Promise<void>;
   deleteArchivedTree(input: { treeId: string }): Promise<void>;

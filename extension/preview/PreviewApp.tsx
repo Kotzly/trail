@@ -4,6 +4,12 @@ import RenameNodeDialog from "@apps/sidepanel/ui/components/RenameNodeDialog";
 import SyncConflictBanner from "@apps/sidepanel/ui/components/SyncConflictBanner";
 import ContextMenus from "@apps/sidepanel/ui/components/ContextMenus";
 import DeleteTreeConfirmModal from "@apps/sidepanel/ui/components/DeleteTreeConfirmModal";
+import OnboardingWizard from "@apps/sidepanel/ui/onboarding/OnboardingWizard";
+
+// Opt-in query flag so the preview wizard doesn't pop for routine UI work.
+// Use `?onboarding=1` to exercise the full flow against fake data.
+const ENABLE_ONBOARDING =
+  typeof window !== "undefined" && new URL(window.location.href).searchParams.has("onboarding");
 import { Toaster } from "@ui/components/ui/sonner";
 import { Skeleton } from "@ui/components/ui/skeleton";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
@@ -135,6 +141,7 @@ export function PreviewApp() {
         )}
         <DeleteTreeConfirmModal />
         <RenameNodeDialog />
+        {ENABLE_ONBOARDING && <OnboardingWizard />}
         <ContextMenus />
       </div>
     </TooltipProvider>

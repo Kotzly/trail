@@ -249,6 +249,25 @@ function TrailGraphInner(props: TrailGraphProps) {
     [onNodeClick],
   );
 
+  // Clicking empty pane clears multi-selection — feels like every other
+  // canvas tool. With `selectionOnDrag` on, ReactFlow treats pane drags
+  // as marquee starts; a click without drag fires `onPaneClick` and we
+  // wipe the selection. Single node clicks already collapse selection
+  // to that node via ReactFlow's internal handling, so no extra work
+  // needed there. Escape mirrors the same gesture for keyboard users.
+  const handlePaneClick = useCallback(() => {
+    if (selectedNodeIds.size > 0) onSelectionChange(new Set());
+  }, [selectedNodeIds, onSelectionChange]);
+
+  useEffect(() => {
+    if (selectedNodeIds.size === 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onSelectionChange(new Set());
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedNodeIds, onSelectionChange]);
+
   const handleNodeContextMenu: NodeMouseHandler = useCallback(
     (event, node) => {
       event.preventDefault();
@@ -289,6 +308,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         onNodeClick={handleNodeClick}
         onNodeContextMenu={handleNodeContextMenu}
         onNodeDoubleClick={handleNodeDoubleClick}
+        onPaneClick={handlePaneClick}
         onSelectionChange={handleSelectionChange}
         selectionOnDrag
         selectionMode={SelectionMode.Partial}
