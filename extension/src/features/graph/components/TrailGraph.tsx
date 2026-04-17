@@ -25,6 +25,7 @@ import { useRelayoutEnabled } from "../motion/useRelayoutEnabled.js";
 import { useHoverHighlightEnabled } from "../motion/useHoverHighlightEnabled.js";
 import { useCameraControls } from "../motion/useCameraControls.js";
 import { useMotionFlag } from "../motion/store.js";
+import { useLatest } from "@ui/hooks/use-latest";
 
 const nodeTypes = { trail: TrailNode };
 
@@ -98,10 +99,24 @@ function TrailGraphInner(props: TrailGraphProps) {
     [layout.nodes, selectedNodeIds],
   );
 
-  const currentNode = useMemo(
-    () => (currentNodeId ? displayNodes.find((n) => n.data.nodeId === currentNodeId) : undefined),
-    [currentNodeId, displayNodes],
-  );
+  const hasNodes = displayNodes.length > 0;
+
+  // Mutable values the centering effect reads but must NOT re-fire on.
+  // Critical: `smoothCenter`/`smoothFitView` identities churn while a
+  // ReactFlow transition is in flight (useReactFlow returns a new object
+  // per RAF tick during the tween), and `displayNodes` is a fresh array on
+  // every render of useGraphLayout's async pipeline. Depending on them
+  // here re-schedules the effect every frame → new smoothCenter call →
+  // new tween → infinite render loop (eventually trips Radix composeRefs
+  // setState somewhere downstream). Read the latest via a ref bundle and
+  // fire only when the user-visible trigger (`currentNodeId` or data
+  // readiness) actually changes.
+  const latest = useLatest({
+    displayNodes,
+    smoothCenter,
+    smoothFitView,
+    followClickEnabled,
+  });
 
   // Camera centering policy:
   //   1. Initial mount (sidepanel opens) — always center on current node, or
@@ -111,15 +126,13 @@ function TrailGraphInner(props: TrailGraphProps) {
   //   3. Subsequent extension-initiated click — only center if the
   //      `camera_follow_click` flag is on. Extension click is detected via
   //      `expectedClickNodeId` matching the new `currentNodeId`.
-  //
-  // `displayNodes.length` is a cheap proxy for "layout computed"; we depend
-  // on the array reference via `currentNode` so the effect re-runs when the
-  // node's position actually changes.
   useEffect(() => {
-    if (displayNodes.length === 0) return;
+    if (!hasNodes) return;
+    const { displayNodes: nodes, smoothCenter, smoothFitView, followClickEnabled } = latest.current;
 
-    if (!currentNode?.position) {
-      // No current node yet — fit view on initial mount, then stop.
+    const node = currentNodeId ? nodes.find((n) => n.data.nodeId === currentNodeId) : undefined;
+
+    if (!node?.position) {
       if (!initialFitDone.current) {
         initialFitDone.current = true;
         smoothFitView();
@@ -136,15 +149,8 @@ function TrailGraphInner(props: TrailGraphProps) {
     if (!shouldCenter) return;
 
     initialFitDone.current = true;
-    smoothCenter(currentNode.position.x + NODE_WIDTH / 2, currentNode.position.y + NODE_HEIGHT / 2);
-  }, [
-    currentNode,
-    currentNodeId,
-    displayNodes.length,
-    smoothCenter,
-    smoothFitView,
-    followClickEnabled,
-  ]);
+    smoothCenter(node.position.x + NODE_WIDTH / 2, node.position.y + NODE_HEIGHT / 2);
+  }, [currentNodeId, hasNodes, latest]);
 
   // Sync ReactFlow selection → store
   const handleSelectionChange = useCallback(
