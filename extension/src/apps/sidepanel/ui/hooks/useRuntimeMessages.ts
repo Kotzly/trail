@@ -1,6 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useStore } from "../state/store.js";
-import { showUiToast } from "../notifications/sonner-adapter.js";
+import { maybeShowFirstPruneToast, showUiToast } from "../notifications/sonner-adapter.js";
+import { listTombstones } from "../../api/cleanup.js";
+import { browser } from "@shared/platform/webext.js";
 import { EXTENSION_MESSAGE, onExtensionMessage } from "@shared/transport/extension-messaging.js";
 
 export function useRuntimeMessages(): void {
@@ -11,6 +13,8 @@ export function useRuntimeMessages(): void {
   const setSyncStatus = useStore((state) => state.setSyncStatus);
   const setAuthState = useStore((state) => state.setAuthState);
   const setSyncConflict = useStore((state) => state.setSyncConflict);
+  const setRecentlyCleanedOpen = useStore((state) => state.setRecentlyCleanedOpen);
+  const lastTombstoneCount = useRef<number | null>(null);
 
   useEffect(() => {
     const removeTreeUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREE_UPDATED, ({ data }) => {
@@ -22,6 +26,31 @@ export function useRuntimeMessages(): void {
       } else if (data.reason === "editor-exit") {
         setEditorMode({ active: false, treeId: null });
       }
+
+      // Watch for the first time the tombstone list becomes non-empty
+      // and fire a one-time onboarding toast. We poll via the RPC here
+      // rather than subscribing to a dedicated event because the
+      // silent-prune path doesn't broadcast anything extra — but a
+      // prune implies a later navigation, which does.
+      void listTombstones()
+        .then((list) => {
+          const count = list.length;
+          const prev = lastTombstoneCount.current;
+          lastTombstoneCount.current = count;
+          if (prev === null || count <= prev) return;
+          void maybeShowFirstPruneToast(count, {
+            onView: () => setRecentlyCleanedOpen(true),
+            onOpenSettings: () => {
+              const url = chrome.runtime.getURL("settings.html#behavior");
+              browser.tabs.create({ url, active: true }).catch((error) => {
+                console.error("Failed to open Behavior settings:", error);
+              });
+            },
+          });
+        })
+        .catch(() => {
+          /* non-fatal */
+        });
     });
     const removeTreesUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREES_UPDATED, ({ data }) => {
       setTrees({ active: data.active, archived: data.archived });
@@ -60,5 +89,6 @@ export function useRuntimeMessages(): void {
     setSyncStatus,
     setAuthState,
     setSyncConflict,
+    setRecentlyCleanedOpen,
   ]);
 }
