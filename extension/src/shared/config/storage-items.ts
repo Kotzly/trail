@@ -169,3 +169,38 @@ export const editorStateItem = storage.defineItem<EditorModeState>("session:trai
 export const layoutPositionsCacheItem = storage.defineItem<
   Record<string, LayoutPositionsCacheEntry>
 >("session:trail_layout_positions", { fallback: {} });
+
+// ── Auto-cleanup tombstones ─────────────────────────────────────────
+//
+// When a node is silently pruned by the glance/burst/round-trip
+// cleanup layers, a tombstone is recorded so the node can be revived
+// if the user returns to its URL within TOMBSTONE_TTL_MS (72h).
+// Tombstones also back the "Recently cleaned" drawer UI — users can
+// audit what was removed and explicitly restore items.
+//
+// Eviction: on every tombstone write, entries older than TTL are
+// dropped. Also a lazy sweep when the drawer opens.
+
+export type CleanupReason = "glance" | "burst" | "round-trip";
+
+export type CleanupTombstone = {
+  /** Matches a pruned node id before it was removed. Post-revival this
+   * id is reused when recreating the node. */
+  nodeId: string;
+  /** Original URL + metadata of the pruned node. */
+  url: string;
+  title: string;
+  favicon: string | null;
+  /** The parent id the node used to live under. If missing at revival
+   * time (parent also deleted), revive as root child of current tree. */
+  parentId: string | null;
+  /** Unix-ms of removal. Drives 72h TTL. */
+  removedAt: number;
+  /** Why it was removed — surfaces as a pill in the drawer. */
+  reason: CleanupReason;
+};
+
+export const cleanupTombstonesItem = storage.defineItem<CleanupTombstone[]>(
+  "local:trail_cleanup_tombstones",
+  { fallback: [] },
+);
