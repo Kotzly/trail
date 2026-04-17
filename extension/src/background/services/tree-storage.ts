@@ -815,15 +815,26 @@ class TreeStorageService {
     return withTreeLock(async () => {
       const index = await this.getArchiveIndex();
 
+      // Best-effort cleanup: try each removal independently so one
+      // failure doesn't abort the rest (#55). Previously a single
+      // try wrapped the loop, leaving partial state behind on any
+      // throw.
       try {
         await archiveIndexItem.removeValue();
-        for (const e of index) {
-          await storage.removeItem(archiveBlobKey(e.id));
-        }
       } catch (error) {
-        log.error("Error clearing archives", {
+        log.warn("clearArchivesOnly: index removeValue failed", {
           error: error instanceof Error ? error.message : String(error),
         });
+      }
+      for (const e of index) {
+        try {
+          await storage.removeItem(archiveBlobKey(e.id));
+        } catch (error) {
+          log.warn("clearArchivesOnly: blob removeItem failed", {
+            id: e.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
 
       this.cachedIndex = null;
@@ -835,18 +846,23 @@ class TreeStorageService {
     return withTreeLock(async () => {
       const index = await this.getArchiveIndex();
 
-      try {
-        await activeTreeItem.removeValue();
-        await activeTreeMetaItem.removeValue();
-        await archiveIndexItem.removeValue();
-        await treeSavedAtItem.removeValue();
-        for (const e of index) {
-          await storage.removeItem(archiveBlobKey(e.id));
+      // Per-key try: any single removeItem failure doesn't block the
+      // rest (#55).
+      const safeRemove = async (label: string, fn: () => Promise<void>): Promise<void> => {
+        try {
+          await fn();
+        } catch (error) {
+          log.warn(`clearAllTrees: ${label} failed`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
-      } catch (error) {
-        log.error("Error clearing all trees", {
-          error: error instanceof Error ? error.message : String(error),
-        });
+      };
+      await safeRemove("activeTree", () => activeTreeItem.removeValue());
+      await safeRemove("activeTreeMeta", () => activeTreeMetaItem.removeValue());
+      await safeRemove("archiveIndex", () => archiveIndexItem.removeValue());
+      await safeRemove("treeSavedAt", () => treeSavedAtItem.removeValue());
+      for (const e of index) {
+        await safeRemove(`blob:${e.id}`, () => storage.removeItem(archiveBlobKey(e.id)));
       }
 
       this.cachedTree = null;
