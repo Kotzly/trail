@@ -376,6 +376,30 @@ export class NavigationTree {
     this.updateSearchEntry(node);
   }
 
+  /**
+   * Centralized node-data mutation. All external writers should go
+   * through this instead of `node.data = {...}` so invariants stay
+   * intact:
+   *   - search index is refreshed if url / title / favicon changed
+   *   - URL-key index (added in a follow-up commit) stays consistent
+   *   - future mutation subscribers (for sidepanel sync) can observe
+   *
+   * Returns the updated node or null if the id wasn't found.
+   */
+  updateNodeData(nodeId: NodeId, patch: Partial<NodeData>): NavigationNode | null {
+    const node = this.findNodeById(nodeId);
+    if (!node) return null;
+    const prev = node.data;
+    const next: NodeData = { ...prev, ...patch } as NodeData;
+    node.data = next;
+    const searchAffected =
+      prev.url !== next.url || prev.title !== next.title || prev.favicon !== next.favicon;
+    if (searchAffected) {
+      this.updateSearchEntry(node);
+    }
+    return node;
+  }
+
   private updateSearchEntry(node: NavigationNode): void {
     const existing = this.searchDocs.get(node.id);
     if (existing) {
