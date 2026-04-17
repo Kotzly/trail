@@ -23,6 +23,7 @@ import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
 import { getIncludedRootId } from "../shared/delete-tree.js";
+import { Badge } from "@ui/components/ui/badge";
 import { Button } from "@ui/components/ui/button";
 import {
   DropdownMenu,
@@ -142,7 +143,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         side="bottom"
         sideOffset={0}
         collisionPadding={8}
-        className="min-w-40"
+        className="w-auto min-w-40"
       >
         {!editorActive && (
           <>
@@ -170,111 +171,105 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                   {tabs.length} open tab{tabs.length !== 1 ? "s" : ""}
                 </DropdownMenuLabel>
                 <ScrollArea className="max-h-[200px]" onMouseLeave={() => setHoverNodeId(null)}>
-                  <div className="flex flex-col gap-0.5">
-                    {tabs.map((tab) => (
-                      <div
-                        key={tab.id}
-                        role="menuitem"
-                        tabIndex={-1}
-                        className="hover:bg-accent hover:text-accent-foreground flex cursor-default items-center justify-between gap-1.5 rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors select-none"
-                        onMouseEnter={() => setHoverNodeId(nodeId)}
-                        onMouseLeave={() => setHoverNodeId(null)}
-                        onClick={async () => {
+                  {tabs.map((tab) => (
+                    <DropdownMenuItem
+                      key={tab.id}
+                      onMouseEnter={() => setHoverNodeId(nodeId)}
+                      onMouseLeave={() => setHoverNodeId(null)}
+                      onSelect={async (e) => {
+                        e.preventDefault();
+                        if (!tab.id) return;
+                        setCheckedTabId(tab.id);
+                        if (checkTimeoutRef.current !== null)
+                          window.clearTimeout(checkTimeoutRef.current);
+                        checkTimeoutRef.current = window.setTimeout(() => {
+                          setCheckedTabId(null);
+                          checkTimeoutRef.current = null;
+                        }, 650);
+                        try {
+                          await browser.tabs.update(tab.id, { active: true });
+                        } catch (error) {
+                          console.error("Failed to focus tab:", error);
+                        }
+                      }}
+                    >
+                      {tab.url && (
+                        <img
+                          className="size-4 shrink-0 rounded-sm"
+                          src={getFaviconUrl(tab.url as Url)}
+                          alt=""
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.visibility = "hidden";
+                          }}
+                        />
+                      )}
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <span className="line-clamp-1 text-xs">{tab.title || "Untitled tab"}</span>
+                        {tab.url && (
+                          <span className="text-muted-foreground line-clamp-1 text-[10px]">
+                            {tab.url}
+                          </span>
+                        )}
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        aria-hidden
+                        className={cn(
+                          "size-5 shrink-0 rounded-full p-0 transition-all",
+                          checkedTabId === tab.id
+                            ? "scale-100 opacity-100"
+                            : "pointer-events-none scale-75 opacity-0",
+                        )}
+                      >
+                        <Icons.Check />
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="rounded-full"
+                        aria-label={tab.mutedInfo?.muted ? "Unmute tab" : "Mute tab"}
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (!tab.id) return;
-                          setCheckedTabId(tab.id);
-                          if (checkTimeoutRef.current !== null)
-                            window.clearTimeout(checkTimeoutRef.current);
-                          checkTimeoutRef.current = window.setTimeout(() => {
-                            setCheckedTabId(null);
-                            checkTimeoutRef.current = null;
-                          }, 650);
-                          try {
-                            await browser.tabs.update(tab.id, { active: true });
-                          } catch (error) {
-                            console.error("Failed to focus tab:", error);
-                          }
+                          fireAndForget(toggleMute(nodeId, tab.id as TabId), "toggle mute");
+                          setTabs((prev) =>
+                            prev.map((item) =>
+                              item.id === tab.id
+                                ? ({
+                                    ...item,
+                                    mutedInfo: {
+                                      muted: !item.mutedInfo?.muted,
+                                      reason:
+                                        (item.mutedInfo?.reason as
+                                          | "user"
+                                          | "capture"
+                                          | "extension"
+                                          | undefined) ?? undefined,
+                                    },
+                                  } as typeof item)
+                                : item,
+                            ),
+                          );
                         }}
                       >
-                        <div className="flex min-w-0 items-center gap-1.5">
-                          {tab.url && (
-                            <img
-                              className="size-4 shrink-0 rounded-sm"
-                              src={getFaviconUrl(tab.url as Url)}
-                              alt=""
-                            />
-                          )}
-                          <div className="flex min-w-0 flex-col">
-                            <div className="max-w-[180px] truncate text-xs">
-                              {tab.title || "Untitled tab"}
-                            </div>
-                            {tab.url && (
-                              <div className="text-muted-foreground max-w-[180px] truncate text-[10px]">
-                                {tab.url}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <span
-                            className={cn(
-                              "bg-muted inline-flex size-5 items-center justify-center rounded-full transition-all",
-                              checkedTabId === tab.id
-                                ? "scale-100 opacity-100"
-                                : "scale-75 opacity-0",
-                            )}
-                            aria-hidden="true"
-                          >
-                            <Icons.Check className="size-3" />
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            className="rounded-full"
-                            aria-label={tab.mutedInfo?.muted ? "Unmute tab" : "Mute tab"}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!tab.id) return;
-                              fireAndForget(toggleMute(nodeId, tab.id as TabId), "toggle mute");
-                              setTabs((prev) =>
-                                prev.map((item) =>
-                                  item.id === tab.id
-                                    ? ({
-                                        ...item,
-                                        mutedInfo: {
-                                          muted: !item.mutedInfo?.muted,
-                                          reason:
-                                            (item.mutedInfo?.reason as
-                                              | "user"
-                                              | "capture"
-                                              | "extension"
-                                              | undefined) ?? undefined,
-                                        },
-                                      } as typeof item)
-                                    : item,
-                                ),
-                              );
-                            }}
-                          >
-                            {tab.mutedInfo?.muted ? <Icons.VolumeX /> : <Icons.Volume2 />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                            aria-label="Close tab"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!tab.id) return;
-                              fireAndForget(closeTab(nodeId, tab.id as TabId), "close tab");
-                              setTabs((prev) => prev.filter((item) => item.id !== tab.id));
-                            }}
-                          >
-                            <Icons.X />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                        {tab.mutedInfo?.muted ? <Icons.VolumeX /> : <Icons.Volume2 />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                        aria-label="Close tab"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!tab.id) return;
+                          fireAndForget(closeTab(nodeId, tab.id as TabId), "close tab");
+                          setTabs((prev) => prev.filter((item) => item.id !== tab.id));
+                        }}
+                      >
+                        <Icons.X />
+                      </Button>
+                    </DropdownMenuItem>
+                  ))}
                 </ScrollArea>
                 {pendingCloseAllTabs ? (
                   <DropdownMenuItem
@@ -491,7 +486,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         side="bottom"
         sideOffset={0}
         collisionPadding={8}
-        className="min-w-40"
+        className="w-auto min-w-40"
       >
         <DropdownMenuLabel>{nodeIds.length} nodes selected</DropdownMenuLabel>
         <DropdownMenuSeparator />
