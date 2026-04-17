@@ -174,7 +174,12 @@ export async function handleNavigation(
         if (node && createUrlKey(node.data.url) !== createUrlKey(url as Url)) {
           // Different URL
           const nodeUrl = node.data.url as Url;
-          if (!shouldTrackUrl(nodeUrl)) {
+          if (!shouldTrackUrl(nodeUrl) && !node.isRoot()) {
+            // Tab was on an untrackable URL (about:blank, chrome-ext://,
+            // etc.) and is now landing on a real page. Rewrite the
+            // placeholder node's URL in place — but NEVER do this for
+            // the tree's root (bug #12: about:blank popup → real URL
+            // would silently overwrite the user's persistent root).
             node.data = {
               ...node.data,
               url: data.url,
