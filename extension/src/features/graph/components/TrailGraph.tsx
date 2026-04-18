@@ -12,6 +12,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import "../motion/relayout.css";
 import "../motion/hover.css";
+import "../pane.css";
 import type { TrailGraphProps, TrailNode as TrailNodeType } from "../types.js";
 import { TrailNode } from "./TrailNode.js";
 import { GraphControls } from "./GraphControls.js";

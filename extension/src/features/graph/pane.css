@@ -1,0 +1,23 @@
+/*
+ * Pane cursor + edge pointer-events overrides.
+ *
+ * xyflow sets `cursor: pointer` on the pane whenever selection is active
+ * (`selectionOnDrag` enabled). The pointing-hand cursor over empty graph
+ * area implies a click will do something — it doesn't. Keep the default
+ * arrow; the marquee drag itself is discoverable without a cursor hint.
+ *
+ * Edges receive `pointer-events: visibleStroke` from xyflow's base CSS,
+ * so pressing on an edge path swallows the pointerdown and the marquee
+ * drag doesn't start there. Edges aren't interactive in Trail — make
+ * them pass-through so the pane beneath gets the event.
+ */
+
+.react-flow__pane.selection {
+  cursor: default;
+}
+
+.react-flow__edge,
+.react-flow__edge.selectable {
+  pointer-events: none;
+  cursor: default;
+}
