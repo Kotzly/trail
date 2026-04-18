@@ -88,20 +88,28 @@ export class NavigationTreeMapper {
     // root kept its id; new wrapper root got a fresh one the persisted
     // state can't name). So the lookup logic is identical for wrapped
     // and unwrapped trees.
+    //
+    // `currentNodeId === null` is a VALID, intentional state: the user
+    // is viewing an untrackable surface (Settings, chrome://, our own
+    // sidepanel host, etc.) and the sidepanel should show no node as
+    // "current". Do NOT auto-fall back to root in that case — that
+    // bug masqueraded as "current jumps to New Tab when I open
+    // Settings", because every deserialise round-trip kept lifting
+    // null back to the root id.
     const persistedCurrent: NodeId | null = json.currentNodeId;
     if (persistedCurrent) {
       const ok = tree.setCurrentById(persistedCurrent);
       if (!ok) {
         // Persisted current references a node that was removed in a
         // prior session (e.g., merged away by deleteNode cleanup
-        // before save). Falls through to root fallback below.
+        // before save). Fall back to root so the tree isn't headless.
         log.warn("persisted currentNodeId not found — falling back to root", {
           currentNodeId: persistedCurrent,
         });
+        if (tree.getRoot()) {
+          tree.setCurrent(tree.getRoot()!);
+        }
       }
-    }
-    if (!tree.getCurrent() && tree.getRoot()) {
-      tree.setCurrent(tree.getRoot()!);
     }
 
     return tree;
