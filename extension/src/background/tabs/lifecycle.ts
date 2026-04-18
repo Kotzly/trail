@@ -1,11 +1,11 @@
-import type { TabId, Url } from "@shared/types/ids.js";
+import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import { tabManager } from "../state/tab-manager.js";
 import { treeStorage, withTreeLock } from "../services/tree-storage.js";
 import { notifyTreeUpdate } from "../messaging/notifications.js";
 import { tempSelectionManager } from "../services/temporary-selection.js";
 
 import { syncTabTitleFavicon, syncTabAudioState } from "./tab-sync.js";
-import { shouldTrackUrl, isNewTabContext } from "../utils/url-utils.js";
+import { shouldTrackUrl, isNewTabContext, isOwnExtensionUrl } from "../utils/url-utils.js";
 import { handleNewTabTab } from "../utils/new-tab.js";
 import { browser, type Browser, type Tab } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../state/node-recency.js";
@@ -40,12 +40,36 @@ type LifecycleBroadcast =
   | { kind: "none" }
   | { kind: "notify"; reason: TreeUpdateReason; view?: TreeViewIntent };
 
+/**
+ * The most recent node we promoted to `tree.current` via tab
+ * activation. Unlike `tree.current` itself this value is NOT cleared
+ * when we detach the highlight (e.g. user activates an untrackable
+ * tab → current becomes null but we still remember "what they were
+ * looking at"). Read by `handleNavigation` to parent newly-created
+ * nodes under the user's previous focused page when no opener / last-
+ * known mapping is available — the canonical "I clicked Settings
+ * from sidepanel; it should slot under the page I was on" semantic.
+ */
+let lastFocusedTrackedNodeId: NodeId | null = null;
+export function getLastFocusedTrackedNodeId(): NodeId | null {
+  return lastFocusedTrackedNodeId;
+}
+
 async function onTabCreated(tab: Tab): Promise<void> {
+  const pendingUrl = (tab as Tab & { pendingUrl?: string }).pendingUrl;
   if (!tab.id) return;
   if (tabManager.isIgnoredTab(tab.id as TabId)) return;
   if (skipIncognito(tab)) return;
-  if (!tab.url) return;
-  const url = tab.url as Url;
+  // Use pendingUrl as a backstop when Chrome reports tab.url="" during
+  // the brief window between tabs.create() and first commit. Without
+  // this, an explicit `tabs.create({ url: 'about:blank' })`-style
+  // race would slip past `if (!tab.url) return` even when pendingUrl
+  // reveals the real (untrackable) destination, and we'd end up with
+  // a stale tab→NTP mapping (root cause of the "settings = current
+  // newtab" bug).
+  const effectiveUrl = (tab.url && tab.url.length > 0 ? tab.url : pendingUrl) as Url | undefined;
+  if (!effectiveUrl) return;
+  const url = effectiveUrl;
 
   const broadcast = await withTreeLock(async () => {
     // Re-check inside the lock — another handler may have registered
@@ -61,6 +85,14 @@ async function onTabCreated(tab: Tab): Promise<void> {
       return { kind: "notify", reason: "tabs" } as LifecycleBroadcast;
     }
     if (!shouldTrackUrl(url)) return { kind: "none" } as LifecycleBroadcast;
+
+    // Our own extension pages (settings, sidepanel, …) must never be
+    // de-duped against an existing node: each "open Settings" click
+    // is a fresh side-trip from a different page in the user's flow,
+    // and reusing the prior node would yank current away to whatever
+    // branch the old settings node lived under. Let webnav create a
+    // brand-new node parented under the user's current page.
+    if (isOwnExtensionUrl(url)) return { kind: "none" } as LifecycleBroadcast;
 
     const existing = tree.findByUrl(url);
     if (!existing) return { kind: "none" } as LifecycleBroadcast;
@@ -176,12 +208,16 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
     let nodeId = tabManager.nodeByTab(tabId);
     const tree = await treeStorage.getOrCreateTree();
 
-    // Helper: user switched to a tab that has no associated node
-    // (untracked URL, chrome://, games, etc.). Detach the graph's
-    // "current" highlight so the UI reflects reality rather than
-    // staying stuck on the last tracked node. Fixes desync where
-    // activating a game/chrome:// tab still showed the previous
-    // node as selected.
+    // Two distinct outcomes when we can't promote a node to current:
+    //  - detach(): user is on a KNOWN-untrackable URL (chrome://, our
+    //    own settings without opt-in, etc.). Drop the highlight so the
+    //    sidepanel shows nothing — the user is no longer in a tracked
+    //    context. `lastFocusedTrackedNodeId` is intentionally NOT
+    //    cleared, so handleNavigation can still parent newly-created
+    //    nodes under the user's prior page.
+    //  - noop(): URL is unknown yet (pending), or trackable but we
+    //    haven't matched a node yet — webnav will resolve later.
+    //    Leave current alone for the brief intermediate state.
     const detach = (): LifecycleBroadcast => {
       const prev = tree.getCurrentId();
       if (prev === null) return { kind: "none" } as LifecycleBroadcast;
@@ -189,24 +225,31 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
       treeStorage.cacheTree(tree);
       return { kind: "notify", reason: "set-current" } as LifecycleBroadcast;
     };
+    const noop = (): LifecycleBroadcast => ({ kind: "none" });
 
-    // The activated tab's CURRENT URL is the source of truth — any
-    // cached tab→node mapping for an untrackable URL is stale and must
-    // not promote that node to "current". Fixes the settings-tab→NTP
-    // bug: chrome.tabs.create({ url: 'settings.html' }) briefly reports
-    // about:blank in onTabCreated, which registered the tab against the
-    // NTP root; activating the tab before onTabUpdated dropped the
-    // mapping then wrongly highlighted NTP as current.
     {
       const activeUrl = tabRead.url as Url | undefined;
-      if (activeUrl && !isNewTabContext(activeUrl, tabRead.title) && !shouldTrackUrl(activeUrl)) {
+      const pendingUrl = (tabRead as Tab & { pendingUrl?: string }).pendingUrl;
+      // Effective URL: prefer committed url, fall back to pendingUrl
+      // when Chrome briefly reports tab.url="" during creation.
+      const effectiveUrl = activeUrl && activeUrl.length > 0 ? activeUrl : pendingUrl;
+      const isNTP = effectiveUrl ? isNewTabContext(effectiveUrl as Url, tabRead.title) : false;
+      const trackable = effectiveUrl ? shouldTrackUrl(effectiveUrl as Url) : false;
+      // Untrackable destination — drop stale mapping AND clear
+      // current. `lastFocusedTrackedNodeId` is preserved so a fresh
+      // node creation in handleNavigation can still parent under the
+      // page the user was on before this side-trip.
+      if (effectiveUrl && !isNTP && !trackable) {
         if (nodeId !== undefined) tabManager.unregister(tabId);
         return detach();
       }
     }
 
     if (nodeId === undefined) {
-      if (!tabRead.url) return detach();
+      // No mapping AND we don't yet have a committed URL to classify.
+      // Don't disturb current — a webnav for the trackable destination
+      // will arrive momentarily and fix things.
+      if (!tabRead.url) return noop();
       const url = tabRead.url as Url;
       if (isNewTabContext(url, tabRead.title)) {
         const result = handleNewTabTab(tree, tabRead, url, {
@@ -215,7 +258,17 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
         });
         nodeId = result.rootId ?? undefined;
       } else {
-        if (!shouldTrackUrl(url)) return detach();
+        // Trackable URL with no existing node — webnav will create
+        // one. noop() rather than detach() so we don't blink current
+        // off and on while waiting.
+        if (!shouldTrackUrl(url)) return noop();
+
+        // Own extension URLs: never dedup against an existing node
+        // (mirrors the onTabCreated rule). Each open is a fresh
+        // side-trip; webnav will create a new node under the user's
+        // current page rather than yanking current to wherever an
+        // old settings node happened to live.
+        if (isOwnExtensionUrl(url)) return noop();
 
         // Only register against an existing node match. Do NOT
         // fabricate a new node here — that was bug #93: activating
@@ -225,13 +278,13 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
         // yet, we skip; a real webnav event will trigger node
         // creation with proper opener-derived parent later.
         const existing = tree.findByUrl(url);
-        if (!existing) return detach();
+        if (!existing) return noop();
         tabManager.register(existing.id, tabId);
         nodeId = existing.id;
       }
     }
 
-    if (nodeId === undefined) return detach();
+    if (nodeId === undefined) return noop();
     // Tracker: tab regained focus — unpause dwell clock.
     trackerOnTabFocus(tabId, Date.now());
     tempSelectionManager.handleTabActivated(tabId);
@@ -241,6 +294,7 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
     }
     const prevCurrentId = tree.getCurrentId();
     tree.setCurrentById(nodeId);
+    lastFocusedTrackedNodeId = nodeId;
     treeStorage.cacheTree(tree);
     if (prevCurrentId !== nodeId) {
       return {

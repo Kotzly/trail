@@ -9,6 +9,7 @@ import {
 import type { TreeViewIntent } from "@shared/rpc/contracts.js";
 import { type NodeMetaPatch, updateNodeMeta, type NodeData } from "@shared/types/node.js";
 import { tabManager } from "../state/tab-manager.js";
+import { getLastFocusedTrackedNodeId } from "../tabs/lifecycle.js";
 import { treeStorage, withTreeLock } from "../services/tree-storage.js";
 import { redirectDetector } from "./redirect-detection.js";
 import { onNavigation as trackerOnNavigation, DEFAULT_THRESHOLDS } from "./nav-pattern-tracker.js";
@@ -16,6 +17,7 @@ import { pruneGlance, reviveFromTombstone } from "../services/cleanup-policy.js"
 import {
   isChallengeUrl,
   isNewTabContext,
+  isOwnExtensionUrl,
   normalizeFaviconUrl,
   shouldTrackUrl,
 } from "../utils/url-utils.js";
@@ -337,8 +339,13 @@ export async function handleNavigation(
         let newNode;
 
         // Try URL dedup first (user returning to same URL in a new tab
-        // of an existing opener subtree).
-        const existingNodeInWindow = tree.findByUrl(url as Url);
+        // of an existing opener subtree). Skipped for our own
+        // extension pages: each "open Settings from sidepanel" is a
+        // distinct side-trip from the user's current branch, not a
+        // revisit of an old settings node living elsewhere.
+        const existingNodeInWindow = isOwnExtensionUrl(url as Url)
+          ? undefined
+          : tree.findByUrl(url as Url);
 
         if (existingNodeInWindow) {
           newNode = existingNodeInWindow;
@@ -357,10 +364,30 @@ export async function handleNavigation(
             markNodeVisited(tree, newNode.id, lastUsed);
           }
         } else {
-          // Attach under opener's node (or root, if opener unknown).
-          // Never uses tree.current as parent — that was the core bug.
+          // Parent resolution priority for a brand-new node with no
+          // tab-level history:
+          //   1. Opener-derived parent (real link / middle-click).
+          //   2. tree.current at lock entry — covers the case where
+          //      activation hasn't yet detached on the new tab.
+          //   3. lastFocusedTrackedNodeId — the page the user was on
+          //      *before* activating this new tab. Matters for the
+          //      "open Settings from sidepanel" flow: by the time
+          //      handleNavigation runs, the activation handler has
+          //      already detached current (settings is untrackable,
+          //      or trackable-but-no-mapping-yet), so `prevCurrentId`
+          //      is null. The shadow `lastFocusedTrackedNodeId`
+          //      preserves where the user was, which is the correct
+          //      parent for the new node.
+          //   4. null → root.
+          //
+          // The previous "never use tree.current" rule was protecting
+          // against a different bug (tabs mis-attributed during noisy
+          // tab activations); the lifecycle rewrite above no longer
+          // promotes mappings on activation without a real node, so
+          // these fallbacks are now safe.
+          const parentId = openerDerivedParentId ?? prevCurrentId ?? getLastFocusedTrackedNodeId();
           didMutate = true;
-          newNode = tree.navigateUnder(openerDerivedParentId, data, {
+          newNode = tree.navigateUnder(parentId, data, {
             setAsCurrent: isActiveTab,
           });
           wasNewNodeCreated = true;
