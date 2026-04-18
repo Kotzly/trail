@@ -8,7 +8,7 @@
  */
 
 import { storage } from "wxt/utils/storage";
-import type { NavigationTreeJSON, TreeMeta, ArchiveIndexEntry } from "../types/tree.js";
+import type { NavigationTreeJSON, TreeMeta, TreeIndexEntry } from "../types/tree.js";
 import type { Settings } from "../types/settings.js";
 import type { PersistedFlagState } from "../types/flags.js";
 import type { BackendConfigOverride } from "./backend.js";
@@ -25,19 +25,20 @@ export const activeTreeMetaItem = storage.defineItem<TreeMeta | null>("local:tra
   fallback: null,
 });
 
-export const archiveIndexItem = storage.defineItem<ArchiveIndexEntry[]>(
-  "local:trail_tree_archives",
-  { fallback: [] },
-);
+// Legacy key name kept to avoid a storage migration. The "archives"
+// suffix is historical; the list holds every tree except the active one.
+export const treeIndexItem = storage.defineItem<TreeIndexEntry[]>("local:trail_tree_archives", {
+  fallback: [],
+});
 
 export const treeSavedAtItem = storage.defineItem<number | null>("local:trail_tree_saved_at", {
   fallback: null,
 });
 
-// ── Archive blobs (dynamic keys) ────────────────────────────────────
+// ── Per-tree blobs (dynamic keys) ────────────────────────────────────
 
-/** Build a prefixed key for a per-tree compressed archive blob. */
-export function archiveBlobKey(treeId: string): `local:trail_ar_${string}` {
+/** Build a prefixed key for a per-tree compressed tree blob. */
+export function treeBlobKey(treeId: string): `local:trail_ar_${string}` {
   return `local:trail_ar_${treeId}`;
 }
 

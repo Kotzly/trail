@@ -168,7 +168,7 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
 async function buildTreesSnapshot(): Promise<TreesSnapshot> {
   return {
     active: await treeStorage.getActiveMeta(),
-    archived: await treeStorage.getArchivedSummaries(),
+    others: await treeStorage.getStoredSummaries(),
   };
 }
 
@@ -409,8 +409,8 @@ export async function openTreeAndFocusNode(treeId: string, nodeId: NodeId): Prom
   if (current.getRoot()) {
     snapshot(current, "Open node in tree");
   }
-  await treeStorage.archiveActiveTree();
-  const record = await treeStorage.takeArchivedTree(treeId);
+  await treeStorage.stashActiveTree();
+  const record = await treeStorage.takeStoredTree(treeId);
   if (!record) throw new Error("Tree not found");
 
   const nextTree = NavigationTreeMapper.fromJSON(record.tree);
@@ -455,25 +455,14 @@ export const treeHandlers = defineRpcHandlers({
     if (current.getRoot()) {
       snapshot(current, "New tree");
     }
-    await treeStorage.archiveActiveTree();
+    await treeStorage.stashActiveTree();
     const meta = treeStorage.createMeta(message.label);
     const nextTree = new NavigationTree();
     await switchTree(nextTree, meta, null, null, null, { origin: message.origin });
   },
 
-  async [RPC_METHOD.ARCHIVE_ACTIVE_TREE](message) {
-    const current = await treeStorage.getOrCreateTree();
-    if (current.getRoot()) {
-      snapshot(current, "Archive active tree");
-    }
-    await treeStorage.archiveActiveTree();
-    const meta = treeStorage.createMeta("Untitled Tree");
-    const nextTree = new NavigationTree();
-    await switchTree(nextTree, meta, null, null, null, { origin: message?.origin });
-  },
-
   async [RPC_METHOD.OPEN_TREE](message) {
-    // Use tree-loader (handles active tree, archive blob, cloud fetch)
+    // Use tree-loader (handles active tree, stored blob, cloud fetch)
     const loaded = await loadTree(message.treeId);
     if (!loaded) throw new Error("Tree not found");
 
@@ -481,8 +470,8 @@ export const treeHandlers = defineRpcHandlers({
     if (current.getRoot()) {
       snapshot(current, "Open tree");
     }
-    await treeStorage.archiveActiveTree();
-    const record = await treeStorage.takeArchivedTree(message.treeId);
+    await treeStorage.stashActiveTree();
+    const record = await treeStorage.takeStoredTree(message.treeId);
     if (!record) throw new Error("Tree not found");
     const nextTree = NavigationTreeMapper.fromJSON(record.tree);
     const meta: TreeMeta = {
@@ -506,10 +495,10 @@ export const treeHandlers = defineRpcHandlers({
     await notifyTreesUpdate(await buildTreesSnapshot());
   },
 
-  async [RPC_METHOD.DELETE_ARCHIVED_TREE](message) {
+  async [RPC_METHOD.DELETE_TREE](message) {
     const active = await treeStorage.getActiveMeta();
     if (active.id === message.treeId) throw new Error("Cannot delete active tree");
-    const removed = await treeStorage.deleteArchivedTree(message.treeId);
+    const removed = await treeStorage.deleteTree(message.treeId);
     if (!removed) throw new Error("Tree not found");
     await clearOpenTabs(message.treeId);
     await notifyTreesUpdate(await buildTreesSnapshot());
@@ -520,7 +509,7 @@ export const treeHandlers = defineRpcHandlers({
     let label: string;
 
     if (message.treeId) {
-      const record = await treeStorage.getFullArchiveRecord(message.treeId);
+      const record = await treeStorage.getFullStoredRecord(message.treeId);
       if (!record) throw new Error("Tree not found");
       treeJSON = record.tree;
       label = record.label;
@@ -731,7 +720,7 @@ export const treeHandlers = defineRpcHandlers({
     if (current.getRoot()) {
       snapshot(current, "Import trail");
     }
-    await treeStorage.archiveActiveTree();
+    await treeStorage.stashActiveTree();
 
     const label = bundle.source.treeLabel ?? "Imported Trail";
     const meta = treeStorage.createMeta(label);

@@ -4,14 +4,7 @@ import type {
   GraphDensity,
   TitleTruncation,
 } from "@shared/types/settings.js";
-import {
-  Field,
-  FieldContent,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from "@ui/components/ui/field";
+import { Field, FieldContent, FieldGroup, FieldLabel } from "@ui/components/ui/field";
 import { PageHeader, SectionHeader } from "../components/PageHeader.js";
 import { Switch } from "@ui/components/ui/switch";
 import {
@@ -22,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@ui/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@ui/components/ui/radio-group";
 
 type AppearancePageProps = {
   settings: Settings;
@@ -34,48 +26,45 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
     <div className="flex flex-col gap-8">
       <PageHeader title="Appearance" description="Customize how the graph looks." />
 
-      <FieldGroup>
-        <FieldSet>
-          <FieldLegend variant="label">Layout mode</FieldLegend>
-          <RadioGroup
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Field>
+          <FieldLabel htmlFor="layout-mode">Layout mode</FieldLabel>
+          <Select
             value={settings.layout.mode}
             onValueChange={(v) =>
               onUpdate({ layout: { ...settings.layout, mode: v as LayoutMode } })
             }
-            className="flex gap-4"
           >
-            <Field orientation="horizontal">
-              <RadioGroupItem value="tree" id="layout-tree" />
-              <FieldLabel htmlFor="layout-tree">Tree</FieldLabel>
-            </Field>
-            <Field orientation="horizontal">
-              <RadioGroupItem value="mindmap" id="layout-mindmap" />
-              <FieldLabel htmlFor="layout-mindmap">Mind map</FieldLabel>
-            </Field>
-          </RadioGroup>
-        </FieldSet>
+            <SelectTrigger id="layout-mode" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="tree">Tree</SelectItem>
+                <SelectItem value="mindmap">Mind map</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
 
-        <FieldSet>
-          <FieldLegend variant="label">Density</FieldLegend>
-          <RadioGroup
+        <Field>
+          <FieldLabel htmlFor="graph-density">Density</FieldLabel>
+          <Select
             value={settings.graphDensity}
             onValueChange={(v) => onUpdate({ graphDensity: v as GraphDensity })}
-            className="flex gap-4"
           >
-            <Field orientation="horizontal">
-              <RadioGroupItem value="compact" id="density-compact" />
-              <FieldLabel htmlFor="density-compact">Compact</FieldLabel>
-            </Field>
-            <Field orientation="horizontal">
-              <RadioGroupItem value="comfortable" id="density-comfortable" />
-              <FieldLabel htmlFor="density-comfortable">Comfortable</FieldLabel>
-            </Field>
-            <Field orientation="horizontal">
-              <RadioGroupItem value="spacious" id="density-spacious" />
-              <FieldLabel htmlFor="density-spacious">Spacious</FieldLabel>
-            </Field>
-          </RadioGroup>
-        </FieldSet>
+            <SelectTrigger id="graph-density" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="compact">Compact</SelectItem>
+                <SelectItem value="comfortable">Comfortable</SelectItem>
+                <SelectItem value="spacious">Spacious</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
 
         <Field>
           <FieldLabel htmlFor="title-truncation">Title truncation</FieldLabel>
@@ -83,7 +72,7 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
             value={settings.titleTruncation}
             onValueChange={(v) => onUpdate({ titleTruncation: v as TitleTruncation })}
           >
-            <SelectTrigger id="title-truncation" className="w-[180px]">
+            <SelectTrigger id="title-truncation" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -95,7 +84,7 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
             </SelectContent>
           </Select>
         </Field>
-      </FieldGroup>
+      </div>
 
       <div className="flex flex-col gap-4">
         <SectionHeader title="Display" description="Decide how much detail each node shows." />

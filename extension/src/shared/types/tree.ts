@@ -38,18 +38,18 @@ export type TreeRecord = TreeSummary & {
 };
 
 /**
- * A stub entry in the archive index: the tree payload is NOT stored locally,
+ * A stub entry in the tree index: the tree payload is NOT stored locally,
  * it exists only on the server.  Opening a stub triggers a cloud fetch.
  */
 export type TreeStub = TreeSummary & { stub: true };
 
 /**
- * Each entry in the archive index is either a full summary (with a
+ * Each entry in the tree index is either a full summary (with a
  * corresponding compressed blob in `trail_ar_{id}`) or a stub.
  */
-export type ArchiveIndexEntry = TreeSummary | TreeStub;
+export type TreeIndexEntry = TreeSummary | TreeStub;
 
-export function isTreeStub(entry: ArchiveIndexEntry): entry is TreeStub {
+export function isTreeStub(entry: TreeIndexEntry): entry is TreeStub {
   return "stub" in entry && entry.stub === true;
 }
 

@@ -11,7 +11,7 @@ A tour of how Trail is structured. Read this before making non-trivial changes.
 - **State:** Zustand (UI) + `chrome.storage.local` (persistence)
 - **Transport:** `@webext-core/messaging` (typed) + `@webext-core/proxy-service`
 - **Search:** MiniSearch (inverted index per tree)
-- **Compression:** fflate (gzip) for archived trees
+- **Compression:** fflate (gzip) for stashed non-active trees
 - **Toasts:** sonner
 
 ## Layout
@@ -127,8 +127,8 @@ See `src/shared/config/storage-items.ts` for the canonical list. Summary:
 
 - `local:trail_tree` — active `NavigationTreeJSON`
 - `local:trail_tree_meta` — label, timestamps, schema marker
-- `local:trail_tree_archives` — list of archived tree summaries
-- `local:trail_ar_{treeId}` — gzip-compressed archive payloads
+- `local:trail_tree_archives` — list of non-active tree summaries (legacy key name)
+- `local:trail_ar_{treeId}` — gzip-compressed non-active tree payloads (legacy key prefix)
 - `local:trail_settings` — `Settings` object
 - `local:trail_flags` — `{ v, overrides: Record<FlagId, value> }`
 - `local:trail_undo_history` — command stack (last 30)

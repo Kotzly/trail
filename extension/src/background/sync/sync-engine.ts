@@ -15,7 +15,7 @@
  *     we remembered AND was written by a different device_id, we record a
  *     pending conflict on the treeId and DO NOT overwrite — the user picks.
  *   - Periodic pull (every 60s while at least one extension surface is
- *     alive) refreshes the archive list and flags conflicts.
+ *     alive) refreshes the tree list and flags conflicts.
  *
  * Rate limits:
  *   - Push debounce: 2 s after the last mutation.
@@ -25,9 +25,10 @@
  *   - If a push fails with a network error, we enqueue a pending op in
  *     `pendingSyncOpsItem` and drain on next online + periodic pull.
  *
- * NOTE: This module intentionally does NOT pull remote trees into local
- * archives yet — that's a Wave 9 follow-up. v1.0 only pushes the active
- * tree and surfaces conflict hints so users know their work is safe.
+ * NOTE: This module intentionally does NOT pull remote tree payloads
+ * into local storage yet — that's a Wave 9 follow-up. v1.0 only pushes
+ * the active tree and surfaces conflict hints so users know their work
+ * is safe.
  */
 
 import type { PostgrestError } from "@supabase/supabase-js";
@@ -48,7 +49,7 @@ import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 import {
   isTreeStub,
-  type ArchiveIndexEntry,
+  type TreeIndexEntry,
   type NavigationTreeJSON,
   type TreeStub,
   type TreeSummary,
@@ -337,7 +338,7 @@ type TrailRow = {
 };
 
 /**
- * Merge remote trails into the local archive index as stubs. A stub is a
+ * Merge remote trails into the local tree index as stubs. A stub is a
  * summary-only entry — payload is fetched on demand via `loadTree` (see
  * tree-loader.ts). Local entries with full payload win over stubs.
  */
@@ -367,7 +368,7 @@ async function doPull(): Promise<void> {
   if (rows.length === 0) return;
 
   const activeMeta = await treeStorage.getActiveMeta();
-  const currentIndex = await treeStorage.getArchiveIndex();
+  const currentIndex = await treeStorage.getTreeIndex();
   const byId = new Map(currentIndex.map((e) => [e.id, e] as const));
   let changed = false;
 
@@ -435,13 +436,13 @@ async function doPull(): Promise<void> {
   }
 
   if (changed) {
-    const next: ArchiveIndexEntry[] = Array.from(byId.values());
-    await treeStorage.setArchiveIndex(next);
+    const next: TreeIndexEntry[] = Array.from(byId.values());
+    await treeStorage.setTreeIndex(next);
     // Nudge the UI to refresh the tree switcher.
     try {
       const active = await treeStorage.getActiveMeta();
-      const archived = await treeStorage.getArchivedSummaries();
-      fireExtensionEvent(EXTENSION_MESSAGE.TREES_UPDATED, { active, archived });
+      const others = await treeStorage.getStoredSummaries();
+      fireExtensionEvent(EXTENSION_MESSAGE.TREES_UPDATED, { active, others });
     } catch {
       /* non-fatal */
     }
@@ -450,7 +451,7 @@ async function doPull(): Promise<void> {
 
 /**
  * Fetch a tree's full payload from Supabase. Used by `loadTree` when a stub
- * entry is opened. Materializes the payload into the local archive blob
+ * entry is opened. Materializes the payload into the local tree blob
  * so subsequent opens are instant.
  */
 export async function fetchRemoteTreePayload(treeId: string): Promise<NavigationTreeJSON | null> {
@@ -474,10 +475,10 @@ export async function fetchRemoteTreePayload(treeId: string): Promise<Navigation
 
   const payload = data.payload as NavigationTreeJSON;
   try {
-    await treeStorage.saveArchiveTree(treeId, payload);
+    await treeStorage.saveStoredTree(treeId, payload);
     // Clear the `stub: true` marker so future opens hit the local
     // blob instead of re-downloading from Supabase every time (#36).
-    await treeStorage.unstubArchiveEntry(treeId);
+    await treeStorage.unstubTreeEntry(treeId);
     const meta = await getSyncMeta(treeId);
     await writeSyncMeta(treeId, {
       ...meta,

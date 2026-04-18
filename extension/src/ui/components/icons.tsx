@@ -92,7 +92,6 @@ import {
   ZoomIn,
   ZoomOut,
   // v1.0 additions used by Settings → Trees
-  Archive,
   Folder,
 } from "lucide-react";
 
@@ -106,7 +105,6 @@ export const Icons = {
   AlertTriangle: AlertTriangle as LucideIcon,
   ArrowLeft,
   ArrowRight,
-  Archive,
   Bell,
   BookOpen,
   Bookmark,

@@ -18,9 +18,8 @@ export function useTrees() {
       api.renameTree(treeId, label),
     onSuccess: invalidate,
   });
-  const archiveMutation = useMutation({ mutationFn: api.archiveActiveTree, onSuccess: invalidate });
   const deleteMutation = useMutation({
-    mutationFn: api.deleteArchivedTree,
+    mutationFn: api.deleteTree,
     onSuccess: invalidate,
   });
 
@@ -36,8 +35,7 @@ export function useTrees() {
     (treeId: string, label: string) => renameTreeMutation.mutateAsync({ treeId, label }),
     [renameTreeMutation],
   );
-  const archiveActiveTree = useCallback(() => archiveMutation.mutateAsync(), [archiveMutation]);
-  const deleteArchivedTree = useCallback(
+  const deleteTree = useCallback(
     (treeId: string) => deleteMutation.mutateAsync(treeId),
     [deleteMutation],
   );
@@ -78,8 +76,7 @@ export function useTrees() {
     newTree,
     openTree,
     renameTree,
-    archiveActiveTree,
-    deleteArchivedTree,
+    deleteTree,
     exportTree,
     importFromFile,
   };

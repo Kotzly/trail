@@ -37,11 +37,10 @@ export interface TreeService {
   getTrees(): Promise<TreesSnapshot>;
   clearTree(): Promise<void>;
   createNewTree(input: { label: string; origin?: TreeSwitchOrigin }): Promise<void>;
-  archiveActiveTree(input?: { origin?: TreeSwitchOrigin }): Promise<void>;
   openTree(input: { treeId: string; origin?: TreeSwitchOrigin }): Promise<void>;
   ensureTreeLoaded(input: { treeId: string }): Promise<boolean>;
   renameTree(input: { treeId: string; label: string }): Promise<void>;
-  deleteArchivedTree(input: { treeId: string }): Promise<void>;
+  deleteTree(input: { treeId: string }): Promise<void>;
   exportTree(input: { treeId?: string }): Promise<TrailExportBundle>;
   setNodeLayout(input: NodeLayoutInput): Promise<void>;
   setNodeLayoutBatch(input: { layouts: NodeLayoutInput[] }): Promise<void>;

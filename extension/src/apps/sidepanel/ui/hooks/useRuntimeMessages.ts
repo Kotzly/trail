@@ -24,7 +24,7 @@ export function useRuntimeMessages(): void {
       }
     });
     const removeTreesUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREES_UPDATED, ({ data }) => {
-      setTrees({ active: data.active, archived: data.archived });
+      setTrees({ active: data.active, others: data.others });
     });
     const removeNotify = onExtensionMessage(EXTENSION_MESSAGE.UI_NOTIFY, ({ data }) => {
       showUiToast(data);

@@ -44,7 +44,7 @@ export function StartStep({ onLoadDemo, onStartFresh, loadingDemo, disabled }: S
       </div>
 
       <p className="text-muted-foreground animate-in fade-in-0 fill-mode-both text-[11px] delay-200 duration-400">
-        Your current tree (if any) is archived, not deleted.
+        Your current tree (if any) stays saved — you can switch back from the sidepanel.
       </p>
     </div>
   );

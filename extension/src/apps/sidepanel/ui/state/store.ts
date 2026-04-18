@@ -64,7 +64,7 @@ type StoreState = {
   } | null;
   trees: {
     active: TreeMeta | null;
-    archived: TreeSummary[];
+    others: TreeSummary[];
   };
   pins: PinnedManager | null;
   tabStates: Record<NodeId, TabState>;
@@ -222,7 +222,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   treeUpdate: null,
   trees: {
     active: null,
-    archived: [],
+    others: [],
   },
   pins: null,
   tabStates: {},
@@ -390,7 +390,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set({
       trees: {
         active: snapshot.active,
-        archived: snapshot.archived,
+        others: snapshot.others,
       },
     }),
   setCommandState: (state) => set({ commandState: state }),

@@ -131,7 +131,7 @@ async function broadcastEditorExitToSite(): Promise<void> {
 /* ------------------------------------------------------------------ */
 
 export async function enterEditorMode(treeId: string): Promise<EditorModeState | string> {
-  // Use tree-loader: active tree → archive blob → cloud fetch
+  // Use tree-loader: active tree → stored blob → cloud fetch
   const record = await loadTree(treeId);
 
   if (!record) {

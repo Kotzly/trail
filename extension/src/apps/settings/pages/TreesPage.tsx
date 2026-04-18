@@ -11,13 +11,6 @@ import {
   InputGroupInput,
 } from "@ui/components/ui/input-group";
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@ui/components/ui/empty";
-import {
   Item,
   ItemActions,
   ItemContent,
@@ -40,20 +33,11 @@ import {
   AlertDialogTrigger,
 } from "@ui/components/ui/alert-dialog";
 import { Icons } from "@ui/components/icons";
-import type { ArchiveIndexEntry } from "@shared/types/tree.js";
+import type { TreeIndexEntry } from "@shared/types/tree.js";
 
 export function TreesPage() {
-  const {
-    trees,
-    loading,
-    newTree,
-    openTree,
-    renameTree,
-    archiveActiveTree,
-    deleteArchivedTree,
-    exportTree,
-    importFromFile,
-  } = useTrees();
+  const { trees, loading, newTree, openTree, renameTree, deleteTree, exportTree, importFromFile } =
+    useTrees();
 
   const [newTreeLabel, setNewTreeLabel] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -109,7 +93,7 @@ export function TreesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader title="Trees" description="Create, archive, import, and export your trees." />
+      <SectionHeader title="Trees" description="Create, open, import, and export your trees." />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <InputGroup className="flex-1">
@@ -168,26 +152,14 @@ export function TreesPage() {
                 <Icons.Download />
               </Button>
             </ButtonTooltip>
-            <ButtonTooltip label="Archive tree">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Archive tree"
-                onClick={() => void archiveActiveTree()}
-              >
-                <Icons.Archive />
-              </Button>
-            </ButtonTooltip>
           </ItemActions>
         </Item>
       </ItemGroup>
 
-      {trees.archived.length === 0 ? (
-        <EmptyArchived />
-      ) : (
+      {trees.others.length > 0 && (
         <ItemGroup>
-          {trees.archived.map((tree) => (
-            <ArchivedTreeRow
+          {trees.others.map((tree) => (
+            <OtherTreeRow
               key={tree.id}
               tree={tree}
               isEditing={editingId === tree.id}
@@ -196,7 +168,7 @@ export function TreesPage() {
               onCommitRename={handleCommitRename}
               onOpen={openTree}
               onExport={exportTree}
-              onDelete={deleteArchivedTree}
+              onDelete={deleteTree}
             />
           ))}
         </ItemGroup>
@@ -226,25 +198,8 @@ function TreesSkeleton() {
   );
 }
 
-function EmptyArchived() {
-  return (
-    <Empty className="py-10">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Icons.ListTree />
-        </EmptyMedia>
-        <EmptyTitle>No archived trees</EmptyTitle>
-        <EmptyDescription>
-          Archive the current tree to save it here. You can re-open archived trees from the
-          sidepanel switcher.
-        </EmptyDescription>
-      </EmptyHeader>
-    </Empty>
-  );
-}
-
-type ArchivedTreeRowProps = {
-  tree: ArchiveIndexEntry;
+type OtherTreeRowProps = {
+  tree: TreeIndexEntry;
   isEditing: boolean;
   onStartEdit: (id: string) => void;
   onCancelEdit: () => void;
@@ -255,10 +210,10 @@ type ArchivedTreeRowProps = {
 };
 
 /**
- * Explicit variant: archived-tree row. Splits into view/edit children so
- * typing in one row never re-renders siblings (`rerender-memo`).
+ * Row for a non-active tree. Splits into view/edit children so typing
+ * in one row never re-renders siblings (`rerender-memo`).
  */
-const ArchivedTreeRow = memo(function ArchivedTreeRow({
+const OtherTreeRow = memo(function OtherTreeRow({
   tree,
   isEditing,
   onStartEdit,
@@ -267,7 +222,7 @@ const ArchivedTreeRow = memo(function ArchivedTreeRow({
   onOpen,
   onExport,
   onDelete,
-}: ArchivedTreeRowProps) {
+}: OtherTreeRowProps) {
   return (
     <Item variant="outline" size="sm">
       <ItemMedia variant="icon">

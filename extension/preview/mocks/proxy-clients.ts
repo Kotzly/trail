@@ -33,8 +33,7 @@ export const treeService = {
   openTree: asyncOk("openTree"),
   ensureTreeLoaded: async () => true,
   renameTree: asyncOk("renameTree"),
-  archiveActiveTree: asyncOk("archiveActiveTree"),
-  deleteArchivedTree: asyncOk("deleteArchivedTree"),
+  deleteTree: asyncOk("deleteTree"),
   exportTree: async () => ({ format: "json", data: "{}" }),
   importTree: asyncOk("importTree"),
 };

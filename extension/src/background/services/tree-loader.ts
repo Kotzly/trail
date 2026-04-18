@@ -3,9 +3,9 @@
  *
  * Resolution order:
  *   1. Active tree (in-memory / chrome.storage)
- *   2. Local archive blob (compressed, chrome.storage)
+ *   2. Local stored blob (compressed, chrome.storage)
  *   3. Remote Supabase payload (only when signed in; materializes to
- *      local archive for subsequent loads)
+ *      local storage for subsequent loads)
  */
 
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
@@ -27,12 +27,12 @@ export async function loadTree(treeId: string): Promise<TreeRecord | null> {
     };
   }
 
-  // 2. Archived locally.
-  const fullRecord = await treeStorage.getFullArchiveRecord(treeId);
+  // 2. Stored locally.
+  const fullRecord = await treeStorage.getFullStoredRecord(treeId);
   if (fullRecord) return fullRecord;
 
   // 3. Stub on server only — try to fetch + materialize.
-  const index = await treeStorage.getArchiveIndex();
+  const index = await treeStorage.getTreeIndex();
   const entry = index.find((e) => e.id === treeId);
   if (!entry || !isTreeStub(entry)) return null;
 

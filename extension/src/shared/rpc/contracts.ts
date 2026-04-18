@@ -1,7 +1,7 @@
 import type { Description, NodeId, Title, Url, TabId, FaviconUrl } from "../types/ids.js";
 import { type Settings } from "../types/settings.js";
 import { type TabState } from "../types/tabs.js";
-import { type NavigationTreeJSON, type TreeMeta, type ArchiveIndexEntry } from "../types/tree.js";
+import { type NavigationTreeJSON, type TreeMeta, type TreeIndexEntry } from "../types/tree.js";
 import type { TrailExportBundle } from "../types/export.js";
 import type { FlagKey, ResolvedFlags } from "../types/flags.js";
 import { type RuntimeMessageSender, type Tab } from "@shared/platform/webext.js";
@@ -27,10 +27,9 @@ export const RPC_METHOD = {
   GET_TREES: "GET_TREES",
   CLEAR_TREE: "CLEAR_TREE",
   NEW_TREE: "NEW_TREE",
-  ARCHIVE_ACTIVE_TREE: "ARCHIVE_ACTIVE_TREE",
   OPEN_TREE: "OPEN_TREE",
   RENAME_TREE: "RENAME_TREE",
-  DELETE_ARCHIVED_TREE: "DELETE_ARCHIVED_TREE",
+  DELETE_TREE: "DELETE_TREE",
   EXPORT_TREE: "EXPORT_TREE",
   OPEN_IN_NEW_TAB: "OPEN_IN_NEW_TAB",
   TOGGLE_MUTE: "TOGGLE_MUTE",
@@ -176,10 +175,6 @@ export type NewTreeMessage = RequestMessageBase<
   typeof RPC_METHOD.NEW_TREE,
   { label: string; origin?: TreeSwitchOrigin }
 >;
-export type ArchiveActiveTreeMessage = RequestMessageBase<
-  typeof RPC_METHOD.ARCHIVE_ACTIVE_TREE,
-  { origin?: TreeSwitchOrigin }
->;
 export type OpenTreeMessage = RequestMessageBase<
   typeof RPC_METHOD.OPEN_TREE,
   { treeId: string; origin?: TreeSwitchOrigin }
@@ -196,8 +191,8 @@ export type RenameNodeMessage = RequestMessageBase<
   typeof RPC_METHOD.RENAME_NODE,
   { nodeId: NodeId; title: string }
 >;
-export type DeleteArchivedTreeMessage = RequestMessageBase<
-  typeof RPC_METHOD.DELETE_ARCHIVED_TREE,
+export type DeleteTreeMessage = RequestMessageBase<
+  typeof RPC_METHOD.DELETE_TREE,
   { treeId: string }
 >;
 export type ExportTreeMessage = RequestMessageBase<
@@ -350,9 +345,8 @@ export type RequestMessage =
   | OpenTreeMessage
   | EnsureTreeLoadedMessage
   | RenameTreeMessage
-  | DeleteArchivedTreeMessage
+  | DeleteTreeMessage
   | ExportTreeMessage
-  | ArchiveActiveTreeMessage
   | OpenInNewTabMessage
   | ToggleMuteMessage
   | CloseTabMessage
@@ -404,10 +398,9 @@ export type ResponseDataByType = {
   [RPC_METHOD.GET_TREES]: TreesSnapshot;
   [RPC_METHOD.CLEAR_TREE]: void;
   [RPC_METHOD.NEW_TREE]: void;
-  [RPC_METHOD.ARCHIVE_ACTIVE_TREE]: void;
   [RPC_METHOD.OPEN_TREE]: void;
   [RPC_METHOD.RENAME_TREE]: void;
-  [RPC_METHOD.DELETE_ARCHIVED_TREE]: void;
+  [RPC_METHOD.DELETE_TREE]: void;
   [RPC_METHOD.EXPORT_TREE]: TrailExportBundle;
   [RPC_METHOD.OPEN_IN_NEW_TAB]: void;
   [RPC_METHOD.TOGGLE_MUTE]: void;
@@ -538,7 +531,7 @@ export type TreeUpdatedInput = {
 
 export type TreesSnapshot = {
   active: TreeMeta;
-  archived: ArchiveIndexEntry[];
+  others: TreeIndexEntry[];
 };
 
 export type BulkNodeIdsInput = {

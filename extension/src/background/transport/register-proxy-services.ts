@@ -81,8 +81,6 @@ const treeService: TreeService = {
   clearTree: () => call(treeHandlers[RPC_METHOD.CLEAR_TREE], { type: RPC_METHOD.CLEAR_TREE }),
   createNewTree: (input) =>
     call(treeHandlers[RPC_METHOD.NEW_TREE], { type: RPC_METHOD.NEW_TREE, ...input }),
-  archiveActiveTree: () =>
-    call(treeHandlers[RPC_METHOD.ARCHIVE_ACTIVE_TREE], { type: RPC_METHOD.ARCHIVE_ACTIVE_TREE }),
   openTree: (input) =>
     call(treeHandlers[RPC_METHOD.OPEN_TREE], { type: RPC_METHOD.OPEN_TREE, ...input }),
   ensureTreeLoaded: (input) =>
@@ -92,9 +90,9 @@ const treeService: TreeService = {
     }),
   renameTree: (input) =>
     call(treeHandlers[RPC_METHOD.RENAME_TREE], { type: RPC_METHOD.RENAME_TREE, ...input }),
-  deleteArchivedTree: (input) =>
-    call(treeHandlers[RPC_METHOD.DELETE_ARCHIVED_TREE], {
-      type: RPC_METHOD.DELETE_ARCHIVED_TREE,
+  deleteTree: (input) =>
+    call(treeHandlers[RPC_METHOD.DELETE_TREE], {
+      type: RPC_METHOD.DELETE_TREE,
       ...input,
     }),
   exportTree: (input) =>

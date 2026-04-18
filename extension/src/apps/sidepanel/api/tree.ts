@@ -96,8 +96,8 @@ export async function renameTree(treeId: string, label: string): Promise<void> {
   await treeService.renameTree({ treeId, label });
 }
 
-export async function deleteArchivedTree(treeId: string): Promise<void> {
-  await treeService.deleteArchivedTree({ treeId });
+export async function deleteTree(treeId: string): Promise<void> {
+  await treeService.deleteTree({ treeId });
 }
 
 export async function exportTree(treeId?: string): Promise<TrailExportBundle> {

@@ -175,7 +175,7 @@ function testQuotaEviction(): void {
    *
    * Manual steps:
    *   1. Fill storage near the quota threshold
-   *   2. Trigger an archive or storage cleanup operation
+   *   2. Trigger a tree stash or storage cleanup operation
    *   3. Open the tree dropdown
    *
    * Expected outcomes:
@@ -184,7 +184,7 @@ function testQuotaEviction(): void {
    *   - Stub tree shows explanation of unavailable state
    *   - No data corruption in remaining trees
    */
-  console.log('  MANUAL: quota eviction — fill storage, trigger archive, verify toast + stub tree in dropdown');
+  console.log('  MANUAL: quota eviction — fill storage, trigger stash, verify toast + stub tree in dropdown');
   assert.ok(true, 'stub — automation pending');
 }
 

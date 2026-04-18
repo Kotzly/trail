@@ -19,7 +19,7 @@ import { captureError } from "@shared/lib/observability.js";
 import { storage } from "wxt/utils/storage";
 import {
   activeTreeItem,
-  archiveIndexItem,
+  treeIndexItem,
   undoHistoryItem,
   layoutPositionsCacheItem,
 } from "../../shared/config/storage-items.js";
@@ -104,21 +104,21 @@ const MIGRATIONS: Migration[] = [
         await activeTreeItem.setValue(activeTree);
       }
 
-      // 2. Archive blobs (one per non-stub archive). Each archive is
+      // 2. Stored tree blobs (one per non-stub entry). Each tree is
       //    an independent id-space; we re-mint each tree separately.
       //    Stubs hold remote-only references — no local node data.
-      const archives = await archiveIndexItem.getValue();
-      if (archives.some((e) => !isTreeStub(e))) {
+      const storedTrees = await treeIndexItem.getValue();
+      if (storedTrees.some((e) => !isTreeStub(e))) {
         const { treeStorage } = await import("./tree-storage.js");
-        for (const entry of archives) {
+        for (const entry of storedTrees) {
           if (isTreeStub(entry)) continue;
           try {
-            const tree = await treeStorage.getArchiveTree(entry.id);
+            const tree = await treeStorage.getStoredTree(entry.id);
             if (!tree) continue;
             rementIdsInTreeJSON(tree);
-            await treeStorage.saveArchiveTree(entry.id, tree);
+            await treeStorage.saveStoredTree(entry.id, tree);
           } catch (error) {
-            log.warn("rement_node_ids_uuidv7: failed to rewrite archive blob", {
+            log.warn("rement_node_ids_uuidv7: failed to rewrite stored tree blob", {
               id: entry.id,
               error: error instanceof Error ? error.message : String(error),
             });

@@ -12,28 +12,27 @@ import { showOperationError } from "../shared/show-operation-error.js";
 import { displayLabel, formatHost } from "../shared/format.js";
 import { Button } from "@ui/components/ui/button";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandList,
+} from "@ui/components/ui/command";
+import { Command as CommandPrimitive } from "cmdk";
+import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
 } from "@ui/components/ui/empty";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@ui/components/ui/item";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
-import { ScrollArea } from "@ui/components/ui/scroll-area";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
 
 type NavNode = TreeNode<NodeData> | NavigationNode;
 
 const PINNED_KEYS = ["shift", "P"] as const;
+const SEARCH_THRESHOLD = 6;
 
 export default function PinnedDropdown() {
   const pins = useStore((s) => s.pins);
@@ -67,17 +66,7 @@ export default function PinnedDropdown() {
     }
   }, []);
 
-  const handleEnter = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key !== "Enter") return;
-      const first = pinnedNodes[0];
-      if (first) {
-        e.preventDefault();
-        void handleNavigate(first.id as NodeId);
-      }
-    },
-    [pinnedNodes, handleNavigate],
-  );
+  const showSearch = pinnedNodes.length > SEARCH_THRESHOLD;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -96,43 +85,54 @@ export default function PinnedDropdown() {
       </ButtonTooltip>
       <PopoverContent
         align="start"
-        className="w-[320px] overflow-hidden p-0"
-        onKeyDown={handleEnter}
+        className="flex max-h-[min(var(--radix-popover-content-available-height),560px)] w-[340px] flex-col gap-0 overflow-hidden p-0"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="text-muted-foreground border-b px-3 py-2 text-xs font-medium tracking-wide">
-          Pinned
-          {pinnedNodes.length > 0 && (
-            <span className="text-muted-foreground/70 ml-1.5 tabular-nums">
-              {pinnedNodes.length}
-            </span>
+        <Command
+          className="flex size-full min-h-0 flex-1 flex-col rounded-none! bg-transparent p-0! [&_[data-slot=command-input-wrapper]]:pb-2"
+          shouldFilter={showSearch}
+          loop
+        >
+          <header className="text-muted-foreground flex shrink-0 items-center gap-1.5 border-b px-3 py-2 text-xs font-medium tracking-wide">
+            <Icons.Pin className="size-3.5 opacity-70" />
+            <span>Pinned</span>
+            {pinnedNodes.length > 0 && (
+              <span className="ml-auto tabular-nums opacity-70">{pinnedNodes.length}</span>
+            )}
+          </header>
+
+          {showSearch && (
+            <CommandInput
+              placeholder="Search pinned…"
+              className="placeholder:text-muted-foreground/70"
+            />
           )}
-        </div>
-        <ScrollArea className="max-h-[320px] [&>[data-radix-scroll-area-viewport]>div]:!block">
+
           {pinnedNodes.length === 0 ? (
             <EmptyPinned />
           ) : (
-            <ItemGroup className="p-1" id="pinnedList">
-              {pinnedNodes.map((node) => (
-                <PinnedRow
-                  key={node.id}
-                  node={node}
-                  onNavigate={handleNavigate}
-                  onUnpin={handleUnpin}
-                />
-              ))}
-            </ItemGroup>
+            <CommandList id="pinnedList" className="max-h-none min-h-0 flex-1 overflow-y-auto">
+              <CommandEmpty className="text-muted-foreground py-6 text-center text-xs">
+                Nothing matches
+              </CommandEmpty>
+              <CommandGroup className="p-1">
+                {pinnedNodes.map((node) => (
+                  <PinnedRow
+                    key={node.id}
+                    node={node}
+                    onNavigate={handleNavigate}
+                    onUnpin={handleUnpin}
+                  />
+                ))}
+              </CommandGroup>
+            </CommandList>
           )}
-        </ScrollArea>
+        </Command>
       </PopoverContent>
     </Popover>
   );
 }
 
-/**
- * Hoisted — static tree, never re-constructed on parent re-render
- * (`rendering-hoist-jsx`).
- */
 function EmptyPinned() {
   return (
     <Empty className="border-0 py-8">
@@ -147,12 +147,6 @@ function EmptyPinned() {
   );
 }
 
-/**
- * Memoized so sibling re-renders (parent state change, graph update,
- * another pin/unpin) don't ripple through the whole list — only the row
- * whose `node` identity changed actually re-renders
- * (`rerender-memo` + `rerender-functional-setstate`).
- */
 const PinnedRow = memo(function PinnedRow({
   node,
   onNavigate,
@@ -169,40 +163,46 @@ const PinnedRow = memo(function PinnedRow({
   const host = formatHost(node.data.url);
   const showHost = host && host !== title;
 
+  const searchValue = `${node.id} ${title} ${host ?? ""}`;
+
   return (
-    <Item
-      size="xs"
-      className="hover:bg-accent group/row cursor-pointer border-transparent"
+    <CommandPrimitive.Item
+      value={searchValue}
+      onSelect={() => void onNavigate(node.id as NodeId)}
       data-node-id={node.id}
-      onClick={() => void onNavigate(node.id as NodeId)}
+      className="group/pin data-[selected=true]:bg-accent relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] outline-none select-none"
     >
-      <ItemMedia variant="icon">
+      <span className="flex size-5 shrink-0 items-center justify-center">
         {node.data.url ? (
           <img className="size-4 rounded-sm" alt="" src={getFaviconUrl(node.data.url)} />
         ) : (
           <Icons.Pin className="text-muted-foreground size-4" />
         )}
-      </ItemMedia>
-      <ItemContent className="min-w-0">
-        <ItemTitle className="block w-full truncate text-[13px]">{title}</ItemTitle>
-        {showHost ? <ItemDescription className="text-[11px]">{host}</ItemDescription> : null}
-      </ItemContent>
-      <ItemActions className="opacity-0 transition-opacity group-hover/row:opacity-100">
-        <ButtonTooltip label="Unpin">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            type="button"
-            aria-label="Unpin"
-            onClick={(e) => {
-              e.stopPropagation();
-              void onUnpin(node.id as NodeId);
-            }}
-          >
-            <Icons.X />
-          </Button>
-        </ButtonTooltip>
-      </ItemActions>
-    </Item>
+      </span>
+
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate leading-tight">{title}</span>
+        {showHost && (
+          <span className="text-muted-foreground truncate text-[11px] leading-tight">{host}</span>
+        )}
+      </span>
+
+      <ButtonTooltip label="Unpin">
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          type="button"
+          aria-label="Unpin"
+          className="text-muted-foreground hover:text-foreground shrink-0 opacity-0 transition-opacity group-hover/pin:opacity-100 group-data-[selected=true]/pin:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            void onUnpin(node.id as NodeId);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <Icons.X />
+        </Button>
+      </ButtonTooltip>
+    </CommandPrimitive.Item>
   );
 });
