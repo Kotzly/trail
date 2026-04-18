@@ -30,6 +30,8 @@ import { useLatest } from "@ui/hooks/use-latest";
 
 const nodeTypes = { trail: TrailNode };
 
+const MULTI_SELECT_KEYS = ["Shift", "Meta", "Control"];
+
 const defaultEdgeOptions = {
   type: "default",
   animated: false,
@@ -223,10 +225,65 @@ function TrailGraphInner(props: TrailGraphProps) {
   }, [targetX, targetY, smoothCenter, getZoom]);
   const canCenterCurrent = targetX !== null && targetY !== null;
 
+  // ReactFlow unconditionally clears selection at the start of a marquee
+  // drag (xyflow `resetSelectedElements` runs regardless of multi-select key),
+  // which breaks "hold modifier + drag to add to selection". We capture the
+  // pre-drag selection on pointerdown and union it back in.
+  const preservedSelection = useRef<Set<NodeId> | null>(null);
+  const marqueeActive = useRef(false);
+  const justReset = useRef(false);
+  const selectedIdsLatest = useLatest(selectedNodeIds);
+
+  const handleContainerPointerDown = useCallback(
+    (event: React.PointerEvent) => {
+      if (event.button !== 0) return;
+      if (event.shiftKey || event.metaKey || event.ctrlKey) {
+        preservedSelection.current = new Set(selectedIdsLatest.current);
+        justReset.current = true;
+      } else {
+        preservedSelection.current = null;
+        justReset.current = false;
+      }
+    },
+    [selectedIdsLatest],
+  );
+
+  const handleContainerPointerUp = useCallback(() => {
+    if (!marqueeActive.current) {
+      preservedSelection.current = null;
+      justReset.current = false;
+    }
+  }, []);
+
+  const handleSelectionStart = useCallback(() => {
+    marqueeActive.current = true;
+  }, []);
+
+  const handleSelectionEnd = useCallback(() => {
+    marqueeActive.current = false;
+    preservedSelection.current = null;
+    justReset.current = false;
+  }, []);
+
   // Sync ReactFlow selection → store
   const handleSelectionChange = useCallback(
     ({ nodes }: { nodes: TrailNodeType[] }) => {
       const ids = new Set<NodeId>(nodes.map((n) => n.data.nodeId));
+      const preserved = preservedSelection.current;
+      if (preserved) {
+        if (marqueeActive.current) {
+          for (const id of preserved) ids.add(id);
+        } else if (ids.size === 0 && justReset.current) {
+          // First fire after modifier-pointerdown is empty → xyflow's reset
+          // at marquee start. Swallow by restoring the pre-drag selection.
+          for (const id of preserved) ids.add(id);
+          justReset.current = false;
+        } else {
+          // Non-empty change without marquee → click (add/toggle).
+          // Propagate xyflow's result; preserved cleared on pointerup.
+          justReset.current = false;
+        }
+      }
       onSelectionChange(ids);
     },
     [onSelectionChange],
@@ -234,8 +291,8 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   const handleNodeClick: NodeMouseHandler = useCallback(
     (event, node) => {
-      // Shift+click = multi-select, handled by ReactFlow — don't navigate
-      if (event.shiftKey) return;
+      // Modifier-click = multi-select, handled by ReactFlow — don't navigate
+      if (event.shiftKey || event.metaKey || event.ctrlKey) return;
       const data = node.data as { nodeId?: NodeId; url?: string };
       if (data.nodeId !== undefined && data.url !== undefined) {
         // Mark this click so the centering effect can tell extension-initiated
@@ -261,7 +318,12 @@ function TrailGraphInner(props: TrailGraphProps) {
   useEffect(() => {
     if (selectedNodeIds.size === 0) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onSelectionChange(new Set());
+      if (e.key === "Escape") {
+        preservedSelection.current = null;
+        marqueeActive.current = false;
+        justReset.current = false;
+        onSelectionChange(new Set());
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -299,6 +361,8 @@ function TrailGraphInner(props: TrailGraphProps) {
         relayoutAnimated && "graph--relayout-animated",
         hoverGlow && "graph--hover-glow",
       )}
+      onPointerDownCapture={handleContainerPointerDown}
+      onPointerUpCapture={handleContainerPointerUp}
     >
       <ReactFlow
         nodes={displayNodes}
@@ -309,9 +373,11 @@ function TrailGraphInner(props: TrailGraphProps) {
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={handlePaneClick}
         onSelectionChange={handleSelectionChange}
+        onSelectionStart={handleSelectionStart}
+        onSelectionEnd={handleSelectionEnd}
         selectionOnDrag
         selectionMode={SelectionMode.Partial}
-        multiSelectionKeyCode="Shift"
+        multiSelectionKeyCode={MULTI_SELECT_KEYS}
         onlyRenderVisibleElements
         nodesDraggable={false}
         nodesConnectable={false}
