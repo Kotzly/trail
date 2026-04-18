@@ -22,7 +22,11 @@ import {
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
-import { getIncludedRootId } from "../shared/delete-tree.js";
+import {
+  countOpenTabsForDelete,
+  formatTabsClosed,
+  getIncludedRootId,
+} from "../shared/delete-tree.js";
 import { Button } from "@ui/components/ui/button";
 import { ButtonGroup } from "@ui/components/ui/button-group";
 import {
@@ -83,6 +87,7 @@ function MenuShortcut({ keys }: { keys: readonly ShortcutKey[] }) {
 type DestructiveItemProps = {
   label: string;
   confirmLabel: string;
+  confirmDescription?: string | null;
   pending: boolean;
   onArm: () => void;
   onConfirm: () => void;
@@ -97,6 +102,7 @@ type DestructiveItemProps = {
 function DestructiveItem({
   label,
   confirmLabel,
+  confirmDescription,
   pending,
   onArm,
   onConfirm,
@@ -107,9 +113,18 @@ function DestructiveItem({
 
   if (pending) {
     return (
-      <DropdownMenuItem variant="destructive" onSelect={() => onConfirm()}>
-        <Icons.Trash2 />
-        {confirmLabel}
+      <DropdownMenuItem
+        variant="destructive"
+        className={confirmDescription ? "items-start py-1.5" : undefined}
+        onSelect={() => onConfirm()}
+      >
+        <Icons.Trash2 className={confirmDescription ? "mt-0.5" : undefined} />
+        <span className="flex min-w-0 flex-col gap-0.5 leading-tight">
+          <span>{confirmLabel}</span>
+          {confirmDescription && (
+            <span className="text-[11px] opacity-75">{confirmDescription}</span>
+          )}
+        </span>
       </DropdownMenuItem>
     );
   }
@@ -213,6 +228,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
   const setPickTarget = useStore((state) => state.setPickTarget);
   const tree = useStore((state) => state.tree);
+  const nodeTabCounts = useStore((state) => state.nodeTabCounts);
   const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
   const editorActive = useStore((state) => state.editorMode.active);
@@ -254,6 +270,17 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const hasChildren = (node.getChildren?.() ?? []).length > 0;
   const isRoot = node.isRoot();
   const isCollapsed = collapsedNodeIds.has(nodeId);
+
+  const ids = [nodeId];
+  const tabsClosedForNode = formatTabsClosed(
+    countOpenTabsForDelete(tree, ids, nodeTabCounts, "self"),
+  );
+  const tabsClosedForChildren = formatTabsClosed(
+    countOpenTabsForDelete(tree, ids, nodeTabCounts, "children"),
+  );
+  const tabsClosedForSubtree = formatTabsClosed(
+    countOpenTabsForDelete(tree, ids, nodeTabCounts, "subtree"),
+  );
 
   const confirmCloseAllTabs = () => {
     fireAndForget(bulkCloseTabs([nodeId]), "bulk close tabs");
@@ -442,6 +469,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
           <DestructiveItem
             label="Delete tree"
             confirmLabel="Confirm: delete tree"
+            confirmDescription={tabsClosedForSubtree}
             pending={pendingDelete === "subtree"}
             onArm={() => openDeleteTreeConfirm(nodeId)}
             onConfirm={() => openDeleteTreeConfirm(nodeId)}
@@ -451,6 +479,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
             <DestructiveItem
               label="Delete node"
               confirmLabel="Confirm: delete node"
+              confirmDescription={tabsClosedForNode}
               pending={pendingDelete === "node"}
               onArm={() => setPendingDelete("node")}
               onConfirm={() => fireAndForget(deleteNode(nodeId), "delete node")}
@@ -461,6 +490,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                 <DestructiveItem
                   label="Delete children"
                   confirmLabel="Confirm: delete children"
+                  confirmDescription={tabsClosedForChildren}
                   pending={pendingDelete === "children"}
                   onArm={() => setPendingDelete("children")}
                   onConfirm={() => fireAndForget(deleteChildren(nodeId), "delete children")}
@@ -468,6 +498,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                 <DestructiveItem
                   label="Delete subtree"
                   confirmLabel="Confirm: delete subtree"
+                  confirmDescription={tabsClosedForSubtree}
                   pending={pendingDelete === "subtree"}
                   onArm={() => setPendingDelete("subtree")}
                   onConfirm={() => fireAndForget(deleteWithChildren(nodeId), "delete subtree")}
@@ -488,6 +519,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const clearSelection = useStore((state) => state.clearSelection);
   const tree = useStore((state) => state.tree);
+  const nodeTabCounts = useStore((state) => state.nodeTabCounts);
   const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
   const editorActive = useStore((state) => state.editorMode.active);
@@ -542,6 +574,13 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
     fireAndForget(bulkDeleteRecursive(nodeIds), "bulk delete recursive");
     clearSelection();
   };
+
+  const tabsClosedForBulkNodes = formatTabsClosed(
+    countOpenTabsForDelete(tree, nodeIds, nodeTabCounts, "self"),
+  );
+  const tabsClosedForBulkRecursive = formatTabsClosed(
+    countOpenTabsForDelete(tree, nodeIds, nodeTabCounts, "subtree"),
+  );
 
   return (
     <DropdownMenu
@@ -627,6 +666,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         <DestructiveItem
           label="Delete nodes"
           confirmLabel="Confirm: delete nodes"
+          confirmDescription={tabsClosedForBulkNodes}
           pending={pendingDelete === "nodes"}
           onArm={() => setPendingDelete("nodes")}
           onConfirm={confirmDeleteNodes}
@@ -635,6 +675,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         <DestructiveItem
           label="Delete subtrees"
           confirmLabel="Confirm: delete subtrees"
+          confirmDescription={tabsClosedForBulkRecursive}
           pending={pendingDelete === "recursive"}
           onArm={() => setPendingDelete("recursive")}
           onConfirm={confirmDeleteRecursive}
