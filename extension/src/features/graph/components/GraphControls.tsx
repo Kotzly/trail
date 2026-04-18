@@ -15,7 +15,7 @@ export function GraphControls({ onCenterCurrent, canCenterCurrent }: GraphContro
   const { smoothFitView } = useCameraControls();
 
   return (
-    <div className="absolute top-1/2 right-3 z-10 flex -translate-y-1/2 flex-col gap-1.5">
+    <div className="absolute right-3 bottom-3 z-10 flex flex-col gap-1.5">
       <ButtonTooltip label="Zoom in" side="left">
         <Button
           variant="outline"
