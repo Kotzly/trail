@@ -2,8 +2,33 @@ import type { FaviconUrl, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import { compileBlocklist, type CompiledBlocklist } from "@shared/lib/url-blocklist.js";
 import { isNewTabUrl } from "@shared/lib/root.js";
+import { browser } from "@shared/platform/webext.js";
 export { getFaviconUrl };
 export { isNewTabUrl };
+
+/**
+ * True iff `url` is one of OUR extension's own pages
+ * (`chrome-extension://${runtime.id}/...`). These are the extension's
+ * internal UI — settings, sidepanel, popup, onboarding — not user
+ * navigation, so they must never appear in the tree, must never get a
+ * tab→node mapping, and must never be promoted to "current".
+ *
+ * This is a stronger filter than `shouldTrackUrl` (which is gated by
+ * the user-configured scheme allowlist). Users can opt into tracking
+ * `chrome-extension:` for OTHER extensions' pages without our own
+ * leaking through.
+ *
+ * Also used to interpret transient tab states where Chrome reports an
+ * empty `tab.url` but a `tab.pendingUrl` that already targets our
+ * extension — the activation race that previously surfaced settings
+ * as "current = New Tab".
+ */
+export function isOwnExtensionUrl(url: string | undefined | null): boolean {
+  if (!url) return false;
+  const id = browser.runtime?.id;
+  if (!id) return false;
+  return url.startsWith(`chrome-extension://${id}/`);
+}
 
 const blockedFaviconUrlPatterns: RegExp[] = [
   /^chrome:\/\/favicon2/i,
