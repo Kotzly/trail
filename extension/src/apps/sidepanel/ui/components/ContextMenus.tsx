@@ -226,7 +226,6 @@ type NodeMenuProps = { nodeId: NodeId; position: { x: number; y: number } };
 function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
-  const setPickTarget = useStore((state) => state.setPickTarget);
   const tree = useStore((state) => state.tree);
   const nodeTabCounts = useStore((state) => state.nodeTabCounts);
   const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
@@ -451,15 +450,6 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
           >
             <Icons.Type />
             Copy title
-          </DropdownMenuItem>
-        )}
-
-        {!isRoot && (
-          <DropdownMenuItem
-            onSelect={() => setPickTarget({ type: "duplicate", sourceNodeId: nodeId })}
-          >
-            <Icons.Copy />
-            Duplicate at…
           </DropdownMenuItem>
         )}
 
