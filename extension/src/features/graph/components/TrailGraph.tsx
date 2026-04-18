@@ -228,9 +228,12 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   // ReactFlow unconditionally clears selection at the start of a marquee
   // drag (xyflow `resetSelectedElements` runs regardless of multi-select key),
-  // which breaks "hold modifier + drag to add to selection". We capture the
-  // pre-drag selection on pointerdown and union it back in.
+  // which breaks "hold modifier + drag to change selection". We capture the
+  // pre-drag selection on pointerdown and merge the marquee result into it
+  // per the mode chosen at pointerdown: add (Shift/Meta/Ctrl) unions the
+  // rect with preserved; subtract (Alt/Option) removes rect from preserved.
   const preservedSelection = useRef<Set<NodeId> | null>(null);
+  const selectionMode = useRef<"add" | "subtract" | null>(null);
   const marqueeActive = useRef(false);
   const justReset = useRef(false);
   const selectedIdsLatest = useLatest(selectedNodeIds);
@@ -238,11 +241,18 @@ function TrailGraphInner(props: TrailGraphProps) {
   const handleContainerPointerDown = useCallback(
     (event: React.PointerEvent) => {
       if (event.button !== 0) return;
-      if (event.shiftKey || event.metaKey || event.ctrlKey) {
+      const mode: "add" | "subtract" | null = event.altKey
+        ? "subtract"
+        : event.shiftKey || event.metaKey || event.ctrlKey
+          ? "add"
+          : null;
+      if (mode) {
         preservedSelection.current = new Set(selectedIdsLatest.current);
+        selectionMode.current = mode;
         justReset.current = true;
       } else {
         preservedSelection.current = null;
+        selectionMode.current = null;
         justReset.current = false;
       }
     },
@@ -252,6 +262,7 @@ function TrailGraphInner(props: TrailGraphProps) {
   const handleContainerPointerUp = useCallback(() => {
     if (!marqueeActive.current) {
       preservedSelection.current = null;
+      selectionMode.current = null;
       justReset.current = false;
     }
   }, []);
@@ -263,29 +274,43 @@ function TrailGraphInner(props: TrailGraphProps) {
   const handleSelectionEnd = useCallback(() => {
     marqueeActive.current = false;
     preservedSelection.current = null;
+    selectionMode.current = null;
     justReset.current = false;
   }, []);
 
   // Sync ReactFlow selection → store
   const handleSelectionChange = useCallback(
     ({ nodes }: { nodes: TrailNodeType[] }) => {
-      const ids = new Set<NodeId>(nodes.map((n) => n.data.nodeId));
+      const rect = new Set<NodeId>(nodes.map((n) => n.data.nodeId));
       const preserved = preservedSelection.current;
-      if (preserved) {
-        if (marqueeActive.current) {
-          for (const id of preserved) ids.add(id);
-        } else if (ids.size === 0 && justReset.current) {
-          // First fire after modifier-pointerdown is empty → xyflow's reset
-          // at marquee start. Swallow by restoring the pre-drag selection.
-          for (const id of preserved) ids.add(id);
-          justReset.current = false;
-        } else {
-          // Non-empty change without marquee → click (add/toggle).
-          // Propagate xyflow's result; preserved cleared on pointerup.
-          justReset.current = false;
-        }
+      const mode = selectionMode.current;
+
+      if (!preserved || !mode) {
+        onSelectionChange(rect);
+        return;
       }
-      onSelectionChange(ids);
+
+      if (!marqueeActive.current) {
+        if (rect.size === 0 && justReset.current) {
+          // xyflow's reset at marquee start fired before onSelectionStart.
+          // Restore pre-drag selection so there's no empty flash.
+          justReset.current = false;
+          onSelectionChange(new Set(preserved));
+          return;
+        }
+        // Non-empty without marquee → click path (handled by xyflow).
+        justReset.current = false;
+        onSelectionChange(rect);
+        return;
+      }
+
+      const merged = new Set(preserved);
+      if (mode === "add") {
+        for (const id of rect) merged.add(id);
+      } else {
+        for (const id of rect) merged.delete(id);
+      }
+      onSelectionChange(merged);
     },
     [onSelectionChange],
   );
@@ -321,6 +346,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         preservedSelection.current = null;
+        selectionMode.current = null;
         marqueeActive.current = false;
         justReset.current = false;
         onSelectionChange(new Set());
