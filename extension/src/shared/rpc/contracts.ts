@@ -26,6 +26,9 @@ export const RPC_METHOD = {
   GET_TREE: "GET_TREE",
   GET_TREES: "GET_TREES",
   CLEAR_TREE: "CLEAR_TREE",
+  RESET_TREE_DATA: "RESET_TREE_DATA",
+  DOWNLOAD_TREE_LOCALLY: "DOWNLOAD_TREE_LOCALLY",
+  UNLOAD_TREE_TO_CLOUD: "UNLOAD_TREE_TO_CLOUD",
   NEW_TREE: "NEW_TREE",
   OPEN_TREE: "OPEN_TREE",
   RENAME_TREE: "RENAME_TREE",
@@ -152,6 +155,15 @@ export type UiNotificationInput = {
 export type GetTreeMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREE>;
 export type GetTreesMessage = RequestMessageBase<typeof RPC_METHOD.GET_TREES>;
 export type ClearTreeMessage = RequestMessageBase<typeof RPC_METHOD.CLEAR_TREE>;
+export type ResetTreeDataMessage = RequestMessageBase<typeof RPC_METHOD.RESET_TREE_DATA>;
+export type DownloadTreeLocallyMessage = RequestMessageBase<
+  typeof RPC_METHOD.DOWNLOAD_TREE_LOCALLY,
+  { treeId: string }
+>;
+export type UnloadTreeToCloudMessage = RequestMessageBase<
+  typeof RPC_METHOD.UNLOAD_TREE_TO_CLOUD,
+  { treeId: string }
+>;
 
 /**
  * Origin hint for tree-switching commands. Determines browser-focus
@@ -341,6 +353,9 @@ export type RequestMessage =
   | GetTreeMessage
   | GetTreesMessage
   | ClearTreeMessage
+  | ResetTreeDataMessage
+  | DownloadTreeLocallyMessage
+  | UnloadTreeToCloudMessage
   | NewTreeMessage
   | OpenTreeMessage
   | EnsureTreeLoadedMessage
@@ -397,6 +412,9 @@ export type ResponseDataByType = {
   [RPC_METHOD.GET_TREE]: TreeUpdatedInput;
   [RPC_METHOD.GET_TREES]: TreesSnapshot;
   [RPC_METHOD.CLEAR_TREE]: void;
+  [RPC_METHOD.RESET_TREE_DATA]: void;
+  [RPC_METHOD.DOWNLOAD_TREE_LOCALLY]: void;
+  [RPC_METHOD.UNLOAD_TREE_TO_CLOUD]: void;
   [RPC_METHOD.NEW_TREE]: void;
   [RPC_METHOD.OPEN_TREE]: void;
   [RPC_METHOD.RENAME_TREE]: void;

@@ -106,17 +106,8 @@ function normalizeLabel(raw: unknown): string {
 }
 
 function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): TreeSummary {
-  const root = tree.getRoot();
   const treeJSON = NavigationTreeMapper.toJSON(tree);
-  // `rootUrl / rootTitle / rootFavicon` are the identifying card the
-  // Trees dropdown shows when the user hasn't renamed a tree. After the
-  // NTP-root invariant, the actual root is always `chrome://newtab/` /
-  // "New Tab" — useless as a label. So if the root is the synthetic
-  // NTP, we surface the tree's FIRST real child instead (the page the
-  // user actually researched from). Tree with only the synthetic NTP
-  // and no children is effectively empty; we let rootUrl fall through
-  // to the NTP value so the summary isn't missing.
-  const identifying = pickIdentifyingNode(root);
+  const identifying = pickIdentifyingNode(tree);
   const rootData = identifying?.data;
   return {
     ...meta,
@@ -129,19 +120,47 @@ function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): Tr
 }
 
 /**
- * Pick the node that should stand in for the tree in summary UI:
- * - empty tree → null
- * - NTP root with no children → the NTP root itself (tree is effectively empty)
- * - NTP root with ≥1 child → the first child (the actual subject)
- * - non-NTP root (pre-migration legacy, before wrap fires) → the root itself
+ * Pick the node that best identifies the tree in summary UI. The actual
+ * root is the synthetic `chrome://newtab/` wrapper which renders as a
+ * useless "newtab" host. Navigation handlers keep `tree.current` in sync
+ * with `markNodeVisited`, so it already tracks the last active node —
+ * use it directly.
+ *
+ * Fallbacks (current is null → user on an untrackable surface, or still
+ * points at the synthetic NTP root):
+ * - NTP root with ≥1 child → first child
+ * - otherwise → the root itself (empty or legacy non-NTP tree)
  */
-function pickIdentifyingNode(
-  root: ReturnType<NavigationTree["getRoot"]>,
-): ReturnType<NavigationTree["getRoot"]> {
+function pickIdentifyingNode(tree: NavigationTree): ReturnType<NavigationTree["getRoot"]> {
+  const current = tree.getCurrent();
+  if (current && !isNewTabUrl(current.data.url)) return current;
+
+  const root = tree.getRoot();
   if (!root) return null;
-  if (!isNewTabUrl(root.data.url)) return root;
-  const [firstChild] = root.getChildren();
-  return firstChild ?? root;
+  if (isNewTabUrl(root.data.url)) {
+    const [firstChild] = root.getChildren();
+    return firstChild ?? root;
+  }
+  return root;
+}
+
+/**
+ * Public helper used by the sync push path so the cloud row carries the
+ * same identifying url/title/favicon as the local summary.
+ */
+export function pickTreeIdentifyingData(tree: NavigationTree): {
+  url?: Url;
+  title?: Title;
+  favicon?: FaviconUrl;
+} {
+  const node = pickIdentifyingNode(tree);
+  if (!node) return {};
+  const { url, title, favicon } = node.data;
+  return {
+    ...(url ? { url } : {}),
+    ...(title ? { title } : {}),
+    ...(favicon ? { favicon } : {}),
+  };
 }
 
 const indexEntryExtrasSchema = z.object({
@@ -740,7 +759,25 @@ class TreeStorageService {
 
       const summary = index[idx]!;
       const tree = await this.getStoredTree(treeId);
-      if (!tree) return null;
+      if (!tree) {
+        // Orphan entry: index has the tree but the blob is missing.
+        // Prune it so it stops showing in the switcher.
+        log.warn("takeStoredTree: blob missing, pruning orphan index entry", {
+          treeId,
+          stub: isTreeStub(summary),
+        });
+        const prunedIndex = [...index];
+        prunedIndex.splice(idx, 1);
+        this.cachedIndex = prunedIndex;
+        try {
+          await treeIndexItem.setValue(prunedIndex);
+        } catch (error) {
+          log.error("Error pruning orphan tree index entry", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return null;
+      }
 
       const nextIndex = [...index];
       nextIndex.splice(idx, 1);
@@ -784,6 +821,32 @@ class TreeStorageService {
         await treeIndexItem.setValue(index);
       } catch (error) {
         log.error("Error unstubbing tree entry", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }
+
+  /**
+   * Mark a local index entry as `stub: true` so the local blob can be
+   * dropped while keeping the cloud-backed summary visible. Inverse of
+   * `unstubTreeEntry`. The caller is responsible for removing the
+   * per-tree blob separately (via `deleteStoredBlob`).
+   */
+  async stubTreeEntry(treeId: string): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const idx = index.findIndex((e) => e.id === treeId);
+      if (idx < 0) return;
+      const entry = index[idx]!;
+      if (isTreeStub(entry)) return;
+
+      index[idx] = { ...entry, stub: true as const };
+      this.cachedIndex = index;
+      try {
+        await treeIndexItem.setValue(index);
+      } catch (error) {
+        log.error("Error stubbing tree entry", {
           error: error instanceof Error ? error.message : String(error),
         });
       }

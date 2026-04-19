@@ -104,11 +104,14 @@ export const onboardingStateItem = storage.defineItem<OnboardingState>("local:tr
 
 // ── Auth / Device / Sync ────────────────────────────────────────────
 
+export type AuthProvider = "email" | "google" | "other";
+
 export type AuthIdentity = {
   userId: string;
   email: string | null;
   displayName: string | null;
   avatarUrl: string | null;
+  provider: AuthProvider;
 };
 
 export const authIdentityItem = storage.defineItem<AuthIdentity | null>(

@@ -315,7 +315,7 @@ export default function TreeDropdown() {
                     disabled={importing}
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    {importing ? <Spinner /> : <Icons.Upload />}
+                    {importing ? <Spinner /> : <Icons.Download />}
                   </Button>
                 </ButtonTooltip>
                 <ButtonTooltip label="New tree">
@@ -463,7 +463,7 @@ const ActiveTreeRow = memo(function ActiveTreeRow({
       {!isEditing && (
         <div className="flex shrink-0 items-center gap-0.5">
           <IconAction label="Rename" icon={<Icons.Pencil />} onClick={() => onStartEdit(tree.id)} />
-          <IconAction label="Export tree" icon={<Icons.Download />} onClick={() => onExport()} />
+          <IconAction label="Export tree" icon={<Icons.Upload />} onClick={() => onExport()} />
           <IconAction
             label="Open in editor"
             icon={<Icons.ExternalLink />}
@@ -545,7 +545,7 @@ const OtherTreeRow = memo(function OtherTreeRow({
           {!tree.stub && (
             <IconAction
               label="Export tree"
-              icon={<Icons.Download />}
+              icon={<Icons.Upload />}
               onClick={() => onExport(tree.id)}
             />
           )}

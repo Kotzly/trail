@@ -79,6 +79,18 @@ const treeService: TreeService = {
   getTreeState: () => call(treeHandlers[RPC_METHOD.GET_TREE], { type: RPC_METHOD.GET_TREE }),
   getTrees: () => call(treeHandlers[RPC_METHOD.GET_TREES], { type: RPC_METHOD.GET_TREES }),
   clearTree: () => call(treeHandlers[RPC_METHOD.CLEAR_TREE], { type: RPC_METHOD.CLEAR_TREE }),
+  resetTreeData: () =>
+    call(treeHandlers[RPC_METHOD.RESET_TREE_DATA], { type: RPC_METHOD.RESET_TREE_DATA }),
+  downloadTreeLocally: (input) =>
+    call(treeHandlers[RPC_METHOD.DOWNLOAD_TREE_LOCALLY], {
+      type: RPC_METHOD.DOWNLOAD_TREE_LOCALLY,
+      ...input,
+    }),
+  unloadTreeToCloud: (input) =>
+    call(treeHandlers[RPC_METHOD.UNLOAD_TREE_TO_CLOUD], {
+      type: RPC_METHOD.UNLOAD_TREE_TO_CLOUD,
+      ...input,
+    }),
   createNewTree: (input) =>
     call(treeHandlers[RPC_METHOD.NEW_TREE], { type: RPC_METHOD.NEW_TREE, ...input }),
   openTree: (input) =>

@@ -1,9 +1,14 @@
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import * as api from "../api.js";
 import { decodeExport, encodeExport } from "@shared/lib/export-codec.js";
 
 const TREES_KEY = ["trees"] as const;
+
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 export function useTrees() {
   const queryClient = useQueryClient();
@@ -11,16 +16,42 @@ export function useTrees() {
 
   const query = useQuery({ queryKey: TREES_KEY, queryFn: api.getTrees });
 
-  const newTreeMutation = useMutation({ mutationFn: api.newTree, onSuccess: invalidate });
-  const openTreeMutation = useMutation({ mutationFn: api.openTree, onSuccess: invalidate });
+  const newTreeMutation = useMutation({
+    mutationFn: api.newTree,
+    onSuccess: invalidate,
+    onError: (err) => toast.error("Couldn't create tree", { description: describeError(err) }),
+  });
+  const openTreeMutation = useMutation({
+    mutationFn: api.openTree,
+    onSuccess: invalidate,
+    onError: (err) => toast.error("Couldn't open tree", { description: describeError(err) }),
+  });
   const renameTreeMutation = useMutation({
     mutationFn: ({ treeId, label }: { treeId: string; label: string }) =>
       api.renameTree(treeId, label),
     onSuccess: invalidate,
+    onError: (err) => toast.error("Couldn't rename tree", { description: describeError(err) }),
   });
   const deleteMutation = useMutation({
     mutationFn: api.deleteTree,
     onSuccess: invalidate,
+    onError: (err) => toast.error("Couldn't delete tree", { description: describeError(err) }),
+  });
+  const downloadMutation = useMutation({
+    mutationFn: api.downloadTreeLocally,
+    onSuccess: () => {
+      invalidate();
+      toast.success("Tree downloaded to this device.");
+    },
+    onError: (err) => toast.error("Couldn't download tree", { description: describeError(err) }),
+  });
+  const unloadMutation = useMutation({
+    mutationFn: api.unloadTreeToCloud,
+    onSuccess: () => {
+      invalidate();
+      toast.success("Tree unloaded — kept in the cloud only.");
+    },
+    onError: (err) => toast.error("Couldn't unload tree", { description: describeError(err) }),
   });
 
   const newTree = useCallback(
@@ -38,6 +69,14 @@ export function useTrees() {
   const deleteTree = useCallback(
     (treeId: string) => deleteMutation.mutateAsync(treeId),
     [deleteMutation],
+  );
+  const downloadTree = useCallback(
+    (treeId: string) => downloadMutation.mutateAsync(treeId),
+    [downloadMutation],
+  );
+  const unloadTree = useCallback(
+    (treeId: string) => unloadMutation.mutateAsync(treeId),
+    [unloadMutation],
   );
 
   const exportTree = useCallback(async (treeId?: string) => {
@@ -77,6 +116,10 @@ export function useTrees() {
     openTree,
     renameTree,
     deleteTree,
+    downloadTree,
+    unloadTree,
+    downloadPending: downloadMutation.isPending,
+    unloadPending: unloadMutation.isPending,
     exportTree,
     importFromFile,
   };

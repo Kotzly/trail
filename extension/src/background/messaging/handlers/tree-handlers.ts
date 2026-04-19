@@ -29,7 +29,9 @@ import {
 import { normalizeFaviconUrl, shouldTrackUrl } from "../../utils/url-utils.js";
 import { tempSelectionManager } from "../../services/temporary-selection.js";
 import { loadTree } from "../../services/tree-loader.js";
-import type { NavigationTreeJSON, TreeMeta } from "@shared/types/tree.js";
+import { ensureStoredTreePushed, fetchRemoteTreePayload } from "../../sync/sync-engine.js";
+import { getAuthState } from "@shared/auth/auth-orchestrator.js";
+import { isTreeStub, type NavigationTreeJSON, type TreeMeta } from "@shared/types/tree.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { settingsManager } from "../../services/settings.js";
 import {
@@ -44,6 +46,15 @@ import {
 } from "../../services/tab-restoration.js";
 import { browser, type Tab } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
+import {
+  openTabsItem,
+  pendingSyncOpsItem,
+  syncStateItem,
+  undoHistoryItem,
+  cleanupTombstonesItem,
+  editorStateItem,
+  layoutPositionsCacheItem,
+} from "@shared/config/storage-items.js";
 
 const log = createLogger("tree-handlers");
 
@@ -245,15 +256,14 @@ async function switchTree(
   rootUrl?: Url | null,
   viewOverride?: TreeViewIntent | null,
   preferredFocusNodeId?: NodeId | null,
-  options: SwitchTreeOptions = {},
+  _options: SwitchTreeOptions = {},
 ): Promise<void> {
   const keepTabs = settingsManager.get().keepTabsOnSwitch;
-  // `activateNewTabs=false` means the tree is still switched (active
-  // tree in storage + tabs opened per `keepTabsOnSwitch`) but the
-  // user's focus stays on whatever tab they were on — typically the
-  // settings page they initiated the switch from. A later switch via
-  // sidepanel will still activate tabs normally.
-  const activateNewTabs = options.origin !== "settings";
+  // Always open new-tree tabs passively — neither sidepanel nor settings
+  // switches should yank the user out of their current tab. Chrome will
+  // auto-focus a neighbor when `closeTabs` removes the previously-active
+  // tab, so the tree is still visibly "current" without us forcing it.
+  const activateNewTabs = false;
 
   // --- Save open tab URLs for the current tree -------------------------
   if (keepTabs) {
@@ -450,6 +460,141 @@ export const treeHandlers = defineRpcHandlers({
     await treeStorage.flushSaveNow();
   },
 
+  /**
+   * Danger-zone "Clear local data". Wipes every local tree + all
+   * tree-adjacent state (sync queue, tab restoration, tombstones,
+   * undo history, layout cache, editor state) and starts a fresh
+   * empty active tree. Preserves: user settings, auth session,
+   * feature flags, onboarding flags, device id, telemetry consent.
+   *
+   * Browser tabs are NOT touched — the user asked for a data reset,
+   * not a browsing-session wipe. A subsequent focus on any tracked
+   * URL will re-attach it under the new tree via the lifecycle
+   * handler.
+   */
+  async [RPC_METHOD.RESET_TREE_DATA]() {
+    // Drop per-tree mappings first so the tab/nav handlers don't
+    // try to write to the tree we're about to wipe.
+    tabManager.reset();
+    tempSelectionManager.reset();
+    CommandManager.clearHistory();
+
+    await treeStorage.clearAllTrees();
+
+    const wipers: Array<[string, () => Promise<void>]> = [
+      ["syncState", () => syncStateItem.removeValue()],
+      ["pendingSyncOps", () => pendingSyncOpsItem.removeValue()],
+      ["openTabs", () => openTabsItem.removeValue()],
+      ["undoHistory", () => undoHistoryItem.removeValue()],
+      ["cleanupTombstones", () => cleanupTombstonesItem.removeValue()],
+      ["editorState", () => editorStateItem.removeValue()],
+      ["layoutPositions", () => layoutPositionsCacheItem.removeValue()],
+    ];
+    for (const [label, fn] of wipers) {
+      try {
+        await fn();
+      } catch (error) {
+        log.warn(`resetTreeData: ${label} wipe failed`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // Seed a fresh empty active tree so the sidepanel has something
+    // to display instead of crashing on null meta.
+    const freshMeta = treeStorage.createMeta("Untitled", "system");
+    const freshTree = new NavigationTree();
+    await treeStorage.setActiveTree(freshTree, freshMeta);
+    await treeStorage.flushSaveNow();
+
+    await notifyTreeUpdate(freshTree, "tree-reset");
+    await notifyTreesUpdate(await buildTreesSnapshot());
+  },
+
+  /**
+   * Pull a stub's payload from Supabase into local storage. No-op if
+   * the entry is already materialized (we still broadcast a refresh
+   * so a stale UI cache re-queries).
+   */
+  async [RPC_METHOD.DOWNLOAD_TREE_LOCALLY](message) {
+    const auth = getAuthState();
+    if (auth.status !== "signed-in") {
+      throw new Error("Sign in before downloading cloud trees.");
+    }
+    const index = await treeStorage.getTreeIndex();
+    const entry = index.find((e) => e.id === message.treeId);
+    if (!entry) throw new Error("Tree not found in the local index.");
+    // If the blob already exists locally and the entry isn't a stub,
+    // there's nothing to download. Treat as success.
+    if (!isTreeStub(entry)) {
+      const existingBlob = await treeStorage.getStoredTree(message.treeId);
+      if (existingBlob) {
+        await notifyTreesUpdate(await buildTreesSnapshot());
+        return;
+      }
+    }
+    const payload = await fetchRemoteTreePayload(message.treeId);
+    if (!payload) {
+      throw new Error(
+        "Couldn't download this tree. It may have been deleted on the server, or the connection failed.",
+      );
+    }
+    await notifyTreesUpdate(await buildTreesSnapshot());
+  },
+
+  /**
+   * Ensure a stored tree has been pushed to Supabase, then drop its
+   * local blob and re-stub the index entry. Lets the user reclaim
+   * local storage while keeping the tree accessible via the cloud.
+   *
+   * Guards: refuses for the active tree (sidepanel needs the payload),
+   * refuses when signed-out (no cloud target), refuses if the upload
+   * failed for any reason (conflict, offline, rate-limited, error).
+   */
+  async [RPC_METHOD.UNLOAD_TREE_TO_CLOUD](message) {
+    const auth = getAuthState();
+    if (auth.status !== "signed-in") {
+      throw new Error("Sign in before unloading trees to the cloud.");
+    }
+    const active = await treeStorage.getActiveMeta();
+    if (active.id === message.treeId) {
+      throw new Error(
+        "Can't unload the active tree. Open another tree first, then unload this one.",
+      );
+    }
+    const index = await treeStorage.getTreeIndex();
+    const entry = index.find((e) => e.id === message.treeId);
+    if (!entry) throw new Error("Tree not found in the local index.");
+    if (isTreeStub(entry)) {
+      // Already cloud-only — nothing to unload.
+      return;
+    }
+
+    const outcome = await ensureStoredTreePushed(message.treeId);
+    if (outcome === "ok") {
+      // proceed
+    } else if (outcome === "conflict") {
+      throw new Error(
+        "Server has newer edits from another device. Resolve the conflict before unloading.",
+      );
+    } else if (outcome === "offline") {
+      throw new Error("You're offline. Reconnect and try again.");
+    } else if (outcome === "rate_limited") {
+      throw new Error("Too many syncs just happened. Wait about a minute and try again.");
+    } else if (outcome === "skipped") {
+      // Could be: stored record missing (orphan) or signed-out mid-flight.
+      throw new Error(
+        "This tree's local data is missing or the session ended. Refresh and try again.",
+      );
+    } else {
+      throw new Error("Couldn't upload this tree. Check the sync status and try again.");
+    }
+
+    await treeStorage.deleteStoredBlob(message.treeId);
+    await treeStorage.stubTreeEntry(message.treeId);
+    await notifyTreesUpdate(await buildTreesSnapshot());
+  },
+
   async [RPC_METHOD.NEW_TREE](message) {
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
@@ -464,7 +609,11 @@ export const treeHandlers = defineRpcHandlers({
   async [RPC_METHOD.OPEN_TREE](message) {
     // Use tree-loader (handles active tree, stored blob, cloud fetch)
     const loaded = await loadTree(message.treeId);
-    if (!loaded) throw new Error("Tree not found");
+    if (!loaded) {
+      throw new Error(
+        "Couldn't load this tree — it's not on this device and the cloud fetch failed. Check your connection and try again.",
+      );
+    }
 
     const current = await treeStorage.getOrCreateTree();
     if (current.getRoot()) {
@@ -472,7 +621,11 @@ export const treeHandlers = defineRpcHandlers({
     }
     await treeStorage.stashActiveTree();
     const record = await treeStorage.takeStoredTree(message.treeId);
-    if (!record) throw new Error("Tree not found");
+    if (!record) {
+      throw new Error(
+        "Tree data is missing on this device — the local index is stale. Try re-syncing by opening and closing the trees list.",
+      );
+    }
     const nextTree = NavigationTreeMapper.fromJSON(record.tree);
     const meta: TreeMeta = {
       id: record.id,

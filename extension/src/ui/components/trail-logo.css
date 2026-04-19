@@ -1,17 +1,12 @@
-:root {
-  --trail-logo-border: var(--ring);
-  --trail-logo-accent: var(--primary);
-}
-
-.dark {
-  --trail-logo-border: var(--ring);
-  --trail-logo-accent: var(--primary);
-}
-
 .trail-logo {
   width: 90px;
   height: 90px;
   display: block;
+  --trail-logo-bg: transparent;
+  --trail-logo-border: var(--muted-foreground);
+  --trail-logo-accent: var(--primary);
+  --trail-logo-node: var(--foreground);
+  --trail-logo-base-opacity: 0.35;
 }
 
 .trail-logo--sm {
@@ -24,78 +19,102 @@
   height: 120px;
 }
 
+.trail-logo--empty {
+  --trail-logo-bg: transparent;
+}
+
+.trail-logo--light {
+  --trail-logo-bg: #ffffff;
+  --trail-logo-border: #aeb7c6;
+  --trail-logo-accent: #0ea5e9;
+  --trail-logo-node: #111625;
+}
+
+.trail-logo--dark {
+  --trail-logo-bg: #0d0d0e;
+  --trail-logo-border: #4b4b51;
+  --trail-logo-accent: #22d3ee;
+  --trail-logo-node: #f9f9f9;
+}
+
+.trail-logo--field {
+  --trail-logo-bg: var(--card);
+  --trail-logo-node: var(--card-foreground);
+  --trail-logo-base-opacity: 0.7;
+}
+
+.trail-logo__base {
+  opacity: var(--trail-logo-base-opacity);
+}
+
 .trail-logo__sparkPath {
   opacity: 0;
-  stroke-dasharray: 0.12 0.88;
-  stroke-dashoffset: 0.12;
+  stroke-dasharray: 0.14 0.86;
+  stroke-dashoffset: 0.14;
   will-change: stroke-dashoffset, opacity;
 }
 
-.trail-logo__nodeGlow {
-  opacity: 0;
+.trail-logo__node {
   transform-box: fill-box;
   transform-origin: center;
-  will-change: transform, opacity;
+  will-change: transform;
 }
 
-.trail-logo--loop .trail-logo__sparkPath,
-.trail-logo--hover:hover .trail-logo__sparkPath,
-.trail-logo--hover:focus-visible .trail-logo__sparkPath {
-  animation: trailLogoSpark 2200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+.trail-logo--loop .trail-logo__sparkPath {
+  animation: trailLogoSpark 3200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
   animation-delay: var(--trail-logo-delay, 0ms);
 }
 
-.trail-logo--loop .trail-logo__nodeGlow,
-.trail-logo--hover:hover .trail-logo__nodeGlow,
-.trail-logo--hover:focus-visible .trail-logo__nodeGlow {
-  animation: trailLogoNodePulse 2200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+.trail-logo--loop .trail-logo__node {
+  animation: trailLogoNodePulse 3200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
   animation-delay: var(--trail-logo-delay, 0ms);
 }
 
 @keyframes trailLogoSpark {
   0% {
     opacity: 0;
-    stroke-dashoffset: 0.12;
+    stroke-dashoffset: 0.14;
   }
-  3% {
+  1% {
     opacity: 1;
   }
-  25% {
+  18% {
     opacity: 1;
-    stroke-dashoffset: -0.88;
+    stroke-dashoffset: -0.86;
   }
-  28% {
+  20% {
     opacity: 0;
-    stroke-dashoffset: -0.88;
+    stroke-dashoffset: -0.86;
   }
   100% {
     opacity: 0;
-    stroke-dashoffset: -0.88;
+    stroke-dashoffset: -0.86;
   }
 }
 
 @keyframes trailLogoNodePulse {
   0% {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-  8% {
-    opacity: 0.55;
     transform: scale(1);
   }
-  18% {
-    opacity: 0;
-    transform: scale(1.25);
+  3% {
+    transform: scale(1.35);
+  }
+  12% {
+    transform: scale(1);
   }
   100% {
-    opacity: 0;
-    transform: scale(1.25);
+    transform: scale(1);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .trail-logo__sparkPath,
-  .trail-logo__nodeGlow {
+  .trail-logo__sparkPath {
+    animation: none !important;
+    opacity: 1;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+  .trail-logo__node {
     animation: none !important;
   }
 }

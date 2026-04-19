@@ -91,6 +91,11 @@ export async function syncOpenTabs(): Promise<void> {
               lastUsed === undefined ? { touch: true } : { touch: true, lastUsed };
             tabManager.register(node.id, activeTabId, registerOptions);
           }
+        } else {
+          // Untrackable URL (chrome://, our own settings, etc.) — drop
+          // the stale current that the freshly-created tree seeds to
+          // the synthetic NTP root. Mirrors onTabActivated's detach().
+          tree.clearCurrent();
         }
       }
 

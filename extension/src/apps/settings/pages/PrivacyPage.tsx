@@ -207,14 +207,14 @@ export function PrivacyPage() {
             className="justify-start"
             onClick={() => openExternal(MARKETING_URLS.privacy)}
           >
-            Privacy Policy →
+            Privacy Policy →
           </Button>
           <Button
             variant="outline"
             className="justify-start"
             onClick={() => openExternal(MARKETING_URLS.terms)}
           >
-            Terms of Service →
+            Terms of Service →
           </Button>
         </CardContent>
       </Card>

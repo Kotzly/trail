@@ -189,7 +189,7 @@ export default function OnboardingWizard() {
         {/* Top bar: subtle logo glyph, dots, skip */}
         <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-3">
           <div className="flex items-center gap-1.5">
-            <TrailLogo className="trail-logo-badge" aria-hidden />
+            <TrailLogo variant="field" className="trail-logo-badge" aria-hidden />
             <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
               Trail
             </span>

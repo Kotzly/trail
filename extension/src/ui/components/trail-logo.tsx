@@ -1,160 +1,124 @@
 import { useId } from "react";
 import "./trail-logo.css";
 
+export type TrailLogoVariant = "empty" | "field" | "dark" | "light";
+
 export type TrailLogoProps = {
   className?: string;
   animated?: boolean;
   label?: string;
+  variant?: TrailLogoVariant;
 };
 
-export default function TrailLogo({ className, animated = false, label }: TrailLogoProps) {
+const PATHS = [
+  "M28.13,32.94c14.54,1.86,18.42,8.36,23.83,17.32s-11.6,11.44-5.43,24.84",
+  "M51.96,50.26 C60.1,62.06 71.86,47.09 75.13,62.06",
+  "M46.53,75.1c8.16,4.41,12.18,11.19,12.75,19.96",
+  "M75.13,62.06c-.02,12.42,1.3,23.99,10.33,30.7",
+  "M75.13,62.06c10.6.06,18.84,5.5,24.73,16.32",
+] as const;
+
+const NODES: Array<[number, number]> = [
+  [28.13, 32.94],
+  [51.96, 50.26],
+  [75.13, 62.06],
+  [46.53, 75.1],
+  [59.28, 95.06],
+  [85.46, 92.77],
+  [99.87, 78.38],
+];
+
+const SPARK_DELAY_MS = [0, 300, 600, 900, 900];
+const NODE_DELAY_MS = [0, 300, 900, 600, 1200, 1500, 1500];
+
+export default function TrailLogo({
+  className,
+  animated = false,
+  label,
+  variant = "empty",
+}: TrailLogoProps) {
   const id = useId();
-  const nodeId = `${id}-node`;
-  const glowId = `${id}-glow`;
-  const classes = ["trail-logo", animated ? "trail-logo--loop" : null, className]
+  const gradId = `${id}-grad`;
+
+  const classes = [
+    "trail-logo",
+    `trail-logo--${variant}`,
+    animated ? "trail-logo--loop" : null,
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
   const ariaProps = label ? { role: "img", "aria-label": label } : { "aria-hidden": true };
+  const isField = variant === "field";
+  const hasBackground = variant !== "empty";
+  const strokeColor = isField ? `url(#${gradId})` : undefined;
 
   return (
-    <svg
-      className={classes}
-      viewBox="0 0 188.16 188.16"
-      fill="none"
-      focusable="false"
-      {...ariaProps}
-    >
+    <svg className={classes} viewBox="0 0 128 128" fill="none" focusable="false" {...ariaProps}>
       <defs>
-        <radialGradient id={nodeId} cx="30%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="var(--trail-logo-accent)" stopOpacity="1" />
-          <stop offset="100%" stopColor="var(--trail-logo-accent)" stopOpacity="1" />
-        </radialGradient>
-        <radialGradient id={glowId} cx="30%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="var(--trail-logo-accent)" stopOpacity="0" />
-          <stop offset="38%" stopColor="var(--trail-logo-accent)" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="var(--trail-logo-accent)" stopOpacity="0" />
-        </radialGradient>
+        {isField ? (
+          <linearGradient
+            id={gradId}
+            x1="0"
+            y1="0.5"
+            x2="1"
+            y2="0.5"
+            gradientUnits="objectBoundingBox"
+          >
+            <stop offset="0" stopColor="#f8d364" />
+            <stop offset="0.4" stopColor="#d1524e" />
+            <stop offset="0.7" stopColor="#d2345c" />
+            <stop offset="0.8" stopColor="#88223a" />
+            <stop offset="0.9" stopColor="#4d131e" />
+            <stop offset="1" stopColor="#360e14" />
+          </linearGradient>
+        ) : null}
       </defs>
 
-      <g
-        stroke="var(--trail-logo-border)"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.7"
-      >
-        <path d="M53.23 43.64 C74.6 46.37 80.31 55.93 88.26 69.09" />
-        <path d="M88.26 69.09 C96.21 82.27 71.21 85.9 80.28 105.61" />
-        <path d="M88.26 69.09 C100.23 86.44 117.51 64.44 122.32 86.44" />
-        <path d="M80.28 105.61 C92.28 112.09 98.19 122.06 99.02 134.95" />
-        <path d="M122.32 86.44 C122.29 104.7 124.23 121.71 137.5 131.58" />
-        <path d="M122.32 86.44 C137.9 86.53 150.02 94.53 158.69 110.44" />
-      </g>
+      {hasBackground ? (
+        <rect width="128" height="128" rx="30" ry="30" fill="var(--trail-logo-bg)" />
+      ) : null}
 
       <g
-        stroke="var(--trail-logo-accent)"
-        strokeWidth="5"
+        className="trail-logo__base"
+        stroke={strokeColor ?? "var(--trail-logo-border)"}
+        strokeWidth="3.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path
-          d="M53.23 43.64 C74.6 46.37 80.31 55.93 88.26 69.09"
-          pathLength="1"
-          className="trail-logo__sparkPath"
-          style={{ "--trail-logo-delay": "0ms" } as React.CSSProperties}
-        />
-        <path
-          d="M88.26 69.09 C96.21 82.27 71.21 85.9 80.28 105.61"
-          pathLength="1"
-          className="trail-logo__sparkPath"
-          style={{ "--trail-logo-delay": "520ms" } as React.CSSProperties}
-        />
-        <path
-          d="M88.26 69.09 C100.23 86.44 117.51 64.44 122.32 86.44"
-          pathLength="1"
-          className="trail-logo__sparkPath"
-          style={{ "--trail-logo-delay": "520ms" } as React.CSSProperties}
-        />
-        <path
-          d="M80.28 105.61 C92.28 112.09 98.19 122.06 99.02 134.95"
-          pathLength="1"
-          className="trail-logo__sparkPath"
-          style={{ "--trail-logo-delay": "1040ms" } as React.CSSProperties}
-        />
-        <path
-          d="M122.32 86.44 C122.29 104.7 124.23 121.71 137.5 131.58"
-          pathLength="1"
-          className="trail-logo__sparkPath"
-          style={{ "--trail-logo-delay": "1040ms" } as React.CSSProperties}
-        />
-        <path
-          d="M122.32 86.44 C137.9 86.53 150.02 94.53 158.69 110.44"
-          pathLength="1"
-          className="trail-logo__sparkPath"
-          style={{ "--trail-logo-delay": "1040ms" } as React.CSSProperties}
-        />
+        {PATHS.map((d, i) => (
+          <path key={`base-${i}`} d={d} />
+        ))}
       </g>
 
-      <g fill={`url(#${glowId})`} pointerEvents="none">
-        <circle
-          cx="53.23"
-          cy="43.64"
-          r="14"
-          className="trail-logo__nodeGlow"
-          style={{ "--trail-logo-delay": "0ms" } as React.CSSProperties}
-        />
-        <circle
-          cx="88.26"
-          cy="69.09"
-          r="14"
-          className="trail-logo__nodeGlow"
-          style={{ "--trail-logo-delay": "520ms" } as React.CSSProperties}
-        />
-        <circle
-          cx="122.32"
-          cy="86.44"
-          r="14"
-          className="trail-logo__nodeGlow"
-          style={{ "--trail-logo-delay": "1040ms" } as React.CSSProperties}
-        />
-        <circle
-          cx="80.28"
-          cy="105.61"
-          r="14"
-          className="trail-logo__nodeGlow"
-          style={{ "--trail-logo-delay": "1040ms" } as React.CSSProperties}
-        />
-        <circle
-          cx="99.02"
-          cy="134.95"
-          r="14"
-          className="trail-logo__nodeGlow"
-          style={{ "--trail-logo-delay": "1280ms" } as React.CSSProperties}
-        />
-        <circle
-          cx="158.69"
-          cy="110.44"
-          r="14"
-          className="trail-logo__nodeGlow"
-          style={{ "--trail-logo-delay": "1280ms" } as React.CSSProperties}
-        />
-        <circle
-          cx="137.5"
-          cy="131.58"
-          r="14"
-          className="trail-logo__nodeGlow"
-          style={{ "--trail-logo-delay": "1280ms" } as React.CSSProperties}
-        />
+      <g
+        stroke={strokeColor ?? "var(--trail-logo-accent)"}
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {PATHS.map((d, i) => (
+          <path
+            key={`spark-${i}`}
+            d={d}
+            pathLength="1"
+            className="trail-logo__sparkPath"
+            style={{ "--trail-logo-delay": `${SPARK_DELAY_MS[i]}ms` } as React.CSSProperties}
+          />
+        ))}
       </g>
 
-      <g fill={`url(#${nodeId})`}>
-        <circle cx="53.23" cy="43.64" r="7" />
-        <circle cx="88.26" cy="69.09" r="7" />
-        <circle cx="122.32" cy="86.44" r="7" />
-        <circle cx="80.28" cy="105.61" r="7" />
-        <circle cx="99.02" cy="134.95" r="7" />
-        <circle cx="137.5" cy="131.58" r="7" />
-        <circle cx="158.69" cy="110.44" r="7" />
+      <g fill="var(--trail-logo-node)">
+        {NODES.map(([cx, cy], i) => (
+          <circle
+            key={`node-${i}`}
+            cx={cx}
+            cy={cy}
+            r="4.76"
+            className="trail-logo__node"
+            style={{ "--trail-logo-delay": `${NODE_DELAY_MS[i]}ms` } as React.CSSProperties}
+          />
+        ))}
       </g>
     </svg>
   );

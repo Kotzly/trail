@@ -1,11 +1,17 @@
-import type { NodeId, TabId, Url } from "@shared/types/ids.js";
+import type { FaviconUrl, NodeId, TabId, Title, Url } from "@shared/types/ids.js";
+import type { NodeData } from "@shared/types/node.js";
 import { tabManager } from "../state/tab-manager.js";
 import { treeStorage, withTreeLock } from "../services/tree-storage.js";
 import { notifyTreeUpdate } from "../messaging/notifications.js";
 import { tempSelectionManager } from "../services/temporary-selection.js";
 
 import { syncTabTitleFavicon, syncTabAudioState } from "./tab-sync.js";
-import { shouldTrackUrl, isNewTabContext, isOwnExtensionUrl } from "../utils/url-utils.js";
+import {
+  normalizeFaviconUrl,
+  shouldTrackUrl,
+  isNewTabContext,
+  isOwnExtensionUrl,
+} from "../utils/url-utils.js";
 import { handleNewTabTab } from "../utils/new-tab.js";
 import { browser, type Browser, type Tab } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../state/node-recency.js";
@@ -17,6 +23,7 @@ import {
   onTabRemoved as trackerOnTabRemoved,
   onTabBlur as trackerOnTabBlur,
   onTabFocus as trackerOnTabFocus,
+  DEFAULT_THRESHOLDS,
 } from "../navigation/nav-pattern-tracker.js";
 import { pruneGlance } from "../services/cleanup-policy.js";
 import type { TreeViewIntent, TreeUpdateReason } from "@shared/rpc/contracts.js";
@@ -160,7 +167,10 @@ async function onTabRemoved(tabId_: number, removeInfo: Browser.tabs.OnRemovedIn
   // If the user had the tab open briefly and closed without
   // returning, the node is a glance candidate.
   try {
-    const cls = trackerOnTabFinished(tabId, Date.now());
+    const cls = trackerOnTabFinished(tabId, Date.now(), {
+      ...DEFAULT_THRESHOLDS,
+      glanceMs: settingsManager.get().cleanup?.glance?.thresholdMs ?? DEFAULT_THRESHOLDS.glanceMs,
+    });
     if (cls.kind === "glance") {
       await pruneGlance(cls.nodeId);
     }
@@ -270,17 +280,36 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
         // old settings node happened to live.
         if (isOwnExtensionUrl(url)) return noop();
 
-        // Only register against an existing node match. Do NOT
-        // fabricate a new node here — that was bug #93: activating
-        // a pre-existing untracked tab silently created it as a
-        // child of `tree.current`, producing false parent edges on
-        // every installed-before-extension tab. If no node exists
-        // yet, we skip; a real webnav event will trigger node
-        // creation with proper opener-derived parent later.
         const existing = tree.findByUrl(url);
-        if (!existing) return noop();
-        tabManager.register(existing.id, tabId);
-        nodeId = existing.id;
+        if (existing) {
+          tabManager.register(existing.id, tabId);
+          nodeId = existing.id;
+        } else {
+          // No node for this URL yet. Create one under `current`
+          // (navigate() falls back to root when current is null).
+          // Covers the "user focuses a pre-existing YouTube tab that
+          // opened outside the extension's tracking window" case —
+          // without it, the tab stayed invisible in the tree forever
+          // unless the user reloaded.
+          //
+          // Historical caveat (was bug #93): we used to parent every
+          // pre-existing tab under `current` on every focus event,
+          // producing ghost edges. The difference now: this branch
+          // only runs when the tab ALSO lacks an existing node match
+          // for its URL, so reopening a tab the user already visited
+          // (same URL, different tab id) still deduplicates to the
+          // existing node.
+          const data: NodeData = {
+            url,
+            title: (tabRead.title || url) as Title,
+            favicon: normalizeFaviconUrl(url, tabRead.favIconUrl as FaviconUrl | undefined),
+            pinned: false,
+            tags: [],
+          };
+          const landed = tree.navigate(data);
+          tabManager.register(landed.id, tabId);
+          nodeId = landed.id;
+        }
       }
     }
 

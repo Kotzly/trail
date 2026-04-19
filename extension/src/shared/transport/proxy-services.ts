@@ -36,6 +36,9 @@ export interface TreeService {
   getTreeState(): Promise<TreeUpdatedInput>;
   getTrees(): Promise<TreesSnapshot>;
   clearTree(): Promise<void>;
+  resetTreeData(): Promise<void>;
+  downloadTreeLocally(input: { treeId: string }): Promise<void>;
+  unloadTreeToCloud(input: { treeId: string }): Promise<void>;
   createNewTree(input: { label: string; origin?: TreeSwitchOrigin }): Promise<void>;
   openTree(input: { treeId: string; origin?: TreeSwitchOrigin }): Promise<void>;
   ensureTreeLoaded(input: { treeId: string }): Promise<boolean>;

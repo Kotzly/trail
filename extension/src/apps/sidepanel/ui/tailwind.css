@@ -4,7 +4,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@shared/styles/geist.css";
-@import "@fontsource-variable/inter";
 
 /* Scan extension source for Tailwind class usage */
 @source "../../../apps/**/*.{ts,tsx}";
@@ -106,7 +105,7 @@
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: "Inter Variable", sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Fira Code", monospace;
 
   /* ── shadcn/ui semantic color tokens ── */
@@ -155,6 +154,67 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 }
+
+/* ─── TRAIL-TYPOGRAPHY-TOKENS ─────────────────────────────────────*\
+ * Per-size letter-spacing + line-height + font-feature-settings.
+ * Larger text gets tighter tracking — optical correction so display
+ * sizes don't look airy vs body text. Body stays near-zero to protect
+ * readability at 12-14px.
+ *
+ * To revert to Tailwind defaults: delete this entire block
+ * (search tag: TRAIL-TYPOGRAPHY-TOKENS).
+ * To retune: adjust per-size values below. Per-utility override with
+ * tracking-* / leading-* Tailwind classes still wins over these.
+ \* ─────────────────────────────────────────────────────────────── */
+@theme {
+  /* Letter-spacing bound to each font-size step. */
+  --text-xs--letter-spacing: -0.01em;
+  --text-sm--letter-spacing: -0.02em;
+  --text-base--letter-spacing: -0.03em;
+  --text-lg--letter-spacing: -0.04em;
+  --text-xl--letter-spacing: -0.045em;
+  --text-2xl--letter-spacing: -0.06em;
+  --text-3xl--letter-spacing: -0.07em;
+  --text-4xl--letter-spacing: -0.08em;
+  --text-5xl--letter-spacing: -0.09em;
+
+  /* Line-height bound to each font-size step. Tighter for display
+   * sizes (typography's "optical looseness" correction), more room
+   * for body text. */
+  --text-xs--line-height: 1.45;
+  --text-sm--line-height: 1.5;
+  --text-base--line-height: 1.55;
+  --text-lg--line-height: 1.5;
+  --text-xl--line-height: 1.4;
+  --text-2xl--line-height: 1.3;
+  --text-3xl--line-height: 1.2;
+  --text-4xl--line-height: 1.15;
+  --text-5xl--line-height: 1.1;
+
+  /* Expose tracking utility scale so `tracking-tight` etc. match
+   * modern-SaaS expectations (Tailwind's defaults are too loose). */
+  --tracking-tighter: -0.04em;
+  --tracking-tight: -0.015em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.015em;
+  --tracking-wider: 0.03em;
+  --tracking-widest: 0.08em;
+}
+
+/* Inter's stylistic sets (ss01 disables the double-storey "a" for a
+ * cleaner feel; cv11 gives a single-storey "g"). Applied globally so
+ * every text surface picks them up; mono is exempt. */
+html {
+  font-feature-settings:
+    /* "cv11", */ "ss01", "ss03";
+}
+code,
+pre,
+.font-mono {
+  font-feature-settings: normal;
+  letter-spacing: 0;
+}
+/* ─── END TRAIL-TYPOGRAPHY-TOKENS ──────────────────────────────── */
 
 :root {
   --background: oklch(1 0 0);

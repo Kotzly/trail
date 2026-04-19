@@ -14,10 +14,8 @@
   src: url("../../assets/fonts/inter/InterVariable-Italic.woff2") format("woff2");
 }
 
-:root {
-  --trail-font-sans: "Inter", system-ui, sans-serif;
-}
-
+:root,
 :host {
   --trail-font-sans: "Inter", system-ui, sans-serif;
+  font-optical-sizing: auto;
 }

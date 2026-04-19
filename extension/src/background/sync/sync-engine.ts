@@ -44,17 +44,19 @@ import {
 } from "@shared/config/storage-items.js";
 import { captureError, captureEvent } from "@shared/lib/observability.js";
 import { createLogger } from "@shared/lib/logger.js";
-import { treeStorage } from "../services/tree-storage.js";
+import { pickTreeIdentifyingData, treeStorage } from "../services/tree-storage.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 import {
   isTreeStub,
   type TreeIndexEntry,
   type NavigationTreeJSON,
+  type TreeLabelSource,
   type TreeStub,
   type TreeSummary,
 } from "@shared/types/tree.js";
 import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
+import { notifyUi } from "@background/messaging/ui-notifications.js";
 
 const log = createLogger("sync");
 
@@ -103,25 +105,45 @@ async function enqueuePendingOp(op: PendingSyncOp): Promise<void> {
   await pendingSyncOpsItem.setValue(filtered);
 }
 
+type PushOutcome = "ok" | "skipped" | "conflict" | "offline" | "error" | "rate_limited";
+
 async function drainPendingOps(): Promise<void> {
-  const queue = await pendingSyncOpsItem.getValue();
-  if (queue.length === 0) return;
-  for (const op of queue) {
+  const initial = await pendingSyncOpsItem.getValue();
+  if (initial.length === 0) return;
+  const opKey = (op: PendingSyncOp) => `${op.kind}:${op.treeId}`;
+  const processed = new Set<string>();
+
+  for (const op of initial) {
     try {
       if (op.kind === "push_tree") {
-        await doPush(op.treeId);
+        const outcome = await doPushTree(op.treeId);
+        // Terminal outcomes (ok/skipped/conflict) — remove from queue.
+        // Retry-able outcomes (rate_limited/offline/error) — leave the
+        // remainder in the queue for the next drain.
+        if (outcome === "ok" || outcome === "skipped" || outcome === "conflict") {
+          processed.add(opKey(op));
+        } else {
+          break;
+        }
       } else if (op.kind === "delete_tree") {
         await doDelete(op.treeId);
+        processed.add(opKey(op));
       }
     } catch (error) {
       log.warn("drain: op failed, will retry later", {
         kind: op.kind,
         error: error instanceof Error ? error.message : String(error),
       });
-      return; // stop draining on first failure
+      break;
     }
   }
-  await pendingSyncOpsItem.setValue([]);
+
+  if (processed.size === 0) return;
+  // Re-read: rate-limited ops may have re-enqueued themselves mid-drain.
+  // Only strip entries we actually finished.
+  const current = await pendingSyncOpsItem.getValue();
+  const remaining = current.filter((op) => !processed.has(opKey(op)));
+  await pendingSyncOpsItem.setValue(remaining);
 }
 
 async function getSyncMeta(treeId: string): Promise<SyncStateMeta> {
@@ -140,61 +162,38 @@ async function writeSyncMeta(treeId: string, meta: SyncStateMeta): Promise<void>
   await syncStateItem.setValue({ ...all, [treeId]: meta });
 }
 
+type PushRowInput = {
+  id: string;
+  label: string;
+  labelSource: TreeLabelSource;
+  /** Epoch ms from local metadata; converted to ISO inside `pushRow`. */
+  labelUpdatedAt: number;
+  payload: NavigationTreeJSON;
+  nodeCount: number;
+  rootUrl: string | null;
+  rootTitle: string | null;
+  rootFavicon: string | null;
+};
+
 /**
- * Push the currently active tree's full payload to Supabase. Idempotent
- * upsert keyed by tree UUID.
+ * Upsert one tree row into Supabase. Shared by active-tree pushes and
+ * backfill pushes for stored (non-active) trees. Handles rate limit,
+ * conflict detection, status broadcasting, and sync-meta bookkeeping.
+ * The outcome lets callers (e.g. `drainPendingOps`) decide whether to
+ * retry or consume the pending op.
  */
-async function doPush(treeId?: string): Promise<void> {
+async function pushRow(input: PushRowInput): Promise<PushOutcome> {
   const supabase = getSupabaseClient();
   const auth = getAuthState();
-  if (!supabase || auth.status !== "signed-in") return;
+  if (!supabase || auth.status !== "signed-in") return "skipped";
 
   const deviceId = await getDeviceId();
-  if (!deviceId) return;
-
-  const meta = await treeStorage.getActiveMeta();
-  if (treeId && meta.id !== treeId) {
-    // Active tree changed since the push was queued; re-queue for the
-    // current active tree instead of pushing stale data.
-    log.info("push: active tree changed, skipping stale push", {
-      queuedId: treeId,
-      activeId: meta.id,
-    });
-    return;
-  }
-
-  const tree = await treeStorage.getOrCreateTree();
-  const root = tree.getRoot();
-  if (!root) {
-    log.info("push: tree is empty, skipping");
-    return;
-  }
-
-  const payload = NavigationTreeMapper.toJSON(tree);
-  const nodeCount = tree.size();
-  const savedAt = new Date().toISOString();
-  const labelUpdatedAt = new Date(meta.labelUpdatedAt).toISOString();
-
-  const row = {
-    id: meta.id,
-    user_id: auth.identity.userId,
-    device_id: deviceId,
-    label: meta.label,
-    label_source: meta.labelSource.toUpperCase(),
-    label_updated_at: labelUpdatedAt,
-    saved_at: savedAt,
-    node_count: nodeCount,
-    root_url: root.data.url as string,
-    root_title: (root.data.title as string) ?? null,
-    root_favicon: (root.data.favicon as string) ?? null,
-    payload,
-    deleted_at: null as string | null,
-  };
+  if (!deviceId) return "skipped";
 
   if (!withinRateLimit()) {
-    log.info("push: rate limited, enqueuing");
-    await enqueuePendingOp({ kind: "push_tree", treeId: meta.id, queuedAt: Date.now() });
-    return;
+    log.info("push: rate limited, enqueuing", { treeId: input.id });
+    await enqueuePendingOp({ kind: "push_tree", treeId: input.id, queuedAt: Date.now() });
+    return "rate_limited";
   }
 
   setStatus("saving");
@@ -203,34 +202,54 @@ async function doPush(treeId?: string): Promise<void> {
   // Conflict detection: fetch the latest updated_at before writing. If a
   // different device wrote something newer than what we know about, raise
   // a conflict and DO NOT overwrite.
-  const syncMeta = await getSyncMeta(meta.id);
+  const syncMeta = await getSyncMeta(input.id);
   const { data: existing, error: fetchErr } = await supabase
     .from("trails")
     .select("updated_at, device_id")
-    .eq("id", meta.id)
+    .eq("id", input.id)
     .maybeSingle();
 
   if (fetchErr) {
-    await handlePushError(meta.id, fetchErr);
-    return;
+    return handlePushError(input.id, fetchErr);
   }
   if (existing && syncMeta.lastSyncedAt && existing.device_id !== deviceId) {
     const localKnown = new Date(syncMeta.lastSyncedAt).getTime();
     const serverT = new Date(existing.updated_at).getTime();
     if (serverT > localKnown) {
       log.info("push: conflict detected (newer server from another device)", {
-        treeId: meta.id,
+        treeId: input.id,
       });
       fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT, {
-        treeId: meta.id,
+        treeId: input.id,
         serverUpdatedAt: existing.updated_at,
         serverDeviceId: existing.device_id,
       });
+      notifyUi({
+        message: `"${input.label}" has newer edits on another device — resolve the conflict to sync.`,
+        icon: "AlertTriangle",
+        durationMs: 10000,
+      });
       captureEvent("sync_failed", { reason: "conflict" });
       setStatus("error");
-      return;
+      return "conflict";
     }
   }
+
+  const row = {
+    id: input.id,
+    user_id: auth.identity.userId,
+    device_id: deviceId,
+    label: input.label,
+    label_source: input.labelSource.toUpperCase(),
+    label_updated_at: new Date(input.labelUpdatedAt).toISOString(),
+    saved_at: new Date().toISOString(),
+    node_count: input.nodeCount,
+    root_url: input.rootUrl,
+    root_title: input.rootTitle,
+    root_favicon: input.rootFavicon,
+    payload: input.payload,
+    deleted_at: null as string | null,
+  };
 
   const { data, error } = await supabase
     .from("trails")
@@ -239,18 +258,92 @@ async function doPush(treeId?: string): Promise<void> {
     .single();
 
   if (error) {
-    await handlePushError(meta.id, error);
-    return;
+    return handlePushError(input.id, error);
   }
 
   const updatedAt = data?.updated_at ?? null;
-  await writeSyncMeta(meta.id, {
+  await writeSyncMeta(input.id, {
     lastSyncedAt: updatedAt,
     lastRemoteUpdatedAt: updatedAt,
     lastPushedLocalVersion: syncMeta.lastPushedLocalVersion + 1,
   });
   captureEvent("sync_ok");
   setStatus("saved");
+  return "ok";
+}
+
+/** Push the in-memory active tree. */
+async function doPushActive(): Promise<PushOutcome> {
+  const auth = getAuthState();
+  if (auth.status !== "signed-in") return "skipped";
+
+  const meta = await treeStorage.getActiveMeta();
+  const tree = await treeStorage.getOrCreateTree();
+  const root = tree.getRoot();
+  if (!root) {
+    log.info("push: active tree is empty, skipping");
+    return "skipped";
+  }
+  const identifying = pickTreeIdentifyingData(tree);
+  return pushRow({
+    id: meta.id,
+    label: meta.label,
+    labelSource: meta.labelSource,
+    labelUpdatedAt: meta.labelUpdatedAt,
+    payload: NavigationTreeMapper.toJSON(tree),
+    nodeCount: tree.size(),
+    rootUrl: identifying.url ?? null,
+    rootTitle: identifying.title ?? null,
+    rootFavicon: identifying.favicon ?? null,
+  });
+}
+
+/** Push a stored (non-active) tree. Reads the compressed blob + summary. */
+async function doPushStored(treeId: string): Promise<PushOutcome> {
+  const auth = getAuthState();
+  if (auth.status !== "signed-in") return "skipped";
+
+  const record = await treeStorage.getFullStoredRecord(treeId);
+  if (!record) {
+    // Either a stub (no local payload yet) or the blob is missing.
+    // `takeStoredTree`'s orphan-prune path will clean up missing blobs
+    // next time the user opens this tree.
+    log.info("push: stored tree missing or stub, skipping", { treeId });
+    return "skipped";
+  }
+  return pushRow({
+    id: record.id,
+    label: record.label,
+    labelSource: record.labelSource,
+    labelUpdatedAt: record.labelUpdatedAt,
+    payload: record.tree,
+    nodeCount: record.nodeCount,
+    rootUrl: record.rootUrl ?? null,
+    rootTitle: record.rootTitle ?? null,
+    rootFavicon: record.rootFavicon ?? null,
+  });
+}
+
+/** Dispatch: push either the active tree or a stored tree by id. */
+async function doPushTree(treeId: string): Promise<PushOutcome> {
+  const active = await treeStorage.getActiveMeta();
+  if (active.id === treeId) return doPushActive();
+  return doPushStored(treeId);
+}
+
+/**
+ * Ensure a stored tree has a successful server-side copy. Returns early
+ * with `"ok"` if `syncStateItem` already records a `lastSyncedAt` — no
+ * second upsert needed. Caller is responsible for checking auth state
+ * before invocation; we still return `"skipped"` for safety if the
+ * session vanished mid-flight.
+ */
+export async function ensureStoredTreePushed(treeId: string): Promise<PushOutcome> {
+  const auth = getAuthState();
+  if (auth.status !== "signed-in") return "skipped";
+  const meta = await getSyncMeta(treeId);
+  if (meta.lastSyncedAt) return "ok";
+  return doPushStored(treeId);
 }
 
 function isOfflineError(error: PostgrestError): boolean {
@@ -261,17 +354,23 @@ function isOfflineError(error: PostgrestError): boolean {
   return false;
 }
 
-async function handlePushError(treeId: string, error: PostgrestError): Promise<void> {
+async function handlePushError(treeId: string, error: PostgrestError): Promise<PushOutcome> {
   if (isOfflineError(error)) {
     log.info("push: offline, enqueuing", { treeId, msg: error.message ?? "Unknown error" });
     await enqueuePendingOp({ kind: "push_tree", treeId, queuedAt: Date.now() });
     setStatus("offline");
-    return;
+    return "offline";
   }
 
   captureError(error, { kind: "sync_push", treeId });
   captureEvent("sync_failed", { reason: "push_error", code: error.code ?? "unknown" });
   setStatus("error");
+  notifyUi({
+    message: `Couldn't sync a tree to the cloud: ${error.message ?? "unknown error"}.`,
+    icon: "AlertTriangle",
+    durationMs: 10000,
+  });
+  return "error";
 }
 
 async function doDelete(treeId: string): Promise<void> {
@@ -301,7 +400,7 @@ const debouncedPush = pDebounce(async () => {
   // schedulePush() and the debounce timeout firing.
   if (!running) return;
   try {
-    await doPush();
+    await doPushActive();
   } catch (error) {
     log.error("push failed", { error: error instanceof Error ? error.message : String(error) });
   }
@@ -494,6 +593,47 @@ export async function fetchRemoteTreePayload(treeId: string): Promise<Navigation
   return payload;
 }
 
+/**
+ * On sign-in, enumerate every non-stub local tree that the current
+ * device has not yet pushed and enqueue a push for each. The pending
+ * queue persists across service-worker restarts, so a partial backfill
+ * survives eviction and resumes on the next wake.
+ *
+ * The active tree is NOT enqueued here — `schedulePush` handles it via
+ * the debounced path. Everything else goes through the queue so the
+ * rate limiter (20/min) paces the upload.
+ */
+async function backfillUnsyncedTrees(): Promise<void> {
+  const auth = getAuthState();
+  if (auth.status !== "signed-in") return;
+
+  const index = await treeStorage.getTreeIndex();
+  const syncMap = await syncStateItem.getValue();
+  const active = await treeStorage.getActiveMeta();
+
+  let queued = 0;
+  for (const entry of index) {
+    if (isTreeStub(entry)) continue;
+    if (entry.id === active.id) continue;
+    if (syncMap[entry.id]?.lastSyncedAt) continue;
+    await enqueuePendingOp({
+      kind: "push_tree",
+      treeId: entry.id,
+      queuedAt: Date.now(),
+    });
+    queued++;
+  }
+
+  if (queued === 0) return;
+  log.info("backfill: queued pushes for unsynced local trees", { count: queued });
+  notifyUi({
+    message: `Syncing ${queued} local ${queued === 1 ? "tree" : "trees"} to the cloud…`,
+    icon: "Info",
+    durationMs: 5000,
+  });
+  await drainPendingOps();
+}
+
 async function periodicPull(): Promise<void> {
   if (!running) return;
   const auth = getAuthState();
@@ -506,36 +646,51 @@ async function periodicPull(): Promise<void> {
   });
 }
 
+function startPullTimer(): void {
+  if (pullTimer) return;
+  pullTimer = setInterval(() => {
+    void periodicPull();
+  }, PULL_INTERVAL_MS);
+}
+
+function stopPullTimer(): void {
+  if (!pullTimer) return;
+  clearInterval(pullTimer);
+  pullTimer = null;
+}
+
 /**
- * Start the background sync engine. Idempotent — second call re-wires
- * listeners but preserves pending state.
+ * Start the background sync engine. Idempotent — second call is a no-op.
+ * The pull timer only runs while signed-in; sign-out tears it down so the
+ * service worker isn't woken once per minute for nothing.
  */
 export function startSyncEngine(): void {
   if (running) return;
   running = true;
 
   subscribeAuthState((state) => {
+    if (!running) return;
     if (state.status === "signed-in") {
+      startPullTimer();
       void periodicPull();
       schedulePush(); // push local tree if it's ahead of server
+      void backfillUnsyncedTrees().catch((error) => {
+        log.warn("backfill failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
     } else {
+      stopPullTimer();
       setStatus("idle");
     }
   });
 
-  if (pullTimer) clearInterval(pullTimer);
-  pullTimer = setInterval(() => {
-    void periodicPull();
-  }, PULL_INTERVAL_MS);
-
-  // Drain on service worker wake.
+  // Drain on service worker wake (no-ops when signed-out; doPush/doDelete
+  // re-check auth before touching the network).
   void drainPendingOps().catch(() => {});
 }
 
 export function stopSyncEngine(): void {
   running = false;
-  if (pullTimer) {
-    clearInterval(pullTimer);
-    pullTimer = null;
-  }
+  stopPullTimer();
 }

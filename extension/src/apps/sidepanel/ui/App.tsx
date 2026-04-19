@@ -7,6 +7,7 @@ import ContextMenus from "./components/ContextMenus.js";
 import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
 import TrailLogo from "@ui/components/trail-logo";
 import { Toaster } from "@ui/components/ui/sonner.js";
+import { useAuthTransitionToast } from "./hooks/useAuthTransitionToast.js";
 import { useBootstrap } from "./hooks/useBootstrap.js";
 import { useRuntimeMessages } from "./hooks/useRuntimeMessages.js";
 import { useShortcuts } from "./hooks/useShortcuts.js";
@@ -69,6 +70,7 @@ export default function App() {
   useRuntimeMessages();
   useThemeSync();
   useShortcuts();
+  useAuthTransitionToast();
 
   const treeJSON = useStore((s) => s.treeJSON);
   const precomputedPositions = useStore((s) => s.precomputedPositions);

@@ -48,3 +48,15 @@ export async function exportTree(treeId?: string): Promise<TrailExportBundle> {
 export async function importTrail(bundle: TrailExportBundle): Promise<void> {
   await treeService.importTrail({ bundle });
 }
+
+export async function resetTreeData(): Promise<void> {
+  await treeService.resetTreeData();
+}
+
+export async function downloadTreeLocally(treeId: string): Promise<void> {
+  await treeService.downloadTreeLocally({ treeId });
+}
+
+export async function unloadTreeToCloud(treeId: string): Promise<void> {
+  await treeService.unloadTreeToCloud({ treeId });
+}

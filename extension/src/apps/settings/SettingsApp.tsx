@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSettings } from "./hooks/useSettings.js";
 import { AccountPage } from "./pages/AccountPage.js";
-import { DataPage } from "./pages/DataPage.js";
+import { TreesPage } from "./pages/TreesPage.js";
 import { AppearancePage } from "./pages/AppearancePage.js";
 import { BehaviorPage } from "./pages/BehaviorPage.js";
 import { ShortcutsPage } from "./pages/ShortcutsPage.js";
@@ -12,13 +12,14 @@ import { Skeleton } from "@ui/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@ui/components/ui/tabs";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
 import { Toaster } from "@ui/components/ui/sonner";
-import { SidepanelPeek } from "./components/SidepanelPeek.js";
+import { EXTENSION_MESSAGE, onExtensionMessage } from "@shared/transport/extension-messaging.js";
+import { showUiToast } from "@apps/sidepanel/ui/notifications/sonner-adapter.js";
 
-type Page = "account" | "data" | "appearance" | "behavior" | "shortcuts" | "privacy" | "about";
+type Page = "account" | "trees" | "appearance" | "behavior" | "shortcuts" | "privacy" | "about";
 
 const NAV_ITEMS: { id: Page; label: string }[] = [
   { id: "account", label: "Account" },
-  { id: "data", label: "Data" },
+  { id: "trees", label: "Trees" },
   { id: "appearance", label: "Appearance" },
   { id: "behavior", label: "Behavior" },
   { id: "shortcuts", label: "Shortcuts" },
@@ -28,7 +29,7 @@ const NAV_ITEMS: { id: Page; label: string }[] = [
 
 const VALID_PAGES = new Set<Page>([
   "account",
-  "data",
+  "trees",
   "appearance",
   "behavior",
   "shortcuts",
@@ -58,10 +59,17 @@ export default function SettingsApp() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
+  // Surface background-emitted UI_NOTIFY events (sync failures,
+  // conflicts, backfill progress) as toasts in the settings window.
+  useEffect(() => {
+    return onExtensionMessage(EXTENSION_MESSAGE.UI_NOTIFY, ({ data }) => {
+      showUiToast(data);
+    });
+  }, []);
+
   return (
     <TooltipProvider delayDuration={200}>
       <Toaster />
-      <SidepanelPeek />
       <Tabs
         orientation="vertical"
         value={page}
@@ -96,8 +104,8 @@ export default function SettingsApp() {
                 <TabsContent value="account">
                   <AccountPage />
                 </TabsContent>
-                <TabsContent value="data">
-                  <DataPage />
+                <TabsContent value="trees">
+                  <TreesPage />
                 </TabsContent>
                 <TabsContent value="appearance">
                   <AppearancePage settings={settings} onUpdate={updateSettings} />

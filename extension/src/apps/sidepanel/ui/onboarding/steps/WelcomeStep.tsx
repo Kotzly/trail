@@ -10,7 +10,7 @@ export function WelcomeStep() {
           className="bg-primary/10 absolute inset-0 -z-10 blur-2xl"
           style={{ transform: "scale(1.4)" }}
         />
-        <TrailLogo animated className="trail-logo-hero" label="Trail" />
+        <TrailLogo animated variant="field" className="trail-logo-hero" label="Trail" />
       </div>
 
       <div className="animate-in fade-in-0 slide-in-from-bottom-2 fill-mode-both flex flex-col gap-1.5 delay-75 duration-500">

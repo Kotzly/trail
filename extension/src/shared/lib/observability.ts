@@ -24,7 +24,7 @@ import {
   type TelemetryConsent,
 } from "../config/storage-items.js";
 
-export type ObservabilitySurface = "sidepanel" | "settings" | "background" | "content";
+export type ObservabilitySurface = "sidepanel" | "settings" | "background" | "content" | "login";
 
 export type BugReport = {
   message: string;
@@ -57,6 +57,15 @@ export type AnalyticsEvent =
   | "search_used"
   | "auth_signin_started"
   | "auth_signin_completed"
+  | "auth_signin_failed"
+  | "auth_signup_started"
+  | "auth_signup_completed"
+  | "auth_signup_failed"
+  | "auth_otp_requested"
+  | "auth_otp_verified"
+  | "auth_otp_failed"
+  | "auth_password_reset_requested"
+  | "auth_password_changed"
   | "auth_signout"
   | "sync_ok"
   | "sync_failed"

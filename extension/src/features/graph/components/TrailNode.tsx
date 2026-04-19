@@ -150,9 +150,9 @@ function TrailNodeComponent({
             />
           ))}
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="line-clamp-2 text-[11px] leading-tight font-medium">{displayTitle}</span>
+          <span className="line-clamp-2 text-xs leading-tight font-medium">{displayTitle}</span>
           {showDetail && (
-            <span className="text-muted-foreground truncate text-[9px] leading-tight">
+            <span className="text-muted-foreground truncate font-mono text-[6px] leading-tight">
               {displayUrl}
             </span>
           )}
