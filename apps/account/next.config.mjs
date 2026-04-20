@@ -14,7 +14,7 @@ const nextConfig = {
   },
   transpilePackages: [
     "@trail/content",
-    "@trail/trpc",
+    "@trail/auth-token",
     "@trail/db",
   ],
   serverExternalPackages: ["@prisma/client", "prisma"],

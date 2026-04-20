@@ -1,6 +1,9 @@
 import { singleRow, maybeRow } from "@trail/db/helpers";
-import type { PostgrestSingleResponse, SupabaseClient } from "@supabase/supabase-js";
-import type { AppUser } from "@trail/trpc";
+import type {
+  PostgrestSingleResponse,
+  SupabaseClient,
+} from "@supabase/supabase-js";
+import type { AppUser } from "@trail/auth-token";
 
 type AuthUser = {
   sub?: string;
@@ -37,7 +40,13 @@ export async function ensureUser(
   }
 
   const record = maybeRow(
-    typed<{ id: string; email: string | null; name: string | null; image: string | null; image_url: string | null } | null>(
+    typed<{
+      id: string;
+      email: string | null;
+      name: string | null;
+      image: string | null;
+      image_url: string | null;
+    } | null>(
       await client
         .from("users")
         .select("id, email, name, image, image_url")
@@ -71,22 +80,20 @@ export async function ensurePublicUser(
   client: SupabaseClient,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const result = await client
-    .from("users")
-    .upsert(
-      {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        image: user.imageUrl ?? null,
-        image_url: user.imageUrl ?? null,
-        email_verified: true,
-        created_at: now,
-        updated_at: now,
-        auth_session_version: 1,
-      },
-      { onConflict: "id", ignoreDuplicates: true },
-    );
+  const result = await client.from("users").upsert(
+    {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.imageUrl ?? null,
+      image_url: user.imageUrl ?? null,
+      email_verified: true,
+      created_at: now,
+      updated_at: now,
+      auth_session_version: 1,
+    },
+    { onConflict: "id", ignoreDuplicates: true },
+  );
   if (result.error) {
     throw new Error(`ensurePublicUser failed: ${result.error.message}`);
   }
@@ -108,7 +115,9 @@ export async function getUserById(
     } | null>(
       await client
         .from("users")
-        .select("id, email, name, image, image_url, created_at, onboarding_seen_at")
+        .select(
+          "id, email, name, image, image_url, created_at, onboarding_seen_at",
+        )
         .eq("id", userId)
         .maybeSingle(),
     ),
@@ -189,7 +198,9 @@ export async function markUserOnboardingSeen(
     ),
   );
 
-  return updated.onboarding_seen_at ? new Date(updated.onboarding_seen_at) : null;
+  return updated.onboarding_seen_at
+    ? new Date(updated.onboarding_seen_at)
+    : null;
 }
 
 export async function resetUserOnboarding(

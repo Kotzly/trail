@@ -3,7 +3,7 @@ import { db } from "@trail/db";
 import type { Database } from "@trail/db/types";
 import { singleRow, maybeRow, assertOk } from "@trail/db/helpers";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
-import { createSignedExtensionToken } from "@trail/trpc";
+import { createSignedExtensionToken } from "@trail/auth-token";
 import { env } from "@/src/env";
 
 const AUTH_CODE_TTL_MS = 5 * 60 * 1000;

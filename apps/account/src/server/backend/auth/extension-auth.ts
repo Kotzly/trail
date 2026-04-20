@@ -1,7 +1,7 @@
 import {
   type ExtensionTokenPayload,
   verifySignedExtensionToken,
-} from "@trail/trpc";
+} from "@trail/auth-token";
 import { db } from "@trail/db";
 import { maybeRow } from "@trail/db/helpers";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
@@ -14,7 +14,10 @@ function typed<T>(res: unknown): PostgrestSingleResponse<T> {
 export async function verifyExtensionToken(
   token: string,
 ): Promise<ExtensionTokenPayload | null> {
-  const payload = verifySignedExtensionToken(env.TRAIL_EXTENSION_JWT_SECRET, token);
+  const payload = verifySignedExtensionToken(
+    env.TRAIL_EXTENSION_JWT_SECRET,
+    token,
+  );
   if (!payload?.sub) {
     return null;
   }
@@ -33,7 +36,12 @@ export async function verifyExtensionToken(
       ),
     ),
     maybeRow(
-      typed<{ id: string; user_id: string; status: string; revoked_at: string | null } | null>(
+      typed<{
+        id: string;
+        user_id: string;
+        status: string;
+        revoked_at: string | null;
+      } | null>(
         await db
           .from("extension_device_sessions")
           .select("id, user_id, status, revoked_at")

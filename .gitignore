@@ -71,6 +71,10 @@ backend-preset.json
 runtime-debug.json
 graphify-out/
 
+# Task-tracking / agent reports (local state)
+tasks/cache/
+tasks/reports/
+
 # Playwright artifacts
 extension/test-results/
 extension/playwright-report/

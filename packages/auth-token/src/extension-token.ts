@@ -1,11 +1,15 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
 export const DEFAULT_EXTENSION_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
+export const EXTENSION_TOKEN_ISSUER = "trail-account";
+export const EXTENSION_TOKEN_AUDIENCE = "trail-extension";
 
 export type ExtensionTokenPayload = {
   sub: string;
   iat: number;
   exp: number;
+  iss: typeof EXTENSION_TOKEN_ISSUER;
+  aud: typeof EXTENSION_TOKEN_AUDIENCE;
   sid?: string;
   ver?: number;
 };
@@ -41,6 +45,8 @@ export function createSignedExtensionToken(
     sub: userId,
     iat: now,
     exp: now + ttlSeconds,
+    iss: EXTENSION_TOKEN_ISSUER,
+    aud: EXTENSION_TOKEN_AUDIENCE,
     ...(claims?.sid ? { sid: claims.sid } : {}),
     ...(typeof claims?.ver === "number" ? { ver: claims.ver } : {}),
   };
@@ -74,7 +80,10 @@ export function verifySignedExtensionToken(
   }
 
   try {
-    const match = timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    const match = timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expected),
+    );
     if (!match) {
       return null;
     }
@@ -88,13 +97,20 @@ export function verifySignedExtensionToken(
     const candidate = raw as Record<string, unknown>;
     if (typeof candidate.sub !== "string" || !candidate.sub) return null;
     if (typeof candidate.iat !== "number") return null;
-    if (typeof candidate.exp !== "number" || candidate.exp * 1000 < Date.now()) return null;
-    if (candidate.sid !== undefined && typeof candidate.sid !== "string") return null;
-    if (candidate.ver !== undefined && typeof candidate.ver !== "number") return null;
+    if (typeof candidate.exp !== "number" || candidate.exp * 1000 < Date.now())
+      return null;
+    if (candidate.iss !== EXTENSION_TOKEN_ISSUER) return null;
+    if (candidate.aud !== EXTENSION_TOKEN_AUDIENCE) return null;
+    if (candidate.sid !== undefined && typeof candidate.sid !== "string")
+      return null;
+    if (candidate.ver !== undefined && typeof candidate.ver !== "number")
+      return null;
     return {
       sub: candidate.sub,
       iat: candidate.iat,
       exp: candidate.exp,
+      iss: EXTENSION_TOKEN_ISSUER,
+      aud: EXTENSION_TOKEN_AUDIENCE,
       ...(typeof candidate.sid === "string" ? { sid: candidate.sid } : {}),
       ...(typeof candidate.ver === "number" ? { ver: candidate.ver } : {}),
     };

@@ -2,7 +2,7 @@ import {
   DEFAULT_EXTENSION_TOKEN_TTL_SECONDS,
   createSignedExtensionToken,
   verifySignedExtensionToken,
-} from "@trail/trpc";
+} from "@trail/auth-token";
 import { env } from "@/src/env";
 
 const TOKEN_TTL_SECONDS = DEFAULT_EXTENSION_TOKEN_TTL_SECONDS;
@@ -18,8 +18,6 @@ export function createExtensionAccessToken(
   );
 }
 
-export function verifyExtensionAccessToken(
-  token: string,
-) {
+export function verifyExtensionAccessToken(token: string) {
   return verifySignedExtensionToken(env.TRAIL_EXTENSION_JWT_SECRET, token);
 }

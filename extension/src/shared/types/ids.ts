@@ -7,7 +7,6 @@
  */
 export type Brand<T, B extends string> = T & { readonly [K in `__brand_${B}`]: true };
 
-// export type WindowId = Brand<number, "WindowId">;
 export type TabId = Brand<number, "TabId">;
 
 /**

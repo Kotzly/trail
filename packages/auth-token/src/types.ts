@@ -1,4 +1,3 @@
-import type { SupabaseClient } from "@trail/db";
 import type { UUID } from "crypto";
 
 export type User = {
@@ -18,9 +17,3 @@ export type AppUser = {
 export type AppSession = {
   user: AppUser;
 } | null;
-
-export type AppContext = {
-  db: SupabaseClient;
-  session: AppSession;
-  headers: Headers;
-};
