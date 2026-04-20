@@ -1,19 +1,36 @@
 import Link from "next/link";
+import { setRequestLocale } from "next-intl/server";
 import { MarkdownBlocks } from "../MarkdownBlocks";
 import { getLegalDoc } from "../legal-source";
-import { buildMetadata } from "../../../lib/seo";
+import { buildMetadata } from "@/lib/seo";
 
 export const dynamic = "force-static";
 
-export const metadata = buildMetadata({
-  title: "Terms of Service",
-  description:
-    "Review responsibilities, acceptable use, billing, and how the product is provided, including updates, suspension, and termination.",
-  path: "/terms",
-});
+type PrivacyPageParams = Promise<{ locale: string }>;
 
-export default async function TermsPage() {
-  const doc = await getLegalDoc("Terms of Service");
+export async function generateMetadata({
+  params,
+}: {
+  params: PrivacyPageParams;
+}) {
+  const { locale } = await params;
+  return buildMetadata({
+    title: "Privacy Policy",
+    description:
+      "Learn what data is collected, how it is stored, and the choices you have to control sharing, retention, exports, and deletion requests.",
+    path: "/privacy",
+    locale,
+  });
+}
+
+export default async function PrivacyPage({
+  params,
+}: {
+  params: PrivacyPageParams;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const doc = await getLegalDoc("Privacy Policy");
 
   return (
     <section className="relative mx-auto max-w-3xl px-6 pb-24 pt-32">
@@ -31,10 +48,10 @@ export default async function TermsPage() {
         )}
         <div className="mt-6 flex flex-wrap justify-center gap-4">
           <Link
-            href="/privacy"
+            href="/terms"
             className="rounded-full border border-border-strong px-5 py-2 text-sm text-text-secondary transition-colors hover:text-text-primary hover:border-text-tertiary"
           >
-            Privacy Policy
+            Terms of Service
           </Link>
           <a
             href="mailto:support@gettrail.net"
@@ -50,11 +67,17 @@ export default async function TermsPage() {
       </div>
 
       <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-xs text-text-tertiary">
-        <Link href="/privacy" className="underline underline-offset-4 hover:text-text-secondary transition-colors">
-          Privacy Policy
+        <Link
+          href="/terms"
+          className="underline underline-offset-4 hover:text-text-secondary transition-colors"
+        >
+          Terms of Service
         </Link>
         <span className="opacity-50">·</span>
-        <a href="mailto:support@gettrail.net" className="underline underline-offset-4 hover:text-text-secondary transition-colors">
+        <a
+          href="mailto:support@gettrail.net"
+          className="underline underline-offset-4 hover:text-text-secondary transition-colors"
+        >
           Contact support
         </a>
       </div>

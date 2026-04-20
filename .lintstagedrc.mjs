@@ -4,11 +4,22 @@
 
 import { relative } from "node:path";
 
+const REPO_ROOT = new URL("./", import.meta.url).pathname;
 const EXT_ROOT = new URL("./extension/", import.meta.url).pathname;
 
 /** Strip the `extension/` prefix so eslint/prettier see paths relative to the package. */
 function stripExtension(files) {
   return files.map((f) => relative(EXT_ROOT, f)).map((f) => `"${f}"`).join(" ");
+}
+
+/** Route prettier through a workspace that has it installed. Marketing pulls
+ *  prettier in its devDependencies, so `pnpm --filter @trail/marketing exec`
+ *  resolves the binary. Paths are passed absolute because pnpm changes cwd
+ *  to the filtered package, and quoting avoids brackets in `[locale]`
+ *  segments being interpreted as shell globs. */
+function prettierFromWorkspace(files) {
+  const paths = files.map((f) => `"${f}"`).join(" ");
+  return `pnpm --filter @trail/marketing exec prettier --write ${paths}`;
 }
 
 export default {
@@ -23,12 +34,6 @@ export default {
     const args = stripExtension(files);
     return [`bash -c 'cd extension && pnpm prettier --write ${args}'`];
   },
-  "apps/**/*.{ts,tsx,js,jsx,css,json}": (files) => {
-    const paths = files.map((f) => `"${f}"`).join(" ");
-    return [`prettier --write ${paths}`];
-  },
-  "packages/**/*.{ts,tsx,js,jsx,css,json}": (files) => {
-    const paths = files.map((f) => `"${f}"`).join(" ");
-    return [`prettier --write ${paths}`];
-  },
+  "apps/**/*.{ts,tsx,js,jsx,css,json}": prettierFromWorkspace,
+  "packages/**/*.{ts,tsx,js,jsx,css,json}": prettierFromWorkspace,
 };

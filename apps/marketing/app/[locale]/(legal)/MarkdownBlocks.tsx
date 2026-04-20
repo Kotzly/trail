@@ -186,7 +186,10 @@ export function MarkdownBlocks({ markdown }: { markdown: string }) {
         }
 
         return (
-          <p key={`p-${index}`} className="text-sm leading-7 text-text-secondary">
+          <p
+            key={`p-${index}`}
+            className="text-sm leading-7 text-text-secondary"
+          >
             {renderInline(block.text)}
           </p>
         );

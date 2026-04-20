@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Mail, ArrowUpRight } from "lucide-react";
 import type { ComponentType } from "react";
-import { fetchSupportPage } from "../../lib/sanity/queries";
-import { buildMetadata } from "../../lib/seo";
-import { Reveal } from "../components/ui/reveal";
+import { setRequestLocale } from "next-intl/server";
+import { fetchSupportPage } from "@/lib/sanity/queries";
+import { buildMetadata } from "@/lib/seo";
+import { Reveal } from "@/app/components/ui/reveal";
 import { LeaveNoteButton } from "./LeaveNoteButton";
 
 type SupportPageData = {
@@ -28,17 +29,32 @@ const fallback = {
   contactEmail: "support@gettrail.net",
 };
 
-export async function generateMetadata(): Promise<Metadata> {
+type SupportPageParams = Promise<{ locale: string }>;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: SupportPageParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
   const page: SupportPageData | null = await fetchSupportPage();
 
   return buildMetadata({
     title: page?.seo?.title ?? fallback.seo.title,
     description: page?.seo?.description ?? fallback.seo.description,
     path: "/support",
+    locale,
   });
 }
 
-export default async function SupportPage() {
+export default async function SupportPage({
+  params,
+}: {
+  params: SupportPageParams;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const page: SupportPageData | null = await fetchSupportPage();
 
   const title = page?.title ?? fallback.title;

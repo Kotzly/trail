@@ -1,7 +1,10 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 /**
  * Derive NEXT_PUBLIC_APP_URL for Vercel preview deployments.
@@ -72,4 +75,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);
