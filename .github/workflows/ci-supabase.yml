@@ -1,0 +1,38 @@
+name: Supabase pgTAP
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/ci-supabase.yml"
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/ci-supabase.yml"
+
+jobs:
+  pgtap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Run pgTAP tests
+        # `supabase test db` auto-discovers supabase/tests/*.test.sql,
+        # executes each inside a transaction with pgTAP loaded, and
+        # reports via TAP output.
+        run: supabase test db
+
+      - name: Dump migration log on failure
+        if: failure()
+        run: supabase db dump --local -f /tmp/db-dump.sql || true
