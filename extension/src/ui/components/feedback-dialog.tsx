@@ -14,6 +14,7 @@ import { Textarea } from "@ui/components/ui/textarea";
 import { useBoolean } from "@ui/hooks/use-boolean";
 import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { toast } from "sonner";
+import { i18n } from "#i18n";
 import {
   captureBugReport,
   captureError,
@@ -24,22 +25,33 @@ import { MARKETING_URLS } from "@shared/config/marketing-urls.js";
 
 export type FeedbackKind = "bug" | "feature" | "support";
 
-const COPY: Record<FeedbackKind, { title: string; description: string; placeholder: string }> = {
+type FeedbackCopyKeys = {
+  title: "feedback.bug.title" | "feedback.feature.title" | "feedback.support.title";
+  description:
+    | "feedback.bug.description"
+    | "feedback.feature.description"
+    | "feedback.support.description";
+  placeholder:
+    | "feedback.bug.placeholder"
+    | "feedback.feature.placeholder"
+    | "feedback.support.placeholder";
+};
+
+const COPY_KEYS: Record<FeedbackKind, FeedbackCopyKeys> = {
   bug: {
-    title: "Report a bug",
-    description:
-      "Tell us what went wrong. If a recent crash was captured, we'll attach it automatically.",
-    placeholder: "What happened? What did you expect?",
+    title: "feedback.bug.title",
+    description: "feedback.bug.description",
+    placeholder: "feedback.bug.placeholder",
   },
   feature: {
-    title: "Suggest a feature",
-    description: "What would make Trail better for you?",
-    placeholder: "Describe the feature you'd like to see…",
+    title: "feedback.feature.title",
+    description: "feedback.feature.description",
+    placeholder: "feedback.feature.placeholder",
   },
   support: {
-    title: "Contact support",
-    description: "Stuck on something? We'll get back to you.",
-    placeholder: "How can we help?",
+    title: "feedback.support.title",
+    description: "feedback.support.description",
+    placeholder: "feedback.support.placeholder",
   },
 };
 
@@ -117,7 +129,7 @@ function FeedbackForm({
   source?: string;
   onClose: () => void;
 }) {
-  const copy = COPY[kind];
+  const copyKeys = COPY_KEYS[kind];
   const [message, setMessage] = useState("");
   const [contact, setContact] = useState("");
   const [submitting, submittingActions] = useBoolean(false);
@@ -145,15 +157,15 @@ function FeedbackForm({
       }
 
       captureEvent("feedback_submitted", { kind });
-      toast.success("Thanks — we got it.", {
+      toast.success(i18n.t("feedback.toastSuccess"), {
         description: sentViaSentry
-          ? "Your report was attached to our crash dashboard."
-          : "Our team reads every message.",
+          ? i18n.t("feedback.toastSuccessSentry")
+          : i18n.t("feedback.toastSuccessFallback"),
       });
       onClose();
     } catch (error) {
       captureError(error, { kind: "ui_feedback_submit", feedback_kind: kind });
-      toast.error("Couldn't send your message", {
+      toast.error(i18n.t("feedback.toastFailure"), {
         description: error instanceof Error ? error.message : String(error),
       });
     } finally {
@@ -164,8 +176,8 @@ function FeedbackForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{copy.title}</DialogTitle>
-        <DialogDescription>{copy.description}</DialogDescription>
+        <DialogTitle>{i18n.t(copyKeys.title)}</DialogTitle>
+        <DialogDescription>{i18n.t(copyKeys.description)}</DialogDescription>
       </DialogHeader>
       <form
         onSubmit={(e) => {
@@ -176,14 +188,14 @@ function FeedbackForm({
       >
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="feedback-message" className="text-xs">
-            Message
+            {i18n.t("feedback.messageLabel")}
           </Label>
           <Textarea
             id="feedback-message"
             autoFocus
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={copy.placeholder}
+            placeholder={i18n.t(copyKeys.placeholder)}
             rows={5}
             maxLength={MAX_MESSAGE}
           />
@@ -193,20 +205,21 @@ function FeedbackForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="feedback-contact" className="text-xs">
-            Contact <span className="text-muted-foreground">(optional)</span>
+            {i18n.t("feedback.contactLabel")}{" "}
+            <span className="text-muted-foreground">{i18n.t("feedback.contactOptional")}</span>
           </Label>
           <Input
             id="feedback-contact"
             value={contact}
             onChange={(e) => setContact(e.target.value)}
-            placeholder="Email or @handle if you'd like a reply"
+            placeholder={i18n.t("feedback.contactPlaceholder")}
             maxLength={MAX_CONTACT}
           />
         </div>
       </form>
       <DialogFooter>
         <Button variant="ghost" onClick={onClose} disabled={submitting}>
-          Cancel
+          {i18n.t("feedback.cancel")}
         </Button>
         <Button
           disabled={submitting || message.trim().length === 0}
@@ -215,7 +228,7 @@ function FeedbackForm({
             void submit();
           }}
         >
-          {submitting ? "Sending…" : "Send"}
+          {submitting ? i18n.t("feedback.sending") : i18n.t("feedback.send")}
         </Button>
       </DialogFooter>
     </>

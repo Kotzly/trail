@@ -143,6 +143,34 @@
       "unloadFailed": "Couldn't unload tree"
     }
   },
+  "feedback": {
+    "messageLabel": "Message",
+    "contactLabel": "Contact",
+    "contactOptional": "(optional)",
+    "contactPlaceholder": "Email or @handle if you'd like a reply",
+    "cancel": "Cancel",
+    "sending": "Sending…",
+    "send": "Send",
+    "toastSuccess": "Thanks — we got it.",
+    "toastSuccessSentry": "Your report was attached to our crash dashboard.",
+    "toastSuccessFallback": "Our team reads every message.",
+    "toastFailure": "Couldn't send your message",
+    "bug": {
+      "title": "Report a bug",
+      "description": "Tell us what went wrong. If a recent crash was captured, we'll attach it automatically.",
+      "placeholder": "What happened? What did you expect?"
+    },
+    "feature": {
+      "title": "Suggest a feature",
+      "description": "What would make Trail better for you?",
+      "placeholder": "Describe the feature you'd like to see…"
+    },
+    "support": {
+      "title": "Contact support",
+      "description": "Stuck on something? We'll get back to you.",
+      "placeholder": "How can we help?"
+    }
+  },
   "login": {
     "passwordRequired": "Password is required.",
     "signupOtpSent": "We sent a 6-digit code to your email. Enter it below to finish.",
