@@ -13,7 +13,7 @@ export async function generateMetadata({
   params: PageParams;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const page = await fetchPage("home");
+  const page = await fetchPage("home", locale);
   const title = page?.seo?.title ?? defaultTitle;
   const description = page?.seo?.description ?? defaultDescription;
 
@@ -31,7 +31,7 @@ export default async function HomePage({ params }: { params: PageParams }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const page = await fetchPage("home");
+  const page = await fetchPage("home", locale);
 
   if (!page?.sections?.length) {
     const t = await getTranslations("common");

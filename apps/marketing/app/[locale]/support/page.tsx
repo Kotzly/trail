@@ -37,7 +37,7 @@ export async function generateMetadata({
   params: SupportPageParams;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const page: SupportPageData | null = await fetchSupportPage();
+  const page: SupportPageData | null = await fetchSupportPage(locale);
 
   return buildMetadata({
     title: page?.seo?.title ?? fallback.seo.title,
@@ -55,7 +55,7 @@ export default async function SupportPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const page: SupportPageData | null = await fetchSupportPage();
+  const page: SupportPageData | null = await fetchSupportPage(locale);
 
   const title = page?.title ?? fallback.title;
   const description = page?.description ?? fallback.description;

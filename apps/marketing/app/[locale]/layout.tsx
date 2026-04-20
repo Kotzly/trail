@@ -48,7 +48,7 @@ export async function generateMetadata({
   params: LayoutParams;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const settings = await fetchSiteSettings();
+  const settings = await fetchSiteSettings(locale);
   const siteName = settings?.siteName?.trim() || SITE_NAME;
   const siteUrl = resolveSiteUrl(settings?.siteUrl);
   const title = settings?.defaultSeo?.title?.trim() || defaultTitle;
@@ -118,7 +118,7 @@ export default async function RootLayout({
   setRequestLocale(locale);
 
   const [settings, messages] = await Promise.all([
-    fetchSiteSettings(),
+    fetchSiteSettings(locale),
     getMessages(),
   ]);
   const siteUrl = resolveSiteUrl(settings?.siteUrl);
