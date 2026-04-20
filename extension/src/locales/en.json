@@ -10,5 +10,71 @@
   "openTrail": {
     "message": "Open Trail",
     "description": "Tooltip on the toolbar action icon."
+  },
+  "onboarding": {
+    "stepTitle": {
+      "welcome": "Welcome to Trail",
+      "privacy": "What Trail records",
+      "branch": "How Trail branches",
+      "start": "Choose a starting tree",
+      "ready": "Keyboard shortcuts"
+    },
+    "stepDescription": "Trail setup — step $1 of $2",
+    "skipAriaLabel": "Skip onboarding",
+    "back": "Back",
+    "primary": {
+      "letsGo": "Let's go",
+      "showMore": "Show me more",
+      "gotIt": "Got it"
+    },
+    "pickOne": "Pick one to continue",
+    "loadDemoError": "Load demo tree",
+    "welcome": {
+      "title": "Every click becomes a node.",
+      "body": "Trail turns your browsing into a map you can revisit, rearrange, and understand."
+    },
+    "privacy": {
+      "title": "We see less than you think.",
+      "body": "Trail records just enough to draw the map. Nothing stored leaves your device — unless you opt in to cloud sync later.",
+      "recordedHeader": "Recorded",
+      "neverHeader": "Never",
+      "recordedItems": {
+        "url": "Page URL",
+        "title": "Page title",
+        "favicon": "Favicon"
+      },
+      "neverItems": {
+        "keystrokes": "Keystrokes",
+        "formContent": "Form content",
+        "passwords": "Passwords"
+      },
+      "footer": "Local-first by default. Cloud sync is opt-in."
+    },
+    "branch": {
+      "title": "Backtracking doesn't lose your work.",
+      "body": "Revisit a page, click a new link — Trail branches so you keep both paths.",
+      "footnote": "Quick glances fade on their own. If you return, they reappear.",
+      "settingsHint": "Tune it in Settings → Behavior."
+    },
+    "start": {
+      "title": "Start with something real, or start empty.",
+      "body": "Either works. You can always switch trees later.",
+      "demoTitle": "Load the Japan demo tree",
+      "demoBody": "~25 nodes you can pan, collapse, and edit.",
+      "freshTitle": "Start fresh",
+      "freshBody": "Your next click becomes the first node.",
+      "footnote": "Your current tree (if any) stays saved — you can switch back from the sidepanel."
+    },
+    "ready": {
+      "title": "You're set.",
+      "body": "A few shortcuts to make it feel yours.",
+      "footer": "Happy trailing.",
+      "shortcut": {
+        "commandPalette": "Command palette",
+        "undo": "Undo (last 30)",
+        "renameNode": "Rename node",
+        "allShortcuts": "All shortcuts"
+      }
+    }
   }
 }

@@ -1,9 +1,8 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
     "types": ["chrome", "vite/client"],
     "noEmit": true
   },
-  "include": ["src/**/*", ".wxt/wxt.d.ts"]
+  "include": ["src/**/*", ".wxt/wxt.d.ts", ".wxt/i18n/index.ts"]
 }

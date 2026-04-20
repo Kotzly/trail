@@ -11,7 +11,8 @@
       "@features/*": ["src/features/*"],
       "@background/*": ["src/background/*"],
       "@content/*": ["src/content/*"],
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["src/shared/*"],
+      "#i18n": [".wxt/i18n/index.ts"]
     },
     "lib": ["DOM", "ES2022"],
     "jsx": "react-jsx",

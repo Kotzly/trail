@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./onboarding.css";
+import { i18n } from "#i18n";
 import {
   Dialog,
   DialogContent,
@@ -43,13 +44,13 @@ const STEP = {
 // Visually hidden titles satisfy Radix Dialog's a11y contract without
 // breaking the custom header layout. Each matches the on-screen h2 of
 // the current step so screen readers announce the same content.
-const STEP_TITLES = [
-  "Welcome to Trail",
-  "What Trail records",
-  "How Trail branches",
-  "Choose a starting tree",
-  "Keyboard shortcuts",
-] as const;
+const STEP_TITLE_KEYS = {
+  [0]: "onboarding.stepTitle.welcome",
+  [1]: "onboarding.stepTitle.privacy",
+  [2]: "onboarding.stepTitle.branch",
+  [3]: "onboarding.stepTitle.start",
+  [4]: "onboarding.stepTitle.ready",
+} as const;
 
 export default function OnboardingWizard() {
   const [open, setOpen] = useState(false);
@@ -92,7 +93,7 @@ export default function OnboardingWizard() {
       await loadDemoTree();
       await goToStep(STEP.READY);
     } catch (error) {
-      showOperationError("Load demo tree", error);
+      showOperationError(i18n.t("onboarding.loadDemoError"), error);
     } finally {
       busyActions.setFalse();
     }
@@ -145,7 +146,11 @@ export default function OnboardingWizard() {
   }, [open, step]);
 
   const isLast = step === TOTAL_STEPS - 1;
-  const primaryLabel = isLast ? "Let's go" : step === STEP.WELCOME ? "Show me more" : "Got it";
+  const primaryLabel = isLast
+    ? i18n.t("onboarding.primary.letsGo")
+    : step === STEP.WELCOME
+      ? i18n.t("onboarding.primary.showMore")
+      : i18n.t("onboarding.primary.gotIt");
 
   const renderStep = () => {
     switch (step) {
@@ -180,9 +185,9 @@ export default function OnboardingWizard() {
     >
       <DialogContent showCloseButton={false} className="max-w-[400px] gap-0 overflow-hidden p-0">
         <DialogHeader className="sr-only">
-          <DialogTitle>{STEP_TITLES[step]}</DialogTitle>
+          <DialogTitle>{i18n.t(STEP_TITLE_KEYS[step as keyof typeof STEP_TITLE_KEYS])}</DialogTitle>
           <DialogDescription>
-            Trail setup — step {step + 1} of {TOTAL_STEPS}
+            {i18n.t("onboarding.stepDescription", [String(step + 1), String(TOTAL_STEPS)])}
           </DialogDescription>
         </DialogHeader>
 
@@ -200,7 +205,7 @@ export default function OnboardingWizard() {
             onClick={() => void handleSkip()}
             disabled={busy}
             className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-sm p-1 transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
-            aria-label="Skip onboarding"
+            aria-label={i18n.t("onboarding.skipAriaLabel")}
           >
             <Icons.X className="size-3.5" />
           </button>
@@ -226,7 +231,7 @@ export default function OnboardingWizard() {
               className="text-muted-foreground hover:text-foreground gap-1"
             >
               <Icons.ChevronLeft className="size-3.5" />
-              Back
+              {i18n.t("onboarding.back")}
             </Button>
           ) : (
             <span />
@@ -245,7 +250,9 @@ export default function OnboardingWizard() {
               {!isLast ? <Icons.ChevronRight className="size-3.5" /> : null}
             </Button>
           ) : (
-            <span className="text-muted-foreground text-[11px]">Pick one to continue</span>
+            <span className="text-muted-foreground text-[11px]">
+              {i18n.t("onboarding.pickOne")}
+            </span>
           )}
         </div>
       </DialogContent>

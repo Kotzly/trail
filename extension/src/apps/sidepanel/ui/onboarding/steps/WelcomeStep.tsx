@@ -1,3 +1,4 @@
+import { i18n } from "#i18n";
 import TrailLogo from "@ui/components/trail-logo";
 
 export function WelcomeStep() {
@@ -15,10 +16,10 @@ export function WelcomeStep() {
 
       <div className="animate-in fade-in-0 slide-in-from-bottom-2 fill-mode-both flex flex-col gap-1.5 delay-75 duration-500">
         <h2 className="text-foreground text-xl font-semibold tracking-tight">
-          Every click becomes a node.
+          {i18n.t("onboarding.welcome.title")}
         </h2>
         <p className="text-muted-foreground mx-auto max-w-[300px] text-sm leading-relaxed">
-          Trail turns your browsing into a map you can revisit, rearrange, and understand.
+          {i18n.t("onboarding.welcome.body")}
         </p>
       </div>
     </div>

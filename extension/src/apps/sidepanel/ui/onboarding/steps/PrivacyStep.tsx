@@ -1,18 +1,27 @@
+import { i18n } from "#i18n";
 import { Icons } from "@ui/components/icons";
 
-const RECORDED = ["Page URL", "Page title", "Favicon"] as const;
-const NEVER = ["Keystrokes", "Form content", "Passwords"] as const;
+const RECORDED_KEYS = [
+  "onboarding.privacy.recordedItems.url",
+  "onboarding.privacy.recordedItems.title",
+  "onboarding.privacy.recordedItems.favicon",
+] as const;
+
+const NEVER_KEYS = [
+  "onboarding.privacy.neverItems.keystrokes",
+  "onboarding.privacy.neverItems.formContent",
+  "onboarding.privacy.neverItems.passwords",
+] as const;
 
 export function PrivacyStep() {
   return (
     <div className="animate-in fade-in-0 slide-in-from-right-2 flex flex-col gap-5 duration-300">
       <div className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-1.5 duration-400">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">
-          We see less than you think.
+          {i18n.t("onboarding.privacy.title")}
         </h2>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Trail records just enough to draw the map. Nothing stored leaves your device — unless you
-          opt in to cloud sync later.
+          {i18n.t("onboarding.privacy.body")}
         </p>
       </div>
 
@@ -32,13 +41,13 @@ export function PrivacyStep() {
               id="privacy-recorded-head"
               className="text-foreground text-xs font-medium tracking-tight"
             >
-              Recorded
+              {i18n.t("onboarding.privacy.recordedHeader")}
             </span>
           </header>
           <ul className="flex flex-col gap-1">
-            {RECORDED.map((item) => (
-              <li key={item} className="text-foreground text-xs leading-snug">
-                {item}
+            {RECORDED_KEYS.map((key) => (
+              <li key={key} className="text-foreground text-xs leading-snug">
+                {i18n.t(key)}
               </li>
             ))}
           </ul>
@@ -59,16 +68,16 @@ export function PrivacyStep() {
               id="privacy-never-head"
               className="text-foreground text-xs font-medium tracking-tight"
             >
-              Never
+              {i18n.t("onboarding.privacy.neverHeader")}
             </span>
           </header>
           <ul className="flex flex-col gap-1">
-            {NEVER.map((item) => (
+            {NEVER_KEYS.map((key) => (
               <li
-                key={item}
+                key={key}
                 className="text-muted-foreground decoration-muted-foreground/40 text-xs leading-snug line-through"
               >
-                {item}
+                {i18n.t(key)}
               </li>
             ))}
           </ul>
@@ -77,7 +86,7 @@ export function PrivacyStep() {
 
       <p className="text-muted-foreground animate-in fade-in-0 fill-mode-both inline-flex items-center gap-1.5 text-[11px] delay-150 duration-400">
         <Icons.Shield className="size-3" aria-hidden />
-        <span>Local-first by default. Cloud sync is opt-in.</span>
+        <span>{i18n.t("onboarding.privacy.footer")}</span>
       </p>
     </div>
   );
