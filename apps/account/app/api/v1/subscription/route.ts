@@ -1,5 +1,5 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
-import { getUserFromBillingBearerToken } from "@/src/server/backend/auth/billing-user";
+import { getAuthenticatedUser } from "@/src/server/auth/get-authenticated-user";
 import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { getSubscriptionSnapshotForUser } from "@/src/server/backend/subscription-access";
 import { rateLimit } from "@/src/server/api/rate-limit";
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   }
 
   const token = getBearerToken(request.headers);
-  const user = await getUserFromBillingBearerToken(token);
+  const user = await getAuthenticatedUser(token, { allowInternal: true });
   if (!user) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }

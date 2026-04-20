@@ -18,9 +18,16 @@ vi.mock("@/src/server/backend/user", () => ({
   ...userMocks,
 }));
 
-import { getUserFromToken } from "../auth";
+// Test the consolidated getAuthenticatedUser — previously this file
+// tested getUserFromToken (src/lib/auth.ts) which was one of three
+// bearer-token resolvers. All three were consolidated into
+// get-authenticated-user.ts in Phase A6.
+import {
+  getAuthenticatedUser,
+  getAuthenticatedUserId,
+} from "@/src/server/auth/get-authenticated-user";
 
-describe("getUserFromToken", () => {
+describe("getAuthenticatedUser", () => {
   beforeEach(() => {
     extensionAuthMocks.verifyExtensionToken.mockReset();
     userMocks.getUserById.mockReset();
@@ -28,14 +35,15 @@ describe("getUserFromToken", () => {
     userMocks.getUserById.mockResolvedValue(null);
   });
 
-  it("returns undefined for empty token", async () => {
-    await expect(getUserFromToken("")).resolves.toBeUndefined();
+  it("returns null for empty token", async () => {
+    await expect(getAuthenticatedUser("")).resolves.toBeNull();
+    await expect(getAuthenticatedUser(null)).resolves.toBeNull();
+    await expect(getAuthenticatedUser(undefined)).resolves.toBeNull();
   });
 
-  it("returns undefined when extension token is invalid", async () => {
+  it("returns null when extension token is invalid", async () => {
     extensionAuthMocks.verifyExtensionToken.mockResolvedValue(null);
-
-    await expect(getUserFromToken("invalid.token")).resolves.toBeUndefined();
+    await expect(getAuthenticatedUser("invalid.token")).resolves.toBeNull();
   });
 
   it("resolves user from valid extension token", async () => {
@@ -46,33 +54,81 @@ describe("getUserFromToken", () => {
       sid: "session-1",
       ver: 1,
     });
-    userMocks.getUserById.mockResolvedValue({
+    const dbUser = {
       id: "user-ext-1",
       email: "ext@trail.net",
       name: "Extension User",
       imageUrl: "https://img.example.com/u.png",
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
       onboardingSeenAt: null,
-    });
+    };
+    userMocks.getUserById.mockResolvedValue(dbUser);
 
-    const user = await getUserFromToken("valid.extension.token");
-
-    expect(user).toEqual({
-      id: "user-ext-1",
-      email: "ext@trail.net",
-      name: "Extension User",
-      imageUrl: "https://img.example.com/u.png",
-    });
+    const user = await getAuthenticatedUser("valid.extension.token");
+    expect(user).toEqual(dbUser);
   });
 
-  it("returns undefined when extension token user does not exist in db", async () => {
+  it("returns null when extension token user does not exist in db", async () => {
     extensionAuthMocks.verifyExtensionToken.mockResolvedValue({
       sub: "user-ext-missing",
       iat: 100,
       exp: 200,
     });
     userMocks.getUserById.mockResolvedValue(null);
+    await expect(getAuthenticatedUser("valid.ext.token")).resolves.toBeNull();
+  });
 
-    await expect(getUserFromToken("valid.ext.token")).resolves.toBeUndefined();
+  it("refuses internal:<uuid> tokens by default", async () => {
+    await expect(getAuthenticatedUser("internal:abc-123")).resolves.toBeNull();
+    // verifyExtensionToken must not be called for internal prefix
+    expect(extensionAuthMocks.verifyExtensionToken).not.toHaveBeenCalled();
+  });
+
+  it("resolves internal:<uuid> when allowInternal is set", async () => {
+    const dbUser = {
+      id: "abc-123",
+      email: "x@example.com",
+      name: "X",
+      imageUrl: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      onboardingSeenAt: null,
+    };
+    userMocks.getUserById.mockResolvedValue(dbUser);
+
+    const user = await getAuthenticatedUser("internal:abc-123", {
+      allowInternal: true,
+    });
+    expect(user).toEqual(dbUser);
+    // In the internal-prefix path, verifyExtensionToken is not called.
+    expect(extensionAuthMocks.verifyExtensionToken).not.toHaveBeenCalled();
+  });
+});
+
+describe("getAuthenticatedUserId", () => {
+  beforeEach(() => {
+    extensionAuthMocks.verifyExtensionToken.mockReset();
+    userMocks.getUserById.mockReset();
+  });
+
+  it("returns just the user id", async () => {
+    extensionAuthMocks.verifyExtensionToken.mockResolvedValue({
+      sub: "user-1",
+      iat: 0,
+      exp: 1,
+    });
+    userMocks.getUserById.mockResolvedValue({
+      id: "user-1",
+      email: null,
+      name: null,
+      imageUrl: null,
+      createdAt: new Date(0),
+      onboardingSeenAt: null,
+    });
+    await expect(getAuthenticatedUserId("tok")).resolves.toBe("user-1");
+  });
+
+  it("returns null when user is null", async () => {
+    userMocks.getUserById.mockResolvedValue(null);
+    await expect(getAuthenticatedUserId("tok")).resolves.toBeNull();
   });
 });

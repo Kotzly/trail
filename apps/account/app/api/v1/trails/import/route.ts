@@ -1,5 +1,5 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
-import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
+import { getAuthenticatedUserId } from "@/src/server/auth/get-authenticated-user";
 import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { getAuthSession } from "@/src/lib/auth";
 import { db } from "@trail/db";
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
   // Resolve authenticated user — Bearer token for extension, Supabase session for web UI
   const bearerToken = getBearerToken(request.headers);
-  let userId = await resolveUserId(bearerToken);
+  let userId = await getAuthenticatedUserId(bearerToken);
   if (!userId) {
     const session = await getAuthSession();
     userId = session?.user.id ?? null;

@@ -2,7 +2,7 @@ import { db } from "@trail/db";
 import { maybeRow, assertOk } from "@trail/db/helpers";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { getBearerToken } from "@/src/server/backend/auth/headers";
-import { getUserFromBillingBearerToken } from "@/src/server/backend/auth/billing-user";
+import { getAuthenticatedUser } from "@/src/server/auth/get-authenticated-user";
 import { env } from "@/src/env";
 import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { getSubscriptionSnapshotForUser } from "@/src/server/backend/subscription-access";
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   }
 
   const token = getBearerToken(request.headers);
-  const user = await getUserFromBillingBearerToken(token);
+  const user = await getAuthenticatedUser(token, { allowInternal: true });
   if (!user) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }

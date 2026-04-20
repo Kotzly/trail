@@ -1,6 +1,6 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
-import { getUserFromToken } from "@/src/lib/auth";
+import { getAuthenticatedUser } from "@/src/server/auth/get-authenticated-user";
 import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { toTrailSummary } from "@/src/server/backend/trail-serializers";
 import { ensureUser } from "@/src/server/backend/user";
@@ -53,25 +53,43 @@ async function resolveUser(request: Request) {
   if (bearer) {
     const ext = await verifyExtensionToken(bearer);
     if (ext?.sub) {
-      return ensureUser({ sub: ext.sub }, db);
+      return ensureUser(
+        { sub: ext.sub },
+        db as unknown as import("@supabase/supabase-js").SupabaseClient,
+      );
     }
 
-    // Try as extension token via getUserFromToken fallback
-    const user = await getUserFromToken(bearer);
+    // Fallback: consolidated bearer-token resolver. Accepts extension
+    // tokens that didn't satisfy the fast-path verifyExtensionToken
+    // + ensureUser combo above (e.g. the caller needs the full user
+    // shape rather than just {sub}).
+    const user = await getAuthenticatedUser(bearer);
     if (user) {
-      return { id: user.id, email: user.email, name: user.name, imageUrl: user.imageUrl };
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        imageUrl: user.imageUrl ?? undefined,
+      };
     }
   }
 
   // 2. Try Supabase cookie session
   const supabase = await createSupabaseServerClient();
-  const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+  const {
+    data: { user: supabaseUser },
+  } = await supabase.auth.getUser();
   if (supabaseUser) {
-    return ensureUser({
-      sub: supabaseUser.id,
-      email: supabaseUser.email ?? undefined,
-      name: supabaseUser.user_metadata?.full_name ?? supabaseUser.user_metadata?.name,
-    }, supabase);
+    return ensureUser(
+      {
+        sub: supabaseUser.id,
+        email: supabaseUser.email ?? undefined,
+        name:
+          supabaseUser.user_metadata?.full_name ??
+          supabaseUser.user_metadata?.name,
+      },
+      supabase,
+    );
   }
 
   return null;
@@ -96,7 +114,11 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const parsed = parseQuery(trailsListQuerySchema, url.searchParams);
   if (!parsed.ok) {
-    return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400 });
+    return jsonFail(
+      "VALIDATION_ERROR",
+      parsed.error.issues[0]?.message ?? "Invalid input",
+      { status: 400 },
+    );
   }
 
   const { limit, cursor: cursorRaw, includeDeleted } = parsed.data;
@@ -129,13 +151,20 @@ export async function GET(request: Request) {
     countQuery = countQuery.is("deleted_at", null);
   }
 
-  const [trailsResult, countResult] = await Promise.all([trailsQuery, countQuery]);
+  const [trailsResult, countResult] = await Promise.all([
+    trailsQuery,
+    countQuery,
+  ]);
 
   if (trailsResult.error) {
-    return jsonFail("internal_error", "Failed to fetch trails.", { status: 500 });
+    return jsonFail("internal_error", "Failed to fetch trails.", {
+      status: 500,
+    });
   }
   if (countResult.error) {
-    return jsonFail("internal_error", "Failed to count trails.", { status: 500 });
+    return jsonFail("internal_error", "Failed to count trails.", {
+      status: 500,
+    });
   }
 
   type DbTrailRow = {
@@ -163,7 +192,10 @@ export async function GET(request: Request) {
   const lastItem = items[items.length - 1];
   const nextCursor =
     hasNext && lastItem
-      ? encodeCursor({ updatedAt: new Date(lastItem.updated_at), id: lastItem.id })
+      ? encodeCursor({
+          updatedAt: new Date(lastItem.updated_at),
+          id: lastItem.id,
+        })
       : null;
 
   return jsonOk({

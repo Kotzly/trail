@@ -1,5 +1,5 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
-import { getUserFromBillingBearerToken } from "@/src/server/backend/auth/billing-user";
+import { getAuthenticatedUser } from "@/src/server/auth/get-authenticated-user";
 import {
   BillingProviderError,
   getBillingProvider,
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   }
 
   const token = getBearerToken(request.headers);
-  const user = await getUserFromBillingBearerToken(token);
+  const user = await getAuthenticatedUser(token, { allowInternal: true });
   if (!user) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
@@ -32,7 +32,11 @@ export async function POST(request: Request) {
   const rawBody = await request.json().catch(() => null);
   const parsed = parseBody(subscriptionCheckoutBodySchema, rawBody);
   if (!parsed.ok) {
-    return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400 });
+    return jsonFail(
+      "VALIDATION_ERROR",
+      parsed.error.issues[0]?.message ?? "Invalid input",
+      { status: 400 },
+    );
   }
 
   const body = parsed.data;

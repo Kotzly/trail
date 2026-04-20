@@ -2,9 +2,6 @@ import "server-only";
 
 import type { UUID } from "crypto";
 import { createSupabaseServerClient } from "@/src/lib/supabase/server";
-import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
-import { getUserById } from "@/src/server/backend/user";
-import { db } from "@trail/db";
 
 export type User = {
   id: UUID;
@@ -17,6 +14,12 @@ export type AuthSession = {
   user: User;
 };
 
+/**
+ * Resolve the current cookie-based Supabase session. Used by RSC pages
+ * and Server Actions that authenticate via the @supabase/ssr cookie
+ * flow. Bearer-token auth (extension) is handled separately via
+ * `@/src/server/auth/get-authenticated-user`.
+ */
 export async function getAuthSession(): Promise<AuthSession | null> {
   const supabase = await createSupabaseServerClient();
   const {
@@ -41,30 +44,5 @@ export async function getAuthSession(): Promise<AuthSession | null> {
         (user.user_metadata?.picture as string | undefined) ??
         undefined,
     },
-  };
-}
-
-export async function getUserFromToken(
-  token: string,
-): Promise<User | undefined> {
-  if (!token) {
-    return undefined;
-  }
-
-  const extension = await verifyExtensionToken(token);
-  if (!extension?.sub) {
-    return undefined;
-  }
-
-  const user = await getUserById(extension.sub, db);
-  if (!user) {
-    return undefined;
-  }
-
-  return {
-    id: user.id as UUID,
-    email: user.email ?? "",
-    name: user.name ?? user.email ?? "User",
-    imageUrl: user.imageUrl ?? undefined,
   };
 }

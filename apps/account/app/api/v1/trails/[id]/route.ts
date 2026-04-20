@@ -1,6 +1,6 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
-import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
+import { getAuthenticatedUserId } from "@/src/server/auth/get-authenticated-user";
 import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import {
   type ApiLabelSource,
@@ -98,7 +98,7 @@ export async function GET(
   }
 
   const token = getBearerToken(request.headers);
-  const userId = await resolveUserId(token);
+  const userId = await getAuthenticatedUserId(token);
   if (!userId) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
@@ -288,7 +288,7 @@ export async function PATCH(
   }
 
   const token = getBearerToken(request.headers);
-  const userId = await resolveUserId(token);
+  const userId = await getAuthenticatedUserId(token);
   if (!userId) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
@@ -415,7 +415,7 @@ export async function DELETE(
   }
 
   const token = getBearerToken(request.headers);
-  const userId = await resolveUserId(token);
+  const userId = await getAuthenticatedUserId(token);
   if (!userId) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
