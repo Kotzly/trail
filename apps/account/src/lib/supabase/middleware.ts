@@ -18,8 +18,17 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value);
           }
           supabaseResponse = NextResponse.next({ request });
+          // Force secure attrs on every cookie we forward. @supabase/ssr
+          // usually sets these too, but explicit is better than relying
+          // on SDK defaults to drift-proof future upgrades (closes P2.3).
           for (const { name, value, options } of cookiesToSet) {
-            supabaseResponse.cookies.set(name, value, options);
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              httpOnly: options?.httpOnly ?? true,
+              secure: options?.secure ?? process.env.NODE_ENV === "production",
+              sameSite: options?.sameSite ?? "lax",
+              path: options?.path ?? "/",
+            });
           }
         },
       },

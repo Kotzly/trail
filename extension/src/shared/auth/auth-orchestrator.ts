@@ -705,7 +705,10 @@ export async function signInWithGoogle(): Promise<AuthState> {
       const lastErr = chrome.runtime.lastError;
       if (lastErr) {
         const raw = lastErr.message ?? "launchWebAuthFlow failed";
-        console.error("[auth] launchWebAuthFlow failed", { raw, oauthUrl: data.url, redirectUrl });
+        // Don't log the raw OAuth URL — it contains the state parameter
+        // and other query fragments that may leak in browser logs
+        // (closes P3.2 / P3.4). The redirect URL is safe (deterministic).
+        console.error("[auth] launchWebAuthFlow failed", { raw, redirectUrl });
         captureError(new Error(`launchWebAuthFlow: ${raw}`), {
           kind: "auth_launch_web_auth_flow",
           rawMessage: raw,
@@ -739,31 +742,23 @@ export async function signInWithGoogle(): Promise<AuthState> {
 
   let session: Session | null = null;
 
-  if (code) {
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) {
-      captureEvent("auth_signin_failed", { provider: "google" });
-      throw error;
-    }
-    session = data?.session ?? null;
-  } else {
-    const hashParams = new URLSearchParams(parsedResponse.hash.replace(/^#/, ""));
-    const accessToken = hashParams.get("access_token");
-    const refreshToken = hashParams.get("refresh_token");
-    if (!accessToken || !refreshToken) {
-      captureEvent("auth_signin_failed", { provider: "google" });
-      throw new Error("No tokens in auth response — check Supabase URL configuration");
-    }
-    const { data, error } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-    if (error) {
-      captureEvent("auth_signin_failed", { provider: "google" });
-      throw error;
-    }
-    session = data.session;
+  if (!code) {
+    // PKCE-only: if Supabase didn't round-trip a `code`, something in
+    // the OAuth config is wrong. Refuse to accept tokens from the URL
+    // fragment — that's an implicit-flow path and bypasses PKCE's
+    // whole threat model (closes P1.5 / P2.4).
+    captureEvent("auth_signin_failed", { provider: "google" });
+    throw new Error(
+      "OAuth response missing authorization code — check Supabase URL configuration (PKCE required, implicit flow not accepted).",
+    );
   }
+
+  const exchange = await supabase.auth.exchangeCodeForSession(code);
+  if (exchange.error) {
+    captureEvent("auth_signin_failed", { provider: "google" });
+    throw exchange.error;
+  }
+  session = exchange.data?.session ?? null;
 
   const identity = sessionToIdentity(session);
   if (!identity) throw new Error("Signed in but session has no user identity");
