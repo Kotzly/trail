@@ -1,4 +1,4 @@
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { getAuthSession } from "@/src/lib/auth";
 import { getUserById } from "@/src/server/backend/user";
 import { createSupabaseServerClient } from "@/src/lib/supabase/server";
@@ -20,14 +20,14 @@ export const metadata = {
   title: "Settings",
 };
 
-function planLabel(planId: string): string {
+function planLabel(planId: string, t: (key: string) => string): string {
   switch (planId) {
     case "pro":
-      return "Pro";
+      return t("pro");
     case "teams":
-      return "Teams";
+      return t("teams");
     default:
-      return "Free";
+      return t("free");
   }
 }
 
@@ -62,12 +62,14 @@ export default async function SettingsPage() {
   if (!session) return null;
 
   const supabase = await createSupabaseServerClient();
-  const [user, snapshot, locale] = await Promise.all([
+  const [user, snapshot, locale, t, tPlans] = await Promise.all([
     getUserById(session.user.id, supabase),
     getSubscriptionSnapshotForUser({
       userId: session.user.id,
     }),
     getLocale(),
+    getTranslations("settings"),
+    getTranslations("settings.plans"),
   ]);
 
   const memberSince = user?.createdAt
@@ -80,17 +82,17 @@ export default async function SettingsPage() {
   return (
     <div className="flex flex-col gap-8 max-w-2xl">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage your account preferences.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t("pageTitle")}
+        </h1>
+        <p className="text-sm text-muted-foreground">{t("pageSubtitle")}</p>
       </div>
 
       {/* Profile */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Profile</CardTitle>
-          <CardDescription>Your account information.</CardDescription>
+          <CardTitle className="text-base">{t("profile.title")}</CardTitle>
+          <CardDescription>{t("profile.description")}</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center gap-4">
           <Avatar className="h-14 w-14">
@@ -115,7 +117,7 @@ export default async function SettingsPage() {
             )}
             {memberSince && (
               <p className="text-xs text-muted-foreground">
-                Member since {memberSince}
+                {t("profile.memberSince", { date: memberSince })}
               </p>
             )}
           </div>
@@ -125,38 +127,44 @@ export default async function SettingsPage() {
       {/* Subscription */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Subscription</CardTitle>
-          <CardDescription>Your current plan and status.</CardDescription>
+          <CardTitle className="text-base">{t("subscription.title")}</CardTitle>
+          <CardDescription>{t("subscription.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           {snapshot ? (
             <div className="flex items-center gap-3">
-              <span className="font-medium">{planLabel(snapshot.planId)}</span>
+              <span className="font-medium">
+                {planLabel(snapshot.planId, tPlans)}
+              </span>
               <Badge variant={statusVariant(snapshot.status)}>
-                {snapshot.status === "trialing" ? "Trial" : snapshot.status}
+                {snapshot.status === "trialing"
+                  ? t("subscription.trialBadge")
+                  : snapshot.status}
               </Badge>
               {snapshot.cancelAtPeriodEnd && snapshot.currentPeriodEnd && (
                 <span className="text-sm text-muted-foreground">
-                  Cancels{" "}
-                  {new Date(snapshot.currentPeriodEnd).toLocaleDateString(
-                    locale,
-                    {
+                  {t("subscription.cancelsOn", {
+                    date: new Date(
+                      snapshot.currentPeriodEnd,
+                    ).toLocaleDateString(locale, {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
-                    },
-                  )}
+                    }),
+                  })}
                 </span>
               )}
             </div>
           ) : (
-            <span className="text-sm text-muted-foreground">Free plan</span>
+            <span className="text-sm text-muted-foreground">
+              {t("subscription.freePlan")}
+            </span>
           )}
         </CardContent>
         <CardFooter className="text-xs text-muted-foreground">
-          Manage your subscription on the{" "}
+          {t("subscription.manageHint")}{" "}
           <a href="/billing" className="underline underline-offset-2 ml-1">
-            Billing page
+            {t("subscription.billingPage")}
           </a>
           .
         </CardFooter>
@@ -166,16 +174,17 @@ export default async function SettingsPage() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-semibold text-destructive">
-            Danger Zone
+            {t("danger.title")}
           </h2>
           <Separator />
         </div>
         <Card className="border-destructive/30">
           <CardHeader>
-            <CardTitle className="text-base">Reset onboarding</CardTitle>
+            <CardTitle className="text-base">
+              {t("danger.resetOnboarding.title")}
+            </CardTitle>
             <CardDescription>
-              Clear the onboarding completion flag so it shows again on next
-              login. Useful for testing.
+              {t("danger.resetOnboarding.description")}
             </CardDescription>
           </CardHeader>
           <CardFooter>

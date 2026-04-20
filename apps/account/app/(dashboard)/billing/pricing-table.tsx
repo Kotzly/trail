@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Check, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -32,12 +31,6 @@ type PricingTableProps = {
   snapshot: SubscriptionSnapshot | null;
 };
 
-function formatPrice(cents: number, interval: Interval): string {
-  if (cents === 0) return "Free";
-  const monthly = interval === "year" ? Math.round(cents / 12) : cents;
-  return `$${monthly}/mo`;
-}
-
 function PlanCard({
   plan,
   snapshot,
@@ -49,6 +42,7 @@ function PlanCard({
 }) {
   const [isPending, startTransition] = useTransition();
   const locale = useLocale();
+  const t = useTranslations("billing");
   const isCurrent = snapshot?.planId === plan.id;
   const isCurrentlyActive =
     isCurrent &&
@@ -73,7 +67,7 @@ function PlanCard({
     startTransition(async () => {
       const result = await cancelSubscription();
       if (result.error) toast.error(result.error);
-      else toast.success("Subscription will cancel at period end");
+      else toast.success(t("cancelAtPeriodEnd"));
     });
   };
 
@@ -81,7 +75,7 @@ function PlanCard({
     startTransition(async () => {
       const result = await resumeSubscription();
       if (result.error) toast.error(result.error);
-      else toast.success("Subscription resumed");
+      else toast.success(t("toast.resumeSuccess"));
     });
   };
 
@@ -90,13 +84,13 @@ function PlanCard({
       if (isCurrentlyActive) {
         return (
           <Button variant="outline" className="w-full" disabled>
-            Current Plan
+            {t("currentPlan")}
           </Button>
         );
       }
       return (
         <Button variant="outline" className="w-full" disabled>
-          Downgrade
+          {t("downgrade")}
         </Button>
       );
     }
@@ -113,7 +107,7 @@ function PlanCard({
             {isPending ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : null}
-            Resume Subscription
+            {t("resumeSubscription")}
           </Button>
         );
       }
@@ -125,7 +119,7 @@ function PlanCard({
           disabled={isPending}
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Cancel Plan
+          {t("cancelPlan")}
         </Button>
       );
     }
@@ -134,7 +128,7 @@ function PlanCard({
       ? ["free", "pro", "teams"].indexOf(snapshot.planId)
       : 0;
     const planRank = ["free", "pro", "teams"].indexOf(plan.id);
-    const label = planRank > currentRank ? "Upgrade" : "Downgrade";
+    const label = planRank > currentRank ? t("upgrade") : t("downgrade");
 
     return (
       <Button
@@ -159,7 +153,7 @@ function PlanCard({
     >
       {plan.highlight && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <Badge className="px-3">Most Popular</Badge>
+          <Badge className="px-3">{t("mostPopular")}</Badge>
         </div>
       )}
       <CardHeader className="pb-4">
@@ -170,22 +164,27 @@ function PlanCard({
               variant={isCancelPending ? "outline" : "secondary"}
               className="text-xs"
             >
-              {isCancelPending ? "Canceling" : "Current"}
+              {isCancelPending ? t("canceling") : t("current")}
             </Badge>
           )}
         </div>
         <div className="mt-2">
           <span className="text-3xl font-bold tracking-tight">
             {isFree
-              ? "Free"
+              ? t("free")
               : `$${interval === "year" ? Math.round(price / 12) : price}`}
           </span>
           {!isFree && (
-            <span className="text-sm text-muted-foreground ml-1">/mo</span>
+            <span className="text-sm text-muted-foreground ml-1">
+              {t("pricePerMonth")}
+            </span>
           )}
           {!isFree && interval === "year" && (
             <p className="text-xs text-muted-foreground mt-1">
-              Billed ${price}/year · Save ${plan.priceMonthly * 12 - price}/yr
+              {t("billedYearlyWithSave", {
+                total: price,
+                savings: plan.priceMonthly * 12 - price,
+              })}
             </p>
           )}
         </div>
@@ -202,23 +201,24 @@ function PlanCard({
           <li className="flex items-start gap-2 text-sm text-muted-foreground">
             <Check className="h-4 w-4 mt-0.5 shrink-0" />
             <span>
-              Up to{" "}
               {plan.limits.maxTrees === 999
-                ? "unlimited"
-                : plan.limits.maxTrees}{" "}
-              trees
+                ? t("upToTreesUnlimited")
+                : t("upToTrees", { count: plan.limits.maxTrees })}
             </span>
           </li>
           <li className="flex items-start gap-2 text-sm text-muted-foreground">
             <Check className="h-4 w-4 mt-0.5 shrink-0" />
             <span>
-              {plan.limits.maxDevices}{" "}
-              {plan.limits.maxDevices === 1 ? "device" : "devices"}
+              {plan.limits.maxDevices === 1
+                ? t("devicesOne")
+                : t("devicesMany", { count: plan.limits.maxDevices })}
             </span>
           </li>
           <li className="flex items-start gap-2 text-sm text-muted-foreground">
             <Check className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>{plan.limits.maxHistoryDays}d history</span>
+            <span>
+              {t("historyDays", { days: plan.limits.maxHistoryDays })}
+            </span>
           </li>
         </ul>
       </CardContent>
@@ -226,11 +226,15 @@ function PlanCard({
         {renderButton()}
         {isCancelPending && snapshot?.currentPeriodEnd && (
           <p className="text-xs text-muted-foreground text-center">
-            Access until{" "}
-            {new Date(snapshot.currentPeriodEnd).toLocaleDateString(locale, {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
+            {t("accessUntil", {
+              date: new Date(snapshot.currentPeriodEnd).toLocaleDateString(
+                locale,
+                {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                },
+              ),
             })}
           </p>
         )}
@@ -242,6 +246,7 @@ function PlanCard({
 export function PricingTable({ plans, snapshot }: PricingTableProps) {
   const [interval, setInterval] = useState<Interval>("month");
   const [isPortalPending, startPortalTransition] = useTransition();
+  const t = useTranslations("billing");
 
   const hasPaidPlan =
     snapshot && snapshot.planId !== "free" && snapshot.status !== "expired";
@@ -267,7 +272,7 @@ export function PricingTable({ plans, snapshot }: PricingTableProps) {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            Monthly
+            {t("interval.monthly")}
           </button>
           <button
             onClick={() => setInterval("year")}
@@ -278,9 +283,9 @@ export function PricingTable({ plans, snapshot }: PricingTableProps) {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            Yearly
+            {t("interval.yearly")}
             <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4">
-              Save 25%
+              {t("interval.saveBadge")}
             </Badge>
           </button>
         </div>
@@ -313,7 +318,7 @@ export function PricingTable({ plans, snapshot }: PricingTableProps) {
             ) : (
               <ExternalLink className="h-3.5 w-3.5" />
             )}
-            Manage billing &amp; invoices
+            {t("managePortal")}
           </Button>
         </div>
       )}
