@@ -9,6 +9,8 @@ const SRC_DIR = join(ROOT, 'src');
 const EXPECTED_ENTRYPOINT_FILES = [
   'background.ts',
   'content.ts',
+  'login/index.html',
+  'login/main.tsx',
   'settings/index.html',
   'settings/main.tsx',
   'sidepanel/index.html',
