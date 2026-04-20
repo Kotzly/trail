@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { env } from "@/src/env";
 import { db } from "@trail/db";
+import type { Json } from "@trail/db/types";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { maybeRow, assertOk } from "@trail/db/helpers";
 import {
@@ -13,7 +14,11 @@ import {
 import { listPlans } from "@/src/server/backend/account-snapshot";
 import { getBillingStatusFromSubscription } from "@/src/server/backend/billing/subscription-status";
 import { addInterval } from "@/src/server/backend/subscription/period";
-import { isUpgrade, proratedUpgradeChargeCents, type PlanId } from "@/src/server/backend/subscription/proration";
+import {
+  isUpgrade,
+  proratedUpgradeChargeCents,
+  type PlanId,
+} from "@/src/server/backend/subscription/proration";
 import { validateRedirectUrl } from "@/src/server/backend/billing/validate-redirect-url";
 
 type NowPaymentsInvoiceResponse = {
@@ -57,7 +62,9 @@ function billingUrl(): string {
   return `${env.appBaseUrl.replace(/\/$/, "")}/billing`;
 }
 
-function assertPaidPlanId(planId: string): asserts planId is Exclude<PlanId, "free"> {
+function assertPaidPlanId(
+  planId: string,
+): asserts planId is Exclude<PlanId, "free"> {
   if (planId !== "pro" && planId !== "teams") {
     throw new BillingProviderError("invalid_plan", "Plan is not available.", {
       status: 400,
@@ -78,7 +85,9 @@ function mapDbPlanToPlanId(plan: "FREE" | "PRO" | "TEAMS"): PlanId {
   }
 }
 
-function mapDbIntervalToCheckoutInterval(value: "MONTH" | "YEAR"): "month" | "year" {
+function mapDbIntervalToCheckoutInterval(
+  value: "MONTH" | "YEAR",
+): "month" | "year" {
   return value === "YEAR" ? "year" : "month";
 }
 
@@ -112,16 +121,20 @@ async function resolveCheckoutAmount(input: CheckoutSessionInput): Promise<{
   const now = new Date();
 
   const existing = maybeRow(
-    await db
+    (await db
       .from("user_subscriptions")
-      .select("plan, interval, created_at, current_period_start, current_period_end, cancel_at_period_end")
+      .select(
+        "plan, interval, created_at, current_period_start, current_period_end, cancel_at_period_end",
+      )
       .eq("user_id", input.userId)
-      .maybeSingle() as unknown as PostgrestSingleResponse<UserSubscriptionRow | null>,
+      .maybeSingle()) as unknown as PostgrestSingleResponse<UserSubscriptionRow | null>,
   );
 
   // Treat missing/expired subscriptions as a new purchase.
   const existingPlanId = existing ? mapDbPlanToPlanId(existing.plan) : "free";
-  const existingInterval = existing ? mapDbIntervalToCheckoutInterval(existing.interval) : null;
+  const existingInterval = existing
+    ? mapDbIntervalToCheckoutInterval(existing.interval)
+    : null;
   const existingPeriodStart = existing?.current_period_start
     ? new Date(existing.current_period_start)
     : existing?.created_at
@@ -134,15 +147,31 @@ async function resolveCheckoutAmount(input: CheckoutSessionInput): Promise<{
         ? addInterval(existingPeriodStart, existingInterval)
         : null;
 
-  const isExpired = existingPeriodEnd ? existingPeriodEnd.getTime() <= now.getTime() : true;
+  const isExpired = existingPeriodEnd
+    ? existingPeriodEnd.getTime() <= now.getTime()
+    : true;
 
-  if (!existing || existingPlanId === "free" || isExpired || !existingInterval || !existingPeriodStart || !existingPeriodEnd) {
-    const { amount, currency, planName } = priceFor(input.planId, requestedInterval);
+  if (
+    !existing ||
+    existingPlanId === "free" ||
+    isExpired ||
+    !existingInterval ||
+    !existingPeriodStart ||
+    !existingPeriodEnd
+  ) {
+    const { amount, currency, planName } = priceFor(
+      input.planId,
+      requestedInterval,
+    );
     if (amount <= 0) {
-      throw new BillingProviderError("invalid_checkout_plan", "Selected plan cannot be purchased.", {
-        status: 400,
-        retryable: false,
-      });
+      throw new BillingProviderError(
+        "invalid_checkout_plan",
+        "Selected plan cannot be purchased.",
+        {
+          status: 400,
+          retryable: false,
+        },
+      );
     }
     return {
       mode: "new",
@@ -155,13 +184,24 @@ async function resolveCheckoutAmount(input: CheckoutSessionInput): Promise<{
   }
 
   // Allow explicit renewals (not used by current UI, but keeps model robust).
-  if (input.planId === existingPlanId && input.interval === existingInterval && !existing.cancel_at_period_end) {
-    const { amount, currency, planName } = priceFor(input.planId, existingInterval);
+  if (
+    input.planId === existingPlanId &&
+    input.interval === existingInterval &&
+    !existing.cancel_at_period_end
+  ) {
+    const { amount, currency, planName } = priceFor(
+      input.planId,
+      existingInterval,
+    );
     if (amount <= 0) {
-      throw new BillingProviderError("invalid_checkout_plan", "Selected plan cannot be purchased.", {
-        status: 400,
-        retryable: false,
-      });
+      throw new BillingProviderError(
+        "invalid_checkout_plan",
+        "Selected plan cannot be purchased.",
+        {
+          status: 400,
+          retryable: false,
+        },
+      );
     }
     return {
       mode: "renewal",
@@ -174,10 +214,14 @@ async function resolveCheckoutAmount(input: CheckoutSessionInput): Promise<{
   }
 
   if (!isUpgrade(existingPlanId, input.planId as PlanId)) {
-    throw new BillingProviderError("invalid_plan_change", "Downgrades are not supported.", {
-      status: 400,
-      retryable: false,
-    });
+    throw new BillingProviderError(
+      "invalid_plan_change",
+      "Downgrades are not supported.",
+      {
+        status: 400,
+        retryable: false,
+      },
+    );
   }
 
   const fromPlan = listPlans().find((p) => p.id === existingPlanId);
@@ -210,7 +254,9 @@ async function resolveCheckoutAmount(input: CheckoutSessionInput): Promise<{
   };
 }
 
-function resolveNowPaymentsUrl(payload: NowPaymentsInvoiceResponse | null): string | null {
+function resolveNowPaymentsUrl(
+  payload: NowPaymentsInvoiceResponse | null,
+): string | null {
   if (!payload || typeof payload !== "object") {
     return null;
   }
@@ -223,7 +269,9 @@ function resolveNowPaymentsUrl(payload: NowPaymentsInvoiceResponse | null): stri
   return null;
 }
 
-function resolveProviderErrorDetails(payload: NowPaymentsInvoiceResponse | null): string | undefined {
+function resolveProviderErrorDetails(
+  payload: NowPaymentsInvoiceResponse | null,
+): string | undefined {
   if (!payload || typeof payload !== "object") {
     return undefined;
   }
@@ -276,7 +324,10 @@ async function createNowPaymentsInvoice(
           cancel_at_period_end: false,
           canceled_at: null,
           ...(pricing.requestedInterval !== pricing.chargeInterval
-            ? { pending_interval: pricing.requestedInterval === "year" ? "YEAR" : "MONTH" }
+            ? {
+                pending_interval:
+                  pricing.requestedInterval === "year" ? "YEAR" : "MONTH",
+              }
             : { pending_interval: null }),
         })
         .eq("user_id", input.userId),
@@ -331,9 +382,9 @@ async function createNowPaymentsInvoice(
     );
   }
 
-  const payload = (await response.json().catch(() => null)) as
-    | NowPaymentsInvoiceResponse
-    | null;
+  const payload = (await response
+    .json()
+    .catch(() => null)) as NowPaymentsInvoiceResponse | null;
 
   if (!response.ok) {
     await db
@@ -341,10 +392,13 @@ async function createNowPaymentsInvoice(
       .update({
         status: "FAILED",
         payment_status: null,
-        last_payload: payload as Record<string, unknown> | null,
+        last_payload: payload as Json | null,
       })
       .eq("order_id", orderId)
-      .then(() => null, () => null);
+      .then(
+        () => null,
+        () => null,
+      );
     throw new BillingProviderError(
       "checkout_failed",
       "Failed to create checkout session.",
@@ -363,10 +417,13 @@ async function createNowPaymentsInvoice(
       .update({
         status: "FAILED",
         payment_status: null,
-        last_payload: payload as Record<string, unknown> | null,
+        last_payload: payload as Json | null,
       })
       .eq("order_id", orderId)
-      .then(() => null, () => null);
+      .then(
+        () => null,
+        () => null,
+      );
     throw new BillingProviderError(
       "checkout_failed",
       "Billing provider did not return a checkout url.",
@@ -382,10 +439,13 @@ async function createNowPaymentsInvoice(
     .update({
       status: "REDIRECTED",
       nowpayments_invoice_url: url,
-      last_payload: payload as Record<string, unknown> | null,
+      last_payload: payload as Json | null,
     })
     .eq("order_id", orderId)
-    .then(() => null, () => null);
+    .then(
+      () => null,
+      () => null,
+    );
 
   return { url, expiresAt: null };
 }
@@ -404,7 +464,9 @@ export function createNowPaymentsBillingProvider(): BillingProvider {
     async getBillingStatus(input: BillingUserContext) {
       return getBillingStatusFromSubscription(input.userId);
     },
-    async createCheckoutSession(input: CheckoutSessionInput): Promise<BillingPortalLink> {
+    async createCheckoutSession(
+      input: CheckoutSessionInput,
+    ): Promise<BillingPortalLink> {
       return createNowPaymentsInvoice(input);
     },
     async createBillingPortalSession(

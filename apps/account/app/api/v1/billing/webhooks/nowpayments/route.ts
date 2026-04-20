@@ -1,12 +1,16 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { db } from "@trail/db";
+import type { Json } from "@trail/db/types";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { maybeRow } from "@trail/db/helpers";
 import { env } from "@/src/env";
 import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { addInterval } from "@/src/server/backend/subscription/period";
-import { isUpgrade, type PlanId } from "@/src/server/backend/subscription/proration";
+import {
+  isUpgrade,
+  type PlanId,
+} from "@/src/server/backend/subscription/proration";
 import { rateLimit } from "@/src/server/api/rate-limit";
 import { optionsResponse } from "@/src/server/api/cors";
 
@@ -126,11 +130,15 @@ function mapCheckoutPlanToDbPlan(planId: string): "PRO" | "TEAMS" | null {
   return null;
 }
 
-function mapCheckoutIntervalToDbInterval(value: string | null | undefined): "MONTH" | "YEAR" {
+function mapCheckoutIntervalToDbInterval(
+  value: string | null | undefined,
+): "MONTH" | "YEAR" {
   return value === "year" ? "YEAR" : "MONTH";
 }
 
-function mapDbIntervalToCheckoutInterval(value: "MONTH" | "YEAR"): "month" | "year" {
+function mapDbIntervalToCheckoutInterval(
+  value: "MONTH" | "YEAR",
+): "month" | "year" {
   return value === "YEAR" ? "year" : "month";
 }
 
@@ -173,9 +181,13 @@ export async function POST(request: Request) {
 
   const result = nowPaymentsWebhookSchema.safeParse(parsed);
   if (!result.success) {
-    return jsonFail("invalid_payload", "Webhook payload failed schema validation.", {
-      status: 400,
-    });
+    return jsonFail(
+      "invalid_payload",
+      "Webhook payload failed schema validation.",
+      {
+        status: 400,
+      },
+    );
   }
   const payload = result.data;
 
@@ -186,17 +198,20 @@ export async function POST(request: Request) {
     });
   }
 
-  const orderId = typeof payload.order_id === "string" ? payload.order_id.trim() : "";
+  const orderId =
+    typeof payload.order_id === "string" ? payload.order_id.trim() : "";
   if (!orderId) {
     return jsonFail("invalid_payload", "Missing order_id.", { status: 400 });
   }
 
   const session = maybeRow(
-    await db
+    (await db
       .from("billing_checkout_sessions")
-      .select("order_id, status, user_id, plan_id, interval, requested_interval")
+      .select(
+        "order_id, status, user_id, plan_id, interval, requested_interval",
+      )
       .eq("order_id", orderId)
-      .maybeSingle() as unknown as PostgrestSingleResponse<CheckoutSessionRow | null>,
+      .maybeSingle()) as unknown as PostgrestSingleResponse<CheckoutSessionRow | null>,
   );
 
   // Acknowledge unknown orders as OK to avoid infinite retries.
@@ -207,7 +222,8 @@ export async function POST(request: Request) {
   const paymentStatus =
     typeof payload.payment_status === "string" ? payload.payment_status : null;
   const paymentId =
-    typeof payload.payment_id === "string" || typeof payload.payment_id === "number"
+    typeof payload.payment_id === "string" ||
+    typeof payload.payment_id === "number"
       ? String(payload.payment_id)
       : null;
 
@@ -223,14 +239,14 @@ export async function POST(request: Request) {
       status: "WEBHOOK_RECEIVED",
       payment_status: paymentStatus,
       ...(paymentId ? { nowpayments_payment_id: paymentId } : {}),
-      last_payload: payload as Record<string, unknown>,
+      last_payload: payload as Json,
     })
     .eq("order_id", orderId)
     .not("status", "in", '("SUCCEEDED","REFUNDED","FAILED")')
     .select("order_id");
 
   // Session already reached a terminal state — another webhook got there first.
-  if (!claimResult.data || (claimResult.data as any[]).length === 0) {
+  if (!claimResult.data || claimResult.data.length === 0) {
     return jsonOk({ ok: true });
   }
 
@@ -238,14 +254,16 @@ export async function POST(request: Request) {
   // payment, skip processing to avoid double-applying the same payment.
   if (paymentId) {
     const duplicate = maybeRow(
-      await db
+      (await db
         .from("billing_checkout_sessions")
         .select("order_id")
         .eq("nowpayments_payment_id", paymentId)
         .neq("order_id", orderId)
         .in("status", ["SUCCEEDED", "REFUNDED", "FAILED"])
         .limit(1)
-        .maybeSingle() as unknown as PostgrestSingleResponse<{ order_id: string } | null>,
+        .maybeSingle()) as unknown as PostgrestSingleResponse<{
+        order_id: string;
+      } | null>,
     );
     if (duplicate) {
       return jsonOk({ ok: true });
@@ -256,18 +274,25 @@ export async function POST(request: Request) {
     const targetDbPlan = mapCheckoutPlanToDbPlan(session.plan_id);
     if (targetDbPlan) {
       const requestedInterval = session.requested_interval ?? session.interval;
-      const requestedDbInterval = mapCheckoutIntervalToDbInterval(requestedInterval);
+      const requestedDbInterval =
+        mapCheckoutIntervalToDbInterval(requestedInterval);
 
       const existing = maybeRow(
-        await db
+        (await db
           .from("user_subscriptions")
-          .select("plan, interval, pending_interval, created_at, current_period_start, current_period_end, cancel_at_period_end")
+          .select(
+            "plan, interval, pending_interval, created_at, current_period_start, current_period_end, cancel_at_period_end",
+          )
           .eq("user_id", session.user_id)
-          .maybeSingle() as unknown as PostgrestSingleResponse<UserSubscriptionRow | null>,
+          .maybeSingle()) as unknown as PostgrestSingleResponse<UserSubscriptionRow | null>,
       );
 
-      const existingPlanId = existing ? mapDbPlanToPlanId(existing.plan as "FREE" | "PRO" | "TEAMS") : "free";
-      const existingInterval = existing ? mapDbIntervalToCheckoutInterval(existing.interval as "MONTH" | "YEAR") : null;
+      const existingPlanId = existing
+        ? mapDbPlanToPlanId(existing.plan as "FREE" | "PRO" | "TEAMS")
+        : "free";
+      const existingInterval = existing
+        ? mapDbIntervalToCheckoutInterval(existing.interval as "MONTH" | "YEAR")
+        : null;
       const existingPeriodStart = existing?.current_period_start
         ? new Date(existing.current_period_start)
         : existing?.created_at
@@ -280,10 +305,18 @@ export async function POST(request: Request) {
             ? addInterval(existingPeriodStart, existingInterval)
             : null;
 
-      const isExpired = existingPeriodEnd ? existingPeriodEnd.getTime() <= now.getTime() : true;
+      const isExpired = existingPeriodEnd
+        ? existingPeriodEnd.getTime() <= now.getTime()
+        : true;
       const targetPlanId = session.plan_id as PlanId;
 
-      if (existing && !isExpired && existingInterval && existingPeriodStart && existingPeriodEnd) {
+      if (
+        existing &&
+        !isExpired &&
+        existingInterval &&
+        existingPeriodStart &&
+        existingPeriodEnd
+      ) {
         // Upgrade within the current period: keep renewal date, apply pending interval if requested.
         if (isUpgrade(existingPlanId, targetPlanId)) {
           await db
@@ -293,14 +326,22 @@ export async function POST(request: Request) {
               status: "ACTIVE",
               cancel_at_period_end: false,
               canceled_at: null,
-              pending_interval: requestedDbInterval !== existing.interval ? requestedDbInterval : null,
+              pending_interval:
+                requestedDbInterval !== existing.interval
+                  ? requestedDbInterval
+                  : null,
               // Keep current_period_start/current_period_end intact.
             })
             .eq("user_id", session.user_id);
-        } else if (existingPlanId === targetPlanId && !existing.cancel_at_period_end) {
+        } else if (
+          existingPlanId === targetPlanId &&
+          !existing.cancel_at_period_end
+        ) {
           // Renewal payment: advance period and apply pending interval.
-          const appliedInterval = (existing.pending_interval ?? existing.interval) as "MONTH" | "YEAR";
-          const appliedCheckoutInterval = mapDbIntervalToCheckoutInterval(appliedInterval);
+          const appliedInterval = (existing.pending_interval ??
+            existing.interval) as "MONTH" | "YEAR";
+          const appliedCheckoutInterval =
+            mapDbIntervalToCheckoutInterval(appliedInterval);
           const nextStart = existingPeriodEnd;
           const nextEnd = addInterval(nextStart, appliedCheckoutInterval);
 

@@ -2,14 +2,13 @@ import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@trail/db/types";
 import { cookies } from "next/headers";
-
-// TODO: Add Database type generic after supabase gen types (Phase 4)
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -33,7 +32,7 @@ export async function createSupabaseServerClient() {
 }
 
 export function createSupabaseAdminClient() {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } },

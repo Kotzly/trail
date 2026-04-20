@@ -3,6 +3,7 @@ import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
 import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { getAuthSession } from "@/src/lib/auth";
 import { db } from "@trail/db";
+import type { Json } from "@trail/db/types";
 import { assertOk } from "@trail/db/helpers";
 import { randomUUID } from "crypto";
 import { rateLimit } from "@/src/server/api/rate-limit";
@@ -57,7 +58,11 @@ export async function POST(request: Request) {
 
   const parsed = parseBody(trailsImportBodySchema, body);
   if (!parsed.ok) {
-    return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400 });
+    return jsonFail(
+      "VALIDATION_ERROR",
+      parsed.error.issues[0]?.message ?? "Invalid input",
+      { status: 400 },
+    );
   }
 
   const bundle = parsed.data;
@@ -67,9 +72,10 @@ export async function POST(request: Request) {
 
   // Extract source metadata
   const source = (bundle.source ?? {}) as Record<string, unknown>;
-  const label = typeof source.treeLabel === "string" && source.treeLabel
-    ? source.treeLabel
-    : extractLabelFromTree(treeObj) || "Imported Trail";
+  const label =
+    typeof source.treeLabel === "string" && source.treeLabel
+      ? source.treeLabel
+      : extractLabelFromTree(treeObj) || "Imported Trail";
 
   const labelSource: TrailLabelSource =
     typeof source.treeLabel === "string" && source.treeLabel ? "USER" : "AUTO";
@@ -79,7 +85,8 @@ export async function POST(request: Request) {
   const rootData = rootNode?.data as Record<string, unknown> | null | undefined;
   const rootUrl = typeof rootData?.url === "string" ? rootData.url : null;
   const rootTitle = typeof rootData?.title === "string" ? rootData.title : null;
-  const rootFavicon = typeof rootData?.favicon === "string" ? rootData.favicon : null;
+  const rootFavicon =
+    typeof rootData?.favicon === "string" ? rootData.favicon : null;
 
   const now = new Date();
   const trailId = randomUUID();
@@ -89,7 +96,10 @@ export async function POST(request: Request) {
   assertOk(
     await db
       .from("devices")
-      .upsert({ id: deviceId, user_id: userId }, { onConflict: "id", ignoreDuplicates: true }),
+      .upsert(
+        { id: deviceId, user_id: userId },
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
   );
 
   // Create the trail
@@ -107,13 +117,15 @@ export async function POST(request: Request) {
       root_url: rootUrl,
       root_title: rootTitle,
       root_favicon: rootFavicon,
-      payload: tree,
+      payload: tree as Json,
     })
     .select("id")
     .single();
 
   if (trailResult.error) {
-    return jsonFail("internal_error", "Failed to create trail.", { status: 500 });
+    return jsonFail("internal_error", "Failed to create trail.", {
+      status: 500,
+    });
   }
 
   return jsonOk({ id: trailResult.data.id }, { status: 201 });

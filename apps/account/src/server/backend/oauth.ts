@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { db } from "@trail/db";
+import type { Database } from "@trail/db/types";
 import { singleRow, maybeRow, assertOk } from "@trail/db/helpers";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { createSignedExtensionToken } from "@trail/trpc";
@@ -68,7 +69,11 @@ type RefreshTokenRow = {
   used_at: string | null;
   revoked_at: string | null;
   users: { id: string; auth_session_version: number };
-  extension_device_sessions: { id: string; status: string; revoked_at: string | null };
+  extension_device_sessions: {
+    id: string;
+    status: string;
+    revoked_at: string | null;
+  };
 };
 
 type DeviceSessionRow = {
@@ -235,7 +240,10 @@ export async function exchangeOAuthAuthorizationCode(input: {
   if (record.used_at || new Date(record.expires_at).getTime() <= Date.now()) {
     return { ok: false, reason: "invalid_grant" };
   }
-  if (record.client_id !== clientId || record.redirect_uri !== input.redirectUri) {
+  if (
+    record.client_id !== clientId ||
+    record.redirect_uri !== input.redirectUri
+  ) {
     return { ok: false, reason: "invalid_client" };
   }
   if (record.code_challenge_method !== PKCE_METHOD) {
@@ -274,7 +282,10 @@ export async function exchangeOAuthAuthorizationCode(input: {
 
   // Upsert the device session
   const existingSession = maybeRow(
-    typed<Pick<DeviceSessionRow, "id" | "status" | "session_version" | "revoked_at"> | null>(
+    typed<Pick<
+      DeviceSessionRow,
+      "id" | "status" | "session_version" | "revoked_at"
+    > | null>(
       await db
         .from("extension_device_sessions")
         .select("id, status, session_version, revoked_at")
@@ -306,11 +317,12 @@ export async function exchangeOAuthAuthorizationCode(input: {
     const shouldBumpVersion =
       existingSession.status !== "ACTIVE" || existingSession.revoked_at;
 
-    const updateData: Record<string, unknown> = {
-      status: "ACTIVE",
-      revoked_at: null,
-      last_seen_at: nowIso(),
-    };
+    const updateData: Database["public"]["Tables"]["extension_device_sessions"]["Update"] =
+      {
+        status: "ACTIVE",
+        revoked_at: null,
+        last_seen_at: nowIso(),
+      };
 
     if (shouldBumpVersion) {
       updateData.session_version = (existingSession.session_version ?? 0) + 1;
@@ -453,7 +465,9 @@ export async function refreshOAuthToken(input: {
   };
 }
 
-export async function revokeOAuthRefreshToken(refreshToken: string): Promise<void> {
+export async function revokeOAuthRefreshToken(
+  refreshToken: string,
+): Promise<void> {
   const tokenHash = sha256Hex(refreshToken);
   assertOk(
     await db

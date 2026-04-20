@@ -11,9 +11,13 @@ import { isJsonValue } from "@/src/server/backend/json";
 import { upsertTrail } from "@/src/server/backend/trails-sync";
 import type { TrailLabelSource } from "@/src/server/backend/trails-sync";
 import { db } from "@trail/db";
+import type { Database } from "@trail/db/types";
 import { rateLimit } from "@/src/server/api/rate-limit";
 import { corsHeaders, optionsResponse } from "@/src/server/api/cors";
-import { trailPutBodySchema, trailPatchBodySchema } from "@/src/server/api/schemas";
+import {
+  trailPutBodySchema,
+  trailPatchBodySchema,
+} from "@/src/server/api/schemas";
 import { parseBody } from "@/src/server/api/validate";
 
 export const runtime = "nodejs";
@@ -42,23 +46,9 @@ function parseDeletedAt(value: unknown): Date | null | undefined {
   return parsed;
 }
 
-type DbTrailRow = {
-  id: string;
-  user_id: string;
-  device_id: string;
-  label: string;
-  label_source: string;
-  label_updated_at: string;
-  created_at: string;
-  updated_at: string;
-  saved_at: string;
-  node_count: number;
-  root_url: string | null;
-  root_title: string | null;
-  root_favicon: string | null;
-  deleted_at: string | null;
-  payload: unknown;
-};
+type DbTrailRow = Database["public"]["Tables"]["trails"]["Row"];
+type DbTrailUpdate = Database["public"]["Tables"]["trails"]["Update"];
+type TrailPayload = DbTrailUpdate["payload"];
 
 function rowToTrailRecord(row: DbTrailRow) {
   return toTrailRecord({
@@ -129,7 +119,7 @@ export async function GET(
     return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  return jsonOk(rowToTrailRecord(result.data as DbTrailRow));
+  return jsonOk(rowToTrailRecord(result.data));
 }
 
 /* ------------------------------------------------------------------ */
@@ -183,7 +173,11 @@ export async function PUT(
 
   const parsed = parseBody(trailPutBodySchema, rawBody);
   if (!parsed.ok) {
-    return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400 });
+    return jsonFail(
+      "VALIDATION_ERROR",
+      parsed.error.issues[0]?.message ?? "Invalid input",
+      { status: 400 },
+    );
   }
 
   const body = parsed.data;
@@ -206,7 +200,9 @@ export async function PUT(
     !savedAt ||
     !isJsonValue(payload)
   ) {
-    return jsonFail("invalid_payload", "Missing required fields.", { status: 400 });
+    return jsonFail("invalid_payload", "Missing required fields.", {
+      status: 400,
+    });
   }
 
   let deletedAtRaw: Date | null;
@@ -215,7 +211,9 @@ export async function PUT(
   } else {
     const parsedDate = parseDate(body.deletedAt);
     if (!parsedDate) {
-      return jsonFail("invalid_payload", "Invalid deletedAt value.", { status: 400 });
+      return jsonFail("invalid_payload", "Invalid deletedAt value.", {
+        status: 400,
+      });
     }
     deletedAtRaw = parsedDate;
   }
@@ -298,13 +296,19 @@ export async function PATCH(
   const rawBody = await request.json().catch(() => null);
   const patchParsed = parseBody(trailPatchBodySchema, rawBody);
   if (!patchParsed.ok) {
-    return jsonFail("VALIDATION_ERROR", patchParsed.error.issues[0]?.message ?? "Invalid input", { status: 400 });
+    return jsonFail(
+      "VALIDATION_ERROR",
+      patchParsed.error.issues[0]?.message ?? "Invalid input",
+      { status: 400 },
+    );
   }
 
   const body = patchParsed.data;
   const label = body.label;
   const labelSource =
-    body.labelSource !== undefined ? toDbLabelSource(body.labelSource) : undefined;
+    body.labelSource !== undefined
+      ? toDbLabelSource(body.labelSource)
+      : undefined;
   if (labelSource === null) {
     return jsonFail("invalid_label_source", "Invalid labelSource.", {
       status: 400,
@@ -321,7 +325,8 @@ export async function PATCH(
   const savedAt =
     savedAtRaw && !Number.isNaN(savedAtRaw.getTime()) ? savedAtRaw : undefined;
 
-  const hasMetaUpdate = label !== undefined || labelSource !== undefined || deletedAt !== undefined;
+  const hasMetaUpdate =
+    label !== undefined || labelSource !== undefined || deletedAt !== undefined;
   const hasPayloadUpdate =
     payload !== undefined ||
     nodeCount !== undefined ||
@@ -337,7 +342,7 @@ export async function PATCH(
   }
 
   const now = new Date();
-  const data: Record<string, unknown> = { updated_at: now.toISOString() };
+  const data: DbTrailUpdate = { updated_at: now.toISOString() };
   if (label !== undefined) {
     data.label = label;
     data.label_updated_at = now.toISOString();
@@ -350,7 +355,12 @@ export async function PATCH(
     data.deleted_at = deletedAt ? deletedAt.toISOString() : null;
   }
   if (payload !== undefined) {
-    data.payload = payload;
+    if (!isJsonValue(payload)) {
+      return jsonFail("invalid_payload", "Payload must be JSON-serializable.", {
+        status: 400,
+      });
+    }
+    data.payload = payload as TrailPayload;
   }
   if (nodeCount !== undefined) {
     data.node_count = nodeCount;
@@ -386,7 +396,7 @@ export async function PATCH(
     return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  return jsonOk(rowToTrailRecord(result.data as DbTrailRow));
+  return jsonOk(rowToTrailRecord(result.data));
 }
 
 export async function DELETE(
@@ -430,5 +440,5 @@ export async function DELETE(
     return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  return jsonOk(rowToTrailRecord(result.data as DbTrailRow));
+  return jsonOk(rowToTrailRecord(result.data));
 }

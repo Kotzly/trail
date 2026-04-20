@@ -6,9 +6,13 @@
   "types": "src/client.ts",
   "exports": {
     ".": "./src/client.ts",
-    "./helpers": "./src/helpers.ts"
+    "./helpers": "./src/helpers.ts",
+    "./types": "./src/types.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.8"
+    "@supabase/supabase-js": "^2.103.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0"
   }
 }
