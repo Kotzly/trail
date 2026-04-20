@@ -1,30 +1,15 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
 import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
-import { toTrailRecord, type DbLabelSource } from "@/src/server/backend/trail-serializers";
+import {
+  toTrailRecord,
+  type DbLabelSource,
+} from "@/src/server/backend/trail-serializers";
 import { db } from "@trail/db";
 import { rateLimit } from "@/src/server/api/rate-limit";
 import { optionsResponse } from "@/src/server/api/cors";
 
 export const runtime = "nodejs";
-
-type DbTrailRow = {
-  id: string;
-  user_id: string;
-  device_id: string;
-  label: string;
-  label_source: string;
-  label_updated_at: string;
-  created_at: string;
-  updated_at: string;
-  saved_at: string;
-  node_count: number;
-  root_url: string | null;
-  root_title: string | null;
-  root_favicon: string | null;
-  deleted_at: string | null;
-  payload: unknown;
-};
 
 export function OPTIONS(request: Request) {
   return optionsResponse(request);
@@ -72,7 +57,7 @@ export async function POST(
     return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  const row = result.data as DbTrailRow;
+  const row = result.data;
 
   return jsonOk(
     toTrailRecord({
