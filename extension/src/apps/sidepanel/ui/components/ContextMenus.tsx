@@ -41,6 +41,7 @@ import { ScrollArea } from "@ui/components/ui/scroll-area";
 import { Shortcut, type ShortcutKey } from "@ui/components/shortcut";
 
 import { toast } from "sonner";
+import { i18n } from "#i18n";
 import { browser, type Tab } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 
@@ -187,7 +188,7 @@ function TabRow({ tab, onActivate, onMute, onClose }: TabRowProps) {
         />
       )}
       <div className="flex w-48 flex-col">
-        <span className="truncate text-xs">{tab.title || "Untitled tab"}</span>
+        <span className="truncate text-xs">{tab.title || i18n.t("menus.untitledTab")}</span>
         {displayUrl && (
           <span className="text-muted-foreground truncate text-[10px]">{displayUrl}</span>
         )}
@@ -196,7 +197,7 @@ function TabRow({ tab, onActivate, onMute, onClose }: TabRowProps) {
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label={muted ? "Unmute tab" : "Mute tab"}
+          aria-label={muted ? i18n.t("menus.unmuteTab") : i18n.t("menus.muteTab")}
           onClick={(e) => {
             e.stopPropagation();
             onMute();
@@ -208,7 +209,7 @@ function TabRow({ tab, onActivate, onMute, onClose }: TabRowProps) {
           variant="ghost"
           size="icon-xs"
           className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          aria-label="Close tab"
+          aria-label={i18n.t("menus.closeTab")}
           onClick={(e) => {
             e.stopPropagation();
             onClose();
@@ -309,19 +310,19 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                 try {
                   await navigateTo(node);
                 } catch (error) {
-                  showOperationError("Open page", error);
+                  showOperationError(i18n.t("menus.openPageOp"), error);
                 }
               }}
             >
               <Icons.ArrowRight />
-              Open in this tab
+              {i18n.t("menus.openInThisTab")}
               <MenuShortcut keys={["enter"]} />
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => fireAndForget(openInNewTab(nodeId), "open in new tab")}
             >
               <Icons.ExternalLink />
-              Open in new tab
+              {i18n.t("menus.openInNewTab")}
               <MenuShortcut keys={["meta", "enter"]} />
             </DropdownMenuItem>
 
@@ -329,7 +330,9 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>
-                  {tabs.length} open tab{tabs.length !== 1 ? "s" : ""}
+                  {tabs.length === 1
+                    ? i18n.t("menus.openTabsOne", [String(tabs.length)])
+                    : i18n.t("menus.openTabsMany", [String(tabs.length)])}
                 </DropdownMenuLabel>
                 <ScrollArea
                   className="max-h-[200px]"
@@ -375,7 +378,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                   (pendingCloseAllTabs ? (
                     <DropdownMenuItem variant="destructive" onSelect={confirmCloseAllTabs}>
                       <Icons.X />
-                      Confirm: close all tabs
+                      {i18n.t("menus.closeAllTabsConfirm")}
                     </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem
@@ -396,7 +399,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
                       }}
                     >
                       <Icons.X />
-                      Close all tabs
+                      {i18n.t("menus.closeAllTabs")}
                     </DropdownMenuItem>
                   ))}
               </>
@@ -407,26 +410,26 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
 
         <DropdownMenuItem onSelect={() => fireAndForget(togglePin(nodeId), "toggle pin")}>
           {node.data.pinned ? <Icons.PinOff /> : <Icons.Pin />}
-          {node.data.pinned ? "Unpin" : "Pin"}
+          {node.data.pinned ? i18n.t("menus.unpin") : i18n.t("menus.pin")}
           <MenuShortcut keys={["p"]} />
         </DropdownMenuItem>
 
         {hasChildren && !isCollapsed && (
           <DropdownMenuItem onSelect={() => collapseNodes([nodeId])}>
             <Icons.FoldVertical />
-            Collapse node
+            {i18n.t("menus.collapseNode")}
           </DropdownMenuItem>
         )}
         {isCollapsed && (
           <DropdownMenuItem onSelect={() => expandNodes([nodeId])}>
             <Icons.UnfoldVertical />
-            Expand node
+            {i18n.t("menus.expandNode")}
           </DropdownMenuItem>
         )}
 
         <DropdownMenuItem onSelect={() => useStore.getState().openRenameDialog(nodeId)}>
           <Icons.Pencil />
-          Rename…
+          {i18n.t("menus.rename")}
           <MenuShortcut keys={["F2"]} />
         </DropdownMenuItem>
 
@@ -435,21 +438,21 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         <DropdownMenuItem
           onSelect={async () => {
             await copyToClipboard(node.data.url);
-            toast.success("URL copied");
+            toast.success(i18n.t("menus.urlCopied"));
           }}
         >
           <Icons.Link />
-          Copy URL
+          {i18n.t("menus.copyUrl")}
         </DropdownMenuItem>
         {hasTitle && (
           <DropdownMenuItem
             onSelect={async () => {
-              await copyToClipboard(node.data.title || "Untitled");
-              toast.success("Title copied");
+              await copyToClipboard(node.data.title || i18n.t("menus.untitled"));
+              toast.success(i18n.t("menus.titleCopied"));
             }}
           >
             <Icons.Type />
-            Copy title
+            {i18n.t("menus.copyTitle")}
           </DropdownMenuItem>
         )}
 
@@ -457,8 +460,8 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
 
         {isRoot ? (
           <DestructiveItem
-            label="Delete tree"
-            confirmLabel="Confirm: delete tree"
+            label={i18n.t("menus.deleteTree")}
+            confirmLabel={i18n.t("menus.deleteTreeConfirm")}
             confirmDescription={tabsClosedForSubtree}
             pending={pendingDelete === "subtree"}
             onArm={() => openDeleteTreeConfirm(nodeId)}
@@ -467,8 +470,8 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         ) : (
           <>
             <DestructiveItem
-              label="Delete node"
-              confirmLabel="Confirm: delete node"
+              label={i18n.t("menus.deleteNode")}
+              confirmLabel={i18n.t("menus.deleteNodeConfirm")}
               confirmDescription={tabsClosedForNode}
               pending={pendingDelete === "node"}
               onArm={() => setPendingDelete("node")}
@@ -478,16 +481,16 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
             {hasChildren && (
               <>
                 <DestructiveItem
-                  label="Delete children"
-                  confirmLabel="Confirm: delete children"
+                  label={i18n.t("menus.deleteChildren")}
+                  confirmLabel={i18n.t("menus.deleteChildrenConfirm")}
                   confirmDescription={tabsClosedForChildren}
                   pending={pendingDelete === "children"}
                   onArm={() => setPendingDelete("children")}
                   onConfirm={() => fireAndForget(deleteChildren(nodeId), "delete children")}
                 />
                 <DestructiveItem
-                  label="Delete subtree"
-                  confirmLabel="Confirm: delete subtree"
+                  label={i18n.t("menus.deleteSubtree")}
+                  confirmLabel={i18n.t("menus.deleteSubtreeConfirm")}
                   confirmDescription={tabsClosedForSubtree}
                   pending={pendingDelete === "subtree"}
                   onArm={() => setPendingDelete("subtree")}
@@ -587,7 +590,11 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
         collisionPadding={8}
         className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto max-w-60 min-w-48"
       >
-        <DropdownMenuLabel>{nodeIds.length} nodes selected</DropdownMenuLabel>
+        <DropdownMenuLabel>
+          {nodeIds.length === 1
+            ? i18n.t("menus.nodesSelectedOne", [String(nodeIds.length)])
+            : i18n.t("menus.nodesSelectedMany", [String(nodeIds.length)])}
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
@@ -597,7 +604,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           }}
         >
           {allPinned ? <Icons.PinOff /> : <Icons.Pin />}
-          {allPinned ? "Unpin selected" : "Pin selected"}
+          {allPinned ? i18n.t("menus.unpinSelected") : i18n.t("menus.pinSelected")}
           <MenuShortcut keys={["p"]} />
         </DropdownMenuItem>
 
@@ -610,7 +617,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           }}
         >
           <Icons.FoldVertical />
-          Collapse selected
+          {i18n.t("menus.collapseSelected")}
         </DropdownMenuItem>
 
         <DropdownMenuItem
@@ -622,7 +629,7 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           }}
         >
           <Icons.UnfoldVertical />
-          Expand selected
+          {i18n.t("menus.expandSelected")}
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
@@ -632,11 +639,15 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
             const urls = selectedNodes.map((node) => node.data.url).filter(Boolean);
             if (urls.length === 0) return;
             await copyToClipboard(urls.join("\n"));
-            toast.success(`${urls.length} URL${urls.length !== 1 ? "s" : ""} copied`);
+            toast.success(
+              urls.length === 1
+                ? i18n.t("menus.urlsCopiedOne", [String(urls.length)])
+                : i18n.t("menus.urlsCopiedMany", [String(urls.length)]),
+            );
           }}
         >
           <Icons.Link />
-          Copy URLs
+          {i18n.t("menus.copyUrls")}
         </DropdownMenuItem>
 
         {!editorActive && (
@@ -647,15 +658,15 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
             }}
           >
             <Icons.X />
-            Close selected tabs
+            {i18n.t("menus.closeSelectedTabs")}
           </DropdownMenuItem>
         )}
 
         <DropdownMenuSeparator />
 
         <DestructiveItem
-          label="Delete nodes"
-          confirmLabel="Confirm: delete nodes"
+          label={i18n.t("menus.deleteNodes")}
+          confirmLabel={i18n.t("menus.deleteNodesConfirm")}
           confirmDescription={tabsClosedForBulkNodes}
           pending={pendingDelete === "nodes"}
           onArm={() => setPendingDelete("nodes")}
@@ -663,8 +674,8 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           shortcut={["delete"]}
         />
         <DestructiveItem
-          label="Delete subtrees"
-          confirmLabel="Confirm: delete subtrees"
+          label={i18n.t("menus.deleteSubtrees")}
+          confirmLabel={i18n.t("menus.deleteSubtreesConfirm")}
           confirmDescription={tabsClosedForBulkRecursive}
           pending={pendingDelete === "recursive"}
           onArm={() => setPendingDelete("recursive")}
