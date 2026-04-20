@@ -16,7 +16,7 @@ const NEVER_KEYS = [
 export function PrivacyStep() {
   return (
     <div className="animate-in fade-in-0 slide-in-from-right-2 flex flex-col gap-5 duration-300">
-      <div className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-1.5 duration-400">
+      <div className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-1.5 duration-300">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">
           {i18n.t("onboarding.privacy.title")}
         </h2>
@@ -27,7 +27,7 @@ export function PrivacyStep() {
 
       <div className="grid grid-cols-2 gap-3">
         <section
-          className="bg-card border-border/70 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-2 rounded-lg border p-3 delay-75 duration-400"
+          className="bg-card border-border/70 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-2 rounded-lg border p-3 duration-300"
           aria-labelledby="privacy-recorded-head"
         >
           <header className="flex items-center gap-1.5">
@@ -54,7 +54,7 @@ export function PrivacyStep() {
         </section>
 
         <section
-          className="bg-muted/40 border-border/70 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-2 rounded-lg border p-3 delay-100 duration-400"
+          className="bg-muted/40 border-border/70 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-2 rounded-lg border p-3 duration-300"
           aria-labelledby="privacy-never-head"
         >
           <header className="flex items-center gap-1.5">
@@ -84,7 +84,7 @@ export function PrivacyStep() {
         </section>
       </div>
 
-      <p className="text-muted-foreground animate-in fade-in-0 fill-mode-both inline-flex items-center gap-1.5 text-[11px] delay-150 duration-400">
+      <p className="text-muted-foreground animate-in fade-in-0 fill-mode-both inline-flex items-center gap-1.5 text-[11px] duration-300">
         <Icons.Shield className="size-3" aria-hidden />
         <span>{i18n.t("onboarding.privacy.footer")}</span>
       </p>

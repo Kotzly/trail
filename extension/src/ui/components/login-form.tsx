@@ -40,7 +40,7 @@ export function LoginForm({
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>Login with your Google account</CardDescription>
+          <CardDescription>Sign in with Google or email</CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -70,6 +70,7 @@ export function LoginForm({
                   id="email"
                   type="email"
                   placeholder="me@example.com"
+                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => onEmailChange(e.target.value)}
@@ -91,6 +92,7 @@ export function LoginForm({
                 <Input
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => onPasswordChange(e.target.value)}
@@ -114,11 +116,11 @@ export function LoginForm({
       </Card>
       <FieldDescription className="px-6 text-center">
         By clicking Login, you agree to our{" "}
-        <a href="https://gettrail.net/terms" target="_blank" rel="extension">
+        <a href="https://gettrail.net/terms" target="_blank" rel="noreferrer">
           Terms of Service
         </a>{" "}
         and{" "}
-        <a href="https://gettrail.net/privacy" target="_blank" rel="extension">
+        <a href="https://gettrail.net/privacy" target="_blank" rel="noreferrer">
           Privacy Policy
         </a>
         .

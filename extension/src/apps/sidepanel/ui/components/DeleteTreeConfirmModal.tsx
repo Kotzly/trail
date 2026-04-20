@@ -71,13 +71,17 @@ export default function DeleteTreeConfirmModal() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction variant="destructive" size="sm" onClick={handleDelete}>
-            Delete &ldquo;{treeLabel}&rdquo;
-          </AlertDialogAction>
+          {/* Cancel-first ordering: WAI-ARIA APG + macOS/Windows HIG
+              convention places the safe action first and the destructive
+              primary last, so accidental Enter/Space doesn't destroy
+              data. Reordered from destructive-first (closes P3.14). */}
+          <AlertDialogCancel size="sm">Cancel</AlertDialogCancel>
           <AlertDialogAction variant="outline" size="sm" onClick={handleCreateNewTree}>
             Create new tree
           </AlertDialogAction>
-          <AlertDialogCancel size="sm">Cancel</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" size="sm" onClick={handleDelete}>
+            Delete &ldquo;{treeLabel}&rdquo;
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

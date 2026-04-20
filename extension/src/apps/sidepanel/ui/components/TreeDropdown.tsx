@@ -738,7 +738,7 @@ function NewTreeDialog({
       <DialogContent className="max-w-xs" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="text-sm font-normal">
-            {confirmNewTree ? "create a new tree?" : "name your new tree"}
+            {confirmNewTree ? "Create a new tree" : "Name your new tree"}
           </DialogTitle>
         </DialogHeader>
         <Input

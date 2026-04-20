@@ -1,6 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Button } from "@ui/components/ui/button";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@ui/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@ui/components/ui/field";
 import { Input } from "@ui/components/ui/input";
 import { Spinner } from "@ui/components/ui/spinner";
 
@@ -67,7 +73,7 @@ export function SetPasswordForm({
                 aria-invalid={confirmError ? true : undefined}
                 disabled={pending}
               />
-              {confirmError ? <FieldDescription>{confirmError}</FieldDescription> : null}
+              {confirmError ? <FieldError>{confirmError}</FieldError> : null}
             </Field>
             <Field>
               <Button type="submit" disabled={pending}>

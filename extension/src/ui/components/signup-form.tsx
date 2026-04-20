@@ -38,7 +38,7 @@ export function SignUpForm({
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Create your account</CardTitle>
-          <CardDescription>Sign up with your Google account</CardDescription>
+          <CardDescription>Create account with Google or email</CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -68,6 +68,7 @@ export function SignUpForm({
                   id="email"
                   type="email"
                   placeholder="me@example.com"
+                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => onEmailChange(e.target.value)}
@@ -79,6 +80,7 @@ export function SignUpForm({
                 <Input
                   id="password"
                   type="password"
+                  autoComplete="new-password"
                   required
                   value={password}
                   onChange={(e) => onPasswordChange(e.target.value)}

@@ -54,7 +54,7 @@ export default function SyncConflictBanner() {
         >
           <Alert
             variant="destructive"
-            className="bg-destructive/10 border-destructive/20 dark:bg-destructive/20 rounded-none border-x-0 border-t-0 backdrop-blur-sm"
+            className="bg-destructive/10 border-destructive/20 dark:bg-destructive/20 rounded-none border-x-0 border-t-0"
           >
             <Icons.AlertTriangle />
             <AlertTitle>Tree updated on another device</AlertTitle>
@@ -63,7 +63,14 @@ export default function SyncConflictBanner() {
               <Button size="sm" variant="outline" type="button" disabled={busy} onClick={keepMine}>
                 Keep mine
               </Button>
-              <Button size="sm" variant="default" type="button" disabled={busy} onClick={useServer}>
+              <Button
+                size="sm"
+                variant="default"
+                type="button"
+                disabled={busy}
+                onClick={useServer}
+                title="Discards local changes"
+              >
                 Use server
               </Button>
             </div>

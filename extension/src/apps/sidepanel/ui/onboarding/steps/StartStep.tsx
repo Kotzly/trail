@@ -12,7 +12,7 @@ type StartStepProps = {
 export function StartStep({ onLoadDemo, onStartFresh, loadingDemo, disabled }: StartStepProps) {
   return (
     <div className="animate-in fade-in-0 slide-in-from-right-2 flex flex-col gap-4 duration-300">
-      <div className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-1.5 duration-400">
+      <div className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-1.5 duration-300">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">
           {i18n.t("onboarding.start.title")}
         </h2>
@@ -22,7 +22,7 @@ export function StartStep({ onLoadDemo, onStartFresh, loadingDemo, disabled }: S
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both delay-75 duration-400">
+        <div className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-300">
           <StartCard
             title={i18n.t("onboarding.start.demoTitle")}
             description={i18n.t("onboarding.start.demoBody")}
@@ -33,7 +33,7 @@ export function StartStep({ onLoadDemo, onStartFresh, loadingDemo, disabled }: S
             emphasis="primary"
           />
         </div>
-        <div className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both delay-125 duration-400">
+        <div className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-300">
           <StartCard
             title={i18n.t("onboarding.start.freshTitle")}
             description={i18n.t("onboarding.start.freshBody")}
@@ -44,7 +44,7 @@ export function StartStep({ onLoadDemo, onStartFresh, loadingDemo, disabled }: S
         </div>
       </div>
 
-      <p className="text-muted-foreground animate-in fade-in-0 fill-mode-both text-[11px] delay-200 duration-400">
+      <p className="text-muted-foreground animate-in fade-in-0 fill-mode-both text-[11px] duration-300">
         {i18n.t("onboarding.start.footnote")}
       </p>
     </div>
