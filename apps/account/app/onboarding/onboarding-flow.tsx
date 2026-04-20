@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Sparkles,
   PuzzleIcon,
@@ -19,64 +20,26 @@ interface OnboardingFlowProps {
   userId: string;
 }
 
-interface Step {
-  id: number;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  cta?: React.ReactNode;
-}
+type StepKey = "welcome" | "install" | "firstTrail" | "done";
 
-const STEPS: Step[] = [
-  {
-    id: 1,
-    icon: <Sparkles className="h-10 w-10 text-primary" />,
-    title: "Welcome to Trail!",
-    description:
-      "Trail captures your browsing as living tree structures — every tab, every navigation, every detour. Instead of a flat history list, you get a map of how you actually explored the web.",
-  },
-  {
-    id: 2,
-    icon: <PuzzleIcon className="h-10 w-10 text-primary" />,
-    title: "Install the Extension",
-    description:
-      "The Trail browser extension runs quietly in the background and records your navigation trees in real time. It takes about 30 seconds to install.",
-    cta: (
-      <a
-        href="https://chromewebstore.google.com/detail/trail/pginmdonnghdkcmnhjkniphopcfapodc"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 text-sm font-medium text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
-      >
-        Open Chrome Web Store
-        <ExternalLink className="h-3.5 w-3.5" />
-      </a>
-    ),
-  },
-  {
-    id: 3,
-    icon: <GitFork className="h-10 w-10 text-primary" />,
-    title: "Your First Trail",
-    description:
-      "Once the extension is installed, just browse normally. Every time you open a new tab or follow a link, Trail grows a new branch. Come back here to see your trails take shape.",
-  },
-  {
-    id: 4,
-    icon: <CheckCircle2 className="h-10 w-10 text-emerald-500" />,
-    title: "You're all set!",
-    description:
-      "Your account is ready. Head to the dashboard to see your trails, manage settings, and explore your browsing history like never before.",
-  },
-];
+const STEP_KEYS: StepKey[] = ["welcome", "install", "firstTrail", "done"];
 
-const TOTAL = STEPS.length;
+const STEP_ICONS: Record<StepKey, React.ReactNode> = {
+  welcome: <Sparkles className="h-10 w-10 text-primary" />,
+  install: <PuzzleIcon className="h-10 w-10 text-primary" />,
+  firstTrail: <GitFork className="h-10 w-10 text-primary" />,
+  done: <CheckCircle2 className="h-10 w-10 text-emerald-500" />,
+};
+
+const TOTAL = STEP_KEYS.length;
 
 export function OnboardingFlow({ userId: _userId }: OnboardingFlowProps) {
   const router = useRouter();
-  const [step, setStep] = useState(0); // 0-indexed
+  const t = useTranslations("onboarding");
+  const [step, setStep] = useState(0);
   const [isPending, startTransition] = useTransition();
 
-  const current = STEPS[step];
+  const currentKey = STEP_KEYS[step]!;
   const isLast = step === TOTAL - 1;
 
   async function finish() {
@@ -102,11 +65,11 @@ export function OnboardingFlow({ userId: _userId }: OnboardingFlowProps) {
     <div className="w-full max-w-md">
       {/* Step dots */}
       <div className="flex items-center justify-center gap-2 mb-10">
-        {STEPS.map((s, i) => (
+        {STEP_KEYS.map((key, i) => (
           <button
-            key={s.id}
+            key={key}
             type="button"
-            aria-label={`Step ${i + 1}`}
+            aria-label={t("stepAriaLabel", { index: i + 1 })}
             onClick={() => i < step && setStep(i)}
             className={cn(
               "rounded-full transition-all duration-300",
@@ -126,23 +89,37 @@ export function OnboardingFlow({ userId: _userId }: OnboardingFlowProps) {
         className="rounded-2xl border border-border/60 bg-card shadow-xl px-8 py-10 text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300"
       >
         {/* Icon */}
-        <div className="flex justify-center">{current.icon}</div>
+        <div className="flex justify-center">{STEP_ICONS[currentKey]}</div>
 
         {/* Step counter */}
         <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Step {step + 1} of {TOTAL}
+          {t("stepIndicator", { current: step + 1, total: TOTAL })}
         </p>
 
         {/* Title */}
-        <h1 className="text-2xl font-semibold tracking-tight">{current.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t(`${currentKey}.title`)}
+        </h1>
 
         {/* Description */}
         <p className="text-sm text-muted-foreground leading-relaxed">
-          {current.description}
+          {t(`${currentKey}.description`)}
         </p>
 
-        {/* Optional inline CTA (e.g. link to store) */}
-        {current.cta && <div>{current.cta}</div>}
+        {/* Optional inline CTA (install step only) */}
+        {currentKey === "install" && (
+          <div>
+            <a
+              href="https://chromewebstore.google.com/detail/trail/pginmdonnghdkcmnhjkniphopcfapodc"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
+            >
+              {t("install.ctaLabel")}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex flex-col gap-3 pt-2">
@@ -156,12 +133,12 @@ export function OnboardingFlow({ userId: _userId }: OnboardingFlowProps) {
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : isLast ? (
               <>
-                Go to Dashboard
+                {t("goToDashboard")}
                 <ArrowRight className="h-4 w-4" />
               </>
             ) : (
               <>
-                Next
+                {t("next")}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -174,7 +151,7 @@ export function OnboardingFlow({ userId: _userId }: OnboardingFlowProps) {
               disabled={isPending}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
             >
-              Skip for now
+              {t("skip")}
             </button>
           )}
         </div>

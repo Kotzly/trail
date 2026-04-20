@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,6 +23,7 @@ interface LoginCardProps {
 }
 
 export function LoginCard({ returnTo }: LoginCardProps) {
+  const t = useTranslations("login");
   const [email, setEmail] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [magicLoading, setMagicLoading] = useState(false);
@@ -44,8 +46,8 @@ export function LoginCard({ returnTo }: LoginCardProps) {
         },
       });
       if (error) throw error;
-    } catch (err) {
-      toast.error("Could not sign in with Google. Please try again.");
+    } catch {
+      toast.error(t("googleFailed"));
       setGoogleLoading(false);
     }
   }
@@ -53,7 +55,7 @@ export function LoginCard({ returnTo }: LoginCardProps) {
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) {
-      toast.error("Please enter your email address.");
+      toast.error(t("emailRequired"));
       return;
     }
     setMagicLoading(true);
@@ -67,8 +69,8 @@ export function LoginCard({ returnTo }: LoginCardProps) {
       });
       if (error) throw error;
       setMagicSent(true);
-    } catch (err) {
-      toast.error("Could not send magic link. Please try again.");
+    } catch {
+      toast.error(t("magicLinkFailed"));
     } finally {
       setMagicLoading(false);
     }
@@ -94,10 +96,10 @@ export function LoginCard({ returnTo }: LoginCardProps) {
           </picture>
         </div>
         <CardTitle className="text-xl font-semibold tracking-tight">
-          Sign in to Trail
+          {t("title")}
         </CardTitle>
         <CardDescription className="text-sm text-muted-foreground">
-          Your hiking history, everywhere.
+          {t("tagline")}
         </CardDescription>
       </CardHeader>
 
@@ -114,13 +116,13 @@ export function LoginCard({ returnTo }: LoginCardProps) {
           ) : (
             <GoogleIcon />
           )}
-          Continue with Google
+          {t("continueWithGoogle")}
         </Button>
 
         {/* Divider */}
         <div className="flex items-center gap-3">
           <Separator className="flex-1" />
-          <span className="text-xs text-muted-foreground">or</span>
+          <span className="text-xs text-muted-foreground">{t("or")}</span>
           <Separator className="flex-1" />
         </div>
 
@@ -128,9 +130,9 @@ export function LoginCard({ returnTo }: LoginCardProps) {
         {magicSent ? (
           <div className="rounded-lg bg-muted/60 border border-border/50 px-4 py-5 text-center space-y-1">
             <Mail className="mx-auto h-6 w-6 text-primary" />
-            <p className="text-sm font-medium">Check your email</p>
+            <p className="text-sm font-medium">{t("checkEmail")}</p>
             <p className="text-xs text-muted-foreground">
-              We sent a sign-in link to{" "}
+              {t("magicLinkSentBody")}{" "}
               <span className="font-medium text-foreground">{email}</span>
             </p>
             <button
@@ -141,19 +143,19 @@ export function LoginCard({ returnTo }: LoginCardProps) {
                 setEmail("");
               }}
             >
-              Use a different email
+              {t("useDifferentEmail")}
             </button>
           </div>
         ) : (
           <form onSubmit={handleMagicLink} className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm">
-                Email
+                {t("emailLabel")}
               </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder={t("emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={magicLoading || googleLoading}
@@ -169,7 +171,7 @@ export function LoginCard({ returnTo }: LoginCardProps) {
               {magicLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
-              Send magic link
+              {t("sendMagicLink")}
             </Button>
           </form>
         )}
