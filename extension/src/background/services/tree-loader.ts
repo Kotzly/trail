@@ -16,9 +16,13 @@ export async function loadTree(treeId: string): Promise<TreeRecord | null> {
   // 1. Active tree — the live in-memory copy.
   const activeMeta = await treeStorage.getActiveMeta();
   if (activeMeta.id === treeId) {
-    const tree = await treeStorage.getOrCreateTree();
+    // `getOrCreateTree()` and `getActiveSavedAt()` are independent
+    // session-storage reads — parallelize (closes P2.40).
+    const [tree, savedAt] = await Promise.all([
+      treeStorage.getOrCreateTree(),
+      treeStorage.getActiveSavedAt(),
+    ]);
     const treeJSON = NavigationTreeMapper.toJSON(tree);
-    const savedAt = await treeStorage.getActiveSavedAt();
     return {
       ...activeMeta,
       nodeCount: tree.size(),

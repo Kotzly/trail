@@ -181,10 +181,13 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
 }
 
 async function buildTreesSnapshot(): Promise<TreesSnapshot> {
-  return {
-    active: await treeStorage.getActiveMeta(),
-    others: await treeStorage.getStoredSummaries(),
-  };
+  // Called 7× per mutation handler; `active` and `others` have no
+  // interdependency — parallelize both reads (closes P2.41).
+  const [active, others] = await Promise.all([
+    treeStorage.getActiveMeta(),
+    treeStorage.getStoredSummaries(),
+  ]);
+  return { active, others };
 }
 
 function buildNodeDataFromTab(tab: Tab): NodeData | null {

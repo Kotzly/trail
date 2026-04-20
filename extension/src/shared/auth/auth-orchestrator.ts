@@ -274,6 +274,23 @@ export async function initAuth(): Promise<AuthState> {
     }
   } catch (error) {
     captureError(error, { kind: "auth_get_session" });
+    // Previously: any throw from getSession() → emit signed-out, which
+    // bounces the sidepanel to the login screen on a network blip.
+    // Distinguish fetch/network errors from real auth errors by keeping
+    // the prior identity (if any) on network failures. Supabase's
+    // getSession() throws a TypeError for network failures (fetch
+    // rejection) and a structured error for real auth issues.
+    // (closes P1.19)
+    const isNetwork =
+      error instanceof TypeError ||
+      (error instanceof Error && /fetch|network|failed to fetch/i.test(error.message));
+    if (isNetwork) {
+      const existing = await authIdentityItem.getValue();
+      if (existing) {
+        notify({ status: "signed-in", identity: existing });
+        return { status: "signed-in", identity: existing };
+      }
+    }
     notify({ status: "signed-out" });
   }
 

@@ -32,7 +32,8 @@ export async function renameTrail(
     trailId: formData.get("trailId"),
     label: formData.get("label"),
   });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  if (!parsed.success)
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
   const { trailId, label } = parsed.data;
   const now = new Date().toISOString();
@@ -48,7 +49,10 @@ export async function renameTrail(
     .eq("id", trailId)
     .eq("user_id", session.user.id);
 
-  if (error) return { error: "Failed to rename trail" };
+  if (error) {
+    console.error("[mutations] rename trail:", error);
+    return { error: "Failed to rename trail" };
+  }
 
   revalidatePath("/trails");
   return { success: true };
@@ -70,7 +74,10 @@ export async function archiveTrail(
     .eq("id", parsed.data.trailId)
     .eq("user_id", session.user.id);
 
-  if (error) return { error: "Failed to archive trail" };
+  if (error) {
+    console.error("[mutations] archive trail:", error);
+    return { error: "Failed to archive trail" };
+  }
 
   revalidatePath("/trails");
   return { success: true };
@@ -92,7 +99,10 @@ export async function restoreTrail(
     .eq("id", parsed.data.trailId)
     .eq("user_id", session.user.id);
 
-  if (error) return { error: "Failed to restore trail" };
+  if (error) {
+    console.error("[mutations] restore trail:", error);
+    return { error: "Failed to restore trail" };
+  }
 
   revalidatePath("/trails");
   return { success: true };
@@ -112,7 +122,9 @@ export async function loadMoreTrails(
 
   let query = db
     .from("trails")
-    .select("id, user_id, device_id, label, label_source, label_updated_at, created_at, updated_at, saved_at, node_count, root_url, root_title, root_favicon, deleted_at")
+    .select(
+      "id, user_id, device_id, label, label_source, label_updated_at, created_at, updated_at, saved_at, node_count, root_url, root_title, root_favicon, deleted_at",
+    )
     .eq("user_id", session.user.id)
     .order("updated_at", { ascending: false })
     .order("id", { ascending: false })
@@ -136,16 +148,17 @@ export async function loadMoreTrails(
   }
 
   const { data, error } = await query;
-  if (error) return { error: "Failed to load trails" };
+  if (error) {
+    console.error("[mutations] loadMoreTrails:", error);
+    return { error: "Failed to load trails" };
+  }
 
   const rows = data ?? [];
   const hasNext = rows.length > limit;
   const items = hasNext ? rows.slice(0, limit) : rows;
   const lastItem = items[items.length - 1];
   const nextCursor =
-    hasNext && lastItem
-      ? `${lastItem.updated_at}|${lastItem.id}`
-      : null;
+    hasNext && lastItem ? `${lastItem.updated_at}|${lastItem.id}` : null;
 
   return {
     success: true,
