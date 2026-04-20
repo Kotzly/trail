@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState, useTransition } from "react";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 import {
   GitBranch,
@@ -46,8 +47,8 @@ type TrailPayload = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString("en", {
+function formatDate(dateStr: string, locale: string): string {
+  return new Date(dateStr).toLocaleString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -56,7 +57,7 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, locale: string): string {
   const date = new Date(dateStr);
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
@@ -67,7 +68,7 @@ function formatRelativeTime(dateStr: string): string {
   if (diffMin < 60) return `${diffMin}m ago`;
   if (diffHour < 24) return `${diffHour}h ago`;
   if (diffDay < 7) return `${diffDay}d ago`;
-  return formatDate(dateStr);
+  return formatDate(dateStr, locale);
 }
 
 // ─── Rename Dialog ────────────────────────────────────────────────────────────
@@ -145,7 +146,8 @@ function ArchiveDialog({
           <DialogTitle>Archive trail?</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          &ldquo;{trail.label}&rdquo; will be archived and hidden from your main list. You can restore it anytime.
+          &ldquo;{trail.label}&rdquo; will be archived and hidden from your main
+          list. You can restore it anytime.
         </p>
         {state.error && (
           <p className="text-sm text-destructive">{state.error}</p>
@@ -184,7 +186,12 @@ function NodeInspector({
     <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-sm">
       <div className="flex items-start justify-between gap-2">
         <p className="font-medium leading-tight">{data?.title ?? "Untitled"}</p>
-        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 shrink-0"
+          onClick={onClose}
+        >
           <X className="h-3 w-3" />
           <span className="sr-only">Close</span>
         </Button>
@@ -201,7 +208,9 @@ function NodeInspector({
         </a>
       )}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>{childCount} {childCount === 1 ? "child" : "children"}</span>
+        <span>
+          {childCount} {childCount === 1 ? "child" : "children"}
+        </span>
       </div>
     </div>
   );
@@ -306,6 +315,7 @@ function TreeNodeRow({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function TrailDetail({ trail }: { trail: TrailDetail }) {
+  const locale = useLocale();
   const [renameOpen, setRenameOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
@@ -344,7 +354,9 @@ export function TrailDetail({ trail }: { trail: TrailDetail }) {
               {trail.label}
             </h1>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              <span>{trail.nodeCount} {trail.nodeCount === 1 ? "node" : "nodes"}</span>
+              <span>
+                {trail.nodeCount} {trail.nodeCount === 1 ? "node" : "nodes"}
+              </span>
               {trail.rootUrl && (
                 <>
                   <span className="text-muted-foreground/40">·</span>
@@ -355,26 +367,34 @@ export function TrailDetail({ trail }: { trail: TrailDetail }) {
                     className="flex items-center gap-1 hover:text-foreground transition-colors truncate max-w-xs"
                   >
                     <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{trail.rootTitle ?? trail.rootUrl}</span>
+                    <span className="truncate">
+                      {trail.rootTitle ?? trail.rootUrl}
+                    </span>
                   </a>
                 </>
               )}
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
-              <span>Created {formatRelativeTime(trail.createdAt)}</span>
+              <span>Created {formatRelativeTime(trail.createdAt, locale)}</span>
               <span className="text-muted-foreground/40">·</span>
-              <span>Updated {formatRelativeTime(trail.updatedAt)}</span>
+              <span>Updated {formatRelativeTime(trail.updatedAt, locale)}</span>
               {trail.labelSource === "user" && (
                 <>
                   <span className="text-muted-foreground/40">·</span>
-                  <Badge variant="outline" className="text-xs h-4 px-1 py-0">renamed</Badge>
+                  <Badge variant="outline" className="text-xs h-4 px-1 py-0">
+                    renamed
+                  </Badge>
                 </>
               )}
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={() => setRenameOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRenameOpen(true)}
+            >
               <Pencil className="h-4 w-4 mr-1.5" />
               Rename
             </Button>

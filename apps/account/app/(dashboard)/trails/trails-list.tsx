@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState, useTransition } from "react";
+import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -45,7 +46,7 @@ import {
   loadMoreTrails,
 } from "./mutations";
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, locale: string): string {
   const date = new Date(dateStr);
   const now = Date.now();
   const diffMs = now - date.getTime();
@@ -58,7 +59,11 @@ function formatRelativeTime(dateStr: string): string {
   if (diffMin < 60) return `${diffMin}m ago`;
   if (diffHour < 24) return `${diffHour}h ago`;
   if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString("en", { month: "short", day: "numeric", year: diffDay > 365 ? "numeric" : undefined });
+  return date.toLocaleDateString(locale, {
+    month: "short",
+    day: "numeric",
+    year: diffDay > 365 ? "numeric" : undefined,
+  });
 }
 
 type RenameDialogProps = {
@@ -119,6 +124,7 @@ type TrailCardProps = {
 
 function TrailCard({ trail, showArchived }: TrailCardProps) {
   const router = useRouter();
+  const locale = useLocale();
   const [renameOpen, setRenameOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -190,14 +196,21 @@ function TrailCard({ trail, showArchived }: TrailCardProps) {
                 <span className="sr-only">Trail actions</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuContent
+              align="end"
+              onClick={(e) => e.stopPropagation()}
+            >
               <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Rename
               </DropdownMenuItem>
               {trail.rootUrl && (
                 <DropdownMenuItem asChild>
-                  <a href={trail.rootUrl} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={trail.rootUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Open root URL
                   </a>
@@ -223,13 +236,17 @@ function TrailCard({ trail, showArchived }: TrailCardProps) {
         </CardHeader>
         <CardContent className="pt-0">
           <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-            <span>{trail.nodeCount} {trail.nodeCount === 1 ? "node" : "nodes"}</span>
+            <span>
+              {trail.nodeCount} {trail.nodeCount === 1 ? "node" : "nodes"}
+            </span>
             <span className="text-muted-foreground/50">·</span>
-            <span>{formatRelativeTime(trail.updatedAt)}</span>
+            <span>{formatRelativeTime(trail.updatedAt, locale)}</span>
             {isArchived && (
               <>
                 <span className="text-muted-foreground/50">·</span>
-                <Badge variant="outline" className="text-xs h-4 px-1 py-0">archived</Badge>
+                <Badge variant="outline" className="text-xs h-4 px-1 py-0">
+                  archived
+                </Badge>
               </>
             )}
           </CardDescription>
@@ -250,9 +267,15 @@ type TrailsListProps = {
   initialNextCursor: string | null;
 };
 
-export function TrailsList({ initialTrails, totalCount, initialNextCursor }: TrailsListProps) {
+export function TrailsList({
+  initialTrails,
+  totalCount,
+  initialNextCursor,
+}: TrailsListProps) {
   const [trails, setTrails] = useState<TrailSummary[]>(initialTrails);
-  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
+  const [nextCursor, setNextCursor] = useState<string | null>(
+    initialNextCursor,
+  );
   const [showArchived, setShowArchived] = useState(false);
   const [isLoadingMore, startLoadMore] = useTransition();
 
@@ -284,7 +307,8 @@ export function TrailsList({ initialTrails, totalCount, initialNextCursor }: Tra
         <div className="flex flex-col gap-1">
           <p className="font-medium">No trails yet</p>
           <p className="text-sm text-muted-foreground max-w-xs">
-            Install the Trail browser extension to start capturing your browsing journeys.
+            Install the Trail browser extension to start capturing your browsing
+            journeys.
           </p>
         </div>
         <Button variant="outline" asChild>
@@ -336,12 +360,17 @@ export function TrailsList({ initialTrails, totalCount, initialNextCursor }: Tra
 
       {visibleTrails.length === 0 ? (
         <p className="text-sm text-muted-foreground py-8 text-center">
-          No active trails. Toggle &ldquo;Show archived&rdquo; to see archived ones.
+          No active trails. Toggle &ldquo;Show archived&rdquo; to see archived
+          ones.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {visibleTrails.map((trail) => (
-            <TrailCard key={trail.id} trail={trail} showArchived={showArchived} />
+            <TrailCard
+              key={trail.id}
+              trail={trail}
+              showArchived={showArchived}
+            />
           ))}
         </div>
       )}

@@ -1,3 +1,4 @@
+import { getLocale } from "next-intl/server";
 import { getAuthSession } from "@/src/lib/auth";
 import { getUserById } from "@/src/server/backend/user";
 import { createSupabaseServerClient } from "@/src/lib/supabase/server";
@@ -61,15 +62,16 @@ export default async function SettingsPage() {
   if (!session) return null;
 
   const supabase = await createSupabaseServerClient();
-  const [user, snapshot] = await Promise.all([
+  const [user, snapshot, locale] = await Promise.all([
     getUserById(session.user.id, supabase),
     getSubscriptionSnapshotForUser({
       userId: session.user.id,
     }),
+    getLocale(),
   ]);
 
   const memberSince = user?.createdAt
-    ? user.createdAt.toLocaleDateString("en", {
+    ? user.createdAt.toLocaleDateString(locale, {
         month: "long",
         year: "numeric",
       })
@@ -136,11 +138,14 @@ export default async function SettingsPage() {
               {snapshot.cancelAtPeriodEnd && snapshot.currentPeriodEnd && (
                 <span className="text-sm text-muted-foreground">
                   Cancels{" "}
-                  {new Date(snapshot.currentPeriodEnd).toLocaleDateString("en", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {new Date(snapshot.currentPeriodEnd).toLocaleDateString(
+                    locale,
+                    {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    },
+                  )}
                 </span>
               )}
             </div>

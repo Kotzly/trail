@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 import { Check, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,14 +48,16 @@ function PlanCard({
   interval: Interval;
 }) {
   const [isPending, startTransition] = useTransition();
+  const locale = useLocale();
   const isCurrent = snapshot?.planId === plan.id;
   const isCurrentlyActive =
-    isCurrent && snapshot?.status !== "expired" && snapshot?.status !== "paused";
+    isCurrent &&
+    snapshot?.status !== "expired" &&
+    snapshot?.status !== "paused";
   const isCancelPending = isCurrentlyActive && snapshot?.cancelAtPeriodEnd;
   const isFree = plan.id === "free";
 
-  const price =
-    interval === "year" ? plan.priceYearly : plan.priceMonthly;
+  const price = interval === "year" ? plan.priceYearly : plan.priceMonthly;
 
   const handleUpgrade = () => {
     startTransition(async () => {
@@ -107,7 +110,9 @@ function PlanCard({
             onClick={handleResume}
             disabled={isPending}
           >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : null}
             Resume Subscription
           </Button>
         );
@@ -126,7 +131,7 @@ function PlanCard({
     }
 
     const currentRank = snapshot?.planId
-      ? (["free", "pro", "teams"].indexOf(snapshot.planId))
+      ? ["free", "pro", "teams"].indexOf(snapshot.planId)
       : 0;
     const planRank = ["free", "pro", "teams"].indexOf(plan.id);
     const label = planRank > currentRank ? "Upgrade" : "Downgrade";
@@ -161,14 +166,19 @@ function PlanCard({
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-lg">{plan.name}</CardTitle>
           {isCurrentlyActive && (
-            <Badge variant={isCancelPending ? "outline" : "secondary"} className="text-xs">
+            <Badge
+              variant={isCancelPending ? "outline" : "secondary"}
+              className="text-xs"
+            >
               {isCancelPending ? "Canceling" : "Current"}
             </Badge>
           )}
         </div>
         <div className="mt-2">
           <span className="text-3xl font-bold tracking-tight">
-            {isFree ? "Free" : `$${interval === "year" ? Math.round(price / 12) : price}`}
+            {isFree
+              ? "Free"
+              : `$${interval === "year" ? Math.round(price / 12) : price}`}
           </span>
           {!isFree && (
             <span className="text-sm text-muted-foreground ml-1">/mo</span>
@@ -191,12 +201,19 @@ function PlanCard({
           ))}
           <li className="flex items-start gap-2 text-sm text-muted-foreground">
             <Check className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>Up to {plan.limits.maxTrees === 999 ? "unlimited" : plan.limits.maxTrees} trees</span>
+            <span>
+              Up to{" "}
+              {plan.limits.maxTrees === 999
+                ? "unlimited"
+                : plan.limits.maxTrees}{" "}
+              trees
+            </span>
           </li>
           <li className="flex items-start gap-2 text-sm text-muted-foreground">
             <Check className="h-4 w-4 mt-0.5 shrink-0" />
             <span>
-              {plan.limits.maxDevices} {plan.limits.maxDevices === 1 ? "device" : "devices"}
+              {plan.limits.maxDevices}{" "}
+              {plan.limits.maxDevices === 1 ? "device" : "devices"}
             </span>
           </li>
           <li className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -209,7 +226,8 @@ function PlanCard({
         {renderButton()}
         {isCancelPending && snapshot?.currentPeriodEnd && (
           <p className="text-xs text-muted-foreground text-center">
-            Access until {new Date(snapshot.currentPeriodEnd).toLocaleDateString("en", {
+            Access until{" "}
+            {new Date(snapshot.currentPeriodEnd).toLocaleDateString(locale, {
               month: "short",
               day: "numeric",
               year: "numeric",

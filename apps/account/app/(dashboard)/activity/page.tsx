@@ -1,3 +1,4 @@
+import { getLocale } from "next-intl/server";
 import { getAuthSession } from "@/src/lib/auth";
 import { db } from "@trail/db";
 import { GitBranch } from "lucide-react";
@@ -17,14 +18,14 @@ type TrailRow = {
   deleted_at: string | null;
 };
 
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("en", {
+function formatTime(dateStr: string, locale: string): string {
+  return new Date(dateStr).toLocaleTimeString(locale, {
     hour: "numeric",
     minute: "2-digit",
   });
 }
 
-function formatDateHeading(dateStr: string): string {
+function formatDateHeading(dateStr: string, locale: string): string {
   const date = new Date(dateStr);
   const today = new Date();
   const yesterday = new Date();
@@ -37,14 +38,16 @@ function formatDateHeading(dateStr: string): string {
 
   if (sameDay(date, today)) return "Today";
   if (sameDay(date, yesterday)) return "Yesterday";
-  return date.toLocaleDateString("en", {
+  return date.toLocaleDateString(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
 }
 
-function groupByDate(trails: TrailRow[]): Array<{ date: string; items: TrailRow[] }> {
+function groupByDate(
+  trails: TrailRow[],
+): Array<{ date: string; items: TrailRow[] }> {
   const groups = new Map<string, TrailRow[]>();
   for (const trail of trails) {
     const day = trail.updated_at.slice(0, 10);
@@ -60,7 +63,7 @@ function groupByDate(trails: TrailRow[]): Array<{ date: string; items: TrailRow[
     .map(([date, items]) => ({ date, items }));
 }
 
-function TrailItem({ trail }: { trail: TrailRow }) {
+function TrailItem({ trail, locale }: { trail: TrailRow; locale: string }) {
   const isArchived = trail.deleted_at !== null;
   return (
     <div className="flex items-start gap-3 py-2">
@@ -112,7 +115,7 @@ function TrailItem({ trail }: { trail: TrailRow }) {
         dateTime={trail.updated_at}
         className="text-xs text-muted-foreground shrink-0 mt-0.5"
       >
-        {formatTime(trail.updated_at)}
+        {formatTime(trail.updated_at, locale)}
       </time>
     </div>
   );
@@ -122,14 +125,17 @@ export default async function ActivityPage() {
   const session = await getAuthSession();
   if (!session) return null;
 
-  const { data } = await db
-    .from("trails")
-    .select(
-      "id, label, node_count, root_url, root_favicon, updated_at, deleted_at",
-    )
-    .eq("user_id", session.user.id)
-    .order("updated_at", { ascending: false })
-    .limit(50);
+  const [{ data }, locale] = await Promise.all([
+    db
+      .from("trails")
+      .select(
+        "id, label, node_count, root_url, root_favicon, updated_at, deleted_at",
+      )
+      .eq("user_id", session.user.id)
+      .order("updated_at", { ascending: false })
+      .limit(50),
+    getLocale(),
+  ]);
 
   const trails: TrailRow[] = data ?? [];
   const groups = groupByDate(trails);
@@ -166,11 +172,11 @@ export default async function ActivityPage() {
           {groups.map(({ date, items }) => (
             <div key={date} className="flex flex-col gap-1">
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                {formatDateHeading(date + "T12:00:00")}
+                {formatDateHeading(date + "T12:00:00", locale)}
               </h2>
               <div className="flex flex-col divide-y divide-border pl-4 border-l border-border ml-2">
                 {items.map((trail) => (
-                  <TrailItem key={trail.id} trail={trail} />
+                  <TrailItem key={trail.id} trail={trail} locale={locale} />
                 ))}
               </div>
             </div>

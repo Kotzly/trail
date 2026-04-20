@@ -4,7 +4,6 @@
 
 import { relative } from "node:path";
 
-const REPO_ROOT = new URL("./", import.meta.url).pathname;
 const EXT_ROOT = new URL("./extension/", import.meta.url).pathname;
 
 /** Strip the `extension/` prefix so eslint/prettier see paths relative to the package. */
