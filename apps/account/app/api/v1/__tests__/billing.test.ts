@@ -4,9 +4,12 @@ const authMocks = vi.hoisted(() => ({
   verifyExtensionToken: vi.fn(),
 }));
 
-const userAuthMocks = vi.hoisted(() => ({
-  verifyUserToken: vi.fn(),
-}));
+// Post-Phase A6: getAuthenticatedUser replaced the three bearer
+// resolvers (verifyUserToken/resolveUserId/getUserFromBillingBearerToken).
+// We do NOT mock the resolver itself — let the real implementation run
+// against the mocked `verifyExtensionToken` and `getUserById` below, so
+// the test exercises the full resolve path rather than a hand-wired
+// happy-path stub.
 
 const userMocks = vi.hoisted(() => ({
   getUserById: vi.fn(),
@@ -56,10 +59,6 @@ vi.mock("@/src/server/backend/auth/extension-auth", () => ({
   ...authMocks,
 }));
 
-vi.mock("@/src/server/backend/auth/user-auth", () => ({
-  ...userAuthMocks,
-}));
-
 vi.mock("@/src/server/backend/user", () => ({
   ...userMocks,
 }));
@@ -96,7 +95,6 @@ import { POST as portal } from "../billing/portal/route";
 describe("v1 billing endpoints", () => {
   beforeEach(() => {
     authMocks.verifyExtensionToken.mockReset();
-    userAuthMocks.verifyUserToken.mockReset();
     userMocks.getUserById.mockReset();
     snapshotMocks.listPlans.mockReset();
     snapshotMocks.buildAccountSnapshot.mockReset();
@@ -142,7 +140,9 @@ describe("v1 billing endpoints", () => {
       },
     ]);
 
-    const response = await getPlans(new Request("http://localhost/api/v1/plans"));
+    const response = await getPlans(
+      new Request("http://localhost/api/v1/plans"),
+    );
 
     expect(response.status).toBe(200);
     const payload = await response.json();
@@ -197,10 +197,12 @@ describe("v1 billing endpoints", () => {
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.state).toBe("none");
-    expect(billingProviderMocks.provider.getBillingStatus).toHaveBeenCalledWith({
-      userId: "user-1",
-      userEmail: "user@test.com",
-    });
+    expect(billingProviderMocks.provider.getBillingStatus).toHaveBeenCalledWith(
+      {
+        userId: "user-1",
+        userEmail: "user@test.com",
+      },
+    );
   });
 
   it("returns checkout link", async () => {
@@ -228,7 +230,9 @@ describe("v1 billing endpoints", () => {
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.url).toBe("https://billing.example.test/checkout");
-    expect(billingProviderMocks.provider.createCheckoutSession).toHaveBeenCalledWith({
+    expect(
+      billingProviderMocks.provider.createCheckoutSession,
+    ).toHaveBeenCalledWith({
       userId: "user-1",
       userEmail: "user@test.com",
       planId: "pro",
@@ -271,8 +275,16 @@ describe("v1 billing endpoints", () => {
   });
 
   it("accepts user tokens for checkout", async () => {
-    authMocks.verifyExtensionToken.mockResolvedValue(null);
-    userAuthMocks.verifyUserToken.mockResolvedValue({ sub: "user-1" });
+    // Post-A6: the three bearer-token resolvers collapsed into one
+    // (getAuthenticatedUser). The route opts in to `allowInternal` for
+    // billing proxy calls from logged-in web sessions; extension
+    // tokens go through the same resolver with `verifyExtensionToken`.
+    // Either path hydrates the same user row from `getUserById`.
+    authMocks.verifyExtensionToken.mockResolvedValue({
+      sub: "user-1",
+      iat: 0,
+      exp: 999999,
+    });
     userMocks.getUserById.mockResolvedValue({
       id: "user-1",
       email: "user@test.com",
@@ -290,7 +302,9 @@ describe("v1 billing endpoints", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(billingProviderMocks.provider.createCheckoutSession).toHaveBeenCalledWith({
+    expect(
+      billingProviderMocks.provider.createCheckoutSession,
+    ).toHaveBeenCalledWith({
       userId: "user-1",
       userEmail: "user@test.com",
       planId: "pro",

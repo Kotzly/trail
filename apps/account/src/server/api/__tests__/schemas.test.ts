@@ -148,28 +148,28 @@ describe("trailsListQuerySchema", () => {
     }
   });
 
-  it("clamps limit exceeding 200 to default 50", () => {
+  // Phase E (P2.28): `limit` now surfaces bad input as a validation
+  // error instead of silently defaulting to 50. That was the whole
+  // point — clients can distinguish "I gave a bad limit" from "server
+  // defaulted" in the contract.
+  it("rejects limit exceeding 200", () => {
     const result = trailsListQuerySchema.safeParse({ limit: "999" });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.limit).toBe(50);
-    }
+    expect(result.success).toBe(false);
   });
 
-  it("clamps non-positive limit to default 50", () => {
+  it("rejects non-positive limit", () => {
     const result = trailsListQuerySchema.safeParse({ limit: "0" });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.limit).toBe(50);
-    }
+    expect(result.success).toBe(false);
   });
 
-  it("clamps non-numeric limit to default 50", () => {
+  it("rejects non-numeric limit", () => {
     const result = trailsListQuerySchema.safeParse({ limit: "abc" });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.limit).toBe(50);
-    }
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects negative limit", () => {
+    const result = trailsListQuerySchema.safeParse({ limit: "-5" });
+    expect(result.success).toBe(false);
   });
 
   it("transforms includeDeleted 'true' to boolean true", () => {

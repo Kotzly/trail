@@ -8,11 +8,12 @@ describe("corsHeaders", () => {
   async function loadModule() {
     // Re-import to pick up fresh env values since ALLOWED_ORIGINS is
     // captured at module scope from process.env.NEXT_PUBLIC_APP_URL
+    // and OAUTH_ALLOWED_EXTENSION_IDS.
     vi.resetModules();
     return import("@/src/server/api/cors");
   }
 
-  it("allows a configured origin", async () => {
+  it("allows a configured web origin", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.trail.dev");
     const { corsHeaders } = await loadModule();
 
@@ -20,32 +21,57 @@ describe("corsHeaders", () => {
     expect(headers["Access-Control-Allow-Origin"]).toBe(
       "https://app.trail.dev",
     );
+    expect(headers["Vary"]).toBe("Origin");
   });
 
-  it("blocks an unknown origin", async () => {
+  it("omits Access-Control-Allow-Origin for unknown origins", async () => {
+    // Phase F (P1.1 + P1.7): previously an empty string was returned,
+    // which some middleware treats as wildcard. The header is now
+    // omitted entirely for disallowed origins.
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.trail.dev");
     const { corsHeaders } = await loadModule();
 
     const headers = corsHeaders("https://evil.com");
-    expect(headers["Access-Control-Allow-Origin"]).toBe("");
+    expect(headers["Access-Control-Allow-Origin"]).toBeUndefined();
+    expect(headers["Vary"]).toBeUndefined();
   });
 
-  it("allows chrome-extension:// origins", async () => {
+  it("omits Access-Control-Allow-Origin for null/undefined origin", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.trail.dev");
     const { corsHeaders } = await loadModule();
 
-    const headers = corsHeaders("chrome-extension://abcdef1234567890");
-    expect(headers["Access-Control-Allow-Origin"]).toBe(
-      "chrome-extension://abcdef1234567890",
+    expect(corsHeaders(null)["Access-Control-Allow-Origin"]).toBeUndefined();
+    expect(
+      corsHeaders(undefined)["Access-Control-Allow-Origin"],
+    ).toBeUndefined();
+  });
+
+  it("requires allowlist opt-in for chrome-extension origins", async () => {
+    // Phase F (P1.1): `chrome-extension://` origins are no longer
+    // wildcarded — they must appear in OAUTH_ALLOWED_EXTENSION_IDS.
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.trail.dev");
+    const { corsHeaders } = await loadModule();
+
+    const headers = corsHeaders(
+      "chrome-extension://abcdefghijklmnopqrstuvwxyzabcdef",
     );
+    expect(headers["Access-Control-Allow-Origin"]).toBeUndefined();
   });
 
-  it("returns empty origin for null/undefined", async () => {
+  it("allows allowlisted chrome-extension origin via OAUTH_ALLOWED_EXTENSION_IDS", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.trail.dev");
+    vi.stubEnv(
+      "OAUTH_ALLOWED_EXTENSION_IDS",
+      "abcdefghijklmnopabcdefghijklmnop",
+    );
     const { corsHeaders } = await loadModule();
 
-    expect(corsHeaders(null)["Access-Control-Allow-Origin"]).toBe("");
-    expect(corsHeaders(undefined)["Access-Control-Allow-Origin"]).toBe("");
+    const headers = corsHeaders(
+      "chrome-extension://abcdefghijklmnopabcdefghijklmnop",
+    );
+    expect(headers["Access-Control-Allow-Origin"]).toBe(
+      "chrome-extension://abcdefghijklmnopabcdefghijklmnop",
+    );
   });
 
   it("includes standard CORS headers", async () => {

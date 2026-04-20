@@ -79,9 +79,12 @@ describe("getAuthenticatedUser", () => {
   });
 
   it("refuses internal:<uuid> tokens by default", async () => {
+    // Without allowInternal, the internal-prefix token is treated as a
+    // regular bearer token, fails JWT verify (because it isn't one),
+    // and returns null.
+    extensionAuthMocks.verifyExtensionToken.mockResolvedValue(null);
     await expect(getAuthenticatedUser("internal:abc-123")).resolves.toBeNull();
-    // verifyExtensionToken must not be called for internal prefix
-    expect(extensionAuthMocks.verifyExtensionToken).not.toHaveBeenCalled();
+    expect(extensionAuthMocks.verifyExtensionToken).toHaveBeenCalledOnce();
   });
 
   it("resolves internal:<uuid> when allowInternal is set", async () => {
