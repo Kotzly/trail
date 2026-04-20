@@ -1,7 +1,7 @@
 {
   "name": "trail",
   "private": true,
-  "packageManager": "pnpm@10.29.3",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "sh -c 'pnpm -r --parallel --filter \"!./apps/video\" dev & pnpm --dir extension dev:local; wait'",
     "dev:web": "pnpm -r --parallel --filter '!./apps/video' dev",

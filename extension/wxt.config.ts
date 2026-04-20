@@ -22,6 +22,7 @@ mkdirSync(chromeProfileDir, { recursive: true });
 
 export default defineConfig({
   srcDir: "src",
+  modules: ["@wxt-dev/i18n/module"],
   vite: () => ({
     plugins: [react()],
     esbuild: {
