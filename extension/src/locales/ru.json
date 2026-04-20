@@ -143,6 +143,79 @@
       "unloadFailed": "Couldn't unload tree"
     }
   },
+  "account": {
+    "title": "Account",
+    "descriptionCloudOff": "Cloud sync is not configured in this build.",
+    "descriptionCloudOn": "Sign in to sync your trees across devices. Your data stays on your device until you explicitly sign in.",
+    "localOnlyAlertTitle": "Local-only mode",
+    "localOnlyAlertBodyPrefix": "This build of Trail has no Supabase credentials baked in, so cloud sync, sign-in, and cross-device support are turned off. Everything still works locally — your trees live in",
+    "localOnlyAlertBodySuffix": "on this profile.",
+    "cardTitle": "Trail account",
+    "signingOut": "Signing out…",
+    "signOut": "Sign out",
+    "signedInFallback": "Signed in",
+    "notSignedInBody": "You're not signed in. Your trees are stored locally only. We never see your password — it's hashed before it leaves your device.",
+    "openSignIn": "Open sign-in",
+    "signOutFailed": "Sign-out failed",
+    "provider": {
+      "google": "Google",
+      "email": "Email"
+    },
+    "sync": {
+      "title": "Sync",
+      "status": {
+        "idle": "Up to date",
+        "saving": "Syncing…",
+        "saved": "Up to date",
+        "error": "Sync error",
+        "offline": "Offline"
+      },
+      "statusLabel": "Status",
+      "treesSynced": "Trees synced",
+      "pending": "Pending",
+      "lastSync": "Last sync",
+      "dash": "—"
+    },
+    "security": {
+      "title": "Security",
+      "changePassword": "Change password",
+      "dialogDescription": "Choose a new password. You'll stay signed in on this device.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "cancel": "Cancel",
+      "updating": "Updating…",
+      "updatePassword": "Update password",
+      "passwordsMismatch": "Passwords don't match.",
+      "passwordUpdated": "Password updated."
+    },
+    "danger": {
+      "title": "Danger zone",
+      "description": "These actions are irreversible. Read each description carefully before you confirm.",
+      "cancel": "Cancel",
+      "clearLocal": {
+        "name": "Clear local data",
+        "description": "Wipes every tree and tree-related state on this profile (sync queue, undo history, tab restoration). Sign-in, settings, and open browser tabs stay. Cloud data is not touched — signed-in users will see their cloud trees reappear as cloud-only entries after the next sync.",
+        "button": "Clear",
+        "confirmTitle": "Clear all local trees?",
+        "confirmBody": "Wipes every tree and tree-related state on this profile. Sign-in, settings, and open browser tabs stay. Cloud data is untouched."
+      },
+      "delete": {
+        "name": "Delete account",
+        "description": "Permanently deletes your Trail account and every tree stored in the cloud. Local data is cleared right away; server-side removal finishes within 30 days. This cannot be undone.",
+        "button": "Delete",
+        "confirmTitle": "Delete your Trail account?",
+        "confirmBody": "This requests deletion of your account and all cloud-stored trees. Local data is cleared immediately. Server-side deletion completes within 30 days per our Privacy Policy. This cannot be undone.",
+        "confirmAction": "Delete everything"
+      },
+      "toast": {
+        "cleared": "Local trees cleared. Your browser tabs are untouched.",
+        "clearFailed": "Failed to clear local data",
+        "deletionRequested": "Account deletion requested",
+        "deletionBody": "Your local data has been cleared and your session ended. Server-side data removal completes within 30 days.",
+        "deleteFailed": "Failed to request account deletion"
+      }
+    }
+  },
   "menus": {
     "untitledTab": "Untitled tab",
     "untitled": "Untitled",

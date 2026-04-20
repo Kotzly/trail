@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { i18n } from "#i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { PageHeader } from "../components/PageHeader.js";
 import { Button } from "@ui/components/ui/button";
@@ -92,14 +93,16 @@ export function AccountPage() {
   if (!isSupabaseConfigured()) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title="Account" description="Cloud sync is not configured in this build." />
+        <PageHeader
+          title={i18n.t("account.title")}
+          description={i18n.t("account.descriptionCloudOff")}
+        />
         <Alert>
           <Icons.Info aria-hidden />
-          <AlertTitle>Local-only mode</AlertTitle>
+          <AlertTitle>{i18n.t("account.localOnlyAlertTitle")}</AlertTitle>
           <AlertDescription>
-            This build of Trail has no Supabase credentials baked in, so cloud sync, sign-in, and
-            cross-device support are turned off. Everything still works locally — your trees live in{" "}
-            <code>chrome.storage.local</code> on this profile.
+            {i18n.t("account.localOnlyAlertBodyPrefix")} <code>chrome.storage.local</code>{" "}
+            {i18n.t("account.localOnlyAlertBodySuffix")}
           </AlertDescription>
         </Alert>
         <DangerZoneCard signedIn={false} />
@@ -112,13 +115,13 @@ export function AccountPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Account"
-        description="Sign in to sync your trees across devices. Your data stays on your device until you explicitly sign in."
+        title={i18n.t("account.title")}
+        description={i18n.t("account.descriptionCloudOn")}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Trail account</CardTitle>
+          <CardTitle className="text-base">{i18n.t("account.cardTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -140,7 +143,7 @@ export function AccountPage() {
               </Avatar>
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate text-sm font-medium">
-                  {state.identity.displayName ?? "Signed in"}
+                  {state.identity.displayName ?? i18n.t("account.signedInFallback")}
                 </span>
                 <span className="text-muted-foreground truncate text-xs">
                   {state.identity.email ?? state.identity.userId}
@@ -148,25 +151,22 @@ export function AccountPage() {
               </div>
               <ProviderBadge provider={state.identity.provider} />
               <Button variant="outline" size="sm" disabled={busy} onClick={handleSignOut}>
-                {busy ? "Signing out…" : "Sign out"}
+                {busy ? i18n.t("account.signingOut") : i18n.t("account.signOut")}
               </Button>
             </div>
           ) : (
             <div className="flex flex-col items-start gap-3">
-              <p className="text-muted-foreground text-sm">
-                You're not signed in. Your trees are stored locally only. We never see your password
-                — it's hashed before it leaves your device.
-              </p>
+              <p className="text-muted-foreground text-sm">{i18n.t("account.notSignedInBody")}</p>
               <Button onClick={openLoginTab}>
                 <Icons.ExternalLink data-icon="inline-start" />
-                Open sign-in
+                {i18n.t("account.openSignIn")}
               </Button>
             </div>
           )}
           {error ? (
             <Alert variant="destructive" className="mt-4">
               <Icons.AlertTriangle aria-hidden />
-              <AlertTitle>Sign-out failed</AlertTitle>
+              <AlertTitle>{i18n.t("account.signOutFailed")}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
@@ -188,10 +188,10 @@ export function AccountPage() {
 
 function ProviderBadge({ provider }: { provider: "email" | "google" | "other" }) {
   if (provider === "google") {
-    return <Badge variant="secondary">Google</Badge>;
+    return <Badge variant="secondary">{i18n.t("account.provider.google")}</Badge>;
   }
   if (provider === "email") {
-    return <Badge variant="secondary">Email</Badge>;
+    return <Badge variant="secondary">{i18n.t("account.provider.email")}</Badge>;
   }
   return null;
 }
@@ -202,11 +202,11 @@ function SyncSummaryCard() {
   const summary = useSyncSummary();
 
   const statusLabel = {
-    idle: "Up to date",
-    saving: "Syncing…",
-    saved: "Up to date",
-    error: "Sync error",
-    offline: "Offline",
+    idle: i18n.t("account.sync.status.idle"),
+    saving: i18n.t("account.sync.status.saving"),
+    saved: i18n.t("account.sync.status.saved"),
+    error: i18n.t("account.sync.status.error"),
+    offline: i18n.t("account.sync.status.offline"),
   }[summary.status];
 
   const statusVariant: "default" | "secondary" | "destructive" =
@@ -219,25 +219,31 @@ function SyncSummaryCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Sync</CardTitle>
+        <CardTitle className="text-base">{i18n.t("account.sync.title")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">Status</span>
+          <span className="text-muted-foreground text-sm">
+            {i18n.t("account.sync.statusLabel")}
+          </span>
           <Badge variant={statusVariant}>{statusLabel}</Badge>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">Trees synced</span>
+          <span className="text-muted-foreground text-sm">
+            {i18n.t("account.sync.treesSynced")}
+          </span>
           <span className="text-sm tabular-nums">{summary.syncedTreeCount}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">Pending</span>
+          <span className="text-muted-foreground text-sm">{i18n.t("account.sync.pending")}</span>
           <span className="text-sm tabular-nums">{summary.pendingOpCount}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">Last sync</span>
+          <span className="text-muted-foreground text-sm">{i18n.t("account.sync.lastSync")}</span>
           <span className="text-muted-foreground text-sm">
-            {summary.lastSyncedAt ? formatRelative(summary.lastSyncedAt) : "—"}
+            {summary.lastSyncedAt
+              ? formatRelative(summary.lastSyncedAt)
+              : i18n.t("account.sync.dash")}
           </span>
         </div>
       </CardContent>
@@ -248,10 +254,12 @@ function SyncSummaryCard() {
 function formatRelative(iso: string): string {
   const then = new Date(iso).getTime();
   const diff = Date.now() - then;
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return `${Math.floor(diff / 86_400_000)}d ago`;
+  if (diff < 60_000) return i18n.t("trees.relative.justNow");
+  if (diff < 3_600_000)
+    return i18n.t("trees.relative.minutesAgo", [String(Math.floor(diff / 60_000))]);
+  if (diff < 86_400_000)
+    return i18n.t("trees.relative.hoursAgo", [String(Math.floor(diff / 3_600_000))]);
+  return i18n.t("trees.relative.daysAgo", [String(Math.floor(diff / 86_400_000))]);
 }
 
 /* ─── Security (change password) ─────────────────────────────── */
@@ -267,11 +275,11 @@ function SecurityCard() {
     setLocalError(null);
     const err = validatePassword(next);
     if (err) return setLocalError(err);
-    if (next !== confirm) return setLocalError("Passwords don't match.");
+    if (next !== confirm) return setLocalError(i18n.t("account.security.passwordsMismatch"));
     submittingActions.setTrue();
     try {
       await updatePassword(next);
-      toast.success("Password updated.");
+      toast.success(i18n.t("account.security.passwordUpdated"));
       setOpen(false);
       setNext("");
       setConfirm("");
@@ -287,19 +295,17 @@ function SecurityCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Security</CardTitle>
+        <CardTitle className="text-base">{i18n.t("account.security.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline">Change password</Button>
+            <Button variant="outline">{i18n.t("account.security.changePassword")}</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Change password</DialogTitle>
-              <DialogDescription>
-                Choose a new password. You'll stay signed in on this device.
-              </DialogDescription>
+              <DialogTitle>{i18n.t("account.security.changePassword")}</DialogTitle>
+              <DialogDescription>{i18n.t("account.security.dialogDescription")}</DialogDescription>
             </DialogHeader>
             <form
               className="flex flex-col gap-3"
@@ -309,7 +315,7 @@ function SecurityCard() {
               }}
             >
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="new-password">New password</Label>
+                <Label htmlFor="new-password">{i18n.t("account.security.newPassword")}</Label>
                 <Input
                   id="new-password"
                   type="password"
@@ -320,7 +326,9 @@ function SecurityCard() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="confirm-password">Confirm password</Label>
+                <Label htmlFor="confirm-password">
+                  {i18n.t("account.security.confirmPassword")}
+                </Label>
                 <Input
                   id="confirm-password"
                   type="password"
@@ -338,10 +346,12 @@ function SecurityCard() {
               ) : null}
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                  Cancel
+                  {i18n.t("account.security.cancel")}
                 </Button>
                 <Button type="submit" disabled={submitting}>
-                  {submitting ? "Updating…" : "Update password"}
+                  {submitting
+                    ? i18n.t("account.security.updating")
+                    : i18n.t("account.security.updatePassword")}
                 </Button>
               </DialogFooter>
             </form>
@@ -371,10 +381,10 @@ function DangerZoneCard({ signedIn }: { signedIn: boolean }) {
       await resetTreeData();
       await queryClient.invalidateQueries({ queryKey: ["trees"] });
       captureEvent("tree_exported", { kind: "clear_local" });
-      toast.success("Local trees cleared. Your browser tabs are untouched.");
+      toast.success(i18n.t("account.danger.toast.cleared"));
     } catch (error) {
       captureError(error, { kind: "ui_clear_local" });
-      toast.error("Failed to clear local data", { description: String(error) });
+      toast.error(i18n.t("account.danger.toast.clearFailed"), { description: String(error) });
     } finally {
       clearingActions.setFalse();
     }
@@ -397,15 +407,13 @@ function DangerZoneCard({ signedIn }: { signedIn: boolean }) {
       await browser.storage.local.clear();
       await browser.storage.session?.clear().catch(() => {});
       captureEvent("auth_signout", { reason: "account_deletion" });
-      toast.success("Account deletion requested", {
-        description:
-          "Your local data has been cleared and your session ended. " +
-          "Server-side data removal completes within 30 days.",
+      toast.success(i18n.t("account.danger.toast.deletionRequested"), {
+        description: i18n.t("account.danger.toast.deletionBody"),
         duration: 8000,
       });
     } catch (error) {
       captureError(error, { kind: "ui_delete_account" });
-      toast.error("Failed to request account deletion", { description: String(error) });
+      toast.error(i18n.t("account.danger.toast.deleteFailed"), { description: String(error) });
     } finally {
       deletingActions.setFalse();
     }
@@ -414,39 +422,39 @@ function DangerZoneCard({ signedIn }: { signedIn: boolean }) {
   return (
     <Card className="border-destructive/30 bg-destructive/[0.02]">
       <CardHeader>
-        <CardTitle className="text-destructive text-base">Danger zone</CardTitle>
-        <CardDescription>
-          These actions are irreversible. Read each description carefully before you confirm.
-        </CardDescription>
+        <CardTitle className="text-destructive text-base">
+          {i18n.t("account.danger.title")}
+        </CardTitle>
+        <CardDescription>{i18n.t("account.danger.description")}</CardDescription>
       </CardHeader>
       <CardContent className="divide-border flex flex-col divide-y">
         <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-sm font-medium">Clear local data</span>
+            <span className="text-sm font-medium">{i18n.t("account.danger.clearLocal.name")}</span>
             <span className="text-muted-foreground text-xs leading-relaxed">
-              Wipes every tree and tree-related state on this profile (sync queue, undo history, tab
-              restoration). Sign-in, settings, and open browser tabs stay. Cloud data is not touched
-              — signed-in users will see their cloud trees reappear as cloud-only entries after the
-              next sync.
+              {i18n.t("account.danger.clearLocal.description")}
             </span>
           </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" disabled={clearing} className="shrink-0">
-                Clear
+                {i18n.t("account.danger.clearLocal.button")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Clear all local trees?</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {i18n.t("account.danger.clearLocal.confirmTitle")}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  Wipes every tree and tree-related state on this profile. Sign-in, settings, and
-                  open browser tabs stay. Cloud data is untouched.
+                  {i18n.t("account.danger.clearLocal.confirmBody")}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => void clearLocal()}>Clear</AlertDialogAction>
+                <AlertDialogCancel>{i18n.t("account.danger.cancel")}</AlertDialogCancel>
+                <AlertDialogAction onClick={() => void clearLocal()}>
+                  {i18n.t("account.danger.clearLocal.button")}
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -455,32 +463,32 @@ function DangerZoneCard({ signedIn }: { signedIn: boolean }) {
         {signedIn ? (
           <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="text-destructive text-sm font-medium">Delete account</span>
+              <span className="text-destructive text-sm font-medium">
+                {i18n.t("account.danger.delete.name")}
+              </span>
               <span className="text-muted-foreground text-xs leading-relaxed">
-                Permanently deletes your Trail account and every tree stored in the cloud. Local
-                data is cleared right away; server-side removal finishes within 30 days. This cannot
-                be undone.
+                {i18n.t("account.danger.delete.description")}
               </span>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" disabled={deleting} className="shrink-0">
-                  Delete
+                  {i18n.t("account.danger.delete.button")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete your Trail account?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {i18n.t("account.danger.delete.confirmTitle")}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    This requests deletion of your account and all cloud-stored trees. Local data is
-                    cleared immediately. Server-side deletion completes within 30 days per our
-                    Privacy Policy. This cannot be undone.
+                    {i18n.t("account.danger.delete.confirmBody")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{i18n.t("account.danger.cancel")}</AlertDialogCancel>
                   <AlertDialogAction variant="destructive" onClick={() => void deleteAccount()}>
-                    Delete everything
+                    {i18n.t("account.danger.delete.confirmAction")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
