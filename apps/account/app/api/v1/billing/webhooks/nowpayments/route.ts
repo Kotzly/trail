@@ -84,6 +84,24 @@ function computeSignature(payload: unknown, secret: string): string {
   return createHmac("sha512", secret).update(message).digest("hex");
 }
 
+/**
+ * Signature verification using NOWPayments' documented rule: HMAC-SHA512
+ * over the sorted + re-serialized JSON payload. This function keeps
+ * that behaviour (provider signs the same representation), but we
+ * derive the input from the `raw` bytes to avoid any zod-parse round
+ * trip changing number representation / undefined-stripping between
+ * signing and verification (closes P2.31).
+ */
+function computeSignatureFromRaw(raw: string, secret: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return "";
+  }
+  return computeSignature(parsed, secret);
+}
+
 function mapPaymentStatus(statusRaw: string | null | undefined): {
   state: "ignore" | "in_progress" | "succeeded" | "failed" | "refunded";
 } {
@@ -170,6 +188,19 @@ export async function POST(request: Request) {
   }
 
   const raw = await request.text();
+
+  // Verify HMAC against the RAW request body (re-sorted) BEFORE any zod
+  // parse. If zod drops extra fields or coerces numbers, the sorted
+  // re-serialize we compute here would diverge from what the provider
+  // signed — and attackers could spoof valid-looking payloads that our
+  // server happens to parse identically. Always verify on bytes.
+  const expected = computeSignatureFromRaw(raw, secret);
+  if (!expected || !safeEqualHex(sig, expected)) {
+    return jsonFail("unauthorized", "Invalid webhook signature.", {
+      status: 401,
+    });
+  }
+
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -190,13 +221,6 @@ export async function POST(request: Request) {
     );
   }
   const payload = result.data;
-
-  const expected = computeSignature(payload, secret);
-  if (!safeEqualHex(sig, expected)) {
-    return jsonFail("unauthorized", "Invalid webhook signature.", {
-      status: 401,
-    });
-  }
 
   const orderId =
     typeof payload.order_id === "string" ? payload.order_id.trim() : "";

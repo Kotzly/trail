@@ -45,13 +45,10 @@ export const oauthRevokeBodySchema = z.object({
 
 /** GET /api/v1/trails — query params */
 export const trailsListQuerySchema = z.object({
-  limit: z
-    .string()
-    .optional()
-    .transform((v) => {
-      const n = Number(v);
-      return Number.isFinite(n) && n > 0 && n <= 200 ? n : 50;
-    }),
+  // Reject bad input instead of silently defaulting to 50 — previously
+  // `?limit=-5` / `?limit=abc` / `?limit=99999` all collapsed to 50 with
+  // no error surfaced, making the API contract untestable (closes P2.28).
+  limit: z.coerce.number().int().positive().max(200).default(50),
   cursor: z.string().nullish(),
   includeDeleted: z
     .string()
@@ -92,10 +89,9 @@ export const trailPatchBodySchema = z
     rootFavicon: z.string().nullable().optional(),
     savedAt: z.string().datetime().optional(),
   })
-  .refine(
-    (data) => Object.values(data).some((v) => v !== undefined),
-    { message: "At least one field must be provided." },
-  );
+  .refine((data) => Object.values(data).some((v) => v !== undefined), {
+    message: "At least one field must be provided.",
+  });
 
 // ---------------------------------------------------------------------------
 // Trails Sync
@@ -112,10 +108,12 @@ export const trailsSyncBodySchema = z.object({
 // ---------------------------------------------------------------------------
 
 const treeNodeSchema: z.ZodType = z.lazy(() =>
-  z.object({
-    data: z.record(z.string(), z.unknown()).optional(),
-    children: z.array(treeNodeSchema).optional(),
-  }).passthrough(),
+  z
+    .object({
+      data: z.record(z.string(), z.unknown()).optional(),
+      children: z.array(treeNodeSchema).optional(),
+    })
+    .passthrough(),
 );
 
 const treePayloadSchema = z
