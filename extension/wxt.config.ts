@@ -23,19 +23,24 @@ mkdirSync(chromeProfileDir, { recursive: true });
 export default defineConfig({
   srcDir: "src",
   modules: ["@wxt-dev/i18n/module"],
-  vite: () => ({
+  vite: (env) => ({
     plugins: [react()],
     esbuild: {
       jsx: "automatic",
       jsxImportSource: "react",
     },
-    optimizeDeps: {
-      // Pre-bundle icon barrel so dev HMR doesn't fetch each icon's ESM
-      // module individually on every change. `lucide-react` is the
-      // project's `components.json` icon library; all icon usage goes
-      // through the `Icons` registry in `@ui/components/icons`.
-      include: ["lucide-react"],
-    },
+    // optimizeDeps is a dev-time Vite concern only; gate so it doesn't
+    // leak into `wxt build` evaluation.
+    ...(env.command === "serve"
+      ? {
+          optimizeDeps: {
+            // Pre-bundle icon barrel so dev HMR doesn't fetch each icon's
+            // ESM module individually on every change. Icon usage goes
+            // through the `Icons` registry in `@ui/components/icons`.
+            include: ["lucide-react"],
+          },
+        }
+      : {}),
   }),
   alias: {
     "@entrypoints": resolve("src/entrypoints"),
@@ -84,12 +89,21 @@ export default defineConfig({
       "alarms",
       "identity",
     ],
+    // Fonts are loaded from extension-owned pages (sidepanel, settings,
+    // login, onboarding) which don't need `web_accessible_resources` —
+    // they can reference chrome-extension://<id>/assets/... directly.
+    // Exposing WAR to `<all_urls>` let any website fingerprint the
+    // installation by loading the asset (closes P1.12).
     web_accessible_resources: [
       {
-        resources: ['assets/*.woff2'],
-        matches: ['<all_urls>'],
+        resources: ["assets/*.woff2"],
+        matches: [...ALLOWED_SITE_MATCH_PATTERNS],
       },
     ],
+    content_security_policy: {
+      extension_pages:
+        "script-src 'self'; object-src 'self'; connect-src 'self' https: wss:;",
+    },
     host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
     side_panel: {
       default_path: "sidepanel/index.html",

@@ -29,7 +29,11 @@ import {
 import { normalizeFaviconUrl, shouldTrackUrl } from "../../utils/url-utils.js";
 import { tempSelectionManager } from "../../services/temporary-selection.js";
 import { loadTree } from "../../services/tree-loader.js";
-import { ensureStoredTreePushed, fetchRemoteTreePayload } from "../../sync/sync-engine.js";
+import {
+  ensureStoredTreePushed,
+  fetchRemoteTreePayload,
+  periodicPull,
+} from "../../sync/sync-engine.js";
 import { getAuthState } from "@shared/auth/auth-orchestrator.js";
 import { isTreeStub, type NavigationTreeJSON, type TreeMeta } from "@shared/types/tree.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
@@ -509,6 +513,23 @@ export const treeHandlers = defineRpcHandlers({
 
     await notifyTreeUpdate(freshTree, "tree-reset");
     await notifyTreesUpdate(await buildTreesSnapshot());
+
+    // If signed in, immediately re-hydrate cloud tree stubs that the
+    // reset just wiped out of the local index. Without this, the
+    // sidepanel's "other trees" list stays empty until the next
+    // periodic pull (up to 60s later), making it look like cloud data
+    // was lost. Failures are logged silently — next periodicPull will
+    // recover.
+    if (getAuthState().status === "signed-in") {
+      try {
+        await periodicPull();
+        await notifyTreesUpdate(await buildTreesSnapshot());
+      } catch (error) {
+        log.warn("resetTreeData: cloud pull failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   },
 
   /**

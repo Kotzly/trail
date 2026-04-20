@@ -63,9 +63,14 @@ const log = createLogger("sync");
 const PUSH_DEBOUNCE_MS = 2_000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 20;
-const PULL_INTERVAL_MS = 60_000;
 
-let pullTimer: ReturnType<typeof setInterval> | null = null;
+// chrome.alarms is authoritative for periodic pull (setInterval dies
+// with SW eviction). Alarm name is referenced from service-worker.ts
+// which registers the onAlarm listener at module top-level so Chrome
+// can wake the SW when it fires.
+export const SYNC_PULL_ALARM = "trail-sync-pull";
+export const SYNC_PULL_PERIOD_MINUTES = 1;
+
 let pushHistory: number[] = []; // timestamps of recent pushes
 let running = false;
 
@@ -117,10 +122,13 @@ async function drainPendingOps(): Promise<void> {
     try {
       if (op.kind === "push_tree") {
         const outcome = await doPushTree(op.treeId);
-        // Terminal outcomes (ok/skipped/conflict) — remove from queue.
-        // Retry-able outcomes (rate_limited/offline/error) — leave the
-        // remainder in the queue for the next drain.
-        if (outcome === "ok" || outcome === "skipped" || outcome === "conflict") {
+        // Terminal outcomes (ok/conflict) — remove from queue.
+        // `skipped` is NOT terminal: it means "auth isn't ready yet /
+        // caller asked us to skip"; leaving the op queued lets the next
+        // drain (after auth settles) retry. Dropping it here silently
+        // discards user mutations (pre-fix: every SW wake zeroed the
+        // queue before auth resolved — see P0.5/P0.6).
+        if (outcome === "ok" || outcome === "conflict") {
           processed.add(opKey(op));
         } else {
           break;
@@ -634,7 +642,7 @@ async function backfillUnsyncedTrees(): Promise<void> {
   await drainPendingOps();
 }
 
-async function periodicPull(): Promise<void> {
+export async function periodicPull(): Promise<void> {
   if (!running) return;
   const auth = getAuthState();
   if (auth.status !== "signed-in") return;
@@ -647,16 +655,25 @@ async function periodicPull(): Promise<void> {
 }
 
 function startPullTimer(): void {
-  if (pullTimer) return;
-  pullTimer = setInterval(() => {
-    void periodicPull();
-  }, PULL_INTERVAL_MS);
+  // chrome.alarms.create is idempotent on name — safe to call repeatedly.
+  chrome.alarms.create(SYNC_PULL_ALARM, {
+    periodInMinutes: SYNC_PULL_PERIOD_MINUTES,
+  });
 }
 
 function stopPullTimer(): void {
-  if (!pullTimer) return;
-  clearInterval(pullTimer);
-  pullTimer = null;
+  void chrome.alarms.clear(SYNC_PULL_ALARM);
+}
+
+/**
+ * Called by the top-level chrome.alarms.onAlarm listener in
+ * service-worker.ts when the SYNC_PULL_ALARM fires. Exported so the
+ * listener module doesn't have to know about auth state — we re-check
+ * it here because the SW may have been dormant between alarm fires.
+ */
+export async function handlePullAlarm(): Promise<void> {
+  if (!running) return;
+  await periodicPull();
 }
 
 /**
@@ -685,9 +702,11 @@ export function startSyncEngine(): void {
     }
   });
 
-  // Drain on service worker wake (no-ops when signed-out; doPush/doDelete
-  // re-check auth before touching the network).
-  void drainPendingOps().catch(() => {});
+  // Drain on service worker wake. Don't fire it here — wait for the
+  // first signed-in transition above, because at cold boot the auth
+  // cache is `signed-out` until initAuth() resolves, and a premature
+  // drain would see `skipped` from doPushActive/doPushStored and
+  // terminal-process the op off the queue (closes P0.5).
 }
 
 export function stopSyncEngine(): void {

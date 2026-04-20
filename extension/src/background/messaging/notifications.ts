@@ -15,6 +15,7 @@ import {
 } from "../services/layout-precompute.js";
 import { settingsManager } from "../services/settings.js";
 import { createLogger } from "@shared/lib/logger.js";
+import { captureError } from "@shared/lib/observability.js";
 import { CommandManager } from "@shared/lib/commands.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 
@@ -38,7 +39,9 @@ export async function getTabStates(): Promise<Record<NodeId, TabState>> {
   return tabStates;
 }
 
-let viewIntentCounter = 0;
+// Seeded from wall-clock on module load so successive SW wakes don't
+// collide with intent IDs issued in a prior SW lifetime (closes P3.11).
+let viewIntentCounter = Date.now();
 
 const DEBOUNCE_MS = 200;
 const IMMEDIATE_REASONS: Set<string> = new Set([
@@ -203,8 +206,14 @@ async function sendTreeNotification(
     // time (service worker cold-start can take longer with extra work).
     void import("../sync/sync-engine.js")
       .then(({ schedulePush }) => schedulePush())
-      .catch(() => {
-        /* sync engine not available */
+      .catch((error) => {
+        // Silent swallow previously dropped every post-nav push when the
+        // sync chunk failed to load (e.g. after a botched update).
+        // Surface it so we can notice in prod.
+        captureError(error, {
+          surface: "background",
+          kind: "notifications_sync_import",
+        });
       });
   }
 }

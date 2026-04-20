@@ -9,14 +9,18 @@ import { warmLayoutPositions } from "./services/layout-precompute.js";
 import { registerProxyServices } from "./transport/register-proxy-services.js";
 import { registerExtensionMessaging } from "./transport/register-extension-messaging.js";
 import { captureError, captureEvent, initObservability } from "@shared/lib/observability.js";
-import { initAuth, subscribeAuthState } from "@shared/auth/auth-orchestrator.js";
-import { startSyncEngine } from "./sync/sync-engine.js";
+import { initAuth, subscribeAuthState, getAuthState } from "@shared/auth/auth-orchestrator.js";
+import { startSyncEngine, handlePullAlarm, SYNC_PULL_ALARM } from "./sync/sync-engine.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 import { treeStorage } from "./services/tree-storage.js";
 import { tabManager } from "./state/tab-manager.js";
 import { hydrateNavPatterns } from "./navigation/nav-pattern-tracker.js";
+import { getSupabaseClient } from "@shared/lib/supabase.js";
 
 const log = createLogger("service-worker");
+
+const AUTH_REFRESH_ALARM = "trail-auth-refresh";
+const AUTH_REFRESH_PERIOD_MINUTES = 30;
 
 // Catch unhandled promise rejections so they don't silently disappear
 // in the service worker context.
@@ -29,6 +33,33 @@ self.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
 
 void initObservability("background");
 
+// chrome.alarms.onAlarm MUST be registered synchronously at module top
+// level (not inside an async callback) so Chrome can replay the event
+// to wake the SW. The handler itself is allowed to be async.
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === SYNC_PULL_ALARM) {
+    void handlePullAlarm().catch((error) => {
+      captureError(error, { surface: "background", kind: "pull_alarm" });
+    });
+    return;
+  }
+  if (alarm.name === AUTH_REFRESH_ALARM) {
+    void refreshAuthSession().catch((error) => {
+      captureError(error, { surface: "background", kind: "auth_refresh_alarm" });
+    });
+  }
+});
+
+async function refreshAuthSession(): Promise<void> {
+  if (getAuthState().status !== "signed-in") return;
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const { error } = await supabase.auth.refreshSession();
+  if (error) {
+    log.warn("refreshSession failed", { error: error.message });
+  }
+}
+
 // Install / update tracking — fires once per install and once per version change.
 // Also kicks off local schema migrations so the extension starts each
 // upgrade with its persisted shape matching the current code.
@@ -40,10 +71,16 @@ chrome.runtime.onInstalled.addListener((details) => {
       version: chrome.runtime.getManifest().version,
       previousVersion: details.previousVersion ?? null,
     });
-    // Run migrations on upgrade. Module-load migration below also runs,
-    // but singleflight dedupes.
-    void import("./services/migrations.js").then(({ runMigrations }) => runMigrations());
   }
+  // Run migrations on install AND update; the singleflight inside
+  // runMigrations dedupes if the module-load path also fires.
+  void import("./services/migrations.js").then(({ runMigrations }) => runMigrations());
+
+  // (Re)create the auth-refresh alarm on install/update so existing
+  // installs pick it up without needing a user action.
+  chrome.alarms.create(AUTH_REFRESH_ALARM, {
+    periodInMinutes: AUTH_REFRESH_PERIOD_MINUTES,
+  });
 });
 
 // MV3 service workers are evicted aggressively. Flush pending tree saves
@@ -53,13 +90,12 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.runtime.onSuspend.addListener(() => {
   log.info("Service worker suspending — flushing pending saves");
   void treeStorage.flushSaveNow();
+  void CommandManager.flushNow?.();
 });
 
 // Initialize all modules
 void initBackendConfig();
 
-// Run local schema migrations before anything else touches storage.
-void import("./services/migrations.js").then(({ runMigrations }) => runMigrations());
 registerProxyServices();
 registerExtensionMessaging();
 initWebNavigation();
@@ -89,6 +125,12 @@ if (chrome.sidePanel?.setPanelBehavior) {
 void warmLayoutPositions();
 
 // Auth + sync — no-op when env vars missing or user not signed in.
+// Ensure the alarm exists even on regular SW wake (onInstalled only
+// fires on install/update).
+chrome.alarms.create(AUTH_REFRESH_ALARM, {
+  periodInMinutes: AUTH_REFRESH_PERIOD_MINUTES,
+});
+
 void initAuth().then((state) => {
   fireExtensionEvent(EXTENSION_MESSAGE.AUTH_STATE, state);
   subscribeAuthState((next) => {

@@ -40,6 +40,16 @@ export class CommandManager {
 
   private static schedulePersist = pDebounce(() => CommandManager.persistNow(), 300);
 
+  /**
+   * Synchronously flush any pending debounced persist. Called from
+   * service-worker onSuspend so undo history queued in the debounce
+   * window doesn't evaporate with the SW.
+   */
+  static async flushNow(): Promise<void> {
+    if (!this.loaded) return;
+    await this.persistNow();
+  }
+
   private static async persistNow(): Promise<void> {
     try {
       await undoHistoryItem.setValue({

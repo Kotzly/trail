@@ -36,7 +36,10 @@ export function getSupabaseClient(): SupabaseClient | null {
     auth: {
       storage: chromeStorageAdapter,
       persistSession: true,
-      autoRefreshToken: true,
+      // supabase-js's auto-refresh uses setInterval, which doesn't
+      // survive MV3 service-worker eviction. We drive refresh ourselves
+      // via chrome.alarms in the background SW (see trail-auth-refresh).
+      autoRefreshToken: false,
       // Extension URL changes per install — detection disabled so we
       // don't try to parse a redirect from the address bar.
       detectSessionInUrl: false,

@@ -5,6 +5,9 @@ import { LruManager } from "./tab-lru.js";
 import { browser } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
 import { storage } from "wxt/utils/storage";
+import pDebounce from "p-debounce";
+
+const PERSIST_DEBOUNCE_MS = 100;
 
 const log = createLogger("tab-manager");
 
@@ -99,18 +102,23 @@ export class TabManager {
     return this.lastNodeByTab.get(tabId);
   }
 
-  private persistLastNodeByTab(): void {
+  /**
+   * Debounced session-storage write. `chrome.storage.session.set` has
+   * per-call overhead + quota limits and register()/unregister() fire
+   * on every tab navigation — coalescing into one write per ~100ms
+   * collapses bursts during rapid tab opening (closes P2.44).
+   */
+  private persistLastNodeByTab = pDebounce(() => {
     const snapshot: Record<string, string> = {};
     for (const [tabId, nodeId] of this.lastNodeByTab.entries()) {
       snapshot[String(tabId)] = nodeId as string;
     }
-    // Fire-and-forget — session storage writes are cheap.
-    void lastNodeByTabItem.setValue(snapshot).catch((error) => {
+    return lastNodeByTabItem.setValue(snapshot).catch((error) => {
       log.warn("Failed to persist lastNodeByTab", {
         error: error instanceof Error ? error.message : String(error),
       });
     });
-  }
+  }, PERSIST_DEBOUNCE_MS);
 
   reset() {
     this.index = new TabIndex();

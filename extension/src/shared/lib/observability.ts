@@ -17,7 +17,7 @@
  */
 
 import * as Sentry from "@sentry/browser";
-import posthog, { type PostHog } from "posthog-js";
+import type { PostHog } from "posthog-js";
 import {
   telemetryAnonIdItem,
   telemetryConsentItem,
@@ -165,15 +165,23 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
   // Sentry ——————————————————————————————
   if (SENTRY_DSN && cachedConsent.errors) {
     try {
+      // Default integrations include BrowserApiErrors, Breadcrumbs, and
+      // GlobalHandlers — each of which touches `window`/`document`. In a
+      // MV3 service worker `document` is undefined, so letting the default
+      // set load causes Sentry to silently disable itself and drop real
+      // SW errors on the floor (closes P1.14).
+      const integrations = surface === "background" ? [] : undefined;
+      const defaultIntegrations = surface === "background" ? false : undefined;
       Sentry.init({
         dsn: SENTRY_DSN,
         release: RELEASE,
         environment: ENVIRONMENT,
         initialScope: { tags: { surface } },
-        // Capture only uncaught + explicitly reported errors
         tracesSampleRate: 0,
         sendDefaultPii: false,
         beforeSend: scrubSentryEvent,
+        ...(integrations ? { integrations } : {}),
+        ...(defaultIntegrations === false ? { defaultIntegrations } : {}),
       });
       sentryEnabled = true;
     } catch (error) {
@@ -186,8 +194,13 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
   }
 
   // PostHog ————————————————————————————
+  // Dynamic import so the ~110 KB library never lands in the background
+  // service-worker chunk (closes P2.16). PostHog has no function there:
+  // `surface !== "background"` guards the init, but a static top-level
+  // import bundles it regardless.
   if (POSTHOG_KEY && cachedConsent.analytics && surface !== "background") {
     try {
+      const { default: posthog } = await import("posthog-js");
       const anonId = await ensureAnonId();
       posthog.init(POSTHOG_KEY, {
         api_host: POSTHOG_HOST,

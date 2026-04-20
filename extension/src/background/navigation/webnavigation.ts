@@ -2,6 +2,7 @@ import { handleNavigation } from "./navigation-handler.js";
 import { redirectDetector } from "./redirect-detection.js";
 import { browser, type Browser } from "@shared/platform/webext.js";
 import type { TabId } from "@shared/types/ids.js";
+import { captureError } from "@shared/lib/observability.js";
 
 /**
  * Dedup window for a single documentId across the three webNav listeners
@@ -47,8 +48,13 @@ export function initWebNavigation(): void {
     // Dedup fan-out from the three webNav listeners for the same
     // document transition (SPAs fire all three; we want one mutation).
     if (!isFreshDocument(details)) return;
-    handleNavigation(details, details.transitionType).catch(() => {
-      // Navigation handler error — silently ignored.
+    handleNavigation(details, details.transitionType).catch((error) => {
+      // Core capture path — swallow so the listener keeps working for
+      // subsequent events, but surface the error for observability.
+      captureError(error, {
+        surface: "background",
+        kind: "webnavigation_handler",
+      });
     });
   };
 
