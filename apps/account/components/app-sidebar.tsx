@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import {
   GitBranch,
   Activity,
@@ -33,39 +34,57 @@ type User = {
   imageUrl?: string;
 };
 
-const navItems = [
-  { title: "Trails", href: "/trails", icon: GitBranch },
-  { title: "Activity", href: "/activity", icon: Activity },
+type NavKey = "trails" | "activity" | "settings" | "billing";
+
+type NavItem = {
+  key: NavKey;
+  href: string;
+  icon: typeof GitBranch;
+};
+
+const navItems: NavItem[] = [
+  { key: "trails", href: "/trails", icon: GitBranch },
+  { key: "activity", href: "/activity", icon: Activity },
 ];
 
-const settingsItems = [
-  { title: "Settings", href: "/settings", icon: Settings },
-  { title: "Billing", href: "/billing", icon: CreditCard },
+const settingsItems: NavItem[] = [
+  { key: "settings", href: "/settings", icon: Settings },
+  { key: "billing", href: "/billing", icon: CreditCard },
 ];
 
 export function AppSidebar({ user }: { user: User }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
 
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link href="/trails" className="flex items-center gap-2">
-          <Image src="/brand/trail-mark.svg" alt="" width={20} height={20} className="dark:invert" />
+          <Image
+            src="/brand/trail-mark.svg"
+            alt=""
+            width={20}
+            height={20}
+            className="dark:invert"
+          />
           <span className="text-lg font-semibold tracking-tight">Trail</span>
         </Link>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("navigation")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith(item.href)}
+                  >
                     <Link href={item.href}>
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span>{t(item.key)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -77,7 +96,7 @@ export function AppSidebar({ user }: { user: User }) {
         <Separator />
 
         <SidebarGroup>
-          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("account")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsItems.map((item) => (
@@ -85,7 +104,7 @@ export function AppSidebar({ user }: { user: User }) {
                   <SidebarMenuButton asChild isActive={pathname === item.href}>
                     <Link href={item.href}>
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span>{t(item.key)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -126,7 +145,7 @@ export function AppSidebar({ user }: { user: User }) {
             <button
               type="submit"
               className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              title="Sign out"
+              title={t("signOut")}
             >
               <LogOut className="h-4 w-4" />
             </button>

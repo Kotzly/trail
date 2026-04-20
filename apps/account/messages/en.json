@@ -1,5 +1,14 @@
 {
   "common": {
     "loading": "Loading..."
+  },
+  "nav": {
+    "navigation": "Navigation",
+    "account": "Account",
+    "trails": "Trails",
+    "activity": "Activity",
+    "settings": "Settings",
+    "billing": "Billing",
+    "signOut": "Sign out"
   }
 }
