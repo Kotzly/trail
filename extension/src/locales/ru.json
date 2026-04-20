@@ -76,5 +76,20 @@
         "allShortcuts": "All shortcuts"
       }
     }
+  },
+  "login": {
+    "passwordRequired": "Password is required.",
+    "signupOtpSent": "We sent a 6-digit code to your email. Enter it below to finish.",
+    "recoveryOtpSent": "We sent a recovery code to your email. Enter it below, then choose a new password.",
+    "otpInvalidFormat": "Enter the 6-digit code.",
+    "recoveryCodeAccepted": "Code accepted. Choose a new password to finish.",
+    "codeResent": "Code re-sent. Check your inbox.",
+    "passwordsMismatch": "Passwords don't match.",
+    "signedInTitle": "Welcome, $1",
+    "signedInFallbackName": "there",
+    "signedInDescription": "You're signed in. Your trees will start syncing across devices automatically. Open Trail from the extension icon in your toolbar.",
+    "done": "Done",
+    "cloudUnconfiguredTitle": "Cloud sync not configured",
+    "cloudUnconfiguredDescription": "This build of Trail has no Supabase credentials baked in. Sign-in is disabled — your trees still work locally."
   }
 }

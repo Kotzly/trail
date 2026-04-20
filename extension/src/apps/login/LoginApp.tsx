@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { i18n } from "#i18n";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
 import { Toaster } from "@ui/components/ui/sonner";
 import { Alert, AlertDescription } from "@ui/components/ui/alert";
@@ -109,7 +110,7 @@ export default function LoginApp() {
     clearMessages();
     const eErr = validateEmail(email);
     if (eErr) return setFormError(eErr);
-    if (!password) return setFormError("Password is required.");
+    if (!password) return setFormError(i18n.t("login.passwordRequired"));
     await withPending(async () => {
       try {
         await signInWithEmailPassword(email, password);
@@ -133,7 +134,7 @@ export default function LoginApp() {
         const result = await signUpWithEmailPassword(email, password);
         if (result.status === "awaiting-confirmation") {
           setStage({ kind: "verify", email: result.email, otpType: "signup" });
-          setInfo("We sent a 6-digit code to your email. Enter it below to finish.");
+          setInfo(i18n.t("login.signupOtpSent"));
         }
       } catch (err) {
         captureError(err, { kind: "login_signup" });
@@ -166,9 +167,7 @@ export default function LoginApp() {
       try {
         await requestPasswordReset(email);
         setStage({ kind: "verify", email, otpType: "recovery" });
-        setInfo(
-          "We sent a recovery code to your email. Enter it below, then choose a new password.",
-        );
+        setInfo(i18n.t("login.recoveryOtpSent"));
       } catch (err) {
         captureError(err, { kind: "login_forgot" });
         setFormError(err instanceof Error ? err.message : String(err));
@@ -195,7 +194,7 @@ export default function LoginApp() {
   const handleVerify = useLockFn(async () => {
     clearMessages();
     if (stage.kind !== "verify") return;
-    if (!/^\d{6}$/.test(otp)) return setOtpError("Enter the 6-digit code.");
+    if (!/^\d{6}$/.test(otp)) return setOtpError(i18n.t("login.otpInvalidFormat"));
     await withPending(async () => {
       try {
         await verifyEmailOtp(stage.email, otp, stage.otpType);
@@ -204,7 +203,7 @@ export default function LoginApp() {
           setOtp("");
           setPassword("");
           setConfirmPassword("");
-          setInfo("Code accepted. Choose a new password to finish.");
+          setInfo(i18n.t("login.recoveryCodeAccepted"));
         }
       } catch (err) {
         captureError(err, { kind: "login_verify" });
@@ -220,7 +219,7 @@ export default function LoginApp() {
       try {
         if (stage.otpType === "signup") await resendSignupOtp(stage.email);
         else if (stage.otpType === "recovery") await requestPasswordReset(stage.email);
-        setInfo("Code re-sent. Check your inbox.");
+        setInfo(i18n.t("login.codeResent"));
       } catch (err) {
         captureError(err, { kind: "login_resend" });
         setFormError(err instanceof Error ? err.message : String(err));
@@ -242,7 +241,7 @@ export default function LoginApp() {
     if (stage.kind !== "set-password") return;
     const pErr = validatePassword(password);
     if (pErr) return setFormError(pErr);
-    if (password !== confirmPassword) return setConfirmError("Passwords don't match.");
+    if (password !== confirmPassword) return setConfirmError(i18n.t("login.passwordsMismatch"));
     await withPending(async () => {
       try {
         await updatePassword(password);
@@ -272,7 +271,10 @@ export default function LoginApp() {
 
   function renderStage() {
     if (authState.status === "signed-in") {
-      const name = authState.identity.displayName ?? authState.identity.email ?? "there";
+      const name =
+        authState.identity.displayName ??
+        authState.identity.email ??
+        i18n.t("login.signedInFallbackName");
       return (
         <Empty>
           <EmptyHeader>
@@ -282,14 +284,11 @@ export default function LoginApp() {
             >
               <Icons.Check aria-hidden />
             </EmptyMedia>
-            <EmptyTitle className="text-lg">Welcome, {name}</EmptyTitle>
-            <EmptyDescription>
-              You're signed in. Your trees will start syncing across devices automatically. Open
-              Trail from the extension icon in your toolbar.
-            </EmptyDescription>
+            <EmptyTitle className="text-lg">{i18n.t("login.signedInTitle", [name])}</EmptyTitle>
+            <EmptyDescription>{i18n.t("login.signedInDescription")}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button onClick={closeTab}>Done</Button>
+            <Button onClick={closeTab}>{i18n.t("login.done")}</Button>
           </EmptyContent>
         </Empty>
       );
@@ -302,11 +301,8 @@ export default function LoginApp() {
             <EmptyMedia variant="icon">
               <Icons.CloudOff aria-hidden />
             </EmptyMedia>
-            <EmptyTitle className="text-lg">Cloud sync not configured</EmptyTitle>
-            <EmptyDescription>
-              This build of Trail has no Supabase credentials baked in. Sign-in is disabled — your
-              trees still work locally.
-            </EmptyDescription>
+            <EmptyTitle className="text-lg">{i18n.t("login.cloudUnconfiguredTitle")}</EmptyTitle>
+            <EmptyDescription>{i18n.t("login.cloudUnconfiguredDescription")}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       );
