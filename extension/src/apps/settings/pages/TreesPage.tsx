@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { storage } from "wxt/utils/storage";
+import { i18n } from "#i18n";
 import { useTrees } from "../hooks/useTrees.js";
 import { Button } from "@ui/components/ui/button";
 import { Input } from "@ui/components/ui/input";
@@ -102,9 +103,9 @@ export function TreesPage() {
       if (!file) return;
       try {
         await importFromFile(file);
-        toast.success("Tree imported.");
+        toast.success(i18n.t("trees.toast.imported"));
       } catch (err) {
-        toast.error("Import failed", {
+        toast.error(i18n.t("trees.toast.importFailed"), {
           description: err instanceof Error ? err.message : String(err),
         });
       }
@@ -131,7 +132,7 @@ export function TreesPage() {
   if (loading || !trees) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title="Trees" description="Create, open, import, and export your trees." />
+        <PageHeader title={i18n.t("trees.title")} description={i18n.t("trees.description")} />
         <TreesSkeleton />
       </div>
     );
@@ -139,16 +140,16 @@ export function TreesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Trees" description="Create, open, import, and export your trees." />
+      <PageHeader title={i18n.t("trees.title")} description={i18n.t("trees.description")} />
 
       <div className="flex items-center justify-end gap-2">
         <Button
           variant="outline"
           onClick={handleImportClick}
-          aria-label="Import a .trail or .json export"
+          aria-label={i18n.t("trees.importAriaLabel")}
         >
           <Icons.Download />
-          Import
+          {i18n.t("trees.import")}
         </Button>
         <NewTreeDialog onCreate={newTree} />
         <input
@@ -167,7 +168,7 @@ export function TreesPage() {
           </ItemMedia>
           <ItemContent>
             <ItemTitle>{trees.active.label}</ItemTitle>
-            <ItemDescription>Currently open in the sidepanel.</ItemDescription>
+            <ItemDescription>{i18n.t("trees.activeDescription")}</ItemDescription>
           </ItemContent>
           <ItemActions>
             <TreeSyncBadge
@@ -179,11 +180,11 @@ export function TreesPage() {
               onDownload={handleDownload}
               onUnload={handleUnload}
             />
-            <ButtonTooltip label="Export tree">
+            <ButtonTooltip label={i18n.t("trees.actions.exportTree")}>
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Export tree"
+                aria-label={i18n.t("trees.actions.exportTree")}
                 onClick={() => void exportTree()}
               >
                 <Icons.Upload />
@@ -243,15 +244,13 @@ function NewTreeDialog({ onCreate }: { onCreate: (label: string) => Promise<unkn
       <DialogTrigger asChild>
         <Button>
           <Icons.Plus />
-          New tree
+          {i18n.t("trees.newTree")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create a new tree</DialogTitle>
-          <DialogDescription>
-            Trees are independent browsing maps. Each tree keeps its own nodes and history.
-          </DialogDescription>
+          <DialogTitle>{i18n.t("trees.createDialog.title")}</DialogTitle>
+          <DialogDescription>{i18n.t("trees.createDialog.description")}</DialogDescription>
         </DialogHeader>
         <form
           className="flex flex-col gap-3"
@@ -261,10 +260,10 @@ function NewTreeDialog({ onCreate }: { onCreate: (label: string) => Promise<unkn
           }}
         >
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="new-tree-label">Name</Label>
+            <Label htmlFor="new-tree-label">{i18n.t("trees.createDialog.nameLabel")}</Label>
             <Input
               id="new-tree-label"
-              placeholder="e.g. Research, Shopping, Trip planning"
+              placeholder={i18n.t("trees.createDialog.namePlaceholder")}
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               autoFocus
@@ -273,10 +272,12 @@ function NewTreeDialog({ onCreate }: { onCreate: (label: string) => Promise<unkn
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {i18n.t("trees.createDialog.cancel")}
             </Button>
             <Button type="submit" disabled={!label.trim() || submitting}>
-              {submitting ? "Creating…" : "Create"}
+              {submitting
+                ? i18n.t("trees.createDialog.creating")
+                : i18n.t("trees.createDialog.create")}
             </Button>
           </DialogFooter>
         </form>
@@ -402,8 +403,8 @@ function resolveBadgeVariant({
   if (busy || state?.kind === "pending") {
     return {
       kind: "static",
-      tooltip: busy ? "Working…" : "Sync pending",
-      ariaLabel: "In progress",
+      tooltip: busy ? i18n.t("trees.sync.working") : i18n.t("trees.sync.pending"),
+      ariaLabel: i18n.t("trees.sync.inProgressAria"),
       disabled: true,
       icon: <Icons.Loader2 className="animate-spin" />,
     };
@@ -412,8 +413,8 @@ function resolveBadgeVariant({
   if (isStub) {
     return {
       kind: "download",
-      tooltip: "Cloud only — click to download to this device",
-      ariaLabel: "Download tree to this device",
+      tooltip: i18n.t("trees.sync.cloudOnlyTooltip"),
+      ariaLabel: i18n.t("trees.sync.cloudOnlyAria"),
       disabled: false,
       icon: <Icons.Cloud />,
     };
@@ -424,17 +425,17 @@ function resolveBadgeVariant({
       return {
         kind: "static",
         tooltip: state.lastSyncedAt
-          ? `Synced · ${formatRelative(state.lastSyncedAt)} · active tree`
-          : "Synced · active tree",
-        ariaLabel: "Synced (active tree)",
+          ? i18n.t("trees.sync.syncedActiveTooltip", [formatRelative(state.lastSyncedAt)])
+          : i18n.t("trees.sync.syncedActiveTooltipNoTime"),
+        ariaLabel: i18n.t("trees.sync.syncedActiveAria"),
         disabled: true,
         icon: <Icons.Check />,
       };
     }
     return {
       kind: "static",
-      tooltip: "Local only · active tree (open another tree to unload this one)",
-      ariaLabel: "Local only (active tree)",
+      tooltip: i18n.t("trees.sync.localActiveTooltip"),
+      ariaLabel: i18n.t("trees.sync.localActiveAria"),
       disabled: true,
       icon: <Icons.CloudOff />,
     };
@@ -444,9 +445,9 @@ function resolveBadgeVariant({
     return {
       kind: "unload",
       tooltip: state.lastSyncedAt
-        ? `Synced · ${formatRelative(state.lastSyncedAt)} · click to remove from this device`
-        : "Synced · click to remove from this device",
-      ariaLabel: "Unload tree from this device",
+        ? i18n.t("trees.sync.syncedOfferUnloadTooltip", [formatRelative(state.lastSyncedAt)])
+        : i18n.t("trees.sync.syncedOfferUnloadTooltipNoTime"),
+      ariaLabel: i18n.t("trees.sync.unloadAria"),
       disabled: false,
       icon: <Icons.Check />,
     };
@@ -454,8 +455,8 @@ function resolveBadgeVariant({
 
   return {
     kind: "unload",
-    tooltip: "Local only — click to sync to cloud and remove from this device",
-    ariaLabel: "Upload and unload tree",
+    tooltip: i18n.t("trees.sync.localOfferUploadTooltip"),
+    ariaLabel: i18n.t("trees.sync.uploadAndUnloadAria"),
     disabled: false,
     icon: <Icons.CloudOff />,
   };
@@ -464,10 +465,12 @@ function resolveBadgeVariant({
 function formatRelative(iso: string): string {
   const then = new Date(iso).getTime();
   const diff = Date.now() - then;
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return `${Math.floor(diff / 86_400_000)}d ago`;
+  if (diff < 60_000) return i18n.t("trees.relative.justNow");
+  if (diff < 3_600_000)
+    return i18n.t("trees.relative.minutesAgo", [String(Math.floor(diff / 60_000))]);
+  if (diff < 86_400_000)
+    return i18n.t("trees.relative.hoursAgo", [String(Math.floor(diff / 3_600_000))]);
+  return i18n.t("trees.relative.daysAgo", [String(Math.floor(diff / 86_400_000))]);
 }
 
 /* ─── Subcomponents ──────────────────────────────────────────── */
@@ -533,7 +536,9 @@ const OtherTreeRow = memo(function OtherTreeRow({
             {tree.label}
           </ItemTitle>
         )}
-        <ItemDescription>{tree.nodeCount.toLocaleString()} nodes</ItemDescription>
+        <ItemDescription>
+          {i18n.t("trees.nodes", [tree.nodeCount.toLocaleString()])}
+        </ItemDescription>
       </ItemContent>
       {!isEditing && (
         <ItemActions>
@@ -546,24 +551,24 @@ const OtherTreeRow = memo(function OtherTreeRow({
             onUnload={onUnload}
           />
           <Button variant="ghost" size="sm" onClick={() => void onOpen(tree.id)}>
-            Open
+            {i18n.t("trees.open")}
           </Button>
-          <ButtonTooltip label="Rename">
+          <ButtonTooltip label={i18n.t("trees.actions.rename")}>
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Rename"
+              aria-label={i18n.t("trees.actions.rename")}
               onClick={() => onStartEdit(tree.id)}
             >
               <Icons.Pencil />
             </Button>
           </ButtonTooltip>
           {!stub && (
-            <ButtonTooltip label="Export">
+            <ButtonTooltip label={i18n.t("trees.actions.export")}>
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Export"
+                aria-label={i18n.t("trees.actions.export")}
                 onClick={() => void onExport(tree.id)}
               >
                 <Icons.Upload />
@@ -571,24 +576,30 @@ const OtherTreeRow = memo(function OtherTreeRow({
             </ButtonTooltip>
           )}
           <AlertDialog>
-            <ButtonTooltip label="Delete">
+            <ButtonTooltip label={i18n.t("trees.actions.delete")}>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="icon-sm" aria-label="Delete">
+                <Button
+                  variant="destructive"
+                  size="icon-sm"
+                  aria-label={i18n.t("trees.actions.delete")}
+                >
                   <Icons.Trash2 />
                 </Button>
               </AlertDialogTrigger>
             </ButtonTooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete &ldquo;{tree.label}&rdquo;?</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {i18n.t("trees.deleteDialog.title", [tree.label])}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This permanently deletes the tree and all its nodes. This cannot be undone.
+                  {i18n.t("trees.deleteDialog.description")}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{i18n.t("trees.deleteDialog.cancel")}</AlertDialogCancel>
                 <AlertDialogAction variant="destructive" onClick={() => void onDelete(tree.id)}>
-                  Delete
+                  {i18n.t("trees.deleteDialog.confirm")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

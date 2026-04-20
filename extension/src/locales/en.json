@@ -77,6 +77,72 @@
       }
     }
   },
+  "trees": {
+    "title": "Trees",
+    "description": "Create, open, import, and export your trees.",
+    "import": "Import",
+    "importAriaLabel": "Import a .trail or .json export",
+    "newTree": "New tree",
+    "activeDescription": "Currently open in the sidepanel.",
+    "open": "Open",
+    "nodes": "$1 nodes",
+    "createDialog": {
+      "title": "Create a new tree",
+      "description": "Trees are independent browsing maps. Each tree keeps its own nodes and history.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Research, Shopping, Trip planning",
+      "cancel": "Cancel",
+      "creating": "Creating…",
+      "create": "Create"
+    },
+    "actions": {
+      "exportTree": "Export tree",
+      "export": "Export",
+      "rename": "Rename",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete \"$1\"?",
+      "description": "This permanently deletes the tree and all its nodes. This cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "sync": {
+      "working": "Working…",
+      "pending": "Sync pending",
+      "inProgressAria": "In progress",
+      "cloudOnlyTooltip": "Cloud only — click to download to this device",
+      "cloudOnlyAria": "Download tree to this device",
+      "syncedActiveTooltip": "Synced · $1 · active tree",
+      "syncedActiveTooltipNoTime": "Synced · active tree",
+      "syncedActiveAria": "Synced (active tree)",
+      "localActiveTooltip": "Local only · active tree (open another tree to unload this one)",
+      "localActiveAria": "Local only (active tree)",
+      "syncedOfferUnloadTooltip": "Synced · $1 · click to remove from this device",
+      "syncedOfferUnloadTooltipNoTime": "Synced · click to remove from this device",
+      "unloadAria": "Unload tree from this device",
+      "localOfferUploadTooltip": "Local only — click to sync to cloud and remove from this device",
+      "uploadAndUnloadAria": "Upload and unload tree"
+    },
+    "relative": {
+      "justNow": "just now",
+      "minutesAgo": "$1m ago",
+      "hoursAgo": "$1h ago",
+      "daysAgo": "$1d ago"
+    },
+    "toast": {
+      "imported": "Tree imported.",
+      "importFailed": "Import failed",
+      "downloaded": "Tree downloaded to this device.",
+      "unloaded": "Tree unloaded — kept in the cloud only.",
+      "createFailed": "Couldn't create tree",
+      "openFailed": "Couldn't open tree",
+      "renameFailed": "Couldn't rename tree",
+      "deleteFailed": "Couldn't delete tree",
+      "downloadFailed": "Couldn't download tree",
+      "unloadFailed": "Couldn't unload tree"
+    }
+  },
   "login": {
     "passwordRequired": "Password is required.",
     "signupOtpSent": "We sent a 6-digit code to your email. Enter it below to finish.",

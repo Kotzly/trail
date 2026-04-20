@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { i18n } from "#i18n";
 import * as api from "../api.js";
 import { decodeExport, encodeExport } from "@shared/lib/export-codec.js";
 
@@ -19,39 +20,45 @@ export function useTrees() {
   const newTreeMutation = useMutation({
     mutationFn: api.newTree,
     onSuccess: invalidate,
-    onError: (err) => toast.error("Couldn't create tree", { description: describeError(err) }),
+    onError: (err) =>
+      toast.error(i18n.t("trees.toast.createFailed"), { description: describeError(err) }),
   });
   const openTreeMutation = useMutation({
     mutationFn: api.openTree,
     onSuccess: invalidate,
-    onError: (err) => toast.error("Couldn't open tree", { description: describeError(err) }),
+    onError: (err) =>
+      toast.error(i18n.t("trees.toast.openFailed"), { description: describeError(err) }),
   });
   const renameTreeMutation = useMutation({
     mutationFn: ({ treeId, label }: { treeId: string; label: string }) =>
       api.renameTree(treeId, label),
     onSuccess: invalidate,
-    onError: (err) => toast.error("Couldn't rename tree", { description: describeError(err) }),
+    onError: (err) =>
+      toast.error(i18n.t("trees.toast.renameFailed"), { description: describeError(err) }),
   });
   const deleteMutation = useMutation({
     mutationFn: api.deleteTree,
     onSuccess: invalidate,
-    onError: (err) => toast.error("Couldn't delete tree", { description: describeError(err) }),
+    onError: (err) =>
+      toast.error(i18n.t("trees.toast.deleteFailed"), { description: describeError(err) }),
   });
   const downloadMutation = useMutation({
     mutationFn: api.downloadTreeLocally,
     onSuccess: () => {
       invalidate();
-      toast.success("Tree downloaded to this device.");
+      toast.success(i18n.t("trees.toast.downloaded"));
     },
-    onError: (err) => toast.error("Couldn't download tree", { description: describeError(err) }),
+    onError: (err) =>
+      toast.error(i18n.t("trees.toast.downloadFailed"), { description: describeError(err) }),
   });
   const unloadMutation = useMutation({
     mutationFn: api.unloadTreeToCloud,
     onSuccess: () => {
       invalidate();
-      toast.success("Tree unloaded — kept in the cloud only.");
+      toast.success(i18n.t("trees.toast.unloaded"));
     },
-    onError: (err) => toast.error("Couldn't unload tree", { description: describeError(err) }),
+    onError: (err) =>
+      toast.error(i18n.t("trees.toast.unloadFailed"), { description: describeError(err) }),
   });
 
   const newTree = useCallback(
