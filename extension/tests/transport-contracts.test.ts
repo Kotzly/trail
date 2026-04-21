@@ -58,6 +58,7 @@ function testProtocolConstants(): void {
     'event/ui-notify',
     'event/sync-status',
     'event/sync-conflict',
+    'event/sync-conflict-resolved',
     'event/auth-state',
     'site/editor-mode-exited',
     'event/content-bridge-error',

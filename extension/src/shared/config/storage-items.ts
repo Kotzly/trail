@@ -14,6 +14,7 @@ import type { PersistedFlagState } from "../types/flags.js";
 import type { BackendConfigOverride } from "./backend.js";
 import type { EditorModeState } from "../rpc/contracts.js";
 import type { LayoutPositionsCacheEntry } from "@background/services/layout-cache-signature.js";
+import type { ConflictPickState } from "../types/tree-diff.js";
 
 // ── Tree ────────────────────────────────────────────────────────────
 
@@ -162,6 +163,19 @@ export const telemetryConsentItem = storage.defineItem<TelemetryConsent>(
 export const telemetryAnonIdItem = storage.defineItem<string | null>(
   "local:trail_telemetry_anon_id",
   { fallback: null },
+);
+
+// ── Conflict picks (session-scoped) ──────────────────────────────────
+//
+// User's per-node cherry-picks for the sync-conflict dialog. Keyed by
+// treeId and invalidated when `serverUpdatedAt` changes (hydration-time
+// check). Session storage so picks survive sidepanel unmount/remount
+// within a browser session but don't persist across restart — the
+// conflict banner re-fires on next pull if still outstanding.
+
+export const conflictPicksItem = storage.defineItem<Record<string, ConflictPickState>>(
+  "session:trail_conflict_picks",
+  { fallback: {} },
 );
 
 // ── Editor State (session-scoped) ────────────────────────────────────

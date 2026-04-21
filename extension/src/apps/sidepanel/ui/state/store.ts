@@ -16,6 +16,14 @@ import type { NavigationTree } from "@background/state/nav-tree.js";
 import { PinnedManager } from "@background/state/pinned.js";
 import type { TreeMeta, TreeSummary, NavigationTreeJSON } from "@shared/types/tree.js";
 import type { ResolvedFlags } from "@shared/types/flags.js";
+import type {
+  ApplyError,
+  ConflictPickState,
+  ConflictPreview,
+  LabelPick,
+  NodePick,
+  StructuralPick,
+} from "@shared/types/tree-diff.js";
 
 type GraphTool = "hand" | "select";
 
@@ -162,7 +170,21 @@ type StoreActions = {
   openRenameDialog: (nodeId: NodeId) => void;
   closeRenameDialog: () => void;
   setAuthState: (state: AuthUiState) => void;
-  setSyncConflict: (conflict: SyncConflictUiState | null) => void;
+  /**
+   * Accept a conflict event (from the runtime-messaging ingest) OR a
+   * fully-shaped slice (for test/restore). Null clears.
+   */
+  setSyncConflict: (conflict: SyncConflictEventIngest | SyncConflictUiState | null) => void;
+  setConflictDialogOpen: (open: boolean, expectedActiveTreeId?: string | null) => void;
+  setConflictPreview: (preview: ConflictPreview) => void;
+  setConflictStale: (stale: boolean) => void;
+  setConflictNodePick: (nodeId: NodeId, pick: NodePick) => void;
+  setConflictStructuralPick: (nodeId: NodeId, pick: StructuralPick) => void;
+  setConflictLabelPick: (pick: LabelPick | null) => void;
+  setConflictReorderPick: (parentId: NodeId, order: "mine-order" | "theirs-order") => void;
+  resetConflictPicks: () => void;
+  setConflictApplyError: (error: ApplyError | null) => void;
+  clearConflict: () => void;
 };
 
 export type AuthUiState =
@@ -179,10 +201,48 @@ export type AuthUiState =
       };
     };
 
+/**
+ * Wire shape emitted by the background sync engine's SYNC_CONFLICT
+ * event — these are the only fields we track now that the dialog is
+ * gone (see SyncConflictToast).
+ */
+export type SyncConflictEventIngest = {
+  treeId: string;
+  serverUpdatedAt: string;
+  serverDeviceId: string;
+};
+
 export type SyncConflictUiState = {
   treeId: string;
   serverUpdatedAt: string;
   serverDeviceId: string;
+  /** Open flag — banner opens the dialog; dialog closes it. */
+  dialogOpen: boolean;
+  /**
+   * Populated after the first successful `fetchConflictPreview`.
+   * Null while loading / before first open.
+   */
+  preview: ConflictPreview | null;
+  /**
+   * Set when a newer SYNC_CONFLICT fires for the same tree while the
+   * dialog is open. Surfaces a non-dismissible banner inside the dialog
+   * with a refresh button; picks are preserved. Applies belt-and-braces
+   * with the TOCTOU re-check in `applyConflictMergeInternal`.
+   */
+  stale: boolean;
+  /**
+   * User's per-node cherry-picks for `(treeId, serverUpdatedAt)`. Also
+   * persisted to `conflictPicksItem` (session storage) so sidepanel
+   * unmount/remount preserves picks.
+   */
+  picks: ConflictPickState;
+  /**
+   * Captured at dialog open — used to detect active-tree switches
+   * mid-resolution. null when the dialog was opened against a stored tree.
+   */
+  expectedActiveTreeId: string | null;
+  /** Last apply failure for inline error rendering. Cleared on retry. */
+  applyError: ApplyError | null;
 };
 
 type PopupKey = keyof StoreState["ui"];
@@ -644,5 +704,185 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   openRenameDialog: (nodeId) => set({ renameTarget: nodeId }),
   closeRenameDialog: () => set({ renameTarget: null }),
   setAuthState: (authState) => set({ authState }),
-  setSyncConflict: (syncConflict) => set({ syncConflict }),
+
+  /**
+   * Accept a SYNC_CONFLICT event (null clears). Re-entrancy semantics:
+   *
+   * - null → clear everything.
+   * - same `treeId` + same `serverUpdatedAt` as current → duplicate event,
+   *   no-op (preserves in-flight dialog state).
+   * - same `treeId`, DIFFERENT `serverUpdatedAt`, dialog is open → mark
+   *   `stale: true`, preserve `preview` + `picks` so the user doesn't
+   *   lose their cherry-picks. The dialog surfaces a refresh CTA.
+   * - same `treeId`, DIFFERENT `serverUpdatedAt`, dialog is closed → swap
+   *   in fresh conflict, reset picks + preview.
+   * - different `treeId` (or no current conflict) → fresh slice.
+   */
+  setSyncConflict: (next) =>
+    set((state) => {
+      if (next === null) {
+        return { syncConflict: null };
+      }
+      if (isCompleteConflictState(next)) {
+        return { syncConflict: next };
+      }
+      const cur = state.syncConflict;
+      if (cur && cur.treeId === next.treeId) {
+        if (cur.serverUpdatedAt === next.serverUpdatedAt) {
+          return state; // duplicate event
+        }
+        if (cur.dialogOpen) {
+          return {
+            syncConflict: {
+              ...cur,
+              serverDeviceId: next.serverDeviceId,
+              serverUpdatedAt: next.serverUpdatedAt,
+              stale: true,
+            },
+          };
+        }
+      }
+      return {
+        syncConflict: {
+          treeId: next.treeId,
+          serverUpdatedAt: next.serverUpdatedAt,
+          serverDeviceId: next.serverDeviceId,
+          dialogOpen: false,
+          preview: null,
+          stale: false,
+          picks: emptyConflictPicks(next.treeId, next.serverUpdatedAt),
+          expectedActiveTreeId: null,
+          applyError: null,
+        },
+      };
+    }),
+
+  setConflictDialogOpen: (open, expectedActiveTreeId = null) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          dialogOpen: open,
+          expectedActiveTreeId: open
+            ? expectedActiveTreeId
+            : state.syncConflict.expectedActiveTreeId,
+          applyError: open ? state.syncConflict.applyError : null,
+        },
+      };
+    }),
+
+  setConflictPreview: (preview) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          preview,
+          stale: false,
+        },
+      };
+    }),
+
+  setConflictStale: (stale) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return { syncConflict: { ...state.syncConflict, stale } };
+    }),
+
+  setConflictNodePick: (nodeId, pick) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: {
+            ...state.syncConflict.picks,
+            nodePicks: {
+              ...state.syncConflict.picks.nodePicks,
+              [nodeId]: pick,
+            },
+          },
+        },
+      };
+    }),
+
+  setConflictStructuralPick: (nodeId, pick) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: {
+            ...state.syncConflict.picks,
+            structuralPicks: {
+              ...state.syncConflict.picks.structuralPicks,
+              [nodeId]: pick,
+            },
+          },
+        },
+      };
+    }),
+
+  setConflictLabelPick: (labelPick) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: { ...state.syncConflict.picks, labelPick },
+        },
+      };
+    }),
+
+  setConflictReorderPick: (parentId, order) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: {
+            ...state.syncConflict.picks,
+            reorderPicks: {
+              ...state.syncConflict.picks.reorderPicks,
+              [parentId]: order,
+            },
+          },
+        },
+      };
+    }),
+
+  resetConflictPicks: () =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: emptyConflictPicks(state.syncConflict.treeId, state.syncConflict.serverUpdatedAt),
+        },
+      };
+    }),
+
+  setConflictApplyError: (applyError) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return { syncConflict: { ...state.syncConflict, applyError } };
+    }),
+
+  clearConflict: () => set({ syncConflict: null }),
 }));
+
+function emptyConflictPicks(treeId: string, serverUpdatedAt: string): ConflictPickState {
+  return {
+    treeId,
+    serverUpdatedAt,
+    nodePicks: {},
+    structuralPicks: {},
+    labelPick: null,
+    reorderPicks: {},
+  };
+}
+
+function isCompleteConflictState(value: unknown): value is SyncConflictUiState {
+  return typeof value === "object" && value !== null && "dialogOpen" in value && "picks" in value;
+}

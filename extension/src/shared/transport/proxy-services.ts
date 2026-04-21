@@ -14,6 +14,13 @@ import type { FlagKey, ResolvedFlags } from "@shared/types/flags.js";
 import type { NodeId, TabId, Title, Url } from "@shared/types/ids.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { Tab } from "@shared/platform/webext.js";
+import type { CompactTreeJSON } from "@shared/types/compact-tree.js";
+import type {
+  ApplyConflictMergeInput,
+  ApplyResult,
+  CompressedConflictPreview,
+  ConflictPreviewError,
+} from "@shared/types/tree-diff.js";
 
 export interface TreeService {
   navigateTo(input: { nodeId: NodeId; url?: Url }): Promise<void>;
@@ -51,6 +58,24 @@ export interface TreeService {
   importTrail(input: { bundle: TrailExportBundle }): Promise<{ treeId: string }>;
   reparentNode(input: { nodeId: NodeId; newParentId: NodeId }): Promise<void>;
   renameNode(input: { nodeId: NodeId; title: string }): Promise<void>;
+  fetchConflictPreview(input: {
+    treeId: string;
+  }): Promise<
+    { ok: true; value: CompressedConflictPreview } | { ok: false; error: ConflictPreviewError }
+  >;
+  getStoredTreeForConflict(input: { treeId: string }): Promise<{ compact: CompactTreeJSON | null }>;
+  applyConflictMerge(input: ApplyConflictMergeInput): Promise<ApplyResult>;
+  forkTreeFromConflict(input: {
+    treeId: string;
+  }): Promise<{ ok: true; forkedTreeId: string } | { ok: false; reason: string }>;
+  getPendingConflicts(): Promise<{
+    conflicts: Array<{
+      treeId: string;
+      serverUpdatedAt: string;
+      serverDeviceId: string;
+      label: string;
+    }>;
+  }>;
 }
 
 export interface CommandService {

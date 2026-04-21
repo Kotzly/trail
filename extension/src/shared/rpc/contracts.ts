@@ -4,6 +4,13 @@ import { type TabState } from "../types/tabs.js";
 import { type NavigationTreeJSON, type TreeMeta, type TreeIndexEntry } from "../types/tree.js";
 import type { TrailExportBundle } from "../types/export.js";
 import type { FlagKey, ResolvedFlags } from "../types/flags.js";
+import type { CompactTreeJSON } from "../types/compact-tree.js";
+import type {
+  ApplyConflictMergeInput,
+  ApplyResult,
+  CompressedConflictPreview,
+  ConflictPreviewError,
+} from "../types/tree-diff.js";
 import { type RuntimeMessageSender, type Tab } from "@shared/platform/webext.js";
 
 export const RPC_METHOD = {
@@ -62,6 +69,11 @@ export const RPC_METHOD = {
   RESET_FLAGS: "RESET_FLAGS",
   GET_LOCAL_TRAIL_DETAIL: "GET_LOCAL_TRAIL_DETAIL",
   IMPORT_TRAIL: "IMPORT_TRAIL",
+  FETCH_CONFLICT_PREVIEW: "FETCH_CONFLICT_PREVIEW",
+  GET_STORED_TREE_FOR_CONFLICT: "GET_STORED_TREE_FOR_CONFLICT",
+  APPLY_CONFLICT_MERGE: "APPLY_CONFLICT_MERGE",
+  FORK_TREE_FROM_CONFLICT: "FORK_TREE_FROM_CONFLICT",
+  GET_PENDING_CONFLICTS: "GET_PENDING_CONFLICTS",
 } as const;
 
 export type RequestType = (typeof RPC_METHOD)[keyof typeof RPC_METHOD];
@@ -333,6 +345,46 @@ export type ImportTrailMessage = RequestMessageBase<
   }
 >;
 
+export type FetchConflictPreviewMessage = RequestMessageBase<
+  typeof RPC_METHOD.FETCH_CONFLICT_PREVIEW,
+  { treeId: string }
+>;
+export type FetchConflictPreviewResponse =
+  | { ok: true; value: CompressedConflictPreview }
+  | { ok: false; error: ConflictPreviewError };
+
+export type GetStoredTreeForConflictMessage = RequestMessageBase<
+  typeof RPC_METHOD.GET_STORED_TREE_FOR_CONFLICT,
+  { treeId: string }
+>;
+export type GetStoredTreeForConflictResponse = { compact: CompactTreeJSON | null };
+
+export type ApplyConflictMergeMessage = RequestMessageBase<
+  typeof RPC_METHOD.APPLY_CONFLICT_MERGE,
+  ApplyConflictMergeInput
+>;
+export type ApplyConflictMergeResponse = ApplyResult;
+
+export type ForkTreeFromConflictMessage = RequestMessageBase<
+  typeof RPC_METHOD.FORK_TREE_FROM_CONFLICT,
+  { treeId: string }
+>;
+export type ForkTreeFromConflictResponse =
+  | { ok: true; forkedTreeId: string }
+  | { ok: false; reason: string };
+
+export type PendingConflictSummary = {
+  treeId: string;
+  serverUpdatedAt: string;
+  serverDeviceId: string;
+  label: string;
+};
+
+export type GetPendingConflictsMessage = RequestMessageBase<
+  typeof RPC_METHOD.GET_PENDING_CONFLICTS
+>;
+export type GetPendingConflictsResponse = { conflicts: PendingConflictSummary[] };
+
 export type RequestMessage =
   | NavigateToMessage
   | PreviewNodeMessage
@@ -388,7 +440,12 @@ export type RequestMessage =
   | SetFlagMessage
   | ResetFlagsMessage
   | GetLocalTrailDetailMessage
-  | ImportTrailMessage;
+  | ImportTrailMessage
+  | FetchConflictPreviewMessage
+  | GetStoredTreeForConflictMessage
+  | ApplyConflictMergeMessage
+  | ForkTreeFromConflictMessage
+  | GetPendingConflictsMessage;
 
 // ==== Responses ====
 
@@ -448,6 +505,11 @@ export type ResponseDataByType = {
   [RPC_METHOD.RESET_FLAGS]: ResolvedFlags;
   [RPC_METHOD.GET_LOCAL_TRAIL_DETAIL]: LocalTrailDetail;
   [RPC_METHOD.IMPORT_TRAIL]: { treeId: string };
+  [RPC_METHOD.FETCH_CONFLICT_PREVIEW]: FetchConflictPreviewResponse;
+  [RPC_METHOD.GET_STORED_TREE_FOR_CONFLICT]: GetStoredTreeForConflictResponse;
+  [RPC_METHOD.APPLY_CONFLICT_MERGE]: ApplyConflictMergeResponse;
+  [RPC_METHOD.FORK_TREE_FROM_CONFLICT]: ForkTreeFromConflictResponse;
+  [RPC_METHOD.GET_PENDING_CONFLICTS]: GetPendingConflictsResponse;
 };
 
 export type MessageByType<T extends RequestType> = Extract<RequestMessage, { type: T }>;

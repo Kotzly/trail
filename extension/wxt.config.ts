@@ -42,6 +42,42 @@ export default defineConfig({
         }
       : {}),
   }),
+  hooks: {
+    // Multi-page HTML bundles (sidepanel/settings/login) share a huge
+    // "theme-provider" chunk (>680kB). Split vendor packages into named
+    // chunks so each one stays under the 500kB warning and the shared
+    // runtime can be cached across pages. Background and content scripts
+    // use iife/inlineDynamicImports, which forbid manualChunks, so this
+    // only applies to multi-page groups (Array.isArray).
+    "vite:build:extendConfig"(entrypoints, config) {
+      if (!Array.isArray(entrypoints) || entrypoints.length < 2) return;
+      config.build ??= {};
+      config.build.rollupOptions ??= {};
+      config.build.rollupOptions.output ??= {};
+      const output = config.build.rollupOptions.output;
+      if (Array.isArray(output)) return;
+      output.manualChunks = (id: string) => {
+        if (!id.includes("node_modules")) return;
+        // Keep React + Radix in one vendor chunk — Radix re-exports React
+        // internals, splitting them triggers a circular-chunk warning.
+        if (
+          id.includes("/react/") ||
+          id.includes("/react-dom/") ||
+          id.includes("/scheduler/") ||
+          id.includes("/@radix-ui/") ||
+          id.includes("/radix-ui/") ||
+          id.includes("/@base-ui/")
+        ) {
+          return "react-vendor";
+        }
+        if (id.includes("/@supabase/")) return "supabase";
+        if (id.includes("/@sentry/")) return "sentry";
+        if (id.includes("/@xyflow/") || id.includes("/d3-hierarchy/")) {
+          return "flow";
+        }
+      };
+    },
+  },
   alias: {
     "@entrypoints": resolve("src/entrypoints"),
     "@apps": resolve("src/apps"),

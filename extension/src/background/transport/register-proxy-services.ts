@@ -28,6 +28,7 @@ import { flagsHandlers } from "@background/messaging/handlers/flags-handlers.js"
 import { tabHandlers } from "@background/messaging/handlers/tab-handlers.js";
 import { pinHandlers } from "@background/messaging/handlers/pin-handlers.js";
 import { editorHandlers, getEditorState } from "@background/messaging/handlers/editor-handlers.js";
+import { syncConflictHandlers } from "@background/messaging/handlers/sync-conflict-handlers.js";
 import type { RuntimeMessageSender } from "@shared/platform/webext.js";
 
 const EMPTY_SENDER = {} as RuntimeMessageSender;
@@ -124,6 +125,30 @@ const treeService: TreeService = {
     call(editorHandlers[RPC_METHOD.REPARENT_NODE], { type: RPC_METHOD.REPARENT_NODE, ...input }),
   renameNode: (input) =>
     call(editorHandlers[RPC_METHOD.RENAME_NODE], { type: RPC_METHOD.RENAME_NODE, ...input }),
+  fetchConflictPreview: (input) =>
+    call(syncConflictHandlers[RPC_METHOD.FETCH_CONFLICT_PREVIEW], {
+      type: RPC_METHOD.FETCH_CONFLICT_PREVIEW,
+      ...input,
+    }),
+  getStoredTreeForConflict: (input) =>
+    call(syncConflictHandlers[RPC_METHOD.GET_STORED_TREE_FOR_CONFLICT], {
+      type: RPC_METHOD.GET_STORED_TREE_FOR_CONFLICT,
+      ...input,
+    }),
+  applyConflictMerge: (input) =>
+    call(syncConflictHandlers[RPC_METHOD.APPLY_CONFLICT_MERGE], {
+      type: RPC_METHOD.APPLY_CONFLICT_MERGE,
+      ...input,
+    }),
+  forkTreeFromConflict: (input) =>
+    call(syncConflictHandlers[RPC_METHOD.FORK_TREE_FROM_CONFLICT], {
+      type: RPC_METHOD.FORK_TREE_FROM_CONFLICT,
+      ...input,
+    }),
+  getPendingConflicts: () =>
+    call(syncConflictHandlers[RPC_METHOD.GET_PENDING_CONFLICTS], {
+      type: RPC_METHOD.GET_PENDING_CONFLICTS,
+    }),
 };
 
 const commandService: CommandService = {

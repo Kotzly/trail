@@ -17,6 +17,7 @@ export const EXTENSION_MESSAGE = {
   UI_NOTIFY: "event/ui-notify",
   SYNC_STATUS: "event/sync-status",
   SYNC_CONFLICT: "event/sync-conflict",
+  SYNC_CONFLICT_RESOLVED: "event/sync-conflict-resolved",
   AUTH_STATE: "event/auth-state",
   SITE_EDITOR_MODE_EXITED: "site/editor-mode-exited",
   CONTENT_BRIDGE_ERROR: "event/content-bridge-error",
@@ -36,6 +37,10 @@ export type SyncConflictEvent = {
   treeId: string;
   serverUpdatedAt: string;
   serverDeviceId: string;
+};
+
+export type SyncConflictResolvedEvent = {
+  treeId: string;
 };
 
 export type AuthStateEvent =
@@ -59,6 +64,7 @@ export interface ExtensionProtocolMap {
   [EXTENSION_MESSAGE.UI_NOTIFY](data: UiNotificationInput): void;
   [EXTENSION_MESSAGE.SYNC_STATUS](data: SyncStatusEvent): void;
   [EXTENSION_MESSAGE.SYNC_CONFLICT](data: SyncConflictEvent): void;
+  [EXTENSION_MESSAGE.SYNC_CONFLICT_RESOLVED](data: SyncConflictResolvedEvent): void;
   [EXTENSION_MESSAGE.AUTH_STATE](data: AuthStateEvent): void;
   [EXTENSION_MESSAGE.SITE_EDITOR_MODE_EXITED](data: { editorMode: false }): void;
   [EXTENSION_MESSAGE.CONTENT_BRIDGE_ERROR](data: ContentBridgeErrorEvent): void;

@@ -646,6 +646,37 @@ class TreeStorageService {
   }
 
   /**
+   * Insert a brand-new stored tree (blob + index entry) from a JSON
+   * payload. Used by the sync-conflict fork flow to snapshot the user's
+   * local work before force-pulling the server copy.
+   *
+   * If an entry with the same id already exists, it is replaced.
+   */
+  async addStoredTreeFromJSON(meta: TreeMeta, json: NavigationTreeJSON): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const root = json.root;
+      const identifying = root?.data;
+      const summary: TreeSummary = {
+        ...meta,
+        nodeCount: json.nodeCount,
+        savedAt: Date.now(),
+        ...(identifying?.url ? { rootUrl: identifying.url } : {}),
+        ...(identifying?.title ? { rootTitle: identifying.title } : {}),
+        ...((findBestTrailFavicon(json) ?? identifying?.favicon)
+          ? { rootFavicon: findBestTrailFavicon(json) ?? identifying?.favicon }
+          : {}),
+      };
+      const nextIndex = [summary, ...index.filter((e) => e.id !== meta.id)];
+      this.cachedIndex = nextIndex;
+      await writeBulkDirect([
+        { item: treeIndexBulkItem, value: nextIndex },
+        { key: treeBlobKey(meta.id), value: serializeBlob(encodeTree(json)) },
+      ]);
+    });
+  }
+
+  /**
    * Delete just the blob for a stored tree entry. Used by sync engine
    * when a remote delete is received.
    */
@@ -1012,6 +1043,62 @@ class TreeStorageService {
         ]);
       } catch (error) {
         log.error("Error updating stored tree", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }
+
+  /**
+   * Like `updateStoredTree` but also carries a merged label into the
+   * index. Used by the sync-conflict apply path where the user picked
+   * a specific label side (may differ from both the stored label and
+   * whatever `renameTree` would force via `labelSource: "user"`).
+   *
+   * Accepts NavigationTreeJSON directly (not `NavigationTree`) because
+   * the merge runs in pure-function land before entering this storage
+   * layer.
+   */
+  async updateStoredTreeWithLabel(
+    treeId: string,
+    treeJSON: NavigationTreeJSON,
+    label: string,
+    labelSource: TreeLabelSource,
+    labelUpdatedAt: number,
+    savedAt: number,
+  ): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const idx = index.findIndex((e) => e.id === treeId);
+      if (idx < 0) return;
+
+      const existing = index[idx]!;
+      const root = treeJSON.root;
+      const favicon = findBestTrailFavicon(treeJSON) ?? root?.data.favicon;
+
+      const updated: TreeSummary = {
+        id: existing.id,
+        label,
+        labelSource,
+        labelUpdatedAt,
+        createdAt: existing.createdAt,
+        nodeCount: treeJSON.nodeCount,
+        savedAt,
+        ...(root?.data.url && { rootUrl: root.data.url }),
+        ...(root?.data.title && { rootTitle: root.data.title }),
+        ...(favicon && { rootFavicon: favicon }),
+      };
+
+      index[idx] = updated;
+      this.cachedIndex = index;
+
+      try {
+        await writeBulkDirect([
+          { item: treeIndexBulkItem, value: index },
+          { key: treeBlobKey(treeId), value: serializeBlob(encodeTree(treeJSON)) },
+        ]);
+      } catch (error) {
+        log.error("Error updating stored tree with label", {
           error: error instanceof Error ? error.message : String(error),
         });
       }

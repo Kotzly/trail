@@ -1,5 +1,6 @@
 import { actionService } from "@shared/transport/proxy-clients.js";
 import type { NodeId, TabId } from "@shared/types/ids.js";
+import { showOperationError } from "@apps/sidepanel/ui/shared/show-operation-error.js";
 
 export async function openInNewTab(nodeId: NodeId): Promise<void> {
   await actionService.openInNewTab({ nodeId });
@@ -59,17 +60,6 @@ export async function exitEditorMode(): Promise<void> {
 
 export function fireAndForget(action: Promise<unknown>, context: string): void {
   void action.catch((error) => {
-    // User-initiated mutations (pin/unpin/delete etc.) must surface
-    // their failure — previously they died in console.error only
-    // (closes P1.18). `showOperationError` shows a toast AND logs +
-    // captures via Sentry internally.
-    void import("@apps/sidepanel/ui/shared/show-operation-error.js")
-      .then(({ showOperationError }) => {
-        showOperationError(`Couldn't ${context}`, error);
-      })
-      .catch(() => {
-        // Fallback if the helper chunk isn't available — still log.
-        console.error(`Failed to run sidepanel action (${context}):`, error);
-      });
+    showOperationError(`Couldn't ${context}`, error);
   });
 }

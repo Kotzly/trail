@@ -11,6 +11,7 @@ export function useRuntimeMessages(): void {
   const setSyncStatus = useStore((state) => state.setSyncStatus);
   const setAuthState = useStore((state) => state.setAuthState);
   const setSyncConflict = useStore((state) => state.setSyncConflict);
+  const clearConflict = useStore((state) => state.clearConflict);
 
   useEffect(() => {
     const removeTreeUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREE_UPDATED, ({ data }) => {
@@ -43,6 +44,13 @@ export function useRuntimeMessages(): void {
     const removeSyncConflict = onExtensionMessage(EXTENSION_MESSAGE.SYNC_CONFLICT, ({ data }) => {
       setSyncConflict(data);
     });
+    const removeSyncConflictResolved = onExtensionMessage(
+      EXTENSION_MESSAGE.SYNC_CONFLICT_RESOLVED,
+      () => {
+        // Engine confirms the apply landed — tear down the UI slice.
+        clearConflict();
+      },
+    );
 
     return () => {
       removeTreeUpdated();
@@ -51,6 +59,7 @@ export function useRuntimeMessages(): void {
       removeSyncStatus();
       removeAuthState();
       removeSyncConflict();
+      removeSyncConflictResolved();
     };
   }, [
     applyTreeState,
@@ -60,5 +69,6 @@ export function useRuntimeMessages(): void {
     setSyncStatus,
     setAuthState,
     setSyncConflict,
+    clearConflict,
   ]);
 }

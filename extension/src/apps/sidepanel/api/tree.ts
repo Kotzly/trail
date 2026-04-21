@@ -135,3 +135,80 @@ export async function reparentNode(nodeId: NodeId, newParentId: NodeId): Promise
 export async function renameNode(nodeId: NodeId, title: string): Promise<void> {
   await treeService.renameNode({ nodeId, title });
 }
+
+// Sync-conflict RPCs ---------------------------------------------------
+
+// Guard every call so a transient RPC miss (e.g. background SW warming
+// up, stale bundle) surfaces as a typed error instead of a runtime
+// TypeError inside the caller.
+
+export async function fetchConflictPreview(treeId: string) {
+  try {
+    const res = await treeService.fetchConflictPreview({ treeId });
+    if (!res || typeof res !== "object" || !("ok" in res)) {
+      console.error("[conflict] fetchConflictPreview returned invalid response", res);
+      return { ok: false as const, error: { reason: "network" as const } };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] fetchConflictPreview threw", err);
+    return { ok: false as const, error: { reason: "network" as const } };
+  }
+}
+
+export async function getStoredTreeForConflict(treeId: string) {
+  try {
+    const res = await treeService.getStoredTreeForConflict({ treeId });
+    if (!res || typeof res !== "object") {
+      console.error("[conflict] getStoredTreeForConflict returned invalid response", res);
+      return { compact: null };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] getStoredTreeForConflict threw", err);
+    return { compact: null };
+  }
+}
+
+export async function applyConflictMerge(
+  input: Parameters<typeof treeService.applyConflictMerge>[0],
+) {
+  try {
+    const res = await treeService.applyConflictMerge(input);
+    if (!res || typeof res !== "object" || !("ok" in res)) {
+      console.error("[conflict] applyConflictMerge returned invalid response", res);
+      return { ok: false as const, error: { reason: "network" as const } };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] applyConflictMerge threw", err);
+    return { ok: false as const, error: { reason: "network" as const } };
+  }
+}
+
+export async function forkTreeFromConflict(treeId: string) {
+  try {
+    const res = await treeService.forkTreeFromConflict({ treeId });
+    if (!res || typeof res !== "object" || !("ok" in res)) {
+      console.error("[conflict] forkTreeFromConflict returned invalid response", res);
+      return { ok: false as const, reason: "network" };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] forkTreeFromConflict threw", err);
+    return { ok: false as const, reason: "network" };
+  }
+}
+
+export async function getPendingConflicts() {
+  try {
+    const res = await treeService.getPendingConflicts();
+    if (!res || typeof res !== "object" || !Array.isArray(res.conflicts)) {
+      return { conflicts: [] };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] getPendingConflicts threw", err);
+    return { conflicts: [] };
+  }
+}

@@ -57,6 +57,17 @@ import {
 } from "@shared/types/tree.js";
 import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
 import { notifyUi } from "@background/messaging/ui-notifications.js";
+import { toCompact, fromCompact } from "@shared/lib/compact-mapper.js";
+import { uuidv7 } from "@shared/lib/uuid.js";
+import { validateMergedTree } from "@shared/lib/tree-diff.js";
+import {
+  CONFLICT_DIALOG_NODE_CAP,
+  type ApplyConflictMergeInput,
+  type ApplyOk,
+  type ApplyResult,
+  type CompressedConflictPreview,
+  type ConflictPreviewError,
+} from "@shared/types/tree-diff.js";
 
 const log = createLogger("sync");
 
@@ -224,20 +235,29 @@ async function pushRow(input: PushRowInput): Promise<PushOutcome> {
     const localKnown = new Date(syncMeta.lastSyncedAt).getTime();
     const serverT = new Date(existing.updated_at).getTime();
     if (serverT > localKnown) {
-      log.info("push: conflict detected (newer server from another device)", {
-        treeId: input.id,
-      });
-      fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT, {
+      const { isNew } = markConflict({
         treeId: input.id,
         serverUpdatedAt: existing.updated_at,
         serverDeviceId: existing.device_id,
+        label: input.label,
       });
-      notifyUi({
-        message: `"${input.label}" has newer edits on another device — resolve the conflict to sync.`,
-        icon: "AlertTriangle",
-        durationMs: 10000,
-      });
-      captureEvent("sync_failed", { reason: "conflict" });
+      if (isNew) {
+        // Only log + fire the event on the first detection for this
+        // server revision. Retrying the push on every local mutation
+        // (debounced ~2 s) would otherwise spam sonner with duplicate
+        // "merge conflict" toasts and push the persistent resolve-
+        // toast off the visible stack. Re-firing on a NEWER server
+        // updated_at is still allowed — that's a real state change.
+        log.info("push: conflict detected (newer server from another device)", {
+          treeId: input.id,
+        });
+        fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT, {
+          treeId: input.id,
+          serverUpdatedAt: existing.updated_at,
+          serverDeviceId: existing.device_id,
+        });
+        captureEvent("sync_failed", { reason: "conflict" });
+      }
       setStatus("error");
       return "conflict";
     }
@@ -280,12 +300,52 @@ async function pushRow(input: PushRowInput): Promise<PushOutcome> {
   return "ok";
 }
 
+/**
+ * Tree ids with an in-flight conflict-merge apply. While an id is here
+ * the debounced push path skips that tree to avoid racing the
+ * conditional upsert in `applyConflictMergeInternal`.
+ */
+const mergeInFlight = new Set<string>();
+
+/**
+ * In-memory map of trees that currently have an unresolved conflict,
+ * keyed by treeId. The sidepanel UI queries this on boot so the
+ * conflict toast persists across sidepanel close/reopen without
+ * needing another round-trip through the push path.
+ */
+export type PendingConflict = {
+  treeId: string;
+  serverUpdatedAt: string;
+  serverDeviceId: string;
+  label: string;
+};
+const pendingConflicts = new Map<string, PendingConflict>();
+
+export function getPendingConflictsSnapshot(): PendingConflict[] {
+  return Array.from(pendingConflicts.values());
+}
+
+function markConflict(conflict: PendingConflict): { isNew: boolean } {
+  const existing = pendingConflicts.get(conflict.treeId);
+  const isNew = !existing || existing.serverUpdatedAt !== conflict.serverUpdatedAt;
+  pendingConflicts.set(conflict.treeId, conflict);
+  return { isNew };
+}
+
+function clearPendingConflict(treeId: string): void {
+  pendingConflicts.delete(treeId);
+}
+
 /** Push the in-memory active tree. */
 async function doPushActive(): Promise<PushOutcome> {
   const auth = getAuthState();
   if (auth.status !== "signed-in") return "skipped";
 
   const meta = await treeStorage.getActiveMeta();
+  if (mergeInFlight.has(meta.id)) {
+    log.info("push: suppressed by in-flight conflict merge", { treeId: meta.id });
+    return "skipped";
+  }
   const tree = await treeStorage.getOrCreateTree();
   const root = tree.getRoot();
   if (!root) {
@@ -534,11 +594,19 @@ async function doPull(): Promise<void> {
       currentServer > lastKnownServer ||
       (currentServer === lastKnownServer && row.id > (syncMeta.lastSyncedAt ?? ""));
     if (serverAhead) {
-      fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT, {
+      const { isNew } = markConflict({
         treeId: row.id,
         serverUpdatedAt: row.updated_at,
         serverDeviceId: row.device_id,
+        label: row.label,
       });
+      if (isNew) {
+        fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT, {
+          treeId: row.id,
+          serverUpdatedAt: row.updated_at,
+          serverDeviceId: row.device_id,
+        });
+      }
     }
   }
 
@@ -554,6 +622,465 @@ async function doPull(): Promise<void> {
       /* non-fatal */
     }
   }
+}
+
+/**
+ * Conflict-preview read: no side effects. Unlike `fetchRemoteTreePayload`
+ * below, this call does NOT materialize the payload, unstub the index
+ * entry, or update syncMeta — all of those would commit the remote
+ * version before the user has resolved the conflict.
+ *
+ * Output:
+ *  - `{ ok: true, value: CompressedConflictPreview }` on success. Payload
+ *    is encoded to `CompactTreeJSON` for transport efficiency.
+ *  - `{ ok: false, error }` with a typed reason for the dialog to route.
+ *
+ * Enforces `CONFLICT_DIALOG_NODE_CAP` at this boundary: trees with more
+ * nodes than the cap fall back to the reduced-UX variant.
+ */
+export async function fetchRemoteTreeForConflict(
+  treeId: string,
+): Promise<
+  { ok: true; value: CompressedConflictPreview } | { ok: false; error: ConflictPreviewError }
+> {
+  const supabase = getSupabaseClient();
+  const auth = getAuthState();
+  if (!supabase) return { ok: false, error: { reason: "network" } };
+  if (auth.status !== "signed-in") return { ok: false, error: { reason: "auth-lost" } };
+
+  const { data, error } = await supabase
+    .from("trails")
+    .select(
+      "payload,label,label_source,label_updated_at,updated_at,device_id,deleted_at,node_count",
+    )
+    .eq("id", treeId)
+    .eq("user_id", auth.identity.userId)
+    .maybeSingle();
+
+  if (error) {
+    if (isOfflineError(error)) return { ok: false, error: { reason: "network" } };
+    captureError(error, { kind: "sync_conflict_preview", treeId });
+    return { ok: false, error: { reason: "network" } };
+  }
+  if (!data) return { ok: false, error: { reason: "row-missing" } };
+  if (typeof data.node_count === "number" && data.node_count > CONFLICT_DIALOG_NODE_CAP) {
+    return { ok: false, error: { reason: "too-large", nodeCount: data.node_count } };
+  }
+
+  const payload = data.payload as NavigationTreeJSON | null;
+  if (!payload || !payload.root) {
+    // Empty server tree is fine — allow diff against empty. But a null
+    // payload on a non-deleted row is a schema violation.
+    if (!data.deleted_at) {
+      return { ok: false, error: { reason: "payload-corrupt", detail: "null payload" } };
+    }
+  }
+
+  const safePayload: NavigationTreeJSON = payload ?? {
+    root: null,
+    currentNodeId: null,
+    nodeCount: 0,
+  };
+  let compact;
+  try {
+    compact = toCompact(safePayload);
+  } catch (encodeErr) {
+    return {
+      ok: false,
+      error: {
+        reason: "payload-corrupt",
+        detail: encodeErr instanceof Error ? encodeErr.message : String(encodeErr),
+      },
+    };
+  }
+
+  const labelSource = (
+    typeof data.label_source === "string" ? data.label_source.toLowerCase() : "user"
+  ) as TreeLabelSource;
+
+  return {
+    ok: true,
+    value: {
+      treeId,
+      serverPayloadCompact: compact,
+      serverLabel: {
+        label: String(data.label ?? ""),
+        source: labelSource,
+        updatedAt: data.label_updated_at ? new Date(data.label_updated_at).getTime() : 0,
+      },
+      serverUpdatedAt: String(data.updated_at ?? ""),
+      serverDeviceId: String(data.device_id ?? ""),
+      isSoftDeleted: data.deleted_at !== null,
+    },
+  };
+}
+
+type ConditionalPushInput = PushRowInput & { expectedServerUpdatedAt: string };
+
+/**
+ * Like `pushRow` but uses optimistic concurrency: the UPDATE is gated
+ * by `.eq("updated_at", expected)`. When the server row's updated_at
+ * moved between preview and apply (TOCTOU), zero rows match and we
+ * signal `server-changed` rather than overwriting.
+ *
+ * Unlike the regular upsert path this ALWAYS uses UPDATE (the row must
+ * exist already — conflict resolution presupposes a row to conflict
+ * with). A separate row-missing branch in the caller handles the
+ * never-existed case.
+ */
+async function pushRowConditional(
+  input: ConditionalPushInput,
+): Promise<
+  | { ok: true; updatedAt: string }
+  | { ok: false; reason: "server-changed" | "row-deleted" | "network" }
+> {
+  const supabase = getSupabaseClient();
+  const auth = getAuthState();
+  if (!supabase || auth.status !== "signed-in") return { ok: false, reason: "network" };
+  const deviceId = await getDeviceId();
+  if (!deviceId) return { ok: false, reason: "network" };
+
+  if (!withinRateLimit()) {
+    // Conflict apply is explicit user action — re-enqueuing silently
+    // would hide the failure. Treat rate limit as a transient network
+    // error so the UI can surface a retry affordance.
+    log.info("pushRowConditional: rate limited", { treeId: input.id });
+    return { ok: false, reason: "network" };
+  }
+  recordPush();
+
+  const fields = {
+    device_id: deviceId,
+    label: input.label,
+    label_source: input.labelSource.toUpperCase(),
+    label_updated_at: new Date(input.labelUpdatedAt).toISOString(),
+    saved_at: new Date().toISOString(),
+    node_count: input.nodeCount,
+    root_url: input.rootUrl,
+    root_title: input.rootTitle,
+    root_favicon: input.rootFavicon,
+    payload: input.payload,
+  };
+
+  const { data, error } = await supabase
+    .from("trails")
+    .update(fields)
+    .eq("id", input.id)
+    .eq("user_id", auth.identity.userId)
+    .eq("updated_at", input.expectedServerUpdatedAt)
+    .is("deleted_at", null)
+    .select("updated_at")
+    .maybeSingle();
+
+  if (error) {
+    if (isOfflineError(error)) return { ok: false, reason: "network" };
+    captureError(error, { kind: "sync_conflict_apply", treeId: input.id });
+    return { ok: false, reason: "network" };
+  }
+
+  if (!data) {
+    // Zero rows matched → either updated_at advanced (another device
+    // pushed again), or deleted_at got set between preview and apply.
+    // Disambiguate with a follow-up read.
+    const { data: check } = await supabase
+      .from("trails")
+      .select("deleted_at")
+      .eq("id", input.id)
+      .maybeSingle();
+    if (check && check.deleted_at !== null) return { ok: false, reason: "row-deleted" };
+    return { ok: false, reason: "server-changed" };
+  }
+
+  return { ok: true, updatedAt: String(data.updated_at ?? "") };
+}
+
+/**
+ * Apply a user-resolved merge atomically. See plan §Apply write-back.
+ *
+ * Ordering is: validate → guard active-tree invariant → conditional
+ * upsert (optimistic concurrency) → local write → syncMeta update →
+ * fire RESOLVED event. Local write deliberately follows the successful
+ * upsert so TOCTOU / server-changed races don't corrupt local state.
+ */
+export async function applyConflictMergeInternal(
+  input: ApplyConflictMergeInput,
+): Promise<ApplyResult> {
+  const auth = getAuthState();
+  if (auth.status !== "signed-in") {
+    return { ok: false, error: { reason: "network" } };
+  }
+
+  // 1. Active-tree invariant.
+  const activeMeta = await treeStorage.getActiveMeta();
+  if (input.expectedActiveTreeId !== null && activeMeta.id !== input.expectedActiveTreeId) {
+    return { ok: false, error: { reason: "tree-not-active", activeTreeId: activeMeta.id } };
+  }
+
+  // 2. Decode compact → NavigationTreeJSON.
+  let merged: NavigationTreeJSON;
+  try {
+    merged = fromCompact(input.mergedTreeCompact);
+  } catch (err) {
+    return {
+      ok: false,
+      error: {
+        reason: "invalid-merge",
+        validatorReason: err instanceof Error ? err.message : String(err),
+      },
+    };
+  }
+
+  // 3. Validate the merged tree — block apply on any invariant break.
+  const validation = validateMergedTree(merged);
+  if (!validation.ok) {
+    return { ok: false, error: { reason: "invalid-merge", validatorReason: validation.reason } };
+  }
+
+  // Identifying fields for the push row.
+  const identifying = merged.root
+    ? {
+        url: merged.root.data.url as string,
+        title: merged.root.data.title as string,
+        favicon: merged.root.data.favicon ? (merged.root.data.favicon as string) : null,
+      }
+    : { url: null, title: null, favicon: null };
+
+  // 4. Offline short-circuit — queue for later.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    await enqueuePendingOp({ kind: "push_tree", treeId: input.treeId, queuedAt: Date.now() });
+    return { ok: false, error: { reason: "offline", queued: true } };
+  }
+
+  mergeInFlight.add(input.treeId);
+  try {
+    // 5. Conditional upsert. TOCTOU caught here.
+    const pushRes = await pushRowConditional({
+      id: input.treeId,
+      label: input.mergedLabel.label,
+      labelSource: input.mergedLabel.source,
+      labelUpdatedAt: input.mergedLabel.updatedAt,
+      payload: merged,
+      nodeCount: merged.nodeCount,
+      rootUrl: identifying.url,
+      rootTitle: identifying.title,
+      rootFavicon: identifying.favicon,
+      expectedServerUpdatedAt: input.expectedServerUpdatedAt,
+    });
+
+    if (!pushRes.ok) {
+      if (pushRes.reason === "server-changed") {
+        // Re-fetch to surface the new preview in the UI.
+        const fresh = await fetchRemoteTreeForConflict(input.treeId);
+        if (fresh.ok) {
+          return { ok: false, error: { reason: "server-changed", latest: fresh.value } };
+        }
+        return { ok: false, error: { reason: "network" } };
+      }
+      if (pushRes.reason === "row-deleted") {
+        return { ok: false, error: { reason: "row-deleted" } };
+      }
+      return { ok: false, error: { reason: "network" } };
+    }
+
+    // 6. Local write — active vs stored branch.
+    try {
+      if (activeMeta.id === input.treeId) {
+        const nextTree = NavigationTreeMapper.fromJSON(merged);
+        await treeStorage.setActiveTree(nextTree, {
+          ...activeMeta,
+          label: input.mergedLabel.label,
+          labelSource: input.mergedLabel.source,
+          labelUpdatedAt: input.mergedLabel.updatedAt,
+        });
+        await treeStorage.flushSaveNow();
+      } else {
+        await treeStorage.updateStoredTreeWithLabel(
+          input.treeId,
+          merged,
+          input.mergedLabel.label,
+          input.mergedLabel.source,
+          input.mergedLabel.updatedAt,
+          Date.now(),
+        );
+      }
+    } catch (localErr) {
+      // Upsert already succeeded; the next pull tick will re-establish
+      // local/remote parity. Log and report success to the UI so the
+      // banner clears.
+      log.warn("applyConflictMergeInternal: local write failed after upsert", {
+        treeId: input.treeId,
+        error: localErr instanceof Error ? localErr.message : String(localErr),
+      });
+    }
+
+    // 7. syncMeta from the authoritative upsert response.
+    const prevMeta = await getSyncMeta(input.treeId);
+    await writeSyncMeta(input.treeId, {
+      lastSyncedAt: pushRes.updatedAt,
+      lastRemoteUpdatedAt: pushRes.updatedAt,
+      lastPushedLocalVersion: prevMeta.lastPushedLocalVersion + 1,
+    });
+
+    // 8. Fire resolved event + UI refresh.
+    clearPendingConflict(input.treeId);
+    fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT_RESOLVED, { treeId: input.treeId });
+    try {
+      const active = await treeStorage.getActiveMeta();
+      const others = await treeStorage.getStoredSummaries();
+      fireExtensionEvent(EXTENSION_MESSAGE.TREES_UPDATED, { active, others });
+    } catch {
+      /* non-fatal */
+    }
+
+    const value: ApplyOk = {
+      mergedUpdatedAt: pushRes.updatedAt,
+      diffCounts: {
+        unchanged: 0,
+        added: 0,
+        removed: 0,
+        modified: 0,
+        moved: 0,
+        reordered: 0,
+        corrupt: 0,
+      },
+      mode: input.mode,
+    };
+    setStatus("saved");
+    return { ok: true, value };
+  } finally {
+    mergeInFlight.delete(input.treeId);
+  }
+}
+
+/**
+ * Fork-then-reset resolution for a sync conflict.
+ *
+ * Steps:
+ *   1. Snapshot the current LOCAL tree (active or stored) as a brand-new
+ *      stored tree labelled "<original> (fork)". The user's work never
+ *      leaves their device.
+ *   2. Fetch the server's authoritative copy of the conflicting tree.
+ *   3. Overwrite the original slot (active or stored) with the server
+ *      payload; realign syncMeta so subsequent pushes no longer race.
+ *   4. Schedule a push of the new fork so it's backed up to the cloud.
+ *   5. Fire SYNC_CONFLICT_RESOLVED so the toast dismisses.
+ *
+ * User model: "keep my work safely somewhere, accept the cloud here".
+ */
+export async function forkTreeFromConflict(
+  treeId: string,
+): Promise<{ ok: true; forkedTreeId: string } | { ok: false; reason: string }> {
+  const auth = getAuthState();
+  if (auth.status !== "signed-in") return { ok: false, reason: "auth" };
+
+  const activeMeta = await treeStorage.getActiveMeta();
+  const isActive = activeMeta.id === treeId;
+
+  // 1. Capture local content + label for the fork.
+  let localJSON: NavigationTreeJSON;
+  let origLabel: string;
+  let origCreatedAt: number;
+  if (isActive) {
+    const tree = await treeStorage.getOrCreateTree();
+    if (!tree.getRoot()) return { ok: false, reason: "empty_local" };
+    localJSON = NavigationTreeMapper.toJSON(tree);
+    origLabel = activeMeta.label;
+    origCreatedAt = activeMeta.createdAt;
+  } else {
+    const record = await treeStorage.getFullStoredRecord(treeId);
+    if (!record) return { ok: false, reason: "missing_local" };
+    localJSON = record.tree;
+    origLabel = record.label;
+    origCreatedAt = record.createdAt;
+  }
+
+  const now = Date.now();
+  const forkedId = uuidv7();
+  const forkMeta = {
+    id: forkedId,
+    label: `${origLabel} (fork)`,
+    labelSource: "user" as TreeLabelSource,
+    labelUpdatedAt: now,
+    createdAt: now,
+  };
+
+  // 2. Fetch the server's authoritative copy BEFORE snapshotting — if
+  // the server fetch fails we don't want to leave a half-applied fork.
+  mergeInFlight.add(treeId);
+  try {
+    const preview = await fetchRemoteTreeForConflict(treeId);
+    if (!preview.ok) return { ok: false, reason: preview.error.reason };
+
+    let serverJSON: NavigationTreeJSON;
+    try {
+      serverJSON = fromCompact(preview.value.serverPayloadCompact);
+    } catch (err) {
+      return {
+        ok: false,
+        reason: `decode: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+
+    // 3. Snapshot the local tree as the fork.
+    await treeStorage.addStoredTreeFromJSON(forkMeta, localJSON);
+
+    // 4. Overwrite the original slot with the server payload.
+    if (isActive) {
+      const serverTree = NavigationTreeMapper.fromJSON(serverJSON);
+      await treeStorage.setActiveTree(serverTree, {
+        id: treeId,
+        createdAt: origCreatedAt,
+        label: preview.value.serverLabel.label,
+        labelSource: preview.value.serverLabel.source,
+        labelUpdatedAt: preview.value.serverLabel.updatedAt,
+      });
+      await treeStorage.flushSaveNow();
+    } else {
+      await treeStorage.updateStoredTreeWithLabel(
+        treeId,
+        serverJSON,
+        preview.value.serverLabel.label,
+        preview.value.serverLabel.source,
+        preview.value.serverLabel.updatedAt,
+        Date.now(),
+      );
+    }
+
+    // 5. Align syncMeta with server. No lastPushedLocalVersion bump
+    // because we haven't written anything NEW to the server for this
+    // tree — we pulled.
+    await writeSyncMeta(treeId, {
+      lastSyncedAt: preview.value.serverUpdatedAt,
+      lastRemoteUpdatedAt: preview.value.serverUpdatedAt,
+      lastPushedLocalVersion: 0,
+    });
+  } finally {
+    mergeInFlight.delete(treeId);
+  }
+
+  // 6. Push the fork to the cloud. Fire-and-forget — if the push fails
+  // it'll be picked up on the next drain.
+  void doPushStored(forkedId).catch((err) => {
+    log.warn("forkTreeFromConflict: fork push failed; will retry", {
+      forkedId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    void enqueuePendingOp({ kind: "push_tree", treeId: forkedId, queuedAt: Date.now() });
+  });
+
+  // 7. Fire events so the UI dismisses the toast + refreshes tree list.
+  clearPendingConflict(treeId);
+  fireExtensionEvent(EXTENSION_MESSAGE.SYNC_CONFLICT_RESOLVED, { treeId });
+  try {
+    const active = await treeStorage.getActiveMeta();
+    const others = await treeStorage.getStoredSummaries();
+    fireExtensionEvent(EXTENSION_MESSAGE.TREES_UPDATED, { active, others });
+  } catch {
+    /* non-fatal */
+  }
+
+  captureEvent("sync_conflict_apply_ok", { treeId, mode: "fork", ms: 0 });
+  return { ok: true, forkedTreeId: forkedId };
 }
 
 /**
