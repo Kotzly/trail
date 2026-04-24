@@ -66,6 +66,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     nodeTabCounts,
     settings,
     precomputedPositions,
+    spotlight,
     onNodeClick,
     onNodeContextMenu,
     onCollapseToggle,
@@ -110,13 +111,21 @@ function TrailGraphInner(props: TrailGraphProps) {
     precomputedPositions,
   });
 
+  const spotlightId = spotlight?.nodeId ?? null;
+  const spotlightKind = spotlight?.kind ?? null;
+
   const displayNodes = useMemo(
     () =>
       layout.nodes.map((n) => {
         const sel = selectedNodeIds.has(n.data.nodeId);
-        return n.selected === sel ? n : { ...n, selected: sel };
+        const sp =
+          spotlightId !== null && spotlightKind !== null && n.data.nodeId === spotlightId
+            ? spotlightKind
+            : undefined;
+        if (n.selected === sel && n.data.spotlight === sp) return n;
+        return { ...n, selected: sel, data: { ...n.data, spotlight: sp } };
       }),
-    [layout.nodes, selectedNodeIds],
+    [layout.nodes, selectedNodeIds, spotlightId, spotlightKind],
   );
 
   const hasNodes = displayNodes.length > 0;

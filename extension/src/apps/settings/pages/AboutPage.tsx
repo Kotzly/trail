@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Button } from "@ui/components/ui/button";
 import TrailLogo from "@ui/components/trail-logo";
-import { onboardingStateItem } from "@shared/config/storage-items.js";
+import { INITIAL_ONBOARDING_STATE, onboardingStateItem } from "@shared/config/storage-items.js";
 import { MARKETING_URLS, openExternal } from "@shared/config/marketing-urls.js";
 import { toast } from "sonner";
 import { FeedbackDialog, type FeedbackKind } from "@ui/components/feedback-dialog.js";
@@ -14,7 +14,27 @@ export function AboutPage() {
   const [feedbackKind, setFeedbackKind] = useState<FeedbackKind | null>(null);
 
   const replayOnboarding = async () => {
-    await onboardingStateItem.setValue({ seenWelcome: false, completedAt: null, step: 0 });
+    // Full reset. If a tour tree is still hanging around (e.g., user
+    // replays from `tourDismissed`), dispose it first so we don't
+    // orphan it — `disposeTourTree` is safe to call when no tour
+    // tree exists. Dynamic import to avoid pulling sidepanel RPC
+    // clients into the settings bundle; the tree-service proxy
+    // works from any extension context.
+    const current = await onboardingStateItem.getValue();
+    if (current.tourTreeId) {
+      try {
+        const { disposeTourTree } = await import("@apps/sidepanel/api/onboarding.js");
+        await disposeTourTree();
+      } catch {
+        // Chunk-load or transient RPC failure — worst case the
+        // stale tour tree stays visible in the user's tree list.
+        // The rest of the replay still proceeds.
+      }
+    }
+    // Use the canonical initial shape so new fields added to
+    // `OnboardingState` are reset automatically without touching
+    // this file.
+    await onboardingStateItem.setValue(INITIAL_ONBOARDING_STATE);
     toast.info("Open the Trail sidepanel to see the walkthrough again.");
   };
 

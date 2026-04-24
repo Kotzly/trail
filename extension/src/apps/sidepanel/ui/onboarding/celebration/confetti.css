@@ -1,0 +1,60 @@
+/*
+ * Lightweight CSS confetti for the quick-win screen. No libraries —
+ * a fixed set of colored dots animate in with a short burst and
+ * drift. Hidden under `prefers-reduced-motion`.
+ *
+ * Keyframes are deliberately simple (translate + opacity) to stay
+ * cheap on low-end devices. Density tuned so it reads as "yay" not
+ * as "New Year's Eve."
+ */
+
+.confetti-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-dot {
+  position: absolute;
+  top: -6px;
+  width: 6px;
+  height: 10px;
+  border-radius: 2px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: confetti-fall 2400ms ease-out forwards;
+}
+
+.confetti-dot.square {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+}
+
+.confetti-dot.round {
+  border-radius: 999px;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, -10px, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--confetti-tx, 0px), 180px, 0) rotate(var(--confetti-rot, 200deg));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-dot {
+    display: none;
+  }
+}

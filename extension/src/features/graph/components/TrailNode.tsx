@@ -51,6 +51,7 @@ function TrailNodeComponent({
     isCollapsed,
     childCount,
     handles,
+    spotlight,
   } = data;
 
   // One xyflow subscription per node instead of two independent boolean
@@ -129,6 +130,8 @@ function TrailNodeComponent({
           onActivePath && !isCurrent && isOpen && "border-primary/50 shadow-primary/15 shadow-sm",
           isCurrent && "border-primary shadow-primary/25 shadow-sm",
           selected && "ring-ring ring-2",
+          spotlight === "target" && "trail-spotlight-target",
+          spotlight === "pulse" && "trail-spotlight-pulse",
         )}
       >
         {showDetail &&
@@ -207,6 +210,7 @@ export const TrailNode = memo(TrailNodeComponent, (prev, next) => {
     a.childCount === b.childCount &&
     a.isCollapsed === b.isCollapsed &&
     a.handles.length === b.handles.length &&
-    a.handles.every((h, i) => h === b.handles[i])
+    a.handles.every((h, i) => h === b.handles[i]) &&
+    a.spotlight === b.spotlight
   );
 });

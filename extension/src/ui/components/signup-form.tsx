@@ -86,7 +86,9 @@ export function SignUpForm({
                   onChange={(e) => onPasswordChange(e.target.value)}
                   disabled={pending}
                 />
-                <FieldDescription>Letters and numbers, at least 8 characters.</FieldDescription>
+                <FieldDescription>
+                  At least 8 characters with uppercase, lowercase, a number, and a symbol.
+                </FieldDescription>
               </Field>
               <Field>
                 <Button type="submit" disabled={pending}>

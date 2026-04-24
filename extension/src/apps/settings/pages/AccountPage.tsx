@@ -324,6 +324,9 @@ function SecurityCard() {
                   onChange={(e) => setNext(e.target.value)}
                   disabled={submitting}
                 />
+                <p className="text-muted-foreground text-xs">
+                  At least 8 characters with uppercase, lowercase, a number, and a symbol.
+                </p>
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="confirm-password">

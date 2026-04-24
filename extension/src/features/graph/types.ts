@@ -20,6 +20,13 @@ export type TrailNodeData = {
   isCollapsed: boolean;
   /** Handle IDs this node needs (e.g. ["source-bottom", "target-top"]) — set by layout */
   handles: string[];
+  /**
+   * Onboarding tour spotlight. "pulse" = soft radiating ring, used on
+   * nodes the coach is narrating about. "target" = persistent ring +
+   * arrow, used to invite a click. Absent on every other node.
+   * Layout merges this from the Zustand `onboarding.spotlight` slice.
+   */
+  spotlight?: "pulse" | "target";
 };
 
 // ── React Flow node/edge aliases ───────────────────────────────────
@@ -42,6 +49,12 @@ export type TrailGraphProps = {
   nodeTabCounts: Record<NodeId, number>;
   settings: Settings;
   precomputedPositions?: Record<string, { x: number; y: number }> | null;
+  /**
+   * Optional onboarding spotlight: single node highlighted with a pulse
+   * or target ring. Layout doesn't re-run when this changes — only the
+   * matched node's data is shallow-cloned.
+   */
+  spotlight?: { nodeId: NodeId | null; kind: "pulse" | "target" | null } | null;
   onNodeClick: (nodeId: NodeId, url: string) => void;
   onNodeContextMenu: (nodeId: NodeId, position: { x: number; y: number }) => void;
   onCollapseToggle: (nodeId: NodeId) => void;

@@ -59,7 +59,9 @@ export function SetPasswordForm({
                 disabled={pending}
                 autoFocus
               />
-              <FieldDescription>Letters and numbers, at least 8 characters.</FieldDescription>
+              <FieldDescription>
+                At least 8 characters with uppercase, lowercase, a number, and a symbol.
+              </FieldDescription>
             </Field>
             <Field data-invalid={confirmError ? true : undefined}>
               <FieldLabel htmlFor="confirm-password">Confirm password</FieldLabel>

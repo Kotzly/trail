@@ -75,6 +75,173 @@
         "renameNode": "Rename node",
         "allShortcuts": "All shortcuts"
       }
+    },
+    "v2": {
+      "hook": {
+        "title": "Never lose a tab again.",
+        "body": "Trail turns every click into a node you can return to — weeks later, with two letters.",
+        "cta": "Show me"
+      },
+      "problem": {
+        "title": "You know the feeling.",
+        "questions": {
+          "q1": "Wait — where was that tab I just had?",
+          "q2": "How did I end up on this page?",
+          "q3": "I hit back. Now it's gone."
+        },
+        "footer": "That's the hole Trail fills.",
+        "cta": "Keep going"
+      },
+      "persona": {
+        "title": "What do you lose in your browser?",
+        "subtitle": "Pick whichever feels most like you.",
+        "options": {
+          "research": {
+            "title": "Research threads",
+            "body": "I compare five things at once and get lost."
+          },
+          "article": {
+            "title": "That one article",
+            "body": "I meant to come back. I didn't."
+          },
+          "learning": {
+            "title": "Learning paths",
+            "body": "I was deep in something. Now it's gone."
+          },
+          "tabs": {
+            "title": "Open tabs",
+            "body": "I keep tabs open because I'm scared to close them."
+          }
+        }
+      },
+      "solution": {
+        "imagineLabel": "Imagine",
+        "research": {
+          "title": "Every path you explored, kept.",
+          "body": "Click back, try another — both are saved. Nothing dies when you change your mind.",
+          "imagine": "You compare five laptops. Hop between them. Close every tab. Next Tuesday, every path is still there, side by side.",
+          "chips": {
+            "c1": "Parallel paths",
+            "c2": "Nothing overwrites",
+            "c3": "Revisit anytime"
+          }
+        },
+        "article": {
+          "title": "Every click, a searchable node.",
+          "body": "That thing from Tuesday is two letters away.",
+          "imagine": "You half-read an article at 11pm. Close the tab. Friday afternoon, type two words — it's right there.",
+          "chips": {
+            "c1": "Searchable",
+            "c2": "Survives tab close",
+            "c3": "Weeks-old, findable"
+          }
+        },
+        "learning": {
+          "title": "Your learning is a tree, not a list.",
+          "body": "Trail draws the tree so you can pick up where you left off.",
+          "imagine": "You're deep in a React rabbit hole. Life happens. You come back — the exact branch you were on is right where you left it.",
+          "chips": {
+            "c1": "Threads kept",
+            "c2": "Resume mid-thought",
+            "c3": "No more 'wait, where was I'"
+          }
+        },
+        "tabs": {
+          "title": "Close tabs. Keep them addressable.",
+          "body": "Open any node from yesterday like it's still a tab.",
+          "imagine": "40 tabs down to 4. Everything else lives in the graph — one click and you're back in it.",
+          "chips": {
+            "c1": "Less RAM",
+            "c2": "One click back",
+            "c3": "Peace of mind"
+          }
+        }
+      },
+      "features": {
+        "title": "Three ideas, that's it.",
+        "bullets": {
+          "b1": "Every tab you open is a node you can return to.",
+          "b2": "Go back, then click somewhere else? Both paths are saved.",
+          "b3": "Search what you actually did, not just URLs you typed."
+        },
+        "cta": "Let me feel it",
+        "skipCta": "No, thank you"
+      }
+    },
+    "tour": {
+      "badge": "Tour",
+      "progress": "Step $1 of $2",
+      "skip": "Skip",
+      "confirmSkip": "Exit the tour? Your tour tree will be deleted.",
+      "regionAriaLabel": "Onboarding coach",
+      "arm": {
+        "title": "Open any site.",
+        "body": "A news front page, a blog, GitHub, Wikipedia — anything with links. I'll watch the tree start.",
+        "pickForMeCta": "Pick for me"
+      },
+      "clickResult": {
+        "title": "Nice. Click any link on that page.",
+        "body": "Whatever looks interesting. We'll use it as the starting point."
+      },
+      "goBack": {
+        "title": "Now press Back.",
+        "body": "Go back to the page you came from. Your first click stays saved in the tree."
+      },
+      "clickAnother": {
+        "title": "Good. Now click a different link.",
+        "body": "Pick any other link on the same page. That's where Trail does the interesting part."
+      },
+      "celebrateBranch": {
+        "title": "You branched.",
+        "body": "Both paths are saved. Neither disappears when you change your mind.",
+        "cta": "Nice"
+      },
+      "returnToAbandoned": {
+        "title": "One more — click the highlighted node.",
+        "body": "See the ring in the graph? That's the first result you opened. Click it here to jump back."
+      }
+    },
+    "celebration": {
+      "title": "$1 nodes in $2 seconds.",
+      "body": "This is what every browsing session could look like.",
+      "bodyByPersona": {
+        "research": "Your real research looks just like this — only longer.",
+        "article": "Every article you meant to reread is findable now.",
+        "learning": "Next time a thread resumes, you'll pick up right here.",
+        "tabs": "You can close every one of them. Nothing gets lost."
+      },
+      "cta": "That's enough"
+    },
+    "cta": {
+      "title": "Keep it across devices?",
+      "taglines": {
+        "research": "Your research deserves to outlive this tab.",
+        "article": "That article will still be here tomorrow.",
+        "learning": "Pick up where you left off — from any device.",
+        "tabs": "Every tab, every device, still addressable."
+      },
+      "signIn": "Sign in",
+      "skip": "Maybe later"
+    },
+    "hintStrip": {
+      "regionAriaLabel": "Onboarding hint",
+      "dismissAriaLabel": "Dismiss",
+      "resume": {
+        "title": "Tour paused",
+        "body": "Pick up from where you left off.",
+        "cta": "Resume tour"
+      },
+      "signin": {
+        "title": "Sync across devices",
+        "body": "Sign in to keep your trails on every browser.",
+        "cta": "Sign in"
+      },
+      "pin": {
+        "title": "Pin Trail to your toolbar",
+        "body": "Click the puzzle piece in your toolbar, then the pin next to Trail. One click to open from anywhere.",
+        "cta": "Show me how",
+        "gotIt": "Got it"
+      }
     }
   },
   "trees": {

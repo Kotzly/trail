@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { NodeId, Tag } from "@shared/types/ids.js";
+import type { OnboardingPersona, OnboardingPhase } from "@shared/config/storage-items.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { TabState } from "@shared/types/tabs.js";
 import type {
@@ -125,6 +126,31 @@ type StoreState = {
   syncConflict: SyncConflictUiState | null;
   contextMenu: ContextMenuState;
   pickTarget: { type: "duplicate"; sourceNodeId: NodeId } | null;
+  /**
+   * Interactive onboarding v2 state. Mirrors the persisted
+   * `onboardingStateItem` (storage-items.ts) so UI can read synchronously
+   * without awaiting storage. Writes go through the onboarding API,
+   * which updates both storage and this slice.
+   */
+  onboarding: {
+    phase: OnboardingPhase | null;
+    wizardStep: number;
+    tourStep: number;
+    persona: OnboardingPersona | null;
+    tourTreeId: string | null;
+    startedAt: number | null;
+    completedAt: number | null;
+    softCtaDismissed: { signin?: boolean; pin?: boolean };
+    /**
+     * Currently spotlighted node for the coach. Lives in state (not
+     * tree data) so it survives tree re-renders, and the layout
+     * transform merges it into `TrailNodeData.spotlight` by id.
+     */
+    spotlight: {
+      nodeId: NodeId | null;
+      kind: "pulse" | "target" | null;
+    };
+  };
 };
 
 type StoreActions = {
@@ -185,6 +211,8 @@ type StoreActions = {
   resetConflictPicks: () => void;
   setConflictApplyError: (error: ApplyError | null) => void;
   clearConflict: () => void;
+  setOnboarding: (patch: Partial<StoreState["onboarding"]>) => void;
+  setSpotlight: (nodeId: NodeId | null, kind: "pulse" | "target" | null) => void;
 };
 
 export type AuthUiState =
@@ -339,6 +367,17 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   syncConflict: null,
   contextMenu: null,
   pickTarget: null,
+  onboarding: {
+    phase: null,
+    wizardStep: 0,
+    tourStep: 0,
+    persona: null,
+    tourTreeId: null,
+    startedAt: null,
+    completedAt: null,
+    softCtaDismissed: {},
+    spotlight: { nodeId: null, kind: null },
+  },
 
   bootstrapGraph: (settings, payload) => {
     const tree = NavigationTreeMapper.fromJSON(payload.tree);
@@ -870,6 +909,25 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     }),
 
   clearConflict: () => set({ syncConflict: null }),
+
+  setOnboarding: (patch) =>
+    set((state) => ({
+      onboarding: {
+        ...state.onboarding,
+        ...patch,
+        spotlight: patch.spotlight
+          ? { ...state.onboarding.spotlight, ...patch.spotlight }
+          : state.onboarding.spotlight,
+      },
+    })),
+
+  setSpotlight: (nodeId, kind) =>
+    set((state) => ({
+      onboarding: {
+        ...state.onboarding,
+        spotlight: { nodeId, kind },
+      },
+    })),
 }));
 
 function emptyConflictPicks(treeId: string, serverUpdatedAt: string): ConflictPickState {

@@ -90,6 +90,68 @@ function detectOs(ua: string): string | null {
 }
 
 /**
+ * Create the `public.users` row for a freshly authenticated user.
+ * Migration 005 dropped the auth.users → public.users sync trigger,
+ * so every client that bypasses the Next.js auth callback (i.e. the
+ * extension, which calls Supabase Auth directly for Google OAuth,
+ * email+password, and OTP) has to provision its own row. Without it,
+ * every `trails` / `devices` / `account_settings` insert fails
+ * `trails_user_id_fkey` because `trails.user_id` → `users(id)`.
+ *
+ * `ignoreDuplicates: true` keeps the call idempotent and avoids
+ * tripping migration 007's column-UPDATE grants (UPDATE is restricted
+ * to a safe allow-list; INSERT has no such restriction beyond the RLS
+ * "insert_own" check of `id = auth.uid()`). After insert we call the
+ * `sync_public_user_from_auth` RPC so `email_verified` reflects
+ * `auth.users.email_confirmed_at` instead of the optimistic `true` we
+ * write on the insert path.
+ */
+async function ensurePublicUser(identity: AuthIdentity): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  try {
+    const now = new Date().toISOString();
+    const { error: upsertError } = await supabase.from("users").upsert(
+      {
+        id: identity.userId,
+        email: identity.email ?? "",
+        name: identity.displayName ?? identity.email ?? identity.userId,
+        email_verified: true,
+        image: identity.avatarUrl,
+        image_url: identity.avatarUrl,
+        created_at: now,
+        updated_at: now,
+        auth_session_version: 1,
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+    if (upsertError) throw upsertError;
+    // Best-effort reconcile `email_verified` with `auth.users`. Safe
+    // to ignore failures — a stale `email_verified=true` on a row we
+    // just inserted is the same value the RPC would write for a
+    // confirmed user, and the server side runs this on every session
+    // establish anyway.
+    const { error: rpcError } = await supabase.rpc("sync_public_user_from_auth", {
+      p_user_id: identity.userId,
+    });
+    if (rpcError) captureError(rpcError, { kind: "auth_sync_public_user" });
+  } catch (err) {
+    captureError(err, { kind: "auth_ensure_public_user" });
+  }
+}
+
+/**
+ * Provision everything a signed-in identity needs server-side before
+ * the extension tries to write trails. Order matters: `devices` and
+ * every other public table have a FK to `public.users(id)`, so the
+ * user row has to exist first.
+ */
+async function provisionSignedInUser(identity: AuthIdentity): Promise<void> {
+  await ensurePublicUser(identity);
+  await ensureDeviceRegistered(identity.userId);
+}
+
+/**
  * Upsert the current device into `public.devices`. Required before any
  * `trails` write because `trails.device_id` has a FK to `devices.id`.
  * Idempotent — safe to call on every signed-in transition.
@@ -228,7 +290,7 @@ function toUserError(err: unknown, fallback: string): Error {
       friendly =
         "An account with that email already exists. Try signing in, or request a code if you forgot the password.";
     } else if (code === "weak_password" || /password.*(short|weak)/i.test(msg)) {
-      friendly = `Password is too weak. Use at least ${PASSWORD_MIN_LENGTH} characters with a mix of letters and numbers.`;
+      friendly = `Password is too weak. Use at least ${PASSWORD_MIN_LENGTH} characters including lowercase, uppercase, a number, and a symbol.`;
     } else if (code === "otp_expired" || /token.*(expired|invalid)/i.test(msg)) {
       friendly = "That code is invalid or has expired. Request a new one and try again.";
     } else if (code === "over_email_send_rate_limit" || /rate limit/i.test(msg)) {
@@ -267,7 +329,7 @@ export async function initAuth(): Promise<AuthState> {
     const identity = sessionToIdentity(data.session);
     if (identity) {
       await authIdentityItem.setValue(identity);
-      void ensureDeviceRegistered(identity.userId);
+      await provisionSignedInUser(identity);
       notify({ status: "signed-in", identity });
     } else {
       notify({ status: "signed-out" });
@@ -305,7 +367,16 @@ export async function initAuth(): Promise<AuthState> {
         return;
       }
       await authIdentityItem.setValue(identity);
-      void ensureDeviceRegistered(identity.userId);
+      // Fire-and-forget: awaiting inside an `onAuthStateChange` callback
+      // deadlocks supabase-js's `navigator.locks` critical section —
+      // another context (SW or sidepanel) steals the auth lock and the
+      // original caller's sign-in rejects with "lock stolen". Explicit
+      // sign-in entry points (`signInWithGoogle`, `signInWithEmailPassword`,
+      // `signUpWithEmailPassword`, `verifyEmailOtp`) await provisioning
+      // themselves before broadcasting; this handler exists for token
+      // refresh / cross-tab wakeups where an eventual-consistent row is
+      // good enough.
+      void provisionSignedInUser(identity);
       notify({ status: "signed-in", identity });
     } else {
       await authIdentityItem.setValue(null);
@@ -343,7 +414,7 @@ export async function initAuth(): Promise<AuthState> {
               return;
             }
             await authIdentityItem.setValue(nextIdentity);
-            void ensureDeviceRegistered(nextIdentity.userId);
+            await provisionSignedInUser(nextIdentity);
             notify({ status: "signed-in", identity: nextIdentity });
           } else {
             await authIdentityItem.setValue(null);
@@ -396,8 +467,14 @@ export function validatePassword(password: string): string | null {
     // bcrypt's hard limit; Supabase truncates silently otherwise.
     return "Password must be 72 characters or fewer.";
   }
-  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
-    return "Password must contain both letters and numbers.";
+  // Mirrors the hosted Supabase policy `lower_upper_letters_digits_symbols`.
+  if (
+    !/[a-z]/.test(password) ||
+    !/[A-Z]/.test(password) ||
+    !/[0-9]/.test(password) ||
+    !/[^a-zA-Z0-9]/.test(password)
+  ) {
+    return "Password must include lowercase, uppercase, a number, and a symbol.";
   }
   return null;
 }
@@ -427,6 +504,7 @@ export async function signInWithEmailPassword(
     const identity = sessionToIdentity(data.session);
     if (!identity) throw new Error("Signed in but session has no user identity.");
     await authIdentityItem.setValue(identity);
+    await provisionSignedInUser(identity);
     captureEvent("auth_signin_completed", { provider: "password" });
     notify({ status: "signed-in", identity });
     return { status: "signed-in", identity };
@@ -467,6 +545,7 @@ export async function signUpWithEmailPassword(
       const identity = sessionToIdentity(data.session);
       if (!identity) throw new Error("Signed up but session has no user identity.");
       await authIdentityItem.setValue(identity);
+      await provisionSignedInUser(identity);
       captureEvent("auth_signup_completed", { provider: "password", confirmed: true });
       notify({ status: "signed-in", identity });
       return { status: "signed-in", identity };
@@ -575,6 +654,7 @@ export async function verifyEmailOtp(
       // or updatePassword can release it.
       pendingRecoveryIdentity = identity;
     } else {
+      await provisionSignedInUser(identity);
       notify({ status: "signed-in", identity });
     }
     return { status: "signed-in", identity };
@@ -781,6 +861,7 @@ export async function signInWithGoogle(): Promise<AuthState> {
   if (!identity) throw new Error("Signed in but session has no user identity");
 
   await authIdentityItem.setValue(identity);
+  await provisionSignedInUser(identity);
   captureEvent("auth_signin_completed", { provider: "google" });
   notify({ status: "signed-in", identity });
   return { status: "signed-in", identity };

@@ -3,6 +3,10 @@ import FloatingControls from "./components/FloatingControls.js";
 import RenameNodeDialog from "./components/RenameNodeDialog.js";
 import SyncConflictToastMount from "./components/SyncConflictToast.js";
 import OnboardingWizard from "./onboarding/OnboardingWizard.js";
+import TourCoach from "./onboarding/tour/TourCoach.js";
+import TourCelebration from "./onboarding/celebration/TourCelebration.js";
+import TourCommitments from "./onboarding/cta/TourCommitments.js";
+import OnboardingHintStrip from "./onboarding/hint-strip/OnboardingHintStrip.js";
 import ContextMenus from "./components/ContextMenus.js";
 import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
 import TrailLogo from "@ui/components/trail-logo";
@@ -84,6 +88,7 @@ export default function App() {
   const openContextMenu = useStore((s) => s.openContextMenu);
   const collapseNodes = useStore((s) => s.collapseNodes);
   const expandNodes = useStore((s) => s.expandNodes);
+  const spotlight = useStore((s) => s.onboarding.spotlight);
 
   const handleNodeClick = useCallback((nodeId: NodeId, url: string) => {
     void navigateToNodeId(nodeId, url as Url);
@@ -149,6 +154,7 @@ export default function App() {
               nodeTabCounts={nodeTabCounts}
               settings={settings}
               precomputedPositions={precomputedPositions}
+              spotlight={spotlight}
               onNodeClick={handleNodeClick}
               onNodeContextMenu={handleNodeContextMenu}
               onCollapseToggle={handleCollapseToggle}
@@ -159,6 +165,10 @@ export default function App() {
         <DeleteTreeConfirmModal />
         <RenameNodeDialog />
         <OnboardingWizard />
+        <TourCoach />
+        <TourCelebration />
+        <TourCommitments />
+        <OnboardingHintStrip />
         <ContextMenus />
       </div>
     </TooltipProvider>

@@ -21,3 +21,62 @@
   pointer-events: none;
   cursor: default;
 }
+
+/*
+ * Onboarding tour spotlights.
+ *
+ * `pulse` — soft radiating ring that gently breathes. Used on the node
+ *   the coach just narrated about (e.g. the Google search node after
+ *   the branch forms). Purely attention, no CTA.
+ *
+ * `target` — persistent bold ring. Used to invite a click on a
+ *   specific node (e.g. the abandoned result the user should jump back
+ *   to). Brighter, slower, doesn't fade.
+ *
+ * Both outline outside the node's border so the inner content isn't
+ * affected. The spotlight survives tree re-layout because it's
+ * matched by `nodeId`, not pixel position.
+ */
+
+@keyframes trail-spotlight-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 12px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+
+.trail-spotlight-pulse {
+  animation: trail-spotlight-pulse-ring 1.8s ease-out infinite;
+  border-color: var(--primary) !important;
+}
+
+.trail-spotlight-target {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--primary) 18%, transparent);
+  animation: trail-spotlight-target-breath 2.4s ease-in-out infinite;
+}
+
+@keyframes trail-spotlight-target-breath {
+  0%,
+  100% {
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+  50% {
+    outline-offset: 5px;
+    box-shadow: 0 0 0 10px color-mix(in oklab, var(--primary) 10%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trail-spotlight-pulse,
+  .trail-spotlight-target {
+    animation: none;
+  }
+}
