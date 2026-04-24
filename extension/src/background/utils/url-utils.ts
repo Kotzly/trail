@@ -1,6 +1,6 @@
 import type { FaviconUrl, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
-import { compileBlocklist, type CompiledBlocklist } from "@shared/lib/url-blocklist.js";
+import { compileBlocklist, type UrlPredicate } from "@shared/lib/url-blocklist.js";
 import { isNewTabUrl } from "@shared/lib/root.js";
 import { browser } from "@shared/platform/webext.js";
 export { getFaviconUrl };
@@ -88,7 +88,7 @@ export function isTrackableUrl(url: string): boolean {
 // `settingsManager.ready` first; fire-and-forget callers get a safe
 // default-deny instead of a silent privacy leak.
 let cachedBlocklistKey = "";
-let cachedBlocklist: CompiledBlocklist = () => true;
+let cachedBlocklist: UrlPredicate = () => true;
 let blocklistReady = false;
 
 export function setUrlBlocklist(patterns: readonly string[]): void {

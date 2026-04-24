@@ -50,6 +50,7 @@ function TrailNodeComponent({
     tabCount,
     isCollapsed,
     childCount,
+    foldedAncestorCount,
     handles,
     spotlight,
   } = data;
@@ -187,6 +188,15 @@ function TrailNodeComponent({
                 +{childCount}
               </Badge>
             )}
+            {foldedAncestorCount > 0 && (
+              <Badge
+                variant="outline"
+                aria-label={`${foldedAncestorCount} hidden steps`}
+                className="text-muted-foreground h-4 rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
+              >
+                ⋯{foldedAncestorCount}
+              </Badge>
+            )}
           </div>
         )}
       </div>
@@ -209,6 +219,7 @@ export const TrailNode = memo(TrailNodeComponent, (prev, next) => {
     a.tabCount === b.tabCount &&
     a.childCount === b.childCount &&
     a.isCollapsed === b.isCollapsed &&
+    a.foldedAncestorCount === b.foldedAncestorCount &&
     a.handles.length === b.handles.length &&
     a.handles.every((h, i) => h === b.handles[i]) &&
     a.spotlight === b.spotlight

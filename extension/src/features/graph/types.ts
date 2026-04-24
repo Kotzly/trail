@@ -18,6 +18,12 @@ export type TrailNodeData = {
   tabCount: number;
   childCount: number;
   isCollapsed: boolean;
+  /**
+   * Number of chain ancestors auto-hidden by the collapselist fold.
+   * Zero means the node is not a folded tip. When positive, renders a
+   * "+N" badge and double-click unfolds the chain in place.
+   */
+  foldedAncestorCount: number;
   /** Handle IDs this node needs (e.g. ["source-bottom", "target-top"]) — set by layout */
   handles: string[];
   /**
@@ -45,6 +51,8 @@ export type TrailGraphProps = {
   currentNodeId: NodeId | null;
   openNodeIds: Set<NodeId>;
   collapsedNodeIds: Set<NodeId>;
+  /** Tip IDs the user has manually unfolded (skips chain folding for those chains). */
+  unfoldedChainIds: Set<NodeId>;
   selectedNodeIds: Set<NodeId>;
   nodeTabCounts: Record<NodeId, number>;
   settings: Settings;
@@ -58,6 +66,8 @@ export type TrailGraphProps = {
   onNodeClick: (nodeId: NodeId, url: string) => void;
   onNodeContextMenu: (nodeId: NodeId, position: { x: number; y: number }) => void;
   onCollapseToggle: (nodeId: NodeId) => void;
+  /** Toggle manual unfold for a chain-fold tip (by tip node ID). */
+  onChainUnfoldToggle: (nodeId: NodeId) => void;
   onSelectionChange: (nodeIds: Set<NodeId>) => void;
 };
 

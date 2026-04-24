@@ -117,6 +117,14 @@ type StoreState = {
     collapsedByTree: Map<NodeId, Set<NodeId>>;
     collapseVersion: number;
     collapseAction: { kind: "collapse" | "expand"; nodeIds: Set<NodeId> } | null;
+    /**
+     * Tip node IDs the user has manually unfolded for chain-fold
+     * (collapselist patterns). The fold transform skips these chains,
+     * rendering them as normal parent→child nodes. Saved per tree,
+     * resets on tree switch (same lifecycle as `collapsedNodeIds`).
+     */
+    unfoldedChainIds: Set<NodeId>;
+    unfoldedChainsByTree: Map<NodeId, Set<NodeId>>;
   };
   editorMode: EditorModeState;
   syncStatus: SyncStatus;
@@ -185,6 +193,7 @@ type StoreActions = {
   requestGraphReset: () => void;
   collapseNodes: (nodeIds: NodeId[]) => void;
   expandNodes: (nodeIds: NodeId[]) => void;
+  toggleChainUnfolded: (nodeId: NodeId) => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
   clearViewIntent: () => void;
@@ -301,6 +310,16 @@ const pruneCollapsedNodes = (tree: NavigationTree | null, collapsed: Set<NodeId>
   return next;
 };
 
+/** Drop IDs no longer present in the tree — for sets that don't care about child count. */
+const prunePresentIds = (tree: NavigationTree | null, ids: Set<NodeId>): Set<NodeId> => {
+  if (!tree || ids.size === 0) return new Set<NodeId>();
+  const next = new Set<NodeId>();
+  ids.forEach((id) => {
+    if (tree.findNodeById(id)) next.add(id);
+  });
+  return next;
+};
+
 export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   settings: null,
   flags: null,
@@ -358,6 +377,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     collapsedByTree: new Map<NodeId, Set<NodeId>>(),
     collapseVersion: 0,
     collapseAction: null,
+    unfoldedChainIds: new Set<NodeId>(),
+    unfoldedChainsByTree: new Map<NodeId, Set<NodeId>>(),
   },
   editorMode: { active: false, treeId: null },
   syncStatus: "idle" as SyncStatus,
@@ -418,17 +439,28 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       // Save/restore per-tree collapse state on tree-switch
       let nextCollapsedByTree = state.graph.collapsedByTree;
       let nextCollapsedNodeIds: Set<NodeId>;
+      let nextUnfoldedChainsByTree = state.graph.unfoldedChainsByTree;
+      let nextUnfoldedChainIds: Set<NodeId>;
       if (shouldResetTransient) {
         const oldRootId = state.tree?.getRoot()?.id;
         if (oldRootId && state.graph.collapsedNodeIds.size > 0) {
           nextCollapsedByTree = new Map(nextCollapsedByTree);
           nextCollapsedByTree.set(oldRootId, state.graph.collapsedNodeIds);
         }
+        if (oldRootId && state.graph.unfoldedChainIds.size > 0) {
+          nextUnfoldedChainsByTree = new Map(nextUnfoldedChainsByTree);
+          nextUnfoldedChainsByTree.set(oldRootId, state.graph.unfoldedChainIds);
+        }
         const newRootId = tree.getRoot()?.id;
         const saved = newRootId ? nextCollapsedByTree.get(newRootId) : undefined;
         nextCollapsedNodeIds = saved ? pruneCollapsedNodes(tree, saved) : new Set<NodeId>();
+        const savedUnfolded = newRootId ? nextUnfoldedChainsByTree.get(newRootId) : undefined;
+        nextUnfoldedChainIds = savedUnfolded
+          ? prunePresentIds(tree, savedUnfolded)
+          : new Set<NodeId>();
       } else {
         nextCollapsedNodeIds = pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
+        nextUnfoldedChainIds = prunePresentIds(tree, state.graph.unfoldedChainIds);
       }
       const autoExpandIds: NodeId[] = shouldResetTransient ? [] : [];
       const collapseVersion =
@@ -445,6 +477,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         viewIntent: resolvedViewIntent,
         collapsedNodeIds: nextCollapsedNodeIds,
         collapsedByTree: nextCollapsedByTree,
+        unfoldedChainIds: nextUnfoldedChainIds,
+        unfoldedChainsByTree: nextUnfoldedChainsByTree,
         collapseVersion,
         collapseAction,
         ...(shouldResetTransient
@@ -722,6 +756,18 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
           collapseVersion: state.graph.collapseVersion + 1,
           collapseAction: { kind: "expand", nodeIds: new Set(changed) },
         },
+      };
+    }),
+  toggleChainUnfolded: (nodeId) =>
+    set((state) => {
+      const next = new Set(state.graph.unfoldedChainIds);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return {
+        // Positions depend on fold info, which depends on this set —
+        // drop the cached snapshot so d3 recomputes with the new shape.
+        precomputedPositions: null,
+        graph: { ...state.graph, unfoldedChainIds: next },
       };
     }),
 

@@ -29,9 +29,14 @@ function compilePattern(pattern: string): (hostname: string) => boolean {
   return (hostname) => re.test(hostname);
 }
 
-export type CompiledBlocklist = (url: string) => boolean;
+/**
+ * A compiled host-pattern predicate. Same shape is reused for both the
+ * blocklist (never record) and the collapselist (auto-fold chains in
+ * the graph), so the name is deliberately neutral.
+ */
+export type UrlPredicate = (url: string) => boolean;
 
-export function compileBlocklist(patterns: readonly string[]): CompiledBlocklist {
+export function compileBlocklist(patterns: readonly string[]): UrlPredicate {
   const matchers = patterns.filter((p) => p.trim().length > 0).map(compilePattern);
   if (matchers.length === 0) return () => false;
   return (url: string) => {
@@ -44,3 +49,11 @@ export function compileBlocklist(patterns: readonly string[]): CompiledBlocklist
     return matchers.some((m) => m(host));
   };
 }
+
+/**
+ * Alias of `compileBlocklist` with semantically distinct name for the
+ * chain-fold feature: these patterns don't block anything, they only
+ * mark navigations as "visually foldable" in the graph transform.
+ * Keeping the function separate makes call sites self-documenting.
+ */
+export const compileCollapselist = compileBlocklist;

@@ -60,6 +60,15 @@ export type PrivacySettings = {
    */
   blocklist: string[];
   /**
+   * Hostname patterns for sites where linear chains of navigation get
+   * auto-folded in the graph: intermediate chain members are hidden and
+   * the latest (tip) is displayed with a "+N hidden" badge. Tree data is
+   * not mutated — double-clicking the tip temporarily unfolds the chain.
+   * Intended for sites like translate.yandex.ru whose URL changes on
+   * every keystroke and otherwise pollutes the tree.
+   */
+  collapselist: string[];
+  /**
    * URL schemes that Trail will record. Stored with a trailing colon
    * (e.g. `https:`). Defaults to regular web pages only; users can add
    * `file:`, `chrome-extension:`, etc. from Settings → Privacy.

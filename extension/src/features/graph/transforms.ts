@@ -11,6 +11,7 @@ import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { TrailNode, TrailNodeData, TrailEdge } from "./types.js";
 import { NODE_WIDTH, NODE_HEIGHT } from "./tree-layout.js";
+import { type ChainFoldInfo, EMPTY_FOLD_INFO } from "./fold-chains.js";
 
 export type TreeToNodesMetadata = {
   currentNodeId: NodeId | null;
@@ -37,11 +38,13 @@ export function computeActivePathIds(
 /**
  * Walk the tree and produce a flat list of TrailNodes.
  * Collapsed subtrees are excluded (the collapsed parent is included but not its children).
+ * Chain-folded ancestors are excluded entirely; their tip gets `foldedAncestorCount`.
  */
 export function treeToNodes(
   tree: NavigationTreeJSON | null,
   metadata: TreeToNodesMetadata,
   activePathIds?: Set<NodeId>,
+  foldInfo: ChainFoldInfo = EMPTY_FOLD_INFO,
 ): TrailNode[] {
   if (!tree?.root) return [];
 
@@ -49,7 +52,16 @@ export function treeToNodes(
   const nodes: TrailNode[] = [];
 
   function walk(node: NavigationNodeJSON): void {
+    // Hidden chain member: skip entirely, but still recurse (its only
+    // child will itself be either hidden or the tip — both reached via
+    // normal recursion).
+    if (foldInfo.hiddenIds.has(node.id)) {
+      for (const child of node.children) walk(child);
+      return;
+    }
+
     const isCollapsed = metadata.collapsedNodeIds.has(node.id);
+    const foldedAncestorCount = foldInfo.tipFoldCounts.get(node.id) ?? 0;
 
     const data = {
       nodeId: node.id,
@@ -62,6 +74,7 @@ export function treeToNodes(
       tabCount: metadata.nodeTabCounts[node.id] ?? 0,
       childCount: node.children.length,
       isCollapsed,
+      foldedAncestorCount,
       handles: [], // filled by layout
     } as TrailNodeData;
     if (node.data.favicon !== undefined) {
@@ -111,6 +124,7 @@ const ACTIVE_EDGE_STYLE = Object.freeze({
 export function treeToEdges(
   tree: NavigationTreeJSON | null,
   collapsedNodeIds: Set<NodeId>,
+  foldInfo: ChainFoldInfo = EMPTY_FOLD_INFO,
 ): TrailEdge[] {
   if (!tree?.root) return [];
 
@@ -118,10 +132,32 @@ export function treeToEdges(
 
   function walk(node: NavigationNodeJSON): void {
     if (collapsedNodeIds.has(node.id)) return;
+    // Hidden chain member: skip its own outgoing edges (children are
+    // either hidden too or the tip, reached via the rewired edge from
+    // the chain head's parent).
+    if (foldInfo.hiddenIds.has(node.id)) return;
 
     const useSmoothStep = node.children.length >= SMOOTHSTEP_CHILD_THRESHOLD;
 
     for (const child of node.children) {
+      // Rewire: if child is a chain head, emit edge to the chain's tip
+      // instead. The hidden intermediates still live in the tree data,
+      // but visually the graph jumps straight to the latest URL.
+      const rewireTip = foldInfo.headToTip.get(child.id);
+      if (rewireTip !== undefined) {
+        edges.push({
+          id: `${node.id}->${rewireTip.id}`,
+          source: String(node.id),
+          target: String(rewireTip.id),
+          type: useSmoothStep ? "smoothstep" : "default",
+        });
+        // Walk the tip directly — walking `child` (hidden head) would
+        // return immediately on the hiddenIds check, and the tip's own
+        // outgoing edges (to its non-chain subtree) would be dropped.
+        walk(rewireTip);
+        continue;
+      }
+
       edges.push({
         id: `${node.id}->${child.id}`,
         source: String(node.id),

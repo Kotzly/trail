@@ -111,6 +111,10 @@ export const defaultSettings: Settings = {
       "*.healthcare.gov",
       "*.irs.gov",
     ],
+    // Sites whose URLs change rapidly (translators, live-search apps) —
+    // linear chains of matching navigations are visually folded in the
+    // graph so they don't overwhelm the tree. Users can add their own.
+    collapselist: ["translate.yandex.ru", "translate.google.com"],
     // Default to regular web pages only. Matches the legacy hardcoded
     // allowlist; users can add `file:`, `chrome-extension:`, etc.
     trackedSchemes: ["http:", "https:"],
@@ -174,6 +178,11 @@ function mergeDefaults(raw: unknown): Settings {
         sanitized.privacy.blocklist.every((x) => typeof x === "string")
           ? sanitized.privacy.blocklist
           : defaultSettings.privacy.blocklist,
+      collapselist:
+        Array.isArray(sanitized.privacy?.collapselist) &&
+        sanitized.privacy.collapselist.every((x) => typeof x === "string")
+          ? sanitized.privacy.collapselist
+          : defaultSettings.privacy.collapselist,
       trackedSchemes:
         Array.isArray(sanitized.privacy?.trackedSchemes) &&
         sanitized.privacy.trackedSchemes.every((x) => typeof x === "string")

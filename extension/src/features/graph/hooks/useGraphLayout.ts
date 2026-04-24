@@ -5,11 +5,15 @@ import type { Settings } from "@shared/types/settings.js";
 import type { LayoutResult } from "../types.js";
 import { applyNodeMetadata, computeGeometry, type LayoutMetadata } from "../layout.js";
 import { applyEdgeHighlight, computeActivePathIds } from "../transforms.js";
+import { compileCollapselist } from "@shared/lib/url-blocklist.js";
+import { computeChainFoldInfo, EMPTY_FOLD_INFO } from "../fold-chains.js";
 
 type UseGraphLayoutInput = {
   tree: NavigationTreeJSON | null;
   settings: Settings;
   collapsedNodeIds: Set<NodeId>;
+  /** Tip IDs the user has manually unfolded — exempted from chain folding. */
+  unfoldedChainIds: Set<NodeId>;
   metadata: LayoutMetadata;
   precomputedPositions?: Record<string, { x: number; y: number }> | null | undefined;
 };
@@ -29,12 +33,23 @@ type UseGraphLayoutInput = {
  *      ReactFlow only repaints actually-changed nodes.
  */
 export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
-  const { tree, settings, collapsedNodeIds, metadata, precomputedPositions } = input;
+  const { tree, settings, collapsedNodeIds, unfoldedChainIds, metadata, precomputedPositions } =
+    input;
+
+  // Chain-fold info: drives hidden-node skip in both transforms and d3
+  // positioning. Memoized on tree shape + patterns + manual-unfold set
+  // so normal tab-focus churn doesn't retrigger the walk.
+  const collapselist = settings.privacy.collapselist;
+  const foldInfo = useMemo(() => {
+    if (collapselist.length === 0) return EMPTY_FOLD_INFO;
+    const matches = compileCollapselist(collapselist);
+    return computeChainFoldInfo(tree, matches, unfoldedChainIds);
+  }, [tree, collapselist, unfoldedChainIds]);
 
   // Geometry: positions + base edges + handles. Expensive; cache it.
   const geometry = useMemo(
-    () => computeGeometry(tree, settings, collapsedNodeIds, precomputedPositions),
-    [tree, settings, collapsedNodeIds, precomputedPositions],
+    () => computeGeometry(tree, settings, collapsedNodeIds, precomputedPositions, foldInfo),
+    [tree, settings, collapsedNodeIds, precomputedPositions, foldInfo],
   );
 
   // Active-path only depends on tree + currentNodeId. Extract so the
@@ -47,8 +62,17 @@ export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
 
   // Nodes: synchronous application of metadata onto cached geometry.
   const nodes = useMemo(
-    () => applyNodeMetadata(tree, settings, collapsedNodeIds, metadata, geometry, activePathIds),
-    [tree, settings, collapsedNodeIds, metadata, geometry, activePathIds],
+    () =>
+      applyNodeMetadata(
+        tree,
+        settings,
+        collapsedNodeIds,
+        metadata,
+        geometry,
+        activePathIds,
+        foldInfo,
+      ),
+    [tree, settings, collapsedNodeIds, metadata, geometry, activePathIds, foldInfo],
   );
 
   // Edges: base edges with active-path styling overlaid. New array only

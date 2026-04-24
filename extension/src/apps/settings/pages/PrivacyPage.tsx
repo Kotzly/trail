@@ -193,6 +193,33 @@ export function PrivacyPage() {
                 }}
               />
             </Field>
+
+            <Separator />
+
+            <Field>
+              <FieldLabel>Fold repetitive chains</FieldLabel>
+              <FieldDescription>
+                Sites whose URL changes on every keystroke (translators, live-search apps) clutter
+                the tree. Linear chains of matching navigations are auto-folded in the graph — only
+                the most recent node stays visible, with a <code>⋯N</code> badge for the hidden
+                steps. History is preserved; double-click the tip to unfold.
+              </FieldDescription>
+              <PatternListEditor
+                values={settings?.privacy.collapselist ?? []}
+                disabled={!settings}
+                placeholder="translate.yandex.ru"
+                addLabel="Add pattern"
+                emptyText="No chain-fold patterns. Add a hostname to collapse its rapid-fire URL changes."
+                normalize={normalizeHostPattern}
+                onChange={(next) => {
+                  if (!settings) return;
+                  void updateSettings({
+                    ...settings,
+                    privacy: { ...settings.privacy, collapselist: next },
+                  });
+                }}
+              />
+            </Field>
           </FieldGroup>
         </CardContent>
       </Card>

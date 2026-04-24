@@ -62,6 +62,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     currentNodeId,
     openNodeIds,
     collapsedNodeIds,
+    unfoldedChainIds,
     selectedNodeIds,
     nodeTabCounts,
     settings,
@@ -70,6 +71,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     onNodeClick,
     onNodeContextMenu,
     onCollapseToggle,
+    onChainUnfoldToggle,
     onSelectionChange,
   } = props;
 
@@ -107,6 +109,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     tree,
     settings,
     collapsedNodeIds,
+    unfoldedChainIds,
     metadata,
     precomputedPositions,
   });
@@ -381,12 +384,24 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   const handleNodeDoubleClick: NodeMouseHandler = useCallback(
     (_event, node) => {
-      const data = node.data as { nodeId?: NodeId; childCount?: number };
-      if (data.nodeId !== undefined && (data.childCount ?? 0) > 0) {
+      const data = node.data as {
+        nodeId?: NodeId;
+        childCount?: number;
+        foldedAncestorCount?: number;
+      };
+      if (data.nodeId === undefined) return;
+      // Folded chain tip takes priority: double-click unfolds the
+      // chain (shows hidden ancestors inline). Otherwise fall through
+      // to the normal subtree-collapse toggle.
+      if ((data.foldedAncestorCount ?? 0) > 0) {
+        onChainUnfoldToggle(data.nodeId);
+        return;
+      }
+      if ((data.childCount ?? 0) > 0) {
         onCollapseToggle(data.nodeId);
       }
     },
-    [onCollapseToggle],
+    [onCollapseToggle, onChainUnfoldToggle],
   );
 
   return (

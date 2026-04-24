@@ -83,11 +83,13 @@ export default function App() {
   const openNodeIds = useStore((s) => s.openNodeIds);
   const nodeTabCounts = useStore((s) => s.nodeTabCounts);
   const collapsedNodeIds = useStore((s) => s.graph.collapsedNodeIds);
+  const unfoldedChainIds = useStore((s) => s.graph.unfoldedChainIds);
   const selectedNodeIds = useStore((s) => s.graph.selectedNodeIds);
   const setSelectedNodeIds = useStore((s) => s.setSelectedNodeIds);
   const openContextMenu = useStore((s) => s.openContextMenu);
   const collapseNodes = useStore((s) => s.collapseNodes);
   const expandNodes = useStore((s) => s.expandNodes);
+  const toggleChainUnfolded = useStore((s) => s.toggleChainUnfolded);
   const spotlight = useStore((s) => s.onboarding.spotlight);
 
   const handleNodeClick = useCallback((nodeId: NodeId, url: string) => {
@@ -150,6 +152,7 @@ export default function App() {
               currentNodeId={currentNodeId}
               openNodeIds={openNodeIds}
               collapsedNodeIds={collapsedNodeIds}
+              unfoldedChainIds={unfoldedChainIds}
               selectedNodeIds={selectedNodeIds}
               nodeTabCounts={nodeTabCounts}
               settings={settings}
@@ -158,6 +161,7 @@ export default function App() {
               onNodeClick={handleNodeClick}
               onNodeContextMenu={handleNodeContextMenu}
               onCollapseToggle={handleCollapseToggle}
+              onChainUnfoldToggle={toggleChainUnfolded}
               onSelectionChange={handleSelectionChange}
             />
           </Suspense>

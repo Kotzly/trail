@@ -11,6 +11,7 @@ import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { LayoutMode } from "@shared/types/settings.js";
+import { type ChainFoldInfo, EMPTY_FOLD_INFO } from "./fold-chains.js";
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -25,20 +26,31 @@ export type LayoutGraphInput = {
   mode: LayoutMode;
   nodeSpacing: number;
   layerSpacing: number;
+  foldInfo?: ChainFoldInfo;
 };
 
 export function computeTreePositions(
   input: LayoutGraphInput,
 ): Map<string, { x: number; y: number }> {
   const { tree, collapsedNodeIds, mode, nodeSpacing, layerSpacing } = input;
+  const foldInfo = input.foldInfo ?? EMPTY_FOLD_INFO;
 
   const positions = new Map<string, { x: number; y: number }>();
   if (!tree.root) return positions;
 
-  // Build hierarchy; hide children of collapsed nodes.
-  const root = hierarchy<NavigationNodeJSON>(tree.root, (node) =>
-    collapsedNodeIds.has(node.id) ? null : node.children,
-  );
+  // Build hierarchy. Skip children of collapsed nodes. For chain-fold:
+  // when a child is a chain head, substitute its tip so d3 positions
+  // the tip at depth = head's depth (the hidden intermediates take no
+  // space). Hidden nodes are therefore never visited by d3, preventing
+  // visual gaps between the chain's pre-head parent and the tip.
+  // If the tree's root is itself a chain head, promote its tip to be
+  // d3's root so the tip lands at the root's origin position.
+  const d3Root = foldInfo.headToTip.get(tree.root.id) ?? tree.root;
+  const root = hierarchy<NavigationNodeJSON>(d3Root, (node) => {
+    if (collapsedNodeIds.has(node.id)) return null;
+    if (foldInfo.headToTip.size === 0) return node.children;
+    return node.children.map((c) => foldInfo.headToTip.get(c.id) ?? c);
+  });
 
   // nodeSize = [sibling-axis span, layer-axis span] in d3's native (x, y) frame.
   // Tree (TB): x = horizontal across siblings, y = vertical depth.

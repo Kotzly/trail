@@ -26,6 +26,7 @@ import {
 } from "./transforms.js";
 import { computeTreePositions } from "./tree-layout.js";
 import { getSpacing } from "@shared/layout/spacing.js";
+import { type ChainFoldInfo, EMPTY_FOLD_INFO } from "./fold-chains.js";
 
 // ── Per-edge handle assignment ────────────────────────────────────
 
@@ -86,6 +87,7 @@ function computeFreshPositions(
   tree: NavigationTreeJSON,
   settings: Settings,
   collapsedNodeIds: Set<NodeId>,
+  foldInfo: ChainFoldInfo,
 ): Map<string, { x: number; y: number }> {
   const { nodeSpacing, layerSpacing } = getSpacing(settings.graphDensity);
   return computeTreePositions({
@@ -94,6 +96,7 @@ function computeFreshPositions(
     mode: settings.layout.mode,
     nodeSpacing,
     layerSpacing,
+    foldInfo,
   });
 }
 
@@ -102,17 +105,19 @@ export function computeGeometry(
   settings: Settings,
   collapsedNodeIds: Set<NodeId>,
   precomputedPositions?: Record<string, { x: number; y: number }> | null | undefined,
+  foldInfo: ChainFoldInfo = EMPTY_FOLD_INFO,
 ): Geometry {
   if (!tree?.root) return EMPTY_GEOMETRY;
 
-  const baseEdges = treeToEdges(tree, collapsedNodeIds);
+  const baseEdges = treeToEdges(tree, collapsedNodeIds, foldInfo);
 
   // Pre-computed background cache is only usable when the user hasn't
   // collapsed anything AND every expected node is covered. Otherwise a
-  // stale cache would leave new nodes pinned at (0, 0).
+  // stale cache would leave new nodes pinned at (0, 0). Fold info also
+  // invalidates the cache — rewired positions require a fresh compute.
   let positions: Map<string, { x: number; y: number }>;
 
-  if (precomputedPositions && collapsedNodeIds.size === 0) {
+  if (precomputedPositions && collapsedNodeIds.size === 0 && foldInfo.hiddenIds.size === 0) {
     const candidate = new Map(Object.entries(precomputedPositions));
     // Quick coverage check: every edge endpoint must have a position.
     // Cheaper than walking the tree again — edges already enumerate all
@@ -127,9 +132,11 @@ export function computeGeometry(
         }
       }
     }
-    positions = covered ? candidate : computeFreshPositions(tree, settings, collapsedNodeIds);
+    positions = covered
+      ? candidate
+      : computeFreshPositions(tree, settings, collapsedNodeIds, foldInfo);
   } else {
-    positions = computeFreshPositions(tree, settings, collapsedNodeIds);
+    positions = computeFreshPositions(tree, settings, collapsedNodeIds, foldInfo);
   }
 
   const rawHandles = assignEdgeHandles(baseEdges, settings.layout.mode);
@@ -155,6 +162,7 @@ export function applyNodeMetadata(
   metadata: LayoutMetadata,
   geometry: Geometry,
   activePathIds?: Set<NodeId>,
+  foldInfo: ChainFoldInfo = EMPTY_FOLD_INFO,
 ): TrailNode[] {
   if (!tree?.root) return [];
 
@@ -164,7 +172,7 @@ export function applyNodeMetadata(
   };
 
   const path = activePathIds ?? computeActivePathIds(tree, metadata.currentNodeId);
-  const nodes = treeToNodes(tree, fullMetadata, path);
+  const nodes = treeToNodes(tree, fullMetadata, path, foldInfo);
 
   if (nodes.length === 0) return nodes;
 
@@ -180,7 +188,7 @@ export function applyNodeMetadata(
     }
   }
   if (needsFallback) {
-    positions = computeFreshPositions(tree, settings, collapsedNodeIds);
+    positions = computeFreshPositions(tree, settings, collapsedNodeIds, foldInfo);
   }
 
   for (const node of nodes) {
@@ -208,10 +216,17 @@ export async function computeLayout(
   collapsedNodeIds: Set<NodeId>,
   metadata: LayoutMetadata,
   precomputedPositions?: Record<string, { x: number; y: number }> | null | undefined,
+  foldInfo: ChainFoldInfo = EMPTY_FOLD_INFO,
 ): Promise<LayoutResult> {
   if (!tree?.root) return { nodes: [], edges: [] };
 
-  const geometry = computeGeometry(tree, settings, collapsedNodeIds, precomputedPositions);
+  const geometry = computeGeometry(
+    tree,
+    settings,
+    collapsedNodeIds,
+    precomputedPositions,
+    foldInfo,
+  );
   const activePathIds = computeActivePathIds(tree, metadata.currentNodeId);
   const nodes = applyNodeMetadata(
     tree,
@@ -220,6 +235,7 @@ export async function computeLayout(
     metadata,
     geometry,
     activePathIds,
+    foldInfo,
   );
   const edges = applyEdgeHighlight(geometry.baseEdges, activePathIds);
 
